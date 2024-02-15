@@ -3616,7 +3616,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
             if ((SO = SUMA_SV_Focus_SO(sv))) {
                GLfloat *glar_ColorList;
-               // fprintf(stderr, "%s: DO_idstr = %s\n", FuncName, SO->idcode_str);
                glar_ColorList = SUMA_GetColorList(sv, SO->idcode_str);
                if (!glar_ColorList) {
                   SUMA_S_Err("NULL color list array. Trouble.");
@@ -4081,14 +4080,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
 
             if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA")) {
-                fprintf(stderr, "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %s: I_get_attribute(EngineData->ngr, \"SET_FUNC_ALPHA\")\n", FuncName);
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "y")){
-                    fprintf(stderr, "Set alpha threshold to TRUE\n");
                   SurfCont->curColPlane->AlphaThresh = 1;
                }
                else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "n"))
                {
-                    fprintf(stderr, "Set alpha threshold to FALSE\n");
                   SurfCont->curColPlane->AlphaThresh = 0;
                }
                else {
@@ -4096,7 +4092,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA"));
                   SurfCont->curColPlane->AlphaThresh = NOPE;
                }
-               fprintf(stderr, "SurfCont->curColPlane->AlphaThresh = %d\n\n", SurfCont->curColPlane->AlphaThresh);
                XmToggleButtonSetState ( SurfCont->AlphaThresh_tb,
                               SurfCont->curColPlane->AlphaThresh, YUP);
             }

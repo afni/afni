@@ -324,7 +324,6 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
        if (LocalHead)
          fprintf(SUMA_STDERR,"%s: reading data stream", FuncName) ;
 
-         // fprintf(stderr, "+++++ %s: NI_read_element\n", FuncName);
        nini = NI_read_element( SUMAg_CF->ns_v[cc] , 1 ) ;  /* read it */
          #if SUMA_SUMA_NIML_DEBUG /* debugging corruption of niml ...*/
             nel = (NI_element *)nini ;
@@ -365,15 +364,6 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
 
        if( nini != NULL ) {
          nel = (NI_element *)nini ;
-//         if (FuncName, nel->attr_lhs){
-//            fprintf(stderr, "***** %s: nel->attr_lhs[0]  = %s\n", FuncName, nel->attr_lhs[0] );
-//            fprintf(stderr, "***** %s: nel->attr_lhs[1]  = %s\n", FuncName, nel->attr_lhs[1] );
-//         }
-//         if (FuncName, nel->attr_rhs){
-//            fprintf(stderr, "***** %s: nel->attr_rhs[0]  = %s\n", FuncName, nel->attr_rhs[0] );
-//            fprintf(stderr, "***** %s: nel->attr_rhs[1]  = %s\n", FuncName, nel->attr_rhs[1] );
-//         }
-//         fprintf(stderr, "***** %s: SUMAg_CF->TrackingId_v[cc]  = %d\n", FuncName, SUMAg_CF->TrackingId_v[cc] );
          if (SUMAg_CF->TrackingId_v[cc]) {
             nel_track = NI_get_attribute(nel,"Tracking_ID");
             if (nel_track) {
@@ -578,16 +568,8 @@ SUMA_Boolean SUMA_niml_call ( SUMA_CommonFields *cf, int si,
             }
 
          Wait_tot = 0;
-         /*
-         fprintf(stderr, "nn = %d\n", nn);
-         fprintf(stderr, "SUMA_WriteCheckWaitMax = %d\n", SUMA_WriteCheckWaitMax);
-         */
          while(Wait_tot < SUMA_WriteCheckWaitMax){
             nn = NI_stream_writecheck( cf->ns_v[si] , SUMA_WriteCheckWait) ;
-            /*
-             fprintf(stderr, "Wait_tot = %d, nn = %d, SUMA_WriteCheckWait=%d,
-                cf->ns_v[si]=%p\r", Wait_tot, nn, SUMA_WriteCheckWait, cf->ns_v[si]);
-                */
             if( nn == 1 ){
                fprintf(stderr,"\n") ;
                cf->ns_flags_v[si] = SUMA_FLAG_CONNECTED;
@@ -604,7 +586,6 @@ SUMA_Boolean SUMA_niml_call ( SUMA_CommonFields *cf, int si,
             Wait_tot += SUMA_WriteCheckWait;
             fprintf(SUMA_STDERR,".") ;
          }
-         // fprintf(stderr, "\n");
 
          /* make sure you did not exit because of time out */
          // SUMA_S_Errv("nn = %d\n", nn);
@@ -712,8 +693,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
    SUMA_ENTRY;
    
-   // fprintf(stderr, "***** %s: tt  = %d\n", FuncName, tt );
-
    if( tt < 0 ) {/* should never happen unless nini was NULL*/
       fprintf(SUMA_STDERR,"Error %s: Should never have happened.\n", FuncName);
       SUMA_RETURN(NOPE);
@@ -739,8 +718,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          process the data based on the element name */
 
       nel = (NI_element *) nini ;
-      // fprintf(stderr, "***** %s: nel->name  = %s\n", FuncName, nel->name );
-
       if (LocalHead)  {
          fprintf(SUMA_STDERR,
                  "%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n",
@@ -765,7 +742,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
       /*--- stream tracking ON ---*/
       if( strcmp(nel->name,"StartTracking") == 0) { /* Start tracking */
-        // fprintf(stderr, "$$$$$ %s: StartTracking\n", FuncName);
          if (LocalHead)
             // Print out tcp
             fprintf (SUMA_STDERR,"%s:\n"
@@ -3144,7 +3120,7 @@ void SUMA_FakeIt (int Solo)
       if( ns == NULL ){
         fprintf(stderr,"Can't open qroi.dat!\n"); exit(1);
       }
-      // fprintf(stderr, "+++++ SUMA_FakeIt: NI_read_element\n");
+
       nel = NI_read_element(ns,1) ;  NI_stream_close(ns) ;
       if( nel == NULL ){
         fprintf(stderr,"Can't read element from qroi.dat!\n"); exit(1);
@@ -3404,8 +3380,6 @@ SUMA_Boolean SUMA_SendSumaNewSurface(SUMA_SurfaceObject *SO,
    NI_group *ngr=NULL;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "****SUMA_SendSumaNewSurface***\n");
 
    if (!SO || !cs) { SUMA_SL_Err("NULL surface or NULL cs"); SUMA_RETURN(NOPE); }
    if (!cs->Send || !cs->talk_suma) {
@@ -4345,9 +4319,6 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
 
    SUMA_ENTRY;
 
-   /* fprintf (SUMA_STDERR, "%s: LocalHead = %d\n", FuncName, LocalHead); */
-
-   // fprintf(stderr, "***** %s: action = %d\n", FuncName, action);
    if (action == 0) { /* initialization of connection */
       if (!cs) { /* Nothing to do, return */
          SUMA_LH("No cs, probably talking to self");
@@ -4386,7 +4357,6 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
    }
 
    if (action == 1) { /* action == 1,  send data mode */
-        // fprintf(stderr, "***** %s: cs = %p\n", FuncName, cs);
       if (cs) {
          if (!i_in) {
             SUMA_SL_Err("You must call SUMA_SendToSuma with action 0 "
@@ -4403,7 +4373,6 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
          ++cs->ElInd[dtype];
       }
       SUMA_LH("Creating nel and sending it");
-        // fprintf(stderr, "***** %s: dtype = %d\n", FuncName, dtype);
       switch (dtype) {
          case SUMA_NODE_RGBAb:
          case SUMA_NODE_XYZ:
@@ -4497,10 +4466,6 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
          case SUMA_SEGMENT_OBJECT:
          case SUMA_ENGINE_INSTRUCTION:
             ngr = (NI_group *)data;
-//              fprintf(stderr, "***** %s: ngr->attr_lhs[0] = %s\n", FuncName, ngr->attr_lhs[0]);
-//              fprintf(stderr, "***** %s: ngr->attr_rhs[0] = %s\n", FuncName, ngr->attr_rhs[0]);
-//              fprintf(stderr, "***** %s: ngr->attr_lhs[1] = %s\n", FuncName, ngr->attr_lhs[1]);
-//              fprintf(stderr, "***** %s: ngr->attr_rhs[1] = %s\n", FuncName, ngr->attr_rhs[1]);
             break;
          default:
             SUMA_SL_Err("Unexpected element. Ignoring.");
@@ -4524,7 +4489,6 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
             if (nel) {
                NI_set_attribute (nel, "Tracking_ID", stmp);
             } else if (ngr) {
-                // fprintf(stderr, "***** %s: stmp = %s\n", FuncName, stmp);
                NI_set_attribute (ngr, "Tracking_ID", stmp);
             }
          }
@@ -4652,23 +4616,17 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
 
       SUMA_SEND_TO_SUMA_FUNC_CLEANUP;
 
-      // fprintf(stderr, "***** %s: cs = %p\n", FuncName, cs);
       if (!cs) {
          SUMA_RETURN(YUP);
       }
 
       /* now close the stream*/
-//      fprintf(stderr, "***** %s: cs->Send  = %d\n", FuncName, cs->Send);
-//      fprintf(stderr, "***** %s: cs->GoneBad  = %d\n", FuncName, cs->GoneBad);
       if (cs->Send && !cs->GoneBad) {
          SUMA_LH("Cleanup of nel producing functions...");
          /* stop tracking */
          nel = NI_new_data_element("StopTracking", 0);
-//         fprintf(stderr, "***** %s: nel->type  = %d\n", FuncName, nel->type );
-//         fprintf(stderr, "***** %s: nel->name  = %s\n", FuncName, nel->name );
          NI_set_attribute(nel,"ni_stream_name",
                           SUMAg_CF->NimlStream_v[cs->istream]);
-         // fprintf(stderr, "***** %s: SUMAg_CF->NimlStream_v[cs->istream]  = %s\n", FuncName, SUMAg_CF->NimlStream_v[cs->istream] );
 
          if (NI_write_element( SUMAg_CF->ns_v[cs->istream] , nel,
                                cs->comm_NI_mode ) < 0) {
@@ -4682,9 +4640,6 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
             SUMA_SL_Err("Failed to create nel");
             exit(1);
          }
-//         fprintf(stderr, "***** %s 2: nel->type  = %d\n", FuncName, nel->type );
-//         fprintf(stderr, "***** %s 2: nel->name  = %s\n", FuncName, nel->name );
-//         fprintf(stderr, "***** %s 2: cs->istream  = %d\n", FuncName, cs->istream );
 
          NI_set_attribute (nel, "ni_stream_name",
                            SUMAg_CF->NimlStream_v[cs->istream]);
@@ -4857,7 +4812,6 @@ SUMA_Boolean SUMA_SendDset_Afni( NI_stream ns, SUMA_SEND_2AFNI *SS2A, int all)
       SUMA_RETURN(YUP);
    }
 
-   // fprintf(stderr, "***** %s: all = %d\n", FuncName, all);
    if (all == 1) {
       SUMA_LH("Sending all dset at once");
       ngr = THD_dataset_to_niml( SS2A->dset ) ;

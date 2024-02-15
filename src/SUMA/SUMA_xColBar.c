@@ -1112,31 +1112,6 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
       SUMA_Remixedisplay(ado);
    }
    
-   if (0)
-      {
-        float threshold = colp->OptScl->ThreshRange[0];
-        int N_Alloc = COLP_N_ALLOC(colp);
-        
-        fprintf(stderr, "N_Alloc = %d\n", N_Alloc);
-        fprintf(stderr, "colp->N_NodeDef = %d\n", colp->N_NodeDef);
-        
-        fprintf(stderr, "colp->Tperc = %p\n", colp->Tperc);
-        fprintf(stderr, "colp->T = %p\n", colp->T);
-        fprintf(stderr, "colp->Vperc = %p\n", colp->Vperc);
-        fprintf(stderr, "colp->V = %p\n", colp->V);
-        fprintf(stderr, "colp->ColVec = %p\n", colp->ColVec);
-        fprintf(stderr, "colp->LocalOpacity = %p\n", colp->LocalOpacity);
-        fprintf(stderr, "colp->OptScl = %p\n", colp->OptScl);
-        if (colp->Tperc) fprintf(stderr, "colp->Tperc[0], colp->Tperc[1], colp->Tperc[2] = %f, %f, %f\n", colp->Tperc[0], colp->Tperc[1], colp->Tperc[2]);
-        if (colp->T) fprintf(stderr, "colp->T[0], colp->T[1], colp->T[2] = %f, %f, %f\n", colp->T[0], colp->T[1], colp->T[2]);
-        if (colp->Vperc) fprintf(stderr, "colp->Vperc[0], colp->Vperc[1], colp->Vperc[2] = %f, %f, %f\n", colp->Vperc[0], colp->Vperc[1], colp->Vperc[2]);
-        if (colp->V) fprintf(stderr, "colp->V[0], colp->V[1], colp->V[2] = %f, %f, %f\n", colp->V[0], colp->V[1], colp->V[2]);
-        if (colp->ColVec) fprintf(stderr, "colp->ColVec[0], colp->ColVec[1], colp->ColVec[2] = %f, %f, %f\n", colp->ColVec[0], colp->ColVec[1], colp->ColVec[2]);
-        if (colp->LocalOpacity) fprintf(stderr, "colp->LocalOpacity[0], colp->LocalOpacity[1], colp->LocalOpacity[2] = %f, %f, %f\n", colp->LocalOpacity[0], colp->LocalOpacity[1], colp->LocalOpacity[2]);
-        
-        // TODO: Add code
-      }
-
    /* call this one since it is not being called as the slider is dragged. */
    if (!(SUMA_set_threshold_label(ado, val, 0.0))) { SUMA_SL_Err("Error setting threshold label"); SUMA_RETURN(0); }
 
@@ -1167,12 +1142,6 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
 
    SUMA_ENTRY;
    
-   // cbs->event->type = 5;    // DEBUG: Still returns to zero and also truns magenta
-//   fprintf(stderr, "%s: w = %p\n", FuncName, w);
-//   fprintf(stderr, "%s: w->core.name = %s\n", FuncName, w->core.name);
-//   fprintf(stderr, "%s: cbs->reason = %d\n", FuncName, cbs->reason);
-//   fprintf(stderr, "%s: cbs->value = %d\n", FuncName, cbs->value);
-//   fprintf(stderr, "%s: cbs->event->type = %d\n", FuncName, cbs->event->type);
    if (((SUMA_SurfaceObject *)clientData)->SurfCont->SetThrScaleTable->str_value)
        fprintf(stderr, "%s: ((SUMA_SurfaceObject *)clientData)->SurfCont->SetThrScaleTable->str_value[0] = %s\n", 
         FuncName, ((SUMA_SurfaceObject *)clientData)->SurfCont->SetThrScaleTable->str_value[0]);
@@ -2073,8 +2042,6 @@ void SUMA_cb_AlphaThresh_tb_toggled(Widget w, XtPointer data,
    static int AlphaThresh = 0;
 
    SUMA_ENTRY;
-   
-   fprintf(stderr, "***** SUMA_cb_AlphaThresh_tb_toggled\n");
    
    ado = (SUMA_ALL_DO *)data;
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))

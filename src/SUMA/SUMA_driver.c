@@ -609,19 +609,6 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
          SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
       }
       SUMA_LH("Sending LoadCol to suma");
-      if (((!strcmp(ngr->attr_rhs[1], "Y")) || !strcmp(ngr->attr_rhs[1], "y") ||
-        !strcmp(ngr->attr_rhs[1], "on") || !strcmp(ngr->attr_rhs[1], "On") ||
-        !strcmp(ngr->attr_rhs[1], "ON")) && !(SO->SurfCont->AlphaThresh) ||
-        ((!strcmp(ngr->attr_rhs[1], "N")) || !strcmp(ngr->attr_rhs[1], "n") ||
-        !strcmp(ngr->attr_rhs[1], "off") || !strcmp(ngr->attr_rhs[1], "Off") ||
-        !strcmp(ngr->attr_rhs[1], "OFF")) && (SO->SurfCont->AlphaThresh))
-        {
-            Widget w = SO->SurfCont->AlphaThresh_tb;
-            XtPointer data = (XtPointer)SO;
-        /*
-            SUMA_cb_AlphaThresh_tb_toggled(w, data,  NULL);
-            */
-        }
       if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
@@ -2373,7 +2360,6 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          } else {
             /* check that the new element is OK, that function reads
                just one element*/
-               fprintf(stderr, "+++++ %s: NI_read_element\n", FuncName);
             if (!(nel=NI_read_element_fromstring(qar))) {
                SUMA_S_Errv("Could not parse -fixed_do %s\n"
                   "Try experimenting with niccc -s to get the syntax right.\n",
@@ -3137,7 +3123,6 @@ SUMA_drive_set_outstream(char *outfile)
 
    /* something went wrong, so tell user and reset to stdout */
    if(sumaout==NULL){
-      fprintf(stderr, "**** couldn't open outfile, resetting to stdout\n");
       sumaout = stdout;
       return(-1);
    }
