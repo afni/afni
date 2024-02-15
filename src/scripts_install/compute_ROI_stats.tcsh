@@ -295,20 +295,31 @@ printf '%7s %7s %7s %6s %6s %6s %6s %6s  %7s %7s %7s  %s\n' \
 # ---------------------------------------------------------------------------
 # process each ROI value in the ROI mask dataset
 foreach rval ( $rval_list )
+   # --------------------------------------------------
    # is there anything in the mask?
    set nvox = `3dBrickStat -mask $dset_ROI -non-zero -count $dset_ROI"<$rval>"`
 
+   # --------------------------------------------------
    # get the ROI_name early, in case it does not actually exist in the dataset
-   set ltvals = ( `3dinfo -labeltable $dset_ROI | \grep \"$rval\" | tr -d \"` )
-   if ( $#ltvals == 2 ) then
-      set ROI_name = $ltvals[2]
-   else
-      set ROI_name = UNKNOWN
+   # (now via whereami -index_to_label instead of 3dinfo -labeltable and grep)
+   set ROI_name = `whereami -index_to_label $rval -dset $dset_ROI`
+   if ( ROI_name == "NONE" ) then
+      set ROI_name = "UNKNOWN"
    endif
 
-   # handle the all-zero case and move on
-   if ( $nvox == 0 ) then
-      set btext = "`printf '%7s %7s %7s' $rval 0 0`"
+   # --------------------------------------------------
+   # handle the all-zero cases and move on
+   # if nvox is zero or equals nzero, we are done
+
+   if ( $nvox != 0 ) then
+      set nzero = `3dBrickStat -mask $dset_ROI -mrange $rval $rval \
+                               -zero -count $dset_data`
+   else
+      set nzero = 0
+   endif
+
+   if ( $nvox == 0 || $nvox == $nzero ) then
+      set btext = "`printf '%7s %7s %7s' $rval $nvox $nzero`"
       set qtext = "`printf '%6.1f %6.1f %6.1f %6.1f %6.1f ' 0 0 0 0 0`"
       set ctext = "`printf '%7.1f %7.1f %7.1f ' 0 0 0`"
       echo "$btext" "$qtext" "$ctext" "$ROI_name" >>! $stats_file
@@ -316,10 +327,11 @@ foreach rval ( $rval_list )
       continue
    endif
 
-   # count number of zero voxels
-   set nzero = `3dBrickStat -mask $dset_ROI -mrange $rval $rval \
-                            -zero -count $dset_data`
+   # --------------------------------------------------
+   # we have something to evaluate...
+   # --------------------------------------------------
 
+   # --------------------------------------------------
    # quartiles
    set cmd = ( 3dBrickStat -non-zero -mrange $rval $rval -mask $dset_ROI \
                            -percentile 0 25 100 -perc_quiet $dset_data )
@@ -329,11 +341,13 @@ foreach rval ( $rval_list )
       exit 1
    endif
 
+   # --------------------------------------------------
    # maximum ROI depth and coords
    # -closure to include boundaries, -partial to allow for value equality
    set cmd = ( 3dExtrema -volume -nbest 1 -closure -partial -quiet \
                          -mask_file $dset_ROI"<$rval>" $depthmap )
 
+   # --------------------------------------------------
    # ** separate stdout and stderr for now, and read back from a file
    # (do we remove the 3dExtrema author text?)
    ( $cmd >! $out_dir/tmp.extrema.txt ) >& /dev/null
@@ -353,7 +367,9 @@ foreach rval ( $rval_list )
    set coords = ( $extrema[3-5] )
 
 
+   # --------------------------------------------------
    # print out the results
+   # --------------------------------------------------
 
    # too long for a line, so break up the pieces
    set btext = "`printf '%7s %7s %7s' $rval $nvox $nzero`"
@@ -365,6 +381,7 @@ foreach rval ( $rval_list )
 
 end
 
+# --------------------------------------------------
 # finally, display the results
 if ( $verb > 0 ) then
    cat $stats_file
@@ -415,15 +432,14 @@ todo:
             ROI_name     : dataset name of dset_ROI
 
 ------------------------------------------------------------------------------
-example 0: as done by afni_proc.py
+example 0: based on afni_proc.py
 
-   tcsh ~/afni/c/python/ap/compute_ROI_stats.tcsh   \\
-       -dset_ROI    ROI_import_Glasser_resam+tlrc   \\
-       -dset_data   TSNR.FT+tlrc                    \\
-       -out_dir     tsnr_stats_regress              \\
-       -rset_label  Glasser                         \\
-       -rval_list   2 41 99                         \\
-       -stats_file  tsnr_stats_regress/stats_Glasser.txt
+   compute_ROI_stats.tcsh                         \\
+       -out_dir    t.tsnr_stats_regress           \\
+       -dset_ROI   ROI_import_CAEZ_ML_resam+tlrc  \\
+       -dset_data  TSNR.FT+tlrc                   \\
+       -rset_label CAEZ_ML                        \\
+       -rval_list  4 41 99 999
 
 ------------------------------------------------------------------------------
 terminal options:
@@ -433,6 +449,23 @@ terminal options:
    -ver                    : show the program version
 
 required parameters:
+   -dset_ROI DSET_ROI      : ROI dataset containing regions of interest
+                             This dataset should (probably) contain the index
+                             values from -rval_list as regions of interest.
+
+   -dset_data DSET_DATA    : volume to compute statistics over
+                             This dataset is for computing ROI statistics over,
+                             such as a TSNR volume.
+
+   -out_dir OUT_DIR        : directory to put results into
+                             The output directory will hold a depth map for all
+                             DSET_ROI regions.
+                              
+   -rset_label RSET_LABEL  : text label to refer to dset_ROI by
+
+   -rval_list V1 V2 ...    : ROI index values
+                             Each index with such voxels in DSET_ROI will be
+                             used to compute statistics from DSET_DATA.
 
 optional parameters:
 
