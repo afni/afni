@@ -1182,6 +1182,7 @@ int main(int argc, char **argv)
             if (!get_Atlas_Named(atlas_names[0], atlas_alist)){
               fprintf(stderr,"** Error: Atlas %s not in atlas list\n",
                     atlas_names[0]);
+              return 1;
             }
 
             temp_dset = load_atlas_dset(ATL_DSETNAME(&(atlas_alist->atlas[0])));
