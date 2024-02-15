@@ -99,6 +99,28 @@ def apply_uopt_list_to_block(opt_name, user_opts, block):
 
     return found
 
+def gen_afni_name(name, **kwargs):
+   """local wrapper for BASE.afni_name
+
+      partition keywords into those for afni_name and those to add locally
+
+      require a first name argument for this wrapper, as it's what I do anyway
+   """
+   # first, partition the afni_base keywords
+   ankws = {}
+   for k in ['do_sel', 'view']:
+      if k in kwargs:
+         ankws[k] = kwargs.pop(k)
+
+   aname = BASE.afni_name(name, **ankws)
+
+   # now, mutate as we see fit, bwahaha...
+
+   # add a to_resam attribute, -ROI_import datasets will be resampled
+   aname.ap_to_resam = 0
+
+   return aname
+
 def warp_item(desc='', wtype='', warpset=''):
    """desc      = description of warp
       wtype     = affine, NL
@@ -387,9 +409,9 @@ def tcat_make_blip_in_for(proc, block):
     if nt == 0: return 1, ''
 
     if nt == 1:
-       proc.blip_in_for = BASE.afni_name("%s[0]" % forinput)
+       proc.blip_in_for = gen_afni_name("%s[0]" % forinput)
     else:
-       proc.blip_in_for = BASE.afni_name("%s[0..%d]" % (forinput, nt-1))
+       proc.blip_in_for = gen_afni_name("%s[0..%d]" % (forinput, nt-1))
     proc.blip_in_for.view = proc.view
 
     if proc.verb > 2:
@@ -397,7 +419,7 @@ def tcat_make_blip_in_for(proc, block):
              % proc.blip_in_for.shortinput(sel=1))
 
     # populate proc.blip_dset_for
-    proc.blip_dset_for = BASE.afni_name('blip_forward', view=proc.view)
+    proc.blip_dset_for = gen_afni_name('blip_forward', view=proc.view)
 
     # make actual command
     cmd = '# -------------------------------------------------------\n' \
@@ -583,17 +605,14 @@ def apply_general_ROI_imports(proc):
    if not proc.user_opts.find_opt(oname):
       return 0
 
-   # do we have a regress block?
-   if not proc.find_block('regress'):
-      print('** missing regress block for use of %s' % oname)
-      return 1
-
    # add roi dict keys
    for opt in proc.user_opts.find_all_opts(oname):
       label = opt.parlist[0]
       dname = opt.parlist[1]
 
-      aname = BASE.afni_name('ROI_import_%s' % label)
+      aname = gen_afni_name('ROI_import_%s' % label)
+      # and note this dataset for resampling
+      aname.to_resam = 1
       if proc.add_roi_dict_key(label, aname=aname):
          return 1
 
@@ -921,7 +940,7 @@ def db_mod_blip(block, proc, user_opts):
    # note blip reverse input dset
    bopt = block.opts.find_opt('-blip_reverse_dset')
    if bopt:
-      proc.blip_in_rev = BASE.afni_name(bopt.parlist[0])
+      proc.blip_in_rev = gen_afni_name(bopt.parlist[0])
       if proc.verb > 2:
          print('-- will compute blip up/down warp via %s' \
                % proc.blip_in_rev.shortinput(sel=1))
@@ -933,7 +952,7 @@ def db_mod_blip(block, proc, user_opts):
    bopt = block.opts.find_opt('-blip_forward_dset')
    fblip_oblset = proc.dsets[0]  # default obl test is from -dsets
    if bopt:
-      proc.blip_in_for = BASE.afni_name(bopt.parlist[0])
+      proc.blip_in_for = gen_afni_name(bopt.parlist[0])
       if proc.verb > 2:
          print('-- have blip forward dset %s' \
                % proc.blip_in_for.shortinput(sel=1))
@@ -1204,7 +1223,7 @@ def db_cmd_align(proc, block):
     oname = '-align_unifize_epi'
     umeth, err = block.opts.get_string_opt(oname, default='no')
     if umeth != 'no' and not err:
-       epi_in = BASE.afni_name(basevol)
+       epi_in = gen_afni_name(basevol)
        epi_out = epi_in.new(new_pref=('%s_unif' % epi_in.prefix))
        basepre = epi_out.prefix
        basevol = epi_out.shortinput()
@@ -2354,7 +2373,7 @@ def vr_prep_for_warp_master(proc, user_opts):
     if view == '':
        print("** failed to get view from -volreg_warp_master, %s" % warp_master)
        return 1
-    proc.vr_warp_mast = BASE.afni_name('vr_warp_master', view=view)
+    proc.vr_warp_mast = gen_afni_name('vr_warp_master', view=view)
     if proc.verb > 1:
        print("-- have warp master dataset %s in view %s"%(warp_master, view))
 
@@ -2379,7 +2398,7 @@ def db_cmd_volreg(proc, block):
     basevol = None
     basehead = None
     if proc.vr_ext_base != None or proc.vr_int_name != '':
-       proc.vr_base_dset = BASE.afni_name("%s%s" % (proc.vr_ext_pre,proc.view))
+       proc.vr_base_dset = gen_afni_name("%s%s" % (proc.vr_ext_pre,proc.view))
        basevol = proc.vr_base_dset.nice_input()
        # save this in case we add a uvar
        basehead = proc.vr_base_dset.nice_input(head=1)
@@ -2643,7 +2662,7 @@ def db_cmd_volreg(proc, block):
     # ============================================================
     # include extents
     if do_extents:
-       all1_input = BASE.afni_name('rm.epi.all1'+proc.view)
+       all1_input = gen_afni_name('rm.epi.all1'+proc.view)
        cmd = cmd + '\n' \
           "    # create an all-1 dataset to mask the extents of the warp\n" \
           "    3dcalc -overwrite -a %s -expr 1 \\\n"                        \
@@ -2877,7 +2896,7 @@ def db_cmd_volreg(proc, block):
                % (proc.mot_file, proc.runs, proc.mot_enorm)
 
     if do_extents:
-        proc.mask_extents = BASE.afni_name('mask_epi_extents' + proc.view)
+        proc.mask_extents = gen_afni_name('mask_epi_extents' + proc.view)
 
         cmd = cmd +                                             \
             "# ----------------------------------------\n"      \
@@ -3146,9 +3165,9 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
 
    if epi_aname == None:
       if prevepi:
-         epi_aname = BASE.afni_name(proc.prev_prefix_form(1, block, eind=-1))
+         epi_aname = gen_afni_name(proc.prev_prefix_form(1, block, eind=-1))
       else:
-         epi_aname = BASE.afni_name(proc.prefix_form(block, 1, eind=-1))
+         epi_aname = gen_afni_name(proc.prefix_form(block, 1, eind=-1))
       epi_aname.new_view(proc.view)
 
    warps = proc.anat_warps[:]
@@ -3372,7 +3391,7 @@ def db_cmd_volreg_motsim(proc, block, basevol):
           - if self.nlw_NL_mat, apply with 3dNwarpApply
        return 0 on success, along with any command string
     """
-    proc.mot_simset = BASE.afni_name('motsim_$subj%s' % proc.view)
+    proc.mot_simset = gen_afni_name('motsim_$subj%s' % proc.view)
     # first generate any needed cat_matvec command using proc.e2final_mv
     cmd = "# ----------------------------------------\n"      \
           "# generate simulated motion dataset: %s\n" % proc.mot_simset.pv()
@@ -3416,6 +3435,11 @@ def db_cmd_volreg_tsnr(proc, block, emask=''):
            "# create a TSNR dataset, just from run 1\n",
            signal, signal, proc.view, mask=emask,
            name_qual='.vreg.r01',detrend=1, oksurf=0)
+
+    # if block.opts.find_opt('-volreg_compute_tsnr_stats'):
+    #    # given ROIs and new proc.tsnr_dset
+    #    rv, scmd = db_cmd_volreg_tsnr_stats(proc, block)
+    #    tsnr_cmd += '\n' + scmd
 
 # --------------- combine block ---------------
 
@@ -3960,7 +3984,7 @@ def cmd_combine_OC(proc, block, method='OC'):
           '        -work_dir oc.work.r$run\n'                       \
           'end\n\n' % (mstr, prev_prefix)
 
-   proc.OC_weightset = BASE.afni_name('oc.weights.$subj%s' % proc.view)
+   proc.OC_weightset = gen_afni_name('oc.weights.$subj%s' % proc.view)
    cmd += '# average weights across runs\n'          \
           '3dMean -prefix %s oc.weights.r*.HEAD\n\n' \
           % proc.OC_weightset.out_prefix()
@@ -4627,7 +4651,7 @@ def db_mod_mask(block, proc, user_opts):
     apply_uopt_list_to_block('-mask_intersect',user_opts, block)
     apply_uopt_list_to_block('-mask_union',   user_opts, block)
 
-    proc.mask_epi = BASE.afni_name('full_mask%s$subj' % proc.sep_char)
+    proc.mask_epi = gen_afni_name('full_mask%s$subj' % proc.sep_char)
 
     # we have an EPI mask, add it to the roi_dict for optional regress_ROI
     if not proc.have_roi_label('brain'):
@@ -4646,7 +4670,7 @@ def db_mod_mask(block, proc, user_opts):
     oname = '-mask_import'
     for opt in block.opts.find_all_opts(oname):
        label = opt.parlist[0]
-       aname = BASE.afni_name('mask_import_%s' % label)
+       aname = gen_afni_name('mask_import_%s' % label)
        if proc.add_roi_dict_key(label, aname=aname): return 1
 
     # add any intersection or union masks
@@ -4841,8 +4865,8 @@ def mask_segment_anat(proc, block):
         return ''
     # and proc.anat_has_skull:
 
-    cin  = BASE.afni_name('Segsy/Classes%s' % proc.view)
-    cres = BASE.afni_name('Classes_resam%s' % proc.view)
+    cin  = gen_afni_name('Segsy/Classes%s' % proc.view)
+    cres = gen_afni_name('Classes_resam%s' % proc.view)
     mset = proc.prev_prefix_form(1, block, view=1)
 
     # maybe we will take more classes in some option...
@@ -4916,11 +4940,11 @@ def mask_segment_anat(proc, block):
     proc.mask_classes = cres    # store, just in case
 
     for sc in sclasses:
-       newname = BASE.afni_name('mask_%s_resam%s' % (sc, proc.view))
+       newname = gen_afni_name('mask_%s_resam%s' % (sc, proc.view))
        if proc.add_roi_dict_key(sc, newname, overwrite=1): return ''
        if erode:
           ec = '%se' % sc
-          newname = BASE.afni_name('mask_%s_resam%s'%(ec,proc.view))
+          newname = gen_afni_name('mask_%s_resam%s'%(ec,proc.view))
           if proc.add_roi_dict_key(ec, newname, overwrite=1): return ''
 
     return cmd
@@ -4959,7 +4983,7 @@ def get_cmd_mask_combine(proc, block, oper='union'):
           print('** no %s label %s for option %s' % (ostr, ilabel, oname))
           return ''
 
-       iset = BASE.afni_name('mask_%s_%s'%(oper,ilabel), view=proc.view)
+       iset = gen_afni_name('mask_%s_%s'%(oper,ilabel), view=proc.view)
        if proc.add_roi_dict_key(ilabel, iset, overwrite=1): return ''
 
        cmd += '# create %s mask %s from masks %s and %s\n'      \
@@ -5313,7 +5337,7 @@ def add_ROI_PC_followers(proc, block):
         if label in newlabs:
            print("** error: %s label '%s' already used" % (oname, label))
            return 1
-        badname = BASE.afni_name(label)
+        badname = gen_afni_name(label)
         if badname.exist():
            print('** ERROR: %s label exists as a dataset, %s' % (oname, label))
            print("   format: %s LABEL NUM_PCs DATASET" % oname)
@@ -6024,12 +6048,12 @@ def db_cmd_regress(proc, block):
     # ----------------------------------------
     # check for user option -ROI_import, and resample any ROI dsets
     if proc.user_opts.find_opt('-ROI_import'):
-        err, newcmd = db_cmd_regress_resam_ROI(proc, block)
+        err, newcmd = db_cmd_resam_ROI_imports(proc, block)
         if err: return
         if newcmd: cmd = cmd + newcmd
 
     # ----------------------------------------
-    # gmean?  change to generic -regress_RONI
+    # gmean?  change to generic -regress_ROI
     if block.opts.find_opt('-regress_ROI'):
         err, newcmd = db_cmd_regress_ROI(proc, block)
         if err: return
@@ -6139,7 +6163,7 @@ def db_cmd_regress(proc, block):
     #    (O3dd = list of 3dd option lines, which may need an extra indent)
 
     # note first input, to have a known afni_name
-    proc.regress_inset = BASE.afni_name(proc.prev_prefix_form(1, block, view=1),
+    proc.regress_inset = gen_afni_name(proc.prev_prefix_form(1, block, view=1),
                                         do_sel=0)
 
     O3dd = ['%s3dDeconvolve -input %s'%(istr, proc.prev_dset_form_wild(block)),
@@ -6524,8 +6548,8 @@ def db_cmd_regress(proc, block):
     opt = block.opts.find_opt('-regress_compute_tsnr')
     if opt.parlist[0] == 'yes':
        if errts:
-          tcmd = db_cmd_regress_tsnr(proc, block, proc.all_runs, errts)
-          if tcmd == None: return  # error
+          rv, tcmd = db_cmd_regress_tsnr(proc, block, proc.all_runs, errts)
+          if rv or tcmd == None: return  # error
           if tcmd != '': cmd += tcmd
        else: print('-- no errts, will not compute final TSNR')
 
@@ -6722,7 +6746,7 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
 
     gcor_file  = 'out.gcor.1D'
     gu_mean    = 'mean.errts.unit.1D'
-    uset       = BASE.afni_name('rm.errts.unit%s' % proc.view)
+    uset       = gen_afni_name('rm.errts.unit%s' % proc.view)
     errts_dset = '%s%s' % (errts_pre, proc.view)
 
     cmd = '# ---------------------------------------------------\n'     \
@@ -7106,12 +7130,78 @@ def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
        if proc.mask and not proc.surf_anat:
           mask_pre = proc.mask.prefix
 
-    return db_cmd_tsnr(proc,
+    tsnr_cmd = db_cmd_tsnr(proc,
            '# --------------------------------------------------\n' \
            "# create a temporal signal to noise ratio dataset \n"   \
            "#    signal: if 'scale' block, mean should be 100\n"    \
            "#    noise : compute standard deviation of errts\n",
            all_runs, errts_pre, proc.view, mask=mask_pre)
+
+    if block.opts.find_opt('-regress_compute_tsnr_stats'):
+       # given ROIs and new proc.tsnr_dset
+       rv, scmd = db_cmd_compute_tsnr_stats(proc, block)
+       if rv:
+          return 1, ''
+       tsnr_cmd += '\n' + scmd
+
+    return 0, tsnr_cmd
+
+# compute temporal signal to noise after the regression
+def db_cmd_compute_tsnr_stats(proc, block):
+    """create a string for computing statistics on ROIs across the TSNR stats
+       dataset
+    """
+
+    # make a list of ROI dset labels to work with
+    oname = '-%s_compute_tsnr_stats' % block.label
+    olist = proc.user_opts.find_all_opts(oname)
+    if proc.verb > 2:
+       print("-- db_cmd_compute_tsnr_stats: have %s %s option(s)" \
+             % (len(olist), oname))
+    if len(olist) == 0:
+       return 0, ''
+
+    # if we don't have a tsnr_dset for some reason, panic into error
+    if proc.tsnr_dset is None:
+       print("** cannot compute_tsnr_stats without TSNR dset")
+       return 1, ''
+
+    dlablist = [opt.parlist[0] for opt in olist]
+    if proc.verb > 0:
+       print("++ will compute %s TSNR stats for dsets: %s" \
+             % (block.label, ', '.join(dlablist)))
+
+    # prep header, output directory and input dataset (-dset_data)
+    cmd = '# --------------------------------------------------\n' \
+          '# compute TSNR stats for dset labels: %s\n'             \
+          % (', '.join(dlablist))
+    if len(dlablist) > 1:
+       cmd += '\n'
+
+    outdir = 'tsnr_stats_%s' % block.label
+    dset_data = proc.tsnr_dset.shortinput()
+
+    # resample the given datasets
+    for opt in proc.user_opts.find_all_opts(oname):
+       if len(opt.parlist) < 2:
+          print("** %s %s : missing ROI values" % (oname, label))
+          return 1, ''
+       label = opt.parlist[0]
+       aname = proc.get_roi_dset(label)
+       if not aname:
+          print("** compute_tsnr: missing -ROI_import ROI '%s'" % label)
+          return 1, ''
+
+       cmd += "compute_ROI_stats.tcsh \\\n"  \
+              "    -out_dir    %s \\\n"      \
+              "    -dset_ROI   %s \\\n"      \
+              "    -dset_data  %s \\\n"      \
+              "    -rset_label %s \\\n"      \
+              "    -rval_list  %s\n\n"       \
+              % (outdir, aname.shortinput(), proc.tsnr_dset.shortinput(),
+                 label, ' '.join(opt.parlist[1:]))
+
+    return 0, cmd
 
 # compute temporal signal to noise after the regression
 def db_cmd_tsnr(proc, comment, signal, noise, view,
@@ -7125,6 +7215,8 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
          name_qual: (optional) qualifier for name, such as '.r01'
          detrend:   (optional) if > 0,
          oksurf:    (optional) flag to allow surf analysis
+
+         This can currently be run for either the volreg or regress blocks.
     """
     if not signal or not noise or not view:
         print('** compute TSNR: missing input')
@@ -7152,6 +7244,14 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
         istr    = ''
 
     dname = 'TSNR%s%s$subj%s' % (name_qual, proc.sep_char, suff)
+    # for now, only store this in volume mode - with $subj
+    if not proc.surf_anat or not oksurf:
+        proc.tsnr_dset = gen_afni_name(dname+suff, view=vsuff)
+        if proc.verb > 1:
+           print("++ TSNR dset: %s" % proc.tsnr_dset.shortinput(head=1))
+    else:
+        # clear any old dset, if the circumstance arises
+        proc.tsnr_dset = None
 
     if detrend:
         polort=proc.regress_polort
@@ -7340,10 +7440,10 @@ def blur_est_loop_str(proc, dname, mname, label, outfile, trs_cen=0,
         outfile  : final output filename
         trs_cen  : were censored TRs removed from this data?
     """
-    dset  = BASE.afni_name(dname)
+    dset  = gen_afni_name(dname)
     inset = dset.shortinput()
     inset = dname
-    mset  = BASE.afni_name(mname)
+    mset  = gen_afni_name(mname)
     mask  = mset.shortinput()
     tmpfile = 'blur.%s.1D' % label
 
@@ -7677,8 +7777,14 @@ def regress_pc_followers_regressors(proc, optname, roipcs, pcdset,
 
    return 0, clist
 
-def db_cmd_regress_resam_ROI(proc, block):
+def db_cmd_resam_ROI_imports(proc, block):
     """resample any -ROI_import datasets (onto the final EPI grid)
+
+       This could be run in the volreg block, for example, to compute
+       TSNR stats from.  Or it could be run in the regress block, to compute
+       PC ortvec's, or to compute regress TSNR stats.
+
+       Perhaps we must allow this to be run in the tcat block as well...
 
        return an error code (0=success) and command string
     """
@@ -7688,10 +7794,33 @@ def db_cmd_regress_resam_ROI(proc, block):
     if len(olist) == 0:
        return 0, ''
 
-    # note the final vr_base dset
-    vr_base = proc.vr_base_dset.nice_input(head=0)
+    # does anything need resampling?
+    do_some = 0
+    for opt in proc.user_opts.find_all_opts(oname):
+       label = opt.parlist[0]
+       aname = proc.get_roi_dset(label)
+       if not aname:
+          print("** missing -ROI_import ROI '%s'" % label)
+          return 1, ''
+       if aname.to_resam:
+          do_some = 1
 
-    cmd = '# resample any -ROI_import dataset onto the final grid\n'
+    # if nothing to resample, we are outta here...
+    if not do_some:
+       return 0, ''
+
+    # get to work
+
+    # note the final vr_base dset, and be sure one has been made
+    vbase = proc.epi_final
+    if vbase is None:
+       vbase = proc.vr_base_dset
+    if vbase is None:
+       print("** cannot resample ROIs without vr_base_dset")
+       return 1, ''
+
+    cmd = '# resample any -ROI_import dataset onto the EPI grid\n' \
+          '# (and copy its labeltable)\n\n'
 
     # resample the given datasets
     for opt in proc.user_opts.find_all_opts(oname):
@@ -7700,6 +7829,11 @@ def db_cmd_regress_resam_ROI(proc, block):
        if not aname:
           print("** missing -ROI_import ROI '%s'" % label)
           return 1, ''
+
+       # if we do not need to resample this dataset, skip it
+       if not aname.to_resam:
+          continue
+
        aname = proc.roi_dict[label]
        aname.view = proc.view
 
@@ -7707,10 +7841,17 @@ def db_cmd_regress_resam_ROI(proc, block):
        inname = aname.shortinput()
        aname.prefix += '_resam'
 
-       cmd += '3dresample -master %s \\\n' \
+       cmd += '3dresample -master %s -rmode NN \\\n' \
               '           -input %s \\\n'  \
               '           -prefix %s\n\n'  \
-              % (vr_base, inname, aname.out_prefix())
+              % (vbase.nice_input(head=0), inname, aname.out_prefix())
+
+       cmd += '3drefit -copytables %s %s\n'   \
+              '3drefit -cmap INT_CMAP %s\n\n' \
+              % (inname, aname.nice_input(), aname.nice_input())
+
+       # mark as resampled
+       aname.to_resam = 0
 
     return 0, cmd
 
@@ -8147,9 +8288,9 @@ def db_mod_tlrc(block, proc, user_opts):
         print('** tlrc (anat) block requires anatomy via -copy_anat')
         return
 
-    dset = BASE.afni_name(opt_anat.parlist[0])
+    dset = gen_afni_name(opt_anat.parlist[0])
     if not dset.exist():  # allow for no +view
-        dset = BASE.afni_name(opt_anat.parlist[0]+'+orig')
+        dset = gen_afni_name(opt_anat.parlist[0]+'+orig')
         if not dset.exist():
             print("** -tlrc_anat dataset '%s' does not exist" % \
                   opt_anat.parlist[0])
@@ -8204,7 +8345,7 @@ def mod_check_tlrc_NL_warp_dsets(proc, block):
        return 1
 
     # get and check anat, 1D warp, NL warp
-    aname = BASE.afni_name(dslist[0])
+    aname = gen_afni_name(dslist[0])
     if aname.view == '' and aname.type == 'BRIK': aname.new_view('+tlrc')
     dims = aname.dims()
     if dims[3] != 1:
@@ -8212,13 +8353,13 @@ def mod_check_tlrc_NL_warp_dsets(proc, block):
        print('   but dataset %s shows %d' % (aname.shortinput(), dims[3]))
        return 1
 
-    axname = BASE.afni_name(dslist[1])
+    axname = gen_afni_name(dslist[1])
     if axname.type != '1D':
        print('** error in %s p2: affine xform %s should be 1D' \
              % (oname, axname.shortinput()))
        return 1
 
-    nlname = BASE.afni_name(dslist[2])
+    nlname = gen_afni_name(dslist[2])
     if nlname.view == '' and nlname.type == 'BRIK': nlname.new_view('+tlrc')
     dims = nlname.dims()
     if dims[3] != 3:
@@ -8246,7 +8387,7 @@ def prepare_tlrc_base(proc, block):
     if opt: base = opt.parlist[0]
     else:   base = 'TT_N27+tlrc'
 
-    proc.tlrc_base = BASE.afni_name(base)       # store for later
+    proc.tlrc_base = gen_afni_name(base)       # store for later
 
     #--- first things first, see if we can locate the tlrc base
     #    if the user didn't already tell us where it is
@@ -14604,7 +14745,38 @@ OPTIONS:  ~2~
         Use this option to prevent the TSNR dataset computation in the
         'regress' block.
 
+        One can also compute per-ROI statistics over the resulting TSNR
+        dataset via -regress_compute_tsnr_stats.
+
         See also -volreg_compute_tsnr.
+        See also -regress_compute_tsnr_stats.
+
+    -regress_compute_tsnr_stats ROI_DSET_LABEL ROI_1 ROI_2 ...
+                              : compute TSNR statistics per ROI
+
+            e.g. -regress_compute_tsnr_stats Glasser 4 41 99 999
+
+            e.g. -anat_follower_ROI aeseg epi SUMA/aparc.a2009s+aseg.nii.gz \\
+                 -ROI_import Glasser ~/abin/MNI_Glasser_HCP_v1.0.nii.gz     \\
+                 -regress_compute_tsnr_stats aeseg   4 41 99 999            \\
+                 -regress_compute_tsnr_stats Glasser 4 41 99 999
+
+        Given:
+           - TSNR statistics are being computed in the regress block
+           - there is an EPI-grid ROI dataset with label ROI_DSET_LABEL
+
+        Then one can list ROI regions in each ROI dataset to compute TSNR
+        statistics over.  Details will be output for each ROI region, such as
+        quartiles of the TSNR values, and maximum depth coordinates.
+
+        This option results in a compute_ROI_stats.tcsh command being run for
+        the ROI and TSNR datasets, and the ROI indices of interest.
+
+        ROI datasets (and their respective labels) are made via options like
+        -anat_follower_ROI, -ROI_import or even -mask_segment_anat.
+
+        See 'compute_ROI_stats.tcsh -help' for more details.
+        See also -anat_follower_ROI, -ROI_import, -regress_compute_tsnr.
 
     -regress_mask_tsnr yes/no : apply mask to errts TSNR dataset
 
