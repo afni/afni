@@ -303,9 +303,6 @@ foreach rval ( $rval_list )
    # get the ROI_name early, in case it does not actually exist in the dataset
    # (now via whereami -index_to_label instead of 3dinfo -labeltable and grep)
    set ROI_name = `whereami -index_to_label $rval -dset $dset_ROI`
-   if ( ROI_name == "NONE" ) then
-      set ROI_name = "UNKNOWN"
-   endif
 
    # --------------------------------------------------
    # handle the all-zero cases and move on
