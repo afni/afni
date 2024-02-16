@@ -767,7 +767,7 @@ g_history = """
        - block radcor once processing enters the surface domain
     7.65 Feb 15, 2024: add option -regress_compute_tsnr_stats
     7.66 Feb 15, 2024:
-       - no dupe follwer warning if grids differ
+       - no dupe follower warning if grids differ
        - no FWHM->ACF warning
 """
 
