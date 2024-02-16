@@ -3988,9 +3988,9 @@ class SubjProcSream:
         if aname == None: aname = gen_afni_name(name)
         si = aname.shortinput()
 
-        # warn user if dupe is seen
+        # warn user if dupe is seen (and on the same grid)
         for af in self.afollowers:
-           if af.aname.shortinput() == si:
+           if af.aname.shortinput() == si and af.dgrid == dgrid:
               print('** warning: have duplicate anat follower: %s' % si)
 
         # not yet in list
