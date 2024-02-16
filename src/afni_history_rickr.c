@@ -53,14 +53,19 @@
 
 afni_history_struct rickr_history[] = {
 
- { 15, Feb, 2024, RCR, "compute_ROI_stats.tcsh", MAJOR, TYPE_NEW_PROG,
-   "compute per-ROI region statstics over a given dataset",
-   "It is a little like 3dROIstats, but with needs specific to afni_proc.py."
+ { 15, Feb, 2024, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "remove 2 warnings",
+   "No warn on dupe followers if grids are the same; no ACF warning."
  } ,
 
  { 15, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -regress_compute_tsnr_stats",
    "This is intended to be added to P Taylor's APQC HTML report."
+ } ,
+
+ { 15, Feb, 2024, RCR, "compute_ROI_stats.tcsh", MAJOR, TYPE_NEW_PROG,
+   "compute per-ROI region statstics over a given dataset",
+   "It is a little like 3dROIstats, but with needs specific to afni_proc.py."
  } ,
 
  {  8, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,

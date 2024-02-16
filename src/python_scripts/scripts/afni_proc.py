@@ -766,9 +766,12 @@ g_history = """
        - if radcor is after scaling, pass an EPI mask (warn if no mask)
        - block radcor once processing enters the surface domain
     7.65 Feb 15, 2024: add option -regress_compute_tsnr_stats
+    7.66 Feb 15, 2024:
+       - no dupe follwer warning if grids differ
+       - no FWHM->ACF warning
 """
 
-g_version = "version 7.65, February 15, 2024"
+g_version = "version 7.66, February 15, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

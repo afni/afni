@@ -7361,9 +7361,10 @@ def db_cmd_blur_est(proc, block):
     # clustsim_types = ['FWHM', 'ACF', 'both', 'yes', 'no']
     copt,rv = block.opts.get_string_opt('-regress_run_clustsim', default='yes')
     if rv: return
-    if copt == 'yes':
-       print('** the default 3dClustSim method has changed from FWHM to ACF')
-       print("   (to get FWHM, use '-regress_run_clustsim FWHM')")
+    # no longer warn about ACF on default [15 Feb 2024]
+    # if copt == 'yes':
+    #    print('** the default 3dClustSim method has changed from FWHM to ACF')
+    #    print("   (to get FWHM, use '-regress_run_clustsim FWHM')")
 
     if copt == 'FWHM':   cmethods = [copt]
     elif copt == 'ACF':  cmethods = [copt]
