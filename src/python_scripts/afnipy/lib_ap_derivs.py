@@ -12,6 +12,44 @@ from   afnipy import lib_ss_review as lssr
 
 DEF_deriv_dir = 'bids_deriv'  # def name of dir mapped from AP results
 
+# Dictionary from AFNI's '3dinfo -space ..' to BIDS-deriv "standard
+# template identifiers (AKA coordinate systems)listed template space
+# names, as defined here:
+# https://bids-specification.readthedocs.io/en/stable/appendices/coordinate-systems.html#standard-template-identifiers
+aspace_to_bcoors = {
+    # 'ICBM452Warp5Space'
+    # 'IXI549Space'
+    # 'fsaverage'
+    # 'fsaverageSym'
+    # 'fsLR'
+    # 'MNIColin27'
+    # 'MNI152Lin'
+    # MNI152NLin2009[a-c][Sym|Asym]
+    'MNI_2009c_asym' : 'MNI152NLin2009cAsym',
+    # 'MNI152NLin6Sym'
+    # 'MNI152NLin6ASym'
+    # 'MNI305'
+    # 'NIHPD'
+    # 'OASIS30AntsOASISAnts'
+    # 'OASIS30Atropos'
+    'TT_N27' : 'Talairach', # 'Talairach'
+    # 'UNCInfant'
+} 
+# ... and add in the unofficial ones, which BIDS deriv doesn't include
+# at present
+aspace_to_bcoors.update({
+    'MNI' : 'MNI',
+    'MNI_27' : 'MNI_27',
+    'IBT_C1' : 'IBT_C1',             # Indian Brain Template
+    'IBT_C2' : 'IBT_C2',             # Indian Brain Template
+    'IBT_C3' : 'IBT_C3',             # Indian Brain Template
+    'IBT_C4' : 'IBT_C4',             # Indian Brain Template
+    'IBT_C5' : 'IBT_C5',             # Indian Brain Template
+    'HaskinsPeds' : 'HaskinsPeds',   # Haskins Pediatric Template
+    'NMT2' : 'NMT2',                 # NIH Macaque Template
+    'MBMv3' : 'MBMv3',               # Marmoset Brain Map
+})
+
 # ==========================================================================
 
 class ap_deriv_obj:
@@ -85,6 +123,7 @@ class ap_deriv_obj:
     def set_deriv_ssdict(self):
         """Map dict of uvars to derivs names (as many as used)"""
         self.deriv_ssdict = map_uvars_to_deriv_names(self.ap_ssdict,
+                                                     self.ap_res_dir,
                                                      verb=self.verb)
 
     def set_deriv_dir(self, x=''):
@@ -177,11 +216,10 @@ class ap_deriv_obj:
             self.make_deriv_subdir(subdir)
 
         # are we overwriting?
-        ow  = '-overwrite' * int(self.overwrite)
-        print("HEY:",ow, dset_ap, dset_drv)
-        cmd    = '''3dcopy {} {} {}'''.format(ow, dset_ap, dset_drv)
-        com    = ab.shell_com(cmd, capture=1)
-        stat   = com.run()
+        ow   = '-overwrite' * int(self.overwrite)
+        cmd  = '''3dcopy {} {} {}'''.format(ow, dset_ap, dset_drv)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
 
         return stat
 
@@ -213,7 +251,7 @@ class ap_deriv_obj:
 
 # --------------------------------------------------------------------------
 
-def map_uvars_to_deriv_names(U, verb=0):
+def map_uvars_to_deriv_names(U, ap_res_dir, verb=0):
     """A function that defines a primary reference object. For every
 relevant uvar in the dictionary U (also called the ap_ssdict), write
 what the name would be in the derivatives directory. Store the output
@@ -221,42 +259,49 @@ in a new dictionary D, to return.
 
 Parameters
 ----------
-U: dict
+U : dict
     input dictionary of uvars
-verb: int
+ap_res_dir : str
+    path to AP results directory
+verb : int
     verbosity level
 
 Returns
 -------
-D: dict
+D : dict
     output dictionary, whose keys are a subset of those in U; values
     are the names (or, for datasets that will be 3dcopy'ed, only the
     prefixes) of the files in the new derivs directory.
 
     """
 
-    # set up UC dict with null values from list of all possible uvars
+    # init dict of uvars plus other info for parts of filename
     UC = {}
+
+    # set up UC dict with null values from list of all possible uvars
     all_possible_uvar = [x[0] for x in lssr.g_ss_uvar_fields]
     for uvar in all_possible_uvar:
         UC[uvar] = 'EMPTY'
+
     # ... and then overwrite with any values we actually have
     for uvar in U:
         UC[uvar] = U[uvar]
+
     # ... then add any possible special ones, if needed
     if not('taskname' in UC.keys()) :
         UC['taskname'] = 'TASKNAME'
     if not('type_anat' in UC.keys()) :
         UC['type_anat'] = 'T1w'
     if not('spacename_final_epi' in UC.keys()) :
-        #cmd    = '''3dinfo -'''.format(ow, dset_ap, dset_drv)
-        #com    = ab.shell_com(cmd, capture=1)
-        #stat   = com.run()
-        UC['spacename_final_epi'] = 'SPACENAME_FINAL_EPI'
+        dset  = ap_res_dir + '/' + U['final_epi_dset']
+        space = get_drv_spacename(dset, orig_map='boldref')
+        UC['spacename_final_epi'] = space
     if not('spacename_final_anat' in UC.keys()) :
-        UC['spacename_final_anat'] = 'SPACENAME_FINAL_ANAT'
+        dset  = ap_res_dir + '/' + U['final_anat']
+        space = get_drv_spacename(dset, orig_map='anat')
+        UC['spacename_final_anat'] = space
     if not('spacename_anat' in UC.keys()) :
-        UC['spacename_anat'] = 'SPACENAME_ANAT'  # not the final space of anat
+        UC['spacename_anat'] = 'anat'  # not the final space of anat
     if not('preprocessedornot' in UC.keys()) :
         UC['preprocessedornot'] = 'PREPROCESSEDORNOT'
 
@@ -269,7 +314,7 @@ D: dict
     D['align_anat']  = "{subj}/func/{subj}_task-{taskname}_space-boldref_{type_anat}".format(**UC)
     
     #${subj}_[${ses}_]space-orig_${type_anat}.nii.gz
-    D['copy_anat']  = "{subj}/anat/{subj}_space-orig_{type_anat}".format(**UC)
+    D['copy_anat']  = "{subj}/anat/{subj}_space-{spacename_anat}_{type_anat}".format(**UC)
 
     # ${subj}_[${ses}_]task-${taskname}_space-${spacename}_desc-resid_bold.nii.gz
     D['errts_dset']  = "{subj}/func/{subj}_task-{taskname}_space-{spacename_final_epi}_desc-resid_bold".format(**UC)
@@ -284,7 +329,7 @@ D: dict
     D['mask_dset']   = "{subj}/func/{subj}_task-{taskname}_space-{spacename_final_epi}_desc-resid_bold".format(**UC)
 
     # ${subj}_[${ses}_]space-${spacename}_desc-surfvol_${type_anat}.nii.gz
-    D['surf_vol']   = "{subj}/anat/{subj}_space-{spacename_anat}_desc-surfvol_{type_anat}".format(**UC)
+    D['surf_vol']   = "{subj}/anat/{subj}_space-{spacename_anat}_{type_anat}_desc-surfvol_{type_anat}".format(**UC)
 
     # ${subj}_[${ses}_]task-${taskname}_[run-${runnum}_][echo-${echonum}_]space-orig_desc-tcat_bold.nii.gz
     D['tcat_dset']   = "{subj}/func/{subj}_task-{taskname}_space-orig_desc-tcat_bold".format(**UC)
@@ -364,6 +409,62 @@ def check_dep(D, L):
         if not(x in D.keys()) :  return 0
 
     return 1
+
+def quick_3dinfo(opt_list, dset_list):
+    """
+Parameters
+----------
+opt_list : list
+    list of strings of options for 3dinfo
+dset_list : list
+    list of strings of dset names
+
+Returns
+-------
+lll : list
+    list of strings (one string per line) output 
+"""
+
+    opt_str  = ' '.join(opt_list)
+    dset_str = ' '.join(dset_list)
+
+    cmd    = '''3dinfo {} {}'''.format(opt_str, dset_str)
+    com    = ab.shell_com(cmd, capture=1)
+    stat   = com.run()
+    lll    = com.so
+
+    return lll
+
+def get_drv_spacename(dset, orig_map='ORIG'):
+    """For a given dset, return an appropriate(ish) BIDS derivative name,
+if the AFNI space is recognized.
+
+Parameters
+----------
+dset : str
+    name of dataset
+orig_map : str
+    more specific name that original space should be called (or just
+    'ORIG' by default)
+
+Returns
+-------
+space : str
+    name of space
+"""
+
+    lll    = quick_3dinfo(['-space'], [dset])
+    space  = lll[0].split()[0]
+
+    if space == 'ORIG' :
+        # original space (likely needs to be mapped to something else,
+        # which can be done here or elsewhere)
+        return orig_map
+    elif space in aspace_to_bcoors.keys():
+        # some space known in our lookup dictionary
+        return aspace_to_bcoors[space]
+    else:
+        return 'UNKNOWN'
 
 # ===========================================================================
 # ===========================================================================
