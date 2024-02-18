@@ -4883,15 +4883,10 @@ def mask_segment_anat(proc, block):
     cmd += '# copy resulting Classes dataset to current directory\n'
     cmd += '3dcopy %s .\n\n' % cin.rpv()
 
-    # ==== if not doing ROI regression and not eroding, we are done ====
-    if not proc.user_opts.find_opt('-regress_ROI') and \
-       not OL.opt_is_yes(block.opts.find_opt('-mask_segment_erode')):
-       return cmd
-
-    ### else continue and make ROI masks
-
     # make erosion ROIs?  (default = yes)
     erode = not OL.opt_is_no(block.opts.find_opt('-mask_segment_erode'))
+
+    ### always continue and make ROI masks
 
     # list ROI labels for comments
     baseliststr = ' '.join(sclasses)
@@ -4939,6 +4934,7 @@ def mask_segment_anat(proc, block):
 
     proc.mask_classes = cres    # store, just in case
 
+    # and create all dict keys
     for sc in sclasses:
        newname = gen_afni_name('mask_%s_resam%s' % (sc, proc.view))
        if proc.add_roi_dict_key(sc, newname, overwrite=1): return ''
