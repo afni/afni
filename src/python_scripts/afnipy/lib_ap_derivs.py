@@ -292,18 +292,22 @@ D : dict
         UC['taskname'] = 'TASKNAME'
     if not('type_anat' in UC.keys()) :
         UC['type_anat'] = 'T1w'
+    if not('spacename_anat' in UC.keys()) :
+        # spacename for original/copied anat
+        UC['spacename_anat'] = 'anat'  
     if not('spacename_final_epi' in UC.keys()) :
+        # spacename of final EPI dset
         dset  = ap_res_dir + '/' + U['final_epi_dset']
         space = get_drv_spacename(dset, orig_map='boldref')
         UC['spacename_final_epi'] = space
     if not('spacename_final_anat' in UC.keys()) :
+        # spacename of final anat dset
         dset  = ap_res_dir + '/' + U['final_anat']
         space = get_drv_spacename(dset, orig_map='anat')
         UC['spacename_final_anat'] = space
-    if not('spacename_anat' in UC.keys()) :
-        UC['spacename_anat'] = 'anat'  # not the final space of anat
-    if not('preprocessedornot' in UC.keys()) :
-        UC['preprocessedornot'] = 'preproc'
+    if not('preproc_yn_final_anat' in UC.keys()) :
+        # for final_anat, is preproc'ed? Not sure this matters much
+        UC['preproc_yn_final_anat'] = 'preproc'
 
     # Make dict. NB: many file exts get added later, see make_dset_ext()
     # !!! add possibility of session level in here, too
@@ -320,7 +324,7 @@ D : dict
     D['errts_dset']  = "{subj}/func/{subj}_task-{taskname}_space-{spacename_final_epi}_desc-resid_bold".format(**UC)
 
     #${subj}_[${ses}_]space-${spacename}_desc-${preprocessedornot}_${type_anat}.nii.gz
-    D['final_anat']  = "{subj}/anat/{subj}-{spacename_final_anat}_desc-{preprocessedornot}_{type_anat}".format(**UC)
+    D['final_anat']  = "{subj}/anat/{subj}-{spacename_final_anat}_desc-{preproc_yn_final_anat}_{type_anat}".format(**UC)
 
     #${subj}_[${ses}_]task-${taskname}_[run-${runnum}_][echo-${echonum}_]space-${spacename}_boldref.nii.gz
     D['final_epi_dset'] = "{subj}/func/{subj}_task-{taskname}_space-{spacename_final_epi}_desc-resid_bold".format(**UC)
