@@ -303,7 +303,7 @@ D : dict
     if not('spacename_anat' in UC.keys()) :
         UC['spacename_anat'] = 'anat'  # not the final space of anat
     if not('preprocessedornot' in UC.keys()) :
-        UC['preprocessedornot'] = 'PREPROCESSEDORNOT'
+        UC['preprocessedornot'] = 'preproc'
 
     # Make dict. NB: many file exts get added later, see make_dset_ext()
     # !!! add possibility of session level in here, too
@@ -326,7 +326,7 @@ D : dict
     D['final_epi_dset'] = "{subj}/func/{subj}_task-{taskname}_space-{spacename_final_epi}_desc-resid_bold".format(**UC)
 
     # ${subj}_[${ses}_]task-${taskname}_[run-${runnum}_][echo-${echonum}_]space-${spacename}_desc-brain_mask.nii.gz
-    D['mask_dset']   = "{subj}/func/{subj}_task-{taskname}_space-{spacename_final_epi}_desc-resid_bold".format(**UC)
+    D['mask_dset']   = "{subj}/func/{subj}_task-{taskname}_space-{spacename_final_epi}_desc-brain_mask".format(**UC)
 
     # ${subj}_[${ses}_]space-${spacename}_desc-surfvol_${type_anat}.nii.gz
     D['surf_vol']   = "{subj}/anat/{subj}_space-{spacename_anat}_{type_anat}_desc-surfvol_{type_anat}".format(**UC)
