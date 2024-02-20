@@ -38,7 +38,7 @@ set verb     = 1
 # ----------------------------------------------------------------------
 # parameters not controlled by user
 set prog = `basename $0`
-set script_version = 0.4  # ugly, SHOW_HIST is at the end
+set script_version = 0.5  # ugly, SHOW_HIST is at the end
 
 set compare_opts = ''   # any applied -compare_opts option
 
@@ -221,9 +221,6 @@ set script_ap   = run_ap_$subjid
 set script_proc = proc.$subjid
 set dir_results = $subjid.results
 
-set out_ap      = out.$script_ap
-set out_proc    = out.$script_proc
-
 foreach file ( $script_ap $script_proc $dir_results )
    if ( -e $file ) then
       echo "** refusing to overwrite existing '$file'"
@@ -264,8 +261,6 @@ cat << EOF > $script_ap
 
 afni_proc.py                   $compare_opts \
     -subj_id                   $subjid \
-    -script                    $script_proc \
-    -out_dir                   $dir_results \
     -blocks                    tshift align tlrc volreg mask        \
                                blur scale regress                   \
     -radial_correlate_blocks   tcat volreg regress                  \
@@ -321,8 +316,6 @@ cat << EOF > $script_ap
 
 afni_proc.py                   $compare_opts \
     -subj_id                   $subjid \
-    -script                    $script_proc \
-    -out_dir                   $dir_results \
     -blocks                    tshift volreg mask                   \
                                blur scale regress                   \
     -radial_correlate_blocks   tcat volreg regress                  \
@@ -542,6 +535,7 @@ $prog modification history:
           - add regress to -radial_correlate_blocks
           - handle new DEFAULT example names
           - process AP example names using underscore rather than space
+   0.5  : Feb 20, 2024: don't pass irritating -script and -out_dir opts
 
    current version: $script_version
 EOF

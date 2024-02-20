@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Feb, 2024, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "remove irritating -script and -out_dir opts, just use subject ID",
+   NULL
+ } ,
+
  { 15, Feb, 2024, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "remove 2 warnings",
    "No warn on dupe followers if grids are the same; no ACF warning."
