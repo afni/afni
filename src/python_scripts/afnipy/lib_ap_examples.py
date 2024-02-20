@@ -2101,7 +2101,7 @@ def egs_publish():
    examples.append( APExample('AP publish 3b',
      source='AP_paper/scripts_task/do_22_ap_ex2_task.tcsh',
      descrip='do_22_ap_ex2_task.tcsh - pamenc task analysis.',
-     moddate='2024.01.26',
+     moddate='2024.02.20',
      keywords=['complete', 'publish', 'task'],
      header="""
               (recommended?  yes, for a volumetric task analysis)
@@ -2148,7 +2148,7 @@ def egs_publish():
       ['-dsets',                        ['func/sub-10506_pamenc_bold.nii.gz']],
       ['-tcat_remove_first_trs',        ['0']],
       ['-tshift_opts_ts',               ['-tpattern', 'alt+z2']],
-      ['-radial_correlate_blocks',      ['tcat', 'volreg']],
+      ['-radial_correlate_blocks',      ['tcat', 'volreg', 'regress']],
       ['-align_unifize_epi',            ['local']],
       ['-align_opts_aea',               ['-giant_move', '-cost', 'lpc+ZZ',
                                          '-check_flip']],
@@ -2191,16 +2191,15 @@ def egs_publish():
      ))
 
    examples.append( APExample('AP publish 3c',
-     source='AP_paper/scripts_rest/do_23_ap_ex3_ROI.tcsh',
-     descrip='do_23_ap_ex3_ROI.tcsh - ROI-based rest analysis.',
-     moddate='2024.01.30',
-     keywords=['complete', 'publish', 'physio', 'rest', 'ROI'],
+     source='AP_paper/scripts_rest/do_23_ap_ex3_vol.tcsh',
+     descrip='do_23_ap_ex3_vol.tcsh - rest analysis.',
+     moddate='2024.02.30',
+     keywords=['complete', 'publish', 'physio', 'rest'],
      header="""
               (recommended?  yes, an example of resting state analysis)
 
-         This example is based on the APMULTI_Demo1_rest tree, to perform an
-         ROI-based resting state analysis with a single echo time series.
-         Since this is an ROI analysis, no blurring is added.
+         This example is based on the APMULTI_Demo1_rest tree, to perform a
+         resting state analysis with a single echo time series.
 
          This is a sample alignment processing command, including:
             - physio regression, slicewise, before any temporal or volumetric
@@ -2209,21 +2208,20 @@ def egs_publish():
             - EPI registration to MIN_OUTLIER vr_base volume
             - EPI/anat alignment, with -align_unifize_epi local
             - NL warp to MNI152_2009 template, as computed by @SSwarper
+            - blur _to_ a FWHM of 8 mm (apprpopriate for multiple scanners)
             - all registration transformations are concatenated
             - voxelwise scaling to percent signal change
             - regression (projection) of:
                 - per run motion and first differences
                 - first 3 principle components from volreg ventricles
                   (per run, though only 1 run here)
-                - fast ANATICOR (voxelwise regressors, locally Gaussian
-                  weighted mean from eroded white matter)
                 - censor motion exceeding 0.2 ~mm from enorm time series,
                   or outliers exceeding 5% of brain 
             - estimate data blur is from the regression residuals and the
               regression input (separately) using the mixed-model ACF function
 
             - QC options:
-                -anat_follower (with skull), -anat_follower_ROI (FS ROIs),
+                -anat_follower (with skull), -anat_follower_ROI (FS GM mask),
                 -radial_correlate_blocks, (-align_opts_aea) -check_flip,
                 -volreg_compute_tsnr, -regress_make_corr_vols,
                 -html_review_style
@@ -2235,29 +2233,17 @@ def egs_publish():
      olist = [
       ['-subj_id',                 ['sub-005.eg3']],
       ['-blocks',                  ['ricor', 'tshift', 'align', 'tlrc',
-                                   'volreg', 'mask', 'scale', 'regress']],
+                                    'volreg', 'mask', 'blur', 'scale',
+                                    'regress']],
       ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
       ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
       ['-anat_has_skull',          ['no']],
       ['-anat_follower',           ['anat_w_skull', 'anat',
                                    'ssw/anatU.sub-005.nii']],
-      ['-anat_follower_ROI',       ['aaseg', 'anat',
-                                   'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
-      ['-anat_follower_ROI',       ['aeseg', 'epi',
-                                   'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
       ['-anat_follower_ROI',       ['aagm09', 'anat',
                                    'SUMA/aparc.a2009s+aseg_REN_gmrois.nii.gz']],
       ['-anat_follower_ROI',       ['aegm09', 'epi',
                                    'SUMA/aparc.a2009s+aseg_REN_gmrois.nii.gz']],
-      ['-anat_follower_ROI',       ['aagm00', 'anat',
-                                   'SUMA/aparc+aseg_REN_gmrois.nii.gz']],
-      ['-anat_follower_ROI',       ['aegm00', 'epi',
-                                   'SUMA/aparc+aseg_REN_gmrois.nii.gz']],
-      ['-anat_follower_ROI',       ['FSvent', 'epi',
-                                   'SUMA/fs_ap_latvent.nii.gz']],
-      ['-anat_follower_ROI',       ['FSWe', 'epi',
-                                   'SUMA/fs_ap_wm.nii.gz']],
-      ['-anat_follower_erode',     ['FSvent', 'FSWe']],
       ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
       ['-tcat_remove_first_trs',   ['4']],
       ['-ricor_regs',              ['physio/sub-005_rest_physio.slibase.1D']],
@@ -2277,12 +2263,10 @@ def egs_publish():
       ['-volreg_warp_dxyz',        ['3']],
       ['-volreg_compute_tsnr',     ['yes']],
       ['-mask_epi_anat',           ['yes']],
+      ['-blur_size',               ['8']],
+      ['-blur_to_fwhm',            []],
       ['-regress_motion_per_run',  []],
-      ['-regress_ROI_PC',          ['FSvent', '3']],
-      ['-regress_ROI_PC_per_run',  ['FSvent']],
-      ['-regress_make_corr_vols',  ['aeseg', 'FSvent']],
-      ['-regress_anaticor_fast',   []],
-      ['-regress_anaticor_label',  ['FSWe']],
+      ['-regress_make_corr_vols',  ['aegm09']],
       ['-regress_censor_motion',   ['0.2']],
       ['-regress_censor_outliers', ['0.05']],
       ['-regress_apply_mot_types', ['demean', 'deriv']],
@@ -2340,7 +2324,7 @@ def egs_publish():
         ['-blocks',                   ['tshift', 'align', 'volreg', 'mask',
                                        'combine', 'surf', 'blur', 'scale',
                                        'regress']],
-        ['-radial_correlate_blocks',  ['tcat', 'volreg', 'regress']],
+        ['-radial_correlate_blocks',  ['tcat', 'volreg']],
         ['-copy_anat',                ['ssw/anatSS.sub-005.nii']],
         ['-anat_has_skull',           ['no']],
         ['-anat_follower',            ['anat_w_skull', 'anat',
@@ -2394,7 +2378,7 @@ def egs_demo():
    examples.append( APExample('AP demo 1a',
      source='ap_run_simple_rest.tcsh',
      descrip='for QC, ap_run_simple_rest.tcsh with EPI and anat',
-     moddate='2022.11.23',
+     moddate='2024.02.20',
      keywords=['rest'],
      header="""
               (recommended?  yes, for quick quality control)
@@ -2415,11 +2399,9 @@ def egs_demo():
      trailer=""" """,
      olist = [
         ['-subj_id',               ['FT']],
-        ['-script',                ['proc.FT']],
-        ['-out_dir',               ['FT.results']],
         ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
                                     'mask', 'blur', 'scale', 'regress']],
-        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
         ['-copy_anat',             ['FT_anat+orig']],
         ['-dsets',                 ['FT/FT_epi_r1+orig.HEAD',
                                     'FT/FT_epi_r2+orig.HEAD',

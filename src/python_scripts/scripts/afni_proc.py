@@ -769,9 +769,10 @@ g_history = """
     7.66 Feb 15, 2024:
        - no dupe follower warning if grids differ
        - no FWHM->ACF warning
+    7.67 Feb 20, 2024: partial publish example updates
 """
 
-g_version = "version 7.66, February 15, 2024"
+g_version = "version 7.67, February 20, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
