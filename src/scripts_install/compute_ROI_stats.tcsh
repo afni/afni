@@ -26,12 +26,13 @@ cat << EOF
 $prog modification history:
 
    1.0  : Feb 15, 2024: initial version
+   1.1  : Feb 20, 2024: actually print computed depth
 
    current version: $script_version
 EOF
 exit 0
 SKIP_HIST:
-set script_version = "version 1.0, February 15, 2024"
+set script_version = "version 1.1, February 20, 2024"
 
 
 # ===========================================================================
@@ -280,16 +281,16 @@ endif
 
 # ---------------------------------------------------------------------------
 # start by printing header (must match btext lines, below )
-printf '%7s %7s %7s %6s %6s %6s %6s %6s  %7s %7s %7s  %s\n' \
-       "ROI_val" "Nvoxel" "Nzero"                           \
-       "Tmin" "T25%" "Tmed" "T75%" "Tmax"                   \
-       "coor_x" "coor_y" "coor_z"                           \
-       "ROI_name"                                           \
+printf '%7s %7s %7s %6s %6s %6s %6s %6s %6s  %7s %7s %7s  %s\n' \
+       "ROI_val" "Nvoxel" "Nzero" "depth"                       \
+       "Tmin" "T25%" "Tmed" "T75%" "Tmax"                       \
+       "coor_x" "coor_y" "coor_z"                               \
+       "ROI_name"                                               \
        >! $stats_file
-printf '%7s %7s %7s %6s %6s %6s %6s %6s  %7s %7s %7s  %s\n' \
-       "-------" "-------" "-------"                        \
-       "------"  "------"  "------"  "------"  "------"     \
-       "-------" "-------" "-------" "-------"              \
+printf '%7s %7s %7s %6s %6s %6s %6s %6s %6s  %7s %7s %7s  %s\n' \
+       "-------" "-------" "-------" "------"                   \
+       "------"  "------"  "------"  "------"  "------"         \
+       "-------" "-------" "-------" "-------"                  \
        >>! $stats_file
 
 # ---------------------------------------------------------------------------
@@ -316,7 +317,7 @@ foreach rval ( $rval_list )
    endif
 
    if ( $nvox == 0 || $nvox == $nzero ) then
-      set btext = "`printf '%7s %7s %7s' $rval $nvox $nzero`"
+      set btext = "`printf '%7s %7s %7s %6.2f' $rval $nvox $nzero 0`"
       set qtext = "`printf '%6.1f %6.1f %6.1f %6.1f %6.1f ' 0 0 0 0 0`"
       set ctext = "`printf '%7.1f %7.1f %7.1f ' 0 0 0`"
       echo "$btext" "$qtext" "$ctext" "$ROI_name" >>! $stats_file
@@ -369,7 +370,7 @@ foreach rval ( $rval_list )
    # --------------------------------------------------
 
    # too long for a line, so break up the pieces
-   set btext = "`printf '%7s %7s %7s' $rval $nvox $nzero`"
+   set btext = "`printf '%7s %7s %7s %6.2f' $rval $nvox $nzero $depth`"
    set qtext = "`printf '%6.1f %6.1f %6.1f %6.1f %6.1f ' \
                        $quarts[1] $quarts[2] $quarts[3] $quarts[4] $quarts[5]`"
    set ctext = "`printf '%7.1f %7.1f %7.1f '             \

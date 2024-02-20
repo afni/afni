@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Feb, 2024, RCR, "compute_ROI_stats.tcsh", MICRO, TYPE_BUG_FIX,
+   "forgot to actually print out the computed depth",
+   "Thanks to P Taylor for noticing."
+ } ,
+
  { 20, Feb, 2024, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "remove irritating -script and -out_dir opts, just use subject ID",
    NULL
