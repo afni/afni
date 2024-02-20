@@ -52,6 +52,23 @@ aspace_to_bcoors.update({
 
 # ==========================================================================
 
+# uvars for the ap_deriv_obj.map_simple_3dcopy() method to process
+list_uvars_simple_3dcopy = [
+    'align_anat',
+    'copy_anat',
+    'errts_dset',
+    'final_anat',
+    'final_epi_dset',
+    'mask_dset',
+    'surf_vol',
+    'tcat_dset',
+    'template',
+    'tsnr_dset',
+    'vr_base_dset',
+]
+
+# ==========================================================================
+
 class ap_deriv_obj:
     """An object for holding information for mapping AP results directory
     information to a BIDS derivative-ish one.
@@ -61,8 +78,10 @@ class ap_deriv_obj:
     def __init__(self, ap_res_dir, deriv_dir = '',
                  verb = 0, overwrite = False):
         """Create object holding mapping information from AP output to 
-        derivatives.
-        
+        derivatives. 
+
+        Use the map_all() method after instantiation to make the
+        mapping of data happen.
         """
 
         self.verb          = verb             # int, verbosity level
@@ -90,7 +109,7 @@ class ap_deriv_obj:
         self.set_deriv_dir(deriv_dir)
         self.set_deriv_ssdict()
 
-        # ----- do main work
+        # ----- do main work (now just called as separate methods
         #self.map_all()
 
     # ----------------------- functions
@@ -150,9 +169,7 @@ class ap_deriv_obj:
         function is called, sss already contains the name of the
         deriv_dir.  It is possible for sss to have an arbitrary depth
         of directory names.  We don't check for overwriting at this
-        level.
-
-        """
+        level."""
 
         subdir   = sss.rstrip('/')
 
@@ -179,22 +196,55 @@ class ap_deriv_obj:
         start by making output dir. Over time, this function will grow
         in number of uvar keys mapped."""
 
-        # !!!! make have to make more subdirs, or can make them one-by-one
+        # make top-level directory
         _tmp = self.make_deriv_dir()
         
-        _tmp = self.map_simple_3dcopy('align_anat')
-        _tmp = self.map_simple_3dcopy('copy_anat')
-        _tmp = self.map_simple_3dcopy('errts_dset')
-        _tmp = self.map_simple_3dcopy('final_anat')
-        _tmp = self.map_simple_3dcopy('final_epi_dset')
-        _tmp = self.map_simple_3dcopy('mask_dset')
-        _tmp = self.map_simple_3dcopy('surf_vol')
-        _tmp = self.map_simple_3dcopy('tcat_dset')
-        _tmp = self.map_simple_3dcopy('template') # prefix of template
-        _tmp = self.map_simple_3dcopy('tsnr_dset')
-        _tmp = self.map_simple_3dcopy('vr_base_dset')
+        # process all the uvars that are simply dsets to rename+copy
+        for uvar in list_uvars_simple_3dcopy:
+            _tmp = self.map_simple_3dcopy(uvar)
 
+        # try to copy over the typical log file, output.proc.${subj}
+        _tmp2 = self.map_log_output()
+        
         return 0
+
+    def map_log_output(self, log_ap=None):
+        """Check if the standard output.proc.${subj} log file exists; it would
+        be created using the AP opt '-execute', and be stored parallel
+        to the AP results dir (by default). User could also enter
+        their own log_ap name to check for (including path)."""
+
+        if not(log_ap) :
+            # look for what AP's '-execute' would produce
+            fname  = 'output.proc.' + self.ap_ssdict['subj']
+            aaa    = os.path.expanduser(self.ap_res_dir)
+            bbb    = os.path.abspath(aaa)
+            ccc    = os.path.dirname(bbb)
+            log_ap = ccc + '/' + fname
+            
+        if not os.path.exists(log_ap) :
+            ab.WP("Cannot find log file to copy: {}".format(log_ap))
+            stat = -2
+        else:
+            # make derivative subdir for logs
+            sss    = self.ap_ssdict['subj'] + '/' + 'logs'
+            subdir = self.deriv_dir + '/' + sss
+            self.make_deriv_subdir(subdir)
+
+            # make bids deriv filename (with path)
+            fname   = log_ap.split('/')[-1]
+            log_drv = subdir + '/' + fname
+
+            if self.verb :  
+                ab.IP("map log: {:>21s} -> {}".format(fname, 
+                                                      sss + '/' + fname))
+
+            # copy text file
+            cmd  = '''\cp {} {}'''.format(log_ap, log_drv)
+            com  = ab.shell_com(cmd, capture=1)
+            stat = com.run()
+
+        return stat
 
     def map_simple_3dcopy(self, uvar):
         """Check if uvar (that can be 3dcopy'ed) is present; if so, map it
@@ -234,12 +284,13 @@ class ap_deriv_obj:
         # check dependencies to proceed
         ldep = [uvar]
         if not check_dep(self.ap_ssdict, ldep) :  
-            if self.verb > 1 :  ab.IP("no map uvar: {:>17}".format(uvar))
-
+            if self.verb > 1 :  
+                ab.IP("no map uvar: {:>17}".format(uvar))
             return RETURN_NULL
 
         if self.verb :  
-            ab.IP("map uvar: {:>20s} -> {}".format(uvar, self.deriv_ssdict[uvar]))
+            ab.IP("map uvar: {:>20s} -> {}".format(uvar, 
+                                                   self.deriv_ssdict[uvar]))
 
         # names to/from
         dset_ap  = self.ap_res_dir + '/' + self.ap_ssdict[uvar]
