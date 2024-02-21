@@ -144,9 +144,11 @@ int main( int argc, char *argv[] )
 
    /* limit to frac of nvols (if not counting, convert to 0/1 mask) */
    limit = ceil((params->frac>1) ? params->frac : params->nvols*params->frac );
-   if( params->verb )
+   if( params->verb ) {
+      INFO_message("have %d volumes of input\n", params->nvols);
       INFO_message("frac %g over %d volumes gives min count %d\n",
                    params->frac, params->nvols, limit);
+   }
    if( limit <= 0 ) limit = 1;
 
    /* if not counting, result is binary 0/1 */
