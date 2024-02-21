@@ -10552,7 +10552,7 @@ int SUMA_ComputeLineVOvrIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                       if ( okinten && (valpha > colplane->AlphaThresh) ) {
                         SUMA_LH("FOUND IT, on VE %s, IJK [%d %d %d], val %f,"
                                "thresh[%f %f], UseAlphaTresh = %d, "
-                               "valpha=%f, ColAlphaThresh=%f\n",
+                               "valpha=%f, ColAlphaThresh=%d\n",
                                    SUMA_VE_Headname(VO->VE, ive),
                                    (int)I[0], (int)I[1], (int)I[2], val,
                                    colplane->OptScl->ThreshRange[0],
