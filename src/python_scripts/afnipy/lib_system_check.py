@@ -1310,6 +1310,8 @@ class SysInfo:
       # if we do not need flat_namespace, prevent IUD.py from checking it
       if not self.need_flat:
          cmd += ' -do_updates path apsearch'
+      if self.verb > 2:
+         print("-- running command: %s" % cmd)
       status, cout = UTIL.exec_tcsh_command(cmd, lines=1)
 
       # report failure or else extract the number of mods needed
