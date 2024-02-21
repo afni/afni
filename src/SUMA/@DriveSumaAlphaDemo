@@ -35,16 +35,18 @@ Make sure no current SUMA is running, then press OK'`
 		-spec /home/peterlauren/AFNI_data6/FT_analysis/FT/SUMA/std.60.FT_lh.spec \
 		-sv FT.surf_SurfVol_Alnd_Exp+orig -niml &
 	$SUMA_DIR/DriveSuma -com  viewer_cont -key '.'
-	D$SUMA_DIR/riveSuma -com  viewer_cont -key '.'
+	$SUMA_DIR/DriveSuma -com  viewer_cont -key '.'
 	$SUMA_DIR/DriveSuma -com  viewer_cont -key '.'
 	$SUMA_DIR/DriveSuma -com  viewer_cont -key 'ctrl+s'
 	$SUMA_DIR/DriveSuma -com surf_cont -view_surf_cont y
 
        $SUMA_DIR/DriveSuma -com surf_cont -load_dset stats.FT.surf.lh.niml.dset
        set THR = 20
-       $SUMA_DIR/DriveSuma -com  surf_cont -T_val $THR
+       $SUMA_DIR/DriveSuma -com  surf_cont -T_val $THR 
 
+       #$SUMA_DIR/DriveSuma -com surf_cont -shw_0 y
        $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA y
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_BOXED y
 
         set l = `prompt_user -pause \
 '@DriveSuma \n\
