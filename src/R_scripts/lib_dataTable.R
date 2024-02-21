@@ -26,7 +26,7 @@ dtCheck_convert_num <- function(data.in){
     
     ## fix here grep the +/- numeric variables and convert to numeric ###### 
     num.cols <- sapply(data.in, function(x) !any(grepl("[^0-9.-]", x)))
-
+    
     ## check to see if the Subj variable is all numeric
     if( num.cols[1] ){ num.cols[1] <- FALSE }
     
@@ -37,7 +37,7 @@ dtCheck_convert_num <- function(data.in){
         data.in[,num.cols] <- apply(data.in[,num.cols],2,
                                     function(x) as.numeric(as.character(x)))
     } else if( length(which(num.cols)) == 0 ){ return(data.in) }
-
+    
     return(data.in)
     
 }   ## end dtCheck_convert_num
@@ -236,7 +236,7 @@ dtCheck_tryRead <- function(file.in){
     
     ## get length
     hdr.len <- length(hdr.line[[1]])
-
+    
     ## empty to fill
     miss.row <- miss.num <- miss.line <- na.line <- c()
     
@@ -245,7 +245,7 @@ dtCheck_tryRead <- function(file.in){
         
         ## split line by comma or some spaces
         tmp.line <- strsplit(data.str[i], "[, ]|[[:space:]]+")
-       
+        
         ## check for trailing slash
         if( tmp.line[[1]][length(tmp.line[[1]])] == "\\" ){
             tmp.line[[1]] <- tmp.line[[1]][1:(length(tmp.line[[1]])-1)]
@@ -437,7 +437,7 @@ dtCheck_printSummary <- function(data.in){
             }
             ## if there are not too many levels, print them out
             if( i == length(data.in) ) {
-              col.detail <- paste0("Number of InputFiles=",
+                col.detail <- paste0("Number of InputFiles=",
                                      length(levels(data.in[[i]]))," ",pos.num)
             } else if( length(levels(data.in[[i]])) < 4 ){
                 lev.var <- tapply(data.in[[i]],data.in[[i]],length)
@@ -548,8 +548,9 @@ file_subj_check <- function(data.in){
     
     ## need to fix this here ################
     ## check if the last column is divisible by subjects
-    file.subj <- length(levels(data.in[,length(data.in)])) / length(levels(data.in$Subj))
-
+    # file.subj <- length(levels(data.in[,length(data.in)])) / length(levels(data.in$Subj))
+    file.subj <- length(data.in[,length(data.in)]) / length(levels(data.in$Subj))
+    
     ## if not an integer
     if( file.subj%%1 != 0 ){
         ## get the counts, mode and list of differing subj
@@ -690,21 +691,24 @@ dtCheck_overall <- function(data.in){
     
     if( length(tableTest.df) == 1 ){ return(1) }
     
-    ## make sure all InputFiles exist on disk
-    exists.val <- dtCheck_img_exists(tableTest.df)
-    
-    if( exists.val == 0 ){
-        test.vols <- dtCheck_1_vol(tableTest.df)
-        test.grid <- dtCheck_same_grid(tableTest.df)
-        
-        ## exit on either failure
-        if( test.vols + test.grid != 0 ){
+    ## make sure all InputFiles exist on disk if not Ausgang
+    if( names(data.in)[length(data.in)] %in% c('Ausgang_val','ausgang_val') ){
+        return(0)
+    } else {
+        exists.val <- dtCheck_img_exists(tableTest.df)
+        if( exists.val == 0 ){
+            test.vols <- dtCheck_1_vol(tableTest.df)
+            test.grid <- dtCheck_same_grid(tableTest.df)
+            
+            ## exit on either failure
+            if( test.vols + test.grid != 0 ){
+                dtCheck_err("One or more tests failed. See above")
+                return(1)
+            }
+        } else {
             dtCheck_err("One or more tests failed. See above")
             return(1)
         }
-    } else {
-        dtCheck_err("One or more tests failed. See above")
-        return(1)
     }
     
     return(0)
