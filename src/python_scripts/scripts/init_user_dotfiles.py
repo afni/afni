@@ -1285,7 +1285,7 @@ class MyInterface:
                skipit = 0
                break
          if self.verb > 1 and skipit:
-            MESGm("skipping file shell %s: %s" % (fileshell, skipit))
+            MESGm("skipping apsearch file shell %s: %s" % (fileshell, skipit))
 
       # if follower, no worries
       if fo.follow:
