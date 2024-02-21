@@ -769,10 +769,12 @@ g_history = """
     7.66 Feb 15, 2024:
        - no dupe follower warning if grids differ
        - no FWHM->ACF warning
-    7.67 Feb 20, 2024: partial publish example updates
+    7.67 Feb 21, 2024:
+       - partial publish example updates
+       - remove warning: 'ricor regressors are no longer applied in final reg'
 """
 
-g_version = "version 7.67, February 20, 2024"
+g_version = "version 7.67, February 21, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -2768,10 +2770,11 @@ class SubjProcSream:
                     print("-- using default: will not apply EPI Automask")
                     print("   (see 'MASKING NOTE' from the -help for details)")
 
-            if self.ricor_nreg > 0 and self.ricor_apply == 'no':
-                if not self.user_opts.find_opt('-regress_apply_ricor'):
-                    print('** note: ricor regressors are no longer applied' \
-                              ' in final regression')
+            # no longer warn on this
+            # if self.ricor_nreg > 0 and self.ricor_apply == 'no':
+            #     if not self.user_opts.find_opt('-regress_apply_ricor'):
+            #         print('** note: ricor regressors are no longer applied' \
+            #                   ' in final regression')
 
             if self.runs == 1:
                 print("\n-------------------------------------\n" \
