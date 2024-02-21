@@ -7540,7 +7540,7 @@ void drawThresholdOutline_Old(SUMA_SurfaceObject *SO, int *outlinevector,
    }
 }
 
-void drawThresholdOutline(SUMA_SurfaceObject *SO,
+int drawThresholdOutline(SUMA_SurfaceObject *SO,
                                SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"drawThresholdOutline"};

@@ -6017,7 +6017,12 @@ SUMA_Boolean SUMA_DrawPlanes( float **PlEq, float **cen, float *sz,
       ++itmp;
    }
 
-   SDO->boxdimv = (float *)SUMA_calloc(3*SDO->N_n, sizeof(float));
+   if (3*SDO->N_n > USHRT_MAX){
+        fprintf(stderr, "%s: Failure to allocate memory.", FuncName);
+        SUMA_RETURN(NOPE);
+   }
+   unsigned short numElements = 3*SDO->N_n;
+   SDO->boxdimv = (float *)SUMA_calloc(numElements, sizeof(float));
    if (sz) {
       itmp = 0;
       while (itmp < SDO->N_n) {
@@ -11112,7 +11117,8 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
                }
             }
          }
-         if (msk) SUMA_free(msk); msk = NULL;
+         if (msk){ SUMA_free(msk); }  
+         msk = NULL;
       }
       glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
    }
@@ -11123,7 +11129,8 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
    SUMA_ifree(colid); SUMA_ifree(colidballs);
    glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity */
    glLineWidth(origwidth);
-   if (mask) SUMA_free(mask); mask=NULL;
+   if (mask) { SUMA_free(mask); } 
+   mask=NULL;
 
    SUMA_RETURN (YUP);
 
@@ -17576,12 +17583,16 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       SUMA_LH("Nothing to do, returning");
       SUMA_RETURNe;
    }
+   
+   fprintf(stderr, "%s: SurfObj = %p\n", FuncName, SurfObj);
+   fprintf(stderr, "%s: SurfObj->DW = %p\n", FuncName, SurfObj->DW);
 
    if (!SurfObj->DW->DrwPtchs) {
       SUMA_S_Err("Should not have null DrwPtchs at this point");
       SUMA_RETURNe;
    }
 
+   fprintf(stderr, "%s: sv = %p\n", FuncName, sv);
    if (sv->DO_PickMode) {
       SUMA_LH("No need to DrawMesh in DO picking mode");
       SUMA_RETURNe;
@@ -17590,6 +17601,7 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_LH("Might need to swap coords from the VisX transformed data");
    SUMA_VisX_Pointers4Display(SurfObj, 1);
 
+   fprintf(stderr, "%s: begin for each patch\n", FuncName);
    do { /* begin for each patch */
       if (!el) el = dlist_head(SurfObj->DW->DrwPtchs);
       else el = dlist_next(el);
@@ -17603,10 +17615,12 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          continue;
       }
 
+      fprintf(stderr, "%s: SUMA_GLStateTrack\n", FuncName);
       if (!SUMA_GLStateTrack( "new", &st, FuncName, NULL, NULL)) {
          SUMA_S_Err("Failed to create tracking list");
          SUMA_RETURNe;
       }
+      fprintf(stderr, "%s: check on rendering mode\n", FuncName);
       /* check on rendering mode */
       if (ptch->PolyMode != SRM_ViewerDefault) {
         SUMA_LHv("Poly Mode %d\n", ptch->PolyMode);
@@ -17621,6 +17635,7 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       SUMA_LH("TransMode = %d, N_FaceSet = %d",
                ptch->TransMode, ptch->N_FaceSet);
 
+      fprintf(stderr, "%s: check on rendering mode\n", FuncName);
       /* check on rendering mode */
       if (ptch->TransMode == STM_ViewerDefault) {
          trmode = sv->TransMode;
@@ -17629,13 +17644,16 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       } else trmode = STM_0;
 
       if (trmode != STM_0) {
+        fprintf(stderr, "%s: not the default, do the deed\n", FuncName);
         /* not the default, do the deed */
         SUMA_LHv("Trans Mode %d\n", trmode);
         SUMA_SET_GL_TRANS_MODE(trmode, st, SO_type);
       }
 
+      fprintf(stderr, "%s: any texture for this surface?\n", FuncName);
       /* any texture for this surface? */
       texnel = SUMA_SO_NIDO_Node_Texture ( SurfObj, SUMAg_DOv, SUMAg_N_DOv, sv );
+      fprintf(stderr, "%s: texnel = %p\n", FuncName, texnel);
       if (texnel) {
          SUMA_LH(  "Creating texture, see init pp 415 in \n"
                    "OpenGL programming guide, 3rd ed.");
@@ -17715,6 +17733,7 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       }
 
 
+      fprintf(stderr, "%s: DRAW_METHOD = %d\n", FuncName, DRAW_METHOD);
       switch (DRAW_METHOD) {
          case STRAIGHT:
             switch (RENDER_METHOD) {
@@ -17949,6 +17968,7 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       SUMA_LH("Undoing state changes");
       SUMA_GLStateTrack("r", &st, FuncName, NULL, NULL);
 
+      fprintf(stderr, "%s: ptch = %p\n", FuncName, ptch);
       if (ptch->PolyMode != sv->PolyMode)
                SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
    } while (el != dlist_tail(SurfObj->DW->DrwPtchs));
@@ -18191,7 +18211,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 	       if (NP==3) {
                 for (int i=0; i<(GLsizei)N_glar_FaceSet; ++i){
                     int i3 = 3*i;
-                    fprintf("SurfObj->glar_FaceSetList[%d] = (%d, %d, %d)\n", i, 
+                    fprintf(stderr, "SurfObj->glar_FaceSetList[%d] = (%d, %d, %d)\n", i, 
                         SurfObj->glar_FaceSetList[i3], SurfObj->glar_FaceSetList[13+1], SurfObj->glar_FaceSetList[i3+2]);
                 }
                 // TOY_CRASH: WHERE CRASH OCCURS WITH TOY EXAMPLES.
