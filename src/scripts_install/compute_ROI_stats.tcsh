@@ -424,14 +424,21 @@ $prog  - compute per-ROI value statisics over a given dataset
       create a depth map for dset_ROI
       for each requested ROI value rval in rval_list (for dset_ROI)
          compute and store in stats file:
-            ROI_val      : rval - ROI index value
-            Nvoxel       : N voxels in dset_ROI rval region
-            Nzero        : N ROI voxels that are 0 in dset_data
+            Q            : quality rating (empty=okay, ?=questionable, x=bad)
+
+            ROI          : ROI index value (rval)
+            Nvox         : N voxels in dset_ROI rval region
+            Nz           : N ROI voxels that are zero in dset_data
+            Vmax         : maximum ROI depth, in voxels (1.0 = 1 iso voxel)
+                           = (max mm depth) / (iso voxel width)
+
             Tmin, T25%, Tmed, T75%, Tmax
                          : multiples of 25%-iles (with min/max)
-            coor_x, y, z : x, y and z coordinates at max ROI depth
+
+            Xcoor,
+            Ycoor, Zcoor : x, y and z coordinates at max ROI depth
                            (coordinates are in DICOM/RAI orientation)
-            ROI_name     : dataset name of dset_ROI
+            ROI_name     : ROI label associated with ROI index (in dset_ROI)
 
 ------------------------------------------------------------------------------
 example 0: based on afni_proc.py
