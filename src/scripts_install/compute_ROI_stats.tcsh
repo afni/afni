@@ -27,13 +27,13 @@ $prog modification history:
 
    1.0  : Feb 15, 2024: initial version
    1.1  : Feb 20, 2024: actually print computed depth
-   1.2  : Feb 21, 2024: update format, init Q column (quality rating)
+   1.2  : Feb 22, 2024: update format, init Q column (quality rating)
 
    current version: $script_version
 EOF
 exit 0
 SKIP_HIST:
-set script_version = "version 1.2, February 21, 2024"
+set script_version = "version 1.2, February 22, 2024"
 
 
 # ===========================================================================
@@ -281,17 +281,27 @@ if ( $status ) then
 endif
 
 # ---------------------------------------------------------------------------
-# start by printing header (must match btext lines, below )
+# start by printing header
+
+# get a prefix line and underline it
+set dpre = `3dinfo -prefix $dset_ROI`
+set dtxt = "dset: $rset_label ($dpre)"
+set dund = `echo "$dtxt" | sed 's/./-/g'`
+echo -n ""      >! $stats_file
+echo "$dtxt"   >>! $stats_file
+echo "$dund\n" >>! $stats_file
+
+# field headers must match 2 sets of btext lines, below
 printf '%1s %6s %6s %5s %5s  %5s %5s %5s %5s %5s  %6s %6s %6s  %s\n' \
-       "Q" "ROI" "Nvox" "Nz" "Vmax"                             \
-       "Tmin" "T25%" "Tmed" "T75%" "Tmax"                       \
-       "Xcoor" "Ycoor" "Zcoor"                               \
-       "ROI_name"                                               \
-       >! $stats_file
+       "Q" "ROI" "Nvox" "Nz" "Vmax"                                  \
+       "Tmin" "T25%" "Tmed" "T75%" "Tmax"                            \
+       "Xcoor" "Ycoor" "Zcoor"                                       \
+       "ROI_name"                                                    \
+       >>! $stats_file
 printf '%1s %6s %6s %5s %5s  %5s %5s %5s %5s %5s  %6s %6s %6s  %s\n' \
-       "-" "---" "----" "--" "----"                             \
-       "----"  "----"  "----"  "----"  "----"         \
-       "-----" "-----" "-----" "-----"                  \
+       "-" "---" "----" "--" "----"                                  \
+       "----"  "----"  "----"  "----"  "----"                        \
+       "-----" "-----" "-----" "-----"                               \
        >>! $stats_file
 
 # ---------------------------------------------------------------------------
@@ -389,6 +399,7 @@ end
 # --------------------------------------------------
 # finally, display the results
 if ( $verb > 0 ) then
+   echo ""
    cat $stats_file
    echo ""
 endif
