@@ -772,9 +772,12 @@ g_history = """
     7.67 Feb 21, 2024:
        - partial publish example updates
        - remove warning: 'ricor regressors are no longer applied in final reg'
+    7.68 Feb 22, 2024:
+       - use mask_epi_anat for more QC (over full_mask) and modify indentation
+       - if appropriate, apply "-regress_compute_tsnr_stats brain 1"
 """
 
-g_version = "version 7.67, February 21, 2024"
+g_version = "version 7.68, February 22, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -4032,15 +4035,18 @@ class SubjProcSream:
           if isinstance(oname, afni_name): oldname = oname.shortinput()
           else: oldname = 'NOT_YET_SET'
 
-          if self.verb > 1 or not overwrite:
-             print("** trying to overwrite roi_dict['%s'] = %s with %s" \
-                   % (key, oldname, newname))
-
           if not overwrite:
+             print("** failing to overwrite roi_dict['%s'] = %s with %s" \
+                   % (key, oldname, newname))
              if key in self.def_roi_keys: 
                 print("** ROI key '%s' in default list, consider renaming"%key)
                 print("   (default list comes from 3dSeg result)")
              return 1
+
+          if self.verb > 1:
+             print("++ will overwrite roi_dict['%s'] = %s\n" \
+                   "   with %s"                              \
+                   % (key, oldname, newname))
 
        elif self.verb > 1:
             print("++ setting roi_dict['%s'] = %s" % (key, newname))
@@ -4054,9 +4060,10 @@ class SubjProcSream:
        nkeys = len(keys)
        if nkeys <= 0: return
        print('-- have %d ROI dict entries ...' % nkeys)
+       if verb <= 0: return
+
        # get max key string length, with 2 positions for surrounding quotes
        maxlen = max((len(key)+2) for key in keys)
-       if verb < 0: verb = 0
 
        for key in keys:
           kstr = "'%s'" % key

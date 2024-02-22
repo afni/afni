@@ -2984,6 +2984,11 @@ def db_cmd_volreg(proc, block):
         if st: return
         cmd += wtmp + '\n'
         get_allcostX += 1
+
+        # and since we are warping, clear any generic variables that depend on
+        # the current grid
+        clear_grid_dependent_vars(proc, block)
+
     elif basehead:
         # we are not creating a final_epi, so pass use the base for a uvar
         proc.uvars.set_var('final_epi_dset', [basehead])
@@ -3045,6 +3050,14 @@ def db_cmd_volreg(proc, block):
     proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
 
     return cmd
+
+
+def clear_grid_dependent_vars(proc, block):
+    """clear any generic proc variables that depend on the current grid,
+       and which must be regenerated if it changes
+    """
+    proc.tsnr_dset = None
+
 
 def make_volreg_command(block, prev_prefix, prefix, basestr, matstr,
                         zpad, other_opts="", resam="Cu"):
@@ -4747,6 +4760,7 @@ def db_cmd_mask(proc, block):
     proc.mask_epi.created = 1  # so this mask 'exists' now
 
     # if possible make a subject anat mask, resampled to EPI
+    # (and probably mask_epi_anat)
     if proc.warp_epi or not proc.anat_has_skull:
         mc = anat_mask_command(proc, block)
         if mc == None: return
@@ -5034,7 +5048,7 @@ def group_mask_command(proc, block):
     tanat = proc.mask_group.new('rm.resam.group') # temp resampled group dset
     cmd = cmd + "3dresample -master %s -prefix ./%s \\\n" \
                 "           -input %s%s\n\n"              \
-                % (proc.mask_epi.pv(), tanat.prefix,
+                % (proc.mask.pv(), tanat.prefix,
                    proc.tlrc_base.input(), volstr)
 
     # convert to a binary mask via 3dmask_tool, to fill in a bit
@@ -5125,6 +5139,16 @@ def anat_mask_command(proc, block):
               "            -inter -prefix %s\n\n"                           \
               % (proc.mask_epi.shortinput(), proc.mask_anat.shortinput(),
                  proc.mask_epi_anat.out_prefix())
+
+       # if 'brain' ROI is mask_epi, replace it with mask_epi_anat  2024.0222
+       label = 'brain'
+       mset = proc.get_roi_dset(label)
+       if mset == proc.mask_epi:
+          if proc.verb > 1:
+             print("++ replacing '%s' ROI with mask_epi_anat" % label)
+          if proc.add_roi_dict_key(label, proc.mask_epi_anat, overwrite=1):
+             return 1
+
        proc.mask_epi_anat.created = 1  # so this mask 'exists' now
        cmd += rcmd
 
@@ -6553,8 +6577,10 @@ def db_cmd_regress(proc, block):
     # unit errts (leave as rm. dataset)
     opt = block.opts.find_opt('-regress_compute_gcor')
     if opt.parlist[0] == 'yes':
-       if errts and proc.mask_epi and not proc.surf_anat:
-          tcmd = db_cmd_regress_gcor(proc, block, errts)
+       bmask = proc.get_roi_dset('brain')
+       if not bmask: bmask = proc.mask
+       if errts and bmask and not proc.surf_anat:
+          tcmd = db_cmd_regress_gcor(proc, block, errts, bmask)
           if tcmd == None: return  # error
           if tcmd != '': cmd += tcmd
        elif proc.verb > 1:
@@ -6731,9 +6757,9 @@ def db_cmd_reml_exec(proc, block, short=0):
     return cmd
 
 # compute GCOR
-def db_cmd_regress_gcor(proc, block, errts_pre):
+def db_cmd_regress_gcor(proc, block, errts_pre, bmask):
 
-    if not errts_pre or not proc.mask_epi: return ''
+    if not errts_pre or not bmask: return ''
     if proc.surf_anat:
        if proc.verb > 1: print("** no gcor until handle 'both' hemis")
        return ''
@@ -6749,9 +6775,9 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
           '# compute and store GCOR (global correlation average)\n'     \
           '# (sum of squares of global mean of unit errts)\n'           \
           '3dTnorm -norm2 -prefix %s %s\n'                              \
-          '3dmaskave -quiet -mask %s %s \\\n'                           \
-          '          > %s\n'                                            \
-          % (uset.prefix, errts_dset, proc.mask_epi.pv(),
+          '3dmaskave -quiet -mask %s \\\n'                              \
+          '          %s > %s\n'                                         \
+          % (uset.prefix, errts_dset, bmask.pv(),
              uset.pv(), gu_mean)
 
     cmd += "3dTstat -sos -prefix - %s\\' > %s\n"                        \
@@ -6763,10 +6789,10 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
     cmd += '# ---------------------------------------------------\n'    \
            "# compute correlation volume\n"                             \
            "# (per voxel: correlation with masked brain average)\n"     \
-           "3dmaskave -quiet -mask %s %s \\\n"                          \
-           "          > %s\n"                                           \
+           "3dmaskave -quiet -mask %s \\\n"                             \
+           "          %s > %s\n"                                        \
            "3dTcorr1D -prefix %s %s%s %s\n\n"                           \
-           % (proc.mask_epi.pv(), errts_dset, gmean,
+           % (bmask.pv(), errts_dset, gmean,
               corset, errts_pre, proc.view, gmean)
 
     # compute extra correlation volumes (assuming EPI grid ROIs followers):
@@ -6796,9 +6822,9 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
           rstr += '# create correlation volume %s\n' % cvol
           rstr += "3dcalc -a %s -b %s -expr 'a*b' \\\n"         \
                   "       -prefix %s\n" \
-                  % (mset.pv(), proc.mask_epi.pv(), mpre)
-          rstr += "3dmaskave -q -mask %s%s %s \\\n"             \
-                  "          > %s\n"                            \
+                  % (mset.pv(), bmask.pv(), mpre)
+          rstr += "3dmaskave -q -mask %s%s \\\n"                \
+                  "          %s > %s\n"                         \
                   % (mpre, proc.view, errts_dset, meants)
           rstr += "3dTcorr1D -prefix %s %s %s\n\n"              \
                   % (cvol, errts_dset, meants)
@@ -7133,6 +7159,23 @@ def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
            "#    noise : compute standard deviation of errts\n",
            all_runs, errts_pre, proc.view, mask=mask_pre)
 
+    # -----------------------------------------------------------------
+    # if the user has not requested TSNR stats, but we have a 'brain'
+    # ROI and can compute them, do so
+    oname = '-%s_compute_tsnr_stats' % block.label
+    dlablist = [opt.parlist[0] for opt in block.opts.find_all_opts(oname)]
+    blabel = 'brain'
+    # so first, if we are not yet doing it:
+    if blabel not in dlablist:
+       # then, can we?
+       if proc.have_roi_label('brain') and proc.tsnr_dset is not None:
+           if proc.verb > 1:
+              print("-- will also compute regress TSNR stats across '%s'" \
+                    % blabel)
+           block.opts.add_opt(oname, 2, [blabel, '1'], setpar=1)
+
+    # -----------------------------------------------------------------
+    # compute TSNR stats across all requested ROIs
     if block.opts.find_opt('-regress_compute_tsnr_stats'):
        # given ROIs and new proc.tsnr_dset
        rv, scmd = db_cmd_compute_tsnr_stats(proc, block)
@@ -7150,22 +7193,27 @@ def db_cmd_compute_tsnr_stats(proc, block):
 
     # make a list of ROI dset labels to work with
     oname = '-%s_compute_tsnr_stats' % block.label
-    olist = proc.user_opts.find_all_opts(oname)
+    olist = block.opts.find_all_opts(oname)
     if proc.verb > 2:
        print("-- db_cmd_compute_tsnr_stats: have %s %s option(s)" \
              % (len(olist), oname))
+
+    # note which labels we plan to apply
+    dlablist = [opt.parlist[0] for opt in olist]
+
+    # if nothing to do, bail
     if len(olist) == 0:
        return 0, ''
+
+    # warn user of impending doom
+    if proc.verb > 0:
+       print("++ will compute %s TSNR stats for dsets: %s" \
+             % (block.label, ', '.join(dlablist)))
 
     # if we don't have a tsnr_dset for some reason, panic into error
     if proc.tsnr_dset is None:
        print("** cannot compute_tsnr_stats without TSNR dset")
        return 1, ''
-
-    dlablist = [opt.parlist[0] for opt in olist]
-    if proc.verb > 0:
-       print("++ will compute %s TSNR stats for dsets: %s" \
-             % (block.label, ', '.join(dlablist)))
 
     # prep header, output directory and input dataset (-dset_data)
     cmd = '# --------------------------------------------------\n' \
@@ -7178,7 +7226,7 @@ def db_cmd_compute_tsnr_stats(proc, block):
     dset_data = proc.tsnr_dset.shortinput()
 
     # resample the given datasets
-    for opt in proc.user_opts.find_all_opts(oname):
+    for opt in olist:
        if len(opt.parlist) < 2:
           print("** %s %s : missing ROI values" % (oname, label))
           return 1, ''
@@ -14758,6 +14806,8 @@ OPTIONS:  ~2~
                  -regress_compute_tsnr_stats aeseg   4 41 99 999            \\
                  -regress_compute_tsnr_stats Glasser 4 41 99 999
 
+            default: -regress_compute_tsnr_stats brain 1
+
         Given:
            - TSNR statistics are being computed in the regress block
            - there is an EPI-grid ROI dataset with label ROI_DSET_LABEL
@@ -14771,6 +14821,9 @@ OPTIONS:  ~2~
 
         ROI datasets (and their respective labels) are made via options like
         -anat_follower_ROI, -ROI_import or even -mask_segment_anat.
+
+      * This option is currently automatically applied with a 'brain' ROI,
+        if appropriate.
 
         See 'compute_ROI_stats.tcsh -help' for more details.
         See also -anat_follower_ROI, -ROI_import, -regress_compute_tsnr.
@@ -15325,6 +15378,7 @@ OPTIONS:  ~2~
             name    description     source dataset    creation program
             -----   --------------  --------------    ----------------
             brain   EPI brain mask  full_mask         3dAutomask
+                       or, if made: mask_epi_anat     3dAutomask/3dSkullStrip
             CSF     CSF             mask_CSF_resam    3dSeg -> Classes
             CSFe    CSF (eroded)    mask_CSFe_resam   3dSeg -> Classes
             GM      gray matter     mask_GM_resam     3dSeg -> Classes

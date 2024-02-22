@@ -2208,7 +2208,7 @@ def egs_publish():
             - EPI registration to MIN_OUTLIER vr_base volume
             - EPI/anat alignment, with -align_unifize_epi local
             - NL warp to MNI152_2009 template, as computed by @SSwarper
-            - blur _to_ a FWHM of 8 mm (apprpopriate for multiple scanners)
+            - blur _to_ a FWHM of 8 mm (appropriate for multiple scanners)
             - all registration transformations are concatenated
             - voxelwise scaling to percent signal change
             - regression (projection) of:
