@@ -6,21 +6,9 @@ set version   = "0.0";  set rev_dat   = "Feb 1, 2023"
 # ----------------------------------------------------------------
 
 set this_prog = "THIS_PROG"
+set prog_abbr = "TP"
 #set tpname    = "${this_prog:gas///}"
 set here      = $PWD
-
-# ----------------- find AFNI and set viewer ---------------------
-
-# find AFNI binaries directory and viewer location
-set adir      = ""
-which afni >& /dev/null
-if ( $status ) then
-    echo "** Cannot find 'afni' (?)."
-    goto BAD_EXIT
-else
-    set aa   = `which afni`
-    set adir = $aa:h
-endif
 
 # ----------------------- set defaults --------------------------
 
@@ -32,9 +20,7 @@ set opref   = ""
 
 set wdir    = ""
 
-
 set DO_CLEAN  = 1                       # default: keep working dir
-
 
 # ------------------- process options, a la rr ----------------------
 
@@ -50,12 +36,15 @@ while ( $ac <= $#argv )
         goto SHOW_VERSION
     endif
 
+    if ( "$argv[$ac]" == '-echo' ) then
+        set echo
+
     # --------- required
 
-    if ( "$argv[$ac]" == "-input" ) then
+    else if ( "$argv[$ac]" == "-input" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set ifile = "$argv[$ac]"
+        set input = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -63,7 +52,6 @@ while ( $ac <= $#argv )
         set prefix = "$argv[$ac]"
         set opref  = `basename "$argv[$ac]"`
         set odir   = `dirname  "$argv[$ac]"`
-
 
     # --------- opt
 
@@ -93,18 +81,18 @@ end
 # ======================== ** Verify + setup ** =========================
 # =======================================================================
 
-if ( "${prefix}" = "" ) then
+if ( "${prefix}" == "" ) then
     echo "** ERROR: need to provide output name with '-prefix ..'"
     goto BAD_EXIT
 endif
 
-if ( "${input}" = "" ) then
+if ( "${input}" == "" ) then
     echo "** ERROR: need to provide input dataset with '-input ..'"
     goto BAD_EXIT
 endif
 
 # make workdir name, if nec
-if ( "${wdir}" = "" ) then
+if ( "${wdir}" == "" ) then
     set tmp_code = `3dnewid -fun11`  # should be essentially unique hash
     set wdir     = __workdir_${this_prog}_${tmp_code}
 endif
@@ -139,21 +127,19 @@ cd ..
 set whereout = $PWD
 
 if ( $DO_CLEAN == 1 ) then
-    echo "\n+* Removing temporary axialization working dir: '$wdir'\n"
-
+    echo "++ Clean working dir"
     # ***** clean
-
+    #\rm -rf ${wdir}
 else
-    echo "\n++ NOT removing temporary axialization working dir: '$wdir'\n"
+    echo "++ NOT removing temporary axialization working dir: ${wdir}"
 endif
 
-echo ""
-echo "++ DONE.  View the finished, axialized product:"
-echo "     $whereout/$fout"
-echo ""
+cat <<EOF
 
+++ DONE. See the output:
+   $whereout/${opref}"
 
-
+EOF
 
 goto GOOD_EXIT
 
