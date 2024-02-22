@@ -27,12 +27,13 @@ $prog modification history:
 
    1.0  : Feb 15, 2024: initial version
    1.1  : Feb 20, 2024: actually print computed depth
+   1.2  : Feb 21, 2024: update format, include Q (quality rating)
 
    current version: $script_version
 EOF
 exit 0
 SKIP_HIST:
-set script_version = "version 1.1, February 20, 2024"
+set script_version = "version 1.2, February 21, 2024"
 
 
 # ===========================================================================
@@ -281,16 +282,16 @@ endif
 
 # ---------------------------------------------------------------------------
 # start by printing header (must match btext lines, below )
-printf '%7s %7s %7s %6s %6s %6s %6s %6s %6s  %7s %7s %7s  %s\n' \
-       "ROI_val" "Nvoxel" "Nzero" "depth"                       \
+printf '%1s %6s %6s %5s %5s  %5s %5s %5s %5s %5s  %6s %6s %6s  %s\n' \
+       "Q" "ROI" "Nvox" "Nz" "Vmax"                             \
        "Tmin" "T25%" "Tmed" "T75%" "Tmax"                       \
-       "coor_x" "coor_y" "coor_z"                               \
+       "Xcoor" "Ycoor" "Zcoor"                               \
        "ROI_name"                                               \
        >! $stats_file
-printf '%7s %7s %7s %6s %6s %6s %6s %6s %6s  %7s %7s %7s  %s\n' \
-       "-------" "-------" "-------" "------"                   \
-       "------"  "------"  "------"  "------"  "------"         \
-       "-------" "-------" "-------" "-------"                  \
+printf '%1s %6s %6s %5s %5s  %5s %5s %5s %5s %5s  %6s %6s %6s  %s\n' \
+       "-" "---" "----" "--" "----"                             \
+       "----"  "----"  "----"  "----"  "----"         \
+       "-----" "-----" "-----" "-----"                  \
        >>! $stats_file
 
 # ---------------------------------------------------------------------------
@@ -316,11 +317,14 @@ foreach rval ( $rval_list )
       set nzero = 0
    endif
 
+   # init to empty
+   set qval = ' '
+
    if ( $nvox == 0 || $nvox == $nzero ) then
-      set btext = "`printf '%7s %7s %7s %6.2f' $rval $nvox $nzero 0`"
-      set qtext = "`printf '%6.1f %6.1f %6.1f %6.1f %6.1f ' 0 0 0 0 0`"
-      set ctext = "`printf '%7.1f %7.1f %7.1f ' 0 0 0`"
-      echo "$btext" "$qtext" "$ctext" "$ROI_name" >>! $stats_file
+      set btext = "`printf '%6s %6s %5s %5.1f' $rval $nvox $nzero 0`"
+      set qtext = "`printf ' %5.0f %5.0f %5.0f %5.0f %5.0f ' 0 0 0 0 0`"
+      set ctext = "`printf '%6.1f %6.1f %6.1f ' 0 0 0`"
+      echo "$qval" "$btext" "$qtext" "$ctext" "$ROI_name" >>! $stats_file
 
       continue
    endif
@@ -364,18 +368,21 @@ foreach rval ( $rval_list )
    set depth = $extrema[2]
    set coords = ( $extrema[3-5] )
 
+   # scale depth to be in voxels, assuming isotropic
+   set vsize = `3dinfo -adi $dset_ROI`
+   set depth = `ccalc -n $depth/$vsize`
 
    # --------------------------------------------------
    # print out the results
    # --------------------------------------------------
 
    # too long for a line, so break up the pieces
-   set btext = "`printf '%7s %7s %7s %6.2f' $rval $nvox $nzero $depth`"
-   set qtext = "`printf '%6.1f %6.1f %6.1f %6.1f %6.1f ' \
+   set btext = "`printf '%6s %6s %5s %5.1f' $rval $nvox $nzero $depth`"
+   set qtext = "`printf ' %5.0f %5.0f %5.0f %5.0f %5.0f ' \
                        $quarts[1] $quarts[2] $quarts[3] $quarts[4] $quarts[5]`"
-   set ctext = "`printf '%7.1f %7.1f %7.1f '             \
+   set ctext = "`printf '%6.1f %6.1f %6.1f '             \
                        $coords[1] $coords[2] $coords[3]`"
-   echo "$btext" "$qtext" "$ctext" "$ROI_name" >>! $stats_file
+   echo "$qval" "$btext" "$qtext" "$ctext" "$ROI_name" >>! $stats_file
 
 end
 
