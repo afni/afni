@@ -27,7 +27,7 @@ $prog modification history:
 
    1.0  : Feb 15, 2024: initial version
    1.1  : Feb 20, 2024: actually print computed depth
-   1.2  : Feb 21, 2024: update format, include Q (quality rating)
+   1.2  : Feb 21, 2024: update format, init Q column (quality rating)
 
    current version: $script_version
 EOF

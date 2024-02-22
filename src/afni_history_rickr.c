@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Feb, 2024, RCR, "compute_ROI_stats.tcsh", MINOR, TYPE_MODIFY,
+   "modify labels and prep for Q column",
+   NULL
+ } ,
+
  { 20, Feb, 2024, RCR, "compute_ROI_stats.tcsh", MICRO, TYPE_BUG_FIX,
    "forgot to actually print out the computed depth",
    "Thanks to P Taylor for noticing."
