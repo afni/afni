@@ -5894,7 +5894,8 @@ def db_mod_regress(block, proc, user_opts):
 
     # check on tsnr and gcor
     apply_uopt_to_block('-regress_compute_tsnr', user_opts, block)
-    apply_uopt_to_block('-regress_compute_tsnr_stats', user_opts, block)
+    apply_uopt_list_to_block('-regress_compute_tsnr_stats',  user_opts, block)
+
     apply_uopt_to_block('-regress_compute_gcor', user_opts, block)
     apply_uopt_to_block('-regress_mask_tsnr', user_opts, block)
 
