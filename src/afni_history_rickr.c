@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Feb, 2024, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "check for conda env vars",
+   NULL
+ } ,
+
  { 22, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "use more mask_epi_anat, and default: -regress_compute_tsnr_stats brain 1",
    NULL

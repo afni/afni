@@ -345,9 +345,10 @@ g_history = """
         - check for flask and flask_cors
         - add -disp_ver_pylibs, to show library version for a specified list
    1.29 Jan  2, 2024 - warn on matplotlib 3.1.2
+   1.30 Feb 22, 2024 - check for conda
 """
 
-g_version = "afni_system_check.py version 1.29, January 2, 2024"
+g_version = "afni_system_check.py version 1.30, February 22, 2024"
 
 
 class CmdInterface:

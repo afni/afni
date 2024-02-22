@@ -1269,12 +1269,18 @@ class SysInfo:
    def show_env_vars(self, header=1):
       print(UTIL.section_divider('env vars', hchar='-'))
       maj, min = self.get_macos_ver()
-      for evar in ['PATH', 'PYTHONPATH', 'R_LIBS',
-                   'LD_LIBRARY_PATH',
-                   'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']:
+      elist = ['PATH', 'PYTHONPATH', 'R_LIBS',
+               'LD_LIBRARY_PATH',
+               'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH',
+               'CONDA_SHLVL', 'CONDA_DEFAULT_ENV']
+      maxlen = max(len(e) for e in elist)
+
+      for evar in elist:
          if evar in os.environ:
             if self.verb > 2: print("-- SEV: getting var from current env ...")
-            print("%s = %s\n" % (evar, os.environ[evar]))
+            envval = os.environ[evar]
+            print("%-*s = %s" % (maxlen, evar, envval))
+            if len(envval) > 60: print("")
          elif evar.startswith('DY') and maj > 10 or (maj == 10 and min >= 11):
             if self.verb > 2:
                print("-- SEV: get DY var from macos child env (cur shell)...")
@@ -1283,7 +1289,7 @@ class SysInfo:
          else:
             if self.verb > 2:
                print("-- SEV: env var not set ...")
-            print("%s = " % evar)
+            print("%-*s = " % (maxlen, evar))
       print('')
 
       self.check_for_bash_complete_under_zsh()
