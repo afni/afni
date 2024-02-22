@@ -432,13 +432,17 @@ dtCheck_printSummary <- function(data.in){
             pos.num <- !is.na(suppressWarnings(as.numeric(lev.col)))
             pos.num <- levels(data.in[[i]])[pos.num]
             if( length(pos.num) > 0 ){
-                pos.num <- paste("| ? Numeric levels:",
-                                 paste(pos.num,collapse=" "))
+                pos.num <- paste("| ?",length(pos.num),"Numeric levels found")
             }
             ## if there are not too many levels, print them out
             if( i == length(data.in) ) {
-                col.detail <- paste0("Number of InputFiles=",
-                                     length(levels(data.in[[i]]))," ",pos.num)
+                if( names(data.in)[i] %in% c('Ausgang_val','ausgang_val') ){
+                    col.detail <- paste0("Number of Values=",
+                                         length(data.in[[i]]))
+                } else {
+                    col.detail <- paste0("Number of InputFiles=",
+                                         length(levels(data.in[[i]]))," ",pos.num)
+                }
             } else if( length(levels(data.in[[i]])) < 4 ){
                 lev.var <- tapply(data.in[[i]],data.in[[i]],length)
                 lev.out <- paste0(names(lev.var),"=",lev.var,collapse=" | ")
@@ -519,7 +523,6 @@ InFile_dups <- function(data.in){
     ## make sure we have InputFiles  just in case
     InFile.check <- InFile_last(data.in)
     if( InFile.check == 1 ){ return(1) }
-    
     
     ## get the list of dup files 
     dup.i.file <- data.in$InputFile[duplicated(data.in$InputFile)]
