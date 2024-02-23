@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Feb, 2024, RCR, "dcm2niix_afni", MICRO, TYPE_ENHANCE,
+   "sync crorden/dcm2niix_console with repo, version v1.0.20240202",
+   "Thanks to C Rorden for the update."
+ } ,
+
  { 22, Feb, 2024, RCR, "build_afni.py", MINOR, TYPE_ENHANCE,
    "check for conda env vars on make build failure",
    NULL
