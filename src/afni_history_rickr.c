@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Feb, 2024, RCR, "@radial_correlate", MICRO, TYPE_ENHANCE,
+   "fail if no corr dset (check, since script is not run with -e)",
+   NULL
+ } ,
+
  { 23, Feb, 2024, RCR, "dcm2niix_afni", MICRO, TYPE_ENHANCE,
    "sync crorden/dcm2niix_console with repo, version v1.0.20240202",
    "Thanks to C Rorden for the update."
