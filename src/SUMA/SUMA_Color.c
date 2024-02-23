@@ -7914,6 +7914,14 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                     SUMA_SL_Err("Failed to allocate memory to colormap!");
                 }
                 memcpy(ColVec, currentOverlay->ColVec, bytes2CopyToColVec);
+   
+                if (SO->N_Overlays > 1){    // Does not apply to toy examples
+                    // Touch threshold sliding bar without moving it.  This is often 
+                    //  necessary to ensure the correct colors are displayed in the
+                    //  suprathreshold regions when the colormap or max I are changed
+                    float value = currentOverlay->OptScl->ThreshRange[0];
+                    SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &value);
+                }
                 
                 if (currentOverlay->OptScl->find!= 0 ||
                     currentOverlay->OptScl->tind!=0){
@@ -8409,9 +8417,15 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          for (i=0; i < N_Node; ++i) {
             if (isColored_Fore[i]) {
                i4 = 4 * i;
+               int i3 = 3 * i;
+               glcolar[i4] = ColVec[i3]; ++i3;
+               glcolar[i4] = ColVec[i3]; ++i3;
+               glcolar[i4] = ColVec[i3]; ++i3;
+            /*
                glcolar[i4] = glcolar_Fore[i4]; ++i4;
                glcolar[i4] = glcolar_Fore[i4]; ++i4;
                glcolar[i4] = glcolar_Fore[i4]; ++i4;
+               */
                isColored[i] = YUP;
                continue;
             } else {
