@@ -5,7 +5,7 @@ set version   = "1.0";  set rev_dat   = "Feb 22, 2024"
 #
 # ----------------------------------------------------------------
 
-set this_prog = "adjunct_deob_fixed_origin"
+set this_prog = "adjunct_deob_around_origin"
 set prog_abbr = "adfo"
 #set tpname    = "${this_prog:gas///}"
 set here      = $PWD
@@ -242,12 +242,12 @@ Options ~1~
 Examples ~1~
 
 1) Basic usage:
-     adjunct_deob_fixed_origin                        \
+     adjunct_deob_around_origin                       \
          -input   sub-001_T1w.nii.gz                  \
          -prefix  sub-001_T1w_DEOB.nii.gz
 
 2) Different origin-preservation choice:
-     adjunct_deob_fixed_origin                        \
+     adjunct_deob_around_origin                       \
          -oblique_recenter_raw                        \
          -input   sub-001_T1w.nii.gz                  \
          -prefix  sub-001_T1w_DEOB.nii.gz
