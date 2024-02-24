@@ -288,7 +288,7 @@ endif
 
 # get a prefix line and underline it
 set dpre = `3dinfo -prefix "$dset_ROI"`
-set dtxt = "dset: $rset_label ($dpre)"
+set dtxt = "dset: $rset_label ($dpre), Nroi = $#rval_list"
 set dund = `echo "$dtxt" | sed 's/./-/g'`
 echo -n ""      >! $stats_file
 echo "$dtxt"   >>! $stats_file
