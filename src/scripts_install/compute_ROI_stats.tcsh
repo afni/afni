@@ -12,6 +12,8 @@
 #
 # ===========================================================================
 
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
 # note program name
 set prog = `basename $0`
 
@@ -28,12 +30,13 @@ $prog modification history:
    1.0  : Feb 15, 2024: initial version
    1.1  : Feb 20, 2024: actually print computed depth
    1.2  : Feb 22, 2024: update format, init Q column (quality rating)
+   1.3  : Feb 24, 2024: allow subbrick selectors on dset_ROI
 
    current version: $script_version
 EOF
 exit 0
 SKIP_HIST:
-set script_version = "version 1.2, February 22, 2024"
+set script_version = "version 1.3, February 24, 2024"
 
 
 # ===========================================================================
@@ -88,7 +91,7 @@ while ( $ac <= $narg )
          echo "** -dset_ROI requires 1 parameter"
          exit 1
       endif
-      set dset_ROI = $argv[$ac]
+      set dset_ROI = "$argv[$ac]"
 
    else if ( "$argv[$ac]" == '-out_dir' ) then
       @ ac ++
@@ -189,7 +192,7 @@ if ( $verb > 1 ) then
 cat << EOF
 
 ++ parameters for program $prog :
-   dset_ROI    = $dset_ROI
+   dset_ROI    = $dset_ROI:q
    dset_data   = $dset_data
    out_dir     = $out_dir
    rset_label  = $rset_label
@@ -201,7 +204,7 @@ endif
 # ---------------------------------------------------------------------------
 # make sure required parameters are set
 set proceed = 1
-if ( $dset_ROI == "" ) then
+if ( "$dset_ROI" == "" ) then
    echo "** missing option -dset_ROI"
    set proceed = 0
 endif
@@ -228,7 +231,7 @@ endif
 
 # ---------------------------------------------------------------------------
 # test validity of some inputs
-set tt = `3dinfo -nijk $dset_ROI`
+set tt = `3dinfo -nijk "$dset_ROI"`
 if ( $tt == NO-DSET ) then
    echo "** invalid -dset_ROI: '$dset_ROI'"
    exit 1
@@ -240,7 +243,7 @@ if ( $tt == NO-DSET ) then
    exit 1
 endif
 
-set tt = `3dinfo -same_grid $dset_ROI $dset_data | \grep 1 | wc -l`
+set tt = `3dinfo -same_grid "$dset_ROI" $dset_data | \grep 1 | wc -l`
 if ( $tt != 2 ) then
    echo "** -dset_ROI and -dset_data do not seem to be on the same grid"
    exit 1
@@ -272,9 +275,9 @@ endif
 # ---------------------------------------------------------------------------
 # first, run 3dDepthMap on the ROI dataset
 set depthmap = $out_dir/depth_$rset_label.nii.gz
-set cmd = ( 3dDepthMap -overwrite -zeros_are_zero -input $dset_ROI \
+set cmd = ( 3dDepthMap -overwrite -zeros_are_zero -input "$dset_ROI" \
                                   -prefix $depthmap )
-$cmd >& /dev/null
+$cmd:q >& /dev/null
 if ( $status ) then
    echo "** failed command:\n   $cmd\n"
    exit 1
@@ -284,7 +287,7 @@ endif
 # start by printing header
 
 # get a prefix line and underline it
-set dpre = `3dinfo -prefix $dset_ROI`
+set dpre = `3dinfo -prefix "$dset_ROI"`
 set dtxt = "dset: $rset_label ($dpre)"
 set dund = `echo "$dtxt" | sed 's/./-/g'`
 echo -n ""      >! $stats_file
@@ -309,19 +312,20 @@ printf '%1s %6s %6s %5s %5s  %5s %5s %5s %5s %5s  %6s %6s %6s  %s\n' \
 foreach rval ( $rval_list )
    # --------------------------------------------------
    # is there anything in the mask?
-   set nvox = `3dBrickStat -mask $dset_ROI -non-zero -count $dset_ROI"<$rval>"`
+   set nvox = `3dBrickStat -mask "$dset_ROI" -non-zero -count \
+                           "$dset_ROI<$rval>"`
 
    # --------------------------------------------------
    # get the ROI_name early, in case it does not actually exist in the dataset
    # (now via whereami -index_to_label instead of 3dinfo -labeltable and grep)
-   set ROI_name = `whereami -index_to_label $rval -dset $dset_ROI`
+   set ROI_name = `whereami -index_to_label $rval -dset "$dset_ROI"`
 
    # --------------------------------------------------
    # handle the all-zero cases and move on
    # if nvox is zero or equals nzero, we are done
 
    if ( $nvox != 0 ) then
-      set nzero = `3dBrickStat -mask $dset_ROI -mrange $rval $rval \
+      set nzero = `3dBrickStat -mask "$dset_ROI" -mrange $rval $rval \
                                -zero -count $dset_data`
    else
       set nzero = 0
@@ -345,9 +349,9 @@ foreach rval ( $rval_list )
 
    # --------------------------------------------------
    # quartiles
-   set cmd = ( 3dBrickStat -non-zero -mrange $rval $rval -mask $dset_ROI \
+   set cmd = ( 3dBrickStat -non-zero -mrange $rval $rval -mask "$dset_ROI" \
                            -percentile 0 25 100 -perc_quiet $dset_data )
-   set quarts = ( `$cmd` )
+   set quarts = ( `$cmd:q` )
    if ( $status || $#quarts != 5 ) then
       echo "** failed to get quartiles from command:\n   $cmd\n"
       exit 1
@@ -357,12 +361,12 @@ foreach rval ( $rval_list )
    # maximum ROI depth and coords
    # -closure to include boundaries, -partial to allow for value equality
    set cmd = ( 3dExtrema -volume -nbest 1 -closure -partial -quiet \
-                         -mask_file $dset_ROI"<$rval>" $depthmap )
+                         -mask_file "$dset_ROI<$rval>" $depthmap )
 
    # --------------------------------------------------
    # ** separate stdout and stderr for now, and read back from a file
    # (do we remove the 3dExtrema author text?)
-   ( $cmd >! $out_dir/tmp.extrema.txt ) >& /dev/null
+   ( $cmd:q >! $out_dir/tmp.extrema.txt ) >& /dev/null
    if ( $status ) then
       echo "** failed to run command:\n   $cmd\n"
       exit 1
@@ -379,7 +383,7 @@ foreach rval ( $rval_list )
    set coords = ( $extrema[3-5] )
 
    # scale depth to be in voxels, assuming isotropic
-   set vsize = `3dinfo -adi $dset_ROI`
+   set vsize = `3dinfo -adi "$dset_ROI"`
    set depth = `ccalc -n $depth/$vsize`
 
    # --------------------------------------------------
