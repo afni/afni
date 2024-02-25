@@ -450,8 +450,8 @@ $prog  - compute per-ROI value statisics over a given dataset
             Tmin, T25%, Tmed, T75%, Tmax
                          : multiples of 25%-iles (with min/max)
 
-            Xcoor,
-            Ycoor, Zcoor : x, y and z coordinates at max ROI depth
+            Xcoor, Ycoor, Zcoor 
+                         : x, y and z coordinates at max ROI depth
                            (coordinates are in DICOM/RAI orientation)
             ROI_name     : ROI label associated with ROI index (in dset_ROI)
 
