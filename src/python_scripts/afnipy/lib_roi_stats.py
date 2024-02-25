@@ -497,8 +497,8 @@ wlevel : str
     
 def warn_roi_stats_nz_frac(nvox, nz, verb=0):
     """For a given number of voxels (nvox) and number of zero-valued
-voxels (nz), determine warning level. This warns increasingly as the
-ROI gets filled with more empty voxels.
+voxels (nz), determine warning level for: frac = nz/nvox. This warns
+increasingly as the ROI gets filled with more empty voxels.
 
 Parameters
 ----------
@@ -536,7 +536,7 @@ def warn_roi_stats_vmax(vmax, verb=0):
     """Assign an appropriate warning level for the max volumetric depth
 (vmax) of the ROI, counting in units of (isotropic) voxel dimension.
 As the vmax decreases, the warning level increases. Lower vmax
-suggests greater influence of partial voluming.
+suggests greater influence of partial voluming, for example.
 
 Parameters
 ----------
