@@ -25,18 +25,23 @@ class all_comp_roi_dset_table:
     """An object to accompany compute_ROI_stats.tcsh text file output.
 This contains a set of tables."""
 
-    def __init__(self, ftext, prefix='OUTFILE', verb=0):
+    def __init__(self, ftext, prefix='OUTFILE', fname='input_file', 
+                 verb=0):
         """Take a full file text (list of strings) and loop over tables
         within."""
 
         self.verb              = verb            # verbosity level
         self.ftext             = ftext           # list of str, full file text
         self.prefix            = prefix          # str, output filename radix
+        self.fname             = fname           # str, input filename
 
         # attributes defined by parsing self.ftext
         self.all_table         = []              # list of comp_roi_dset_* obj
 
         # ----- start doing work
+        _tmp = is_comp_roi_str_list_ok(self.ftext)
+        self.find_all_tables(self)
+
 
     # ---------------------------------------------------
 
@@ -48,38 +53,6 @@ This contains a set of tables."""
         pass
     
 
-    def is_ftext_ok(self):
-        """Preliminary evaluation of ftext, for fundamental/necessary
-        properties."""
-
-        ttype = type(self.ftext).__name__
-        if ttype != 'list' :
-            ab.EP("Input ftext must be a list, not: {}".format(ttype))
-
-        if not(self.n_ftext) :
-            ab.EP("Input ftext is empty")
-        elif self.n_ftext < 6 :
-            ab.EP("Input ftext must have at least 6 lines (to have >=1 ROI). "
-                  "This one has only: {}".format(self.n_ftext))
-
-        # contain only str
-        for tr in self.ftext:
-            trtype = type(tr).__name__
-            if trtype != 'str' :
-                ab.EP("Input ftext must contain only str, "
-                      "not: {}".format(trtype))
-
-        # [0]th row must start with 'dset:'
-        lstart = self.ftext[0][:5]
-        if lstart != 'dset:' :
-            ab.EP("Input ftext must start with 'dset:', not {}".format(lstart))
-
-        # [3]rd row must start with 'Q'
-        lstart = self.table_raw[3][0]
-        if lstart != 'Q' :
-            ab.EP("Line [3] must start with 'Q', not {}".format(lstart))
-
-
     @property
     def n_ftext(self):
         """Number of lines in ftext list"""
@@ -89,7 +62,20 @@ This contains a set of tables."""
 
 class comp_roi_dset_table:
     """An object to accompany compute_ROI_stats.tcsh text file output.
-This contains a single dset's table."""
+This contains a single dset's table.
+
+The major input here is:
+    table : list of strings from reading a text file created by 
+            compute_ROI_stats.tcsh; just a single table, if that program
+            put multiple ones into its text file.
+
+Probably the major products of interest from creating this object are:
+    self.table_values_q     : a copy of the raw input table that includes
+                              Q-column ratings ('?', 'x', etc.)
+    self.table_values_qhtml : a copy of the raw input table that includes
+                              Q-column ratings ('?', 'x', etc.) *and*
+                              HTML-style warning level coloration
+"""
 
     def __init__(self, table, verb=0):
         """Take a dset table (list of strings) and go to work
@@ -97,7 +83,7 @@ This contains a single dset's table."""
         """
 
         self.verb              = verb            # verbosity level
-        self.table_raw         = table           # list of str, raw table text
+        self.table             = table           # list of str, raw table text
 
         # attributes defined by parsing self.table
         self.table_top         = []              # list of top 3 header rows
@@ -112,7 +98,7 @@ This contains a single dset's table."""
         # ... and there is a decorator for table_allq
 
         # ----- start doing work
-        self.is_input_table_ok()
+        _tmp = is_comp_roi_str_list_ok(self.table)
         self.parse_input_table()
         self.evaluate_all_warns()
 
@@ -200,47 +186,17 @@ This contains a single dset's table."""
         self.table_values_qhtml[idx][col_Nz] = \
             wrap_val_with_html_span(self.table_values[idx][col_Nz], wlev=wlev)
 
-    def is_input_table_ok(self):
-        """Preliminary evaluation of the input table, for
-        fundamental/necessary properties."""
-
-        ttype = type(self.table_raw).__name__
-        if ttype != 'list' :
-            ab.EP("Table must be a list, not: {}".format(ttype))
-
-        if not(self.n_table_raw) :
-            ab.EP("Table is empty")
-        elif self.n_table_raw < 6 :
-            ab.EP("Table must have at least 6 lines (to have >=1 ROI). "
-                  "This one has only: {}".format(self.n_table_raw))
-
-        # contain only str
-        for tr in self.table_raw:
-            trtype = type(tr).__name__
-            if trtype != 'str' :
-                ab.EP("Table must contain only str, not: {}".format(trtype))
-
-        # [0]th row must start with 'dset:'
-        lstart = self.table_raw[0][:5]
-        if lstart != 'dset:' :
-            ab.EP("Table must start with 'dset:', not {}".format(lstart))
-
-        # [3]rd row must start with 'Q'
-        lstart = self.table_raw[3][0]
-        if lstart != 'Q' :
-            ab.EP("Line [3] must start with 'Q', not {}".format(lstart))
-
     def parse_input_table(self):
         """Parse the input table, separating it into useful attributes"""
         
         # store the header part in pieces
-        self.table_top      = copy.deepcopy(self.table_raw[:3])
-        self.table_cols     = break_line_at_whitespace(self.table_raw[3])
-        self.table_coldash  = copy.deepcopy(self.table_raw[4])
+        self.table_top      = copy.deepcopy(self.table[:3])
+        self.table_cols     = break_line_at_whitespace(self.table[3])
+        self.table_coldash  = copy.deepcopy(self.table[4])
 
         # store the table itself
-        for i in range(5, self.n_table_raw):
-            x = self.table_raw[i]
+        for i in range(5, self.n_table):
+            x = self.table[i]
             y = break_line_at_whitespace(x)
             if len(y) == 0:
                 ab.EP("Row {} in full table is empty?".format(i))
@@ -283,9 +239,9 @@ This contains a single dset's table."""
             return z
 
     @property
-    def n_table_raw(self):
+    def n_table(self):
         """Number of lines in raw input table"""
-        return len(self.table_raw)
+        return len(self.table)
 
     @property
     def n_table_top(self):
@@ -571,6 +527,41 @@ y : list
             print("   y: '{}'".format(ystr))
 
     return y
+
+def is_comp_roi_str_list_ok(L):
+    """Preliminary evaluation of the input table (which is a list of str),
+    for fundamental/necessary properties."""
+    
+    # check type of input
+    ttype = type(L).__name__
+    if ttype != 'list' :
+        ab.EP("Table must be a list, not: {}".format(ttype))
+
+    # check minimum len of input
+    N = len(L)
+    if not(N) :
+        ab.EP("Table is empty")
+    elif N < 6 :
+        ab.EP("Table must have at least 6 lines (to have >=1 ROI). "
+              "This one has only: {}".format(N))
+
+    # check input contents (list of str)
+    for x in L:
+        xtype = type(x).__name__
+        if xtype != 'str' :
+            ab.EP("Table must contain only str, not: {}".format(xtype))
+
+    # [0]th row must start with 'dset:'
+    lstart = L[0][:5]
+    if lstart != 'dset:' :
+        ab.EP("Table must start with 'dset:', not {}".format(lstart))
+
+    # [3]rd row must start with 'Q'
+    lstart = L[3][0]
+    if lstart != 'Q' :
+        ab.EP("Line [3] must start with 'Q', not {}".format(lstart))
+
+    return 0
 
 
 # ============================================================================
