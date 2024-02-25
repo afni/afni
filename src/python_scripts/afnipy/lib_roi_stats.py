@@ -534,9 +534,9 @@ wlevel : str
     
 def warn_roi_stats_vmax(vmax, verb=0):
     """Assign an appropriate warning level for the max volumetric depth
-(vmax), which is the maximum depth in an ROI, counting in units of
-(isotropic) voxel dimension.  As the vmax decreases, the warning level
-increases.
+(vmax) of the ROI, counting in units of (isotropic) voxel dimension.
+As the vmax decreases, the warning level increases. Lower vmax
+suggests greater influence of partial voluming.
 
 Parameters
 ----------
