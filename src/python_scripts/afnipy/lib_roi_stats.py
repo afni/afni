@@ -23,9 +23,9 @@ warn2q = {
 
 class all_comp_roi_dset_table:
     """An object to accompany compute_ROI_stats.tcsh text file output.
-This contains a set of tables."""
+This contains a *set* of one or more tables."""
 
-    def __init__(self, ftext, prefix='OUTFILE', fname='input_file', 
+    def __init__(self, ftext, prefix=None, fname='input_file', 
                  verb=0):
         """Take a full file text (list of strings) and loop over tables
         within."""
@@ -36,14 +36,46 @@ This contains a set of tables."""
         self.fname             = fname           # str, input filename
 
         # attributes defined by parsing self.ftext
-        self.all_tables        = []              # list of comp_roi_dset_* obj
+        self.all_tables_raw    = []              # list of comp_roi_dset* text
+        self.all_tables_eval   = []              # list of comp_roi_dset_* obj
 
         # ----- start doing work
         _tmp = is_comp_roi_str_list_ok(self.ftext)
         self.find_all_tables()
+        self.evaluate_all_tables()
+
+        if self.prefix :
+            self.write_out_table_file(self.prefix)
 
 
     # ---------------------------------------------------
+
+    def write_out_table_file(self, prefix):
+        """Save to disk the processed text files, both the table_values_q and
+        the table_values_qhtml.
+        """
+
+        opref = prefix + '_eval_html.txt'
+        otext = ''
+        for ii in range(self.n_tables):
+            # insert empty line after any existing table
+            if ii :    otext+= '\n'
+
+            tab   = self.all_tables_eval[ii]
+            otext+= tab.assemble_table_values('values_qhtml')
+
+        fff = open( opref, "w" )
+        fff.write( otext )
+        fff.close()
+
+
+
+    def evaluate_all_tables(self):
+        """ Run the quality evaluations for each table """
+
+        for table_raw in self.all_tables_raw:
+            OBJ = comp_roi_dset_table(table_raw)
+            self.all_tables_eval.append(OBJ)
 
     def find_all_tables(self):
         """Go through ftext and parcel out into separate tables."""
@@ -56,7 +88,7 @@ This contains a set of tables."""
         while ii < self.n_ftext :
             if len(self.ftext[ii].split()) == 0 :
                 # found a break between/at end of tables
-                self.all_tables.append(copy.deepcopy(self.ftext[start:ii]))
+                self.all_tables_raw.append(copy.deepcopy(self.ftext[start:ii]))
                 # look for additional whitespace-only lines
                 while ii < self.n_ftext and len(self.ftext[ii].split()) == 0 :
                     ii+=1
@@ -67,12 +99,12 @@ This contains a set of tables."""
                 ii+= 1
         if ii != start :
             # must have found another table
-            self.all_tables.append(copy.deepcopy(self.ftext[start:ii]))
+            self.all_tables_raw.append(copy.deepcopy(self.ftext[start:ii]))
 
         ab.IP("Found {} tables".format(self.n_tables))
 
         # verify tables
-        for table in self.all_tables:
+        for table in self.all_tables_raw:
             _tmp = is_comp_roi_str_list_ok(table)
 
     @property
@@ -82,8 +114,8 @@ This contains a set of tables."""
 
     @property
     def n_tables(self):
-        """Number of tables in all_tables"""
-        return len(self.all_tables)
+        """Number of tables in all_tables_raw"""
+        return len(self.all_tables_raw)
 
 # ---------------------------------------------------------------------------
 
@@ -130,6 +162,36 @@ Probably the major products of interest from creating this object are:
         self.evaluate_all_warns()
 
     # ---------------------------------------------------
+
+    def assemble_table_values(self, table=None):
+        """Combine the header+text for table_values_q, such as for writing to
+        a file; allowed table values are:
+           'values', 'values_q', 'values_qhtml'."""
+        
+        # allowed keyword list for 'table'
+        tlist = ['values', 'values_q', 'values_qhtml']
+
+        if table == None :
+            ab.WP("No table specified for assembling? Choose from one of:"
+                  "{}".format(', '.join(tlist)))
+            return ''
+
+        otext = ''
+        otext+= ''.join(self.table_top)
+        otext+= ''.join(self.table_cols)
+        otext+= ''.join(self.table_coldash)
+        if table == 'values' :
+            otext+= ''.join([''.join(x) for x in self.table_values])
+        elif table == 'values_q' :
+            otext+= ''.join([''.join(x) for x in self.table_values_q])
+        elif table == 'values_qhtml' :
+            otext+= ''.join([''.join(x) for x in self.table_values_qhtml])
+        else:
+            ab.WP("No table specified for assembling? Choose from one of:"
+                  "{}".format(', '.join(tlist)))
+            return ''
+
+        return otext
 
     def evaluate_all_warns(self):
         """For each ROI (i.e., each element of table_values), go through all
@@ -614,6 +676,6 @@ if __name__ == '__main__' :
 
     x2 = au.read_text_file(fname2, strip=False)
 
-    OBJ2 = all_comp_roi_dset_table(x2)
+    OBJ2 = all_comp_roi_dset_table(x2, prefix = 'fileout')
 
 
