@@ -36,11 +36,11 @@ This contains a set of tables."""
         self.fname             = fname           # str, input filename
 
         # attributes defined by parsing self.ftext
-        self.all_table         = []              # list of comp_roi_dset_* obj
+        self.all_tables        = []              # list of comp_roi_dset_* obj
 
         # ----- start doing work
         _tmp = is_comp_roi_str_list_ok(self.ftext)
-        self.find_all_tables(self)
+        self.find_all_tables()
 
 
     # ---------------------------------------------------
@@ -48,15 +48,42 @@ This contains a set of tables."""
     def find_all_tables(self):
         """Go through ftext and parcel out into separate tables."""
         
-        # **************************
-        #for ii in range(self.n_ftext):
-        pass
-    
+        # bc is_comp_roi_str_list_ok() has been run, we know we can go
+        # 6 lines in and then look for the first empty line break (or
+        # end of file) to determine where the table ends
+        start = 0
+        ii = 6
+        while ii < self.n_ftext :
+            if len(self.ftext[ii].split()) == 0 :
+                # found a break between/at end of tables
+                self.all_tables.append(copy.deepcopy(self.ftext[start:ii]))
+                # look for additional whitespace-only lines
+                while ii < self.n_ftext and len(self.ftext[ii].split()) == 0 :
+                    ii+=1
+                start = ii
+                # jump across possible table header height
+                ii+= 6
+            else:
+                ii+= 1
+        if ii != start :
+            # must have found another table
+            self.all_tables.append(copy.deepcopy(self.ftext[start:ii]))
+
+        ab.IP("Found {} tables".format(self.n_tables))
+
+        # verify tables
+        for table in self.all_tables:
+            _tmp = is_comp_roi_str_list_ok(table)
 
     @property
     def n_ftext(self):
         """Number of lines in ftext list"""
         return len(self.ftext)
+
+    @property
+    def n_tables(self):
+        """Number of tables in all_tables"""
+        return len(self.all_tables)
 
 # ---------------------------------------------------------------------------
 
@@ -530,7 +557,11 @@ y : list
 
 def is_comp_roi_str_list_ok(L):
     """Preliminary evaluation of the input table (which is a list of str),
-    for fundamental/necessary properties."""
+    for fundamental/necessary properties. Basically, fail if something
+    looks wrong and just return zero if we successfully run the gamut
+    of properties.
+
+    """
     
     # check type of input
     ttype = type(L).__name__
@@ -574,5 +605,15 @@ if __name__ == '__main__' :
 
     x = au.read_text_file(fname, strip=False)
 
-
     OBJ = comp_roi_dset_table(x)
+
+
+    fname2 = '/home/ptaylor/AFNI_data6/FT_analysis/'
+    fname2+= 'sub-456.results_FT.rest.15/t.tsnr_stats_regress8/'
+    fname2+= 'stats_MNI-Glasser_MULTI.txt'
+
+    x2 = au.read_text_file(fname2, strip=False)
+
+    OBJ2 = all_comp_roi_dset_table(x2)
+
+
