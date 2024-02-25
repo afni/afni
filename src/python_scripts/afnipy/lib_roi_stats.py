@@ -200,6 +200,7 @@ Probably the major products of interest from creating this object are:
 
         # each of these updates table_values_qhtml and table_maxwarn
         for idx in range(self.n_table_values):
+            self.check_nvox(idx)
             self.check_nz_frac(idx)
             self.check_vmax(idx)
             self.check_tsnr_slope_2575(idx)
@@ -213,8 +214,12 @@ Probably the major products of interest from creating this object are:
         allq = copy.deepcopy(self.table_allq)
 
         for idx in range(self.n_table_values):
+            # just add Q to this table
             self.table_values_q[idx][0]     = allq[idx]
-            self.table_values_qhtml[idx][0] = allq[idx]
+            # add a colorized Q to this table
+            wlev = self.table_maxwarn[idx]
+            self.table_values_qhtml[idx][0] = \
+                wrap_val_with_html_span(allq[idx], wlev=wlev)
 
     def check_tsnr_slope_2575(self, idx):
         """Run the check on TSNR slope in ROI."""
@@ -274,6 +279,23 @@ Probably the major products of interest from creating this object are:
         # ... and colorize in *qhtml* table, as needed
         self.table_values_qhtml[idx][col_Nz] = \
             wrap_val_with_html_span(self.table_values[idx][col_Nz], wlev=wlev)
+
+    def check_nvox(self, idx):
+        """Run the check on total number of voxels in the ROI."""
+
+        # find columns with correct info
+        col_Nvox = self.table_cols.index('Nvox')
+
+        # get numbers from relevant row
+        Nvox = int(self.table_values[idx][col_Nvox])
+
+        # evaluate warning level, and save
+        wlev = warn_roi_stats_nvox(Nvox, verb=self.verb)
+        self.table_maxwarn[idx] = maxwarn(wlev, self.table_maxwarn[idx])
+
+        # ... and colorize in *qhtml* table, as needed
+        self.table_values_qhtml[idx][col_Nvox] = \
+            wrap_val_with_html_span(self.table_values[idx][col_Nvox], wlev=wlev)
 
     def parse_input_table(self):
         """Parse the input table, separating it into useful attributes"""
@@ -398,6 +420,8 @@ def warn_roi_stats_tsnr_slope_2575(tlist, verb=0):
 Tmed, T75%, Tmax), provide warning levels based on the ratio:
     rat = (T75% - T25%)/Tmed
 
+As the ratio gets larger, the warning level increases.
+
 Parameters
 ----------
 tlist : list or order collection
@@ -440,9 +464,41 @@ wlevel : str
     elif rat > 0.5 : return 'undecided'
     else:            return 'none'
 
+def warn_roi_stats_nvox(nvox, verb=0):
+    """For a given number of voxels (nvox), determine warning level. This
+increasingly warns as the absolute number of voxels an ROI drops.
+
+Parameters
+----------
+nvox : int
+    number of voxels in ROI
+verb : int
+    verbosity level
+
+Returns
+-------
+wlevel : str
+    string of warning level, from: 
+      'none', 'undecided', 'mild', 'medium', 'severe'
+
+    """
+
+    if verb :  ab.IP("nvox: {}".format(nvox))
+
+    if nvox < 0:
+        ab.EP("Can't have negative nvox ({})".format(nvox))
+
+    if nvox == 0 :      return 'none'   # no vox; gets flagged elsewhere
+    
+    if   nvox > 15  :  return 'none'
+    elif nvox > 9   :  return 'mild'
+    elif nvox > 4   :  return 'medium'
+    else:              return 'severe'
+    
 def warn_roi_stats_nz_frac(nvox, nz, verb=0):
     """For a given number of voxels (nvox) and number of zero-valued
-voxels (nz), determine warning level.
+voxels (nz), determine warning level. This warns increasingly as the
+ROI gets filled with more empty voxels.
 
 Parameters
 ----------
@@ -458,14 +514,15 @@ Returns
 wlevel : str
     string of warning level, from: 
       'none', 'undecided', 'mild', 'medium', 'severe'
-"""
+
+    """
 
     if verb :  ab.IP("nvox: {}, nz: {}".format(nvox, nz))
 
     if nvox < 0 or nz < 0 :
         ab.EP("Can't have negative nvox ({}) or nz ({})".format(nvox, nz))
 
-    if nvox == 0 :      return 'undecided'
+    if nvox == 0 :      return 'none'   # no vox; gets flagged elsewhere
     elif nz == 0 :      return 'none'
 
     frac = float(nz) / nvox
@@ -478,7 +535,8 @@ wlevel : str
 def warn_roi_stats_vmax(vmax, verb=0):
     """Assign an appropriate warning level for the max volumetric depth
 (vmax), which is the maximum depth in an ROI, counting in units of
-(isotropic) voxel dimension.
+(isotropic) voxel dimension.  As the vmax decreases, the warning level
+increases.
 
 Parameters
 ----------
@@ -503,7 +561,7 @@ wlevel : str
     elif vmax and vmax < 1 :  
         ab.WP("Shouldn't have sub-unity vmax ({})".format(vmax))
 
-    if   vmax == 0   :  return 'undecided'   # no vox in ROI
+    if   vmax == 0   :  return 'none'        # no vox; gets flagged elsewhere
     elif vmax >= 2   :  return 'none'
     elif vmax >= 1.5 :  return 'mild'        # though, 1.4 is a common val
     else:               return 'medium'
