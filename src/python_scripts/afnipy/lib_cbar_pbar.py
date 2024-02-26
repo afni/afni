@@ -159,9 +159,10 @@ Y : np.array
     # init weight array: no alpha
     wt  = np.ones(N, dtype=float)
 
-    # can we do quantitative stuff here?
+    # can we do quantitative stuff here? NB: if thr_val is None or 0, 
+    # treat equivalently (no thr line, and no possible Alpha fade)
     HAVE_ALL_VALS = False
-    if min_val != None and max_val != None and thr_val != None :
+    if min_val != None and max_val != None and thr_val :
         HAVE_ALL_VALS = True
         # actual vals at each cbar loc
         allv = np.linspace(min_val, max_val, N)
