@@ -4081,19 +4081,40 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
             if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "y")){
-                  SurfCont->curColPlane->AlphaThresh = 1;
+                  SurfCont->AlphaOpecityFalloff = 1;
                }
                else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "n"))
                {
-                  SurfCont->curColPlane->AlphaThresh = 0;
+                  SurfCont->AlphaOpecityFalloff = 0;
                }
                else {
                   SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA, setting to 'y'\n",
                               NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA"));
-                  SurfCont->curColPlane->AlphaThresh = NOPE;
+                  SurfCont->AlphaOpecityFalloff = NOPE;
                }
                XmToggleButtonSetState ( SurfCont->AlphaThresh_tb,
-                              SurfCont->curColPlane->AlphaThresh, YUP);
+                              SurfCont->AlphaOpecityFalloff, YUP);
+            }
+
+            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE")) {
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "L")){
+                  SurfCont->alphaOpacityModel = LINEAR;
+               }
+               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "Q"))
+               {
+                  SurfCont->alphaOpacityModel = QUADRATIC;
+               }
+               else {
+                  SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L\Q",
+                              NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
+               }
+               if (!sv) sv = &(SUMAg_SVv[0]); 
+               SO = SUMA_SV_Focus_SO(sv);
+               SO->SurfCont->alphaOpacityModel = SurfCont->alphaOpacityModel;
+   
+               // Refresh display
+               SUMA_Remixedisplay(ado);
+               SUMA_UpdateNodeLblField(ado);
             }
 
             if (NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED")) {

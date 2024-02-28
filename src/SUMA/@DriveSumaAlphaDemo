@@ -44,8 +44,44 @@ Make sure no current SUMA is running, then press OK'`
        set THR = 20
        $SUMA_DIR/DriveSuma -com  surf_cont -T_val $THR 
 
-       #$SUMA_DIR/DriveSuma -com surf_cont -shw_0 y
-       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA y
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Alpha'`
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA yes
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Linear falloff Alpha'`
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA Linear
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Quadratic falloff Alpha'`
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA Quadratic
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to tuen Alpha off'`
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA no
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Alpha'`
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA yes
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Linear falloff Alpha'`
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA Linear
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Quadratic falloff Alpha'`
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA Quadratic
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Box outline'`
        $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_BOXED y
 
         set l = `prompt_user -pause \

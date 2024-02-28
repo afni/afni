@@ -1591,20 +1591,50 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';
          ++kar;
-         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y' ||
-            (strcmp(argt[kar], "on") == 0) || (strcmp(argt[kar], "On") == 0) ||
-            (strcmp(argt[kar], "ON") == 0))
-            NI_set_attribute(ngr, "SET_FUNC_ALPHA", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N' ||
-            (strcmp(argt[kar], "off") == 0) || (strcmp(argt[kar], "Off") == 0)
-            || (strcmp(argt[kar], "OFF") == 0))
-            NI_set_attribute(ngr, "SET_FUNC_ALPHA", "n");
+         if (toupper(argt[kar][0]) == 'Y' ||
+            (toupper(argt[kar][0]) == 'O' && toupper(argt[kar][1]) == 'N'))
+            {
+                NI_set_attribute(ngr, "SET_FUNC_ALPHA", "y");
+                NI_set_attribute(ngr, "SET_FUNC_ALPHA_MODE", "Q");
+            }
+         else if (toupper(argt[kar][0]) == 'N' ||
+            (toupper(argt[kar][0]) == 'O' && toupper(argt[kar][1]) == 'F'))
+            {
+                NI_set_attribute(ngr, "SET_FUNC_ALPHA", "n");
+                NI_set_attribute(ngr, "SET_FUNC_ALPHA_MODE", "Q");
+            }
+         else if (toupper(argt[kar][0]) == 'L')
+         {
+                NI_set_attribute(ngr, "SET_FUNC_ALPHA", "y");
+                NI_set_attribute(ngr, "SET_FUNC_ALPHA_MODE", "L");
+         }
+         else if (toupper(argt[kar][0]) == 'Q')
+         {
+                NI_set_attribute(ngr, "SET_FUNC_ALPHA", "y");
+                NI_set_attribute(ngr, "SET_FUNC_ALPHA_MODE", "Q");
+         }
          else {
-            fprintf (SUMA_STDERR, "need a 'y/n', or 'on/off', after");
+            fprintf (SUMA_STDERR, "need a 'yes/no' or 'on/off' or 'L\Q', after");
             fprintf (SUMA_STDERR, " -SET_FUNC_ALPHA \n");
             SUMA_RETURN(0);
          }
          argt[kar][0] = '\0';
+//         if (argtc > 3){
+//            ++kar;
+//            if (toupper(argt[kar][0]) == 'Y' ||
+//            (toupper(argt[kar][0]) == 'O' && toupper(argt[kar][1]) == 'N'))
+//                NI_set_attribute(ngr, "SET_FUNC_ALPHA", "y");
+//            else if (toupper(argt[kar][0]) == 'N' ||
+//            (toupper(argt[kar][0]) == 'O' && toupper(argt[kar][1]) == 'F'))
+//                NI_set_attribute(ngr, "SET_FUNC_ALPHA", "n");
+//            else if (toupper(argt[kar][0]) == 'L')
+//                NI_set_attribute(ngr, "SET_FUNC_ALPHA_MODE", "L");
+//            else if (toupper(argt[kar][0]) == 'Q')
+//                NI_set_attribute(ngr, "SET_FUNC_ALPHA_MODE", "Q");
+//            argt[kar][0] = '\0';
+//         } else {
+//            NI_set_attribute(ngr, "SET_FUNC_ALPHA_MODE", "Q");
+//         }
          brk = YUP;
       }
 

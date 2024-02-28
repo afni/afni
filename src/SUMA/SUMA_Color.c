@@ -7346,11 +7346,12 @@ int *boxThresholdOutline(SUMA_SurfaceObject *SO, int *numThresholdNodes){
    return output;
 }
 
-float *alphaOpacitiesForOverlay(SUMA_OVERLAYS *overlay){
+float *alphaOpacitiesForOverlay(SUMA_SurfaceObject *SO, 
+        SUMA_OVERLAYS *overlay){
     static char FuncName[]={"alphaOpacitiesForOverlay"};
     float *alphaOpacities = NULL, threshold;
     int i;
-    enum OpacityModel opacityModel = QUADRATIC; // Could make a menu option
+    int opacityModel = SO->SurfCont->alphaOpacityModel; // From driver or .sumarc
     
     // Check whether valid overlay
     if (overlay->ShowMode == SW_SurfCont_DsetViewXXX)
@@ -7367,8 +7368,7 @@ float *alphaOpacitiesForOverlay(SUMA_OVERLAYS *overlay){
     float denom = MAX(0,threshold);
     for (i=0; i<overlay->N_T; ++i){
         alphaOpacities[i] = denom? MIN(1.0f, (fabs(overlay->T[i]))/denom) : 1.0f;
-        if (opacityModel == FRACTIONAL) alphaOpacities[i] *= sqrt(alphaOpacities[i]);
-        else if (opacityModel == QUADRATIC) alphaOpacities[i] *= alphaOpacities[i];
+        if (opacityModel == QUADRATIC) alphaOpacities[i] *= alphaOpacities[i];
     }
     
     return alphaOpacities;
@@ -7379,7 +7379,7 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
     float **alphaOpacities = NULL, *alphaOpacityPtr, threshold;
     SUMA_OVERLAYS *overlay;
     int i, j;
-    enum OpacityModel opacityModel = QUADRATIC; // Could make a menu option
+    enum OpacityModel opacityModel = QUADRATIC; // Defined by driver or 
     
     // Allocate memory to alpha opacity arrays
     if (!(alphaOpacities = (float **)malloc(N_Overlays*sizeof(float *))))
@@ -7864,8 +7864,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    bytes2CopyToColVec = SO->N_Node*3*sizeof(float);
      
    
-   if (SO->SurfCont->AlphaThresh != 1) SO->SurfCont->AlphaThresh = 0;
-   SO->AlphaThresh = SO->SurfCont->AlphaThresh;
+   if (SO->SurfCont->AlphaOpecityFalloff != 1) SO->SurfCont->AlphaOpecityFalloff = 0;
+   SO->AlphaOpecityFalloff = SO->SurfCont->AlphaOpecityFalloff;
    
    if (!thresholdReset && currentOverlay){
    
@@ -8256,8 +8256,9 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                   "%s: Modulating Brightness of Foreground colors ...\n",
                   FuncName);
 
-      if (SO->AlphaThresh){
-            float *activeAlphaOpacities = alphaOpacitiesForOverlay(currentOverlay);
+      if (SO->AlphaOpecityFalloff){
+            float *activeAlphaOpacities = alphaOpacitiesForOverlay(SO, 
+                currentOverlay);
 
           for (i=0; i < N_Node; ++i) {
              avgfact = Back_Modfact / 3.0;
@@ -8377,8 +8378,9 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    if (NshowOverlays && !NshowOverlays_Back) {
       if (LocalHead)
          fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n", FuncName);
-      if (SO->AlphaThresh){
-         float *activeAlphaOpacities = alphaOpacitiesForOverlay(currentOverlay);
+      if (SO->AlphaOpecityFalloff){
+         float *activeAlphaOpacities = alphaOpacitiesForOverlay(SO, 
+            currentOverlay);
          for (i=0; i < N_Node; ++i) {
             i4 = 4 * i;
             float opacity = activeAlphaOpacities[i];
@@ -8445,12 +8447,13 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          fprintf (SUMA_STDERR,"%s: Only Background colors.\n", FuncName);
          
          // Make local opacities if A threshold true
-         if (SO->AlphaThresh){
-         float *activeAlphaOpacities = alphaOpacitiesForOverlay(currentOverlay);
+         if (SO->AlphaOpecityFalloff){
+         float *activeAlphaOpacities = alphaOpacitiesForOverlay(SO, 
+            currentOverlay);
          for (i=0; i < N_Node; ++i) {
             i4 = 4 * i;
             
-            float opacity = alphaOpacitiesForOverlay(currentOverlay)[i];
+            float opacity = alphaOpacitiesForOverlay(SO, currentOverlay)[i];
 
             if (isColored_Back[i]) {
                i4 = 4 * i;
