@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Feb, 2024, RCR, "module_test_lib.py", MINOR, TYPE_ENHANCE,
+   "python 3.12 has removed 'imp' importing library, use importlib",
+   "Add a new 312 function string for newest case."
+ } ,
+
  { 23, Feb, 2024, RCR, "@radial_correlate", MICRO, TYPE_ENHANCE,
    "fail if no corr dset (check, since script is not run with -e)",
    NULL
