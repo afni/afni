@@ -790,7 +790,8 @@ def get_process_stack_slow(pid=-1, verb=1):
    if rv: return []
 
    stack = [entries] # entries is valid, so init stack
-   while mypid > 1:
+   # now some parents to straight to 0 without 1  [28 Feb 2024]
+   while mypid > 1 and ppid > 0:
       cmd = '%s %s' % (base_cmd, ppid)
       rv, entries = get_cmd_entries(cmd)
       if rv: return []
