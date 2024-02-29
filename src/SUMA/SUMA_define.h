@@ -1089,7 +1089,9 @@ typedef struct {
    DList *ClustList; /*!< The list of clusters */
    byte *ClustOfNode; /*!< Tells which cluster a node belongs to, Should have
                            SO->N_Node values in it*/
-   float AlphaThresh;
+   int AlphaThresh;     // "A" button checked.  Opacity of overlay falls off away
+                        //      from threshold
+   int BoxOutline;      // "B" button checked.  Threshold outlined with black pixels.
 } SUMA_OVERLAYS;
 
 
@@ -1741,6 +1743,8 @@ typedef struct {
                                  controlling the coord bias widgets */
    SUMA_MENU_WIDGET *LinkModeMenu; /*[SW_N_LinkMode] vector of widgets
                                  controlling the linking of I, T widgets */
+//   SUMA_MENU_WIDGET *AlphaMode_Menu; /*Alpha vector of widgets
+//                                 controlling alpha threshold and boxing */
    SUMA_MENU_WIDGET *CmapModeMenu; /* [SW_N_CmapMode] */
    Widget opts_rc; /*!< rowcolumn for color map, color bar and switch buttons */
    Widget opts_form; /*!< rowcolumn containing all options for colormapping */
@@ -1765,6 +1769,11 @@ typedef struct {
    int DeleteMask_row;
    float tract_length_mask[2];
    int UseMaskLen;
+   Widget AlphaThresh_tb; /*!< alpha threshold */
+   Widget BoxOutlineThresh_tb; /*!< box outline threshold */
+   int AlphaOpecityFalloff;
+   int alphaOpacityModel;   // Model used for the opacity falloff from the alpha threshold
+   int BoxOutlineThresh;
 }SUMA_X_SurfCont;
 
 typedef struct {
@@ -3244,6 +3253,10 @@ typedef struct {
 
    SUMA_DRAW_MASKS *DW; /*!< A structure containing node masking information
                              for on the fly masking */
+   int AlphaOpecityFalloff; // "A" button checked.  Opacity of overlay falls off away
+                        //      from threshold
+   int alphaOpacityModel;   // Model used for the opacity falloff from the alpha threshold
+   int BoxOutline;      // "B" button checked.  Threshold outlined with black pixels.
 } SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
                      \sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c

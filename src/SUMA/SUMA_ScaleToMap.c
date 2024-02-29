@@ -539,7 +539,8 @@ int main (int argc,char *argv[])
          FromAFNI = YUP;
          imap = SUMA_Find_ColorMap ( MapName, SAC->CMv, SAC->N_maps, -2);
          if (imap < 0) {
-            SUMA_S_Errv("Could not find colormap %s.\n", MapName);
+            if (MapName)
+                SUMA_S_Errv("Could not find colormap %s.\n", MapName);
             exit (1);
          }
          CM = SAC->CMv[imap];

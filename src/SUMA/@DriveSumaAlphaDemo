@@ -1,0 +1,94 @@
+#!/bin/tcsh
+
+# [PDL: Fenruary 6, 2024] Demo for Alpha transparency
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+#Example commands for running @DriveSuma
+# No output
+
+if ($#argv == 0) then
+	set SUMA_DIR = $HOME/afni
+else
+	set SUMA_DIR = $1
+endif
+
+set HelpOpt = ''
+echo "$1" | \grep -w -E  \
+      '\-h_txt|\-h_spx|\-h_aspx|\-h_raw|\-help|\-h' >& /dev/null
+if ($status == 0) then
+   set HelpOpt = "$1"
+   goto HELP
+endif
+
+        set l = `prompt_user -pause \
+'@DriveSuma \n\
+Make sure no current SUMA is running, then press OK'`
+        if ( $l == '0') goto STEND
+
+        #Launch suma
+	# set SUMA_DIR = $1
+	cd /home/peterlauren/AFNI_data6/FT_analysis/FT.surf.results
+	set NEW_PORT = `afni -available_npb_quiet`
+	echo  $NEW_PORT
+	$SUMA_DIR/suma  \
+		-spec /home/peterlauren/AFNI_data6/FT_analysis/FT/SUMA/std.60.FT_lh.spec \
+		-sv FT.surf_SurfVol_Alnd_Exp+orig -niml &
+	$SUMA_DIR/DriveSuma -com  viewer_cont -key '.'
+	$SUMA_DIR/DriveSuma -com  viewer_cont -key '.'
+	$SUMA_DIR/DriveSuma -com  viewer_cont -key '.'
+	$SUMA_DIR/DriveSuma -com  viewer_cont -key 'ctrl+s'
+	$SUMA_DIR/DriveSuma -com surf_cont -view_surf_cont y
+
+       $SUMA_DIR/DriveSuma -com surf_cont -load_dset stats.FT.surf.lh.niml.dset
+       set THR = 20
+       $SUMA_DIR/DriveSuma -com  surf_cont -T_val $THR 
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Alpha'`
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA yes
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Linear falloff Alpha'`
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA Linear
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Quadratic falloff Alpha'`
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA Quadratic
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to tuen Alpha off'`
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA no
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Alpha'`
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA yes
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Linear falloff Alpha'`
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA Linear
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Quadratic falloff Alpha'`
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_ALPHA Quadratic
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Box outline'`
+       $SUMA_DIR/DriveSuma -com surf_cont -SET_FUNC_BOXED y
+
+        set l = `prompt_user -pause \
+'@DriveSuma \n\
+Finished?, then press OK'`
+        if ( $l == '0') goto STEND
+
+
+	sleep 3; set l = `prompt_user -pause 'Waiting to exit'\
+

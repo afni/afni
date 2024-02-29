@@ -507,6 +507,7 @@ int Hallo_niml_workproc( void *thereiselvis )
          if (LocalHead)   
             fprintf(stderr,"%s: reading data stream", FuncName) ;
 
+            fprintf(stderr, "+++++ %s: NI_read_element\n", FuncName);
          nini = NI_read_element( cs->NimlStream , 1 ) ;  /* read it */
 
          if (LocalHead)   
