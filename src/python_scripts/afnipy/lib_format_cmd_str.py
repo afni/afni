@@ -55,7 +55,7 @@ all_good_opt_chars+= ''.join(['-', '_'])
 
 # -------------------------------------------------------------------------
 
-def guess_prog_opt_list(pname):
+def guess_prog_opt_list(pname, verb=0):
     '''For a program named pname, try to guess the available option list
 automagically.  There is a bit of a triage of methods for doing so,
 which might change over time.
@@ -102,11 +102,11 @@ lopt : list
         if not(stat) :
             kopt = copy.deepcopy(com.so)
             lopt = adjunct_opt_list_cleanup(kopt)
-            if not('-overwrite' in lopt) :
+            if len(lopt) and not('-overwrite' in lopt) :
                 lopt.append('-overwrite')
     
     # Empty ending: found nothing
-    if not(len(lopt)) :
+    if not(len(lopt)) and verb :
         print("+* WARN: no options found for prog:", pname)
 
     return lopt
@@ -376,7 +376,7 @@ here.
         return make_big_list_auto(arg_list)
 
 def make_big_list_auto(arg_list):
-    '''Take the arge list already passed through whitespace splitting and
+    '''Take the arg list already passed through whitespace splitting and
     quote-pairing and make a 'big_list' of the opts.  Namely, return a
     list of sub-lists, where the [0]th list is the program name and
     each subsequent list will contain an option and any args for it.
@@ -740,7 +740,7 @@ def afni_niceify_cmd_str( sss, big_list=None,
 
         if not(len(list_cmd_args)) and use_auto_args :
             pname = sss.strip().split()[0]          # get name of program
-            list_cmd_args = guess_prog_opt_list(pname)
+            list_cmd_args = guess_prog_opt_list(pname, verb=verb)
 
             if verb :
                 print("++ Auto arg search found {} args for prog: {}"
