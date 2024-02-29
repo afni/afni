@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Feb, 2024, RCR, "afni_util.py", MINOR, TYPE_MODIFY,
+   "use raw straing format for some regular expressions",
+   "So python 3.12 has upgraded Deprecation Warnings to SyntaxWarnings,\n"
+   "making wanings pop up where they did not previously.  Previously, one\n"
+   "would need to turn on deprecation warnings to see such things."
+ } ,
+
  { 28, Feb, 2024, RCR, "module_test_lib.py", MINOR, TYPE_ENHANCE,
    "python 3.12 has removed 'imp' importing library, use importlib",
    "Add a new 312 function string for newest case."
