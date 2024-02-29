@@ -31,6 +31,7 @@ from   afnipy import afni_base as ab
 # 2022-10-07, ver 1.7 :  afni_niceify_cmd_str() gets new big_list kwarg
 #                        to play nice with AP help examples
 # 2023-22-22, ver 1.8 :  kwarg to auto-guess prog opts, if possible
+# 2023-22-22, ver 1.9 :  add '-overwrite' for all AFNI programs
 # -------------------------------------------------------------------------
 
 VER_MAJOR = sys.version_info.major
@@ -101,6 +102,8 @@ lopt : list
         if not(stat) :
             kopt = copy.deepcopy(com.so)
             lopt = adjunct_opt_list_cleanup(kopt)
+            if not('-overwrite' in lopt) :
+                lopt.append('-overwrite')
     
     # Empty ending: found nothing
     if not(len(lopt)) :
