@@ -1943,7 +1943,6 @@ SUMA_NIDO *SUMA_ReadNIDO (char *fname, char *parent_so_id)
       SUMA_RETURN(NULL);
    }
    {
-        fprintf(stderr, "+++++ %s: NI_read_element\n", FuncName);
       while ((nini = NI_read_element(ns, 1))) {
          if (SUMA_iswordin(nini->name,"nido_head")) {/* fill special fields */
             if (nido) {
@@ -6388,7 +6387,6 @@ SUMA_Boolean SUMA_DrawTractDO_basic (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
       }
       Sover = SUMA_ADO_CurColPlane(ado);
       #if 1
-      // fprintf(stderr, "%s: DO_idstr = %s\n", FuncName, ADO_ID((SUMA_ALL_DO *)TDO));
       if (Sover)  TDO->colv = SUMA_GetColorList(sv, ADO_ID((SUMA_ALL_DO *)TDO));
       if (!TDO->colv) {
          SUMA_S_Warn("Colv not found for %s\n", ADO_LABEL((SUMA_ALL_DO *)TDO));
@@ -6797,7 +6795,6 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
             ans = NOPE; goto GETOUT;
       }
       #if 1
-      // fprintf(stderr, "%s: DO_idstr = %s\n", FuncName, ADO_ID((SUMA_ALL_DO *)TDO));
       if (Sover)  TDO->colv = SUMA_GetColorList(sv, ADO_ID((SUMA_ALL_DO *)TDO));
       if (!TDO->colv) {
          SUMA_S_Warn("Colv not found for %s\n", ADO_LABEL((SUMA_ALL_DO *)TDO));
@@ -8253,18 +8250,6 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
                   }
                }
             }
-            #if 0
-            for (iipix=0; iipix<M[0]; ++iipix) {
-               for (jjpix=0; jjpix<M[1]; ++jjpix) {
-                     ii4 = (iipix*M[1]+jjpix)*4;
-                           /* Texture image is filled in row major, so
-                              image in bb is transposed */
-                  fprintf(stderr,"(%d %d %d %d)   ",
-                           bb[ii4], bb[ii4+1], bb[ii4+2], bb[ii4+3]);
-               }
-               fprintf(stderr,"\n");
-            }
-            #endif
          } else {
             usedel = 0;
             /* this may not need to be an error condition, you might just skip
@@ -9041,7 +9026,6 @@ SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo,
                #endif
             }
             /* Colors? */
-            //  fprintf(stderr, "%s: DO_idstr = %s\n", FuncName, SDSET_ID(dset));
             GSaux->SDO->colv = SUMA_GetColorList(sv, SDSET_ID(dset));
             /* thickness? */
             GSaux->SDO->thickv = NULL;
@@ -9075,7 +9059,6 @@ SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo,
    It would be best to create a new class of segment DOs that
    are just for graph links and never store colv inside SDO.
    See SUMA_free_SegmentDO for special treatment of colv */
-   // fprintf(stderr, "%s: DO_idstr = %s\n", FuncName, SDSET_ID(dset));
    GSaux->SDO->colv = SUMA_GetColorList(sv, SDSET_ID(dset));
    SUMA_LH("Colv for %s is %p", ADO_LABEL(ado), GSaux->SDO->colv);
    /* and draw the GSaux */
@@ -10538,7 +10521,6 @@ GLubyte *SUMA_New_colid(SUMA_SurfaceViewer *sv,
    colid[0] = r; colid[1] = g; colid[2] = b; colid[3] = a;
    n4=4; n4l=4*(cod->i1-cod->i0+1);
    while (n4<n4l) {
-      /* fprintf(stderr,"%ld/%d: ",n4/4,N_n); */
       if (r<255) {
          ++r;
       } else {
@@ -10566,7 +10548,6 @@ GLubyte *SUMA_New_colid(SUMA_SurfaceViewer *sv,
       colid[n4++]=g;
       colid[n4++]=b;
       colid[n4++]=a;
-      /* fprintf(stderr,"  %ld %ld %ld %ld\n", r, g, b, a); */
    }
    SUMA_RETURN(colid);
 }
@@ -13268,7 +13249,6 @@ int *SUMA_NIDOtext_LineWidth(char *string, void *font, int *N_lines)
       for (is=0; string[is] != '\0'; is++) {
          if (string[is] == '\n') {
             iwidth[il] = Dx;
-            /*fprintf(stderr,"ZSS: line[%d]=%d\n", il, iwidth[il]);*/
             Dx = 0; ++il;
          } else {
             Dx = Dx+glutBitmapWidth(font, string[is]);
@@ -13276,7 +13256,6 @@ int *SUMA_NIDOtext_LineWidth(char *string, void *font, int *N_lines)
       }
       if (is > 0) {
          iwidth[il] = Dx;
-         /*fprintf(stderr,"ZSS: line[%d]=%d\n", il, iwidth[il]);*/
       }
    }
    return(iwidth);
@@ -13416,7 +13395,6 @@ SUMA_Boolean SUMA_DrawTextNIDOnel(  NI_element *nel,
             if (xyzoffset[0]==0.5 && il<N_lines-1) { /* center next line too */
                Dx = (float)(lwidth[il]+lwidth[il+1])/2.0;
             }
-            /*fprintf(stderr,"lwidth[%d]=%d, Dx=%f", il, lwidth[il], Dx);*/
          }
          glBitmap( 0, 0, 0, 0,
                -(float)Dx, -(float) SUMA_glutBitmapFontHeight(font),
@@ -16995,7 +16973,6 @@ SUMA_Boolean SUMA_ApplyDataToNodeObjects(
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s: 1: DO_idstr = %s\n", FuncName, SurfObj->idcode_str);
    if (!(colp = SUMA_GetColorList (sv, SurfObj->idcode_str))) SUMA_RETURN(NOPE);
 
    if (! (SurfObj->NodeObjects &&
@@ -17584,15 +17561,11 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       SUMA_RETURNe;
    }
    
-   // fprintf(stderr, "%s: SurfObj = %p\n", FuncName, SurfObj);
-   // fprintf(stderr, "%s: SurfObj->DW = %p\n", FuncName, SurfObj->DW);
-
    if (!SurfObj->DW->DrwPtchs) {
       SUMA_S_Err("Should not have null DrwPtchs at this point");
       SUMA_RETURNe;
    }
 
-   // fprintf(stderr, "%s: sv = %p\n", FuncName, sv);
    if (sv->DO_PickMode) {
       SUMA_LH("No need to DrawMesh in DO picking mode");
       SUMA_RETURNe;
@@ -17601,7 +17574,6 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_LH("Might need to swap coords from the VisX transformed data");
    SUMA_VisX_Pointers4Display(SurfObj, 1);
 
-   // fprintf(stderr, "%s: begin for each patch\n", FuncName);
    do { /* begin for each patch */
       if (!el) el = dlist_head(SurfObj->DW->DrwPtchs);
       else el = dlist_next(el);
@@ -17615,12 +17587,10 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          continue;
       }
 
-      // fprintf(stderr, "%s: SUMA_GLStateTrack\n", FuncName);
       if (!SUMA_GLStateTrack( "new", &st, FuncName, NULL, NULL)) {
          SUMA_S_Err("Failed to create tracking list");
          SUMA_RETURNe;
       }
-      // fprintf(stderr, "%s: check on rendering mode\n", FuncName);
       /* check on rendering mode */
       if (ptch->PolyMode != SRM_ViewerDefault) {
         SUMA_LHv("Poly Mode %d\n", ptch->PolyMode);
@@ -17635,7 +17605,6 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       SUMA_LH("TransMode = %d, N_FaceSet = %d",
                ptch->TransMode, ptch->N_FaceSet);
 
-      // fprintf(stderr, "%s: check on rendering mode\n", FuncName);
       /* check on rendering mode */
       if (ptch->TransMode == STM_ViewerDefault) {
          trmode = sv->TransMode;
@@ -17644,16 +17613,13 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       } else trmode = STM_0;
 
       if (trmode != STM_0) {
-        // fprintf(stderr, "%s: not the default, do the deed\n", FuncName);
         /* not the default, do the deed */
         SUMA_LHv("Trans Mode %d\n", trmode);
         SUMA_SET_GL_TRANS_MODE(trmode, st, SO_type);
       }
 
-      // fprintf(stderr, "%s: any texture for this surface?\n", FuncName);
       /* any texture for this surface? */
       texnel = SUMA_SO_NIDO_Node_Texture ( SurfObj, SUMAg_DOv, SUMAg_N_DOv, sv );
-      // fprintf(stderr, "%s: texnel = %p\n", FuncName, texnel);
       if (texnel) {
          SUMA_LH(  "Creating texture, see init pp 415 in \n"
                    "OpenGL programming guide, 3rd ed.");
@@ -17733,7 +17699,6 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       }
 
 
-      // fprintf(stderr, "%s: DRAW_METHOD = %d\n", FuncName, DRAW_METHOD);
       switch (DRAW_METHOD) {
          case STRAIGHT:
             switch (RENDER_METHOD) {
@@ -17747,7 +17712,6 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                   glBegin (GL_POINTS);
                   break;
             } /* switch RENDER_METHOD */
-            // fprintf(stderr, "1: glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA)\n");
             glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA);
             for (i=0; i < ptch->N_FaceSet; i++)
             {
@@ -17783,7 +17747,6 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             glEnableClientState (GL_COLOR_ARRAY);
             glEnableClientState (GL_VERTEX_ARRAY);
             glEnableClientState (GL_NORMAL_ARRAY);
-            // fprintf(stderr, "%s: 2: DO_idstr = %s\n", FuncName, SurfObj->idcode_str);
             colp = SUMA_GetColorList (sv, SurfObj->idcode_str);
             if (!colp) { /* no color list, try  PermCol */
                if (SurfObj->PermCol) {
@@ -17968,7 +17931,6 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       SUMA_LH("Undoing state changes");
       SUMA_GLStateTrack("r", &st, FuncName, NULL, NULL);
 
-      // fprintf(stderr, "%s: ptch = %p\n", FuncName, ptch);
       if (ptch->PolyMode != sv->PolyMode)
                SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
    } while (el != dlist_tail(SurfObj->DW->DrwPtchs));
@@ -18149,7 +18111,6 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                glBegin (GL_POINTS);
                break;
          } /* switch RENDER_METHOD */
-         fprintf(stderr, "2: glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA)\n");
          glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA);
          for (i=0; i < N_glar_FaceSet; i++)
          {
@@ -18185,7 +18146,6 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          glEnableClientState (GL_COLOR_ARRAY);
          glEnableClientState (GL_VERTEX_ARRAY);
          glEnableClientState (GL_NORMAL_ARRAY);
-         // fprintf(stderr, "%s: 3: DO_idstr = %s\n", FuncName, SurfObj->idcode_str);
          colp = SUMA_GetColorList (sv, SurfObj->idcode_str);
          if (!colp) { /* no color list, try  PermCol */
             if (SurfObj->PermCol) {
@@ -18211,10 +18171,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 	       if (NP==3) {
                 for (int i=0; i<(GLsizei)N_glar_FaceSet; ++i){
                     int i3 = 3*i;
-                    // fprintf(stderr, "SurfObj->glar_FaceSetList[%d] = (%d, %d, %d)\n", i, 
-                        // SurfObj->glar_FaceSetList[i3], SurfObj->glar_FaceSetList[13+1], SurfObj->glar_FaceSetList[i3+2]);
                 }
-                // TOY_CRASH: WHERE CRASH OCCURS WITH TOY EXAMPLES.
                   glDrawElements (  GL_TRIANGLES, (GLsizei)N_glar_FaceSet*3,
                                     GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
                } else if (NP==4) {
@@ -18510,7 +18467,6 @@ void SUMA_SimpleDrawMesh(SUMA_SurfaceObject *SurfObj,
                glBegin (GL_POINTS);
                break;
          } /* switch RENDER_METHOD */
-         fprintf(stderr, "3: glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA)\n");
          glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA);
          for (i=0; i < SurfObj->N_FaceSet; i++)
          {
@@ -23357,15 +23313,7 @@ GLushort SUMA_StippleLineMask_rand(int stip, int chunk_width, int rseed) {
          bt[j0]=1; ++j0;
       }
    }
-      #if 0
-   fprintf(stderr,"%d chunks (%d wide) @chunk indices[", nchunks, chunk_width);
-   for (n=0; n<nchunks; ++n) { fprintf(stderr,"%d ", ir[n]); }
-   fprintf(stderr,"]\n");
-   for (n=0; n<16; ++n) {
-      fprintf(stderr,"%d",bt[n]);
-   }
-   fprintf(stderr,"\n");
-      #endif
+
    SUMA_free(ir); ir=NULL;
    /* turn to byte stipple mask */
    sm = 0;

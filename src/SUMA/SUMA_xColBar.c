@@ -1142,10 +1142,6 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
 
    SUMA_ENTRY;
    
-   if (((SUMA_SurfaceObject *)clientData)->SurfCont->SetThrScaleTable->str_value)
-       fprintf(stderr, "%s: ((SUMA_SurfaceObject *)clientData)->SurfCont->SetThrScaleTable->str_value[0] = %s\n", 
-        FuncName, ((SUMA_SurfaceObject *)clientData)->SurfCont->SetThrScaleTable->str_value[0]);
-
    SUMA_LH("called");
    ado = (SUMA_ALL_DO *)clientData;
    if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }

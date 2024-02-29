@@ -1785,8 +1785,6 @@ GLfloat * SUMA_GetColorList (SUMA_SurfaceViewer *sv, char *DO_idstr)
 
    SUMA_ENTRY_LH;
    
-   // fprintf(stderr, "%s: DO_idstr = %s\n", FuncName, DO_idstr);
-
    if (!DO_idstr) {
       SUMA_S_Err("DO_idstr is NULL, this should not be.");
       SUMA_RETURN (NULL);

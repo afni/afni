@@ -1450,14 +1450,11 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
       SUMA_RETURN(0);
    }
 
-   fprintf(stderr, "*** Reading from VVS file\n");
-
    /* don't crash if you fail here and there, try your best ...*/
    SUMA_getStringFromNiml(nel, "clippingPlaneFile", strbuf, 16, feyl);
       if (!feyl) {
         clippingPlaneFile = (char *)calloc(strlen(strbuf)+8, sizeof(char));
         sprintf(clippingPlaneFile, "%s", strbuf);
-        fprintf(stderr, "Clipping file name = %s\n", clippingPlaneFile);
       } else clippingPlaneFile = NULL;
    SUMA_S2FV_ATTR(nel, "clippingPlaneMode", floatBuf, 1, feyl);
       if (!feyl) {
@@ -1645,7 +1642,6 @@ void SUMA_LoadVisualState(char *fname, void *csvp)
       fprintf(stderr,"%s: Can't open file\n", FuncName);
       SUMA_RETURNe;
    }
-   fprintf(stderr, "+++++ %s: NI_read_element\n", FuncName);
    nel = NI_read_element (nstdin, 1);
    if (!nel) {
       SUMA_SL_Err("Failed to read nel.\n");
@@ -2492,7 +2488,6 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                            env above for example */
                            SUMA_DrawMesh_mask(SO, csv); /* create the surface */
                         } else {
-                            // fprintf(stderr, "%s: 1: DO_idstr = %s\n", FuncName, SO->idcode_str);
                            SUMA_DrawMesh(SO, csv); /* create the surface */
                         }
                   }

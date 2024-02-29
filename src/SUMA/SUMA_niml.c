@@ -3185,7 +3185,6 @@ void SUMA_FakeIt (int Solo)
       nPath0[0] = 2; nPath0[1] = 1; nPath0[2] = 10;
       nPath1[0] = 9; nPath1[1] = 7; nPath1[2] = 23; nPath1[3] = -3;
 
-      // fprintf(stderr,"*********** Defining row type\n");
       niml_ROI_Datum_type =
          NI_rowtype_define("SUMA_NIML_ROI_DATUM", "int,int,int,int[#3]");
 
@@ -3206,11 +3205,8 @@ void SUMA_FakeIt (int Solo)
       niml_ROI->ROI_datum[0].N_n = N_n0;
       niml_ROI->ROI_datum[1].N_n = N_n1;
       if (1) {
-         fprintf(stderr,"*********** Filling ROI_datum structures\n");
          niml_ROI->ROI_datum[0].nPath = nPath0;
          niml_ROI->ROI_datum[1].nPath = nPath1;
-      }else {
-         fprintf(stderr,"*********** Skipping ROI_datum structure fill.\n");
       }
 
       fprintf( stderr,
@@ -3218,10 +3214,8 @@ void SUMA_FakeIt (int Solo)
                "a column of %d elements \n", niml_ROI->N_ROI_datum);
       nel = NI_new_data_element("A_drawn_ROI",  niml_ROI->N_ROI_datum);
 
-      fprintf(stderr,"*********** Adding column\n");
       NI_add_column( nel , niml_ROI_Datum_type, niml_ROI->ROI_datum );
 
-      fprintf(stderr,"*********** Setting attributes element\n");
       NI_set_attribute (nel, "self_idcode", niml_ROI->idcode_str);
       NI_set_attribute (nel, "domain_parent_idcode",
                              niml_ROI->Parent_idcode_str);
