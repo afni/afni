@@ -6568,19 +6568,23 @@ ENTRY("AFNI_autorange_label") ;
 /* ININFO_message("  old style rrr = %g",rrr) ; */
 
    /* Get the autorange as a percentage point of the nonzero values */
-
-   if( im3d->fim_now->int_cmap == CONT_CMAP && AUTORANGE_PERC > 1 && AUTORANGE_PERC < 100 ){
+   /* (if we have a functional dataset)         [11 Jan 2024 rickr] */
+   if( ISVALID_3DIM_DATASET(im3d->fim_now)
+        && im3d->fim_now->int_cmap == CONT_CMAP 
+        && AUTORANGE_PERC > 1 && AUTORANGE_PERC < 100 ){
      MRI_IMAGE *qim=NULL ; float qval ;
-     if( !DSET_LOADED(im3d->fim_now) && DSET_TOTALBYTES(im3d->fim_now) < 66666666 )
+     if( !DSET_LOADED(im3d->fim_now) && DSET_TOTALBYTES(im3d->fim_now)
+                                                        < 66666666 )
        DSET_load(im3d->fim_now) ;
      if( DSET_LOADED(im3d->fim_now) ){
        qim = THD_extract_float_brick(im3d->vinfo->fim_index,im3d->fim_now) ;
      } else if( im3d->fim_now->warp_parent != NULL &&
                 DSET_LOADED(im3d->fim_now->warp_parent) ){
-       qim = THD_extract_float_brick(im3d->vinfo->fim_index,im3d->fim_now->warp_parent) ;
+       qim = THD_extract_float_brick(im3d->vinfo->fim_index,
+                                     im3d->fim_now->warp_parent) ;
      }
      if( qim != NULL ){
-       qval = percentile_nzabs( qim->nvox, MRI_FLOAT_PTR(qim), AUTORANGE_PERC ) ;
+       qval = percentile_nzabs( qim->nvox, MRI_FLOAT_PTR(qim), AUTORANGE_PERC);
        mri_free(qim) ;
        if( qval > 0.0f ) rrr = qval ;
      }

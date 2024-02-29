@@ -1,0 +1,1648 @@
+#!/bin/tcsh
+
+# Make AFNI's help readable in a text editor again!
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+# --------------------- revision history -------------------------
+#
+#set version   = "1.0";
+#set rev_dat   = "some prior event in the spacetime continuum"
+#   + RWC started and developed this program
+#
+#set version   = "1.1"; set rev_dat   = "May 18, 2018"
+#   + PT started optionizing this program
+#
+#set version   = "1.1"; set rev_dat   = "July 1, 2018"
+#   + fixed searching for path of dset, use explicit check first
+#
+#set version   = "1.2"; set rev_dat   = "July 5, 2018"
+#   + set check if OMP_NUM_THREADS is explicitly set, so echoing don't
+#     break it -- thanks P. Molfese et al.!
+#
+#set version   = "1.3"; set rev_dat   = "Jan 17, 2019"
+#   + [PT] bug fix-- 3danisosmooth cmd was missing ${odir} on I/O
+#
+#set version   = "1.4"; set rev_dat   = "Feb 11, 2019"
+#   + [PT] new opt: turn unifize off (e.g., it 'twere already done
+#     before)
+#
+#set version   = "1.41"; set rev_dat   = "Feb 11, 2019"
+#   + [PT] new opt: can turn skullstrip and/or anisosmooth off (e.g.,
+#     it 'twere already done before)
+#
+#set version   = "1.42"; set rev_dat   = "Feb 11, 2019"
+#   + [PT] rename the 'turn off skull strip' to a less potentially
+#     confusing name: '-init_skullstr_off'.  (So it doesn't falsely
+#     seem like *no* skullstripping at all would be done.)
+#
+#set version   = "1.43"; set rev_dat   = "Feb 21, 2019"
+#   + [PT] include '-Urad 30' in unifizing part, for improving
+#     final output-- thanks for careful code reading, Yoichi!
+#
+#set version   = "1.44"; set rev_dat   = "Mar 27, 2019"
+#   + [RWC] add '-SSopt' option for adding options to 3dSkullStrip
+#           (per the request of Allison Nugent)
+#
+#set version   = "1.45"; set rev_dat   = "Mar 29, 2019"
+#   + [RWC] if SubID is a dataset name, funny things happened;
+#           so edit out suffixes like '.nii', '.HEAD', etc.`
+#
+#set version   = "1.5"; set rev_dat   = "April 15, 2019"
+#   + [PT] add in a couple new opts
+#          "-giant_move": larger opening angle, etc.
+#          "-deoblique":  can deoblique
+# 
+#set version   = "1.51"; set rev_dat   = "May 13, 2019"
+#   + [PT] fixed help file for sphinxification: got rid of some
+#          wandering "+" symbols in subheading titles
+# 
+#set version   = "1.52"; set rev_dat   = "June 18, 2019"
+#   + [RWC] add 3dAutomask step to clean up some of the
+#           little junk at the edge of the brain
+# 
+#set version   = "1.6"; set rev_dat   = "Jan 7, 2020"
+#   + [PT] put ceiling (98%ile of non-zero vals) after 3danisosmooth
+#        + also, use lpa+ZZ and lpa cost function for all rounds of align
+#          -> should give better results, but is also slower (slightly)...
+#        + add in options for putting in cost function values (backwards
+#          compatibility): -cost_*
+#        + opt for turn ceiling off: -ceil_off (backward compat)
+#
+#set version   = "1.61"; set rev_dat   = "Jan 20, 2020"
+#   + [PT] new opt for deobliquing a la 3drefit-- probably would be more
+#          useful than 3dWarp-style?
+# 
+#set version   = "2.0"; set rev_dat   = "Jan 27, 2020"
+#   + [PT] This is a majorly new version of @SSwarper.
+#        + final set of options from testing a loooot of things with
+#          the mixed groups of 178 subj from different studies. This
+#          set of options performed the best: fewest weird things,
+#          sharpest mean across groups, and smallest stdev (both
+#          inside and outside the brain).
+#        + several opts have been added for additional control, as well
+# 
+#set version   = "2.1"; set rev_dat   = "Feb 20, 2020"
+#   + [PT] Extra QC output:  QC*jpg montages
+#        + one to check skullstripping, one to view warping in more detail
+#
+#set version   = "2.11"; set rev_dat   = "Feb 20, 2020"
+#   + [PT] fix paths in the ulay/olay of extra QC*jpg images
+#
+#set version   = "2.2"; set rev_dat   = "Feb 27, 2020"
+#   + [PT] new warpscale opt for 3dQwarp, courtesy of RWC
+#
+#set version   = "2.3"; set rev_dat   = "March 30, 2020"
+#   + [PT] new opt: "-mask_init .."
+#        + can input mask to replace initial skullstripping
+#        + might be particularly useful with MP2RAGE, and/or more generally
+#
+#set version   = "2.4"; set rev_dat   = "Apr 6, 2020"
+# [PT] output history of alignment with images (new ssw*hist subdir)
+#    + done mainly making @djunct wrapper: @djunct_ssw_intermed_edge_imgs
+#
+#set version   = "2.41"; set rev_dat   = "Apr 6, 2020"
+# [PT] bug fix in ALHI conditions (end -> endif)
+#
+#set version   = "2.42"; set rev_dat   = "Apr 6, 2020"
+# [PT] turn off default "-nodset" in all 3dQwarp cases where it appeared
+#    + those dsets get removed, anyways, but we want them now for the 
+#      alignment history QC images
+#    + now, if user turns off alignment hist, then that flag is turned on
+#
+#set version   = "2.5"; set rev_dat   = "Apr 7, 2020"
+# [PT] split initial 3dQwarp -> 3dAllineate + 3dQwarp
+#    + don't want to use skully version in second case
+#
+#set version   = "2.51"; set rev_dat   = "Apr 8, 2020"
+# [PT] no more skullstrip
+#
+#set version   = "2.52"; set rev_dat   = "Apr 9, 2020"
+# [PT] weirding ways of mask_tool to get rid of dura/non-brain stuff
+#
+#set version   = "2.53"; set rev_dat   = "Apr 10, 2020"
+# [PT] fix final masking
+#    + more useful exit text
+#    + still need to decide if 'skip warp' opt is still relevant... 
+#
+#set version   = "2.54"; set rev_dat   = "Apr 11, 2020"
+# [PT] minor tweaks after checks of different tests
+#    + use inedge in all 3dQwarp places
+#    + 'TAL5' -> 'QQ2'
+#    + comment: at the moment, warpscale=1 does still appear to be best opt
+#    + compartmentalize blocks, and uniformize messaging throughout
+#    + -pblur_* and -penfac* options added for extra control
+#
+#set version   = "2.54"; set rev_dat   = "Apr 11, 2020"
+# [PT] fix $mpp
+#    
+#set version   = "2.55"; set rev_dat   = "Apr 12, 2020"
+# [PT] add -start2_thr opt, for param control
+#    
+#set version   = "2.56"; set rev_dat   = "Apr 12, 2020"
+# [PT] from data testing, use set default:  pblur_src = 0
+#    
+#set version   = "2.6"; set rev_dat   = "Feb 11, 2021"
+# [PT] clean up some options and help info
+#    
+#set version   = "2.7"; set rev_dat   = "Feb 11, 2021"
+# [PT] introduce -mask_ss opt and branch of processing
+#    
+set version   = "2.71"; set rev_dat   = "Mar 16, 2021"
+# [PT] put -mask_ss info into help
+#    
+# ----------------------------------------------------------------
+# ----------------------------------------------------------------
+
+# some AFNI environment variables
+
+setenv AFNI_DONT_LOGFILE  YES
+setenv AFNI_COMPRESSOR    NONE
+
+# set number of threads if run via SLURM
+
+if ( $?SLURM_CPUS_PER_TASK ) then
+ setenv OMP_NUM_THREADS $SLURM_CPUS_PER_TASK
+else if ( $?NSLOTS ) then
+ setenv OMP_NUM_THREADS $NSLOTS
+endif
+
+# ===================================================================
+
+set this_prog = "@SSwarper"
+
+set Adataset = ""    # req/ input dataset
+set SubID    = ""    # req/ the subject ID
+set Basedset = ""    # req/ reference dset- must have 4 bricks
+set odir     = ""    # opt/ output dir
+
+set minp     = "11"  # opt/ the minimum warp patch size
+
+set btemplate = '$btemplate'
+set tpath     = '$tpath'
+set subj      = '$subj'
+set str_msg   = '`@FindAfniDsetPath $btemplate`'
+
+set liteopt   = "-lite"
+set tightness = 0
+set doclean   = 1
+set verbopt   = ""
+set skipwarp  = 0
+set warpscale = 1        # def;  [Feb, 2020] RWC added opt to 3dQwarp 
+
+set DO_UNIFIZE = 1
+set DO_ANISO   = 1
+set DO_CEIL    = 1       # have a ceiling value on anat
+set DO_GIANT   = 0
+set DO_DEOB    = 0       # 3dWarp-style
+set DO_DEOB_REF = 0      # 3drefit-style
+set DO_EXTRA_QC = 1      # more chauffeur output 
+set DO_ALHI     = 1      # align history, intermed images, for QC
+set JUMP_TO_EXTRA_QC = 0 # just for testing/internal purposes
+
+set DO_RANDOM_TMP = 0
+set pref_nice     = junk_ssw
+
+set nodset     = ""         # just used if DO_ALHI==0
+
+set cost_aff   = "lpa+ZZ"   # used in:  3dAllineate -cost ...
+set cost_nli   = "-lpa"     # used in:  3dQwarp, initial rounds
+set cost_nlf   = "-pcl"     # used in:  3dQwarp, final rounds
+
+set pblur_base = 0          # later Qwarp; so, don't blur template anymore
+set pblur_src  = 0          # later Qwar;  prog blur source dset a bit
+set penfac     = 1          # later Qwarp; smaller val -> more warpy
+
+set gaus_wt    = 4.5        # def for 3dQwarp
+set saveall    = ""         # for 3dQwarp (def: don't);  just for debugging
+set SSopt      = " "
+set start2_thr = 500        # used before mask_tool to get rid of nonbrain
+
+set mask_ss      = ""
+set HAVE_MASK_SS = 0
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # --------- required ---------------
+
+    if ( "$argv[$ac]" == "-input" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Adataset = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-subid" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set SubID = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-base" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Basedset = "$argv[$ac]"
+
+    # --------- optional ---------------
+
+    # [PT: Feb 25, 2020] RWC added this opt to 3dQwarp
+    # lower warpscale -> less flexible warps
+    # may be useful if odd bumps occur.  vals: [0.1, 1.0]
+    else if ( "$argv[$ac]" == "-warpscale" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set warpscale = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-minp" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set minp = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-nolite" ) then
+        set liteopt = "-nolite"
+
+    else if ( "$argv[$ac]" == "-tight" ) then
+        @ tightness ++
+
+    else if ( "$argv[$ac]" == "-noclean" ) then
+        set doclean = 0
+
+    else if ( "$argv[$ac]" == "-giant_move" ) then
+        set DO_GIANT = 1
+
+    else if ( "$argv[$ac]" == "-deoblique" ) then
+        set DO_DEOB = 1
+
+    # [PT: Jan 14, 2020] be able to purge obliquity info, too
+    else if ( "$argv[$ac]" == "-deoblique_refitly" ) then
+        set DO_DEOB_REF = 1
+
+    else if ( "$argv[$ac]" == "-skipwarp" ) then
+        set skipwarp = 1
+
+    else if ( "$argv[$ac]" == "-unifize_off" ) then
+        set DO_UNIFIZE = 0
+
+    else if ( "$argv[$ac]" == "-aniso_off" ) then
+        set DO_ANISO = 0
+
+    else if ( "$argv[$ac]" == "-mask_ss" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mask_ss      = "$argv[$ac]"
+        set HAVE_MASK_SS = 1
+
+    else if ( "$argv[$ac]" == "-align_hist_off" ) then
+        set DO_ALHI = 0
+        set nodset  = "-nodset"
+
+    else if ( "$argv[$ac]" == "-extra_qc_off" ) then
+        set DO_EXTRA_QC = 0
+
+    # just for internal running/testing purposes
+    else if ( "$argv[$ac]" == "-jump_to_extra_qc" ) then
+        set JUMP_TO_EXTRA_QC = 1
+
+    else if ( "$argv[$ac]" == "-ceil_off" ) then
+        set DO_CEIL = 0
+
+    else if ( "$argv[$ac]" == "-saveall" ) then
+        set saveall = "-saveall"
+
+    else if ( "$argv[$ac]" == "-tmp_name_rand" ) then
+        set DO_RANDOM_TMP = 1
+
+    # [PT: Jan 14, 2020] probably only for backwards compatibility:
+    # default will be lpa+ZZ (could be 'hel' for back-compat)
+    else if ( "$argv[$ac]" == "-cost_aff" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set cost_aff = "$argv[$ac]"
+
+    # [PT: Apr 11, 2020] for control of later rounds of 3dQwarp
+    else if ( "$argv[$ac]" == "-pblur_base" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set pblur_base = "$argv[$ac]"
+
+    # [PT: Apr 11, 2020] for control of later rounds of 3dQwarp
+    else if ( "$argv[$ac]" == "-pblur_src" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set pblur_src = "$argv[$ac]"
+
+    # [PT: Apr 11, 2020] for control of later rounds of 3dQwarp
+    else if ( "$argv[$ac]" == "-penfac" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set penfac = "$argv[$ac]"
+
+    # [PT: Jan 14, 2020] probably just for backwards compatibility:
+    # default will be lpa hereafter  (could be '-pcl' for back-compat)
+    else if ( "$argv[$ac]" == "-cost_nl_init" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set cost_nli = "-$argv[$ac]"
+
+    # [PT: Jan 15, 2020] separate early and later rounds of NL
+    # warping, because using LPA for later rounds can be slooow
+    else if ( "$argv[$ac]" == "-cost_nl_final" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set cost_nlf = "-$argv[$ac]"
+
+    # [PT: Apr 12, 2020] extra control for this param-- noticing it
+    # might need to change for 7T folks
+    else if ( "$argv[$ac]" == "-start2_thr" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set start2_thr = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-wtgaus" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set gaus_wt = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-verb" ) then
+        set verbopt = "-verb"
+
+    else if ( "$argv[$ac]" == "-echo" ) then
+        set echo
+
+    else if ( "$argv[$ac]" == "-odir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set odir = "$argv[$ac]"
+
+    # 3dSkullStrip options for Allison [RWC: 27 Mar 2019]
+    else if ( "$argv[$ac]" == "-SSopt" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set SSopt = "$argv[$ac]"
+
+    # ---------- fin ------------------
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        goto BAD_EXIT
+
+    endif
+    @ ac += 1
+end
+
+# ====================================================================
+
+echo "++ Starting: $this_prog v$version"
+if ( ! $?OMP_NUM_THREADS ) then
+    set sss = `dirname $0`
+    if ( -e $sss/afni_check_omp ) then
+      set nnn = `$sss/afni_check_omp`
+      echo "++ Default OMP_NUM_THREADS is $nnn"
+      unset nnn
+    else
+      echo "++ OMP_NUM_THREADS is: not set by user, "
+      echo "   so possibly just using one CPU, depending on system config"
+    endif
+    unset sss
+else
+    echo "++ OMP_NUM_THREADS set to $OMP_NUM_THREADS"
+endif
+
+if ( "$Adataset" == "" ) then
+  echo "***** No -input option? :("
+  goto BAD_EXIT
+endif
+
+if ( ! -f "$Adataset" ) then
+  set chad = `@CheckForAfniDset "$Adataset"`
+  if( "$chad" == "0" || "$chad" == "1" )then
+    echo "***** ${this_prog} -- Not finding dset $Adataset -- exiting :(("
+    goto BAD_EXIT
+  endif
+endif
+
+if( "$SubID" == "" )then
+  echo "***** ${this_prog} -- no subject ID entered with -subid? :("
+  goto BAD_EXIT
+endif
+
+# edit SubID to remove any dataset suffixes [29 Mar 2019]
+set sss = `basename "$SubID" .nii.gz`
+set sss = `basename "$sss"   .nii`
+set sss = `basename "$sss"   .`
+set sss = `basename "$sss"   .HEAD`
+set sss = `basename "$sss"   .BRIK.gz`
+set sss = `basename "$sss"   .BRIK`
+set sss = `basename "$sss"   +orig`
+set sss = `basename "$sss"   +tlrc`
+
+if ( "$sss" != "$SubID" ) then
+  echo "++ Editing subject ID (-subid) $SubID to $sss"
+  set SubID = "$sss"
+endif
+unset sss
+
+# output dir from $Adataset, if not set by user
+if ( "$odir" == "" ) then
+    set odir = `dirname $Adataset`
+    echo ""
+    echo "++ Based on input, the output directory will be:"
+    echo "     $odir"
+    echo ""
+endif
+
+\mkdir -p ${odir}
+
+# set prefix for temp files: default is no longer random, but can be
+# asked for to be random (in case people output into the same dir
+if ( $DO_RANDOM_TMP ) then
+    # original style, slightly modified bc the purely random chars
+    # after '.' caaaan cause mischief (see amusing anecdote in
+    # comments at top for this date).
+    set pppp = "`3dnewid -fun11`"
+    set pref = $odir/junk.SSwarper_${pppp}_
+else
+    set pref = $odir/${pref_nice}
+endif 
+
+## find the base template dataset: start by seeing if it has been
+## given directly (not just needing @Find*Path):
+if ( -e "$Basedset" ) then
+    set tpath = `dirname "$Basedset"`
+else
+    set tpath = `@FindAfniDsetPath "$Basedset"`
+    if( "$tpath" == '' ) then
+        echo "** ${this_prog}: Failed to find template ${Basedset}"
+        echo "   Exiting :("
+        goto BAD_EXIT
+    endif
+    set Basedset = $tpath/$Basedset
+endif
+
+## Require it to have enough bricks to really be a ref
+set nvolbase = `3dinfo -nv "$Basedset"`
+if ( $nvolbase < 5 ) then
+    echo "** Base $Basedset only has $nvolbase volumes:"
+    echo "   to serve as a reference for $this_prog, it needs 4!"
+    echo "   See '$this_prog -help' -> 'The Template Dataset' for more info"
+    goto BAD_EXIT
+endif
+
+# [PT: Oct 19, 2020] Add in new QC: initial source-base overlap
+@djunct_overlap_check                             \
+    -ulay   "${Adataset}"                         \
+    -olay   "$Basedset"                           \
+    -prefix ${odir}/ssw_align_hist.${SubID}/init_qc_00_usrc_obase_${SubID}
+
+set pref_alhi = $odir/ssw_align_hist.${SubID}/ssw.${SubID}  # pref for imgs
+set alhi_ct   = `count -digits 2 0 20`    # padded idx vals, up to large N
+set alhidx    = 0                         # count index
+set olay_alhi = "${Basedset}[1]"          # always use this for olay edges
+
+if ( ${JUMP_TO_EXTRA_QC} ) then
+    echo "\n++ Just jumpin' to extra QC\n"
+    goto JUMP_TO_EXTRA_QC
+endif
+
+# won't need any +ZZ for this one
+set cost_aff2 = `adjunct_simplify_cost.py "${cost_aff}"`
+
+
+########################  start the work  #############################
+
+
+# ---------- Phase 0: prep/clean/unifize the input dset ----------
+
+echo "++ SSW PHASE 0: prep dset"
+
+# preliminary masking/inflation
+3dmask_tool -echo_edu                      \
+    -dilate_inputs 3                       \
+    -prefix "${pref}MASK3.nii"             \
+    -input  "${Basedset}[3]"
+
+## Step #0: Deoblique, either in style of 3dWarp or 3drefit
+if ( ${DO_DEOB} ) then
+    set dset_do = $odir/anatDO."${SubID}".nii
+    3dWarp                        \
+        -deoblique                \
+        -wsinc5                   \
+        -prefix "${dset_do}"      \
+        "$Adataset"
+    # ... and this will be new "input" dset
+    set Adataset = "${dset_do}"
+else if ( ${DO_DEOB_REF} ) then
+    set dset_do = $odir/anatDO."${SubID}".nii
+    # copy
+    3dcalc                        \
+        -a "$Adataset"            \
+        -expr 'a'                 \
+        -prefix "${dset_do}"
+    # purge obliquity info
+    3drefit                       \
+        -deoblique                \
+        "${dset_do}"
+
+    # ... and this will be new "input" dset
+    set Adataset = "${dset_do}"
+endif
+
+## Unifize the input T1: this is now hyper-necessary (because
+## thresholding later relies on this level
+
+# [PT: Feb 11, 2019] now allows for option *not* to unifize
+# [PT: Feb 21, 2019] use Urad=30 when unifizing (better for final output)
+if( ! -f $odir/anatU."${SubID}".nii ) then
+    if ( ${DO_UNIFIZE} ) then
+        echo "++ SSW0: unifizing"
+        3dUnifize                             \
+            -GM                               \
+            -clfrac 0.4                       \
+            -Urad 30                          \
+            -prefix $odir/anatU."$SubID".nii  \
+            -input "$Adataset"
+    else
+        echo "++ SSW0: NOT unifizing"
+        3dcopy                                \
+            "$Adataset"                       \
+            $odir/anatU."$SubID".nii
+    endif
+endif
+
+# [PT: Feb 11, 2019] now allows for option *not* to anismoothize
+if( ! -f $odir/anatUA."${SubID}".nii ) then
+    if ( ${DO_ANISO} ) then
+        echo "++ SSW0: anisosmoothing"
+        3danisosmooth                           \
+            -iters 1                            \
+            -3D                                 \
+            -automask                           \
+            -noneg                              \
+            -prefix $odir/anatUA."${SubID}".nii \
+            $odir/anatU."${SubID}".nii
+    else
+        echo "++ SSW0: NOT anisosmoothing"
+        3dcopy                                  \
+            $odir/anatU."$SubID".nii            \
+            $odir/anatUA."$SubID".nii
+    endif
+endif
+
+# [PT: Jan 6, 2020] get rid of potentially *very* high vals: take
+# 98%ile of non-zero vox
+if( ! -f $odir/anatUAC."${SubID}".nii ) then
+    if ( ${DO_CEIL} ) then
+        echo "++ SSW0: ceiling"
+        set vvv = `3dBrickStat                  \
+                    -percentile 98 1 98         \
+                    -non-zero                   \
+                    $odir/anatUA."${SubID}".nii`
+        # apply ceiling
+        3dcalc                                  \
+            -a $odir/anatUA."${SubID}".nii      \
+            -expr "maxbelow(${vvv[2]},a)"       \
+            -prefix $odir/anatUAC."${SubID}".nii
+
+    else
+        echo "++ SSW0: NOT ceiling"
+        3dcopy                                   \
+            $odir/anatUA."$SubID".nii            \
+            $odir/anatUAC."$SubID".nii
+    endif
+endif
+
+if ( ${DO_ALHI} ) then
+
+    # just for QC imaging purposes, we want an image of where we are
+    # starting from
+    3dresample                                       \
+        -input  $odir/anatUAC."$SubID".nii           \
+        -master "${Basedset}"                        \
+        -prefix "${pref}start.nii"
+
+    set lab_alhi = start
+    echo "++ SSW align hist: ${lab_alhi}"
+    @ alhidx +=  1 ; set jj = ${alhi_ct[${alhidx}]}
+    set ulay       = "${pref}${lab_alhi}.nii"
+    set opref_alhi = "${pref_alhi}.${jj}.${lab_alhi}.jpg"
+
+    @djunct_ssw_intermed_edge_imgs         \
+        -ulay              "${ulay}"       \
+        -olay              "${olay_alhi}"  \
+        -box_focus_slices  "${olay_alhi}"  \
+        -prefix "${opref_alhi}"
+endif
+
+
+# ---------- Phase I: focus on approx match and outer edge ----------
+
+#### no longer use skullstripping:  focus on alignment to define edge
+
+if ( $HAVE_MASK_SS ) then
+
+    # This branch applies the mask_ss, and so basically has to do only
+    # 1 aff alignment. For aff alignment in this branch:
+    # + alignment to [0] block
+    # + got straight to Allin.nii
+    # + output aff mat as *AllinC.aff12.1D, and just copy to final ver
+
+    echo "++ SSW1: linear affine alignment (with mask_ss)"
+
+    # apply mask_ss
+    3dcalc -echo_edu                                          \
+        -a "${mask_ss}"                                       \
+        -b  $odir/anatUAC."$SubID".nii                        \
+        -expr 'step(a)*b'                                     \
+        -prefix $odir/anatUACS."$SubID".nii
+
+    if ( ${DO_GIANT} ) then
+        3dAllineate -echo_edu      ${verbopt}                 \
+            -base "${Basedset}[0]"                            \
+            -cost ${cost_aff}                                 \
+            -source $odir/anatUACS."$SubID".nii               \
+            -weight "${Basedset}[2]"                          \
+            -noneg                                            \
+            -twopass                                          \
+            -prefix        "${pref}Allin.nii"                 \
+            -1Dmatrix_save "${pref}AllinC.aff12.1D"           \
+            -final wsinc5                                     \
+            -twobest 11 -maxrot 45                            \
+                -maxshf 40 -source_automask+2 -cmass
+    else
+        3dAllineate -echo_edu      ${verbopt}                 \
+            -base "${Basedset}[0]"                            \
+            -cost ${cost_aff}                                 \
+            -source $odir/anatUACS."$SubID".nii               \
+            -weight "${Basedset}[2]"                          \
+            -noneg                                            \
+            -twopass                                          \
+            -prefix        "${pref}Allin.nii"                 \
+            -1Dmatrix_save "${pref}AllinC.aff12.1D"           \
+            -final wsinc5                                     \
+            -source_automask 
+    endif
+
+    # this is now the full aff mat from orig space to templ; we will
+    # keep the *.aff12.1D file as a final output; *just a copy in this
+    # mask_ss case!
+    cat_matvec                            \
+        -ONELINE                          \
+        ${pref}AllinC.aff12.1D            \
+        > $odir/anatQQ."${SubID}".aff12.1D
+
+    if ( ${DO_ALHI} ) then
+
+        set lab_alhi = Allin_mask_ss
+        echo "++ SSW align hist: ${lab_alhi}"
+        @ alhidx +=  1 ; set jj = ${alhi_ct[${alhidx}]}
+        set ulay       = "${pref}${lab_alhi}.nii"
+        set opref_alhi = "${pref_alhi}.${jj}.${lab_alhi}.jpg"
+
+        @djunct_ssw_intermed_edge_imgs         \
+            -ulay              "${ulay}"       \
+            -olay              "${olay_alhi}"  \
+            -box_focus_slices  "${olay_alhi}"  \
+            -prefix "${opref_alhi}"
+    endif
+
+else
+
+    ## Allineate first time (skull on)
+    echo "++ SSW1: linear affine alignment"
+
+    if ( ${DO_GIANT} ) then
+        3dAllineate -echo_edu      ${verbopt}                 \
+            -base "${Basedset}[1]"                            \
+            -cost ${cost_aff}                                 \
+            -source $odir/anatUAC."$SubID".nii                \
+            -weight "${Basedset}[2]"                          \
+            -noneg                                            \
+            -twopass                                          \
+            -prefix        "${pref}AllinA.nii"                \
+            -1Dmatrix_save "${pref}AllinA.aff12.1D"           \
+            -final wsinc5                                     \
+            -twobest 11 -maxrot 45                            \
+                -maxshf 40 -source_automask+2 -cmass
+    else
+        3dAllineate -echo_edu      ${verbopt}                 \
+            -base "${Basedset}[1]"                            \
+            -cost ${cost_aff}                                 \
+            -source $odir/anatUAC."$SubID".nii                \
+            -weight "${Basedset}[2]"                          \
+            -noneg                                            \
+            -twopass                                          \
+            -prefix        "${pref}AllinA.nii"                \
+            -1Dmatrix_save "${pref}AllinA.aff12.1D"           \
+            -final wsinc5                                     \
+            -source_automask 
+    endif
+
+    if ( ${DO_ALHI} ) then
+
+        set lab_alhi = AllinA
+        echo "++ SSW align hist: ${lab_alhi}"
+        @ alhidx +=  1 ; set jj = ${alhi_ct[${alhidx}]}
+        set ulay       = "${pref}${lab_alhi}.nii"
+        set opref_alhi = "${pref_alhi}.${jj}.${lab_alhi}.jpg"
+
+        @djunct_ssw_intermed_edge_imgs         \
+            -ulay              "${ulay}"       \
+            -olay              "${olay_alhi}"  \
+            -box_focus_slices  "${olay_alhi}"  \
+            -prefix "${opref_alhi}"
+    endif
+
+    ## Refine Allineate  (skull off)
+    echo "++ SSW1: linear affine refinement (skull ~off)"
+
+    3dcalc -echo_edu                            \
+        -a "${pref}AllinA.nii"                  \
+        -b "${pref}MASK3.nii"                   \
+        -expr 'a*b'                             \
+        -prefix "${pref}AllinB.nii"
+
+    3dAllineate -echo_edu      ${verbopt}                  \
+        -base "${Basedset}[0]"                             \
+        -cost ${cost_aff2}                                 \
+        -source "${pref}AllinB.nii"                        \
+        -weight "${Basedset}[2]"                           \
+        -noneg                                             \
+        -prefix        "${pref}Allin.nii"                  \
+        -1Dmatrix_save "${pref}AllinC.aff12.1D"            \
+        -final wsinc5                                      \
+        -source_automask 
+
+    # this is now the full aff mat from orig space to templ; we will keep
+    # the *.aff12.1D file as a final output
+    cat_matvec                            \
+        -ONELINE                          \
+        ${pref}AllinC.aff12.1D            \
+        ${pref}AllinA.aff12.1D            \
+        > $odir/anatQQ."${SubID}".aff12.1D
+
+    if ( ${DO_ALHI} ) then
+
+        set lab_alhi = Allin
+        echo "++ SSW align hist: ${lab_alhi}"
+        @ alhidx +=  1 ; set jj = ${alhi_ct[${alhidx}]}
+        set ulay       = "${pref}${lab_alhi}.nii"
+        set opref_alhi = "${pref_alhi}.${jj}.${lab_alhi}.jpg"
+
+        @djunct_ssw_intermed_edge_imgs         \
+            -ulay              "${ulay}"       \
+            -olay              "${olay_alhi}"  \
+            -box_focus_slices  "${olay_alhi}"  \
+            -prefix "${opref_alhi}"
+    endif
+
+endif # end of else for: $HAVE_MASK_SS
+
+
+
+## Run 3dQwarp first time to a moderate level (skull off)
+echo "++ SSW1: first nonlinear alignment"
+
+# Allin is a bit smoothed from 2 allineate resamplings, but
+# probably is fine for this level of matching; could adjust later
+3dQwarp -echo_edu        ${saveall}                   \
+    $liteopt $verbopt                                 \
+    -base   "${Basedset}[0]"                          \
+    ${cost_nli}                                       \
+    -warpscale ${warpscale}                           \
+    -source "${pref}Allin.nii"                        \
+    -noneg -maxlev 2                                  \
+    -wtgaus ${gaus_wt}                                \
+    -inedge                                           \
+    -prefix "${pref}QQ2.nii"
+
+# [PT: Apr 6, 2020] Add intermediate QC image: early alignment, affine
+# result
+if ( ${DO_ALHI} ) then
+
+    set lab_alhi = QQ2
+    echo "++ SSW align hist: ${lab_alhi}"
+    @ alhidx +=  1 ; set jj = ${alhi_ct[${alhidx}]}
+    set ulay       = "${pref}${lab_alhi}.nii"
+    set opref_alhi = "${pref_alhi}.${jj}.${lab_alhi}.jpg"
+
+    @djunct_ssw_intermed_edge_imgs         \
+        -ulay              "${ulay}"       \
+        -olay              "${olay_alhi}"  \
+        -box_focus_slices  "${olay_alhi}"  \
+        -prefix "${opref_alhi}"
+endif 
+
+# Combine above, to be able to apply to original
+echo "++ SSW1: apply initial alignments, bring forward orig"
+
+3dNwarpApply -echo_edu                                            \
+    -warp   "${pref}QQ2_WARP.nii $odir/anatQQ.${SubID}.aff12.1D"  \
+    -source "$odir/anatUAC.$SubID.nii"                            \
+    -master "${Basedset}"                                         \
+    -prefix  ${pref}start2.nii
+
+if ( ${DO_ALHI} ) then
+
+    set lab_alhi = start2
+    echo "++ SSW align hist: ${lab_alhi}"
+    @ alhidx +=  1 ; set jj = ${alhi_ct[${alhidx}]}
+    set ulay       = "${pref}${lab_alhi}.nii"
+    set opref_alhi = "${pref_alhi}.${jj}.${lab_alhi}.jpg"
+
+    @djunct_ssw_intermed_edge_imgs         \
+        -ulay              "${ulay}"       \
+        -olay              "${olay_alhi}"  \
+        -box_focus_slices  "${olay_alhi}"  \
+        -prefix "${opref_alhi}"
+endif
+
+# both apply a 'generous' masking from the base dset (assume we are
+# within 3 voxels of boundary, basically) *and* apply a threshold
+echo "++ SSW1: loosely mask warped dset"
+
+3dcalc                                         \
+    -a "${pref}MASK3.nii"                      \
+    -b ${pref}start2.nii                       \
+    -expr "a*step(b-${start2_thr})*b"          \
+    -prefix ${pref}s2_thr.nii
+
+# clean up some stuff
+3dmask_tool                                    \
+    -dilate_inputs -2 2                        \
+    -inputs ${pref}s2_thr.nii                  \
+    -prefix ${pref}s2mask_dil-22.nii
+
+3dmask_tool                                    \
+    -dilate_inputs 2                           \
+    -fill_holes                                \
+    -inputs  ${pref}s2mask_dil-22.nii          \
+    -prefix  ${pref}s2mask_dil-222h.nii
+
+3dmask_tool                                    \
+    -dilate_inputs -2                          \
+    -inputs  ${pref}s2mask_dil-222h.nii        \
+    -prefix  ${pref}s2mask_dil-222h-2.nii
+
+# now use this to re-mask the start2 dset (purge neg vals from it, too)
+3dcalc                                         \
+    -a ${pref}s2mask_dil-222h-2.nii            \
+    -b ${pref}s2_thr.nii                       \
+    -expr "a*step(b)*b"                        \
+    -prefix ${pref}start2_nice.nii
+
+if ( ${DO_ALHI} ) then
+
+    set lab_alhi = start2_nice
+    echo "++ SSW align hist: ${lab_alhi}"
+    @ alhidx +=  1 ; set jj = ${alhi_ct[${alhidx}]}
+    set ulay       = "${pref}${lab_alhi}.nii"
+    set opref_alhi = "${pref_alhi}.${jj}.${lab_alhi}.jpg"
+
+    @djunct_ssw_intermed_edge_imgs         \
+        -ulay              "${ulay}"       \
+        -olay              "${olay_alhi}"  \
+        -box_focus_slices  "${olay_alhi}"  \
+        -prefix "${opref_alhi}"
+endif
+
+# -------------- Phase II: focus on matching structure ----------------
+
+# don't do any more if skipping the final (precision) warp
+
+# ??????? keep this here?
+if( $skipwarp ) goto CLEANUP
+
+
+# Run 3dQwarp in several segments, to avoid gcc OpenMP bug where it
+# freezes sometimes with inter-thread conflicts; this happens only in
+# long runs, so breaking the run into pieces will (I hope) elide this
+# annoyance - RWC :(
+
+# Piece number 1; starting over from the "nice" version of start2
+echo "++ SSW2: Qwarp to level 5"
+3dQwarp -echo_edu        ${saveall}      \
+    $liteopt $verbopt                    \
+    -base     "${Basedset}[0]"           \
+    -source   "${pref}start2_nice.nii"   \
+    -warpscale ${warpscale}              \
+    ${cost_nli}                          \
+    -inilev 0 -maxlev 5                  \
+    -noneg   ${nodset}                   \
+    -weight "${Basedset}[2]"             \
+    -inedge                              \
+    -pblur -workhard:5:5                 \
+    -prefix "${pref}QQ5.nii"
+
+if ( ${DO_ALHI} ) then
+
+    set lab_alhi = QQ5
+    echo "++ SSW align hist: ${lab_alhi}"
+    @ alhidx +=  1 ; set jj = ${alhi_ct[${alhidx}]}
+    set ulay       = "${pref}${lab_alhi}.nii"
+    set opref_alhi = "${pref_alhi}.${jj}.${lab_alhi}.jpg"
+
+    @djunct_ssw_intermed_edge_imgs         \
+        -ulay              "${ulay}"       \
+        -olay              "${olay_alhi}"  \
+        -box_focus_slices  "${olay_alhi}"  \
+        -prefix "${opref_alhi}"
+endif
+
+# Piece number 2
+echo "++ SSW2: Qwarp to level 7"
+
+3dQwarp -echo_edu      ${saveall}           \
+    $liteopt   $verbopt                     \
+    -base     "${Basedset}[0]"              \
+    -source   "${pref}start2_nice.nii"      \
+    -iniwarp  "${pref}QQ5_WARP.nii"         \
+    -warpscale ${warpscale}                 \
+    ${cost_nlf}                             \
+    -inilev 6 -maxlev 7 -workhard:6:7       \
+    -weight "${Basedset}[2]"                \
+    -inedge                                 \
+    -pblur "${pblur_base}" "${pblur_src}"   \
+    -noneg ${nodset}                        \
+    -prefix "${pref}QQ7.nii"
+
+if ( ${DO_ALHI} ) then
+
+    set lab_alhi = QQ7
+    echo "++ SSW align hist: ${lab_alhi}"
+    @ alhidx +=  1 ; set jj = ${alhi_ct[${alhidx}]}
+    set ulay       = "${pref}${lab_alhi}.nii"
+    set opref_alhi = "${pref_alhi}.${jj}.${lab_alhi}.jpg"
+
+    @djunct_ssw_intermed_edge_imgs         \
+        -ulay              "${ulay}"       \
+        -olay              "${olay_alhi}"  \
+        -box_focus_slices  "${olay_alhi}"  \
+        -prefix "${opref_alhi}"
+endif
+
+if( $minp > 13 )then
+    # Final piece for coarse final patch size
+    echo "++ SSW2: Qwarp to minp (patch = ${minp})"
+    3dQwarp -echo_edu      ${saveall}         \
+        $liteopt $verbopt                     \
+        -base     "${Basedset}[0]"            \
+        -source   "${pref}start2_nice.nii"    \
+        -iniwarp  "${pref}QQ7_WARP.nii"       \
+        -warpscale ${warpscale}               \
+        ${cost_nlf}                           \
+        -pblur "${pblur_base}" "${pblur_src}" \
+        -inilev 8                             \
+        -weight "${Basedset}[2]"              \
+        -inedge                               \
+        -noneg  -minpatch ${minp}             \
+        -Qfinal                               \
+        -prefix "${pref}QQminp.nii"
+else
+    # Penultimate piece for refined final patch size
+    @ mpp = $minp + 6
+    echo "++ SSW2: Qwarp to mpp (patch = ${mpp})"
+    3dQwarp  -echo_edu       ${saveall}       \
+        $liteopt $verbopt                     \
+        -base     "${Basedset}[0]"            \
+        -source   "${pref}start2_nice.nii"    \
+        -iniwarp  "${pref}QQ7_WARP.nii"       \
+        -warpscale ${warpscale}               \
+        ${cost_nlf}                           \
+        -pblur "${pblur_base}" "${pblur_src}" \
+        -inilev 8 -minpatch $mpp              \
+        -weight "${Basedset}[2]"              \
+        -inedge   ${nodset}                   \
+        -prefix "${pref}QQ9.nii"
+        
+    # Ultimate piece for refined final patch size
+    echo "++ SSW2: Qwarp to minp (patch = ${minp})"
+    3dQwarp  -echo_edu       ${saveall}       \
+        $liteopt $verbopt                     \
+        -base     "${Basedset}[0]"            \
+        -source   "${pref}start2_nice.nii"    \
+        -iniwarp  "${pref}QQ9_WARP.nii"       \
+        -warpscale ${warpscale}               \
+        ${cost_nlf}                           \
+        -pblur "${pblur_base}" "${pblur_src}" \
+        -inilev 10                            \
+        -weight "${Basedset}[2]"              \
+        -minpatch $minp                       \
+        -inedge                               \
+        -Qfinal                               \
+        -prefix "${pref}QQminp.nii"
+endif
+
+if ( ${DO_ALHI} ) then
+
+    set lab_alhi = QQminp
+    echo "++ SSW align hist: ${lab_alhi}"
+    @ alhidx +=  1 ; set jj = ${alhi_ct[${alhidx}]}
+    set ulay       = "${pref}${lab_alhi}.nii"
+    set opref_alhi = "${pref_alhi}.${jj}.${lab_alhi}.jpg"
+
+    @djunct_ssw_intermed_edge_imgs         \
+        -ulay              "${ulay}"       \
+        -olay              "${olay_alhi}"  \
+        -box_focus_slices  "${olay_alhi}"  \
+        -prefix "${opref_alhi}"
+endif
+
+# -------------- Phase III: create/apply final warps ----------------
+
+echo "++ SSW3: Warping estimation done: finalize"
+
+# Make the full NL part of the warp; would still need to be
+# concatenated with affine 
+echo "++ SSW3: create final warps and map dset to final space"
+
+3dNwarpCat  -echo_edu                              \
+    -warp1  "${pref}QQminp_WARP.nii"               \
+    -warp2  "${pref}QQ2_WARP.nii"                  \
+    -prefix "${odir}/anatQQ.${SubID}_WARP.nii"
+
+3dNwarpApply -echo_edu                                                        \
+    -warp "${odir}/anatQQ.${SubID}_WARP.nii ${odir}/anatQQ.${SubID}.aff12.1D" \
+    -source "${odir}/anatUAC.${SubID}.nii"                                    \
+    -master "${Basedset}"                                                     \
+    -prefix  ${pref}QQnew.nii
+
+if ( ${DO_ALHI} ) then
+
+    set lab_alhi = QQnew
+    echo "++ SSW align hist: ${lab_alhi}"
+    @ alhidx +=  1 ; set jj = ${alhi_ct[${alhidx}]}
+    set ulay       = "${pref}${lab_alhi}.nii"
+    set opref_alhi = "${pref_alhi}.${jj}.${lab_alhi}.jpg"
+
+    @djunct_ssw_intermed_edge_imgs         \
+        -ulay              "${ulay}"       \
+        -olay              "${olay_alhi}"  \
+        -box_focus_slices  "${olay_alhi}"  \
+        -prefix "${opref_alhi}"
+endif
+
+# mask the dset warped from orig space
+3dcalc                                  \
+    -a "${pref}QQnew.nii"               \
+    -b "${Basedset}[3]"                 \
+    -expr 'a*step(b)'                   \
+    -prefix $odir/anatQQ."${SubID}".nii
+
+if ( ${DO_ALHI} ) then
+
+    set lab_alhi = anatQQ
+    echo "++ SSW align hist: ${lab_alhi}"
+    @ alhidx +=  1 ; set jj = ${alhi_ct[${alhidx}]}
+    set ulay       = $odir/anatQQ."${SubID}".nii
+    set opref_alhi = "${pref_alhi}.${jj}.${lab_alhi}.jpg"
+
+    @djunct_ssw_intermed_edge_imgs         \
+        -ulay              "${ulay}"       \
+        -olay              "${olay_alhi}"  \
+        -box_focus_slices  "${olay_alhi}"  \
+        -prefix "${opref_alhi}"
+endif
+
+# [PT: Apr 6, 2020] invert standard space mask result back to standard
+# space for skullstripping: should be better than anatSS.
+## NB: have to use the 'temp' name of the aff12 matrix at this
+## point. Use NN interp for the dset, because we will mask it
+## eventually.
+echo "++ SSW3: skullstrip orig space UAC dset"
+
+3dNwarpApply                                                       \
+    -nwarp  "${odir}/anatQQ.${SubID}_WARP.nii $odir/anatQQ.${SubID}.aff12.1D" \
+    -iwarp                                                         \
+    -ainterp NN                                                    \
+    -master "${odir}/anatUAC.${SubID}.nii"                         \
+    -source "${Basedset}[3]"                                       \
+    -prefix "${pref}refmask_in_orig.nii"
+
+3dmask_tool                                                        \
+    -dilate_inputs -1 1                                            \
+    -fill_holes                                                    \
+    -prefix "${odir}/anatSS_mask.${SubID}.nii"                     \
+    -input  "${pref}refmask_in_orig.nii"
+
+3dcalc                                                      \
+    -a       $odir/anatUAC."$SubID".nii                     \
+    -b      "${odir}/anatSS_mask.${SubID}.nii"              \
+    -expr   'a*step(b)'                                     \
+    -prefix "${odir}/anatSS.${SubID}.nii"
+
+# -------------- Phase IV: final QC images ----------------
+
+## Make pretty pictures
+
+echo "++ SSW4: snapshot_volreg QC"
+
+@snapshot_volreg $odir/anatQQ."${SubID}".nii $Basedset $odir/AM"${SubID}"
+@snapshot_volreg $Basedset $odir/anatQQ."${SubID}".nii $odir/MA"${SubID}"
+
+JUMP_TO_EXTRA_QC:
+
+if ( ${DO_EXTRA_QC} ) then
+
+    # -------- check skullstripping in orig space ---------
+    echo "++ SSW4: QC of skullstripping"
+
+    set ulay  = "${odir}/anatU.${SubID}.nii"
+    set olay0 = "${odir}/anatSS.${SubID}.nii" 
+    set olay  = "${pref}mask.nii"
+    set opref_exqc1 = "${odir}/QC_anatSS.${SubID}.jpg"
+
+    3dcalc                                 \
+        -overwrite                         \
+        -a ${olay0}                        \
+        -expr 'bool(a)'                    \
+        -prefix ${olay}                    \
+        -byte
+        
+    @chauffeur_afni                        \
+        -ulay ${ulay}                      \
+        -ulay_range "2%" "98%"             \
+        -olay ${olay}                      \
+        -func_range_perc_nz 1              \
+        -set_subbricks 0 0 0               \
+        -box_focus_slices ${olay}          \
+        -cbar "Reds_and_Blues_Inv"         \
+        -opacity 4                         \
+        -prefix  ${pref}MONT1              \
+        -save_ftype JPEG                   \
+        -montx 9 -monty 1                  \
+        -montgap 3                         \
+        -set_xhairs OFF                    \
+        -label_mode 1 -label_size 3      
+
+    2dcat                                  \
+        -gap 5                             \
+        -gap_col 66 184 254                \
+        -nx 1                              \
+        -ny 3                              \
+        -prefix ${opref_exqc1}             \
+        ${pref}MONT1*jpg
+
+    # -------- check alignment in ref vol space ---------
+    echo "++ SSW4: QC of alignment"
+
+    set ulay  = "${odir}/anatQQ.${SubID}.nii"
+    set olay  = "${Basedset}"
+    set opref_exqc2 = "${odir}/QC_anatQQ.${SubID}.jpg"
+
+    @djunct_edgy_align_check               \
+        -montx            8                \
+        -monty            1                \
+        -ulay             "${ulay}"        \
+        -olay             "${olay}"        \
+        -box_focus_slices "${olay}"        \
+        -prefix           ${pref}MONT2
+
+    2dcat                                  \
+        -gap 5                             \
+        -gap_col 66 184 254                \
+        -nx 1                              \
+        -ny 3                              \
+        -prefix ${opref_exqc2}             \
+        ${pref}MONT2*jpg
+
+endif
+
+# ------------------------------------------------------------------
+
+## Clean up the junk
+
+CLEANUP:
+
+if ( $doclean ) then
+    echo "++ SSW4: cleaning up"
+    \rm -f "${pref}"*
+else
+    echo "++ SSW4: NOT cleaning up"
+endif
+
+## Closing messages/pointers to the User
+
+echo ""
+echo "--------------------------------------------------------"
+echo ""
+echo "++ DONE with SSW."
+echo ""
+
+if ( ${DO_ALHI} ) then
+echo "++ Alignment history QC images are here:"
+echo "     ${pref_alhi}*.jpg"
+
+else
+echo "+* You chose *not* to keep the alignment history images for QC."
+echo "   Oooook.  Nothing to see there, folks..."
+endif
+
+echo ""
+echo "++ Check QC images:"
+printf "     ${odir}/{AM,MA}*.jpg "
+
+if ( ${DO_EXTRA_QC} ) then
+printf " ${odir}/QC*.jpg "
+echo ""
+endif 
+
+echo ""
+echo "   ... for warping (in ref base space):"
+echo "       ulay = anat // olay = base edges  :  $odir/AM${SubID}.jpg"
+echo "       ulay = base edges // olay = anat  :  $odir/MA${SubID}.jpg"
+
+if ( ${DO_EXTRA_QC} ) then
+echo "       ulay = anat // olay = base edges  :  ${opref_exqc2}"
+echo ""
+echo "   ... for skullstripping (in native space):"
+echo "       ulay = anat // olay = SS mask     :  ${opref_exqc1}"
+endif
+
+echo ""
+echo "--------------------------------------------------------"
+
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+
+cat <<EOF
+
+OVERVIEW ~1~
+
+This script has dual purposes for processing a given subject's
+anatomical volume:
+    + to skull-strip the brain, and
+    + to calculate the warp to a reference template/standard space.
+Automatic snapshots of the registration are created, as well, to help
+the QC process.
+
+This program cordially ties in directly with afni_proc.py, so you can
+run it beforehand, check the results, and then provide both the
+skull-stripped volume and the warps to the processing program.  That
+is convenient!
+
+Current version = $version
+Authorship      = RW Cox
+
+# -----------------------------------------------------------------
+
+USAGE ~1~
+
+    ${this_prog}             \
+        -input   AA          \
+        -base    BB          \
+        -subid   SS          \
+       {-odir    OD}         \
+       {-mask_ss MS}         \
+       {-minp    MP}         \
+       {-nolite}             \
+       {-skipwarp}           \
+       {-unifize_off}        \
+       {-init_skullstr_off}  \
+       {-mask_init MI}       \
+       {-extra_qc_off}       \
+       {-jump_to_extra_qc}   \
+       {-cost_aff CA}        \
+       {-cost_nl_init CNI}   \
+       {-cost_nl_final CNF}  \
+       {-deoblique}          \
+       {-deoblique_refitly}  \
+       {-warpscale WS}       \
+       {-SSopt 'strings'     \
+       {-aniso_off}          \
+       {-ceil_off}           \
+       {-verb}               \
+       {-noclean}
+
+where (note: many of the options with 'no' and 'off' in their name are
+really just included for backwards compatibility, as this program has
+grown/improved over time):
+
+  -input  AA :(req) an anatomical dataset, *not* skull-stripped, with
+              resolution about 1 mm.
+
+  -base   BB :(req) a base template dataset, with contrast similar to
+              the input AA dset, probably from some kind of standard
+              template.
+              NB: this dataset is not *just* a standard template,
+              because it is not a single volume-- read about its
+              composition in the NOTES on the 'The Template Dataset',
+              below.
+              The program first checks if the dset BB exists as
+              specified; if not, then if just the filename has been
+              provided it searches the AFNI_GLOBAL_SESSION,
+              AFNI_PLUGINPATH, and afni bin directory (in that order)
+              for the named dataset.
+
+  -subid  SS :(req) name code for output datasets (e.g., 'sub007').
+
+  -odir   OD :(opt) output directory for all files from this program
+              (def: directory of the '-input AA').
+
+ -mask_ss MS :(opt) if you have a mask already to start with, then you
+              can also input it to help with the alignment.  For
+              example, if you are running FreeSurfer's recon-all with
+              @SUMA_Make_Spec_FS, you might find the 'fs_parc_wb_mask*' 
+              dset a useful MS dset to input.
+
+  -minp   MP :(opt) minimum patch size on final 3dQwarp (def: 11).
+
+  -nolite    :(opt) Do not use the '-lite' option with 3dQwarp;
+              This option is used for backward compatibility, if you want
+              to run 3dQwarp the same way as older versions of @SSwarper.
+              The new way (starting Jan 2019) is to use the '-lite'
+              option with 3dQwarp to speed up the calculations.
+              (def: use '-lite' for faster calculations).
+
+  -skipwarp  :(opt) Do not compute past the output of anatSS.{subid}.nii.
+              This option is used if you just want the skull-stripped
+              result in original coordinates, without the warping
+              to the template space (anatQQ). The script will run faster.
+
+  -deoblique :(opt) apply obliquity information to deoblique the input
+              volume ('3dWarp -deoblique -wsinc5 ...'), as an initial step.
+              This might introduce the need to overcome a large rotation
+              during the alignment, though!
+
+  -deoblique_refitly :(opt) purge obliquity information to deoblique
+              the input volume (copy, and then '3drefit -deoblique ...'), 
+              as an initial step.  This might help when data sets are
+              very... oblique.
+
+  -warpscale WS :(opt) opt to control flexibility of warps in 3dQwarp and
+              how they adjust with patch size;  see 3dQwarp's help for 
+              more info. Allowed values of WS are in range [0.1, 1.0].
+              (def: 1.0)
+
+  -giant_move :(opt) when starting the initial alignment to the template,
+              apply the same parameter expansions to 3dAllineate that
+              align_epi_anat.py does with the same option flag.  This
+              might be useful if the brain has a very large angle away
+              from "typical" ones, etc.
+
+  -unifize_off :(opt) don't start with a 3dUnifize command to try reduce
+              effects of brightness inhomogeneities.  Probably only
+              useful if unifizing has been previously performed on the
+              input dset.
+
+  -aniso_off :(opt) don't preprocess with a 3danisosmooth command to
+              try reduce effects of weird things (in a technical
+              sense).  Possible that this will never be used in the
+              history of running this program.
+
+  -ceil_off  :(opt) by default, after anisosmoothing, this program
+              will apply put a ceiling on values in the dset, to get rid
+              of possible outliers (ceil = 98%ile of non-zero voxels in
+              the whole volume).  This option will turn that off.
+
+  -init_skullstr_off :(opt) don't preprocess with a 3dSkullstrip command
+              to roughly isolated brain in the beginning.  This might
+              be useful with macaque dsets.
+
+  -mask_init MI :(opt) user can supply their own mask to use in place of 
+              skullstripping program.
+
+  -extra_qc_off :(opt) don't make extra QC images QC*jpg (for some
+              unknown reason).
+
+  -jump_to_extra_qc :(opt) just make the two QC*jpg images from a
+              previous run of @SSwarper.  These QC*jpg images are new
+              QC output (as of late Feb, 2020), so this might be
+              useful to add a quick check to previously run data.
+              This command would just be tacked on to previously
+              executed one.
+
+  -cost_aff CA :(opt) specify cost function for affine (3dAllineate)
+              part of alignment.  Here, 'CA' would be just the name of
+              the cost function to be provided after '-cost ..' (def:
+              is now "lpa+ZZ").  This is probably only here for
+              backwards compatibility to older @SSwarper (where def
+              was 'hel').
+
+  -cost_nl_init CNI 
+             :(opt) specify cost function for initial nonlinear
+              (3dQwarp) part of alignment.  Here, 'CNI' would be the
+              cost function name to be provided (def: is now "lpa").
+              This is probably only here for backwards compatibility
+              to older @SSwarper (where def was 'pcl').
+
+  -cost_nl_final CNF 
+             :(opt) specify cost function for final nonlinear
+              (3dQwarp) parts of alignment.  Here, 'CNF' would be the
+              cost function to be provided (def: is now "pcl").  This
+              is separate from the initial nonlinear warp cost values
+              '-cost_nl_init ..', because using those here might be
+              pretty slow; however, using "lpa" here might help
+              results.
+
+  -SSopt 'strings' :(opt) The content of 'strings' (which should be
+              in quotes if there are any blanks) is copied to the
+              end of the 3dSkullStrip command line. Example:
+                -SSopt '-o_ply Fred.Is.Wonderful'
+              to have 3dSkullStrip produce a .ply surface file
+              as an additional output.
+
+  -tmp_name_rand :(opt) the default prefix for temporary/intermediate
+              files is ${pref_nice}.  However, if you want to have
+              randomly-named intermediate files, you can by using this
+              option.  They will be called 'junk.SSwarper_[rand string]'.  
+              This option might be useful if you run multiple cases in
+              the same directory, in which case some confusion over
+              intermediate stuff might happen.
+
+  -echo      :(opt) Run the script with "set echo", for extra verbosity
+              in the terminal output.  Mainly for debugging times. 
+
+  -verb      :(opt) Apply the '-verb' option to 3dQwarp, to get more
+              verbose progress information - mostly used for debugging.
+
+  -noclean   :(opt) Do not delete the 'junk' files at the end of
+              computations - mostly used for debugging and testing.
+
+# -----------------------------------------------------------------
+
+REFERENCE DATASETS ~1~
+
+If you are reading this message, then several reference data sets
+(base volumes) for @SSwarper now exist within the AFNI realm. Oh, what
+a time it is to be alive.  A current list includes:
+
++ MNI152_2009_template_SSW.nii.gz
++ TT_N27_SSW.nii.gz
++ HaskinsPeds_NL_template1.0_SSW.nii.gz
+
+Some of these are distributed with the AFNI binaries, and other may be
+found online. You can make other reference base templates in whatever
+space you prefer, but note that it must have several subvolumes of
+information included-- see NOTES on the 'The Template Dataset', below
+(which also contains a link to the @SSwarper template tutorial online
+help).
+
+# ----------------------------------------------------------------------
+
+OUTPUTS ~1~
+
+Suppose the -prefix is 'sub007' (because you scanned Bond, JamesBond?).
+Then the outputs from this script will be"
+
+  anatDO.sub007.nii       = deobliqued version of original dataset;
+                            (*only if* using '-deoblique' opt);
+  anatU.sub007.nii        = intensity uniform-ized original dataset
+                            (or, if '-unifize_off' used, a copy of orig dset);
+  anatUA.sub007.nii       = anisotropically smoothed version of the above
+                            (or, if '-aniso_off' used, a copy of anatU.*.nii)
+  anatUAC.sub007.nii      = ceiling-capped ver of the above (at 98%ile of 
+                            non-zero values)
+                            (or, if '-ceil_off' used, a copy of anatUA.*.nii)
+  anatS.sub007.nii        = first pass skull-stripped original dataset
+                            (or, if '-init_skullstr_off' used, a copy of
+                            anatUAC.*.nii);
+  anatSS.sub007.nii       = second pass skull-stripped original dataset;
+                            * note that anatS and anatSS are 'original'
+                              in the sense that they are aligned with
+                              the input dataset - however, they have been
+                              unifized and weakly smoothed: they are
+                              stripped versions of anatUAC; if you want
+                              a skull-stripped copy of the input with
+                              no other processing, use a command like
+                                3dcalc -a INPUTDATASET        \
+                                       -b anatSS.sub007.nii   \
+                                       -expr 'a*step(b)'      \
+                                       -prefix anatSSorig.sub007.nii
+  anatQQ.sub007.nii       = skull-stripped dataset nonlinearly warped to
+                            the base template space;
+  anatQQ.sub007.aff12.1D  = affine matrix to transform original dataset
+                            to base template space;
+  anatQQ.sub007_WARP.nii  = incremental warp from affine transformation
+                            to nonlinearly aligned dataset;
+  AMsub007.jpg            = 3x3 snapshot image of the anatQQ.sub007.nii
+                            dataset with the edges from the base template
+                            overlaid -- to check the alignment;
+  MAsub007.jpg            = similar to the above, with the roles of the
+                            template and the anatomical datasets reversed.
+  QC_anatQQ.sub007.jpg    = like AM*.jpg, but 3 rows of 8 slices
+  QC_anatSS.sub007.jpg    = check skullstripping in orig space: ulay is
+                            input dset, and olay is mask of
+                            skullstripped output (anatSS* dset)
+
+* The .aff12.1D and _WARP.nii transformations need to be catenated to get
+  the full warp from original space to the base space; example:
+    3dNwarpApply -nwarp 'anatQQ.sub007_WARP.nii anatQQ.sub007.aff12.1D' ...
+
+* It is important to examine (at least) the two .jpg snapshot images to
+  make sure that the skull-stripping and nonlinear warping worked well.
+
+* The inputs needed for the '-tlrc_NL_warped_dsets' option to afni_proc.py
+  are (in this order):
+    anatQQ.sub007.nii anatQQ.sub007.aff12.1D anatQQ.sub007_WARP.nii
+
+* When B-O-B uses this script for skull-stripping plus warping, He
+  gives afni_proc.py these options (among others), after running
+  ${this_prog} successfully -- here, 'subj' is the subject
+  identifier:
+
+  |  set btemplate = MNI152_2009_template_SSW.nii.gz
+  |  set tpath = \`@FindAfniDsetPath \${btemplate}\`
+  |  if( "$tpath" == "" ) exit 1
+  |
+  |  afni_proc.py                                                  \
+  |    [...other stuff here: processing blocks, options...]        \
+  |    -copy_anat anatSS.\${subj}.nii                               \
+  |    -anat_has_skull no                                          \
+  |    -align_opts_aea -ginormous_move -deoblique on -cost lpc+ZZ  \
+  |    -volreg_align_to MIN_OUTLIER                                \
+  |    -volreg_align_e2a                                           \
+  |    -volreg_tlrc_warp -tlrc_base $tpath/$btemplate              \
+  |    -tlrc_NL_warp                                               \
+  |    -tlrc_NL_warped_dsets                                       \
+  |       anatQQ.\${subj}.nii                                       \
+  |       anatQQ.\${subj}.aff12.1D                                  \
+  |       anatQQ.\${subj}_WARP.nii
+
+# -------------------------------------------------------------------
+
+NOTES ~1~
+
+The Template dataset ~2~
+
+  Any reference base template dataset, such as
+  MNI152_2009_template_SSW.nii.gz, must have the first *4* volumes here
+  (and can have the optional 5th for later uses, as described):
+    [0] = skull-stripped template brain volume
+    [1] = skull-on template brain volume
+    [2] = weight mask for nonlinear registration, with the
+          brain given greater weight than the skull
+    [3] = binary mask for the brain
+    [4] = binary mask for gray matter plus some CSF (slightly dilated)
+          ++ this volume is not used in this script
+          ++ it is intended for use in restricting FMRI analyses
+             to the 'interesting' parts of the brain
+          ++ this mask should be resampled to your EPI spatial
+             resolution (see program 3dfractionize), and then
+             combined with a mask from your experiment reflecting
+             your EPI brain coverage (see program 3dmask_tool).
+
+  More information about making these (with scripts) is provided on
+  the Interweb:
+    https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/sswarper_base.html
+
+You Know My Methods, Watson ~2~
+
+  #1: Uniform-ize the input dataset's intensity via 3dUnifize.
+       ==> anatU.sub007.nii
+  #2: Strip the skull with 3dSkullStrip, with mildly aggressive settings.
+       ==> anatS.sub007.nii
+  #3: Nonlinearly warp (3dQwarp) the result from #1 to the skull-on
+      template, driving the warping to a medium level of refinement.
+  #4: Use a slightly dilated brain mask from the template to
+      crop off the non-brain tissue resulting from #3 (3dcalc).
+  #5: Warp the output of #4 back to original anatomical space,
+      along with the template brain mask, and combine those
+      with the output of #2 to get a better skull-stripped
+      result in original space (3dNwarpApply and 3dcalc).
+       ==> anatSS.sub007.nii
+  #6  Restart the nonlinear warping, registering the output
+      of #5 to the skull-off template brain volume (3dQwarp).
+       ==> anatQQ.sub007.nii (et cetera)
+  #7  Use @snapshot_volreg3 to make the pretty pictures.
+       ==> AMsub007.jpg and MAsub007.jpg
+
+Temporary files ~2~
+
+  If the script crashes for some reason, it might leave behind files
+  whose names start with 'junk.SSwarper' -- you should delete these
+  files manually.
+
+# -------------------------------------------------------
+  Author: Bob, Bob, there is one Bob, He spells it B-O-B.
+# -------------------------------------------------------
+
+EOF
+
+   goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

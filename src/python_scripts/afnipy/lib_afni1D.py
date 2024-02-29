@@ -4675,6 +4675,8 @@ class AfniData(object):
       if self.mtype & MTYPE_DUR:
          isconst, dlen = self.check_constant_duration()
          if isconst:
+            if self.verb > 2:
+               print('-- omitting constant married duration %g' % dlen)
             self.write_dm = 0
             self.dur_len = dlen
          else:

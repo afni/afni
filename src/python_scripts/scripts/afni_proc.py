@@ -757,12 +757,31 @@ g_history = """
                             (it is now corr vs ave, rather than ave corr)
     7.60 Jul 24, 2023: if -tlrc_NL_warped_dsets, require -tlrc_base
     7.61 Aug 21, 2023: modify $ktrs to come from a text file, instead of shell
+    7.62 Feb  1, 2024: 
+       - add options -show_example_keywords, -show_pythonic_command
+       - include keywords and modification date in examples
+       - partially revamp examples, add demo, short and publish examples
+    7.63 Feb  2, 2024: add -ROI_import (can regress PCs for now)
+    7.64 Feb  8, 2024:
+       - if radcor is after scaling, pass an EPI mask (warn if no mask)
+       - block radcor once processing enters the surface domain
+    7.65 Feb 15, 2024: add option -regress_compute_tsnr_stats
+    7.66 Feb 15, 2024:
+       - no dupe follower warning if grids differ
+       - no FWHM->ACF warning
+    7.67 Feb 21, 2024:
+       - partial publish example updates
+       - remove warning: 'ricor regressors are no longer applied in final reg'
+    7.68 Feb 22, 2024:
+       - use mask_epi_anat for more QC (over full_mask) and modify indentation
+       - if appropriate, apply "-regress_compute_tsnr_stats brain 1"
 """
 
-g_version = "version 7.60, August 21, 2023"
+g_version = "version 7.68, February 22, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ "15 Feb 2024",  "compute_ROI_stats.tcsh, whereami -index_to_label" ],
       [ "14 Nov 2022",  "find_variance_lines.tcsh" ],
       [ " 3 Jun 2022",  "3dLocalUnifize" ],
       [ " 7 Mar 2022",  "@radial_correlate -polort" ],
@@ -824,6 +843,7 @@ interesting milestones for afni_proc.py:
    2019.02 : compare options with examples and other afni_proc.py commands
    2021.11 : updated MEICA group tedana
    2022.11 : find_variance_lines.tcsh
+   2024.02 : new examples (demo, short, publish), with mod date
 """
 
 
@@ -863,6 +883,11 @@ More detailed changes, starting May, 2018.
 
 g_todo_str = """todo:
   - when replacing 'examples' help section, move -ask_me EXAMPLES section
+  - allow listing examples by keyword (choose and/or remove)
+  - example demo 2b should be added to APMD1 tree
+  - ROI_import, anat_follower_ROI for ROI TSNR averages
+     - handle in regress block: add -regress_compute_tsnr_stats
+     - add -volreg_compute_tsnr_stats
   - ME:
      - handle MEICA tedana methods
         x m_tedana, m_tedana_OC, m_tedana_OC_tedort
@@ -871,12 +896,12 @@ g_todo_str = """todo:
           (consider m_tedana_OC_m_tedort say, to have AP do the projections)
      - detrend (project others?) execute across runs
         - then break either data or regressors across runs
-     - motion params?  censoring?
+     - pre-ME: motion params?  censoring?
      x add help for new combine methods
      x add tedana orthogonalization combine methods
      x for LA: run all tedana steps before 3dcopy ones
      x update for (f)ANATICOR 
-     - allow use of -mask_import
+     x allow use of -mask_import
      - use combine result in -regress_ROI* options
         - see: rcr - todo combine
      - ** set_proc_vr_vall (and similar), choose between volreg and combine
@@ -1180,6 +1205,9 @@ class SubjProcSream:
         self.roi_dict   = {}            # dictionary of ROI vs afni_name
         self.def_roi_keys = default_roi_keys
 
+        # parameters related to TSNR and ROIs
+        self.tsnr_dset  = None          # for volumetric tsnr ROI stats
+
         # options related to ACF and clustsim
         self.ACFdir     = 'files_ACF'   # where to put 3dFWHMx -ACF files
         self.CSdir      = 'files_ClustSim' # and 3dClustSim files
@@ -1275,10 +1303,14 @@ class SubjProcSream:
                         helpstr='show history of -requires_afni_version')
         self.valid_opts.add_opt('-show_example', 1, [],
                         helpstr="show given help example by NAME")
+        self.valid_opts.add_opt('-show_example_keywords', 0, [],
+                        helpstr="show keywords from all examples")
         self.valid_opts.add_opt('-show_example_names', 0, [],
                         helpstr="show names of all examples")
         self.valid_opts.add_opt('-show_pretty_command', 0, [],
                         helpstr="display afni_proc.py command in a nice format")
+        self.valid_opts.add_opt('-show_pythonic_command', 0, [],
+                        helpstr="display afni_proc.py command as a python list")
         self.valid_opts.add_opt('-show_process_changes', 0, [],
                         helpstr="show afni_proc.py changes that affect results")
         self.valid_opts.add_opt('-show_tracked_files', 1, [],
@@ -1638,6 +1670,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-mask_type', 1, [],
                         acplist=['union','intersection'],
                         helpstr="specify a 'union' or 'intersection' mask type")
+        self.valid_opts.add_opt('-ROI_import', 2, [],
+                        helpstr="import ROI as given label (label/mset)")
 
         self.valid_opts.add_opt('-scale_max_val', 1, [],
                         helpstr="maximum value for scaled data (def: 200)")
@@ -1680,6 +1714,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_compute_tsnr', 1, [],
                         acplist=['yes','no'],
                         helpstr='compute TSNR datasets (yes/no) after regress')
+        self.valid_opts.add_opt('-regress_compute_tsnr_stats', -2, [],
+                        helpstr='compute TSNR stats per ROI_dset and INDEX')
         self.valid_opts.add_opt('-regress_mask_tsnr', 1, [],
                         acplist=['yes','no'],
                         helpstr="apply mask to TSNR dset (yes/no, def=no)")
@@ -1936,6 +1972,11 @@ class SubjProcSream:
             print(tstr)
             return 0
         
+        if opt_list.find_opt('-show_pythonic_command'):
+            tstr = self.get_ap_pythonic_cmd_str()
+            print(tstr)
+            return 0
+        
         if opt_list.find_opt('-show_tracked_files'):
             self.show_tfiles,rv = opt_list.get_string_opt('-show_tracked_files')
         
@@ -1969,6 +2010,10 @@ class SubjProcSream:
         if opt_list.find_opt('-show_example'):
            eg, rv = opt_list.get_string_opt('-show_example')
            self.show_example(eg, verb=self.verb)
+           return 0
+
+        if opt_list.find_opt('-show_example_keywords'):
+           self.show_example_keywords(verb=self.verb)
            return 0
         
         if opt_list.find_opt('-show_example_names'):
@@ -2027,7 +2072,7 @@ class SubjProcSream:
 
         opt = opt_list.find_opt('-copy_anat')
         if opt != None:
-            self.anat = afni_name(opt.parlist[0])
+            self.anat = gen_afni_name(opt.parlist[0])
             # rcr - set only if no view in anat?  (though still would not know)
             self.tlrcanat = self.anat.new(new_view='+tlrc')
 
@@ -2132,7 +2177,7 @@ class SubjProcSream:
               return 1
            self.dsets = []
            for rind, dset in enumerate(o0.parlist):
-              aname = afni_name(dset)
+              aname = gen_afni_name(dset)
               if aname.selectors() != '': self.have_sels = 1
               aname.selquote = "'" # allow for $ in selector (default??)
               self.dsets.append(aname)
@@ -2170,7 +2215,7 @@ class SubjProcSream:
 
               dsets = []
               for rind, dset in enumerate(opt.parlist):
-                 dsets.append(afni_name(dset))
+                 dsets.append(gen_afni_name(dset))
               if len(dsets) == 0:
                  print("** have echo %d option %s without any dataset list" \
                        % (eind, oname))
@@ -2195,7 +2240,7 @@ class SubjProcSream:
 
               dsets = []
               for eind, dset in enumerate(opt.parlist):
-                 dsets.append(afni_name(dset))
+                 dsets.append(gen_afni_name(dset))
               if len(dsets) == 0:
                  print("** have run %d option %s without any dataset list" \
                        % (rind, oname))
@@ -2305,7 +2350,7 @@ class SubjProcSream:
         # or surface analysis
         opt = self.user_opts.find_opt('-surf_anat')
         if opt != None:
-           self.surf_anat = afni_name(opt.parlist[0])
+           self.surf_anat = gen_afni_name(opt.parlist[0])
 
         # init block either from DefLabels or -blocks
         opt = self.user_opts.find_opt('-blocks')
@@ -2440,7 +2485,7 @@ class SubjProcSream:
 
             # for radcor, make 'regress' the default
             if oname == '-radial_correlate_blocks' and rcblocks is None:
-               if self.find_block('regress'):
+               if self.find_block('regress') and not self.surf_anat:
                  print("-- including default: -radial_correlate_blocks regress")
                  rcblocks = ['regress']
 
@@ -2728,10 +2773,11 @@ class SubjProcSream:
                     print("-- using default: will not apply EPI Automask")
                     print("   (see 'MASKING NOTE' from the -help for details)")
 
-            if self.ricor_nreg > 0 and self.ricor_apply == 'no':
-                if not self.user_opts.find_opt('-regress_apply_ricor'):
-                    print('** note: ricor regressors are no longer applied' \
-                              ' in final regression')
+            # no longer warn on this
+            # if self.ricor_nreg > 0 and self.ricor_apply == 'no':
+            #     if not self.user_opts.find_opt('-regress_apply_ricor'):
+            #         print('** note: ricor regressors are no longer applied' \
+            #                   ' in final regression')
 
             if self.runs == 1:
                 print("\n-------------------------------------\n" \
@@ -2768,7 +2814,8 @@ class SubjProcSream:
             self.reps_all.append(reps)
             if reps != self.reps: self.reps_vary = 1
             if tr != self.tr:
-                print('** TR of %g != run #1 TR %g' % (tr, self.tr))
+                print('** TR of %g (in %s) != run #1 TR %g' \
+                      % (tr, dr.shortinput(), self.tr))
                 return 1
 
         # check for consistency
@@ -2783,7 +2830,8 @@ class SubjProcSream:
                            % (rind+1, eind+1))
                      return 1
                   if tr != self.tr:
-                      print('** TR of %g != run 1 echo 1 TR %g'%(tr, self.tr))
+                      print('** TR of %g (in %s) != run 1 echo 1 TR %g' \
+                            %(tr, dset.shortinput(), self.tr))
                       return 1
 
         # note data type and whether data is scaled
@@ -3304,22 +3352,26 @@ class SubjProcSream:
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
 
-        # copy any -mask_import datasets as mask_import_LABEL
+        # copy any -mask_import/ROI_import datasets as mask_import_LABEL
         tstr = ''
         oname = '-mask_import'
-        for opt in self.user_opts.find_all_opts(oname):
-           if tstr == '':
-              tstr = '# copy any %s datasets as mask_import_LABEL\n' % oname
-           # get label and dset params
-           label = opt.parlist[0]
-           dset  = opt.parlist[1]
-           # find in ROI dict
-           aname = self.get_roi_dset(label)
-           if not aname:
-              print("** no -mask_import label set for '%s' to copy" % label)
-              return 1
-           tstr += '3dcopy %s %s/%s\n' % (dset, self.od_var, aname.prefix)
-           self.tlist.add(dset, aname.shortinput(), 'mask_import', ftype='dset')
+        for oname in ['-mask_import', '-ROI_import']:
+           olist = self.user_opts.find_all_opts(oname)
+           if len(olist) == 0:
+              continue
+           tstr += '# copy any %s datasets as %s_LABEL\n' % (oname, oname[1:])
+           for opt in self.user_opts.find_all_opts(oname):
+              # get label and dset params
+              label = opt.parlist[0]
+              dset  = opt.parlist[1]
+              # find in ROI dict
+              aname = self.get_roi_dset(label)
+              if not aname:
+                 print("** no %s label '%s' dataset to copy" % (oname, label))
+                 return 1
+              tstr += '3dcopy %s %s/%s\n' % (dset, self.od_var, aname.prefix)
+              self.tlist.add(dset, aname.shortinput(), 'mask_import',
+                             ftype='dset')
         if tstr:
            self.write_text(add_line_wrappers(tstr+'\n'))
 
@@ -3336,7 +3388,7 @@ class SubjProcSream:
            # (priors[0] is anat in standard space)
            if self.nlw_priors[0].type == 'NIFTI':
               an = self.nlw_priors[0]
-              an = afni_name('%s+tlrc' % an.prefix)
+              an = gen_afni_name('%s+tlrc' % an.prefix)
               self.nlw_priors[0] = an
 
            self.tlist.add(anorig, an.shortinput(), 'NL_warp', ftype='dset')
@@ -3367,7 +3419,7 @@ class SubjProcSream:
 
         bstr = ''
         if isinstance(self.blip_in_for, afni_name):
-           self.blip_dset_for = afni_name('blip_forward', view=self.view)
+           self.blip_dset_for = gen_afni_name('blip_forward', view=self.view)
            tstr = '# copy external -blip_forward_dset dataset\n' \
                   '3dTcat -prefix %s/%s %s\n' %                  \
                   (self.od_var, self.blip_dset_for.prefix,
@@ -3382,7 +3434,7 @@ class SubjProcSream:
               bstr += '# will extract automatic -blip_forward_dset in tcat ' \
                       'block, below\n\n'
 
-           self.blip_dset_rev = afni_name('blip_reverse', view=self.view)
+           self.blip_dset_rev = gen_afni_name('blip_reverse', view=self.view)
            tstr = '# copy external -blip_reverse_dset dataset\n' \
                   '3dTcat -prefix %s/%s %s\n' %                  \
                   (self.od_var, self.blip_dset_rev.prefix,
@@ -3395,7 +3447,7 @@ class SubjProcSream:
            if self.blip_in_med.prefix == 'NONE':
               tstr = "# median dset is 'NONE', skipping...\n"
            else:
-              self.blip_dset_med = afni_name('blip_median_base',view=self.view)
+              self.blip_dset_med = gen_afni_name('blip_median_base',view=self.view)
               tstr = '# copy external blip median warped dataset\n' \
                      '3dcopy %s %s/%s\n' %                          \
                      (self.blip_in_med.nice_input(), self.od_var,
@@ -3405,7 +3457,7 @@ class SubjProcSream:
            bstr += tstr
 
         if isinstance(self.blip_in_warp, afni_name):
-           self.blip_dset_warp = afni_name('blip_NL_warp', view=self.view)
+           self.blip_dset_warp = gen_afni_name('blip_NL_warp', view=self.view)
            tstr = '# copy external blip NL warp (transformation) dataset\n' \
                   '3dcopy %s %s/%s\n' %                                     \
                   (self.blip_in_warp.nice_input(), self.od_var,
@@ -3560,6 +3612,29 @@ class SubjProcSream:
           tstr = UTIL.get_command_str(args=self.argv)
 
        return tstr
+
+    def get_ap_pythonic_cmd_str(self):
+        """return a string showing the command in a python list structure
+           (of the form found in lib_ap_examples.py)
+           (remove any -show_pythonic_command option)
+        """
+        # remove any -show_pythonic_command option(s)
+        args = self.argv[:]
+        while '-show_pythonic_command' in args:
+           oind = args.index('-show_pythonic_command')
+           args.pop(oind)
+
+        allopts = self.valid_opts.all_opt_names()
+        arglist = FCS.make_big_list_from_args(args, list_cmd_args=allopts)
+        
+        # make an indentation list (add space for 2 quotes and a comma)
+        maxlen = max([len(s[0]) for s in arglist]) + 3
+        for s in arglist:
+           tstr = "'%s'," % s[0]
+           s[0] = '%-*s' % (maxlen, tstr)
+
+        return '\n'.join(["[%s %s]," % (s[0], str(s[1:])) \
+                         for s in arglist])
 
     def script_final_error_checks(self):
         """script for checking any errors that should be reported
@@ -3771,10 +3846,10 @@ class SubjProcSream:
            if name == '':
               print('** new_anat_follower requires name or aname')
               return None 
-           aname = afni_name(name)
+           aname = gen_afni_name(name)
 
         if label:
-           lname = afni_name(label)
+           lname = gen_afni_name(label)
            if lname.exist():
               print("** ERROR: anat_follower label exists as dataset: '%s'" \
                     % label)
@@ -3794,7 +3869,7 @@ class SubjProcSream:
         vo.set_var('cname',  aname)     # cname is current name
         if label: cppre = 'copy_af_%s' % label
         else:     cppre = aname.prefix
-        vo.set_var('cpname', afni_name(cppre))
+        vo.set_var('cpname', gen_afni_name(cppre))
         vo.set_var('dgrid',  dgrid)
         vo.set_var('label',  label)
         vo.set_var('erode',  0)         # 0=no, 1=pre, 2=post
@@ -3867,6 +3942,7 @@ class SubjProcSream:
     # ROI overview:
     #  - masks can come from -mask_segment_anat, 'full'? (so EPI),
     #    or -anat_follower_ROI XXXX epi XXXX
+    #    (or -mask_import or -ROI_import, but these are not followers)
     #  - regression can come from -regress_ROI or -regress_ROI_PC
     #    or -regress_anaticor[_fast], maybe with _label
     #
@@ -3919,12 +3995,12 @@ class SubjProcSream:
            print('** new_anat_follower requires name or aname')
            return None
 
-        if aname == None: aname = afni_name(name)
+        if aname == None: aname = gen_afni_name(name)
         si = aname.shortinput()
 
-        # warn user if dupe is seen
+        # warn user if dupe is seen (and on the same grid)
         for af in self.afollowers:
-           if af.aname.shortinput() == si:
+           if af.aname.shortinput() == si and af.dgrid == dgrid:
               print('** warning: have duplicate anat follower: %s' % si)
 
         # not yet in list
@@ -3959,15 +4035,18 @@ class SubjProcSream:
           if isinstance(oname, afni_name): oldname = oname.shortinput()
           else: oldname = 'NOT_YET_SET'
 
-          if self.verb > 1 or not overwrite:
-             print("** trying to overwrite roi_dict['%s'] = %s with %s" \
-                   % (key, oldname, newname))
-
           if not overwrite:
+             print("** failing to overwrite roi_dict['%s'] = %s with %s" \
+                   % (key, oldname, newname))
              if key in self.def_roi_keys: 
                 print("** ROI key '%s' in default list, consider renaming"%key)
                 print("   (default list comes from 3dSeg result)")
              return 1
+
+          if self.verb > 1:
+             print("++ will overwrite roi_dict['%s'] = %s\n" \
+                   "   with %s"                              \
+                   % (key, oldname, newname))
 
        elif self.verb > 1:
             print("++ setting roi_dict['%s'] = %s" % (key, newname))
@@ -3981,9 +4060,10 @@ class SubjProcSream:
        nkeys = len(keys)
        if nkeys <= 0: return
        print('-- have %d ROI dict entries ...' % nkeys)
+       if verb <= 0: return
+
        # get max key string length, with 2 positions for surrounding quotes
        maxlen = max((len(key)+2) for key in keys)
-       if verb < 0: verb = 0
 
        for key in keys:
           kstr = "'%s'" % key
@@ -4040,6 +4120,10 @@ class SubjProcSream:
            return
         eg.display(verb=verb, sphinx=0)
         
+    def show_example_keywords(self, verb=1):
+        EGS = self.egs()
+        EGS.show_example_keywords(['ALL'], verb=verb)
+
     def show_example_names(self, verb=2):
         EGS = self.egs()
         EGS.show_enames(verb=verb)
@@ -4429,8 +4513,8 @@ class TrackedFlist:
 
        if vo.ftype == 'dset':
           # make afni_name for any dset
-          vo.in_an  = afni_name(vo.oldname)
-          vo.out_an = afni_name(vo.newname)
+          vo.in_an  = gen_afni_name(vo.oldname)
+          vo.out_an = gen_afni_name(vo.newname)
           vo.short_in = vo.in_an.shortinput()
           vo.short_out = vo.out_an.shortinput()
 

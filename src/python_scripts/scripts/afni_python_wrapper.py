@@ -113,6 +113,9 @@ afni_python_wrapper.py: use to call afnipy functions from the shell
             afni_python_wrapper.py -eval "show_process_stack(verb=2)"
             afni_python_wrapper.py -eval "show_process_stack(pid=1000)"
 
+            # write a command in pretty format
+            cat INPUT | afni_python_wrapper.py -eval 'wrap_file_text()'
+
             # display out.ss_review.FT.txt as a json dictionary
             afni_python_wrapper.py -eval                  \\
                 'write_data_as_json(read_text_dictionary( \\
@@ -120,6 +123,9 @@ afni_python_wrapper.py: use to call afnipy functions from the shell
             afni_python_wrapper.py -eval                  \\
                 'write_data_as_json(read_text_dictionary( \\
                 "out.ss_review.FT.txt", compact=1)[1])'
+
+            afni_python_wrapper.py -module module_test_lib \\
+                -eval 'test_import("afnipy.afni_util", verb=4)'
 
       -exec STRING      : execute STRING in context of MODULE
 

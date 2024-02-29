@@ -6704,7 +6704,11 @@ char *Atlas_name_choice(ATLAS_POINT *atp)
       /* combination - both name and long name with brackets around long name*/
       case 2:
           if (strlen(atp->longname) && strcmp(atp->longname, atp->name))
-             sprintf(tmps, "%s\n[%s]", atp->name, atp->longname);
+             /* this had \n between name and longname, causing problems with 
+                vertical tabs on Macs. Took that out for now. 
+                CR might be useful in Slice viewer, but otherwise
+                causes trouble*/
+             sprintf(tmps, "%s [%s]", atp->name, atp->longname);
           else
              sprintf(tmps, "%s", atp->name);
           break;
@@ -9116,11 +9120,11 @@ char **Atlas_Names_List(ATLAS_LIST *atl)
 
 /*
    Put the label associated with value val in string str
-      (64 chars are copied into str)
+      (allow atlas max (TTO_LMAX) chars are copied into str)
 */
 int AFNI_get_dset_val_label_maybeCR(THD_3dim_dataset *dset, double val, char *str)
 {
-   char *str_lab1=NULL, *str_lab2=NULL, sval[128]={""};
+   char *str_lab1=NULL, *str_lab2=NULL, sval[TTO_LMAX]={""};
    ATLAS_LIST *atlas_alist=NULL;
    ATLAS *atlas=NULL;
 
@@ -9156,19 +9160,19 @@ int AFNI_get_dset_val_label_maybeCR(THD_3dim_dataset *dset, double val, char *st
       char *eee = getenv("AFNI_LABEL_PRIORITY");
       if(eee){
          if(strcasecmp(eee,"BOTH")==0) /* put pipe between labels - old default */
-            snprintf(str,64, "%s|%s",str_lab1,str_lab2);
+            snprintf(str,128, "%s|%s",str_lab1,str_lab2);
          else if (strcasecmp(eee,"LABEL")==0) {   /* labeltable label */
             snprintf(str,64, "%s",str_lab1);
          }
          else if (strcasecmp(eee,"ATLAS")==0) {   /* atlas points label */
-            snprintf(str,64, "%s",str_lab2);
+            snprintf(str,ATLAS_CMAX, "%s",str_lab2);
          }
       }
-      else snprintf(str,64,"%s",str_lab2);  /* atlas label is the default for now */
+      else snprintf(str,TTO_LMAX,"%s",str_lab2);  /* atlas label is the default for now */
    } else if (str_lab1) {  /* if only one take that label */
-      snprintf(str,64, "%s",str_lab1);  /* labeltable */
+      snprintf(str,TTO_LMAX, "%s",str_lab1);  /* labeltable */
    } else if (str_lab2) {
-      snprintf(str,64, "%s",str_lab2);  /* atlas points label */
+      snprintf(str,TTO_LMAX, "%s",str_lab2);  /* atlas points label */
    }
 
    RETURN(0);

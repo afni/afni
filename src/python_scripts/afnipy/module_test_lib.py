@@ -40,7 +40,7 @@
 # - fromlibs = { 'scipy': ['linalg', 'signal', 'stats'], 'fish': ['tuna'] }
 # - add to 
 
-import imp, os, sys
+import os, sys
 IL = None
 
 # add 'R' if needed
@@ -127,12 +127,80 @@ def get_py_ver_float():
    if pv[0] == '1': return float('%c.%c' % (pv[0],pv[1]))
    else:            return float('%s.%s' % (pv[0],pv[1]))
 
+def compare_py_ver(vstr):
+   """return -1, 0, 1 comparing the current version to input vstr
+   """
+   # get current and input version lists, as ints
+   pvc = [int(v) for v in list(get_py_ver())]
+   pvi = [int(v) for v in vstr.split('.')]
+
+   lenc = len(pvc)
+   leni = len(pvi)
+   
+   dmin = min(lenc,leni)
+
+   # check up to where they are equal
+   for dind in range(dmin):
+      if pvc[dind] < pvi[dind]: return -1
+      if pvc[dind] > pvi[dind]: return  1
+
+   # if still equal return the longer list
+   if lenc < leni: return -1
+   if lenc > leni: return  1
+
+   # else equal
+   return 0
+
 # not for general use: return message for libname
 def _get_mesg(libname):
    for mpair in g_mesglist:
       if mpair[0] == libname:
          return mpair[1]
    return ''
+
+
+# function definition string for if we are running python 3.12+
+# (actually okay for 3.4+)
+import_find_test_312_def =       \
+"""
+def import_find_test_312(libname, details=1, verb=1):
+   # return loaded library or None (on failure)
+   import importlib
+
+   if verb > 3: print("-- running test_312 on library %s" % libname)
+
+   try:    mod = sys.modules[libname]
+   except: pass
+   else:
+      if verb>1: print("++ module already loaded: %s" % libname)
+      return mod
+
+   try:
+      spec = importlib.util.find_spec(libname)
+   except:
+      if verb > 0:
+         if details: mesg = _get_mesg(libname)
+         else:       mesg = ''
+         if mesg:
+            print("---------------------------------------------------------")
+         print("** python module not found: %s" % libname)
+         if mesg: print(mesg)
+            
+      return None
+
+   if verb>2: print("++ module '%s' found at %s" % (libname, spec.origin))
+
+   # continue and try to load it (just use import)
+   mod = None
+   try: mod = importlib.import_module(libname)
+   except:
+      if verb>0: print("** failed to load module: %s" % libname)
+      mod = None  # be sure of return value
+   else:
+      if verb>1: print("++ module loaded: %s" % (libname))
+
+   return mod
+"""
 
 
 # function definition string for if we are running python 2.5 +
@@ -142,6 +210,7 @@ import_find_test_25_def =       \
 """
 def import_find_test_25(libname, details=1, verb=1):
    # return loaded library or None (on failure)
+   import imp
 
    try:    mod = sys.modules[libname]
    except: pass
@@ -186,6 +255,8 @@ import_find_test_24_def =       \
 def import_find_test_24(libname, details=1, verb=1):
    # return loaded library or None (on failure)
 
+   import imp
+
    try:    mod = sys.modules[libname]
    except: pass
    else:
@@ -221,20 +292,6 @@ def import_find_test_24(libname, details=1, verb=1):
 
    return mod
 """
-
-def load_module(mname, fp, pname, desc, verb=1):
-   mod = None
-   try: mod = imp.load_module(mname, fp, pname, desc)
-   except:
-      if verb>0: print("** failed to load module: %s" % mname)
-      mod = None  # be sure of return value
-   else:
-      if verb>1: print("++ module loaded: %s" % (mname))
-   finally:
-      if fp:
-         if verb>3: print("-- close file for module: %s" % mname)
-         fp.close()
-   return mod
 
 def simple_import(libname, details=1, verb=1):
    # return loaded library or None (on failure)
@@ -314,15 +371,17 @@ def test_import(libname, details=1, verb=1):
         details: if libname is in g_mesglist, print(message)
       return 0 on success, 1 on failure"""
 
-   # note python version
-   pv = get_py_ver_float()
-
-   if pv < 2.5: # use 2.4 version (might fail)
+   # run test based on python version
+   # break as less than 2.5, less than 3.10, and otherwise
+   if compare_py_ver('2.5') < 0: # use 2.4 version (might fail)
       exec(import_find_test_24_def)
       imptest = eval('import_find_test_24')
-   else:        # use 2.5 version
+   elif compare_py_ver('3.10') < 0: # might go up to 3.12, but overlap
       exec(import_find_test_25_def)
       imptest = eval('import_find_test_25')
+   else:
+      exec(import_find_test_312_def)
+      imptest = eval('import_find_test_312')
 
    if imptest(libname, details, verb): return 0
    else:                               return 1

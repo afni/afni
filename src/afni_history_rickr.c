@@ -53,6 +53,181 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Feb, 2024, RCR, "afni_util.py", MINOR, TYPE_MODIFY,
+   "use raw straing format for some regular expressions",
+   "So python 3.12 has upgraded Deprecation Warnings to SyntaxWarnings,\n"
+   "making wanings pop up where they did not previously.  Previously, one\n"
+   "would need to turn on deprecation warnings to see such things."
+ } ,
+
+ { 28, Feb, 2024, RCR, "module_test_lib.py", MINOR, TYPE_ENHANCE,
+   "python 3.12 has removed 'imp' importing library, use importlib",
+   "Add a new 312 function string for newest case."
+ } ,
+
+ { 23, Feb, 2024, RCR, "@radial_correlate", MICRO, TYPE_ENHANCE,
+   "fail if no corr dset (check, since script is not run with -e)",
+   NULL
+ } ,
+
+ { 23, Feb, 2024, RCR, "dcm2niix_afni", MICRO, TYPE_ENHANCE,
+   "sync crorden/dcm2niix_console with repo, version v1.0.20240202",
+   "Thanks to C Rorden for the update."
+ } ,
+
+ { 22, Feb, 2024, RCR, "build_afni.py", MINOR, TYPE_ENHANCE,
+   "check for conda env vars on make build failure",
+   NULL
+ } ,
+
+ { 22, Feb, 2024, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "check for conda env vars",
+   NULL
+ } ,
+
+ { 22, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "use more mask_epi_anat, and default: -regress_compute_tsnr_stats brain 1",
+   NULL
+ } ,
+
+ { 21, Feb, 2024, RCR, "compute_ROI_stats.tcsh", MINOR, TYPE_MODIFY,
+   "modify labels and prep for Q column",
+   NULL
+ } ,
+
+ { 20, Feb, 2024, RCR, "compute_ROI_stats.tcsh", MICRO, TYPE_BUG_FIX,
+   "forgot to actually print out the computed depth",
+   "Thanks to P Taylor for noticing."
+ } ,
+
+ { 20, Feb, 2024, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "remove irritating -script and -out_dir opts, just use subject ID",
+   NULL
+ } ,
+
+ { 15, Feb, 2024, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "remove 2 warnings",
+   "No warn on dupe followers if grids are the same; no ACF warning."
+ } ,
+
+ { 15, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -regress_compute_tsnr_stats",
+   "This is intended to be added to P Taylor's APQC HTML report."
+ } ,
+
+ { 15, Feb, 2024, RCR, "compute_ROI_stats.tcsh", MAJOR, TYPE_NEW_PROG,
+   "compute per-ROI region statstics over a given dataset",
+   "It is a little like 3dROIstats, but with needs specific to afni_proc.py."
+ } ,
+
+ {  8, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "in radcor: pass mask after any data scaling or in regress block",
+   "Scaled or errts data won't automask well.\n"
+   "Also, block radcor once in the surface domain."
+ } ,
+
+ {  7, Feb, 2024, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_ENHANCE,
+   "add regress to -radial_correlate_blocks",
+   "Also, handle new DEFAULT example names, and pass using underscores."
+ } ,
+
+ {  7, Feb, 2024, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "allow underscores in example names, and convert to spaces",
+   NULL
+ } ,
+
+ {  5, Feb, 2024, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "change GIFTI write from PREFIX to HEADNAME",
+   "Previously, the output directories were not being used.\n"
+   "Thanks to eriklee (AFNI MB) for noting the problem."
+ } ,
+
+ {  5, Feb, 2024, RCR, "@FindAfniDsetPath", MINOR, TYPE_MODIFY,
+   "one change to allow spaces in dataset names",
+   "Spaces in the paths to templates/atlases or the abin is currently\n"
+   "not allowed.  But we might slowly change that."
+ } ,
+
+ {  2, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -ROI_import (in prep for TSNR stats)",
+   NULL
+ } ,
+
+ {  1, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "-show_example_keywords, -show_pythonic_command; revamp examples",
+   NULL
+ } ,
+
+ { 21, Jan, 2024, RCR, "file_tool", MINOR, TYPE_NEW_OPT,
+   "add -wrap_text and -wrap_text_method for more clear command line use",
+   NULL
+ } ,
+
+ { 21, Jan, 2024, RCR, "afni_util.py", MINOR, TYPE_MODIFY,
+   "redo deep PT special",
+   NULL
+ } ,
+
+ { 19, Jan, 2024, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
+   "have wrap_file_text() default to wrap=2 in nwrite_text_to_file()",
+   NULL
+ } ,
+
+ { 18, Jan, 2024, RCR, "3dZeropad", MINOR, TYPE_NEW_OPT,
+   "add options -pad2odds, -pad2mult (pad to any positive multiple)",
+   "Motivated by P Taylor."
+ } ,
+
+ { 11, Jan, 2024, RCR, "afni", MINOR, TYPE_BUG_FIX,
+   "validate fim_now in AFNI_autorange_label",
+   "If the underlay existed in both orig and tlrc view, switching to the\n"
+   "view without an overlay would cause a crash.\n"
+   "Thanks to msh23m (AFNI message board) for noting the problem."
+ } ,
+
+ {  2, Jan, 2024, RCR, "init_user_dotfiles.py", MICRO, TYPE_ENHANCE,
+   "apply apsearch updates only if shell file applies to current or login",
+   NULL
+ } ,
+
+ {  2, Jan, 2024, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "warn on matplotlib version 3.1.2 for not being able to write JPEG",
+   NULL
+ } ,
+
+ { 22, Dec, 2023, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "get a new idcode whenever a new dataset name is assigned",
+   "This deals with programs like 3dTsplit4D creating multiple datasets,\n"
+   "as well as programs like afni reading many similarly named files\n"
+   "Thanks for J Blujus for reminding of the issue."
+ } ,
+
+ { 21, Dec, 2023, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "allow nim->nvox to exceed int32_t range with NIFTI-1 output",
+   "Thanks to P Rais-Roldan for noting the discrepancy."
+ } ,
+
+ { 21, Dec, 2023, RCR, "afni-general", MICRO, TYPE_NEW_OPT,
+   "add AFNI_NIFTI_WRITE_TYPE to override choice of NIFTI-1 or -2 output",
+   NULL
+ } ,
+
+ {  8, Dec, 2023, RCR, "build_afni.py", MINOR, TYPE_BUG_FIX,
+   "copy README files into build_src; use prev directory, not prefix",
+   "Thanks to D Glen for noting the missing README files."
+ } ,
+
+ {  7, Dec, 2023, RCR, "@update.afni_binaries", MINOR, TYPE_NEW_OPT,
+   "add -overwrite_build",
+   "This option is now required to allow @uab to run and overwrite\n"
+   "a local binary package that was created using build_afni.py."
+ } ,
+
+ {  4, Dec, 2023, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
+   "allow more n/a fields in tsv files",
+   NULL
+ } ,
+
  { 27, Nov, 2023, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
    "add some comments about build_afni.py",
    NULL

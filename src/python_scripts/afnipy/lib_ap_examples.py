@@ -16,25 +16,32 @@ import copy
 #    - for a given example, want:
 #       - name (e.g. Example 11) - want case insensitive checking
 #       - source (from help, from AFNI_data6, etc.)
-#       - keywords?  too hard to match
-#       - description ()
+#       - description
+#       - header  (before the example in verbose -help output)
+#       - trailer (after  the example in verbose -help output)
+#       - keywords = []; e.g. 'obsolete', 'complete', 'registration'. 'ME',
+#                             'surface', 'rest', 'task', 'physio'
 # ----------------------------------------------------------------------
+
 
 # ----------------------------------------------------------------------
 # main array of APExample instances
+# (will rename later to _old and examples)
 ap_examples = []
+ap_examples_new = []
 
 # ----------------------------------------------------------------------
 # class definition for instances in ap_examples array
 class APExample:
-   def __init__(self, name, olist, source='', descrip='',
-                header='', trailer=''):
+   def __init__(self, name, olist, source='', descrip='', moddate='UNKNOWN',
+                header='', trailer='', keywords=[]):
       self.name     = name          # used to reference example
       self.source   = source        # from AP help, AD6, etc.
       self.descrip  = descrip       # very short description
+      self.moddate  = moddate       # most recent modification date
       self.header   = header        # shown before example (in -help)
       self.trailer  = trailer       # shown after example (in -help)
-      # self.keywords = keywords
+      self.keywords = keywords      # list:
 
       self.keys     = []            # convenience: olist[][0] entries
       self.olist    = olist         # list of options [opt, [params]]
@@ -86,10 +93,13 @@ class APExample:
 
       if type(target) != str:
          print("** APExample.compare: target is neither instance nor string")
-         return 
+         return
 
       # otherwise, try to find an instance in the ap_examples list
       eg = find_eg(target)
+      # if not found, try replacing any '_' with ' '
+      if eg == None and target.find('_') >= 0:
+          eg = find_eg(target.replace('_', ' '))
       if eg != None:
          return self.compare_v_instance(eg, eskip=eskip, verb=verb)
 
@@ -113,7 +123,7 @@ class APExample:
       if verb == 1:
          print('     (for more detail, consider "-verb 2")')
       print("")
-    
+
       # use more generic name
       source = self
 
@@ -184,14 +194,14 @@ class APExample:
              estr = ' '.join(e[1])
              self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
       print("")
-      
+
       print("==========  extra option(s) : %d" % len(eextra))
       if len(eextra) > 0:
          for e in eextra:
              estr = ' '.join(e[1])
              self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
       print("")
-      
+
       print("==========  differing option(s) : %d" % len(pdiff))
       if len(pdiff) > 0:
          skips = []
@@ -221,14 +231,14 @@ class APExample:
              estr = ' '.join(e[1])
              self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
       print("")
-      
+
       print("==========  more applied option(s) : %d" % len(emore))
       if len(emore) > 0:
          for e in emore:
              estr = ' '.join(e[1])
              self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
       print("")
-      
+
       print("")
 
    def _print_opt_lin(self, indent, oname, maxlen, parstr, lmax=50):
@@ -260,15 +270,15 @@ class APExample:
             if wrap: - return indented command
                      - indent by windent
       """
-      
+
       # minor format conversion to a list of lists per line
       newolist = [['afni_proc.py']] + [([o[0]] + o[1]) for o in self.olist]
 
       # set default left-padding and line length
-      if wrap:  
+      if wrap:
          leftstr = ' '*windent
          linewid = 78
-         is_diff, str_nice = lfcs.afni_niceify_cmd_str('', 
+         is_diff, str_nice = lfcs.afni_niceify_cmd_str('',
                                                        comment_start=leftstr,
                                                        max_lw=linewid,
                                                        big_list=newolist)
@@ -310,32 +320,255 @@ class APExample:
       # header
       if verb > 1:
          print("%s" % cc.header)
-      else:
-         print("")
+         print("%s--------------------------" % indent)
+         print("%slast mod date : %s" % (indent, cc.moddate))
+         print("%skeywords      : %s" % (indent, ', '.join(cc.keywords)))
+         print("%s--------------------------" % indent)
+
+      print("")
 
       # print the actual example
       print("%s" % cmd)
 
       # any trailer
-      if verb > 1 and cc.trailer != '': 
+      if verb > 1 and cc.trailer != '':
          print("%s" % cc.trailer)
 
       print("")
 
       del(cc)
 
- 
-def populate_examples():
+
+def get_all_examples():
+   """return all known examples"""
+
+   examples = []
+
+   examples.extend(egs_example())
+   examples.extend(egs_class())
+   examples.extend(egs_demo())
+   examples.extend(egs_short())
+   examples.extend(egs_publish())
+
+
+   return examples
+
+
+def populate_examples(keys_keep=[], keys_rm=[], verb=1):
    """only populate the examples array if someone wants it
+
+        keys_keep : if not empty, keep only entries with any of these keywords
+        keys_rm   : if not empty, remove entries with any of these keywords
+
+      populate the global ap_examples array from some of the egs_* functions
    """
+
    global ap_examples
 
    if len(ap_examples) > 0:
       return
 
-   ap_examples.append( APExample( 'Example 1',
+   # use a local name to populate the global list
+   examples = get_all_examples()
+
+   # keys_keep = ['task', 'surface']
+   # keys_rm   = ['obsolete', 'surface']
+
+   if verb > 2:
+      show_example_keywords(examples, mesg='initial examples')
+
+   # --------------------------------------------------
+   # keep only those entries with at least one of the given keys
+   if len(keys_keep) > 0:
+      newex = []
+      for key in keys_keep:
+         for ex in examples:
+            if key in ex.keywords:
+               if ex not in newex:
+                  newex.append(ex)
+
+      examples = newex
+
+      if verb > 2:
+         show_example_keywords(examples, mesg='post-keep examples')
+
+   # --------------------------------------------------
+   # remove any entry with any given key
+   poplist = []
+      # counting from the end, pop unwanted indices
+   for eind, eg in enumerate(examples):
+      # if there is any bad key, add to poplist and break
+      for key in keys_rm:
+         if key in eg.keywords:
+            poplist.append(eg)
+            break
+   # remove everything in poplist
+   if len(poplist) > 0:
+      examples = [e for e in examples if e not in poplist]
+
+   ap_examples = examples
+
+def show_example_keywords(elist, mesg='', verb=1):
+   """
+   """
+   if mesg: mstr = '(%s) ' % mesg
+   else:    mstr = ''
+
+   if len(elist) == 0:
+      print("-- %d examples %s:" % (len(elist), mstr))
+      print()
+      return
+
+   # special cases, get all keywords, and show a unique list
+   if 'ALL' in elist:
+      elist = get_all_examples()
+
+   # if being quiet just show a compact key list
+   if verb <= 1:
+      # now python has a strange left to right reading to nest 2 lists
+      klist = [e for ex in elist for e in ex.keywords]
+      klist = UTIL.get_unique_sublist(klist)
+      klist.sort()
+      print('   ' + '\n   '.join(klist))
+      return
+
+   # else verbose, so show all examples and their keys
+   print("-- %d examples %s:" % (len(elist), mstr))
+   # align ':' using max name length
+   nlen = max([len(ex.name) for ex in elist])
+   for ex in elist:
+      print("    %-*s : %s" % (nlen, ex.name, ', '.join(ex.keywords)))
+   print()
+
+def egs_ap_run(keys_keep=[], keys_rm=[]):
+   """
+            ***** this is probably garbage *****
+
+      only populate the examples array if someone wants it
+
+      return an array of APExample objects
+
+       # sample example generation
+       sample = APExample( 'my help example name',
+         source='place to find this example in use',
+         descrip='short description w/name in help output',
+         moddate='1946.02.30',
+         header='''
+                  (recommended?  no, not intended for a complete analysis)
+                  (              merely shows how simple a command can be)
+
+               Purpose of this command, shown before example command.
+               ''',
+         trailer='''Any parts to show after the example command.''',
+         olist = [
+            ['-dsets',                 ['epiRT*.HEAD']],
+            ['-regress_stim_files',    ['stims.1D']],
+            # any other needed options
+           ],
+         )
+
+   """
+
+   examples = []
+
+   examples.append( APExample( 'run_ap FT',
+     source='ap_run_simple_rest.tcsh on class subject FT',
+     descrip='Basic example to generate APQC for quick review.',
+     moddate='2023.12.18',
+     keywords=['rest'],
+     header="""
+              (recommended?  no, not intended for a complete analysis)
+              (            * might be done immediately after acquisition)
+
+           This example was generated by running ap_run_simple_rest.tcsh,
+           providing a single subject anat and (3 runs of) EPI.  It could
+           be generated (and run) using the following:
+
+              cd AFNI_data6/FT_analysis/FT
+              ap_run_simple_rest.tcsh -subjid FT -run_proc \\
+                -anat FT_anat+orig -epi FT_epi_r*.HEAD
+           """,
+     trailer="""
+           This quick processing will generate results in a new FT.results
+           directory, which contains the APQC HTML report under QC_FT (where
+           FT is the subject ID).  The report can be viewed using:
+
+              afni_open -b FT.results/QC_FT/index.html
+
+           or using interactive afni and niivue:
+
+              open_apqc.py -infiles FT.results/QC_FT/index.html
+
+           """,
+     olist = [
+        ['-subj_id',                 ['FT.run_ap']],
+        ['-script',                  ['proc.FT.run_ap']],
+        ['-out_dir',                 [ 'FT.1.results']],
+        ['-blocks',                  [ 'tshift', 'align', 'tlrc', 'volreg',
+                'mask', 'blur', 'scale', 'regress']],
+        ['-radial_correlate_blocks', [ 'tcat volreg']],
+        ['-copy_anat',               [ 'FT_anat+orig']],
+        ['-dsets',                   [ 'FT_epi_r1+orig.HEAD',
+                'FT_epi_r2+orig.HEAD', 'FT_epi_r3+orig.HEAD']],
+        ['-tcat_remove_first_trs',   [ '2']],
+        ['-align_unifize_epi',       [ 'local']],
+        ['-align_opts_aea',          [ '-cost lpc+ZZ -giant_move -check_flip']],
+        ['-tlrc_base',               [ 'MNI152_2009_template_SSW.nii.gz']],
+        ['-volreg_align_to',         [ 'MIN_OUTLIER']],
+        ['-volreg_align_e2a',        []],
+        ['-volreg_tlrc_warp',        []],
+        ['-volreg_compute_tsnr',     [ 'yes']],
+        ['-mask_epi_anat',           [ 'yes']],
+        ['-blur_size',               [ '6']],
+        ['-regress_censor_motion',   [ '0.25']],
+        ['-regress_censor_outliers', [ '0.05']],
+        ['-regress_motion_per_run',  []],
+        ['-regress_apply_mot_types', [ 'demean deriv']],
+        ['-regress_est_blur_epits',  []],
+        ['-regress_est_blur_errts',  []],
+        ['-regress_make_ideal_sum',  [ 'sum_ideal.1D']],
+        ['-html_review_style',       [ 'pythonic']],
+       ],
+     ))
+
+   examples.append( APExample('simple align orig EPI',
+     source='basic example',
+     descrip='Perform orig space alignment to EPI base.',
+     moddate='2023.12.18',
+     keywords=['registration'],
+     header="""
+              (recommended?  no, not intended for a complete analysis)
+              (            - only to do basic registration to EPI base)
+
+           Align the anat and EPI time series to the EPI MIN_OUTLIER volume.
+           The regress block is included merely to provide extra QC.
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',                 ['FT.align.orig']],
+        ['-blocks',                  [ 'align', 'volreg', 'regress']],
+        ['-dsets',                   [ 'FT_epi_r1+orig.HEAD',
+                'FT_epi_r2+orig.HEAD', 'FT_epi_r3+orig.HEAD']],
+        ['-tcat_remove_first_trs',   ['2']],
+        ['-align_unifize_epi',       [ 'local']],
+        ['-align_opts_aea',          [ '-cost lpc+ZZ -giant_move -check_flip']],
+        ['-volreg_align_to',         [ 'MIN_OUTLIER']],
+        ['-html_review_style',       [ 'pythonic']],
+       ],
+     ))
+
+   return examples
+
+def egs_example():
+   """general "Example" list, corresponding to the 2023 list"""
+
+   examples = []
+
+   examples.append( APExample( 'Example 1',
      source='afni_proc.py -help',
      descrip='Minimum use.',
+     moddate='2008.12.10',
+     keywords=['obsolete', 'task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              merely shows how simple a command can be)
@@ -352,9 +585,11 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample('Example 2',
+   examples.append( APExample('Example 2',
      source='afni_proc.py -help',
      descrip='Very simple.',
+     moddate='2009.05.28',
+     keywords=['obsolete', 'task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              many missing preferences, e.g. @SSwarper)
@@ -371,10 +606,12 @@ def populate_examples():
         ['-regress_basis',         ['BLOCK(30,1)']],
        ],
      ))
-                                      
-   ap_examples.append( APExample('Example 3',
+
+   examples.append( APExample('Example 3',
      source='afni_proc.py -help',
      descrip='Formerly a simple class example.',
+     moddate='2009.05.28',
+     keywords=['obsolete', 'task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              many missing preferences, e.g. @SSwarper)
@@ -405,10 +642,12 @@ def populate_examples():
         ['-regress_est_blur_errts', []],
        ],
      ))
-                                      
-   ap_examples.append( APExample( 'Example 4',
+
+   examples.append( APExample( 'Example 4',
      source='afni_proc.py -help',
      descrip='Similar to 3, but specify the processing blocks.',
+     moddate='2009.05.28',
+     keywords=['obsolete', 'task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              many missing preferences, e.g. @SSwarper)
@@ -433,9 +672,11 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample( 'Example 5a',
+   examples.append( APExample( 'Example 5a',
      source='afni_proc.py -help',
      descrip='RETROICOR, resting state data.',
+     moddate='2009.05.28',
+     keywords=['obsolete', 'physio', 'rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              just a terribly simple example using ricor)
@@ -451,7 +692,7 @@ def populate_examples():
            parameters per-run (each run gets a separate set of 6 regressors).
 
            The regression will use 81 basic regressors (all of "no interest"),
-           with 13 retroicor regressors being removed during pre-processing:
+           with 13 retroicor regressors being removed during preprocessing:
 
                  27 baseline  regressors ( 3 per run * 9 runs)
                  54 motion    regressors ( 6 per run * 9 runs)
@@ -475,9 +716,11 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample( 'Example 5b',
+   examples.append( APExample( 'Example 5b',
      source='afni_proc.py -help',
      descrip='RETROICOR, while running a normal regression.',
+     moddate='2009.05.28',
+     keywords=['obsolete', 'physio', 'rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              another overly simple example using ricor)
@@ -511,9 +754,11 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample( 'Example 5c',
+   examples.append( APExample( 'Example 5c',
      source='afni_proc.py -help',
      descrip='RETROICOR: censor and band pass.',
+     moddate='2016.05.03',
+     keywords=['obsolete', 'physio', 'task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              many missing preferences, e.g. @SSwarper, no BP)
@@ -561,9 +806,11 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample( 'Example 6',
+   examples.append( APExample( 'Example 6',
      source='afni_proc.py -help',
      descrip='A simple task example, based on AFNI_data6.',
+     moddate='2020.02.15',
+     keywords=['task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              meant to be fast, but not complete, e.g. NL warp)
@@ -680,9 +927,11 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample( 'Example 6b',
+   examples.append( APExample( 'Example 6b',
      source='afni_proc.py -help',
      descrip='A modern task example, with preferable options.',
+     moddate='2020.02.15',
+     keywords=['complete', 'task'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
 
@@ -758,9 +1007,11 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample( 'Example 7',
+   examples.append( APExample( 'Example 7',
      source='afni_proc.py -help',
      descrip='Apply some esoteric options.',
+     moddate='2020.01.08',
+     keywords=['task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              e.g. NL warp without @SSwarper)
@@ -846,9 +1097,11 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample('Example 8',
+   examples.append( APExample('Example 8',
      source='afni_proc.py -help',
      descrip='Surface-based analysis.',
+     moddate='2017.09.12',
+     keywords=['complete', 'surface', 'task'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
 
@@ -909,10 +1162,12 @@ def populate_examples():
                                     '-glt_label', '1', 'V-A']],
        ],
      ))
-                                      
-   ap_examples.append( APExample('Example 9',
+
+   examples.append( APExample('Example 9',
      source='afni_proc.py -help',
      descrip='Resting state analysis with censoring and band passing.',
+     moddate='2019.02.26',
+     keywords=['rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              e.g. has band pass, no @SSwarper)
@@ -920,7 +1175,7 @@ def populate_examples():
 
            With censoring and bandpass filtering.
 
-           This is our suggested way to do pre-processing for resting state
+           This is our suggested way to do preprocessing for resting state
            analysis, under the assumption that no cardio/physio recordings
            were made (see example 5 for cardio files).
 
@@ -996,9 +1251,11 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample('Example 9b',
+   examples.append( APExample('Example 9b',
      source='afni_proc.py -help',
      descrip='Resting state analysis with ANATICOR.',
+     moddate='2020.01.08',
+     keywords=['rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              e.g. has band pass, no @SSwarper)
@@ -1035,10 +1292,12 @@ def populate_examples():
         ['-regress_est_blur_errts', []],
        ],
      ))
-                                      
-   ap_examples.append( APExample('Example 10',
+
+   examples.append( APExample('Example 10',
      source='afni_proc.py -help',
      descrip='Resting state analysis, with tissue-based regressors.',
+     moddate='2020.01.08',
+     keywords=['rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              e.g. missing @SSwarper)
@@ -1089,10 +1348,12 @@ def populate_examples():
         ['-regress_est_blur_errts', []],
        ],
      ))
-                                      
-   ap_examples.append( APExample('Example 10b',
+
+   examples.append( APExample('Example 10b',
      source='afni_proc.py -help',
      descrip='Resting state analysis, as 10a with 3dRSFC.',
+     moddate='2019.02.13',
+     keywords=['rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              prefer: see Example 11)
@@ -1131,10 +1392,12 @@ def populate_examples():
         ['-regress_est_blur_errts', []],
        ],
      ))
-                                      
-   ap_examples.append( APExample( 'Example 11',
+
+   examples.append( APExample( 'Example 11',
      source='afni_proc.py -help',
      descrip='Resting state analysis (now even more modern :).',
+     moddate='2022.10.06',
+     keywords=['complete', 'rest'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
 
@@ -1155,7 +1418,7 @@ def populate_examples():
                             -odir  FT_anat_warped      \\
                             -base  MNI152_2009_template_SSW.nii.gz
 
-            - The SS (skull-stripped) can be given via -copy_anat, and the 
+            - The SS (skull-stripped) can be given via -copy_anat, and the
               with-skull unifized anatU can be given as a follower.
          o No bandpassing.
          o Use fast ANATICOR method (slightly different from default ANATICOR).
@@ -1173,7 +1436,7 @@ def populate_examples():
          o Compute average correlation volumes of the errts against the
            the gray matter (aeseg) and ventricle (FSVent) masks.
          o Run @radial_correlate at the ends of the tcat, volreg and regress
-           blocks.  If ANATICOR is being used to remove a scanner artifact, 
+           blocks.  If ANATICOR is being used to remove a scanner artifact,
            the errts radcor images might show the effect of this.
 
            Note: it might be reasonable to use either set of blur estimates
@@ -1227,9 +1490,11 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample('Example 11b',
+   examples.append( APExample('Example 11b',
      source='afni_proc.py -help',
      descrip='Similar to 11, but without FreeSurfer.',
+     moddate='2020.01.17',
+     keywords=['complete', 'rest'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
               (              if this ventricle extraction method seems okay)
@@ -1294,9 +1559,11 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample('Example 12',
+   examples.append( APExample('Example 12',
      source='afni_proc.py -help',
      descrip='background: Multi-echo data processing.',
+     moddate='2018.02.27',
+     keywords=['ME', 'rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              incomplete - just shows basic ME options)
@@ -1326,9 +1593,11 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample('Example 12a',
+   examples.append( APExample('Example 12a',
      source='afni_proc.py -help',
      descrip='Multi-echo data processing - very simple.',
+     moddate='2018.02.27',
+     keywords=['ME', 'rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              many missing preferences, e.g. @SSwarper)
@@ -1361,9 +1630,11 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample('Example 12b',
+   examples.append( APExample('Example 12b',
      source='afni_proc.py -help',
      descrip='Multi-echo data processing - OC resting state.',
+     moddate='2020.01.08',
+     keywords=['ME', 'rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              many missing preferences, e.g. @SSwarper)
@@ -1405,10 +1676,12 @@ def populate_examples():
         ['-regress_est_blur_epits', []],
        ]
      ))
-                                      
-   ap_examples.append( APExample('Example 12c',
+
+   examples.append( APExample('Example 12c',
      source='afni_proc.py -help',
      descrip='Multi-echo data processing - ME-ICA resting state.',
+     moddate='2020.01.08',
+     keywords=['ME', 'rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              many missing preferences, e.g. @SSwarper)
@@ -1450,10 +1723,12 @@ def populate_examples():
         ['-regress_est_blur_epits',[]],
        ],
      ))
-                                      
-   ap_examples.append( APExample( 'Example 13',
+
+   examples.append( APExample( 'Example 13',
      source='afni_proc.py -help',
      descrip='Complicated ME, surface-based resting state example.',
+     moddate='2019.09.06',
+     keywords=['complete', 'ME', 'physio', 'rest', 'surface'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
 
@@ -1523,9 +1798,19 @@ def populate_examples():
        ]
      ))
 
-   ap_examples.append( APExample('s03.ap.surface',
+   return examples
+
+def egs_class():
+   """AP class examples
+   """
+
+   examples =  []
+
+   examples.append( APExample('AP class 3',
      source='FT_analysis',
-     descrip='class demo - basic surface analysis',
+     descrip='s03.ap.surface - basic surface analysis',
+     moddate='2022.11.23',
+     keywords=['complete', 'surface', 'task'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
                              (though it is a very simple example)
@@ -1558,9 +1843,11 @@ def populate_examples():
        ]
      ))
 
-   ap_examples.append( APExample('s05.ap.uber',
+   examples.append( APExample('AP class 5',
      source='FT_analysis',
-     descrip='class demo - basic task analysis',
+     descrip='s05.ap.uber - basic task analysis',
+     moddate='2022.11.23',
+     keywords=['task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              prefer: see Example 6b)
@@ -1615,9 +1902,81 @@ def populate_examples():
        ]
      ))
 
-   ap_examples.append( APExample('NARPS',
+   return examples
+
+def egs_publish():
+   """AP publish examples
+   """
+
+   examples =  []
+
+   examples.append( APExample('AP publish 1',
+     source='AFNI_demos',
+     descrip='pamenc, ds000030.v16 parametric encoding task analysis.',
+     moddate='2020.02.10',
+     keywords=['complete', 'publish', 'task'],
+     header="""
+              (recommended?  yes, reasonable for a complete analysis)
+
+           original analysis was from:
+               Gorgolewski KJ, Durnez J and Poldrack RA.
+               Preprocessed Consortium for Neuropsychiatric Phenomics dataset.
+               F1000Research 2017, 6:1262
+               https://doi.org/10.12688/f1000research.11964.2
+
+           downloadable from https://legacy.openfmri.org/dataset/ds000030
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',               ['SID']],
+        ['-script',                ['proc.SID']],
+        ['-scr_overwrite',         []],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                                    'mask', 'blur', 'scale', 'regress']],
+        ['-copy_anat',             ['anatSS.SID.nii']],
+        ['-anat_has_skull',        ['no']],
+        ['-anat_follower',         ['anat_w_skull', 'anat', 'anatU.SID.nii']],
+        ['-dsets',                 ['func/SID_task-pamenc_bold.nii.gz']],
+        ['-tcat_remove_first_trs', ['0']],
+        ['-tshift_opts_ts',        ['-tpattern', 'alt+z2']],
+        ['-radial_correlate',      ['yes']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
+        ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
+        ['-tlrc_NL_warp',          []],
+        ['-tlrc_NL_warped_dsets',  ['anatQQ.SID.nii', 'anatQQ.SID.aff12.1D',
+                                    'anatQQ.SID_WARP.nii']],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-mask_epi_anat',         ['yes']],
+        ['-blur_size',             ['6']],
+        ['-blur_in_mask',          ['yes']],
+        ['-regress_stim_times',    ['timing/times.CONTROL.txt',
+                                    'timing/times.TASK.txt']],
+        ['-regress_stim_labels',   ['CONTROL', 'TASK']],
+        ['-regress_stim_types',    ['AM1']],
+        ['-regress_basis_multi',   ['dmBLOCK']],
+        ['-regress_motion_per_run', []],
+        ['-regress_censor_motion', ['0.3']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_compute_fitts', []],
+        ['-regress_fout',          ['no']],
+        ['-regress_opts_3dD',      ['-jobs', '8']],
+        ['-regress_3dD_stop',      []],
+        ['-regress_reml_exec',     []],
+        ['-regress_make_ideal_sum', ['sum_ideal.1D']],
+        ['-regress_est_blur_errts', []],
+        ['-regress_run_clustsim',  ['no']],
+        ['-html_review_style',     ['pythonic']],
+       ],
+     ))
+
+   examples.append( APExample('AP publish 2',
      source='eventually mention paper reference?',
-     descrip='Applied NARPS example from AFNI.',
+     descrip='NARPS analysis from AFNI.',
+     moddate='2020.02.10',
+     keywords=['complete', 'publish', 'task'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
 
@@ -1684,86 +2043,365 @@ def populate_examples():
         ['-html_review_style',     ['pythonic']],
        ],
      ))
-                                      
-   ap_examples.append( APExample('pamenc',
-     source='AFNI_demos',
-     descrip='ds000030.v16 parametric encoding task analysis.',
+
+   examples.append( APExample('AP publish 3a',
+     source='AP_paper/scripts_rest/do_21_ap_ex1_align.tcsh',
+     descrip='do_21_ap_ex1_align.tcsh - only perform alignment steps.',
+     moddate='2024.01.26',
+     keywords=['partial', 'publish', 'align'],
      header="""
-              (recommended?  yes, reasonable for a complete analysis)
+              (recommended?  somewhat, for alignment only)
 
-           original analysis was from:
-               Gorgolewski KJ, Durnez J and Poldrack RA.
-               Preprocessed Consortium for Neuropsychiatric Phenomics dataset.
-               F1000Research 2017, 6:1262
-               https://doi.org/10.12688/f1000research.11964.2
+         This example is based on the APMULTI_Demo1_rest tree, but will come
+         with a new demo package.  Probably.  Maybe.
 
-           downloadable from https://legacy.openfmri.org/dataset/ds000030
+         This is a full analysis, including:
+
+            - reverse phase encoding (blip) distortion correction
+              (-blip_forward_dset, -blip_reverse_dset)
+            - EPI motion registration (to MIN_OUTLIER)
+            - EPI to anatomical registration
+            - non-linear anatomical to MNI template registration
+              (precomputed affine+non-linear warp is provided)
+            * the regress block is included only for QC
+
+            - QC options:
+                -anat_follower (with skull), (-align_opts_aea) -check_flip
+
+         * input dataset names have been shortened to protect the margins
+
             """,
      trailer=""" """,
      olist = [
-        ['-subj_id',               ['SID']],
-        ['-script',                ['proc.SID']],
-        ['-scr_overwrite',         []],
-        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
-                                    'mask', 'blur', 'scale', 'regress']],
-        ['-copy_anat',             ['anatSS.SID.nii']],
-        ['-anat_has_skull',        ['no']],
-        ['-anat_follower',         ['anat_w_skull', 'anat', 'anatU.SID.nii']],
-        ['-dsets',                 ['func/SID_task-pamenc_bold.nii.gz']],
-        ['-tcat_remove_first_trs', ['0']],
-        ['-tshift_opts_ts',        ['-tpattern', 'alt+z2']],
-        ['-radial_correlate',      ['yes']],
-        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
-                                    '-check_flip']],
-        ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
-        ['-tlrc_NL_warp',          []],
-        ['-tlrc_NL_warped_dsets',  ['anatQQ.SID.nii', 'anatQQ.SID.aff12.1D',
-                                    'anatQQ.SID_WARP.nii']],
-        ['-volreg_align_to',       ['MIN_OUTLIER']],
-        ['-volreg_align_e2a',      []],
-        ['-volreg_tlrc_warp',      []],
-        ['-mask_epi_anat',         ['yes']],
-        ['-blur_size',             ['6']],
-        ['-blur_in_mask',          ['yes']],
-        ['-regress_stim_times',    ['timing/times.CONTROL.txt',
-                                    'timing/times.TASK.txt']],
-        ['-regress_stim_labels',   ['CONTROL', 'TASK']],
-        ['-regress_stim_types',    ['AM1']],
-        ['-regress_basis_multi',   ['dmBLOCK']],
-        ['-regress_motion_per_run', []],
-        ['-regress_censor_motion', ['0.3']],
-        ['-regress_censor_outliers', ['0.05']],
-        ['-regress_compute_fitts', []],
-        ['-regress_fout',          ['no']],
-        ['-regress_opts_3dD',      ['-jobs', '8']],
-        ['-regress_3dD_stop',      []],
-        ['-regress_reml_exec',     []],
-        ['-regress_make_ideal_sum', ['sum_ideal.1D']],
-        ['-regress_est_blur_errts', []],
-        ['-regress_run_clustsim',  ['no']],
-        ['-html_review_style',     ['pythonic']],
+        ['-subj_id',                 ['sub-005.eg1']],
+        ['-blocks',                  ['align', 'tlrc', 'volreg', 'regress']],
+        ['-copy_anat',               ['sswarper/anatSS.sub-005.nii']],
+        ['-anat_has_skull',          ['no']],
+        ['-anat_follower',           ['anat_w_skull', 'anat',
+                                      'sswarper/anatU.sub-005.nii']],
+        ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
+        ['-blip_forward_dset',       ['func/sub-005_blip-match.nii.gz[0]']],
+        ['-blip_reverse_dset',       ['func/sub-005_blip-opp.nii.gz[0]']],
+        ['-tcat_remove_first_trs',   ['4']],
+        ['-align_unifize_epi',       ['local']],
+        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+                                      '-check_flip']],
+        ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+        ['-tlrc_NL_warp',            []],
+        ['-tlrc_NL_warped_dsets',    ['sswarper/anatQQ.sub-005.nii',
+                                      'sswarper/anatQQ.sub-005.aff12.1D',
+                                      'sswarper/anatQQ.sub-005_WARP.nii']],
+        ['-volreg_align_to',         ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',        []],
+        ['-volreg_tlrc_warp',        []],
+        ['-volreg_warp_dxyz',        ['3']],
        ],
      ))
-                                      
-   ap_examples.append( APExample('simple_rest_QC',
+
+   examples.append( APExample('AP publish 3b',
+     source='AP_paper/scripts_task/do_22_ap_ex2_task.tcsh',
+     descrip='do_22_ap_ex2_task.tcsh - pamenc task analysis.',
+     moddate='2024.02.20',
+     keywords=['complete', 'publish', 'task'],
+     header="""
+              (recommended?  yes, for a volumetric task analysis)
+
+         This example is based on the AFNI_demos/AFNI_pamenc data.
+
+         This is a full analysis, including:
+            - slice time correction (alt+z2 timing pattern)
+            - EPI registration to MIN_OUTLIER vr_base volume
+            - EPI/anat alignment, with -align_unifize_epi local
+            - NL warp to MNI152_2009 template, as computed by @SSwarper
+            - all registration transformations are concatenated
+            - computing an EPI mask intersected with the anatomical mask
+              for blurring and QC (-mask_epi_anat)
+            - applying a 6 mm FWHM Gaussian blur, restricted to the EPI mask
+            - voxelwise scaling to percent signal change
+            - linear regression of task events using duration modulation with
+              the BLOCK basis function (dmUBLOCK(-1)), where the ideal response
+              height is unit for a 1 s event
+            - censoring time points where motion exceeds 0.3 mm or the outlier
+              fraction exceeds 5%
+            - regression is performed by 3dREMLfit, accounting for voxelwise
+              temporal autocorrelation in the noise
+            - estimate data blur is from the regression residuals using
+              the mixed-model ACF function
+
+            - QC options:
+                -anat_follower (with skull), (-align_opts_aea) -check_flip,
+                -radial_correlate_blocks, -volreg_compute_tsnr,
+                -regress_make_ideal_sum, -html_review_style
+
+         * input dataset names have been shortened
+
+            """,
+     trailer=""" """,
+     olist = [
+      ['-subj_id',                      ['sub-10506.ex2']],
+      ['-blocks',                       ['tshift', 'align', 'tlrc', 'volreg',
+                                         'mask', 'blur', 'scale', 'regress']],
+      ['-copy_anat',                    ['ssw/anatSS.sub-10506.nii']],
+      ['-anat_has_skull',               ['no']],
+      ['-anat_follower',                ['anat_w_skull', 'anat',
+                                         'anat/sub-10506_T1w.nii.gz']],
+      ['-dsets',                        ['func/sub-10506_pamenc_bold.nii.gz']],
+      ['-tcat_remove_first_trs',        ['0']],
+      ['-tshift_opts_ts',               ['-tpattern', 'alt+z2']],
+      ['-radial_correlate_blocks',      ['tcat', 'volreg', 'regress']],
+      ['-align_unifize_epi',            ['local']],
+      ['-align_opts_aea',               ['-giant_move', '-cost', 'lpc+ZZ',
+                                         '-check_flip']],
+      ['-tlrc_base',                    ['MNI152_2009_template_SSW.nii.gz']],
+      ['-tlrc_NL_warp',                 []],
+      ['-tlrc_NL_warped_dsets',         ['ssw/anatQQ.sub-10506.nii',
+                                         'ssw/anatQQ.sub-10506.aff12.1D',
+                                         'ssw/anatQQ.sub-10506_WARP.nii']],
+      ['-volreg_align_to',              ['MIN_OUTLIER']],
+      ['-volreg_align_e2a',             []],
+      ['-volreg_tlrc_warp',             []],
+      ['-volreg_warp_dxyz',             ['3.0']],
+      ['-volreg_compute_tsnr',          ['yes']],
+      ['-mask_epi_anat',                ['yes']],
+      ['-blur_size',                    ['6']],
+      ['-blur_in_mask',                 ['yes']],
+      ['-regress_stim_times',           ['timing/times.CONTROL.txt',
+                                         'timing/times.TASK.txt']],
+      ['-regress_stim_labels',          ['CONTROL', 'TASK']],
+      ['-regress_stim_types',           ['AM1']],
+      ['-regress_basis_multi',          ['dmUBLOCK(-1)']],
+      ['-regress_motion_per_run',       []],
+      ['-regress_censor_motion',        ['0.3']],
+      ['-regress_censor_outliers',      ['0.05']],
+      ['-regress_compute_fitts',        []],
+      ['-regress_fout',                 ['no']],
+      ['-regress_opts_3dD',             ['-jobs', '8',
+                                         '-gltsym', 'SYM: TASK -CONTROL',
+                                         '-glt_label', '1', 'T-C',
+                                         '-gltsym',
+                                         'SYM: 0.5*TASK +0.5*CONTROL',
+                                         '-glt_label', '2', 'meanTC']],
+      ['-regress_3dD_stop',             []],
+      ['-regress_reml_exec',            []],
+      ['-regress_make_ideal_sum',       ['sum_ideal.1D']],
+      ['-regress_est_blur_errts',       []],
+      ['-regress_run_clustsim',         ['no']],
+      ['-html_review_style',            ['pythonic']],
+       ],
+     ))
+
+   examples.append( APExample('AP publish 3c',
+     source='AP_paper/scripts_rest/do_23_ap_ex3_vol.tcsh',
+     descrip='do_23_ap_ex3_vol.tcsh - rest analysis.',
+     moddate='2024.02.30',
+     keywords=['complete', 'publish', 'physio', 'rest'],
+     header="""
+              (recommended?  yes, an example of resting state analysis)
+
+         This example is based on the APMULTI_Demo1_rest tree, to perform a
+         resting state analysis with a single echo time series.
+
+         This is a sample alignment processing command, including:
+            - physio regression, slicewise, before any temporal or volumetric
+              alterations (and per-run, though there is only 1 run here)
+            - slice timing correction (notably after physio regression)
+            - EPI registration to MIN_OUTLIER vr_base volume
+            - EPI/anat alignment, with -align_unifize_epi local
+            - NL warp to MNI152_2009 template, as computed by @SSwarper
+            - blur _to_ a FWHM of 8 mm (appropriate for multiple scanners)
+            - all registration transformations are concatenated
+            - voxelwise scaling to percent signal change
+            - regression (projection) of:
+                - per run motion and first differences
+                - first 3 principle components from volreg ventricles
+                  (per run, though only 1 run here)
+                - censor motion exceeding 0.2 ~mm from enorm time series,
+                  or outliers exceeding 5% of brain 
+            - estimate data blur is from the regression residuals and the
+              regression input (separately) using the mixed-model ACF function
+
+            - QC options:
+                -anat_follower (with skull), -anat_follower_ROI (FS GM mask),
+                -radial_correlate_blocks, (-align_opts_aea) -check_flip,
+                -volreg_compute_tsnr, -regress_make_corr_vols,
+                -html_review_style
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+      ['-subj_id',                 ['sub-005.eg3']],
+      ['-blocks',                  ['ricor', 'tshift', 'align', 'tlrc',
+                                    'volreg', 'mask', 'blur', 'scale',
+                                    'regress']],
+      ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
+      ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
+      ['-anat_has_skull',          ['no']],
+      ['-anat_follower',           ['anat_w_skull', 'anat',
+                                   'ssw/anatU.sub-005.nii']],
+      ['-anat_follower_ROI',       ['aagm09', 'anat',
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii.gz']],
+      ['-anat_follower_ROI',       ['aegm09', 'epi',
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii.gz']],
+      ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
+      ['-tcat_remove_first_trs',   ['4']],
+      ['-ricor_regs',              ['physio/sub-005_rest_physio.slibase.1D']],
+      ['-ricor_regs_nfirst',       ['4']],
+      ['-ricor_regress_method',    ['per-run']],
+      ['-align_unifize_epi',       ['local']],
+      ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
+      ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+      ['-tlrc_NL_warp',            []],
+      ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                    'ssw/anatQQ.sub-005.aff12.1D',
+                                    'ssw/anatQQ.sub-005_WARP.nii']],
+      ['-volreg_align_to',         ['MIN_OUTLIER']],
+      ['-volreg_align_e2a',        []],
+      ['-volreg_tlrc_warp',        []],
+      ['-volreg_warp_dxyz',        ['3']],
+      ['-volreg_compute_tsnr',     ['yes']],
+      ['-mask_epi_anat',           ['yes']],
+      ['-blur_size',               ['8']],
+      ['-blur_to_fwhm',            []],
+      ['-regress_motion_per_run',  []],
+      ['-regress_make_corr_vols',  ['aegm09']],
+      ['-regress_censor_motion',   ['0.2']],
+      ['-regress_censor_outliers', ['0.05']],
+      ['-regress_apply_mot_types', ['demean', 'deriv']],
+      ['-regress_est_blur_epits',  []],
+      ['-regress_est_blur_errts',  []],
+      ['-html_review_style',       ['pythonic']],
+       ],
+     ))
+
+   examples.append( APExample('AP publish 3d',
+     source='AP_paper/scripts_rest/do_24_ap_ex4_mesurf.tcsh',
+     descrip='do_24_ap_ex4_mesurf.tcsh - multi-echo surface-based analysis.',
+     moddate='2024.01.30',
+     keywords=['complete', 'blip', 'ME', 'publish', 'rest',
+               'surface', 'tedana'],
+     header="""
+              (recommended?  yes)
+
+         This example is based on the APMULTI_Demo1_rest tree, to perform a
+         resting state analysis on the surface with multi-echo data.
+
+         This is a sample alignment processing command, including:
+            - slice timing correction (using wsinc9 interpolation)
+            - distortion correction using reverse blip phase encoding
+            - EPI registration to MIN_OUTLIER vr_base volume
+            - EPI/anat alignment, with -align_unifize_epi local
+            - all registration transformations are concatenated, and
+              based on echo 2 (as we did not specify), but applied to all
+              echoes, and resampled using a wsinc9 interpolant
+            - compute a mask dataset to give to tedana (-mask_epi_anat)
+              (having tedana do the projection results in masked EPI data)
+            - echos are combined and then "cleaned" by tedana
+            - the EPI time series are then  projected onto the surface
+              (a previously computed set of surfaces, registered to the
+              current anat, making a new SurfVol_Alnd_Exp anat dset)
+            - (light) blurring _to_ of FWHM of 4 mm is applied on the surface
+            - nodewise scaling to percent signal change
+            - (light, since tedana) regression (projection) of:
+                - per run motion and first differences
+                - censor motion exceeding 0.2 ~mm from enorm time series,
+                  or outliers exceeding 5% of brain 
+
+            - QC options:
+                -anat_follower (with skull), -anat_follower_ROI (FS ROIs),
+                -radial_correlate_blocks, (-align_opts_aea) -check_flip,
+                -volreg_compute_tsnr, -regress_make_corr_vols,
+                -html_review_style
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',                  ['sub-005.eg4']],
+        ['-blocks',                   ['tshift', 'align', 'volreg', 'mask',
+                                       'combine', 'surf', 'blur', 'scale',
+                                       'regress']],
+        ['-radial_correlate_blocks',  ['tcat', 'volreg']],
+        ['-copy_anat',                ['ssw/anatSS.sub-005.nii']],
+        ['-anat_has_skull',           ['no']],
+        ['-anat_follower',            ['anat_w_skull', 'anat',
+                                       'ssw/anatU.sub-005.nii']],
+        ['-anat_follower_ROI',        ['aaseg', 'anat',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-anat_follower_ROI',        ['aeseg', 'epi',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-anat_follower_ROI',        ['FSvent', 'epi',
+                                       'SUMA/fs_ap_latvent.nii.gz']],
+        ['-anat_follower_erode',      ['FSvent']],
+        ['-surf_anat',                ['SUMA/sub-005_SurfVol.nii']],
+        ['-surf_spec',                ['SUMA/std.141.sub-005_lh.spec',
+                                       'SUMA/std.141.sub-005_rh.spec']],
+        ['-blip_forward_dset',        ['func/sub-005_blip-match.nii.gz[0]']],
+        ['-blip_reverse_dset',        ['func/sub-005_blip-opp.nii.gz[0]']],
+        ['-dsets_me_run',             ['func/sub-005_rest_echo-1_bold.nii.gz',
+                                       'func/sub-005_rest_echo-2_bold.nii.gz',
+                                       'func/sub-005_rest_echo-3_bold.nii.gz']],
+        ['-echo_times',               ['12.5', '27.6', '42.7']],
+        ['-combine_method',           ['m_tedana']],
+        ['-tcat_remove_first_trs',    ['4']],
+        ['-tshift_interp',            ['-wsinc9']],
+        ['-align_unifize_epi',        ['local']],
+        ['-align_opts_aea',           ['-cost', 'lpc+ZZ', '-giant_move',
+                                       '-check_flip']],
+        ['-volreg_align_to',          ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',         []],
+        ['-volreg_warp_final_interp', ['wsinc5']],
+        ['-volreg_compute_tsnr',      ['yes']],
+        ['-blur_size',                ['4']],
+        ['-mask_epi_anat',            ['yes']],
+        ['-regress_motion_per_run',   []],
+        ['-regress_make_corr_vols',   ['aeseg', 'FSvent']],
+        ['-regress_censor_motion',    ['0.2']],
+        ['-regress_censor_outliers',  ['0.05']],
+        ['-regress_apply_mot_types',  ['demean', 'deriv']],
+        ['-html_review_style',        ['pythonic']],
+
+       ],
+     ))
+
+   return examples
+
+def egs_demo():
+   """AP demo examples
+   """
+
+   examples =  []
+
+   examples.append( APExample('AP demo 1a',
      source='ap_run_simple_rest.tcsh',
-     descrip='for QC, run ap_run_simple_rest.tcsh with defaults',
+     descrip='for QC, ap_run_simple_rest.tcsh with EPI and anat',
+     moddate='2024.02.20',
+     keywords=['rest'],
      header="""
               (recommended?  yes, for quick quality control)
 
-         This example matches running ap_run_simple_rest.tcsh with default
-         parameters using anat and EPI data from AFNI_data6/FT.  It is meant
-         for quality control evaluation, treating it as rest.
+         This example was generated by running ap_run_simple_rest.tcsh,
+         providing a single subject anat and (3 runs of) EPI.  It could
+         be generated (and run) using the following:
+
+            cd AFNI_data6/FT_analysis/FT
+            ap_run_simple_rest.tcsh -subjid FT -run_proc \\
+              -anat FT_anat+orig -epi FT_epi_r*.HEAD
+
+         This is highly recommended as a tool for quick quality control to be
+         run on all EPI data right out of the scanner.  It is fine to run on
+         task data, but without worrying about the actual task regression.
 
             """,
      trailer=""" """,
      olist = [
-        ['-subj_id',               ['SID']],
-        ['-script',                ['proc.SID']],
-        ['-out_dir',               ['SID.results']],
+        ['-subj_id',               ['FT']],
         ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
                                     'mask', 'blur', 'scale', 'regress']],
-        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
         ['-copy_anat',             ['FT_anat+orig']],
         ['-dsets',                 ['FT/FT_epi_r1+orig.HEAD',
                                     'FT/FT_epi_r2+orig.HEAD',
@@ -1789,26 +2427,31 @@ def populate_examples():
         ['-html_review_style',     ['pythonic']],
        ],
      ))
-                                      
-   ap_examples.append( APExample('simple_rest_QC_na',
+
+   examples.append( APExample('AP demo 1b',
      source='ap_run_simple_rest.tcsh',
-     descrip='for QC, run ap_run_simple_rest.tcsh with NO ANAT',
+     descrip='for QC, ap_run_simple_rest.tcsh with no anat',
+     moddate='2022.11.23',
+     keywords=['rest'],
      header="""
               (recommended?  yes, for quick quality control of EPI)
 
-         This example matches running ap_run_simple_rest.tcsh with default
-         parameters using only EPI data from AFNI_data6/FT.  It is meant
-         for quality control evaluation, treating it as rest.
+         This example was generated by running ap_run_simple_rest.tcsh,
+         providing only 3 runs of EPI data.  It could be generated (and run)
+         using the following:
 
-         No anatomical volume is included, excluding many options from 
+            cd AFNI_data6/FT_analysis/FT
+            ap_run_simple_rest.tcsh -subjid FT -run_proc -epi FT_epi_r*.HEAD
+
+         No anatomical volume is included, excluding many options from
          example simple_rest_QC.
 
             """,
      trailer=""" """,
      olist = [
-        ['-subj_id',               ['SID']],
-        ['-script',                ['proc.SID']],
-        ['-out_dir',               ['SID.results']],
+        ['-subj_id',               ['FT']],
+        ['-script',                ['proc.FT']],
+        ['-out_dir',               ['FT.results']],
         ['-blocks',                ['tshift', 'volreg', 'mask',
                                     'blur', 'scale', 'regress']],
         ['-radial_correlate_blocks', ['tcat', 'volreg']],
@@ -1829,8 +2472,187 @@ def populate_examples():
         ['-html_review_style',     ['pythonic']],
        ],
      ))
-                                      
-   return
+
+   examples.append( APExample('AP demo 2a',
+     source='APMULTI_Demo1_rest/scripts_desktop/do_20_ap_se.tcsh',
+     descrip='do_20_ap_se.tcsh - one way to process rest data',
+     moddate='2023.04.19',
+     keywords=['complete', 'rest'],
+     header="""
+              (recommended?  somewhat, includes tissue-based regression)
+
+         This example is part of the APMULTI_Demo1_rest tree, installable by
+         running :
+
+            @Install_APMULTI_Demo1_rest
+
+         This is a sample rest processing command, including:
+
+            - despike block for high motion subjects
+
+            - QC options:
+                -radial_correlate_blocks, (-align_opts_aea) -check_flip
+                -volreg_compute_tsnr, -regress_make_corr_vols,
+                -html_review_style, -anat_follower_ROI (some are for QC)
+
+            - non-linear template alignment (precomputed warp is provided)
+
+            - noise removal of:
+                - motion and derivatives, per run
+                - ventricle principal components (top 3 per run)
+                - fast ANATICOR
+                - censoring for both motion and outliers
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',                 ['sub-005']],
+        ['-blocks',                  ['despike', 'tshift', 'align', 'tlrc',
+                                      'volreg', 'mask', 'blur', 'scale',
+                                      'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-copy_anat',               ['sswarper/anatSS.sub-005.nii']],
+        ['-anat_has_skull',          ['no']],
+        ['-anat_follower',           ['anat_w_skull', 'anat',
+                                      'sswarper/anatU.sub-005.nii']],
+        ['-anat_follower_ROI',       ['aaseg', 'anat',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-anat_follower_ROI',       ['aeseg', 'epi',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-anat_follower_ROI',       ['FSvent', 'epi',
+                                      'SUMA/fs_ap_latvent.nii.gz']],
+        ['-anat_follower_ROI',       ['FSWe', 'epi', 'SUMA/fs_ap_wm.nii.gz']],
+        ['-anat_follower_erode',     ['FSvent', 'FSWe']],
+        ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
+        ['-tcat_remove_first_trs',   ['4']],
+        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+                                      '-check_flip']],
+        ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+        ['-tlrc_NL_warp',            []],
+        ['-tlrc_NL_warped_dsets',    ['sswarper/anatQQ.sub-005.nii',
+                                      'sswarper/anatQQ.sub-005.aff12.1D',
+                                      'sswarper/anatQQ.sub-005_WARP.nii']],
+        ['-volreg_align_to',         ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',        []],
+        ['-volreg_tlrc_warp',        []],
+        ['-volreg_warp_dxyz',        ['3']],
+        ['-volreg_compute_tsnr',     ['yes']],
+        ['-blur_size',               ['5']],
+        ['-mask_epi_anat',           ['yes']],
+        ['-regress_motion_per_run',  []],
+        ['-regress_ROI_PC',          ['FSvent', '3']],
+        ['-regress_ROI_PC_per_run',  ['FSvent']],
+        ['-regress_make_corr_vols',  ['aeseg', 'FSvent']],
+        ['-regress_anaticor_fast',   []],
+        ['-regress_anaticor_label',  ['FSWe']],
+        ['-regress_censor_motion',   ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_est_blur_epits',  []],
+        ['-regress_est_blur_errts',  []],
+        ['-html_review_style',       ['pythonic']],
+       ],
+     ))
+
+   examples.append( APExample('AP demo 2b',
+     source='APMULTI_Demo1_rest/scripts_desktop/do_44_ap_me_bTs.tcsh',
+     descrip='do_44_ap_me_bTs.tcsh - ME surface rest with tedana',
+     moddate='2024.01.04',
+     keywords=['complete', 'blip', 'ME', 'rest', 'surface', 'tedana'],
+     header="""
+              (recommended?  yes)
+
+         This example is based on the APMULTI_Demo1_rest tree, installable by
+         running :
+
+            @Install_APMULTI_Demo1_rest
+
+         This is a sample rest processing command, including:
+
+            - reverse phase encoding (blip) distortion correction
+              (-blip_forward_dset, -blip_reverse_dset)
+            - multi-echo EPI (-dsets_me_run, -echo_times)
+            - MEICA-group tedana usage
+              (-combine_method m_tedana, -volreg_warp_final_interp wsinc5)
+
+            - surface-based analysis (-surf_anat, -surf_spec)
+
+            - despike block for high motion subjects
+
+            - QC options:
+                -radial_correlate_blocks, -align_opts_aea -check_flip,
+                -volreg_compute_tsnr, -regress_make_corr_vols,
+                -anat_follower anat_w_skull, -anat_follower_ROI (some for QC),
+                -html_review_style
+
+            - noise removal of:
+                - tedana
+                - motion and derivatives, per run
+                - censoring for both motion and outliers
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',                 ['sub-005']],
+        ['-blocks',                  ['despike', 'tshift', 'align', 'volreg',
+                                      'mask', 'combine', 'surf', 'blur',
+                                      'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-copy_anat',               ['sswarper/anatSS.sub-005.nii']],
+        ['-anat_has_skull',          ['no']],
+        ['-anat_follower',           ['anat_w_skull', 'anat',
+                                      'sswarper/anatU.sub-005.nii']],
+        ['-anat_follower_ROI',       ['aaseg', 'anat',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-anat_follower_ROI',       ['aeseg', 'epi',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-anat_follower_ROI',       ['FSvent', 'epi',
+                                      'SUMA/fs_ap_latvent.nii.gz']],
+        ['-anat_follower_ROI',       ['FSWe', 'epi', 'SUMA/fs_ap_wm.nii.gz']],
+        ['-anat_follower_erode',     ['FSvent', 'FSWe']],
+        ['-surf_anat',               ['SUMA/sub-005_SurfVol.nii']],
+        ['-surf_spec',               ['SUMA/std.141.sub-005_lh.spec',
+                                      'SUMA/std.141.sub-005_rh.spec']],
+        ['-blip_forward_dset',       ['func/sub-005_blip-match.nii.gz[0]']],
+        ['-blip_reverse_dset',       ['func/sub-005_blip-opp.nii.gz[0]']],
+        ['-dsets_me_run',            ['func/sub-005_rest_echo-1_bold.nii.gz',
+                                      'func/sub-005_rest_echo-2_bold.nii.gz',
+                                      'func/sub-005_rest_echo-3_bold.nii.gz']],
+        ['-echo_times',              ['12.5', '27.6', '42.7']],
+        ['-combine_method',          ['m_tedana']],
+        ['-tcat_remove_first_trs',   ['4']],
+        ['-tshift_interp',           ['-wsinc9']],
+        ['-align_unifize_epi',       ['local']],
+        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+                                      '-check_flip']],
+        ['-volreg_align_to',         ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',        []],
+        ['-volreg_warp_final_interp',['wsinc5']],
+        ['-volreg_compute_tsnr',     ['yes']],
+        ['-blur_size',               ['4']],
+        ['-mask_epi_anat',           ['yes']],
+        ['-regress_motion_per_run',  []],
+        ['-regress_make_corr_vols',  ['aeseg', 'FSvent']],
+        ['-regress_censor_motion',   ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-html_review_style',       ['pythonic']],
+       ],
+     ))
+
+   return examples
+
+def egs_short():
+   """AP short examples (examples of only partial processing)
+   """
+
+   examples =  []
+
+   return examples
 
 def find_eg(name):
    """try to find a matching ap_examples instance
@@ -1849,24 +2671,23 @@ def find_eg(name):
    nlist = [eg.name.lower() for eg in ap_examples]
    lname = name.lower()
 
-   # if lanme is in nlist, return the respective example
+   # if lname is exactly (no case) in nlist, return the respective example
    if lname in nlist:
       return ap_examples[nlist.index(lname)]
 
    # otherwise, try harder
 
-   # If number (possibly with trailing a,b,c,...) search for it as a trailer.
-   # Prepend ' ' to not confuse 1a with 11a, for example.
+   # If number (possibly with trailing a,b,c,...) search after 'example'.
    if lname[0].isdigit():
-      ind = unique_substr_name_index(' '+lname, nlist, endswith=1)
-      if ind >= 0:
-         return ap_examples[ind]
+      tname = 'example ' + lname
+      if tname in nlist:
+         return ap_examples[nlist.index(tname)]
 
    # otherwise, just see if there is a unique substring match
    ind = unique_substr_name_index(lname, nlist)
    if ind >= 0:
       return ap_examples[ind]
-  
+
    return None
 
 def unique_substr_name_index(nsub, nlist, endswith=0):
@@ -1908,6 +2729,9 @@ def show_enames(verb=1):
    global ap_examples
    populate_examples()
 
+   if len(ap_examples) == 0:
+      return
+
    nlist = [eg.name for eg in ap_examples]
 
    # basic: show list
@@ -1917,15 +2741,18 @@ def show_enames(verb=1):
 
    # nicer: show pretty list
    if verb == 1:
-      istr = ' '*3
+      istr = ' '*2
       jstr = '\n%s' % istr
       print("%s%s\n" % (istr, jstr.join(nlist)))
       return
 
+   # so verb > 1
    maxn = max([len(name) for name in nlist])
-   indent = ' '*4
+   indent = ' '*2
    for eg in ap_examples:
-      print("%s%-*s : %s" % (indent, maxn, eg.name, eg.descrip))
+      if verb <= 2: dstr = ''
+      else:         dstr = '%s : ' % eg.moddate
+      print("%s%-*s : %s%s" % (indent, maxn, eg.name, dstr, eg.descrip))
 
 def compare_eg_pair(eg1, eg2, eskip=[], verb=1):
    """similar to compare(), above, but compare 2 known examples"""
@@ -1940,7 +2767,7 @@ def compare_eg_pair(eg1, eg2, eskip=[], verb=1):
       if not isinstance(eg, APExample):
          print("** compare_eg_pair: failed to find example named '%s'" % n1)
          return
-      
+
    # so eg is the instance of eg1, just use it
    return eg.compare(eg2, eskip=eskip, verb=verb)
 

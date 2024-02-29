@@ -4364,7 +4364,7 @@ STATUS("making func->rowcol") ;
 
    MCW_reghelp_children( func->anat_buck_av->wrowcol ,
                          "Use this to choose which\n"
-                         "sub-brick of the overlay\n"
+                         "sub-brick of the underlay\n"
                          "dataset to display (='ULay').\n"
                          "(The sub-brick labels are\n"
                          " assigned when the dataset\n"

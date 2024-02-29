@@ -46,9 +46,10 @@ static char * g_history[] =
   "0.8  22 May 2020: add -NN1, -NN2 and -NN3 options\n",
   "     - fix tiny origin shift due to zeropad truncation effects\n"
   "0.9  24 Jun 2022: use mask_epi_anat in examples (over full_mask)\n",
+  "0.10 21 Feb 2024: use more common -input rather than -inputs\n",
 };
 
-static char g_version[] = "3dmask_tool version 0.9, 24 June 2022";
+static char g_version[] = "3dmask_tool version 0.10, 21 February 2024";
 
 #include "mrilib.h"
 
@@ -144,9 +145,11 @@ int main( int argc, char *argv[] )
 
    /* limit to frac of nvols (if not counting, convert to 0/1 mask) */
    limit = ceil((params->frac>1) ? params->frac : params->nvols*params->frac );
-   if( params->verb )
+   if( params->verb ) {
+      INFO_message("have %d volumes of input to combine\n", params->nvols);
       INFO_message("frac %g over %d volumes gives min count %d\n",
                    params->frac, params->nvols, limit);
+   }
    if( limit <= 0 ) limit = 1;
 
    /* if not counting, result is binary 0/1 */
@@ -672,6 +675,8 @@ int show_help(void)
    "   - optionally fill any holes\n"
    "   - write result\n"
    "\n"
+   "Note : all volumes across inputs are combined into a single output volume\n"
+   "\n"
    "Note : a hole is defined as a fully connected set of zero voxels that\n"
    "       does not contain an edge voxel.  For any voxel in such a set, it\n"
    "       is not possible to find a path of voxels to reach an edge.\n"
@@ -851,16 +856,20 @@ int show_help(void)
    "        using {x,y,z} labels (i.e. dataset axis order), or using the\n"
    "        labels in {R,L,A,P,I,S}.  Such labels are case-insensitive.\n"
    "\n"
-   "    -inputs DSET1 ...       : specify the set of inputs (taken as masks)\n"
+   "    -input DSET1 ...       : specify the set of inputs (taken as masks)\n"
+   "                           : (-inputs is historically allowed)\n"
    "\n"
-   "            e.g. -inputs group_mask.nii\n"
-   "            e.g. -inputs mask_epi_anat.*+tlrc.HEAD\n"
-   "            e.g. -inputs amygdala_subj*+tlrc.HEAD\n"
+   "            e.g. -input group_mask.nii\n"
+   "            e.g. -input mask_epi_anat.*+tlrc.HEAD\n"
+   "            e.g. -input amygdala_subj*+tlrc.HEAD\n"
+   "            e.g. -input ~/abin/MNI152_2009_template_SSW.nii.gz'[0]'\n"
    "\n"
    "        Use this option to specify the input datasets to process.  Any\n"
    "        non-zero voxel will be consider part of that volume's mask.\n"
    "\n"
    "        An input dataset is allowed to have multiple sub-bricks.\n"
+   "        All volumes across all input datasets are combined to create\n"
+   "        a single volume of output.\n"
    "\n"
    "    -NN1            : specify NN connection level: 1, 2 or 3\n"
    "    -NN2            : specify NN connection level: 1, 2 or 3\n"
@@ -1039,7 +1048,8 @@ int process_opts(param_t * params, int argc, char * argv[] )
          ac++; continue;
       }
 
-      else if( strncmp(argv[ac],"-inputs", 4) == 0 ) {
+      /* allow for -inputs as well, as it was the old option */
+      else if( strncmp(argv[ac],"-input", 4) == 0 ) {
          /* store list of names from argv */
          ac++;
 
@@ -1047,7 +1057,7 @@ int process_opts(param_t * params, int argc, char * argv[] )
          params->ndsets = 0;            /* number of datasets    */
          while( ac < argc && argv[ac][0] != '-' ){ params->ndsets++; ac++; }
 
-         if( params->ndsets == 0 ) ERROR_exit("need datasets after '-inputs'");
+         if( params->ndsets == 0 ) ERROR_exit("need datasets after '-input'");
 
          /* already incremented: ac++; */  continue;
       }

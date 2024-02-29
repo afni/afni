@@ -13,7 +13,6 @@ from afnipy import afni_base as BASE
 from afnipy import lib_textdata as TD
 from afnipy import lib_format_cmd_str as lfcs
 import glob
-import pdb
 import re
 
 # global lists for basis functions
@@ -59,14 +58,16 @@ def change_path_basename(orig, prefix='', suffix='', append=0):
     return "%s/%s" % (head, tail)
 
 # write text to a file
-def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
+def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0,
+                       method='rr'):
     """write the given text (tdata) to the given file
           fname   : file name to write (or append) to
           dtata   : text to write
           mode    : optional write mode 'w' or 'a' [default='w']
-          wrap    : optional wrap flag [default=0]
+          wrap    : optional wrap flag
           wrapstr : optional wrap string: if wrap, apply this string
           exe     : whether to make file executable
+          method  : either 'rr' or 'pt'
 
        return 0 on success, 1 on error
     """
@@ -75,7 +76,8 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
         print("** WTTF: missing text or filename")
         return 1
 
-    if wrap: tdata = add_line_wrappers(tdata, wrapstr)
+    if wrap:
+       tdata = add_line_wrappers(tdata, wrapstr, method=method, verb=1)
     
     if fname == 'stdout' or fname == '-':
        fp = sys.stdout
@@ -102,7 +104,7 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
 
     return 0
 
-def wrap_file_text(infile='stdin', outfile='stdout'):
+def wrap_file_text(infile='stdin', outfile='stdout', method='pt'):
    """make a new file with line wrappers                14 Mar 2014
 
       The default parameters makes it easy to process as a stream:
@@ -117,7 +119,7 @@ def wrap_file_text(infile='stdin', outfile='stdout'):
    """
 
    tdata = read_text_file(fname=infile, lines=0, strip=0)
-   if tdata != '': write_text_to_file(outfile, tdata, wrap=1)
+   if tdata != '': write_text_to_file(outfile, tdata, wrap=1, method=method)
    
 
 def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):
@@ -788,7 +790,8 @@ def get_process_stack_slow(pid=-1, verb=1):
    if rv: return []
 
    stack = [entries] # entries is valid, so init stack
-   while mypid > 1:
+   # now some parents to straight to 0 without 1  [28 Feb 2024]
+   while mypid > 1 and ppid > 0:
       cmd = '%s %s' % (base_cmd, ppid)
       rv, entries = get_cmd_entries(cmd)
       if rv: return []
@@ -1241,7 +1244,7 @@ def find_afni_history_version(av_str):
       return the status and [AFNI_A.B.C, PACKAGE] pair as a list
       return 1, [] on error
    """
-   re_format = '{(AFNI_\d+\.\d+\.\d+):(.*)}'
+   re_format = r'{(AFNI_\d+\.\d+\.\d+):(.*)}'
 
    try:    match = re.search(re_format, av_str)
    except: return 1, []
@@ -1260,7 +1263,7 @@ def parse_afni_version(av_str):
    """given 'AFNI_18.2.10', return status 0 and the int list [18,2,10]
       return 1, [] on error
    """
-   re_format = 'AFNI_(\d+)\.(\d+)\.(\d+)'
+   re_format = r'AFNI_(\d+)\.(\d+)\.(\d+)'
 
    try:    match = re.search(re_format, av_str)
    except: return 1, []
@@ -1285,7 +1288,7 @@ def get_3dinfo(dname, lines=0, verb=0):
    vstr = ' '
    if verb == 1: vstr = ' -verb'
    elif verb > 1: vstr = ' -VERB'
-   command = '3dinfo%s %s' % (vstr, dname)
+   command = '3dinfo%s "%s"' % (vstr, dname)
    status, output = exec_tcsh_command(command, lines=lines, noblank=1)
    if status: return None
 
@@ -1296,7 +1299,7 @@ def get_3dinfo_nt(dname, verb=1):
 
       return 0 on failure (>= 0 on success)
    """
-   command = '3dinfo -nt %s' % dname
+   command = '3dinfo -nt "%s"' % dname
    status, output, se = limited_shell_exec(command, nlines=1)
    if status or len(output) == 0:
       if verb: print('** 3dinfo -nt failure: message is:\n%s%s\n' % (se,output))
@@ -1321,7 +1324,7 @@ def get_3dinfo_val(dname, val, vtype, verb=1):
 
       return vtype(0) on failure
    """
-   command = '3dinfo -%s %s' % (val, dname)
+   command = '3dinfo -%s "%s"' % (val, dname)
    status, output, se = limited_shell_exec(command, nlines=1)
    if status or len(output) == 0:
       if verb:
@@ -2753,7 +2756,7 @@ def extract_subbrick_selection(sstring):
         just let '*' refer to anything but another '['
    """
    import re
-   res = re.search('\[\d+[^\[]*]', sstring)
+   res = re.search(r'\[\d+[^\[]*]', sstring)
    if res == None: return ''
    return res.group(0)
 
@@ -2839,9 +2842,13 @@ def list_to_wrapped_command(cname, llist, nindent=10, nextra=3, maxlen=76):
 
 
 # MAIN wrapper: add line wrappers ('\'), and align them all
-def add_line_wrappers(commands, wrapstr='\\\n', maxlen=78, verb=1):
+def add_line_wrappers(commands, wrapstr='\\\n', maxlen=78, verb=1,
+                      method='rr'):
     """wrap long lines with 'wrapstr' (probably '\\\n' or just '\n')
-       if '\\\n', align all wrapstr strings"""
+       if '\\\n', align all wrapstr strings
+
+       method can be rr or pt
+    """
     new_cmd = ''
     posn = 0
 
@@ -2855,17 +2862,20 @@ def add_line_wrappers(commands, wrapstr='\\\n', maxlen=78, verb=1):
             posn = end+1
             continue
 
-        # command needs wrapping
-        new_cmd += insert_wrappers(commands, posn, end, wstring=wrapstr,
-                                   maxlen=maxlen, verb=verb)
+        new_line = insert_wrappers(commands, posn, end, wstring=wrapstr,
+                                   maxlen=maxlen, method=method, verb=verb)
 
+        new_cmd += new_line
+            
         posn = end + 1     # else, update posn and continue
 
     result = new_cmd + commands[posn:]
 
-    # wrappers are in, now align them
-    if wrapstr == '\\\n': return align_wrappers(result)
-    else:                 return result
+    # wrappers are in, now align them (unless method == 'pt')
+    if wrapstr == '\\\n' and method != 'pt':
+       return align_wrappers(result)
+    else:
+       return result
 
 def align_wrappers(command):
     """align all '\\\n' strings to be the largest offset
@@ -2906,11 +2916,13 @@ def align_wrappers(command):
     return new_cmd
 
 def insert_wrappers(command, start=0, end=-1, wstring='\\\n',
-                    maxlen=78, verb=1):
+                    maxlen=78, method='rr', verb=1):
     """insert any '\\' chars for the given command
          - insert between start and end positions
          - apply specified wrap string wstring
-       return a new string, in any case"""
+
+       return a new string, in any case
+    """
 
     global wrap_verb
 
@@ -2926,13 +2938,21 @@ def insert_wrappers(command, start=0, end=-1, wstring='\\\n',
     if verb > 1: print("+d insert wrappers: nfirst=%d, prefix='%s', plen=%d" \
                        % (nfirst, prefix, plen))
 
-    #pdb.set_trace()
+    # if P Taylor special, short circuit the rest
+    if method == 'pt':
+        cline = command[start:end+1]
+        clist = cline.replace('\\\n', ' ').split()
+        cline = ' '.join(clist)
+        short_pre = prefix[:-4]
+        rv, cline = lfcs.afni_niceify_cmd_str(cline, comment_start=short_pre)
+        return cline + '\n'
 
     # rewrite: create new command strings after each wrap     29 May 2009
-    while needs_wrapper(command,maxlen,cur,end):
+    # (only care where new wrappers are needed)
+    while needs_new_wrapper(command,maxlen,cur,end):
         endposn = command.find('\n',cur)
-        if needs_wrapper(command,maxlen,cur,endposn):  # no change on this line
 
+        if needs_new_wrapper(command,maxlen,cur,endposn):
             lposn = find_last_space(command, cur+sskip, endposn, maxlen-sskip)
 
             # if the last space is farther in than next indent, wrap
@@ -2981,10 +3001,43 @@ def needs_wrapper(command, maxlen=78, start=0, end=-1):
     if end < 0: end_posn = len(command) - 1
     else:       end_posn = end
 
+    # cur_posn should always point to the beginning of a line
     cur_posn = start
     remain = end_posn - cur_posn
+
+    # find end of current line (\\\n does not count)
+    # (newend will point to '\n', if it exists)
+    while cur_posn < end_posn:
+        newend = find_command_end(command, cur_posn, check_cmnt=0)
+        # print("\n== new length %d, command:\n%s\n===\n\n" \
+        #       % (newend-cur_posn,command[cur_posn:newend+1]))
+        # if it is long, we want to wrap
+        if newend - cur_posn >= maxlen:
+           return 1
+        # otherwise, see if we are done
+        if newend >= end_posn:
+           return 0
+
+        # we are not done, adjust cur_posn and continue
+        cur_posn = newend+1
+
+    return 0
+
+def needs_new_wrapper(command, maxlen=78, start=0, end=-1):
+    """does the current string need NEW line wrappers
+       (different to needing ANY)
+
+       a string needs wrapping if there are more than 78 characters between
+       any previous newline, and the next newline, wrap, or end"""
+
+    if end < 0: end_posn = len(command) - 1
+    else:       end_posn = end
+
+    # cur_posn should always point to the beginning of a line
+    cur_posn = start
+    remain = end_posn - cur_posn
+
     while remain > maxlen:
-        
         # find next '\\\n'
         posn = command.find('\\\n', cur_posn)
         if 0 <= posn-cur_posn <= maxlen: # adjust and continue
@@ -3005,22 +3058,23 @@ def needs_wrapper(command, maxlen=78, start=0, end=-1):
 
     return 0        # if we get here, line wrapping is not needed
 
-def find_command_end(command, start=0):
+def find_command_end(command, start=0, check_cmnt=1):
     """find the next '\n' that is not preceded by '\\', or return the
        last valid position (length-1)"""
 
     length = len(command)
-    end = start-1
+    end = start-1   # just to re-init start
     while 1:
         start = end + 1
         end = command.find('\n',start)
 
         if end < 0: return length-1   # not in command
         elif end > start and command[end-1] == '\\':
-            if length > end+1 and command[start] == '#'   \
-                              and command[end+1] != '#':
-                return end      # since comments cannot wrap
-            else: continue 
+            if check_cmnt:
+                if length > end+1 and command[start] == '#'   \
+                                  and command[end+1] != '#':
+                    return end      # since comments cannot wrap
+            continue 
         return end              # found
 
 def num_leading_line_spaces(istr,start,pound=0):
@@ -4602,43 +4656,31 @@ def stdev_ub(data):
               stdev_ub = sqrt( (sumsq - N*mean^2)/(N-1) )
     """
 
-    length = len(data)
-    if length <  2: return 0.0
-
-    meanval = loc_sum(data)/float(length)
-    # compute standard deviation
-    ssq = 0.0
-    for val in data: ssq += val*val
-    val = (ssq - length*meanval*meanval)/(length-1.0)
-
-    # watch for truncation artifact
-    if val < 0.0 : return 0.0
-    return math.sqrt(val)
+    return math.sqrt(variance_ub(data))
 
 def stdev(data):
-    """(biased) standard deviation (divide by len, not len-1)"""
+    """(biased) standard deviation (divide by len, not len-1)
+       standard deviation = sqrt(variance)
+    """
 
-    length = len(data)
-    if length <  2: return 0.0
-
-    meanval = loc_sum(data)/float(length)
-    # compute standard deviation
-    ssq = 0.0
-    for val in data: ssq += val*val
-    val = (ssq - length*meanval*meanval)/length
-
-    # watch for truncation artifact
-    if val < 0.0 : return 0.0
-    return math.sqrt(val)
+    return math.sqrt(variance(data))
 
 def variance_ub(data):
-    """unbiased variance (divide by len-1, not just len)"""
+    """unbiased variance (divide by len-1, not just len)
+
+       variance = mean squared difference from the mean
+                = sum(x-mean)^2 / N
+
+     * unbiased variance
+                = sum(x-mean)^2 / (N-1)
+                = (sumsq - N*mean^2)/(N-1)
+    """
 
     length = len(data)
     if length <  2: return 0.0
 
     meanval = loc_sum(data)/float(length)
-    # compute standard deviation
+    # compute variance
     ssq = 0.0
     for val in data: ssq += val*val
     val = (ssq - length*meanval*meanval)/(length-1.0)
@@ -4648,13 +4690,18 @@ def variance_ub(data):
     return val
 
 def variance(data):
-    """(biased) variance (divide by len, not len-1)"""
+    """(biased) variance (divide by len, not len-1)
+
+       variance = mean squared difference from the mean
+                = sum(x-mean)^2 / N
+                = (sumsq - N*mean^2)/N
+    """
 
     length = len(data)
     if length <  2: return 0.0
 
     meanval = loc_sum(data)/float(length)
-    # compute standard deviation
+    # compute variance
     ssq = 0.0
     for val in data: ssq += val*val
     val = (ssq - length*meanval*meanval)/length

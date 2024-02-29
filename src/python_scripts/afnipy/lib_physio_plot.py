@@ -585,8 +585,8 @@ them.
 
             # set output filename, depending on multiplotting or not
             if self.is_multifig :
-                obase = ''.join(self.figname.split('.')[:-1])    # basename
-                oext  = self.figname.split('.')[-1]              # ext
+                obase = '.'.join(self.figname.split('.')[:-1])    # basename
+                oext  = self.figname.split('.')[-1]               # ext
                 oimg  = obase + '_{:03d}'.format(hh+1) + '.' + oext
             else:
                 oimg  = self.figname
@@ -945,7 +945,8 @@ Returns
     # overlaps the FMRI dset run (white) and where it doesn't (gray)
     if do_graypatch_bnds :
         A = phobj.tvalues[phobj.indices_vol[0]]
-        B = phobj.tvalues[phobj.indices_vol[1]]
+        # use '-1' here because indices_vol is half-open interval: [...)
+        B = phobj.tvalues[phobj.indices_vol[1]-1] 
         fff.add_graypatch([None, A])
         fff.add_graypatch([B, None])
 

@@ -205,6 +205,9 @@ typedef struct {
 #define ATL_DSET(xa) ( ( (xa) && (xa)->adh ) ? \
                         (xa)->adh->adset : NULL )
 
+#define ATL_DSETNAME(xa) ( ( (xa)  ) ? \
+                        (xa)->dset_name : NULL )
+
 #define ATL_ADH_SET(xa) ( ( (xa) && (xa)->adh ) ? \
                            (xa)->adh->params_set : 0 )                            
 

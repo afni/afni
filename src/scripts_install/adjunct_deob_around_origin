@@ -1,0 +1,275 @@
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+set version   = "1.0";  set rev_dat   = "Feb 22, 2024"
+# + script to do deobliquing while preserving the coord origin
+#
+# ----------------------------------------------------------------
+
+set this_prog = "adjunct_deob_around_origin"
+set prog_abbr = "adfo"
+#set tpname    = "${this_prog:gas///}"
+set here      = $PWD
+
+# ----------------------- set defaults --------------------------
+
+set input   = ""
+set prefix  = ""
+
+set odir    = $here
+set opref   = ""
+set wdir    = ""
+
+set obl_meth  = "-oblique_recenter"
+
+set do_ow     = ""                      # def: don't overwrite output
+set DO_CLEAN  = 1                       # def: rm working dir
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    if ( "$argv[$ac]" == '-echo' ) then
+        set echo
+
+    # --------- required
+
+    else if ( "$argv[$ac]" == "-input" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set input = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set prefix = "$argv[$ac]"
+        set opref  = `basename "$argv[$ac]"`
+        set odir   = `dirname  "$argv[$ac]"`
+
+    # --------- opt
+
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
+
+        set tf = `python -c "print('/' in '${wdir}')"`
+        if ( "${tf}" == "True" ) then
+            echo "** ERROR: '-workdir ..' is a name only, no '/' allowed\n"
+            goto BAD_EXIT
+        endif
+
+    # can choose any of 3drefit's deobliquing styles
+    else if ( "$argv[$ac]" == "-oblique_origin" ) then
+        set obl_meth = "$argv[$ac]"
+    else if ( "$argv[$ac]" == "-oblique_recenter" ) then
+        set obl_meth = "$argv[$ac]"
+    else if ( "$argv[$ac]" == "-oblique_recenter_raw" ) then
+        set obl_meth = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-overwrite" ) then
+        set do_ow = "-overwrite"
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = 0
+        
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ======================== ** Verify + setup ** =========================
+# =======================================================================
+
+if ( "${prefix}" == "" ) then
+    echo "** ERROR: need to provide output name with '-prefix ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${input}" == "" ) then
+    echo "** ERROR: need to provide input dataset with '-input ..'"
+    goto BAD_EXIT
+endif
+
+# -----------------------------------------------------------------------
+# Check obliquity and av_space
+
+# Is the dset oblique? If not, just copy and exit
+set is_obl = `3dinfo -is_oblique "${input}"`
+
+if ( "${is_obl}" == "0" ) then
+    echo "++ Input dset is not oblique: just copying with 3dcopy."
+    3dcopy ${do_ow} "${input}" "${prefix}"
+
+    if ( $status ) then
+        echo "** ERROR: will not overwrite existing file"
+        goto BAD_EXIT
+    endif
+
+    goto DONE_MSG
+endif
+
+# This should always be "+orig", but sometimes there are header issues
+# (like [qs]form_code stuff
+set avsp = `3dinfo -av_space "${input}"`
+
+if ( "${avsp}" != "+orig" ) then
+    echo "+* WARN: input dataset is *not* in orig space."
+    echo "   That is surprising that it would have obliquity, then."
+endif
+# -----------------------------------------------------------------------
+
+# make workdir name, if nec
+if ( "${wdir}" == "" ) then
+    set tmp_code = `3dnewid -fun11`  # should be essentially unique hash
+    set wdir     = __workdir_${prog_abbr}_${tmp_code}
+endif
+
+# check output directory, use input one if nothing given
+if ( ! -e "${odir}" ) then
+    echo "++ Making new output directory: ${odir}"
+    \mkdir -p "${odir}"
+endif
+
+# make the working directory
+if ( ! -e "${odir}/${wdir}" ) then
+    echo "++ Making working directory: ${odir}/${wdir}"
+    \mkdir -p "${odir}/${wdir}"
+else
+    echo "+* WARNING:  Somehow found a premade working directory (?):"
+    echo "      ${odir}/${wdir}"
+endif
+
+echo "++ Oblique method in 3drefit is: ${obl_meth}"
+
+# =======================================================================
+# =========================== ** Main work ** ===========================
+# =======================================================================
+
+# copy dset: *must* be to BRIK/HEAD format
+3dcopy   "${input}"         "${odir}/${wdir}/tmp"
+
+# move to working directory
+cd "${odir}/${wdir}"
+
+# do the deobliquing stuff
+3drefit  ${obl_meth}        tmp${avsp}
+3drefit  -deoblique         tmp${avsp}
+
+# done, copy back up 
+3dcopy ${do_ow} tmp${avsp}  "../${opref}"
+
+if ( $status ) then
+    echo "** ERROR: will not overwrite existing file"
+    goto BAD_EXIT
+endif
+
+# ---------------------------------------------------------------------
+
+# move out of wdir to the odir
+cd ..
+
+if ( $DO_CLEAN == 1 ) then
+    echo "++ Clean working dir"
+    \rm -rf ${wdir}
+else
+    echo "++ NOT removing temporary axialization working dir: ${wdir}"
+endif
+
+DONE_MSG: 
+
+cat <<EOF
+
+++ DONE. See the output:
+   ${prefix}
+
+EOF
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+Overview ~1~
+
+This is a simple program to wrap around the 3drefit functionality to 
+remove obliquity from a dataset whilst preserving its origin.
+
+In many cases, this is very useful to run on oblique anatomicals
+before processing.
+
+ver  = ${version}
+auth = PA Taylor, RC Reynolds (SSCC, NIMH, NIH)
+-------------------------------------------------------------------------
+
+Options ~1~
+
+-input                 : (req) input volumetric dataset name
+-prefix                : (req) output dataset name
+-oblique_origin        : style of preserving origin, via 3drefit (def)
+-oblique_recenter      : style of preserving origin, via 3drefit (def)
+-oblique_recenter_raw  : style of preserving origin, via 3drefit (def)
+-workdir               : working directory name (just name, no path;
+                         will be subdirectory of the output location)
+-overwrite             : when writing output, overwrite any preexisting
+                         dataset (def: do not overwrite)
+-no_clean              : when done, do not remove temporary working
+                         directory (def: do remove woroking directory
+-echo                  : run very verbosely (with 'set echo' on)
+-ver                   : display program version
+-help                  : show help
+-hview                 : show help in text editor
+
+-------------------------------------------------------------------------
+
+Examples ~1~
+
+1) Basic usage:
+     adjunct_deob_around_origin                       \
+         -input   sub-001_T1w.nii.gz                  \
+         -prefix  sub-001_T1w_DEOB.nii.gz
+
+2) Different origin-preservation choice:
+     adjunct_deob_around_origin                       \
+         -oblique_recenter_raw                        \
+         -input   sub-001_T1w.nii.gz                  \
+         -prefix  sub-001_T1w_DEOB.nii.gz
+
+EOF
+
+# ----------------------------------------------------------------------
+
+goto GOOD_EXIT
+
+SHOW_VERSION:
+    echo "version  $version (${rev_dat})"
+    goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

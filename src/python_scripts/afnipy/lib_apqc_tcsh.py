@@ -3834,6 +3834,12 @@ num : int
             ic_args = '{} {}'.format(pb, 'r01')
             gv_file = 'run_graphview_pbrun.tcsh'
             gv_args = '{} {}'.format(pb, 'r01')
+        else: 
+            # the user might/must have used '-remove_preproc_files'
+            print("+* WARN: could not find any 'pb*volreg*HEAD' files\n"
+                  "   Did you use '-remove_preproc_files' in the AP cmd?\n"
+                  "   Cannot make TSNR dset of vreg data.")
+            return 0
 
     # Make info above images
     otopdict = {

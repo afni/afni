@@ -156,6 +156,10 @@ other options:
             apsearch    : source ~/.afni/help/all_progs.COMP
                           (or all_progs.COMP.bash or all_progs.COMP.zsh)
 
+                        * if the dotfile is not based on the login or current
+                          shell (and no -force), omit apsearch update
+                          (since this only applies to an interactive shell)
+
             flatdir     : add /opt/X11/lib/flat_namespace to DYLD_LIBRARY_PATH
 
             path        : add DIR_BIN to PATH
@@ -262,10 +266,11 @@ g_history = """
    1.2  Feb  6, 2023 - add -shell_list
    1.3  Sep 15, 2023 - zsh: use compinit -i (ignore "insecure" files)
    1.4  Oct 10, 2023 - limit -test if -do_updates was given
+   1.5  Jan  2, 2024 - ignore apsearch if not a login or current shell file
 """
 
 g_prog = "init_user_dotfiles.py"
-g_version = "%s, version 1.4, October 10, 2023" % g_prog
+g_version = "%s, version 1.5, January 2, 2024" % g_prog
 
 g_rc_all = [ '.bash_dyld_vars', '.bash_login', '.bash_profile', '.bashrc',
              '.cshrc', '.login', '.tcshrc',
@@ -340,7 +345,7 @@ def file_object(fname, verb=1):
    vo.m_path  = 0   # needs mod: PATH
    vo.m_flat  = 0   # needs mod: flat_namespace
    vo.m_aps   = 0   # needs mod: apsearch
- 
+
    return vo
 
 # akin to grep
@@ -491,6 +496,8 @@ class MyInterface:
       self.bak_suffix      = '.adot.bak' # suffix for backup files
       self.dir_abin        = ''          # any found abin in PATH
       self.dfobjs          = {}          # dict of VO for each file
+      self.shell_login     = ''     # login shell (to limit apsearch)
+      self.shell_current   = ''     # current shell (to limit apsearch)
 
       # system and possible mac stuff
       self.sysname         = platform.system()
@@ -1160,8 +1167,18 @@ class MyInterface:
 
       # check for needed apsearch update
       if self.do_apsearch:
+         # restrict this to login and current shells, if found
+         self.shell_login = UTIL.get_login_shell()
+         self.shell_current = UTIL.get_current_shell()
+         slist = []
+         if self.shell_login != 'SHELL_NOT_DETECTED':
+            slist.append(self.shell_login)
+         if self.shell_current != 'SHELL_NOT_DETECTED':
+            if self.shell_current not in slist:
+               slist.append(self.shell_current)
+
          for name, fo in self.dfobjs.items():
-            self.check_to_add_apsearch(fo)
+            self.check_to_add_apsearch(fo, checkshells=slist)
 
       # track nmods
       for name, fo in self.dfobjs.items():
@@ -1229,15 +1246,46 @@ class MyInterface:
       ndfo = len(self.dfobjs)
       return sum([fo.nmods for n,fo in self.dfobjs.items() if n not in f2skip])
 
-   def check_to_add_apsearch(self, fo):
+   def shell_for_dotfile(self, fname):
+      """try note which shell is implied by file """
+      if fname in ['.cshrc', '.tcshrc']:
+         return 'tcsh'
+      elif fname in ['.bashrc', '.bash_profile']:
+         return 'bash'
+      elif fname in ['.profile']:
+         return 'sh'
+      elif fname in ['.zshenv', '.zshrc', '.zlogin']:
+         return 'zsh'
+
+      return ''
+
+   def check_to_add_apsearch(self, fo, checkshells=[]):
       """try to determine whether file references all_progs.COMP*
 
            - for now, mimic @uab and do a simple grep for the abin tail
       """
-      doit = 0
+      doit = 0   # final choice to apply
+      skipit = 0 # computed suggestion to skip
       apsname = all_progs_shell_file(fo.name)
+
       if self.verb > 2:
          MESG("== check_to_add_apsearch: %s" % fo.name)
+
+      # if checkshells list, see if fo.name implies a shell among them
+      # (set skipit to 1 if the implied shell is not login or current)
+      fileshell = self.shell_for_dotfile(fo.name)
+      if len(checkshells) > 0 and fileshell != '':
+         # init to skip, and then see if we process
+         skipit = 1
+         for cshell in checkshells:
+            # promote csh to tcsh for this
+            if cshell == 'csh': tshell = 'tcsh'
+            else:               tshell = cshell
+            if tshell == fileshell:
+               skipit = 0
+               break
+         if self.verb > 1 and skipit:
+            MESGm("skipping apsearch file shell %s: %s" % (fileshell, skipit))
 
       # if follower, no worries
       if fo.follow:
@@ -1251,7 +1299,8 @@ class MyInterface:
 
       # actual "thinking": for now
       # apsearch file depends on shell, so it is more complicated
-      else:
+      # - if we have decided to skip this file, ignore this block
+      elif not skipit:
          if apsname == '':
             MESGw("file %s has unknown all_progs, skipping..." % fo.name)
             return

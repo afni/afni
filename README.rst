@@ -89,7 +89,9 @@ doc/
 src/
     source code for AFNI
 src/python_scripts/
-    Python command programs and library files; distributed together as the **afnipy** module, which can be imported and used as: ``from afnipy import ...``
+    Python command programs and library files; distributed together as the **afnipy** module, which can be imported and used as: 
+
+    ``from afnipy import ...``
 tests/
     tests for AFNI codebase
 
@@ -133,6 +135,8 @@ dependency, such as:
 * `fMRIPrep <https://github.com/nipreps/fmriprep>`_
 
 * `ENIGMA HALFpipe <https://enigma.ini.usc.edu/protocols/functional-protocols/>`_
+
+* `LONI QC <https://qc.loni.usc.edu/>`_
 
 * `Nipype <https://nipype.readthedocs.io/en/latest/api/generated/nipype.interfaces.afni.html>`_
 
