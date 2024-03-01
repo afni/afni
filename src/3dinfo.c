@@ -70,8 +70,9 @@ int Syntax(TFORM targ, int detail)
 "   -exists: 1 if dset is loadable, 0 otherwise\n"
 "            This works on prefix also.\n"
 "   -id: Idcodestring of dset\n"
+"   -is_labeltable: 1 if dset has a labeltable attached.\n"
 "   -is_atlas: 1 if dset is an atlas.\n"
-"   -is_atlas_or_labeltable: 1 if dset has an atlas or labeltable.\n"
+"   -is_atlas_or_labeltable: 1 if dset has an atlas or has a labeltable.\n"
 "   -is_nifti: 1 if dset is NIFTI format, 0 otherwise\n"
 "   -dset_extension: show filename extension for valid dataset (e.g. .nii.gz)\n"
 "   -storage_mode: show internal storage mode of dataset (e.g. NIFTI)\n"
@@ -321,7 +322,8 @@ typedef enum {
    CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, DSET_GEN_SPACE, INFO_NIFTI_CODE,
    IS_NIFTI, DSET_EXISTS,
    DSET_EXTENSION, STORAGE_MODE, /* 4 Jun 2019 [rickr] */
-   IS_ATLAS, IS_ATLAS_OR_LABELTABLE, IS_OBLIQUE, OBLIQUITY, 
+   IS_ATLAS, IS_LABELTABLE, IS_ATLAS_OR_LABELTABLE, 
+   IS_OBLIQUE, OBLIQUITY, 
    AFORM_REAL, AFORM_REAL_ONELINE, AFORM_REAL_REFIT_ORI, // [PT: Nov 13, 2020]
    IS_AFORM_REAL_ORTH,
    AFORM_ORTH,                                          // [PT: Nov 14, 2020]
@@ -515,6 +517,8 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = STORAGE_MODE; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-is_atlas") == 0) {
          sing[N_sing++] = IS_ATLAS; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-is_labeltable") == 0) {
+         sing[N_sing++] = IS_LABELTABLE; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-is_atlas_or_labeltable") == 0) {
          sing[N_sing++] = IS_ATLAS_OR_LABELTABLE; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-exists") == 0) {
@@ -942,6 +946,19 @@ int main( int argc , char *argv[] )
                fprintf(stdout,"1");
             } else {
                fprintf(stdout,"0");
+            }
+            break;
+         case IS_LABELTABLE:
+            {
+               char *str    = NULL;
+               int iaol_val = 0;
+               if ( (str = Dtable_to_nimlstring(DSET_Label_Dtable(dset),
+                                                     "VALUE_LABEL_DTABLE")) ) {
+                  // 'else if' for speed
+                  iaol_val = 1;
+                  free(str);
+               } 
+               fprintf(stdout,"%d", iaol_val);
             }
             break;
          case IS_ATLAS_OR_LABELTABLE:
