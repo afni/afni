@@ -456,7 +456,7 @@ SUMA_Boolean SUMA_niml_hangup (SUMA_CommonFields *cf, char *nel_stream_name,
       SUMA_RETURN(NOPE);
    } else {
       SUMA_LH("Stream found.");
-      fprintf (SUMA_STDERR,"%s: stream index %d\n", FuncName, i);
+      // fprintf (SUMA_STDERR,"%s: stream index %d\n", FuncName, i);
       if (killit) {
          SUMA_LH("Killing stream");
          NI_stream_kill(cf->ns_v[i]);
@@ -568,16 +568,8 @@ SUMA_Boolean SUMA_niml_call ( SUMA_CommonFields *cf, int si,
             }
 
          Wait_tot = 0;
-         /*
-         fprintf(stderr, "nn = %d\n", nn);
-         fprintf(stderr, "SUMA_WriteCheckWaitMax = %d\n", SUMA_WriteCheckWaitMax);
-         */
          while(Wait_tot < SUMA_WriteCheckWaitMax){
             nn = NI_stream_writecheck( cf->ns_v[si] , SUMA_WriteCheckWait) ;
-            /*
-             fprintf(stderr, "Wait_tot = %d, nn = %d, SUMA_WriteCheckWait=%d,
-                cf->ns_v[si]=%p\r", Wait_tot, nn, SUMA_WriteCheckWait, cf->ns_v[si]);
-                */
             if( nn == 1 ){
                fprintf(stderr,"\n") ;
                cf->ns_flags_v[si] = SUMA_FLAG_CONNECTED;
@@ -594,7 +586,6 @@ SUMA_Boolean SUMA_niml_call ( SUMA_CommonFields *cf, int si,
             Wait_tot += SUMA_WriteCheckWait;
             fprintf(SUMA_STDERR,".") ;
          }
-         // fprintf(stderr, "\n");
 
          /* make sure you did not exit because of time out */
          // SUMA_S_Errv("nn = %d\n", nn);
@@ -701,7 +692,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   
    if( tt < 0 ) {/* should never happen unless nini was NULL*/
       fprintf(SUMA_STDERR,"Error %s: Should never have happened.\n", FuncName);
       SUMA_RETURN(NOPE);
@@ -727,7 +718,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          process the data based on the element name */
 
       nel = (NI_element *) nini ;
-
       if (LocalHead)  {
          fprintf(SUMA_STDERR,
                  "%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n",
@@ -753,6 +743,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       /*--- stream tracking ON ---*/
       if( strcmp(nel->name,"StartTracking") == 0) { /* Start tracking */
          if (LocalHead)
+            // Print out tcp
             fprintf (SUMA_STDERR,"%s:\n"
                                  " Starting NI element tracking for %s ...\n",
                                  FuncName,
@@ -3129,6 +3120,7 @@ void SUMA_FakeIt (int Solo)
       if( ns == NULL ){
         fprintf(stderr,"Can't open qroi.dat!\n"); exit(1);
       }
+
       nel = NI_read_element(ns,1) ;  NI_stream_close(ns) ;
       if( nel == NULL ){
         fprintf(stderr,"Can't read element from qroi.dat!\n"); exit(1);
@@ -3193,7 +3185,6 @@ void SUMA_FakeIt (int Solo)
       nPath0[0] = 2; nPath0[1] = 1; nPath0[2] = 10;
       nPath1[0] = 9; nPath1[1] = 7; nPath1[2] = 23; nPath1[3] = -3;
 
-      fprintf(stderr,"*********** Defining row type\n");
       niml_ROI_Datum_type =
          NI_rowtype_define("SUMA_NIML_ROI_DATUM", "int,int,int,int[#3]");
 
@@ -3214,11 +3205,8 @@ void SUMA_FakeIt (int Solo)
       niml_ROI->ROI_datum[0].N_n = N_n0;
       niml_ROI->ROI_datum[1].N_n = N_n1;
       if (1) {
-         fprintf(stderr,"*********** Filling ROI_datum structures\n");
          niml_ROI->ROI_datum[0].nPath = nPath0;
          niml_ROI->ROI_datum[1].nPath = nPath1;
-      }else {
-         fprintf(stderr,"*********** Skipping ROI_datum structure fill.\n");
       }
 
       fprintf( stderr,
@@ -3226,10 +3214,8 @@ void SUMA_FakeIt (int Solo)
                "a column of %d elements \n", niml_ROI->N_ROI_datum);
       nel = NI_new_data_element("A_drawn_ROI",  niml_ROI->N_ROI_datum);
 
-      fprintf(stderr,"*********** Adding column\n");
       NI_add_column( nel , niml_ROI_Datum_type, niml_ROI->ROI_datum );
 
-      fprintf(stderr,"*********** Setting attributes element\n");
       NI_set_attribute (nel, "self_idcode", niml_ROI->idcode_str);
       NI_set_attribute (nel, "domain_parent_idcode",
                              niml_ROI->Parent_idcode_str);
@@ -3388,8 +3374,6 @@ SUMA_Boolean SUMA_SendSumaNewSurface(SUMA_SurfaceObject *SO,
    NI_group *ngr=NULL;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "****SUMA_SendSumaNewSurface***\n");
 
    if (!SO || !cs) { SUMA_SL_Err("NULL surface or NULL cs"); SUMA_RETURN(NOPE); }
    if (!cs->Send || !cs->talk_suma) {
@@ -4329,8 +4313,6 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
 
    SUMA_ENTRY;
 
-   /* fprintf (SUMA_STDERR, "%s: LocalHead = %d\n", FuncName, LocalHead); */
-
    if (action == 0) { /* initialization of connection */
       if (!cs) { /* Nothing to do, return */
          SUMA_LH("No cs, probably talking to self");
@@ -4675,9 +4657,6 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
          cs->nelps = -1.0;
          cs->TrackID = 0;
          cs->istream = -1;
-
-
-
       }
 
       SUMA_RETURN(YUP);
