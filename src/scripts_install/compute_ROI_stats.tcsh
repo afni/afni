@@ -28,7 +28,7 @@ $prog modification history:
    1.0  : Feb 15, 2024: initial version
    1.1  : Feb 20, 2024: actually print computed depth
    1.2  : Feb 22, 2024: update format, init Q column (quality rating)
-   1.3  : Mar  1, 2024: allow -rval_list ALL_LT (for entire labeltable)
+   1.3  : Mar  1, 2024: allow -rval_list ALL_LT (for entire table/point list)
 
    current version: $script_version
 EOF
@@ -262,26 +262,53 @@ foreach rval ( $rval_list )
       set rv_all_lt = 1
    endif
 end
-# if found, replace the list
+# if user wants this, do we have one
+if ( $rv_all_lt ) then
+   set rv = 1  # init in case of error
+   set rv = `3dinfo -is_atlas_or_labeltable $dset_ROI`
+   if ( $status || ! $rv ) then
+      echo "** cannot use ALL_LT, $dset_ROI has no labels"
+      exit 1
+   endif
+endif
+
 if ( $rv_all_lt ) then
    set ltest = ALL_LT
-   set rval_list = ( `3dinfo -labeltable $dset_ROI |& \grep '^ "' \
-                        | awk '{print $1}' | tr -d \" | sort -n` )
+
+   # a bit of a mess to get label indices...
+   
+   set is_lt = `3dinfo -is_labeltable $dset_ROI`
    if ( $status ) then
-      echo "** failed to extract labeltable for $ltest in $dset_ROI"
+      echo "** failed: 3dinfo is_labeltable $dset_ROI"
+      exit 1
+   endif
+
+   if ( $is_lt ) then
+      set rval_list = ( `3dinfo -labeltable $dset_ROI |& \grep '^ "' \
+                           | awk '{print $1}' | tr -d \" | sort -n` )
+      if ( $status ) then
+         echo "** failed to extract labeltable for $ltest in $dset_ROI"
+         exit 1
+      endif
+   else
+      set rval_list = ( `3dinfo -atlas_points $dset_ROI |& grep 'VAL=' \
+                           | awk -F\" '{print $2}'` )
+      if ( $status ) then
+         echo "** failed to extract atlas points for $ltest in $dset_ROI"
+         exit 1
+      endif
+
+   endif
+
+   if ( $#rval_list == 0 ) then
+      echo "** found no labeltable labels for $ltest in $dset_ROI"
       exit 1
    endif
 
    echo "++ replacing $ltest with $#rval_list entries from $dset_ROI"
    echo "   $rval_list"
    echo ""
-
-   if ( $#rval_list == 0 ) then
-      echo "** found no labeltable labels for $ltest in $dset_ROI"
-      exit 1
-   endif
 endif
-
 
 # ===========================================================================
 # why are we here?  oh, right, do some actual work
