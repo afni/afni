@@ -1450,6 +1450,8 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
       SUMA_RETURN(0);
    }
 
+   fprintf(stderr, "*** Reading from VVS file\n");
+
    /* don't crash if you fail here and there, try your best ...*/
    SUMA_getStringFromNiml(nel, "clippingPlaneFile", strbuf, 16, feyl);
       if (!feyl) {

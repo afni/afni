@@ -1619,6 +1619,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_RETURN(0);
          }
          argt[kar][0] = '\0';
+// Only used if -SET_FUNC_ALPHA can have >1 argument which is not currently the case
 //         if (argtc > 3){
 //            ++kar;
 //            if (toupper(argt[kar][0]) == 'Y' ||
@@ -3163,6 +3164,7 @@ SUMA_drive_set_outstream(char *outfile)
 
    /* something went wrong, so tell user and reset to stdout */
    if(sumaout==NULL){
+      fprintf(stderr, "**** couldn't open outfile, resetting to stdout\n");
       sumaout = stdout;
       return(-1);
    }

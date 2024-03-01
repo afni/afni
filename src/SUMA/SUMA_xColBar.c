@@ -1113,7 +1113,8 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    }
    
    /* call this one since it is not being called as the slider is dragged. */
-   if (!(SUMA_set_threshold_label(ado, val, 0.0))) { SUMA_SL_Err("Error setting threshold label"); SUMA_RETURN(0); }
+   if (!(SUMA_set_threshold_label(ado, val, 0.0))) 
+    { SUMA_SL_Err("Error setting threshold label"); SUMA_RETURN(0); }
 
    /* sad as it is */
    SUMA_FORCE_SCALE_HEIGHT(SUMA_ADO_Cont(ado));
@@ -6738,8 +6739,7 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                                SurfCont->LinkModeMenu);
                XtManageChild (SurfCont->LinkModeMenu->mw[SW_LinkMode]);
 
-                XtManageChild(rc);
-
+               XtManageChild(rc);
          }
 
       if (!SurfCont->rcsw) {

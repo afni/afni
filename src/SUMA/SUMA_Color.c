@@ -8043,6 +8043,15 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    NshowOverlays = 0;
    NshowOverlays_Back = 0;
    for (j=0; j < N_Overlays; ++j) {
+      if (!Overlays){
+            SUMA_S_Err("NULL Overlays pointer.");
+            SUMA_RETURN (NOPE);
+      }
+      if (Overlays == 0x1){
+            SUMA_S_Err("Invalid Overlays pointer: 0x1.");
+            SUMA_RETURN (NOPE);
+      }
+
       if ( (Overlays[j]->ShowMode == SW_SurfCont_DsetViewCol ||
             Overlays[j]->ShowMode == SW_SurfCont_DsetViewCaC ) &&
            Overlays[j]->GlobalOpacity != 0) {
@@ -8459,7 +8468,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                glcolar[i4] = glcolar_Back[i4]; ++i4;
                isColored[i] = YUP;
                continue;
-            } /**/ else if ((currentOverlay->OptScl->MaskZero &&
+            } else if ((currentOverlay->OptScl->MaskZero &&
                 currentOverlay->T[i]==0)){ // Don't show zero
                    int i4 = 4 * i;
                    glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
@@ -8786,8 +8795,6 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
 
    SUMA_ENTRY;
    
-   // SUMA_RETURN (YUP);   //  DEBUG
-
    if (!Overlays) {
       SUMA_SL_Err("Null Overlays!");
       SUMA_RETURN(NOPE);
