@@ -28,12 +28,13 @@ $prog modification history:
    1.0  : Feb 15, 2024: initial version
    1.1  : Feb 20, 2024: actually print computed depth
    1.2  : Feb 22, 2024: update format, init Q column (quality rating)
+   1.3  : Mar  1, 2024: allow -rval_list ALL_LT (for entire labeltable)
 
    current version: $script_version
 EOF
 exit 0
 SKIP_HIST:
-set script_version = "version 1.2, February 22, 2024"
+set script_version = "version 1.3, March 1, 2024"
 
 
 # ===========================================================================
@@ -120,12 +121,15 @@ while ( $ac <= $narg )
             break
          endif
 
-         # can we convert to an int?
-         set rint = `ccalc -i $rval`
-         if ( $rint <= 0 || $rint != $rval ) then
-            echo "** illegal rval '$rval'"
-            exit 1
+         # can we convert a non-special entry to an int?
+         if ( $rval != "ALL_LT" ) then
+            set rint = `ccalc -i $rval`
+            if ( $rint <= 0 || $rint != $rval ) then
+               echo "** illegal rval '$rval'"
+               exit 1
+            endif
          endif
+
          # okay, add to list and keep going
          set rval_list = ( $rval_list $rval )
          @ ac ++
@@ -245,6 +249,39 @@ if ( $tt != 2 ) then
    echo "** -dset_ROI and -dset_data do not seem to be on the same grid"
    exit 1
 endif
+
+# ----------------------------------------
+# if rval_list has special entries, reform
+# should be unique: ALL_LT
+
+# start by checking for existence
+# (allow ALL_LT plus wasted entries?  might be convenient for scripting)
+set rv_all_lt = 0
+foreach rval ( $rval_list )
+   if ( $rval == "ALL_LT" ) then
+      set rv_all_lt = 1
+   endif
+end
+# if found, replace the list
+if ( $rv_all_lt ) then
+   set ltest = ALL_LT
+   set rval_list = ( `3dinfo -labeltable $dset_ROI |& \grep '^ "' \
+                        | awk '{print $1}' | tr -d \" | sort -n` )
+   if ( $status ) then
+      echo "** failed to extract labeltable for $ltest in $dset_ROI"
+      exit 1
+   endif
+
+   echo "++ replacing $ltest with $#rval_list entries from $dset_ROI"
+   echo "   $rval_list"
+   echo ""
+
+   if ( $#rval_list == 0 ) then
+      echo "** found no labeltable labels for $ltest in $dset_ROI"
+      exit 1
+   endif
+endif
+
 
 # ===========================================================================
 # why are we here?  oh, right, do some actual work
@@ -368,7 +405,7 @@ foreach rval ( $rval_list )
       exit 1
    endif
    set extrema = ( `cat $out_dir/tmp.extrema.txt` )
-   if ( $#extrema != 7 ) then
+   if ( $#extrema < 6 ) then
       echo "** failed to get depth extrema from command:\n   $cmd\n"
       echo "   $#extrema vals: $extrema"
       exit 1
@@ -483,9 +520,12 @@ required parameters:
 
    -rset_label RSET_LABEL  : text label to refer to dset_ROI by
 
-   -rval_list V1 V2 ...    : ROI index values
+   -rval_list V1 V2 ...    : ROI index values (or ALL_LT)
                              Each index with such voxels in DSET_ROI will be
                              used to compute statistics from DSET_DATA.
+
+               example : -rval_list 2 41 99
+               example : -rval_list ALL_LT
 
 optional parameters:
 

@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Mar, 2024, RCR, "compute_ROI_stats.tcsh", MINOR, TYPE_NEW_OPT,
+   "add ability to pass ALL_LT via -rval_list (for all labeltable entries)",
+   NULL
+ } ,
+
  { 29, Feb, 2024, RCR, "afni_util.py", MINOR, TYPE_MODIFY,
    "use raw straing format for some regular expressions",
    "So python 3.12 has upgraded Deprecation Warnings to SyntaxWarnings,\n"
