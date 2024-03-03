@@ -40,7 +40,9 @@ This contains a *set* of one or more tables."""
         self.all_tables_eval   = []              # list of comp_roi_dset_* obj
 
         # ----- start doing work
-        _tmp = is_comp_roi_str_list_ok(self.ftext)
+        ### [PT] note to self: wd have to adjust this to be more
+        ### flexible about whitespace/empty lines
+        # _tmp = is_comp_roi_str_list_ok(self.ftext)
         self.find_all_tables()
         self.evaluate_all_tables()
 
@@ -64,7 +66,7 @@ This contains a *set* of one or more tables."""
 
         for table in dict_tables.keys() :
             opref = prefix + dict_tables[table]
-            otext = ''
+            otext = '\n' # empty line at top
 
             # for each given table type, loop over all tables in the file
             for ii in range(self.n_tables):
@@ -73,6 +75,7 @@ This contains a *set* of one or more tables."""
 
                 iitab  = self.all_tables_eval[ii]
                 otext+= iitab.assemble_table_values(table)
+            otext+= '\n'
 
             fff = open( opref, "w" )
             fff.write( otext )
@@ -92,7 +95,9 @@ This contains a *set* of one or more tables."""
         # 6 lines in and then look for the first empty line break (or
         # end of file) to determine where the table ends
         start = 0
-        ii = 6
+        while start < self.n_ftext and len(self.ftext[start].split()) == 0 :
+            start+=1
+        ii = start + 6
         while ii < self.n_ftext :
             if len(self.ftext[ii].split()) == 0 :
                 # found a break between/at end of tables
@@ -105,7 +110,7 @@ This contains a *set* of one or more tables."""
                 ii+= 6
             else:
                 ii+= 1
-        if ii != start :
+        if start < self.n_ftext and ii != start :
             # must have found another table
             self.all_tables_raw.append(copy.deepcopy(self.ftext[start:ii]))
 
@@ -737,7 +742,7 @@ if __name__ == '__main__' :
 
     fname2 = '/home/ptaylor/AFNI_data6/FT_analysis/'
     fname2+= 'sub-456.results_FT.rest.16/tsnr_stats_regress/'
-    fname2+= 'stats_brain.txt'
+    fname2+= 'stats_COMBO9.txt'
     prefout = '.'.join(fname2.split('.')[:-1]) # use input file for output pref
 
     x2 = au.read_text_file(fname2, strip=False)
