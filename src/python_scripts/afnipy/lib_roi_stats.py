@@ -55,20 +55,28 @@ This contains a *set* of one or more tables."""
         the table_values_qhtml.
         """
 
-        opref = prefix + '_eval_html.txt'
-        otext = ''
-        for ii in range(self.n_tables):
-            # insert empty line after any existing table
-            if ii :    otext+= '\n'
+        # what to print: these table objects (keys), using their given
+        # prefixes (values)
+        dict_tables = {
+            'values_q'     : '_eval.txt',
+            'values_qhtml' : '_eval_html.txt',
+        }
 
-            tab   = self.all_tables_eval[ii]
-            otext+= tab.assemble_table_values('values_qhtml')
+        for table in dict_tables.keys() :
+            opref = prefix + dict_tables[table]
+            otext = ''
 
-        fff = open( opref, "w" )
-        fff.write( otext )
-        fff.close()
+            # for each given table type, loop over all tables in the file
+            for ii in range(self.n_tables):
+                # insert empty line after any existing table
+                if ii :    otext+= '\n'
 
+                iitab  = self.all_tables_eval[ii]
+                otext+= iitab.assemble_table_values(table)
 
+            fff = open( opref, "w" )
+            fff.write( otext )
+            fff.close()
 
     def evaluate_all_tables(self):
         """ Run the quality evaluations for each table """
@@ -714,26 +722,26 @@ def is_comp_roi_str_list_ok(L):
 
     return 0
 
-
 # ============================================================================
 
 if __name__ == '__main__' :
 
-    fname = '/home/ptaylor/AFNI_data6/FT_analysis/'
-    fname+= 'sub-456.results_FT.rest.15/t.tsnr_stats_regress8/'
-    fname+= 'stats_MNI-Glasser.txt'
-
-    x = au.read_text_file(fname, strip=False)
-
-    OBJ = comp_roi_dset_table(x)
+    #fname = '/home/ptaylor/AFNI_data6/FT_analysis/'
+    #fname+= 'sub-456.results_FT.rest.15/t.tsnr_stats_regress8/'
+    #fname+= 'stats_MNI-Glasser.txt'
+    #
+    #x = au.read_text_file(fname, strip=False)
+    #
+    #OBJ = comp_roi_dset_table(x)
 
 
     fname2 = '/home/ptaylor/AFNI_data6/FT_analysis/'
-    fname2+= 'sub-456.results_FT.rest.15/t.tsnr_stats_regress8/'
-    fname2+= 'stats_MNI-Glasser_MULTI.txt'
+    fname2+= 'sub-456.results_FT.rest.16/tsnr_stats_regress/'
+    fname2+= 'stats_brain.txt'
+    prefout = '.'.join(fname2.split('.')[:-1]) # use input file for output pref
 
     x2 = au.read_text_file(fname2, strip=False)
 
-    OBJ2 = all_comp_roi_dset_table(x2, prefix = 'fileout')
+    OBJ2 = all_comp_roi_dset_table(x2, prefix = prefout)
 
 
