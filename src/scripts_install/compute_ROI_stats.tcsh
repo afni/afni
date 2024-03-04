@@ -32,6 +32,7 @@ $prog modification history:
    1.2  : Feb 22, 2024: update format, init Q column (quality rating)
    1.3  : Feb 24, 2024: allow subbrick selectors on dset_ROI
    1.4  : Mar  1, 2024: allow -rval_list ALL_LT (for entire table/point list)
+   1.5  : Mar  4, 2024: update reformat, removing Q column
 
    current version: $script_version
 EOF
@@ -360,14 +361,14 @@ echo "$dtxt"   >>! $stats_file
 echo "$dund\n" >>! $stats_file
 
 # field headers must match 2 sets of btext lines, below
-printf '%1s %6s %6s %5s %5s  %5s %5s %5s %5s %5s  %6s %6s %6s  %s\n' \
-       "Q" "ROI" "Nvox" "Nz" "Vmax"                                  \
+printf '%6s %6s %5s %5s  %5s %5s %5s %5s %5s  %6s %6s %6s  %s\n'     \
+       "ROI" "Nvox" "Nz" "Vmax"                                      \
        "Tmin" "T25%" "Tmed" "T75%" "Tmax"                            \
        "Xcoor" "Ycoor" "Zcoor"                                       \
        "ROI_name"                                                    \
        >>! $stats_file
-printf '%1s %6s %6s %5s %5s  %5s %5s %5s %5s %5s  %6s %6s %6s  %s\n' \
-       "-" "---" "----" "--" "----"                                  \
+printf '%6s %6s %5s %5s  %5s %5s %5s %5s %5s  %6s %6s %6s  %s\n'     \
+       "---" "----" "--" "----"                                      \
        "----"  "----"  "----"  "----"  "----"                        \
        "-----" "-----" "-----" "--------"                            \
        >>! $stats_file
@@ -396,14 +397,11 @@ foreach rval ( $rval_list )
       set nzero = 0
    endif
 
-   # init to empty
-   set qval = ' '
-
    if ( $nvox == 0 || $nvox == $nzero ) then
       set btext = "`printf '%6s %6s %5s %5.1f' $rval $nvox $nzero 0`"
       set qtext = "`printf ' %5.0f %5.0f %5.0f %5.0f %5.0f ' 0 0 0 0 0`"
       set ctext = "`printf '%6.1f %6.1f %6.1f ' 0 0 0`"
-      echo "$qval" "$btext" "$qtext" "$ctext" "$ROI_name" >>! $stats_file
+      echo "$btext" "$qtext" "$ctext" "$ROI_name" >>! $stats_file
 
       continue
    endif
@@ -461,7 +459,7 @@ foreach rval ( $rval_list )
                        $quarts[1] $quarts[2] $quarts[3] $quarts[4] $quarts[5]`"
    set ctext = "`printf '%6.1f %6.1f %6.1f '             \
                        $coords[1] $coords[2] $coords[3]`"
-   echo "$qval" "$btext" "$qtext" "$ctext" "$ROI_name" >>! $stats_file
+   echo "$btext" "$qtext" "$ctext" "$ROI_name" >>! $stats_file
 
 end
 
@@ -504,9 +502,8 @@ $prog  - compute per-ROI value statisics over a given dataset
       create a depth map for dset_ROI
       for each requested ROI value rval in rval_list (for dset_ROI)
          compute and store in stats file:
-            Q            : quality rating (empty=okay, ?=questionable, x=bad)
-
             ROI          : ROI index value (rval)
+
             Nvox         : N voxels in dset_ROI rval region
             Nz           : N ROI voxels that are zero in dset_data
             Vmax         : maximum ROI depth, in voxels (1.0 = 1 iso voxel)
