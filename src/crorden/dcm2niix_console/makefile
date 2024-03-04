@@ -25,17 +25,16 @@ endif
 #run "JNIfTI=0 make" to disable JNIFTI build
 JSFLAGS=
 ifneq "$(JNIfTI)" "0"
-	JSFLAGS=-DmyEnableJNIfTI base64.cpp cJSON.cpp
+	JSFLAGS=-DmyEnableJNIFTI base64.cpp cJSON.cpp
 endif
 
 ifneq ($(OS),Windows_NT)
 	OS = $(shell uname)
  	ifeq "$(OS)" "Darwin"
 		#CFLAGS=-dead_strip -O3
-		#CFLAGS= -O3
 		# ponder -sectcreate later [rickr]
 		# CFLAGS=-O3 -sectcreate __TEXT __info_plist Info.plist
-		CFLAGS=-O3
+		CFLAGS= -O3
 		#Apple notarization requires a Info.plist
 		# For .app bundles, the Info.plist is a separate file, for executables it is appended as a section
 		#you can check that the Info.plist section has been inserted with either of these commands

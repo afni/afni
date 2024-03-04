@@ -790,7 +790,8 @@ def get_process_stack_slow(pid=-1, verb=1):
    if rv: return []
 
    stack = [entries] # entries is valid, so init stack
-   while mypid > 1:
+   # now some parents to straight to 0 without 1  [28 Feb 2024]
+   while mypid > 1 and ppid > 0:
       cmd = '%s %s' % (base_cmd, ppid)
       rv, entries = get_cmd_entries(cmd)
       if rv: return []
@@ -1243,7 +1244,7 @@ def find_afni_history_version(av_str):
       return the status and [AFNI_A.B.C, PACKAGE] pair as a list
       return 1, [] on error
    """
-   re_format = '{(AFNI_\d+\.\d+\.\d+):(.*)}'
+   re_format = r'{(AFNI_\d+\.\d+\.\d+):(.*)}'
 
    try:    match = re.search(re_format, av_str)
    except: return 1, []
@@ -1262,7 +1263,7 @@ def parse_afni_version(av_str):
    """given 'AFNI_18.2.10', return status 0 and the int list [18,2,10]
       return 1, [] on error
    """
-   re_format = 'AFNI_(\d+)\.(\d+)\.(\d+)'
+   re_format = r'AFNI_(\d+)\.(\d+)\.(\d+)'
 
    try:    match = re.search(re_format, av_str)
    except: return 1, []
@@ -2755,7 +2756,7 @@ def extract_subbrick_selection(sstring):
         just let '*' refer to anything but another '['
    """
    import re
-   res = re.search('\[\d+[^\[]*]', sstring)
+   res = re.search(r'\[\d+[^\[]*]', sstring)
    if res == None: return ''
    return res.group(0)
 

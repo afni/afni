@@ -46,7 +46,7 @@ set corr_mask = no      # should we automask before correlation blurring?
 
 set prog = @radial_correlate
 
-set version = "0.5, 10 May, 2019"
+set version = "1.0, 23 February, 2024"
 
 if ( $#argv < 1 ) goto SHOW_HELP
 
@@ -175,14 +175,14 @@ end
 if ( $#dset_list < 1 ) then
    echo "** missing input datasets"
    echo ""
-   exit
+   exit 1
 endif
 
 # note view
 set view = `3dinfo -av_space $dset_list[1]`
 if ( $status ) then
    echo "** cannot determine view in $dset_list[1]"
-   exit
+   exit 1
 endif
 
 # ----------------------------------------------------------------------
@@ -191,13 +191,13 @@ endif
 if ( $do_corr == 'yes' ) then
    if ( -d $rdir ) then
       echo "** error, results dir already exists: $rdir"
-      exit
+      exit 1
    endif
 
    mkdir $rdir
    if ( $status ) then
       echo "** failed to create results directory, $rdir"
-      exit
+      exit 1
    endif
 
    # if cleaning, make a temporary dir for storage
@@ -207,7 +207,7 @@ if ( $do_corr == 'yes' ) then
 
 else if ( ! -d $rdir ) then
    echo "** error, missing results dir : $rdir"
-   exit
+   exit 1
 endif
 
 
@@ -235,7 +235,7 @@ if ( $do_corr == 'yes' ) then
 
       if ( $status ) then
           echo "** failed to copy EPI dataset $inset, exiting..."
-          exit
+          exit 1
       endif
    end
 
@@ -243,7 +243,7 @@ if ( $do_corr == 'yes' ) then
       3dcopy $mask_in $rdir/
       if ( $status ) then
           echo "** failed to copy -mask dataset $mask_in, exiting..."
-          exit
+          exit 1
       endif
    endif
 endif
@@ -381,6 +381,13 @@ foreach index ( `count -digits 1 1 $#dset_list` )
 
          3dTcorr1D -mask $mset -pearson -prefix $cset \
                  $eset$view $prefix.mean_signal.1D
+      endif
+
+      # verify that we have a result (since no -e, as we grep)
+      set testfile = $cset$view.HEAD
+      if ( ! -f $testfile ) then
+         echo "** missing correlation result $testfile"
+         exit 1
       endif
 
       # extract ulay volume
@@ -836,7 +843,10 @@ $prog modification history:
           - new default: detrend with polort $polort
    0.8  : Mar 17, 2022: change saved ulay to be from orig EPI
    0.9  : Apr  1, 2022: extract ulay also in non-clean case
+   1.0  : Feb 23, 2024: fail if no corr dset is made (no -e in script)
 
 EOF
+
+# *** match version, above
 
 exit

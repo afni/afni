@@ -3,10 +3,10 @@ of the 'console' directory from:
 
    https://github.com/rordenlab/dcm2niix
 
-current version: v1.0.20230411
+current version: v1.0.20240202
 (as defined by kDCMdate in nii_dicom.h)
 
-   * modified makefile to remove -sectcreate from CFLAGS
+   * modified makefile to remove -sectcreate from mac CFLAGS
      (we will ponder Apple signing later)
 
 

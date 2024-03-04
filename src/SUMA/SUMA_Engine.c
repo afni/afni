@@ -146,6 +146,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
    SUMA_ENTRY;
 
+
    if (NI_TALK_MODE < 0) {
       if (AFNI_yesenv("SUMA_NI_TEXT_TALK_MODE")) {
          SUMA_S_Note("Talking in text mode");
@@ -4076,6 +4077,61 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
                XmToggleButtonSetState ( SurfCont->ShowZero_tb,
                               SurfCont->curColPlane->OptScl->MaskZero, YUP);
+            }
+
+            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA")) {
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "y")){
+                  SurfCont->AlphaOpecityFalloff = 1;
+               }
+               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "n"))
+               {
+                  SurfCont->AlphaOpecityFalloff = 0;
+               }
+               else {
+                  SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA, setting to 'y'\n",
+                              NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA"));
+                  SurfCont->AlphaOpecityFalloff = NOPE;
+               }
+               XmToggleButtonSetState ( SurfCont->AlphaThresh_tb,
+                              SurfCont->AlphaOpecityFalloff, YUP);
+            }
+
+            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE")) {
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "L")){
+                  SurfCont->alphaOpacityModel = LINEAR;
+               }
+               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "Q"))
+               {
+                  SurfCont->alphaOpacityModel = QUADRATIC;
+               }
+               else {
+                  SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L\Q",
+                              NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
+               }
+               if (!sv) sv = &(SUMAg_SVv[0]); 
+               SO = SUMA_SV_Focus_SO(sv);
+               SO->SurfCont->alphaOpacityModel = SurfCont->alphaOpacityModel;
+   
+               // Refresh display
+               SUMA_Remixedisplay(ado);
+               SUMA_UpdateNodeLblField(ado);
+            }
+
+            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED")) {
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_BOXED", "y")){
+                  SurfCont->curColPlane->BoxOutline = 1;
+               }
+               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_BOXED", "n"))
+               {
+                  SurfCont->curColPlane->BoxOutline = 0;
+               }
+               else {
+                  SUMA_S_Errv("Bad value of %s for SET_FUNC_BOXED, setting to 'y'\n",
+                              NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED"));
+                  SurfCont->curColPlane->BoxOutline = NOPE;
+               }
+               XmToggleButtonSetState ( SurfCont->BoxOutlineThresh_tb,
+                              SurfCont->curColPlane->BoxOutline, YUP);
             }
 
             if (NI_get_attribute(EngineData->ngr, "B_sb")) {

@@ -53,6 +53,33 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Mar, 2024, RCR, "compute_ROI_stats.tcsh", MINOR, TYPE_NEW_OPT,
+   "add ability to pass ALL_LT via -rval_list (for all labeltable entries)",
+   NULL
+ } ,
+
+ { 29, Feb, 2024, RCR, "afni_util.py", MINOR, TYPE_MODIFY,
+   "use raw straing format for some regular expressions",
+   "So python 3.12 has upgraded Deprecation Warnings to SyntaxWarnings,\n"
+   "making wanings pop up where they did not previously.  Previously, one\n"
+   "would need to turn on deprecation warnings to see such things."
+ } ,
+
+ { 28, Feb, 2024, RCR, "module_test_lib.py", MINOR, TYPE_ENHANCE,
+   "python 3.12 has removed 'imp' importing library, use importlib",
+   "Add a new 312 function string for newest case."
+ } ,
+
+ { 23, Feb, 2024, RCR, "@radial_correlate", MICRO, TYPE_ENHANCE,
+   "fail if no corr dset (check, since script is not run with -e)",
+   NULL
+ } ,
+
+ { 23, Feb, 2024, RCR, "dcm2niix_afni", MICRO, TYPE_ENHANCE,
+   "sync crorden/dcm2niix_console with repo, version v1.0.20240202",
+   "Thanks to C Rorden for the update."
+ } ,
+
  { 22, Feb, 2024, RCR, "build_afni.py", MINOR, TYPE_ENHANCE,
    "check for conda env vars on make build failure",
    NULL
