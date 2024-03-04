@@ -418,7 +418,7 @@ class CmdInterface:
       self.valid_opts.add_opt('-disp_R_ver_for_lib', 1, [],
                       helpstr='display R version library was built against')
       self.valid_opts.add_opt('-disp_ver_afni', 0, [],
-                      helpstr='display AFNI pacakge version (else None)')
+                      helpstr='display AFNI package version (else None)')
       self.valid_opts.add_opt('-disp_ver_matplotlib', 0, [],
                       helpstr='display matplotlib version (else None)')
       self.valid_opts.add_opt('-disp_ver_pylibs', -1, [],
