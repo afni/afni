@@ -7446,7 +7446,7 @@ GLfloat *makeGlOldGlColar(SUMA_SurfaceObject *SO){
     // Allocate memory to old GLcolor
     int numElements = SO->N_Node * 4;
     if (!(glOldGlColar = (GLfloat *)malloc(numElements*sizeof(GLfloat)))){
-        SUMA_S_Err("Error allocating memory to old glOldGlColar vactor\n");
+        SUMA_S_Err("Error allocating memory to old glOldGlColar vector\n");
         return NULL;
     }
     
@@ -8951,7 +8951,7 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
          // NodeEDef is just a monotonically increasing, array of integers giving the indices
          // of the nodes, typically 0,1,2,3,4,...,N_Node-1
          // glcolar is an array of RGBA values (GLFloat). for the first four tetrads, A always 
-         //     seems to be zero.  Setting the A value to 1.0 seems to have no effect.  Whne the 
+         //     seems to be zero.  Setting the A value to 1.0 seems to have no effect.  When the 
          // color is gone, the RGB values are set to zero
          // Before SUMA_RGBv_PnGnL_AR4op is called, glcolar is all zeros.  SUMA_RGBv_PnGnL_AR4op
          // Assigns the RGB values, in ColEVec to the RGB values of glcolar.  The A values
