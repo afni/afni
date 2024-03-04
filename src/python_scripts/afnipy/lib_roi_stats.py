@@ -53,15 +53,12 @@ This contains a *set* of one or more tables."""
     # ---------------------------------------------------
 
     def write_out_table_file(self, prefix):
-        """Save to disk the processed text files, both the table_values_q and
-        the table_values_qhtml.
-        """
+        """Save to disk the processed text files: table_values_html."""
 
         # what to print: these table objects (keys), using their given
         # prefixes (values)
         dict_tables = {
-            'values_q'     : '_eval.txt',
-            'values_qhtml' : '_eval_html.txt',
+            'values_html' : '_eval_html.txt',
         }
 
         for table in dict_tables.keys() :
@@ -142,11 +139,8 @@ The major input here is:
             put multiple ones into its text file.
 
 Probably the major products of interest from creating this object are:
-    self.table_values_q     : a copy of the raw input table that includes
-                              Q-column ratings ('?', 'x', etc.)
-    self.table_values_qhtml : a copy of the raw input table that includes
-                              Q-column ratings ('?', 'x', etc.) *and*
-                              HTML-style warning level coloration
+    self.table_values_html : a copy of the raw input table that includes
+                             HTML-style warning level coloration
 """
 
     def __init__(self, table, verb=0):
@@ -164,8 +158,7 @@ Probably the major products of interest from creating this object are:
         self.table_values      = []              # list of Nroi str
 
         # attributes defined by evaluating table_values for warnings
-        self.table_values_q     = []             # table_values plus Q warns
-        self.table_values_qhtml = []             # table_values_q plus HTML col
+        self.table_values_html  = []             # table_values + HTML colors
         self.table_maxwarn      = []             # list of max warn per ROI
         # ... and there is a decorator for table_allq
 
@@ -177,12 +170,12 @@ Probably the major products of interest from creating this object are:
     # ---------------------------------------------------
 
     def assemble_table_values(self, table=None):
-        """Combine the header+text for table_values_q, such as for writing to
+        """Combine the header+text for table_values*, such as for writing to
         a file; allowed table values are:
-           'values', 'values_q', 'values_qhtml'."""
+           'values', 'values_html'."""
         
         # allowed keyword list for 'table'
-        tlist = ['values', 'values_q', 'values_qhtml']
+        tlist = ['values', 'values_html']
 
         if table == None :
             ab.WP("No table specified for assembling? Choose from one of:"
@@ -195,10 +188,8 @@ Probably the major products of interest from creating this object are:
         otext+= ''.join(self.table_coldash)
         if table == 'values' :
             otext+= ''.join([''.join(x) for x in self.table_values])
-        elif table == 'values_q' :
-            otext+= ''.join([''.join(x) for x in self.table_values_q])
-        elif table == 'values_qhtml' :
-            otext+= ''.join([''.join(x) for x in self.table_values_qhtml])
+        elif table == 'values_html' :
+            otext+= ''.join([''.join(x) for x in self.table_values_html])
         else:
             ab.WP("No table specified for assembling? Choose from one of:"
                   "{}".format(', '.join(tlist)))
@@ -208,31 +199,37 @@ Probably the major products of interest from creating this object are:
 
     def evaluate_all_warns(self):
         """For each ROI (i.e., each element of table_values), go through all
-        possible warn functions, and update: table_values_qhtml,
-        table_values_q and table_maxwarn."""
+        possible warn functions, and update: table_values_html and
+        table_maxwarn."""
 
-        # each of these updates table_values_qhtml and table_maxwarn
+        # each of these updates table_values_html and table_maxwarn
         for idx in range(self.n_table_values):
             self.check_nvox(idx)
             self.check_nz_frac(idx)
             self.check_vmax(idx)
             self.check_tsnr_slope_2575(idx)
 
-        # put in Q values in table_values_q and table_values_qhtml
-        self.update_q_in_tables()
+        ### No longer done
+        # put in Q values in table_values_html
+        #self.update_q_in_tables()
 
-    def update_q_in_tables(self):
-        """For relevant table_values_* lists, update the Q column values."""
+    def update_q_in_tables(self, do_color=False):
+        """For relevant table_values_* lists, update the Q column values. If
+        do_color is True, then wrap in the same coloration as
+        highlighted/warned table values."""
 
         allq = copy.deepcopy(self.table_allq)
 
         for idx in range(self.n_table_values):
             # just add Q to this table
-            self.table_values_q[idx][0]     = allq[idx]
-            # add a colorized Q to this table
-            wlev = self.table_maxwarn[idx]
-            self.table_values_qhtml[idx][0] = \
-                wrap_val_with_html_span(allq[idx], wlev=wlev)
+            ###self.table_values_q[idx][0]     = allq[idx]
+            # for html table, add Q and perhaps color
+            if do_color :
+                wlev = self.table_maxwarn[idx]
+                self.table_values_html[idx][0] = \
+                    wrap_val_with_html_span(allq[idx], wlev=wlev, style='background')
+            else :
+                self.table_values_html[idx][0] = allq[idx]
 
     def check_tsnr_slope_2575(self, idx):
         """Run the check on TSNR slope in ROI."""
@@ -254,7 +251,7 @@ Probably the major products of interest from creating this object are:
 
         # ... and colorize in *qhtml* table, as needed (here, middle 3 of 5)
         for jj in all_col[1:4]:
-            self.table_values_qhtml[idx][jj] = \
+            self.table_values_html[idx][jj] = \
                 wrap_val_with_html_span(self.table_values[idx][jj], wlev=wlev)
 
     def check_vmax(self, idx):
@@ -271,7 +268,7 @@ Probably the major products of interest from creating this object are:
         self.table_maxwarn[idx] = maxwarn(wlev, self.table_maxwarn[idx])
 
         # ... and colorize in *qhtml* table, as needed
-        self.table_values_qhtml[idx][col_Vmax] = \
+        self.table_values_html[idx][col_Vmax] = \
             wrap_val_with_html_span(self.table_values[idx][col_Vmax], wlev=wlev)
 
     def check_nz_frac(self, idx):
@@ -290,7 +287,7 @@ Probably the major products of interest from creating this object are:
         self.table_maxwarn[idx] = maxwarn(wlev, self.table_maxwarn[idx])
 
         # ... and colorize in *qhtml* table, as needed
-        self.table_values_qhtml[idx][col_Nz] = \
+        self.table_values_html[idx][col_Nz] = \
             wrap_val_with_html_span(self.table_values[idx][col_Nz], wlev=wlev)
 
     def check_nvox(self, idx):
@@ -307,7 +304,7 @@ Probably the major products of interest from creating this object are:
         self.table_maxwarn[idx] = maxwarn(wlev, self.table_maxwarn[idx])
 
         # ... and colorize in *qhtml* table, as needed
-        self.table_values_qhtml[idx][col_Nvox] = \
+        self.table_values_html[idx][col_Nvox] = \
             wrap_val_with_html_span(self.table_values[idx][col_Nvox], wlev=wlev)
 
     def parse_input_table(self):
@@ -324,22 +321,19 @@ Probably the major products of interest from creating this object are:
             y = break_line_at_whitespace(x)
             if len(y) == 0:
                 ab.EP("Row {} in full table is empty?".format(i))
-            # ensure row consistency with headers (bc Q val may or may
-            # not be present)
-            z = self.manage_q_col(y)
+            ###z = self.manage_q_col(y)   # not used currently
+
             # check that we have achieved consistency
-            if len(z) != self.len_table_cols :
+            if len(y) != self.len_table_cols :
                 ab.WP("[{}]th ROI has {} pieces, but col header has {}?"
-                      "".format(iroi, len(z), self.len_table_cols))
+                      "".format(i, len(y), self.len_table_cols))
                 if self.verb :
                     print('row:', x)
-            self.table_values.append(z)
+            self.table_values.append(y)
 
         # init some evaluation things
-        self.table_values_q     = copy.deepcopy(self.table_values)
-        self.table_values_qhtml = copy.deepcopy(self.table_values)
+        self.table_values_html  = copy.deepcopy(self.table_values)
         self.table_maxwarn      = ['none'] * self.n_table_values
-        self.all_q              = [' '] * self.n_table_values
 
     def manage_q_col(self, y):
         """Make the table_values have a Q column entry in an appropriate
@@ -347,7 +341,7 @@ Probably the major products of interest from creating this object are:
         one, then create a placeholder one, which is a ' ' carved out
         of the initial white space there. Here, y is a list of str,
         representing the full ROI row that has been broken up into
-        words and whitespace chunks."""
+        words and whitespace chunks. **NOT USED CURRENTLY**"""
 
         if y[0][0] != ' ' :
             # nothing to do in this case: the entry should be a
@@ -582,7 +576,7 @@ wlevel : str
 
 # ============================================================================
 
-def wrap_val_with_html_span(x, wlev='none'):
+def wrap_val_with_html_span(x, wlev='none', style='background'):
     """Take a column entry x, and either wrap it HTML-style in a
 background color (if the warning level wlev is high enough), or return
 it plainly as a string.  We use the same colormapping rules as main
@@ -597,6 +591,9 @@ x : str
 wlev : str
     the warning level associated with x, which determines if and what 
     color will be wrapped
+style : str
+    a keyword for the kind of coloration to add; valid args are:
+      'background', 'border', 'underline'
 
 Returns
 -------
@@ -616,8 +613,16 @@ sss : str
     
     # warning level *is* high enough to add color
     wcol = lahc.wlevel_colors[wlev]
-    sss = """<span style="background-color: {}">""".format(wcol)
-    sss+= """{}</span>""".format(x)
+    if style == 'background' :
+        sss = """<span style="background-color: {}">""".format(wcol)
+        sss+= """{}</span>""".format(x)
+    elif style == 'border' :
+        # this does not work well, shifts things
+        sss = """<span style="border-width:3px; border-style:solid; border-color: {}">""".format(wcol)
+        sss+= """{}</span>""".format(x)
+    elif style == 'underline' :
+        sss = """<u style="text-decoration-offset: 1px; text-decoration-thickness: 3px; text-decoration-color: {}">""".format(wcol)
+        sss+= """{}</u>""".format(x)
 
     return sss
 
@@ -720,10 +725,11 @@ def is_comp_roi_str_list_ok(L):
     if lstart != 'dset:' :
         ab.EP("Table must start with 'dset:', not {}".format(lstart))
 
-    # [3]rd row must start with 'Q'
-    lstart = L[3][0]
-    if lstart != 'Q' :
-        ab.EP("Line [3] must start with 'Q', not {}".format(lstart))
+    # [3]rd row must have 'R' (for 'ROI') as first non-whitespace char
+    lstart = L[3].split()[0][0]
+    if lstart != 'R' :
+        ab.EP("Line [3]'s first non-whitespace char must be 'R', "
+              "not {}".format(lstart))
 
     return 0
 
