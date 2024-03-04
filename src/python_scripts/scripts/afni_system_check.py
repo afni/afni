@@ -57,7 +57,7 @@ action options:
    -disp_R_ver_for_lib  : display the R version used when building an R library
                           - this refers to those installed by rPkgsInstall,
                             most likely under $R_LIBS
-   -disp_ver_afni       : display AFNI package version
+   -disp_ver_afni       : display AFNI package version (else "None")
    -disp_ver_matplotlib : display matplotlib version (else "None")
    -disp_ver_pylibs LIB LIB ... :
                           display versions of given python libraries (else NONE)
