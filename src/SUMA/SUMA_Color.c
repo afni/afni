@@ -7297,12 +7297,13 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
 
 int *boxThresholdOutline(SUMA_SurfaceObject *SO, int *numThresholdNodes){
     static char FuncName[]={"boxThresholdOutline"};
-    int o, i, j, k;
-    SUMA_OVERLAYS *overlay;
+    int i, j;
+    SUMA_OVERLAYS *overlay=NULL;
     float threshold;
     // float tolerance = 0.005;
     float tolerance = 0.05;
     int *output = NULL;
+    int  N_Neighb, *Neighb_ind, aboveThreshold, belowThreshold, neighbor;
     
     if (!SO || !(SO->Overlays) ) return NULL;
     
@@ -7325,12 +7326,12 @@ int *boxThresholdOutline(SUMA_SurfaceObject *SO, int *numThresholdNodes){
    
     threshold = overlay->OptScl->ThreshRange[0];
     for (i=0; i<SO->N_Node; ++i){
-        int N_Neighb = SO->FN->N_Neighb[i];
-        int *Neighb_ind = SO->FN->FirstNeighb[i];
-        int aboveThreshold = overlay->T[i]>=threshold;
-        int belowThreshold = overlay->T[i]<=threshold;
+        N_Neighb = SO->FN->N_Neighb[i];
+        Neighb_ind = SO->FN->FirstNeighb[i];
+        aboveThreshold = overlay->T[i]>=threshold;
+        belowThreshold = overlay->T[i]<=threshold;
         for (j = 0; j<N_Neighb; ++j){
-            int neighbor = Neighb_ind[j];
+            neighbor = Neighb_ind[j];
             if (overlay->T[neighbor]>=threshold) ++aboveThreshold;
             else if (overlay->T[neighbor]<=threshold) ++belowThreshold;
         }
