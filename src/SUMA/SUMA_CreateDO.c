@@ -11098,7 +11098,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
                }
             }
          }
-         if (msk){ SUMA_free(msk); }  
+         if (msk){ SUMA_free(msk); }
          msk = NULL;
       }
       glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
@@ -11110,7 +11110,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
    SUMA_ifree(colid); SUMA_ifree(colidballs);
    glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity */
    glLineWidth(origwidth);
-   if (mask) { SUMA_free(mask); } 
+   if (mask) { SUMA_free(mask); }
    mask=NULL;
 
    SUMA_RETURN (YUP);
@@ -17560,7 +17560,7 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       SUMA_LH("Nothing to do, returning");
       SUMA_RETURNe;
    }
-   
+
    if (!SurfObj->DW->DrwPtchs) {
       SUMA_S_Err("Should not have null DrwPtchs at this point");
       SUMA_RETURNe;
@@ -17964,13 +17964,13 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_ENTRY;
 
    SUMA_LH("Entered DrawMesh");
-   
+
    if (LocalHead) {
       SUMA_EnablingRecord SER;
       SUMA_RecordEnablingState(&SER, SurfObj->Label);
       SUMA_DiffEnablingState(&SER, NULL, NULL, NULL);
    }
-   
+
    if (  SurfObj->PolyMode == SRM_Hide ||
          sv->PolyMode == SRM_Hide ||
          SurfObj->TransMode == STM_16 ||
@@ -18164,7 +18164,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          if (LocalHead)
             fprintf(stdout, "Ready to draw Elements %d from %s\n",
 	             N_glar_FaceSet, SurfObj->Label);
-	             
+
          switch (RENDER_METHOD) {
             case TRIANGLES:
                SUMA_LH("Tri %d %p",NP, SurfObj->glar_FaceSetList);

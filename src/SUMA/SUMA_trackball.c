@@ -1,11 +1,11 @@
 #include "SUMA_suma.h"
 
-extern SUMA_CommonFields *SUMAg_CF; 
+extern SUMA_CommonFields *SUMAg_CF;
 
 /* Copyright (c) Mark J. Kilgard, 1996. */
 
-/* This program is freely distributable without licensing fees 
-   and is provided without guarantee or warrantee expressed or 
+/* This program is freely distributable without licensing fees
+   and is provided without guarantee or warrantee expressed or
    implied. This program is -not- in the public domain. */
 
 /* This size should really be based on the distance from the
@@ -164,7 +164,7 @@ trackball_Phi(float q[4], float p1x, float p1y, float p2x, float p2y, float phi)
       t = -1.0;
       phi = 2.0 * asin(t);
   }
-  
+
   axis_to_quat(a, phi, q);
 }
 
@@ -264,7 +264,7 @@ SUMA_build_rotmatrix(GLfloat m[4][4], float q[4])
 {
 	static char FuncName[]={"SUMA_build_rotmatrix"};
 	SUMA_Boolean LocalHead = NOPE;
-	
+
 	SUMA_ENTRY;
 	m[0][0] = 1.0 - 2.0 * (q[1] * q[1] + q[2] * q[2]);
 	m[0][1] = 2.0 * (q[0] * q[1] - q[2] * q[3]);
@@ -285,6 +285,6 @@ SUMA_build_rotmatrix(GLfloat m[4][4], float q[4])
 	m[3][1] = 0.0;
 	m[3][2] = 0.0;
 	m[3][3] = 1.0;
-	
+
 	SUMA_RETURNe;
 }

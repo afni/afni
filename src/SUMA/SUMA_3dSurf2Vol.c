@@ -423,7 +423,7 @@ ENTRY("s2v_nodes2volume");
                 /* warn user if integral output exceeds datum */
                 if ( have_ints && sopt->debug > 0 )
                    fprintf(stderr,"** integral output exceeds max datum val\n"
-                                  "   %g > %g\n", 
+                                  "   %g > %g\n",
                                       amax, MRI_TYPE_maxval[sopt->datum]);
             }
             else if ( have_ints )                        /* don't need scale */
@@ -835,12 +835,12 @@ int default_map_datum( int map_func )
        case E_SMAP_NZ_AVE:
        case E_SMAP_MEDIAN:
        case E_SMAP_NZ_MEDIAN: return MRI_float;
-      
+
        /* expected short: likely for MODE, but does not need to be */
        case E_SMAP_COUNT:
        case E_SMAP_MODE:
        case E_SMAP_NZ_MODE:   return MRI_short;
-      
+
        /* output is same as input, just assume float */
        case E_SMAP_MIN:
        case E_SMAP_MAX:

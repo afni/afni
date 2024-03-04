@@ -1,13 +1,13 @@
 #include "SUMA_suma.h"
 
 void usage_SUMA_FScurv_to_1D_Main ()
-   
+
   {/*Usage*/
       static char FuncName[]={"usage_FScurv_to_1D"};
       char * s = NULL;
-      
+
       SUMA_ENTRY;
-      
+
           printf ("\n"
                   "Usage:  FScurv_to_1D [-skip_coords] [-output outfile] -input curv_name.asc  \n"
                   "   Reads in a FreeSurfer curvature file and writes it out in 1D format. \n"
@@ -27,7 +27,7 @@ void usage_SUMA_FScurv_to_1D_Main ()
        printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
        exit (0);
   }/*Usage*/
-   
+
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"FScurv_to_1D"};
@@ -37,15 +37,15 @@ int main (int argc,char *argv[])
    char *fname = NULL;
    FILE *outfile=NULL;
    SUMA_Boolean SkipCoords = NOPE, brk, rowmajor;
-   SUMA_Boolean LocalHead = NOPE;	
-   
+   SUMA_Boolean LocalHead = NOPE;
+
 	/* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();
 	if (SUMAg_CF == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
 		exit(1);
 	}
-   
+
    /* parse command line */
    kar = 1;
    outname = NULL;
@@ -84,12 +84,12 @@ int main (int argc,char *argv[])
       if (!brk) {
 			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
    }
-   
+
    if (!fname) {
       SUMA_SL_Err("No input file specified.");
       exit(1);
@@ -110,14 +110,14 @@ int main (int argc,char *argv[])
          exit(1);
       }
    }
-   
+
    /* do the deed */
-   v = SUMA_readFScurv (fname, &nrows, &ncols, rowmajor, SkipCoords);   
+   v = SUMA_readFScurv (fname, &nrows, &ncols, rowmajor, SkipCoords);
    if (!v) {
       SUMA_SL_Err("Failed in SUMA_readFScurv");
       exit(1);
    }
-   
+
    if (rowmajor) {
       for (i=0; i<nrows; ++i) {
          id = ncols * i;
@@ -133,12 +133,12 @@ int main (int argc,char *argv[])
          fprintf(outfile,"\n");
       }
    }
-   
+
    if (outname) {
       fclose (outfile); outfile = NULL;
       SUMA_free(outname); outname = NULL;
    }
    SUMA_free(v); v = NULL;
-   
+
    exit(0);
 }

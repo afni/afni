@@ -4108,10 +4108,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L\Q",
                               NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
                }
-               if (!sv) sv = &(SUMAg_SVv[0]); 
+               if (!sv) sv = &(SUMAg_SVv[0]);
                SO = SUMA_SV_Focus_SO(sv);
                SO->SurfCont->alphaOpacityModel = SurfCont->alphaOpacityModel;
-   
+
                // Refresh display
                SUMA_Remixedisplay(ado);
                SUMA_UpdateNodeLblField(ado);

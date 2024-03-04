@@ -7,7 +7,7 @@
       If BUILD_WITHOUT_SUMA, compile as a standalone that does not
       depend on SUMA.
       In this case, one should be able to compile using something like:
-     
+
          gcc -DBUILD_WITHOUT_SUMA -o IlikeJello  \
              SUMA_test_DrawingAreaWidget.c -I/usr/include/GL -lGLw
     * ----------------------------------------------------------------- */
@@ -19,7 +19,7 @@
 
    /* -----------------------------------------------------------------
       By default, compile as a normal SUMA program.
-     
+
          make SUMA_test_DrawingAreaWidget
     * ----------------------------------------------------------------- */
 

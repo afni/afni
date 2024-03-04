@@ -4211,7 +4211,7 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name_in, SUMA_SurfaceObject *SO)
 
    for (i = 0; i < nfaces; i++) {
 // ****  removed intensity property, github issue. mod drg - 04 May 2023
-//      faces[i].intensity = '\001';  
+//      faces[i].intensity = '\001';
       faces[i].nverts = SO->FaceSetDim;
       faces[i].verts = &(SO->FaceSetList[SO->FaceSetDim*i]);
    }

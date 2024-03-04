@@ -38,7 +38,7 @@ int main (int argc,char *argv[])
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_mainENTRY;
-   
+
    /* allocate space for CommonFields structure */
    SUMAg_CF = SUMA_Create_CommonFields ();
    if (SUMAg_CF == NULL) {
@@ -46,13 +46,13 @@ int main (int argc,char *argv[])
          "Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
       exit(1);
    }
-   
+
    if (argc < 3)
    {
       usage_SUMA_inspec ();
       exit (0);
    }
-   
+
    kar = 1;
    brk = NOPE;
    detail = -1;
@@ -83,7 +83,7 @@ int main (int argc,char *argv[])
          spec_name = argv[kar];
 
          if (!SUMA_filexists(spec_name)) {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      "File %s not found or not readable.\n", spec_name);
             exit(1);
          }
@@ -110,7 +110,7 @@ int main (int argc,char *argv[])
          spec_name = argv[kar]; kar ++;
          spec_name_right = argv[kar];
          if (!SUMA_filexists(spec_name)) {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      "File %s not found or not readable.\n", spec_name);
             exit(1);
          }
@@ -136,13 +136,13 @@ int main (int argc,char *argv[])
 
          brk = YUP;
       }
-      
+
       if (!brk) {
          fprintf (SUMA_STDERR,
-                  "Error %s: Option %s not understood. Try -help for usage\n", 
+                  "Error %s: Option %s not understood. Try -help for usage\n",
                   FuncName, argv[kar]);
          exit (1);
-      } else { 
+      } else {
          brk = NOPE;
          kar ++;
       }

@@ -71,7 +71,7 @@ int main (int argc,char *argv[])
    SUMA_Boolean brk;
 
    SUMA_mainENTRY;
-   
+
    /* allocate space for CommonFields structure */
    SUMAg_CF = SUMA_Create_CommonFields ();
    if (SUMAg_CF == NULL) {
@@ -79,7 +79,7 @@ int main (int argc,char *argv[])
                "Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
       exit(1);
    }
-   
+
    ps = SUMA_Parse_IO_Args(argc, argv, "-t;");
 
    if (argc < 3)
@@ -108,7 +108,7 @@ int main (int argc,char *argv[])
          }
          spec_name = argv[kar];
          if (!THD_ok_overwrite() && SUMA_filexists(spec_name)) {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                "File %s exists, choose another one.\n", spec_name);
             exit(1);
          }
@@ -148,7 +148,7 @@ int main (int argc,char *argv[])
          State[N_surf] = NULL;
          Anat[N_surf] = 'Y';
          LDP[N_surf] = NULL;
-         ++N_surf; 
+         ++N_surf;
          brk = YUP;
       }
       if (!brk && (strcmp(argv[kar], "-tsn") == 0)) {
@@ -171,7 +171,7 @@ int main (int argc,char *argv[])
          /* get the state */
          kar ++;
          if (kar >= argc)  {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      "STATE argument must follow TYPE with -tsn \n");
             exit (1);
          }
@@ -194,10 +194,10 @@ int main (int argc,char *argv[])
 
          Anat[N_surf] = 'Y';
          LDP[N_surf] = NULL;
-         ++N_surf; 
+         ++N_surf;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-tsnad") == 0)) {
          if (N_surf >= SUMA_MAX_N_SURFACE_SPEC) {
             SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
@@ -218,7 +218,7 @@ int main (int argc,char *argv[])
          /* get the state */
          kar ++;
          if (kar >= argc)  {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      "STATE argument must follow TYPE with -tsnad \n");
             exit (1);
          }
@@ -243,7 +243,7 @@ int main (int argc,char *argv[])
          /* get the anatomical flag */
          kar ++;
          if (kar >= argc)  {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      "Anatomical flag must follow NAME with -tsnad \n");
             exit (1);
          }
@@ -255,16 +255,16 @@ int main (int argc,char *argv[])
          /* get the LDP */
          kar ++;
          if (kar >= argc)  {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                  "LocalDomainParent must follow Anatomical flag with -tsnad \n");
             exit (1);
          }
          LDP[N_surf] = argv[kar];
-         
-         ++N_surf; 
+
+         ++N_surf;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-tsnadm") == 0)) {
          if (N_surf >= SUMA_MAX_N_SURFACE_SPEC) {
             SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
@@ -285,7 +285,7 @@ int main (int argc,char *argv[])
          /* get the state */
          kar ++;
          if (kar >= argc)  {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      "STATE argument must follow TYPE with -tsnad \n");
             exit (1);
          }
@@ -310,7 +310,7 @@ int main (int argc,char *argv[])
          /* get the anatomical flag */
          kar ++;
          if (kar >= argc)  {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      "Anatomical flag must follow NAME with -tsnad \n");
             exit (1);
          }
@@ -322,7 +322,7 @@ int main (int argc,char *argv[])
          /* get the LDP */
          kar ++;
          if (kar >= argc)  {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                  "LocalDomainParent must follow Anatomical flag with -tsnad \n");
             exit (1);
          }
@@ -331,15 +331,15 @@ int main (int argc,char *argv[])
          /* get the nodeMarker */
          kar ++;
          if (kar >= argc)  {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                  "LocalDomainParent must follow Anatomical flag with -tsnad \n");
             exit (1);
          }
          MARK[N_surf] = argv[kar];
-         ++N_surf; 
+         ++N_surf;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-tsnadl") == 0)) {
          if (N_surf >= SUMA_MAX_N_SURFACE_SPEC) {
             SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
@@ -360,7 +360,7 @@ int main (int argc,char *argv[])
          /* get the state */
          kar ++;
          if (kar >= argc)  {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      "STATE argument must follow TYPE with -tsnad \n");
             exit (1);
          }
@@ -385,7 +385,7 @@ int main (int argc,char *argv[])
          /* get the anatomical flag */
          kar ++;
          if (kar >= argc)  {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      "Anatomical flag must follow NAME with -tsnad \n");
             exit (1);
          }
@@ -397,7 +397,7 @@ int main (int argc,char *argv[])
          /* get the LDP */
          kar ++;
          if (kar >= argc)  {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                  "LocalDomainParent must follow Anatomical flag with -tsnad \n");
             exit (1);
          }
@@ -406,21 +406,21 @@ int main (int argc,char *argv[])
          /* get the nodeMarker */
          kar ++;
          if (kar >= argc)  {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                  "LocalDomainParent must follow Anatomical flag with -tsnad \n");
             exit (1);
          }
          LABEL[N_surf] = argv[kar];
-         ++N_surf; 
+         ++N_surf;
          brk = YUP;
       }
-      
+
       if (!brk) {
          fprintf (SUMA_STDERR,
-                  "Error %s: Option %s not understood. Try -help for usage\n", 
+                  "Error %s: Option %s not understood. Try -help for usage\n",
                   FuncName, argv[kar]);
          exit (1);
-      } else { 
+      } else {
          brk = NOPE;
          kar ++;
       }

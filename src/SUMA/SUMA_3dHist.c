@@ -24,7 +24,7 @@ static char shelp_Hist[] = {
 "   -dind SB: Use sub-brick SB from the input rather than 0\n"
 "   -mask MSET: Provide mask dataset to select subset of input.\n"
 "   -mask_range BOT TOP: Specify the range of values to consider from MSET.\n"
-"                        Default is anything non-zero\n" 
+"                        Default is anything non-zero\n"
 "   -cmask CMASK: Provide cmask expression. Voxels where expression is 0\n"
 "                 are excluded from computations. For example:\n"
 "            -cmask '-a T1.div.r+orig -b T1.uni.r+orig -expr step(a/b-10)'\n"
@@ -98,26 +98,26 @@ static char shelp_Hist[] = {
 };
 
 
-void Hist_usage(int detail) 
+void Hist_usage(int detail)
 {
    int i = 0;
-   
+
    ENTRY("Hist_usage");
-   
-   
+
+
    printf( "%s", shelp_Hist );
-   PRINT_COMPILE_DATE ; 
+   PRINT_COMPILE_DATE ;
    exit(0);
 }
 
-SEG_OPTS *Hist_Default(char *argv[], int argc) 
+SEG_OPTS *Hist_Default(char *argv[], int argc)
 {
    SEG_OPTS *Opt=NULL;
-   
+
    ENTRY("Hist_Default");
-   
+
    Opt = SegOpt_Struct();
-   
+
    Opt->helpfunc = &Hist_usage;
    Opt->ps = SUMA_Parse_IO_Args(argc, argv, "-talk;");
    Opt->mset_name = NULL;
@@ -169,39 +169,39 @@ SEG_OPTS *Hist_Default(char *argv[], int argc)
    Opt->this_xset_name=NULL;
    Opt->smode = 0;
    Opt->N_biasgroups = 0;
-   Opt->binwidth = 0; 
-   Opt->UseTmp = 0; 
+   Opt->binwidth = 0;
+   Opt->UseTmp = 0;
    Opt->range[0] = -9876543.0;
    Opt->range[1] = -9876543.0;
    Opt->bias_meth = NULL;
    SUMA_RETURN(Opt);
 }
 
-int Hist_CheckOpts(SEG_OPTS *Opt) 
+int Hist_CheckOpts(SEG_OPTS *Opt)
 {
    static char FuncName[]={"Hist_CheckOpts"};
-   
+
    SUMA_ENTRY;
-   
+
    if (  !Opt->sig_name   && !Opt->proot) {
       SUMA_S_Err("Missing input");
       SUMA_RETURN(0);
    }
-   
+
    SUMA_RETURN(1);
 }
 char ALL_GETS[]={"bin, count, freq, cdf, ncdf, rcdf, nrcdf, outl"};
 
 SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 {
-   static char FuncName[]={"Hist_ParseInput"}; 
+   static char FuncName[]={"Hist_ParseInput"};
    int kar, i, ind, exists;
    char *outname, cview[10];
    int brk = 0;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
 
    SUMA_ENTRY;
-   
+
    brk = 0;
    Opt->f1 = -1.0;
    kar = 1;
@@ -211,20 +211,20 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			 Opt->helpfunc(0);
           exit (0);
 		}
-      
+
  		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-     
+
       #ifdef USE_TRACING
             if( strncmp(argv[kar],"-trace",5) == 0 ){
                DBG_trace = 1 ;
                brk = 1 ;
             }
-            if( strncmp(argv[kar],"-TRACE",5) == 0 ){  
+            if( strncmp(argv[kar],"-TRACE",5) == 0 ){
                DBG_trace = 2 ;
                brk = 1 ;
             }
       #endif
-      
+
       if (!brk && (strcmp(argv[kar], "-debug") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -233,14 +233,14 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
 			Opt->debug = atoi(argv[kar]);
          brk = 1;
-		}      
-      
+		}
+
       if (!brk && (strcmp(argv[kar], "-quiet") == 0)) {
 			Opt->verbose = 0;
          brk = 1;
-		}      
-      
-     
+		}
+
+
       if (!brk && (strcmp(argv[kar], "-cmask") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -250,7 +250,7 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          if( Opt->cmask == NULL ) ERROR_exit("Can't compute -cmask!\n");
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-mask") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -259,8 +259,8 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
 			Opt->mset_name = argv[kar];
          brk = 1;
-      }      
-      
+      }
+
       if( !brk && (strncmp(argv[kar],"-mrange",5) == 0) ){
          if( kar+2 >= argc )
            ERROR_exit("-mrange option requires 2 following arguments!\n");
@@ -270,22 +270,22 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
            ERROR_exit("-mrange inputs are illegal!\n") ;
          brk = 1;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-input") == 0)) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (stderr, "need argument after -input \n");
 				exit (1);
 			}
-			while (kar < argc && argv[kar][0] != '-') { 
-            Opt->sig_name = 
+			while (kar < argc && argv[kar][0] != '-') {
+            Opt->sig_name =
                SUMA_append_replace_string(Opt->sig_name, argv[kar], " ", 1);
             ++kar;
          }
          if (kar < argc && argv[kar][0] == '-') --kar; /* unwind */
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-rhist") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -295,7 +295,7 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->ndist_name = argv[kar];
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-nbin") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -304,8 +304,8 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
 			Opt->UseTmp = atoi(argv[kar]);
          brk = 1;
-		}      
-      
+		}
+
       if (!brk && (strcmp(argv[kar], "-binwidth") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -314,8 +314,8 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
 			Opt->binwidth = atof(argv[kar]);
          brk = 1;
-		}      
-      
+		}
+
       if (!brk && (strcmp(argv[kar], "-min") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -324,8 +324,8 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
 			Opt->range[0] = atof(argv[kar]);
          brk = 1;
-		}      
-      
+		}
+
       if (!brk && (strcmp(argv[kar], "-voxvol") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -334,8 +334,8 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
 			Opt->f1 = atof(argv[kar]);
          brk = 1;
-		}      
-      
+		}
+
       if (!brk && (strcmp(argv[kar], "-max") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -344,8 +344,8 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
 			Opt->range[1] = atof(argv[kar]);
          brk = 1;
-		}      
-      
+		}
+
       if( !brk && (strncmp(argv[kar],"-range",5) == 0) ){
          if( kar+2 >= argc )
            ERROR_exit("-range option requires 2 following arguments!\n");
@@ -355,7 +355,7 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
            ERROR_exit("-range inputs are illegal!\n") ;
          brk = 1;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-at") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -364,8 +364,8 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
 			Opt->wA = atof(argv[kar]);
          brk = 1;
-		}      
-      
+		}
+
       if (!brk && (strcmp(argv[kar], "-dind") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -374,8 +374,8 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
 			Opt->N_biasgroups = atoi(argv[kar]);
          brk = 1;
-		}      
-      
+		}
+
       if (!brk && (strcmp(argv[kar], "-get") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -392,7 +392,7 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          }
          brk = 1;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-val_at") == 0)) {
          kar ++;
 			if (kar+1 >= argc)  {
@@ -413,7 +413,7 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          Opt->wL = atof(argv[kar]);
          brk = 1;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-showhist") == 0)) {
 			Opt->DO_r = TRUE;
          brk = 1;
@@ -422,7 +422,7 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->smode = 1;
          brk = 1;
 		}
-            
+
       if (!brk && (strcmp(argv[kar], "-thishist") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -432,7 +432,7 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->proot = argv[kar];
          brk = 1;
 		}
-            
+
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -443,7 +443,7 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          strcpy(Opt->prefix, argv[kar]); Opt->prefix[strlen(argv[kar])]='\0';
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-equalized") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -454,20 +454,20 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          strcpy(Opt->crefix, argv[kar]); Opt->crefix[strlen(argv[kar])]='\0';
          brk = 1;
 		}
-      
-      
+
+
       if (!brk) {
 			fprintf (stderr,"Option %s not understood. \n"
                          "Try -help for usage\n", argv[kar]);
 			suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
+		} else {
 			brk = 0;
 			kar ++;
 		}
 
    }
-   
+
    if (!Opt->prefix) Opt->prefix = strdup("./HistOut");
    if (Opt->uid[0]=='\0') UNIQ_idcode_fill(Opt->uid);
    if (Opt->VoxDbg > -1 && !Opt->VoxDbgOut) {
@@ -475,7 +475,7 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
       sprintf(stmp,"%d.GP.dbg", Opt->VoxDbg);
       Opt->VoxDbgOut = fopen(stmp,"w");
    }
-   
+
 
    SUMA_RETURN(Opt);
 }
@@ -491,16 +491,16 @@ int main(int argc, char **argv)
 
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
-   
+
    SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    Opt = Hist_Default(argv,  argc);
    Opt = Hist_ParseInput (Opt, argv,  argc);
-   
+
    if (!Hist_CheckOpts(Opt)) {
       ERROR_exit("Failed on option check");
    }
-   
-   
+
+
    if (Opt->proot) { /* get this hist */
       hh = SUMA_read_hist(Opt->proot);
    } else {
@@ -508,21 +508,21 @@ int main(int argc, char **argv)
          rhh = SUMA_read_hist(Opt->ndist_name);
          Opt->bias_meth = "NONE";
       }
-      /* load the input data */   
-      if (Opt->sig_name && !(Opt->sig = Seg_load_dset( Opt->sig_name ))) {      
+      /* load the input data */
+      if (Opt->sig_name && !(Opt->sig = Seg_load_dset( Opt->sig_name ))) {
          SUMA_S_Errv("Failed to load input %s\n", Opt->sig_name);
          exit(1);
       }
 
       if (Opt->mset_name) {
-         if (!(Opt->mset = Seg_load_dset( Opt->mset_name ))) {      
+         if (!(Opt->mset = Seg_load_dset( Opt->mset_name ))) {
             exit(1);
          }
       }
 
       if (Opt->sig) {
          Opt->cmask = MaskSetup(Opt, Opt->sig, 1,
-                   &(Opt->mset), &(Opt->cmask), Opt->dimcmask, 
+                   &(Opt->mset), &(Opt->cmask), Opt->dimcmask,
                    Opt->mask_bot, Opt->mask_top, &(Opt->cmask_count));
       }
 
@@ -536,29 +536,29 @@ int main(int argc, char **argv)
             if (Opt->UseTmp > 0) rhh->K = Opt->UseTmp;
             if (Opt->binwidth != 0.0) rhh->W = Opt->binwidth;
             if ((int)Opt->range[0] != -9876543) rhh->min = Opt->range[0];
-            if ((int)Opt->range[1] != -9876543) rhh->max = Opt->range[1];  
+            if ((int)Opt->range[1] != -9876543) rhh->max = Opt->range[1];
          }  else {
             rhh = (SUMA_HIST *)SUMA_calloc(1, sizeof(SUMA_HIST));
             rhh->K = Opt->UseTmp;
             rhh->W = Opt->binwidth;
             if ((int)Opt->range[0] != -9876543) rhh->min = Opt->range[0];
                else rhh->min = 0.0;
-            if ((int)Opt->range[1] != -9876543) rhh->max = Opt->range[1];  
+            if ((int)Opt->range[1] != -9876543) rhh->max = Opt->range[1];
                else rhh->max = 0.0;
          }
          if (Opt->range[0] > Opt->range[1]) {
-            SUMA_S_Err ("Bad manual range values," 
+            SUMA_S_Err ("Bad manual range values,"
                         "both min and max must be specified");
             exit(1);
-         }  
+         }
       }
       /* Create the hist */
-      if (!(hh = SUMA_dset_hist(Opt->sig, Opt->N_biasgroups, 
+      if (!(hh = SUMA_dset_hist(Opt->sig, Opt->N_biasgroups,
                            Opt->cmask, DSET_PREFIX(Opt->sig), rhh,
                            Opt->smode, 0.0, Opt->bias_meth))) {
          SUMA_S_Errv("Failed to create histogram from %s\n",
                      DSET_PREFIX(Opt->sig));
-         exit(1);                    
+         exit(1);
       }
       if (Opt->prefix) {
          if (!SUMA_write_hist(hh, Opt->prefix)) {
@@ -569,12 +569,12 @@ int main(int argc, char **argv)
 
       }
    }
-   
+
    if (!hh) {
       SUMA_S_Err("No Hist, Can't Travel.\n");
       exit(1);
    }
-   
+
    if (Opt->crefix) {
       THD_3dim_dataset *dout=NULL;
       SUMA_LH("Equalizing");
@@ -585,17 +585,17 @@ int main(int argc, char **argv)
       EDIT_dset_items( dout , ADN_prefix,  Opt->crefix,  ADN_none ) ;
       tross_Copy_History( Opt->sig , dout ) ;
       tross_Make_History( "3dHist" , argc,argv , dout ) ;
-      
+
       DSET_write(dout);
       DSET_delete(dout); dout=NULL;
    }
-   
+
 
    if (Opt->DO_r) {
       SUMA_Show_hist(hh, 0, NULL);
    }
-   
-   
+
+
    if (Opt->wA != -123456999.0) {
       if (!Opt->feats) {
          Opt->feats = NI_strict_decode_string_list(ALL_GETS, ";, ");
@@ -629,39 +629,39 @@ int main(int argc, char **argv)
                Opt->feats->str[ii], vv);
          } else {
             fprintf(stdout,"  %8s: %f\n",
-               Opt->feats->str[ii], 
+               Opt->feats->str[ii],
                SUMA_hist_value(hh, Opt->wA, Opt->feats->str[ii]));
          }
       }
    }
-   
+
    if (Opt->wL != -123456999.0) {
-      if (!Opt->this_xset_name || !strcmp(Opt->this_xset_name, "rcdf")) { 
-         if (Opt->verbose) 
+      if (!Opt->this_xset_name || !strcmp(Opt->this_xset_name, "rcdf")) {
+         if (Opt->verbose)
             fprintf(stdout,"Val: %f at %s: %f\n",
                      SUMA_val_at_count(hh, Opt->wL, 0, 1),
-                     Opt->this_xset_name, Opt->wL); 
-         else 
+                     Opt->this_xset_name, Opt->wL);
+         else
             fprintf(stdout,"%f\n", SUMA_val_at_count(hh, Opt->wL, 0, 1));
       } else if (!strcmp(Opt->this_xset_name, "cdf")) {
-         if (Opt->verbose) 
+         if (Opt->verbose)
             fprintf(stdout,"Val: %f at %s: %f\n",
                      SUMA_val_at_count(hh, Opt->wL, 0, 0),
-                     Opt->this_xset_name, Opt->wL); 
-         else 
+                     Opt->this_xset_name, Opt->wL);
+         else
             fprintf(stdout,"%f\n", SUMA_val_at_count(hh, Opt->wL, 0, 0));
       } else if (!strcmp(Opt->this_xset_name, "ncdf")) {
-         if (Opt->verbose) 
+         if (Opt->verbose)
             fprintf(stdout,"Val: %f at %s: %f\n",
                      SUMA_val_at_count(hh, Opt->wL, 1, 0),
-                     Opt->this_xset_name, Opt->wL); 
-         else 
+                     Opt->this_xset_name, Opt->wL);
+         else
             fprintf(stdout,"%f\n", SUMA_val_at_count(hh, Opt->wL, 1, 0));
       } else if (!strcmp(Opt->this_xset_name, "nrcdf")) {
-         if (Opt->verbose) 
+         if (Opt->verbose)
             fprintf(stdout,"Val: %f at %s: %f\n",
                      SUMA_val_at_count(hh, Opt->wL, 1, 1),
-                     Opt->this_xset_name, Opt->wL); 
+                     Opt->this_xset_name, Opt->wL);
          else
             fprintf(stdout,"%f\n", SUMA_val_at_count(hh, Opt->wL, 1, 1));
       } else if (!strcmp(Opt->this_xset_name, "upvol")) {
@@ -682,19 +682,19 @@ int main(int argc, char **argv)
             exit(1);
          }
          voxthr = SUMA_val_at_count(hh, Opt->wL*1.0e6/Opt->f1, 0, 1);
-         if (Opt->verbose) 
+         if (Opt->verbose)
             fprintf(stdout,"Val: %f at %s: %f\n",
                      voxthr,
-                     Opt->this_xset_name, Opt->wL); 
+                     Opt->this_xset_name, Opt->wL);
          else
             fprintf(stdout,"%f\n", voxthr);
       }
-   }   
-   
+   }
+
    /* all done, free */
    Opt = free_SegOpts(Opt);
    if (rhh) SUMA_Free_hist(rhh);
    if (hh) SUMA_Free_hist(hh);
-   
+
    exit(0);
 }

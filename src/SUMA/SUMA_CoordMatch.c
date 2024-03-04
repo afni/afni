@@ -1,8 +1,8 @@
 #include "SUMA_suma.h"
 
-static char names[12][8]={"Dx", "Dy", "Dz", 
-                          "Rx", "Ry", "Rz", 
-                          "Kx", "Ky", "Kz", 
+static char names[12][8]={"Dx", "Dy", "Dz",
+                          "Rx", "Ry", "Rz",
+                          "Kx", "Ky", "Kz",
                           "Sx", "Sy", "Sz"};
 
 typedef struct {
@@ -31,14 +31,14 @@ void SUMA_free_cmoud() {
 
 void SUMA_set_cmoud(SUMA_SurfaceObject *SOr,
                     float *xyz, int N_xyz,
-                    byte *cmask, 
+                    byte *cmask,
                     double *aff, byte *affm,
                     int method, byte city) {
    static char FuncName[]={"SUMA_set_cmoud"};
-   
+
    SUMA_ENTRY;
 
-   
+
    SUMA_free_cmoud();
    cmoud.SOr = SOr;
    cmoud.xyz = xyz;
@@ -52,7 +52,7 @@ void SUMA_set_cmoud(SUMA_SurfaceObject *SOr,
    cmoud.N_XYZ=-1;
    cmoud.cost = 0.0;
    cmoud.city=city;
-   
+
    if (debug) {
       fprintf(stderr,"Have surface %s and %d points in xyz vector\n",
                      SOr->Label, N_xyz);
@@ -69,17 +69,17 @@ double SUMA_CoordMatchEnergy(SUMA_SurfaceObject *SOr,
    static char FuncName[]={"SUMA_CoordMatchEnergy"};
    double ener=0.0;
    int pp=0;
-   
+
    SUMA_ENTRY;
-   
+
    if (!SUMA_Shortest_Point_To_Triangles_Distance(
-            xyz, N_xyz, 
+            xyz, N_xyz,
             SOr->NodeList, SOr->FaceSetList, SOr->N_FaceSet,
             SOr->FaceNormList, &dist, NULL, NULL, city )) {
          SUMA_S_Err("Failed to get shortys");
-         SUMA_RETURN(ener);     
+         SUMA_RETURN(ener);
    }
-   
+
    ener=0.0;
    for (pp=0; pp<N_xyz; ++pp) {
       if (dist[pp]<0) {
@@ -87,7 +87,7 @@ double SUMA_CoordMatchEnergy(SUMA_SurfaceObject *SOr,
                         dist[pp], pp);
          dist[pp]=SUMA_ABS(dist[pp]);
       }
-      if (city) ener += (dist[pp]); 
+      if (city) ener += (dist[pp]);
       else ener += sqrt(dist[pp]);
       dist[pp] = -1.0; /* reinitialize for next call */
    }
@@ -95,9 +95,9 @@ double SUMA_CoordMatchEnergy(SUMA_SurfaceObject *SOr,
       fprintf(stderr,"ener = %f/%d\n", ener, N_xyz);
    #endif
    ener/=(double)N_xyz;
-   
-   SUMA_RETURN(ener);   
-} 
+
+   SUMA_RETURN(ener);
+}
 
 #define ADD_SHIFT(par, mat) { \
    mat[0][3]+=par[0];   \
@@ -111,7 +111,7 @@ double SUMA_CoordMatchEnergy(SUMA_SurfaceObject *SOr,
    m_dd[2][0]=0.0;          m_dd[2][1]=sin(par[0]);    m_dd[2][2]= cos(par[0]);\
    SUMA_MULT_MAT(mat,m_dd, m_m,3,3,3,double,double,double); \
    COPY_MAT33(mat,m_m); \
-}   
+}
 #define ADD_ROTY(par, mat) {  \
    static double m_dd[3][3],  m_m[3][3];   \
    m_dd[0][0]=1.0;          m_dd[0][1]=0.0;            m_dd[0][2]=0.0;  \
@@ -119,7 +119,7 @@ double SUMA_CoordMatchEnergy(SUMA_SurfaceObject *SOr,
    m_dd[2][0]=0.0;          m_dd[2][1]=sin(par[0]);    m_dd[2][2]= cos(par[0]);\
    SUMA_MULT_MAT(mat,m_dd, m_m,3,3,3,double,double,double);  \
    COPY_MAT33(mat,m_m); \
-}   
+}
 #define ADD_ROTZ(par, mat) {  \
    static double m_dd[3][3], m_m[3][3];   \
    m_dd[0][0]=cos(par[0]);  m_dd[0][1]=-sin(par[0]);   m_dd[0][2]=0.0;  \
@@ -222,9 +222,9 @@ double SUMA_CoordMatchEnergy(SUMA_SurfaceObject *SOr,
 int SUMA_par2mat(double *par12, double mat[4][4])
 {
    static char FuncName[]={"SUMA_par2mat"};
-   
+
    SUMA_ENTRY;
-   
+
    /* all masked parameters should be left to 0 */
    INIT_MAT(mat);
 
@@ -240,14 +240,14 @@ int SUMA_par2mat(double *par12, double mat[4][4])
    #endif
    /* load the shift */
    ADD_SHIFT(par12,mat);
-      
+
    if (debug > 1) {
       SHOW_MAT(mat, "par2mat");
    }
    SUMA_RETURN(1);
 }
 
-double SUMA_CoordMatch_OptimCost(int n, double *par) 
+double SUMA_CoordMatch_OptimCost(int n, double *par)
 {
    static char FuncName[]={"SUMA_CoordMatch_OptimCost"};
    static int iter;
@@ -255,9 +255,9 @@ double SUMA_CoordMatch_OptimCost(int n, double *par)
    double x, y, z;
    double mat[4][4];
    char *s=NULL;
-   
+
    SUMA_ENTRY;
-   
+
    /* put parameters into cs */
    for (i=0, k=0; i<12; ++i) {
       if (cmoud.affm[i]) cmoud.aff[i] = par[k++];
@@ -268,28 +268,28 @@ double SUMA_CoordMatch_OptimCost(int n, double *par)
                      i, cmoud.affm[i], i, cmoud.aff[i]);
       }
    }
-   
+
    /* form the affine matrix from 12 parameters*/
    SUMA_par2mat(cmoud.aff, mat);
-   
-   if (!cmoud.XYZ) 
-      cmoud.XYZ = (float *)SUMA_malloc(3*cmoud.N_xyz* sizeof(float)); 
-   
+
+   if (!cmoud.XYZ)
+      cmoud.XYZ = (float *)SUMA_malloc(3*cmoud.N_xyz* sizeof(float));
+
    /* transform the coordinates */
    i=0; k=0; cmoud.N_XYZ=0;
    while(i<3*cmoud.N_xyz) {
       if (!cmoud.cmask || cmoud.cmask[i/3]) {
          x = cmoud.xyz[i++]; y = cmoud.xyz[i++]; z = cmoud.xyz[i++];
-         cmoud.XYZ[k++] = (float) (  mat[0][0] * x + 
-                                     mat[0][1] * y + 
+         cmoud.XYZ[k++] = (float) (  mat[0][0] * x +
+                                     mat[0][1] * y +
                                      mat[0][2] * z +
                                      mat[0][3] );
-         cmoud.XYZ[k++] = (float) (  mat[1][0] * x + 
-                                     mat[1][1] * y + 
+         cmoud.XYZ[k++] = (float) (  mat[1][0] * x +
+                                     mat[1][1] * y +
                                      mat[1][2] * z +
                                      mat[1][3] );
-         cmoud.XYZ[k++] = (float) (  mat[2][0] * x + 
-                                     mat[2][1] * y + 
+         cmoud.XYZ[k++] = (float) (  mat[2][0] * x +
+                                     mat[2][1] * y +
                                      mat[2][2] * z +
                                      mat[2][3] );
          ++cmoud.N_XYZ;
@@ -297,7 +297,7 @@ double SUMA_CoordMatch_OptimCost(int n, double *par)
          i += 3;
       }
    }
-   
+
    if (debug > 2) {
       s = SUMA_ShowMeSome(cmoud.XYZ, SUMA_float, cmoud.N_XYZ, 10, NULL);
       SUMA_S_Notev("iter %d, xformed coords: %s\n", iter, s);
@@ -307,25 +307,25 @@ double SUMA_CoordMatch_OptimCost(int n, double *par)
                        cmoud.XYZ, cmoud.N_XYZ,
                        cmoud.aff, cmoud.affm,
                        cmoud.method, cmoud.dist, cmoud.city);
-   
+
    if (debug==1) {
-      fprintf(SUMA_STDERR,"%cMethod %d. iter %d, %d points, Coord Cost %f%c", 
-            0xd, cmoud.method, iter, cmoud.N_XYZ, cmoud.cost, iter?'\0':'\n'); 
+      fprintf(SUMA_STDERR,"%cMethod %d. iter %d, %d points, Coord Cost %f%c",
+            0xd, cmoud.method, iter, cmoud.N_XYZ, cmoud.cost, iter?'\0':'\n');
    } else if (debug > 1) {
-      fprintf(SUMA_STDERR,"%cMethod %d. iter %d, %d points, Coord Cost %f%c", 
+      fprintf(SUMA_STDERR,"%cMethod %d. iter %d, %d points, Coord Cost %f%c",
             '\n', cmoud.method, iter, cmoud.N_XYZ, cmoud.cost, iter?'\0':'\n');
          fprintf(SUMA_STDERR,"   Params: ");
       for(i=0; i<n; ++i) {
          fprintf(SUMA_STDERR,"%f   ",par[i]);
-      } 
+      }
          fprintf(SUMA_STDERR,"\n");
    }
-   
-   ++iter; 
+
+   ++iter;
    SUMA_RETURN(cmoud.cost);
 }
 
-double SUMA_AlignCoords(float *xyz, int N_xyz, byte *cmask, int method, 
+double SUMA_AlignCoords(float *xyz, int N_xyz, byte *cmask, int method,
                         SUMA_SurfaceObject *SOr, char *opt)
 {
    static char FuncName[]={"SUMA_AlignCoords"};
@@ -335,12 +335,12 @@ double SUMA_AlignCoords(float *xyz, int N_xyz, byte *cmask, int method,
           gap[nparmax], rstart, rend, aff[12], mat[4][4];
    byte affm[nparmax];
    static int icall = 0;
-   SUMA_Boolean LocalHead = NOPE;   
-   
+   SUMA_Boolean LocalHead = NOPE;
+
    SUMA_ENTRY;
-   
-   
-   npar = 0;        
+
+
+   npar = 0;
    memset(affm, 0, nparmax*sizeof(byte));
    if (strstr(opt,"shft")) {
       npar += 3;
@@ -349,7 +349,7 @@ double SUMA_AlignCoords(float *xyz, int N_xyz, byte *cmask, int method,
    if (strstr(opt,"rot")) {
       npar += 3;
       affm[3]=1; affm[4]=1; affm[5]=1;
-   } 
+   }
    if (strstr(opt,"scl")) {
       npar += 3;
       affm[6]=1; affm[7]=1; affm[8]=1;
@@ -360,10 +360,10 @@ double SUMA_AlignCoords(float *xyz, int N_xyz, byte *cmask, int method,
    }
 
    /* load user data */
-   SUMA_set_cmoud(SOr, xyz, N_xyz, cmask, aff, affm, method, 
+   SUMA_set_cmoud(SOr, xyz, N_xyz, cmask, aff, affm, method,
                   strstr(opt, "City")?1:0);
 
-   
+
    /* load parameters into par, bot, top */
    for (i=0, k=0; i<12; ++i) {
       if (affm[i]) {
@@ -384,13 +384,13 @@ double SUMA_AlignCoords(float *xyz, int N_xyz, byte *cmask, int method,
          ++k;
       }
    }
-   
-   
+
+
    if (debug) {
       for (i=0, k=0; i<12; ++i) {
          if (affm[i]) {
             if (!k) fprintf(SUMA_STDERR, "Pre Optimization:\n");
-            fprintf(SUMA_STDERR, 
+            fprintf(SUMA_STDERR,
          "%s [%.3f <- %.3f -> %.3f]\n",
             names[i], bot[k  ], par[k  ], top[k  ]);
             ++k;
@@ -398,13 +398,13 @@ double SUMA_AlignCoords(float *xyz, int N_xyz, byte *cmask, int method,
       }
    }
 
-   
+
    nrand = 0; nkeep = 0; ntry = 2;
    rstart = 0.2; rend = 0.05;
    maxcall = 500;
    #if 0
    if ( (ncalls = powell_newuoa_constrained (npar, par, &costf,
-                                             bot, top, 
+                                             bot, top,
                                              nrand, nkeep, 2,
                                              rstart, rend,
                                              maxcall,
@@ -413,63 +413,63 @@ double SUMA_AlignCoords(float *xyz, int N_xyz, byte *cmask, int method,
       SUMA_RETURN(0);
    }
    #else
-   if (debug) { 
+   if (debug) {
       fprintf(SUMA_STDERR,"About to being optimization\n");
    }
    if ( (ncalls = powell_newuoa_con (npar, par,
-                                       bot, top, 
-                                       nrand, 
+                                       bot, top,
+                                       nrand,
                                        rstart, rend,
                                        maxcall,
                                     SUMA_CoordMatch_OptimCost)) < 0) {
       SUMA_S_Err("Failed in optimization");
       SUMA_RETURN(0);
    }
-   if (debug) { 
+   if (debug) {
       fprintf(SUMA_STDERR,"Done with optimization\n");
    }
-   costf = cmoud.cost;   
+   costf = cmoud.cost;
    #endif
    if (debug) fprintf(SUMA_STDERR,"\n");
-   
+
    if (debug) {
       for (i=0, k=0; i<12; ++i) {
          if (affm[i]) {
             fprintf(SUMA_STDERR,
                "Post Optimization:\n"
          "%s  [%.3f <- %.3f -> %.3f]\n",
-            names[i],       
+            names[i],
             bot[k  ], par[k  ], top[k  ]);
             ++k;
          }
       }
-      fprintf(SUMA_STDERR,"   Final cost %f\n", 
+      fprintf(SUMA_STDERR,"   Final cost %f\n",
               SUMA_CoordMatch_OptimCost(npar, par));
    }
-   
+
    /* Now apply the final transform */
    SUMA_par2mat(cmoud.aff, mat);
-   i=0; k=0; 
+   i=0; k=0;
    while(i<3*N_xyz) {
-      xr = xyz+i; x = xyz[i++]; 
-      yr = xyz+i; y = xyz[i++]; 
+      xr = xyz+i; x = xyz[i++];
+      yr = xyz+i; y = xyz[i++];
       zr = xyz+i; z = xyz[i++];
-      *xr = (float) (   mat[0][0] * x + 
-                        mat[0][1] * y + 
+      *xr = (float) (   mat[0][0] * x +
+                        mat[0][1] * y +
                         mat[0][2] * z +
                         mat[0][3] );
-      *yr = (float) (   mat[1][0] * x + 
-                        mat[1][1] * y + 
+      *yr = (float) (   mat[1][0] * x +
+                        mat[1][1] * y +
                         mat[1][2] * z +
                         mat[1][3] );
-      *zr = (float) (   mat[2][0] * x + 
-                        mat[2][1] * y + 
+      *zr = (float) (   mat[2][0] * x +
+                        mat[2][1] * y +
                         mat[2][2] * z +
                         mat[2][3] );
    }
 
    SUMA_free_cmoud();
-   
+
    ++icall;
    SUMA_RETURN(costf);
 }

@@ -61,7 +61,7 @@ void usage_NikoMap (SUMA_GENERIC_ARGV_PARSE *ps)
                "%s"
                "%s"
                "\n", sio,  s);
-      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
+      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
@@ -72,14 +72,14 @@ void usage_NikoMap (SUMA_GENERIC_ARGV_PARSE *ps)
 
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_NikoMap_ParseInput(char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_NikoMap_ParseInput"}; 
+   static char FuncName[]={"SUMA_NikoMap_ParseInput"};
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar;
    SUMA_Boolean brk;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    Opt->iopt = 0;
    Opt->r = 10.0;
@@ -92,9 +92,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_NikoMap_ParseInput(char *argv[], int argc
 			 usage_NikoMap(ps);
           exit (0);
 		}
-		
+
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-      
+
       if (!brk && (strcmp(argv[kar], "-prefix") == 0))
       {
          if (kar+1 >= argc)
@@ -103,10 +103,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_NikoMap_ParseInput(char *argv[], int argc
             exit (1);
          }
          Opt->out_vol_prefix = SUMA_AfniPrefix(argv[++kar], Opt->out_vol_view, NULL, &(Opt->out_vol_exists));
-         
+
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-grid_parent") == 0))
       {
          if (kar+1 >= argc)
@@ -121,19 +121,19 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_NikoMap_ParseInput(char *argv[], int argc
          }
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-closest_node") == 0))
       {
          Opt->iopt = Opt->iopt | CLOSEST_NODE;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-patch_grow") == 0))
       {
          Opt->iopt = Opt->iopt | PATCH_GROW;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-grow_dist") == 0))
       {
          if (kar+1 >= argc)
@@ -144,7 +144,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_NikoMap_ParseInput(char *argv[], int argc
          Opt->r = atof(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-node_debug") == 0))
       {
          if (kar+1 >= argc)
@@ -155,7 +155,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_NikoMap_ParseInput(char *argv[], int argc
          Opt->NodeDbg = atoi(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
          if (kar+1 >= argc)
@@ -163,28 +163,28 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_NikoMap_ParseInput(char *argv[], int argc
             fprintf (SUMA_STDERR, "need a number after -debug \n");
             exit (1);
          }
-         
+
          Opt->debug = atoi(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,"Error NikoMap:\nOption %s not understood. Try -help for usage\n", argv[kar]);
 			exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
    }
-   
+
    SUMA_RETURN(Opt);
 }
 
 
 int main (int argc,char *argv[])
-{/* Main */    
-   static char FuncName[]={"NikoMap"}; 
-   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
+{/* Main */
+   static char FuncName[]={"NikoMap"};
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_SurfSpecFile *Spec = NULL;
    int *isin=NULL;
@@ -205,16 +205,16 @@ int main (int argc,char *argv[])
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-sv;-o;");
-   
+
    if (argc < 2) {
       usage_NikoMap(ps);
       exit (1);
    }
-   
+
    Opt = SUMA_NikoMap_ParseInput (argv, argc, ps);
 
    if (Opt->debug > 2) LocalHead = YUP;
-   
+
    /* check on inputs */
    if (ps->s_N_surfnames + ps->i_N_surfnames + ps->t_N_surfnames != 1) {
       SUMA_S_Err("Multiple surface specifications used. Only one surface allowed.");
@@ -239,13 +239,13 @@ int main (int argc,char *argv[])
                               "in spec file. \n",
                               FuncName );
          exit(1);
-      
-   }   
-   
+
+   }
+
    if (Opt->out_grid_prefix) {
       vpname = SUMA_append_string(Opt->out_grid_prefix, Opt->out_grid_view);
       vp = SUMA_VolPar_Attr(vpname);
-   } else { 
+   } else {
       vp = SO->VolPar;
       if (!vp) {
          fprintf (SUMA_STDERR,"Error %s:\n"
@@ -259,32 +259,32 @@ int main (int argc,char *argv[])
                                  "Failed to get view!!!\n",
                                  FuncName );
             exit(1);
-         
+
       }
    }
-   
+
    if (LocalHead) {
       fprintf(SUMA_STDERR,"%s: Using %s for grid\n", FuncName, vpname);
    }
-   
+
    /* some checks ...*/
-   if (!Opt->out_vol_prefix) { 
-      Opt->out_vol_prefix = SUMA_AfniPrefix("3dSurfMask", NULL, NULL, &(Opt->out_vol_exists)); 
+   if (!Opt->out_vol_prefix) {
+      Opt->out_vol_prefix = SUMA_AfniPrefix("3dSurfMask", NULL, NULL, &(Opt->out_vol_exists));
       strncpy(Opt->out_vol_view, Opt->out_grid_view, SUMA_VIEW_LENGTH);
    }
-   
+
    if (SUMA_AfniExistsView(Opt->out_vol_exists, Opt->out_vol_view)) {
       fprintf(SUMA_STDERR, "Error 3dSurfMask:\nOutput volume %s%s exists.\n", Opt->out_vol_prefix, Opt->out_vol_view);
       exit(1);
    }
-   
+
    if (Opt->out_grid_prefix) {
       if (!SUMA_AfniExistsView(Opt->out_grid_exists, Opt->out_grid_view)) {
          fprintf(SUMA_STDERR, "Error 3dSurfMask:\nGrid parent %s%s does not exist.\n", Opt->out_grid_prefix, Opt->out_grid_view);
          exit(1);
       }
    }
-   
+
    if (Opt->iopt & CLOSEST_NODE) {
       SUMA_LH("Doing closest node");
       /* closest node to each voxel in volume */
@@ -315,7 +315,7 @@ int main (int argc,char *argv[])
       OptDs->master = SUMA_copy_string(vpname);
       OptDs->datum = MRI_float;
       OptDs->full_list = 1;
-      { 
+      {
          dset = SUMA_FormAfnidset (NULL, closest_dist, vp->nx*vp->ny*vp->nz, OptDs);
          if (!dset) {
             SUMA_SL_Err("Failed to create output dataset!");
@@ -327,7 +327,7 @@ int main (int argc,char *argv[])
       }
 
       /*----- output files in table form*/
-      { 
+      {
          char *stmp = NULL, *nameout = NULL, *histnote=NULL;
          FILE *fout=NULL;
          nameout = SUMA_append_string(Opt->out_vol_prefix, "_cn.1D.dset");
@@ -344,16 +344,16 @@ int main (int argc,char *argv[])
                         "#History:%s\n", histnote);
          for (i=0; i<vp->nx*vp->ny*vp->nz; ++i) {
             SUMA_1D_2_3D_index(i, ii, jj, kk, vp->nx, vp->nx*vp->ny);
-            fprintf(fout, "%8d   %4d %4d %4d   %8d   %4.5f\n", 
+            fprintf(fout, "%8d   %4d %4d %4d   %8d   %4.5f\n",
                i, ii, jj, kk, closest_node[i], closest_dist[i]);
          }
          fclose(fout); fout = NULL;
          if (stmp) SUMA_free(stmp); stmp = NULL;
          if (nameout) SUMA_free(nameout); nameout = NULL;
          if (histnote) SUMA_free(histnote); histnote = NULL;
-      }   
+      }
    }
-   
+
    if (Opt->iopt && PATCH_GROW) {
       int cnt = 0;
       char *stmp = NULL, *nameout = NULL, *histnote=NULL, sbuf[500], OptS[]={"DoProp"};
@@ -398,9 +398,9 @@ int main (int argc,char *argv[])
                      "#          if the contour was stretched to the next \n"
                      "#          neighborhood layer.\n"
                      "#History:%s\n", Opt->NodeDbg, histnote);
-            fprintf(fout_dbg,"%8d 0.0 -1.0 -1.0 -1.0\n", Opt->NodeDbg);  
+            fprintf(fout_dbg,"%8d 0.0 -1.0 -1.0 -1.0\n", Opt->NodeDbg);
          } else {
-            fprintf(fout_dbg,  
+            fprintf(fout_dbg,
                      "#The first row is special, it is used to indicate\n"
                      "#the index of node n (%d) about which the patch is grown.\n"
                      "#Col. 0 Node m's index (m is the node neighboring n)\n"
@@ -409,14 +409,14 @@ int main (int argc,char *argv[])
             fprintf(fout_dbg,"%8d 0.0\n", Opt->NodeDbg);
          }
       }
-      
+
       if (!SO->FN) {
          if (!SUMA_SurfaceMetrics_eng(SO, "EdgeList", NULL, 0,  SUMAg_CF->DsetList)) {
             SUMA_S_Err("Failed to create EdgeList");
             exit(1);
-         }   
+         }
       }
-      
+
       SUMA_LH( "Patch Grow, the memory expensive way\n"
                "Calculating OffS_out ... Very SLOWWWW...");
       if (Opt->NodeDbg >= 0) SUMA_Set_OffsetDebugNode(Opt->NodeDbg);
@@ -429,8 +429,8 @@ int main (int argc,char *argv[])
                if (OffS_out[i].Neighb_dist[il] <= Opt->r) {
                   fprintf(fout,"%d %.2f %.2f %.2f %.2f ",
                      OffS_out[i].Neighb_ind[il], OffS_out[i].Neighb_dist[il],
-                        OffS_out[i].Neighb_PropLoc[3*il], 
-                        OffS_out[i].Neighb_PropLoc[3*il+1], 
+                        OffS_out[i].Neighb_PropLoc[3*il],
+                        OffS_out[i].Neighb_PropLoc[3*il+1],
                         OffS_out[i].Neighb_PropLoc[3*il+2]);
                }
             }
@@ -448,8 +448,8 @@ int main (int argc,char *argv[])
                for (il=0; il<OffS_out[i].N_Neighb; ++il) {
                   fprintf(fout_dbg,"%8d   %3.3f   %4.2f   %4.2f   %4.2f   \n",
                      OffS_out[i].Neighb_ind[il], OffS_out[i].Neighb_dist[il],
-                     OffS_out[i].Neighb_PropLoc[3*il], 
-                     OffS_out[i].Neighb_PropLoc[3*il+1], 
+                     OffS_out[i].Neighb_PropLoc[3*il],
+                     OffS_out[i].Neighb_PropLoc[3*il+1],
                      OffS_out[i].Neighb_PropLoc[3*il+2]);
                }
             } else {
@@ -462,12 +462,12 @@ int main (int argc,char *argv[])
          if (Opt->debug) {
             ++cnt;
             if (!(cnt % 1000)) {
-               fprintf(SUMA_STDERR,". @ %8d   (%3.2f%%)\n", 
+               fprintf(SUMA_STDERR,". @ %8d   (%3.2f%%)\n",
                         i, (float)cnt/(float)(SO->N_Node)*100.0); fflush(SUMA_STDERR);
             }
          }
       }
-      
+
       if (fout) fclose(fout); fout = NULL;
       if (fout_dbg) fclose(fout_dbg); fout_dbg = NULL;
       if (stmp) SUMA_free(stmp); stmp = NULL;
@@ -475,23 +475,23 @@ int main (int argc,char *argv[])
       if (histnote) SUMA_free(histnote); histnote = NULL;
       OffS_out = SUMA_free_NeighbOffset(SO, OffS_out);
    }
-         
-   /* Frenching */   
+
+   /* Frenching */
    if (closest_node) SUMA_free(closest_node); closest_node = NULL;
-   if (closest_dist) SUMA_free(closest_dist); closest_dist = NULL;  
+   if (closest_dist) SUMA_free(closest_dist); closest_dist = NULL;
    if (vpname) SUMA_free(vpname); vpname = NULL;
    if (OptDs) { OptDs->mset = NULL; OptDs = SUMA_Free_FormAfniDset_Opt(OptDs);  }
    if (vp != SO->VolPar) SUMA_Free_VolPar(vp); vp = NULL;
    if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (N_Spec) {
-      int k=0; 
+      int k=0;
       for (k=0; k<N_Spec; ++k) {
-         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); }
       }
       SUMA_free(Spec); Spec = NULL; N_Spec = 0;
    }
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
-   exit(0);   
-} 
+   exit(0);
+}

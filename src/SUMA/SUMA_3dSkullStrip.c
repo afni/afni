@@ -7,7 +7,7 @@
   input dset to have a default orientation (RAI), then process it, and
   then resample the output to be whatever orientation was input.
 */
- 
+
 /*
    Load mask from file mname and apply it to dataset iset
 */
@@ -30,14 +30,14 @@
    }  \
 }
 
-int dset_get_orient( THD_3dim_dataset *ddd, 
+int dset_get_orient( THD_3dim_dataset *ddd,
                      char *ori );
 
 // Give all dsets a consistent origin, and be able to change
-int dset_get_orient( THD_3dim_dataset *ddd, 
+int dset_get_orient( THD_3dim_dataset *ddd,
                      char *ori )
 {
-   
+
    // store original order
    ori[0]=ORIENT_typestr[ddd->daxes->xxorient][0];
    ori[1]=ORIENT_typestr[ddd->daxes->yyorient][0];
@@ -577,7 +577,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
 			 usage_SUMA_BrainWrap(ps, strlen(argv[kar])>3?2:1);
           exit (0);
 		}
-		
+
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
 
       if (!brk && (strcmp(argv[kar], "-pushout") == 0)) {
@@ -1207,7 +1207,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
                      argv[kar]);
 			suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
@@ -1319,7 +1319,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
    SUMA_RETURN(Opt);
 }
 
- 
+
 
 int main (int argc,char *argv[])
 {/* Main */
@@ -1472,8 +1472,8 @@ int main (int argc,char *argv[])
       i = dset_get_orient( Opt->iset, dset_orient_inp);
       MCW_strncpy( tmppref, DSET_PREFIX(Opt->iset), THD_MAX_PREFIX ) ;
       tmpset = r_new_resam_dset( Opt->iset, NULL, 0.0, 0.0, 0.0,
-                                 dset_orient_ref, RESAM_NN_TYPE, 
-                                 NULL, 1, 0);   
+                                 dset_orient_ref, RESAM_NN_TYPE,
+                                 NULL, 1, 0);
       DSET_delete(Opt->iset);  Opt->iset=tmpset;  tmpset=NULL;
       EDIT_dset_items(  Opt->iset , ADN_prefix,  tmppref, ADN_none);
 
@@ -1483,13 +1483,13 @@ int main (int argc,char *argv[])
 
       // [PT: Apr 26, 2019] unset ref orient for output
       tmpset = r_new_resam_dset( radset, NULL, 0.0, 0.0, 0.0,
-                                 dset_orient_inp, RESAM_NN_TYPE, 
-                                 NULL, 1, 0);   
+                                 dset_orient_inp, RESAM_NN_TYPE,
+                                 NULL, 1, 0);
       DSET_delete(radset);  radset=tmpset;  tmpset=NULL;
       EDIT_dset_items(  radset , ADN_prefix,  radprefix, ADN_none);
 
       tross_Make_History( FuncName , argc,argv , radset ) ;
-      if (Opt->debug) { 
+      if (Opt->debug) {
          SUMA_S_Note("Writing radset to %s", DSET_PREFIX(radset));
       }
       DSET_write(radset) ;
@@ -1531,8 +1531,8 @@ int main (int argc,char *argv[])
       i = dset_get_orient( Opt->iset, dset_orient_inp);
       MCW_strncpy( tmppref, DSET_PREFIX(Opt->iset), THD_MAX_PREFIX ) ;
       tmpset = r_new_resam_dset( Opt->iset, NULL, 0.0, 0.0, 0.0,
-                                 dset_orient_ref, RESAM_NN_TYPE, 
-                                 NULL, 1, 0);   
+                                 dset_orient_ref, RESAM_NN_TYPE,
+                                 NULL, 1, 0);
       DSET_delete(Opt->iset);  Opt->iset=tmpset;  tmpset=NULL;
       EDIT_dset_items( Opt->iset , ADN_prefix,  tmppref, ADN_none);
 
@@ -1574,8 +1574,8 @@ int main (int argc,char *argv[])
       // [PT: Apr 26, 2019] unset ref orient for output
       MCW_strncpy( tmppref , DSET_PREFIX(headset) , THD_MAX_PREFIX ) ;
       tmpset = r_new_resam_dset( headset, NULL, 0.0, 0.0, 0.0,
-                                 dset_orient_inp, RESAM_NN_TYPE, 
-                                 NULL, 1, 0);   
+                                 dset_orient_inp, RESAM_NN_TYPE,
+                                 NULL, 1, 0);
       DSET_delete(headset);  headset=tmpset;  tmpset=NULL;
       EDIT_dset_items( headset , ADN_prefix,  tmppref, ADN_none);
 
@@ -1614,8 +1614,8 @@ int main (int argc,char *argv[])
       i = dset_get_orient( Opt->iset, dset_orient_inp);
       MCW_strncpy( tmppref , DSET_PREFIX(Opt->iset) , THD_MAX_PREFIX ) ;
       tmpset = r_new_resam_dset( Opt->iset, NULL, 0.0, 0.0, 0.0,
-                                 dset_orient_ref, RESAM_NN_TYPE, 
-                                 NULL, 1, 0);   
+                                 dset_orient_ref, RESAM_NN_TYPE,
+                                 NULL, 1, 0);
       DSET_delete(Opt->iset);  Opt->iset=tmpset;  tmpset=NULL;
       EDIT_dset_items( Opt->iset, ADN_prefix,  tmppref, ADN_none);
 
@@ -1866,8 +1866,8 @@ int main (int argc,char *argv[])
          // [PT: Apr 26, 2019] unset ref orient for output
          MCW_strncpy( tmppref , DSET_PREFIX(oset) , THD_MAX_PREFIX ) ;
          tmpset = r_new_resam_dset( oset, NULL, 0.0, 0.0, 0.0,
-                                    dset_orient_inp, RESAM_NN_TYPE, 
-                                    NULL, 1, 0);   
+                                    dset_orient_inp, RESAM_NN_TYPE,
+                                    NULL, 1, 0);
          DSET_delete(oset);  oset=tmpset;  tmpset=NULL;
          EDIT_dset_items( oset , ADN_prefix,  tmppref, ADN_none);
 
@@ -1911,8 +1911,8 @@ int main (int argc,char *argv[])
       i = dset_get_orient( Opt->in_vol, dset_orient_inp);
       MCW_strncpy( tmppref , DSET_PREFIX(Opt->in_vol) , THD_MAX_PREFIX ) ;
       tmpset = r_new_resam_dset( Opt->in_vol, NULL, 0.0, 0.0, 0.0,
-                                 dset_orient_ref, RESAM_NN_TYPE, 
-                                 NULL, 1, 0);   
+                                 dset_orient_ref, RESAM_NN_TYPE,
+                                 NULL, 1, 0);
       DSET_delete(Opt->in_vol);  Opt->in_vol=tmpset;  tmpset=NULL;
       EDIT_dset_items( Opt->in_vol, ADN_prefix,  tmppref, ADN_none );
 
@@ -3102,14 +3102,14 @@ int main (int argc,char *argv[])
       SUMA_free(edopt);
    }
 
-   
+
    if (!dset) {
       SUMA_SL_Err("Failed to create output dataset!");
    } else {
       // [PT: Apr 26, 2019] unset ref orient for output: should be main final output
       tmpset = r_new_resam_dset( dset, NULL, 0.0, 0.0, 0.0,
-                                 dset_orient_inp, RESAM_NN_TYPE, 
-                                 NULL, 1, 0);   
+                                 dset_orient_inp, RESAM_NN_TYPE,
+                                 NULL, 1, 0);
       DSET_delete(dset);  dset=tmpset;  tmpset=NULL;
       EDIT_dset_items( dset, ADN_prefix, Opt->out_vol_prefix, ADN_none ) ;
 

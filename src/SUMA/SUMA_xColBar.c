@@ -939,15 +939,15 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
    SUMA_ENTRY;
 
    SUMA_LH("called");
-   
+
    if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURN(0); }
-   if (!(SurfCont = SUMA_ADO_Cont(ado))) { 
+   if (!(SurfCont = SUMA_ADO_Cont(ado))) {
     SUMA_SL_Err("NULL SurfCont"); SUMA_RETURN(0); }
 
    // SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (curColPlane->OptScl<0x20) { SUMA_SL_Err("Invalid curColPlane->OptScl"); SUMA_RETURN(0); }
-   
+
    switch (curColPlane->OptScl->ThrMode) {
       case SUMA_LESS_THAN:
          sprintf(slabel, "%5s", MV_format_fval(val));
@@ -1111,9 +1111,9 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
       SUMA_ColorizePlane(colp);
       SUMA_Remixedisplay(ado);
    }
-   
+
    /* call this one since it is not being called as the slider is dragged. */
-   if (!(SUMA_set_threshold_label(ado, val, 0.0))) 
+   if (!(SUMA_set_threshold_label(ado, val, 0.0)))
     { SUMA_SL_Err("Error setting threshold label"); SUMA_RETURN(0); }
 
    /* sad as it is */
@@ -1142,7 +1142,7 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    SUMA_LH("called");
    ado = (SUMA_ALL_DO *)clientData;
    if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }
@@ -1319,7 +1319,7 @@ int SUMA_SwitchColPlaneIntensity_one (
                            /* This function will cause undue redisplays, but
                            keeps code clean */
                            if ( pp != 0.0) {
-                              if (!(SUMA_set_threshold_one(ado, colp, &pp))) 
+                              if (!(SUMA_set_threshold_one(ado, colp, &pp)))
                                 { SUMA_SL_Err("Error in SUMA_set_threshold_one"); SUMA_RETURN(0); }
                            }
                         }
@@ -1381,7 +1381,7 @@ int SUMA_SwitchColPlaneIntensity_one (
                /* This function will cause undue redisplays, but
                keeps code clean */
                if ( pp != 0.0) {
-                  if (!(SUMA_set_threshold_one(ado, colp, &pp))) 
+                  if (!(SUMA_set_threshold_one(ado, colp, &pp)))
                     { SUMA_SL_Err("Error in SUMA_set_threshold_one"); SUMA_RETURN(0); }
                }
             }
@@ -2039,18 +2039,18 @@ void SUMA_cb_AlphaThresh_tb_toggled(Widget w, XtPointer data,
    static int AlphaOpecityFalloff = 0;
 
    SUMA_ENTRY;
-   
+
    ado = (SUMA_ALL_DO *)data;
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
             || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   
+
    AlphaOpecityFalloff = !AlphaOpecityFalloff;
-   
+
    // SO->SurfCont->AlphaThresh is common across period key
    SO->AlphaOpecityFalloff = SO->SurfCont->AlphaOpecityFalloff = AlphaOpecityFalloff;
    if (SO->alphaOpacityModel) SO->alphaOpacityModel = QUADRATIC;
-   
+
    // Refresh display
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
@@ -2072,10 +2072,10 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
             || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   
+
    BoxOutline = !BoxOutline;
    SO->BoxOutline = BoxOutline;
-   
+
    // Refresh display
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
@@ -7110,7 +7110,7 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                XmNmarginHeight, 0 ,
                XmNmarginWidth , 0 ,
                NULL);
-               
+
          /* create the absolute threshold toggle button */
          SurfCont->AbsThresh_tb = XtVaCreateManagedWidget("|T|",
                xmToggleButtonWidgetClass, rc,
@@ -7243,7 +7243,7 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
       if (!XtIsManaged(SurfCont->rccm)) XtManageChild (SurfCont->rccm);
 
    }/*  The Color map range and selector block */
-   
+
 
 
    if (1){ /* The Range values block*/
@@ -7278,7 +7278,7 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
             XmNtopWidget, SurfCont->rcclust,
             NULL);
       }
-      
+
       if (!SurfCont->RangeTable->cells) {
          int colw[5] = { 1, 6, 6, 6, 6 };
          /* create the widgets for the range table */
@@ -10710,7 +10710,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
    Widget rct, rcc, rco;
    XtVarArgsList arglist=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_Boolean LocalHead = NOPE;   
+   SUMA_Boolean LocalHead = NOPE;
 
 
    SUMA_ENTRY;
@@ -10744,7 +10744,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
       XmNmarginHeight , 0 ,
       XmNmarginWidth  , 0 ,
       NULL);
-      
+
 
    SUMA_LH("Creating the threshold bar widgets");
    { /* the threshold bar */
@@ -10764,11 +10764,11 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
          XmNmarginHeight , 0 ,
          XmNmarginWidth  , 0 ,
          NULL);
-      
+
         // Place "A" and "B" checkboxes just above sliding bar
         {
             // Create widget within which to place "A" and "B" checkboxes
-            Widget ABCheckBoxContainer = NULL; // one pass through this block ONLY 
+            Widget ABCheckBoxContainer = NULL; // one pass through this block ONLY
             ABCheckBoxContainer = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, rct,
             XmNpacking, XmPACK_TIGHT,
@@ -10777,7 +10777,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
             XmNmarginWidth , 0 ,
             NULL);
 
-            // create the "A" toggle checkbox 
+            // create the "A" toggle checkbox
             SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("A",
             xmToggleButtonWidgetClass, ABCheckBoxContainer,
             NULL);
@@ -10790,8 +10790,8 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                                    SUMA_SurfContHelp_AlphaThr );
 
             SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
-                    
-            // create the "B" toggle checkbox 
+
+            // create the "B" toggle checkbox
 // TEMPORARY COMMENTED OUT TO MERGE WITH MASTER            SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("B",
             SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("_",     // TEMPORARY FOR MERGE WITH MASTER
             xmToggleButtonWidgetClass, ABCheckBoxContainer,
@@ -10799,7 +10799,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
             // Make hover help, and BHelp, for "B" checkbox
             XtAddCallback (SurfCont->BoxOutlineThresh_tb,
                 XmNvalueChangedCallback, SUMA_cb_BoxOutlineThresh_tb_toggled, ado);
-            SUMA_Register_Widget_Help(SurfCont->BoxOutlineThresh_tb , 1, 
+            SUMA_Register_Widget_Help(SurfCont->BoxOutlineThresh_tb , 1,
                                    "SurfCont->BoxOutlineThresh_tb",
                                    "'Boxes: outline threshold regions",
                                    SUMA_SurfContHelp_BoxOutlineThr );
@@ -10883,7 +10883,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                                 wname,
                                 "Set the threshold for 'T' values",
                                 SUMA_SurfContHelp_ThrScale);
-      
+
       /* put a string for the pvalue */
       sprintf(slabel,"p [N/A]\nq [N/A]");
       SurfCont->thrstat_lb = XtVaCreateManagedWidget ("font8",
@@ -10901,8 +10901,8 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                                 "Nominal p-value per node; FDR q-value",
                                 SUMA_SurfContHelp_ThreshStats);
       XtManageChild (rct);
-      
-      
+
+
    }/* the threshold bar */
 
    if (arglist) XtFree(arglist); arglist = NULL;

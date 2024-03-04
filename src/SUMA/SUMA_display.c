@@ -14521,7 +14521,7 @@ int SUMA_ColPlane_NewOrder(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (!colp) colp = curColPlane;
@@ -14825,7 +14825,7 @@ int SUMA_ColPlane_NewOpacity (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    SUMA_LH("Called");
 
    if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
@@ -15011,7 +15011,7 @@ int SUMA_ColPlane_NewDimFact (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    SUMA_LH("Called");
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
@@ -15148,7 +15148,7 @@ int SUMA_ColPlane_NewAlphaThresh (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    SUMA_LH("Called");
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
@@ -15475,7 +15475,7 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    SUMA_LHv("Called with ado=%p, ado->do_type=%d, ado->idcode_str=%s\n",
       ADO, ADO?ADO->do_type:-1, SUMA_CHECK_NULL_STR(SUMA_ADO_idcode(ADO)));
 
@@ -15631,7 +15631,7 @@ int SUMA_ColPlaneShowOneFore_Set ( SUMA_ALL_DO *ado,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
    if (!SUMA_isADO_Cont_Realized(ado)) SUMA_RETURN(0);
 
@@ -16259,7 +16259,7 @@ int SUMA_SelectSwitchColPlane(SUMA_ALL_DO *ado,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    if (!ado || !LW) SUMA_RETURN(0);
 
    if (!SUMA_SelectSwitchColPlane_one(ado, LW, ichoice, CloseShop, setmen)) {
@@ -21011,7 +21011,7 @@ SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(char *title_extension, SUMA_P
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    // Must have non-null parent
    if (!(prmpt->daddy)){
      SUMA_SLP_Crit("Prompt dialog structure has no parent.");

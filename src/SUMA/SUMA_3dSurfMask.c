@@ -10,7 +10,7 @@ void usage_3dSurfMask (SUMA_GENERIC_ARGV_PARSE *ps)
       char * s = NULL, *sio=NULL, *st = NULL, *sts = NULL;
       int i;
       sio  = SUMA_help_IO_Args(ps);
-      printf ( 
+      printf (
    "\n"
    "Usage: 3dSurfMask <-i_TYPE SURFACE> <-prefix PREFIX> \n"
    "                [<-fill_method METH>] \n"
@@ -100,10 +100,10 @@ void usage_3dSurfMask (SUMA_GENERIC_ARGV_PARSE *ps)
    "                          -quit \n"
    "\n"
    " See also examples in SurfPatch -help\n"
-   "\n"              
+   "\n"
    "%s"
             "\n", sio);
-      SUMA_ifree(s); SUMA_ifree(st); SUMA_ifree(sio);    
+      SUMA_ifree(s); SUMA_ifree(st); SUMA_ifree(sio);
 
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
@@ -111,14 +111,14 @@ void usage_3dSurfMask (SUMA_GENERIC_ARGV_PARSE *ps)
 
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dSurfMask_ParseInput(char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_3dSurfMask_ParseInput"}; 
+   static char FuncName[]={"SUMA_3dSurfMask_ParseInput"};
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar;
    SUMA_Boolean brk;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    Opt->obj_type = 1; /* nuanced integer values in output */
    Opt->b1 = 0;
@@ -132,9 +132,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dSurfMask_ParseInput(char *argv[], int a
 			 usage_3dSurfMask(ps);
           exit (0);
 		}
-		
+
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-      
+
       if (!brk && (strcmp(argv[kar], "-prefix") == 0))
       {
          if (kar+1 >= argc)
@@ -142,13 +142,13 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dSurfMask_ParseInput(char *argv[], int a
             fprintf (SUMA_STDERR, "need a number after -prefix \n");
             exit (1);
          }
-         Opt->out_vol_prefix = 
-            SUMA_AfniPrefix(argv[++kar], Opt->out_vol_view, 
+         Opt->out_vol_prefix =
+            SUMA_AfniPrefix(argv[++kar], Opt->out_vol_view,
                             NULL, &(Opt->out_vol_exists));
-         
+
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-fill_method") == 0))
       {
          if (kar+1 >= argc)
@@ -170,13 +170,13 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dSurfMask_ParseInput(char *argv[], int a
              !strcmp(argv[kar],"peri")) {
             Opt->b2 = 2;
          } else {
-            SUMA_S_Errv("Value %s not ok for -fill_method\n", argv[kar]); 
+            SUMA_S_Errv("Value %s not ok for -fill_method\n", argv[kar]);
             exit(1);
          }
-         
+
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-grid_parent") == 0))
       {
          if (kar+1 >= argc)
@@ -184,35 +184,35 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dSurfMask_ParseInput(char *argv[], int a
             fprintf (SUMA_STDERR, "need a dataset after -grid_parent \n");
             exit (1);
          }
-         Opt->out_grid_prefix = SUMA_AfniPrefix(argv[++kar], Opt->out_grid_view, 
+         Opt->out_grid_prefix = SUMA_AfniPrefix(argv[++kar], Opt->out_grid_view,
                                                 NULL, &(Opt->out_grid_exists));
          if (!SUMA_AfniExistsView(Opt->out_grid_exists, Opt->out_grid_view)) {
-            SUMA_S_Err("Grid parent %s%s does not exist (%d).\n", 
+            SUMA_S_Err("Grid parent %s%s does not exist (%d).\n",
                        Opt->out_grid_prefix, Opt->out_grid_view,
                        Opt->out_grid_exists);
             exit(1);
          }
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-mask_only") == 0))
       {
          Opt->obj_type = 2;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-no_dist") == 0))
       {
          Opt->MaskMode = 1;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-flip_orientation") == 0))
       {
          Opt->b1 = 1;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
          if (kar+1 >= argc)
@@ -220,7 +220,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dSurfMask_ParseInput(char *argv[], int a
             fprintf (SUMA_STDERR, "need a number after -debug \n");
             exit (1);
          }
-         
+
          Opt->debug = atoi(argv[++kar]);
          brk = YUP;
       }
@@ -229,19 +229,19 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dSurfMask_ParseInput(char *argv[], int a
                   "Error 3dSurfMask: Option %s not understood\n", argv[kar]);
          suggest_best_prog_option(argv[0], argv[kar]);
 			exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
    }
-   
+
    SUMA_RETURN(Opt);
 }
 
 int main (int argc,char *argv[])
-{/* Main */    
-   static char FuncName[]={"3dSurfMask"}; 
-   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
+{/* Main */
+   static char FuncName[]={"3dSurfMask"};
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_SurfSpecFile *Spec = NULL;
    int N_Spec=0;
@@ -260,16 +260,16 @@ int main (int argc,char *argv[])
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;");
-   
+
    if (argc < 2) {
       usage_3dSurfMask(ps);
       exit (1);
    }
-   
+
    Opt = SUMA_3dSurfMask_ParseInput (argv, argc, ps);
 
    if (Opt->debug > 2) LocalHead = YUP;
-   
+
    /* check on inputs */
    if (ps->s_N_surfnames + ps->i_N_surfnames + ps->t_N_surfnames != 1) {
       SUMA_S_Err("Multiple surface specifications used. "
@@ -294,14 +294,14 @@ int main (int argc,char *argv[])
                               "in spec file. \n",
                               FuncName );
          exit(1);
-      
-   }   
+
+   }
    if (Opt->b1) SUMA_FlipSOTriangles(SO);
-   
+
    if (Opt->out_grid_prefix) {
       vpname = SUMA_append_string(Opt->out_grid_prefix, Opt->out_grid_view);
       vp = SUMA_VolPar_Attr(vpname);
-   } else { 
+   } else {
       vp = SO->VolPar;
       if (!vp) {
          fprintf (SUMA_STDERR,"Error %s:\n"
@@ -315,40 +315,40 @@ int main (int argc,char *argv[])
                                  "Failed to get view!!!\n",
                                  FuncName );
             exit(1);
-         
+
       }
    }
    if (LocalHead) {
       fprintf(SUMA_STDERR,"%s: Using %s for grid\n", FuncName, vpname);
    }
    /* some checks ...*/
-   if (!Opt->out_vol_prefix) { 
-      Opt->out_vol_prefix = 
-         SUMA_AfniPrefix("3dSurfMask", NULL, NULL, &(Opt->out_vol_exists)); 
+   if (!Opt->out_vol_prefix) {
+      Opt->out_vol_prefix =
+         SUMA_AfniPrefix("3dSurfMask", NULL, NULL, &(Opt->out_vol_exists));
       strncpy(Opt->out_vol_view, Opt->out_grid_view, SUMA_VIEW_LENGTH);
    }
-   
+
    if (SUMA_AfniExistsView(Opt->out_vol_exists, Opt->out_vol_view)) {
-      fprintf(SUMA_STDERR, "Error 3dSurfMask:\nOutput volume %s%s exists.\n", 
+      fprintf(SUMA_STDERR, "Error 3dSurfMask:\nOutput volume %s%s exists.\n",
                Opt->out_vol_prefix, Opt->out_vol_view);
       exit(1);
    }
-   
+
    if (Opt->out_grid_prefix) {
       if (!SUMA_AfniExistsView(Opt->out_grid_exists, Opt->out_grid_view)) {
-         fprintf(SUMA_STDERR, 
-                  "Error 3dSurfMask:\nGrid parent %s%s does not exist.\n", 
+         fprintf(SUMA_STDERR,
+                  "Error 3dSurfMask:\nGrid parent %s%s does not exist.\n",
                   Opt->out_grid_prefix, Opt->out_grid_view);
          exit(1);
       }
    }
-   
+
    if (!(dset = SUMA_Dset_FindVoxelsInSurface(
-                     SO, NULL, vp, vpname, Opt->out_vol_prefix, 
+                     SO, NULL, vp, vpname, Opt->out_vol_prefix,
                      Opt->b2, Opt->obj_type == 2 ? 1:0))) {
-      SUMA_S_Err("Failed to create output");                 
-   } 
-   NewName = SUMA_StripPath(Opt->out_vol_prefix);     
+      SUMA_S_Err("Failed to create output");
+   }
+   NewName = SUMA_StripPath(Opt->out_vol_prefix);
    pp = SUMA_append_string(NewName.FileName, ".m");
    EDIT_dset_items( dset ,
                        ADN_prefix    , pp ,
@@ -362,7 +362,7 @@ int main (int argc,char *argv[])
       SUMA_S_Note("Voxelizing ... (Use -no_dist to skip this lengthy step)");
       dsetd = SUMA_VoxelToSurfDistances(SO, dset, NULL, isin, Opt->b2 ? 2:0);
       tross_Make_History( FuncName , argc,argv , dsetd ) ;
-      NewName = SUMA_StripPath(Opt->out_vol_prefix);     
+      NewName = SUMA_StripPath(Opt->out_vol_prefix);
       pp = SUMA_append_string(NewName.FileName, ".d");
       EDIT_dset_items( dsetd ,
                        ADN_prefix    , pp ,
@@ -370,7 +370,7 @@ int main (int argc,char *argv[])
                        ADN_none);
       DSET_write(dsetd);
       SUMA_free(pp); pp=NULL;
-   }     
+   }
    if (vpname) SUMA_free(vpname); vpname = NULL;
    if (dset) { DSET_delete(dset); dset = NULL; }
    if (dsetd) { DSET_delete(dsetd); dsetd = NULL; }
@@ -378,17 +378,17 @@ int main (int argc,char *argv[])
    if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (N_Spec) {
-      int k=0; 
+      int k=0;
       for (k=0; k<N_Spec; ++k) {
-         if (!SUMA_FreeSpecFields(&(Spec[k]))) { 
-            SUMA_S_Err("Failed to free spec fields"); 
-         } 
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) {
+            SUMA_S_Err("Failed to free spec fields");
+         }
       }
       SUMA_free(Spec); Spec = NULL; N_Spec = 0;
    }
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+   if (!SUMA_Free_CommonFields(SUMAg_CF))
       SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    exit(0);
-   
-} 
+
+}

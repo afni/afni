@@ -5,7 +5,7 @@
  changed to be 3 buttons with different text for each button
  returns 1,2,3 for the 3 buttons
  if you don't provide any button labels, it will show Ok
- Based on SUMA_prompt_user.c 
+ Based on SUMA_prompt_user.c
  */
 
 
