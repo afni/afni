@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Mar, 2024, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "add -disp_ver_afni (display contents of AFNI_version.txt)",
+   NULL
+ } ,
+
  {  1, Mar, 2024, RCR, "compute_ROI_stats.tcsh", MINOR, TYPE_NEW_OPT,
    "add ability to pass ALL_LT via -rval_list (for all labeltable entries)",
    NULL
