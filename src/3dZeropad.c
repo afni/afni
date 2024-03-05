@@ -1,12 +1,12 @@
 #include "mrilib.h"
 void usage_3dZeropad(int detail)
 {
-         printf("Usage: 3dZeropad [options] dataset\n"
+         printf("Usage: 3dZeropad [options] dataset ~1~\n"
  "** Adds planes of zeros to a dataset (i.e., pads it out).\n"
  "** A negative 'add' count means to cut a dataset down in size.\n"
  "   [Remember 3rd grade arithmetic, please.]\n"
  "\n"
- "Options:\n"
+ "Options: ~2~\n"
  "  -I n = adds 'n' planes of zero at the Inferior edge\n"
  "  -S n = adds 'n' planes of zero at the Superior edge\n"
  "  -A n = adds 'n' planes of zero at the Anterior edge\n"
@@ -45,7 +45,7 @@ void usage_3dZeropad(int detail)
  " -prefix ppp = write result into dataset with prefix 'ppp'\n"
  "                 [default = 'zeropad']\n"
  "\n"
- "Nota Bene:\n"
+ "Nota Bene: ~1~\n"
  " * You can use negative values of n to cut planes off the edges\n"
  "     of a dataset.  At least one plane must be added/removed\n"
  "     or the program won't do anything.\n"
