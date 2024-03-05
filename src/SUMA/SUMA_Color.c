@@ -7913,12 +7913,13 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 }
                 memcpy(ColVec, currentOverlay->ColVec, bytes2CopyToColVec);
    
-                if (SO->N_Overlays > 1){    // Does not apply to toy examples
+                if (SO->N_Overlays > 1 && SO->SurfCont->Thr_tb){    // Does not apply to toy examples
                     // Touch threshold sliding bar without moving it.  This is often 
                     //  necessary to ensure the correct colors are displayed in the
                     //  suprathreshold regions when the colormap or max I are changed
                     float value = currentOverlay->OptScl->ThreshRange[0];
-                    SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &value);
+                    if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &value)))
+                        { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
                 }
                 
                 if (currentOverlay->OptScl->find!= 0 ||
@@ -7927,7 +7928,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         cmapChanged = 0;
                         currentThreshold = currentOverlay->OptScl->ThreshRange[0];
                         float val = 0.0f; 
-                        SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val);
+                        if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
+                            { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
                         
                         /*************************************************************
                         The above function (SUMA_set_threshold) calls the current
@@ -7944,7 +7946,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         // Reset threshold to what it was before setting it to zero.
                         // This is necessary to set the edit box as well as the sliding bar.
                         val = currentThreshold;
-                        SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val);
+                        if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
+                            { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
                     }
             }
            
@@ -7979,7 +7982,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         if (thresholdReset){
                             val = currentThreshold;
                         } 
-                        SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val);
+                        if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
+                            { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
                             
                         /*************************************************************
                         The above function (SUMA_set_threshold) calls the current
@@ -7996,7 +8000,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         // Reset threshold to what it was before setting it to zero.
                         // This is necessary to set the edit box as well as the sliding bar.
                         val = currentThreshold;
-                        SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val);
+                        if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
+                            { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
                         
                         // Set slider location to zero
                         if (reload) setSliderLocation(SO, 0);
@@ -8572,14 +8577,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
     free(outlinevector);
     outlinevector = NULL;
    } 
-         
-   // Possibly temporary fix for suprathreshol nodes incorrect
-   // when alphaThresh selected just after intensity range changed
-   // Refresh window be resending threshold
-   if (0 && cmapChanged){
-    float threshold = currentOverlay->OptScl->ThreshRange[0];
-    SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &threshold);
-   }
 
    SUMA_RETURN (YUP);
 }
