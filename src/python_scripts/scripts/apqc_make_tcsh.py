@@ -918,6 +918,25 @@ if __name__ == "__main__":
 
     # --------------------------------------------------------------------
 
+    # QC block: "regr"
+    # item    : ROI stats for TSNR (final)
+
+    # not currently a uvar, check for known dir name in AP results dir
+    # and known file postfixes within it (except WB ones)
+    all_fname = glob.glob('tsnr_stats_regress/*eval_html.txt')
+    if 'stats_brain.txt' in all_fname :
+        _tmp = all_fname.remove('stats_brain.txt')
+    
+    if len(all_fname) :
+        ban      = lat.bannerize('check TSNR ROI stats')
+        for fname in all_fname:
+            obase    = 'qc_{:02d}'.format(idx)
+            cmd      = lat.apqc_regr_roi_stats( ap_ssdict, obase, fname,
+                                                "regr", "roi_tsnr_fin" )
+            idx     += 1
+
+    # --------------------------------------------------------------------
+
     # QC block: "rcorr"
     # item    : flag to make radial_correlate images
     # [PT: Feb 23, 2021] moved here, seemed more logical place, 
