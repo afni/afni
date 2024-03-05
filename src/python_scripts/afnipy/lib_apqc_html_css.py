@@ -70,7 +70,7 @@ wlevel_ranks = {
 wlevel_colors = {
     ''          : "#CCCCCC",
     'none'      : "#CCFFCC",
-    'undecided' : "#EAEA99",
+    'undecided' : "#EAEA99", # possible alt. for underlines: "#F7CA18"
     'mild'      : "#FFC3C4",
     'medium'    : "#FF7F7F",
     'severe'    : "#FF0000"
