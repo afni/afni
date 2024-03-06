@@ -8338,7 +8338,7 @@ def db_mod_tlrc(block, proc, user_opts):
     if not dset.exist():  # allow for no +view
         dset = gen_afni_name(opt_anat.parlist[0]+'+orig')
         if not dset.exist():
-            print("** -tlrc_anat dataset '%s' does not exist" % \
+            print("** -copy_anat dataset '%s' does not exist" % \
                   opt_anat.parlist[0])
             return
 

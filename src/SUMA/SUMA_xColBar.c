@@ -2385,7 +2385,7 @@ SUMA_MenuItem LinkMode_Menu[] = {
 /**/
 SUMA_MenuItem AlphaMode_Menu[] = {
 /*
-   {  "Threshol", &xmPushButtonWidgetClass,
+   {  "Threshold", &xmPushButtonWidgetClass,
       '\0', NULL, NULL,
       SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_None, NULL},
 

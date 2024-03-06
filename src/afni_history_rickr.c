@@ -53,6 +53,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Mar, 2024, RCR, "APMULTI_Demo2_realtime", MINOR, TYPE_ENHANCE,
+   "add Optimally Combined multi-echo demo, including use with afni_proc.py",
+   NULL
+ } ,
+
+ {  4, Mar, 2024, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "add -disp_ver_afni (display contents of AFNI_version.txt)",
+   NULL
+ } ,
+
+ {  1, Mar, 2024, RCR, "compute_ROI_stats.tcsh", MINOR, TYPE_NEW_OPT,
+   "add ability to pass ALL_LT via -rval_list (for all labeltable entries)",
+   NULL
+ } ,
+
  { 29, Feb, 2024, RCR, "afni_util.py", MINOR, TYPE_MODIFY,
    "use raw straing format for some regular expressions",
    "So python 3.12 has upgraded Deprecation Warnings to SyntaxWarnings,\n"

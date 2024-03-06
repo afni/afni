@@ -1030,6 +1030,15 @@ class SysInfo:
          print("** %s\n" % wstr)
          self.comments.append(wstr)
 
+   def get_ver_afni(self):
+      """return the contents of AFNI_version.txt, else "None"
+      """
+      vinfo = UTIL.read_AFNI_version_file()
+      if vinfo == '':
+         return 'None'
+
+      return vinfo
+
    def get_ver_matplotlib(self):
       """simply return a matplotlib version string, and "None" on failure.
       """

@@ -7297,12 +7297,13 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
 
 int *boxThresholdOutline(SUMA_SurfaceObject *SO, int *numThresholdNodes){
     static char FuncName[]={"boxThresholdOutline"};
-    int o, i, j, k;
-    SUMA_OVERLAYS *overlay;
+    int i, j;
+    SUMA_OVERLAYS *overlay=NULL;
     float threshold;
     // float tolerance = 0.005;
     float tolerance = 0.05;
     int *output = NULL;
+    int  N_Neighb, *Neighb_ind, aboveThreshold, belowThreshold, neighbor;
     
     if (!SO || !(SO->Overlays) ) return NULL;
     
@@ -7325,12 +7326,12 @@ int *boxThresholdOutline(SUMA_SurfaceObject *SO, int *numThresholdNodes){
    
     threshold = overlay->OptScl->ThreshRange[0];
     for (i=0; i<SO->N_Node; ++i){
-        int N_Neighb = SO->FN->N_Neighb[i];
-        int *Neighb_ind = SO->FN->FirstNeighb[i];
-        int aboveThreshold = overlay->T[i]>=threshold;
-        int belowThreshold = overlay->T[i]<=threshold;
+        N_Neighb = SO->FN->N_Neighb[i];
+        Neighb_ind = SO->FN->FirstNeighb[i];
+        aboveThreshold = overlay->T[i]>=threshold;
+        belowThreshold = overlay->T[i]<=threshold;
         for (j = 0; j<N_Neighb; ++j){
-            int neighbor = Neighb_ind[j];
+            neighbor = Neighb_ind[j];
             if (overlay->T[neighbor]>=threshold) ++aboveThreshold;
             else if (overlay->T[neighbor]<=threshold) ++belowThreshold;
         }
@@ -7446,7 +7447,7 @@ GLfloat *makeGlOldGlColar(SUMA_SurfaceObject *SO){
     // Allocate memory to old GLcolor
     int numElements = SO->N_Node * 4;
     if (!(glOldGlColar = (GLfloat *)malloc(numElements*sizeof(GLfloat)))){
-        SUMA_S_Err("Error allocating memory to old glOldGlColar vactor\n");
+        SUMA_S_Err("Error allocating memory to old glOldGlColar vector\n");
         return NULL;
     }
     
@@ -7913,7 +7914,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 }
                 memcpy(ColVec, currentOverlay->ColVec, bytes2CopyToColVec);
    
-                if (SO->N_Overlays > 1 && SO->SurfCont->Thr_tb){    // Does not apply to toy examples
+                // Does not apply to toy examples
+                if (SO->N_Overlays > 1 && SO->SurfCont->Thr_tb){
                     // Touch threshold sliding bar without moving it.  This is often 
                     //  necessary to ensure the correct colors are displayed in the
                     //  suprathreshold regions when the colormap or max I are changed
@@ -7930,7 +7932,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         float val = 0.0f; 
                         if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
                             { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
-                        
+
                         /*************************************************************
                         The above function (SUMA_set_threshold) calls the current
                         function (SUMA_Overlays_2_GLCOLAR4_SO) with reload set to 1.
@@ -7950,7 +7952,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                             { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
                     }
             }
-           
+
            if (SO->N_Overlays > 1){
                // Ititialize DSET mapping settings
                if (ITB[0]<0){
@@ -7984,7 +7986,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         } 
                         if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
                             { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
-                            
+
                         /*************************************************************
                         The above function (SUMA_set_threshold) calls the current
                         function (SUMA_Overlays_2_GLCOLAR4_SO) with reload set to 1.
@@ -8000,9 +8002,10 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         // Reset threshold to what it was before setting it to zero.
                         // This is necessary to set the edit box as well as the sliding bar.
                         val = currentThreshold;
+
                         if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
                             { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
-                        
+
                         // Set slider location to zero
                         if (reload) setSliderLocation(SO, 0);
                     }
@@ -8578,6 +8581,14 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
     outlinevector = NULL;
    } 
 
+   // Possibly temporary fix for suprathreshol nodes incorrect
+   // when alphaThresh selected just after intensity range changed
+   // Refresh window be resending threshold
+   if (0 && cmapChanged){
+    float threshold = currentOverlay->OptScl->ThreshRange[0];
+    SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &threshold);
+   }
+
    SUMA_RETURN (YUP);
 }
 
@@ -8948,7 +8959,7 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
          // NodeEDef is just a monotonically increasing, array of integers giving the indices
          // of the nodes, typically 0,1,2,3,4,...,N_Node-1
          // glcolar is an array of RGBA values (GLFloat). for the first four tetrads, A always 
-         //     seems to be zero.  Setting the A value to 1.0 seems to have no effect.  Whne the 
+         //     seems to be zero.  Setting the A value to 1.0 seems to have no effect.  When the 
          // color is gone, the RGB values are set to zero
          // Before SUMA_RGBv_PnGnL_AR4op is called, glcolar is all zeros.  SUMA_RGBv_PnGnL_AR4op
          // Assigns the RGB values, in ColEVec to the RGB values of glcolar.  The A values
