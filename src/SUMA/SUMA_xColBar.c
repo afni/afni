@@ -976,6 +976,10 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
                        MV_format_fval(val), MV_format_fval(val2));
          break;
    }
+   if (!(SurfCont->Thr_tb)){
+        fprintf( SUMA_STDERR, "%s:\nNo thresholding available for this data\n", FuncName);
+        SUMA_RETURN(0);
+     }
    /* SUMA_SET_LABEL(SurfCont->thr_lb,  slabel);*/
       SUMA_INSERT_CELL_STRING(SurfCont->SetThrScaleTable, 0,0,slabel);
 
