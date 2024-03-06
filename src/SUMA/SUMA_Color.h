@@ -6,6 +6,8 @@
 #define PSV_NOTHING 0
 #define PSV_BIND_VOL    1
 
+enum OpacityModel {LINEAR, QUADRATIC, FRACTIONAL};
+
 byte SUMA_Val_Meets_Thresh(float val, double *ThreshRange, 
                            SUMA_THRESH_MODE ThrMode);
 int SUMA_a_good_col(char *name, int i, float *acol);
@@ -232,5 +234,7 @@ SUMA_Boolean SUMA_CreateCmapHash(SUMA_COLOR_MAP *CM);
 NI_group *SUMA_CmapToNICmap(SUMA_COLOR_MAP *CM);
 SUMA_COLOR_MAP *SUMA_NICmapToCmap(NI_group *ngr);
 char *SUMA_RGB_to_hex(float *fv, char *here);
+int *boxThresholdOutline(SUMA_SurfaceObject *SO, int *numThresholdNodes);
+float *alphaOpacitiesForOverlay(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *overlay);
 
 #endif
