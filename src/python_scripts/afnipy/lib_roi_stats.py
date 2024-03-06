@@ -159,13 +159,14 @@ Probably the major products of interest from creating this object are:
 
         # attributes defined by evaluating table_values for warnings
         self.table_values_html  = []             # table_values + HTML colors
-        self.table_maxwarn      = []             # list of max warn per ROI
-        # ... and there is a decorator for table_allq
+        self.table_maxwarn      = []             # list of max warn per item
 
         # ----- start doing work
         _tmp = is_comp_roi_str_list_ok(self.table)
         self.parse_input_table()
+        self.init_eval_tables()
         self.evaluate_all_warns()
+        self.apply_warns_to_values_html()
 
     # ---------------------------------------------------
 
@@ -197,6 +198,17 @@ Probably the major products of interest from creating this object are:
 
         return otext
 
+    def apply_warns_to_values_html(self):
+        """Go through all warns, and add HTML wrappers in appropriate
+        places for table_values_html."""
+
+        for idx in range(self.n_table_values):
+            for col in range(self.len_table_cols):
+                wlev = self.table_maxwarn[idx][col]
+                print("HEY", wlev)
+                self.table_values_html[idx][col] = \
+                    wrap_val_with_html_span(self.table_values[idx][col], wlev=wlev)
+
     def evaluate_all_warns(self):
         """For each ROI (i.e., each element of table_values), go through all
         possible warn functions, and update: table_values_html and
@@ -205,31 +217,10 @@ Probably the major products of interest from creating this object are:
         # each of these updates table_values_html and table_maxwarn
         for idx in range(self.n_table_values):
             self.check_nvox(idx)
-            self.check_nz_frac(idx)
+            self.check_nzer_frac(idx)
             self.check_vmax(idx)
             self.check_tsnr_slope_2575(idx)
-
-        ### No longer done
-        # put in Q values in table_values_html
-        #self.update_q_in_tables()
-
-    def update_q_in_tables(self, do_color=False):
-        """For relevant table_values_* lists, update the Q column values. If
-        do_color is True, then wrap in the same coloration as
-        highlighted/warned table values."""
-
-        allq = copy.deepcopy(self.table_allq)
-
-        for idx in range(self.n_table_values):
-            # just add Q to this table
-            ###self.table_values_q[idx][0]     = allq[idx]
-            # for html table, add Q and perhaps color
-            if do_color :
-                wlev = self.table_maxwarn[idx]
-                self.table_values_html[idx][0] = \
-                    wrap_val_with_html_span(allq[idx], wlev=wlev, style='background')
-            else :
-                self.table_values_html[idx][0] = allq[idx]
+            self.check_tsnr_value_75(idx)      # do after TSNR-slope check
 
     def check_tsnr_slope_2575(self, idx):
         """Run the check on TSNR slope in ROI."""
@@ -247,12 +238,27 @@ Probably the major products of interest from creating this object are:
 
         # evaluate warning level, and save
         wlev = warn_roi_stats_tsnr_slope_2575(tlist, verb=self.verb)
-        self.table_maxwarn[idx] = maxwarn(wlev, self.table_maxwarn[idx])
 
-        # ... and colorize in *qhtml* table, as needed (here, middle 3 of 5)
+        # ... and update warning levels in cols (here, middle 3 of 5)
         for jj in all_col[1:4]:
-            self.table_values_html[idx][jj] = \
-                wrap_val_with_html_span(self.table_values[idx][jj], wlev=wlev)
+            self.update_table_maxwarn(wlev, idx, jj)
+            #wrap_val_with_html_span(self.table_values[idx][jj], wlev=wlev)
+
+    def check_tsnr_value_75(self, idx):
+        """Run the check on TSNR 75th %ile (instead of checking the max),
+        for its absolute magnitude."""
+
+        # find columns with correct info
+        col_T75p = self.table_cols.index('T75%')
+
+        # get numbers from relevant row
+        T75p = float(self.table_values[idx][col_T75p])
+
+        # evaluate warning level, and save
+        wlev = warn_roi_stats_tsnr_value_75(T75p, verb=self.verb)
+
+        # ... and update warning levels in cols
+        self.update_table_maxwarn(wlev, idx, col_T75p)
 
     def check_vmax(self, idx):
         """Run the check on max voxel depth in the ROI."""
@@ -265,30 +271,26 @@ Probably the major products of interest from creating this object are:
 
         # evaluate warning level, and save
         wlev = warn_roi_stats_vmax(Vmax, verb=self.verb)
-        self.table_maxwarn[idx] = maxwarn(wlev, self.table_maxwarn[idx])
 
-        # ... and colorize in *qhtml* table, as needed
-        self.table_values_html[idx][col_Vmax] = \
-            wrap_val_with_html_span(self.table_values[idx][col_Vmax], wlev=wlev)
+        # ... and update warning levels in cols
+        self.update_table_maxwarn(wlev, idx, col_Vmax)
 
-    def check_nz_frac(self, idx):
+    def check_nzer_frac(self, idx):
         """Run the check on fraction of nonzero voxels in the ROI."""
 
         # find columns with correct info
         col_Nvox = self.table_cols.index('Nvox')
-        col_Nz   = self.table_cols.index('Nz')
+        col_Nzer = self.table_cols.index('Nzer')
 
         # get numbers from relevant row
         Nvox = int(self.table_values[idx][col_Nvox])
-        Nz   = int(self.table_values[idx][col_Nz])
+        Nzer = int(self.table_values[idx][col_Nzer])
 
         # evaluate warning level, and save
-        wlev = warn_roi_stats_nz_frac(Nvox, Nz, verb=self.verb)
-        self.table_maxwarn[idx] = maxwarn(wlev, self.table_maxwarn[idx])
+        wlev = warn_roi_stats_nzer_frac(Nvox, Nzer, verb=self.verb)
 
-        # ... and colorize in *qhtml* table, as needed
-        self.table_values_html[idx][col_Nz] = \
-            wrap_val_with_html_span(self.table_values[idx][col_Nz], wlev=wlev)
+        # ... and update warning levels in cols
+        self.update_table_maxwarn(wlev, idx, col_Nzer)
 
     def check_nvox(self, idx):
         """Run the check on total number of voxels in the ROI."""
@@ -301,11 +303,19 @@ Probably the major products of interest from creating this object are:
 
         # evaluate warning level, and save
         wlev = warn_roi_stats_nvox(Nvox, verb=self.verb)
-        self.table_maxwarn[idx] = maxwarn(wlev, self.table_maxwarn[idx])
 
-        # ... and colorize in *qhtml* table, as needed
-        self.table_values_html[idx][col_Nvox] = \
-            wrap_val_with_html_span(self.table_values[idx][col_Nvox], wlev=wlev)
+        # ... and update warning levels in cols
+        self.update_table_maxwarn(wlev, idx, col_Nvox)
+
+    def update_table_maxwarn(self, wlev, idx, col):
+        """For a given idx (row in table) and col (column number), update
+        the warning level with wlev; that is, record the max warning level
+        between what is there already and wlev."""
+
+        # get old warn level value
+        wlev_old = self.table_maxwarn[idx][col]
+        # ... and update it with wlev, if the latter is larger
+        self.table_maxwarn[idx][col] = maxwarn(wlev, wlev_old)
 
     def parse_input_table(self):
         """Parse the input table, separating it into useful attributes"""
@@ -331,9 +341,15 @@ Probably the major products of interest from creating this object are:
                     print('row:', x)
             self.table_values.append(y)
 
-        # init some evaluation things
+    def init_eval_tables(self):
+        """Initialize some evaluation things"""
+
         self.table_values_html  = copy.deepcopy(self.table_values)
-        self.table_maxwarn      = ['none'] * self.n_table_values
+        
+        # store max warning for each column in table---even white
+        # space ones, sillily enough (well, for bookkeeping)
+        row = ['none'] * self.len_table_cols
+        self.table_maxwarn = [copy.deepcopy(row) for n in range(self.n_table_values)]
 
     def manage_q_col(self, y):
         """Make the table_values have a Q column entry in an appropriate
@@ -376,14 +392,6 @@ Probably the major products of interest from creating this object are:
         """Number of table columns (in broken format, that counts whitespace
         chunks)"""
         return len(self.table_cols)
-
-    @property
-    def table_allq(self):
-        """For each ROI in table, what goes into Q column, based on max level
-        of warning?"""
-        if self.n_table_values == 0 :
-            return []
-        return [warn2q[x] for x in self.table_maxwarn]
 
 # ----------------------------------------------------------------------------
 
@@ -471,6 +479,37 @@ wlevel : str
     elif rat > 0.5 : return 'undecided'
     else:            return 'none'
 
+def warn_roi_stats_tsnr_value_75(t75p, verb=0):
+    """For a given value of the 75%ile of TSNR in the ROI, determine
+warning level. This increasingly warns as this TSNR value decreases.
+
+Parameters
+----------
+t75p : int/float
+    75th %ile value of TSNR in the ROI
+verb : int
+    verbosity level
+
+Returns
+-------
+wlevel : str
+    string of warning level, from: 
+      'none', 'undecided', 'mild', 'medium', 'severe'
+
+    """
+
+    if verb :  ab.IP("t75p: {}".format(t75p))
+
+    if t75p < 0:
+        ab.EP("Can't have negative t75p ({})".format(t75p))
+
+    if t75p == 0 :     return 'none'   # no vox; gets flagged elsewhere
+    
+    if   t75p >= 100 :  return 'none'
+    elif t75p >=  80 :  return 'mild'
+    elif t75p >=  50 :  return 'medium'
+    else:               return 'severe'
+
 def warn_roi_stats_nvox(nvox, verb=0):
     """For a given number of voxels (nvox), determine warning level. This
 increasingly warns as the absolute number of voxels an ROI drops.
@@ -502,16 +541,16 @@ wlevel : str
     elif nvox > 4   :  return 'medium'
     else:              return 'severe'
     
-def warn_roi_stats_nz_frac(nvox, nz, verb=0):
+def warn_roi_stats_nzer_frac(nvox, nzer, verb=0):
     """For a given number of voxels (nvox) and number of zero-valued
-voxels (nz), determine warning level for: frac = nz/nvox. This warns
+voxels (nzer), determine warning level for: frac = nzer/nvox. This warns
 increasingly as the ROI gets filled with more empty voxels.
 
 Parameters
 ----------
 nvox : int
     number of voxels in ROI
-nz : int
+nzer : int
     number of zero-valued voxels in the ROI
 verb : int
     verbosity level
@@ -524,19 +563,20 @@ wlevel : str
 
     """
 
-    if verb :  ab.IP("nvox: {}, nz: {}".format(nvox, nz))
+    if verb :  ab.IP("nvox: {}, nzer: {}".format(nvox, nzer))
 
-    if nvox < 0 or nz < 0 :
-        ab.EP("Can't have negative nvox ({}) or nz ({})".format(nvox, nz))
+    if nvox < 0 or nzer < 0 :
+        ab.EP("Can't have negative nvox ({}) or nzer ({})".format(nvox, nzer))
 
     if nvox == 0 :      return 'none'   # no vox; gets flagged elsewhere
-    elif nz == 0 :      return 'none'
+    elif nzer == 0 :    return 'none'
 
-    frac = float(nz) / nvox
+    frac = float(nzer) / nvox
     
-    if   frac < 0.05 :  return 'undecided'
-    elif frac < 0.1  :  return 'mild'
-    elif frac < 0.3  :  return 'medium'
+    if   frac < 0.05 :  return 'none'
+    elif frac < 0.1  :  return 'undecided'
+    elif frac < 0.2  :  return 'mild'
+    elif frac < 0.35 :  return 'medium'
     else:               return 'severe'
     
 def warn_roi_stats_vmax(vmax, verb=0):
@@ -569,8 +609,8 @@ wlevel : str
         ab.WP("Shouldn't have sub-unity vmax ({})".format(vmax))
 
     if   vmax == 0   :  return 'none'        # no vox; gets flagged elsewhere
-    elif vmax >= 2   :  return 'none'
-    elif vmax >= 1.5 :  return 'mild'        # though, 1.4 is a common val
+    elif vmax >= 1.7 :  return 'none'
+    elif vmax >= 1.4 :  return 'mild'        # though, 1.4 is a common val
     else:               return 'medium'
 
 
@@ -745,7 +785,7 @@ if __name__ == '__main__' :
     #
     #OBJ = comp_roi_dset_table(x)
 
-
+    '''
     fname2 = '/home/ptaylor/AFNI_data6/FT_analysis/'
     fname2+= 'sub-456.results_FT.rest.16/tsnr_stats_regress/'
     fname2+= 'stats_COMBO9.txt'
@@ -754,5 +794,12 @@ if __name__ == '__main__' :
     x2 = au.read_text_file(fname2, strip=False)
 
     OBJ2 = all_comp_roi_dset_table(x2, prefix = prefout)
+'''
 
+    fname2 = '/home/ptaylor/AFNI_data6/FT_analysis/FT.results/tsnr_stats_regress/'
+    fname2+= 'stats_APQC_atlas.txt'
+    prefout = '.'.join(fname2.split('.')[:-1]) # use input file for output pref
 
+    x2 = au.read_text_file(fname2, strip=False)
+
+    OBJ2 = all_comp_roi_dset_table(x2, prefix = prefout)

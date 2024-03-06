@@ -33,6 +33,7 @@ $prog modification history:
    1.3  : Feb 24, 2024: allow subbrick selectors on dset_ROI
    1.4  : Mar  1, 2024: allow -rval_list ALL_LT (for entire table/point list)
    1.5  : Mar  4, 2024: update reformat, removing Q column
+   1.5  : Mar  5, 2024: minor renaming in table
 
    current version: $script_version
 EOF
@@ -362,13 +363,13 @@ echo "$dund\n" >>! $stats_file
 
 # field headers must match 2 sets of btext lines, below
 printf '%6s %6s %5s %5s  %5s %5s %5s %5s %5s  %6s %6s %6s  %s\n'     \
-       "ROI" "Nvox" "Nz" "Vmax"                                      \
+       "ROI" "Nvox" "Nzer" "Vmax"                                    \
        "Tmin" "T25%" "Tmed" "T75%" "Tmax"                            \
-       "Xcoor" "Ycoor" "Zcoor"                                       \
+       "  X  " "  Y  " "  Z  "                                       \
        "ROI_name"                                                    \
        >>! $stats_file
 printf '%6s %6s %5s %5s  %5s %5s %5s %5s %5s  %6s %6s %6s  %s\n'     \
-       "---" "----" "--" "----"                                      \
+       "---" "----" "----" "----"                                    \
        "----"  "----"  "----"  "----"  "----"                        \
        "-----" "-----" "-----" "--------"                            \
        >>! $stats_file
