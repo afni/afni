@@ -127,7 +127,7 @@ def get_py_ver_float():
    if pv[0] == '1': return float('%c.%c' % (pv[0],pv[1]))
    else:            return float('%s.%s' % (pv[0],pv[1]))
 
-def compare_py_ver(vstr):
+def compare_py_ver_to_given(vstr):
    """return -1, 0, 1 comparing the current version to input vstr
    """
    # get current and input version lists, as ints
@@ -373,10 +373,10 @@ def test_import(libname, details=1, verb=1):
 
    # run test based on python version
    # break as less than 2.5, less than 3.10, and otherwise
-   if compare_py_ver('2.5') < 0: # use 2.4 version (might fail)
+   if compare_py_ver_to_given('2.5') < 0: # use 2.4 version (might fail)
       exec(import_find_test_24_def)
       imptest = eval('import_find_test_24')
-   elif compare_py_ver('3.10') < 0: # might go up to 3.12, but overlap
+   elif compare_py_ver_to_given('3.10') < 0: # might go up to 3.12, but overlap
       exec(import_find_test_25_def)
       imptest = eval('import_find_test_25')
    else:

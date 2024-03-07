@@ -951,10 +951,9 @@ class SysInfo:
          # and python - add a comment if they are using a version < 2.7
          elif prog == 'python':
             s, vstr = self.get_prog_version(prog)
-            vf = self.get_python_ver_float()
             mesg = ''
             # (removed old warning for 3.0+)
-            if vf < 2.7:
+            if BASE.compare_py_ver_to_given('2.7') < 0:
                mesg = 'have python version %s, consider using 2.7+' % vstr
             if mesg != '':
                self.comments.append(mesg)
@@ -1742,25 +1741,6 @@ class SysInfo:
       if not isfile:
          self.comments.append(comment)
       return isfile
-
-   def get_python_ver_float(self):
-      """just return the python version in A.B format
-         (ignore lower order terms)
-         return 0.0 on error
-      """
-      vstr = platform.python_version()
-      try:
-         posn = vstr.find('.')
-         if posn > 0:
-            posn = vstr.find('.', posn+1)
-            pvs = vstr[0:posn]
-         else:
-            pvs = vstr
-         vf = float(pvs)
-      except:
-         vf = 0.0
-
-      return vf
 
    def get_prog_version(self, prog):
       """return a simple string with program version

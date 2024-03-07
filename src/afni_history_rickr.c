@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Mar, 2024, RCR, "abids_tool.py", MICRO, TYPE_BUG_FIX,
+   "use compare_py_ver_to_given() for comparison of python versions",
+   "Also, removed a few similarly problematic float comparisons."
+ } ,
+
  {  5, Mar, 2024, RCR, "APMULTI_Demo2_realtime", MINOR, TYPE_ENHANCE,
    "add Optimally Combined multi-echo demo, including use with afni_proc.py",
    NULL
