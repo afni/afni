@@ -34,6 +34,7 @@ $prog modification history:
    1.4  : Mar  1, 2024: allow -rval_list ALL_LT (for entire table/point list)
    1.5  : Mar  4, 2024: update reformat, removing Q column
    1.6  : Mar  5, 2024: minor renaming in table
+   1.7  : Mar  8, 2024: add -make_html opt, for APQC
 
    current version: $script_version
 EOF
@@ -57,6 +58,7 @@ set stats_file  = ''    # file to store text results in
 
 # ----------------------------------------------------------------------
 # other user-controllable parameters
+set do_html     = 0     # generate HTML-style warn colors, for APQC
 set verb        = 1
 
 # ===========================================================================
@@ -158,6 +160,10 @@ while ( $ac <= $narg )
       set stats_file = $argv[$ac]
 
    # -------------------- other opts --------------------
+
+   else if ( "$argv[$ac]" == '-make_html' ) then
+      set do_html = 1
+
    # -echo is special case of -verb
    else if ( "$argv[$ac]" == '-echo' ) then
       set verb = 3
@@ -204,6 +210,7 @@ cat << EOF
    out_dir     = $out_dir
    rset_label  = $rset_label
    rval_list   = $rval_list
+   do_html     = $do_html
    verb        = $verb
 EOF
 endif
@@ -465,6 +472,15 @@ foreach rval ( $rval_list )
 end
 
 # --------------------------------------------------
+# perhaps make HTML warning color version, for APQC
+if ( $do_html ) then
+   if ( $verb > 0 ) then
+      echo "++ writing html version of table"
+   endif
+   roi_stats_warnings.py -input $stats_file
+endif
+
+# --------------------------------------------------
 # finally, display the results
 if ( $verb > 0 ) then
    echo ""
@@ -557,6 +573,9 @@ required parameters:
                example : -rval_list ALL_LT
 
 optional parameters:
+ 
+   -make_html              : make addition table formatted with HTML-style
+                             warning coloring (for APQC HTML)
 
    -verb VERB              : specify verbosity level (3 == -echo)
                              def: $verb
