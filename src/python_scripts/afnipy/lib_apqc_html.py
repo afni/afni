@@ -267,16 +267,22 @@ within the mask are shown in light blue, and the lower values are
 shown in dark blue.  In the absence of a mask, then the colorbar goes
 from 0 to the 98%ile value within the whole dset.
 
-QC questions are often closely linked to locations of interest in the
-brain.  To facilitate investigating the suitability of signal strength
-and/or ROIs for analysis, a table of local ROI stats is created for
-recognized spaces (as well as if the user inputs a set of ROIs). The 
-table contains the following information, with warning coloration 
-applied to highlight potential issues within each ROI:
+The "ROI shape and TSNR stats" table shows local shape and TSNR
+(~signal strength) properties in regions of interest.  QC questions
+are often closely linked to locations of interest in the brain. This
+table contains information about the suitability of signal strength
+and/or ROI properties for a given set of ROIs (default set for
+recognized spaces, or user-provided). Warning levels increase as shape
+properties become potentially more problematic, such as: containing a
+large number of empty voxels; becoming thinner and more unstable to
+alignment imperfections and partial voluming; having strong
+gradients/variability in TSNR; having low overall TSNR. The table
+contains the following information, with warning coloration applied to
+highlight potential issues within each ROI:
   ROI  : the integer value in the input atlas/map region
   Nvox : total number of voxels (warnings if quite small)
   Nzer : number of zero-valued voxels (warnings as Nzer/Nvox increases)
-  Vmax : maximum depth, counted in number of voxels (warnings as Vmax 
+  Dvox : maximum depth, counted in number of voxels (warnings as Dvox 
          decreases)
   Tmin, T25%, Tmed, T75%, Tmax 
        : min, max and quartile values of TSNR (warnings as T75% decreases;
