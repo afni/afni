@@ -12,28 +12,32 @@ static char * g_history[] =
   "\n",
   "0.0  18 Jul 2017\n"
   "     (Rick Reynolds of the National Institutes of Health, SSCC/DIRP/NIMH)\n"
-  "     -initial version\n"
+  "     - initial version\n"
   "1.0  19 Jul 2017: initial release\n"
   "1.1  18 Aug 2017: modify help\n"
   "1.2  01 Feb 2018: added -4095_count/frac/warn\n"
+  "1.3  08 Mar 2024:\n"
+  "     - added -4095_gcount\n"
+  "     - if max is not 4095, clear results\n"
 };
 
-static char g_version[] = "3dTto1D version 1.2, 1 February 2018";
+static char g_version[] = "3dTto1D version 1.3, 8 March 2024";
 
 #include "mrilib.h"
 
 
 /*--------------- method enumeration ---------------*/
 #define T21_METH_UNDEF          0
-#define T21_METH_ENORM          1       /* enorm      */
-#define T21_METH_RMS            2       /* rms        */
-#define T21_METH_SRMS           3       /* srms       */
-#define T21_METH_S_SRMS         4       /* shift_srms */
-#define T21_METH_MDIFF          5       /* mdiff      */
-#define T21_METH_SMDIFF         6       /* smdiff     */
-#define T21_METH_4095_COUNT     7       /* 4095_count */
-#define T21_METH_4095_FRAC      8       /* 4095_frac  */
-#define T21_METH_4095_WARN      9       /* 4095_warn  */
+#define T21_METH_ENORM          1       /* enorm       */
+#define T21_METH_RMS            2       /* rms         */
+#define T21_METH_SRMS           3       /* srms        */
+#define T21_METH_S_SRMS         4       /* shift_srms  */
+#define T21_METH_MDIFF          5       /* mdiff       */
+#define T21_METH_SMDIFF         6       /* smdiff      */
+#define T21_METH_4095_COUNT     7       /* 4095_count  */
+#define T21_METH_4095_GCOUNT    8       /* 4095_gcount */
+#define T21_METH_4095_FRAC      9       /* 4095_frac   */
+#define T21_METH_4095_WARN     10       /* 4095_warn   */
 
 /*--------------- global options struct ---------------*/
 typedef struct
@@ -86,8 +90,9 @@ int main( int argc, char *argv[] )
    /* evaluation of rv now depends on the method, usually non-zero is bad */
    rv = compute_results(opts);
 
-   /* for 4095_warn, return now, regardless */
-   if( opts->method == T21_METH_4095_WARN ) RETURN(rv);
+   /* for 4095_warn/4095_gcount, return now, regardless */
+   if( opts->method == T21_METH_4095_WARN || 
+       opts->method == T21_METH_4095_GCOUNT ) RETURN(rv);
 
    /* otherwise, any non-zero return is a failure */
    if ( rv ) RETURN(1);
@@ -184,8 +189,9 @@ int compute_results(options_t * opts)
    if( method == T21_METH_MDIFF ||
        method == T21_METH_SMDIFF ) RETURN(compute_meandiff(opts, method));
    
-   if( method == T21_METH_4095_COUNT ||
-       method == T21_METH_4095_FRAC  ||
+   if( method == T21_METH_4095_COUNT  ||
+       method == T21_METH_4095_GCOUNT ||
+       method == T21_METH_4095_FRAC   ||
        method == T21_METH_4095_WARN ) RETURN(compute_4095(opts, method));
    
    ERROR_message("unknown method index %d", method);
@@ -199,7 +205,6 @@ int compute_meandiff(options_t * opts, int method)
 {
    double * dwork, dscale=1.0, gmean, mdiff;
    float  * fdata, fdiff;
-   byte   * mask = opts->mask;  /* save 6 characters... */
    int      nt, nvox, vind, tind, nmask;
 
    ENTRY("compute_meandiff");
@@ -288,6 +293,7 @@ int compute_meandiff(options_t * opts, int method)
 /* count voxels or mask fraction that hits a global maximum of 4095
  *
  * method = 4095_count  : return masked counts
+ *          4095_gcount : return masked global count
  *          4095_frac   : return masked fractions
  *          4095_warn   : return limit warning
  *
@@ -295,15 +301,15 @@ int compute_meandiff(options_t * opts, int method)
  */
 int compute_4095(options_t * opts, int method)
 {
-   double * dwork;
    float  * fdata, gmax, fval;
-   byte   * mask = opts->mask;  /* save 6 characters... */
-   int      nt, nvox, vind, tind, nmask, found, nlocal;
+   char   * prefix;
+   int      nt, nvox, vind, tind, nmask, gcount;
 
    ENTRY("compute_4095");
 
    nt = DSET_NVALS(opts->inset);
    nvox = DSET_NVOX(opts->inset);
+   prefix = DSET_PREFIX(opts->inset);
 
    /* note how many voxels this is over */
    if( opts->mask ) nmask = THD_countmask( nvox, opts->mask );
@@ -325,8 +331,8 @@ int compute_4095(options_t * opts, int method)
    fdata = calloc(nt, sizeof(float));
 
    /* do the work */
-   gmax = 0.0;
-   found = 0;
+   gmax = 0.0;  /* global max */
+   gcount = 0;  /* count of global 4095 voxels */
    for( vind=0; vind < nvox; vind++ ) {
       if( opts->mask && ! opts->mask[vind] ) continue;
 
@@ -342,11 +348,14 @@ int compute_4095(options_t * opts, int method)
          /* track global max */
          if( fval > gmax ) gmax = fval;
 
-         /* if we pass the limit, quit working */
-         if( gmax > 4095.0 ) break;
+         /* if we pass the limit, quit working? */
+         // if( gmax > 4095.0 ) break;
 
          /* track hits */
-         if( fval == 4095.0 ) opts->result[tind]++;
+         if( fval == 4095.0 ) {
+            gcount++;
+            opts->result[tind]++;
+         }
       }
    }
 
@@ -354,21 +363,45 @@ int compute_4095(options_t * opts, int method)
    free(fdata);
   
    /* babble to user */
-   if( opts->verb )
-      INFO_message("global max = %f", gmax);
+   if( opts->verb ) {
+      INFO_message("global max = %f, global 4095 count = %d", gmax, gcount);
+   }
+
+   /* if the global max is not a problem, report results as zero */
+   if( gmax != 4095 ) {
+      if( opts->verb )
+         INFO_message("max of %g is okay, clearing results...", gmax);
+
+      /* clear results, so they are not reported as problems */
+      gcount = 0;
+      for( tind=0; tind < nt; tind++ ) opts->result[tind] = 0.0;
+   }
 
    /* if warning, decide and return */
    if( method == T21_METH_4095_WARN ) {
+      /* if no problem, report 0 (if not displayed above) */
       if( gmax != 4095 ) {
-        if( opts->verb ) INFO_message("max of %g is okay", gmax);
-        else             { printf("0\n");  fflush(stdout); }
+        if( ! opts->verb ) { printf("0\n");  fflush(stdout); }
         RETURN(0);
       }
 
-      if( opts->verb ) WARNING_message("suspicious max of exactly 4095");
-      else             { printf("1\n"); fflush(stdout); }
+      /* write results to stdout */
+      if( opts->verb )
+         printf("** warning: suspicious max of exactly 4095 (%d times),"
+                " dset %s\n", gcount, prefix);
+      else
+         printf("1\n");
+      fflush(stdout);
 
       RETURN(0);
+   }
+
+   /* maybe just return the global count */
+   if( method == T21_METH_4095_GCOUNT ) {
+      /* write results to stdout */
+      printf("%d\n", gcount);
+      fflush(stdout);
+      RETURN(gcount);
    }
 
    /* if frac, scale */
@@ -393,7 +426,6 @@ int compute_enorm(options_t * opts, int method)
 {
    double * dwork, dscale=1.0, gmean, mdiff;
    float  * fdata, fdiff;
-   byte   * mask = opts->mask;  /* save 6 characters... */
    int      nt, nvox, vind, tind, nmask;
 
    ENTRY("compute_enorm");
@@ -564,6 +596,7 @@ int meth_name_to_index(char * name)
    if( ! strcasecmp(name, "smdiff") )  return T21_METH_SMDIFF;
 
    if( ! strcasecmp(name, "4095_count") ) return T21_METH_4095_COUNT;
+   if( ! strcasecmp(name, "4095_gcount")) return T21_METH_4095_GCOUNT;
    if( ! strcasecmp(name, "4095_frac") )  return T21_METH_4095_FRAC;
    if( ! strcasecmp(name, "4095_warn") )  return T21_METH_4095_WARN;
 
@@ -582,6 +615,7 @@ char * meth_index_to_name(int method)
    if( method == T21_METH_MDIFF )   return "mdiff";
    if( method == T21_METH_SMDIFF )  return "smdiff";
    if( method == T21_METH_4095_COUNT ) return "4095_count";
+   if( method == T21_METH_4095_GCOUNT) return "4095_gcount";
    if( method == T21_METH_4095_FRAC )  return "4095_frac";
    if( method == T21_METH_4095_WARN )  return "4095_warn";
 
@@ -608,8 +642,13 @@ int show_help(void)
    "    mdiff           : mean abs(diff)\n"
    "    smdiff          : mdiff scaled down by global mean\n"
    "    4095_count      : count voxels with max of exactly 4095\n"
+   "    4095_gcount     : count global voxels with max of exactly 4095\n"
+   "                      (masked voxels over time)\n"
    "    4095_frac       : fraction of masked voxels with max of exactly 4095\n"
-   "    4095_warn       : warn if short datum and max of exactly 4095\n"
+   "    4095_warn       : warn of max of exactly 4095\n"
+   "\n"
+   "               Note : the 4095 cases do not warn if max > 4095\n"
+   "                      --> the output is cleared (to zero)\n"
    "\n"
    "More details are provided after the examples.\n"
    "\n"
@@ -636,9 +675,13 @@ int show_help(void)
    "\n"
    "       3dTto1D -input dfile.r01.1D\\' -method enorm -prefix enorm.r01.1D\n"
    "\n"
-   "E4. warn if short data and max is 4095\n"
+   "E4. warn if max is 4095\n"
    "\n"
    "       3dTto1D -input epi+orig -method 4095_warn\n"
+   "\n"
+   "E4. count global number of 4095 voxels (return 0 if it is not the max)\n"
+   "\n"
+   "       3dTto1D -input epi+orig -method 4095_gcount\n"
    "\n"
    "--------------------------------------------------\n"
    "methods:\n"
@@ -717,12 +760,18 @@ int show_help(void)
    "   method 4095_count\n"
    "\n"
    "      At each time point, output the number of (masked) voxels that are\n"
-   "      exactly 4095.\n"
+   "      exactly 4095 (if max is 4095).\n"
+   "\n"
+   "   method 4095_gcount\n"
+   "\n"
+   "      Output the total number of (masked) voxels that are exactly 4095.\n"
+   "      This accumulates across voxels and time.\n"
+   "    * This resets to output zero if the maximum > 4095.\n"
    "\n"
    "   method 4095_frac\n"
    "\n"
    "      At each time point, output the fraction of (masked) voxels that\n"
-   "      are exactly 4095.\n"
+   "      are exactly 4095 (if max is 4095).\n"
    "\n"
    "   method 4095_warn\n"
    "\n"
@@ -777,13 +826,19 @@ int show_help(void)
    "         smdiff     : mdiff scaled by grand mean\n"
    "                      = mdiff/mean\n"
    "\n"
-   "         4095_count : count of voxels that are exactly 4095\n"
+   "                 *** : for the following 4095 cases, output is cleared\n"
+   "                       if the maximum is not exactly 4095\n"
    "\n"
-   "         4095_frac  : fraction of voxels that are exactly 4095\n"
-   "                      = 4095_count/(mask size)\n"
+   "         4095_count  : count of voxels that are exactly 4095\n"
    "\n"
-   "         4095_warn  : state whether global max is exactly 4095\n"
-   "                      (no 1D output)\n"
+   "         4095_gcount : count of total voxels that are exactly 4095\n"
+   "                       across time (where 4095 is the global max, else 0)\n"
+   "\n"
+   "         4095_frac   : fraction of voxels that are exactly 4095\n"
+   "                       = 4095_count/(mask size)\n"
+   "\n"
+   "         4095_warn   : state whether global max is exactly 4095\n"
+   "                       (no 1D output)\n"
    "\n"
    "--------------------------------------------------\n"
    "optional command arguments:\n"
@@ -853,10 +908,11 @@ int process_opts(options_t * opts, int argc, char * argv[] )
          if( ++ac >= argc ) ERROR_exit("need argument after '-input'");
 
          opts->inset = THD_open_dataset( argv[ac] );
-         opts->nt = DSET_NVALS(opts->inset);
          if( ! opts->inset ) ERROR_exit("cannot open dset '%s'", argv[ac]);
 
          DSET_load(opts->inset); CHECK_LOAD_ERROR(opts->inset);
+         opts->nt = DSET_NVALS(opts->inset);
+
          ac++; continue;
       }
       else if( ! strcmp(argv[ac],"-mask") ) {
