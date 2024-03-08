@@ -2208,7 +2208,7 @@ def egs_publish():
             - EPI registration to MIN_OUTLIER vr_base volume
             - EPI/anat alignment, with -align_unifize_epi local
             - NL warp to MNI152_2009 template, as computed by @SSwarper
-            - apply a (modestly small) 4 mm FWHM Gaussian blur
+            - apply 5 mm FWHM Gaussian blur, approx 1.5*voxel size
             - all registration transformations are concatenated
             - voxelwise scaling to percent signal change
             - regression (projection) of:
@@ -2263,7 +2263,7 @@ def egs_publish():
       ['-volreg_warp_dxyz',        ['3']],
       ['-volreg_compute_tsnr',     ['yes']],
       ['-mask_epi_anat',           ['yes']],
-      ['-blur_size',               ['4']],
+      ['-blur_size',               ['5']],
       ['-regress_motion_per_run',  []],
       ['-regress_make_corr_vols',  ['aegm09']],
       ['-regress_censor_motion',   ['0.2']],
