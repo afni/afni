@@ -2193,7 +2193,7 @@ def egs_publish():
    examples.append( APExample('AP publish 3c',
      source='AP_paper/scripts_rest/do_23_ap_ex3_vol.tcsh',
      descrip='do_23_ap_ex3_vol.tcsh - rest analysis.',
-     moddate='2024.02.30',
+     moddate='2024.03.08',
      keywords=['complete', 'publish', 'physio', 'rest'],
      header="""
               (recommended?  yes, an example of resting state analysis)
@@ -2208,7 +2208,7 @@ def egs_publish():
             - EPI registration to MIN_OUTLIER vr_base volume
             - EPI/anat alignment, with -align_unifize_epi local
             - NL warp to MNI152_2009 template, as computed by @SSwarper
-            - blur _to_ a FWHM of 8 mm (appropriate for multiple scanners)
+            - apply a (modestly small) 4 mm FWHM Gaussian blur
             - all registration transformations are concatenated
             - voxelwise scaling to percent signal change
             - regression (projection) of:
@@ -2263,8 +2263,7 @@ def egs_publish():
       ['-volreg_warp_dxyz',        ['3']],
       ['-volreg_compute_tsnr',     ['yes']],
       ['-mask_epi_anat',           ['yes']],
-      ['-blur_size',               ['8']],
-      ['-blur_to_fwhm',            []],
+      ['-blur_size',               ['4']],
       ['-regress_motion_per_run',  []],
       ['-regress_make_corr_vols',  ['aegm09']],
       ['-regress_censor_motion',   ['0.2']],
