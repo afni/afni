@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Mar, 2024, RCR, "3dTto1D", MINOR, TYPE_ENHANCE,
+   "add 4095_gcount warning method; modify output",
+   "Zero out results if max is not exactly 4095."
+ } ,
+
  {  7, Mar, 2024, RCR, "abids_tool.py", MICRO, TYPE_BUG_FIX,
    "use compare_py_ver_to_given() for comparison of python versions",
    "Also, removed a few similarly problematic float comparisons."
