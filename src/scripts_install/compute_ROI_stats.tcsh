@@ -33,7 +33,7 @@ $prog modification history:
    1.3  : Feb 24, 2024: allow subbrick selectors on dset_ROI
    1.4  : Mar  1, 2024: allow -rval_list ALL_LT (for entire table/point list)
    1.5  : Mar  4, 2024: update reformat, removing Q column
-   1.5  : Mar  5, 2024: minor renaming in table
+   1.6  : Mar  5, 2024: minor renaming in table
 
    current version: $script_version
 EOF
@@ -363,7 +363,7 @@ echo "$dund\n" >>! $stats_file
 
 # field headers must match 2 sets of btext lines, below
 printf '%6s %6s %5s %5s  %5s %5s %5s %5s %5s  %6s %6s %6s  %s\n'     \
-       "ROI" "Nvox" "Nzer" "Vmax"                                    \
+       "ROI" "Nvox" "Nzer" "Dvox"                                    \
        "Tmin" "T25%" "Tmed" "T75%" "Tmax"                            \
        "  X  " "  Y  " "  Z  "                                       \
        "ROI_name"                                                    \
@@ -506,15 +506,14 @@ $prog  - compute per-ROI value statisics over a given dataset
             ROI          : ROI index value (rval)
 
             Nvox         : N voxels in dset_ROI rval region
-            Nz           : N ROI voxels that are zero in dset_data
-            Vmax         : maximum ROI depth, in voxels (1.0 = 1 iso voxel)
+            Nzer         : N ROI voxels that are zero in dset_data
+            Dvox         : maximum ROI depth, in voxels (1.0 = 1 iso voxel)
                            = (max mm depth) / (iso voxel width)
 
             Tmin, T25%, Tmed, T75%, Tmax
                          : multiples of 25%-iles (with min/max)
 
-            Xcoor, Ycoor, Zcoor 
-                         : x, y and z coordinates at max ROI depth
+            X, Y, Z      : x, y and z coordinates at max ROI depth
                            (coordinates are in DICOM/RAI orientation)
             ROI_name     : ROI label associated with ROI index (in dset_ROI)
 

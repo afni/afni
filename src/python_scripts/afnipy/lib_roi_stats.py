@@ -49,7 +49,6 @@ This contains a *set* of one or more tables."""
         if self.prefix :
             self.write_out_table_file(self.prefix)
 
-
     # ---------------------------------------------------
 
     def write_out_table_file(self, prefix):
@@ -205,7 +204,6 @@ Probably the major products of interest from creating this object are:
         for idx in range(self.n_table_values):
             for col in range(self.len_table_cols):
                 wlev = self.table_maxwarn[idx][col]
-                print("HEY", wlev)
                 self.table_values_html[idx][col] = \
                     wrap_val_with_html_span(self.table_values[idx][col], wlev=wlev)
 
@@ -218,7 +216,7 @@ Probably the major products of interest from creating this object are:
         for idx in range(self.n_table_values):
             self.check_nvox(idx)
             self.check_nzer_frac(idx)
-            self.check_vmax(idx)
+            self.check_dvox(idx)
             self.check_tsnr_slope_2575(idx)
             self.check_tsnr_value_75(idx)      # do after TSNR-slope check
 
@@ -260,20 +258,20 @@ Probably the major products of interest from creating this object are:
         # ... and update warning levels in cols
         self.update_table_maxwarn(wlev, idx, col_T75p)
 
-    def check_vmax(self, idx):
+    def check_dvox(self, idx):
         """Run the check on max voxel depth in the ROI."""
 
         # find columns with correct info
-        col_Vmax = self.table_cols.index('Vmax')
+        col_Dvox = self.table_cols.index('Dvox')
 
         # get numbers from relevant row
-        Vmax = float(self.table_values[idx][col_Vmax])
+        Dvox = float(self.table_values[idx][col_Dvox])
 
         # evaluate warning level, and save
-        wlev = warn_roi_stats_vmax(Vmax, verb=self.verb)
+        wlev = warn_roi_stats_dvox(Dvox, verb=self.verb)
 
         # ... and update warning levels in cols
-        self.update_table_maxwarn(wlev, idx, col_Vmax)
+        self.update_table_maxwarn(wlev, idx, col_Dvox)
 
     def check_nzer_frac(self, idx):
         """Run the check on fraction of nonzero voxels in the ROI."""
@@ -579,15 +577,15 @@ wlevel : str
     elif frac < 0.35 :  return 'medium'
     else:               return 'severe'
     
-def warn_roi_stats_vmax(vmax, verb=0):
+def warn_roi_stats_dvox(dvox, verb=0):
     """Assign an appropriate warning level for the max volumetric depth
-(vmax) of the ROI, counting in units of (isotropic) voxel dimension.
-As the vmax decreases, the warning level increases. Lower vmax
+(dvox) of the ROI, counting in units of (isotropic) voxel dimension.
+As the dvox decreases, the warning level increases. Lower dvox
 suggests greater influence of partial voluming, for example.
 
 Parameters
 ----------
-vmax : float
+dvox : float
     max voxel depth of ROI (units: number of voxels, which are likely
     isotropic)
 verb : int
@@ -601,16 +599,16 @@ wlevel : str
 
     """
 
-    if verb :  ab.IP("vmax: {}".format(vmax))
+    if verb :  ab.IP("dvox: {}".format(dvox))
 
-    if   vmax < 0 :  
-        ab.EP("Can't have negative vmax ({})".format(vmax))
-    elif vmax and vmax < 1 :  
-        ab.WP("Shouldn't have sub-unity vmax ({})".format(vmax))
+    if   dvox < 0 :  
+        ab.EP("Can't have negative dvox ({})".format(dvox))
+    elif dvox and dvox < 1 :  
+        ab.WP("Shouldn't have sub-unity dvox ({})".format(dvox))
 
-    if   vmax == 0   :  return 'none'        # no vox; gets flagged elsewhere
-    elif vmax >= 1.7 :  return 'none'
-    elif vmax >= 1.4 :  return 'mild'        # though, 1.4 is a common val
+    if   dvox == 0   :  return 'none'        # no vox; gets flagged elsewhere
+    elif dvox >= 1.7 :  return 'none'
+    elif dvox >= 1.4 :  return 'mild'        # though, 1.4 is a common val
     else:               return 'medium'
 
 
