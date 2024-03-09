@@ -11,7 +11,9 @@ from platform import python_version_tuple
 
 
 ## determine if captured subprocess encoding is needed; requiring after 3.6.0
-ENCODING_REQUIRED = python_version_tuple() >= ('3', '6', '0')
+# ENCODING_REQUIRED = python_version_tuple() >= ('3', '6', '0')
+# - handle multiple digits [7 Mar 2024 rickr]
+ENCODING_REQUIRED = afni_base.compare_py_ver_to_given('3.6.0') >= 0
 
 
 ########################################################################
