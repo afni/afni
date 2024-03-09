@@ -919,14 +919,17 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------
 
     # QC block: "regr"
-    # item    : ROI stats for TSNR (final)
+    # item    : ROI stats for TSNR (final) via compute_ROI_stats.tcsh
 
-    # not currently a uvar, check for known dir name in AP results dir
-    # and known file postfixes within it (except WB ones)
-    all_fname = glob.glob('tsnr_stats_regress/*eval_html.txt')
-    if 'stats_brain.txt' in all_fname :
-        _tmp = all_fname.remove('stats_brain.txt')
-    
+    # not currently a uvar, check for known dir name in AP results
+    # dir; check for certain 'automatic' stats files that do not have
+    # HTML encoding already (and are not WB ones)
+    all_fname = glob.glob('tsnr_stats_regress/stats_auto_*.txt')
+    for fname in all_fname :
+        if fname.endswith('_brain.txt') or fname.endswith('eval_html.txt') :
+            _tmp = all_fname.remove(fname)
+    all_fname.sort()
+
     if len(all_fname) :
         ban      = lat.bannerize('check TSNR ROI stats')
         for fname in all_fname:

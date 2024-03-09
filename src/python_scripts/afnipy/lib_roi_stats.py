@@ -25,8 +25,8 @@ class all_comp_roi_dset_table:
     """An object to accompany compute_ROI_stats.tcsh text file output.
 This contains a *set* of one or more tables."""
 
-    def __init__(self, ftext, prefix=None, fname='input_file', 
-                 verb=0):
+    def __init__(self, ftext, prefix='', fname='input_file', 
+                 write_out=True, verb=0):
         """Take a full file text (list of strings) and loop over tables
         within."""
 
@@ -34,6 +34,7 @@ This contains a *set* of one or more tables."""
         self.ftext             = ftext           # list of str, full file text
         self.prefix            = prefix          # str, output filename radix
         self.fname             = fname           # str, input filename
+        self.write_out         = write_out       # bool, make output file?
 
         # attributes defined by parsing self.ftext
         self.all_tables_raw    = []              # list of comp_roi_dset* text
@@ -46,7 +47,7 @@ This contains a *set* of one or more tables."""
         self.find_all_tables()
         self.evaluate_all_tables()
 
-        if self.prefix :
+        if self.write_out :
             self.write_out_table_file(self.prefix)
 
     # ---------------------------------------------------
@@ -54,14 +55,22 @@ This contains a *set* of one or more tables."""
     def write_out_table_file(self, prefix):
         """Save to disk the processed text files: table_values_html."""
 
-        # what to print: these table objects (keys), using their given
-        # prefixes (values)
+        # default postfixes for particular kinds of tables, if prefix 
+        # is empty or None
         dict_tables = {
             'values_html' : '_eval_html.txt',
         }
 
         for table in dict_tables.keys() :
-            opref = prefix + dict_tables[table]
+            if prefix :
+                opref = prefix
+            elif '.' in self.fname :
+                ppp   = '.'.join(self.fname.split('.')[:-1])
+                opref = ppp + dict_tables[table]
+            elif len(self.fname) :
+                opref = self.fname + dict_tables[table]
+            else:
+                opref = 'prefix' + dict_tables[table]
             otext = '\n' # empty line at top
 
             # for each given table type, loop over all tables in the file

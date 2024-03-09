@@ -50,6 +50,7 @@ g_history = """
    roi_stats_warnings.py history:
 
    0.0  Mar  7, 2024    - ...
+   0.1  Mar  8, 2024    - tweak in usage, in case no prefix provided
 """
 
 g_version = "roi_stats_warnings.py version 0.0, March 7, 2024"
@@ -180,7 +181,8 @@ class MyInterface:
           self.status = 0 # update to success
 
       # create HTML table
-      self.roi_table = LRS.all_comp_roi_dset_table(self.text_lines)
+      self.roi_table = LRS.all_comp_roi_dset_table(self.text_lines,
+                                                   fname=self.input)
 
       # if we have no prefix, base it on input
       if self.prefix is None or self.prefix == '':

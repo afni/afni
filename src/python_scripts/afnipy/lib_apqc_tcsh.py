@@ -4216,8 +4216,8 @@ num : int
 # summary quantities from comp_ROI_stats.tcsh (ROI-based TSNR properties)
 # tsnr_stats_*
 def apqc_regr_roi_stats( ap_ssdict, obase, fname, qcb, qci ):
-    """Make a simple data table of text reporting on ROI properties and
-TSNR stats.  Also create text for above/below images.
+    """Take a simple data table of text reporting on ROI properties and
+TSNR stats, and HTML encoding.  Also create text for above/below images.
 
 Parameters
 ----------
@@ -4253,8 +4253,9 @@ num : int
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
 
-    # copy file to new location
-    cmd    = '''\cp {} {}'''.format(fname, odat)
+    # calculate HTML formatting for table, and output in QC dir
+    cmd    = '''roi_stats_warnings.py -input {} -prefix {}'''.format(fname, 
+                                                                     odat)
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
 
