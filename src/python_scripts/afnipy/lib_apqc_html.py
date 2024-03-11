@@ -1208,7 +1208,8 @@ def make_javascript_btn_func(subj ):
 
     y+= '''
 // global vars
-var allBtn1, allTd1, allhr_sec;  // selection/location IDs
+var allBtn1, allTd1;             // selection/location IDs
+var allhr_sec = "";              // more IDs
 var topi, previ;                 // keeps our current/last location
 //var subj_id  = "{subj}";            // subject's ID
 var jsonfile = "apqc_{subj}.json";  // json file: apqc_SUBJ.json
@@ -1635,8 +1636,13 @@ function sendCommentToButtonAndForm(comm, bid) {
     y+= '''
 /*
   Checks/rechecks whenever change in page location occurs.
+  [PT: Mar 11, 2024] check allhr_sec, for when using '-jump_to' opt in 
+                     open_apqc.py
 */
 window.addEventListener("scroll", function(event) {
+    if (allhr_sec == "") {
+       initializeParams();
+    }
     var newi = findTopSectionIdx();
 
     if ( newi != topi ) {
