@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Mar, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add 4095_gcount warnings for input EPI",
+   "This will be automatically run after the outlier counts."
+ } ,
+
  {  8, Mar, 2024, RCR, "3dTto1D", MINOR, TYPE_ENHANCE,
    "add 4095_gcount warning method; modify output",
    "Zero out results if max is not exactly 4095."
