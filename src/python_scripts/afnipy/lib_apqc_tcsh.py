@@ -4722,6 +4722,87 @@ num : int
 # ----------------------------------------------------------------------
 
 # Text warning, goes to dir_img output
+# ['max_4095_warn_dset']
+def apqc_warns_sat_4095( ap_ssdict, obase, qcb, qci ):
+    """Make the text info which will be displayed for this warning, which
+is about possible EPI signal being saturated at 4095.  Also create
+text for above/below images.
+
+Parameters
+----------
+ap_ssdict : dict
+    dictionary of subject uvars
+obase : str
+    start of output filenames, likely qc_<zeropadded idx>
+qcb : str
+    QC block ID
+qci : str
+    item ID of this information within the QC block
+
+Returns
+----------
+num : int
+    return 0 up on success, or a different int if failure
+
+    """
+
+    # output names/prefixes/etc.
+    oname    = '_'.join([obase, qcb, qci])           # output name
+    opref    = ap_ssdict['odir_img'] + '/' + oname   # prefix = path + name
+    otopjson = opref + '.json'
+    odat     = opref + '.dat'
+
+    if 1 :
+        print("++ APQC create: " + oname); sys.stdout.flush() 
+
+    do_cap = True
+    cmd    = '''# check for 4095 saturation warnings'''
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+
+    # get name of text file that might have warnings
+    fname  = ap_ssdict['max_4095_warn_dset']
+
+    # parse text file for warning severity
+    warn_level = "undecided"
+    if fname : 
+        txt = lah.read_dat(fname)
+        if "warning" in txt :
+            warn_level = "severe"
+        else:
+            warn_level = "none"
+
+    # Make dat file
+    if os.path.isfile(fname) and os.path.getsize(fname) :
+        cmd     = '''\\cp {} {}'''.format(fname, odat)
+        com    = ab.shell_com(cmd, capture=do_cap)
+        stat   = com.run()
+    else:
+        fff = open(odat, 'w')
+        fff.write("")
+        fff.close()
+
+    # text above data
+    otoptxt = "Saturation (4095 max) warnings"
+
+    # Make info below images 
+    otopdict = {
+        'itemtype'    : 'WARN',
+        'itemid'      : qci,
+        'blockid'     : qcb,
+        'blockid_hov' : lah.qc_blocks[qcb][0],
+        'title'       : lah.qc_blocks[qcb][1],
+        'text'        : otoptxt,
+        'warn_level'  : warn_level
+    }
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
+        json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+    return 0
+
+# ----------------------------------------------------------------------
+
+# Text warning, goes to dir_img output
 # ['tent_warn_dset']
 def apqc_warns_TENT( ap_ssdict, obase, qcb, qci ):
     """Make the text info which will be displayed for this warning, which
