@@ -804,6 +804,9 @@ def make_4095_check_commands(proc, block, input_form):
           "awk '/warning/ {print}' out.4095_all.txt | tee %s\n\n"         \
           % (input_form, warnfile)
 
+    # and add the uvar
+    proc.uvars.set_var('max_4095_warn_dset', [warnfile])
+
     return 0, cmd
 
 def run_radial_correlate(proc, block, full=0):
