@@ -1025,6 +1025,19 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------
 
     # QC block: "warns"
+    # item    : 4095 saturation warnings
+
+    ldep = ['max_4095_warn_dset']
+    if lat.check_dep(ap_ssdict, ldep) :
+        ban      = lat.bannerize('4095 saturation warnings')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_warns_sat_4095( ap_ssdict, obase, "warns", 
+                                            "sat_4095" )
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "warns"
     # item    : TENT warnings from timing tool
 
     ldep = ['tent_warn_dset']
