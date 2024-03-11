@@ -780,6 +780,33 @@ def make_outlier_commands(proc, block):
            'cat outcount.r*.1D > outcount_rall.1D\n'                      \
            '%s\n' % cs1
 
+    # add a check for maximum values of exactly 4095
+    rv, c4095 = make_4095_check_commands(proc, block, prev_prefix)
+    cmd += c4095
+
+    return rv, cmd
+
+def make_4095_check_commands(proc, block, input_form):
+    """run 3dTto1D -method 4095_warn, saving any warnings to out.4095_all.txt
+       
+       Also, add out.4095_all.txt to the uvars, for use in the APQC report.
+
+       return the status (0 on success) and command string
+    """
+    warnfile = 'out.4095_warn.txt'
+    cmd = '# ---------------------------------------------------------\n' \
+          '# check for potential 4095 saturation issues\n'                \
+          'foreach run ( $runs )\n'                                       \
+          '    3dTto1D -method 4095_warn -input %s\\\n'                   \
+          '            |& tee -a out.4095_all.txt\n'                      \
+          'end\n\n'                                                       \
+          '# make a file showing any resulting warnings\n'                \
+          "awk '/warning/ {print}' out.4095_all.txt | tee %s\n\n"         \
+          % (input_form, warnfile)
+
+    # and add the uvar
+    proc.uvars.set_var('max_4095_warn_dset', [warnfile])
+
     return 0, cmd
 
 def run_radial_correlate(proc, block, full=0):

@@ -775,12 +775,15 @@ g_history = """
     7.68 Feb 22, 2024:
        - use mask_epi_anat for more QC (over full_mask) and modify indentation
        - if appropriate, apply "-regress_compute_tsnr_stats brain 1"
+    7.69 Mar 11, 2024:
+       - add 3dTto1D -method 4095_warn command and out.4095_warn.txt uvar
 """
 
-g_version = "version 7.68, February 22, 2024"
+g_version = "version 7.69, March 11, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 7 Mar 2024",  "3dTto1D -method 4095_warn" ],
       [ "15 Feb 2024",  "compute_ROI_stats.tcsh, whereami -index_to_label" ],
       [ "14 Nov 2022",  "find_variance_lines.tcsh" ],
       [ " 3 Jun 2022",  "3dLocalUnifize" ],
