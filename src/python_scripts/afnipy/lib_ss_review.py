@@ -111,6 +111,8 @@ g_ss_uvar_fields = [ \
                        'out.df_info.txt'],
    ['cormat_warn_dset','correlation warns in Xmat', 
                        'out.cormat_warn.txt'],
+   ['max_4095_warn_dset','max value 4095 warnings from EPI', 
+                       'out.4095_warn.txt'],
    ['pre_ss_warn_dset','pre-steady state warnings', 
                        'out.pre_ss_warn.txt'],
    ['tent_warn_dset',  'tent truncation warnings', 

@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Mar, 2024, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "add max_4095_warn_dset key and driver use",
+   NULL
+ } ,
+
  { 11, Mar, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add 4095_gcount warnings for input EPI",
    "This will be automatically run after the outlier counts."
