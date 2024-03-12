@@ -638,6 +638,20 @@ else
   cat conftest.$ac_ext >&5
   ac_cv_prog_cc_works=no
 fi
+
+# rickr - stuff for debugging
+echo ""
+echo "== configure: saveing debug info into save.rr"
+rm -fr save.rr
+mkdir -p save.rr
+r_ac_link='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS'
+set -x
+echo $r_ac_link > save.rr/ac.link
+echo ${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS \
+     >> save.rr/ac.link
+set +x
+echo ""
+
 rm -fr conftest*
 
 echo "$ac_t""$ac_cv_prog_cc_works" 1>&6
