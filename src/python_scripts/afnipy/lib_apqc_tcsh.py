@@ -3829,7 +3829,6 @@ num : int
         all_volreg = glob.glob("pb*volreg*HEAD")
         if len(all_volreg) :
             pb = all_volreg[0].split('.')[0]
-            print('++ pb for volreg is: ' + pb)
             ic_file = 'run_instacorr_pbrun.tcsh'
             ic_args = '{} {}'.format(pb, 'r01')
             gv_file = 'run_graphview_pbrun.tcsh'
@@ -4153,7 +4152,6 @@ num : int
 
 # ========================== dat/txt ================================
 
-
 # summary quantities from 1d_tool.py degree-o-freedom check
 # ['xmat_regress']
 def apqc_regr_df( ap_ssdict, obase, qcb, qci ):
@@ -4200,6 +4198,69 @@ num : int
 
     # text above data
     otoptxt = "Summary of degrees of freedom (DF) usage from processing"
+
+    # Make info below images 
+    otopdict = {
+        'itemtype'    : 'DAT',
+        'itemid'      : qci,
+        'blockid'     : qcb,
+        'blockid_hov' : lah.qc_blocks[qcb][0],
+        'title'       : lah.qc_blocks[qcb][1],
+        'text'        : otoptxt,
+    }
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
+        json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+    return 0
+
+# summary quantities from comp_ROI_stats.tcsh (ROI-based TSNR properties)
+# tsnr_stats_*
+def apqc_regr_roi_stats( ap_ssdict, obase, fname, qcb, qci ):
+    """Take a simple data table of text reporting on ROI properties and
+TSNR stats, and HTML encoding.  Also create text for above/below images.
+
+Parameters
+----------
+ap_ssdict : dict
+    dictionary of subject uvars
+obase : str
+    start of output filenames, likely qc_<zeropadded idx>
+fname : str
+    filename to copy over and display (contains HTML formatting)
+qcb : str
+    QC block ID
+qci : str
+    item ID of this information within the QC block
+
+Returns
+----------
+num : int
+    return 0 up on success, or a different int if failure
+
+    """
+
+    # output names/prefixes/etc.
+    oname    = '_'.join([obase, qcb, qci])           # output name
+    opref    = ap_ssdict['odir_img'] + '/' + oname   # prefix = path + name
+    otopjson = opref + '.json'
+    odat     = opref + '.dat'
+
+    if 1 :
+        print("++ APQC create: " + oname); sys.stdout.flush() 
+
+    do_cap = True
+    cmd    = '''# degree of freedom (df) check for processing'''
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+
+    # calculate HTML formatting for table, and output in QC dir
+    cmd    = '''roi_stats_warnings.py -input {} -prefix {}'''.format(fname, 
+                                                                     odat)
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+
+    # text above data
+    otoptxt = "ROI shape and TSNR stats ({})".format(fname)
 
     # Make info below images 
     otopdict = {

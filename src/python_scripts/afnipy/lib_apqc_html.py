@@ -266,6 +266,29 @@ defined by the 5-95%ile range of TSNR in the mask.  The 1-5%ile values
 within the mask are shown in light blue, and the lower values are
 shown in dark blue.  In the absence of a mask, then the colorbar goes
 from 0 to the 98%ile value within the whole dset.
+
+The "ROI shape and TSNR stats" table shows local shape and TSNR
+(~signal strength) properties in regions of interest.  QC questions
+are often closely linked to locations of interest in the brain. This
+table contains information about the suitability of signal strength
+and/or ROI properties for a given set of ROIs (default set for
+recognized spaces, or user-provided). Warning levels increase as shape
+properties become potentially more problematic, such as: containing a
+large number of empty voxels; becoming thinner and more unstable to
+alignment imperfections and partial voluming; having strong
+gradients/variability in TSNR; having low overall TSNR. The table
+contains the following information, with warning coloration applied to
+highlight potential issues within each ROI:
+  ROI  : the integer value in the input atlas/map region
+  Nvox : total number of voxels (warnings if quite small)
+  Nzer : number of zero-valued voxels (warnings as Nzer/Nvox increases)
+  Dvox : maximum depth, counted in number of voxels (warnings as Dvox 
+         decreases)
+  Tmin, T25%, Tmed, T75%, Tmax 
+       : min, max and quartile values of TSNR (warnings as T75% decreases;
+         and as the slope of values (T75% -T25%)/Tmed increases)
+  X, Y, Z : coordinates of max-depth location, in RAI-DICOM notation
+  ROI  : name/label of ROI
 '''
 
 qcb_helps["radcor"] = '''
