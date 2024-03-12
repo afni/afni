@@ -7829,7 +7829,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    int   ShowOverLays_sort[SUMA_MAX_OVERLAYS],
          ShowOverLays_Back_sort[SUMA_MAX_OVERLAYS], iloc[SUMA_MAX_OVERLAYS];
    int OverlayOrder_Back[SUMA_MAX_OVERLAYS], OverlayOrder[SUMA_MAX_OVERLAYS];
-   int i, j, NshowOverlays, NshowOverlays_Back, *isort, i4, i4_0, i4_1, i4_2;
+   int i, j, NshowOverlays, NshowOverlays_Back, *isort;
+   int i3, i4, i4_0, i4_1, i4_2;
    SUMA_Boolean *isColored, *isColored_Fore, *isColored_Back;
    GLfloat *glcolar_Fore , *glcolar_Fore_tmp, *glcolar_Back;
    float avg_Back, avgfact;
@@ -8235,10 +8236,10 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 is called, before the beginning of SUMA_Overlays_2_GLCOLAR4_SO.
                 ************************************************************/
                 reload = 0;
-                for (int i=0; i<N_Node; ++i){
-                    int i3 = i*3;
-                    int i4 = i*4;
-                    for (int j=0; j<3; ++j)
+                for (i=0; i<N_Node; ++i){
+                    i3 = i*3;
+                    i4 = i*4;
+                    for (j=0; j<3; ++j)
                         ColVec[i3++] = glcolar_Fore[i4++];
                 }
            }
