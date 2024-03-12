@@ -641,7 +641,7 @@ fi
 
 # rickr - stuff for debugging
 echo ""
-echo "== configure: saveing debug info into save.rr"
+echo "== configure: saving debug info into save.rr"
 rm -fr save.rr
 mkdir -p save.rr
 r_ac_link='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS'
