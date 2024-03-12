@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Mar, 2024, RCR, "SUMA", MINOR, TYPE_BUG_FIX,
+   "updates to SUMA_CreateDO.c, SUMA_Color.c, SUMA_driver.c",
+   "Some build machines need to adhere to the C99 standard."
+ } ,
+
  { 11, Mar, 2024, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "add max_4095_warn_dset key and driver use",
    NULL
