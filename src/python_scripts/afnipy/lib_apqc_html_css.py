@@ -470,6 +470,11 @@ css_text+= '''
     right: 5%;
 }
 
+/* for NV canvas properties */
+canvas {
+    outline: none;      /* no outline */
+}
+
 /* For Graphview (GV) and InstaCorr (IC) buttons; 
    these know if server is serving */
 .btn6b {
