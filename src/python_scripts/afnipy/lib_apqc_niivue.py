@@ -205,11 +205,11 @@ nv_olay_txt : str
     nv_olay_txt = ''', {{ // olay
         url:"{olay}",
         frame4D: {idx_olay},  // idx of vol
-        colorMap: "{cmap}",'''.format(**nv_dict)
+        colormap: "{cmap}",'''.format(**nv_dict)
 
     if 'cmap_neg' in nv_dict :
         nv_olay_txt+= '''
-        colorMapNegative: "{cmap_neg}",'''.format(**nv_dict)
+        colormapNegative: "{cmap_neg}",'''.format(**nv_dict)
 
     nv_olay_txt+= '''
         cal_min: 0,
@@ -239,12 +239,12 @@ nv_thr_txt : str
     nv_thr_txt = ''', {{ // thr
         url:"{olay}",  // same dset as olay
         frame4D: {idx_thr},  // idx of vol
-        colorMap: "blue",'''.format(**nv_dict) # doesn't matter, not shown
-        #colorMap: "{cmap}",'''.format(**nv_dict)
+        colormap: "blue",'''.format(**nv_dict) # doesn't matter, not shown
+        #colormap: "{cmap}",'''.format(**nv_dict)
 
     if 'cmap_neg' in nv_dict :
         nv_thr_txt+= '''
-        colorMapNegative: "blue",'''.format(**nv_dict) # also not shown
+        colormapNegative: "blue",'''.format(**nv_dict) # also not shown
 
     nv_thr_txt+= '''
         cal_min: 0,
