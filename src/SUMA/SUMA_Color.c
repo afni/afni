@@ -7410,8 +7410,15 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
         for (j=0; j<overlay->N_V; ++j){
             // alphaOpacityPtr[j] = denom? MIN(1.0f, (fabs(overlay->V[j] - MinVal))/denom) : 1.0f;
             alphaOpacityPtr[j] = denom? MIN(1.0f, (fabs(overlay->V[j]))/denom) : 1.0f;
-            if (opacityModel == FRACTIONAL) alphaOpacityPtr[j] *= sqrt(alphaOpacityPtr[j]);
-            else if (opacityModel == QUADRATIC) alphaOpacityPtr[j] *= alphaOpacityPtr[j];
+            if (i<10) fprintf(stderr, "%s: opacityModel = %d\n", FuncName, opacityModel);
+            if (opacityModel == FRACTIONAL) {
+                if (i<10) fprintf(stderr, "%s: opacityModel = FRACTIONAL\n", FuncName);
+                alphaOpacityPtr[j] *= sqrt(alphaOpacityPtr[j]);
+            }
+            else if (opacityModel == QUADRATIC){
+                if (i<10) fprintf(stderr, "%s: opacityModel = QUADRATIC\n", FuncName);
+                alphaOpacityPtr[j] *= alphaOpacityPtr[j];
+            }
         }
     }
     
@@ -7858,6 +7865,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    static int thresholdReset = 0;
    
    SUMA_ENTRY; 
+   
+   // DEBUG: This function does not cause the black rectangles around the .gii data
    
    cmapChanged = 0;
    bytes2CopyToColVec = SO->N_Node*3*sizeof(float);

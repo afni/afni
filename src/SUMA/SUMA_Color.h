@@ -6,7 +6,7 @@
 #define PSV_NOTHING 0
 #define PSV_BIND_VOL    1
 
-enum OpacityModel {LINEAR, QUADRATIC, FRACTIONAL};
+enum OpacityModel {LINEAR=1, QUADRATIC, FRACTIONAL};
 
 byte SUMA_Val_Meets_Thresh(float val, double *ThreshRange, 
                            SUMA_THRESH_MODE ThrMode);

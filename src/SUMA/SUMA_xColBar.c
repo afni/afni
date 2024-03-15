@@ -2071,7 +2071,7 @@ void SUMA_cb_AlphaThresh_tb_toggled(Widget w, XtPointer data,
    }
 
    // Default opacity model
-   if (SO->alphaOpacityModel) SO->alphaOpacityModel = QUADRATIC;
+   if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
    
    // Refresh display
    SUMA_Remixedisplay(ado);
