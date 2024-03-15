@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Mar, 2024, RCR, "APMULTI_Demo2_realtime", MINOR, TYPE_ENHANCE,
+   "add rt.06.ME.OC.aves example, like 05 but with ROI averages",
+   NULL
+ } ,
+
  { 12, Mar, 2024, RCR, "SUMA", MINOR, TYPE_BUG_FIX,
    "updates to SUMA_CreateDO.c, SUMA_Color.c, SUMA_driver.c",
    "Some build machines need to adhere to the C99 standard."
