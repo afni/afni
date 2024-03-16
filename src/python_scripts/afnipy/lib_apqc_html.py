@@ -1116,10 +1116,13 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
     </textarea>  
     <button type="button" class="btn" 
     onclick="keepFromCommentForm(comm_{ll}.id, cform_{ll}.id)">
-    keep+close</button> 
+    keep</button> 
     <button type="button" class="btn cancel" 
     onclick="clearCommentForm(comm_{ll}.id, cform_{ll}.id)">
-    clear+close</button> 
+    clear text</button> 
+    <button type="button" class="btn clearall" 
+    onclick="clearCommentFormAndRating(comm_{ll}.id, cform_{ll}.id)">
+    clear all</button> 
     </form> 
 </div> <!-- bot of QC button comment form -->
 '''.format( ll=ll )
@@ -1900,7 +1903,7 @@ function thisButtonGetsAComment(bid, comm) {
 
     // and don't allow a null state anymore if it has a comment:
     // update it to "other"/"?"
-    if ( comm == "" || comm == "null" ) {
+    if ( comm == "" || comm == "null" || comm === null ) {
     } else {
        if ( isBtn1InNullState(bid) ) {
            setThisButtonRating(bid, 0);
@@ -2005,6 +2008,24 @@ function clearCommentForm(cid, cfID) {
     closeCommentForm(cfID);
     doSaveAllInfo();
 }
+/*
+  ... do the above *and* clear rating
+*/
+function clearCommentFormAndRating(cid, cfID) {
+    document.getElementById(cid).value = "";
+
+    // get the btn1 ID from comm ID
+    var bname = new String(cid); // basename
+    // skip the 'comm_' part of button ID
+    var bid   = "btn1_" + bname.slice(5);
+
+    thisButtonGetsAComment(bid, null);
+    setThisButtonRating(bid, -1);
+
+    closeCommentForm(cfID);
+    doSaveAllInfo();
+}
+
 '''
 
     y+= '''

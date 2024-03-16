@@ -697,28 +697,37 @@ css_text+= '''
   outline: none;
 }
 
+
 /* Set a style for the submit/login button */
 .form-container .btn {
   background-color: #7ece8c;
-  color: white;
   padding: 0px 0px;
   border: 3px solid #5f926a;
   float: left;
   cursor: pointer;
   margin:0;
-  width: 50%;
+  width: 33.3%;
   height: 30px;
   opacity: 1;
   font-weight: bold;
-  color: #FFF;
+  /*color: #FFF;*/
+  color: #000;
 }
 
-/* Add a red background color to the cancel button */
+/* Add a yellow background color to the cancel (clear text) button */
 .form-container .cancel {
+  background-color: #f3c36b; /*#c0ce7e;*/
+  border: 3px solid #a06c0d; 
+  color: #000;
+}
+
+/* Add a red background color to the clear-all button */
+.form-container .clearall {
   background-color: #f36b9b;
   border: 3px solid #c20000;
   color: #000;
 }
+
 
 '''
 
