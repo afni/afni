@@ -461,6 +461,15 @@ css_text+= '''
     padding: 0px 2px;
     float: right;
 }
+
+/* turning img/text headings into (subtle) buttons */
+.btn_title {
+    background-color: #014E33;
+    font-family: "Lucida Console", Monaco, monospace;
+    border: solid 0px #014E33!important;
+    border-color: #014E33!important; 
+}
+
 /* ... and the container/div holding the buttons */
 .container_avnv {
     width: 160px;  /* if more btns added, make wider */
@@ -534,6 +543,14 @@ css_text+= '''
 
 '''
 
+
+### no longer including:
+# button:focus:not(.active) {
+#     /* background-color: #333; */
+#     /* color: #ffea00; yellow; */
+#     border: dashed 1px #ffea00!important;
+#     /* border-color: #ffea00!important; yellow; */
+# }
 
 css_text+= '''
 
@@ -630,13 +647,6 @@ button:hover:not(.active) {
     color: #ffea00; /* yellow; */
     border: solid 2px #ffea00!important;
     border-color: #ffea00!important; /* yellow; */
-}
-
-button:focus:not(.active) {
-    /* background-color: #333; */
-    /* color: #ffea00; yellow; */
-    border: dashed 1px #ffea00!important;
-    /* border-color: #ffea00!important; yellow; */
 }
 
 button:active {

@@ -447,7 +447,7 @@ Double-click |clr| to clear all rating and comment values.
 Pro-tip: if data are mostly all in a single state like good or bad,
 just use filler buttons to save yourself click time, and then just
 click any individual buttons that are different.  '''],
-['''COMMENT''',
+['''COMMENTING''',
 '''
 Use ctrl+click (or cmd+click, on Macs) on a QC button to toggle a comment
 window open/closed.
@@ -466,6 +466,53 @@ upper-right corner).
 
 When the local server is running, the QC and rating information is saved
 every time a button is updated.'''
+],
+['''INTERACTIVE VIEW BUTTONS''',
+'''When the local server is running, you can use the buttons above
+each of the images to interactively view the data. The following
+buttons are currently present:
+
+  AV : open the data in the AFNI Viewer (opening a new GUI instance).
+
+  NV : open the data in an NiiVue instance, embedded in the browser;
+       clicking NV toggles the viewer on/off;
+       the (x,y,z) location of the crosshairs is shown, as well as the
+       "UOT" trio, which stands for Underlay, Overlay and Threshold
+       values in the current viewer;
+       users can hover over the rendering at the right and hit 'c' one
+       or more times to initiate a clipping plane that can be moved
+       using mouse scrolling.
+
+  IC : run AFNI's InstaCorr on the given data (settings are pre-loaded);
+       popup text describes what to do, but basically hold down
+       Ctrl+Shift, and click around the brain to see instantly updated
+       correlation patterns from a seed at the clicked location.
+
+  GV : open the data with a Graph Viewer in the AFNI GUI.
+
+Additionally, each of the gold-colored text labels throughout the HTML
+are actually buttons you can double-click, to bring *all* HTML pages
+that were opened with that current open_apqc.py command to the same
+location. This is extremely useful for checking the same QC item across
+all subjects. Like, really useful.
+'''
+],
+['''CROSS-PAGE SYNC'ING''',
+'''When the local server is running, you can bring all the APQC HTML
+instances that were opened with a single open_apqc.py execution to the
+exact same location.  This is extremely useful for checking the same
+QC item across all subjects. Like, really useful.
+
+Users can do this by double-clicking any of the gold-colored text
+labels throughout the HTML. The current page will smoothly scroll,
+placing the given QC item at the top of the page, and all other
+related pages will jump to the same location.
+
+Users can efficiently navigate between several tabs with the standard
+browser keyboard shortcuts:
+   Ctrl+Tab : cycle "forward" through the tabs in the window.
+   Ctrl+Shift+Tab : cycle "backward" through the tabs in the window.
+'''
 ],
 ['''KEYBOARD NAVIGATION''',
 '''
@@ -1263,6 +1310,36 @@ colorizeSavingButton(is_served);
 '''
 
     y+= '''
+
+/* 
+   function for scrolling/jumping all APQC HTML instances that were
+   opened at the same time: jump to same location.
+   This puts the new value into localStorage...
+*/
+function jumpAllOpenApqcToID(id) {
+  const jumpID = id;
+
+  /* move within this page */
+  let el = document.getElementById(id);
+  el.scrollIntoView({ behavior: 'smooth' }); 
+  /*el.scrollIntoView({ behavior: 'instant' })*/
+
+  /* and update local storage so other pages move */
+  localStorage.setItem('jumpID', id);
+}
+
+/* 
+   ... and this listens to changes in local storage (coming from
+   other pages), to react and jump to the appropriate location
+*/
+window.addEventListener('storage', (event) => {
+  /* if jumpID has changed, then jump to that new location */
+  if (event.key === 'jumpID') {
+    let el = document.getElementById(event.newValue);
+    el.scrollIntoView({ behavior: 'instant' });
+  }
+});
+
 
 /*
    Do both checking of server status and resetting of the is_served
@@ -2292,7 +2369,7 @@ def wrap_page_title( xtitle, xsubj, xstudy='',
 # -------------------------------------------------------------------
 
 def wrap_block_title(x, vpad=0, addclass="", blockid='', padmarg=0,
-                     do_close_prev_div=True):
+                     do_close_prev_div=True, do_jump_btn=True):
 
     y = ''
     if do_close_prev_div :
@@ -2324,21 +2401,35 @@ def wrap_block_title(x, vpad=0, addclass="", blockid='', padmarg=0,
     # navigation bar (plus the line beneath it).
     y+= ''' style="padding-top: {0}px; margin-top: -{0}px;">
 '''.format(padmarg)
-    y+= '''  <pre {}>'''.format(addclass)
-    y+= '''<center>[''' + blockid + ''']<b>'''
+    y+= '''  <center>'''
+
+    if do_jump_btn :
+        y+= '''<button style="all: unset" class="btn_title active" 
+        ondblclick="jumpAllOpenApqcToID('{blockid}')" 
+        title="jump in all tabs">'''.format(blockid=blockid)
+
+    y+= '''<pre {}>'''.format(addclass)
+    y+= '''[''' + blockid + ''']<b>'''
     y+= ''' <u>'''+x+'''</u>'''
     y+= ' '*(len(blockid)+3)       # balance blockid text
-    y+= '''</b></center></pre>
+    y+= '''</b></pre>'''
+
+    if do_jump_btn :
+        y+= '''</button>'''
+    y+= '''</center>'''
+
+    y+= '''
 </div>'''
+
     if vpad:
-        y= """\n"""+y
-        y+="""\n"""
+        y = """\n"""+y
+        y+= """\n"""
     return y
 
 # -------------------------------------------------------------------
 
 def wrap_block_text( x, vpad=0, addclass="", dobold=True, itemid='',
-                     padmarg=0 ):
+                     padmarg=0, do_jump_btn=True ):
     addid = ''
     if itemid :
         addid = '''id="{}"'''.format( itemid )
@@ -2348,17 +2439,22 @@ def wrap_block_text( x, vpad=0, addclass="", dobold=True, itemid='',
      style="padding-top: {padmarg}px; margin-top: -{padmarg}px;"
      {addclass}>
 '''.format( addid=addid, padmarg=padmarg, addclass=addclass )
-    if dobold :
-#        y+= '''  <pre><b>'''+x+'''</b></pre>
-#</div> <!-- bot of text -->'''
-        y+= '''  <pre>'''+x+'''</pre>
+    y+= '''  '''
+
+    if do_jump_btn :
+        y+= '''<button style="all: unset" class="btn_title active" 
+        ondblclick="jumpAllOpenApqcToID('{itemid}')" 
+        title="jump in all tabs">'''.format(itemid=itemid)
+
+    y+= '''<pre>'''+x+'''</pre>
 </div> <!-- bot of text -->'''
-    else:
-        y+= '''  <pre>'''+x+'''</pre>
-</div> <!-- bot of text -->'''
+
+    if do_jump_btn :
+        y+= '''</button>'''
+
     if vpad:
-        y= '''\n'''+y
-        y+='''\n'''
+        y = '''\n'''+y
+        y+= '''\n'''
     return y
 
 # -------------------------------------------------------------------
