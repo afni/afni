@@ -512,6 +512,14 @@ Users can efficiently navigate between several tabs with the standard
 browser keyboard shortcuts:
    Ctrl+Tab : cycle "forward" through the tabs in the window.
    Ctrl+Shift+Tab : cycle "backward" through the tabs in the window.
+
+When opening the HTML pages, users can also add the `-jump_to ..` option
+the command, so that all the pages will open up at the same location
+(def behavior is to open at the top of the page).  Users can specify
+any of the QC block labels (vorig, ve2a, etc.), and the full list of
+jumpable locations for a set of pages can be displayed in the terminal 
+by running:
+   open_apqc.py -disp_jump_ids -infiles <list of one or more HTML files>
 '''
 ],
 ['''KEYBOARD NAVIGATION''',
