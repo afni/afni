@@ -1101,6 +1101,7 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
             # https://stackoverflow.com/questions/26975349/textarea-wont-stop-making-new-line-when-enter-is-pressed
             # ... and hitting "Esc" (event.keyCode == 27) is like
             # canceling.
+            # ... and hitting "Ctrl+Esc" is clear text+comm
             y+= '''
 </table>
 <!-- top of QC button comment form for block={ll} -->
@@ -1111,6 +1112,8 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
     onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
        event.preventDefault(); 
        keepFromCommentForm(comm_{ll}.id, cform_{ll}.id);}} 
+       else if (event.ctrlKey && event.keyCode == 27) {{ 
+           clearCommentFormAndRating(comm_{ll}.id, cform_{ll}.id); }}
        else if (event.keyCode == 27) {{ 
            clearCommentForm(comm_{ll}.id, cform_{ll}.id); }}">
     </textarea>  
