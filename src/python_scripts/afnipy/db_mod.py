@@ -119,6 +119,9 @@ def gen_afni_name(name, **kwargs):
    # add a to_resam attribute, -ROI_import datasets will be resampled
    aname.ap_to_resam = 0
 
+   # and note who requested it ('user' or 'auto' for now, e.g. 'brain' is auto)
+   aname.requester = 'user'
+
    return aname
 
 def warp_item(desc='', wtype='', warpset=''):
@@ -535,15 +538,30 @@ def db_mod_postdata(block, proc, user_opts):
        This block will probably never get named options.
     """
 
+    # ------------------------------------------------------------
     # note other anat followers (-anat_follower*)
     if apply_general_anat_followers(proc): return
 
-    # note any ROI imports (-ROI_import)
-    # - add to dict now
-    # - resample in regress block
-    # - initial 3dcopy is in afni_proc.py
+    # ------------------------------------------------------------
+    # ROI_import steps
+
+    # ROI imports may be predecated on proc.tlrc_base, so set it now
+    prepare_tlrc_base(proc)
+
+    # note any ROI import user options (-ROI_import)
+    #   - add to dict now
+    #   - resample in regress block
+    #   - initial 3dcopy is in afni_proc.py
     if apply_general_ROI_imports(proc): return
 
+    # initialize automatic ROI options (maybe append -ROI_import opts):
+    #   - if SPACE is known and we have an APQC_atlas_SPACE dset
+    #     (and we have a regress block)
+    #     - add APQC atlas as -ROI_import
+    #     - add SPACE ALL to -regress_compute_tsnr_stats
+    if init_auto_tsnr_rois(proc): return
+    
+    # ------------------------------------------------------------
     if len(block.opts.olist) == 0: pass
     block.valid = 1
 
@@ -598,7 +616,51 @@ def db_cmd_postdata(proc, block):
 
     return cmd
 
+def db_mod_post_process(proc):
+    """this happends after all db_mod functions but before any db_cmd ones
+
+       nothing yet...
+    """
+    return 0
+
+def init_auto_tsnr_rois(proc):
+    """initialize automatic ROI options
+       - if SPACE is known and we have an APQC_atlas_SPACE dset
+         (and we have a regress block)
+         (and SPACE is not already being used for an ROI label)
+         - add APQC atlas as -ROI_import
+         - add SPACE ALL to -regress_compute_tsnr_stats
+    """
+    # do we have a regress block?
+    if not proc.find_block('regress'):
+       if proc.verb > 2: print("IATR: no regress block")
+       return 0
+
+    # do we have a known final space and existent dataset?
+    if proc.tlrc_base is None or proc.tlrc_space == '':
+       if proc.verb > 2: print("IATR: tlrc base or space")
+       return 0
+
+    if not proc.tlrc_base.locate():
+       if proc.verb > 2: print("IATR: failed tlrc_base.locate()")
+       return 0
+
+    # if the user has already applied the space label, do not add
+    if proc.tlrc_space in proc.roi_dict:
+       print("-- will not add auto tsnr stats, label %s is in use" \
+             % proc.tlrc_space)
+       return 0
+
+    print("=========== ready for ROI auto import")
+
+    return 0
+
+
 def apply_general_ROI_imports(proc):
+   """for each -ROI_import option
+        - create an afni_name
+        - add_roi_dict_key
+   """
    oname = '-ROI_import'
 
    # nothing to do?
@@ -4694,7 +4756,7 @@ def db_mod_mask(block, proc, user_opts):
     proc.mask_epi = gen_afni_name('full_mask%s$subj' % proc.sep_char)
 
     # we have an EPI mask, add it to the roi_dict for optional regress_ROI
-    if not proc.have_roi_label('brain'):
+    if proc.mask_epi and not proc.have_roi_label('brain'):
        if proc.add_roi_dict_key('brain', proc.mask_epi): return 1
 
     # possibly note that we will add some automatic ROIs
@@ -7188,18 +7250,24 @@ def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
            all_runs, errts_pre, proc.view, mask=mask_pre)
 
     # -----------------------------------------------------------------
-    # if the user has not requested TSNR stats, but we have a 'brain'
-    # ROI and can compute them, do so
-    oname = '-%s_compute_tsnr_stats' % block.label
-    dlablist = [opt.parlist[0] for opt in block.opts.find_all_opts(oname)]
-    blabel = 'brain'
-    # so first, if we are not yet doing it:
-    if blabel not in dlablist:
-       # then, can we?
-       if proc.have_roi_label('brain') and proc.tsnr_dset is not None:
-           if proc.verb > 1:
-              print("-- will also compute regress TSNR stats across '%s'" \
-                    % blabel)
+    # if the user has not requested TSNR stats for the automatic ROIs,
+    # but we have and can compute them, do so
+    # (if we have an 'auto' list and a tsnr_dset)
+    if proc.regress_auto_tsnr_rois is not None and proc.tsnr_dset is not None:
+       # try to add anything not already given with compute_tsnr_stats opts
+       oname = '-%s_compute_tsnr_stats' % block.label
+       dlablist = [opt.parlist[0] for opt in block.opts.find_all_opts(oname)]
+
+       for blabel in proc.regress_auto_tsnr_rois:
+           # if already there, the user wants it, so remove it from the auto list
+           if blabel in dlablist:
+              continue
+
+           # if not, do we have the label and tsnr_dset?
+           if proc.have_roi_label(blabel):
+               if proc.verb > 1:
+                  print("-- will also compute regress TSNR stats across '%s'" \
+                        % blabel)
            block.opts.add_opt(oname, 2, [blabel, '1'], setpar=1)
 
     # -----------------------------------------------------------------
@@ -8386,7 +8454,7 @@ def db_mod_tlrc(block, proc, user_opts):
     else:
         block.opts.add_opt('-tlrc_base', 1, ['TT_N27+tlrc'], setpar=1)
 
-    prepare_tlrc_base(proc, block)
+    prepare_tlrc_base(proc)
 
     # --------------------------------------------------
     # add other options
@@ -8447,16 +8515,25 @@ def mod_check_tlrc_NL_warp_dsets(proc, block):
 
     return 0
 
-def prepare_tlrc_base(proc, block):
+def prepare_tlrc_base(proc):
     """if we have a tlrc block:
            - assign proc.tlrc_base
            - verify existence
            - expect it to be copied into results directory (not done here)
            - prepare to store as uvar
+           - note the final space of the tlrc_base dset
+
+        This might be run from db_mod_postdata() or db_mod_tlrc(), since we
+        might want to know about the template early on.
     """
+
+    # if this has already been run, we are done
+    if proc.tlrc_base is not None:
+       return
+
     # first assign based on any option
     
-    opt = block.opts.find_opt('-tlrc_base')
+    opt = proc.user_opts.find_opt('-tlrc_base')
     if opt: base = opt.parlist[0]
     else:   base = 'TT_N27+tlrc'
 
@@ -8464,10 +8541,17 @@ def prepare_tlrc_base(proc, block):
 
     #--- first things first, see if we can locate the tlrc base
     #    if the user didn't already tell us where it is
-
     # locate() will search using input path, and if not found run
     #   @FindAfniDsetPath without that original path
-    if not proc.tlrc_base.locate():
+    have_dset = proc.tlrc_base.locate()
+
+    # if we have a template, get the space, else whine
+    if have_dset:
+       cmd = '3dinfo -space %s' % proc.tlrc_base.input()
+       st, so, se = UTIL.limited_shell_exec(cmd)
+       if st: print("** failed to get space: %s" % cmd)
+       proc.tlrc_space = so[0]
+    else:
        print("** failed to find tlrc_base '%s'" % proc.tlrc_base.initname)
 
     print("-- template = '%s', exists = %d"   \
