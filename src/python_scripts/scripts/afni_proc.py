@@ -780,6 +780,7 @@ g_history = """
     7.70 Mar 18, 2024:
        - locate() -ROI/mask_import datasets and get tlrc_base early
        - add auto-ROI_import of APQC atlas and regress tsnr_stats
+       - add option -regress_compute_auto_tsnr_stats
 """
 
 g_version = "version 7.70, March 18, 2024"
@@ -892,7 +893,7 @@ g_todo_str = """todo:
   - allow listing examples by keyword (choose and/or remove)
   - example demo 2b should be added to APMD1 tree
   - ROI_import, anat_follower_ROI for ROI TSNR averages
-     - handle in regress block: add -regress_compute_tsnr_stats
+     x handle in regress block: add -regress_compute_tsnr_stats
      - add -volreg_compute_tsnr_stats
   - ME:
      - handle MEICA tedana methods
@@ -1726,6 +1727,9 @@ class SubjProcSream:
                         helpstr='compute TSNR datasets (yes/no) after regress')
         self.valid_opts.add_opt('-regress_compute_tsnr_stats', -2, [],
                         helpstr='compute TSNR stats per ROI_dset and INDEX')
+        self.valid_opts.add_opt('-regress_compute_auto_tsnr_stats', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='auto-compute stats for APQC atlas (def=yes)')
         self.valid_opts.add_opt('-regress_mask_tsnr', 1, [],
                         acplist=['yes','no'],
                         helpstr="apply mask to TSNR dset (yes/no, def=no)")

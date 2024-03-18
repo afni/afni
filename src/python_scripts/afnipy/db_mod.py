@@ -635,11 +635,6 @@ def init_auto_tsnr_rois(proc):
     if proc.regress_auto_tsnr_rois is None:
        return 0
 
-    # initialize auto list with 'brain'
-    label = 'brain'
-    if label not in proc.regress_auto_tsnr_rois:
-       proc.regress_auto_tsnr_rois.append(label)
-
     # if the user does not want this, set regress_auto_tsnr_rois to None
     oname = '-regress_compute_auto_tsnr_stats'
     if proc.user_opts.have_no_opt(oname, default=0):
@@ -647,6 +642,11 @@ def init_auto_tsnr_rois(proc):
        # disable
        proc.regress_auto_tsnr_rois = None
        return 0
+
+    # initialize auto list with 'brain'
+    label = 'brain'
+    if label not in proc.regress_auto_tsnr_rois:
+       proc.regress_auto_tsnr_rois.append(label)
 
     # do we have a regress block?
     # note: find_block() will not succeed yet, so use block_names
@@ -7387,10 +7387,11 @@ def db_cmd_compute_tsnr_stats(proc, block):
           return 1, ''
 
        # let the name vary based on whether it is user requested or auto
-       if label in proc.regress_auto_tsnr_rois:
-          tlab = 'auto'
-       else:
-          tlab = 'user'
+       tlab = 'user'
+       if proc.regress_auto_tsnr_rois is not None:
+          if label in proc.regress_auto_tsnr_rois:
+             tlab = 'auto'
+
        stats_file = '%s/stats_%s_%s.txt' % (outdir, tlab, label)
 
        cmd += "compute_ROI_stats.tcsh \\\n"  \
@@ -14948,6 +14949,19 @@ OPTIONS:  ~2~
         Note: computation of GCOR requires a residual dataset, an EPI mask,
               and a volume analysis (no surface at the moment).
 
+    -regress_compute_auto_tsnr_stats yes/no : compute auto TSNR stats
+
+            e.g. -regress_compute_auto_tsnr_stats no
+            default: yes
+
+        By default, -regress_compute_tsnr_stats is applied with the 'brain'
+        mask and the APQC_atlas dataset for the final space, if they exist
+        and are appropriate.
+
+        Use this option to prevent automatic computation of those TSNR stats.
+
+        See also -regress_compute_tsnr, -regress_compute_tsnr_stats.
+
     -regress_compute_tsnr yes/no : compute TSNR dataset from errts
 
             e.g. -regress_compute_tsnr no
@@ -15001,8 +15015,9 @@ OPTIONS:  ~2~
         ROI datasets (and their respective labels) are made via options like
         -anat_follower_ROI, -ROI_import or even -mask_segment_anat.
 
-      * This option is currently automatically applied with a 'brain' ROI,
-        if appropriate.
+      * This option is currently automatically applied with a 'brain' ROI and
+        the relevant APQC_atlas, if appropriate.  To override use of such an
+        atlas, specify '-regress_compute_auto_tsnr_stats no'.
 
         See 'compute_ROI_stats.tcsh -help' for more details.
         See also -anat_follower_ROI, -ROI_import, -regress_compute_tsnr.
