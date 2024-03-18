@@ -40,8 +40,7 @@ $prog modification history:
 EOF
 exit 0
 SKIP_HIST:
-set script_version = "version 1.3, February 24, 2024"
-set script_version = "version 1.4, March 1, 2024"
+set script_version = "version 1.7, March 8, 2024"
 
 
 # ===========================================================================

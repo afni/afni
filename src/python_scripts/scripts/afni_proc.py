@@ -782,7 +782,7 @@ g_history = """
        - add auto-ROI_import of APQC atlas and regress tsnr_stats
 """
 
-g_version = "version 7.69, March 11, 2024"
+g_version = "version 7.70, March 18, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
