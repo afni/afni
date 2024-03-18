@@ -615,7 +615,7 @@ def db_cmd_postdata(proc, block):
     return cmd
 
 def db_mod_post_process(proc):
-    """this happends after all db_mod functions but before any db_cmd ones
+    """this happens after all db_mod functions but before any db_cmd ones
 
        nothing yet...
     """
