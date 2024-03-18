@@ -4719,7 +4719,7 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
        return 1, None
 
     # ----------------------------------------------------------------------
-    # run post mod funtions (since we now know about most of the inputs)
+    # run post mod functions (since we now know about most of the inputs)
     if db_mod_post_process(proc):
        return 1, None
 
