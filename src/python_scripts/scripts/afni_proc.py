@@ -777,6 +777,9 @@ g_history = """
        - if appropriate, apply "-regress_compute_tsnr_stats brain 1"
     7.69 Mar 11, 2024:
        - add 3dTto1D -method 4095_warn command and out.4095_warn.txt uvar
+    7.70 Mar 18, 2024:
+       - locate() -ROI/mask_import datasets and get tlrc_base early
+       - add auto-ROI_import of APQC atlas and regress tsnr_stats
 """
 
 g_version = "version 7.69, March 11, 2024"
@@ -1028,6 +1031,7 @@ class SubjProcSream:
         self.EGS        = None          # reference to imported ap_examples lib
 
         self.blocks     = []            # list of ProcessBlock elements
+        self.block_names= []            # list of block names, pre 'blocks'
         self.dsets      = []            # list of afni_name elements
         self.have_sels  = 0             # do the inputs have selectors
 
@@ -2423,6 +2427,9 @@ class SubjProcSream:
             print('** blocks must be unique\n'  \
                   '   (is there overlap between -blocks and -do_block?)\n')
             return 1
+
+        # make a list of block names available to the mod functions
+        self.block_names = blocks
 
         # call db_mod_functions
 

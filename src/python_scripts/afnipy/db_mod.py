@@ -119,9 +119,6 @@ def gen_afni_name(name, **kwargs):
    # add a to_resam attribute, -ROI_import datasets will be resampled
    aname.ap_to_resam = 0
 
-   # and note who requested it ('user' or 'auto' for now, e.g. 'brain' is auto)
-   aname.requester = 'user'
-
    return aname
 
 def warp_item(desc='', wtype='', warpset=''):
@@ -625,14 +622,34 @@ def db_mod_post_process(proc):
 
 def init_auto_tsnr_rois(proc):
     """initialize automatic ROI options
+       - start with 'brain', and try to add an APQC atlas
        - if SPACE is known and we have an APQC_atlas_SPACE dset
          (and we have a regress block)
          (and SPACE is not already being used for an ROI label)
          - add APQC atlas as -ROI_import
          - add SPACE ALL to -regress_compute_tsnr_stats
     """
+
+    # if this has already been turned off, we are done
+    if proc.regress_auto_tsnr_rois is None:
+       return 0
+
+    # initialize auto list with 'brain'
+    label = 'brain'
+    if label not in proc.regress_auto_tsnr_rois:
+       proc.regress_auto_tsnr_rois.append(label)
+
+    # if the user does not want this, set regress_auto_tsnr_rois to None
+    oname = '-regress_compute_auto_tsnr_stats'
+    if proc.user_opts.have_no_opt(oname, default=0):
+       if proc.verb > 1: print("-- skipping auto tsnr stats at user request")
+       # disable
+       proc.regress_auto_tsnr_rois = None
+       return 0
+
     # do we have a regress block?
-    if not proc.find_block('regress'):
+    # note: find_block() will not succeed yet, so use block_names
+    if not 'regress' in proc.block_names:
        if proc.verb > 2: print("IATR: no regress block")
        return 0
 
@@ -651,7 +668,24 @@ def init_auto_tsnr_rois(proc):
              % proc.tlrc_space)
        return 0
 
-    print("=========== ready for ROI auto import")
+    # now search for APQC_atlas_SPACE.nii.gz
+    label = proc.tlrc_space
+    roidset = 'APQC_atlas_%s.nii.gz' % label
+    rname = gen_afni_name(roidset)
+    if not rname.locate():
+       if proc.verb > 2: print("IATR: no APQC atlas %s" % roidset)
+       return 0
+
+    print("-- have APQC atlas %s" % roidset)
+
+    # add to roi_dict (dupe final apply_general_ROI_imports step)
+    rname.to_resam = 1
+    if proc.add_roi_dict_key(label, aname=rname):
+       return 1
+ 
+    # and actually add an import option
+    proc.user_opts.add_opt('-ROI_import', 2, [label, roidset], setpar=1)
+    proc.regress_auto_tsnr_rois.append(label)
 
     return 0
 
@@ -7989,7 +8023,7 @@ def db_cmd_resam_ROI_imports(proc, block):
 
        cmd += '3drefit -copytables %s %s\n'   \
               '3drefit -cmap INT_CMAP %s\n\n' \
-              % (inname, aname.nice_input(), aname.nice_input())
+              % (inname, aname.shortinput(), aname.shortinput())
 
        # mark as resampled
        aname.to_resam = 0
