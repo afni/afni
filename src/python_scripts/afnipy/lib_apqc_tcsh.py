@@ -2834,8 +2834,8 @@ num : int
     com.run()
 
 
-    # minor formatting
-    olay_desc = 'template edges, {} space'.format(ap_ssdict['main_dset_sp'])
+    # minor formatting (now shortening text here)
+    olay_desc = 'template edges' #, {} space'.format(ap_ssdict['main_dset_sp'])
 
     # text above images
     otoptxt = []
