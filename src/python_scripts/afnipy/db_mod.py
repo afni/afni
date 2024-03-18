@@ -543,7 +543,8 @@ def db_mod_postdata(block, proc, user_opts):
     # ROI_import steps
 
     # ROI imports may be predecated on proc.tlrc_base, so set it now
-    prepare_tlrc_base(proc)
+    if 'tlrc' in proc.block_names:
+       prepare_tlrc_base(proc)
 
     # note any ROI import user options (-ROI_import)
     #   - add to dict now
@@ -679,6 +680,8 @@ def init_auto_tsnr_rois(proc):
     print("-- have APQC atlas %s" % roidset)
 
     # add to roi_dict (dupe final apply_general_ROI_imports step)
+    # (change rname to be for the resulting name)
+    rname = gen_afni_name('ROI_import_%s' % label)
     rname.to_resam = 1
     if proc.add_roi_dict_key(label, aname=rname):
        return 1
@@ -7292,17 +7295,34 @@ def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
        oname = '-%s_compute_tsnr_stats' % block.label
        dlablist = [opt.parlist[0] for opt in block.opts.find_all_opts(oname)]
 
+       # make a new list where we might remove some
+       new_auto_rois = []
        for blabel in proc.regress_auto_tsnr_rois:
-           # if already there, the user wants it, so remove it from the auto list
+           # if already there, the user wants it, so exclude from auto list
            if blabel in dlablist:
               continue
 
-           # if not, do we have the label and tsnr_dset?
-           if proc.have_roi_label(blabel):
-               if proc.verb > 1:
-                  print("-- will also compute regress TSNR stats across '%s'" \
-                        % blabel)
-           block.opts.add_opt(oname, 2, [blabel, '1'], setpar=1)
+           # if we do not have the label, exclude from auto list
+           if not proc.have_roi_label(blabel):
+              continue
+
+           if proc.verb > 1:
+              print("-- will also compute regress TSNR stats across '%s'" \
+                    % blabel)
+
+           # include the label and add a compute option
+           # (use ALL_LT for non-brain auto ROIs)
+
+           if blabel == 'brain':
+              ltval = '1'
+           else:
+              ltval = 'ALL_LT'
+
+           new_auto_rois.append(blabel)
+           block.opts.add_opt(oname, 2, [blabel, ltval], setpar=1)
+
+       # apply the updated list
+       proc.regress_auto_tsnr_rois = new_auto_rois
 
     # -----------------------------------------------------------------
     # compute TSNR stats across all requested ROIs
@@ -7363,16 +7383,25 @@ def db_cmd_compute_tsnr_stats(proc, block):
        label = opt.parlist[0]
        aname = proc.get_roi_dset(label)
        if not aname:
-          print("** compute_tsnr: missing -ROI_import ROI '%s'" % label)
+          print("** compute_tsnr: missing ROI dset '%s'" % label)
           return 1, ''
+
+       # let the name vary based on whether it is user requested or auto
+       if label in proc.regress_auto_tsnr_rois:
+          tlab = 'auto'
+       else:
+          tlab = 'user'
+       stats_file = '%s/stats_%s_%s.txt' % (outdir, tlab, label)
 
        cmd += "compute_ROI_stats.tcsh \\\n"  \
               "    -out_dir    %s \\\n"      \
+              "    -stats_file %s \\\n"      \
               "    -dset_ROI   %s \\\n"      \
               "    -dset_data  %s \\\n"      \
               "    -rset_label %s \\\n"      \
               "    -rval_list  %s\n\n"       \
-              % (outdir, aname.shortinput(), proc.tsnr_dset.shortinput(),
+              % (outdir, stats_file, aname.shortinput(),
+                 proc.tsnr_dset.shortinput(),
                  label, ' '.join(opt.parlist[1:]))
 
     return 0, cmd
@@ -8560,6 +8589,10 @@ def prepare_tlrc_base(proc):
         This might be run from db_mod_postdata() or db_mod_tlrc(), since we
         might want to know about the template early on.
     """
+
+    # if no tlrc block, nothing to do
+    if not 'tlrc' in proc.block_names:
+       return
 
     # if this has already been run, we are done
     if proc.tlrc_base is not None:

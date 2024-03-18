@@ -2428,7 +2428,7 @@ class SubjProcSream:
                   '   (is there overlap between -blocks and -do_block?)\n')
             return 1
 
-        # make a list of block names available to the mod functions
+        # make the list of block names available to the mod functions
         self.block_names = blocks
 
         # call db_mod_functions
