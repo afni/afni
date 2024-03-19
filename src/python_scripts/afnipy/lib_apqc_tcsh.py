@@ -253,6 +253,9 @@ ver = '5.3' ; date = 'Aug 31, 2023'
 #      use cases (namely when censoring levels are *not* set
 #    + thanks for pointing these out, C Rorden!
 #
+ver = '6.0' ; date = 'Mar 19, 2024'
+# [PT] use new chauffeur functionality where run_* scripts have 1x1 mont
+#
 #########################################################################
 
 import os, copy
@@ -2156,6 +2159,7 @@ num : int
         -no_cor                                                              \
         -cmd2script        {odoafni}                                         \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
+        -c2s_mont_1x1                                                        \
         -do_clean
     '''.format( ulay=ulay, olay_topval=olay_topval, cbar=cbar,
                 olay_minval_str=olay_minval_str, opbarrt=opbarrt,
@@ -2441,6 +2445,7 @@ num : int
         -no_cor                                                              \
         -cmd2script        {odoafni}                                         \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
+        -c2s_mont_1x1                                                        \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
                 opbarrt=opbarrt, 
@@ -2636,6 +2641,7 @@ num : int
         -cmd2script        "{odoafni}"                                       \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
         -c2s_text2     "++ Hover over image, hit 'o' to toggle olay on/off"  \
+        -c2s_mont_1x1                                                        \
         -dry_run                                                             \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
@@ -2824,6 +2830,7 @@ num : int
         -cmd2script        "{odoafni}"                                       \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
         -c2s_text2     "++ Hover over image, hit 'o' to toggle olay on/off"  \
+        -c2s_mont_1x1                                                        \
         -dry_run                                                             \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
@@ -3000,6 +3007,7 @@ num : int
         -no_cor                                                              \
         -cmd2script        {odoafni}                                         \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
+        -c2s_mont_1x1                                                        \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay, cbar=cbar,
                 opbarrt=opbarrt, pbar_cr=pbar_cr, pbar_tr=pbar_tr, 
@@ -3219,6 +3227,7 @@ num : int
         -no_cor                                                              \
         -cmd2script        {odoafni}                                         \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
+        -c2s_mont_1x1                                                        \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, tcorrvol=tcorrvol, cbar=cbar,
                 opbarrt=opbarrt, pbar_cr=pbar_cr, pbar_tr=pbar_tr,
@@ -3573,6 +3582,7 @@ num : int
         -no_cor                                                              \
         -cmd2script        {odoafni}                                         \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
+        -c2s_mont_1x1                                                        \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
                 cbar=vso.olay_pbar, olay_minval_str=olay_minval_str, 
@@ -3805,6 +3815,7 @@ num : int
         -no_cor                                                          \
         -cmd2script        {odoafni}                                     \
         -c2s_text          'APQC, {qcb}: {qci}'                          \
+        -c2s_mont_1x1                                                        \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
                 cbar=cbar, olay_minval_str=olay_minval_str, 
@@ -5157,6 +5168,7 @@ num : int
         -cmd2script        "{odoafni}"                                       \
         -c2s_text          'APQC, {qcb}: {qci}  '                            \
         -c2s_text2     "++ Hover over image, hit 'o' to toggle olay on/off"  \
+        -c2s_mont_1x1                                                        \
         -dry_run                                                             \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay_o,
@@ -5212,6 +5224,7 @@ num : int
         -cmd2script        "{odoafni}"                                       \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
         -c2s_text2     "++ Hover over image, hit 'o' to toggle olay on/off"  \
+        -c2s_mont_1x1                                                        \
         -dry_run                                                             \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay_f,
@@ -5795,6 +5808,7 @@ num : int
             -no_cor -no_sag                                                  \
             -cmd2script        {odoafni}                                     \
             -c2s_text          'APQC, {qcb}: {qci}'                          \
+            -c2s_mont_1x1                                                    \
             -do_clean
         '''.format( **chauff_params )
         com    = ab.shell_com(cmd, capture=do_cap)
