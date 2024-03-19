@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Mar, 2024, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
+   "auto-include APQC_atlas for compute_tsnr_stats, if appropriate",
+   "And add -regress_compute_auto_tsnr_stats."
+ } ,
+
  { 15, Mar, 2024, RCR, "APMULTI_Demo2_realtime", MINOR, TYPE_ENHANCE,
    "add rt.06.ME.OC.aves example, like 05 but with ROI averages",
    NULL

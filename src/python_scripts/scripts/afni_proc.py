@@ -777,9 +777,13 @@ g_history = """
        - if appropriate, apply "-regress_compute_tsnr_stats brain 1"
     7.69 Mar 11, 2024:
        - add 3dTto1D -method 4095_warn command and out.4095_warn.txt uvar
+    7.70 Mar 18, 2024:
+       - locate() -ROI/mask_import datasets and get tlrc_base early
+       - add auto-ROI_import of APQC atlas and regress tsnr_stats
+       - add option -regress_compute_auto_tsnr_stats
 """
 
-g_version = "version 7.69, March 11, 2024"
+g_version = "version 7.70, March 18, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -889,7 +893,7 @@ g_todo_str = """todo:
   - allow listing examples by keyword (choose and/or remove)
   - example demo 2b should be added to APMD1 tree
   - ROI_import, anat_follower_ROI for ROI TSNR averages
-     - handle in regress block: add -regress_compute_tsnr_stats
+     x handle in regress block: add -regress_compute_tsnr_stats
      - add -volreg_compute_tsnr_stats
   - ME:
      - handle MEICA tedana methods
@@ -1028,6 +1032,7 @@ class SubjProcSream:
         self.EGS        = None          # reference to imported ap_examples lib
 
         self.blocks     = []            # list of ProcessBlock elements
+        self.block_names= []            # list of block names, pre 'blocks'
         self.dsets      = []            # list of afni_name elements
         self.have_sels  = 0             # do the inputs have selectors
 
@@ -1137,6 +1142,7 @@ class SubjProcSream:
         self.tlrc_base  = None          # afni_name dataset used in -tlrc_base
         self.tlrc_nlw   = 0             # are we using non-linear registration
         self.tlrc_ss    = 1             # whether to do skull strip in tlrc
+        self.tlrc_space = ''            # 3dinfo -space for tlrc_base dset
         self.warp_epi   = 0             # xform bitmap: tlrc, adwarp, a2e, e2a
         self.a2e_mat    = None          # anat2epi transform matrix file
         self.e2final_mv = []            # matvec list takes epi base to final
@@ -1207,6 +1213,8 @@ class SubjProcSream:
         # options for tissue based time series
         self.roi_dict   = {}            # dictionary of ROI vs afni_name
         self.def_roi_keys = default_roi_keys
+        self.regress_auto_tsnr_rois = [] # ROI labels for auto tsnr_stats
+                                         # None if not for use
 
         # parameters related to TSNR and ROIs
         self.tsnr_dset  = None          # for volumetric tsnr ROI stats
@@ -1719,6 +1727,9 @@ class SubjProcSream:
                         helpstr='compute TSNR datasets (yes/no) after regress')
         self.valid_opts.add_opt('-regress_compute_tsnr_stats', -2, [],
                         helpstr='compute TSNR stats per ROI_dset and INDEX')
+        self.valid_opts.add_opt('-regress_compute_auto_tsnr_stats', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='auto-compute stats for APQC atlas (def=yes)')
         self.valid_opts.add_opt('-regress_mask_tsnr', 1, [],
                         acplist=['yes','no'],
                         helpstr="apply mask to TSNR dset (yes/no, def=no)")
@@ -2420,6 +2431,9 @@ class SubjProcSream:
             print('** blocks must be unique\n'  \
                   '   (is there overlap between -blocks and -do_block?)\n')
             return 1
+
+        # make the list of block names available to the mod functions
+        self.block_names = blocks
 
         # call db_mod_functions
 
@@ -3363,16 +3377,19 @@ class SubjProcSream:
            if len(olist) == 0:
               continue
            tstr += '# copy any %s datasets as %s_LABEL\n' % (oname, oname[1:])
-           for opt in self.user_opts.find_all_opts(oname):
+           for opt in olist:
               # get label and dset params
               label = opt.parlist[0]
               dset  = opt.parlist[1]
+              dname = gen_afni_name(dset)
+              dname.locate() # in case we need to find it
               # find in ROI dict
               aname = self.get_roi_dset(label)
               if not aname:
                  print("** no %s label '%s' dataset to copy" % (oname, label))
                  return 1
-              tstr += '3dcopy %s %s/%s\n' % (dset, self.od_var, aname.prefix)
+              tstr += '3dcopy %s %s/%s\n' \
+                      % (dname.nice_input(), self.od_var, aname.prefix)
               self.tlist.add(dset, aname.shortinput(), 'mask_import',
                              ftype='dset')
         if tstr:
@@ -4522,6 +4539,8 @@ class TrackedFlist:
           vo.short_out = vo.out_an.shortinput()
 
           # set and check input view
+          # (run locate in case we need to search for the dset)
+          vo.in_an.locate()
           vo.in_view = dset_view(vo.in_an.rel_input())
           if vo.in_view not in ['+orig', '+tlrc']:
              # do we fail?
@@ -4698,8 +4717,13 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
     if proc.create_blocks():
        show_args_as_command(proc.argv, "** failed command (create_blocks):")
        return 1, None
-    # ----------------------------------------------------------------------
 
+    # ----------------------------------------------------------------------
+    # run post mod functions (since we now know about most of the inputs)
+    if db_mod_post_process(proc):
+       return 1, None
+
+    # ----------------------------------------------------------------------
     # run db_cmd functions, to create the script
     rv = proc.create_script()
     if rv != None:  # terminal, but do not display command on 0

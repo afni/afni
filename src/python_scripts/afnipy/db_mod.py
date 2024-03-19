@@ -535,15 +535,31 @@ def db_mod_postdata(block, proc, user_opts):
        This block will probably never get named options.
     """
 
+    # ------------------------------------------------------------
     # note other anat followers (-anat_follower*)
     if apply_general_anat_followers(proc): return
 
-    # note any ROI imports (-ROI_import)
-    # - add to dict now
-    # - resample in regress block
-    # - initial 3dcopy is in afni_proc.py
+    # ------------------------------------------------------------
+    # ROI_import steps
+
+    # ROI imports may be predecated on proc.tlrc_base, so set it now
+    if 'tlrc' in proc.block_names:
+       prepare_tlrc_base(proc)
+
+    # note any ROI import user options (-ROI_import)
+    #   - add to dict now
+    #   - resample in regress block
+    #   - initial 3dcopy is in afni_proc.py
     if apply_general_ROI_imports(proc): return
 
+    # initialize automatic ROI options (maybe append -ROI_import opts):
+    #   - if SPACE is known and we have an APQC_atlas_SPACE dset
+    #     (and we have a regress block)
+    #     - add APQC atlas as -ROI_import
+    #     - add SPACE ALL to -regress_compute_tsnr_stats
+    if init_auto_tsnr_rois(proc): return
+    
+    # ------------------------------------------------------------
     if len(block.opts.olist) == 0: pass
     block.valid = 1
 
@@ -598,7 +614,90 @@ def db_cmd_postdata(proc, block):
 
     return cmd
 
+def db_mod_post_process(proc):
+    """this happens after all db_mod functions but before any db_cmd ones
+
+       nothing yet...
+    """
+    return 0
+
+def init_auto_tsnr_rois(proc):
+    """initialize automatic ROI options
+       - start with 'brain', and try to add an APQC atlas
+       - if SPACE is known and we have an APQC_atlas_SPACE dset
+         (and we have a regress block)
+         (and SPACE is not already being used for an ROI label)
+         - add APQC atlas as -ROI_import
+         - add SPACE ALL to -regress_compute_tsnr_stats
+    """
+
+    # if this has already been turned off, we are done
+    if proc.regress_auto_tsnr_rois is None:
+       return 0
+
+    # if the user does not want this, set regress_auto_tsnr_rois to None
+    oname = '-regress_compute_auto_tsnr_stats'
+    if proc.user_opts.have_no_opt(oname, default=0):
+       if proc.verb > 1: print("-- skipping auto tsnr stats at user request")
+       # disable
+       proc.regress_auto_tsnr_rois = None
+       return 0
+
+    # initialize auto list with 'brain'
+    label = 'brain'
+    if label not in proc.regress_auto_tsnr_rois:
+       proc.regress_auto_tsnr_rois.append(label)
+
+    # do we have a regress block?
+    # note: find_block() will not succeed yet, so use block_names
+    if not 'regress' in proc.block_names:
+       if proc.verb > 2: print("IATR: no regress block")
+       return 0
+
+    # do we have a known final space and existent dataset?
+    if proc.tlrc_base is None or proc.tlrc_space == '':
+       if proc.verb > 2: print("IATR: tlrc base or space")
+       return 0
+
+    if not proc.tlrc_base.locate():
+       if proc.verb > 2: print("IATR: failed tlrc_base.locate()")
+       return 0
+
+    # if the user has already applied the space label, do not add
+    if proc.tlrc_space in proc.roi_dict:
+       print("-- will not add auto tsnr stats, label %s is in use" \
+             % proc.tlrc_space)
+       return 0
+
+    # now search for APQC_atlas_SPACE.nii.gz
+    label = proc.tlrc_space
+    roidset = 'APQC_atlas_%s.nii.gz' % label
+    rname = gen_afni_name(roidset)
+    if not rname.locate():
+       if proc.verb > 2: print("IATR: no APQC atlas %s" % roidset)
+       return 0
+
+    print("-- have APQC atlas %s" % roidset)
+
+    # add to roi_dict (dupe final apply_general_ROI_imports step)
+    # (change rname to be for the resulting name)
+    rname = gen_afni_name('ROI_import_%s' % label)
+    rname.to_resam = 1
+    if proc.add_roi_dict_key(label, aname=rname):
+       return 1
+ 
+    # and actually add an import option
+    proc.user_opts.add_opt('-ROI_import', 2, [label, roidset], setpar=1)
+    proc.regress_auto_tsnr_rois.append(label)
+
+    return 0
+
+
 def apply_general_ROI_imports(proc):
+   """for each -ROI_import option
+        - create an afni_name
+        - add_roi_dict_key
+   """
    oname = '-ROI_import'
 
    # nothing to do?
@@ -4694,7 +4793,7 @@ def db_mod_mask(block, proc, user_opts):
     proc.mask_epi = gen_afni_name('full_mask%s$subj' % proc.sep_char)
 
     # we have an EPI mask, add it to the roi_dict for optional regress_ROI
-    if not proc.have_roi_label('brain'):
+    if proc.mask_epi and not proc.have_roi_label('brain'):
        if proc.add_roi_dict_key('brain', proc.mask_epi): return 1
 
     # possibly note that we will add some automatic ROIs
@@ -7188,19 +7287,42 @@ def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
            all_runs, errts_pre, proc.view, mask=mask_pre)
 
     # -----------------------------------------------------------------
-    # if the user has not requested TSNR stats, but we have a 'brain'
-    # ROI and can compute them, do so
-    oname = '-%s_compute_tsnr_stats' % block.label
-    dlablist = [opt.parlist[0] for opt in block.opts.find_all_opts(oname)]
-    blabel = 'brain'
-    # so first, if we are not yet doing it:
-    if blabel not in dlablist:
-       # then, can we?
-       if proc.have_roi_label('brain') and proc.tsnr_dset is not None:
+    # if the user has not requested TSNR stats for the automatic ROIs,
+    # but we have and can compute them, do so
+    # (if we have an 'auto' list and a tsnr_dset)
+    if proc.regress_auto_tsnr_rois is not None and proc.tsnr_dset is not None:
+       # try to add anything not already given with compute_tsnr_stats opts
+       oname = '-%s_compute_tsnr_stats' % block.label
+       dlablist = [opt.parlist[0] for opt in block.opts.find_all_opts(oname)]
+
+       # make a new list where we might remove some
+       new_auto_rois = []
+       for blabel in proc.regress_auto_tsnr_rois:
+           # if already there, the user wants it, so exclude from auto list
+           if blabel in dlablist:
+              continue
+
+           # if we do not have the label, exclude from auto list
+           if not proc.have_roi_label(blabel):
+              continue
+
            if proc.verb > 1:
               print("-- will also compute regress TSNR stats across '%s'" \
                     % blabel)
-           block.opts.add_opt(oname, 2, [blabel, '1'], setpar=1)
+
+           # include the label and add a compute option
+           # (use ALL_LT for non-brain auto ROIs)
+
+           if blabel == 'brain':
+              ltval = '1'
+           else:
+              ltval = 'ALL_LT'
+
+           new_auto_rois.append(blabel)
+           block.opts.add_opt(oname, 2, [blabel, ltval], setpar=1)
+
+       # apply the updated list
+       proc.regress_auto_tsnr_rois = new_auto_rois
 
     # -----------------------------------------------------------------
     # compute TSNR stats across all requested ROIs
@@ -7261,16 +7383,26 @@ def db_cmd_compute_tsnr_stats(proc, block):
        label = opt.parlist[0]
        aname = proc.get_roi_dset(label)
        if not aname:
-          print("** compute_tsnr: missing -ROI_import ROI '%s'" % label)
+          print("** compute_tsnr: missing ROI dset '%s'" % label)
           return 1, ''
+
+       # let the name vary based on whether it is user requested or auto
+       tlab = 'user'
+       if proc.regress_auto_tsnr_rois is not None:
+          if label in proc.regress_auto_tsnr_rois:
+             tlab = 'auto'
+
+       stats_file = '%s/stats_%s_%s.txt' % (outdir, tlab, label)
 
        cmd += "compute_ROI_stats.tcsh \\\n"  \
               "    -out_dir    %s \\\n"      \
+              "    -stats_file %s \\\n"      \
               "    -dset_ROI   %s \\\n"      \
               "    -dset_data  %s \\\n"      \
               "    -rset_label %s \\\n"      \
               "    -rval_list  %s\n\n"       \
-              % (outdir, aname.shortinput(), proc.tsnr_dset.shortinput(),
+              % (outdir, stats_file, aname.shortinput(),
+                 proc.tsnr_dset.shortinput(),
                  label, ' '.join(opt.parlist[1:]))
 
     return 0, cmd
@@ -7921,7 +8053,7 @@ def db_cmd_resam_ROI_imports(proc, block):
 
        cmd += '3drefit -copytables %s %s\n'   \
               '3drefit -cmap INT_CMAP %s\n\n' \
-              % (inname, aname.nice_input(), aname.nice_input())
+              % (inname, aname.shortinput(), aname.shortinput())
 
        # mark as resampled
        aname.to_resam = 0
@@ -8386,7 +8518,7 @@ def db_mod_tlrc(block, proc, user_opts):
     else:
         block.opts.add_opt('-tlrc_base', 1, ['TT_N27+tlrc'], setpar=1)
 
-    prepare_tlrc_base(proc, block)
+    prepare_tlrc_base(proc)
 
     # --------------------------------------------------
     # add other options
@@ -8447,16 +8579,29 @@ def mod_check_tlrc_NL_warp_dsets(proc, block):
 
     return 0
 
-def prepare_tlrc_base(proc, block):
+def prepare_tlrc_base(proc):
     """if we have a tlrc block:
            - assign proc.tlrc_base
            - verify existence
            - expect it to be copied into results directory (not done here)
            - prepare to store as uvar
+           - note the final space of the tlrc_base dset
+
+        This might be run from db_mod_postdata() or db_mod_tlrc(), since we
+        might want to know about the template early on.
     """
+
+    # if no tlrc block, nothing to do
+    if not 'tlrc' in proc.block_names:
+       return
+
+    # if this has already been run, we are done
+    if proc.tlrc_base is not None:
+       return
+
     # first assign based on any option
     
-    opt = block.opts.find_opt('-tlrc_base')
+    opt = proc.user_opts.find_opt('-tlrc_base')
     if opt: base = opt.parlist[0]
     else:   base = 'TT_N27+tlrc'
 
@@ -8464,10 +8609,17 @@ def prepare_tlrc_base(proc, block):
 
     #--- first things first, see if we can locate the tlrc base
     #    if the user didn't already tell us where it is
-
     # locate() will search using input path, and if not found run
     #   @FindAfniDsetPath without that original path
-    if not proc.tlrc_base.locate():
+    have_dset = proc.tlrc_base.locate()
+
+    # if we have a template, get the space, else whine
+    if have_dset:
+       cmd = '3dinfo -space %s' % proc.tlrc_base.input()
+       st, so, se = UTIL.limited_shell_exec(cmd)
+       if st: print("** failed to get space: %s" % cmd)
+       proc.tlrc_space = so[0]
+    else:
        print("** failed to find tlrc_base '%s'" % proc.tlrc_base.initname)
 
     print("-- template = '%s', exists = %d"   \
@@ -14797,6 +14949,19 @@ OPTIONS:  ~2~
         Note: computation of GCOR requires a residual dataset, an EPI mask,
               and a volume analysis (no surface at the moment).
 
+    -regress_compute_auto_tsnr_stats yes/no : compute auto TSNR stats
+
+            e.g. -regress_compute_auto_tsnr_stats no
+            default: yes
+
+        By default, -regress_compute_tsnr_stats is applied with the 'brain'
+        mask and the APQC_atlas dataset for the final space, if they exist
+        and are appropriate.
+
+        Use this option to prevent automatic computation of those TSNR stats.
+
+        See also -regress_compute_tsnr, -regress_compute_tsnr_stats.
+
     -regress_compute_tsnr yes/no : compute TSNR dataset from errts
 
             e.g. -regress_compute_tsnr no
@@ -14850,8 +15015,9 @@ OPTIONS:  ~2~
         ROI datasets (and their respective labels) are made via options like
         -anat_follower_ROI, -ROI_import or even -mask_segment_anat.
 
-      * This option is currently automatically applied with a 'brain' ROI,
-        if appropriate.
+      * This option is currently automatically applied with a 'brain' ROI and
+        the relevant APQC_atlas, if appropriate.  To override use of such an
+        atlas, specify '-regress_compute_auto_tsnr_stats no'.
 
         See 'compute_ROI_stats.tcsh -help' for more details.
         See also -anat_follower_ROI, -ROI_import, -regress_compute_tsnr.
