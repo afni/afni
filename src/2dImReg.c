@@ -41,13 +41,16 @@
 
   Mod:     If nsl == 0, set num_slices equal to nz.   [4 occurrences]
   Date:    06 October 2003  [rickr]
+
+  Mod:     allow dx!=dy; use fabs((dx-dy)/dx) > 0.0001 for failure
+  Date:    20 March 2024  [rickr]  (gee, only 20+ years since the last change)
 */
 
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME    "2dImReg"                   /* name of this program */
 #define PROGRAM_INITIAL "04 Feb 1998"     /* date of initial program release */
-#define PROGRAM_LATEST  "02 Dec 2002"     /* date of latest program revision */
+#define PROGRAM_LATEST  "20 Mar 2024"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -862,6 +865,7 @@ char * IMREG_main
    char * new_prefix ;                         /* string from user */
    int base , ntime , datum , nx,ny,nz , ii,kk , npix ;
    float                      dx,dy,dz ;
+   float       epsilon=0.0001;     /* allowed fraction for dx,dy to diff by */
    int base_datum, failed;
    MRI_IMARR * ims_in , * ims_out ;
    MRI_IMAGE * im , * imbase ;
@@ -901,13 +905,20 @@ char * IMREG_main
    ny = old_dset->daxes->nyy ; dy = old_dset->daxes->yydel ; npix = nx*ny ;
    nz = old_dset->daxes->nzz ; dz = old_dset->daxes->zzdel ;
 
-   if( nx != ny || fabs(dx) != fabs(dy) ){
+   if (opt->debug)
+     fprintf(stderr,"\nNotice 2dImreg: nx=%d ny=%d nz=%d  dx=%f dy=%f dz=%f\n",
+          nx,ny,nz,dx,dy,dz ) ;
+
+   /* be more lenient than failing anytime fabs(dx) != fabs(dy)
+    * - only require (dx-dy)/dx > epsilon
+    * - allow dx == 0???
+    * - mostly to handle oblique data       [20 Mar 2024 rickr] */
+   if( nx != ny || (fabs(dx-dy) > epsilon*fabs(dx)) ) {
 
      /*     No need to quit, works fine.  ZSS 07
       *     Only if nx >= ny (so fix might be easy).  12 Jan 2010 [rickr] */
-     if (opt->debug)
-     fprintf(stderr,"\nNotice 2dImreg: nx=%d ny=%d nz=%d  dx=%f dy=%f dz=%f\n",
-	       nx,ny,nz,dx,dy,dz ) ;
+      fprintf(stderr, "-- want : |dx-dy|=%f  <  |%f*dx|=%f\n\n",
+              fabs(dx-dy), epsilon, epsilon*fabs(dx));
 
       return "***********************************\n"
              "Dataset does not have square slices\n"
@@ -1262,9 +1273,7 @@ char * IMREG_main
   THD_delete_3dim_dataset( old_dset , False ) ; old_dset = NULL ;
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
   if (opt->base_filename != NULL)
-    THD_delete_3dim_dataset( base_dset , False ) ; base_dset = NULL ;
-    
-
+    { THD_delete_3dim_dataset( base_dset , False ) ; base_dset = NULL ; }
 
    return NULL ;  /* null string returned means all was OK */
 }
@@ -1490,8 +1499,8 @@ void terminate_program
 
   /*----- Release memory -----*/
   free (*option_data);     *option_data = NULL;
-  if (t_to_z) free (t_to_z);           t_to_z = NULL;
-  if (z_to_t) free (z_to_t);           z_to_t = NULL;
+  if (t_to_z) { free (t_to_z); t_to_z = NULL; }
+  if (z_to_t) { free (z_to_t); z_to_t = NULL; }
 
   
   if (*old_rms_array != NULL)
