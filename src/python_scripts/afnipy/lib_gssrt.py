@@ -293,6 +293,7 @@ g_history = """
           (previously, any non-float was viewed as an outlier)
    1.5  Feb 15, 2022    - added -show_keepers and display SHOW_KEEP
    1.6  Aug 31, 2022    - [pt] added -infiles_json and JSON-reading support
+   1.7  Mar 21, 202f    - allow ANY for a field choice...
 """
 
 g_version = "gen_ss_review_table.py version 1.5, February 15, 2022"
@@ -848,6 +849,10 @@ class MyInterface:
          return 0 on success
       """
 
+      # check for 'ANY'
+      if self.expand_ANY_tests():
+         return 1
+
       # verify labels, operators and nvals
       if not self.outlier_tests_are_valid():
          return 1
@@ -1128,6 +1133,47 @@ class MyInterface:
          for repind in range(self.maxcounts[label]):
             table[1][posn] = newlab
             posn += 1
+
+      return 0
+
+   def expand_ANY_tests(self):
+      """if ANY is a label, expand it to all labels (after 0)
+      """
+
+      # since we are skipping [0]...
+      if len(self.labels) < 2:
+         return 0
+
+      # quick check for 'ANY'
+      ltests = [otest[0] for otest in self.ro_list]
+      if not 'ANY' in ltests:
+         return 0
+
+      # we have something to do, proceed...
+
+      # get a list of labels to add
+      dolabs = self.labels[1:]
+      if self.verb > 2:
+         print("== have ANY test, add for labels %s" % dolabs)
+
+      # and start adding...
+      new_list = []
+      for otest in self.ro_list:
+         label = otest[0]
+         if label != 'ANY':
+             new_list.append(otest)
+
+         # we have an 'ANY', dupe test for each label and add
+         if self.verb > 1:
+            print("-- applying ANY test: %s" % otest)
+
+         for lab in dolabs:
+            copytest = otest[:]
+            copytest[0] = lab
+            new_list.append(copytest)
+
+      # and replace
+      self.ro_list = new_list
 
       return 0
 
