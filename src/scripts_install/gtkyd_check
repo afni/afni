@@ -338,17 +338,25 @@ and 3dBrickStat.
 This program creates the following useful outputs:
 
 + A compiled spreadsheet-like table file, for reference, with 1 row
-  per input dataset and one column per measured property. This can be
-  queried usefully with gen_ss_review_table.py.
+  per input dataset and one column per measured property. This is
+  actually made using gen_ss_review_table.py. 
+  (name: OUT.xls)
 
 + For each item checked, there will also be a detailed report file (N
   lines of data for N input datasets)
+  (name: OUT/rep_gtkyd_detail_*.dat)
 
 + For each item checked, there will be a "uniqueness" report file,
   which will have 1 line of data for each unique value present across
   all input datasets. So, if there is only 1 line of data, then that
   property is consistent across all dsets; otherwise, there is some
   variability in it.
+  (name: OUT/rep_gtkyd_unique_*.dat)
+
++ For each input dataset, a colon-separated dictionary of basic
+  properties. These can be further queried with gen_ss_review_table.py.
+  (name: OUT/dset_*.txt)
+
 
 ver  = ${version}
 auth = PA Taylor (SSCC, NIMH, NIH, USA), but no doubt also including 
