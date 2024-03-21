@@ -911,13 +911,14 @@ char * IMREG_main
 
    /* be more lenient than failing anytime fabs(dx) != fabs(dy)
     * - only require (dx-dy)/dx > epsilon
+    * - handle dx, dy of differing signs
     * - allow dx == 0???
     * - mostly to handle oblique data       [20 Mar 2024 rickr] */
-   if( nx != ny || (fabs(dx-dy) > epsilon*fabs(dx)) ) {
+   if( nx != ny || ( fabs(fabs(dx)-fabs(dy)) > epsilon*fabs(dx)) ) {
 
      /*     No need to quit, works fine.  ZSS 07
       *     Only if nx >= ny (so fix might be easy).  12 Jan 2010 [rickr] */
-      fprintf(stderr, "-- want : |dx-dy|=%f  <  |%f*dx|=%f\n\n",
+      fprintf(stderr, "-- want : ||dx|-|dy||=%f  <  |%f*dx|=%f\n\n",
               fabs(dx-dy), epsilon, epsilon*fabs(dx));
 
       return "***********************************\n"
