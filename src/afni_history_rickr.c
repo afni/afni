@@ -53,7 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 15, Mar, 2024, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
+ { 20, Mar, 2024, RCR, "2dImReg", MINOR, TYPE_ENHANCE,
+   "be more lenient, not requiring dx to be exactly equal to dy",
+   "Done for josef_ling on MB."
+ } ,
+
+ { 18, Mar, 2024, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
    "auto-include APQC_atlas for compute_tsnr_stats, if appropriate",
    "And add -regress_compute_auto_tsnr_stats."
  } ,
