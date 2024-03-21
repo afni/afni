@@ -93,6 +93,7 @@ int Syntax(TFORM targ, int detail)
 "   -nijk: Return ni*nj*nk\n"
 "   -nv: Return number of points in time or the number of sub-bricks\n"
 "   -nt: same as -nv\n"
+"   -n3: same as -ni -nj -nk\n"
 "   -n4: same as -ni -nj -nk -nv\n"
 "   -nvi: The maximum sub-brick index (= nv -1 )\n"
 "   -nti: same as -nvi\n"
@@ -331,7 +332,7 @@ typedef enum {
    PREFIX , PREFIX_NOEXT,
    NI, NJ, NK, NT, NTI, NTIMES, MAX_NODE,
    NV, NVI, NIJK,
-   N4,
+   N3, N4,                 // [PT] these aren't actually needed/used
    DI, DJ, DK, D3,
    OI, OJ, OK, O3,
    ADI, ADJ, ADK, AD3,
@@ -559,6 +560,11 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = NJ; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-nk") == 0) {
          sing[N_sing++] = NK; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-n3") == 0) {
+         sing[N_sing++] = NI;
+         sing[N_sing++] = NJ;
+         sing[N_sing++] = NK; iarg++;
+         continue;
       } else if( strcasecmp(argv[iarg],"-n4") == 0) {
          sing[N_sing++] = NI;
          sing[N_sing++] = NJ;
