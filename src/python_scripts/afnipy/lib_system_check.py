@@ -73,17 +73,6 @@ class SysInfo:
 
       self.libs_missing    = [] # missing shared libraries
 
-   def get_prog_dir(self, prog):
-      """return path to prog from 'which prog'"""
-
-      s, so, se = BASE.simple_shell_exec('which %s' % prog, capture=1)
-      if s: return ''
-      adir = so.strip()
-      tail = '/%s' % prog
-      tlen = len(tail)
-      if adir[-tlen:] == tail: return adir[0:-tlen]
-      else:                    return ''
-
    def show_general_sys_info(self, header=1):
       if header: print(UTIL.section_divider('general', hchar='-'))
 
@@ -1447,7 +1436,7 @@ class SysInfo:
 
    def show_main_progs_and_paths(self):
 
-      self.afni_dir = self.get_prog_dir('afni_system_check.py')
+      self.afni_dir = get_prog_dir('afni_system_check.py')
       check_list = ['afni', 'afni label', 'AFNI_version.txt', 'python', 'R']
       nfound = self.check_for_progs(check_list, show_missing=1)
       if nfound < len(check_list):
@@ -1550,7 +1539,7 @@ class SysInfo:
       for prog in proglist:
          # note directory of choice
          if execdir: pdir = execdir
-         else:       pdir = self.get_prog_dir(prog)
+         else:       pdir = get_prog_dir(prog)
 
          # if none, skip
          if not pdir:
@@ -2067,6 +2056,17 @@ class SysInfo:
 
 # ----------------------------------------------------------------------
 # non-class functions
+
+def get_prog_dir(prog):
+   """return path to prog from 'which prog'"""
+
+   s, so, se = BASE.simple_shell_exec('which %s' % prog, capture=1)
+   if s: return ''
+   adir = so.strip()
+   tail = '/%s' % prog
+   tlen = len(tail)
+   if adir[-tlen:] == tail: return adir[0:-tlen]
+   else:                    return ''
 
 def make_R_version_string():
    """try to collapse the R --version string into VERSION (PLATFORM)

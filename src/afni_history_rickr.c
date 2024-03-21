@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Mar, 2024, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "add option -disp_abin",
+   NULL
+ } ,
+
  { 20, Mar, 2024, RCR, "2dImReg", MINOR, TYPE_ENHANCE,
    "be more lenient, not requiring dx to be exactly equal to dy",
    "Done for josef_ling on MB."
