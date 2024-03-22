@@ -2,13 +2,15 @@
 
 #set version   = "0.1";  set rev_dat   = "March 21, 2024"
 # + start getting to know your data better
-# + **TO DO** make use of new '3dinfo -n3 ...' separately
 # 
 #set version   = "0.2";  set rev_dat   = "March 22, 2024"
 # + add space and av_space
 # 
-set version   = "0.3";  set rev_dat   = "March 22, 2024"
+#set version   = "0.3";  set rev_dat   = "March 22, 2024"
 # + add o3
+# 
+set version   = "1.0";  set rev_dat   = "March 22, 2024"
+# + n4 -> n3 and nv.
 # 
 # ====================================================================
 
@@ -143,7 +145,7 @@ echo "++ Have ${ndset} dsets to check"
 # ----- parameters to check
 
 # 3dinfo params
-set all_info = ( n4 orient ad3 tr space av_space is_oblique obliquity \
+set all_info = ( n3 nv orient ad3 tr space av_space is_oblique obliquity \
                  o3 datum is_nifti )
 # *** QUESTION: also include slice_timing somehow?
 
