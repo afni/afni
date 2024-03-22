@@ -77,6 +77,14 @@ examples:
       * Note that examples 3 and 4 could be put together, but it might make
         processing easier to keep them separate.
 
+   5. report outliers: subjects with varying columns, where ANY entries vary
+      (excludes the initial subject column)
+
+      gen_ss_review_table.py -report_outliers ANY VARY     \\
+              -outlier_sep space -infiles all/dset*.txt
+
+      This is intended to work with the output from gtkyd_check.
+
 ------------------------------------------
 terminal options:
 
@@ -164,6 +172,7 @@ process options:
         e.g. -report_outliers 'TSNR average' LT 100
         e.g. -report_outliers 'AFNI version' VARY
         e.g. -report_outliers 'global correlation (GCOR)' SHOW
+        e.g. -report_outliers ANY VARY
 
       This option is used to make a table of outlier subjects.  If any
       comparison function is true for a subject (other than SHOW), that subject
@@ -180,6 +189,14 @@ process options:
         LABEL   : the (probably quoted) label from the input out.ss files
                   (it should be quoted to be applied as a single parameter,
                   including spaces, parentheses or other special characters)
+
+                  ANY  : A special LABEL is "ANY".  This will be replaced with
+                         each label in the input (excluded the initial one, for
+                         subject).  It is equivalent to specifying the given
+                         test for every (non-initial) label in the input.
+
+                  ANY0 : Another special LABEL, but in this case, it includes
+                         column 0, previously left for subject.
 
         COMP    : a comparison operator, one of:
                   SHOW  : (no VAL) show the value, for any output subject
@@ -291,11 +308,12 @@ g_history = """
         - default:  in valid comparison, eval blank test vals as non-outliers
           with opt: eval blank test vals as outliers
           (previously, any non-float was viewed as an outlier)
-   1.5  Feb 15, 2022    - added -show_keepers and display SHOW_KEEP
-   1.6  Aug 31, 2022    - [pt] added -infiles_json and JSON-reading support
+   1.5  Feb 15, 2022   - added -show_keepers and display SHOW_KEEP
+   1.6  Aug 31, 2022   - [pt] added -infiles_json and JSON-reading support
+   1.7  Mar 21, 2024   - allow ANY or ANY0 for a field choice
 """
 
-g_version = "gen_ss_review_table.py version 1.5, February 15, 2022"
+g_version = "gen_ss_review_table.py version 1.7, March 21, 2024"
 
 
 class MyInterface:
@@ -848,6 +866,10 @@ class MyInterface:
          return 0 on success
       """
 
+      # check for 'ANY'
+      if self.expand_ANY_tests():
+         return 1
+
       # verify labels, operators and nvals
       if not self.outlier_tests_are_valid():
          return 1
@@ -1128,6 +1150,57 @@ class MyInterface:
          for repind in range(self.maxcounts[label]):
             table[1][posn] = newlab
             posn += 1
+
+      return 0
+
+   def expand_ANY_tests(self):
+      """if ANY is a label, expand it to all labels (after 0)
+
+         if ANY0 is a label, include column 0
+      """
+
+      # since we are skipping [0]...
+      if len(self.labels) < 2:
+         return 0
+
+      # quick check for 'ANY'
+      ltests = [otest[0] for otest in self.ro_list]
+      if not 'ANY' in ltests and not 'ANY0' in ltests:
+         return 0
+
+      # we have something to do, proceed...
+
+      # get a list of labels to add
+      dolabs = self.labels[1:]
+      if self.verb > 2:
+         print("== have ANY test, add for labels %s" % dolabs)
+
+      # and start adding...
+      new_list = []
+      for otest in self.ro_list:
+         label = otest[0]
+         if label != 'ANY' and label != 'ANY0':
+             new_list.append(otest)
+
+         # we have an 'ANY', dupe test for each label and add
+         if self.verb > 1:
+            print("-- applying ANY (%s) test: %s" % (label, otest))
+
+         if label == 'ANY':
+            alllabs = dolabs
+         elif label == 'ANY0':
+            alllabs = self.labels
+         else:
+            print("** invalid ANY label, %s" % label)
+            return 1
+
+         for lab in alllabs:
+            copytest = otest[:]
+            copytest[0] = lab
+            new_list.append(copytest)
+
+      # and replace
+      self.ro_list = new_list
 
       return 0
 

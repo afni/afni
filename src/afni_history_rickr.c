@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Mar, 2024, RCR, "gen_ss_review_table.py", MINOR, TYPE_ENHANCE,
+   "allow 'column' label ANY, which expands to each non-initial label",
+   NULL
+ } ,
+
  { 21, Mar, 2024, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
    "add option -disp_abin",
    NULL
