@@ -77,6 +77,14 @@ examples:
       * Note that examples 3 and 4 could be put together, but it might make
         processing easier to keep them separate.
 
+   5. report outliers: subjects with varying columns, where ANY entries vary
+      (excludes the initial subject column)
+
+      gen_ss_review_table.py -report_outliers ANY VARY -infiles all/dset*.txt
+
+
+      This is intended to work with the output from gtkyd_check.
+
 ------------------------------------------
 terminal options:
 
@@ -164,6 +172,7 @@ process options:
         e.g. -report_outliers 'TSNR average' LT 100
         e.g. -report_outliers 'AFNI version' VARY
         e.g. -report_outliers 'global correlation (GCOR)' SHOW
+        e.g. -report_outliers ANY VARY
 
       This option is used to make a table of outlier subjects.  If any
       comparison function is true for a subject (other than SHOW), that subject
@@ -180,6 +189,11 @@ process options:
         LABEL   : the (probably quoted) label from the input out.ss files
                   (it should be quoted to be applied as a single parameter,
                   including spaces, parentheses or other special characters)
+
+                  ANY : A special LABEL is "ANY".  This will be replaced with
+                        each label in the input (excluded the initial one, for
+                        subject).  It is equivalent to specifying the given
+                        test for every (non-initial) label in the input.
 
         COMP    : a comparison operator, one of:
                   SHOW  : (no VAL) show the value, for any output subject
@@ -291,12 +305,12 @@ g_history = """
         - default:  in valid comparison, eval blank test vals as non-outliers
           with opt: eval blank test vals as outliers
           (previously, any non-float was viewed as an outlier)
-   1.5  Feb 15, 2022    - added -show_keepers and display SHOW_KEEP
-   1.6  Aug 31, 2022    - [pt] added -infiles_json and JSON-reading support
-   1.7  Mar 21, 202f    - allow ANY for a field choice...
+   1.5  Feb 15, 2022   - added -show_keepers and display SHOW_KEEP
+   1.6  Aug 31, 2022   - [pt] added -infiles_json and JSON-reading support
+   1.7  Mar 21, 2024   - allow ANY for a field choice...
 """
 
-g_version = "gen_ss_review_table.py version 1.5, February 15, 2022"
+g_version = "gen_ss_review_table.py version 1.7, March 21, 2024"
 
 
 class MyInterface:
