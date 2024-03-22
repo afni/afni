@@ -42,8 +42,9 @@
   Mod:     If nsl == 0, set num_slices equal to nz.   [4 occurrences]
   Date:    06 October 2003  [rickr]
 
-  Mod:     allow dx!=dy; use fabs((dx-dy)/dx) > 0.0001 for failure
-  Date:    20 March 2024  [rickr]  (gee, only 20+ years since the last change)
+  Mod:     allow dx!=dy; use ||dx|-|dy||/|dx| > 0.0001 for failure
+           apply to both square image and against basefile
+  Date:    22 March 2024  [rickr]  (gee, only 20 years since the last change)
 */
 
 /*---------------------------------------------------------------------------*/
@@ -60,6 +61,9 @@
 #define MAX_NAME_LENGTH THD_MAX_NAME  /* max. string length for file names */ 
 #define STATE_DIM 4                   /* number of registration parameters */ 
 
+
+/*----- protos -----*/ 
+int approx_equal(float d0, float d1, float epsilon, int report_fail);
 
 /*----- Global variables -----*/ 
 int * t_to_z = NULL;           /* convert time-order to z-order of slices */  
@@ -161,6 +165,41 @@ void IR_error
   exit(1);
 }
 
+
+/*---------------------------------------------------------------------------*/
+/*
+  Compare deltas (such as dx between 2 datasets).
+
+  Original tests were if d0 != d1, fail.  But if deltas come from an
+  oblique matrix, they will often not be exact.
+
+  This function tests if the relative difference between them is small.
+
+  Allow d0, d1 of differing signs, and possibly even zero.
+
+        check:   ||d0| - |d1||
+                 -------------  <  epsilon
+                     |d0|
+
+        or:      ||d0| - |d1||  <  epsilon*|d0|
+
+  if returning 0 and report_fail is set, report failure.
+
+  return 0 or 1 to indicate whether the comparison is true
+  [22 Mar 2024 rickr]
+*/
+int approx_equal(float d0, float d1, float epsilon, int report_fail)
+{
+   /* if the difference is too big of a delta fraction, fail */
+   if( fabs(fabs(d0)-fabs(d1)) > epsilon*fabs(d0) ) {
+      if( report_fail )
+         fprintf(stderr, "-- want : ||d0|-|d1||=%f  <  |%f*d0|=%f\n\n",
+                 fabs(d0-d1), epsilon, epsilon*fabs(d0));
+      return 0;
+   }
+
+   return 1;  /* yes, approximately equal */
+}
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -865,7 +904,6 @@ char * IMREG_main
    char * new_prefix ;                         /* string from user */
    int base , ntime , datum , nx,ny,nz , ii,kk , npix ;
    float                      dx,dy,dz ;
-   float       epsilon=0.0001;     /* allowed fraction for dx,dy to diff by */
    int base_datum, failed;
    MRI_IMARR * ims_in , * ims_out ;
    MRI_IMAGE * im , * imbase ;
@@ -910,17 +948,12 @@ char * IMREG_main
           nx,ny,nz,dx,dy,dz ) ;
 
    /* be more lenient than failing anytime fabs(dx) != fabs(dy)
-    * - only require (dx-dy)/dx > epsilon
-    * - handle dx, dy of differing signs
-    * - allow dx == 0???
+    * - only require (dx-dy)/dx < epsilon   {epsilon = 0.0001, report_fail = 1}
     * - mostly to handle oblique data       [20 Mar 2024 rickr] */
-   if( nx != ny || ( fabs(fabs(dx)-fabs(dy)) > epsilon*fabs(dx)) ) {
+   if( nx != ny || ! approx_equal(dx, dy, 0.0001, 1) ) {
 
      /*     No need to quit, works fine.  ZSS 07
       *     Only if nx >= ny (so fix might be easy).  12 Jan 2010 [rickr] */
-      fprintf(stderr, "-- want : ||dx|-|dy||=%f  <  |%f*dx|=%f\n\n",
-              fabs(dx-dy), epsilon, epsilon*fabs(dx));
-
       return "***********************************\n"
              "Dataset does not have square slices\n"
              "***********************************"  ;
@@ -949,9 +982,15 @@ char * IMREG_main
                 "Cannot find Base Dataset\n"
                 "************************"  ;
 
-       if ( (nx != base_dset->daxes->nxx) || (dx != base_dset->daxes->xxdel)
-         || (ny != base_dset->daxes->nyy) || (dy != base_dset->daxes->yydel)
-         || (nz != base_dset->daxes->nzz) || (dz != base_dset->daxes->zzdel) )
+      /* be more lenient than failing anytime fabs(dx) != fabs(xxdel)
+       * - only require (d0-d1)/d0 < epsilon  {epsilon=0.0001, report_fail=1}
+       * - mostly to handle oblique data       [20 Mar 2024 rickr] */
+       if ( (nx != base_dset->daxes->nxx)
+         || (ny != base_dset->daxes->nyy)
+         || (nz != base_dset->daxes->nzz)
+         || ( ! approx_equal(dx, base_dset->daxes->xxdel, 0.0001, 1) )
+         || ( ! approx_equal(dy, base_dset->daxes->yydel, 0.0001, 1) )
+         || ( ! approx_equal(dz, base_dset->daxes->zzdel, 0.0001, 1) ) )
          {
            if (opt->debug)
                {

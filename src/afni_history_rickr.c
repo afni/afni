@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Mar, 2024, RCR, "2dImReg", MINOR, TYPE_ENHANCE,
+   "add approx_equal() test for -basefile, as well",
+   "Done for josef_ling on MB."
+ } ,
+
  { 21, Mar, 2024, RCR, "gen_ss_review_table.py", MINOR, TYPE_ENHANCE,
    "allow 'column' label ANY, which expands to each non-initial label",
    NULL
