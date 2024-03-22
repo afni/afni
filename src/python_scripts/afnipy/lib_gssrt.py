@@ -80,8 +80,8 @@ examples:
    5. report outliers: subjects with varying columns, where ANY entries vary
       (excludes the initial subject column)
 
-      gen_ss_review_table.py -report_outliers ANY VARY -infiles all/dset*.txt
-
+      gen_ss_review_table.py -report_outliers ANY VARY     \\
+              -outlier_sep space -infiles all/dset*.txt
 
       This is intended to work with the output from gtkyd_check.
 
