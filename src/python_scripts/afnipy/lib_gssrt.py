@@ -190,10 +190,13 @@ process options:
                   (it should be quoted to be applied as a single parameter,
                   including spaces, parentheses or other special characters)
 
-                  ANY : A special LABEL is "ANY".  This will be replaced with
-                        each label in the input (excluded the initial one, for
-                        subject).  It is equivalent to specifying the given
-                        test for every (non-initial) label in the input.
+                  ANY  : A special LABEL is "ANY".  This will be replaced with
+                         each label in the input (excluded the initial one, for
+                         subject).  It is equivalent to specifying the given
+                         test for every (non-initial) label in the input.
+
+                  ANY0 : Another special LABEL, but in this case, it includes
+                         column 0, previously left for subject.
 
         COMP    : a comparison operator, one of:
                   SHOW  : (no VAL) show the value, for any output subject
@@ -307,7 +310,7 @@ g_history = """
           (previously, any non-float was viewed as an outlier)
    1.5  Feb 15, 2022   - added -show_keepers and display SHOW_KEEP
    1.6  Aug 31, 2022   - [pt] added -infiles_json and JSON-reading support
-   1.7  Mar 21, 2024   - allow ANY for a field choice...
+   1.7  Mar 21, 2024   - allow ANY or ANY0 for a field choice
 """
 
 g_version = "gen_ss_review_table.py version 1.7, March 21, 2024"
@@ -1152,6 +1155,8 @@ class MyInterface:
 
    def expand_ANY_tests(self):
       """if ANY is a label, expand it to all labels (after 0)
+
+         if ANY0 is a label, include column 0
       """
 
       # since we are skipping [0]...
@@ -1160,7 +1165,7 @@ class MyInterface:
 
       # quick check for 'ANY'
       ltests = [otest[0] for otest in self.ro_list]
-      if not 'ANY' in ltests:
+      if not 'ANY' in ltests and not 'ANY0' in ltests:
          return 0
 
       # we have something to do, proceed...
@@ -1174,14 +1179,22 @@ class MyInterface:
       new_list = []
       for otest in self.ro_list:
          label = otest[0]
-         if label != 'ANY':
+         if label != 'ANY' and label != 'ANY0':
              new_list.append(otest)
 
          # we have an 'ANY', dupe test for each label and add
          if self.verb > 1:
-            print("-- applying ANY test: %s" % otest)
+            print("-- applying ANY (%s) test: %s" % (label, otest))
 
-         for lab in dolabs:
+         if label == 'ANY':
+            alllabs = dolabs
+         elif label == 'ANY0':
+            alllabs = self.labels
+         else:
+            print("** invalid ANY label, %s" % label)
+            return 1
+
+         for lab in alllabs:
             copytest = otest[:]
             copytest[0] = lab
             new_list.append(copytest)
