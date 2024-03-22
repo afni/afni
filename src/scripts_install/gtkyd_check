@@ -4,8 +4,11 @@
 # + start getting to know your data better
 # + **TO DO** make use of new '3dinfo -n3 ...' separately
 # 
-set version   = "0.2";  set rev_dat   = "March 21, 2024"
+#set version   = "0.2";  set rev_dat   = "March 22, 2024"
 # + add space and av_space
+# 
+set version   = "0.3";  set rev_dat   = "March 22, 2024"
+# + add o3
 # 
 # ====================================================================
 
@@ -141,7 +144,7 @@ echo "++ Have ${ndset} dsets to check"
 
 # 3dinfo params
 set all_info = ( n4 orient ad3 tr space av_space is_oblique obliquity \
-                 datum is_nifti )
+                 o3 datum is_nifti )
 # *** QUESTION: also include slice_timing somehow?
 
 # nifti_tool fields
