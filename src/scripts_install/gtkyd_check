@@ -9,8 +9,12 @@
 #set version   = "0.3";  set rev_dat   = "March 22, 2024"
 # + add o3
 # 
-set version   = "1.0";  set rev_dat   = "March 22, 2024"
+#set version   = "1.0";  set rev_dat   = "March 22, 2024"
 # + n4 -> n3 and nv.
+# 
+set version   = "1.1";  set rev_dat   = "March 22, 2024"
+# + check for bad infiles and exit if there are any
+# + check nifti header for exts and afni_exts
 # 
 # ====================================================================
 
@@ -98,13 +102,28 @@ end
 # ======================== ** Verify + setup ** =========================
 # =======================================================================
 
+# do we have an odir name?
 if ( "${odir}" == "" ) then
     echo "** ERROR: need to provide output dir name with '-outdir ..'"
     goto BAD_EXIT
 endif
 
+# do we have >=1 dset?
 if ( "${dset_list}" == "" ) then
     echo "** ERROR: need to provide >=1 input dsets with '-infiles ..'"
+    goto BAD_EXIT
+endif
+
+# are all dsets valid?
+set NBAD = 0
+foreach dset ( ${dset_list:q} )
+    set tmp = `3dinfo -prefix ${dset}`
+    if ( "${tmp}" == "NO-DSET" ) then
+        @ NBAD+= 1
+        echo "** ERROR: Bad infile (3dinfo error) : ${dset}"
+    endif
+end
+if ( $NBAD ) then
     goto BAD_EXIT
 endif
 
@@ -150,7 +169,7 @@ set all_info = ( n3 nv orient ad3 tr space av_space is_oblique obliquity \
 # *** QUESTION: also include slice_timing somehow?
 
 # nifti_tool fields
-set all_nfield = ( datatype sform_code qform_code )
+set all_nfield = ( datatype sform_code qform_code has_exts has_afni_exts )
 
 # 3dBrickStat params (these will be slow); will split these in usage
 set all_bstat = ( "min -max" )
@@ -251,8 +270,25 @@ foreach nfield ( ${all_nfield} )
         set dset_txt  = "${odir}/dset_gtkyd_${dset_pref}.txt"
 
         # detailed info: 1 line per dset (plus initial comment at file top)
-        set line = `nifti_tool -quiet -disp_hdr -field ${nfield} \
-                        -infiles "${dset}"` 
+        if ( "${nfield}" == "has_exts" ) then
+            # special case
+            set line = 0
+            set eee  = `nifti_tool -quiet -disp_exts -infiles "${dset}"`
+            if ( "${eee}" != "" ) then
+                set line = 1
+            endif
+        else if ( "${nfield}" == "has_afni_exts" ) then
+            # special case
+            set line = 0
+            set eee  = `nifti_tool -quiet -disp_exts -infiles "${dset}" \
+                            | \grep AFNI_attributes`
+            if ( "${eee}" != "" ) then
+                set line = 1
+            endif
+        else
+            set line = `nifti_tool -quiet -disp_hdr -field ${nfield} \
+                            -infiles "${dset}"` 
+        endif
 
         # report file
         echo "${line}  ${dset_name}" >> ${otxt_det}
@@ -397,15 +433,15 @@ Usage ~1~
 ------------------------------------------------------------------------
 Examples ~1~
 
-1) Basic example:
+1) Basic example, running on a set of EPI:
     gtkyd                                        \\
-        -infiles  group_study/*.nii.gz           \\
+        -infiles  group_study/*task*.nii.gz      \\
         -outdir   group_summary
 
-2) Include (possibly slow) min/max info
-    gtkyd_check                                  \\
-        -infiles    group_study2/*.nii.gz *HEAD  \\
-        -do_minmax                               \\  
+2) Include (possibly slow) min/max info, and check anatomical dsets:
+    gtkyd_check                                          \\
+        -infiles    group_study2/*T1w*.nii.gz *T1w*HEAD  \\
+        -do_minmax                                       \\
         -outdir     group_summary2
 
 EOF
