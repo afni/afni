@@ -2052,8 +2052,26 @@ void SUMA_cb_AlphaThresh_tb_toggled(Widget w, XtPointer data,
    AlphaOpecityFalloff = !AlphaOpecityFalloff;
    
    // SO->SurfCont->AlphaThresh is common across period key
-   SO->AlphaOpecityFalloff = SO->SurfCont->AlphaOpecityFalloff = AlphaOpecityFalloff;
-   if (SO->alphaOpacityModel) SO->alphaOpacityModel = QUADRATIC;
+   SO->AlphaOpecityFalloff = SurfCont->AlphaOpecityFalloff = AlphaOpecityFalloff;
+   
+   if (!(SO->Overlays)){
+    if (SO->AlphaOpecityFalloff){
+        fprintf (SUMA_STDERR,
+            "ERROR %s: Cannot make overlay variably opqaue.  There is no overlay.\n", 
+            FuncName);
+        // No variable opacity since there is no overlay
+        SO->AlphaOpecityFalloff = 0;
+        
+        // Uncheck "A" check-box
+        SurfCont->AlphaOpecityFalloff = 0;
+        XmToggleButtonSetState ( SurfCont->AlphaThresh_tb,
+                              SurfCont->AlphaOpecityFalloff, YUP);    
+        }
+    SUMA_RETURNe;
+   }
+
+   // Default opacity model
+   if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
    
    // Refresh display
    SUMA_Remixedisplay(ado);
@@ -2385,7 +2403,7 @@ SUMA_MenuItem LinkMode_Menu[] = {
 /**/
 SUMA_MenuItem AlphaMode_Menu[] = {
 /*
-   {  "Threshold", &xmPushButtonWidgetClass,
+   {  "Threshol", &xmPushButtonWidgetClass,
       '\0', NULL, NULL,
       SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_None, NULL},
 
