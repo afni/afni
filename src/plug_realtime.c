@@ -1096,7 +1096,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    ept = getenv("AFNI_REALTIME_DETREND_FWHM") ;   
    if( ept != NULL ){
       float ff = (float)(strtod(ept,NULL)) ;
-      if( ff >= 0.0 ) rt_detrend_polort = ff ;
+      if( ff >= 0.0 ) rt_detrend_fwhm = ff ;
    }
 
    PLUTO_add_option( plint , "" , "Detrend" , FALSE ) ;
@@ -4944,6 +4944,8 @@ void RT_start_dataset( RT_input * rtin )
      rts->numdset = rtin->num_chan ;
      if( rtin->mrg_dset != NULL ) rts->numdset++ ;
      if( rtin->reg_dset != NULL ) rts->numdset++ ;
+     /* CC add in detrend dataset */
+     if( rtin->detrend_dset != NULL ) rts->numdset++ ;
      /* if we have reg_chan_dset datasets, add them   27 May 2010 [rickr] */
      if( rtin->reg_chan_dset[0] != NULL ) rts->numdset += rtin->num_chan ;
 
@@ -4951,6 +4953,8 @@ void RT_start_dataset( RT_input * rtin )
      for( cc=0 ; cc < rtin->num_chan ; cc++ ) rts->dset[cc] = rtin->dset[cc] ;
      if( rtin->mrg_dset != NULL ) rts->dset[cc++] = rtin->mrg_dset ;
      if( rtin->reg_dset != NULL ) rts->dset[cc++] = rtin->reg_dset ;
+     /* CC add in detrend dataset */
+     if( rtin->detrend_dset != NULL ) rts->dset[cc++] = rtin->detrend_dset ;
      if( rtin->reg_chan_dset[0] != NULL )          /* 27 May 2010 [rickr] */
         for( ii=0 ; ii < rtin->num_chan ; ii++ )
            rts->dset[cc++] = rtin->reg_chan_dset[ii] ;
