@@ -35,6 +35,7 @@ $prog modification history:
    1.5  : Mar  4, 2024: update reformat, removing Q column
    1.6  : Mar  5, 2024: minor renaming in table
    1.7  : Mar  8, 2024: add -make_html opt, for APQC
+   1.8  : Mar 25, 2024: fix for macOS: replace \n with empty line (for APQC)
 
    current version: $script_version
 EOF
@@ -365,7 +366,8 @@ set dtxt = "dset: $rset_label ($dpre), Nroi: $#rval_list"
 set dund = `echo "$dtxt" | sed 's/./-/g'`
 echo -n ""      >! $stats_file
 echo "$dtxt"   >>! $stats_file
-echo "$dund\n" >>! $stats_file
+echo "$dund"   >>! $stats_file
+echo ""        >>! $stats_file
 
 # field headers must match 2 sets of btext lines, below
 printf '%6s %6s %5s %5s  %5s %5s %5s %5s %5s  %6s %6s %6s  %s\n'     \
