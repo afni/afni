@@ -199,7 +199,7 @@ void usage_TrackID(int detail)
 "   using a combination of all three might even be variously useful in a\n"
 "   particular study.\n"
 "****************************************************************************\n"
-"  For DTI, this program reads in tensor-related data from, e.g., 3dDWItoDTI,\n"
+"  For DTI, this program reads in tensor-related data from, e.g., 3dDWItoDT,\n"
 "  and also uses results from 3dDWUncert for uncertainty measures when\n"
 "  necessary.\n"
 "\n"
