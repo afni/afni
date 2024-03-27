@@ -18169,6 +18169,9 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             case TRIANGLES:
                SUMA_LH("Tri %d %p",NP, SurfObj->glar_FaceSetList);
 	       if (NP==3) {
+                for (int i=0; i<(GLsizei)N_glar_FaceSet; ++i){
+                    int i3 = 3*i;
+                }
                   glDrawElements (  GL_TRIANGLES, (GLsizei)N_glar_FaceSet*3,
                                     GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
                } else if (NP==4) {
