@@ -2034,10 +2034,10 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
-void SUMA_cb_AlphaThresh_tb_toggled(Widget w, XtPointer data,
+void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
                                    XtPointer client_data)
 {
-   static char FuncName[]={"SUMA_cb_AlphaThresh_tb_toggled"};
+   static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    static int AlphaOpecityFalloff = 0;
@@ -2064,7 +2064,7 @@ void SUMA_cb_AlphaThresh_tb_toggled(Widget w, XtPointer data,
         
         // Uncheck "A" check-box
         SurfCont->AlphaOpecityFalloff = 0;
-        XmToggleButtonSetState ( SurfCont->AlphaThresh_tb,
+        XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
                               SurfCont->AlphaOpecityFalloff, YUP);    
         }
     SUMA_RETURNe;
@@ -10800,18 +10800,18 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
             NULL);
 
             // create the "A" toggle checkbox 
-            SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("A",
+            SurfCont->AlphaOpacityFalloff_tb = XtVaCreateManagedWidget("A",
             xmToggleButtonWidgetClass, ABCheckBoxContainer,
             NULL);
             // Make hover help, and BHelp, for "A" checkbox
-            XtAddCallback (SurfCont->AlphaThresh_tb,
-                XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
-            SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
-                                   "SurfCont->AlphaThresh_tb",
+            XtAddCallback (SurfCont->AlphaOpacityFalloff_tb,
+                XmNvalueChangedCallback, SUMA_cb_AlphaOpacityFalloff_tb_toggled, ado);
+            SUMA_Register_Widget_Help(SurfCont->AlphaOpacityFalloff_tb , 1,
+                                   "SurfCont->AlphaOpacityFalloff_tb",
                                    "Alpha: use transparent threshold",
                                    SUMA_SurfContHelp_AlphaThr );
 
-            SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
+            SUMA_SET_SELECT_COLOR(SurfCont->AlphaOpacityFalloff_tb);
                     
             // create the "B" toggle checkbox 
 // TEMPORARY COMMENTED OUT TO MERGE WITH MASTER            SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("B",

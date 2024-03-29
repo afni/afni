@@ -4092,7 +4092,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA"));
                   SurfCont->AlphaOpecityFalloff = NOPE;
                }
-               XmToggleButtonSetState ( SurfCont->AlphaThresh_tb,
+               XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
                               SurfCont->AlphaOpecityFalloff, YUP);
             }
 

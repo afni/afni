@@ -1770,7 +1770,7 @@ typedef struct {
    int DeleteMask_row;
    float tract_length_mask[2];
    int UseMaskLen;
-   Widget AlphaThresh_tb; /*!< alpha threshold */
+   Widget AlphaOpacityFalloff_tb; /*!< alpha threshold */
    Widget BoxOutlineThresh_tb; /*!< box outline threshold */
    int AlphaOpecityFalloff;
    int alphaOpacityModel;   // Model used for the opacity falloff from the alpha threshold
