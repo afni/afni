@@ -781,9 +781,10 @@ g_history = """
        - locate() -ROI/mask_import datasets and get tlrc_base early
        - add auto-ROI_import of APQC atlas and regress tsnr_stats
        - add option -regress_compute_auto_tsnr_stats
+    7.71 Mar 29, 2024: allow -regress_apply_mot_types none
 """
 
-g_version = "version 7.70, March 18, 2024"
+g_version = "version 7.71, March 29, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1784,7 +1785,7 @@ class SubjProcSream:
                         helpstr="use 3dTproject instead of 3dDeconvolve")
 
         self.valid_opts.add_opt('-regress_apply_mot_types', -1, [],
-                        acplist=['basic','demean','deriv'],
+                        acplist=['basic','demean','deriv','none'],
                         helpstr="specify which motion parameters to apply")
         self.valid_opts.add_opt('-regress_mot_as_ort', 1, [],
                         acplist=['yes','no'],

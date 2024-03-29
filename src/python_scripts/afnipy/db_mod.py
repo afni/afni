@@ -8351,6 +8351,7 @@ def db_cmd_regress_mot_types(proc, block):
     else: ropt = '-set_nruns %d' % proc.runs
 
     # handle 3 cases of motion parameters: 'basic', 'demean' and 'deriv'
+    # (regardless of possible 'none')
 
     # 1. update mot_regs for 'basic' case
     if 'basic' in apply_types:
@@ -14686,6 +14687,7 @@ OPTIONS:  ~2~
             e.g. -regress_apply_mot_types basic
             e.g. -regress_apply_mot_types deriv
             e.g. -regress_apply_mot_types demean deriv
+            e.g. -regress_apply_mot_types none
             default: demean
 
         By default, the motion parameters from 3dvolreg are applied in the
@@ -14698,6 +14700,8 @@ OPTIONS:  ~2~
                     (or an external motion file, see -regress_motion_file)
             demean: 'basic' params with the mean removed, per run
             deriv:  per-run derivative of 'basic' params (de-meaned)
+            none:   do not regress any motion parameters
+                    (but one can still censor)
 
      ** Note that basic and demean cannot both be used, as they would cause
         multi-collinearity with the constant drift parameters.
@@ -15415,7 +15419,13 @@ OPTIONS:  ~2~
             e.g. -regress_no_motion
 
         This option prevents the program from adding the registration
-        parameters (from volreg) to the 3dDeconvolve command.
+        parameters (from volreg) to the 3dDeconvolve command, computing
+        the enorm or censoring.
+
+        ** To omit motion regression but to still compute the enorm and
+            possibly censor, use:
+
+                -regress_apply_mot_types none
 
     -regress_no_motion_demean : do not compute de-meaned motion parameters
 

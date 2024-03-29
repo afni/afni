@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Mar, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add 'none' as an option to -regress_apply_mot_types",
+   "This allows one to censor (or compute enorm) without motion regression.\n"
+   "Requested by e0046902 on NeuroStars."
+ } ,
+
  { 29, Mar, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "NIFTI s/qform_code of 2 defaults to +orig, once again",
    "Have an unset AFNI_NIFTI_VIEW default to 'orig' again.\n"
