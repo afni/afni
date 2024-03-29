@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Mar, 2024, RCR, "suma-general", MINOR, TYPE_MODIFY,
+   "temporarily revert to 2023.1003 SUMA tree, while fixing some issues",
+   "Most of this will go back in, once the issues are resolved."
+ } ,
+
  { 22, Mar, 2024, RCR, "2dImReg", MINOR, TYPE_ENHANCE,
    "add approx_equal() test for -basefile, as well",
    "Done for josef_ling on MB."

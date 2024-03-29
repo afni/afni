@@ -257,7 +257,6 @@ int main (int argc, char *argv[])
    SUMA_DSET *dset=NULL, *dseto=NULL; 
    SUMA_M2M_STRUCT *M2M=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   int ret;
 
    FILE *tmpFile=NULL;
     
@@ -553,7 +552,7 @@ int main (int argc, char *argv[])
       }
       
    }/* loop across command line options */
-   
+
    /* check on output file name */
    if (!THD_ok_overwrite()) {
       sprintf (outSpecFileNm, "%s%s", 
@@ -561,16 +560,13 @@ int main (int argc, char *argv[])
       if (SUMA_filexists(outSpecFileNm)) {
          SUMA_S_Errv("File %s exists, change prefix or use -overwrite.\n",
                      outSpecFileNm);
-         
          exit(1);
       } else {
-         char spec[] = ".spec";
-         ret = snprintf (outSpecFileNm, SUMA_MAX_FILENAME_LENGTH, "%s%s%s", 
-                  fout, SUMA_FnameGet(brainSpecFile,"f", SUMAg_CF->cwd), spec);
+         sprintf (outSpecFileNm, "%s%s.spec", 
+                  fout, SUMA_FnameGet(brainSpecFile,"f", SUMAg_CF->cwd));
          if (SUMA_filexists(outSpecFileNm)) {
             SUMA_S_Errv("File %s exists, change prefix or use -overwrite.\n",
                         outSpecFileNm);
-            
             exit(1);
          }
       }
@@ -594,7 +590,6 @@ int main (int argc, char *argv[])
    if (bin[0] == 'y' && depth > 10) {
       fprintf (SUMA_STDERR, 
                "%s: You cannot use a recursive depth > 10.\n", FuncName);
-        
       exit(1);
    }
    if (LocalHead) 
@@ -603,21 +598,18 @@ int main (int argc, char *argv[])
                FuncName, brainSpecFile, depth);
    if (brainSpecFile == NULL) {
       fprintf (SUMA_STDERR,"Error %s: No spec file specified.\n", FuncName);
-      
       exit(1);
    }
  
    /* read spec file*/
    if (!SUMA_AllocSpecFields(&brainSpec)) {
       SUMA_S_Err("Failed to allocate spec fields");
-      
       exit(1);
    }
    if ( !SUMA_Read_SpecFile (brainSpecFile, &brainSpec)) {
       fprintf( SUMA_STDERR,
                "Error %s: Error in %s SUMA_Read_SpecFile\n", 
                FuncName, brainSpecFile);
-      
       exit(1);
    }
    /* Remove some states that are certainly of no use here 
@@ -655,7 +647,6 @@ int main (int argc, char *argv[])
    if ( !SUMA_LoadSpec_eng( &brainSpec, SUMAg_DOv, &SUMAg_N_DOv, 
                             NULL, 0 , SUMAg_CF->DsetList) ) {
       fprintf(SUMA_STDERR, "Error %s: Error in SUMA_LoadSpec\n", FuncName);
-      
       exit(1);
    }
 
@@ -670,7 +661,6 @@ int main (int argc, char *argv[])
    stdSpec = (SUMA_SurfSpecFile *)SUMA_malloc(sizeof(SUMA_SurfSpecFile));
    if (!SUMA_AllocSpecFields(stdSpec)) {
       SUMA_S_Err("Failed to initialize stdSpec\n" );
-      
       exit(1);
    }
    stdSpec->N_Surfs = 0;
@@ -684,7 +674,6 @@ int main (int argc, char *argv[])
          SUMA_S_Errv( "NULL idcode in brainSpec.IDcode[%d], \n"
                      "this should not be after loading the surfaces.\n",
                      i);
-        
          exit(1);
       }
       /* find the surface of this ID */
@@ -692,7 +681,6 @@ int main (int argc, char *argv[])
                                     SUMAg_DOv, SUMAg_N_DOv))) {
          SUMA_S_Errv( "Failed to find surface with id %s in DOv!",
                       brainSpec.IDcode[i]  );
-        
          exit(1);
       }
       
@@ -718,14 +706,13 @@ int main (int argc, char *argv[])
          ++stdSpec->N_States;
       }
       
-      if (brainSpec.TopoFile[i] && brainSpec.TopoFile[i][0]) {
-         ret = snprintf(stdSpec->TopoFile[stdSpec->N_Surfs -1],
-                  SUMA_MAX_FP_NAME_LENGTH,
+      if (brainSpec.TopoFile[i] && brainSpec.TopoFile[i][0])    
+         snprintf(stdSpec->TopoFile[stdSpec->N_Surfs -1],
+                  (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
                   "%s%s%s", 
                   SUMA_FnameGet(brainSpec.TopoFile[i], "pa", SUMAg_CF->cwd),
                   fout,
                   SUMA_FnameGet(brainSpec.TopoFile[i], "f", SUMAg_CF->cwd));
-      }   
       if (brainSpec.CoordFile[i] && brainSpec.CoordFile[i][0])    
          snprintf(stdSpec->CoordFile[stdSpec->N_Surfs -1],
                   (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
@@ -846,7 +833,6 @@ int main (int argc, char *argv[])
          SUMA_S_Errv( "Huge string problem:\n"
                       ">>%s<<+>>%s<<\n",
                       stdSpec->StateList, brainSpec.StateList);
-        
          exit(1);   
       }
       strcat(stdSpec->StateList, brainSpec.StateList);
@@ -858,7 +844,6 @@ int main (int argc, char *argv[])
    /* Some tests the quality of the new spec */
    if (!SUMA_CheckOnSpecFile (stdSpec)) {
       SUMA_S_Err("Problems with spec struct");
-      
       exit(1);
    }
    
@@ -872,7 +857,6 @@ int main (int argc, char *argv[])
             if (!(SO_morph = SUMA_findSOp_inDOv (brainSpec.IDcode[i], 
                                                  SUMAg_DOv, SUMAg_N_DOv))) {
                SUMA_S_Err("Could not locate surface!");
-               
                exit(1);
             }
          }
@@ -882,7 +866,6 @@ int main (int argc, char *argv[])
          SUMA_S_Errv("%d surface%s had a state called %s\n"
                      "Only 1 must match.\n",
                      found, SUMA_COUNTER_PLURAL(found), "sphere.reg");
-         
          exit(1);
       }
    } else {
@@ -898,7 +881,6 @@ int main (int argc, char *argv[])
             if (!(SO_morph = SUMA_findSOp_inDOv (brainSpec.IDcode[i], 
                                                  SUMAg_DOv, SUMAg_N_DOv))) {
                SUMA_S_Err("Could not locate surface!");
-               
                exit(1);
             }
          }
@@ -914,25 +896,21 @@ int main (int argc, char *argv[])
          if (i == -1) {
             SUMA_S_Errv("0 matches for filename-based search for %s\n",
                         morph_surf);
-            
             exit(1);
          } else if (i == -2) {
             SUMA_S_Errv("More than 1 matches for filename-based search for %s\n",
                         morph_surf);
-            
             exit(1);
          } else if (i == -3) {
             SUMA_S_Errv("'Run for you life' matches for filename-based "
                         "search for %s\n",
                          morph_surf);
-            
             exit(1);
          } else {
             found = 1;
             if (!(SO_morph = SUMA_findSOp_inDOv (brainSpec.IDcode[i], 
                                                  SUMAg_DOv, SUMAg_N_DOv))) {
                SUMA_S_Err("Could not locate surface!");
-               
                exit(1);
             }
          }
@@ -941,7 +919,6 @@ int main (int argc, char *argv[])
    }
    if (!SO_morph) {
       SUMA_S_Err("NULL SO_morph");
-      
       exit(1);
    }
    
@@ -993,7 +970,6 @@ int main (int argc, char *argv[])
 
       if (OutName) SUMA_free(OutName); OutName = NULL;   
       SCRUBIT;
-      
       exit (0);
    }
    
@@ -1003,7 +979,6 @@ int main (int argc, char *argv[])
                                     SUMAg_DOv, SUMAg_N_DOv))) {
          SUMA_S_Errv( "Failed to find surface with id %s in DOv!",
                       brainSpec.IDcode[i]  );
-        
          exit(1);
       } 
       if (  SO_morph->N_Node < SO->N_Node ) {
@@ -1023,7 +998,6 @@ int main (int argc, char *argv[])
                   SO->Label,
                   SO->N_Node);
          SCRUBIT;
-         
          exit(1);
       }
    }
@@ -1085,7 +1059,6 @@ int main (int argc, char *argv[])
       if (!SUMA_GetCenterOfSphereSurface( SO_morph, 500, 
                                           cent, centmed)) {
          SUMA_S_Err("Failed to estimate center of spherical surface.");
-         
          exit(1);
       }else{
          if (UseCOM) {
@@ -1170,7 +1143,6 @@ int main (int argc, char *argv[])
       fprintf (SUMA_STDERR, 
                "Error %s: Failed in SUMA_MapIcosahedron.\n", FuncName);
       SCRUBIT;
-      
       exit (1);
    }
    
@@ -1186,7 +1158,6 @@ int main (int argc, char *argv[])
                                SO_morph->FileType, SO_morph->FileFormat,
                                NULL))) {
          SUMA_S_Err("Failed to write icosahedron");
-         
          exit(1);
       }
       /* Now add icosahedron */
@@ -1233,7 +1204,6 @@ int main (int argc, char *argv[])
                "Error %s: Failed in SUMA_MapIcosahedron.\n", FuncName);
       if (icoSurf) SUMA_Free_Surface_Object(icoSurf);
       SCRUBIT;
-      
       exit (1);
    }
    
@@ -1247,12 +1217,10 @@ int main (int argc, char *argv[])
          outSpecFileNm */
       if (0 && SUMA_filexists(fname) && !THD_ok_overwrite()) {
          SUMA_S_Errv("File %s exists, will not overwrite.", fname);
-         
          exit(1);
       }
       if (!(fp = fopen(fname,"w")) ) {
          SUMA_S_Errv("Failed to open %s for writing.\n", fname);
-         
          exit (1);
       }
       fprintf(fp, 
@@ -1279,7 +1247,6 @@ int main (int argc, char *argv[])
    if (N_in_name) {
       if (!(M2M = SUMA_MorphInfo2M2M(MI))) { /* go to more generic struct */
          SUMA_S_Err("Failed to create M2M");
-         
          exit(1);
       }
       if (WriteMI) {
@@ -1297,12 +1264,10 @@ int main (int argc, char *argv[])
          iform = SUMA_NO_DSET_FORMAT;
          if (!(dset = SUMA_LoadDset_s (in_name[i], &iform, 0))) {
             SUMA_S_Errv("Failed to load %s\n", in_name[i]);
-            
             exit(1);
          }
          if (!(dseto = SUMA_morphDsetToStd (dset, M2M, in_mode[i]))) {
             SUMA_S_Errv("Failed to map %s\n", in_name[i]);
-            
             exit(1);
          }
          uname = SUMA_append_replace_string(
@@ -1326,7 +1291,6 @@ int main (int argc, char *argv[])
                                     SUMAg_DOv, SUMAg_N_DOv))) {
          SUMA_S_Errv( "Failed to find surface with id %s in DOv!",
                       brainSpec.IDcode[i]  );
-         
          exit(1);
       } 
       if ( SO->EL==NULL) 
@@ -1340,7 +1304,6 @@ int main (int argc, char *argv[])
          fprintf( SUMA_STDERR, 
                   "Error %s: Failed in acquired Surface Metrics.\n", 
                   FuncName);
-        
          exit (1);
       }
       
@@ -1368,7 +1331,6 @@ int main (int argc, char *argv[])
          if (icoSurf) SUMA_Free_Surface_Object(icoSurf);
          if (SOw) SUMA_free (SOw);
          SCRUBIT;
-         
          exit (1);
       }            
       SOw->FileType = SO->FileType;
@@ -1388,7 +1350,6 @@ int main (int argc, char *argv[])
                   if (icoSurf) SUMA_Free_Surface_Object(icoSurf);
                   if (SOw) SUMA_free (SOw);
                   SCRUBIT;
-                  
                   exit (1);
                }
                /* get flag of boundary triangles */
@@ -1551,7 +1512,6 @@ int main (int argc, char *argv[])
    
    if (!SUMA_Write_SpecFile(stdSpec, outSpecFileNm, FuncName, histnote)) {
       SUMA_S_Err("Failed to write spec file!");
-      
       exit(1);
    }  
    
@@ -1587,6 +1547,7 @@ int main (int argc, char *argv[])
    if (icoSurf) SUMA_Free_Surface_Object (icoSurf); icoSurf = NULL;
    
    SCRUBIT;   
+
 
    SUMA_RETURN(0);
    
