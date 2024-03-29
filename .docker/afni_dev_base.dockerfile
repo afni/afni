@@ -88,6 +88,7 @@ RUN apt-get update && apt-get install -y eatmydata && \
     r-base \
     tcsh \
     xvfb \
+    bc \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
