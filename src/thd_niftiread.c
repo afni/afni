@@ -1192,7 +1192,8 @@ static int NIFTI_code_to_view(int code, char *atlas_space)
 static int NIFTI_default_view()
 {
   char *ppp;
-  int iview = VIEW_TALAIRACH_TYPE; /* default view if not otherwise set */
+  /* finally default back to orig view            [29 Mar 2024 rickr ] */
+  int iview = VIEW_ORIGINAL_TYPE; /* default view if not otherwise set */
 
   ENTRY("NIFTI_default_view");
   ppp = my_getenv("AFNI_NIFTI_VIEW");
