@@ -4119,19 +4119,19 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
             if (NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_BOXED", "y")){
-                  SurfCont->curColPlane->BoxOutline = 1;
+                  SurfCont->BoxOutlineThresh = 1;
                }
                else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_BOXED", "n"))
                {
-                  SurfCont->curColPlane->BoxOutline = 0;
+                  SurfCont->BoxOutlineThresh = 0;
                }
                else {
                   SUMA_S_Errv("Bad value of %s for SET_FUNC_BOXED, setting to 'y'\n",
                               NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED"));
-                  SurfCont->curColPlane->BoxOutline = NOPE;
+                  SurfCont->BoxOutlineThresh = NOPE;
                }
                XmToggleButtonSetState ( SurfCont->BoxOutlineThresh_tb,
-                              SurfCont->curColPlane->BoxOutline, YUP);
+                              SurfCont->BoxOutlineThresh, YUP);
             }
 
             if (NI_get_attribute(EngineData->ngr, "B_sb")) {

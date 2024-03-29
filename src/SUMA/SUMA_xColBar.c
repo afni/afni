@@ -2086,7 +2086,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   static int BoxOutline = 0;
+   static int BoxOutlineThresh = 0;
 
    SUMA_ENTRY;
 
@@ -2095,8 +2095,8 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
             || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    
-   BoxOutline = !BoxOutline;
-   SO->BoxOutline = BoxOutline;
+   BoxOutlineThresh = !BoxOutlineThresh;
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
    
    // Refresh display
    SUMA_Remixedisplay(ado);

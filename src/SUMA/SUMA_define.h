@@ -1090,12 +1090,11 @@ typedef struct {
    byte *ClustOfNode; /*!< Tells which cluster a node belongs to, Should have
                            SO->N_Node values in it*/
    float AlphaThresh;   // *** NBB ***:  Please do NOT declare this as int.  
-                        // That causes"zero" parts of the background within  
-                        // a slice of a dset with slice planes to be 
+                        // That causes "zero" parts of the background within  
+                        // slices of a dset with slice planes to be 
                         // black/opaque instead of transparent.
-   int subThreshVariableOpacity; // "A" button checked.  Opacity of 
-                        //   overlay falls off away from threshold
-   int BoxOutline;      // "B" button checked.  Threshold outlined with black pixels.
+                        // It also has nothing to do with subthreshold
+                        // variable opacity.
 } SUMA_OVERLAYS;
 
 
