@@ -7873,7 +7873,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
      
    
    if (SO->SurfCont->AlphaOpecityFalloff != 1) SO->SurfCont->AlphaOpecityFalloff = 0;
-   SO->AlphaOpecityFalloff = SO->SurfCont->AlphaOpecityFalloff;
+   SO->SurfCont->AlphaOpecityFalloff = SO->SurfCont->AlphaOpecityFalloff;
    
    if (!thresholdReset && currentOverlay){
    
@@ -8279,7 +8279,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                   "%s: Modulating Brightness of Foreground colors ...\n",
                   FuncName);
 
-      if (SO->AlphaOpecityFalloff){
+      if (SO->SurfCont->AlphaOpecityFalloff){
             float *activeAlphaOpacities = alphaOpacitiesForOverlay(SO, 
                 currentOverlay);
 
@@ -8401,7 +8401,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    if (NshowOverlays && !NshowOverlays_Back) {
       if (LocalHead)
          fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n", FuncName);
-      if (SO->AlphaOpecityFalloff){
+      if (SO->SurfCont->AlphaOpecityFalloff){
          float *activeAlphaOpacities = alphaOpacitiesForOverlay(SO, 
             currentOverlay);
          for (i=0; i < N_Node; ++i) {
@@ -8470,7 +8470,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          fprintf (SUMA_STDERR,"%s: Only Background colors.\n", FuncName);
          
          // Make local opacities if A threshold true
-         if (SO->AlphaOpecityFalloff){
+         if (SO->SurfCont->AlphaOpecityFalloff){
          float *activeAlphaOpacities = alphaOpacitiesForOverlay(SO, 
             currentOverlay);
          for (i=0; i < N_Node; ++i) {

@@ -3254,10 +3254,6 @@ typedef struct {
 
    SUMA_DRAW_MASKS *DW; /*!< A structure containing node masking information
                              for on the fly masking */
-   int AlphaOpecityFalloff; // "A" button checked.  Opacity of overlay falls off away
-                        //      from threshold
-   int alphaOpacityModel;   // Model used for the opacity falloff from the alpha threshold
-   int BoxOutline;      // "B" button checked.  Threshold outlined with black pixels.
 } SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
                      \sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c

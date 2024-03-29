@@ -2052,15 +2052,15 @@ void SUMA_cb_AlphaThresh_tb_toggled(Widget w, XtPointer data,
    AlphaOpecityFalloff = !AlphaOpecityFalloff;
    
    // SO->SurfCont->AlphaThresh is common across period key
-   SO->AlphaOpecityFalloff = SurfCont->AlphaOpecityFalloff = AlphaOpecityFalloff;
+   SO->SurfCont->AlphaOpecityFalloff = SurfCont->AlphaOpecityFalloff = AlphaOpecityFalloff;
    
    if (!(SO->Overlays)){
-    if (SO->AlphaOpecityFalloff){
+    if (SO->SurfCont->AlphaOpecityFalloff){
         fprintf (SUMA_STDERR,
             "ERROR %s: Cannot make overlay variably opqaue.  There is no overlay.\n", 
             FuncName);
         // No variable opacity since there is no overlay
-        SO->AlphaOpecityFalloff = 0;
+        SO->SurfCont->AlphaOpecityFalloff = 0;
         
         // Uncheck "A" check-box
         SurfCont->AlphaOpecityFalloff = 0;
