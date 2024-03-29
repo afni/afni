@@ -53,6 +53,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Mar, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "NIFTI s/qform_code of 2 defaults to +orig, once again",
+   "Have an unset AFNI_NIFTI_VIEW default to 'orig' again.\n"
+   "This is how it was originally.  It was changed at some point to\n"
+   "accommodate an influx of such data in MNI space.  Now, revert to\n"
+   "having sform_code of 2 to default to orig space."
+ } ,
+
  { 28, Mar, 2024, RCR, "suma-general", MINOR, TYPE_MODIFY,
    "temporarily revert to 2023.1003 SUMA tree, while fixing some issues",
    "Most of this will go back in, once the issues are resolved."
