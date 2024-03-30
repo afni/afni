@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Mar, 2024, RCR, "ap_run_simple_rest_me.tcsh", MAJOR, TYPE_NEW_PROG,
+   "run a quick afni_proc.py resting state analysis for QC on multi-echo data",
+   NULL
+ } ,
+
  { 29, Mar, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add 'none' as an option to -regress_apply_mot_types",
    "This allows one to censor (or compute enorm) without motion regression.\n"
