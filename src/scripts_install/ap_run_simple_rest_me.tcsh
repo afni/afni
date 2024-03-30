@@ -2,7 +2,8 @@
 
 # ===========================================================================
 # Run a simple afni_proc.py resting state analysis, possibly to get QC output.
-# This version is for procesing multi-echo data, using the optimal combination.
+# This version is for processing multi-echo data, combining echoes using the
+# optimal combination.
 #
 # To keep it simple, this script puts results in the current directory.  It is
 # up to the user/calling script to control.
