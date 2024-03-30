@@ -263,13 +263,16 @@ if ( ${#dset_ulay} == 0 ) then
 else if ( ${#dset_ulay} == 1 ) then
     echo "++ Found ulay dset: ${dset_ulay}"
 else
-    echo "** Exiting: too many (${#dset_ulay}) dsets: ${pb}.*.${run}.*.HEAD"
-    exit 1
+    echo "+* Note: found multiple (${#dset_ulay}) dsets: ${pb}.*.${run}.*.HEAD"
+    echo "   Assuming this is ME-FMRI"
 endif
 '''
         if proc_type == 'IC' :
             otxt+= '''
-set ic_dset = "${dset_ulay}"
+
+# Get middle dset in all cases (is just first if N=1); in case of ME-FMRI
+set idx = `echo "scale=0; (${#dset_ulay}+1)/2" | bc`
+set ic_dset = "${dset_ulay[$idx]}"
 '''
 
     elif input_type == 'errts' :
