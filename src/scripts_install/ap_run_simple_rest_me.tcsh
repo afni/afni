@@ -20,7 +20,6 @@
 # ===========================================================================
 
 # todo:
-#     - help/hist/examples
 #     - automatically compute blur size
 
 # ----------------------------------------------------------------------
@@ -59,9 +58,8 @@ cat << EOF
 -----------------------------------------------------------------
 $prog modification history:
 
-   0.0  : Apr  8, xxxx: same as ap_run_simple_rest.tcsh
-                        - but for multi-echo data
-                        - no -compare_to option (unneeded, see afni_proc.py)
+   0.0  : Apr  8, 2024: same as ap_run_simple_rest.tcsh
+                      - but for multi-echo data
 
 EOF
 
@@ -337,12 +335,14 @@ afni_proc.py                                                        \
     -combine_method            OC \
     -reg_echo                  $reg_echo \
     -tcat_remove_first_trs     $nt_rm \
+    -tshift_interp             -wsinc9                              \
     -align_unifize_epi         local                                \
     -align_opts_aea            -cost lpc+ZZ -giant_move -check_flip \
     -tlrc_base                 $template \
     -volreg_align_to           MIN_OUTLIER                          \
     -volreg_align_e2a                                               \
     -volreg_tlrc_warp                                               \
+    -volreg_warp_final_interp  wsinc5                               \
     -volreg_compute_tsnr       yes                                  \
     -mask_epi_anat             yes                                  \
     -blur_size                 4                                    \
@@ -394,6 +394,7 @@ afni_proc.py                                                        \
     -combine_method            OC                                   \
     -reg_echo                  $reg_echo \
     -tcat_remove_first_trs     $nt_rm \
+    -tshift_interp             -wsinc9                              \
     -volreg_align_to           MIN_OUTLIER                          \
     -volreg_compute_tsnr       yes                                  \
     -blur_size                 4                                    \
@@ -535,25 +536,26 @@ example 2: run an analysis from a clean directory
       mkdir test.ap
       cd test.ap
 
-      $prog -subjid sub-005                     \\
-        -anat       ../anat/sub-*_mprage_run-1_T1w.nii.gz            \\
-        -epi_me_run ../func/sub-*_task-rest_run-1_echo-*_bold.nii.gz \\
-        -echo_times 12.5 27.6 42.7                                   \\
-        -nt_rm 4                                                     \\
-        -run_proc
+      $prog                                       \\
+          -subjid sub-005                                              \\
+          -anat       ../anat/sub-*_mprage_run-1_T1w.nii.gz            \\
+          -epi_me_run ../func/sub-*_task-rest_run-1_echo-*_bold.nii.gz \\
+          -echo_times 12.5 27.6 42.7                                   \\
+          -nt_rm 4                                                     \\
+          -run_proc
 
 
 example 3: similar to 2, but assuming there are 4 runs, 3 echoes in each
 
-      $prog -subjid sub-005                     \\
-        -anat       ../anat/sub-*_mprage_run-1_T1w.nii.gz            \\
-        -epi_me_run ../func/sub-*_task-rest_run-1_echo-*_bold.nii.gz \\
-        -epi_me_run ../func/sub-*_task-rest_run-2_echo-*_bold.nii.gz \\
-        -epi_me_run ../func/sub-*_task-rest_run-3_echo-*_bold.nii.gz \\
-        -epi_me_run ../func/sub-*_task-rest_run-4_echo-*_bold.nii.gz \\
-        -echo_times 12.5 27.6 42.7                                   \\
-        -nt_rm 4                                                     \\
-        -run_proc
+      $prog                                       \\
+          -subjid sub-005                                              \\
+          -epi_me_run ../func/sub-*_task-rest_run-1_echo-*_bold.nii.gz \\
+          -epi_me_run ../func/sub-*_task-rest_run-2_echo-*_bold.nii.gz \\
+          -epi_me_run ../func/sub-*_task-rest_run-3_echo-*_bold.nii.gz \\
+          -epi_me_run ../func/sub-*_task-rest_run-4_echo-*_bold.nii.gz \\
+          -echo_times 12.5 27.6 42.7                                   \\
+          -nt_rm 4                                                     \\
+          -run_proc
 
 
 ------------------------------------------------------------------------------
