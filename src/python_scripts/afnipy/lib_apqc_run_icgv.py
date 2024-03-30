@@ -255,7 +255,8 @@ otxt : str
 
     if input_type == 'pbrun' :
         otxt+= '''
-set dset_ulay = `find . -maxdepth 1 -name "${pb}.*.${run}.*.HEAD" | cut -b3-`
+set dset_ulay = `find . -maxdepth 1 -name "${pb}.*.${run}.*.HEAD" | cut -b3- \\
+                      | sort`
 
 if ( ${#dset_ulay} == 0 ) then
     echo "** Exiting: could not find dset: ${pb}.*.${run}.*.HEAD"
@@ -403,22 +404,22 @@ otxt : str
 set dset_vline = ""
 set dir_vline  = `find . -maxdepth 1 -type d        \\
                       -name "vlines.${pb}.*"        \\
-                      | cut -b3-`
+                      | cut -b3- | sort`
 if ( ${#dir_vline} == 1 ) then
     set dset_vline  = `find ./${dir_vline} -maxdepth 1 -type f        \\
                            -name "var.1.*${run}*"                     \\
-                           | cut -b3-`
+                           | cut -b3- | sort`
 endif
 
 # ----- find associated radcor file, if exists
 set dset_radcor = ""
 set dir_radcor  = `find . -maxdepth 1 -type d       \\
                      -name "radcor.${pb}.*"         \\
-                     | cut -b3-`
+                     | cut -b3- | sort`
 if ( ${#dir_radcor} == 1 ) then
     set dset_radcor  = `find ./${dir_radcor} -maxdepth 1 -type f     \\
                             -name "radcor.*.${run}*HEAD"             \\
-                            | cut -b3-`
+                            | cut -b3- | sort`
 endif
 '''
 
@@ -747,7 +748,7 @@ set l = `prompt_popup -message \\
 "   Run InstaCorr on AP results data:  ${label}\\n\\n\\
 \\n\\
 InstaCorr calc using : ${ic_dset}\\n\\
-Initial ulay dataset : ${dset_ulay}\\n\\
+Initial ulay dataset : ${ic_dset}\\n\\
          IC seed rad : ${ic_seedrad} mm\\n\\
          IC blur rad : ${ic_blur} mm\\n\\
          IC polort N : ${ic_polort}\\n\\
@@ -854,7 +855,7 @@ sleep 1
 set l = `prompt_popup -message \\
 "   View graphs+images of AP results data:  ${label}\\n\\n\\
 \\n\\
-Initial ulay dataset : ${dset_ulay}\\n\\
+Initial ulay dataset : ${dset_ulay[1]}\\n\\
 Initial graph shown  : ${graxis}\\n\\
 \\n\\
 Some useful graph keyboard shortcuts:\\n\\
