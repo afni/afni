@@ -6802,6 +6802,8 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointerByDset (SUMA_ALL_DO *ado,
    }
 
    SUMA_RETURN(NULL);
+
+
 }
 /*!
    Look for overlay pointers for a particular dset
@@ -6872,7 +6874,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
             SUMA_WhichSV (SV, SUMAg_SVv, SUMAg_N_SVv));
       SUMA_DUMP_TRACE("We were called from...");
    }
-
    switch(ado->do_type) {
       case SO_type:
          SUMA_RETURN(SUMA_Overlays_2_GLCOLAR4_SO((SUMA_SurfaceObject *)ado,
@@ -7218,7 +7219,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
             ShowOverLays_sort[0] = 0;
          }
          SUMA_LH("Have %d overlays to mix", NshowOverlays);
-                
          if (NshowOverlays &&
              !SUMA_MixOverlays ( VSaux->Overlays, VSaux->N_Overlays,
                                  ShowOverLays_sort, NshowOverlays,
@@ -7787,12 +7787,6 @@ void setSliderLocation(SUMA_SurfaceObject *SO, float sliderPosition){
     NULL);
 }
 
-void SUMA_NULL_Function(){
-   static char FuncName[]={"SUMA_NULL_Function"};
-
-   SUMA_ENTRY;
-}
-
 /*!
 
    function to turn color overlay planes into GL color array
@@ -7853,7 +7847,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    SUMA_OVERLAYS *currentOverlay = SO->SurfCont->curColPlane;
    static char *cMapName;
    static float *ColVec;
-   SUMA_Boolean cmapChanged; 
+   SUMA_Boolean cmapChanged;
    SUMA_Boolean DSET_MapChanged;
    static double IntRange[2]={DBL_MAX, -DBL_MAX};
    size_t bytes2CopyToColVec/* = SO->N_Node*3*sizeof(float)*/;
@@ -7862,9 +7856,9 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    static float currentThreshold;
    int numThresholdNodes = 0;
    int nodeIndex = getNodeIndex(SO, SV);
-   static int thresholdReset = 0;
+   static int thresholdReset = 0;   
    
-   SUMA_ENTRY; 
+   SUMA_ENTRY;
    
    // DEBUG: This function does not cause the black rectangles around the .gii data
    
@@ -7872,8 +7866,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    bytes2CopyToColVec = SO->N_Node*3*sizeof(float);
      
    
-   if (SO->SurfCont->AlphaOpecityFalloff != 1) SO->SurfCont->AlphaOpecityFalloff = 0;
-   SO->SurfCont->AlphaOpecityFalloff = SO->SurfCont->AlphaOpecityFalloff;
+   if (SO->SurfCont->AlphaOpacityFalloff != 1) SO->SurfCont->AlphaOpacityFalloff = 0;
    
    if (!thresholdReset && currentOverlay){
    
@@ -7899,7 +7892,9 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
         IntRange[1] = currentOverlay->OptScl->IntRange[1];
        }
        
-       if (SO->N_Overlays > 0){
+       // This block causes the left-hand surface to be lighter when both
+       //   hemispheres are loaded
+       if (SO->SurfCont->AlphaOpacityFalloff && SO->N_Overlays > 0){
             // Check whether display changed
             cmapChanged = (strcmp(cMapName, currentOverlay->cmapname) ||
                 IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
@@ -8019,9 +8014,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 }
            }
        }
-
    }
-      
+
    if (!SO || !SV || !glcolar) {
       SUMA_SL_Err("Null input to SUMA_Overlays_2_GLCOLAR4_SO!");
       SUMA_RETURN(NOPE);
@@ -8047,7 +8041,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    }
    
    /* get the indices into the color structure vector of overlays to be shown */
-   if (SO->SurfCont->AlphaOpecityFalloff){
+   if (SO->SurfCont->AlphaOpacityFalloff){
     if (!Overlays){
         SUMA_S_Err("NULL Overlays pointer.");
         SUMA_RETURN (NOPE);
@@ -8279,7 +8273,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                   "%s: Modulating Brightness of Foreground colors ...\n",
                   FuncName);
 
-      if (SO->SurfCont->AlphaOpecityFalloff){
+      if (SO->SurfCont->AlphaOpacityFalloff){
             float *activeAlphaOpacities = alphaOpacitiesForOverlay(SO, 
                 currentOverlay);
 
@@ -8401,7 +8395,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    if (NshowOverlays && !NshowOverlays_Back) {
       if (LocalHead)
          fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n", FuncName);
-      if (SO->SurfCont->AlphaOpecityFalloff){
+      if (SO->SurfCont->AlphaOpacityFalloff){
          float *activeAlphaOpacities = alphaOpacitiesForOverlay(SO, 
             currentOverlay);
          for (i=0; i < N_Node; ++i) {
@@ -8470,7 +8464,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          fprintf (SUMA_STDERR,"%s: Only Background colors.\n", FuncName);
          
          // Make local opacities if A threshold true
-         if (SO->SurfCont->AlphaOpecityFalloff){
+         if (SO->SurfCont->AlphaOpacityFalloff){
          float *activeAlphaOpacities = alphaOpacitiesForOverlay(SO, 
             currentOverlay);
          for (i=0; i < N_Node; ++i) {

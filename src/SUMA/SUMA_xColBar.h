@@ -1345,22 +1345,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "See also envs :ref:`SUMA_CmapsDir<SUMA_CmapsDir>`, "\
    ":ref:`SUMA_RetinoAngle_DsetColorMap<SUMA_RetinoAngle_DsetColorMap>` "\
    "and :ref:`SUMA_VFR_DsetColorMap<SUMA_VFR_DsetColorMap>`"
-   
-
-   #define  SUMA_SurfContHelp_AbsThr   \
-"Toggle Absolute thresholding.:LR:\n"   \
-"   OFF: Mask color for\n"   \
-":      ::term:`datum` (nodes, edges, voxels, etc.) that have::LR:\n"   \
-"      T(n) < Tscale:LR:\n"   \
-"   ON:  Mask color for\n"   \
-":      ::term:`datum` that have::LR:\n"   \
-"      | T(n) | < Tscale\n\n"   \
-"where::LR:\n"   \
-"     Tscale is the value set by the threshold scale.:LR:\n"   \
-"     T(n) is the :term:`datum` value in the selected threshold column (T).\n"  \
-":         :This value is seen in the second cell of the 'Value'\n"   \
-":         :table on the left side."  
-
+ 
    #define  SUMA_SurfContHelp_AlphaThr  \
 "Use transparency (alpha) threshold.:LR:\n\n"   \
 "   OFF: The alpha/opacity of the surface overlays can\n"   \
@@ -1384,7 +1369,21 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "   OFF: Thresholded regions, of overlay, are identified\n"   \
 "        by color versus gray-scale, by different colors\n"   \
 "        or not at all.\n\n"   \
-"   ON: Thresholded regions are demarcated by black voxels\n"   \
+"   ON: Thresholded regions are demarcated by black voxels\n"   \ 
+
+   #define  SUMA_SurfContHelp_AbsThr   \
+"Toggle Absolute thresholding.:LR:\n"   \
+"   OFF: Mask color for\n"   \
+":      ::term:`datum` (nodes, edges, voxels, etc.) that have::LR:\n"   \
+"      T(n) < Tscale:LR:\n"   \
+"   ON:  Mask color for\n"   \
+":      ::term:`datum` that have::LR:\n"   \
+"      | T(n) | < Tscale\n\n"   \
+"where::LR:\n"   \
+"     Tscale is the value set by the threshold scale.:LR:\n"   \
+"     T(n) is the :term:`datum` value in the selected threshold column (T).\n"  \
+":         :This value is seen in the second cell of the 'Value'\n"   \
+":         :table on the left side."  
 
 #define  SUMA_SurfContHelp_Isym   \
    "Toggle Intensity range symmetry "   \

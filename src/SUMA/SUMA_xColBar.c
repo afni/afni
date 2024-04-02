@@ -2040,7 +2040,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   static int AlphaOpecityFalloff = 0;
+   static int AlphaOpacityFalloff = 0;
 
    SUMA_ENTRY;
    
@@ -2049,23 +2049,23 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
             || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    
-   AlphaOpecityFalloff = !AlphaOpecityFalloff;
+   AlphaOpacityFalloff = !AlphaOpacityFalloff;
    
    // SO->SurfCont->AlphaThresh is common across period key
-   SO->SurfCont->AlphaOpecityFalloff = SurfCont->AlphaOpecityFalloff = AlphaOpecityFalloff;
+   SO->SurfCont->AlphaOpacityFalloff = SurfCont->AlphaOpacityFalloff = AlphaOpacityFalloff;
    
    if (!(SO->Overlays)){
-    if (SO->SurfCont->AlphaOpecityFalloff){
+    if (SO->SurfCont->AlphaOpacityFalloff){
         fprintf (SUMA_STDERR,
             "ERROR %s: Cannot make overlay variably opqaue.  There is no overlay.\n", 
             FuncName);
         // No variable opacity since there is no overlay
-        SO->SurfCont->AlphaOpecityFalloff = 0;
+        SO->SurfCont->AlphaOpacityFalloff = 0;
         
         // Uncheck "A" check-box
-        SurfCont->AlphaOpecityFalloff = 0;
+        SurfCont->AlphaOpacityFalloff = 0;
         XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
-                              SurfCont->AlphaOpecityFalloff, YUP);    
+                              SurfCont->AlphaOpacityFalloff, YUP);    
         }
     SUMA_RETURNe;
    }

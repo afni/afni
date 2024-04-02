@@ -1089,12 +1089,7 @@ typedef struct {
    DList *ClustList; /*!< The list of clusters */
    byte *ClustOfNode; /*!< Tells which cluster a node belongs to, Should have
                            SO->N_Node values in it*/
-   float AlphaThresh;   // *** NBB ***:  Please do NOT declare this as int.  
-                        // That causes "zero" parts of the background within  
-                        // slices of a dset with slice planes to be 
-                        // black/opaque instead of transparent.
-                        // It also has nothing to do with subthreshold
-                        // variable opacity.
+   float AlphaThresh;
 } SUMA_OVERLAYS;
 
 
@@ -1772,7 +1767,7 @@ typedef struct {
    int UseMaskLen;
    Widget AlphaOpacityFalloff_tb; /*!< alpha threshold */
    Widget BoxOutlineThresh_tb; /*!< box outline threshold */
-   int AlphaOpecityFalloff;
+   int AlphaOpacityFalloff;
    int alphaOpacityModel;   // Model used for the opacity falloff from the alpha threshold
    int BoxOutlineThresh;
 }SUMA_X_SurfCont;
