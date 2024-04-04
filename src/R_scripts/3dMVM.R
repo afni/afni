@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.2.0, March 15, 2024
+Version 4.2.1, Apr 4, 2024
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1453,7 +1453,7 @@ if(is.na(lop$mVar)) { if(is.na(lop$wsVars)) showTab <- paste('~', lop$model) els
    showTab <- paste('~', lop$model, "+", gsub("\\*", "+", lop$wsVars), "+", gsub("\\*", "+", lop$mVar)) } }
 #if(!is.na(lop$qVars)) for(ii in 1:length(lop$QV))
 #   showTab <- gsub(paste('\\*',lop$QV[ii], sep=''), '', gsub(paste('\\+',lop$QV[ii], sep=''), '', showTab))
-if(!is.na(lop$qVars)) for(ii in rev(levels(ordered(lop$QV)))) # reversing the oder of those quantitative covariates so that
+if(!is.na(lop$qVars[1])) for(ii in rev(levels(ordered(lop$QV)))) # reversing the oder of those quantitative covariates so that
    # situations like 'ARI', 'ARI1', ARI2' would not cause trouble here!
    showTab <- gsub(paste('\\*', ii, sep=''), '', gsub(paste('\\+', ii, sep=''), '', showTab))
 showTab <- as.formula(gsub("\\*", "+", showTab))  # in case there are still some *'s like between-subjects factors
