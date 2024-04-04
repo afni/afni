@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Apr, 2024, RCR, "Surf2VolCoord", MICRO, TYPE_ENHANCE,
+   "add a detailed help example for distance to a restricted set of coords",
+   NULL
+ } ,
+
  { 29, Mar, 2024, RCR, "ap_run_simple_rest_me.tcsh", MAJOR, TYPE_NEW_PROG,
    "run a quick afni_proc.py resting state analysis for QC on multi-echo data",
    NULL
