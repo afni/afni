@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Apr, 2024, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "add reg_echo and echo_times; include echo_times in basic review script",
+   NULL
+ } ,
+
  {  4, Apr, 2024, RCR, "Surf2VolCoord", MICRO, TYPE_ENHANCE,
    "add a detailed help example for distance to a restricted set of coords",
    NULL
