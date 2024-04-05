@@ -1770,7 +1770,7 @@ if(lop$robust) {
       for(ii in 1:lop$nFu) F_DF[[ii]] <- c(uvfm[ii, 'Df'], uvfm[lop$nFu+1, 'Df'])
       t_DF <- NULL
       if(lop$num_glt>0) for(ii in 1:lop$num_glt)
-         t_DF <- c(t_DF, ifelse(is.na(lop$wsVars) & is.na(lop$mVar), gltRes[[ii]][2,2], gltRes[[ii]][,6]))
+         t_DF <- c(t_DF, ifelse(is.na(lop$wsVars) & is.na(lop$mVar), gltRes[[ii]][2,2], gltRes[[ii]][,'den Df']))
       lop$outInit <- rep(0, NoBrick)
    } else {
    if(lop$SC & (lop$nFsc > 0)) {
@@ -1791,7 +1791,7 @@ if(lop$robust) {
    # DFs for t-stat
    t_DF <- NULL
    if(lop$num_glt>0) for(ii in 1:lop$num_glt)
-      t_DF <- c(t_DF, ifelse(is.na(lop$wsVars) & is.na(lop$mVar), gltRes[[ii]][2,2], gltRes[[ii]][,6]))
+      t_DF <- c(t_DF, ifelse(is.na(lop$wsVars) & is.na(lop$mVar), gltRes[[ii]][2,2], gltRes[[ii]][,'den Df']))
 
    # DFs for F-stat
    F_DF <- vector('list', lop$nF)
