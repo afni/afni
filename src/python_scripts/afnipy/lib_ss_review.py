@@ -126,7 +126,11 @@ g_ss_uvar_fields = [ \
    ['surf_vol',        'surface volume dset', 
                        'FT.surf_SurfVol_Alnd_Exp+orig.HEAD'],
    ['vlines_tcat_dir', 'variance lines dir for tcat', 
-                       'vlines.pb00.tcat']
+                       'vlines.pb00.tcat'],
+   ['reg_echo',        'echo number used for registration', 
+                       '2'],
+   ['echo_times',      'echo times', 
+                       ['12.5', '27.6', '42.7']],
    ]
 
 
