@@ -782,9 +782,11 @@ g_history = """
        - add auto-ROI_import of APQC atlas and regress tsnr_stats
        - add option -regress_compute_auto_tsnr_stats
     7.71 Mar 29, 2024: allow -regress_apply_mot_types none
+    7.72 Apr  1, 2024: add reg_echo and echo_times as uvars
+    7.73 Apr  7, 2024: the default warp vox dim will round up if very close
 """
 
-g_version = "version 7.71, March 29, 2024"
+g_version = "version 7.73, April 7, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -2317,6 +2319,9 @@ class SubjProcSream:
            if val != None:
               self.reg_echo = val
 
+           # set as a uvar (values are strings)
+           self.uvars.set_var('reg_echo', [str(self.reg_echo)])
+
            if self.reg_echo < 1 or self.reg_echo > self.num_echo:
               print("** %s: registration echo must be between 1 and %d" \
                     % (oname, self.num_echo))
@@ -2330,6 +2335,9 @@ class SubjProcSream:
                  errs += 1
                  print("** have %d echoes, but %d echo times" \
                        % (self.num_echo, len(elist)))
+              # and add echo times as a uvar, using the original strings
+              opt = self.user_opts.find_opt(oname)
+              self.uvars.set_var('echo_times', opt.parlist)
 
         # set view and dimensions based on dsets
 

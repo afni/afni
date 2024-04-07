@@ -2814,7 +2814,9 @@ def db_cmd_volreg(proc, block):
                return
             proc.delta = dims
         else:
-            dim = UTIL.get_truncated_grid_dim(proc.dsets[0].rel_input())
+            # truncate min dimension, but scale up slightly
+            dim = UTIL.get_truncated_grid_dim(proc.dsets[0].rel_input(),
+                                              scale=1.0001)
             if dim <= 0:
                 print('** failed to get grid dim from %s' \
                       % proc.dsets[0].rel_input())
@@ -13855,7 +13857,16 @@ OPTIONS:  ~2~
             0.375  ...  0.4374 --> 0.375
             ...
 
-        One can optionally supply -volreg_warp_master as well.
+        Preferably, one can specify the new dimensions via -volreg_warp_master.
+
+      * As of 2024.04.07: values just under a 3 bit limit will round up.
+        The minimum dimension will first be scaled up by a factor of 1.0001
+        before the truncation.  For example, 2.9998 will "round" up to 3.0,
+        while 2.9997 will truncate down to 2.5.
+
+        For a demonstration, try:
+
+            afni_python_wrapper.py -eval 'test_truncation()'
 
         See also -volreg_warp_master.
 

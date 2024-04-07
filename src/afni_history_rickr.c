@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Apr, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "the default warp vox dim will round up if very close",
+   "Particularly when coming from a NIFTI sform, voxel dimensions are often\n"
+   "computed.  So while an \"exact\" dimension might be 3, the computed one\n"
+   "might come out as 2.99999.  Scale dimensions by 1.0001 before truncation."
+ } ,
+
  {  5, Apr, 2024, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "add reg_echo and echo_times; include echo_times in basic review script",
    NULL
