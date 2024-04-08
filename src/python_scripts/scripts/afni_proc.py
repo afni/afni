@@ -783,9 +783,10 @@ g_history = """
        - add option -regress_compute_auto_tsnr_stats
     7.71 Mar 29, 2024: allow -regress_apply_mot_types none
     7.72 Apr  1, 2024: add reg_echo and echo_times as uvars
+    7.73 Apr  7, 2024: the default warp vox dim will round up if very close
 """
 
-g_version = "version 7.72, April 1, 2024"
+g_version = "version 7.73, April 7, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
