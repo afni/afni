@@ -1378,6 +1378,8 @@ class SubjProcSream:
                         helpstr='specify label and anat follower dataset')
         self.valid_opts.add_opt('-anat_follower_erode', -1, [], okdash=0,
                         helpstr="erode follower datasets for given labels")
+        self.valid_opts.add_opt('-anat_follower_erode_level', 2, [], okdash=0,
+                        helpstr="erode this follower label at the given level")
         self.valid_opts.add_opt('-anat_follower_ROI', 3, [],
                         helpstr='specify label and anat follower ROI dataset')
         self.valid_opts.add_opt('-anat_has_skull', 1, [],
