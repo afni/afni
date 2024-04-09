@@ -53,6 +53,15 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Apr, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -anat_follower_erode_level, to specify the exact erosion level",
+   "The older -anat_follower_erode option implies only a single erosion.\n"
+   "This parameter is in voxels.  As before, a single erosion includes the\n"
+   "18 NN2 neighbors, so all in a 3x3x3 box but the outer 8 corners.\n"
+   "See mask_tool -help for details.\n"
+   "Added for M. Byrne S. Haller."
+ } ,
+
  {  7, Apr, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "the default warp vox dim will round up if very close",
    "Particularly when coming from a NIFTI sform, voxel dimensions are often\n"

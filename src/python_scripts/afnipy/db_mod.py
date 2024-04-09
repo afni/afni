@@ -959,12 +959,14 @@ def run_radial_correlate(proc, block, full=0):
     # also, mask in regress block due to errts
     mopt = ''
     if block.label == 'scale' or block.label == 'regress' \
-       or proc.blocks_ordered('scale', block.label):
+       or (proc.blocks_ordered('scale', block.label) 
+           and 'scale' in proc.block_names):
+
        # be sure we have created the mask
        if mask_created(proc.mask):
           mopt = '%18s-mask %s \\\n' % (' ', proc.mask.nice_input())
        else:
-          print("** warning computing radcor on scaled/errts data without mask")
+          print("** warning: computing radcor on scaled/errts without mask")
           print("   (might get weak results along brain edges)")
 
     # fail if we have entered the dreaded surface domain
@@ -12182,7 +12184,24 @@ OPTIONS:  ~2~
         18-neighbor approach (6 face and 12 edge neighbors, not 8 corner
         neighbors) in 3dmask_tool.
 
-        See also -regress_ROI_PC, -regress_ROI.
+      * For more control on the erosion level, see -anat_follower_erode_level.
+
+        See also -anat_follower_erode_level, -regress_ROI_PC, -regress_ROI.
+        Please see '3dmask_tool -help' for more information on eroding.
+
+    -anat_follower_erode_level LABEL LEVEL : erode a mask at a specific level
+
+            e.g. -anat_follower_erode_level WMe 2
+
+        Use this option to specify an anatomical erosion level, in voxels.
+
+        The erosion step is applied before any transformation, and uses the
+        18-neighbor approach (6 face and 12 edge neighbors, not 8 corner
+        neighbors) in 3dmask_tool.
+
+      * For more control on the erosion level, see -anat_follower_erode_level.
+
+        See also -anat_follower_erode_level, -regress_ROI_PC, -regress_ROI.
         Please see '3dmask_tool -help' for more information on eroding.
 
     -anat_follower_ROI LABEL GRID DSET : specify anat follower ROI dataset
