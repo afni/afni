@@ -722,8 +722,26 @@ def apply_general_anat_followers(proc):
 
    elist, rv = proc.user_opts.get_string_list('-anat_follower_erode')
    if elist == None: elist = []
-   for oname in ['-anat_follower', '-anat_follower_ROI' ]:
 
+   # make a dictionary from -anat_follower_erode_level options
+   edict = {}
+   for opt in proc.user_opts.find_all_opts('-anat_follower_erode_level'):
+      label = opt.parlist[0]
+      level = opt.parlist[1]
+      try: level = int(level)
+      except:
+         print("** -anat_follower_erode_level %s" \
+               "   level '%s' must be an integer" \
+               % (' '.join(opt.parlist), level))
+         return 1
+      edict[label] = level
+
+   # and append every -anat_follower_erode label at level 1
+   for label in elist:
+      if label not in edict:
+         edict[label] = 1
+
+   for oname in ['-anat_follower', '-anat_follower_ROI' ]:
       for opt in proc.user_opts.find_all_opts(oname):
          label = opt.parlist[0]
          dgrid = opt.parlist[1]
@@ -742,7 +760,8 @@ def apply_general_anat_followers(proc):
             return 1
 
          # note whether we erode this mask
-         if label in elist: ff.set_var('erode', 1)
+         if label in edict:
+            ff.set_var('erode', edict[label])
 
          ff.set_var('final_prefix', '%s_%s'%(flab, label))
 
@@ -940,12 +959,14 @@ def run_radial_correlate(proc, block, full=0):
     # also, mask in regress block due to errts
     mopt = ''
     if block.label == 'scale' or block.label == 'regress' \
-       or proc.blocks_ordered('scale', block.label):
+       or (proc.blocks_ordered('scale', block.label) 
+           and 'scale' in proc.block_names):
+
        # be sure we have created the mask
        if mask_created(proc.mask):
           mopt = '%18s-mask %s \\\n' % (' ', proc.mask.nice_input())
        else:
-          print("** warning computing radcor on scaled/errts data without mask")
+          print("** warning: computing radcor on scaled/errts without mask")
           print("   (might get weak results along brain edges)")
 
     # fail if we have entered the dreaded surface domain
@@ -3363,16 +3384,16 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
    # perform any pre-erode
    efirst = 1
    for afobj in proc.afollowers:
-       if afobj.erode != 1: continue
+       if afobj.erode <= 0: continue
 
        if efirst: # first eroded dataset
           efirst = 0
           wstr += '\n# first perform any pre-warp erode operations\n'
 
        cname = afobj.cname.new(new_pref=(afobj.cname.prefix+'_erode'))
-       wstr += '3dmask_tool -input %s -dilate_input -1 \\\n'    \
+       wstr += '3dmask_tool -input %s -dilate_input -%d \\\n'   \
                '            -prefix %s\n'                       \
-               % (afobj.cname.shortinput(), cname.out_prefix())
+               % (afobj.cname.shortinput(), afobj.erode, cname.out_prefix())
        afobj.cname = cname
    if not efirst: wstr += '\n# and apply any warp operations\n\n'
 
@@ -12163,7 +12184,24 @@ OPTIONS:  ~2~
         18-neighbor approach (6 face and 12 edge neighbors, not 8 corner
         neighbors) in 3dmask_tool.
 
-        See also -regress_ROI_PC, -regress_ROI.
+      * For more control on the erosion level, see -anat_follower_erode_level.
+
+        See also -anat_follower_erode_level, -regress_ROI_PC, -regress_ROI.
+        Please see '3dmask_tool -help' for more information on eroding.
+
+    -anat_follower_erode_level LABEL LEVEL : erode a mask at a specific level
+
+            e.g. -anat_follower_erode_level WMe 2
+
+        Use this option to specify an anatomical erosion level, in voxels.
+
+        The erosion step is applied before any transformation, and uses the
+        18-neighbor approach (6 face and 12 edge neighbors, not 8 corner
+        neighbors) in 3dmask_tool.
+
+      * For more control on the erosion level, see -anat_follower_erode_level.
+
+        See also -anat_follower_erode_level, -regress_ROI_PC, -regress_ROI.
         Please see '3dmask_tool -help' for more information on eroding.
 
     -anat_follower_ROI LABEL GRID DSET : specify anat follower ROI dataset

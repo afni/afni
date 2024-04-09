@@ -784,9 +784,10 @@ g_history = """
     7.71 Mar 29, 2024: allow -regress_apply_mot_types none
     7.72 Apr  1, 2024: add reg_echo and echo_times as uvars
     7.73 Apr  7, 2024: the default warp vox dim will round up if very close
+    7.74 Apr  8, 2024: add -anat_follower_erode_level
 """
 
-g_version = "version 7.73, April 7, 2024"
+g_version = "version 7.74, April 8, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1378,6 +1379,8 @@ class SubjProcSream:
                         helpstr='specify label and anat follower dataset')
         self.valid_opts.add_opt('-anat_follower_erode', -1, [], okdash=0,
                         helpstr="erode follower datasets for given labels")
+        self.valid_opts.add_opt('-anat_follower_erode_level', 2, [], okdash=0,
+                        helpstr="erode this follower label at the given level")
         self.valid_opts.add_opt('-anat_follower_ROI', 3, [],
                         helpstr='specify label and anat follower ROI dataset')
         self.valid_opts.add_opt('-anat_has_skull', 1, [],
