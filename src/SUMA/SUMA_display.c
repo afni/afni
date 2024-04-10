@@ -14732,6 +14732,12 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
       SUMA_LHv("Problem, reverting to %d\n",
                (int)SurfCont->SurfContPage->value);
    }
+   
+   // Set "A" check-box to reflect whether there should be variable overlay 
+   //   opacity for this object
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+                  SO->SurfCont->alphaOpacityModel, YUP);
 
    SUMA_RETURNe;
 }
