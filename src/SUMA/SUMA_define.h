@@ -1090,6 +1090,9 @@ typedef struct {
    byte *ClustOfNode; /*!< Tells which cluster a node belongs to, Should have
                            SO->N_Node values in it*/
    float AlphaThresh;
+   float *originalColVec;
+   char *originalCMapName;
+   double IntRange[2];
 } SUMA_OVERLAYS;
 
 
