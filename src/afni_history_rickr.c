@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Apr, 2024, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
+   "add an AFNI ID to the resulting SurfVol, for afni/suma communication",
+   NULL
+ } ,
+
  {  8, Apr, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -anat_follower_erode_level, to specify the exact erosion level",
    "The older -anat_follower_erode option implies only a single erosion.\n"
