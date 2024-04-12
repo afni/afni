@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Apr, 2024, RCR, "3dTsplit4D", MINOR, TYPE_NEW_OPT,
+   "add -label_prefix, to include labels in the output prefix",
+   NULL
+ } ,
+
  { 12, Apr, 2024, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
    "add an AFNI ID to the resulting SurfVol, for afni/suma communication",
    NULL
