@@ -1416,6 +1416,8 @@ L_CREATE_BRICK:
         mv \
             $start_dir/$suma_dir/${orig_mgz:t:r}".nii"  \
             $start_dir/$suma_dir/$afni_dataset.nii
+        # need an AFNI ID code for afni/suma communication [12 Apr 2024 rickr]
+        3drefit -newid $start_dir/$suma_dir/$afni_dataset.nii
         echo "++ created AFNI file '$suma_dir/$afni_dataset.nii'"
     else
         mv $afni_dataset.HEAD $afni_dataset.BRIK* $start_dir/$suma_dir
