@@ -3076,7 +3076,7 @@ COMMAND OPTIONS ~1~
                     what options go where when clusterizing.  Examples
                     are also included below.
 
--clust_wami CW     :if using '-clusterize ..', then this option can be used
+-clusterize_wami CW :if using '-clusterize ..', then this option can be used
                     to run AFNI's whereami program on the results.  The user
                     provides the name of an allowed atlas for reference
                     (see the top of whereami's help), and a text file

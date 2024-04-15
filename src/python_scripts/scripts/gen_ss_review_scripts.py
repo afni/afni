@@ -938,9 +938,10 @@ g_history = """
    1.26 Oct 13, 2022: fix 'final DF fraction' to be wrt uncensored TRs
    1.27 Feb  6, 2023: report mb_level and slice_timing in basic output
    1.28 Mar 11, 2024: add max_4095_warn_dset key
+   1.29 Apr  5, 2024: add reg_echo and echo_times (ET to basic output)
 """
 
-g_version = "gen_ss_review_scripts.py version 1.28, March 11, 2024"
+g_version = "gen_ss_review_scripts.py version 1.29, April 5, 2024"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -2757,6 +2758,8 @@ class MyInterface:
       if self.uvars.is_not_empty('slice_pattern'):
          astr += 'echo "slice timing pattern      : %s"\n' \
                  % self.uvars.slice_pattern
+      if self.uvars.is_not_empty('echo_times'):
+         astr += 'echo "echo times                : $echo_times"\n'
 
       astr += 'echo "num stim classes provided : $num_stim"\n'
 
@@ -2850,10 +2853,19 @@ class MyInterface:
       # some cases with matching var names
       # rcr - add final_anat
       for var in ['subj', 'afni_ver', 'afni_package', 'tr', 'rm_trs',
-                  'num_stim', 'mot_limit', 'out_limit', 'final_view']:
+                  'num_stim', 'mot_limit', 'out_limit', 'final_view',
+                  'echo_times']:
          if uvars.valid(var):
-            txt += form % (var,self.uvars.val(var))
-         # check for non-fatal vars
+            if uvars.get_type(var) == list:
+                txt += form % (var,'( %s )' % ' '.join(self.uvars.val(var)))
+                # txt += form % (var,' '.join(self.uvars.val(var)))
+            else:
+                txt += form % (var,self.uvars.val(var))
+         # check for optional vars
+         elif var in ['echo_times']:
+            if self.cvars.verb > 2:
+               print('-- no problem: basic script, missing variable %s' % var)
+         # check for other non-fatal vars
          elif var in ['rm_trs', 'afni_ver', 'afni_package', 'out_limit']:
             if self.cvars.verb > 1:
                print('** warning: basic script, missing variable %s' % var)

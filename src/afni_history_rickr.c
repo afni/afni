@@ -53,6 +53,42 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Apr, 2024, RCR, "3dTsplit4D", MINOR, TYPE_NEW_OPT,
+   "add -label_prefix, to include labels in the output prefix",
+   NULL
+ } ,
+
+ { 12, Apr, 2024, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
+   "add an AFNI ID to the resulting SurfVol, for afni/suma communication",
+   NULL
+ } ,
+
+ {  8, Apr, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -anat_follower_erode_level, to specify the exact erosion level",
+   "The older -anat_follower_erode option implies only a single erosion.\n"
+   "This parameter is in voxels.  As before, a single erosion includes the\n"
+   "18 NN2 neighbors, so all in a 3x3x3 box but the outer 8 corners.\n"
+   "See mask_tool -help for details.\n"
+   "Added for M. Byrne S. Haller."
+ } ,
+
+ {  7, Apr, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "the default warp vox dim will round up if very close",
+   "Particularly when coming from a NIFTI sform, voxel dimensions are often\n"
+   "computed.  So while an \"exact\" dimension might be 3, the computed one\n"
+   "might come out as 2.99999.  Scale dimensions by 1.0001 before truncation."
+ } ,
+
+ {  5, Apr, 2024, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "add reg_echo and echo_times; include echo_times in basic review script",
+   NULL
+ } ,
+
+ {  4, Apr, 2024, RCR, "Surf2VolCoord", MICRO, TYPE_ENHANCE,
+   "add a detailed help example for distance to a restricted set of coords",
+   NULL
+ } ,
+
  { 29, Mar, 2024, RCR, "ap_run_simple_rest_me.tcsh", MAJOR, TYPE_NEW_PROG,
    "run a quick afni_proc.py resting state analysis for QC on multi-echo data",
    NULL

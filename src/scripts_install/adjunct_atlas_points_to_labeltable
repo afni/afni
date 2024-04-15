@@ -1,0 +1,389 @@
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+set version   = "0.0";  set rev_dat   = "Apr 04, 2024"
+# + convert an atlas_point list to a labeltable
+#
+# ----------------------------------------------------------------
+
+set this_prog = "adjunct_atlas_points_to_labeltable"
+set prog_abbr = "aptl"
+#set tpname    = "${this_prog:gas///}"
+set here      = $PWD
+
+# ----------------------- set defaults --------------------------
+
+set input   = ""
+set prefix  = ""                        # output name of labeltable
+
+set odir    = $here
+set opref   = ""
+
+set DO_LT_OUT  = 0                       # output a lt file (via -prefix)?
+set DO_ADD     = 0                       # attach to file?
+set DO_OW      = 0                       # when attaching, replace a LT?
+
+set wdir      = ""
+set DO_CLEAN  = 1                       # default: keep working dir
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    if ( "$argv[$ac]" == '-echo' ) then
+        set echo
+
+    # --------- required
+
+    else if ( "$argv[$ac]" == "-input" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set input = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set prefix = "$argv[$ac]"
+        set opref  = `basename "$argv[$ac]"`
+        set odir   = `dirname  "$argv[$ac]"`
+        set DO_LT_OUT = 1
+
+    # --------- opt
+
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
+
+        set tf = `python -c "print('/' in '${wdir}')"`
+        if ( "${tf}" == "True" ) then
+            echo "** ERROR: '-workdir ..' is a name only, no '/' allowed\n"
+            goto BAD_EXIT
+        endif
+
+    else if ( "$argv[$ac]" == "-add_lt_to_input" ) then
+        set DO_ADD = 1
+
+    else if ( "$argv[$ac]" == "-overwrite" ) then
+        set DO_OW = 1
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = 0
+
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ======================== ** Verify + setup ** =========================
+# =======================================================================
+
+if ( "${prefix}" == "" && $DO_LT_OUT ) then
+    echo "** ERROR: need to provide output name with '-prefix ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${input}" == "" ) then
+    echo "** ERROR: need to provide input dataset with '-input ..'"
+    goto BAD_EXIT
+else
+    set check = `3dinfo -prefix "${input}"`
+    if ( "${check}" == "NO-DSET" ) then
+        echo "** ERROR: cannot find/open input file:  ${input}"
+        goto BAD_EXIT
+    else
+endif
+
+# odd case of no apparent outputs/work asked for, so just exit
+if ( ! $DO_LT_OUT && ! $DO_ADD ) then
+    echo "+* WARN: Nothing to do, because user did not ask for output"
+    echo "   labeltable with '-prefix' nor to add a labeltable to a file"
+    echo "   with '-add_lt_to_input'."
+    echo "   So, just exiting with out doing/checking anything."
+    goto GOOD_EXIT
+endif
+
+# check if there is even an atlas present in the input (must have one)
+set is_atlas = `3dinfo -is_atlas "${input}"`
+if ( ! ${is_atlas} ) then
+    echo "** ERROR: input has no atlas_points attribute"
+    goto BAD_EXIT
+endif
+
+# check if there is a labeltable already (cannot have one)
+set is_labeltable = `3dinfo -is_labeltable "${input}"`
+if ( ${is_labeltable} ) then
+    echo "+* WARN: input has a labeltable already; ignoring this to start"
+endif
+
+# make workdir name, if nec
+if ( "${wdir}" == "" ) then
+    set tmp_code = `3dnewid -fun11`  # should be essentially unique hash
+    set wdir     = __workdir_${prog_abbr}_${tmp_code}
+endif
+
+# check output directory, use input one if nothing given
+if ( ! -e "${odir}" ) then
+    echo "++ Making new output directory: $odir"
+    \mkdir -p "${odir}"
+endif
+
+# make the working directory
+if ( ! -e "${odir}/${wdir}" ) then
+    echo "++ Making working directory: ${odir}/${wdir}"
+    \mkdir -p "${odir}/${wdir}"
+else
+    echo "+* WARNING:  Somehow found a premade working directory (?):"
+    echo "      ${odir}/${wdir}"
+endif
+
+# =======================================================================
+# =========================== ** Main work ** ===========================
+# =======================================================================
+
+# ----- background/prep work
+
+# get all atlas_points labels, in file order
+set all_lab = `3dinfo                                         \
+                    -atlas_points "${input}"                  \
+                    | grep STRUCT= | sed -e "s/STRUCT=//g"`
+
+# get all atlas_points values, in file order
+set all_val = `3dinfo                                         \
+                    -atlas_points "${input}"                  \
+                    | grep VAL= | sed -e "s/VAL=//g"`
+
+# make sure the numbers of elements match
+set nlab = ${#all_lab}
+set nval = ${#all_val}
+
+if ( "${nlab}" != "${nval}" ) then
+    echo "** ERROR: have ${nlab} STRUCT labels but ${nval} VAL values"
+    echo "   These must actually match to proceed. So exiting."
+    goto BAD_EXIT
+endif
+
+# check if we should add val="0" as lab="Unknown" (probably should have to);
+# NB: ordering doesn't matter in LT, so can just add 0=Unknown at the end
+set HAVE_VAL = 0
+set HAVE_LAB = 0
+set lab_zer  = "zero_label"
+set HAVE_ZER = 0  # just a hopefully unnecessary backup case
+foreach ii ( `seq 1 1 ${nlab}` ) 
+    set lab = "${all_lab[$ii]}"
+    set val = "${all_val[$ii]}"
+
+    if ( "${lab}" == "Unknown" ) then
+        set HAVE_LAB = $ii
+    endif
+    if ( "${val}" == "0" ) then
+        set HAVE_VAL = $ii
+    endif
+    if ( "${lab}" == "${lab_zer}" ) then
+        set HAVE_ZER = $ii
+    endif
+end
+# ... and now deal with whatever was found/not found
+if ( ! ${HAVE_VAL} && ! ${HAVE_LAB} ) then
+    # this should be the generally/always expected case
+    echo "++ Adding 0=Unknown to labeltable, as expected"
+    set all_lab = ( ${all_lab:q} '"Unknown"' )
+    set all_val = ( ${all_val:q} '"0"' )
+    set nlab = ${#all_lab}
+    set nval = ${#all_val}
+else
+    # ... and these are a series of increasingly rare likelihoods
+    if ( "${HAVE_VAL}" == "${HAVE_LAB}" ) then
+        # for case of nonzero index, but they match
+        echo "+* WARN: already have 0=Unknown in atlas_points?"
+        echo "   That is unexpected, but will proceed"
+    else if ( ${HAVE_VAL} ) then
+        echo "+* WARN: 0 already has label '${all_lab[$HAVE_VAL]}'"
+        echo "   That is unexpected, but will proceed"
+    else
+        echo "+* WARN: 0 is unlabeled but 'Unknown' is already used for"
+        echo "   ROI value ${all_val[$HAVE_LAB]}"
+        if ( ! ${HAVE_ZER} ) then
+            echo "   That is unexpected, but will proceed, setting 0 to"
+            echo "   ${lab_zer}"
+            set all_lab = ( ${all_lab:q} '"${lab_zer}"' )
+            set all_val = ( ${all_val:q} '"0"' )
+            set nlab = ${#all_lab}
+            set nval = ${#all_val}
+        else
+            echo "   That is unexpected, but backup value '${lab_zer}' is "
+            echo "   already taken, so wil proceed without adding 0 label"
+        endif
+    endif
+endif
+
+echo "++ Labeltable ready, and has ${nval} labels"
+
+# ----- write new labeltable
+
+set new_table = "${odir}/${wdir}/new_labeltable.niml.lt"
+
+# start new output file
+cat <<EOF >>! "${new_table}"
+<VALUE_LABEL_DTABLE
+  ni_type="2*String"
+  ni_dimen="${nlab}" >
+EOF
+
+# middle of table: all the values
+foreach ii ( `seq 1 1 ${nlab}` ) 
+    set lab = "${all_lab[$ii]}"
+    set val = "${all_val[$ii]}"
+    # keep quotes in output, so treat val as a str
+    printf "%8s  %s\n" "${val:q}" "${lab:q}" >> "${new_table}"
+end
+
+# end of table
+cat <<EOF >>! "${new_table}"
+</VALUE_LABEL_DTABLE>
+EOF
+
+# ----- do we write out labeltable?
+
+if ( $DO_LT_OUT ) then
+    if ( -f "${odir}/${opref}" && ! $DO_OW ) then
+        echo "** ERROR: labeltable file exists, and no '-overwrite' used"
+        echo "   Will not overwrite preexisting file, then"
+        goto BAD_EXIT
+    endif
+
+    \cp "${new_table}" "${odir}/${opref}"
+endif
+
+# ----- do we attach labeltable to file?
+
+
+if ( $DO_ADD ) then
+    if ( ${is_labeltable} ) then
+        if ( ! $DO_OW ) then
+            echo "** ERROR: labeltable exists in file, and no '-overwrite' used"
+            echo "   Will not overwrite preexisting table, then"
+            goto BAD_EXIT
+        else
+            echo "++ NB: will overwrite existing labeltable with new one"
+        endif
+    endif
+
+    echo "++ Attaching new labeltable to file"
+    3drefit -labeltable "${new_table}" "${input}"
+endif
+
+
+# ---------------------------------------------------------------------
+
+if ( "$DO_CLEAN" == "1" ) then
+    \rm -rf ${odir}/${wdir}
+else
+    echo "++ NOT removing working dir: ${wdir}"
+endif
+
+cat <<EOF
+
+++ DONE.
+
+EOF
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP: 
+cat << EOF
+-------------------------------------------------------------------------
+Overview ~1~
+
+This is a simple adjunct program for making a NIML labeltable from
+atlas_points info.  
+
+This can be used to: output the labeltable, to attach the labeltable
+to the input file, or both.
+
+auth    : PA Taylor (SSCC, NIMH, NIH, USA)
+ver     : ${version}
+revdate : ${rev_dat}
+
+-------------------------------------------------------------------------
+Options ~1~
+
+-input DSET       :(req) input dset name, that should/must have 
+                   atlas_points information in the header
+
+-prefix PPP       :output name for labeltable, which can have path info
+                   included. Would recommend having it end with '.niml.lt'
+                   for convenience and recognizability
+
+-add_lt_to_input  :add the labeltable to the input dset header
+
+-overwrite        :needed to overwrite an existing labeltable file PPP, or
+                   to refit the labeltable of the input dset if 
+                   '-add_lt_to_input' is used
+
+-no_clean         :do not remove working directory (def: remove it)
+
+-echo             :very verbose output when running (for troubleshooting)
+
+-help, -h         :display this meager help info
+
+-ver              :display this program version
+
+-------------------------------------------------------------------------
+Examples ~1~
+
+  1) Output a labeltable, created from atlas_points info of DSET_INPUT
+     adjunct_atlas_points_to_labeltable        \
+         -input   DSET_INPUT                   \
+         -prefix  MY_TABLE.niml.lt
+
+  2) Output a labeltable, created from atlas_points info of DSET_INPUT,
+     and attach it to the input
+     adjunct_atlas_points_to_labeltable        \
+         -input   DSET_INPUT                   \
+         -prefix  MY_TABLE.niml.lt             \
+         -add_lt_to_input
+
+  3) No output labeltable, but attach the one created from created from 
+    the atlas_points info of DSET_INPUT, to that dataset
+     adjunct_atlas_points_to_labeltable        \
+         -input   DSET_INPUT                   \
+         -add_lt_to_input
+
+EOF
+
+# ----------------------------------------------------------------------
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.2.0, March 15, 2024
+Version 4.2.1, Apr 4, 2024
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1453,7 +1453,7 @@ if(is.na(lop$mVar)) { if(is.na(lop$wsVars)) showTab <- paste('~', lop$model) els
    showTab <- paste('~', lop$model, "+", gsub("\\*", "+", lop$wsVars), "+", gsub("\\*", "+", lop$mVar)) } }
 #if(!is.na(lop$qVars)) for(ii in 1:length(lop$QV))
 #   showTab <- gsub(paste('\\*',lop$QV[ii], sep=''), '', gsub(paste('\\+',lop$QV[ii], sep=''), '', showTab))
-if(!is.na(lop$qVars)) for(ii in rev(levels(ordered(lop$QV)))) # reversing the oder of those quantitative covariates so that
+if(!is.na(lop$qVars[1])) for(ii in rev(levels(ordered(lop$QV)))) # reversing the oder of those quantitative covariates so that
    # situations like 'ARI', 'ARI1', ARI2' would not cause trouble here!
    showTab <- gsub(paste('\\*', ii, sep=''), '', gsub(paste('\\+', ii, sep=''), '', showTab))
 showTab <- as.formula(gsub("\\*", "+", showTab))  # in case there are still some *'s like between-subjects factors
@@ -1770,7 +1770,7 @@ if(lop$robust) {
       for(ii in 1:lop$nFu) F_DF[[ii]] <- c(uvfm[ii, 'Df'], uvfm[lop$nFu+1, 'Df'])
       t_DF <- NULL
       if(lop$num_glt>0) for(ii in 1:lop$num_glt)
-         t_DF <- c(t_DF, ifelse(is.na(lop$wsVars) & is.na(lop$mVar), gltRes[[ii]][2,2], gltRes[[ii]][,6]))
+         t_DF <- c(t_DF, ifelse(is.na(lop$wsVars) & is.na(lop$mVar), gltRes[[ii]]['Residuals','Df'], gltRes[[ii]][1,'den Df']))
       lop$outInit <- rep(0, NoBrick)
    } else {
    if(lop$SC & (lop$nFsc > 0)) {
@@ -1791,7 +1791,7 @@ if(lop$robust) {
    # DFs for t-stat
    t_DF <- NULL
    if(lop$num_glt>0) for(ii in 1:lop$num_glt)
-      t_DF <- c(t_DF, ifelse(is.na(lop$wsVars) & is.na(lop$mVar), gltRes[[ii]][2,2], gltRes[[ii]][,6]))
+      t_DF <- c(t_DF, ifelse(is.na(lop$wsVars) & is.na(lop$mVar), gltRes[[ii]]['Residuals','Df'], gltRes[[ii]][1,'den Df']))
 
    # DFs for F-stat
    F_DF <- vector('list', lop$nF)

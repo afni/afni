@@ -29,6 +29,7 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/multivector.h
   ${CMAKE_CURRENT_SOURCE_DIR}/rickr/r_idisp.h
   ${CMAKE_CURRENT_SOURCE_DIR}/rickr/r_new_resam_dset.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/statpval_opts.h
   ${CMAKE_CURRENT_SOURCE_DIR}/tagset.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_atlas.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_compress.h
@@ -163,6 +164,7 @@ add_library(
   matrix.c
   misc_math.c
   nifti_statlib.c
+  statpval_opts.c
   vol2surf.c
 )
 target_link_libraries(misc_objs
