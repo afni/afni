@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.1.6,  Nov 2, 2023
+Version 4.2.1, Apr 4, 2024
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1235,11 +1235,12 @@ runAOV <- function(inData, dataframe, ModelForm) {
                covariates=lop$covValList[[ii]], adjustment="none", idata = iData), error=function(e) NULL)
             }
             if(!is.null(glt)) {
-               out[lop$nF+lop$GES*lop$nFu+2*ii-1] <- glt[1,1]
-	       #out[lop$nF+lop$GES*lop$nFu+2*ii]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
-               out[lop$nF+lop$GES*lop$nFu+2*ii]   <- ifelse(rlm_run, ifelse(glt[1,4]<0.5, qt(glt[1,4], glt$Df[2],
-                  lower.tail = FALSE)*sign(glt[1,1]), -qt(glt[1,4], glt$Df[2], lower.tail = FALSE)*sign(glt[1,1])),
-                  sign(glt[1,1]) * sqrt(glt[1,4]))
+               out[lop$nF+lop$GES*lop$nFu+2*ii-1] <- glt[1,'Value']
+	       #out[lop$nF+lop$GES*lop$nFu+2*ii]   <- sign(glt[1,'Value']) * sqrt(glt[1,4])  # convert F to t
+               #out[lop$nF+lop$GES*lop$nFu+2*ii]   <- ifelse(rlm_run, ifelse(glt[1,4]<0.5, qt(glt[1,4], glt$Df[2],
+               #   lower.tail = FALSE)*sign(glt[1,'Value']), -qt(glt[1,4], glt$Df[2], lower.tail = FALSE)*sign(glt[1,'Value'])),
+ 	       out[lop$nF+lop$GES*lop$nFu+2*ii]   <- ifelse(rlm_run, ifelse(glt[1,'Pr(>Chisq)']<0.5, qnorm(glt[1,'Pr(>Chisq)'], lower.tail = FALSE)*sign(glt[1,'Value']), -qnorm(glt[1,'Pr(>Chisq)'], lower.tail = FALSE)*sign(glt[1,'Value'])),
+                  sign(glt[1,'Value']) * sqrt(glt[1, intersect(c('F', 'approx F'), names(glt))]))
             } #if(!is.null(glt))
          } #if(pars[[3]]>=1) for(ii in 1:pars[[3]])
 
@@ -1452,7 +1453,7 @@ if(is.na(lop$mVar)) { if(is.na(lop$wsVars)) showTab <- paste('~', lop$model) els
    showTab <- paste('~', lop$model, "+", gsub("\\*", "+", lop$wsVars), "+", gsub("\\*", "+", lop$mVar)) } }
 #if(!is.na(lop$qVars)) for(ii in 1:length(lop$QV))
 #   showTab <- gsub(paste('\\*',lop$QV[ii], sep=''), '', gsub(paste('\\+',lop$QV[ii], sep=''), '', showTab))
-if(!is.na(lop$qVars)) for(ii in rev(levels(ordered(lop$QV)))) # reversing the oder of those quantitative covariates so that
+if(!is.na(lop$qVars[1])) for(ii in rev(levels(ordered(lop$QV)))) # reversing the oder of those quantitative covariates so that
    # situations like 'ARI', 'ARI1', ARI2' would not cause trouble here!
    showTab <- gsub(paste('\\*', ii, sep=''), '', gsub(paste('\\+', ii, sep=''), '', showTab))
 showTab <- as.formula(gsub("\\*", "+", showTab))  # in case there are still some *'s like between-subjects factors
@@ -1769,7 +1770,7 @@ if(lop$robust) {
       for(ii in 1:lop$nFu) F_DF[[ii]] <- c(uvfm[ii, 'Df'], uvfm[lop$nFu+1, 'Df'])
       t_DF <- NULL
       if(lop$num_glt>0) for(ii in 1:lop$num_glt)
-         t_DF <- c(t_DF, ifelse(is.na(lop$wsVars) & is.na(lop$mVar), gltRes[[ii]][2,2], gltRes[[ii]][,6]))
+         t_DF <- c(t_DF, ifelse(is.na(lop$wsVars) & is.na(lop$mVar), gltRes[[ii]]['Residuals','Df'], gltRes[[ii]][1,'den Df']))
       lop$outInit <- rep(0, NoBrick)
    } else {
    if(lop$SC & (lop$nFsc > 0)) {
@@ -1790,7 +1791,7 @@ if(lop$robust) {
    # DFs for t-stat
    t_DF <- NULL
    if(lop$num_glt>0) for(ii in 1:lop$num_glt)
-      t_DF <- c(t_DF, ifelse(is.na(lop$wsVars) & is.na(lop$mVar), gltRes[[ii]][2,2], gltRes[[ii]][,6]))
+      t_DF <- c(t_DF, ifelse(is.na(lop$wsVars) & is.na(lop$mVar), gltRes[[ii]]['Residuals','Df'], gltRes[[ii]][1,'den Df']))
 
    # DFs for F-stat
    F_DF <- vector('list', lop$nF)
@@ -2032,9 +2033,9 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
                glt <- tryCatch(testInteractions(fm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]],
                   covariates=lop$covValList[[ii]], adjustment="none"), error=function(e) NULL)
                if(!is.null(glt)) {
-                  out_post[ii,1]   <- glt[1,1]
-                  out_post[ii,2]   <- sign(glt[1,1])*qnorm(glt[1,4]/2, lower.tail = F)  # convert chisq to Z
-                  out_post[ii,3]   <- glt[1,4]
+                  out_post[ii,1]   <- glt[1,'Value']
+                  out_post[ii,2]   <- sign(glt[1,'Value'])*qnorm(glt[1,'Pr(>Chisq)']/2, lower.tail = F)  # convert chisq to Z
+                  out_post[ii,3]   <- glt[1,'Pr(>Chisq)']
                }
            }
            dimnames(out_post)[[1]] <- sprintf('# %s', lop$gltLabel)
@@ -2054,10 +2055,10 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
                glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]],
                    covariates=lop$covValList[[ii]], adjustment="none", idata = fm$idata), error=function(e) NULL) }
                if(!is.null(glt)) {
-                  out_post[ii,1]   <- glt[1,1]
-                  out_post[ii,2]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
-                  out_post[ii,3]   <- glt[1,6]
-                  out_post[ii,4]   <- glt[1,7]
+                  out_post[ii,1]   <- glt[1,'Value']
+                  out_post[ii,2]   <- sign(glt[1,'Value']) * sqrt(glt[1, intersect(c('F', 'approx F'), names(glt))])  # convert F to t
+                  out_post[ii,3]   <- glt[1,'den Df']
+                  out_post[ii,4]   <- glt[1,'Pr(>F)']
                } #if(!is.null(glt))
             } # for(ii in 1:lop$num_glt)
             dimnames(out_post)[[1]] <- sprintf('# %s', lop$gltLabel)

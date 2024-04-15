@@ -253,6 +253,9 @@ ver = '5.3' ; date = 'Aug 31, 2023'
 #      use cases (namely when censoring levels are *not* set
 #    + thanks for pointing these out, C Rorden!
 #
+ver = '6.0' ; date = 'Mar 19, 2024'
+# [PT] use new chauffeur functionality where run_* scripts have 1x1 mont
+#
 #########################################################################
 
 import os, copy
@@ -2156,6 +2159,7 @@ num : int
         -no_cor                                                              \
         -cmd2script        {odoafni}                                         \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
+        -c2s_mont_1x1                                                        \
         -do_clean
     '''.format( ulay=ulay, olay_topval=olay_topval, cbar=cbar,
                 olay_minval_str=olay_minval_str, opbarrt=opbarrt,
@@ -2441,6 +2445,7 @@ num : int
         -no_cor                                                              \
         -cmd2script        {odoafni}                                         \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
+        -c2s_mont_1x1                                                        \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
                 opbarrt=opbarrt, 
@@ -2636,6 +2641,7 @@ num : int
         -cmd2script        "{odoafni}"                                       \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
         -c2s_text2     "++ Hover over image, hit 'o' to toggle olay on/off"  \
+        -c2s_mont_1x1                                                        \
         -dry_run                                                             \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
@@ -2824,6 +2830,7 @@ num : int
         -cmd2script        "{odoafni}"                                       \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
         -c2s_text2     "++ Hover over image, hit 'o' to toggle olay on/off"  \
+        -c2s_mont_1x1                                                        \
         -dry_run                                                             \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
@@ -2834,8 +2841,8 @@ num : int
     com.run()
 
 
-    # minor formatting
-    olay_desc = 'template edges, {} space'.format(ap_ssdict['main_dset_sp'])
+    # minor formatting (now shortening text here)
+    olay_desc = 'template edges' #, {} space'.format(ap_ssdict['main_dset_sp'])
 
     # text above images
     otoptxt = []
@@ -3000,6 +3007,7 @@ num : int
         -no_cor                                                              \
         -cmd2script        {odoafni}                                         \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
+        -c2s_mont_1x1                                                        \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay, cbar=cbar,
                 opbarrt=opbarrt, pbar_cr=pbar_cr, pbar_tr=pbar_tr, 
@@ -3219,6 +3227,7 @@ num : int
         -no_cor                                                              \
         -cmd2script        {odoafni}                                         \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
+        -c2s_mont_1x1                                                        \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, tcorrvol=tcorrvol, cbar=cbar,
                 opbarrt=opbarrt, pbar_cr=pbar_cr, pbar_tr=pbar_tr,
@@ -3573,6 +3582,7 @@ num : int
         -no_cor                                                              \
         -cmd2script        {odoafni}                                         \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
+        -c2s_mont_1x1                                                        \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
                 cbar=vso.olay_pbar, olay_minval_str=olay_minval_str, 
@@ -3805,6 +3815,7 @@ num : int
         -no_cor                                                          \
         -cmd2script        {odoafni}                                     \
         -c2s_text          'APQC, {qcb}: {qci}'                          \
+        -c2s_mont_1x1                                                        \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
                 cbar=cbar, olay_minval_str=olay_minval_str, 
@@ -3829,7 +3840,6 @@ num : int
         all_volreg = glob.glob("pb*volreg*HEAD")
         if len(all_volreg) :
             pb = all_volreg[0].split('.')[0]
-            print('++ pb for volreg is: ' + pb)
             ic_file = 'run_instacorr_pbrun.tcsh'
             ic_args = '{} {}'.format(pb, 'r01')
             gv_file = 'run_graphview_pbrun.tcsh'
@@ -4153,7 +4163,6 @@ num : int
 
 # ========================== dat/txt ================================
 
-
 # summary quantities from 1d_tool.py degree-o-freedom check
 # ['xmat_regress']
 def apqc_regr_df( ap_ssdict, obase, qcb, qci ):
@@ -4200,6 +4209,69 @@ num : int
 
     # text above data
     otoptxt = "Summary of degrees of freedom (DF) usage from processing"
+
+    # Make info below images 
+    otopdict = {
+        'itemtype'    : 'DAT',
+        'itemid'      : qci,
+        'blockid'     : qcb,
+        'blockid_hov' : lah.qc_blocks[qcb][0],
+        'title'       : lah.qc_blocks[qcb][1],
+        'text'        : otoptxt,
+    }
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
+        json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+    return 0
+
+# summary quantities from comp_ROI_stats.tcsh (ROI-based TSNR properties)
+# tsnr_stats_*
+def apqc_regr_roi_stats( ap_ssdict, obase, fname, qcb, qci ):
+    """Take a simple data table of text reporting on ROI properties and
+TSNR stats, and HTML encoding.  Also create text for above/below images.
+
+Parameters
+----------
+ap_ssdict : dict
+    dictionary of subject uvars
+obase : str
+    start of output filenames, likely qc_<zeropadded idx>
+fname : str
+    filename to copy over and display (contains HTML formatting)
+qcb : str
+    QC block ID
+qci : str
+    item ID of this information within the QC block
+
+Returns
+----------
+num : int
+    return 0 up on success, or a different int if failure
+
+    """
+
+    # output names/prefixes/etc.
+    oname    = '_'.join([obase, qcb, qci])           # output name
+    opref    = ap_ssdict['odir_img'] + '/' + oname   # prefix = path + name
+    otopjson = opref + '.json'
+    odat     = opref + '.dat'
+
+    if 1 :
+        print("++ APQC create: " + oname); sys.stdout.flush() 
+
+    do_cap = True
+    cmd    = '''# degree of freedom (df) check for processing'''
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+
+    # calculate HTML formatting for table, and output in QC dir
+    cmd    = '''roi_stats_warnings.py -input {} -prefix {}'''.format(fname, 
+                                                                     odat)
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+
+    # text above data
+    otoptxt = "ROI shape and TSNR stats ({})".format(fname)
 
     # Make info below images 
     otopdict = {
@@ -4722,6 +4794,87 @@ num : int
 # ----------------------------------------------------------------------
 
 # Text warning, goes to dir_img output
+# ['max_4095_warn_dset']
+def apqc_warns_sat_4095( ap_ssdict, obase, qcb, qci ):
+    """Make the text info which will be displayed for this warning, which
+is about possible EPI signal being saturated at 4095.  Also create
+text for above/below images.
+
+Parameters
+----------
+ap_ssdict : dict
+    dictionary of subject uvars
+obase : str
+    start of output filenames, likely qc_<zeropadded idx>
+qcb : str
+    QC block ID
+qci : str
+    item ID of this information within the QC block
+
+Returns
+----------
+num : int
+    return 0 up on success, or a different int if failure
+
+    """
+
+    # output names/prefixes/etc.
+    oname    = '_'.join([obase, qcb, qci])           # output name
+    opref    = ap_ssdict['odir_img'] + '/' + oname   # prefix = path + name
+    otopjson = opref + '.json'
+    odat     = opref + '.dat'
+
+    if 1 :
+        print("++ APQC create: " + oname); sys.stdout.flush() 
+
+    do_cap = True
+    cmd    = '''# check for 4095 saturation warnings'''
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+
+    # get name of text file that might have warnings
+    fname  = ap_ssdict['max_4095_warn_dset']
+
+    # parse text file for warning severity
+    warn_level = "undecided"
+    if fname : 
+        txt = lah.read_dat(fname)
+        if "warning" in txt :
+            warn_level = "severe"
+        else:
+            warn_level = "none"
+
+    # Make dat file
+    if os.path.isfile(fname) and os.path.getsize(fname) :
+        cmd     = '''\\cp {} {}'''.format(fname, odat)
+        com    = ab.shell_com(cmd, capture=do_cap)
+        stat   = com.run()
+    else:
+        fff = open(odat, 'w')
+        fff.write("")
+        fff.close()
+
+    # text above data
+    otoptxt = "Saturation (4095 max) warnings"
+
+    # Make info below images 
+    otopdict = {
+        'itemtype'    : 'WARN',
+        'itemid'      : qci,
+        'blockid'     : qcb,
+        'blockid_hov' : lah.qc_blocks[qcb][0],
+        'title'       : lah.qc_blocks[qcb][1],
+        'text'        : otoptxt,
+        'warn_level'  : warn_level
+    }
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
+        json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+    return 0
+
+# ----------------------------------------------------------------------
+
+# Text warning, goes to dir_img output
 # ['tent_warn_dset']
 def apqc_warns_TENT( ap_ssdict, obase, qcb, qci ):
     """Make the text info which will be displayed for this warning, which
@@ -5015,6 +5168,7 @@ num : int
         -cmd2script        "{odoafni}"                                       \
         -c2s_text          'APQC, {qcb}: {qci}  '                            \
         -c2s_text2     "++ Hover over image, hit 'o' to toggle olay on/off"  \
+        -c2s_mont_1x1                                                        \
         -dry_run                                                             \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay_o,
@@ -5070,6 +5224,7 @@ num : int
         -cmd2script        "{odoafni}"                                       \
         -c2s_text          'APQC, {qcb}: {qci}'                              \
         -c2s_text2     "++ Hover over image, hit 'o' to toggle olay on/off"  \
+        -c2s_mont_1x1                                                        \
         -dry_run                                                             \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay_f,
@@ -5653,6 +5808,7 @@ num : int
             -no_cor -no_sag                                                  \
             -cmd2script        {odoafni}                                     \
             -c2s_text          'APQC, {qcb}: {qci}'                          \
+            -c2s_mont_1x1                                                    \
             -do_clean
         '''.format( **chauff_params )
         com    = ab.shell_com(cmd, capture=do_cap)

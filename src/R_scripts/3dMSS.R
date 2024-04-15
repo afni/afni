@@ -448,11 +448,11 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
    "         no within-subject variables), do not use this option.\n", sep='\n')),
 
       '-sdiff' = apl(n=c(1,100), d=NA,  h = paste(
-   "-sdiff variable_list: This option is used to specify the the factors for group comparisons.",
+   "-sdiff variable_list: This option is used to specify a factor for group comparisons.",
    "         For example, if one wants to compare age trajectory between two groups through",
    "         \"s(age,by=group)\" in model specification, use \"-sdiff 'group'\" to generate",
-   "         predicted the trajectory of group differences through the values provided in the",
-   "         table under the option -prediction. Currently it only allows for one group",
+   "         the predicted trajectory of group differences through the values provided in the",
+   "         prediction table under the option -prediction. Currently it only allows for one group",
    "         comparison. Perform separate analyses if more than one group comparison is",
    "         desirable. \"  .\n", sep='\n')),
    #"         If you want to otbain two different group",

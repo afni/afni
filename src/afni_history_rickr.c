@@ -53,6 +53,188 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Apr, 2024, RCR, "3dTsplit4D", MINOR, TYPE_NEW_OPT,
+   "add -label_prefix, to include labels in the output prefix",
+   NULL
+ } ,
+
+ { 12, Apr, 2024, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
+   "add an AFNI ID to the resulting SurfVol, for afni/suma communication",
+   NULL
+ } ,
+
+ {  8, Apr, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -anat_follower_erode_level, to specify the exact erosion level",
+   "The older -anat_follower_erode option implies only a single erosion.\n"
+   "This parameter is in voxels.  As before, a single erosion includes the\n"
+   "18 NN2 neighbors, so all in a 3x3x3 box but the outer 8 corners.\n"
+   "See mask_tool -help for details.\n"
+   "Added for M. Byrne S. Haller."
+ } ,
+
+ {  7, Apr, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "the default warp vox dim will round up if very close",
+   "Particularly when coming from a NIFTI sform, voxel dimensions are often\n"
+   "computed.  So while an \"exact\" dimension might be 3, the computed one\n"
+   "might come out as 2.99999.  Scale dimensions by 1.0001 before truncation."
+ } ,
+
+ {  5, Apr, 2024, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "add reg_echo and echo_times; include echo_times in basic review script",
+   NULL
+ } ,
+
+ {  4, Apr, 2024, RCR, "Surf2VolCoord", MICRO, TYPE_ENHANCE,
+   "add a detailed help example for distance to a restricted set of coords",
+   NULL
+ } ,
+
+ { 29, Mar, 2024, RCR, "ap_run_simple_rest_me.tcsh", MAJOR, TYPE_NEW_PROG,
+   "run a quick afni_proc.py resting state analysis for QC on multi-echo data",
+   NULL
+ } ,
+
+ { 29, Mar, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add 'none' as an option to -regress_apply_mot_types",
+   "This allows one to censor (or compute enorm) without motion regression.\n"
+   "Requested by e0046902 on NeuroStars."
+ } ,
+
+ { 29, Mar, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "NIFTI s/qform_code of 2 defaults to +orig, once again",
+   "Have an unset AFNI_NIFTI_VIEW default to 'orig' again.\n"
+   "This is how it was originally.  It was changed at some point to\n"
+   "accommodate an influx of such data in MNI space.  Now, revert to\n"
+   "having sform_code of 2 to default to orig space."
+ } ,
+
+ { 28, Mar, 2024, RCR, "suma-general", MINOR, TYPE_MODIFY,
+   "temporarily revert to 2023.1003 SUMA tree, while fixing some issues",
+   "Most of this will go back in, once the issues are resolved."
+ } ,
+
+ { 22, Mar, 2024, RCR, "2dImReg", MINOR, TYPE_ENHANCE,
+   "add approx_equal() test for -basefile, as well",
+   "Done for josef_ling on MB."
+ } ,
+
+ { 21, Mar, 2024, RCR, "gen_ss_review_table.py", MINOR, TYPE_ENHANCE,
+   "allow 'column' label ANY, which expands to each non-initial label",
+   NULL
+ } ,
+
+ { 21, Mar, 2024, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "add option -disp_abin",
+   NULL
+ } ,
+
+ { 20, Mar, 2024, RCR, "2dImReg", MINOR, TYPE_ENHANCE,
+   "be more lenient, not requiring dx to be exactly equal to dy",
+   "Done for josef_ling on MB."
+ } ,
+
+ { 18, Mar, 2024, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
+   "auto-include APQC_atlas for compute_tsnr_stats, if appropriate",
+   "And add -regress_compute_auto_tsnr_stats."
+ } ,
+
+ { 15, Mar, 2024, RCR, "APMULTI_Demo2_realtime", MINOR, TYPE_ENHANCE,
+   "add rt.06.ME.OC.aves example, like 05 but with ROI averages",
+   NULL
+ } ,
+
+ { 12, Mar, 2024, RCR, "SUMA", MINOR, TYPE_BUG_FIX,
+   "updates to SUMA_CreateDO.c, SUMA_Color.c, SUMA_driver.c",
+   "Some build machines need to adhere to the C99 standard."
+ } ,
+
+ { 11, Mar, 2024, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "add max_4095_warn_dset key and driver use",
+   NULL
+ } ,
+
+ { 11, Mar, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add 4095_gcount warnings for input EPI",
+   "This will be automatically run after the outlier counts."
+ } ,
+
+ {  8, Mar, 2024, RCR, "3dTto1D", MINOR, TYPE_ENHANCE,
+   "add 4095_gcount warning method; modify output",
+   "Zero out results if max is not exactly 4095."
+ } ,
+
+ {  7, Mar, 2024, RCR, "abids_tool.py", MICRO, TYPE_BUG_FIX,
+   "use compare_py_ver_to_given() for comparison of python versions",
+   "Also, removed a few similarly problematic float comparisons."
+ } ,
+
+ {  5, Mar, 2024, RCR, "APMULTI_Demo2_realtime", MINOR, TYPE_ENHANCE,
+   "add Optimally Combined multi-echo demo, including use with afni_proc.py",
+   NULL
+ } ,
+
+ {  4, Mar, 2024, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "add -disp_ver_afni (display contents of AFNI_version.txt)",
+   NULL
+ } ,
+
+ {  1, Mar, 2024, RCR, "compute_ROI_stats.tcsh", MINOR, TYPE_NEW_OPT,
+   "add ability to pass ALL_LT via -rval_list (for all labeltable entries)",
+   NULL
+ } ,
+
+ { 29, Feb, 2024, RCR, "afni_util.py", MINOR, TYPE_MODIFY,
+   "use raw straing format for some regular expressions",
+   "So python 3.12 has upgraded Deprecation Warnings to SyntaxWarnings,\n"
+   "making wanings pop up where they did not previously.  Previously, one\n"
+   "would need to turn on deprecation warnings to see such things."
+ } ,
+
+ { 28, Feb, 2024, RCR, "module_test_lib.py", MINOR, TYPE_ENHANCE,
+   "python 3.12 has removed 'imp' importing library, use importlib",
+   "Add a new 312 function string for newest case."
+ } ,
+
+ { 23, Feb, 2024, RCR, "@radial_correlate", MICRO, TYPE_ENHANCE,
+   "fail if no corr dset (check, since script is not run with -e)",
+   NULL
+ } ,
+
+ { 23, Feb, 2024, RCR, "dcm2niix_afni", MICRO, TYPE_ENHANCE,
+   "sync crorden/dcm2niix_console with repo, version v1.0.20240202",
+   "Thanks to C Rorden for the update."
+ } ,
+
+ { 22, Feb, 2024, RCR, "build_afni.py", MINOR, TYPE_ENHANCE,
+   "check for conda env vars on make build failure",
+   NULL
+ } ,
+
+ { 22, Feb, 2024, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "check for conda env vars",
+   NULL
+ } ,
+
+ { 22, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "use more mask_epi_anat, and default: -regress_compute_tsnr_stats brain 1",
+   NULL
+ } ,
+
+ { 21, Feb, 2024, RCR, "compute_ROI_stats.tcsh", MINOR, TYPE_MODIFY,
+   "modify labels and prep for Q column",
+   NULL
+ } ,
+
+ { 20, Feb, 2024, RCR, "compute_ROI_stats.tcsh", MICRO, TYPE_BUG_FIX,
+   "forgot to actually print out the computed depth",
+   "Thanks to P Taylor for noticing."
+ } ,
+
+ { 20, Feb, 2024, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "remove irritating -script and -out_dir opts, just use subject ID",
+   NULL
+ } ,
+
  { 15, Feb, 2024, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "remove 2 warnings",
    "No warn on dupe followers if grids are the same; no ACF warning."

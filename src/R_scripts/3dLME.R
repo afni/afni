@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.1.4, July 11, 2023
+Version 2.1.5, March 15, 2024
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1061,7 +1061,7 @@ runLME <- function(inData, dataframe, ModelForm) {
             #glt <- testInteractions(fm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], adjustment="none")
             if(!is.null(glt)) {
                Stat[lop$nF[1]+2*lop$nBasis+2*ii-1] <- glt[1,1]
-	       Stat[lop$nF[1]+2*lop$nBasis+2*ii]   <- sign(glt[1,1])*qnorm(glt[1,4]/2, lower.tail = F)  # convert chisq to Z
+	       Stat[lop$nF[1]+2*lop$nBasis+2*ii]   <- sign(glt[1,1])*qnorm(glt[1,'Pr(>Chisq)']/2, lower.tail = F)  # convert chisq to Z
             }
          }
          # GLF part below

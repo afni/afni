@@ -1423,6 +1423,10 @@ class MyInterface:
             ss = '   --------------------------------------------------\n'
             MESGe("tail from %s:\n%s   %s\n%s" \
                   % (logfile, ss, "\n   ".join(makelines[-10:]), ss))
+
+            # note whether we are in a conda environment
+            self.check_conda_evars()
+
          return st
 
       # -----------------------------------------------------------------
@@ -1485,6 +1489,33 @@ class MyInterface:
       if st: return st
 
       return 0
+
+   def check_conda_evars(self):
+      """note whether we are in a conda environment
+         print: CONDA_SHLVL and CONDA_DEFAULT_ENV, if set
+
+         return whether we are in conda (SHLVL set)
+      """
+      ekeys = os.environ.keys()
+
+      elvl = 'CONDA_SHLVL'
+      eenv = 'CONDA_DEFAULT_ENV'
+      # if no shell level, we are done
+      if elvl not in ekeys:
+         return 0
+
+      # init main vars and check DEF_ENV
+      vlvl = os.environ[elvl]
+      venv = ''
+
+      # make a string for DEFAULT_ENV
+      if eenv in ekeys:
+         venv = ', %s = %s' % (eenv, os.environ[eenv])
+
+      MESGw('in conda environment')
+      MESGi('%s = %s%s' % (elvl, vlvl, venv))
+
+      return 1
 
    def f_get_rsync_abin_do(self):
       """return the directory object for install abin

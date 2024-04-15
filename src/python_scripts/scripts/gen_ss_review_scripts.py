@@ -937,9 +937,11 @@ g_history = """
    1.25 Oct 12, 2022: added 'final DF fraction' to basic script
    1.26 Oct 13, 2022: fix 'final DF fraction' to be wrt uncensored TRs
    1.27 Feb  6, 2023: report mb_level and slice_timing in basic output
+   1.28 Mar 11, 2024: add max_4095_warn_dset key
+   1.29 Apr  5, 2024: add reg_echo and echo_times (ET to basic output)
 """
 
-g_version = "gen_ss_review_scripts.py version 1.27, February 6, 2023"
+g_version = "gen_ss_review_scripts.py version 1.29, April 5, 2024"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1676,7 +1678,7 @@ class MyInterface:
       """
 
       # get file names from g_eg_uvar
-      labels = ['df_info_dset', 'cormat_warn_dset',
+      labels = ['max_4095_warn_dset', 'df_info_dset', 'cormat_warn_dset',
                 'pre_ss_warn_dset', 'tent_warn_dset', 'decon_err_dset']
 
       for label in labels:
@@ -2756,6 +2758,8 @@ class MyInterface:
       if self.uvars.is_not_empty('slice_pattern'):
          astr += 'echo "slice timing pattern      : %s"\n' \
                  % self.uvars.slice_pattern
+      if self.uvars.is_not_empty('echo_times'):
+         astr += 'echo "echo times                : $echo_times"\n'
 
       astr += 'echo "num stim classes provided : $num_stim"\n'
 
@@ -2849,10 +2853,19 @@ class MyInterface:
       # some cases with matching var names
       # rcr - add final_anat
       for var in ['subj', 'afni_ver', 'afni_package', 'tr', 'rm_trs',
-                  'num_stim', 'mot_limit', 'out_limit', 'final_view']:
+                  'num_stim', 'mot_limit', 'out_limit', 'final_view',
+                  'echo_times']:
          if uvars.valid(var):
-            txt += form % (var,self.uvars.val(var))
-         # check for non-fatal vars
+            if uvars.get_type(var) == list:
+                txt += form % (var,'( %s )' % ' '.join(self.uvars.val(var)))
+                # txt += form % (var,' '.join(self.uvars.val(var)))
+            else:
+                txt += form % (var,self.uvars.val(var))
+         # check for optional vars
+         elif var in ['echo_times']:
+            if self.cvars.verb > 2:
+               print('-- no problem: basic script, missing variable %s' % var)
+         # check for other non-fatal vars
          elif var in ['rm_trs', 'afni_ver', 'afni_package', 'out_limit']:
             if self.cvars.verb > 1:
                print('** warning: basic script, missing variable %s' % var)
@@ -3145,8 +3158,26 @@ class MyInterface:
          print('** missing X-matrix, cannot drive regress_warnings')
          return 1
 
-      txt = 'echo ' + UTIL.section_divider('degrees of freedom info',
-                                           maxlen=60, hchar='-') + '\n\n'
+      txt = ''
+
+      # if we have a max_4095_warn_dset dset and it exists, display it
+      if not self.check_for_file('max_4095_warn_dset'):
+         txt = 'echo ' + UTIL.section_divider('max of 4095 warnings',
+                                              maxlen=60, hchar='-') + '\n\n'
+         wfile = self.uvars.val('max_4095_warn_dset')
+         txt += '# if there is a 4095 warnings file, display it\n'         \
+                'if ( -f %s ) then\n'                                      \
+                '   echo ------------- %s -------------\n'                 \
+                '   cat %s\n'                                              \
+                '   echo --------------------------------------------\n'   \
+                'endif\n'                                                  \
+                '\n'                                                       \
+                'echo ""\n'                                                \
+                % (wfile, wfile, wfile)
+
+      # DoF info
+      txt += 'echo ' + UTIL.section_divider('degrees of freedom info',
+                                            maxlen=60, hchar='-') + '\n\n'
 
       txt += '# if there is a df_info file, display it\n'               \
              'if ( -f out.df_info.txt ) then\n'                         \
@@ -3157,6 +3188,7 @@ class MyInterface:
              '\n'                                                       \
              'echo ""\n'                                                \
 
+      # regression warnings
       txt += 'echo ' + UTIL.section_divider('regression warnings',
                                            maxlen=60, hchar='-') + '\n\n'
 
@@ -3188,6 +3220,7 @@ class MyInterface:
              'echo --------------------------------------------\n'      \
              '\n' % xset
 
+      # pre-steady state warnings
       wfile = 'out.pre_ss_warn.txt'
       txt += '# if there are any pre-steady state warnings, show them\n'\
              'if ( -f %s && ! -z %s ) then\n'                           \
@@ -3218,12 +3251,14 @@ class MyInterface:
 
       return 0
 
-   def check_for_file(self, varname, mesg):
+   def check_for_file(self, varname, mesg=''):
       """check for existence of file
          if not, print mesg
          if no mesg, print nothing
 
          e.g. if check_for_file('X.xmat.1D', 'failed basic init'): errs += 1
+
+         return 0 on success (found), 1 on not set or found
       """
       fname = self.uvars.val(varname)
       if not fname:

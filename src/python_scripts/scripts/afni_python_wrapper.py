@@ -124,6 +124,9 @@ afni_python_wrapper.py: use to call afnipy functions from the shell
                 'write_data_as_json(read_text_dictionary( \\
                 "out.ss_review.FT.txt", compact=1)[1])'
 
+            afni_python_wrapper.py -module module_test_lib \\
+                -eval 'test_import("afnipy.afni_util", verb=4)'
+
       -exec STRING      : execute STRING in context of MODULE
 
          This option is used to simply execute the code in STRING.

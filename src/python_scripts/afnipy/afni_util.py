@@ -790,7 +790,8 @@ def get_process_stack_slow(pid=-1, verb=1):
    if rv: return []
 
    stack = [entries] # entries is valid, so init stack
-   while mypid > 1:
+   # now some parents to straight to 0 without 1  [28 Feb 2024]
+   while mypid > 1 and ppid > 0:
       cmd = '%s %s' % (base_cmd, ppid)
       rv, entries = get_cmd_entries(cmd)
       if rv: return []
@@ -1243,7 +1244,7 @@ def find_afni_history_version(av_str):
       return the status and [AFNI_A.B.C, PACKAGE] pair as a list
       return 1, [] on error
    """
-   re_format = '{(AFNI_\d+\.\d+\.\d+):(.*)}'
+   re_format = r'{(AFNI_\d+\.\d+\.\d+):(.*)}'
 
    try:    match = re.search(re_format, av_str)
    except: return 1, []
@@ -1262,7 +1263,7 @@ def parse_afni_version(av_str):
    """given 'AFNI_18.2.10', return status 0 and the int list [18,2,10]
       return 1, [] on error
    """
-   re_format = 'AFNI_(\d+)\.(\d+)\.(\d+)'
+   re_format = r'AFNI_(\d+)\.(\d+)\.(\d+)'
 
    try:    match = re.search(re_format, av_str)
    except: return 1, []
@@ -1464,10 +1465,14 @@ def find_opt_and_params(text, opt, nopt=0):
 
    return tlist[tind:tind+1+nopt]
 
-def get_truncated_grid_dim(dset, verb=1):
+def get_truncated_grid_dim(dset, scale=1, verb=1):
     """return a new (isotropic) grid dimension based on the current grid
        - given md = min(DELTAS), return md truncated to 3 significant bits
-                    (first integer this affects is 9->8, then 11->10, etc.)
+
+            scale : scale dims by value so we do not miss something like 2.999
+                  - this should likely be just greater than 1.0
+                    (scale to make it independent of values)
+
        - return <= 0 on failure
     """
     err, dims = get_typed_dset_attr_list(dset, 'DELTA', float)
@@ -1482,9 +1487,9 @@ def get_truncated_grid_dim(dset, verb=1):
         print('** failed to get truncated grid dim from %s' % dims)
         return 0
 
-    return truncate_to_N_bits(md, 3, verb=verb, method='r_then_t')
+    return truncate_to_N_bits(md, 3, method='r_then_t', scale=scale, verb=verb)
 
-def truncate_to_N_bits(val, bits, verb=1, method='trunc'):
+def truncate_to_N_bits(val, bits, method='trunc', scale=1, verb=1):
     """truncate the real value to most significant N bits
        allow for any real val and positive integer bits
 
@@ -1498,17 +1503,23 @@ def truncate_to_N_bits(val, bits, verb=1, method='trunc'):
     if val < 0.0: sign, fval = -1, -float(val)
     else:         sign, fval =  1,  float(val)
 
-    if verb > 2: print('T2NB: applying sign=%d, fval=%g' % (sign,fval))
+    if verb > 2:
+       print('T2NB: applying sign=%d, fval=%g, scale=%g' % (sign,fval,scale))
 
     # if r_then_t, start by rounding to 2*bits, then continue to truncate
     meth = method
     if method == 'r_then_t':
-        fval = truncate_to_N_bits(val,2*bits,verb,'round')
+        fval = truncate_to_N_bits(val, 2*bits, method='round', scale=scale,
+                                  verb=verb)
         meth = 'trunc'
 
     if bits <= 0 or type(bits) != type(1):
         print("** truncate to N bits: bad bits = ", bits)
         return 0.0
+
+    # possibly scale to just greater than 1
+    if scale > 0:
+        fval *= scale
 
     # find integer m s.t.  2^(bits-1) <= 2^m * fval < 2^bits
     log2 = math.log(2.0)
@@ -1527,17 +1538,17 @@ def truncate_to_N_bits(val, bits, verb=1, method='trunc'):
 
     return retval
 
-def test_truncation(top=10.0, bot=0.1, bits=3, e=0.0000001):
+def test_truncation(top=10.0, bot=0.1, bits=3, e=0.0001):
     """starting at top, repeatedly truncate to bits bits, and subtract e,
        while result is greater than bot"""
 
     print('-- truncating from %g down to %g with %d bits' % (top,bot,bits))
     val = top
     while val > bot:
-        trunc = truncate_to_N_bits(val,bits)
+        trunc = truncate_to_N_bits(val, bits, scale=1.0001)
         print(val, ' -> ', trunc)
-        val = trunc - e
-    
+        val = min(trunc-e, val-e)
+
 def get_dset_reps_tr(dset, notr=0, verb=1):
     """given an AFNI dataset, return err, reps, tr
 
@@ -2755,7 +2766,7 @@ def extract_subbrick_selection(sstring):
         just let '*' refer to anything but another '['
    """
    import re
-   res = re.search('\[\d+[^\[]*]', sstring)
+   res = re.search(r'\[\d+[^\[]*]', sstring)
    if res == None: return ''
    return res.group(0)
 

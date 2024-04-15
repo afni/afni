@@ -769,12 +769,29 @@ g_history = """
     7.66 Feb 15, 2024:
        - no dupe follower warning if grids differ
        - no FWHM->ACF warning
+    7.67 Feb 21, 2024:
+       - partial publish example updates
+       - remove warning: 'ricor regressors are no longer applied in final reg'
+    7.68 Feb 22, 2024:
+       - use mask_epi_anat for more QC (over full_mask) and modify indentation
+       - if appropriate, apply "-regress_compute_tsnr_stats brain 1"
+    7.69 Mar 11, 2024:
+       - add 3dTto1D -method 4095_warn command and out.4095_warn.txt uvar
+    7.70 Mar 18, 2024:
+       - locate() -ROI/mask_import datasets and get tlrc_base early
+       - add auto-ROI_import of APQC atlas and regress tsnr_stats
+       - add option -regress_compute_auto_tsnr_stats
+    7.71 Mar 29, 2024: allow -regress_apply_mot_types none
+    7.72 Apr  1, 2024: add reg_echo and echo_times as uvars
+    7.73 Apr  7, 2024: the default warp vox dim will round up if very close
+    7.74 Apr  8, 2024: add -anat_follower_erode_level
 """
 
-g_version = "version 7.66, February 15, 2024"
+g_version = "version 7.74, April 8, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 7 Mar 2024",  "3dTto1D -method 4095_warn" ],
       [ "15 Feb 2024",  "compute_ROI_stats.tcsh, whereami -index_to_label" ],
       [ "14 Nov 2022",  "find_variance_lines.tcsh" ],
       [ " 3 Jun 2022",  "3dLocalUnifize" ],
@@ -880,7 +897,7 @@ g_todo_str = """todo:
   - allow listing examples by keyword (choose and/or remove)
   - example demo 2b should be added to APMD1 tree
   - ROI_import, anat_follower_ROI for ROI TSNR averages
-     - handle in regress block: add -regress_compute_tsnr_stats
+     x handle in regress block: add -regress_compute_tsnr_stats
      - add -volreg_compute_tsnr_stats
   - ME:
      - handle MEICA tedana methods
@@ -1019,6 +1036,7 @@ class SubjProcSream:
         self.EGS        = None          # reference to imported ap_examples lib
 
         self.blocks     = []            # list of ProcessBlock elements
+        self.block_names= []            # list of block names, pre 'blocks'
         self.dsets      = []            # list of afni_name elements
         self.have_sels  = 0             # do the inputs have selectors
 
@@ -1128,6 +1146,7 @@ class SubjProcSream:
         self.tlrc_base  = None          # afni_name dataset used in -tlrc_base
         self.tlrc_nlw   = 0             # are we using non-linear registration
         self.tlrc_ss    = 1             # whether to do skull strip in tlrc
+        self.tlrc_space = ''            # 3dinfo -space for tlrc_base dset
         self.warp_epi   = 0             # xform bitmap: tlrc, adwarp, a2e, e2a
         self.a2e_mat    = None          # anat2epi transform matrix file
         self.e2final_mv = []            # matvec list takes epi base to final
@@ -1198,6 +1217,8 @@ class SubjProcSream:
         # options for tissue based time series
         self.roi_dict   = {}            # dictionary of ROI vs afni_name
         self.def_roi_keys = default_roi_keys
+        self.regress_auto_tsnr_rois = [] # ROI labels for auto tsnr_stats
+                                         # None if not for use
 
         # parameters related to TSNR and ROIs
         self.tsnr_dset  = None          # for volumetric tsnr ROI stats
@@ -1358,6 +1379,8 @@ class SubjProcSream:
                         helpstr='specify label and anat follower dataset')
         self.valid_opts.add_opt('-anat_follower_erode', -1, [], okdash=0,
                         helpstr="erode follower datasets for given labels")
+        self.valid_opts.add_opt('-anat_follower_erode_level', 2, [], okdash=0,
+                        helpstr="erode this follower label at the given level")
         self.valid_opts.add_opt('-anat_follower_ROI', 3, [],
                         helpstr='specify label and anat follower ROI dataset')
         self.valid_opts.add_opt('-anat_has_skull', 1, [],
@@ -1710,6 +1733,9 @@ class SubjProcSream:
                         helpstr='compute TSNR datasets (yes/no) after regress')
         self.valid_opts.add_opt('-regress_compute_tsnr_stats', -2, [],
                         helpstr='compute TSNR stats per ROI_dset and INDEX')
+        self.valid_opts.add_opt('-regress_compute_auto_tsnr_stats', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='auto-compute stats for APQC atlas (def=yes)')
         self.valid_opts.add_opt('-regress_mask_tsnr', 1, [],
                         acplist=['yes','no'],
                         helpstr="apply mask to TSNR dset (yes/no, def=no)")
@@ -1764,7 +1790,7 @@ class SubjProcSream:
                         helpstr="use 3dTproject instead of 3dDeconvolve")
 
         self.valid_opts.add_opt('-regress_apply_mot_types', -1, [],
-                        acplist=['basic','demean','deriv'],
+                        acplist=['basic','demean','deriv','none'],
                         helpstr="specify which motion parameters to apply")
         self.valid_opts.add_opt('-regress_mot_as_ort', 1, [],
                         acplist=['yes','no'],
@@ -2296,6 +2322,9 @@ class SubjProcSream:
            if val != None:
               self.reg_echo = val
 
+           # set as a uvar (values are strings)
+           self.uvars.set_var('reg_echo', [str(self.reg_echo)])
+
            if self.reg_echo < 1 or self.reg_echo > self.num_echo:
               print("** %s: registration echo must be between 1 and %d" \
                     % (oname, self.num_echo))
@@ -2309,6 +2338,9 @@ class SubjProcSream:
                  errs += 1
                  print("** have %d echoes, but %d echo times" \
                        % (self.num_echo, len(elist)))
+              # and add echo times as a uvar, using the original strings
+              opt = self.user_opts.find_opt(oname)
+              self.uvars.set_var('echo_times', opt.parlist)
 
         # set view and dimensions based on dsets
 
@@ -2411,6 +2443,9 @@ class SubjProcSream:
             print('** blocks must be unique\n'  \
                   '   (is there overlap between -blocks and -do_block?)\n')
             return 1
+
+        # make the list of block names available to the mod functions
+        self.block_names = blocks
 
         # call db_mod_functions
 
@@ -2767,10 +2802,11 @@ class SubjProcSream:
                     print("-- using default: will not apply EPI Automask")
                     print("   (see 'MASKING NOTE' from the -help for details)")
 
-            if self.ricor_nreg > 0 and self.ricor_apply == 'no':
-                if not self.user_opts.find_opt('-regress_apply_ricor'):
-                    print('** note: ricor regressors are no longer applied' \
-                              ' in final regression')
+            # no longer warn on this
+            # if self.ricor_nreg > 0 and self.ricor_apply == 'no':
+            #     if not self.user_opts.find_opt('-regress_apply_ricor'):
+            #         print('** note: ricor regressors are no longer applied' \
+            #                   ' in final regression')
 
             if self.runs == 1:
                 print("\n-------------------------------------\n" \
@@ -3353,16 +3389,19 @@ class SubjProcSream:
            if len(olist) == 0:
               continue
            tstr += '# copy any %s datasets as %s_LABEL\n' % (oname, oname[1:])
-           for opt in self.user_opts.find_all_opts(oname):
+           for opt in olist:
               # get label and dset params
               label = opt.parlist[0]
               dset  = opt.parlist[1]
+              dname = gen_afni_name(dset)
+              dname.locate() # in case we need to find it
               # find in ROI dict
               aname = self.get_roi_dset(label)
               if not aname:
                  print("** no %s label '%s' dataset to copy" % (oname, label))
                  return 1
-              tstr += '3dcopy %s %s/%s\n' % (dset, self.od_var, aname.prefix)
+              tstr += '3dcopy %s %s/%s\n' \
+                      % (dname.nice_input(), self.od_var, aname.prefix)
               self.tlist.add(dset, aname.shortinput(), 'mask_import',
                              ftype='dset')
         if tstr:
@@ -4028,15 +4067,18 @@ class SubjProcSream:
           if isinstance(oname, afni_name): oldname = oname.shortinput()
           else: oldname = 'NOT_YET_SET'
 
-          if self.verb > 1 or not overwrite:
-             print("** trying to overwrite roi_dict['%s'] = %s with %s" \
-                   % (key, oldname, newname))
-
           if not overwrite:
+             print("** failing to overwrite roi_dict['%s'] = %s with %s" \
+                   % (key, oldname, newname))
              if key in self.def_roi_keys: 
                 print("** ROI key '%s' in default list, consider renaming"%key)
                 print("   (default list comes from 3dSeg result)")
              return 1
+
+          if self.verb > 1:
+             print("++ will overwrite roi_dict['%s'] = %s\n" \
+                   "   with %s"                              \
+                   % (key, oldname, newname))
 
        elif self.verb > 1:
             print("++ setting roi_dict['%s'] = %s" % (key, newname))
@@ -4050,9 +4092,10 @@ class SubjProcSream:
        nkeys = len(keys)
        if nkeys <= 0: return
        print('-- have %d ROI dict entries ...' % nkeys)
+       if verb <= 0: return
+
        # get max key string length, with 2 positions for surrounding quotes
        maxlen = max((len(key)+2) for key in keys)
-       if verb < 0: verb = 0
 
        for key in keys:
           kstr = "'%s'" % key
@@ -4508,6 +4551,8 @@ class TrackedFlist:
           vo.short_out = vo.out_an.shortinput()
 
           # set and check input view
+          # (run locate in case we need to search for the dset)
+          vo.in_an.locate()
           vo.in_view = dset_view(vo.in_an.rel_input())
           if vo.in_view not in ['+orig', '+tlrc']:
              # do we fail?
@@ -4684,8 +4729,13 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
     if proc.create_blocks():
        show_args_as_command(proc.argv, "** failed command (create_blocks):")
        return 1, None
-    # ----------------------------------------------------------------------
 
+    # ----------------------------------------------------------------------
+    # run post mod functions (since we now know about most of the inputs)
+    if db_mod_post_process(proc):
+       return 1, None
+
+    # ----------------------------------------------------------------------
     # run db_cmd functions, to create the script
     rv = proc.create_script()
     if rv != None:  # terminal, but do not display command on 0

@@ -34,7 +34,8 @@ examples
    1.  afni_system_check.py -check_all
    2a. afni_system_check.py -find_prog python
    2b. afni_system_check.py -find_prog python -exact yes
-   3.  afni_system_check.py -disp_R_ver_for_lib $R_LIBS
+   3a. afni_system_check.py -disp_R_ver_for_lib $R_LIBS
+   3b. afni_system_check.py -disp_abin
 
 -----------------------------------------------------------------------------
 terminal options:
@@ -57,6 +58,8 @@ action options:
    -disp_R_ver_for_lib  : display the R version used when building an R library
                           - this refers to those installed by rPkgsInstall,
                             most likely under $R_LIBS
+   -disp_abin           : display directory containing 'afni' (or this)
+   -disp_ver_afni       : display AFNI package version (else "None")
    -disp_ver_matplotlib : display matplotlib version (else "None")
    -disp_ver_pylibs LIB LIB ... :
                           display versions of given python libraries (else NONE)
@@ -345,9 +348,12 @@ g_history = """
         - check for flask and flask_cors
         - add -disp_ver_pylibs, to show library version for a specified list
    1.29 Jan  2, 2024 - warn on matplotlib 3.1.2
+   1.30 Feb 22, 2024 - check for conda
+   1.31 Mar  4, 2024 - add option -disp_ver_afni (do include build source)
+   1.32 Mar 21, 2024 - add option -disp_abin
 """
 
-g_version = "afni_system_check.py version 1.29, January 2, 2024"
+g_version = "afni_system_check.py version 1.32, March 21, 2024"
 
 
 class CmdInterface:
@@ -414,6 +420,10 @@ class CmdInterface:
                       helpstr='display number of CPUs available')
       self.valid_opts.add_opt('-disp_R_ver_for_lib', 1, [],
                       helpstr='display R version library was built against')
+      self.valid_opts.add_opt('-disp_abin', 0, [],
+                      helpstr='display directory containing afni (or this)')
+      self.valid_opts.add_opt('-disp_ver_afni', 0, [],
+                      helpstr='display AFNI package version (else None)')
       self.valid_opts.add_opt('-disp_ver_matplotlib', 0, [],
                       helpstr='display matplotlib version (else None)')
       self.valid_opts.add_opt('-disp_ver_pylibs', -1, [],
@@ -504,6 +514,16 @@ class CmdInterface:
             self.R_ver_lib_path = opt.parlist[0]
             continue
 
+         if opt.name == '-disp_abin':
+            self.act = 1
+            self.sys_disp.append('abin')
+            continue
+
+         if opt.name == '-disp_ver_afni':
+            self.act = 1
+            self.sys_disp.append('ver_afni')
+            continue
+
          if opt.name == '-disp_ver_matplotlib':
             self.act = 1
             self.sys_disp.append('ver_matplotlib')
@@ -592,6 +612,11 @@ class CmdInterface:
       for x in items:
           if x == 'num_cpu':
               print(self.sinfo.get_cpu_count())
+          if x == 'abin':
+              # check this rather than afni?
+              print(SC.get_prog_dir('afni_system_check.py'))
+          if x == 'ver_afni':
+              print(self.sinfo.get_ver_afni())
           if x == 'ver_matplotlib':
               print(self.sinfo.get_ver_matplotlib())
           if x == 'ver_pylibs':

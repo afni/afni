@@ -41,13 +41,17 @@
 
   Mod:     If nsl == 0, set num_slices equal to nz.   [4 occurrences]
   Date:    06 October 2003  [rickr]
+
+  Mod:     allow dx!=dy; use ||dx|-|dy||/|dx| > 0.0001 for failure
+           apply to both square image and against basefile
+  Date:    22 March 2024  [rickr]  (gee, only 20 years since the last change)
 */
 
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME    "2dImReg"                   /* name of this program */
 #define PROGRAM_INITIAL "04 Feb 1998"     /* date of initial program release */
-#define PROGRAM_LATEST  "02 Dec 2002"     /* date of latest program revision */
+#define PROGRAM_LATEST  "20 Mar 2024"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -57,6 +61,9 @@
 #define MAX_NAME_LENGTH THD_MAX_NAME  /* max. string length for file names */ 
 #define STATE_DIM 4                   /* number of registration parameters */ 
 
+
+/*----- protos -----*/ 
+int approx_equal(float d0, float d1, float epsilon, int report_fail);
 
 /*----- Global variables -----*/ 
 int * t_to_z = NULL;           /* convert time-order to z-order of slices */  
@@ -161,6 +168,41 @@ void IR_error
 
 /*---------------------------------------------------------------------------*/
 /*
+  Compare deltas (such as dx between 2 datasets).
+
+  Original tests were if d0 != d1, fail.  But if deltas come from an
+  oblique matrix, they will often not be exact.
+
+  This function tests if the relative difference between them is small.
+
+  Allow d0, d1 of differing signs, and possibly even zero.
+
+        check:   ||d0| - |d1||
+                 -------------  <  epsilon
+                     |d0|
+
+        or:      ||d0| - |d1||  <  epsilon*|d0|
+
+  if returning 0 and report_fail is set, report failure.
+
+  return 0 or 1 to indicate whether the comparison is true
+  [22 Mar 2024 rickr]
+*/
+int approx_equal(float d0, float d1, float epsilon, int report_fail)
+{
+   /* if the difference is too big of a delta fraction, fail */
+   if( fabs(fabs(d0)-fabs(d1)) > epsilon*fabs(d0) ) {
+      if( report_fail )
+         fprintf(stderr, "-- want : ||d0|-|d1||=%f  <  |%f*d0|=%f\n\n",
+                 fabs(d0-d1), epsilon, epsilon*fabs(d0));
+      return 0;
+   }
+
+   return 1;  /* yes, approximately equal */
+}
+
+/*---------------------------------------------------------------------------*/
+/*
   Routine to initialize the input options.
 */
 
@@ -216,140 +258,140 @@ void get_user_inputs
 
       /*-----   -input filename   -----*/
       if (strncmp(argv[nopt], "-input", 6) == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  IR_error ("Need argument after -input ");
-	  (*option_data)->input_filename 
-	    = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  strcpy ((*option_data)->input_filename, argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+        {
+          nopt++;
+          if (nopt >= argc)  IR_error ("Need argument after -input ");
+          (*option_data)->input_filename 
+            = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
+          strcpy ((*option_data)->input_filename, argv[nopt]);
+          nopt++;
+          continue;
+        }
      
 
       /*-----   -basefile filename   -----*/
       if (strncmp(argv[nopt], "-basefile", 9) == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  IR_error ("Need argument after -basefile ");
-	  (*option_data)->base_filename 
-	    = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  strcpy ((*option_data)->base_filename, argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+        {
+          nopt++;
+          if (nopt >= argc)  IR_error ("Need argument after -basefile ");
+          (*option_data)->base_filename 
+            = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
+          strcpy ((*option_data)->base_filename, argv[nopt]);
+          nopt++;
+          continue;
+        }
      
 
       /*-----   -base num  -----*/
       if (strncmp(argv[nopt], "-base", 5) == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  IR_error ("Need argument after -base ");
-	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < 0) 
-	    IR_error ("Illegal argument after -base  ( must be >= 0 ) ");
-	  (*option_data)->base_vol_index = ival;
-	  nopt++;
-	  continue;
-	}
+        {
+          nopt++;
+          if (nopt >= argc)  IR_error ("Need argument after -base ");
+          sscanf (argv[nopt], "%d", &ival);
+          if (ival < 0) 
+            IR_error ("Illegal argument after -base  ( must be >= 0 ) ");
+          (*option_data)->base_vol_index = ival;
+          nopt++;
+          continue;
+        }
 
 
       /*-----   -prefix pname   -----*/
       if (strncmp(argv[nopt], "-prefix", 7) == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  IR_error ("Need argument after -prefix ");
-	  (*option_data)->new_prefix 
-	    = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  strcpy ((*option_data)->new_prefix, argv[nopt]);
+        {
+          nopt++;
+          if (nopt >= argc)  IR_error ("Need argument after -prefix ");
+          (*option_data)->new_prefix 
+            = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
+          strcpy ((*option_data)->new_prefix, argv[nopt]);
 
-	  nopt++;
-	  continue;
-	}
+          nopt++;
+          continue;
+        }
      
 
       /*-----   -dprefix dname   -----*/
       if (strncmp(argv[nopt], "-dprefix", 8) == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  IR_error ("Need argument after -dprefix ");
-	  (*option_data)->dprefix 
-	    = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  strcpy ((*option_data)->dprefix, argv[nopt]);
+        {
+          nopt++;
+          if (nopt >= argc)  IR_error ("Need argument after -dprefix ");
+          (*option_data)->dprefix 
+            = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
+          strcpy ((*option_data)->dprefix, argv[nopt]);
 
-	  nopt++;
-	  continue;
-	}
+          nopt++;
+          continue;
+        }
      
 
       /*-----   -rprefix rname   -----*/
       if (strncmp(argv[nopt], "-rprefix", 8) == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  IR_error ("Need argument after -rprefix ");
-	  (*option_data)->rprefix 
-	    = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  strcpy ((*option_data)->rprefix, argv[nopt]);
+        {
+          nopt++;
+          if (nopt >= argc)  IR_error ("Need argument after -rprefix ");
+          (*option_data)->rprefix 
+            = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
+          strcpy ((*option_data)->rprefix, argv[nopt]);
 
-	  nopt++;
-	  continue;
-	}
+          nopt++;
+          continue;
+        }
      
 
       /*-----   -nofine -----*/
       if (strncmp(argv[nopt], "-nofine", 7) == 0)
-	{
-	  (*option_data)->nofine = 1;
-	  nopt++;
-	  continue;
-	}
+        {
+          (*option_data)->nofine = 1;
+          nopt++;
+          continue;
+        }
 
            
       /*-----   -fine blur dxy dphi  -----*/
       if (strncmp(argv[nopt], "-fine", 5) == 0)
-	{
-	  nopt++;
-	  if (nopt+2 >= argc)  IR_error ("Need 3 arguments after -fine ");
-	  (*option_data)->nofine = 0;
+        {
+          nopt++;
+          if (nopt+2 >= argc)  IR_error ("Need 3 arguments after -fine ");
+          (*option_data)->nofine = 0;
 
-	  sscanf (argv[nopt], "%f", &fval);
-	  if (fval <= 0.0) 
-	    IR_error ("Illegal argument for blur  ( must be > 0 ) ");
-	  (*option_data)->blur = fval;
-	  nopt++;
+          sscanf (argv[nopt], "%f", &fval);
+          if (fval <= 0.0) 
+            IR_error ("Illegal argument for blur  ( must be > 0 ) ");
+          (*option_data)->blur = fval;
+          nopt++;
 
-	  sscanf (argv[nopt], "%f", &fval);
-	  if (fval <= 0.0)
-	    IR_error ("Illegal argument for dxy  ( must be > 0 ) ");
-	  (*option_data)->dxy = fval;
-	  nopt++;
+          sscanf (argv[nopt], "%f", &fval);
+          if (fval <= 0.0)
+            IR_error ("Illegal argument for dxy  ( must be > 0 ) ");
+          (*option_data)->dxy = fval;
+          nopt++;
 
-	  sscanf (argv[nopt], "%f", &fval);
-	  if (fval <= 0.0)
-	    IR_error ("Illegal argument for dphi  ( must be > 0 ) ");
-	  (*option_data)->dphi = fval;
-	  nopt++;
+          sscanf (argv[nopt], "%f", &fval);
+          if (fval <= 0.0)
+            IR_error ("Illegal argument for dphi  ( must be > 0 ) ");
+          (*option_data)->dphi = fval;
+          nopt++;
 
-	  continue;
-	}
+          continue;
+        }
       
 
       /*-----   -dmm -----*/
       if (strncmp(argv[nopt], "-dmm", 4) == 0)
-	{
-	  (*option_data)->dmm = 1;
-	  nopt++;
-	  continue;
-	}
+        {
+          (*option_data)->dmm = 1;
+          nopt++;
+          continue;
+        }
 
            
       /*-----   -debug -----*/
       if (strncmp(argv[nopt], "-debug", 6) == 0)
-	{
-	  (*option_data)->debug = 1;
-	  nopt++;
-	  continue;
-	}
+        {
+          (*option_data)->debug = 1;
+          nopt++;
+          continue;
+        }
 
            
       /*----- unknown command -----*/
@@ -383,7 +425,7 @@ void read_dataset
   if (*dset == NULL)  
     { 
       sprintf (message, 
-	       "Unable to open data file: %s", filename);
+               "Unable to open data file: %s", filename);
       IR_error (message);
     }
 
@@ -442,15 +484,15 @@ void initialize_slice_sequence
   for (i = 0;  i < num_slices-1;  i++)
     for (j = i+1;  j < num_slices;  j++)
       if (time_array[j] < time_array[i])
-	{
-	  itemp = t_to_z[i];
-	  t_to_z[i] = t_to_z[j];
-	  t_to_z[j] = itemp;
+        {
+          itemp = t_to_z[i];
+          t_to_z[i] = t_to_z[j];
+          t_to_z[j] = itemp;
 
-	  ttemp = time_array[i];
-	  time_array[i] = time_array[j];
-	  time_array[j] = ttemp;
-	} 
+          ttemp = time_array[i];
+          time_array[i] = time_array[j];
+          time_array[j] = ttemp;
+        } 
 
 
   /*----- Sort slice time-indices by increasing z index -----*/
@@ -465,7 +507,7 @@ void initialize_slice_sequence
   if (option_data->debug)
     for (i = 0;  i < num_slices;  i++)
       printf ("time[%2d] = %12.3f   t_to_z[%2d] = %2d   z_to_t[%2d] = %2d\n",
-	      i, time_array[i], i, t_to_z[i], i, z_to_t[i]);
+              i, time_array[i], i, t_to_z[i], i, z_to_t[i]);
 
   
   /*----- Release memory -----*/
@@ -677,23 +719,23 @@ void check_output_file
   
   
   ierror = EDIT_dset_items( new_dset ,
-			    ADN_prefix , filename ,
-			    ADN_label1 , filename ,
-			    ADN_self_name , filename ,
-			    ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE : 
-                               			      GEN_FUNC_TYPE ,
-			    ADN_none ) ;
+                            ADN_prefix , filename ,
+                            ADN_label1 , filename ,
+                            ADN_self_name , filename ,
+                            ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE : 
+                                                      GEN_FUNC_TYPE ,
+                            ADN_none ) ;
   
   if( ierror > 0 ){
     fprintf(stderr,
-	    "*** %d errors in attempting to create output dataset!\n", ierror ) ;
+            "*** %d errors in attempting to create output dataset!\n", ierror ) ;
     exit(1) ;
   }
   
   if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
-	    "*** Output dataset file %s already exists--cannot continue!\a\n",
-	    new_dset->dblk->diskptr->header_name ) ;
+            "*** Output dataset file %s already exists--cannot continue!\a\n",
+            new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
   
@@ -765,65 +807,65 @@ void eval_registration
 
       /*----- Set old and new dataset pointers depending on datum type -----*/
       switch ( datum )
-	{  
-	case MRI_byte:
-	  bold = (byte *) DSET_ARRAY(old_dset,ivolume);  
-	  bnew = (byte *) DSET_ARRAY(new_dset,ivolume);  break;
-	  
-	case MRI_short:
-	  sold = (short *) DSET_ARRAY(old_dset,ivolume);  
-	  snew = (short *) DSET_ARRAY(new_dset,ivolume);  break;
-	  
-	case MRI_float:
-	  fold = (float *) DSET_ARRAY(old_dset,ivolume);  
-	  fnew = (float *) DSET_ARRAY(new_dset,ivolume);  break;
-	}
+        {  
+        case MRI_byte:
+          bold = (byte *) DSET_ARRAY(old_dset,ivolume);  
+          bnew = (byte *) DSET_ARRAY(new_dset,ivolume);  break;
+          
+        case MRI_short:
+          sold = (short *) DSET_ARRAY(old_dset,ivolume);  
+          snew = (short *) DSET_ARRAY(new_dset,ivolume);  break;
+          
+        case MRI_float:
+          fold = (float *) DSET_ARRAY(old_dset,ivolume);  
+          fnew = (float *) DSET_ARRAY(new_dset,ivolume);  break;
+        }
 
       
       for (kz = 0;  kz < nz;  kz++)
-	for (jy = 0;  jy < ny;  jy++)
-	  for (ix = 0;  ix < nx;  ix++)
-	    {
-	      ixyz = ix + jy*nx + kz*nx*ny;
+        for (jy = 0;  jy < ny;  jy++)
+          for (ix = 0;  ix < nx;  ix++)
+            {
+              ixyz = ix + jy*nx + kz*nx*ny;
 
-	      /*----- Get base voxel floating point value -----*/
-	      switch ( base_datum )
-		{ 
-		case MRI_byte:   float_base = (float) bbase[ixyz];  break;
-		  
-		case MRI_short:  float_base = (float) sbase[ixyz];  break;
-		  
-		case MRI_float:  float_base = fbase[ixyz];  break;
-		}
-	      
-	      /*----- Get old and new voxel floating point value -----*/
-	      switch ( datum )
-		{  
-		case MRI_byte:
-		  float_old = (float) bold[ixyz];  
-		  float_new = (float) bnew[ixyz];  break;
-		  
-		case MRI_short:
-		  float_old = (float) sold[ixyz];  
-		  float_new = (float) snew[ixyz];  break;
-		  
-		case MRI_float:
-		  float_old = fold[ixyz];  
-		  float_new = fnew[ixyz];  break;
-		}
+              /*----- Get base voxel floating point value -----*/
+              switch ( base_datum )
+                { 
+                case MRI_byte:   float_base = (float) bbase[ixyz];  break;
+                  
+                case MRI_short:  float_base = (float) sbase[ixyz];  break;
+                  
+                case MRI_float:  float_base = fbase[ixyz];  break;
+                }
+              
+              /*----- Get old and new voxel floating point value -----*/
+              switch ( datum )
+                {  
+                case MRI_byte:
+                  float_old = (float) bold[ixyz];  
+                  float_new = (float) bnew[ixyz];  break;
+                  
+                case MRI_short:
+                  float_old = (float) sold[ixyz];  
+                  float_new = (float) snew[ixyz];  break;
+                  
+                case MRI_float:
+                  float_old = fold[ixyz];  
+                  float_new = fnew[ixyz];  break;
+                }
 
-	      diff = float_old - float_base;
-	      old_sse += diff*diff;
-	      diff = float_new - float_base;
-	      new_sse += diff*diff;
-	    }
+              diff = float_old - float_base;
+              old_sse += diff*diff;
+              diff = float_new - float_base;
+              new_sse += diff*diff;
+            }
       
       old_rmse = sqrt (old_sse / nxyz);
       new_rmse = sqrt (new_sse / nxyz);
 
       if (option_data->debug)
-	printf ("Volume = %d   OLD RMSE = %f   NEW RMSE = %f \n", 
-		ivolume, old_rmse, new_rmse);
+        printf ("Volume = %d   OLD RMSE = %f   NEW RMSE = %f \n", 
+                ivolume, old_rmse, new_rmse);
       
       old_rms_array[ivolume] = old_rmse;
       new_rms_array[ivolume] = new_rmse;
@@ -901,14 +943,17 @@ char * IMREG_main
    ny = old_dset->daxes->nyy ; dy = old_dset->daxes->yydel ; npix = nx*ny ;
    nz = old_dset->daxes->nzz ; dz = old_dset->daxes->zzdel ;
 
-   if( nx != ny || fabs(dx) != fabs(dy) ){
+   if (opt->debug)
+     fprintf(stderr,"\nNotice 2dImreg: nx=%d ny=%d nz=%d  dx=%f dy=%f dz=%f\n",
+          nx,ny,nz,dx,dy,dz ) ;
+
+   /* be more lenient than failing anytime fabs(dx) != fabs(dy)
+    * - only require (dx-dy)/dx < epsilon   {epsilon = 0.0001, report_fail = 1}
+    * - mostly to handle oblique data       [20 Mar 2024 rickr] */
+   if( nx != ny || ! approx_equal(dx, dy, 0.0001, 1) ) {
 
      /*     No need to quit, works fine.  ZSS 07
       *     Only if nx >= ny (so fix might be easy).  12 Jan 2010 [rickr] */
-     if (opt->debug)
-     fprintf(stderr,"\nNotice 2dImreg: nx=%d ny=%d nz=%d  dx=%f dy=%f dz=%f\n",
-	       nx,ny,nz,dx,dy,dz ) ;
-
       return "***********************************\n"
              "Dataset does not have square slices\n"
              "***********************************"  ;
@@ -933,30 +978,36 @@ char * IMREG_main
        base_dset = THD_open_one_dataset(opt->base_filename) ;   
                                                   /* get ptr to base dataset */
        if( base_dset == NULL )
-	 return "************************\n"
-	        "Cannot find Base Dataset\n"
-	        "************************"  ;
+         return "************************\n"
+                "Cannot find Base Dataset\n"
+                "************************"  ;
 
-       if ( (nx != base_dset->daxes->nxx) || (dx != base_dset->daxes->xxdel)
-	 || (ny != base_dset->daxes->nyy) || (dy != base_dset->daxes->yydel)
-	 || (nz != base_dset->daxes->nzz) || (dz != base_dset->daxes->zzdel) )
-	 {
-	   if (opt->debug)
-	       {
-		 fprintf(stderr,"\nIMREG: Input Dataset:\n");
-		 fprintf(stderr,"nx=%d ny=%d nz=%d  dx=%f dy=%f dz=%f\n",
-		     nx,ny,nz,dx,dy,dz ) ;
+      /* be more lenient than failing anytime fabs(dx) != fabs(xxdel)
+       * - only require (d0-d1)/d0 < epsilon  {epsilon=0.0001, report_fail=1}
+       * - mostly to handle oblique data       [20 Mar 2024 rickr] */
+       if ( (nx != base_dset->daxes->nxx)
+         || (ny != base_dset->daxes->nyy)
+         || (nz != base_dset->daxes->nzz)
+         || ( ! approx_equal(dx, base_dset->daxes->xxdel, 0.0001, 1) )
+         || ( ! approx_equal(dy, base_dset->daxes->yydel, 0.0001, 1) )
+         || ( ! approx_equal(dz, base_dset->daxes->zzdel, 0.0001, 1) ) )
+         {
+           if (opt->debug)
+               {
+                 fprintf(stderr,"\nIMREG: Input Dataset:\n");
+                 fprintf(stderr,"nx=%d ny=%d nz=%d  dx=%f dy=%f dz=%f\n",
+                     nx,ny,nz,dx,dy,dz ) ;
 
-		 fprintf(stderr,"\nIMREG: Base Dataset:\n");
-		 fprintf(stderr,"nx=%d ny=%d nz=%d  dx=%f dy=%f dz=%f\n",
-			 base_dset->daxes->nxx,   base_dset->daxes->nyy,
-			 base_dset->daxes->nzz,   base_dset->daxes->xxdel,
-			 base_dset->daxes->yydel, base_dset->daxes->zzdel) ;
-	       }
-	   return "*************************************************\n"
-	          "Base Dataset is not compatible with Input Dataset\n"
-	          "*************************************************"  ;
-	 }
+                 fprintf(stderr,"\nIMREG: Base Dataset:\n");
+                 fprintf(stderr,"nx=%d ny=%d nz=%d  dx=%f dy=%f dz=%f\n",
+                         base_dset->daxes->nxx,   base_dset->daxes->nyy,
+                         base_dset->daxes->nzz,   base_dset->daxes->xxdel,
+                         base_dset->daxes->yydel, base_dset->daxes->zzdel) ;
+               }
+           return "*************************************************\n"
+                  "Base Dataset is not compatible with Input Dataset\n"
+                  "*************************************************"  ;
+         }
      }
 
    base_datum = DSET_BRICK_TYPE(base_dset,0);
@@ -987,7 +1038,7 @@ char * IMREG_main
       mri_align_params( 0 , 0.0,0.0,0.0 , fsig,fdxy,fdph ) ;
 
       if (opt->debug)
-	fprintf(stderr,"Set fine params = %f %f %f\n",fsig,fdxy,fdph) ; 
+        fprintf(stderr,"Set fine params = %f %f %f\n",fsig,fdxy,fdph) ; 
    }
 
    /*------------- ready to compute new dataset -----------*/
@@ -1057,9 +1108,9 @@ char * IMREG_main
             sout[ii]  = (short *) DSET_ARRAY(new_dset,ii) ;
          }
 
-	 if (opt->debug)
-	   fprintf(stderr,"IMREG: sptr[0] = %p  sout[0] = %p\n",
-		   sptr[0],sout[0]) ;
+         if (opt->debug)
+           fprintf(stderr,"IMREG: sptr[0] = %p  sout[0] = %p\n",
+                   sptr[0],sout[0]) ;
 
       break ;
 
@@ -1075,17 +1126,17 @@ char * IMREG_main
 
    switch( base_datum ){  /* pointer type depends on base datum type */
       case MRI_byte:
-	bbase = (byte *) DSET_ARRAY(base_dset,base) ; 
+        bbase = (byte *) DSET_ARRAY(base_dset,base) ; 
       break ;
 
       case MRI_short:
-	sbase = (short *) DSET_ARRAY(base_dset,base) ;
-	if (opt->debug)
-	  fprintf(stderr,"IMREG: sbase[%d] = %p \n", base, sbase) ;
+        sbase = (short *) DSET_ARRAY(base_dset,base) ;
+        if (opt->debug)
+          fprintf(stderr,"IMREG: sbase[%d] = %p \n", base, sbase) ;
       break ;
 
       case MRI_float:
-	fbase = (float *) DSET_ARRAY(base_dset,base) ;
+        fbase = (float *) DSET_ARRAY(base_dset,base) ;
       break ;
    }
 
@@ -1103,33 +1154,33 @@ char * IMREG_main
          im = IMARR_SUBIMAGE(ims_in,ii) ;
          switch( datum ){
             case MRI_byte:  
-	      mri_fix_data_pointer( bptr[ii] + kk*npix, im ) ; break ;
+              mri_fix_data_pointer( bptr[ii] + kk*npix, im ) ; break ;
             case MRI_short: 
-	      mri_fix_data_pointer( sptr[ii] + kk*npix, im ) ; break ;
+              mri_fix_data_pointer( sptr[ii] + kk*npix, im ) ; break ;
             case MRI_float: 
-	      mri_fix_data_pointer( fptr[ii] + kk*npix, im ) ; break ;
+              mri_fix_data_pointer( fptr[ii] + kk*npix, im ) ; break ;
          }
       }
 
       /*** 4b) Setup imbase to point to base image ***/
 
       if (opt->debug)
-	fprintf(stderr,"IMREG: slice %d -- setup base image\n",kk) ;
+        fprintf(stderr,"IMREG: slice %d -- setup base image\n",kk) ;
 
 
       switch( base_datum ){
          case MRI_byte:  
-	   mri_fix_data_pointer( bbase + kk*npix, imbase ) ; break ;
+           mri_fix_data_pointer( bbase + kk*npix, imbase ) ; break ;
          case MRI_short: 
-	   mri_fix_data_pointer( sbase + kk*npix, imbase ) ; break ;
+           mri_fix_data_pointer( sbase + kk*npix, imbase ) ; break ;
          case MRI_float: 
-	   mri_fix_data_pointer( fbase + kk*npix, imbase ) ; break ;
+           mri_fix_data_pointer( fbase + kk*npix, imbase ) ; break ;
       }
 
       /*** 4c) Register this slice at all times ***/
 
       if (opt->debug)
-	fprintf(stderr,"IMREG: slice %d -- register\n",kk) ;
+        fprintf(stderr,"IMREG: slice %d -- register\n",kk) ;
 
 
       ims_out = mri_align_dfspace( imbase , NULL , ims_in ,
@@ -1138,7 +1189,7 @@ char * IMREG_main
       /* hack of a fix for failure case       08 Apr 2008 [rickr/dglen] */
       failed = 0;
       if( ims_out == NULL ) {
-	fprintf(stderr,"IMREG failure (zero slice?), copying input\n");
+        fprintf(stderr,"IMREG failure (zero slice?), copying input\n");
         failed = 1;
         ims_out = ims_in;
       }
@@ -1146,29 +1197,29 @@ char * IMREG_main
       
       /*----- Store the registration parameters -----*/
       if (opt->dprefix != NULL)
-	for (ii = 0;  ii < ntime;  ii++)
-	  {
-	    it = ii*nz + z_to_t[kk];
-	    if (opt->dmm)
-	      {
-		state_history[it].elts[1] = dxar[ii] * dx;
-		state_history[it].elts[2] = dyar[ii] * dy;
-	      }
-	    else
-	      {
-		state_history[it].elts[1] = dxar[ii];
-		state_history[it].elts[2] = dyar[ii];
-	      }
+        for (ii = 0;  ii < ntime;  ii++)
+          {
+            it = ii*nz + z_to_t[kk];
+            if (opt->dmm)
+              {
+                state_history[it].elts[1] = dxar[ii] * dx;
+                state_history[it].elts[2] = dyar[ii] * dy;
+              }
+            else
+              {
+                state_history[it].elts[1] = dxar[ii];
+                state_history[it].elts[2] = dyar[ii];
+              }
 
-	    state_history[it].elts[3] = (180.0/PI)*phiar[ii];
-	  }
+            state_history[it].elts[3] = (180.0/PI)*phiar[ii];
+          }
       
 
       /*** 4d) Put the output back in on top of the input;
-	       note that the output is always in MRI_float format ***/
+               note that the output is always in MRI_float format ***/
 
       if (opt->debug)
-	fprintf(stderr,"IMREG: slice %d -- put output back into dataset\n",kk);
+        fprintf(stderr,"IMREG: slice %d -- put output back into dataset\n",kk);
 
 
       for( ii=0 ; ii < ntime ; ii++ ){
@@ -1176,30 +1227,30 @@ char * IMREG_main
            case MRI_byte:
               im = mri_to_mri( MRI_byte , IMARR_SUBIMAGE(ims_out,ii) ) ;
               memcpy( bout[ii] + kk*npix , MRI_BYTE_PTR(im) , 
-		      sizeof(byte)*npix ) ;
+                      sizeof(byte)*npix ) ;
               mri_free(im) ;
            break ;
 
            case MRI_short:
 
-	     if (opt->debug)
-	       if( ii==0 )
-		 fprintf(stderr,"IMREG: conversion to short at ii=%d\n",ii) ;
+             if (opt->debug)
+               if( ii==0 )
+                 fprintf(stderr,"IMREG: conversion to short at ii=%d\n",ii) ;
 
               im = mri_to_mri( MRI_short , IMARR_SUBIMAGE(ims_out,ii) ) ;
 
-	      if (opt->debug)
-		if( ii==0 )
-		  fprintf(stderr,"IMREG: copying to %p from %p\n",
-			  sout[ii] + kk*npix,MRI_SHORT_PTR(im)) ;
+              if (opt->debug)
+                if( ii==0 )
+                  fprintf(stderr,"IMREG: copying to %p from %p\n",
+                          sout[ii] + kk*npix,MRI_SHORT_PTR(im)) ;
 
 
               memcpy( sout[ii] + kk*npix , MRI_SHORT_PTR(im) , 
-		      sizeof(short)*npix ) ;
+                      sizeof(short)*npix ) ;
 
-	      if (opt->debug)
-		if( ii==0 )
-		  fprintf(stderr,"IMREG: freeing\n") ;
+              if (opt->debug)
+                if( ii==0 )
+                  fprintf(stderr,"IMREG: freeing\n") ;
 
 
               mri_free(im) ;
@@ -1208,7 +1259,7 @@ char * IMREG_main
            case MRI_float:
               im = IMARR_SUBIMAGE(ims_out,ii) ;
               memcpy( fout[ii] + kk*npix , MRI_FLOAT_PTR(im) , 
-		      sizeof(float)*npix ) ;
+                      sizeof(float)*npix ) ;
            break ;
          }
       }
@@ -1216,7 +1267,7 @@ char * IMREG_main
       /*** 4e) Destroy the output images ***/
 
       if (opt->debug)
-	fprintf(stderr,"IMREG: destroying aligned output\n") ;
+        fprintf(stderr,"IMREG: destroying aligned output\n") ;
 
 
       if( !failed ) DESTROY_IMARR( ims_out ) ;  /* 08 Apr 2008 */
@@ -1255,16 +1306,14 @@ char * IMREG_main
   /*----- evaluate results -----*/
   if (opt->rprefix != NULL)
     eval_registration (opt, old_dset, new_dset, base_dset, base, 
-		       old_rms_array, new_rms_array);
+                       old_rms_array, new_rms_array);
 
 
   /*----- deallocate memory -----*/   
   THD_delete_3dim_dataset( old_dset , False ) ; old_dset = NULL ;
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
   if (opt->base_filename != NULL)
-    THD_delete_3dim_dataset( base_dset , False ) ; base_dset = NULL ;
-    
-
+    { THD_delete_3dim_dataset( base_dset , False ) ; base_dset = NULL ; }
 
    return NULL ;  /* null string returned means all was OK */
 }
@@ -1490,8 +1539,8 @@ void terminate_program
 
   /*----- Release memory -----*/
   free (*option_data);     *option_data = NULL;
-  if (t_to_z) free (t_to_z);           t_to_z = NULL;
-  if (z_to_t) free (z_to_t);           z_to_t = NULL;
+  if (t_to_z) { free (t_to_z); t_to_z = NULL; }
+  if (z_to_t) { free (z_to_t); z_to_t = NULL; }
 
   
   if (*old_rms_array != NULL)
@@ -1504,7 +1553,7 @@ void terminate_program
   if (*state_history != NULL)
     {
       for (i = 0;  i < num_vectors;  i++)
-	vector_destroy (&((*state_history)[i]));
+        vector_destroy (&((*state_history)[i]));
       free (*state_history);   *state_history = NULL;
     }
 
@@ -1541,12 +1590,12 @@ int main
 
   /*----- Program initialization -----*/
   initialize_program (argc, argv, &option_data, &state_history, 
-		      &old_rms_array, &new_rms_array);
+                      &old_rms_array, &new_rms_array);
 
 
   /*----- Register all slices in the dataset -----*/
   chptr = IMREG_main (option_data, state_history,
-		      old_rms_array, new_rms_array);
+                      old_rms_array, new_rms_array);
 
 
   /*----- Check for processing errors -----*/
@@ -1559,12 +1608,12 @@ int main
 
   /*----- Output the results -----*/
   output_results (option_data, state_history, 
-		  old_rms_array, new_rms_array);
+                  old_rms_array, new_rms_array);
 
 
   /*----- Terminate the program -----*/
   terminate_program (&option_data, &state_history,
-		     &old_rms_array, &new_rms_array);
+                     &old_rms_array, &new_rms_array);
  
   return 0;
 }
