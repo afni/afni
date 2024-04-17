@@ -13,7 +13,8 @@
 THD_3dim_dataset * EDIT_full_copy( THD_3dim_dataset *dset , char *new_prefix )
 {
    THD_3dim_dataset *new_dset ;
-   int ival , ityp , nbytes , nvals ;
+   int ival , ityp , nvals ;
+   int64_t  nbytes ;
    void *new_brick , *old_brick ;
 
 ENTRY("EDIT_full_copy") ;
