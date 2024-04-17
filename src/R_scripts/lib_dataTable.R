@@ -226,6 +226,15 @@ dtCheck_tryRead <- function(file.in){
     ## read all by line
     data.str <- readLines(file.in)
     
+    ## check for commas
+    if( grepl(".csv",basename(file.in)) ){
+        dtCheck_warn(paste(basename(file.in),"seems to be a csv file"),1)
+        dtCheck_warn("Some AFNI R programs do not accept csv files")
+    } else if( grepl(",",data.str[1]) ){
+        dtCheck_warn(paste(basename(file.in),"seems to be a csv file"),1)
+        dtCheck_warn("Some AFNI R programs do not accept csv files")
+    }
+    
     ## get info from the first line assuming it is a header
     hdr.line <- strsplit(data.str[1], "[, ]|[[:space:]]+")
     
@@ -245,7 +254,7 @@ dtCheck_tryRead <- function(file.in){
         
         ## split line by comma or some spaces
         tmp.line <- strsplit(data.str[i], "[, ]|[[:space:]]+")
-        
+
         ## check for trailing slash
         if( tmp.line[[1]][length(tmp.line[[1]])] == "\\" ){
             tmp.line[[1]] <- tmp.line[[1]][1:(length(tmp.line[[1]])-1)]
