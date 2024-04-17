@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Apr, 2024, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "in THD_load_nifti(), need_copy might imply scale_data",
+   "Thanks to @liningpan on github for reporting this."
+ } ,
+
  { 12, Apr, 2024, RCR, "3dTsplit4D", MINOR, TYPE_NEW_OPT,
    "add -label_prefix, to include labels in the output prefix",
    NULL
