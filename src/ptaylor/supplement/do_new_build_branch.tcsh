@@ -16,7 +16,7 @@ set agbase = ${HOME}/AFNI/afni
 # use ubuntu 20.04 build now!
 set thedate = `date +%Y_%m_%d_%H_%m_%s`
 
-# make sure git repo is uptodate
+# make sure git repo is up-to-date
 cd ${agbase}/src
 git fetch
 git checkout ${label}
