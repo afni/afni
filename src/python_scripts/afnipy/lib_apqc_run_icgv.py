@@ -264,7 +264,7 @@ if ( ${#all_dset} == 0 ) then
 else if ( ${#all_dset} == 1 ) then
     echo "++ Found ulay dset: ${all_dset}"
 else
-    echo "+* Note: found multiple (${#all_dset}) dsets: ${pb}.*.${run}.*.HEAD"
+    echo "++ Note: found multiple (${#all_dset}) dsets: ${pb}.*.${run}.*.HEAD"
     echo "   Assuming this is ME-FMRI"
 endif
 '''
@@ -444,20 +444,20 @@ endif
 '''
 
         if proc_type == 'IC' :
-            # load across pb, and don't forget the IC dset itself
+            # load across runs for a pb, and don't forget the IC dset itself
             otxt+= '''
 # ----- make ordered list of dsets to load
-set all_load  = ( "${dset_ulay}" "${ic_dset}"       \\
-                   *.${run}.*HEAD                   \\
+set all_load  = ( "${all_dset}" "${ic_dset}"        \\
+                   ${pb}.*HEAD                      \\
                    ${dset_vline} ${dset_radcor}     \\
                    *.HEAD *.nii* )
 '''
         elif proc_type == 'GV' :
-            # load across run
+            # load across runs for a pb
             otxt+= '''
 # ----- make ordered list of dsets to load
-set all_load  = ( "${dset_ulay}"                    \\
-                   *.${pb}.*HEAD                    \\
+set all_load  = ( "${all_dset}"                     \\
+                   ${pb}.*HEAD                      \\
                    ${dset_vline} ${dset_radcor}     \\
                    *.HEAD *.nii* )
 '''
@@ -652,6 +652,7 @@ setenv AFNI_VERSION_CHECK       NO
 setenv AFNI_IMAGE_DATASETS      NO
 setenv AFNI_NO_ADOPTION_WARNING YES
 setenv AFNI_FLASH_VIEWSWITCH    NO
+setenv AFNI_SKIP_TCSV_SCAN      YES
 '''
 
     if proc_type == 'IC' :
@@ -739,7 +740,7 @@ set portnum = `afni -available_npb_quiet`
 
     otxt+= '''
 
-afni -q  -no_detach                                                     \\
+afni -q  -no1D -no_detach                                               \\
     -npb ${portnum}                                                     \\
     -com "SWITCH_UNDERLAY    ${dset_ulay}"                              \\
     -com "INSTACORR INIT                                                \\
@@ -860,7 +861,7 @@ set portnum = `afni -available_npb_quiet`
 
     otxt+= '''
 
-afni -q  -no_detach                                                     \\
+afni -q  -no1D -no_detach                                               \\
     -npb ${portnum}                                                     \\
     -com "SWITCH_UNDERLAY    ${dset_ulay}"                              \\
     -com "SET_DICOM_XYZ      ${coord}"                                  \\
