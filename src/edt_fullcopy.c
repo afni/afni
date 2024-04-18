@@ -52,7 +52,8 @@ ENTRY("EDIT_full_copy") ;
 
      if( new_brick == NULL ){
        THD_delete_3dim_dataset( new_dset , False ) ;
-       ERROR_message("EDIT_full_copy: can't malloc %d bytes for new sub-brick %d",nbytes,ival) ;
+       ERROR_message("EDIT_full_copy: can't malloc %" PRId64 " bytes for "
+                     " new sub-brick %d", nbytes, ival) ;
        ININFO_message("   Dataset %s",DSET_HEADNAME(dset)) ;
        RETURN(NULL) ;
      }
