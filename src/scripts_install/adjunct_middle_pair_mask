@@ -4,6 +4,10 @@ set version   = "0.5";  set rev_dat   = "April 18, 2024"
 # + initial program for getting a pair of middling (and maybe
 #   constrained) points within a mask
 #
+set version   = "0.6";  set rev_dat   = "April 18, 2024"
+# + add in fixes with restrictor_mask and add dset checks at
+#   start of program run
+#
 # ----------------------------------------------------------------
 
 set this_prog = "adjunct_middle_pair_mask"
@@ -117,9 +121,26 @@ end
 #    goto BAD_EXIT
 #endif
 
+# check inputs, if they are used
+
 if ( "${input}" == "" ) then
     echo "** ERROR: need to provide input dataset with '-input ..'"
     goto BAD_EXIT
+else
+    set check = `3dinfo -prefix "${input}"`
+    if ( "${check}" == "NO-DSET" ) then
+        echo "** ERROR: cannot find/open input file:  ${input}"
+        goto BAD_EXIT
+    else
+endif
+
+# opt dset to use
+if ( "${dset_restrict}" != "" ) then
+    set check = `3dinfo -prefix "${dset_restrict}"`
+    if ( "${check}" == "NO-DSET" ) then
+        echo "** ERROR: cannot find/open restrict_mask file:  ${dset_restrict}"
+        goto BAD_EXIT
+    else
 endif
 
 # if we are outputting a file, make sure the output dir for it exists
@@ -210,7 +231,6 @@ if ( "${dset_restrict}" != "" ) then
         set check_r = `echo "! ${ttt}" | bc`
     endif
 
-    echo "HEY $check_l $check_r"
     if ( $check_l == 0 && $check_r == 0 ) then
         # best scenario---checks passed
         goto GOOD_RESTRICT
@@ -239,7 +259,7 @@ if ( "${dset_restrict}" != "" ) then
         -nscale
 
     # check overlap
-    set max = `3dinfo -max dset_12_inp_rest_l.nii.gz`
+    set max = `3dinfo -max ${odir}/${wdir}/dset_03_inp_rest_olap.nii.gz`
     if ( "${max}" == "0" ) then
         # bad scenario: no overlap, so nothing to do; make dummy coords
         set icent_l = ( 0 0 0 )
@@ -358,11 +378,11 @@ endif
 # ---------------------------------------------------------------------
 # move out of wdir to the odir
 
-if ( $DO_AMASK && $DO_CLEAN == 1 ) then
+if ( $DO_WDIR && $DO_CLEAN == 1 ) then
     cd "${odir}"
     \rm -rf "${wdir}"
     cd -
-else if ( $DO_AMASK ) then
+else if ( $DO_WDIR ) then
     echo "++ NOT removing temporary working dir: ${odir}/${wdir}"
 endif
 
