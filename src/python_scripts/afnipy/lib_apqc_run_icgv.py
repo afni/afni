@@ -255,25 +255,45 @@ otxt : str
 
     if input_type == 'pbrun' :
         otxt+= '''
-set dset_ulay = `find . -maxdepth 1 -name "${pb}.*.${run}.*.HEAD" | cut -b3- \\
-                      | sort`
+set all_dset = `find . -maxdepth 1 -name "${pb}.*.${run}.*.HEAD" \\
+                      | cut -b3- | sort`
 
-if ( ${#dset_ulay} == 0 ) then
+if ( ${#all_dset} == 0 ) then
     echo "** Exiting: could not find dset: ${pb}.*.${run}.*.HEAD"
     exit 1
-else if ( ${#dset_ulay} == 1 ) then
-    echo "++ Found ulay dset: ${dset_ulay}"
+else if ( ${#all_dset} == 1 ) then
+    echo "++ Found ulay dset: ${all_dset}"
 else
-    echo "+* Note: found multiple (${#dset_ulay}) dsets: ${pb}.*.${run}.*.HEAD"
+    echo "+* Note: found multiple (${#all_dset}) dsets: ${pb}.*.${run}.*.HEAD"
     echo "   Assuming this is ME-FMRI"
 endif
 '''
-        if proc_type == 'IC' :
+
+        # navigate fact we might have ME-FMRI here
+        idx = -1
+        if is_valid_ap_ssdict( ap_ssdict ) :
+            ldep = ['reg_echo']
+            if lat.check_dep(ap_ssdict, ldep) :
+                idx = int(ap_ssdict['reg_echo'])
+                otxt+= '''
+
+# Set index from reg_echo uvar (looks like using ME-FMRI)
+set idx = {idx}
+set dset_ulay = "${{all_dset[$idx]}}"
+'''.format(idx=idx)
+        
+        # essentially alternatives to previous nested case
+        if idx < 0 :
             otxt+= '''
 
-# Get middle dset in all cases (is just first if N=1); in case of ME-FMRI
-set idx = `echo "scale=0; (${#dset_ulay}+1)/2" | bc`
-set ic_dset = "${dset_ulay[$idx]}"
+# Set index to be 'middle' dset (is just first if N=1)
+set idx = `echo "scale=0; (${#all_dset}+1)/2" | bc`
+set dset_ulay = "${all_dset[$idx]}"
+'''
+
+        if proc_type == 'IC' :
+            otxt+= '''
+set ic_dset   = "${dset_ulay}"
 '''
 
     elif input_type == 'errts' :
