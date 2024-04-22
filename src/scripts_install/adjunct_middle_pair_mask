@@ -150,7 +150,9 @@ endif
 if ( "${opref}" != "" ) then
     # check output directory, use input one if nothing given
     if ( ! -e "${odir}" ) then
-        echo "++ Making new output directory: $odir"
+        if ( ${verb} ) then
+            echo "++ Making new output directory: $odir"
+        endif
         \mkdir -p "${odir}"
     endif
 endif
@@ -163,11 +165,15 @@ if ( $DO_WDIR ) then
     endif
     # make the working directory
     if ( ! -e "${odir}/${wdir}" ) then
-        echo "++ Making working directory: ${odir}/${wdir}"
+        if ( ${verb} ) then
+            echo "++ Making working directory: ${odir}/${wdir}"
+        endif
         \mkdir -p "${odir}/${wdir}"
     else
-        echo "+* WARNING:  Somehow found a premade working directory (?):"
-        echo "      ${odir}/${wdir}"
+        if ( ${verb} ) then
+            echo "+* WARNING:  Somehow found a premade working directory (?):"
+            echo "      ${odir}/${wdir}"
+        endif
     endif
 endif
 
@@ -450,7 +456,11 @@ Options ~1~
 -overwrite         :flag to turn on overwriting of prior existing file
                     if '-prefix ..' is used
 
--verb              :spit out a bit of extra text info about calcs
+-verb              :spit out a bit of extra text info about calcs. 
+                    NB: if you use this opt, then you won't want to try to
+                    get the seed-based coordinates by redirecting 
+                    output to a file with '>' but instead would need
+                    to use '-prefix ..' for that.
 
 -no_num_out        :do not report the two coordinates in the terminal output
                     (stdout). Probably this means you are using '-prefix ..'
