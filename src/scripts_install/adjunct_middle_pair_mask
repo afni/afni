@@ -8,8 +8,13 @@
 # + add in fixes with restrictor_mask and add dset checks at
 #   start of program run
 #
-set version   = "0.7";  set rev_dat   = "April 22, 2024"
+#set version   = "0.7";  set rev_dat   = "April 22, 2024"
 # + squash if/endif bug
+#
+set version   = "0.8";  set rev_dat   = "April 22, 2024"
+# + '3dmask_dump -xbox ...' -> '3dmask_dump -dbox ...'
+#   and 3dmask_dump will soon undergo parallel improvements with
+#   individual coordinate selection, a la RCR and DRG conversation
 #
 # ----------------------------------------------------------------
 
@@ -226,17 +231,17 @@ if ( "${dset_restrict}" != "" ) then
     # xyz coord is outside the grid; if that doesn't happen, check for
     # mask value
 
-    3dmaskdump -quiet -noijk -xbox ${icent_l} "${dset_restrict}" >& /dev/null
+    3dmaskdump -quiet -noijk -dbox ${icent_l} "${dset_restrict}" >& /dev/null
     set check_l = $status
     if ( ! $check_l ) then
-        set ttt = `3dmaskdump -quiet -noijk -xbox ${icent_l} "${dset_restrict}"`
+        set ttt = `3dmaskdump -quiet -noijk -dbox ${icent_l} "${dset_restrict}"`
         set check_l = `echo "! ${ttt}" | bc`
     endif
 
-    3dmaskdump -quiet -noijk -xbox ${icent_r} "${dset_restrict}" >& /dev/null
+    3dmaskdump -quiet -noijk -dbox ${icent_r} "${dset_restrict}" >& /dev/null
     set check_r = $status
     if ( ! $check_r ) then
-        set ttt = `3dmaskdump -quiet -noijk -xbox ${icent_r} "${dset_restrict}"`
+        set ttt = `3dmaskdump -quiet -noijk -dbox ${icent_r} "${dset_restrict}"`
         set check_r = `echo "! ${ttt}" | bc`
     endif
 
