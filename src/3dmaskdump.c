@@ -91,13 +91,19 @@ int main( int argc , char * argv[] )
  "              * Do not use quotes inside the 'opts' string!\n"
  "\n"
  "  -xbox x y z   Means to put a 'mask' down at the dataset (not DICOM)\n"
- "                  coordinates of 'x y z' mm.  By default, this box is\n"
- "                  1 voxel wide in each direction.  You can specify\n"
- "                  instead a range of coordinates using a colon ':'\n"
- "                  after the coordinates; for example:\n"
+ "                  coordinates of 'x y z' mm.\n"
+ "       Notes: * By default, this box is 1 voxel wide in each direction,\n"
+ "                  rounding to the closest voxel center to the given single\n"
+ "                  coordinate.\n"
+ "                  Alternatively, one can specify a range of coordinates\n"
+ "                  using colon ':' as a separator; for example:\n"
  "                    -xbox 22:27 31:33 44\n"
  "                  means a box from (x,y,z)=(22,31,44) to (27,33,44).\n"
- "           NOTE: dataset coordinates are NOT the coordinates you\n"
+ "                  Use of the colon makes the range strict, meaning voxels\n"
+ "                  outside the exact range will be omitted.  Since 44 is\n"
+ "                  not specified with a range, the closest z coordinate\n"
+ "                  to 44 is used, while the x and y coordinates are strict.\n"
+ "              * Dataset coordinates are NOT the coordinates you\n"
  "                 typically see in AFNI's main controller top left corner.\n"
  "                 Those coordinates are typically in either RAI/DICOM order\n"
  "                 or in LPI/SPM order and should be used with -dbox and\n"
@@ -508,9 +514,29 @@ int main( int argc , char * argv[] )
        if( ybot > ytop ){ dx = ybot; ybot = ytop; ytop = dx; }
        if( zbot > ztop ){ dx = zbot; zbot = ztop; ztop = dx; }
 
+       /* default is 1 voxel, so if if bot == top, round voxel index
+        * else: be strict with range                    [22 Apr 2024 rickr] */
        /* do not round, it could add unrequested voxels [24 Nov 2021 rickr] */
-       ibot = ceilf(xbot) ;  jbot = ceilf(ybot) ;  kbot = ceilf(zbot) ;
-       itop = floorf(xtop) ; jtop = floorf(ytop) ; ktop = floorf(ztop) ;
+       if( xbot == xtop ) {
+          ibot = itop = rint(xbot);
+       } else {
+          ibot = ceilf(xbot);
+          itop = floorf(xtop);
+       }
+
+       if( ybot == ytop ) {
+          jbot = jtop = rint(ybot);
+       } else {
+          jbot = ceilf(ybot);
+          jtop = floorf(ytop);
+       }
+
+       if( zbot == ztop ) {
+          kbot = ktop = rint(zbot);
+       } else {
+          kbot = ceilf(zbot);
+          ktop = floorf(ztop);
+       }
 
        /* skip box if outside dataset */
        if ( itop < 0 || ibot >= nx ) continue;
