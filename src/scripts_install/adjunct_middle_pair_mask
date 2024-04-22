@@ -1,12 +1,15 @@
 #!/bin/tcsh
 
-set version   = "0.5";  set rev_dat   = "April 18, 2024"
+#set version   = "0.5";  set rev_dat   = "April 18, 2024"
 # + initial program for getting a pair of middling (and maybe
 #   constrained) points within a mask
 #
-set version   = "0.6";  set rev_dat   = "April 18, 2024"
+#set version   = "0.6";  set rev_dat   = "April 18, 2024"
 # + add in fixes with restrictor_mask and add dset checks at
 #   start of program run
+#
+set version   = "0.7";  set rev_dat   = "April 22, 2024"
+# + squash if/endif bug
 #
 # ----------------------------------------------------------------
 
@@ -131,7 +134,7 @@ else
     if ( "${check}" == "NO-DSET" ) then
         echo "** ERROR: cannot find/open input file:  ${input}"
         goto BAD_EXIT
-    else
+    endif
 endif
 
 # opt dset to use
@@ -140,7 +143,7 @@ if ( "${dset_restrict}" != "" ) then
     if ( "${check}" == "NO-DSET" ) then
         echo "** ERROR: cannot find/open restrict_mask file:  ${dset_restrict}"
         goto BAD_EXIT
-    else
+    endif
 endif
 
 # if we are outputting a file, make sure the output dir for it exists
