@@ -2,11 +2,35 @@
 
 // [PT, Dec, 2016] update to allow ijk output in local orientation
 
+/*
+  [PT: Apr 2024] So that XYZ coords will consistently in RAI-Dicom
+  format by default, resample the input dset and then process it,
+  *unless* '-local_ijk' is used.
+*/
+ 
+int dset_get_orient( THD_3dim_dataset *ddd, 
+                     char *ori );
+
+// Give all dsets a consistent origin, and be able to change
+int dset_get_orient( THD_3dim_dataset *ddd, 
+                     char *ori )
+{
+   
+   // store original order
+   ori[0]=ORIENT_typestr[ddd->daxes->xxorient][0];
+   ori[1]=ORIENT_typestr[ddd->daxes->yyorient][0];
+   ori[2]=ORIENT_typestr[ddd->daxes->zzorient][0];
+   ori[3]='\0';
+
+   //INFO_message(" DSET orient:  %s", ori);
+   return 0;
+}
+
 int main( int argc , char * argv[] )
 {
    int narg=1, do_automask=0 , iv , nxyz , do_set=0 , 
       *rois=NULL, N_rois=0, all_rois = 0;
-   THD_3dim_dataset *xset ;
+   THD_3dim_dataset *xset = NULL ;
    byte *mmm=NULL ; int nmask=0 , nvox_mask=0 ;
    THD_fvec3 cmv , setv ;
 
@@ -15,7 +39,17 @@ int main( int argc , char * argv[] )
    int LocalHead = wami_lh();
    int Icent = 0;  // compute Icent internal center
    int Dcent = 0;  // compute Dcent distance center
-        
+   
+   THD_3dim_dataset *mask_dset = NULL ;
+
+   // [PT: Apr 23, 2024] for resampling internally
+   char dset_orient_ref[4] = "RAI";  // internally resampling all to this
+	char dset_orient_inp[4] = "   ";  // [4]="---";
+	char dset_orient_ext[4] = "   ";  // [4]="---";
+   THD_3dim_dataset *tmpset = NULL;
+   char tmppref[THD_MAX_PREFIX];
+   int i = 0;
+
    /*-- read command line arguments --*/
 
    if( argc < 2 || strncmp(argv[1],"-help",5) == 0 ){
@@ -62,20 +96,19 @@ int main( int argc , char * argv[] )
    while( narg < argc && argv[narg][0] == '-' ){
 
       if( strcmp(argv[narg],"-set") == 0 ){
-         float xset,yset,zset ;
+         float xin,yin,zin ;
          if( narg+3 >= argc ){
             fprintf(stderr,"*** -set need 3 args following!\n") ; exit(1) ;
          }
-         xset = strtod( argv[++narg] , NULL ) ;
-         yset = strtod( argv[++narg] , NULL ) ;
-         zset = strtod( argv[++narg] , NULL ) ;
-         LOAD_FVEC3(setv,xset,yset,zset) ; do_set = 1 ;
+         xin = strtod( argv[++narg] , NULL ) ;
+         yin = strtod( argv[++narg] , NULL ) ;
+         zin = strtod( argv[++narg] , NULL ) ;
+         LOAD_FVEC3(setv,xin,yin,zin) ; do_set = 1 ;
          THD_set_write_compression(COMPRESS_NONE); // do not alter compression
          narg++ ; continue ;
       }
 
       if( strncmp(argv[narg],"-mask",5) == 0 ){
-         THD_3dim_dataset *mask_dset ;
          if( mmm != NULL ){
             fprintf(stderr,"*** Cannot have two -mask options!\n") ; 
             exit(1) ;
@@ -96,15 +129,6 @@ int main( int argc , char * argv[] )
                     "*** Cannot deal with complex-valued mask dataset!\n");
             exit(1) ;
          }
-         mmm = THD_makemask( mask_dset , 0 , 1.0,0.0 ) ;
-         nvox_mask = DSET_NVOX(mask_dset) ;
-         nmask = THD_countmask( nvox_mask , mmm ) ;
-         if( mmm == NULL || nmask <= 0 ){
-            fprintf(stderr,
-                    "*** Can't make mask from dataset %s\n", argv[narg-1]);
-            exit(1) ;
-         }
-         DSET_delete( mask_dset ) ;
          narg++ ; continue ;
       }
 
@@ -162,6 +186,36 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** No input dataset!?\n") ; exit(1) ;
    }
 
+   /* process the mask, as necessary */
+
+   if ( mask_dset ) {
+      // [PT: Apr 23, 2024] see note from same date below about
+      // (maybe) initial resampling; use same 'if' condition as below
+      i = dset_get_orient( mask_dset, dset_orient_inp);
+      if ( cmode != 1 && strcmp(dset_orient_inp, dset_orient_ref) != 0 ) {
+         INFO_message("HEY, I AM HERE (MASK): %d %s", cmode, dset_orient_inp);
+         MCW_strncpy( tmppref, DSET_PREFIX(mask_dset), THD_MAX_PREFIX ) ;
+         INFO_message("TMPPREF: %s", tmppref);
+         tmpset = r_new_resam_dset( mask_dset, NULL, 0.0, 0.0, 0.0,
+                                    dset_orient_ref, RESAM_NN_TYPE, 
+                                    NULL, 1, 0);   
+         DSET_delete(mask_dset);  mask_dset=tmpset;  tmpset=NULL;
+         EDIT_dset_items( mask_dset, ADN_prefix, tmppref, ADN_none);
+      }
+
+      mmm = THD_makemask( mask_dset, 0, 1.0, 0.0 );
+      nvox_mask = DSET_NVOX(mask_dset);
+      nmask = THD_countmask( nvox_mask , mmm );
+      if( mmm == NULL || nmask <= 0 ){
+         fprintf(stderr,
+                 "*** Can't make mask from dataset %s\n", argv[narg-1]);
+         exit(1) ;
+      }
+      DSET_delete( mask_dset );
+   }
+
+   /* now go through all datasets and do the work */
+
    for( ; narg < argc ; narg++ ){
       xset = THD_open_dataset( argv[narg] ) ;
       if( xset == NULL ){
@@ -173,6 +227,23 @@ int main( int argc , char * argv[] )
          fprintf(stderr,"+++ Can't load dataset %s -- skipping\n",argv[narg]);
          DSET_delete(xset) ; continue ;
       }
+
+      // [PT: Apr 23, 2024] Insert resampling as necessary. Here,
+      // 'necessary' means that the input data wasn't already in the
+      // 'correct' orientation, and also that '-local_ijk' was not
+      // used. NB: use same 'if' condition and resampling for mask, above.
+      i = dset_get_orient( xset, dset_orient_inp);
+      if ( cmode != 1 && strcmp(dset_orient_inp, dset_orient_ref) != 0 ) {
+         INFO_message("HEY, I AM HERE (DSET): %d %s", cmode, dset_orient_inp);
+         MCW_strncpy( tmppref, DSET_PREFIX(xset), THD_MAX_PREFIX ) ;
+         INFO_message("TMPPREF2: %s", tmppref);
+         tmpset = r_new_resam_dset( xset, NULL, 0.0, 0.0, 0.0,
+                                    dset_orient_ref, RESAM_NN_TYPE, 
+                                    NULL, 1, 0);   
+         DSET_delete(xset);  xset=tmpset;  tmpset=NULL;
+         EDIT_dset_items( xset, ADN_prefix, tmppref, ADN_none);
+      }
+
       if( do_automask ){
          if( mmm != NULL ){ free(mmm); mmm = NULL; }
          mmm = THD_automask(xset) ;
@@ -215,7 +286,8 @@ int main( int argc , char * argv[] )
             printf("%g  %g  %g\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
          else {
             if(LocalHead)
-               printf("%g  %g  %g  Center of Mass\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
+               printf("%g  %g  %g  Center of Mass\n",
+                      cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
             if(Icent){
               cmv = THD_Icent( xset , 0 , mmm, cmode, cmv);
               printf("%g  %g  %g\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
@@ -234,6 +306,20 @@ int main( int argc , char * argv[] )
                        argv[narg]) ;
             } else {
                /* lose obliquity */
+
+               // [PT: Apr 26, 2019] if set above, then unset ref
+               // orient for output
+               if ( cmode != 1 && \
+                    strcmp(dset_orient_inp, dset_orient_ref) != 0 ) {
+                  MCW_strncpy( tmppref, DSET_PREFIX(xset), THD_MAX_PREFIX ) ;
+                  tmpset = r_new_resam_dset( xset, NULL, 0.0, 0.0, 0.0,
+                                             dset_orient_inp, RESAM_NN_TYPE, 
+                                             NULL, 1, 0);   
+                  DSET_delete(xset);  xset=tmpset;  tmpset=NULL;
+                  INFO_message("OUT PREF: %s", tmppref);
+                  EDIT_dset_items(  xset , ADN_prefix,  tmppref, ADN_none);
+               }
+
                /* recompute Tc(Cardinal transformation matrix for new
                   grid output */
                THD_make_cardinal(xset);
