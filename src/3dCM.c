@@ -252,14 +252,6 @@ int main( int argc , char * argv[] )
          DSET_delete(xset) ; continue ;
       }
 
-      if (THD_dataset_mismatch( xset , mask_dset )) {
-         ERROR_message("Mismatch between mask dset and input %s",argv[narg]);
-         ERROR_message("For info, run '3dinfo -same_all_grid ...' on them");
-         DSET_delete(xset) ; 
-         exit(3);
-      }
-
-
       // [PT: Apr 23, 2024] Insert resampling as necessary. Here,
       // 'necessary' means that the input data wasn't already in the
       // 'correct' orientation, and also that '-local_ijk' was not
@@ -272,6 +264,15 @@ int main( int argc , char * argv[] )
                                     NULL, 1, 0);   
          DSET_delete(xset);  xset=tmpset;  tmpset=NULL;
          EDIT_dset_items( xset, ADN_prefix, tmppref, ADN_none);
+      }
+
+      // [PT: Apr 23, 2024] check if grids match, *after* they have
+      // both been resampled (if that is the case)
+      if (THD_dataset_mismatch( xset , mask_dset )) {
+         ERROR_message("Mismatch between mask dset and input %s",argv[narg]);
+         ERROR_message("For info, run '3dinfo -same_all_grid ...' on them");
+         DSET_delete(xset) ; 
+         exit(3);
       }
 
       if( do_automask ){
