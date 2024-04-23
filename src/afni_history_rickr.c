@@ -53,6 +53,23 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Apr, 2024, RCR, "3dmaskdump", MINOR, TYPE_BUG_FIX,
+   "singleton coordinates should round to the closest voxel center",
+   "Originally, box coordinates rounded to the nearest voxel, effectively\n"
+   "extending ranges by 1/2 voxel on each side.  This was changed in 2021 to\n"
+   "be strict.  But then singleton coordinates often hit no voxels, and the\n"
+   "help says one voxel should be found.\n"
+   "Now a singleton coordinate will round to the nearest center, while a ':'\n"
+   "separated range will be precise, as with the mixed use:\n"
+   "   -xbox 5.4:11.3  -17.8:-4.1  11\n"
+   "Here, the '11' will be rounded to the closest center."
+ } ,
+
+ { 17, Apr, 2024, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "in THD_load_nifti(), need_copy might imply scale_data",
+   "Thanks to @liningpan on github for reporting this."
+ } ,
+
  { 12, Apr, 2024, RCR, "3dTsplit4D", MINOR, TYPE_NEW_OPT,
    "add -label_prefix, to include labels in the output prefix",
    NULL

@@ -268,6 +268,7 @@ import collections    as coll
 from   datetime   import datetime
 
 from afnipy import afni_base           as ab
+from afnipy import afni_util           as au
 from afnipy import lib_apqc_html       as lah
 from afnipy import lib_apqc_stats_dset as lasd
 from afnipy import lib_ss_review       as lssr
@@ -1312,6 +1313,61 @@ ap_ssdict : dict
 
     return ap_ssdict
 
+def set_alternate_seed_locs(ap_ssdict):
+    """When the final space is ORIG or a non-seed-specified TLRC space,
+then we have a script to find a couple useful seed locations.  Return
+seed info in the same format as UTIL.read_afni_seed_file(...)
+
+Parameters
+----------
+ap_ssdict : dict
+    dictionary of subject uvars
+
+Returns
+----------
+list_seeds : list
+    list of afni_util.afni_seeds() objects, with locations+text for
+    seeds
+
+"""
+
+    if 1 :
+        print("++ APQC create: calc some seed locations"); sys.stdout.flush() 
+    do_cap = True
+
+    # first, get space name of dset
+    cmd = '''3dinfo -space {}'''.format(ap_ssdict['main_dset'])
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    space  = com.so[0]
+
+    # now, get all seed info from input data
+    mmm = ' -automask '
+    if 'mask_dset' in ap_ssdict.keys() :
+        mmm+= ''' -restrict_mask  {} '''.format(ap_ssdict['mask_dset'])
+
+    cmd = '''adjunct_middle_pair_mask                               \
+                 {mmm}                                              \
+                 -input {input}'''.format(mmm=mmm, 
+                                          input=ap_ssdict['main_dset'])
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    # we should have 2 lines of stdout to get, each being XYZ coords
+    # of a point
+    seedA  = com.so[0]
+    seedB  = com.so[1]
+
+    # ... and we turn these into a full 'line' of info, as if they had
+    # been read from afni_seeds_per_space.txt:
+    seedA+= " {space} lh-seed {space} ".format(space=space)
+    seedB+= " {space} rh-seed {space} ".format(space=space)
+
+    # ... to be turned into the necessary format for the APQC
+    list_seeds = []
+    list_seeds.append(au.afni_seeds(file_line=seedA))
+    list_seeds.append(au.afni_seeds(file_line=seedB))
+
+    return list_seeds
 
 # ========================== 1D files/plots ==============================
 

@@ -651,6 +651,15 @@ if __name__ == "__main__":
             else:
                 Nseed = 0
 
+            # now try a new way to have seed maps, likely when final
+            # space is ORIG or a TLRC without predetermined seeds
+            if Nseed == 0 :
+                # if we haven't found any seeds yet, make 2 (or 1)
+                # from within final dset, constrained by mask_dset,
+                # if present
+                seed_list = lat.set_alternate_seed_locs(ap_ssdict)
+                Nseed = len(seed_list)
+
             # we want to keep seedcorr vols, so make a dir for them in
             # the AP results dir
             if Nseed :
