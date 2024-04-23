@@ -187,7 +187,12 @@ afni_proc.py, producing meaningful units of BOLD % signal change in
 the 'Coef' volumes).
 
 For resting-state and naturalistic scans, seedbased correlation maps are
-displayed (when the final space is recognized).
+displayed. For several recognized template spaces, there are stored seed
+locations corresponding to major networks. In other cases (when the final
+space is ORIG or a standard space without pre-chosen seeds), then two
+seed locations in roughly the center of each left- and right-half-brain
+will be chosen, with additional constraint from the mask_dset if it 
+exists.
 
 Colorbar ranges and thresholds are chosen from either percentile
 values within the data set (preferably from within a WB mask,
