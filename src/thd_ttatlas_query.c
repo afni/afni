@@ -2838,6 +2838,7 @@ char Is_Side_Label(char *str, char *opt)
    char *strd=NULL;
    ENTRY("atlas_label_side");
 
+RETURN('u');
    if (!str) RETURN('u');
 
    strd = strdup(str);
@@ -3496,7 +3497,9 @@ not sure why it was there in the first place!
          if (LocalHead) fprintf(stderr,"Have chunk %s, will eat...\n", lachunk);
          sd = '\0';
          if (aar->N_chnks == 0) { /* check on side */
-            sd = Is_Side_Label(lachunk, NULL);
+          /* side checking doesn't work generically across atlases -
+              needs specific left-right masks or x=0 separation, neither mandatory */
+            sd = 'u';    // removing side checking drg 2024 Is_Side_Label(lachunk, NULL);
             if (LocalHead)
                fprintf(stderr,"Side check on %s returned %c\n", lachunk, sd);
             if (sd == 'l' || sd == 'r' || sd == 'b') {
@@ -3527,7 +3530,7 @@ not sure why it was there in the first place!
       /* first check on side */
       sd = '\0';
       if (aar->N_chnks == 0) { /* check on side */
-         sd = Is_Side_Label(lachunk, NULL);
+         sd = 'u';    // removing side checking drg 2024 Is_Side_Label(lachunk, NULL);
          if (LocalHead)
             fprintf(stderr,"Side check on %s returned %c\n", lachunk, sd);
          if (sd == 'l' || sd == 'r' || sd == 'b') {
