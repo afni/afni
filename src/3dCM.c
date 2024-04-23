@@ -331,7 +331,7 @@ int main( int argc , char * argv[] )
             } else {
                /* lose obliquity */
 
-               // [PT: Apr 26, 2019] if set above, then unset ref
+               // [PT: Apr 23, 2024] if set above, then unset ref
                // orient for output
                if ( cmode != 1 && \
                     strcmp(dset_orient_inp, dset_orient_ref) != 0 ) {
@@ -345,7 +345,9 @@ int main( int argc , char * argv[] )
                }
 
                /* recompute Tc(Cardinal transformation matrix for new
-                  grid output */
+                  grid output --- [PT: Apr 23, 2024] this
+                  THD_make_cardinal() could be an 'else' of the above
+                  'if' cond */
                THD_make_cardinal(xset);
 
                LOAD_FVEC3(ov,DSET_XORG(xset),DSET_YORG(xset),DSET_ZORG(xset)) ;
@@ -367,7 +369,7 @@ int main( int argc , char * argv[] )
                   DSET_load( xset ) ;
                   DSET_overwrite(xset) ;
                   INFO_message("Wrote new dataset: %s",DSET_BRIKNAME(xset)) ;
-               }   
+               }  
             }
          }
       } else {
