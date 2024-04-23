@@ -233,11 +233,9 @@ int main( int argc , char * argv[] )
       nvox_mask = DSET_NVOX(mask_dset);
       nmask = THD_countmask( nvox_mask , mmm );
       if( mmm == NULL || nmask <= 0 ){
-         fprintf(stderr,
-                 "*** Can't make mask from dataset %s\n", argv[narg-1]);
+         fprintf(stderr, "** Mask dset input is not loading well.");
          exit(1) ;
       }
-      DSET_delete( mask_dset );
    }
 
    /* now go through all datasets and do the work */
@@ -253,6 +251,14 @@ int main( int argc , char * argv[] )
          fprintf(stderr,"+++ Can't load dataset %s -- skipping\n",argv[narg]);
          DSET_delete(xset) ; continue ;
       }
+
+      if (THD_dataset_mismatch( xset , mask_dset )) {
+         ERROR_message("Mismatch between mask dset and input %s",argv[narg]);
+         ERROR_message("For info, run '3dinfo -same_all_grid ...' on them");
+         DSET_delete(xset) ; 
+         exit(3);
+      }
+
 
       // [PT: Apr 23, 2024] Insert resampling as necessary. Here,
       // 'necessary' means that the input data wasn't already in the
@@ -390,6 +396,9 @@ int main( int argc , char * argv[] )
    
    if ( dset_orient_ref ) 
       free(dset_orient_ref);
+
+   if ( mask_dset )
+      DSET_delete( mask_dset );
 
    exit(0);
 }
