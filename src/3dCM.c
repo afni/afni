@@ -43,7 +43,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset *mask_dset = NULL ;
 
    // [PT: Apr 23, 2024] for resampling internally
-   char dset_orient_ref[4] = "RAI";  // internally resampling all to this
+   char *dset_orient_ref   = NULL ;  // internally resampling all to this
 	char dset_orient_inp[4] = "   ";  // [4]="---";
 	char dset_orient_ext[4] = "   ";  // [4]="---";
    THD_3dim_dataset *tmpset = NULL;
@@ -54,38 +54,54 @@ int main( int argc , char * argv[] )
 
    if( argc < 2 || strncmp(argv[1],"-help",5) == 0 ){
       printf("Usage: 3dCM [options] dset\n"
+"\n"
 "Output = center of mass of dataset, to stdout.\n"
-"    Note: by default, the output is (x,y,z) values in DICOM\n"
+"    Note: by default, the output is (x,y,z) values in RAI-DICOM\n"
 "          coordinates.  But as of Dec, 2016, there are now\n"
 "          command line switches for other options (see -local*\n"
 "          below).\n\n"
-"  -mask mset   Means to use the dataset 'mset' as a mask:\n"
+"\n"
+"  -mask mset   :Means to use the dataset 'mset' as a mask:\n"
 "                 Only voxels with nonzero values in 'mset'\n"
 "                 will be averaged from 'dataset'.  Note\n"
 "                 that the mask dataset and the input dataset\n"
 "                 must have the same number of voxels.\n"
-"  -automask    Generate the mask automatically.\n"
-"  -set x y z   After computing the CM of the dataset, set the\n"
+"\n"
+"  -automask    :Generate the mask automatically.\n"
+"\n"
+"  -set x y z   :After computing the CM of the dataset, set the\n"
 "                 origin fields in the header so that the CM\n"
 "                 will be at (x,y,z) in DICOM coords.\n"
-"  -local_ijk   Output values as (i,j,k) in local orientation.\n"
-"  -roi_vals v0 v1 v2 ... : Compute center of mass for each blob\n"
+"\n"
+"  -local_ijk   :Output values as (i,j,k) in local orientation.\n"
+"\n"
+"  -roi_vals v0 v1 v2 ... :Compute center of mass for each blob\n"
 "                           with voxel value of v0, v1, v2, etc.\n"
 "                           This option is handy for getting ROI \n"
 "                           centers of mass.\n"
-"  -all_rois     Don't bother listing the values of ROIs you want\n"
+"\n"
+"  -all_rois    :Don't bother listing the values of ROIs you want\n"
 "                the program will find all of them and produce a \n"
 "                full list.\n"
-"  -Icent Compute Internal Center. For some shapes, the center can\n"
+"\n"
+"  -Icent :Compute Internal Center. For some shapes, the center can\n"
 "          lie outside the shape. This option finds the location\n"
 "          of the center of a voxel closest to the center of mass\n"
 "          It will be the same or similar to a center of mass\n"
 "          if the CM lies within the volume. It will lie necessarily\n"
 "          on an edge voxel if the CMass lies outside the volume\n" 
-"  -Dcent Compute Distance Center, i.e. the center of the voxel\n"
+"\n"
+"  -Dcent :Compute Distance Center, i.e. the center of the voxel\n"
 "          that has the shortest average distance to all the other\n"
 "          voxels. This is much more computational expensive than\n"
 "          Cmass or Icent centers\n"
+"\n"
+" -rep_xyz_orient RRR :when reporting (x,y,z) coordinates, use the\n"
+"                specified RRR orientation (def: RAI).\n"
+"                NB: this does not apply when using '-local_ijk',\n"
+"                and will not change the orientation of the dset\n"
+"                when using '-set ..'.\n"
+"\n"
 "  NOTE: Masking options are ignored with -roi_vals and -all_rois\n"
              ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
@@ -129,6 +145,13 @@ int main( int argc , char * argv[] )
                     "*** Cannot deal with complex-valued mask dataset!\n");
             exit(1) ;
          }
+         narg++ ; continue ;
+      }
+
+      if( strcmp(argv[narg],"-rep_xyz_orient") == 0 ){
+			narg++ ; if( narg >= argc ) 
+							ERROR_exit("Need argument after '-rep_xyz_orient'");
+         dset_orient_ref = strdup(argv[narg]);
          narg++ ; continue ;
       }
 
@@ -186,6 +209,11 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** No input dataset!?\n") ; exit(1) ;
    }
 
+   /* set default orient, if not specified by user */ 
+
+   if ( dset_orient_ref == NULL ) 
+      dset_orient_ref = strdup("RAI");
+
    /* process the mask, as necessary */
 
    if ( mask_dset ) {
@@ -193,9 +221,7 @@ int main( int argc , char * argv[] )
       // (maybe) initial resampling; use same 'if' condition as below
       i = dset_get_orient( mask_dset, dset_orient_inp);
       if ( cmode != 1 && strcmp(dset_orient_inp, dset_orient_ref) != 0 ) {
-         INFO_message("HEY, I AM HERE (MASK): %d %s", cmode, dset_orient_inp);
          MCW_strncpy( tmppref, DSET_PREFIX(mask_dset), THD_MAX_PREFIX ) ;
-         INFO_message("TMPPREF: %s", tmppref);
          tmpset = r_new_resam_dset( mask_dset, NULL, 0.0, 0.0, 0.0,
                                     dset_orient_ref, RESAM_NN_TYPE, 
                                     NULL, 1, 0);   
@@ -234,9 +260,7 @@ int main( int argc , char * argv[] )
       // used. NB: use same 'if' condition and resampling for mask, above.
       i = dset_get_orient( xset, dset_orient_inp);
       if ( cmode != 1 && strcmp(dset_orient_inp, dset_orient_ref) != 0 ) {
-         INFO_message("HEY, I AM HERE (DSET): %d %s", cmode, dset_orient_inp);
          MCW_strncpy( tmppref, DSET_PREFIX(xset), THD_MAX_PREFIX ) ;
-         INFO_message("TMPPREF2: %s", tmppref);
          tmpset = r_new_resam_dset( xset, NULL, 0.0, 0.0, 0.0,
                                     dset_orient_ref, RESAM_NN_TYPE, 
                                     NULL, 1, 0);   
@@ -362,5 +386,8 @@ int main( int argc , char * argv[] )
       DSET_delete(xset) ;
    }
    
+   if ( dset_orient_ref ) 
+      free(dset_orient_ref);
+
    exit(0);
 }
