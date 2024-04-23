@@ -8496,7 +8496,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
       if (LocalHead)
          fprintf (SUMA_STDERR,"%s: Only Background colors.\n", FuncName);
          
-         fprintf(stderr, "******* SO->SurfCont->AlphaOpacityFalloff = %d\n", SO->SurfCont->AlphaOpacityFalloff); 
+         // fprintf(stderr, "******* SO->SurfCont->AlphaOpacityFalloff = %d\n", SO->SurfCont->AlphaOpacityFalloff); 
          
          // Make local opacities if A threshold true
          if (SO->SurfCont->AlphaOpacityFalloff){

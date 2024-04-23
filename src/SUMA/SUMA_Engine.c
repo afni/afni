@@ -3845,6 +3845,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
 
             if (NI_get_attribute(EngineData->ngr, "switch_surf")) {
+            
                int is;
 
                if (SUMA_iswordsame(ADO_GROUP(ado), sv->CurGroupName) != 1) {
@@ -3887,6 +3888,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_UpdateViewerTitle(sv);
                   }
                }
+               
+               SUMA_cb_SurfCont_SwitchPage ((void *)ado);
             }
 
             if (NI_get_attribute(EngineData->ngr, "switch_dset")) {
