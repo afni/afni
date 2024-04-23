@@ -2836,9 +2836,13 @@ char Is_Side_Label(char *str, char *opt)
 {
    int k, nc;
    char *strd=NULL;
-   ENTRY("atlas_label_side");
+   ENTRY("Is_Side_Label");
 
-RETURN('u');
+   /* return without doing anything because left and right
+       can be determined just from region labels without
+       this fanciness / shenanigans */
+   RETURN('u');
+
    if (!str) RETURN('u');
 
    strd = strdup(str);
