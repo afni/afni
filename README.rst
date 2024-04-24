@@ -9,12 +9,12 @@ programs, as well as shell scripts, primarily developed for the
 analysis and display of multiple MRI modalities:
 
 * functional MRI (FMRI)
-    * resting state, task-based or naturalistic paradigms
-    * single- or multi-echo acquisitions
+  * resting state, task-based or naturalistic paradigms
+  * single- or multi-echo acquisitions
 * anatomical/structural MRI
-    * at various field strengths
+  * at various field strengths
 * diffusion weighted imaging (DWI)
-    * for DTI or HARDI modeling and tractography
+  * for DTI or HARDI modeling and tractography
 
 Many AFNI programs have been applied and adapted to other modalities,
 such as ECoG, EEG, MEG, and more.
@@ -23,23 +23,18 @@ It has graphical displays for both slice-wise and surface-based
 viewing.  In both cases, many aspects of visualization can be scripted
 for automatic image generation.
   
-| Please visit these websites for more information:
-| AFNI homepage: https://afni.nimh.nih.gov/
-| Main AFNI docs: https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/ 
-
-|
-
-| For questions on using AFNI programs, our Message Board is here:  
-| https://discuss.afni.nimh.nih.gov .
+Please visit these websites for more information and to ask questions:
+* `Main AFNI docs <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/>`_
+* `AFNI Message Board <https://discuss.afni.nimh.nih.gov>`_
 
 
 Install AFNI on your computer
 -----------------------------
 
-You can install AFNI on various Linux, macOS and Windows systems.
-Detailed instructions for each system are provided here:
-https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/main_toc.html
-This is the way most users get the AFNI code to use.
+| You can install AFNI on various Linux, macOS and Windows systems.
+  Detailed instructions for each system are provided here:
+| https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/main_toc.html
+| This is the way most users get the AFNI code to use.
 
 Please make sure to use the AFNI system check to help guide you in the
 process, as well facilitate asking questions::
@@ -124,8 +119,8 @@ complement directly with the following projects:
 
 One aspect of AFNI's wide usage and motivation for maintaining
 long-term stability is that it serves as an underlying part within
-several other software projects and pipeline tools in the field. These
-include several widely used projects, such as:
+several other software projects and pipeline tools in the
+field. Some projects that use AFNI include:
 
 * `BrainSuite <https://brainsuite.org/bfp/>`_: Functional Pipeline:
   open-source workflow for processing FMRI data
@@ -179,7 +174,7 @@ Compilation of AFNI
 
 In addition to standard installation of AFNI on computers, you can
 also compile the code locally on your computer (e.g., for
-development). In src/, you need to choose one of the Makefile.* files
+development). In src/, you need to choose one of the Makefile.\* files
 that is closest to your system, and cp it to be named Makefile.
 Makefile is set up to install into the INSTALLDIR location, defined in
 that file -- you should probably change that to be appropriate for
@@ -187,12 +182,12 @@ your use.
 
 If you are using Mac OS X, choose one of the Makefile.macosx_* files.
 
-  For later versions of Mac OS X, Apple's C compiler does not support
-  OpenMP, so we recommend downloading and installing a version of gcc
-  from http://hpc.sourceforge.net/ or purchasing a commercial C compiler
-  (e.g., Intel's icc) that does support OpenMP.  Several important
-  programs in the AFNI suite are parallelized via OpenMP, and will run
-  much faster if compiled appropriately.
+For later versions of Mac OS X, Apple's C compiler does not support
+OpenMP, so we recommend downloading and installing a version of gcc
+from http://hpc.sourceforge.net/ or purchasing a commercial C compiler
+(e.g., Intel's icc) that does support OpenMP.  Several important
+programs in the AFNI suite are parallelized via OpenMP, and will run
+much faster if compiled appropriately.
 
 If you are using Linux, try Makefile.linux_openmp_64 first.
 
@@ -209,17 +204,17 @@ will remove all the *.o files, etc.
 Making a pull request to the AFNI code base
 -------------------------------------------
 
-Notes for making a fork and pull request to AFNI are provided here:
-https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/devdocs/pull_requests/pr_ex.html
+| Notes for making a fork and pull request to AFNI are provided here:
+| https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/devdocs/pull_requests/pr_ex.html
 
-Users and developers are also welcome to open up GitHub Issues here:
-https://github.com/afni/afni/issues
+| Users and developers are also welcome to open up GitHub Issues here:
+| https://github.com/afni/afni/issues
 
-We also have a very active Message Board for asking questions about
-using AFNI programs, getting help with installations, seeing new
-features, staying up-to-date with Bootcamp and other announcements,
-and more: 
-https://discuss.afni.nimh.nih.gov/
+| We also have a very active Message Board for asking questions about
+  using AFNI programs, getting help with installations, seeing new
+  features, staying up-to-date with Bootcamp and other announcements,
+  and more: 
+| https://discuss.afni.nimh.nih.gov/
 
 
 Online testing notes
