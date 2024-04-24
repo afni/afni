@@ -4086,19 +4086,27 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
             if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "y")){
-                  SurfCont->AlphaOpacityFalloff = 1;
+                fprintf(stderr, "Show alpha\n");
+                  // SurfCont->AlphaOpacityFalloff = 1;
+                  if (!(SurfCont->AlphaOpacityFalloff))
+                    XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+                      !(SurfCont->AlphaOpacityFalloff), YUP);
+
                }
                else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "n"))
                {
-                  SurfCont->AlphaOpacityFalloff = 0;
+                  if (SurfCont->AlphaOpacityFalloff)
+                    XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+                      !(SurfCont->AlphaOpacityFalloff), YUP);
+                  // SurfCont->AlphaOpacityFalloff = 0;
                }
                else {
                   SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA, setting to 'y'\n",
                               NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA"));
                   SurfCont->AlphaOpacityFalloff = NOPE;
                }
-               XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
-                              SurfCont->AlphaOpacityFalloff, YUP);
+//               XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+//                              SurfCont->AlphaOpacityFalloff, YUP);
             }
 
             if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE")) {
