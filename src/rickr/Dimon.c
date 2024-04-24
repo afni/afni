@@ -162,10 +162,11 @@ static char * g_history[] =
     " 4.29 Feb 16, 2022 [rickr]: propagate obliquity for -ftype AFNI\n"
     " 4.30 Apr 22, 2022 [rickr]: add -sort_method rin, geme_rin\n"
     " 4.31 Nov  2, 2022 [rickr]: add -sort_method geme_xnat\n"
+    " 4.32 Apr 24, 2024 [rickr]: add -sort_method geme_suid\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.30 (November 2, 2022)"
+#define DIMON_VERSION "version 4.32 (April 24, 2024)"
 
 static char * g_milestones[] =
 {
@@ -182,6 +183,7 @@ static char * g_milestones[] =
     " 2014.08 : rewrite to handle NIH GE multi-echo (realtime) sorting\n",
     " 2022.04 : add new GE multi-echo (realtime) sorting, 'geme_rin'\n",
     " 2022.11 : add GE XNAT multi-echo (non-realtime) sorting, 'geme_xnat'\n",
+    " 2024.04 : add GE SOP IUID multi-echo sorting, 'geme_suid'\n",
     "----------------------------------------------------------------------\n"
 };
 

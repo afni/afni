@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Apr, 2024, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -sort_method geme_suid",
+   NULL
+ } ,
+
  { 22, Apr, 2024, RCR, "3dmaskdump", MINOR, TYPE_BUG_FIX,
    "singleton coordinates should round to the closest voxel center",
    "Originally, box coordinates rounded to the nearest voxel, effectively\n"
