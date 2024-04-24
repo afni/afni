@@ -24,17 +24,19 @@ viewing.  In both cases, many aspects of visualization can be scripted
 for automatic image generation.
   
 Please visit these websites for more information and to ask questions:
+
 * `Main AFNI docs <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/>`_
+
 * `AFNI Message Board <https://discuss.afni.nimh.nih.gov>`_
 
 
 Install AFNI on your computer
 -----------------------------
 
-| You can install AFNI on various Linux, macOS and Windows systems.
-  Detailed instructions for each system are provided here:
-| https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/main_toc.html
-| This is the way most users get the AFNI code to use.
+You can install AFNI on various Linux, macOS and Windows systems.
+Detailed instructions for each system are provided `here
+<https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/main_toc.html>`_
+This is the way most users get the AFNI code to use.
 
 Please make sure to use the AFNI system check to help guide you in the
 process, as well facilitate asking questions::
