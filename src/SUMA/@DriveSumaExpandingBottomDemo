@@ -1,0 +1,141 @@
+#!/bin/tcsh
+
+# [PDL: Fenruary 6, 2024] Demo for Alpha transparency
+#
+# Runs from ~/abin
+#
+# Usage: @DriveSumaExpandingBottomDemo <Path to executable>
+#
+# Example: ./@DriveSumaExpandingBottomDemo "~/afniDev/afni/build/src/SUMA"
+#
+# If the path to the executable is not specified, the suma, in the default
+# search path, is used.
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+#Example commands for running @DriveSuma
+# No output
+
+
+if ($#argv > 0) then
+	set path = ($1 $path) 
+endif
+
+
+set HelpOpt = ''
+echo "$1" | \grep -w -E  \
+      '\-h_txt|\-h_spx|\-h_aspx|\-h_raw|\-help|\-h' >& /dev/null
+if ($status == 0) then
+   set HelpOpt = "$1"
+   goto HELP
+endif
+
+        set l = `prompt_user -pause \
+'@DriveSuma \n\
+#Make sure no current SUMA is running, then press OK'`
+        if ( $l == '0') goto STEND
+
+        #Launch suma
+	# set SUMA_DIR = $1
+	#	cd $HOME/sumaTest/FT.surf.results
+	set NEW_PORT = `afni -available_npb_quiet`
+	echo  $NEW_PORT
+	# suma -spec $HOME/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec &
+	suma -spec ../AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec &
+	DriveSuma -com  viewer_cont -key '.'
+	DriveSuma -com  viewer_cont -key '.'
+	DriveSuma -com  viewer_cont -key '.'
+	DriveSuma -com  viewer_cont -key 'ctrl+s'
+	DriveSuma -com surf_cont -view_surf_cont y
+
+	DriveSuma -com surf_cont -switch_cmap ygbrp128
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to set Threshold'`
+
+	# DriveSuma -com surf_cont -load_dset stats.FT.surf.lh.niml.dset
+       set THR = 15
+       DriveSuma -com  surf_cont -T_val $THR 
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Alpha'`
+       DriveSuma -com surf_cont -SET_FUNC_ALPHA yes
+
+       set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to switch object up'`
+       echo "++++++++++++++++++++++++  Switch object up"
+
+       DriveSuma -com viewer_cont -key:v1000R j # Select node 1000
+       DriveSuma -com surf_cont -switch_surf rh.inflated # Switch surface
+
+       set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to switch object down'`
+       echo "++++++++++++++++++++++++  Switch object down"
+	 
+       DriveSuma -com viewer_cont -key:v1000L j
+       DriveSuma -com surf_cont -switch_surf lh.inflated
+
+       set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to switch object up'`
+       echo "++++++++++++++++++++++++  Switch object up"
+
+       DriveSuma -com viewer_cont -key:v1000R j # Select node 1000
+       DriveSuma -com surf_cont -switch_surf rh.inflated # Switch surface
+
+       set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to switch object down'`
+       echo "++++++++++++++++++++++++  Switch object down"
+	 
+       DriveSuma -com viewer_cont -key:v1000L j
+       DriveSuma -com surf_cont -switch_surf lh.inflated
+
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Linear falloff Alpha'`
+       DriveSuma -com surf_cont -SET_FUNC_ALPHA Linear
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Quadratic falloff Alpha'`
+       DriveSuma -com surf_cont -SET_FUNC_ALPHA Quadratic
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to tuen Alpha off'`
+       DriveSuma -com surf_cont -SET_FUNC_ALPHA no
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Alpha'`
+       DriveSuma -com surf_cont -SET_FUNC_ALPHA yes
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Linear falloff Alpha'`
+       DriveSuma -com surf_cont -SET_FUNC_ALPHA Linear
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Quadratic falloff Alpha'`
+       DriveSuma -com surf_cont -SET_FUNC_ALPHA Quadratic
+
+        set l = `prompt_user -pause \
+		'@DriveSuma \n\
+		Press OK to see Box outline'`
+       DriveSuma -com surf_cont -SET_FUNC_BOXED y
+
+        set l = `prompt_user -pause \
+'@DriveSuma \n\
+Finished?, then press OK'`
+        if ( $l == '0') goto STEND
+
+
+	sleep 3; set l = `prompt_user -pause 'Waiting to exit'\
+
