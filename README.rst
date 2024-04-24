@@ -35,7 +35,7 @@ Install AFNI on your computer
 
 You can install AFNI on various Linux, macOS and Windows systems.
 Detailed instructions for each system are provided `here
-<https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/main_toc.html>`_
+<https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/main_toc.html>`_.
 This is the way most users get the AFNI code to use.
 
 Please make sure to use the AFNI system check to help guide you in the
@@ -52,6 +52,8 @@ Getting started with AFNI: quick guide links
     * `Instructions per OS <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/main_toc.html>`_
     
     * `Docker container notes <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/container.html>`_
+
+    * `AFNI Message Board <https://discuss.afni.nimh.nih.gov>`_
 
 * Educational resources
 
@@ -103,15 +105,14 @@ The following software are distributed within AFNI directly:
 * `NiiVue <https://github.com/niivue/niivue>`_,
   included as ``niivue_afni.umd.js``
   
-* `NIFTI library <https://github.com/NIFTI-Imaging/nifti_clib>`_
-
-* `GIFTI library <https://github.com/NIFTI-Imaging/gifti_clib>`_ 
-
 AFNI also has several programs and features that 
 complement directly with the following projects:
 
 * `FreeSurfer <https://surfer.nmr.mgh.harvard.edu/>`_,
   via ``@SUMA_Make_Spec_FS`` and ``afni_proc.py``
+
+* `LayNii <https://github.com/layerfMRI/LAYNII>`_, for layer FMRI
+  processing and visualization
 
 * `tedana <https://tedana.readthedocs.io/en/stable/>`_,
   via ``afni_proc.py``
@@ -149,6 +150,31 @@ field. Some projects that use AFNI include:
   an open-source initiative to integrate different packages in a
   workflow
 
+NIFTI and GIFTI
+----------------
+
+AFNI developers also lead the maintenance of the following fundamental
+neuroimaging repositories:
+
+* `NIFTI C-library <https://github.com/NIFTI-Imaging/nifti_clib>`_
+
+* `GIFTI C-library <https://github.com/NIFTI-Imaging/gifti_clib>`_
+
+These are the code for the standard volumetric and surface dataset
+formats, respectively, in MRI. These formats are central to how
+software input/output standard data, and most neuroimaging packages in
+the field (including AFNI itself) use at least one of these formats.
+
+NIFTI was first developed by a consortium of neuroimaging developers
+in 2004, with AFNI's Bob Cox being a primary architect and first
+author of the format description, which is still so widely used today:
+
+* Cox RW, Ashburner J, Breman H, Fissell K, Haselgrove C, Holmes CJ,
+  Lancaster JL, Rex DE, Smith SM, Woodward JB, Strother SC
+  (2004). (sort of) new image data format standard:
+  NiFTI-1. `Presented at the 10th Annual Meeting of the Organization
+  for Human Brain Mapping
+  <https://nifti.nimh.nih.gov/nifti-1/documentation/hbm_nifti_2004.pdf>`_.
 
 AFNI code directory
 -------------------
