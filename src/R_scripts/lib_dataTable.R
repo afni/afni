@@ -8,10 +8,18 @@
 suppressPackageStartupMessages(library(data.table))
 
 ## global variables #############
-log.out <- c()  ## not the greatest method...
-log.name <- "temp_log.txt"
-dtCheck.overwrite <- FALSE
-
+if( !exists("log.out") ){
+    log.out <<- c()  ## not the greatest method...
+}
+if( !exists("log.name") ){
+    log.name <<- "temp_log.txt"
+}
+if( !exists("dtCheck.overwrite") ){
+    dtCheck.overwrite <<- FALSE
+}
+if( !exists("dtCheck.help") ){
+    dtCheck.help <<- FALSE
+}
 ## some declared variables #######
 respVar <- c('InputFile','Inputfile','inputFile','inputfile',
              'Ausgang_val','ausgang_val')   ## for misspellings 
@@ -254,7 +262,7 @@ dtCheck_tryRead <- function(file.in){
         
         ## split line by comma or some spaces
         tmp.line <- strsplit(data.str[i], "[, ]|[[:space:]]+")
-
+        
         ## check for trailing slash
         if( tmp.line[[1]][length(tmp.line[[1]])] == "\\" ){
             tmp.line[[1]] <- tmp.line[[1]][1:(length(tmp.line[[1]])-1)]
@@ -388,7 +396,7 @@ dtCheck_1_vol <- function(data.in){
     
     ## loop over all InputFiles
     cmd.num <- dtCheck_loop(data.in,"3dinfo -nv")
-
+    
     if( sum(as.numeric(cmd.num)) == nrow(data.in) ){
         dtCheck_good('All InputFiles have exactly 1 volume.')
         return(0)
