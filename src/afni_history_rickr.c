@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Apr, 2024, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "warn if tcsh version is 6.22.03 - it has $var:h bug",
+   NULL
+ } ,
+
  { 24, Apr, 2024, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "add -sort_method geme_suid",
    NULL
