@@ -12899,6 +12899,17 @@ OPTIONS:  ~2~
         See also -regress_stim_files, -regress_extra_stim_files,
         -regress_stim_times, -regress_local_times, -regress_global_times.
 
+    -uvar UVAR VAL VAL ..   : set a user variable and its values
+
+            e.g. -uvar taskname my.glorious.task
+                 -uvar ses ses-003
+                 -uvar somelistvar A B C
+
+        Use this option once per uvar.  Each such option will be passed along
+        as part of the user variable list, along to APQC, for example.
+
+        These variables will be initialed in out.ap_uvars.json .
+
     -verb LEVEL             : specify the verbosity of this script
 
             e.g. -verb 2
