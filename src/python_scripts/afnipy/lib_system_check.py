@@ -937,7 +937,7 @@ class SysInfo:
             print('%-20s : %s' % ('%s version'%prog, v))
             continue
 
-         # and python - just add a comment if they are using a version < 2.7
+         # test python - just add a comment if they are using a version < 2.7
          # (the version is printed later, do not print it here)
          elif prog == 'python':
             s, vstr = self.get_prog_version(prog)
@@ -947,6 +947,18 @@ class SysInfo:
                mesg = 'have python version %s, consider using 2.7+' % vstr
             if mesg != '':
                self.comments.append(mesg)
+
+         # test tcsh - just add a comment if they are using 6.22.03
+         # (the version is printed later, do not print it here)
+         elif prog == 'tcsh':
+            s, vstr = self.get_prog_version(prog)
+            mesg = ''
+            # (removed old warning for 3.0+)
+            badver = '6.22.03'
+            if BASE.compare_dot_ver_strings(vstr, badver) == 0:
+               mesg = "have bad tcsh version %s, has '$var:t' bug" % vstr
+               self.comments.append(mesg)
+               self.comments.append(' (please install 6.22.04)')
 
          # now run the normal test
 
