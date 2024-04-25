@@ -1245,6 +1245,9 @@ run it beforehand, check the results, and then provide both the
 skull-stripped volume and the warps to the processing program.  That
 is convenient.
 
+*** This program has been superceded by the newer version, sswarper2,
+    which has essentially the same syntax and usage as this one. ***
+
 Current version = $version
 Authorship      = Bob, Bob, there is one Bob, He spells it B-O-B.
 
@@ -1630,6 +1633,10 @@ WHAT TO DO IF RESULTS ARE WAY OFF? ~1~
   the AFNI Message Board
 
 EXAMPLES ~1~
+
+*** This program has been superceded by the newer version, sswarper2,
+    which has essentially the same syntax and usage as this one. ***
+
 
   1) Run the program, deciding what the main output directory will be
   called (e.g., based on the subject ID):

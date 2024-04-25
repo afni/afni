@@ -168,7 +168,7 @@ endif
 
 # ===================================================================
 
-set this_prog = "@SSwarper"
+set this_prog = "sswarper2"
 
 set Adataset = ""    # req/ input dataset
 set SubID    = ""    # req/ the subject ID
@@ -1359,12 +1359,13 @@ grown/improved over time):
 
   -minp   MP :(opt) minimum patch size on final 3dQwarp (def: 11).
 
-  -nolite    :(opt) Do not use the '-lite' option with 3dQwarp;
-              This option is used for backward compatibility, if you want
-              to run 3dQwarp the same way as older versions of @SSwarper.
-              The new way (starting Jan 2019) is to use the '-lite'
-              option with 3dQwarp to speed up the calculations.
-              (def: use '-lite' for faster calculations).
+  -nolite    :(opt) Do not use the '-lite' option with 3dQwarp; This
+              option is used for backward compatibility, if you want
+              to run 3dQwarp the same way as older versions of the
+              predecessor '@SSwarper'.  The new way (starting Jan 2019)
+              is to use the '-lite' option with 3dQwarp to speed up
+              the calculations.  (def: use '-lite' for faster
+              calculations).
 
   -skipwarp  :(opt) Do not compute past the output of anatSS.{subid}.nii.
               This option is used if you just want the skull-stripped
@@ -1418,7 +1419,7 @@ grown/improved over time):
               unknown reason).
 
   -jump_to_extra_qc :(opt) just make the two QC*jpg images from a
-              previous run of @SSwarper.  These QC*jpg images are new
+              previous run of sswarper2.  These QC*jpg images are new
               QC output (as of late Feb, 2020), so this might be
               useful to add a quick check to previously run data.
               This command would just be tacked on to previously
@@ -1427,16 +1428,12 @@ grown/improved over time):
   -cost_aff CA :(opt) specify cost function for affine (3dAllineate)
               part of alignment.  Here, 'CA' would be just the name of
               the cost function to be provided after '-cost ..' (def:
-              is now "lpa+ZZ").  This is probably only here for
-              backwards compatibility to older @SSwarper (where def
-              was 'hel').
+              is now "lpa+ZZ"). 
 
   -cost_nl_init CNI 
              :(opt) specify cost function for initial nonlinear
               (3dQwarp) part of alignment.  Here, 'CNI' would be the
               cost function name to be provided (def: is now "lpa").
-              This is probably only here for backwards compatibility
-              to older @SSwarper (where def was 'pcl').
 
   -cost_nl_final CNF 
              :(opt) specify cost function for final nonlinear
@@ -1476,7 +1473,7 @@ grown/improved over time):
 REFERENCE DATASETS ~1~
 
 If you are reading this message, then several reference data sets
-(base volumes) for @SSwarper now exist within the AFNI realm. Oh, what
+(base volumes) for sswarper2 now exist within the AFNI realm. Oh, what
 a time it is to be alive.  A current list includes:
 
 + MNI152_2009_template_SSW.nii.gz
@@ -1487,7 +1484,7 @@ Some of these are distributed with the AFNI binaries, and other may be
 found online. You can make other reference base templates in whatever
 space you prefer, but note that it must have several subvolumes of
 information included-- see NOTES on the 'The Template Dataset', below
-(which also contains a link to the @SSwarper template tutorial online
+(which also contains a link to the sswarper2 template tutorial online
 help).
 
 # ----------------------------------------------------------------------
@@ -1624,6 +1621,31 @@ Temporary files ~2~
   If the script crashes for some reason, it might leave behind files
   whose names start with 'junk.SSwarper' -- you should delete these
   files manually.
+
+EXAMPLES ~1~
+
+  1) Run the program, deciding what the main output directory will be
+  called (e.g., based on the subject ID):
+
+    sswarper2                                    \
+        -input  anat_t1w.nii.gz                  \
+        -base   MNI152_2009_template_SSW.nii.gz  \
+        -subid  sub-001                          \
+        -odir   group/o.aw_sub-001
+
+  2) You can input a mask to be used instead of skullstripping.  For
+  example, a good one might be the parcellation-derived (but filled
+  in) mask from @SUMA_Make_Spec_FS after running FS's recon-all
+  (though you will have to resample it from the FS output grid to that
+  of your input anatomical):
+
+    sswarper2                                     \
+        -input   anat_t1w.nii.gz                  \
+        -mask_ss fs_parc_wb_mask_RES.nii.gz       \
+        -base    MNI152_2009_template_SSW.nii.gz  \
+        -subid   sub-001                          \
+        -odir    group/o.aw_sub-001
+
 
 # -------------------------------------------------------
   Author: Bob, Bob, there is one Bob, He spells it B-O-B.
