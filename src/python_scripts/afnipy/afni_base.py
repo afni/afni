@@ -1182,26 +1182,41 @@ def python_ver_float():
 def compare_py_ver_to_given(vstr):
    """return -1, 0, 1 comparing the current version to input vstr
    """
+   return compare_dot_ver_strings(sys.version.split()[0], vstr)
+
+def compare_dot_ver_strings(v0, v1):
+   """return -1, 0, 1 comparing the current 2 version strings
+
+             -1 : v0 <  v1
+              0 : v0 == v1
+              1 : v0 >  v1
+
+      The strings v0 and v1 are assumed to be in the form 'a.b.c', where
+      the number of '.' separators can vary.  Once a difference is found,
+      return an integer-evaluated comparison.
+   """
    # get current and input version lists, as ints
-   cur_ver = sys.version.split()[0]
-   cur_ver = list(cur_ver.split('.'))
    
-   pvc = [int(v) for v in cur_ver]
-   pvi = [int(v) for v in vstr.split('.')]
+   try:
+      iv0 = [int(v) for v in v0.split('.')]
+      iv1 = [int(v) for v in v1.split('.')]
+   except:
+      print("** cannot convert version strings to int lists")
+      return 0
 
-   lenc = len(pvc)
-   leni = len(pvi)
+   len0 = len(iv0)
+   len1 = len(iv1)
    
-   dmin = min(lenc,leni)
+   dmin = min(len0,len1)
 
-   # check up to where they are equal
+   # return first diff out of min found integers
    for dind in range(dmin):
-      if pvc[dind] < pvi[dind]: return -1
-      if pvc[dind] > pvi[dind]: return  1
+      if iv0[dind] < iv1[dind]: return -1
+      if iv0[dind] > iv1[dind]: return  1
 
-   # if still equal return the longer list
-   if lenc < leni: return -1
-   if lenc > leni: return  1
+   # if still equal, return greater for the longer list
+   if len0 < len1: return -1
+   if len0 > len1: return  1
 
    # else equal
    return 0
