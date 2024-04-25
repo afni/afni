@@ -162,10 +162,11 @@ static char * g_history[] =
     " 4.29 Feb 16, 2022 [rickr]: propagate obliquity for -ftype AFNI\n"
     " 4.30 Apr 22, 2022 [rickr]: add -sort_method rin, geme_rin\n"
     " 4.31 Nov  2, 2022 [rickr]: add -sort_method geme_xnat\n"
+    " 4.32 Apr 24, 2024 [rickr]: add -sort_method geme_suid\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.30 (November 2, 2022)"
+#define DIMON_VERSION "version 4.32 (April 24, 2024)"
 
 static char * g_milestones[] =
 {
@@ -182,6 +183,7 @@ static char * g_milestones[] =
     " 2014.08 : rewrite to handle NIH GE multi-echo (realtime) sorting\n",
     " 2022.04 : add new GE multi-echo (realtime) sorting, 'geme_rin'\n",
     " 2022.11 : add GE XNAT multi-echo (non-realtime) sorting, 'geme_xnat'\n",
+    " 2024.04 : add GE SOP IUID multi-echo sorting, 'geme_suid'\n",
     "----------------------------------------------------------------------\n"
 };
 
@@ -357,6 +359,7 @@ static int          want_ushort2float = 0; /* 9 Jul 2013 */
 
 int compare_finfo_z(const void * v0, const void * v1);
 static void do_sort_by_rin(param_t * p, finfo_t  * fp, int length);
+static void do_sort_by_suid(param_t * p, finfo_t  * fp, int length);
 
 static int         clear_float_zeros( char * str );
 int                compare_finfo( const void * v0, const void * v1 );
@@ -364,6 +367,7 @@ int                compare_finfo_num_suff(const void * v0, const void * v1);
 int                compare_by_num_suff( const void * v0, const void * v1 );
 int                compare_by_geme( const void * v0, const void * v1 );
 int                compare_by_rin( const void * v0, const void * v1 );
+int                compare_by_sop_iuid( const void * v0, const void * v1 );
 int                compare_by_sindex( const void * v0, const void * v1 );
 static int         copy_dset_data(finfo_t * fp, THD_3dim_dataset * dset);
 static int         copy_image_data(finfo_t * fp, MRI_IMARR * imarr);
@@ -1594,7 +1598,8 @@ static int read_image_files(param_t * p)
 static int must_wait_for_read(param_t * p)
 {
    int sm = sort_method(p->opts.sort_method);
-   if( (sm == IFM_SORT_GEME_RIN) || (sm == IFM_SORT_GEME_XNAT) )
+   if( (sm == IFM_SORT_GEME_RIN) || (sm == IFM_SORT_GEME_XNAT) 
+                                 || (sm == IFM_SORT_GEME_SUID) )
       return 1;
    return 0;
 }
@@ -1664,6 +1669,7 @@ static int make_sorted_fim_list(param_t  * p)
          break;
       }
       case IFM_SORT_GEME:
+      case IFM_SORT_GEME_SUID:
       case IFM_SORT_GEME_XNAT: {
          sort_by_geme_index(p);
          break;
@@ -1821,7 +1827,8 @@ int sort_by_geme_index(param_t * p)
    static int      snacq = -1;       /* read or computed ge_nim_acq */
    int             n2sort, min, max, ngeme, nt;
 
-   if( gD.level > 2 )fprintf(stderr,"-- sorting by GE ME index...\n");
+   if( gD.level > 2 ) fprintf(stderr,"-- sorting by GE ME index :%s...\n",
+                              p->opts.sort_method);
    n2sort = p->nfim - p->fim_start;
    if( n2sort <= 0 ) return 0;  /* nothing to do */
 
@@ -1831,6 +1838,10 @@ int sort_by_geme_index(param_t * p)
       g_nwarn_dupe_rin = 0;
       if( gD.level > 2 ) g_nwarn_dupe_rin = 10;  /* juuuust to verify */
       do_sort_by_rin(p, p->fim_o+p->fim_start, n2sort);
+   }
+   /* if IFM_SORT_GEME_SUID, pre-sort by SOP IUID */
+   else if( sort_method(p->opts.sort_method) == IFM_SORT_GEME_SUID ) {
+      do_sort_by_suid(p, p->fim_o+p->fim_start, n2sort);
    }
 
 
@@ -1998,10 +2009,9 @@ static int update_g_mod_sort(param_t * p, int method, int n2proc)
    return 0;
 }
 
+
 static void do_sort_by_rin(param_t * p, finfo_t  * fp, int length)
 {
-   int ns;
-
    /* possibly state what is going on */
    if( gD.level > 2 ) {
       fprintf(stderr,
@@ -2023,6 +2033,12 @@ static void do_sort_by_rin(param_t * p, finfo_t  * fp, int length)
 
 
    qsort(fp, length, sizeof(finfo_t), compare_by_rin);
+}
+
+
+static void do_sort_by_suid(param_t * p, finfo_t  * fp, int length)
+{
+   qsort(fp, length, sizeof(finfo_t), compare_by_sop_iuid);
 }
 
 
@@ -3175,6 +3191,33 @@ int compare_by_geme( const void * v0, const void * v1 )
 }
 
 
+/*----------------------------------------------------------------------
+ * compare structures by SOP IUID, major and minor fields
+ *----------------------------------------------------------------------
+*/
+int compare_by_sop_iuid( const void * v0, const void * v1 )
+{
+    finfo_t * f0  = (finfo_t *)v0;
+    finfo_t * f1  = (finfo_t *)v1;
+
+    /* if these are not set, we should not be here */
+    if( f0->gex.sop_iuid_maj < 0 || f1->gex.sop_iuid_maj < 0 ||
+        f0->gex.sop_iuid_min < 0 || f1->gex.sop_iuid_min < 0 ) {
+        fprintf(stderr,"** compare_by_sop_iuid, have unset values\n");
+        return 0;
+    }
+
+    if( f0->gex.sop_iuid_maj != f1->gex.sop_iuid_maj )
+        return f0->gex.sop_iuid_maj-f1->gex.sop_iuid_maj;
+
+    if( f0->gex.sop_iuid_min != f1->gex.sop_iuid_min )
+        return f0->gex.sop_iuid_min-f1->gex.sop_iuid_min;
+
+    /* backup plan */
+    return f0->findex - f1->findex;
+}
+
+
 int compare_by_sindex( const void * v0, const void * v1 )
 {
     finfo_t * f0  = (finfo_t *)v0;
@@ -3958,6 +4001,7 @@ int sort_method(char * method)
    if( ! strcmp(method, "acq_time")   ) return IFM_SORT_ACQ_TIME;
    if( ! strcmp(method, "default")    ) return IFM_SORT_DEFAULT;
    if( ! strcmp(method, "geme_index") ) return IFM_SORT_GEME;
+   if( ! strcmp(method, "geme_suid")  ) return IFM_SORT_GEME_SUID;
    if( ! strcmp(method, "geme_xnat")  ) return IFM_SORT_GEME_XNAT;
    if( ! strcmp(method, "num_suffix") ) return IFM_SORT_NUM_SUFF;
    if( ! strcmp(method, "zposn")      ) return IFM_SORT_ZPOSN;
@@ -3976,6 +4020,7 @@ char * sort_method_str(int method)
       case IFM_SORT_ACQ_TIME: return "acq_time";
       case IFM_SORT_DEFAULT:  return "default";
       case IFM_SORT_GEME:     return "geme_index";
+      case IFM_SORT_GEME_SUID:return "geme_suid";
       case IFM_SORT_GEME_XNAT:return "geme_xnat";
       case IFM_SORT_NUM_SUFF: return "num_suffix";
       case IFM_SORT_ZPOSN:    return "zposn";
@@ -6092,6 +6137,8 @@ printf(
     "                           - alphabetical, but for each grouping of\n"
     "                             ge_me_index values, sort by that\n"
     "           geme_rin        : modulo sort by RIN, subsort by echo/RIN\n"
+    "           geme_suid       : pre-sort by SOP IUID (0008 0018)\n"
+    "                             as a major/minor pair, then by geme_index\n"
     "           geme_xnat       : pre-sort by RIN, then sort by geme_index\n"
     "           num_suffix      : based on numeric suffix\n"
     "           rin             : sort by RIN (0020 0013)\n"
@@ -6161,6 +6208,16 @@ printf(
     "                major 2 : echo number\n"
     "                          (each echo in this group is a single volume)\n"
     "                minor   : slice (within that echo of that volume)\n"
+    "\n"
+    "           geme_suid\n"
+    "\n"
+    "             Like geme_index and geme_rin, but pre-sort by SOP IUID,\n"
+    "             rather than by alphabetical index.\n"
+    "\n"
+    "             The SOP IUID (0008 0018), evaluated as a major and minor\n"
+    "             index pair (taking the 2 most minor '.' fields as indexes)\n"
+    "             is used as an initial sorting of the images, not depending\n"
+    "             on file name ordering.\n"
     "\n"
     "           geme_xnat\n"
     "\n"
@@ -6982,7 +7039,18 @@ int test_sop_iuid_index_order(param_t * p)
 }
 
 /* after subtracting base values for major, minor and geme, return:
- * truncate_to_ngeme_multiple(1000*major-minor) + geme_index; */
+ * truncate_to_ngeme_multiple(1000*major+minor) + geme_index;
+ *
+ * The hope is that 1000*major+minor could be used to index the echo set,
+ * though not individual slices within that set.  It would mean that
+ * iuid_major/minor could be used as a pre-sort for geme_index.
+ *
+ * So the final iuid should be the ordered *slice* index for the first
+ * slice in one set of echoes.
+ *
+ * Finally, to that we add the geme_index (offset from its base), to
+ * return an overall and unique slice index for the entire run.
+ */
 int get_sop_iuid_index(ge_extras * ep)
 {
    static int base_major=-1, base_minor=-1, base_ngeme=-1, base_geme=-1;
@@ -7004,12 +7072,20 @@ int get_sop_iuid_index(ge_extras * ep)
    }
 
    /* init to 1000*major + minor (with offsets) */
+   /* -- this could almost be a global slice index, except that it seems to
+    *    stem from asynchronous writing, and might be out of order within a
+    *    single echo set */
    iuid = 1000*(iuid_major - base_major) + (iuid_minor - base_minor);
 
    /* truncate to multiple of base_ngene */
+   /* -- so to correct for iuid not be quite accurate, we first truncate to a
+    *    multiple of ngeme */
    if( base_ngeme > 0 ) iuid -= (iuid % base_ngeme);
 
    /* return addition of geme (with offset) */
+   /* -- before adding the geme_index offset to that ngeme multiple */
+   /* -- this we hope to be a global, incrementing slice index,
+    *    ordered by: echo set index, echo number, volume slice index */
    return iuid + geme_index - base_geme;
 }
 
@@ -7180,7 +7256,8 @@ static int show_run_stats( stats_t * s )
        create_file_list(&gP, gP.opts.flist_file, 0, NULL);
     if( gP.opts.flist_details || gD.level > 2 ) {
        create_file_list(&gP, gP.opts.flist_details, 1, "final_list");
-       if( sort_method(gP.opts.sort_method) == IFM_SORT_GEME )
+       if( sort_method(gP.opts.sort_method) == IFM_SORT_GEME ||
+           sort_method(gP.opts.sort_method) == IFM_SORT_GEME_SUID )
           create_file_list(&gP, gP.opts.flist_details, 2, "final_list_geme");
     }
 

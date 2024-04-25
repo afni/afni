@@ -60,7 +60,8 @@
 #define IFM_SORT_RIN         7       /*    geh.index = RIN             */
 #define IFM_SORT_GEME_RIN    8       /*    RIN/echo/geme_index         */
 #define IFM_SORT_GEME_XNAT   9       /*    RIN/geme_index              */
-#define IFM_SORT_NUM_METHODS 9       /*    should match top index      */
+#define IFM_SORT_GEME_SUID   10      /*    SOP_IUID/geme_index         */
+#define IFM_SORT_NUM_METHODS 10      /*    should match top index      */
 
 /* -- define copies -- */
 
