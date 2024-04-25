@@ -937,7 +937,8 @@ class SysInfo:
             print('%-20s : %s' % ('%s version'%prog, v))
             continue
 
-         # and python - add a comment if they are using a version < 2.7
+         # and python - just add a comment if they are using a version < 2.7
+         # (the version is printed later, do not print it here)
          elif prog == 'python':
             s, vstr = self.get_prog_version(prog)
             mesg = ''
@@ -1766,8 +1767,18 @@ class SysInfo:
       elif prog == 'python':
          return 1, platform.python_version()
 
-      elif prog == 'tcsh':      # no version
-         return 0, ''
+      elif prog == 'tcsh':      # version has lots on command line
+         cmd = '%s --version' % prog
+         s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
+         if s: return 1, se[0]
+
+         # e.g.: tcsh 6.22.04 (Astron) 2021-04-26 (x86_64-unknown-linux) ...
+         # so return second element of so[0]
+         ss = so[0].split()
+         # make sure it has 2+ elements, starting with 'tcsh'
+         if len(ss) < 2  : return 1, ''
+         if ss[0] != prog: return 1, ''
+         return 1, ss[1]
 
       elif prog == 'Xvfb':      # no version
          return 0, ''
