@@ -67,6 +67,11 @@ list_uvars_simple_3dcopy = [
     'vr_base_dset',
 ]
 
+# uvars for the ap_deriv_obj.map_3dTsplit4D() method to process
+list_uvars_3dTsplit4D = [
+    'stats_dset',
+]
+
 # ==========================================================================
 
 class ap_deriv_obj:
@@ -203,6 +208,10 @@ class ap_deriv_obj:
         for uvar in list_uvars_simple_3dcopy:
             _tmp = self.map_simple_3dcopy(uvar)
 
+        # process all the uvars that are split/burst in time
+        for uvar in list_uvars_3dTsplit4D:
+            _tmp = self.map_3dTsplit4D(uvar)
+
         # try to copy over the typical log file, output.proc.${subj}
         _tmp2 = self.map_log_output()
         
@@ -294,11 +303,38 @@ class ap_deriv_obj:
 
         # names to/from
         dset_ap  = self.ap_res_dir + '/' + self.ap_ssdict[uvar]
-        dset_drv = self.deriv_dir + '/' + self.deriv_ssdict[uvar]
+        dset_drv = self.deriv_dir  + '/' + self.deriv_ssdict[uvar]
 
         self.map_dict[self.ap_ssdict[uvar]] = self.deriv_ssdict[uvar]
 
         return 0, dset_ap, dset_drv
+
+    def map_3dTsplit4D(self, uvar):
+        """Check if uvar (that can be 3dTsplit4D'ed) is present; if so, map it
+        over."""
+
+        V, dset_ap, dset_drv = self.prep_map_simple(uvar)
+        if V : return -1
+
+        # the extension depends on that of the uvar's value
+        # **** check about surface ones *****
+        ext = make_dset_ext(self.ap_ssdict[uvar])
+        dset_drv+= ext
+
+        # check about needing to first make a subdir
+        if '/' in dset_drv :
+            subdir = os.path.dirname(dset_drv)
+            self.make_deriv_subdir(subdir)
+
+        # are we overwriting?
+        ow   = '-overwrite' * int(self.overwrite)
+        cmd  = '''3dTsplit4D -keep_datum -label_prefix '''
+        cmd += ''' {} -prefix {} {}'''.format(ow, dset_drv, dset_ap)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+
+        return stat
+
 
 # --------------------------------------------------------------------------
 
@@ -383,8 +419,11 @@ D : dict
     # ${subj}_[${ses}_]task-${taskname}_[run-${runnum}_][echo-${echonum}_]space-${spacename}_desc-brain_mask.nii.gz
     D['mask_dset']   = "{subj}/func/{subj}_task-{taskname}_space-{spacename_final_epi}_desc-brain_mask".format(**UC)
 
+    # ${subj}_[${ses}_]task-${taskname}_space-${spacename}_contrast-${GLT label part}_stat-${single letter stat}_statmap.nii.gz
+    D['stats_dset']  = "{subj}/func_stats/{subj}_task-{taskname}_space-{spacename_final_epi}_contrast-".format(**UC)
+
     # ${subj}_[${ses}_]space-${spacename}_desc-surfvol_${type_anat}.nii.gz
-    D['surf_vol']   = "{subj}/anat/{subj}_space-{spacename_anat}_{type_anat}_desc-surfvol_{type_anat}".format(**UC)
+    D['surf_vol']    = "{subj}/anat/{subj}_space-{spacename_anat}_{type_anat}_desc-surfvol_{type_anat}".format(**UC)
 
     # ${subj}_[${ses}_]task-${taskname}_[run-${runnum}_][echo-${echonum}_]space-orig_desc-tcat_bold.nii.gz
     D['tcat_dset']   = "{subj}/func/{subj}_task-{taskname}_space-orig_desc-tcat_bold".format(**UC)
@@ -406,13 +445,14 @@ def make_dset_ext(dset, do_zip_nii=True):
 file extension for the mapped version of the dset to be. User can
 choose whether to zip output NIFTI files."""
 
-    # List of dsets to get a NIFTI output ext. Order of checks matters
-    # in some cases, like for .aff.1D/.1D
+    # List of dsets to get a particular output ext (all_vol get
+    # NIFTI). Order of checks matters in some cases, like for
+    # .aff.1D/.1D
     all_vol   = ['.nii', '.nii.gz', '.BRIK', '.BRIK.gz', '.HEAD', '.HEAD.gz']
     all_spec  = ['.spec']
-    all_niml  = ['.niml.dset']
+    all_niml  = ['.lh.niml.dset', '.rh.niml.dset', '.both.niml.dset']
     all_gii   = ['.gii']
-    all_aff1D = ['aff.1D']
+    all_aff1D = ['.aff.1D']
     all_1D    = ['.1D']
     all_txt   = ['.txt']
     all_dat   = ['.dat']
@@ -421,9 +461,10 @@ choose whether to zip output NIFTI files."""
         if dset.endswith(vol) :
             return '.nii' + ('.gz' * int(do_zip_nii))
 
+    # each niml hemi keeps its hemi name
     for niml in (all_niml):
         if dset.endswith(niml) :
-            return '.niml.dset'
+            return niml
 
     for spec in (all_spec):
         if dset.endswith(spec) :
@@ -435,7 +476,7 @@ choose whether to zip output NIFTI files."""
 
     for aff1D in (all_aff1D):
         if dset.endswith(aff1D) :
-            return '.aff1D'
+            return '.aff.1D'
     for _1D in (all_1D):
         if dset.endswith(_1D) :
             return '.1D'
