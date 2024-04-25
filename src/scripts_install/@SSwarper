@@ -1245,7 +1245,7 @@ run it beforehand, check the results, and then provide both the
 skull-stripped volume and the warps to the processing program.  That
 is convenient.
 
-*** This program has been superceded by the newer version, sswarper2,
+*** This program has been superseded by the newer version, sswarper2,
     which has essentially the same syntax and usage as this one. ***
 
 Current version = $version
@@ -1634,7 +1634,7 @@ WHAT TO DO IF RESULTS ARE WAY OFF? ~1~
 
 EXAMPLES ~1~
 
-*** This program has been superceded by the newer version, sswarper2,
+*** This program has been superseded by the newer version, sswarper2,
     which has essentially the same syntax and usage as this one. ***
 
 
