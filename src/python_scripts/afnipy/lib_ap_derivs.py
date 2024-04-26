@@ -37,6 +37,7 @@ aspace_to_bcoors = {
 } 
 # ... and add in the unofficial ones, which BIDS deriv doesn't include
 # at present
+### maybe prepend with 'afni'?
 aspace_to_bcoors.update({
     'MNI' : 'MNI',
     'MNI_27' : 'MNI_27',
@@ -376,12 +377,19 @@ D : dict
 
     # ... then add any possible special ones, if needed
     if not('taskname' in UC.keys()) :
-        UC['taskname'] = 'TASKNAME'
+        UC['taskname'] = 'NONE'
     if not('type_anat' in UC.keys()) :
-        UC['type_anat'] = 'T1w'
+        UC['type_anat'] = 'T1w' # *** check if T1w exists in filename?
+
+    # probably commonly not changed (but could be by user)
     if not('spacename_anat' in UC.keys()) :
         # spacename for original/copied anat
-        UC['spacename_anat'] = 'anat'  
+        UC['spacename_anat'] = 'anat'
+      if not('preproc_yn_final_anat' in UC.keys()) :
+        # for final_anat, is preproc'ed? Not sure this matters much
+        UC['preproc_yn_final_anat'] = 'preproc'
+
+    # obtained via 3dinfo
     if not('spacename_final_epi' in UC.keys()) :
         # spacename of final EPI dset
         dset  = ap_res_dir + '/' + U['final_epi_dset']
@@ -392,9 +400,6 @@ D : dict
         dset  = ap_res_dir + '/' + U['final_anat']
         space = get_drv_spacename(dset, orig_map='anat')
         UC['spacename_final_anat'] = space
-    if not('preproc_yn_final_anat' in UC.keys()) :
-        # for final_anat, is preproc'ed? Not sure this matters much
-        UC['preproc_yn_final_anat'] = 'preproc'
 
     # Make dict. NB: many file exts get added later, see make_dset_ext()
     # !!! add possibility of session level in here, too
@@ -452,7 +457,7 @@ choose whether to zip output NIFTI files."""
     all_spec  = ['.spec']
     all_niml  = ['.lh.niml.dset', '.rh.niml.dset', '.both.niml.dset']
     all_gii   = ['.gii']
-    all_aff1D = ['.aff.1D']
+    all_aff1D = ['.aff12.1D']
     all_1D    = ['.1D']
     all_txt   = ['.txt']
     all_dat   = ['.dat']
@@ -462,6 +467,7 @@ choose whether to zip output NIFTI files."""
             return '.nii' + ('.gz' * int(do_zip_nii))
 
     # each niml hemi keeps its hemi name
+    # ---> **** go to GIFTI ****
     for niml in (all_niml):
         if dset.endswith(niml) :
             return niml
@@ -476,7 +482,7 @@ choose whether to zip output NIFTI files."""
 
     for aff1D in (all_aff1D):
         if dset.endswith(aff1D) :
-            return '.aff.1D'
+            return '.aff12.1D'
     for _1D in (all_1D):
         if dset.endswith(_1D) :
             return '.1D'
