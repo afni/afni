@@ -217,7 +217,7 @@ class VarsObject(object):
       else:    return 0
 
    def set_var_with_defs(self, vname, vlist, defs, as_type=0, oname='',
-                        verb=1, spec=None, csort=1):
+                         spec=None, csort=1, verb=1):
       """try to set vname = value based on vlist
            (if as_type, convert to type, else leave as string)
          if vname is not known by the defaults, return failure
