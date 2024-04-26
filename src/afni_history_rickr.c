@@ -54,7 +54,7 @@
 afni_history_struct rickr_history[] = {
 
  { 26, Apr, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
-   "in any script calling whereami, envoke with 'tcsh -f' at top",
+   "in any script calling whereami, invoke with 'tcsh -f' at top",
    "This is a quick fix for biowulf usage, since there is a new whereami\n"
    "in town (/usr/local/bin/wheremai), and because they reset the PATH.\n"
    "Modify: @Atlasize @MakeLabelTable @chauffeur_afni\n"
