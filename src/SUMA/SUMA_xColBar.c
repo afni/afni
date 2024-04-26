@@ -2044,8 +2044,6 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "++++++++++++++ %s\n", FuncName);
-   
    ado = (SUMA_ALL_DO *)data;
    if (!ado) SUMA_RETURNe;
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
@@ -2057,12 +2055,8 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
     AlphaOpacityFalloff = 1;
    }
    
-   fprintf(stderr, "SO->SurfCont->AlphaOpacityFalloff = %d\n", SO->SurfCont->AlphaOpacityFalloff);
-   
    // AlphaOpacityFalloff = !AlphaOpacityFalloff;
    SO->SurfCont->AlphaOpacityFalloff = !(SO->SurfCont->AlphaOpacityFalloff);
-   
-   fprintf(stderr, "SO->SurfCont->AlphaOpacityFalloff = %d\n", SO->SurfCont->AlphaOpacityFalloff);
    
    // SO->SurfCont->AlphaThresh is common across period key
    // SO->SurfCont->AlphaOpacityFalloff = /* SurfCont->AlphaOpacityFalloff = */ AlphaOpacityFalloff;
