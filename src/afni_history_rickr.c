@@ -53,6 +53,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Apr, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "in any script calling whereami, envoke with 'tcsh -f' at top",
+   "This is a quick fix for biowulf usage, since there is a new whereami\n"
+   "in town (/usr/local/bin/wheremai), and because they reset the PATH.\n"
+   "Modify: @Atlasize @MakeLabelTable @chauffeur_afni\n"
+   "        compute_ROI_stats.tcsh gen_cluster_table"
+ } ,
+
  { 26, Apr, 2024, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "-init_uvars_json will now pass through unknown uvars",
    "This enables users to pass uvars through afni_proc.py to the APQC."

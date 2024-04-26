@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh -f
 
 # ===========================================================================
 # compute ROI statistics (intended for TSNR dset)
