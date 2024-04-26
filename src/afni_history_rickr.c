@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Apr, 2024, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "-init_uvars_json will now pass through unknown uvars",
+   "This enables users to pass uvars through afni_proc.py to the APQC."
+ } ,
+
  { 25, Apr, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -uvar option to pass through AP uvars",
    NULL
