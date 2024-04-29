@@ -480,8 +480,19 @@ ENTRY("populate_nifti_image") ;
         break;
      }
   }
-  if( nim->nvox > INT32_MAX )
-     use_nifti2 = 1;
+
+  /* allow user to control use_nifti2   [21 Dec 2023 rickr] */
+;  { int anwt = AFNI_numenv("AFNI_NIFTI_WRITE_TYPE");
+
+    /* warn if user requests 1 but 2 seems needed */
+    if ( anwt == 1 && use_nifti2 == 1 )
+       WARNING_message("will try to write as NIFTI-1,"
+                       " though NIFTI-2 seems necessary");
+
+    if      ( anwt == 2 ) use_nifti2 = 1;
+    else if ( anwt == 1 ) use_nifti2 = 0;
+    /* else leave set from prior logic */
+  }
 
   /*-- slice timing --*/
 

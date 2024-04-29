@@ -2,10 +2,12 @@
 
 # python3 status: compatible
 
-# [PT: Oct 4, 2019] add @animal_warper to list of programs for getting
-#                   template name
-# [PT: Mar 3, 2021] add sswarper2 to list of programs for getting
-#                   template name
+# [PT: Oct  4, 2019] add @animal_warper to list of programs for getting
+#                    template name
+# [PT: Mar  3, 2021] add sswarper2 to list of programs for getting
+#                    template name
+# [PT: Jan 20, 2024] update F-stat visualization have Alpha+Boxed on
+#                    - also use better olay func_range, pbar, and pos_only
 
 # system libraries
 import sys, os, glob
@@ -147,7 +149,7 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
 
       -init_uvars_json FNAME    : initialize uvars from the given JSON file
                                   (akin to many -uvar options)
-
+                                  (this will now pass through unknown uvars)
       -subj SID                 : subject ID
       -rm_trs N                 : number of TRs removed per run
       -num_stim N               : number of main stimulus classes
@@ -935,9 +937,12 @@ g_history = """
    1.25 Oct 12, 2022: added 'final DF fraction' to basic script
    1.26 Oct 13, 2022: fix 'final DF fraction' to be wrt uncensored TRs
    1.27 Feb  6, 2023: report mb_level and slice_timing in basic output
+   1.28 Mar 11, 2024: add max_4095_warn_dset key
+   1.29 Apr  5, 2024: add reg_echo and echo_times (ET to basic output)
+   1.30 Apr 26, 2024: -init_uvars_json will now pass through unknown uvars
 """
 
-g_version = "gen_ss_review_scripts.py version 1.27, February 6, 2023"
+g_version = "gen_ss_review_scripts.py version 1.30, April 26, 2024"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -999,6 +1004,7 @@ class MyInterface:
                     helpstr='save uvars dictionary to JSON file')
 
       # user variable options - add from dictionary
+      # do we really want to have an option per uvar?  better to use -uvar
       ukeys = list(g_uvar_dict.keys())
       ukeys.sort()
       for opt in ukeys:
@@ -1120,7 +1126,26 @@ class MyInterface:
             C.udict_in = val
             # and apply all to self.uvars
             dfill = UTIL.read_json_file(C.udict_in)
-            self.uvars.set_var_list_w_defs(dfill, g_eg_uvar, verb=C.verb)
+
+            # Allow unrecognized uvars to pass through.  [26 Apr 2024 rickr]
+            #
+            # So to allow for type conversion based on g_eg_uvar, partition
+            # into known and unknown keys, testing only the known ones.
+            # Unknown keys have no known types, and are simply left as strings.
+            # Unknown elements of length 1 are not applied as lists.
+            known = {}
+            unknown = {}
+            for key in dfill.keys():
+               if g_eg_uvar.valid(key): known[key] = dfill[key]
+               else:                    unknown[key] = dfill[key]
+            # apply known uvars to self.uvars
+            self.uvars.set_var_list_w_defs(known, g_eg_uvar, verb=C.verb)
+            # and fill with unknowns (but single elements are not lists)
+            for key in unknown.keys():
+               vlist = unknown[key]
+               # if there is only 1 element, do not use a list
+               if len(vlist) == 1: self.uvars.set_var(key, vlist[0])
+               else:               self.uvars.set_var(key, vlist)
 
          # check uvar opts by name (process as strings)
          elif uvar in ukeys:
@@ -1674,7 +1699,7 @@ class MyInterface:
       """
 
       # get file names from g_eg_uvar
-      labels = ['df_info_dset', 'cormat_warn_dset',
+      labels = ['max_4095_warn_dset', 'df_info_dset', 'cormat_warn_dset',
                 'pre_ss_warn_dset', 'tent_warn_dset', 'decon_err_dset']
 
       for label in labels:
@@ -2754,6 +2779,8 @@ class MyInterface:
       if self.uvars.is_not_empty('slice_pattern'):
          astr += 'echo "slice timing pattern      : %s"\n' \
                  % self.uvars.slice_pattern
+      if self.uvars.is_not_empty('echo_times'):
+         astr += 'echo "echo times                : $echo_times"\n'
 
       astr += 'echo "num stim classes provided : $num_stim"\n'
 
@@ -2847,10 +2874,19 @@ class MyInterface:
       # some cases with matching var names
       # rcr - add final_anat
       for var in ['subj', 'afni_ver', 'afni_package', 'tr', 'rm_trs',
-                  'num_stim', 'mot_limit', 'out_limit', 'final_view']:
+                  'num_stim', 'mot_limit', 'out_limit', 'final_view',
+                  'echo_times']:
          if uvars.valid(var):
-            txt += form % (var,self.uvars.val(var))
-         # check for non-fatal vars
+            if uvars.get_type(var) == list:
+                txt += form % (var,'( %s )' % ' '.join(self.uvars.val(var)))
+                # txt += form % (var,' '.join(self.uvars.val(var)))
+            else:
+                txt += form % (var,self.uvars.val(var))
+         # check for optional vars
+         elif var in ['echo_times']:
+            if self.cvars.verb > 2:
+               print('-- no problem: basic script, missing variable %s' % var)
+         # check for other non-fatal vars
          elif var in ['rm_trs', 'afni_ver', 'afni_package', 'out_limit']:
             if self.cvars.verb > 1:
                print('** warning: basic script, missing variable %s' % var)
@@ -3025,11 +3061,14 @@ class MyInterface:
       txt = 'echo ' + UTIL.section_divider('view stats results',
                                            maxlen=60, hchar='-') + '\n\n'
 
-      s1   = 'set pp = ( `3dBrickStat -slow -percentile 90 1 90 \\\n' \
+      # now get both a thr value *and* a func_range value
+      s1   = 'set pp = ( `3dBrickStat -slow -percentile 90 9 99 \\\n' \
              '            -mask %s %s"[0]"` )\n' % (mset.pv(), sset.pv())
 
       s2   = 'set thresh = $pp[2]\n'                                    \
-             'echo -- thresholding F-stat at $thresh\n'
+             'echo -- thresholding F-stat at $thresh\n'                 \
+             'set frange = $pp[4]\n'                                    \
+             'echo -- olay range of F-stat : $frange\n'
 
       aset = self.dsets.val('final_anat')
       if not self.check_for_dset('final_anat', ''):
@@ -3046,6 +3085,7 @@ class MyInterface:
        % (sset.pv(), mset.pv(), self.uvars.final_view)
 
       txt += '# get 90 percentile for thresholding in afni GUI\n'       \
+             '# (and 99 percentile for olay range; show Pos only)\n'    \
              '%s'                                                       \
              '%s'                                                       \
              '\n'                                                       \
@@ -3054,13 +3094,18 @@ class MyInterface:
       ac   = 'afni -com "OPEN_WINDOW A.axialimage"     \\\n'            \
              '     -com "OPEN_WINDOW A.sagittalimage"  \\\n'            \
              '%s'                                                       \
+             '     -com "SET_PBAR_ALL    +99 1 Plasma" \\\n'            \
              '     -com "SWITCH_OVERLAY %s"   \\\n'                     \
              '     -com "SET_SUBBRICKS A 0 0 0"        \\\n'            \
+             '     -com "SET_FUNC_RANGE A $frange"     \\\n'            \
              '     -com "SET_THRESHNEW A $thresh"      \\\n'            \
+             '     -com "SET_FUNC_ALPHA  Yes"          \\\n'            \
+             '     -com "SET_FUNC_BOXED  Yes"          \\\n'            \
              '     -com "SET_DICOM_XYZ A $maxcoords"\n'                 \
              '\n' % (s3, sset.prefix)
       
       txt += '# start afni with stats thresholding at peak location\n'  \
+             '# (with Alpha and Boxed on)\n'                            \
              + ac
 
       txt += '\n'                                                      \
@@ -3134,8 +3179,26 @@ class MyInterface:
          print('** missing X-matrix, cannot drive regress_warnings')
          return 1
 
-      txt = 'echo ' + UTIL.section_divider('degrees of freedom info',
-                                           maxlen=60, hchar='-') + '\n\n'
+      txt = ''
+
+      # if we have a max_4095_warn_dset dset and it exists, display it
+      if not self.check_for_file('max_4095_warn_dset'):
+         txt = 'echo ' + UTIL.section_divider('max of 4095 warnings',
+                                              maxlen=60, hchar='-') + '\n\n'
+         wfile = self.uvars.val('max_4095_warn_dset')
+         txt += '# if there is a 4095 warnings file, display it\n'         \
+                'if ( -f %s ) then\n'                                      \
+                '   echo ------------- %s -------------\n'                 \
+                '   cat %s\n'                                              \
+                '   echo --------------------------------------------\n'   \
+                'endif\n'                                                  \
+                '\n'                                                       \
+                'echo ""\n'                                                \
+                % (wfile, wfile, wfile)
+
+      # DoF info
+      txt += 'echo ' + UTIL.section_divider('degrees of freedom info',
+                                            maxlen=60, hchar='-') + '\n\n'
 
       txt += '# if there is a df_info file, display it\n'               \
              'if ( -f out.df_info.txt ) then\n'                         \
@@ -3146,6 +3209,7 @@ class MyInterface:
              '\n'                                                       \
              'echo ""\n'                                                \
 
+      # regression warnings
       txt += 'echo ' + UTIL.section_divider('regression warnings',
                                            maxlen=60, hchar='-') + '\n\n'
 
@@ -3177,6 +3241,7 @@ class MyInterface:
              'echo --------------------------------------------\n'      \
              '\n' % xset
 
+      # pre-steady state warnings
       wfile = 'out.pre_ss_warn.txt'
       txt += '# if there are any pre-steady state warnings, show them\n'\
              'if ( -f %s && ! -z %s ) then\n'                           \
@@ -3207,12 +3272,14 @@ class MyInterface:
 
       return 0
 
-   def check_for_file(self, varname, mesg):
+   def check_for_file(self, varname, mesg=''):
       """check for existence of file
          if not, print mesg
          if no mesg, print nothing
 
          e.g. if check_for_file('X.xmat.1D', 'failed basic init'): errs += 1
+
+         return 0 on success (found), 1 on not set or found
       """
       fname = self.uvars.val(varname)
       if not fname:

@@ -1054,14 +1054,20 @@ ENTRY("THD_load_nifti") ;
 
    /* do not scale if either slope or inter is zero
     *    slope==0 : treat as unset (rather than constant data)
-    *    inter==0 : use slope as brick_fac */
+    *    inter==0 : use slope as brick_fac
+    * (unless need_copy is applied, then apply slope/inter) */
 
    /* Any NIFTI scalar previously implied conversion to float.
     * No longer scale if inter==0 && slope!=0 (set brick_fac).
     * Thanks to C Caballero and S Moia for reporting this.  
-    *                                      26 Jan 2021 [rickr] */
+    *                                      26 Jan 2021 [rickr]
+    * Also, if need_copy, apply any finite scl_slope, regardless
+    * of whether scl_inter == 0.
+    * Thanks to @liningpan on github for reporting this.
+    *                                      17 Apr 2024 [rickr] */
    scale_data = isfinite(nim->scl_slope) && isfinite(nim->scl_inter) 
-                     && (nim->scl_slope != 0.0) && (nim->scl_inter != 0.0) ;
+                     && (nim->scl_slope != 0.0)
+                     &&((nim->scl_inter != 0.0) || need_copy);
 
    if( scale_data ){
      STATUS("scaling sub-bricks") ;
@@ -1192,7 +1198,8 @@ static int NIFTI_code_to_view(int code, char *atlas_space)
 static int NIFTI_default_view()
 {
   char *ppp;
-  int iview = VIEW_TALAIRACH_TYPE; /* default view if not otherwise set */
+  /* finally default back to orig view            [29 Mar 2024 rickr ] */
+  int iview = VIEW_ORIGINAL_TYPE; /* default view if not otherwise set */
 
   ENTRY("NIFTI_default_view");
   ppp = my_getenv("AFNI_NIFTI_VIEW");

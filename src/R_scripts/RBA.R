@@ -29,7 +29,7 @@ intro <-
 	      Welcome to RBA ~1~
 Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.4, Oct 11, 2023 
+Version 1.1.4, Dec 2, 2023 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -766,7 +766,7 @@ outDF <- function(DF, fl) cat(capture.output(DF), file = paste0(fl, '.txt'), sep
 if(is.na(lop$mean)) {
    names(lop$dataTable)[names(lop$dataTable)==lop$Subj] <- 'Subj'
    names(lop$dataTable)[names(lop$dataTable)==lop$Y] <- 'Y'
-   names(lop$dataTable)[names(lop$dataTable)==lop$ROI] <- 'ROI'
+   #names(lop$dataTable)[names(lop$dataTable)==lop$ROI] <- 'ROI'
 
    # make sure ROI and Subj are treated as factors
    if(!is.factor(lop$dataTable[[lop$ROI]])) lop$dataTable[[lop$ROI]] <- as.factor(lop$dataTable[[lop$ROI]])

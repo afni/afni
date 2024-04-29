@@ -31,7 +31,7 @@ endif
 
 # for macos: search abin and flat_namespace for shared objects
 if ( -d /opt/X11/lib/flat_namespace ) then
-   echo updating R_LD_LIBRARY_PATH ...
+   # on macs, allow search for R_io.so, and the soon to be dropped flat Xt lib
    setenv R_LD_LIBRARY_PATH `R RHOME`/lib:${afpath}:/opt/X11/lib/flat_namespace
 endif
 

@@ -296,7 +296,6 @@ int SUMA_parenleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -433,7 +432,6 @@ int SUMA_at_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -487,7 +485,6 @@ int SUMA_asterisk_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -534,7 +531,6 @@ int SUMA_slash_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -568,7 +564,6 @@ int SUMA_home_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -602,7 +597,6 @@ int SUMA_plus_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -635,7 +629,6 @@ int SUMA_minus_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -702,7 +695,6 @@ int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -751,7 +743,6 @@ int SUMA_bracketright_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -872,7 +863,6 @@ int SUMA_space_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
 
    SUMA_KEY_COMMON;
@@ -983,7 +973,6 @@ int SUMA_comma_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1081,7 +1070,6 @@ int SUMA_period_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1179,7 +1167,6 @@ int SUMA_F1_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1207,7 +1194,6 @@ int SUMA_F2_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1254,7 +1240,6 @@ int SUMA_F3_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1290,7 +1275,6 @@ int SUMA_F4_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1326,7 +1310,6 @@ int SUMA_F5_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1362,7 +1345,6 @@ int SUMA_F6_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1400,7 +1382,6 @@ int SUMA_F7_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1450,7 +1431,6 @@ int SUMA_F8_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1499,7 +1479,6 @@ int SUMA_F9_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1543,7 +1522,6 @@ int SUMA_F10_Key(SUMA_SurfaceViewer *sv,char *key, char *callmode, char *strgval
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1592,7 +1570,6 @@ int SUMA_F11_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1647,7 +1624,6 @@ int SUMA_F12_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1758,7 +1734,6 @@ int SUMA_F13_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -2389,7 +2364,6 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -2937,7 +2911,6 @@ int SUMA_J_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -3065,7 +3038,6 @@ int SUMA_L_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
    if (strgval) {
@@ -3254,7 +3226,6 @@ int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -3390,7 +3361,6 @@ int SUMA_N_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -3465,7 +3435,6 @@ int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -3541,7 +3510,6 @@ int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -3605,7 +3573,6 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -3944,7 +3911,6 @@ int SUMA_T_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -4005,7 +3971,6 @@ int SUMA_U_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -4059,7 +4024,6 @@ int SUMA_Add_to_SaveList(DList **SLp, char *type,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!SLp || !type || !identifier || !prefix) SUMA_RETURN(0);
    SL = *SLp;
@@ -4115,7 +4079,6 @@ void SUMA_Show_SaveList(DList *SL, char *head)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!out) out = stderr;
    if (head) { fprintf(out, "%s", head); }
@@ -4145,7 +4108,6 @@ int SUMA_SaveSaveListElement(SUMA_SAVE_LIST_EL *sel)
    int nid=0;
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!sel || !sel->identifier || !sel->prefix || !sel->type) SUMA_RETURN(0);
 
@@ -4216,7 +4178,6 @@ int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -4325,7 +4286,6 @@ int SUMA_Z_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -4392,7 +4352,6 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -4517,7 +4476,6 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -4639,7 +4597,6 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -4752,7 +4709,6 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -4905,7 +4861,6 @@ void SUMA_ShowEvent(SUMA_EVENT *ev, int opt, char *pre)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SS = SUMA_StringAppend(NULL, NULL);
 
@@ -5084,7 +5039,6 @@ SUMA_EVENT *SUMA_RecordEvent( XEvent *event,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!event) {
       SUMA_S_Err("Null event");
@@ -7373,7 +7327,6 @@ void SUMA_momentum(XtPointer clientData, XtIntervalId *id)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    /* the widget is passed as client data */
    w = (Widget)clientData;
@@ -7445,7 +7398,6 @@ SUMA_Boolean SUMA_MarkPickInBuffer4(SUMA_SurfaceViewer *sv, int InViewer,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
   if (!InViewer && !OnDisk) {
       SUMA_S_Err("Nothing to do here");
       SUMA_RETURN(NOPE);
@@ -7560,7 +7512,6 @@ SUMA_Boolean SUMA_GetColidInPickBuffer4(GLubyte *pix, int Ni, int Nj,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!pix || !ii || !ji || *ii <0 || *ii >= Ni || *ji<0 || *ji>Nj) {
       SUMA_S_Err("Bad input");
@@ -7618,7 +7569,6 @@ SUMA_Boolean SUMA_PickBuffer(SUMA_SurfaceViewer *sv, int action, SUMA_DO *dov)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!sv) {
       SUMA_S_Err("Null sv!");
@@ -7677,7 +7627,6 @@ SUMA_Boolean SUMA_ADO_Flush_Pick_Buffer(SUMA_ALL_DO *ado, SUMA_SurfaceViewer *sv
    int ii;
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!ado) SUMA_RETURN(NOPE);
    if (sv) {
@@ -7717,7 +7666,6 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked_FrameSO(SUMA_SurfaceViewer *sv, int ido)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!sv ) {
       SUMA_S_Err("NULL input");
@@ -7959,7 +7907,6 @@ SUMA_Boolean SUMA_Bundle_Pick_Intersect(void *p, char ptype, int Tmask,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (tmin) *tmin = -1;
    if (pmin) *pmin = -1;
@@ -8086,7 +8033,6 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (ucodf) *ucodf=codf;
    PR = SUMA_New_Pick_Result(PR);
@@ -8577,7 +8523,6 @@ SUMA_PICK_RESULT *SUMA_New_Pick_Result(SUMA_PICK_RESULT *PR)
 {
    static char FuncName[]={"SUMA_New_Pick_Result"};
 
-   // fprintf(stderr, "%s\n", FuncName);
    int i;
    if (!PR) {
       PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
@@ -8629,7 +8574,6 @@ SUMA_Boolean SUMA_ADO_StorePickResult(SUMA_ALL_DO *ado, SUMA_PICK_RESULT **PRP)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!PRP || !*PRP) SUMA_RETURN(NOPE);
 
@@ -8728,7 +8672,6 @@ SUMA_PICK_RESULT * SUMA_ADO_GetPickResult(SUMA_ALL_DO *ado, char *primitive)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!ado) SUMA_RETURN(NULL);
    if (!primitive) primitive = "none";
@@ -8784,7 +8727,6 @@ void SUMA_Show_Pick_Colid_List(DList *pick_colid_list, FILE *fout)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
    if (!fout) fout = SUMA_STDOUT;
 
    s = SUMA_Pick_Colid_List_Info(pick_colid_list);
@@ -8809,7 +8751,6 @@ char *SUMA_Pick_Colid_List_Info (DList *pick_colid_list)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SS = SUMA_StringAppend(NULL, NULL);
 
@@ -8915,7 +8856,6 @@ int SUMA_MarkLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
    SUMA_S_Warn("Do not call me anymore."
                "Go via SUMA_ComputeLineDOsIntersect. "
                "This is left here for testing purposes");
@@ -8952,7 +8892,6 @@ int SUMA_ComputeLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!sv || !dov) SUMA_RETURN(-1);
 
@@ -9064,7 +9003,6 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
    SUMA_LH("Here");
    if (!sv || !ado || !PRi || !*PRi) { SUMA_S_Err("Niente"); SUMA_RETURN(-1); }
 
@@ -9303,7 +9241,6 @@ int SUMA_Apply_PR(SUMA_SurfaceViewer *sv, SUMA_PICK_RESULT **PR)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!sv || !PR || !*PR) {
       SUMA_S_Err("NULL input %p %p %p", sv, PR, *PR);
@@ -9384,7 +9321,6 @@ int SUMA_MarkLineMaskIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
    SUMA_S_Warn("Do not call me anymore. Follow the new selection logic");
    ans = SUMA_ComputeLineMaskIntersect(sv, dov, IgnoreSameNode, &ado);
    if (ans <= 0) {
@@ -9414,7 +9350,6 @@ int SUMA_ComputeLineMaskIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    P0f[0] = sv->Pick0[0];
    P0f[1] = sv->Pick0[1];
@@ -9537,7 +9472,6 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
    SUMA_S_Warn("Do not call me anymore."
                "Go via SUMA_ComputeLineSurfaceIntersect. "
                "This is left here for testing purposes");
@@ -9588,7 +9522,6 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    P0f[0] = sv->Pick0[0];
    P0f[1] = sv->Pick0[1];
@@ -9714,7 +9647,6 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
     return (0);
    }
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!sv || !SO || !PRi || !*PRi) { SUMA_S_Err("Niente"); SUMA_RETURN(-1); }
 
@@ -9939,7 +9871,6 @@ int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    P0f[0] = sv->Pick0[0];
    P0f[1] = sv->Pick0[1];
@@ -10170,7 +10101,6 @@ int SUMA_MarkLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
    SUMA_S_Warn("Do not call me anymore. Follow the new selection logic");
    ans = SUMA_ComputeLineVOslicesIntersect(sv, dov, IgnoreSameNode, &ado);
    if (ans <= 0) {
@@ -10196,7 +10126,6 @@ byte SUMA_Val_Meets_Thresh(float val, double *ThreshRange,
 {
    static char FuncName[]={"SUMA_Val_Meets_Thresh"};
 
-   // fprintf(stderr, "%s\n", FuncName);
   switch(ThrMode){
       case SUMA_LESS_THAN:
          return((val >= ThreshRange[0]));
@@ -10257,7 +10186,6 @@ int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    P0f[0] = sv->Pick0[0];
    P0f[1] = sv->Pick0[1];
@@ -10453,7 +10381,6 @@ int SUMA_ComputeLineVOvrIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    P0f[0] = sv->Pick0[0];
    P0f[1] = sv->Pick0[1];
@@ -10632,7 +10559,6 @@ int SUMA_Apply_PR_VO(SUMA_SurfaceViewer *sv, SUMA_VolumeObject *VO,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_LH("Here");
    if (!sv || !VO || !PRi || !*PRi) { SUMA_S_Err("Niente"); SUMA_RETURN(-1); }
@@ -10805,7 +10731,6 @@ void SUMA_ShowBrushStroke (SUMA_SurfaceViewer *sv, FILE *out)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!out) out = SUMA_STDERR;
 
@@ -10858,7 +10783,6 @@ void  SUMA_ClearBrushStroke (SUMA_SurfaceViewer *sv)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    /* THE NEW VERSION */
    if (sv->BS) {
@@ -10886,7 +10810,6 @@ SUMA_Boolean  SUMA_CreateBrushStroke (SUMA_SurfaceViewer *sv)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    /* New Version */
    if (sv->BS) {  /* bad news, this should be NULL to begin with */
@@ -10909,7 +10832,6 @@ SUMA_BRUSH_STROKE_DATUM * SUMA_CreateBSDatum(void)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    bsd = (SUMA_BRUSH_STROKE_DATUM *)
             SUMA_calloc(1,sizeof(SUMA_BRUSH_STROKE_DATUM));
@@ -10939,7 +10861,6 @@ void SUMA_FreeBSDatum (void *bsd)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    /* nothing is allocated for inside bsd */
    if (bsd) SUMA_free(bsd);
@@ -10970,7 +10891,6 @@ SUMA_Boolean  SUMA_AddToBrushStroke (SUMA_SurfaceViewer *sv, int x, int y, GLdou
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    /* New version */
    bsd = SUMA_CreateBSDatum();
@@ -10996,7 +10916,6 @@ void SUMA_SetSVForegroundColor (SUMA_SurfaceViewer *sv, const char *Color)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    #ifdef DARWIN
       SUMA_S_Warn("Calling this function from OS X seems to cause trouble");
@@ -11042,7 +10961,6 @@ void SUMA_DrawBrushStroke (SUMA_SurfaceViewer *sv, SUMA_Boolean incr)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!sv->BS) SUMA_RETURNe;
 
@@ -11101,7 +11019,6 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SO = SUMA_SV_Focus_SO(sv);
 
@@ -11547,7 +11464,6 @@ SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!(SO = SUMA_SV_Focus_SO(sv))) {
       SUMA_S_Err("No surface in focus");
@@ -11904,7 +11820,6 @@ SUMA_ROI_DATUM *SUMA_LinkThisNodeToNodeInStroke (SUMA_SurfaceViewer *sv,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!(SO = SUMA_SV_Focus_SO(sv))) {
       SUMA_S_Err("No SO in focus");
@@ -11950,7 +11865,6 @@ SUMA_ROI_DATUM *SUMA_LinkTailNodeToNodeStroke ( SUMA_SurfaceViewer *sv,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!(SO = SUMA_SV_Focus_SO(sv))) {
       SUMA_S_Err("No SO in focus");
@@ -12001,7 +11915,6 @@ SUMA_ROI_DATUM *SUMA_NodeStrokeToConnectedNodes (SUMA_SurfaceViewer *sv)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!(SO = SUMA_SV_Focus_SO(sv))) {
       SUMA_S_Err("No SO in focus");
@@ -12091,7 +12004,6 @@ DListElmt * SUMA_PushActionStack (DList *ActionStack, DListElmt *StackPos,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    /* execute action */
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Executing Action.\n", FuncName);
@@ -12147,7 +12059,6 @@ DListElmt * SUMA_RedoAction (DList *ActionStack, DListElmt *StackPos)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!StackPos) {
       if (LocalHead) fprintf (SUMA_STDERR, "%s: At bottom of stack. Working up.\n", FuncName);
@@ -12195,7 +12106,6 @@ DListElmt * SUMA_UndoAction (DList *ActionStack, DListElmt *StackPos)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!StackPos) {
       SUMA_SLP_Err("At bottom of stack.");
@@ -12241,7 +12151,6 @@ SUMA_ACTION_RESULT SUMA_FinishedROI (void *data, SUMA_ACTION_POLARITY Pol)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    ROIA = (SUMA_ROI_ACTION_STRUCT *)data;
 
@@ -12323,7 +12232,6 @@ SUMA_ACTION_RESULT SUMA_AddFillROIDatum (void *data, SUMA_ACTION_POLARITY Pol)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    ROIA = (SUMA_ROI_ACTION_STRUCT *)data;
 
@@ -12370,7 +12278,6 @@ SUMA_ACTION_RESULT SUMA_AddToTailJunctionROIDatum (void *data,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    ROIA = (SUMA_ROI_ACTION_STRUCT *)data;
 
@@ -12424,7 +12331,6 @@ SUMA_ACTION_RESULT SUMA_AddToTailROIDatum (void *data, SUMA_ACTION_POLARITY Pol)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    ROIA = (SUMA_ROI_ACTION_STRUCT *)data;
 
@@ -12464,7 +12370,6 @@ void SUMA_DestroyROIActionData (void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    ROIA = (SUMA_ROI_ACTION_STRUCT *)data;
 
@@ -12498,7 +12403,6 @@ void SUMA_SetLight0 (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s) SUMA_RETURNe;
 
@@ -12545,7 +12449,6 @@ void SUMA_SetNumForeSmoothing (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s) SUMA_RETURNe;
 
@@ -12591,7 +12494,6 @@ void SUMA_SetNumFinalSmoothing (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s) SUMA_RETURNe;
 
@@ -12657,7 +12559,6 @@ void SUMA_SetClip (char *s, SUMA_SurfaceViewer *sv, SUMA_CLIP_PLANE_TYPES tp)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s) {
       SUMA_Show_Clip_Planes(SUMAg_CF, NULL);
@@ -12758,7 +12659,6 @@ void SUMA_SetRotCenter (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    sv = (SUMA_SurfaceViewer *)data;
    if (!sv) {
@@ -12808,7 +12708,6 @@ void SUMA_LookAtCoordinates (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s) SUMA_RETURNe;
 
@@ -12845,7 +12744,6 @@ void SUMA_SV_SetRenderOrder(char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s) SUMA_RETURNe;
 
@@ -12870,7 +12768,6 @@ void SUMA_JumpIndex (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s) SUMA_RETURNe;
 
@@ -12938,7 +12835,6 @@ void SUMA_JumpIndex_SO (char *s, SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s || !sv || !SO) SUMA_RETURNe;
 
@@ -13105,7 +13001,6 @@ void SUMA_JumpIndex_GDSET (char *s, SUMA_SurfaceViewer *sv,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s || !sv) SUMA_RETURNe;
 
@@ -13233,7 +13128,6 @@ void SUMA_JumpIndex_TDO (char *s, SUMA_SurfaceViewer *sv,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s || !sv || !tdo || !tdo->net) SUMA_RETURNe;
 
@@ -13404,7 +13298,6 @@ void SUMA_JumpIndex_CO (char *s, SUMA_SurfaceViewer *sv,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -13433,7 +13326,6 @@ void SUMA_JumpIndex_VO (char *s, SUMA_SurfaceViewer *sv,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_LH("Called");
    if (!s || !sv || !vo ||
@@ -13612,7 +13504,6 @@ void SUMA_JumpIndex_MDO (char *s, SUMA_SurfaceViewer *sv, SUMA_MaskDO *mo)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s || !sv) SUMA_RETURNe;
 
@@ -13790,7 +13681,6 @@ void SUMA_JumpXYZ (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s) SUMA_RETURNe;
 
@@ -13895,7 +13785,6 @@ void SUMA_JumpFocusNode (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s) SUMA_RETURNe;
 
@@ -13989,7 +13878,6 @@ void SUMA_JumpFocusFace (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s) SUMA_RETURNe;
 
@@ -14048,7 +13936,6 @@ void SUMA_HighlightBox (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s) SUMA_RETURNe;
 

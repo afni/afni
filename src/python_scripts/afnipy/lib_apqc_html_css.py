@@ -70,7 +70,7 @@ wlevel_ranks = {
 wlevel_colors = {
     ''          : "#CCCCCC",
     'none'      : "#CCFFCC",
-    'undecided' : "#EAEA99",
+    'undecided' : "#EAEA99", # possible alt. for underlines: "#F7CA18"
     'mild'      : "#FFC3C4",
     'medium'    : "#FF7F7F",
     'severe'    : "#FF0000"
@@ -461,6 +461,15 @@ css_text+= '''
     padding: 0px 2px;
     float: right;
 }
+
+/* turning img/text headings into (subtle) buttons */
+.btn_title {
+    background-color: #014E33;
+    font-family: "Lucida Console", Monaco, monospace;
+    border: solid 0px #014E33!important;
+    border-color: #014E33!important; 
+}
+
 /* ... and the container/div holding the buttons */
 .container_avnv {
     width: 160px;  /* if more btns added, make wider */
@@ -468,6 +477,11 @@ css_text+= '''
     position: absolute; 
     top: -34; 
     right: 5%;
+}
+
+/* for NV canvas properties */
+canvas {
+    outline: none;      /* no outline */
 }
 
 /* For Graphview (GV) and InstaCorr (IC) buttons; 
@@ -529,6 +543,14 @@ css_text+= '''
 
 '''
 
+
+### no longer including:
+# button:focus:not(.active) {
+#     /* background-color: #333; */
+#     /* color: #ffea00; yellow; */
+#     border: dashed 1px #ffea00!important;
+#     /* border-color: #ffea00!important; yellow; */
+# }
 
 css_text+= '''
 
@@ -627,13 +649,6 @@ button:hover:not(.active) {
     border-color: #ffea00!important; /* yellow; */
 }
 
-button:focus:not(.active) {
-    /* background-color: #333; */
-    /* color: #ffea00; yellow; */
-    border: dashed 1px #ffea00!important;
-    /* border-color: #ffea00!important; yellow; */
-}
-
 button:active {
   transform: translateY(1px);
 }
@@ -682,28 +697,37 @@ css_text+= '''
   outline: none;
 }
 
+
 /* Set a style for the submit/login button */
 .form-container .btn {
   background-color: #7ece8c;
-  color: white;
   padding: 0px 0px;
   border: 3px solid #5f926a;
   float: left;
   cursor: pointer;
   margin:0;
-  width: 50%;
+  width: 33.3%;
   height: 30px;
   opacity: 1;
   font-weight: bold;
-  color: #FFF;
+  /*color: #FFF;*/
+  color: #000;
 }
 
-/* Add a red background color to the cancel button */
+/* Add a yellow background color to the cancel (clear text) button */
 .form-container .cancel {
+  background-color: #f3c36b; /*#c0ce7e;*/
+  border: 3px solid #a06c0d; 
+  color: #000;
+}
+
+/* Add a red background color to the clear-all button */
+.form-container .clearall {
   background-color: #f36b9b;
   border: 3px solid #c20000;
   color: #000;
 }
+
 
 '''
 

@@ -1185,7 +1185,9 @@ void svm_rt_callback(void *junk)
 
           /* -- extract last sub-brik that was sent to afni
                 and calculate dot product with bucket (if available) -- */
+
           for( iw=0; iw<GLOBAL_svm_vars.n_wvec; iw++ ) {
+            rt_dist[iw] = 0.0f;
           }
 
           if( rt_datum == MRI_short ) 

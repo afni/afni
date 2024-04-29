@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/bin/tcsh -f
 
 # for olay, default will be "show all"-- update fatcats to call for
 # 98%iles of non-zeros
@@ -350,9 +350,12 @@
 #set version   = "6.6";   set rev_dat   = "Mar 28, 2023"
 #    + [PT] add more fields to output pbar info, for APQC/NiiVue
 #
-set version   = "6.61";   set rev_dat   = "Mar 30, 2023"
+#set version   = "6.61";   set rev_dat   = "Mar 30, 2023"
 #    + [PT] add more fields to output pbar info, for APQC/NiiVue
 #         + left/left and left/post info
+#
+set version   = "6.7";   set rev_dat   = "Mar 19, 2024"
+#    + [PT] new opt c2s_mont_1x1 so script has 1x1 montages
 #
 # =====================================================================
 
@@ -511,6 +514,8 @@ set oechocmd  = ""               # [PT: May 17, 2023] output driving cmd
 set DO_echo4apqc = 1             # [PT: May 17, 2023] do things for APQC
 set txt_oechocmd = ""
 set txt_oechocmd2 = ""
+set c2s_mont_1x1 = 0             # [PT: 24-03-19] for APQC, script mont is 1x1
+set use_ad = ""                  # use all dsets? (def: no)
 
 set DO_DRY_RUN = 0               # [PT: Jun 3, 2023] to run and just get text
 
@@ -1108,6 +1113,9 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set oechocmd = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-c2s_mont_1x1" ) then
+        set c2s_mont_1x1 = 1
 
     else if ( "$argv[$ac]" == "-c2s_text" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -2426,6 +2434,16 @@ endif
             set use_ad = ""
         endif
 
+        if ( ${c2s_mont_1x1} ) then
+            # user wants basic views for output script
+            set c2s_montx = 1
+            set c2s_monty = 1
+        else
+            # output script matches image mont shape
+            set c2s_montx = ${mx}
+            set c2s_monty = ${my}
+        endif
+
         cat <<EOF >! "${oechocmd}"
 #!/bin/tcsh 
 
@@ -2449,6 +2467,7 @@ setenv AFNI_NIFTI_TYPE_WARN    NO
 set read_ulay    = "${e_ulay}"  
 set read_olay    = "${e_olay}"  
 set read_dir     = "${e_read_dir}"  
+set use_ad       = "${use_ad}" 
 set crossh       = "${e_crossh}"  
 set see_olay     = "${see_olay}"  
 set pbar_sign    = "${pbar_sign}"  
@@ -2469,8 +2488,8 @@ set xh_gap       = "${xh_gap}"
 set OW           = "${OW}"  
 set opac         = "${opac}"  
 set butpress     = "${butpress}"  
-set mx           = "${mx}"  
-set my           = "${my}"  
+set mx           = "${c2s_montx}"  
+set my           = "${c2s_monty}"  
 set mgap         = "${mgap}"  
 set mcolor       = "${mcolor}"  
 set gapord       = ( ${gapord} )
@@ -2503,32 +2522,32 @@ endif
 set portnum = `afni -available_npb_quiet`
 
 # the drive command itself (without quitting)
-afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
-    -npb \${portnum}  ${use_ad}                                      \
+afni -q -no1D \${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
+    -npb \${portnum}  \${use_ad}                                      \
     -com "SWITCH_UNDERLAY \${read_ulay}"                              \
     -com "SWITCH_OVERLAY  \${read_olay}"                              \
-    -com "SEE_OVERLAY     ${see_olay}"                               \
-    -com "$OW sagittalimage opacity=${opac} ${butpress}              \
-           mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor}           \
-           crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \
-    -com "$OW coronalimage  opacity=${opac} ${butpress}              \
-           mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor}           \
-           crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \
-    -com "$OW axialimage    opacity=${opac} ${butpress}              \
-           mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \
-           crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
-    -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \
-    -com "$com_pbar_str"                                             \
-    -com "SET_SUBBRICKS   ${subbb}"                                  \
-    -com "$com_ulay_str"                                             \
-    -com "SET_FUNC_RANGE  ${frange}"                                 \
-    -com "SET_THRESHNEW   $thrnew $thrflag"                          \
-    -com "SET_FUNC_ALPHA  $olay_alpha"                               \
-    -com "SET_FUNC_BOXED  $olay_boxed"                               \
-    -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \
+    -com "SEE_OVERLAY     \${see_olay}"                               \
+    -com "\$OW sagittalimage opacity=\${opac} \${butpress}              \
+           mont=\${mx}x\${my}:\${gapord[1]}:\${mgap}:\${mcolor}           \
+           crop=\${scropx[1]}:\${scropx[2]},\${scropy[1]}:\${scropy[2]}" \
+    -com "\$OW coronalimage  opacity=\${opac} \${butpress}              \
+           mont=\${mx}x\${my}:\${gapord[2]}:\${mgap}:\${mcolor}           \
+           crop=\${ccropx[1]}:\${ccropx[2]},\${ccropy[1]}:\${ccropy[2]}" \
+    -com "\$OW axialimage    opacity=\${opac} \${butpress}              \
+           mont=\${mx}x\${my}:\${gapord[3]}:\${mgap}:\${mcolor}           \
+           crop=\${acropx[1]}:\${acropx[2]},\${acropy[1]}:\${acropy[2]}" \
+    -com "SET_PBAR_ALL    \${pbar_sign}\${ncolors} \$topval \$my_cbar"   \
+    -com "\$com_pbar_str"  \
+    -com "SET_SUBBRICKS   \${subbb}"                                  \
+    -com "\$com_ulay_str"                                             \
+    -com "SET_FUNC_RANGE  \${frange}"                                 \
+    -com "SET_THRESHNEW   \$thrnew $thrflag"                          \
+    -com "SET_FUNC_ALPHA  \$olay_alpha"                               \
+    -com "SET_FUNC_BOXED  \$olay_boxed"                               \
+    -com "SET_FUNC_RESAM  \${func_resam}.\${func_resam}"               \
     -com "SET_XHAIRS      \${crossh}"                                 \
-    -com "SET_XHAIR_GAP   ${xh_gap}"                                 \
-    -com "$coor_type $coors"                                         \
+    -com "SET_XHAIR_GAP   \${xh_gap}"                                 \
+    -com "\$coor_type \$coors"                                         \
     \${view_planes:q}                                                 \
     \${read_dir} &
 
@@ -3057,7 +3076,7 @@ COMMAND OPTIONS ~1~
                     what options go where when clusterizing.  Examples
                     are also included below.
 
--clust_wami CW     :if using '-clusterize ..', then this option can be used
+-clusterize_wami CW :if using '-clusterize ..', then this option can be used
                     to run AFNI's whereami program on the results.  The user
                     provides the name of an allowed atlas for reference
                     (see the top of whereami's help), and a text file
@@ -3193,6 +3212,12 @@ COMMAND OPTIONS ~1~
 -c2s_text2  C2ST   :when using '-cmd2script ..', then this option can
                     be used to add a second line of text in the script's 
                     pop-up message.
+
+-c2s_mont_1x1      :when using '-cmd2script ..', use this flag so that 
+                    the output script just has a 1x1 "montage" size, 
+                    regardless of the actual image montage size. Sometimes
+                    large montages are useful in images, but not in the 
+                    interactive GUI session.
 
 -dry_run           :run all the parts of the chauffeur *except* making 
                     the images; this is useful if we just want the

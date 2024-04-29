@@ -2966,6 +2966,16 @@ and so force an elicitation of the NIfTI debug messages (for .nii
 files, that is).
 
 ------------------------------
+Variable: AFNI_NIFTI_WRITE_TYPE
+------------------------------
+AFNI defaults to writing NIFTI-2 only if any dimension exceeds the NIFTI-1
+limit of a (signed) short int (2^15-1 = 32767).  Otherwise it writes NIFTI-1.
+This variable will override the default behavior based on the value:
+   1   : write NIFTI-1
+   2   : write NIFTI-2
+   else: write as the default (based on dims)
+
+------------------------------
 Variable: AFNI_NIFTI_TYPE_WARN
 ------------------------------
 AFNI converts 'byte' NIFTI data types to 'short', and 'int' to

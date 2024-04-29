@@ -22,6 +22,9 @@
      "                 any '-npad ...' option, so it would ignore that.\n"
   + make help file formatting a bit more readable
 
+  [PT: Apr 18, 2024]
+  + new opt for simpler scripting: -extent_xyz_quiet
+
  */
 
 
@@ -86,6 +89,9 @@ void help_autobox()
      "                 cropping box, and will clip off small isolated blobs.\n"
      "\n"
      "-extent         :Write to standard out the spatial extent of the box\n"
+     "\n"
+     "-extent_xyz_quiet :The same numbers as '-extent', but only numbers and\n"
+     "                 no string content. Ordering is RLAPIS.\n"
      "\n"
      "-extent_ijk     :Write out the 6 auto bbox ijk slice numbers to\n"
      "                 screen:\n"
@@ -210,6 +216,7 @@ int main( int argc , char * argv[] )
    char *oijkext    = NULL;  FILE *fout_ijkext    = NULL;
    char *oxyzext    = NULL;  FILE *fout_xyzext    = NULL;
    char *oijkordext = NULL;  FILE *fout_ijkordext = NULL;
+   int extent_xyz_q=0;
    int extent_ijk=0;
    int extent_ijk_midslice=0;
    int extent_ijkord=0;
@@ -316,6 +323,11 @@ int main( int argc , char * argv[] )
 			if( ++iarg >= argc ) 
 				ERROR_exit("Need argument after '-extent_xyz_to_file'\n") ;
          oxyzext = argv[iarg];
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-extent_xyz_quiet") == 0 ){
+         extent_xyz_q = 1;
          iarg++ ; continue ;
       }
 
@@ -439,7 +451,7 @@ int main( int argc , char * argv[] )
          //             ijk_as_rai[0], ijk_as_rai[1], ijk_as_rai[2], 
          //             ijk_as_rai[3], ijk_as_rai[4], ijk_as_rai[5] );
       }
-
+      
       // [PT: Oct 18, 2018] New output text file, if desired
       if( oijkext ) {
          if( (fout_ijkext = fopen(oijkext, "w")) == NULL ) {
@@ -470,7 +482,8 @@ int main( int argc , char * argv[] )
                  ijk_order[2], ijk_as_rai[4], ijk_as_rai[5] );
 
       if ( (extent && !prefix) || (extent_xyz_midslice && !prefix) || \
-           (oxyzext && !prefix) || (oijkordext && !prefix) )
+           (oxyzext && !prefix) || (oijkordext && !prefix) || \
+           (extent_xyz_q && !prefix) )
          prefix = "EXTENT_ONLY";
 
       if( prefix ){
@@ -498,6 +511,16 @@ int main( int argc , char * argv[] )
           float RL_AP_IS[6];
           THD_dset_extent(outset, '-', RL_AP_IS);
           printf("Extent auto bbox: R=%f L=%f  A=%f P=%f  I=%f S=%f\n",
+                    RL_AP_IS[0],RL_AP_IS[1],
+                    RL_AP_IS[2],RL_AP_IS[3],
+                    RL_AP_IS[4],RL_AP_IS[5] ) ;
+         }
+
+         // [PT: April 18, 2024] only 6 numbers output RLAPIS
+         if( extent_xyz_q ) {
+            float RL_AP_IS[6];
+            THD_dset_extent(outset, '-', RL_AP_IS);
+            printf( "%f %f  %f %f  %f %f\n",
                     RL_AP_IS[0],RL_AP_IS[1],
                     RL_AP_IS[2],RL_AP_IS[3],
                     RL_AP_IS[4],RL_AP_IS[5] ) ;
@@ -535,7 +558,6 @@ int main( int argc , char * argv[] )
          }
 
          if( extent_xyz_midslice ) {
-            INFO_message("aaa" );
             float RL_AP_IS2[6];
             THD_dset_extent(outset, '-', RL_AP_IS2);
             xmid = (RL_AP_IS2[0] + RL_AP_IS2[1]) / 2.;

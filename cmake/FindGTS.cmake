@@ -1,5 +1,5 @@
 #[=======================================================================[.rst:
-Findgts
+FindGTS
 ---------
 
 Find the native gts headers and library.

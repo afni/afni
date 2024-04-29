@@ -8,10 +8,18 @@
 suppressPackageStartupMessages(library(data.table))
 
 ## global variables #############
-log.out <- c()  ## not the greatest method...
-log.name <- "temp_log.txt"
-dtCheck.overwrite <- FALSE
-
+if( !exists("log.out") ){
+    log.out <<- c()  ## not the greatest method...
+}
+if( !exists("log.name") ){
+    log.name <<- "temp_log.txt"
+}
+if( !exists("dtCheck.overwrite") ){
+    dtCheck.overwrite <<- FALSE
+}
+if( !exists("dtCheck.help") ){
+    dtCheck.help <<- FALSE
+}
 ## some declared variables #######
 respVar <- c('InputFile','Inputfile','inputFile','inputfile',
              'Ausgang_val','ausgang_val')   ## for misspellings 
@@ -26,7 +34,7 @@ dtCheck_convert_num <- function(data.in){
     
     ## fix here grep the +/- numeric variables and convert to numeric ###### 
     num.cols <- sapply(data.in, function(x) !any(grepl("[^0-9.-]", x)))
-
+    
     ## check to see if the Subj variable is all numeric
     if( num.cols[1] ){ num.cols[1] <- FALSE }
     
@@ -37,7 +45,7 @@ dtCheck_convert_num <- function(data.in){
         data.in[,num.cols] <- apply(data.in[,num.cols],2,
                                     function(x) as.numeric(as.character(x)))
     } else if( length(which(num.cols)) == 0 ){ return(data.in) }
-
+    
     return(data.in)
     
 }   ## end dtCheck_convert_num
@@ -226,6 +234,15 @@ dtCheck_tryRead <- function(file.in){
     ## read all by line
     data.str <- readLines(file.in)
     
+    ## check for commas
+    if( grepl(".csv",basename(file.in)) ){
+        dtCheck_warn(paste(basename(file.in),"seems to be a csv file"),1)
+        dtCheck_warn("Some AFNI R programs do not accept csv files")
+    } else if( grepl(",",data.str[1]) ){
+        dtCheck_warn(paste(basename(file.in),"seems to be a csv file"),1)
+        dtCheck_warn("Some AFNI R programs do not accept csv files")
+    }
+    
     ## get info from the first line assuming it is a header
     hdr.line <- strsplit(data.str[1], "[, ]|[[:space:]]+")
     
@@ -236,7 +253,7 @@ dtCheck_tryRead <- function(file.in){
     
     ## get length
     hdr.len <- length(hdr.line[[1]])
-
+    
     ## empty to fill
     miss.row <- miss.num <- miss.line <- na.line <- c()
     
@@ -245,7 +262,7 @@ dtCheck_tryRead <- function(file.in){
         
         ## split line by comma or some spaces
         tmp.line <- strsplit(data.str[i], "[, ]|[[:space:]]+")
-       
+        
         ## check for trailing slash
         if( tmp.line[[1]][length(tmp.line[[1]])] == "\\" ){
             tmp.line[[1]] <- tmp.line[[1]][1:(length(tmp.line[[1]])-1)]
@@ -341,18 +358,30 @@ num_int_sum <- function(data.in){
 
 ## check image datasets for various things #################
 
+## 3dinfo loop over all files in case of really long file names
+dtCheck_loop <- function(data.in,cmd.in){
+    
+    check.out <- c()
+    
+    for( i in 1:nrow(data.in) ){
+        afni.cmd <- paste(cmd.in,data.in$InputFile[i])
+        cmd.num <- system(afni.cmd,intern=TRUE)
+        check.out <- c(check.out,cmd.num[1])   ## take the first for same_grid
+    }
+    
+    return(check.out)
+    
+}   ## end dtCheck_loop
+
 ## afni check if InputFile exists returns 0 for good
 dtCheck_img_exists <- function(data.in){
     
     # afni.path <- dirname(system('which afni',intern=TRUE))
     
-    ## get all of the input files in one long string
-    in.dsets <- paste0(data.in$InputFile,collapse=" ")
+    ## loop over all InputFiles
+    cmd.num <- dtCheck_loop(data.in,"3dinfo -exists")
     
-    ## make afni command and save out result
-    afni.cmd <- paste0("3dinfo -exists ",in.dsets)
-    cmd.num <- system(afni.cmd,intern=TRUE)
-    
+    ## check and return 
     if( sum(as.numeric(cmd.num)) == nrow(data.in) ){
         dtCheck_good('All InputFiles exist.')
         return(0)
@@ -365,14 +394,8 @@ dtCheck_img_exists <- function(data.in){
 ## afni check if all InputFiles have only 1 volume
 dtCheck_1_vol <- function(data.in){
     
-    # afni.path <- dirname(system('which afni',intern=TRUE))
-    
-    ## get all of the input files in one long string
-    in.dsets <- paste0(data.in$InputFile,collapse=" ")
-    
-    ## make afni command and save out result
-    afni.cmd <- paste0("3dinfo -nv ",in.dsets)
-    cmd.num <- system(afni.cmd,intern=TRUE)
+    ## loop over all InputFiles
+    cmd.num <- dtCheck_loop(data.in,"3dinfo -nv")
     
     if( sum(as.numeric(cmd.num)) == nrow(data.in) ){
         dtCheck_good('All InputFiles have exactly 1 volume.')
@@ -387,14 +410,9 @@ dtCheck_1_vol <- function(data.in){
 ## afni check if all InputFiles are in the same grid
 dtCheck_same_grid <- function(data.in){
     
-    # afni.path <- dirname(system('which afni',intern=TRUE))
-    
-    ## get all of the input files in one long string
-    in.dsets <- paste0(data.in$InputFile,collapse=" ")
-    
-    ## make afni command and save out result
-    afni.cmd <- paste0("3dinfo -same_grid  ",in.dsets)
-    cmd.num <- system(afni.cmd,intern=TRUE)
+    ## loop over all InputFiles
+    cmd.num <- dtCheck_loop(data.in,paste("3dinfo -same_grid",
+                                          data.in$InputFile[1]))
     
     if( sum(as.numeric(cmd.num)) == nrow(data.in) ){
         dtCheck_good('All InputFiles are on the same grid.')
@@ -432,13 +450,17 @@ dtCheck_printSummary <- function(data.in){
             pos.num <- !is.na(suppressWarnings(as.numeric(lev.col)))
             pos.num <- levels(data.in[[i]])[pos.num]
             if( length(pos.num) > 0 ){
-                pos.num <- paste("| ? Numeric levels:",
-                                 paste(pos.num,collapse=" "))
+                pos.num <- paste("| ?",length(pos.num),"Numeric levels found")
             }
             ## if there are not too many levels, print them out
             if( i == length(data.in) ) {
-              col.detail <- paste0("Number of InputFiles=",
-                                     length(levels(data.in[[i]]))," ",pos.num)
+                if( names(data.in)[i] %in% c('Ausgang_val','ausgang_val') ){
+                    col.detail <- paste0("Number of Values=",
+                                         length(data.in[[i]]))
+                } else {
+                    col.detail <- paste0("Number of InputFiles=",
+                                         length(levels(data.in[[i]]))," ",pos.num)
+                }
             } else if( length(levels(data.in[[i]])) < 4 ){
                 lev.var <- tapply(data.in[[i]],data.in[[i]],length)
                 lev.out <- paste0(names(lev.var),"=",lev.var,collapse=" | ")
@@ -520,7 +542,6 @@ InFile_dups <- function(data.in){
     InFile.check <- InFile_last(data.in)
     if( InFile.check == 1 ){ return(1) }
     
-    
     ## get the list of dup files 
     dup.i.file <- data.in$InputFile[duplicated(data.in$InputFile)]
     if( length(dup.i.file) > 0 ){
@@ -548,8 +569,9 @@ file_subj_check <- function(data.in){
     
     ## need to fix this here ################
     ## check if the last column is divisible by subjects
-    file.subj <- length(levels(data.in[,length(data.in)])) / length(levels(data.in$Subj))
-
+    # file.subj <- length(levels(data.in[,length(data.in)])) / length(levels(data.in$Subj))
+    file.subj <- length(data.in[,length(data.in)]) / length(levels(data.in$Subj))
+    
     ## if not an integer
     if( file.subj%%1 != 0 ){
         ## get the counts, mode and list of differing subj
@@ -690,21 +712,24 @@ dtCheck_overall <- function(data.in){
     
     if( length(tableTest.df) == 1 ){ return(1) }
     
-    ## make sure all InputFiles exist on disk
-    exists.val <- dtCheck_img_exists(tableTest.df)
-    
-    if( exists.val == 0 ){
-        test.vols <- dtCheck_1_vol(tableTest.df)
-        test.grid <- dtCheck_same_grid(tableTest.df)
-        
-        ## exit on either failure
-        if( test.vols + test.grid != 0 ){
+    ## make sure all InputFiles exist on disk if not Ausgang
+    if( names(data.in)[length(data.in)] %in% c('Ausgang_val','ausgang_val') ){
+        return(0)
+    } else {
+        exists.val <- dtCheck_img_exists(tableTest.df)
+        if( exists.val == 0 ){
+            test.vols <- dtCheck_1_vol(tableTest.df)
+            test.grid <- dtCheck_same_grid(tableTest.df)
+            
+            ## exit on either failure
+            if( test.vols + test.grid != 0 ){
+                dtCheck_err("One or more tests failed. See above")
+                return(1)
+            }
+        } else {
             dtCheck_err("One or more tests failed. See above")
             return(1)
         }
-    } else {
-        dtCheck_err("One or more tests failed. See above")
-        return(1)
     }
     
     return(0)

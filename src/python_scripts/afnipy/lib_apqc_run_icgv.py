@@ -255,21 +255,45 @@ otxt : str
 
     if input_type == 'pbrun' :
         otxt+= '''
-set dset_ulay = `find . -maxdepth 1 -name "${pb}.*.${run}.*.HEAD" | cut -b3-`
+set all_dset = `find . -maxdepth 1 -name "${pb}.*.${run}.*.HEAD" \\
+                      | cut -b3- | sort`
 
-if ( ${#dset_ulay} == 0 ) then
+if ( ${#all_dset} == 0 ) then
     echo "** Exiting: could not find dset: ${pb}.*.${run}.*.HEAD"
     exit 1
-else if ( ${#dset_ulay} == 1 ) then
-    echo "++ Found ulay dset: ${dset_ulay}"
+else if ( ${#all_dset} == 1 ) then
+    echo "++ Found ulay dset: ${all_dset}"
 else
-    echo "** Exiting: too many (${#dset_ulay}) dsets: ${pb}.*.${run}.*.HEAD"
-    exit 1
+    echo "++ Note: found multiple (${#all_dset}) dsets: ${pb}.*.${run}.*.HEAD"
+    echo "   Assuming this is ME-FMRI"
 endif
 '''
+
+        # navigate fact we might have ME-FMRI here
+        idx = -1
+        if is_valid_ap_ssdict( ap_ssdict ) :
+            ldep = ['reg_echo']
+            if lat.check_dep(ap_ssdict, ldep) :
+                idx = int(ap_ssdict['reg_echo'])
+                otxt+= '''
+
+# Set index from reg_echo uvar (looks like using ME-FMRI)
+set idx = {idx}
+set dset_ulay = "${{all_dset[$idx]}}"
+'''.format(idx=idx)
+        
+        # essentially alternatives to previous nested case
+        if idx < 0 :
+            otxt+= '''
+
+# Set index to be 'middle' dset (is just first if N=1)
+set idx = `echo "scale=0; (${#all_dset}+1)/2" | bc`
+set dset_ulay = "${all_dset[$idx]}"
+'''
+
         if proc_type == 'IC' :
             otxt+= '''
-set ic_dset = "${dset_ulay}"
+set ic_dset   = "${dset_ulay}"
 '''
 
     elif input_type == 'errts' :
@@ -400,40 +424,40 @@ otxt : str
 set dset_vline = ""
 set dir_vline  = `find . -maxdepth 1 -type d        \\
                       -name "vlines.${pb}.*"        \\
-                      | cut -b3-`
+                      | cut -b3- | sort`
 if ( ${#dir_vline} == 1 ) then
     set dset_vline  = `find ./${dir_vline} -maxdepth 1 -type f        \\
                            -name "var.1.*${run}*"                     \\
-                           | cut -b3-`
+                           | cut -b3- | sort`
 endif
 
 # ----- find associated radcor file, if exists
 set dset_radcor = ""
 set dir_radcor  = `find . -maxdepth 1 -type d       \\
                      -name "radcor.${pb}.*"         \\
-                     | cut -b3-`
+                     | cut -b3- | sort`
 if ( ${#dir_radcor} == 1 ) then
     set dset_radcor  = `find ./${dir_radcor} -maxdepth 1 -type f     \\
                             -name "radcor.*.${run}*HEAD"             \\
-                            | cut -b3-`
+                            | cut -b3- | sort`
 endif
 '''
 
         if proc_type == 'IC' :
-            # load across pb, and don't forget the IC dset itself
+            # load across runs for a pb, and don't forget the IC dset itself
             otxt+= '''
 # ----- make ordered list of dsets to load
-set all_load  = ( "${dset_ulay}" "${ic_dset}"       \\
-                   *.${run}.*HEAD                   \\
+set all_load  = ( "${all_dset}" "${ic_dset}"        \\
+                   ${pb}.*HEAD                      \\
                    ${dset_vline} ${dset_radcor}     \\
                    *.HEAD *.nii* )
 '''
         elif proc_type == 'GV' :
-            # load across run
+            # load across runs for a pb
             otxt+= '''
 # ----- make ordered list of dsets to load
-set all_load  = ( "${dset_ulay}"                    \\
-                   *.${pb}.*HEAD                    \\
+set all_load  = ( "${all_dset}"                     \\
+                   ${pb}.*HEAD                      \\
                    ${dset_vline} ${dset_radcor}     \\
                    *.HEAD *.nii* )
 '''
@@ -628,6 +652,7 @@ setenv AFNI_VERSION_CHECK       NO
 setenv AFNI_IMAGE_DATASETS      NO
 setenv AFNI_NO_ADOPTION_WARNING YES
 setenv AFNI_FLASH_VIEWSWITCH    NO
+setenv AFNI_SKIP_TCSV_SCAN      YES
 '''
 
     if proc_type == 'IC' :
@@ -715,7 +740,7 @@ set portnum = `afni -available_npb_quiet`
 
     otxt+= '''
 
-afni -q  -no_detach                                                     \\
+afni -q  -no1D -no_detach                                               \\
     -npb ${portnum}                                                     \\
     -com "SWITCH_UNDERLAY    ${dset_ulay}"                              \\
     -com "INSTACORR INIT                                                \\
@@ -744,7 +769,7 @@ set l = `prompt_popup -message \\
 "   Run InstaCorr on AP results data:  ${label}\\n\\n\\
 \\n\\
 InstaCorr calc using : ${ic_dset}\\n\\
-Initial ulay dataset : ${dset_ulay}\\n\\
+Initial ulay dataset : ${ic_dset}\\n\\
          IC seed rad : ${ic_seedrad} mm\\n\\
          IC blur rad : ${ic_blur} mm\\n\\
          IC polort N : ${ic_polort}\\n\\
@@ -836,7 +861,7 @@ set portnum = `afni -available_npb_quiet`
 
     otxt+= '''
 
-afni -q  -no_detach                                                     \\
+afni -q  -no1D -no_detach                                               \\
     -npb ${portnum}                                                     \\
     -com "SWITCH_UNDERLAY    ${dset_ulay}"                              \\
     -com "SET_DICOM_XYZ      ${coord}"                                  \\
@@ -851,7 +876,7 @@ sleep 1
 set l = `prompt_popup -message \\
 "   View graphs+images of AP results data:  ${label}\\n\\n\\
 \\n\\
-Initial ulay dataset : ${dset_ulay}\\n\\
+Initial ulay dataset : ${dset_ulay[1]}\\n\\
 Initial graph shown  : ${graxis}\\n\\
 \\n\\
 Some useful graph keyboard shortcuts:\\n\\

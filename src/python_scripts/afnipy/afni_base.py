@@ -1066,8 +1066,7 @@ def shell_exec(s,opt="",capture=1):
    
 def shell_exec2(s, capture=0):
 
-   # moved to python_ver_float()   16 May 2011 [rickr]
-   if (python_ver_float() < 2.5): #Use old version and pray
+   if compare_py_ver_to_given('2.5') < 0: #Use old version and pray
       #if there is no capture in option: run os.system
       if(not capture):
          os.system("%s"%s)
@@ -1119,7 +1118,7 @@ def shell_exec2(s, capture=0):
 
          # for python3, convert bytes to unicode (note type is bytes, but
          # that matches str in p2), just use stupid python version
-         if python_ver_float() >= 3.0:
+         if compare_py_ver_to_given('3.0') >= 0:
             o = o.decode()
             e = e.decode()
 
@@ -1136,7 +1135,7 @@ def shell_exec2(s, capture=0):
 def simple_shell_exec(command, capture=0):
    """return status, so, se  (without any splitlines)"""
 
-   if (python_ver_float() < 2.5):
+   if compare_py_ver_to_given('2.5') < 0:
       # abuse old version, re-join split lines
       status, so, se = shell_exec2(command, capture=capture)
       return status, '\n'.join(so), '\n'.join(se)
@@ -1150,7 +1149,7 @@ def simple_shell_exec(command, capture=0):
       status = pipe.returncode
 
       # for python3, convert bytes to unicode (cannot use type(so) == bytes)
-      if python_ver_float() >= 3.0:
+      if compare_py_ver_to_given('3.0') >= 0:
          so = so.decode()
          se = se.decode()
 
@@ -1164,6 +1163,9 @@ def simple_shell_exec(command, capture=0):
    return status, so, se
 
 # we may want this in more than one location            16 May 2011 [rickr]
+# 
+# NOTE: this function is insufficient for double digits
+#       ===> replace with compare_py_ver_to_given(), which compares int by int
 def python_ver_float():
    """return the python version, as a float"""
    vs = sys.version.split()[0]
@@ -1174,6 +1176,50 @@ def python_ver_float():
       vs = vlist[0]
 
    return float(vs)
+
+# python_ver_float() is insufficient, once anything hits double digts,
+# so compare int by int
+def compare_py_ver_to_given(vstr):
+   """return -1, 0, 1 comparing the current version to input vstr
+   """
+   return compare_dot_ver_strings(sys.version.split()[0], vstr)
+
+def compare_dot_ver_strings(v0, v1):
+   """return -1, 0, 1 comparing the current 2 version strings
+
+             -1 : v0 <  v1
+              0 : v0 == v1
+              1 : v0 >  v1
+
+      The strings v0 and v1 are assumed to be in the form 'a.b.c', where
+      the number of '.' separators can vary.  Once a difference is found,
+      return an integer-evaluated comparison.
+   """
+   # get current and input version lists, as ints
+   
+   try:
+      iv0 = [int(v) for v in v0.split('.')]
+      iv1 = [int(v) for v in v1.split('.')]
+   except:
+      print("** cannot convert version strings to int lists")
+      return 0
+
+   len0 = len(iv0)
+   len1 = len(iv1)
+   
+   dmin = min(len0,len1)
+
+   # return first diff out of min found integers
+   for dind in range(dmin):
+      if iv0[dind] < iv1[dind]: return -1
+      if iv0[dind] > iv1[dind]: return  1
+
+   # if still equal, return greater for the longer list
+   if len0 < len1: return -1
+   if len0 > len1: return  1
+
+   # else equal
+   return 0
 
 #generic unique function, from:
 #  http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/52560/index_txt

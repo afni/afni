@@ -1005,6 +1005,40 @@ may be multiple images, depending on time series length:
 
 {ddashline}
 
+Interpreting coloration in images ~1~
+
+The QC images contain images that are supposed to be helpful in
+interpreting the data.  Here are some notes on various aspects.
+
+When viewing physio time series, the interval that overlaps the FMRI
+dataset in time has a white background, while any parts that do not
+have a light gray background.  Essentially, only the overlap regions
+should affect regressor estimation---the parts in gray are useful to
+have as realistic boundary conditions, though.
+
+Peaks are always shown as downward pointing triangles, and troughs are
+upward pointing triangles.
+
+When viewing "final" peak and trough images, there will be color bands
+made of red/white/blue rectangles shown in the subplots.  These
+highlight the relative duration of a given interpeak interval (top
+band in the subplot) and/or intertrough interval (bottom intervals),
+relative to their median values across the entire time series.
+Namely:
+   white : interval matches median
+   blue  : interval is shorter than median (darker blue -> much shorter)
+   red   : interval is longer than median (darker red -> much longer)
+The more intense colors mean that the interval is further than the median,
+counting in standard deviations of the interpeak or intertrough intervals.  
+This coloration is meant to help point out variability across time: this
+might reflect natural variability of the physio time series, or possibly
+draw attention to a QC issue like an out-of-place or missing extremum 
+(which could be edited in "interactive mode").
+
+
+
+{ddashline}
+
 Examples ~1~
 
   Example 1

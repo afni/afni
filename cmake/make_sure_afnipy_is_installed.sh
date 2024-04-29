@@ -31,9 +31,9 @@ then
   # check if DO_NOT_USE_PIP is set:
   if [ -z ${DO_NOT_USE_PIP+x} ]
   then
-   # variable not set 
+   # variable not set
     eval "$py_interp -m pip install -e ."
-  else 
+  else
     eval "$py_interp setup.py develop"
   fi
 fi

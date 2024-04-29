@@ -1,0 +1,467 @@
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+#set version   = "0.1";  set rev_dat   = "March 21, 2024"
+# + start getting to know your data better
+# 
+#set version   = "0.2";  set rev_dat   = "March 22, 2024"
+# + add space and av_space
+# 
+#set version   = "0.3";  set rev_dat   = "March 22, 2024"
+# + add o3
+# 
+#set version   = "1.0";  set rev_dat   = "March 22, 2024"
+# + n4 -> n3 and nv.
+# 
+set version   = "1.1";  set rev_dat   = "March 22, 2024"
+# + check for bad infiles and exit if there are any
+# + check nifti header for exts and afni_exts
+# 
+# ====================================================================
+
+set this_prog = "gtkyd_check"
+set prog_abbr = "gtkyd"
+#set tpname    = "${this_prog:gas///}"
+set here      = $PWD
+
+# ----------------------- set env vars ---------------------------
+
+# cleaner output
+setenv AFNI_NO_OBLIQUE_WARNING YES
+
+# ----------------------- set defaults --------------------------
+
+set dset_list = ""
+set prefix    = "GTKYD.txt"
+
+set odir      = ""
+set opref     = ""
+
+# no wdir needed here
+
+set DO_NIFTI  = 0                       # will check if NIFTI are present
+set DO_BSTAT  = 0                       # do (possibly slow) BrickStat checks
+
+set ow_str    = ""                      # signals if we overwrite or not
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    if ( "$argv[$ac]" == '-echo' ) then
+        set echo
+
+    # --------- required
+
+    else if ( "$argv[$ac]" == '-infiles' ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac ++
+        #  keep adding to list until another option or end of inputs
+        while ( $ac <= $#argv )
+            if ( "`echo "$argv[$ac]" | cut -b 1`" == "-" ) break
+            set dset_list = ( ${dset_list:q} "$argv[$ac]" )
+            @ ac ++
+        end
+
+        # we are no longer looking at an arg that applies to this opt
+        @ ac -= 1
+
+    # get output dir name, and strip any trailing '/'
+    else if ( "$argv[$ac]" == "-outdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set odir = "$argv[$ac]"
+        set odir = `python -c "print('${odir}'.rstrip('/'))"`
+
+    # --------- opt
+
+    else if ( "$argv[$ac]" == "-do_minmax" ) then
+        set DO_BSTAT = 1
+
+    else if ( "$argv[$ac]" == "-overwrite" ) then
+        set ow_str = "-overwrite"
+
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ======================== ** Verify + setup ** =========================
+# =======================================================================
+
+# do we have an odir name?
+if ( "${odir}" == "" ) then
+    echo "** ERROR: need to provide output dir name with '-outdir ..'"
+    goto BAD_EXIT
+endif
+
+# do we have >=1 dset?
+if ( "${dset_list}" == "" ) then
+    echo "** ERROR: need to provide >=1 input dsets with '-infiles ..'"
+    goto BAD_EXIT
+endif
+
+# are all dsets valid?
+set NBAD = 0
+foreach dset ( ${dset_list:q} )
+    set tmp = `3dinfo -prefix ${dset}`
+    if ( "${tmp}" == "NO-DSET" ) then
+        @ NBAD+= 1
+        echo "** ERROR: Bad infile (3dinfo error) : ${dset}"
+    endif
+end
+if ( $NBAD ) then
+    goto BAD_EXIT
+endif
+
+# main output files/dirs
+set otxt_main = "${odir}.xls"        # main output file, colon-sep
+
+# check about overwriting before creating any output dirs/files
+if ( "${ow_str}" == "" ) then
+    if ( -d "${odir}" ) then
+        echo "** ERROR: cannot overwrite existing dir:"
+        echo "   ${odir}"
+        echo "   Remove it, change '-outdir ..' or use '-overwrite'"
+        goto BAD_EXIT
+    endif
+
+    if ( -f "${otxt_main}" ) then
+        echo "** ERROR: cannot overwrite existing file:"
+        echo "   ${otxt_main}"
+        echo "   Remove that, change '-outdir ..' or use '-overwrite'"
+        goto BAD_EXIT
+    endif
+endif
+
+# check output directory, use input one if nothing given
+if ( ! -e "${odir}" ) then
+    echo "++ Making new output directory: $odir"
+    \mkdir -p "${odir}"
+endif
+
+# =======================================================================
+# =========================== ** Main work ** ===========================
+# =======================================================================
+
+set ndset = ${#dset_list}
+echo "++ Now starting to Get To Know Your Data..."
+echo "++ Have ${ndset} dsets to check"
+
+# ----- parameters to check
+
+# 3dinfo params
+set all_info = ( n3 nv orient ad3 tr space av_space is_oblique obliquity \
+                 o3 datum is_nifti )
+# *** QUESTION: also include slice_timing somehow?
+
+# nifti_tool fields
+set all_nfield = ( datatype sform_code qform_code has_exts has_afni_exts )
+
+# 3dBrickStat params (these will be slow); will split these in usage
+set all_bstat = ( "min -max" )
+
+# -----------------------------------------------------------------------
+
+# initialize/clear all individual dset output files; also store list
+# of all these text files, for a gen_ss_review_table.py command
+set all_dset_txt = ( )
+foreach ii ( `seq 1 1 ${ndset}` ) 
+    set dset      = ${dset_list[$ii]:q}
+    set dset_name = `basename ${dset:q}`
+    set dset_pref = `3dinfo -prefix_noext ${dset:q}`
+    set dset_txt  = "${odir}/dset_gtkyd_${dset_pref}.txt"
+
+    # store name
+    set all_dset_txt = ( ${all_dset_txt:q} ${dset_txt} )
+
+    # dset indiv file
+    echo   "" > "${dset_txt}"
+    printf "%-20s : %s\n" "subject ID" "${dset_pref}" >> "${dset_txt}"
+end
+
+# ----- 3DINFO
+
+# report both individual columns, and sort+uniq ones
+foreach info ( ${all_info} )
+    echo "++ 3dinfo -${info} ..."
+ 
+    # detailed text output (and init)
+    set otxt_det = ${odir}/rep_gtkyd_detail_info_${info}.dat
+    echo "# 3dinfo -${info}" > ${otxt_det}
+
+    # unique text output (and init)
+    set otxt_uni = ${odir}/rep_gtkyd_unique_info_${info}.dat
+    echo "# 3dinfo -${info}" > ${otxt_uni}
+
+    foreach ii ( `seq 1 1 ${ndset}` ) 
+        set dset      = ${dset_list[$ii]:q}
+        set dset_name = `basename ${dset:q}`
+        set dset_pref = `3dinfo -prefix_noext ${dset:q}`
+        set dset_txt  = "${odir}/dset_gtkyd_${dset_pref}.txt"
+
+        # detailed info: 1 line per dset (plus initial comment at file top)
+        if ( "${info}" == "datum" ) then
+            # collapse across all datum types, so we are not mixing
+            # number of volumes with datum; still verify if there is a
+            # mix of types within a dset
+            set line = `3dinfo -datum -sb_delim '|' "${dset}" \
+                            | tr '|' '\n' | uniq | awk '{print $1}'`
+        else
+            set line = `3dinfo -${info} "${dset}"` 
+        endif
+
+        # report file
+        echo "${line}  ${dset_name}" >> ${otxt_det}
+        # dset indiv file
+        printf "%-20s : %s\n" "${info}" "${line}" >> "${dset_txt}"
+
+        # special check to see if we will loop over NIFTIs (need at
+        # least one NIFTI present)
+        if ( "${info}" == "is_nifti" ) then
+            if ( "${line}" == "1" ) then
+                set DO_NIFTI = 1
+            endif
+        endif
+    end
+
+    # unique info: read in detailed info, then remove top line
+    # comment, remove last column (prefix), and then
+    # sort+uniquify to get unique rows
+    cat ${otxt_det} | sed 1d | awk 'BEGIN{FS=OFS=" "}{NF--; print}' \
+                    | sort | uniq >> ${otxt_uni}
+end
+
+# ----- NIFTI
+
+if ( ! $DO_NIFTI ) then
+    goto SKIP_NIFTI
+endif
+
+# only sort+uniq at the moment
+foreach nfield ( ${all_nfield} )
+    echo "++ nifti_tool -disp_hdr -field ${nfield} ..."
+
+    # detailed text output (and init)
+    set otxt_det = ${odir}/rep_gtkyd_detail_nifti_${nfield}.dat
+    echo "# nifti_tool -disp_hdr -field ${nfield}" > ${otxt_det}
+
+    # unique text output (and init)
+    set otxt_uni = ${odir}/rep_gtkyd_unique_nifti_${nfield}.dat
+    echo "# nifti_tool -disp_hdr -field ${nfield}" > ${otxt_uni}
+
+    foreach ii ( `seq 1 1 ${ndset}` ) 
+        set dset      = ${dset_list[$ii]:q}
+        set dset_name = `basename ${dset:q}`
+        set dset_pref = `3dinfo -prefix_noext ${dset:q}`
+        set dset_txt  = "${odir}/dset_gtkyd_${dset_pref}.txt"
+
+        # detailed info: 1 line per dset (plus initial comment at file top)
+        if ( "${nfield}" == "has_exts" ) then
+            # special case
+            set line = 0
+            set eee  = `nifti_tool -quiet -disp_exts -infiles "${dset}"`
+            if ( "${eee}" != "" ) then
+                set line = 1
+            endif
+        else if ( "${nfield}" == "has_afni_exts" ) then
+            # special case
+            set line = 0
+            set eee  = `nifti_tool -quiet -disp_exts -infiles "${dset}" \
+                            | \grep AFNI_attributes`
+            if ( "${eee}" != "" ) then
+                set line = 1
+            endif
+        else
+            set line = `nifti_tool -quiet -disp_hdr -field ${nfield} \
+                            -infiles "${dset}"` 
+        endif
+
+        # report file
+        echo "${line}  ${dset_name}" >> ${otxt_det}
+        # dset indiv file
+        printf "%-20s : %s\n" "${nfield}" "${line}" >> "${dset_txt}"
+
+    end
+
+    # unique info: read in detailed info, then remove top line
+    # comment, remove last column (prefix), and then
+    # sort+uniquify to get unique rows
+    cat ${otxt_det} | sed 1d | awk 'BEGIN{FS=OFS=" "}{NF--; print}' \
+                    | sort | uniq >> ${otxt_uni}
+end
+
+SKIP_NIFTI:
+
+# ----- BRICKSTAT
+
+if ( ! $DO_BSTAT ) then
+    goto SKIP_BSTAT
+endif
+
+# only sort+uniq at the moment
+foreach bstat ( ${all_bstat:q} )
+    
+    echo "++ 3dBrickStat -slow -${bstat} ..."
+
+    # detailed text output (and init)
+    set otxt_det = ${odir}/rep_gtkyd_detail_bstat_"${bstat:gas/ //}".dat
+    echo "# 3dBrickStat -slow -${bstat}" > ${otxt_det}
+
+    # unique text output (and init)
+    set otxt_uni = ${odir}/rep_gtkyd_unique_bstat_"${bstat:gas/ //}".dat
+    echo "# 3dBrickStat -slow -${bstat}" > ${otxt_uni}
+
+    foreach ii ( `seq 1 1 ${ndset}` ) 
+        set dset      = ${dset_list[$ii]:q}
+        set dset_name = `basename ${dset:q}`
+        set dset_pref = `3dinfo -prefix_noext ${dset:q}`
+        set dset_txt  = "${odir}/dset_gtkyd_${dset_pref}.txt"
+
+        # detailed info: 1 line per dset (plus initial comment at file top)
+        set line = `3dBrickStat -slow -${bstat} "${dset}"` 
+
+        # report file
+        echo "${line}  ${dset_name}" >> ${otxt_det}
+        # dset indiv file
+        printf "%-20s : %s\n" "${bstat}" "${line}" >> "${dset_txt}"
+
+    end
+
+    # unique info: read in detailed info, then remove top line
+    # comment, remove last column (prefix), and then
+    # sort+uniquify to get unique rows
+    cat ${otxt_det} | sed 1d | awk 'BEGIN{FS=OFS=" "}{NF--; print}' \
+                    | sort | uniq >> ${otxt_uni}
+end
+
+SKIP_BSTAT:
+
+# ------ GSSRT of individual outputs
+gen_ss_review_table.py  ${ow_str}                                      \
+    -tablefile  ${otxt_main}                                           \
+    -infiles    ${all_dset_txt}
+
+# ---------------------------------------------------------------------
+
+cat <<EOF
+----------------------------
+++ DONE. See the outputs:
+   group summary table     : ${otxt_main}
+   group detailed values   : ${odir}/rep_gtkyd_detail_*.dat
+   group unique values     : ${odir}/rep_gtkyd_unique_*.dat
+   individual value lists  : ${odir}/dset_*.txt
+
+EOF
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+
+This program is for Getting To Know Your Data (GTKYD). Provide a list
+of datasets, and this program will check their header (and possibly a
+few data) properties. Properties are checked with 3dinfo, nifti_tool
+and 3dBrickStat. 
+
+This program creates the following useful outputs:
+
++ A compiled spreadsheet-like table file, for reference, with 1 row
+  per input dataset and one column per measured property. This is
+  actually made using gen_ss_review_table.py. 
+  (name: OUT.xls)
+
++ For each item checked, there will also be a detailed report file (N
+  lines of data for N input datasets)
+  (name: OUT/rep_gtkyd_detail_*.dat)
+
++ For each item checked, there will be a "uniqueness" report file,
+  which will have 1 line of data for each unique value present across
+  all input datasets. So, if there is only 1 line of data, then that
+  property is consistent across all dsets; otherwise, there is some
+  variability in it.
+  (name: OUT/rep_gtkyd_unique_*.dat)
+
++ For each input dataset, a colon-separated dictionary of basic
+  properties. These can be further queried with gen_ss_review_table.py.
+  (name: OUT/dset_*.txt)
+
+
+ver  = ${version}
+auth = PA Taylor (SSCC, NIMH, NIH, USA), but no doubt also including 
+       the valuable insights of RC Reynolds and DR Glen
+
+------------------------------------------------------------------------
+Overview ~1~
+
+------------------------------------------------------------------------
+Usage ~1~
+
+-infiles FILE1 [FILE2 FILE3 ...]
+               :(req) name of one or more file to input
+
+-outdir ODIR   :(req)name of output "report directory", for more the 
+                reports of details and uniqueness of each property.
+
+-do_minmax     :include dataset min and max value info, which can be 
+                slow (uses '3dBrickStat -slow ...' to calculate it 
+                afresh)
+
+-help, -h      :display program help file
+
+-echo          :run very verbosely, by echoing each part of script  
+                before executing it
+
+-ver           :display program version number
+
+------------------------------------------------------------------------
+Examples ~1~
+
+1) Basic example, running on a set of EPI:
+    gtkyd                                        \\
+        -infiles  group_study/*task*.nii.gz      \\
+        -outdir   group_summary
+
+2) Include (possibly slow) min/max info, and check anatomical dsets:
+    gtkyd_check                                          \\
+        -infiles    group_study2/*T1w*.nii.gz *T1w*HEAD  \\
+        -do_minmax                                       \\
+        -outdir     group_summary2
+
+EOF
+
+# ----------------------------------------------------------------------
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

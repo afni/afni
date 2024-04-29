@@ -41,7 +41,7 @@ help.rPkgsInstall.opts <- function (params, alpha = TRUE, itspace='   ', adieu=F
           ================== Welcome to rPkgsInstall ==================          
                      Install/update/remove R packages for AFNI
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.0, Nov 6, 2023
+Version 1.0.1, Feb 13, 2024
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -200,7 +200,7 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
 process.rPkgsInstall.opts <- function (lop, verb = 0) {
    #browser()
    if(is.na(lop$pkgs[1])) errex.AFNI(paste("Option '-pkgs' not specified!", sep=''))
-   if(lop$pkgs[1]=='ALL') lop$PKGS <- c('afex', 'phia', 'snow', 'nlme', 'lmerTest', 'gamm4', 'data.table', 'paran', 'psych', 'brms', 'corrplot', 'metafor') else
+   if(lop$pkgs[1]=='ALL') lop$PKGS <- c('afex', 'phia', 'snow', 'nlme', 'lme4', 'lmerTest', 'gamm4', 'data.table', 'paran', 'psych', 'brms', 'corrplot', 'metafor') else
    if(!is.na(lop$pkgs[1])) lop$PKGS <- strsplit(lop$pkgs, '\\,')[[1]]
    return(lop)
 }

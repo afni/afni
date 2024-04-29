@@ -1,0 +1,126 @@
+#!/bin/tcsh -fe
+
+set stat = 0
+set sdir = "$PWD"
+
+set demo_download = SAM_marmoset_subcortical_dist
+set demo_download_extract_name = SAM_marmoset_subcortical_dist
+set demo = $demo_download_extract_name
+
+goto PARSE
+RET_PARSE:
+
+if ( -d ./$demo) then
+echo ""
+echo "ERROR:"
+echo "   Directory ./$demo exists already"
+echo "   If you want to recreate it, remove it with:"
+echo "\rm -rf ./$demo"
+echo "   then run `basename $0` $argv[*] again."
+echo ""
+echo "Otherwise to see what you can do with this atlas,"
+echo "  see content of ./$demo/README.txt"
+echo ""
+goto END
+   endif
+
+if ($use_curl == -1) then
+   which curl
+   if ($status) then
+      set use_curl = 0;
+   else
+      set use_curl = 1;
+   endif
+endif
+
+if ($use_curl == 0) then
+   wget https://afni.nimh.nih.gov/pub/dist/atlases/marmoset/SAM_Marmoset/$demo_download.tgz
+else
+   curl -O https://afni.nimh.nih.gov/pub/dist/atlases/marmoset/SAM_Marmoset/$demo_download.tgz
+endif
+tar -xvzf $demo_download.tgz
+# change name to simpler one here
+#mv $demo_download $demo
+cd $demo_download_extract_name
+   echo "********************************************************"
+   echo "Follow examples in ./$demo/README.txt "
+   #echo "---------------------------------------------------------"
+   #PL: Normally here you can consider running some or all of the"
+   #scripts and guide the users to look at the results.
+   #You could eventually script the whole deal to include self "
+   #executing AFNI/SUMA commands to show results.
+   echo "********************************************************"
+
+set atlas_dir = `pwd`
+@AfniEnv -set AFNI_SUPP_ATLAS_DIR $atlas_dir
+@AfniEnv -set AFNI_WHEREAMI_DEC_PLACES 3
+@AfniEnv -set AFNI_ATLAS_COLORS SAMv1.0
+@AfniEnv -set AFNI_TEMPLATE_SPACE_LIST SAM_Marmoset
+@AfniEnv -set AFNI_WEBBY_WAMI YES
+cd -
+goto END
+
+PARSE:
+   set Narg = $#
+   set use_curl = -1
+   set cnt = 1
+   while ($cnt <= $Narg)
+		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && "$argv[$cnt]" == "-curl") then
+         set use_curl = 1
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && "$argv[$cnt]" == "-wget") then
+         set use_curl = 0
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help")) then
+         goto HELP
+         set donext = 0;	 goto NEXT	
+      endif
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      
+      NEXT:
+		@ cnt ++
+	end
+   
+goto RET_PARSE
+
+HELP:
+cat << EOF
+   Installs the SAM Marmoset version 1 subcortical atlases and templates 
+      described in:
+      
+      ****Put citation and link here *************************************
+
+      
+      Note the atlas datasets may not be modified or redistributed without prior
+      consent from the authors.
+      Please contact glend @ mail.nih.gov or saleemks @ mail.nih.gov with
+      questions, comments and suggestions.
+
+   After the archive is downloaded and unpacked, see its README.txt
+   for details.
+   Options:
+   [-wget]: Use wget to download archive. Script chooses by default
+            with preference for curl
+   [-curl]: Use curl to download archive. Script chooses by default
+            with preference for curl
+
+EOF
+   goto END
+
+BEND:
+   echo "Failed"
+   set stat = 1
+   goto END
+   
+END:
+   exit $stat

@@ -191,6 +191,9 @@ void whereami_usage(ATLAS_LIST *atlas_alist, int detail)
 "                  CA_N27_ML::cereb_vermis_8\n"
 " -mask_atlas_region REGION_CODE: Same as -show_atlas_region, plus\n"
 "                                 write out a mask dataset of the region.\n"
+" -index_to_label index: Reports the label associated with index using the\n"
+"            label table of dset, if provided, or using the atlas_points_list\n" 
+"            of a specified atlas. After printing, the program exits.\n"
 " -prefix PREFIX: Prefix for the output mask dataset\n"
 " -max_areas MAX_N: Set a limit on the number of distinct areas to report.\n"
 "             This option will override the value set by the environment\n"
@@ -481,6 +484,7 @@ int main(int argc, char **argv)
    int read_niml_atlas = 0, show_atlas = 0, show_atlas_spaces = 0;
    int show_atlas_templates = 0, show_atlas_xforms = 0,show_atlas_dset=0;
    int show_xform_chain = 0, calc_xform_chain=0, show_avail_space=0;
+   int show_atlas_index_label = 0; 
    int show_atlas_point_lists = 0;
    int linkrbrain_output = 0;
    /* coordinates translated to send to linkrbrain */
@@ -1059,6 +1063,18 @@ int main(int argc, char **argv)
             iarg++;
             continue; 
          }
+         if (strcmp(argv[iarg],"-index_to_label") ==0){
+            ++iarg;
+            show_atlas_index_label = atoi(argv[iarg]) ;
+            if(show_atlas_index_label == 0){
+                fprintf(stderr,
+                "** Error: provide non-zero integer index with -index_to_label "
+                "instead of '%s'\n", argv[iarg]);
+                return(1);
+            }
+            ++iarg;
+            continue;
+         }
 
          { /* bad news in tennis shoes */
             fprintf(stderr,"** Error: bad option %s\n", argv[iarg]);
@@ -1150,8 +1166,49 @@ int main(int argc, char **argv)
       free_global_atlas_structs(); 
       exit(0);
    }
+
    
-   
+   /* user has requested label for a particular index - mod drg 02/14/2024 */
+   if (show_atlas_index_label){
+      THD_3dim_dataset *temp_dset = NULL;
+      char labelstr[TTO_LMAX];
+      ATLAS *temp_atlas = NULL;
+
+      labelstr[0] = '\0';
+      if(space_dset) temp_dset = space_dset; 
+      else{
+         if (N_atlas_names != 0) {
+            atlas_alist = get_G_atlas_list();
+            if (!get_Atlas_Named(atlas_names[0], atlas_alist)){
+              fprintf(stderr,"** Error: Atlas %s not in atlas list\n",
+                    atlas_names[0]);
+              return 1;
+            }
+
+            temp_dset = load_atlas_dset(ATL_DSETNAME(&(atlas_alist->atlas[0])));
+            if(temp_dset==NULL) {
+               fprintf(stderr,"** Error: No atlases found with name %s\n",
+                       atlas_names[0]);
+               return 1; 
+            }
+
+         }
+         else {
+            fprintf(stderr,"** Error: no atlases specified with -atlas\n");
+            return 1;
+         }
+      }
+      if(temp_dset==NULL){
+            fprintf(stderr,"** Error: bad option %s\n", argv[iarg]);
+            return 1;
+      }
+      
+      AFNI_get_dset_val_label(temp_dset, (double)show_atlas_index_label, labelstr);
+      if(strlen(labelstr)==0) printf("NONE\n");
+      else printf("%s\n", labelstr);
+      exit(0);
+   }
+
    /* write out all the atlases that are hard-coded in AFNI to NIML files */
    if(atlas_writehard) {
       AFNI_atlas_list_to_niml();
@@ -1340,7 +1397,7 @@ int main(int argc, char **argv)
             }
             aar = Free_Atlas_Region(aar);
             if (as) as = Free_Atlas_Search(as); 
-            if (string) free(string); string = NULL;
+            if (string) { free(string); string = NULL; }
          } 
          aa = Free_Atlas(aa);
    }
@@ -1351,7 +1408,7 @@ int main(int argc, char **argv)
          atlas_names, atlas_alist);
    }
    
-   if(cmask) free(cmask); cmask = NULL;   /* Should not be needed beyond here */
+   if(cmask) { free(cmask); cmask = NULL; }  /* Should not be needed beyond here */
 
    
    if (nakedarg < 3 && !coord_file) { /* nothing left to do */
@@ -1477,11 +1534,11 @@ int main(int argc, char **argv)
             if(!get_wami_web_found())
                fprintf(stdout,"whereami NULL string out.\n");
          }
-         if (string) free(string); string = NULL;            
+         if (string) {free(string); string = NULL;}            
       }
    } /* ixyz */   
    
-   if (coord_list) free(coord_list); coord_list = NULL; 
+   if (coord_list) { free(coord_list); coord_list = NULL; }
    
    return 0;
 }
@@ -1723,19 +1780,19 @@ compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
                                "   %-5s%% of cluster accounted for.\n"
                                "\n", tmps);
                /* done with count */
-               if (count) free(count); count = NULL;
-               if (ics) free(ics); ics = NULL;
+               if (count) { free(count); count = NULL; }
+               if (ics) { free(ics); ics = NULL; }
             }
             /* done with resampled mset */
             DSET_delete(rset); rset = NULL;
          }
          
          /* delete mset if not same as mset_orig */
-         if (mset != mset_orig) DSET_delete(mset); mset = NULL;
+         if (mset != mset_orig) { DSET_delete(mset); mset = NULL; }
       } /* iroi */
       
       /* free unique values list, nothing done */
-      if (unq) free(unq); unq = NULL;
+      if (unq) { free(unq); unq = NULL;}
 
       /* done with mset_orig */
       DSET_delete(mset_orig); mset_orig = NULL;

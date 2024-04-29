@@ -73,17 +73,6 @@ class SysInfo:
 
       self.libs_missing    = [] # missing shared libraries
 
-   def get_prog_dir(self, prog):
-      """return path to prog from 'which prog'"""
-
-      s, so, se = BASE.simple_shell_exec('which %s' % prog, capture=1)
-      if s: return ''
-      adir = so.strip()
-      tail = '/%s' % prog
-      tlen = len(tail)
-      if adir[-tlen:] == tail: return adir[0:-tlen]
-      else:                    return ''
-
    def show_general_sys_info(self, header=1):
       if header: print(UTIL.section_divider('general', hchar='-'))
 
@@ -948,16 +937,28 @@ class SysInfo:
             print('%-20s : %s' % ('%s version'%prog, v))
             continue
 
-         # and python - add a comment if they are using a version < 2.7
+         # test python - just add a comment if they are using a version < 2.7
+         # (the version is printed later, do not print it here)
          elif prog == 'python':
             s, vstr = self.get_prog_version(prog)
-            vf = self.get_python_ver_float()
             mesg = ''
             # (removed old warning for 3.0+)
-            if vf < 2.7:
+            if BASE.compare_py_ver_to_given('2.7') < 0:
                mesg = 'have python version %s, consider using 2.7+' % vstr
             if mesg != '':
                self.comments.append(mesg)
+
+         # test tcsh - just add a comment if they are using 6.22.03
+         # (the version is printed later, do not print it here)
+         elif prog == 'tcsh':
+            s, vstr = self.get_prog_version(prog)
+            mesg = ''
+            # (removed old warning for 3.0+)
+            badver = '6.22.03'
+            if BASE.compare_dot_ver_strings(vstr, badver) == 0:
+               mesg = "have bad tcsh version %s, has '$var:t' bug" % vstr
+               self.comments.append(mesg)
+               self.comments.append(' (please install 6.22.04)')
 
          # now run the normal test
 
@@ -1024,6 +1025,20 @@ class SysInfo:
          wstr = 'need maptplotlib version 2.2+ for APQC'
          print("** %s\n" % wstr)
          self.comments.append(wstr)
+      # warn about 3.1.2 explicitly
+      elif mver == '3.1.2':
+         wstr = 'matplotlib version %s cannot write jpeg images' % mver
+         print("** %s\n" % wstr)
+         self.comments.append(wstr)
+
+   def get_ver_afni(self):
+      """return the contents of AFNI_version.txt, else "None"
+      """
+      vinfo = UTIL.read_AFNI_version_file()
+      if vinfo == '':
+         return 'None'
+
+      return vinfo
 
    def get_ver_matplotlib(self):
       """simply return a matplotlib version string, and "None" on failure.
@@ -1264,12 +1279,18 @@ class SysInfo:
    def show_env_vars(self, header=1):
       print(UTIL.section_divider('env vars', hchar='-'))
       maj, min = self.get_macos_ver()
-      for evar in ['PATH', 'PYTHONPATH', 'R_LIBS',
-                   'LD_LIBRARY_PATH',
-                   'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']:
+      elist = ['PATH', 'PYTHONPATH', 'R_LIBS',
+               'LD_LIBRARY_PATH',
+               'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH',
+               'CONDA_SHLVL', 'CONDA_DEFAULT_ENV']
+      maxlen = max(len(e) for e in elist)
+
+      for evar in elist:
          if evar in os.environ:
             if self.verb > 2: print("-- SEV: getting var from current env ...")
-            print("%s = %s\n" % (evar, os.environ[evar]))
+            envval = os.environ[evar]
+            print("%-*s = %s" % (maxlen, evar, envval))
+            if len(envval) > 60: print("")
          elif evar.startswith('DY') and maj > 10 or (maj == 10 and min >= 11):
             if self.verb > 2:
                print("-- SEV: get DY var from macos child env (cur shell)...")
@@ -1278,7 +1299,7 @@ class SysInfo:
          else:
             if self.verb > 2:
                print("-- SEV: env var not set ...")
-            print("%s = " % evar)
+            print("%-*s = " % (maxlen, evar))
       print('')
 
       self.check_for_bash_complete_under_zsh()
@@ -1305,6 +1326,8 @@ class SysInfo:
       # if we do not need flat_namespace, prevent IUD.py from checking it
       if not self.need_flat:
          cmd += ' -do_updates path apsearch'
+      if self.verb > 2:
+         print("-- running command: %s" % cmd)
       status, cout = UTIL.exec_tcsh_command(cmd, lines=1)
 
       # report failure or else extract the number of mods needed
@@ -1426,7 +1449,7 @@ class SysInfo:
 
    def show_main_progs_and_paths(self):
 
-      self.afni_dir = self.get_prog_dir('afni_system_check.py')
+      self.afni_dir = get_prog_dir('afni_system_check.py')
       check_list = ['afni', 'afni label', 'AFNI_version.txt', 'python', 'R']
       nfound = self.check_for_progs(check_list, show_missing=1)
       if nfound < len(check_list):
@@ -1529,7 +1552,7 @@ class SysInfo:
       for prog in proglist:
          # note directory of choice
          if execdir: pdir = execdir
-         else:       pdir = self.get_prog_dir(prog)
+         else:       pdir = get_prog_dir(prog)
 
          # if none, skip
          if not pdir:
@@ -1721,25 +1744,6 @@ class SysInfo:
          self.comments.append(comment)
       return isfile
 
-   def get_python_ver_float(self):
-      """just return the python version in A.B format
-         (ignore lower order terms)
-         return 0.0 on error
-      """
-      vstr = platform.python_version()
-      try:
-         posn = vstr.find('.')
-         if posn > 0:
-            posn = vstr.find('.', posn+1)
-            pvs = vstr[0:posn]
-         else:
-            pvs = vstr
-         vf = float(pvs)
-      except:
-         vf = 0.0
-
-      return vf
-
    def get_prog_version(self, prog):
       """return a simple string with program version
 
@@ -1775,8 +1779,18 @@ class SysInfo:
       elif prog == 'python':
          return 1, platform.python_version()
 
-      elif prog == 'tcsh':      # no version
-         return 0, ''
+      elif prog == 'tcsh':      # version has lots on command line
+         cmd = '%s --version' % prog
+         s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
+         if s: return 1, se[0]
+
+         # e.g.: tcsh 6.22.04 (Astron) 2021-04-26 (x86_64-unknown-linux) ...
+         # so return second element of so[0]
+         ss = so[0].split()
+         # make sure it has 2+ elements, starting with 'tcsh'
+         if len(ss) < 2  : return 1, ''
+         if ss[0] != prog: return 1, ''
+         return 1, ss[1]
 
       elif prog == 'Xvfb':      # no version
          return 0, ''
@@ -2065,6 +2079,17 @@ class SysInfo:
 
 # ----------------------------------------------------------------------
 # non-class functions
+
+def get_prog_dir(prog):
+   """return path to prog from 'which prog'"""
+
+   s, so, se = BASE.simple_shell_exec('which %s' % prog, capture=1)
+   if s: return ''
+   adir = so.strip()
+   tail = '/%s' % prog
+   tlen = len(tail)
+   if adir[-tlen:] == tail: return adir[0:-tlen]
+   else:                    return ''
 
 def make_R_version_string():
    """try to collapse the R --version string into VERSION (PLATFORM)

@@ -152,7 +152,8 @@ RwcBoolean THD_write_gifti(THD_3dim_dataset * dset, int write_data, int forcenco
     gifti_globs_from_env();     /* for thd_gifti */
     set_ni_globs_from_env();    /* for thd_niml */
 
-    prefix = DSET_PREFIX(dset);
+    /* HEADNAME should be path + prefix   [5 Feb 2024 rickr] */
+    prefix = DSET_HEADNAME(dset);
 
     if( !prefix ) {
         if( GP->verb ) fprintf(stderr,"** THD_write_gifti: no dset prefix\n");

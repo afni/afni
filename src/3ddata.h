@@ -5964,7 +5964,7 @@ extern char * tross_breakup_string( char *, int , int ) ;
 
 void tross_multi_Append_History( THD_3dim_dataset * , ... ) ;
 
-#define ATLAS_CMAX    64   /* If you change this parameter,edit constant in
+#define ATLAS_CMAX    112   /* If you change this parameter,edit constant in
                               CA_EZ_Prep.m (MaxLbl* checks), thd_ttatlas_query.h TTO_FORMAT */
 
 typedef enum { UNKNOWN_SPC=0, /*!< Dunno */

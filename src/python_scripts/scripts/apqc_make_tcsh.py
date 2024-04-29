@@ -651,6 +651,15 @@ if __name__ == "__main__":
             else:
                 Nseed = 0
 
+            # now try a new way to have seed maps, likely when final
+            # space is ORIG or a TLRC without predetermined seeds
+            if Nseed == 0 :
+                # if we haven't found any seeds yet, make 2 (or 1)
+                # from within final dset, constrained by mask_dset,
+                # if present
+                seed_list = lat.set_alternate_seed_locs(ap_ssdict)
+                Nseed = len(seed_list)
+
             # we want to keep seedcorr vols, so make a dir for them in
             # the AP results dir
             if Nseed :
@@ -918,6 +927,28 @@ if __name__ == "__main__":
 
     # --------------------------------------------------------------------
 
+    # QC block: "regr"
+    # item    : ROI stats for TSNR (final) via compute_ROI_stats.tcsh
+
+    # not currently a uvar, check for known dir name in AP results
+    # dir; check for certain 'automatic' stats files that do not have
+    # HTML encoding already (and are not WB ones)
+    all_fname = glob.glob('tsnr_stats_regress/stats_auto_*.txt')
+    for fname in all_fname :
+        if fname.endswith('_brain.txt') or fname.endswith('eval_html.txt') :
+            _tmp = all_fname.remove(fname)
+    all_fname.sort()
+
+    if len(all_fname) :
+        ban      = lat.bannerize('check TSNR ROI stats')
+        for fname in all_fname:
+            obase    = 'qc_{:02d}'.format(idx)
+            cmd      = lat.apqc_regr_roi_stats( ap_ssdict, obase, fname,
+                                                "regr", "roi_tsnr_fin" )
+            idx     += 1
+
+    # --------------------------------------------------------------------
+
     # QC block: "rcorr"
     # item    : flag to make radial_correlate images
     # [PT: Feb 23, 2021] moved here, seemed more logical place, 
@@ -998,6 +1029,19 @@ if __name__ == "__main__":
         ban      = lat.bannerize('pre-steady state warnings')
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_warns_press( ap_ssdict, obase, "warns", "press" )
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "warns"
+    # item    : 4095 saturation warnings
+
+    ldep = ['max_4095_warn_dset']
+    if lat.check_dep(ap_ssdict, ldep) :
+        ban      = lat.bannerize('4095 saturation warnings')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_warns_sat_4095( ap_ssdict, obase, "warns", 
+                                            "sat_4095" )
         idx     += 1
 
     # --------------------------------------------------------------------

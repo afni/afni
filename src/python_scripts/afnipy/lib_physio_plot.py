@@ -15,6 +15,7 @@ from   afnipy import afni_base           as BASE
 DEF_max_n = 1000                     # def npts per subplot (not used now)
 DEF_lw    = 0.75                     # def linewidth in plot
 DEF_ms    = 1.50                     # def marker size in plot
+DEF_grayp = '0.90'                   # def color for graypatch
 
 PY_VER    = sys.version_info.major   # Python major version
 MAT_VER   = mpl.__version__          # have some mpl ver dependence---sigh
@@ -204,6 +205,8 @@ them.
         self.max_l_per_fig = max_l_per_fig      # int/fl, used to split figs
         self.list_fig_props = []                # list, start, end and figsize
 
+        self.list_graypatch = []                # list, graypatch start/stops
+
         self.ypad          = 0.3                # used to space ylims in plot
         # ------------------
         self.told_figsize  = False
@@ -361,9 +364,8 @@ them.
 
     @property
     def all_range_xlim(self):
-        """Range based on min/max x-values for each subplot (basically, expand
-        min/max by 1%)."""
-        list_win = copy.deepcopy(self.all_sub_xwin)
+        """Return a list of ranges based on min/max x-values for each subplot
+        (basically, expand min/max by 1%)."""
 
         list_win = []
         for ii in range(self.n_subplots):
@@ -465,12 +467,36 @@ them.
         """List of all ms (markerwidths) across plobjs."""
         return [self.list_plobj[ii].ms for ii in range(self.n_plobj)]
 
+    @property
+    def n_graypatch(self):
+        """The len of the graypatch list."""
+        return len(self.list_graypatch)
+
    # --------------------------------------------------------------------
 
     def add_plobj(self, plobj):
         """Add the specified plobj object to the retrofig object."""
 
         self.list_plobj.append(plobj)
+
+    def add_graypatch(self, endpts):
+        """Add a list of two items: start and stop ranges (along x-coords) for
+        a gray patch.  The height will be filled in by ylim values.
+        If endpts[0] == None, then xlim[0] will be used as lower
+        bound; and if endpts[1] == None, then xlim[1] will be used as
+        upper bound."""
+
+        if len(endpts) != 2 :
+            print("** ERROR: endpts arg must be a collection of exactly 2 "
+                  "items, namely 2 numbers (or each item could be None)")
+            sys.exit(7)
+        elif endpts[0] == None and endpts[1] == None :
+            print("** ERROR: cannot have both values of the endpts 2-list "
+                  "be None.  Only one (or neither) of them can be so.")
+            sys.exit(8)
+
+        self.list_graypatch.append(endpts)
+
 
     def prep_plotvals(self):
         """Go through plobj list and fill in any unspecified values for
@@ -559,8 +585,8 @@ them.
 
             # set output filename, depending on multiplotting or not
             if self.is_multifig :
-                obase = ''.join(self.figname.split('.')[:-1])    # basename
-                oext  = self.figname.split('.')[-1]              # ext
+                obase = '.'.join(self.figname.split('.')[:-1])    # basename
+                oext  = self.figname.split('.')[-1]               # ext
                 oimg  = obase + '_{:03d}'.format(hh+1) + '.' + oext
             else:
                 oimg  = self.figname
@@ -652,22 +678,43 @@ them.
 
                     # obj can have interval bands (ibands)
                     if plobj.add_ibandT :
-                        y_iband, h_iband = self.yh_ibandT    # from main obj
+                        y_iband, h_iband = self.yh_ibandT    # from
+                        # main obj check for rectangles to add
+                        #bxlim = copy.deepcopy(self.all_sub_xwin[ii]) # unpadded
+                        bxlim = copy.deepcopy(self.all_range_xlim[ii])
                         for bb in range(plobj.n_ibandT):
-                            pp.add_patch(mplp.Rectangle(
-                                (plobj.xw_ibandT[bb][0], y_iband),
-                                plobj.xw_ibandT[bb][1],
-                                h_iband,
-                                color=plobj.col_ibandT[bb]))
+                            bstart = plobj.xw_ibandT[bb][0]
+                            bstop = bstart + plobj.xw_ibandT[bb][1]
+                            # is rect within xlim of this subplot?
+                            if bstop > bxlim[0] and bstart < bxlim[1] :
+                                # trim any rect
+                                if bstart < bxlim[0] : bstart = bxlim[0]
+                                if bstop > bxlim[1] :  bstop  = bxlim[1]
+                                bwidth = bstop - bstart
+                                pp.add_patch(mplp.Rectangle(
+                                    (bstart, y_iband),
+                                    bwidth,
+                                    h_iband,
+                                    color=plobj.col_ibandT[bb]))
 
                     if plobj.add_ibandB :
                         y_iband, h_iband = self.yh_ibandB    # from main obj
+                        # check for rectangles to add
+                        bxlim = copy.deepcopy(self.all_range_xlim[ii])
                         for bb in range(plobj.n_ibandB):
-                            pp.add_patch(mplp.Rectangle(
-                                (plobj.xw_ibandB[bb][0], y_iband),
-                                plobj.xw_ibandB[bb][1],
-                                h_iband,
-                                color=plobj.col_ibandB[bb]))
+                            bstart = plobj.xw_ibandB[bb][0]
+                            bstop = bstart + plobj.xw_ibandB[bb][1]
+                            # is rect within xlim of this subplot?
+                            if bstop > bxlim[0] and bstart < bxlim[1] :
+                                # trim any rect
+                                if bstart < bxlim[0] : bstart = bxlim[0]
+                                if bstop > bxlim[1] :  bstop  = bxlim[1]
+                                bwidth = bstop - bstart
+                                pp.add_patch(mplp.Rectangle(
+                                    (bstart, y_iband),
+                                    bwidth,
+                                    h_iband,
+                                    color=plobj.col_ibandB[bb]))
 
                     if not(iicount) and not(jj) :
                         pp.set_title(self.title, fontsize=self.fontsize)
@@ -686,11 +733,55 @@ them.
                     fff.supylabel(self.ylabel, y=0.9, va='top', 
                                   fontsize=self.fontsize)
 
+                # set xlim and ylim bounds for this subplot
                 pp.set_xlim(self.all_range_xlim[ii])
                 if len(self.ylim_user) :
                     pp.set_ylim(self.ylim_user)
                 else:
                     pp.set_ylim(self.range_ylim)
+
+                # now that we know xlim and ylim values, we can check
+                # for graypatches to add (in the bkgd, using zorder)
+                if self.n_graypatch > 0 :
+                    for gg in range(self.n_graypatch):
+                        # determine if patch falls within this subplot
+                        PATCH_YES = False
+                        gxlim = pp.get_xlim()
+                        gstart, gstop = copy.deepcopy(self.list_graypatch[gg])
+
+                        # decision tree (NB: only one endpt can be None)
+                        if gstart == None and gstop == None :
+                            print("+* WARN: should never have both gstart and "
+                                  "gstop be None!")
+                        elif gstart == None :
+                            if gstop > gxlim[0] :
+                                PATCH_YES = True
+                                gstart = gxlim[0]
+                        elif gstop == None :
+                            if gstart < gxlim[1] :
+                                PATCH_YES = True
+                                gstop = gxlim[1]
+                        elif gstop > gstart :
+                            if gstop > gxlim[0] and gstart < gxlim[1] :
+                                PATCH_YES = True
+
+                        if PATCH_YES :
+                            # patch bounded by this subplot in xdir
+                            if gstart < gxlim[0] : gstart = gxlim[0]
+                            if gstop > gxlim[1] :  gstop  = gxlim[1]
+                            # ... and in ydir
+                            gylim = pp.get_ylim()
+                            pp.add_patch(
+                                mplp.Rectangle( ( gstart, 
+                                                  gylim[0] ),
+                                                width=gstop-gstart,
+                                                height=(gylim[1] - gylim[0]),
+                                                facecolor=DEF_grayp,
+                                                lw=0, 
+                                                edgecolor=None, 
+                                                alpha=None,
+                                                zorder=-1) ) 
+
 
                 # thick lines for start/end, to help visualization
                 pp.spines['left'].set_linewidth(3)
@@ -740,6 +831,7 @@ def makefig_phobj_peaks_troughs(phobj, peaks=[], troughs=[],
                                 upper_env=[], lower_env=[], rvt=[],
                                 title='', fname='', retobj=None,
                                 add_ibandT = False, add_ibandB = False,
+                                do_graypatch_bnds = True,
                                 img_axhline = 'MEDIAN',
                                 use_bp_ts = False,
                                 do_show = False,
@@ -785,6 +877,9 @@ add_ibandT : bool
 add_ibandB : bool
     add band of rectangles at the bot of plot, reflecting trough intervals
     relative to the median
+do_graypatch_bnds : bool
+    add patches of light gray where the physio data would *not* overlap
+    the FMRI data; all times before 0s should then be gray, for example
 img_axhline : str or float
     plot a horizontal line in the plot; can be either a number, or a keyword
     like 'MEDIAN', which will get median of phobj time series.
@@ -845,6 +940,15 @@ Returns
     else:
         ts = phobj.ts_orig
 
+
+    # maybe add graypatches, demarcating where the physio time series
+    # overlaps the FMRI dset run (white) and where it doesn't (gray)
+    if do_graypatch_bnds :
+        A = phobj.tvalues[phobj.indices_vol[0]]
+        # use '-1' here because indices_vol is half-open interval: [...)
+        B = phobj.tvalues[phobj.indices_vol[1]-1] 
+        fff.add_graypatch([None, A])
+        fff.add_graypatch([B, None])
 
     ret_plobj1 = RetroPlobj(phobj.tvalues[::istep], ts[::istep], 
                             label=phobj.label,
@@ -964,9 +1068,6 @@ Returns
             all_orig = set(phobj.peaks)
             diffA = tmp2.difference(all_orig)
             diffB = all_orig.difference(tmp2)
-            print("HEY, diffA", diffA)
-            print("HEY, diffB", diffB)
-            print("HEY, lens", len(diffA), len(diffB))
             phobj.ndiff_inter_peaks = len(diffA) + len(diffB)
             # listify and sort
             tmp3 = list(tmp2)
