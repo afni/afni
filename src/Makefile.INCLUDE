@@ -140,7 +140,7 @@ PROGS_2  = 3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot   \
 
 PROGS_3  = 3dAnhist 3dAFNIto3D 3dWarp nicat                                   \
            3dSpatNorm fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive      \
-           nifti_tool 3dAllineate whereami plugout_drive 3dLSS                \
+           nifti_tool 3dAllineate whereami whereami_afni plugout_drive 3dLSS  \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml        \
            3dedge3 DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth   \
            3dmaxima GLTsymtest 3dPval stimband 1dNLfit 1dApar2mat             \
@@ -187,7 +187,8 @@ PROGRAMS_NOPLUG =                                                             \
         3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna imstack byteorder      \
         3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot 24swap 3dTsmooth RSFgen  \
         float_scan 1ddot 1dsvd 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat  \
-        3ddelay 3dDTeig 3dDWItoDT 1dtranspose whereami 3dAFNItoNIML 3dcopy    \
+        3ddelay 3dDTeig 3dDWItoDT 1dtranspose whereami whereami_afni 		   \
+		  3dAFNItoNIML 3dcopy    															   \
         imcat 3dDetrend 1dfft 3drename 1dnorm afni_vcheck 3ddot 3dBrickStat   \
         imcutup 3dMean 3dAttribute 3dZeropad 3dWinsor 3dmaskdump 3dfim+       \
         3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy         \
@@ -1060,6 +1061,10 @@ mri_intedge.o:mri_intedge.c
 whereami:whereami.c
 	$(RM) $@
 	$(CC) -o whereami whereami.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(LLIBS)
+
+whereami_afni:whereami_afni.c
+	$(RM) $@
+	$(CC) -o whereami_afni whereami_afni.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 apsearch:apsearch.c
 	$(RM) $@
