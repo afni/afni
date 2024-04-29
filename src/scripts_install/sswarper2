@@ -147,8 +147,11 @@
 #set version   = "2.7"; set rev_dat   = "Feb 11, 2021"
 # [PT] introduce -mask_ss opt and branch of processing
 #    
-set version   = "2.71"; set rev_dat   = "Mar 16, 2021"
+#set version   = "2.71"; set rev_dat   = "Mar 16, 2021"
 # [PT] put -mask_ss info into help
+#    
+set version   = "2.72"; set rev_dat   = "Apr 29, 2024"
+# [PT] remove old opts (that no longer exist) from help
 #    
 # ----------------------------------------------------------------
 # ----------------------------------------------------------------
@@ -381,12 +384,6 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set odir = "$argv[$ac]"
-
-    # 3dSkullStrip options for Allison [RWC: 27 Mar 2019]
-    else if ( "$argv[$ac]" == "-SSopt" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set SSopt = "$argv[$ac]"
 
     # ---------- fin ------------------
 
@@ -1116,7 +1113,7 @@ endif
 ## NB: have to use the 'temp' name of the aff12 matrix at this
 ## point. Use NN interp for the dset, because we will mask it
 ## eventually.
-echo "++ SSW3: skullstrip orig space UAC dset"
+echo "++ SSW3: skullstrip orig space UAC dset (via warp of template mask)"
 
 3dNwarpApply                                                       \
     -nwarp  "${odir}/anatQQ.${SubID}_WARP.nii $odir/anatQQ.${SubID}.aff12.1D" \
@@ -1152,7 +1149,7 @@ JUMP_TO_EXTRA_QC:
 if ( ${DO_EXTRA_QC} ) then
 
     # -------- check skullstripping in orig space ---------
-    echo "++ SSW4: QC of skullstripping"
+    echo "++ SSW4: QC of skullstripping (via template mask)"
 
     set ulay  = "${odir}/anatU.${SubID}.nii"
     set olay0 = "${odir}/anatSS.${SubID}.nii" 
@@ -1310,8 +1307,6 @@ USAGE ~1~
        {-nolite}             \
        {-skipwarp}           \
        {-unifize_off}        \
-       {-init_skullstr_off}  \
-       {-mask_init MI}       \
        {-extra_qc_off}       \
        {-jump_to_extra_qc}   \
        {-cost_aff CA}        \
@@ -1408,13 +1403,6 @@ grown/improved over time):
               of possible outliers (ceil = 98%ile of non-zero voxels in
               the whole volume).  This option will turn that off.
 
-  -init_skullstr_off :(opt) don't preprocess with a 3dSkullstrip command
-              to roughly isolated brain in the beginning.  This might
-              be useful with macaque dsets.
-
-  -mask_init MI :(opt) user can supply their own mask to use in place of 
-              skullstripping program.
-
   -extra_qc_off :(opt) don't make extra QC images QC*jpg (for some
               unknown reason).
 
@@ -1443,13 +1431,6 @@ grown/improved over time):
               '-cost_nl_init ..', because using those here might be
               pretty slow; however, using "lpa" here might help
               results.
-
-  -SSopt 'strings' :(opt) The content of 'strings' (which should be
-              in quotes if there are any blanks) is copied to the
-              end of the 3dSkullStrip command line. Example:
-                -SSopt '-o_ply Fred.Is.Wonderful'
-              to have 3dSkullStrip produce a .ply surface file
-              as an additional output.
 
   -tmp_name_rand :(opt) the default prefix for temporary/intermediate
               files is ${pref_nice}.  However, if you want to have
@@ -1503,9 +1484,6 @@ Then the outputs from this script will be"
   anatUAC.sub007.nii      = ceiling-capped ver of the above (at 98%ile of 
                             non-zero values)
                             (or, if '-ceil_off' used, a copy of anatUA.*.nii)
-  anatS.sub007.nii        = first pass skull-stripped original dataset
-                            (or, if '-init_skullstr_off' used, a copy of
-                            anatUAC.*.nii);
   anatSS.sub007.nii       = second pass skull-stripped original dataset;
                             * note that anatS and anatSS are 'original'
                               in the sense that they are aligned with
@@ -1599,8 +1577,7 @@ You Know My Methods, Watson ~2~
 
   #1: Uniform-ize the input dataset's intensity via 3dUnifize.
        ==> anatU.sub007.nii
-  #2: Strip the skull with 3dSkullStrip, with mildly aggressive settings.
-       ==> anatS.sub007.nii
+  #2: ** now skipped **
   #3: Nonlinearly warp (3dQwarp) the result from #1 to the skull-on
       template, driving the warping to a medium level of refinement.
   #4: Use a slightly dilated brain mask from the template to
