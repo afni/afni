@@ -3225,13 +3225,13 @@ class SubjProcSream:
         self.write_text('# set list of runs\n')
         digs = 2
         if self.runs > 99: digs = 3
-        self.write_text('set runs = (`ccount -digits %d 1 %d`)\n\n' \
+        self.write_text('set runs = (`count_afni -digits %d 1 %d`)\n\n' \
                         % (digs,self.runs) )
 
         if self.have_me:
            self.write_text('# note %d echoes and registration echo index\n' \
                            % self.num_echo)
-           self.write_text('set echo_list = (`ccount -digits 2 1 %d`)\n' \
+           self.write_text('set echo_list = (`count_afni -digits 2 1 %d`)\n' \
                            % self.num_echo)
            if len(self.echo_times) > 0:
               etimes = ['%s' % et for et in self.echo_times]

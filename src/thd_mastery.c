@@ -93,7 +93,7 @@ ENTRY("THD_open_dataset") ;
    if( ! AFNI_yesenv("AFNI_PATH_SPACES_OK")  &&
          (strchr(pathname,' ') != NULL )     &&
          (strstr(pathname,"[count ")==NULL)  &&
-         (strstr(pathname,"[ccount ")==NULL) &&
+         (strstr(pathname,"[count_afni ")==NULL) &&
          (strstr(pathname,"[1dcat ")==NULL) ) {
      dset = THD_open_tcat( pathname ) ;
      if( ISVALID_DSET(dset) &&

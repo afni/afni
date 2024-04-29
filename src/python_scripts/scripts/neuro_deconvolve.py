@@ -411,7 +411,7 @@ class Decon:
 
         pind = 0
         cmd += '# process each input file\n'                       \
-               'foreach findex ( `ccount -digits 2 1 $#files` )\n' \
+               'foreach findex ( `count_afni -digits 2 1 $#files` )\n' \
                '   # no zero-padding in shell index\n'             \
                '   set ival   = `ccalc -i $findex`\n'              \
                '   set infile = $files[$ival]:t\n'                 \
