@@ -14,7 +14,9 @@ int ranco(int,int, long int) ;
 extern int *z_rand_order(int bot, int top, long int seed);
 void usage_count(int detail) {
      printf(
-"Usage: count [options] bot top [step]\n"
+"Usage: count_afni [options] bot top [step]\n"
+"\n"
+"     This program was renamed from 'count' 27 Nov, 2023.\n"
 "\n"
 "* Produces many numbered copies of the root and/or suffix,\n"
 "    counting from 'bot' to 'top' with stride 'step'.\n"
@@ -31,9 +33,9 @@ void usage_count(int detail) {
 "                  In these instances, the counting is from character bot \n"
 "                  to character top. If you do not specify -form, the program\n"
 "                  will automatically choose -form '%%c'. For example:\n"
-"                       count a z\n"
+"                       count_afni a z\n"
 "                  or to get the ASCII value of the characters:\n"
-"                       count -form %%d a z\n"
+"                       count_afni -form %%d a z\n"
 "\n"
 "Options:\n"
 "  -seed        seed number for random number generator (for S and R above)\n"
@@ -41,8 +43,8 @@ void usage_count(int detail) {
 "  -column      writes output, one number per line (with root and suffix, if any)\n"
 "  -digits n    prints numbers with 'n' digits [default=4]\n"
 "  -form CFRM   print the numbers with the CFRM formatting string. \n"
-"               e.g.: count -form %%c 49 130 \n"
-"                  or count -form '%%03d<:-)' 97 99 \n"
+"               e.g.: count_afni -form %%c 49 130 \n"
+"                  or count_afni -form '%%03d<:-)' 97 99 \n"
 "               You can't use any type of C formatting, only those who\n"
 "               take an integer for an input. Using '%%f', or '%%s' will \n"
 "               cause a crash.\n"
@@ -66,7 +68,7 @@ void usage_count(int detail) {
 "     mv wilma.${fred} barney.${fred}\n"
 "  end\n"
 "The backward quote operator in the foreach statement executes the\n"
-"count program, captures its output, and puts it on the command line.\n"
+"count_afni program, captures its output, and puts it on the command line.\n"
 "The loop body renames each file wilma.0001 to wilma.0020 to barney.0001\n"
 "to barney.0020.  Read the man page for csh to get more information.  In\n"
 "particular, the csh built-in command '@' can be useful.\n"
@@ -77,7 +79,7 @@ void usage_count(int detail) {
 "Suppose you have several 1D files with 60 columns and you want to rearrange\n"
 "each one in the same random way -- interchanging columns to scramble some\n"
 "stimulus amplitude modulation sequences, say:\n"
-"  count -dig 1 0 59 S > randorder.1D\n"
+"  count_afni -dig 1 0 59 S > randorder.1D\n"
 "  1dcat A.1D\"[`cat randorder.1D`]\" > Areordered.1D\n"
 "  1dcat B.1D\"[`cat randorder.1D`]\" > Breordered.1D\n"
 "  1dcat C.1D\"[`cat randorder.1D`]\" > Creordered.1D\n"
@@ -101,7 +103,7 @@ int main( int argc , char *argv[] )
    int skipm = 0;
    int skipout;
 
-   mainENTRY("count");machdep() ; 
+   mainENTRY("count_afni");machdep() ; 
 
    if (argc == 1) { usage_count(1); exit(0); } /* Bob's help shortcut */
 

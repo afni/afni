@@ -53,6 +53,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Apr, 2024, RCR, "afni-general", MAJOR, TYPE_MODIFY,
+   "change 'count' program and usage to 'count_afni'",
+   "Add count_afni to the distribution, modify scripts to use it, and\n"
+   "allow use of count_afni is sub-brick selection, e.g.,\n"
+   "    dset'[count_afni 3 5]'\n"
+   "Note that 'count' is still allowed, for now."
+ } ,
+
  { 26, Apr, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "in any script calling whereami, invoke with 'tcsh -f' at top",
    "This is a quick fix for biowulf usage, since there is a new whereami\n"
