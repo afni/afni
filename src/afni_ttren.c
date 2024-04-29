@@ -92,7 +92,7 @@ static char helpstring[] =
  "either gyral or area names\n"
  "A list of all the labels for the principal default atlas is\n"
  "presented here or from the command line program,\n"
- "  'whereami -show_atlas_code' for all atlases.\n"
+ "  'whereami_afni -show_atlas_code' for all atlases.\n"
   "\n"
   "Method:\n"
   "  To enable display of the selected regions, you must choose the\n"

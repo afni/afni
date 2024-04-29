@@ -1064,7 +1064,7 @@ void CALC_Syntax(void)
     "     3dcalc -a 'TT_Daemon::amygdala' -b 'CA_N27_ML::amygdala' \\\n"
     "            -expr 'step(a)+2*step(b)'  -prefix compare.maps             \n"
     "\n"
-    "   (see 'whereami -help' for more information on atlases)               \n"
+    "   (see 'whereami_afni -help' for more information on atlases)               \n"
     "\n"
     "10. Convert a dataset from AFNI short format storage to NIfTI-1 floating\n"
     "    point (perhaps for input to an non-AFNI program that requires this):\n"

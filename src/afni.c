@@ -11508,7 +11508,8 @@ ENTRY("AFNI_imag_pop_CB") ;
           "9 different structures are found, or a 7.5 mm radius is reached,\n"
           "whichever occurs first. (Distances are rounded to nearest 1 mm,\n"
           "by default.) The defaults can be adjusted with AFNI environment\n"
-          "Please see whereami help, README.environment for more details.\n"
+          "Please see whereami_afni -help, README.environment for more\n"
+          "details.\n"
           "\n"
           "In the database, voxels may have multiple labels for a particular\n"
           "atlas. For example, the voxels may a larger scale 'gyral' name\n"
@@ -11517,7 +11518,8 @@ ENTRY("AFNI_imag_pop_CB") ;
           "    Within 2 mm: Right Precuneus -AND- Right Brodmann area 31\n"
           "A list of all the labels for the principal default atlas is\n"
           "presented by the 'Go to atlas location' control or from the\n"
-          "command line program, 'whereami -show_atlas_code', for any atlas.\n"
+          "command line program, 'whereami_afni -show_atlas_code', for any\n"
+          "atlas.\n"
           "Note Very Well:\n"
           "* The Atlas is only useful as a ROUGH guide to determining where\n"
           "    you are in any individual brain.  Do not rely exclusively on\n"
@@ -11710,7 +11712,7 @@ void AFNI_pop_whereami_kill( Three_D_View *im3d )
 
 
 /*-------------------------------------------------------------------------
-   A newer output form for whereami
+   A newer output form for whereami_afni
 ---------------------------------------------------------------------------*/
 static int htmlwami_open        = 0 ;
 
@@ -11763,7 +11765,8 @@ void AFNI_alter_wami_text(Three_D_View *im3d, char *utlab)
 
    if (!im3d || !im3d->vwid || !im3d->vwid->imag) EXRETURN;
 
-   if (!utlab) tlab = "\n** Can not use whereami functionality with this dataset**<br>\n"
+   if (!utlab) tlab =
+   "\n** Can not use whereami_afni functionality with this dataset**<br>\n"
    "Please set AFNI_ATLAS_LIST and AFNI_TEMPLATE_SPACE_LIST appropriately<br>\n"
    "Also set the space of the dataset to a corresponding space<br>\n" ;
    else tlab = utlab;

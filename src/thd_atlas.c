@@ -120,7 +120,7 @@ char * THD_get_view_space(THD_3dim_dataset *dset)
    RETURN("TLRC");
 }
 
-/* assign space codes used by whereami for specific atlases */
+/* assign space codes used by whereami_afni for specific atlases */
 int
 THD_space_code(char *space)
 {

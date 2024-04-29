@@ -432,7 +432,7 @@ PARSE:
          set pLoc = $cnt      
          if ($pLoc == $Narg) then
             echo "Need name of space for output after -out_space"
-            echo "See whereami -show_spaces for some possibilities"
+            echo "See whereami_afni -show_spaces for some possibilities"
             goto END
          else
             @ cnt ++
@@ -1609,7 +1609,7 @@ echo "                        (+tlrc)."
 echo "                        Preferably, this reference volume should have had"
 echo "                        the skull removed but that is not mandatory."
 echo "                        AFNI's distribution contains several templates."
-echo '                        For a longer list, use "whereami -show_templates"'
+echo '                        For a longer list, use "whereami_afni -show_templates"'
 echo "          TT_N27+tlrc --> Single subject, skull stripped volume."
 echo "                       This volume is also known as "
 echo "                       N27_SurfVol_NoSkull+tlrc elsewhere in "
