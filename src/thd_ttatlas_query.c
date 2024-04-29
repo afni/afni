@@ -34,7 +34,7 @@ static THD_string_array *session_atlas_name_list=NULL; /* a set of atlases found
 
 char *old_space_list[] = {"TLRC","MNI","MNI_ANAT"};
 
-/* determine if any whereami requests found anything in an atlas */
+/* determine if any whereami_afni requests found anything in an atlas */
 static int wami_web_found = 0;
 static int wami_web_reqtype = 0;
 static char wami_url[MAX_URL];
@@ -212,7 +212,7 @@ static int TT_whereami_mode = 1;
 static char lsep = '\n';
 
 /*! These atlas lists, used to be in afni.h and only included if
-Main is defined. That was nice and dandy when only afni and whereami
+Main is defined. That was nice and dandy when only afni and whereami_afni
 used them. Now, every main has a use for them since input datasets
 can be a string referring to a particular atlas zone. So they were
 added to libmri.a and accessible without restrictions. libmri.a and other
@@ -819,7 +819,7 @@ void TT_purge_atlas_big_old(void)
        encoding in the atlas or by coordinate.
 
    At the moment, I'm opting for 5. One problem that we have now is the use
-   of a specific atlas on the whereami command line. The LR atlas is not
+   of a specific atlas on the whereami_afni command line. The LR atlas is not
    in the atlas list in that case. Note the MNI_Anatomical_Side is now
    only used for MNI_ANAT coordinates.
 
@@ -1038,7 +1038,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    }
 
    if(wami_verb()) {
-      INFO_message("whereami in web output mode");
+      INFO_message("whereami_afni in web output mode");
       INFO_message("start characters %s to %s", histart, hiend);
    };
    /* get output spaces from an env variable*/
@@ -1416,14 +1416,14 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       /*- HTML -*/
       char *hhh = biggg ? "h1" : "h3" ;
       rbuf =  THD_zzprintf(rbuf,"<head>\n"
-               "<center><title><%s>AFNI whereami</%s></title></center>\n"
+               "<center><title><%s>AFNI whereami_afni</%s></title></center>\n"
                "</head>\n"
                "<body>\n"
                "<hr><p>\n" , hhh,hhh
                );
 #if 0
                "<a name=\"top\"></a>\n"
-               "<center><%s>whereami report\n"
+               "<center><%s>whereami_afni report\n"
                " </%s></center>\n"
                "<hr><p>\n"
                "\n"       , hhh,hhh );
@@ -6353,7 +6353,8 @@ static char *VersionMessage(void)
    sprintf( verr, "Mismatch of Anatomy Toolbox Versions.\n"
                   "Version in AFNI is %s and appears\n"
                   "different from version string in atlas' notes.\n"
-                  "See whereami -help for more info.\n", CA_EZ_VERSION_STR_HARD);
+                  "See whereami_afni -help for more info.\n",
+            CA_EZ_VERSION_STR_HARD);
    RETURN(verr);
 }
 
@@ -6731,7 +6732,7 @@ char *Atlas_name_choice(ATLAS_POINT *atp)
 }
 
 /* See also atlas_key_label */
-/* this function used only by whereami overlap mask computation for now */
+/* this function used only by whereami_afni overlap mask computation for now */
 const char *Atlas_Val_Key_to_Val_Name(ATLAS *atlas, int tdval)
 {
    int ii, cmax = 600;
@@ -6976,8 +6977,8 @@ ATLAS_LIST *Atlas_Names_to_List(char **atnames, int natlases)
 
    if(!reduced_n) {
       ERROR_message("No atlases given were found in global atlas list\n"
-        "Please see whereami help and AFNI_atlas_spaces.niml for information\n"
-        "on how to add atlases to AFNI");
+        "Please see whereami_afni help and AFNI_atlas_spaces.niml for\n"
+        "information on how to add atlases to AFNI");
       RETURN(NULL);
    }
    /* initialize the reduced list - may be only one atlas in list */
@@ -7099,8 +7100,8 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
          if (wami_verb()) {
              if (!n_warn || wami_verb()>1) {
                WARNING_message(  "Could not read atlas dset: %s \n"
-                      "See whereami -help for help on installing atlases. ",
-                      ATL_NAME_S(atlas),
+                   "See whereami_afni -help for help on installing atlases. ",
+                   ATL_NAME_S(atlas),
           (wami_verb() > 1) ? "":"\nOther similar warnings are now muted\n" );
             ++(n_warn);
             }
@@ -7138,9 +7139,9 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
                              "Getting hard-coded segmentation\n");
 
          if(set_adh_old_way(atlas->adh, Atlas_Name(atlas)))
-            WARNING_message(  "Could not read atlas dset4 %s \n"
-                               "See whereami -help for help on installing "
-                               "atlases.\n", atlas->dset_name );
+            WARNING_message( "Could not read atlas dset4 %s \n"
+                             "See whereami_afni -help for help on installing "
+                             "atlases.\n", atlas->dset_name );
       } else {
          if (LocalHead) fprintf(stderr,"NIML attributes being used.\n");
 
@@ -7223,8 +7224,8 @@ int genx_load_atlas_dset(ATLAS *atlas)
       if (ATL_DSET(atlas) == NULL) {
          if (LocalHead) {
             WARNING_message("Could not read atlas dataset: %s \n"
-                         "See whereami -help for help on installing atlases.\n",
-                          atlas->dset_name);
+                  "See whereami_afni -help for help on installing atlases.\n",
+                  atlas->dset_name);
          }
          /* For the moment, cleanup and return. */
          atlas->adh = Free_Atlas_Dset_Holder(atlas->adh);
@@ -7540,7 +7541,7 @@ Get_PMap_Factor()
 }
 
 /*!
-   \brief Returns a whereami query from just one atlas
+   \brief Returns a whereami_afni query from just one atlas
    \param atlas ATLAS *
    \param Xrai (float[3]) x,y,z in RAI
    \param wami append results to this wami
@@ -7686,7 +7687,7 @@ int whereami_in_atlas(  char *aname,
       "Set the environment variable AFNI_WHEREAMI_MAX_FIND to higher\n"
       "than %d if you desire a larger report.\n"
       "It behooves you to also checkout AFNI_WHEREAMI_MAX_SEARCH_RAD\n"
-      "and AFNI_WHEREAMI_NO_WARN. See whereami -help for detail.\n",
+      "and AFNI_WHEREAMI_NO_WARN. See whereami_afni -help for detail.\n",
                               MAX_FIND, MAX_FIND);
            find_warn = 1;
            }
@@ -7745,7 +7746,7 @@ int whereami_in_atlas(  char *aname,
          "Set the environment variable AFNI_WHEREAMI_MAX_FIND to higher\n"
          "than %d if you desire a larger report.\n"
          "It behooves you to also checkout AFNI_WHEREAMI_MAX_SEARCH_RAD\n"
-         "and AFNI_WHEREAMI_NO_WARN. See whereami -help for detail.\n",
+         "and AFNI_WHEREAMI_NO_WARN. See whereami_afni -help for detail.\n",
                                  MAX_FIND, MAX_FIND);
               find_warn = 1;
               }
@@ -7989,7 +7990,7 @@ int whereami_3rdBase( ATLAS_COORD aci, ATLAS_QUERY **wamip,
 
       /* for web atlases, open up separate query */
       /* do specific web request here for non-struct type
-         and skip regular whereami call */
+         and skip regular whereami_afni call */
       if(ATL_WEB_TYPE(atlas) && (get_wami_web_reqtype() != WAMI_WEB_STRUCT)){
          if (wami_verb() > 1)
             INFO_message("trying to access web-based atlas");
@@ -7999,7 +8000,8 @@ int whereami_3rdBase( ATLAS_COORD aci, ATLAS_QUERY **wamip,
          XYZ_to_AtlasCoord(xout, yout, zout, "RAI", atlas->space, &ac);
          if (!whereami_in_atlas(Atlas_Name(atlas), ac , &wami)) {
                if (LocalHead)
-                  INFO_message("Failed at whereami for %s", Atlas_Name(atlas));
+                  INFO_message("Failed at whereami_afni for %s",
+                               Atlas_Name(atlas));
             }
       }
    }
@@ -8119,11 +8121,11 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
       if (!atlas) {
          if (wami_verb()) {
             if (!iwarn || wami_verb() > 1) {
-               INFO_message("No atlas dataset %s found for whereami location"
-                            "%s",
+               INFO_message("No atlas dataset %s found for whereami_afni"
+                       " location %s",
                        atlas_alist->atlas[iatlas].name,
-                        wami_verb() < 2 ?
-                           "\nWarnings for other atlases will be muted.":"");
+                       wami_verb() < 2 ?
+                          "\nWarnings for other atlases will be muted.":"");
                ++iwarn;
             }
          }
@@ -8262,7 +8264,7 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
             "Set the environment variable AFNI_WHEREAMI_MAX_FIND to higher\n"
             "than %d if you desire a larger report.\n"
             "It behooves you to also checkout AFNI_WHEREAMI_MAX_SEARCH_RAD\n"
-            "and AFNI_WHEREAMI_NO_WARN. See whereami -help for detail.\n",
+            "and AFNI_WHEREAMI_NO_WARN. See whereami_afni -help for detail.\n",
                                     MAX_FIND, MAX_FIND);
                  }
                  break ;  /* don't find TOO much */
@@ -9383,7 +9385,7 @@ elsevier_query(float xx, float yy, float zz, ATLAS *atlas)
 {
     size_t nread;
     char wamiqurl[512], *page=NULL;
-/*     char upath[]={"http://mrqlan.dyndns.org/bnapi/models/whereami.xml?"};*/
+/*     char upath[]={"http://mrqlan.dyndns.org/bnapi/models/whereami_afni.xml?"};*/
     THD_coorder CL_cord ;
     if(wami_verb()>2)
        fprintf(stdout,"Trying to get to Elsevier for coords %f %f %f\n", xx, yy,zz);
@@ -9391,7 +9393,7 @@ elsevier_query(float xx, float yy, float zz, ATLAS *atlas)
     THD_coorder_fill(atlas->orient , &CL_cord ) ; /* fill structure from atlas string */
     THD_dicom_to_coorder(&CL_cord , &xx , &yy , &zz);  /* put the coords in Elseviers order */
 
-    /* Get Elsevier XML whereami short response */
+    /* Get Elsevier XML whereami_afni short response */
     /* Elsevier's short response includes structure information in the following format
        that includes a link for the BrainNavigator webpage in the bn_uri field of the XML
        code */
@@ -9507,7 +9509,7 @@ elsevier_query_request(float xx, float yy, float zz, ATLAS *atlas, int el_req_ty
 }
 #endif
 
-/* query Elsevier for whereami at select locations
+/* query Elsevier for whereami_afni at select locations
  * NOTE Elsevier does not provide this functionality
 *  so this code only provides a placeholder for similar web-based
 *  atlases, i.e. web servers that given an x y z location and an atlas
@@ -9551,7 +9553,7 @@ wami_query_web(ATLAS *atlas, ATLAS_COORD ac, ATLAS_QUERY *wami)
       At the moment, we're not using it because we'd become
       dependent on libcurl .
       To toy with curl, replace the call to read_URL_http with
-      CURL_read_URL_http and just add -libcurl to whereami's compile
+      CURL_read_URL_http and just add -libcurl to whereami_afni's compile
       command */
    #include <curl/curl.h>
 
@@ -9845,7 +9847,7 @@ int get_wami_web_reqtype()
    return(wami_web_reqtype);
 }
 
-/* set current webpage for whereami web request if needed */
+/* set current webpage for whereami_afni web request if needed */
 void set_wami_webpage(char *url)
 {
 /*   char *tempurl;*/
@@ -9889,14 +9891,14 @@ int AFNI_wami_output_mode(void)
    }
 
    /* changed default of AFNI_WEBBY_WAMI to be YES */
-   /* now show whereami html GUI by default  - drg 01/23/2015 */
+   /* now show whereami_afni html GUI by default  - drg 01/23/2015 */
    if ( AFNI_noenv("AFNI_WEBBY_WAMI") ) { return (0); }
    else {   return(1);  }
 
    return(1);
 }
 
-/* set output of AFNI whereami to be in AFNI's HTML browser */
+/* set output of AFNI whereami_afni to be in AFNI's HTML browser */
 void set_AFNI_wami_output_mode(int webflag)
 {
    if(webflag)

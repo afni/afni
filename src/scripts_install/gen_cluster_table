@@ -241,8 +241,8 @@ foreach ii ( `seq 1 1 ${nclust}` )
                     -mask "clust_map.nii.gz<${nn}>"        \
                     "clust_map.nii.gz"` 
 
-    # whereami, use label 'ref_atlas' to refer to dset
-    whereami                                          \
+    # whereami_afni, use label 'ref_atlas' to refer to dset
+    whereami_afni                                     \
         -omask "clust_map.nii.gz<${nn}>"              \
         -atlas ref_atlas                              \
         | grep --color=never '% overlap with'         \
@@ -328,7 +328,7 @@ example, see:
   DA, Bandettini PA, Mejia AF, Chen G (2023). Neuroimage 274:120138. 
   https://pubmed.ncbi.nlm.nih.gov/37116766/
 
-This program basically wraps around the useful 'whereami' program.
+This program basically wraps around the useful 'whereami_afni' program.
 
 auth    : PA Taylor (SSCC, NIMH, NIH, USA)
 ver     : ${version}

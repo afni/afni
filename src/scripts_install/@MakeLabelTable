@@ -1244,7 +1244,7 @@ HELP:
    echo "                             default. You can override that with this"
    echo "                             option."
    echo "     -atlas_description ATLAS_DESC: Atlas description, which appears"
-   echo "                             in afni's whereami window. Default is"
+   echo "                             in afni's whereami_afni window. Default is"
    echo "                             'My Atlas'"
    echo "     -replace: If ATLAS_NAME is already in ATLAS_NIML_FILE, the script"
    echo "               will fail to proceed unless you instruct it to do so "

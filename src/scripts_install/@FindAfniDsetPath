@@ -15,7 +15,7 @@
 #   like AFNI_GLOBAL_SESSION, etc.
 # [DRG: 13 Aug 2019]
 # + Added AFNI_SUPP_ATLAS_DIR to the list of environment paths.
-# + Added atlas name -> dataset file search via whereami
+# + Added atlas name -> dataset file search via whereami_afni
 # + append file name to output
 # [DRG: 31 Aug 2019]
 # + full_path option - include full path in output instead of .
@@ -64,8 +64,8 @@ set dataset_path = './'
 set storageguess = ` ParseName "${ref_in}" | \grep StorageModeNm|awk -F: '{print $2}'`
 # if not a regular dataset, then we might find it as an atlas instead
 if ($storageguess  == "UNDEFINED") then
-   # find the dataset file associated with the atlas (cf. whereami help) 
-   set possibleatlas = `whereami -atlas "${ref_in}" -show_atlas_dset`
+   # find the dataset file associated with the atlas (cf. whereami_afni help) 
+   set possibleatlas = `whereami_afni -atlas "${ref_in}" -show_atlas_dset`
    if ($possibleatlas != "") then
       set ref_in = "$possibleatlas"
    endif

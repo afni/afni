@@ -1047,7 +1047,7 @@ STATUS("making imag->rowcol") ;
         if( first ){
           first = 0 ;
           fprintf(stderr,
-        "\n++ WARNING: Can't find default atlas (%s) dataset for 'whereami'!\n"
+        "\n++ WARNING: Can't find default atlas (%s) dataset for 'whereami_afni'!\n"
         "++--------- See https://afni.nimh.nih.gov/pub/dist/data/\n",
         Current_Atlas_Default_Name() ) ;
         }

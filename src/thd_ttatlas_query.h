@@ -122,8 +122,8 @@ typedef struct {
    float *prob; /*!< probability, if applicable, of being of a particular label */
    float *radius;   /*!< distance, search distance for reported label.*/
    char **longname; /*!< long name for label/atlas region */
-   char **webpage; /*!< webpages for a web-atlas for whereami location */
-   char **connpage; /*!< connection info webpages for a web-atlas for whereami location */
+   char **webpage; /*!< webpages for a web-atlas for whereami_afni location */
+   char **connpage; /*!< connection info webpages for a web-atlas for whereami_afni location */
 } ATLAS_ZONE;
 
 typedef struct {

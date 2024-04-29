@@ -35,7 +35,7 @@ int selenium_init()
    char *temppath=NULL;
 
    /* look for python scripts in same place as afni binary */
-//   Py_SetProgramName(argv[0]); /* could set to afni/whereami/suma/... here */
+//   Py_SetProgramName(argv[0]); /* could set to afni/whereami_afni/suma/... here */
    Py_Initialize();
    PyObject *sys = PyImport_ImportModule("sys");
    PyObject *path = PyObject_GetAttrString(sys, "path");
