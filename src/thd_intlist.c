@@ -37,7 +37,8 @@ int * get_count_intlist_eng ( char *str, int *nret, int maxval, int ok_neg )
 
    *nret = -1;
    /* include count_afni   [27 Nov 2023 rickr] */
-   if (!str || !strstr(str,"count ") || strlen (str) < 9) {
+   if (!str || (!strstr(str,"count ") && !strstr(str,"count_afni ")) 
+            || strlen (str) < 9) {
       fprintf(stderr, "NULL input or string does not have 'count_afni '"
               " or at least 2 values are not present after 'count_afni '\n");
       return (NULL);
