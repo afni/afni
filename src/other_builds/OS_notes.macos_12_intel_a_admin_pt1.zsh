@@ -52,7 +52,9 @@ export PATH=${PATH}:/usr/local/opt/python/libexec/bin
 echo 'export PATH=${PATH}:/usr/local/opt/python/libexec/bin' >> ~/.zshrc
 echo 'export PATH=${PATH}:/usr/local/opt/python/libexec/bin' >> ~/.bashrc
 echo 'setenv PATH ${PATH}:/usr/local/opt/python/libexec/bin' >> ~/.login
-pip install matplotlib
+
+# go through conda:
+# pip install matplotlib
 
 # ----------------------------------------------------------------------
 # continue with R in the next script (another sudo)
