@@ -614,8 +614,9 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------
 
     # QC block: "vstat"
-    # item    : corr maps (rest/non-task FMRI): seedbased corr 
-    if not(DO_VSTAT_TASK) :               # only done in resting/non-task cases
+    # item    : corr maps (rest/non-task FMRI): seedbased corr in vol dset
+    if not(DO_VSTAT_TASK) and \
+       not(lat.check_if_niml_dset(ap_ssdict, 'errts_dset')) :
         # mirror same logic as task (above) for deciding ulay/olay
         DO_VSTAT_SEED_REST = 0
 
