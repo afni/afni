@@ -652,7 +652,7 @@ class SubjectList(object):
            - there will be one such table of rows, per subject
              (unless that subject is missing data for specific factor levels)
         - ntcond = total number of conditions = product of condition lengths
-                 = langth of full condition table
+                 = length of full condition table
 
         - make a complete list of all subjects (across all conditions)
 
@@ -1599,7 +1599,7 @@ def _dt_nest_conds(CT, clist, nclist, clens, cind, row, skip0):
       return
   
    # else, for each factor level, set at row position and recur to next posn
-   # (skip postion 0)
+   # (skip position 0)
    if skip0: flist = clist[cind][1:]
    else:     flist = clist[cind]
    for level in flist:
