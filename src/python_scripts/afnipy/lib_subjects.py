@@ -288,7 +288,8 @@ class Subject(object):
 
    def show(self):
       natr = self.atrs.count()-1  # do not include name
-      print("Subject %s, dset %s, natr = %d" % (self.sid, self.dset, natr))
+      print("Subject %s, natr = %d" % (self.sid, natr))
+      print("   dset = %s" % self.dset)
       print("   ddir = %s\n   dfile = %s\n" % (self.ddir, self.dfile))
       if natr > 0:
          self.atrs.show('  attributes: ')
@@ -381,20 +382,25 @@ class SubjectList(object):
                               % (len(newSL.subjects), olen))
       return newSL
 
-   def show(self, mesg=''):
+   def show(self, mesg='', verb=-1):
+      if verb == -1: verb = self.verb
+
       if mesg: mstr = " (%s)" % mesg
       else:    mstr = ''
       print("SubjectList: %s%s" % (self.name, mstr))
       print("  nsubj = %d, natrs = %d, ndisp_atrs = %d" % \
                (len(self.subjects), len(self.atrl), len(self.disp_atrs)))
-      print("  atrl      = %s" % self.atrl)
-      print("  disp_atrs = %s" % self.disp_atrs)
+      print("  common_dir   = %s" % self.common_dir)
+      print("  common_dname = %s" % self.common_dname)
+      print("  atrl         = %s" % self.atrl)
+      print("  disp_atrs    = %s" % self.disp_atrs)
 
       if len(self.subjects) == 0: return
 
       print("  subject sort key: %s" % self.subjects[0]._sort_key)
-      for subj in self.subjects:
-         subj.show()
+      if verb > 1:
+         for subj in self.subjects:
+            subj.show()
 
    def add(self, subj):
       """add the subject to the list and update the atrl list"""
@@ -627,6 +633,216 @@ class SubjectList(object):
       cmd += '\n'
 
       return cmd
+
+   def make_datatable_text(self, subjlists, condlists=[], bsubs=None, verb=1):
+      """create text for a -dataTable file
+
+            subjlists      - one list, or one list per condition
+                           * in condition-major order (first cond is slowest)
+          * condlists      - NEW: if present, 1 list per factor, of that length
+                           - option (multiple): -factors SET NAME1 NAME2 ...
+                           - cond-major order, first moves slowest, last fastest
+            bsubs          - beta sub-bricks (1 list of sub-brick selectors)
+            verb           - verbose level
+
+    *** decide on -dsets (subjlists), -factors (factors), -subs_betas (bsubs)
+
+        - make a fully factorialized condition table
+           - must match order of -dsets and condition-major order labels
+           - there will be one such table of rows, per subject
+             (unless that subject is missing data for specific factor levels)
+        - ntcond = total number of conditions = product of condition lengths
+                 = langth of full condition table
+
+        - make a complete list of all subjects (across all conditions)
+
+        - create complete datatable
+           - for each subject
+              - for each cond table row
+                 - if that subject is in the row, add that dataset
+                   (or if just one set of subject datasets)
+
+                   SUBJ  factors ... for this row (cond table row)  DSET
+
+        - if ntcond == 1:
+          - must have len(subjlists) == 1
+          - omit any condition column(s)
+          - do not need condlists
+          - bsubs can be empty or have 1 value
+
+        - if len(subjlists) == 1: all conditions in one dset
+             - so len(bsubs) must equal ntcond
+        - else: len(subjlists) > 1: one condition/beta per subj list
+             - must have len(subjlists) == ntcond
+             - if len(bsubs) == 0: omit sub-brick selection
+             - else if len(bsubs) == 1: use same selector for every volume
+             - else: must have: len(bsubs) == ntcond == len(subjlists)
+
+      todo: resulting format len(factors) rows per subject:
+                subj    factor  input
+      todo: ponder data path (since no variable can be in table)
+            - ponder set_common_dir
+      todo: import table from Justin
+            - convert to subject dictionary
+            - be sure each such subject is in full list
+            - restrict union subject list to this table
+            - insert these columns into the full table
+
+         return None on failure, -dataTable on success
+      """
+
+      verb = 3 # rcr - delete
+
+      if verb > 1:
+         print('-- make_datatable_text, %d slist, %d clists' \
+               % (len(subjlists), len(condlists)))
+
+      if bsubs == None: pass # okay here
+      if len(subjlists) == 0:
+         print("** make_datatable: have no subject lists")
+         return None
+
+      dtable = self.make_datatable(subjlists, condlists=condlists,
+                                   bsubs=bsubs, verb=verb)
+
+      return 'pickles'
+
+   def make_datatable(self, subjlists, condlists=[], bsubs=None, verb=1):
+      """return a 2-D list: subject x condition (N == product of condl lengths)
+         ([] on failure)
+
+         - get complete, sorted list of subjects
+         - convert subjlists to list of dictionaries { subj:dataset }
+         - get fully factorialized condition table
+            - ntcond = total number of cases = product of condition lengths
+
+         - verify condition table size against len(bsubs) len len(subjlists)
+
+         - create complete datatable
+            - each subject has ntcond rows, where they have data
+              row:  SUBJ  factors for this row (cond table row)  DSET
+      """
+
+      if verb > 1: print('-- make_datatable' )
+
+      if len(subjlists) == 0:
+         print("** make_datatable: have no subject lists")
+         return []
+
+      # create full union subject list
+      subj_all = self.get_all_subjs_from_lists(subjlists, verb=verb)
+      if len(subj_all) == 0:
+         print("** make_datatable: failed get_all_subjs_from_lists")
+         return []
+
+      # create subject dictionary list, similar array of { subj:dataset } dicts
+      SDL = self.slists2dictlist(subjlists)
+      if len(SDL) == 0:
+         print("** make_datatable: failed slists2dictlist")
+         return []
+
+      # now make a complete 2-D table of contrast labels
+      CT = get_factorial_cond_table(condlists, skip0=1, verb=verb)
+      if len(CT) == 0:
+         print("** make_datatable: failed get_factorial_cond_table")
+         return []
+
+      # check CT length: match either # subjlists or # bsubs
+      if self.check_CT_len(CT, subjlists, bsubs):
+         return []
+
+      # create a merged table
+      # essentially, each subject tries to insert an entire condition table
+      DT = []
+      for subj in subj_all:
+         pass
+
+      return []
+
+   def check_CT_len(self, CT, subjlists, bsubs):
+      """check total number of condition sets against subject lists or bsubs
+
+        - if ntcond == 1:
+          - need len(subjlists) == 1
+          - bsubs can be empty or have 1 value
+
+        - else
+          - if len(subjlists) == 1: all conditions in one dset
+               - so need len(bsubs) == ntcond
+          - else: len(subjlists) > 1: one condition/beta per subj list
+               - must have len(subjlists) == ntcond
+               - if len(bsubs) == 0: omit sub-brick selection
+               - else if len(bsubs) == 1: use same selector for every volume
+               - else: must have: len(bsubs) == ntcond == len(subjlists)
+
+        return 0 on success, else error
+      """
+      ntcond = len(CT)
+      nslist = len(subjlists)
+      nbsubs = len(bsubs)
+
+      # have one condition/factor
+      if ntcond == 1:
+         if nslist != 1:
+            print("** check_CT_len: 1 cond set but %d subj lists" % nslist)
+            return 1
+         if nbsubs > 1:
+            print("** check_CT_len: 1 cond set but %d beta subs" % nbsubs)
+            return 1
+         return 0 # seems okay
+
+      # we have multiple condition/factor sets...
+      if nslist == 1:
+         # check bsubs, since all condition volumes in each subject dataset
+         if nbsubs != ntcond:
+            print("** check_CT_len: %d cond sets but %d beta subs" \
+                  % (ntcond, nbsubs))
+            return 1
+         return 0 # seems okay
+
+      # multiple subjlists and multiple condition sets
+      if ntcond != nslist:
+         print("** check_CT_len: %d cond sets but %d subj lists" \
+               % (ntcond, nslist))
+         return 1
+
+      # verify nbsubs
+      if nbsubs != 0 and nbsubs != 1 and nbsubs != ntcond:
+         print("** check_CT_len: %d cond sets but %d bsubs" \
+               % (ntcond, nbsubs))
+         return 1
+
+      return 0
+
+   def slists2dictlist(self, subjlists):
+      """convert the subject lists to a list of {sid:dset} dictionaries
+
+         not soooo crypically terse
+      """
+      SDL = []
+      for slist in subjlists:
+         SDL.append( {subj.sid:subj.dfile for subj in slist.subjects} )
+      return SDL
+
+   def get_all_subjs_from_lists(self, subjlists, verb=1):
+      """given a list of SubjectList instances, return a combined list of
+         all subjects across all SubjectLists
+      """
+      everyone = []
+      for slist in subjlists:
+         everyone.extend([subj.sid for subj in slist.subjects])
+      ulist = UTIL.get_unique_sublist(everyone)
+      ulist.sort()
+      del(everyone)
+
+      if verb > 1:
+         slens = [str(len(ss.subjects)) for ss in subjlists]
+         print("-- subjlist lengths = %s" % ' '.join([str(c) for c in slens]))
+         print("   total unique subjects = %s" % len(ulist))
+         if verb > 3:
+            print("== all subjects\n   %s" % ' '.join(ulist))
+
+      return ulist
 
    def make_anova3_command(self, bsubs=None, prefix=None, subjlists=None,
                            options=None, factors=[], verb=1):
@@ -1274,6 +1490,78 @@ class SubjectList(object):
       if errs: return None
 
       return sstr
+
+# general functions, could go elsewhere
+def get_factorial_cond_table(condlists, skip0=0, verb=1):
+   """given a list of condition levels, return a fully factorized table
+      (so of length the product of the conditions)
+
+      - the table should be in condition-major order (first to last)
+      - if skip0: element 0 of each list should be skipped, as it is a label
+
+      for example:
+        condlists = [ ['color', 'blue', 'red', 'orange'],
+                      ['sex',   'M', 'F'],
+                      ['emot',  'happy', 'sad'] ]
+      return 
+        [
+            [ 'blue',   'M', 'happy' ],
+            [ 'blue',   'M', 'sad' ],
+            [ 'blue',   'F', 'happy' ],
+            [ 'blue',   'F', 'sad' ],
+            [ 'red',    'M', 'happy' ],
+            [ 'red',    'M', 'sad' ],
+            ...
+            [ 'orange', 'M', 'happy' ],
+            [ 'orange', 'M', 'sad' ],
+            ...
+        ]
+   """
+   # chat
+   if verb > 1:
+      clens = [len(cc) for cc in condlists]
+      print("-- clist lengths = %s" % ' '.join([str(c-1) for c in clens]))
+      if verb > 2:
+         print("-- all condition lists:")
+         for clist in condlists:
+            print('   %s : %s' % (clist[0], ', '.join(clist[1:])))
+
+   # real work
+   CT = []
+   clens = [len(cc) for cc in condlists]
+   row = [0] * len(condlists) # computational 
+   _dt_nest_conds(CT, condlists, len(condlists), clens, 0, row, skip0)
+
+   # chat
+   if verb > 1:
+      print("-- have complete factorization table, length %s" % len(CT))
+      if verb > 2:
+         for row in CT:
+            print(row)
+
+   return(CT)
+
+def _dt_nest_conds(CT, clist, nclist, clens, cind, row, skip0):
+   """recursive: if done, append row to table
+                 else, for each factor level, insert this factor and recur
+
+      recursively fill CT with every (ordered) combination of factor levels
+   """
+   # if we are fully nested, add the current row to the table
+   # (we *could* move this to the loop, but it seems more readable this way)
+   if cind == nclist:
+      CT.append(row[:])
+      return
+  
+   # else, for each factor level, set at row position and recur to next posn
+   # (skip postion 0)
+   if skip0: flist = clist[cind][1:]
+   else:     flist = clist[cind]
+   for level in flist:
+      row[cind] = level
+      _dt_nest_conds(CT, clist, nclist, clens, cind+1, row, skip0)
+
+   return
 
 if __name__ == '__main__':
    print('** this is not a main program')

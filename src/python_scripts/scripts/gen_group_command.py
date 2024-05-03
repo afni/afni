@@ -454,7 +454,7 @@ required parameters: ~2~
                                  (see -factors option)
                         -type 5: group x condition x subject
 
-   -dsets   datasets ...     : list of datasets
+   -dsets datasets ...       : list of input datasets
 
         Each use of this option essentially describes one group of subjects.
         All volumes for a given subject should be in a single dataset.
@@ -1123,6 +1123,8 @@ class CmdInterface:
          cmd = self.get_anova2_command()
       elif self.command == '3dANOVA3':
          cmd = self.get_anova3_command()
+      elif self.command == 'datatable':
+         cmd = self.get_datatable()
       elif self.command:
          cmd = self.get_generic_command()
       else:
@@ -1188,6 +1190,21 @@ class CmdInterface:
       return self.slist[0].make_anova3_command( bsubs=self.betasubs,
                prefix=self.prefix, subjlists=self.slist, options=self.options,
                factors=self.factors, verb=self.verb)
+
+   def get_datatable(self):
+      """generate a -dataTable option (not a command)
+                This allows for multiple groups (might be for betas) and
+                multiple betas, possibly if one list of dsets.
+      """
+
+      return self.make_datatable_text()
+
+   def make_datatable_text(self):
+
+      clists = [['milk', 'a', 'b', 'c'], ['food', 'D', 'E'],
+                ['dog', 'FFF', 'GGG']]
+      return self.slist[0].make_datatable_text( subjlists=self.slist,
+                condlists=clists, bsubs=self.betasubs, verb=self.verb) 
 
    def help_mema_command(self):
       helpstr = """
