@@ -752,16 +752,22 @@ class SubjectList(object):
          return []
 
       # merge, each subject tries to insert an entire condition table
-      DT = self.combine_subjects_n_factors(subj_all, SDL, CT, verb=verb)
+      DT = self.combine_subjects_n_factors(subj_all, SDL, CT, bsubs, verb=verb)
 
       return DT
 
-   def combine_subjects_n_factors(self, subj_all, SDL, CT, verb=1):
+   def combine_subjects_n_factors(self, subj_all, SDL, CT, bsubs, verb=1):
 
       if verb > 2: print("-- combining subjects and factor table")
 
       # create key lists for quick access
       keys = [d.keys() for d in SDL]
+
+      # if 0 or 1 bsub, make note
+      nb = len(bsubs)
+      if   nb == 0: select = ''
+      elif nb == 1: select = '[%s]' % bsubs[0]
+      else:         select = 'eatmorecheese'
 
       DT = []
       nslists = len(SDL)
@@ -778,6 +784,10 @@ class SubjectList(object):
             if dset == '':
                if verb > 2: print("-- no data for %s, conds %s" % (subj, cline))
                continue
+
+            # do we want a volume selection?
+            if nb < 2: dset += select
+            else:      dset += '[%s]' % bsubs[ic]
 
             drow = [subj]
             drow.extend(cline)
