@@ -719,6 +719,7 @@ class CmdInterface:
       self.tstatsubs       = None       # list of t-stat sub-brick indices
       self.lablist         = None       # list of set labels
       self.factors         = []         # list of factors of each type
+      self.factor_lists    = []         # list of factor type and all levels
       self.hpad            = 0          # hpad for list_minus_glob_form
       self.tpad            = 0          # tpad for list_minus_glob_form
 
@@ -796,6 +797,8 @@ class CmdInterface:
                       helpstr='restrict dsets to these subject IDs')
       self.valid_opts.add_opt('-dset_sid_omit_list', -1, [], okdash=0,
                       helpstr='remove these subject IDs from dsets')
+      self.valid_opts.add_opt('-factor_list', -2, [], okdash=0,
+                      helpstr='factor type, and all factor levels')
       self.valid_opts.add_opt('-factors', -1, [], okdash=0,
                       helpstr='num factors, per condition (probably 2 ints)')
       self.valid_opts.add_opt('-hpad', 1, [], okdash=0,
@@ -912,6 +915,12 @@ class CmdInterface:
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return 1
             self.sid_omit.append(val)        # allow multiple such options
+            continue
+
+         if opt.name == '-factor_list':
+            val, err = uopts.get_string_list('', opt=opt)
+            if val == None or err: return 1
+            self.factor_lists.append(val)
             continue
 
          if opt.name == '-factors':
@@ -1201,10 +1210,9 @@ class CmdInterface:
 
    def make_datatable_text(self):
 
-      clists = [['milk', 'a', 'b', 'c'], ['food', 'D', 'E'],
-                ['dog', 'FFF', 'GGG']]
-      return self.slist[0].make_datatable_text( subjlists=self.slist,
-                condlists=clists, bsubs=self.betasubs, verb=self.verb) 
+      return self.slist[0].make_datatable_text(
+                    subjlists=self.slist, condlists=self.factor_lists,
+                    bsubs=self.betasubs, verb=self.verb) 
 
    def help_mema_command(self):
       helpstr = """

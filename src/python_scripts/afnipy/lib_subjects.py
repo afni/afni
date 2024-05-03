@@ -748,18 +748,50 @@ class SubjectList(object):
          return []
 
       # check CT length: match either # subjlists or # bsubs
-      if self.check_CT_len(CT, subjlists, bsubs):
+      if self.check_CT_len(CT, subjlists, bsubs, verb=verb):
          return []
 
-      # create a merged table
-      # essentially, each subject tries to insert an entire condition table
+      # merge, each subject tries to insert an entire condition table
+      DT = self.combine_subjects_n_factors(subj_all, SDL, CT, verb=verb)
+
+      return DT
+
+   def combine_subjects_n_factors(self, subj_all, SDL, CT, verb=1):
+
+      if verb > 2: print("-- combining subjects and factor table")
+
+      # create key lists for quick access
+      keys = [d.keys() for d in SDL]
+
       DT = []
+      nslists = len(SDL)
       for subj in subj_all:
-         pass
+         for ic, cline in enumerate(CT):
+            # try to find the dataset
+            if nslists == 1:
+               if subj in keys[0]: dset = SDL[0][subj]
+               else:               dset = ''
+            else:
+               if subj in keys[ic]: dset = SDL[ic][subj]
+               else:                dset = ''
+            # if no data, skip this row
+            if dset == '':
+               if verb > 2: print("-- no data for %s, conds %s" % (subj, cline))
+               continue
 
-      return []
+            drow = [subj]
+            drow.extend(cline)
+            drow.append(dset)
+            DT.append(drow)
+            
+      if verb > 2:
+         print("== combined datatable: ")
+         for row in DT:
+            print("   %s" % ' '.join(row))
 
-   def check_CT_len(self, CT, subjlists, bsubs):
+      return DT
+
+   def check_CT_len(self, CT, subjlists, bsubs, verb=1):
       """check total number of condition sets against subject lists or bsubs
 
         - if ntcond == 1:
@@ -780,6 +812,9 @@ class SubjectList(object):
       ntcond = len(CT)
       nslist = len(subjlists)
       nbsubs = len(bsubs)
+
+      if verb > 1: print("-- check_CT_len: have %d cond, %s slists, %s bsubs" \
+                         % (ntcond, nslist, nbsubs))
 
       # have one condition/factor
       if ntcond == 1:
