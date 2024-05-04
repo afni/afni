@@ -764,10 +764,14 @@ class SubjectList(object):
       keys = [d.keys() for d in SDL]
 
       # if 0 or 1 bsub, make note
-      nb = len(bsubs)
+      if bsubs is None: nb = 0
+      else:             nb = len(bsubs)
       if   nb == 0: select = ''
       elif nb == 1: select = '[%s]' % bsubs[0]
       else:         select = 'eatmorecheese'
+
+      # count missing subjects per condition set
+      missing = [0] * len(CT)
 
       DT = []
       nslists = len(SDL)
@@ -782,6 +786,7 @@ class SubjectList(object):
                else:                dset = ''
             # if no data, skip this row
             if dset == '':
+               missing[ic] += 1
                if verb > 2: print("-- no data for %s, conds %s" % (subj, cline))
                continue
 
@@ -793,7 +798,11 @@ class SubjectList(object):
             drow.extend(cline)
             drow.append(dset)
             DT.append(drow)
-            
+
+      if verb > 1:
+         print("-- missing subjects per factor set: %s" \
+               % ', '.join(['%s' % m for m in missing]))
+
       if verb > 2:
          print("== combined datatable: ")
          for row in DT:
@@ -821,7 +830,8 @@ class SubjectList(object):
       """
       ntcond = len(CT)
       nslist = len(subjlists)
-      nbsubs = len(bsubs)
+      if bsubs is None: nbsubs = 0
+      else:             nbsubs = len(bsubs)
 
       if verb > 1: print("-- check_CT_len: have %d cond, %s slists, %s bsubs" \
                          % (ntcond, nslist, nbsubs))
