@@ -1,0 +1,104 @@
+#!/bin/tcsh
+
+# [PDL: April 23, 2024] Demo for Alpha transparency
+#
+# Runs from ~/abin
+#
+# Usage: @DriveSumaClippingPlanes <Path to executable>
+#
+# Example: ./@DriveSumaClippingPlanes "~/afniDev/afni/build/src/SUMA"
+#
+# If the path to the executable is not specified, the suma, in the default
+# search path, is used.
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+#Example commands for running @DriveSuma
+# No output
+
+
+if ($#argv > 0) then
+        set path = ($1 $path)
+endif
+
+
+set HelpOpt = ''
+echo "$1" | \grep -w -E  \
+      '\-h_txt|\-h_spx|\-h_aspx|\-h_raw|\-help|\-h' >& /dev/null
+if ($status == 0) then
+   set HelpOpt = "$1"
+   goto HELP
+endif
+
+        set l = `prompt_user -pause \
+        '@DriveSuma \n\
+            #Make sure no current SUMA is running, then press OK'`
+            if ( $l == '0') goto STEND
+
+        # Clipping planes
+        set l = `prompt_user -pause \
+                '@DriveSuma \n\
+                Press OK for clipping planes'`
+
+        # set SUMA_DIR = $1
+        cd $HOME/AFNI_data6/FT_analysis/FT/SUMA
+        set NEW_PORT = `afni -available_npb_quiet`
+        echo  $NEW_PORT
+        suma -spec std.60.FT_lh.spec &
+	# suma -spec SUMA/std.60.FT_lh.spec &
+
+        # Turn on clipping plane mode
+	DriveSuma -com  viewer_cont -key ctrl+C
+
+        # Activate plane 4
+        set l = `prompt_user -pause \
+                '@DriveSuma \n\
+                Press OK to acivate plane 4'`
+	DriveSuma -com  viewer_cont -key 4
+
+        # Scroll in
+        set l = `prompt_user -pause \
+                '@DriveSuma \n\
+                Press OK to scroll in'`
+	set j = 1
+        while ( $j <= 10 )
+            DriveSuma -com  viewer_cont -key S
+            @ j++
+        end
+
+        # Scroll out
+        set l = `prompt_user -pause \
+                '@DriveSuma \n\
+                Press OK to scroll out'`
+	set j = 1
+        while ( $j <= 3 )
+            DriveSuma -com  viewer_cont -key s
+            @ j++
+        end
+
+        # Make clippnig plane invisible
+        set l = `prompt_user -pause \
+                '@DriveSuma \n\
+                Press OK to make plane 4 active but invisible'`
+	DriveSuma -com  viewer_cont -key C
+
+        # Scroll in
+        set l = `prompt_user -pause \
+                '@DriveSuma \n\
+                Press OK to scroll in'`
+	set j = 1
+        while ( $j <= 3 )
+            DriveSuma -com  viewer_cont -key S
+            @ j++
+        end
+
+        # Scroll out
+        set l = `prompt_user -pause \
+                '@DriveSuma \n\
+                Press OK to scroll out'`
+	set j = 1
+        while ( $j <= 3 )
+            DriveSuma -com  viewer_cont -key s
+            @ j++
+        end
+
