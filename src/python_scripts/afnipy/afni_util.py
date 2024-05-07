@@ -122,9 +122,14 @@ def wrap_file_text(infile='stdin', outfile='stdout', method='pt'):
    if tdata != '': write_text_to_file(outfile, tdata, wrap=1, method=method)
    
 
-def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):
+def read_text_file(fname='stdin', lines=1, strip=1, nonl=0, noblank=0, verb=1):
    """return the text text from the given file as either one string
-      or as an array of lines"""
+      or as an array of lines
+
+        strip:   remove all surrounding whitespace from each line
+        nonl:    remove only trailing '\n' characters (useless with strip)
+        noblank: remove all completely blank lines
+   """
 
    if fname == 'stdin' or fname == '-': fp = sys.stdin
    else:
@@ -137,6 +142,7 @@ def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):
    if lines:
       tdata = fp.readlines()
       if strip: tdata = [td.strip() for td in tdata]
+      if nonl:  tdata = [td.replace('\n','') for td in tdata]
       if noblank: tdata = [td for td in tdata if td != '']
    else:
       tdata = fp.read()
@@ -145,6 +151,75 @@ def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):
    fp.close()
 
    return tdata
+
+def read_tsv_file(fname='stdin', strip=0, verb=1):
+   """read a TSV file, and return a 2-D matrix of strings in row-major order
+      (it must be rectangular)
+
+      allow tab separators, else comma, else space
+      if only 1 column, hard to guess
+   """
+
+   # get lines of text, omitting blank ones, and not including newlines
+   tdata = read_text_file(fname, strip=strip, nonl=1, noblank=1, verb=verb)
+   nlines = len(tdata)
+   if nlines == 0:
+      return [], []
+
+   # test for separators, require rectangular input
+   nt = tdata[0].count('\t')
+   nc = tdata[0].count(',')
+   ns = tdata[0].count(' ')
+
+   # try to find a good separator
+   sep = ''
+
+   # test for tabs first
+   if nt > 0:
+     c = '\t'
+     matches = 1
+     for tline in tdata:
+       nn = tline.count(c)
+       if nn != nt:
+          matches = 0
+          break
+     if matches:
+        # declare a winner
+        sep = c
+
+   # test for commas (change nt and c)
+   if sep == '' and nc > 0:
+     c = ','
+     matches = 1
+     for tline in tdata:
+       nn = tline.count(c)
+       if nn != nc:
+          matches = 0
+          break
+     if matches:
+        # declare a winner
+        sep = c
+
+   # test for spaces (change nt and c)
+   if sep == '' and ns > 0:
+     c = ' '
+     matches = 1
+     for tline in tdata:
+       nn = tline.count(c)
+       if nn != ns:
+          matches = 0
+          break
+     if matches:
+        # declare a winner
+        sep = c
+
+   # if nothing found, assume one column, but each column must be a list
+   if sep == '':
+      return [[tline] for tline in tdata]
+
+   # otherwise, partition the table based on sep
+   return [[tline.split(sep)] for tline in tdata]
+
 
 def read_top_lines(fname='stdin', nlines=1, strip=0, verb=1):
    """use read_text_file, but return only the first 'nlines' lines"""
