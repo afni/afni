@@ -635,7 +635,7 @@ class SubjectList(object):
       return cmd
 
    def make_datatable_text(self, subjlists, condlists=[], bsubs=None, 
-                           tsvfile='', wrap=1, verb=1):
+                           tsvfile='', sep='  ', wrap=1, verb=1):
       """create text for a -dataTable file
 
             subjlists      - one list, or one list per condition
@@ -648,6 +648,8 @@ class SubjectList(object):
                              1. restrict subjects (use only matching subjects)
                              2. include table line in output datatable
                              ** MUST have a header line, and subjects first
+            sep            - column separator for table
+                             (if has tab, no uniformity)
             wrap           - include line wrapper (should not need)
             verb           - verbose level
 
@@ -713,11 +715,14 @@ class SubjectList(object):
          return ''
 
       # to make this pretty, dupe table based on max col lengths
-      dunif = _make_uniform_col_widths(dtable)
+      # (change any \t character pairs to actual tabs)
+      # (if tab in sep, do not make uniform)
+      sep = sep.replace('\\t', '\t')
+      if '\t' in sep:
+         dunif = dtable
+      else:
+         dunif = _make_uniform_col_widths(dtable)
 
-      # add -dt_sep option?
-      sep = '  '
-      
       lines = []
       if wrap: wstr = '%s\\' % sep
       else:    wstr = ''
@@ -726,10 +731,16 @@ class SubjectList(object):
 
       return '\n'.join(lines)
 
-   def make_datatable(self, subjlists, condlists=[], bsubs=None,
-                      tsvfile='', verb=1):
+   def make_datatable(self, subjlists, condlists=[], bsubs=None, tsvfile='',
+                      verb=1):
       """return a 2-D list: subject x condition (N == product of condl lengths)
          ([] on failure)
+
+            subjlists   : array of SubjectList instances (for IDs and dsets)
+            condlists   : lists of [TYPE, c1, c2, ...] factor lists
+            bsubs       : beta sub-brick labels for the factor combinations
+            tsvfile     : file name for Subj and extra subject columns
+            verb        : verbosity level (def 1)
 
          - get complete, sorted list of subjects
          - if tsvfile, restrict complete list to those in tsv

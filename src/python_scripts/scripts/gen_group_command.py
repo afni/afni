@@ -721,6 +721,7 @@ class CmdInterface:
       self.factors         = []         # list of factors of each type
       self.factor_lists    = []         # list of factor type and all levels
       self.dt_tsv          = ''         # TSV-based file to add to datatable
+      self.dt_sep          = '  '       # column separator for datatable output
       self.hpad            = 0          # hpad for list_minus_glob_form
       self.tpad            = 0          # tpad for list_minus_glob_form
 
@@ -792,6 +793,8 @@ class CmdInterface:
                       helpstr='apply 3dttest++ test as set B minus set A')
       self.valid_opts.add_opt('-dt_tsv', 1, [], okdash=0,
                       helpstr='TSV table to restrict and include in datatable')
+      self.valid_opts.add_opt('-dt_sep', 1, [], okdash=0,
+                      helpstr='specify column separator in datatable')
       self.valid_opts.add_opt('-dset_index0_list', -1, [], okdash=0,
                       helpstr='restrict dsets to 0-based index list')
       self.valid_opts.add_opt('-dset_index1_list', -1, [], okdash=0,
@@ -888,6 +891,12 @@ class CmdInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return 1
             self.command = val
+            continue
+
+         if opt.name == '-dt_sep':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return 1
+            self.dt_sep = val
             continue
 
          if opt.name == '-dt_tsv':
@@ -1221,7 +1230,8 @@ class CmdInterface:
 
       return self.slist[0].make_datatable_text(
                     subjlists=self.slist, condlists=self.factor_lists,
-                    bsubs=self.betasubs, tsvfile=self.dt_tsv,verb=self.verb) 
+                    bsubs=self.betasubs, tsvfile=self.dt_tsv, sep=self.dt_sep,
+                    verb=self.verb) 
 
    def help_mema_command(self):
       helpstr = """
