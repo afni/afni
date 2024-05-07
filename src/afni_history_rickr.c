@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, May, 2024, RCR, "3dCM", MICRO, TYPE_BUG_FIX,
+   "3dCM briefly required a mask",
+   "Thanks to P Kundu for pointing out the problem."
+ } ,
+
  { 29, Apr, 2024, RCR, "afni-general", MAJOR, TYPE_MODIFY,
    "change 'count' program and usage to 'count_afni'",
    "Add count_afni to the distribution, modify scripts to use it, and\n"
