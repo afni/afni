@@ -634,7 +634,8 @@ class SubjectList(object):
 
       return cmd
 
-   def make_datatable_text(self, subjlists, condlists=[], bsubs=None, verb=1):
+   def make_datatable_text(self, subjlists, condlists=[], bsubs=None, 
+                           tsvfile='', wrap=1, verb=1):
       """create text for a -dataTable file
 
             subjlists      - one list, or one list per condition
@@ -643,6 +644,11 @@ class SubjectList(object):
                            - option (multiple): -factors SET NAME1 NAME2 ...
                            - cond-major order, first moves slowest, last fastest
             bsubs          - beta sub-bricks (1 list of sub-brick selectors)
+            tsvfile        - TSV-style file that to be used to:
+                             1. restrict subjects (use only matching subjects)
+                             2. include table line in output datatable
+                             ** MUST have a header line, and subjects first
+            wrap           - include line wrapper (should not need)
             verb           - verbose level
 
     *** decide on -dsets (subjlists), -factors (factors), -subs_betas (bsubs)
@@ -691,8 +697,6 @@ class SubjectList(object):
          return None on failure, -dataTable on success
       """
 
-      verb = 3 # rcr - delete
-
       if verb > 1:
          print('-- make_datatable_text, %d slist, %d clists' \
                % (len(subjlists), len(condlists)))
@@ -703,24 +707,45 @@ class SubjectList(object):
          return None
 
       dtable = self.make_datatable(subjlists, condlists=condlists,
-                                   bsubs=bsubs, verb=verb)
+                       bsubs=bsubs, tsvfile=tsvfile, verb=verb)
+      if len(dtable) == 0:
+         if verb > 1: print("** failed make_datatable")
+         return ''
 
-      return 'pickles'
+      # to make this pretty, dupe table based on max col lengths
+      dunif = _make_uniform_col_widths(dtable)
 
-   def make_datatable(self, subjlists, condlists=[], bsubs=None, verb=1):
+      # add -dt_sep option?
+      sep = '  '
+      
+      lines = []
+      if wrap: wstr = '%s\\' % sep
+      else:    wstr = ''
+      for row in dunif:
+         lines.append(sep.join(row) + wstr)
+
+      return '\n'.join(lines)
+
+   def make_datatable(self, subjlists, condlists=[], bsubs=None,
+                      tsvfile='', verb=1):
       """return a 2-D list: subject x condition (N == product of condl lengths)
          ([] on failure)
 
          - get complete, sorted list of subjects
+         - if tsvfile, restrict complete list to those in tsv
          - convert subjlists to list of dictionaries { subj:dataset }
          - get fully factorialized condition table
             - ntcond = total number of cases = product of condition lengths
 
-         - verify condition table size against len(bsubs) len len(subjlists)
+         - verify condition table size against len(bsubs) len(subjlists)
 
          - create complete datatable
             - each subject has ntcond rows, where they have data
-              row:  SUBJ  factors for this row (cond table row)  DSET
+              row:  SUBJ  TSVDATA  factors for this row (cond table row)  DSET
+                    SUBJ    : one of subj_all
+                    TSVDATA : if tsvfile, include subject columns
+                    factors : all factors from condlists
+                    DSET    : actual input DSET
       """
 
       if verb > 1: print('-- make_datatable' )
@@ -735,6 +760,16 @@ class SubjectList(object):
          print("** make_datatable: failed get_all_subjs_from_lists")
          return []
 
+      # if TSV, restrict subj_all, and get TSV data
+      # (subj_all subjects missing from TSV is an error)
+      TSV = None
+      if tsvfile != '':
+         subj_all, TSV = self.reconcile_tsv_w_subjects(subj_all, tsvfile,
+                                                       verb=verb)
+         if len(subj_all) == 0:
+            print("** make_datatable: failed reconcile_tsv_w_subjects")
+            return []
+
       # create subject dictionary list, similar array of { subj:dataset } dicts
       SDL = self.slists2dictlist(subjlists)
       if len(SDL) == 0:
@@ -742,7 +777,7 @@ class SubjectList(object):
          return []
 
       # now make a complete 2-D table of contrast labels
-      CT = get_factorial_cond_table(condlists, skip0=1, verb=verb)
+      clabs, CT = get_factorial_cond_table(condlists, skip0=1, verb=verb)
       if len(CT) == 0:
          print("** make_datatable: failed get_factorial_cond_table")
          return []
@@ -752,13 +787,59 @@ class SubjectList(object):
          return []
 
       # merge, each subject tries to insert an entire condition table
-      DT = self.combine_subjects_n_factors(subj_all, SDL, CT, bsubs, verb=verb)
+      DT = self.combine_subjects_n_factors(subj_all, SDL, TSV, clabs, CT,
+                                           bsubs, verb=verb)
 
       return DT
 
-   def combine_subjects_n_factors(self, subj_all, SDL, CT, bsubs, verb=1):
+   def reconcile_tsv_w_subjects(self, subjects, tsvfile, verb=1):
+      """return updated subject list and TSV table with header and subjects
 
-      if verb > 2: print("-- combining subjects and factor table")
+         - read tsvfile (must have header, column 0 must be subjects)
+         - new subjects list will be those in tsvfile
+           (each in tsvfile must currently be in subjects list)
+      """
+
+      tsvdata = UTIL.read_tsv_file(tsvfile, verb=verb)
+      ntrows = len(tsvdata)
+      if ntrows == 0:
+         print("** reconcile: TSV file for datatable seems empty")
+         return [], []
+      if ntrows == 1:
+         print("** reconcile: TSV file for datatable has only a header row?!?")
+         return [], []
+      ntcols = len(tsvdata[0])
+      if ntcols < 1:
+         print("** reconcile: TSV file for datatable has no columns")
+         return [], []
+
+      if verb > 1:
+         print("-- reconcile: have %d x %d TSV table" % (ntrows, ntcols))
+
+      # be sure every subject is in current subjects list
+      newsubjects = []
+      for tind, trow in enumerate(tsvdata):
+         if tind == 0:
+            continue
+         if trow[0] not in subjects:
+            print("** reconcile: TSV subj %s (#%d) not found from dsets" \
+                  % (trow[0], tind))
+            return [], []
+         newsubjects.append(trow[0])
+
+      if verb > 1:
+         print("-- reconcile: reducing %d dset subjects down to %d TSV ones" \
+               % (len(subjects), len(newsubjects)))
+
+      # all subjects are found, return info from TSV file
+      return newsubjects, tsvdata
+
+   def combine_subjects_n_factors(self, subj_all, SDL, TSV, clabs, CT, bsubs,
+                                  verb=1):
+
+      if verb > 2:
+         print("-- combining subjects and factor table, have TSV = %s" \
+               % (TSV is not None))
 
       # create key lists for quick access
       keys = [d.keys() for d in SDL]
@@ -773,9 +854,19 @@ class SubjectList(object):
       # count missing subjects per condition set
       missing = [0] * len(CT)
 
-      DT = []
+      # make_DT_header, init with TSV header or else just 'Subj'
+      # - these 3 pieces match
+      if TSV is not None:
+         header = TSV[0] # 2 pieces, 'Subj' plus TSV extras
+      else:
+         header = ['Subj']
+      header.extend(clabs)
+      header.append('InputFile')
+      if verb > 2: print("++ DT header: %s" % header)
+
+      DT = [header]
       nslists = len(SDL)
-      for subj in subj_all:
+      for sind, subj in enumerate(subj_all):
          for ic, cline in enumerate(CT):
             # try to find the dataset
             if nslists == 1:
@@ -794,19 +885,23 @@ class SubjectList(object):
             if nb < 2: dset += select
             else:      dset += '[%s]' % bsubs[ic]
 
+            # formulate row: subj, TSV_cols..., factor_labels..., inputfile
             drow = [subj]
+
+            # insert TSV columns
+            if TSV is not None:
+               if subj != TSV[sind+1][0]:
+                  print("** TSV/data mismatch for subj %d = %s" % (sind, subj))
+                  return []
+               drow.extend(TSV[sind+1][1:])
+
             drow.extend(cline)
             drow.append(dset)
             DT.append(drow)
 
       if verb > 1:
-         print("-- missing subjects per factor set: %s" \
+         print("-- num missing subjects per factor set: %s" \
                % ', '.join(['%s' % m for m in missing]))
-
-      if verb > 2:
-         print("== combined datatable: ")
-         for row in DT:
-            print("   %s" % ' '.join(row))
 
       return DT
 
@@ -1548,27 +1643,31 @@ class SubjectList(object):
 
 # general functions, could go elsewhere
 def get_factorial_cond_table(condlists, skip0=0, verb=1):
-   """given a list of condition levels, return a fully factorized table
+   """given a list of condition levels, return a fully factorized table,
+      plus the condition labels
       (so of length the product of the conditions)
 
       - the table should be in condition-major order (first to last)
       - if skip0: element 0 of each list should be skipped, as it is a label
+                  (if skip0 == 0, returned label list is empty)
 
       for example:
         condlists = [ ['color', 'blue', 'red', 'orange'],
                       ['sex',   'M', 'F'],
                       ['emot',  'happy', 'sad'] ]
       return 
+        [     'color',  'sex', 'emot' ],
+
         [
-            [ 'blue',   'M', 'happy' ],
-            [ 'blue',   'M', 'sad' ],
-            [ 'blue',   'F', 'happy' ],
-            [ 'blue',   'F', 'sad' ],
-            [ 'red',    'M', 'happy' ],
-            [ 'red',    'M', 'sad' ],
+            [ 'blue',   'M',   'happy' ],
+            [ 'blue',   'M',   'sad' ],
+            [ 'blue',   'F',   'happy' ],
+            [ 'blue',   'F',   'sad' ],
+            [ 'red',    'M',   'happy' ],
+            [ 'red',    'M',   'sad' ],
             ...
-            [ 'orange', 'M', 'happy' ],
-            [ 'orange', 'M', 'sad' ],
+            [ 'orange', 'M',   'happy' ],
+            [ 'orange', 'M',   'sad' ],
             ...
         ]
    """
@@ -1587,6 +1686,10 @@ def get_factorial_cond_table(condlists, skip0=0, verb=1):
    row = [0] * len(condlists) # computational 
    _dt_nest_conds(CT, condlists, len(condlists), clens, 0, row, skip0)
 
+   # and get labels
+   if skip0: labels = [clist[0] for clist in condlists]
+   else:     lebels = []
+
    # chat
    if verb > 1:
       print("-- have complete factorization table, length %s" % len(CT))
@@ -1594,7 +1697,7 @@ def get_factorial_cond_table(condlists, skip0=0, verb=1):
          for row in CT:
             print(row)
 
-   return(CT)
+   return labels, CT
 
 def _dt_nest_conds(CT, clist, nclist, clens, cind, row, skip0):
    """recursive: if done, append row to table
@@ -1617,6 +1720,25 @@ def _dt_nest_conds(CT, clist, nclist, clens, cind, row, skip0):
       _dt_nest_conds(CT, clist, nclist, clens, cind+1, row, skip0)
 
    return
+
+def _make_uniform_col_widths(dtable):
+   """return a new table where every string is expanded to the max col width
+   """
+   maxlens = [0] * len(dtable[0])
+   for row in dtable:
+      for ind, val in enumerate(row):
+         l = len(val)
+         if l > maxlens[ind]:
+            maxlens[ind] = l
+
+   newtable = []
+   for row in dtable:
+      newrow = []
+      for ind, val in enumerate(row):
+         newrow.append("%-*s" % (maxlens[ind], val))
+      newtable.append(newrow)
+
+   return newtable
 
 if __name__ == '__main__':
    print('** this is not a main program')

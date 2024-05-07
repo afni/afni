@@ -163,8 +163,9 @@ def read_tsv_file(fname='stdin', strip=0, verb=1):
    # get lines of text, omitting blank ones, and not including newlines
    tdata = read_text_file(fname, strip=strip, nonl=1, noblank=1, verb=verb)
    nlines = len(tdata)
+   if verb > 1: print("-- TSV '%s' has %d lines" % (fname, nlines))
    if nlines == 0:
-      return [], []
+      return []
 
    # test for separators, require rectangular input
    nt = tdata[0].count('\t')
@@ -213,13 +214,30 @@ def read_tsv_file(fname='stdin', strip=0, verb=1):
         # declare a winner
         sep = c
 
+   if verb > 1:
+      print("-- read_tsv_file: have sep '%s'" % sep)
+
    # if nothing found, assume one column, but each column must be a list
    if sep == '':
-      return [[tline] for tline in tdata]
-
+      table = [[tline] for tline in tdata]
    # otherwise, partition the table based on sep
-   return [[tline.split(sep)] for tline in tdata]
+   else:
+      table = [tline.split(sep) for tline in tdata]
 
+   # and make sure it is rectangular
+   if len(table) == 0:
+      return table
+
+   ncols = len(table[0])
+   for rind, row in enumerate(table):
+      if len(row) != ncols:
+         print("** table %s is not rectangular at line %d" % (fname, rind))
+         return []
+
+   if verb > 2:
+      print("-- have %d x %d TSV data from %s" % (len(table), ncols, fname))
+
+   return table
 
 def read_top_lines(fname='stdin', nlines=1, strip=0, verb=1):
    """use read_text_file, but return only the first 'nlines' lines"""
