@@ -268,7 +268,7 @@ int main( int argc , char * argv[] )
 
       // [PT: Apr 23, 2024] check if grids match, *after* they have
       // both been resampled (if that is the case)
-      if (THD_dataset_mismatch( xset , mask_dset )) {
+      if ( mask_dset && THD_dataset_mismatch( xset , mask_dset )) {
          ERROR_message("Mismatch between mask dset and input %s",argv[narg]);
          ERROR_message("For info, run '3dinfo -same_all_grid ...' on them");
          DSET_delete(xset) ; 
