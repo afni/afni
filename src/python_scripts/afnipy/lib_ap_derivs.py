@@ -6,6 +6,7 @@ import json
 import copy
 
 from   afnipy import afni_base     as ab
+from   afnipy import afni_util     as au
 from   afnipy import lib_ss_review as lssr
 
 # ==========================================================================
@@ -37,7 +38,6 @@ aspace_to_bcoors = {
 } 
 # ... and add in the unofficial ones, which BIDS deriv doesn't include
 # at present
-### maybe prepend with 'afni'?
 aspace_to_bcoors.update({
     'MNI' : 'MNI',
     'MNI_27' : 'MNI_27',
@@ -81,8 +81,8 @@ class ap_deriv_obj:
 
     """
 
-    def __init__(self, ap_res_dir, deriv_dir = '',
-                 verb = 0, overwrite = False):
+    def __init__( self, ap_res_dir, deriv_dir = '',
+                  verb = 0, ow_mode = 'backup' ):
         """Create object holding mapping information from AP output to 
         derivatives. 
 
@@ -91,7 +91,7 @@ class ap_deriv_obj:
         """
 
         self.verb          = verb             # int, verbosity level
-        self.overwrite     = overwrite        # bool, can we overwrite?
+        self.ow_mode       = ow_mode          # str, manage overwriting
 
         # AP results info
         self.ap_res_dir    = ''               # str, path of AP results dir
@@ -107,6 +107,7 @@ class ap_deriv_obj:
         self.map_dict      = {}               # dict, record map of AP->deriv
 
         # ----- set and check vars from inputs
+        au.is_valid_ow_mode(ow_mode)
 
         self.set_ap_res_dir(ap_res_dir)
         self.set_ap_uvars_json()
@@ -152,23 +153,12 @@ class ap_deriv_obj:
                                                      verb=self.verb)
 
     def set_deriv_dir(self, x=''):
-        """Set deriv dir; check about overwrite; rstrip any '/'."""
+        """Set deriv dir; rstrip any '/'."""
         y = x.rstrip('/')
         if y == '' :
             self.deriv_dir = self.ap_res_dir + '/' + DEF_deriv_dir
         else:
             self.deriv_dir = y
-
-    def make_deriv_dir(self):
-        """Make output derivative dir; check about chosen overwrite
-        behavior first."""
-        self.check_overwrite_woe(self.deriv_dir, do_exit=True)
-
-        cmd    = '''\\mkdir -p {}'''.format(self.deriv_dir)
-        com    = ab.shell_com(cmd, capture=1)
-        stat   = com.run()
-
-        return 0
 
     def make_deriv_subdir(self, sss):
         """Make a subdirectory sss, if it doesn't exist already.  The way this
@@ -186,16 +176,6 @@ class ap_deriv_obj:
 
         return 0
 
-    def check_overwrite_woe(self, x, do_exit=False):
-        """check dir x for existence and report on whether we have
-        an overwriting problem; can choose whether to exit on woe"""
-        woe = False
-        if os.path.exists(x) and not(self.overwrite) :
-            woe = True
-            
-        if woe and do_exit :
-            ab.EP("Overwrite is not on, and '{}' already exists".format(x))
-
     def map_all(self):
         """The main control function for mapping AP results to derivs
         renaming, basically going through all possible uvar keys;
@@ -203,7 +183,7 @@ class ap_deriv_obj:
         in number of uvar keys mapped."""
 
         # make top-level directory
-        _tmp = self.make_deriv_dir()
+        _tmp = au.make_new_odir(self.deriv_dir, ow_mode=self.ow_mode)
         
         # process all the uvars that are simply dsets to rename+copy
         for uvar in list_uvars_simple_3dcopy:
@@ -276,7 +256,7 @@ class ap_deriv_obj:
             self.make_deriv_subdir(subdir)
 
         # are we overwriting?
-        ow   = '-overwrite' * int(self.overwrite)
+        ow   = '-overwrite' #* int(self.overwrite)
         cmd  = '''3dcopy {} {} {}'''.format(ow, dset_ap, dset_drv)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
@@ -328,7 +308,7 @@ class ap_deriv_obj:
             self.make_deriv_subdir(subdir)
 
         # are we overwriting?
-        ow   = '-overwrite' * int(self.overwrite)
+        ow   = '-overwrite' #* int(self.overwrite)
         cmd  = '''3dTsplit4D -keep_datum -label_prefix '''
         cmd += ''' {} -prefix {} {}'''.format(ow, dset_drv, dset_ap)
         com  = ab.shell_com(cmd, capture=1)
@@ -377,19 +357,12 @@ D : dict
 
     # ... then add any possible special ones, if needed
     if not('taskname' in UC.keys()) :
-        UC['taskname'] = 'NONE'
+        UC['taskname'] = 'TASKNAME'
     if not('type_anat' in UC.keys()) :
-        UC['type_anat'] = 'T1w' # *** check if T1w exists in filename?
-
-    # probably commonly not changed (but could be by user)
+        UC['type_anat'] = 'T1w'
     if not('spacename_anat' in UC.keys()) :
         # spacename for original/copied anat
-        UC['spacename_anat'] = 'anat'
-      if not('preproc_yn_final_anat' in UC.keys()) :
-        # for final_anat, is preproc'ed? Not sure this matters much
-        UC['preproc_yn_final_anat'] = 'preproc'
-
-    # obtained via 3dinfo
+        UC['spacename_anat'] = 'anat'  
     if not('spacename_final_epi' in UC.keys()) :
         # spacename of final EPI dset
         dset  = ap_res_dir + '/' + U['final_epi_dset']
@@ -400,6 +373,9 @@ D : dict
         dset  = ap_res_dir + '/' + U['final_anat']
         space = get_drv_spacename(dset, orig_map='anat')
         UC['spacename_final_anat'] = space
+    if not('preproc_yn_final_anat' in UC.keys()) :
+        # for final_anat, is preproc'ed? Not sure this matters much
+        UC['preproc_yn_final_anat'] = 'preproc'
 
     # Make dict. NB: many file exts get added later, see make_dset_ext()
     # !!! add possibility of session level in here, too
@@ -457,7 +433,7 @@ choose whether to zip output NIFTI files."""
     all_spec  = ['.spec']
     all_niml  = ['.lh.niml.dset', '.rh.niml.dset', '.both.niml.dset']
     all_gii   = ['.gii']
-    all_aff1D = ['.aff12.1D']
+    all_aff1D = ['.aff.1D']
     all_1D    = ['.1D']
     all_txt   = ['.txt']
     all_dat   = ['.dat']
@@ -467,7 +443,6 @@ choose whether to zip output NIFTI files."""
             return '.nii' + ('.gz' * int(do_zip_nii))
 
     # each niml hemi keeps its hemi name
-    # ---> **** go to GIFTI ****
     for niml in (all_niml):
         if dset.endswith(niml) :
             return niml
@@ -482,7 +457,7 @@ choose whether to zip output NIFTI files."""
 
     for aff1D in (all_aff1D):
         if dset.endswith(aff1D) :
-            return '.aff12.1D'
+            return '.aff.1D'
     for _1D in (all_1D):
         if dset.endswith(_1D) :
             return '.1D'
