@@ -11569,12 +11569,11 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_SO(SUMA_SurfaceObject *SO)
       SUMA_S_Err("Failed to set current pointer");
       SUMA_RETURN(NOPE);
    }
-
    if (!SameSurface ||
        ( SUMAg_CF->X->UseSameSurfCont &&
          !SUMA_isCurrentContPage(SUMAg_CF->X->SC_Notebook,
                                  SO->SurfCont->Page))) {
-      // initialize the title of the window 
+      /* initialize the title of the window */
       slabel = (char *)SUMA_malloc (sizeof(char) * (strlen(SO->Label) + 100));
       if (strlen(SO->Label) > 40) {
          char *tmpstr=NULL;
@@ -11589,9 +11588,9 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_SO(SUMA_SurfaceObject *SO)
       SUMA_LH("Setting title");
       XtVaSetValues(SO->SurfCont->TLS, XtNtitle, slabel, NULL);
 
-      // initialize the string before the more button 
-         //put a label containing the surface name, number of nodes
-         //   and number of facesets 
+      /* initialize the string before the more button */
+         /*put a label containing the surface name, number of nodes
+            and number of facesets */
          lbl30 = SUMA_set_string_length(SO->Label, ' ', 27);
          if (lbl30) {
             sprintf( slabel,"%s\n%d nodes: %d tri.",
@@ -11607,12 +11606,12 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_SO(SUMA_SurfaceObject *SO)
          XmStringFree (string);
 
       if (slabel) SUMA_free(slabel); slabel = NULL;
-      // Can't do much with the SurfInfo button,
-      // You can only have on Info shell/LocalDomainParent
-      // at a time 
+      /* Can't do much with the SurfInfo button,
+      You can only have on Info shell/LocalDomainParent
+      at a time */
 
       SUMA_LH("Setting RenderMode");
-      // set the correct RenderMode for that surface 
+      /* set the correct RenderMode for that surface */
       imenu = -1;
       switch (SO->PolyMode) {
          case SRM_ViewerDefault:
@@ -11634,15 +11633,15 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_SO(SUMA_SurfaceObject *SO)
             fprintf (SUMA_STDERR, "Error %s: Unexpected something.\n", FuncName);
             break;
       }
-      // look for name of widget with imenu for call data.
-      //   This is overkill but its fun 
+      /* look for name of widget with imenu for call data.
+         This is overkill but it's fun */
       i = 0;
       Name = NULL;
       while (&(RenderMode_Menu[i])) {
          if ((INT_CAST)RenderMode_Menu[i].callback_data == imenu) {
             Name = RenderMode_Menu[i].label;
             if (LocalHead) fprintf (SUMA_STDERR,"Looking for %s\n", Name);
-            // now we know what the name of the button needed is, look for it
+            /* now we know what the name of the button needed is, look for it*/
             w = SO->SurfCont->RenderModeMenu->mw;
             for (i=0; i< SW_N_SurfCont_Render; ++i) {
                if (LocalHead) fprintf (SUMA_STDERR,"I have %s\n", XtName(w[i]));
@@ -11657,7 +11656,7 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_SO(SUMA_SurfaceObject *SO)
       }
 
       SUMA_LH("Setting TransMode");
-      // set the transparency for that surface 
+      /* set the transparency for that surface */
       imenu = -1;
       switch (SO->TransMode) {
          case STM_ViewerDefault:
@@ -11718,15 +11717,15 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_SO(SUMA_SurfaceObject *SO)
             fprintf (SUMA_STDERR, "Error %s: Unexpected something.\n", FuncName);
             break;
       }
-      // look for name of widget with imenu for call data.
-      //   This is overkill but its fun 
+      /* look for name of widget with imenu for call data.
+         This is overkill but its fun */
       i = 0;
       Name = NULL;
       while (&(TransMode_Menu[i])) {
          if ((INT_CAST)TransMode_Menu[i].callback_data == imenu) {
             Name = TransMode_Menu[i].label;
             if (LocalHead) fprintf (SUMA_STDERR,"Looking for %s\n", Name);
-            // now we know what the name of the button needed is, look for it
+            /* now we know what the name of the button needed is, look for it*/
             w = SO->SurfCont->TransModeMenu->mw;
             for (i=0; i< SW_N_SurfCont_Trans; ++i) {
                if (LocalHead) fprintf (SUMA_STDERR,"I have %s\n", XtName(w[i]));
@@ -11750,7 +11749,6 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_SO(SUMA_SurfaceObject *SO)
             SUMA_LHv("Setting notebook page to page %d, button down is %d\n",
                      i,SUMAg_CF->X->ButtonDown);
             if (LocalHead) SUMA_DUMP_TRACE("You rang?");
-
             if (!SUMAg_CF->X->ButtonDown) {
                SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook, i);
             }
@@ -11780,7 +11778,7 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
    XmString string;
    int imax;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
    if (!NB || i < 1) {
       SUMA_S_Errv("NULL widget or bad page number %d\n", i);
@@ -11794,11 +11792,9 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
    }
    SUMA_LHv("Setting page to %d\n", i);
    XtVaSetValues(NB, XmNcurrentPageNumber, i, NULL);
-   
+
    /* And force set all arrow fields, they are supposed to act like one */
-   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, 
-        SUMAg_N_DOv, adolist);
-   
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    SUMA_LHv("Force setting %d surfconts to page %d, max %d\n",
                N_adolist, i, imax);           
 
@@ -11821,7 +11817,6 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
       SUMA_LHv("   %d for %s\n",
                k, SUMA_ADO_Label((SUMA_ALL_DO *)SUMAg_DOv[adolist[k]].OP));
       SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO *)SUMAg_DOv[adolist[k]].OP);
-
       if (SurfCont && SurfCont->SurfContPage && SurfCont->SurfContPage->rc) {
          SurfCont->SurfContPage->value = i;
          SurfCont->SurfContPage->max = (float)imax;
@@ -11833,10 +11828,8 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
                SUMA_ADO_CropLabel((SUMA_ALL_DO *)SUMAg_DOv[adolist[k]].OP,
                                   SUMA_SURF_CONT_SWITCH_LABEL_LENGTH),
                      XmSTRING_DEFAULT_CHARSET);
-
          XtVaSetValues( SurfCont->SurfContPage_label,
                         XmNlabelString, string, NULL);
-
          XmStringFree (string);
       }
    }
@@ -14542,7 +14535,7 @@ int SUMA_ColPlane_NewOrder(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (!colp) colp = curColPlane;
@@ -14736,7 +14729,6 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
 
    ado = (SUMA_ALL_DO *)data;
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
@@ -14748,8 +14740,7 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
    // This if function causes the surface control menu to expand downwards.
    if (!(SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook,
                                     SurfCont->SurfContPage->value))) {
-
-      // revert to good value 
+      /* revert to good value */
       SurfCont->SurfContPage->value =
                SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook, SurfCont->Page);
 
@@ -14857,7 +14848,7 @@ int SUMA_ColPlane_NewOpacity (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    SUMA_LH("Called");
 
    if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
@@ -15043,7 +15034,7 @@ int SUMA_ColPlane_NewDimFact (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    SUMA_LH("Called");
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
@@ -15180,7 +15171,7 @@ int SUMA_ColPlane_NewAlphaThresh (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    SUMA_LH("Called");
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
@@ -15507,7 +15498,7 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    SUMA_LHv("Called with ado=%p, ado->do_type=%d, ado->idcode_str=%s\n",
       ADO, ADO?ADO->do_type:-1, SUMA_CHECK_NULL_STR(SUMA_ADO_idcode(ADO)));
 
@@ -15541,7 +15532,6 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
    if (!list) list = SUMA_CreateList ();
    SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_RedisplayNow_AllVisible,
                                        SES_Suma, NULL);
-
    if (!SUMA_Engine(&list)) {
       SUMA_SLP_Err("Failed to redisplay.");
       SUMA_RETURN(NOPE);
@@ -15663,7 +15653,7 @@ int SUMA_ColPlaneShowOneFore_Set ( SUMA_ALL_DO *ado,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
    if (!SUMA_isADO_Cont_Realized(ado)) SUMA_RETURN(0);
 
@@ -16291,7 +16281,7 @@ int SUMA_SelectSwitchColPlane(SUMA_ALL_DO *ado,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    if (!ado || !LW) SUMA_RETURN(0);
 
    if (!SUMA_SelectSwitchColPlane_one(ado, LW, ichoice, CloseShop, setmen)) {

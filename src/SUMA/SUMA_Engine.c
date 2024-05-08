@@ -146,7 +146,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
    SUMA_ENTRY;
 
-
    if (NI_TALK_MODE < 0) {
       if (AFNI_yesenv("SUMA_NI_TEXT_TALK_MODE")) {
          SUMA_S_Note("Talking in text mode");
@@ -3845,7 +3844,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
 
             if (NI_get_attribute(EngineData->ngr, "switch_surf")) {
-            
                int is;
 
                if (SUMA_iswordsame(ADO_GROUP(ado), sv->CurGroupName) != 1) {
@@ -3863,17 +3861,15 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                ADO_STATE(ado));
                   break;
                }
-
                if (!SUMA_SwitchState ( SUMAg_DOv, SUMAg_N_DOv, sv,
                                        is, sv->CurGroupName)) {
                   SUMA_S_Err("Failed to switch state"); break;
                } else {
                   sv->Focus_DO_ID = ADO_iDO(ado);
-                  sv->NewGeom = YUP;   // sv->ResetGLStateVariables
-                                       //   was not enough 
-                                       
-                  // remove this attribute and call engine again
-                  //    for redisplay 
+                  sv->NewGeom = YUP;   /* sv->ResetGLStateVariables
+                                          was not enough */
+                  /* remove this attribute and call engine again
+                     for redisplay */
                   NI_set_attribute(EngineData->ngr, "switch_surf", NULL);
                   {
                      DList *llist = SUMA_CreateList();
@@ -3884,7 +3880,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  "Error %s: SUMA_Engine call failed.\n",
                                  FuncName);
                      }
-                     // update titles 
+                     /* update titles */
                      SUMA_UpdateViewerTitle(sv);
                   }
                }
@@ -6508,7 +6504,8 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
 
    }
 
-   // Bind the cross hair to a reasonable surface, if possible 
+
+   /* Bind the cross hair to a reasonable surface, if possible */
    if (iDO_isSO(sv->Ch->adoID)) {
       if (LocalHead)
          fprintf( SUMA_STDERR,
@@ -6522,8 +6519,8 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
                               "Cross Hair's  New adoID = %d\n",
                               FuncName, j );
 
-      // set the XYZ of the cross hair based on the
-      //   coordinates of the upcoming surface, if possible
+      /* set the XYZ of the cross hair based on the
+         coordinates of the upcoming surface, if possible */
       LocalHead = 1;
       if (j >= 0) {
          SO_nxt = (SUMA_SurfaceObject *)(dov[j].OP);
@@ -6537,14 +6534,13 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
             sv->Ch->c[1] = SO_nxt->NodeList[id+1];
             sv->Ch->c[2] = SO_nxt->NodeList[id+2];
          } else {
-            // no node associated with cross hair, use XYZ 
+            /* no node associated with cross hair, use XYZ */
             if (LocalHead) fprintf( SUMA_STDERR,
                                     "Local Debug %s: Using XYZ for link.\n",
                                     FuncName);
             SO_prec = (SUMA_SurfaceObject *)(dov[sv->Ch->adoID].OP);
-
-            // go from XYZ to XYZmap on current surface
-               // then from XYZmap to XYZ on new surface 
+            /* go from XYZ to XYZmap on current surface
+               then from XYZmap to XYZ on new surface */
             I_C = -1;
             XYZmap = SUMA_XYZ_XYZmap (sv->Ch->c, SO_prec, dov, N_dov, &I_C, 1);
             if (XYZmap == NULL) {
@@ -6568,11 +6564,12 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
             if (XYZmap) SUMA_free(XYZmap);
          }
 
-         // if the surface controller is open, update it 
+         /* if the surface controller is open, update it */
          if (SUMA_isADO_Cont_Realized((SUMA_ALL_DO *)SO_nxt))   {
-            // Artifactual surface control menu stretching happesa here
+            // Artifactual surface control menu stretching happens here
             SUMA_Init_SurfCont_SurfParam((SUMA_ALL_DO *)SO_nxt);
          }
+
       } else {
          fprintf( SUMA_STDERR,
                   "%s: No relatives between states. "
@@ -6585,19 +6582,21 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
                   "Local Debug %s: Linking Cross Hair Via datumID Done.\n",
                   FuncName);
    }
-   
+
+
+
    if (sv->FOV[sv->iState] == sv->FOV_original || sv->FOV[sv->iState] < 0) {
       sv->FOV[sv->iState] = SUMA_sv_auto_fov(sv);
    }
    if (sv->FreezeZoomXstates)
       sv->FOV[sv->iState] = SUMA_sv_auto_fov(sv)*zfac;
 
-   // set the focus ID to the first surface/object in the next view 
+   /* set the focus ID to the first surface/object in the next view */
    sv->Focus_DO_ID = MembSOs[0];
 
    SUMA_ifree(MembSOs);
 
-   // Now update the cross hair info if needed for the surface in focus 
+   /* Now update the cross hair info if needed for the surface in focus */
    if (sv->Ch->adoID >= 0 && (SOtmp = SUMA_SV_Focus_SO(sv)))   {
       if (SUMA_isADO_Cont_Realized((SUMA_ALL_DO *)SOtmp)) {
          SUMA_Init_SurfCont_CrossHair((SUMA_ALL_DO *)SOtmp);
@@ -6610,7 +6609,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
                FuncName, SOtmp->Label);
    }
 
-   // decide what the best state is 
+   /* decide what the best state is */
    sv->StdView = SUMA_BestStandardView (sv,dov, N_dov);
    if (LocalHead) fprintf( SUMA_STDOUT,
                            "%s: Standard View Now %d\n",
@@ -6623,7 +6622,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
       sv->StdView = SUMA_3D;
    }
 
-   // modify the rotation center 
+   /* modify the rotation center */
    if (!SUMA_UpdateRotaCenter(sv, dov, N_dov)) {
       fprintf (SUMA_STDERR,
                "Error %s: Failed to update center of rotation",
@@ -6631,13 +6630,13 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
       SUMA_RETURN (NOPE);
    }
 
-   // set the viewing points 
+   /* set the viewing points */
    if (!SUMA_UpdateViewPoint(sv, dov, N_dov, 0)) {
       fprintf (SUMA_STDERR,"Error %s: Failed to update view point", FuncName);
       SUMA_RETURN (NOPE);
    }
 
-   // Change the defaults of the eye axis to fit standard EyeAxis 
+   /* Change the defaults of the eye axis to fit standard EyeAxis */
    EyeAxis_ID = SUMA_GetEyeAxis (sv, dov);
 
    if (EyeAxis_ID < 0) {
@@ -6647,16 +6646,16 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
       SUMA_EyeAxisStandard (EyeAxis, sv);
    }
 
-   // do the axis setup 
+   /* do the axis setup */
    SUMA_WorldAxisStandard (sv->WAx, sv);
 
-   // do the light business 
+   /* do the light business */
    if (SOtmp && !SUMA_SetViewerLightsForSO( sv, SOtmp )) {
       SUMA_S_Warn("Failed to set viewer lights.\n"
                   "Use 'F' key to flip lights in SUMA if necessary.");
    }
 
-   // Home call baby 
+   /* Home call baby */
    if (!list) list = SUMA_CreateList();
    SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Home, SES_Suma, sv);
    if (!SUMA_Engine (&list)) {
