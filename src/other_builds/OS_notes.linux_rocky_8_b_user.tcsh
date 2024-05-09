@@ -36,7 +36,7 @@ mkdir  $R_LIBS
 echo  'export R_LIBS=$HOME/R' >> ~/.bashrc
 echo  'setenv R_LIBS ~/R'     >> ~/.cshrc
 
-rPkgsInstall -pkgs ALL
+rPkgsInstall -pkgs ALL |& tee out.rPkgsInstall.txt
 
 
 set asc  = ~/o.afni_system_check.txt
