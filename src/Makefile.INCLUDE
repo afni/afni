@@ -290,10 +290,12 @@ LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h             \
 ### Make everything, install it too, and cleanup
 
 totality:clean all plugins install install_plugins install_lib cleann
+	echo "== compilation complete: totality, yay"
 
 ### Make everything, install it too, but don't cleanup
 
 vastness:all plugins install install_plugins install_lib
+	echo "== compilation complete: vastness, yay"
 
 ### Make many things
 
@@ -309,6 +311,7 @@ afobjs: afobj
 ### Make a few more things
 
 itall:all plugins install install_plugins install_lib
+	echo "== compilation complete: itall, yay"
 
 $(INSTALLDIR):
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo Made directory $(INSTALLDIR); fi
