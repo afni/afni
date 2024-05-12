@@ -454,7 +454,7 @@ required parameters: ~2~
                                  (see -factors option)
                         -type 5: group x condition x subject
 
-   -dsets   datasets ...     : list of datasets
+   -dsets datasets ...       : list of input datasets
 
         Each use of this option essentially describes one group of subjects.
         All volumes for a given subject should be in a single dataset.
@@ -719,6 +719,9 @@ class CmdInterface:
       self.tstatsubs       = None       # list of t-stat sub-brick indices
       self.lablist         = None       # list of set labels
       self.factors         = []         # list of factors of each type
+      self.factor_lists    = []         # list of factor type and all levels
+      self.dt_tsv          = ''         # TSV-based file to add to datatable
+      self.dt_sep          = '  '       # column separator for datatable output
       self.hpad            = 0          # hpad for list_minus_glob_form
       self.tpad            = 0          # tpad for list_minus_glob_form
 
@@ -788,6 +791,10 @@ class CmdInterface:
                       helpstr='apply 3dttest++ test as set A minus set B')
       self.valid_opts.add_opt('-BminusA', 0, [], 
                       helpstr='apply 3dttest++ test as set B minus set A')
+      self.valid_opts.add_opt('-dt_tsv', 1, [], okdash=0,
+                      helpstr='TSV table to restrict and include in datatable')
+      self.valid_opts.add_opt('-dt_sep', 1, [], okdash=0,
+                      helpstr='specify column separator in datatable')
       self.valid_opts.add_opt('-dset_index0_list', -1, [], okdash=0,
                       helpstr='restrict dsets to 0-based index list')
       self.valid_opts.add_opt('-dset_index1_list', -1, [], okdash=0,
@@ -796,6 +803,8 @@ class CmdInterface:
                       helpstr='restrict dsets to these subject IDs')
       self.valid_opts.add_opt('-dset_sid_omit_list', -1, [], okdash=0,
                       helpstr='remove these subject IDs from dsets')
+      self.valid_opts.add_opt('-factor_list', -2, [], okdash=0,
+                      helpstr='factor type, and all factor levels')
       self.valid_opts.add_opt('-factors', -1, [], okdash=0,
                       helpstr='num factors, per condition (probably 2 ints)')
       self.valid_opts.add_opt('-hpad', 1, [], okdash=0,
@@ -884,6 +893,18 @@ class CmdInterface:
             self.command = val
             continue
 
+         if opt.name == '-dt_sep':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return 1
+            self.dt_sep = val
+            continue
+
+         if opt.name == '-dt_tsv':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return 1
+            self.dt_tsv = val
+            continue
+
          if opt.name == '-dsets':
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return 1
@@ -912,6 +933,12 @@ class CmdInterface:
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return 1
             self.sid_omit.append(val)        # allow multiple such options
+            continue
+
+         if opt.name == '-factor_list':
+            val, err = uopts.get_string_list('', opt=opt)
+            if val == None or err: return 1
+            self.factor_lists.append(val)
             continue
 
          if opt.name == '-factors':
@@ -1123,6 +1150,8 @@ class CmdInterface:
          cmd = self.get_anova2_command()
       elif self.command == '3dANOVA3':
          cmd = self.get_anova3_command()
+      elif self.command == 'datatable':
+         cmd = self.get_datatable()
       elif self.command:
          cmd = self.get_generic_command()
       else:
@@ -1188,6 +1217,21 @@ class CmdInterface:
       return self.slist[0].make_anova3_command( bsubs=self.betasubs,
                prefix=self.prefix, subjlists=self.slist, options=self.options,
                factors=self.factors, verb=self.verb)
+
+   def get_datatable(self):
+      """generate a -dataTable option (not a command)
+                This allows for multiple groups (might be for betas) and
+                multiple betas, possibly if one list of dsets.
+      """
+
+      return self.make_datatable_text()
+
+   def make_datatable_text(self):
+
+      return self.slist[0].make_datatable_text(
+                    subjlists=self.slist, condlists=self.factor_lists,
+                    bsubs=self.betasubs, tsvfile=self.dt_tsv, sep=self.dt_sep,
+                    verb=self.verb) 
 
    def help_mema_command(self):
       helpstr = """
