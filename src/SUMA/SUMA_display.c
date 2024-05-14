@@ -3406,7 +3406,7 @@ void SUMA_MenuArrowFieldCallback (void *CB)
    SUMA_MenuCallBackData *CBp = (SUMA_MenuCallBackData *)CB;
 
    SUMA_ENTRY;
-
+   
    if (!CBp) {
       SUMA_S_Err("Bad setup, NULL CB"); SUMA_RETURNe;
    }
@@ -11490,9 +11490,6 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_ALL_DO *ado)
 
    if (!ado) SUMA_RETURN(NOPE);
    
-   // SUMA_RETURN(NOPE);   
-
-   fprintf(stderr, "%s: SO_type = %d\n", FuncName, SO_type);
    switch (ado->do_type) {
       case SO_type:
          SUMA_RETURN(SUMA_Init_SurfCont_SurfParam_SO((SUMA_SurfaceObject *)ado));
@@ -11803,7 +11800,7 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
    // Further testing is required, with mulitpl surfaces,  to ensure it 
    // does not create problems
    SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO *)SUMAg_DOv[adolist[0]].OP);
-   N_adolist = SurfCont->N_links;
+   N_adolist = imax;
 
     // NBB: This loop artifactually lengthens the surface control menu
     //  but is not necessary to switching surfaces.  May be necessary for 
@@ -11828,6 +11825,15 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
                SUMA_ADO_CropLabel((SUMA_ALL_DO *)SUMAg_DOv[adolist[k]].OP,
                                   SUMA_SURF_CONT_SWITCH_LABEL_LENGTH),
                      XmSTRING_DEFAULT_CHARSET);
+                     /*
+        fprintf(stderr, "%s: k = %d\n", FuncName, k);
+        fprintf(stderr, "%s: XmNlabelString = %s\n", FuncName, XmNlabelString);
+        fprintf(stderr, "%s: string = %s\n", FuncName, string);
+        fprintf(stderr, "%s: strlen(string) = %d\n", FuncName, strlen(string));
+        fprintf(stderr, "%s: strstr(string, \".gii\") - string = %d\n", FuncName, strstr(string, ".gii") - (char *)string);
+        */
+
+        // This call is responsible for the artifactual lengthening of the surface control menu when it happens.
          XtVaSetValues( SurfCont->SurfContPage_label,
                         XmNlabelString, string, NULL);
          XmStringFree (string);
@@ -13183,7 +13189,7 @@ SUMA_Register_Widget_Help( SUMAg_CF->X->DrawROI->AppShell , 0,
       XmNmarginWidth , 0 ,
       NULL);
 
-
+   // DEBUG: This function has nothing to do with the lengthening of the surface control menu
    SUMA_CreateTextField ( rc, "Label:",
                            6, SUMA_DrawROI_NewLabel,
                            "ROICont->ROI->Label",
@@ -14301,6 +14307,11 @@ void SUMA_leave_EV( Widget w , XtPointer client_data ,
    XmAnyCallbackStruct cbs ;
    static char FuncName[]={"SUMA_leave_EV"};
    SUMA_Boolean LocalHead = NOPE;
+   int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   SUMA_X_SurfCont *SurfCont = NULL;
+   int imax, i;
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_ALL_DO *ado=NULL;
 
    SUMA_ENTRY;
 
@@ -20383,6 +20394,8 @@ void SUMA_cb_DrawROI_Load (Widget w, XtPointer data, XtPointer client_data)
 
 void SUMA_DrawROI_NewLabel (void *data)
 {
+    /* DEBUG: This function has nothing to do with the lengthening of the 
+	surface control menu */
    static char FuncName[]={"SUMA_DrawROI_NewLabel"};
    SUMA_DRAWN_ROI *DrawnROI=NULL;
    SUMA_ARROW_TEXT_FIELD * AF=NULL;
