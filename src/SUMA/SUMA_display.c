@@ -11796,18 +11796,8 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
    /* And force set all arrow fields, they are supposed to act like one */
    N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    SUMA_LHv("Force setting %d surfconts to page %d, max %d\n",
-               N_adolist, i, imax);           
+               N_adolist, i, imax);
 
-   // This fixes the artifactual elongation of the surface control menu
-   // (mentioned below for the loop).
-   // Further testing is required, with mulitpl surfaces,  to ensure it 
-   // does not create problems
-   SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO *)SUMAg_DOv[adolist[0]].OP);
-   N_adolist = SurfCont->N_links;
-
-    // NBB: This loop artifactually lengthens the surface control menu
-    //  but is not necessary to switching surfaces.  May be necessary for 
-    //  something else.
    for (k=0; k<N_adolist; ++k) {
       /* Note that many objects in this list maybe intimately
          related (they share the same parent graph link). So
