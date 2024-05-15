@@ -9,7 +9,7 @@ from   afnipy import lib_physio_util as lpu
 
 # ==========================================================================
 
-def func_flatgauss(N, delta=None, sigma=1.0):
+def func_flatgauss(N, delta=None, sigma=1.0, hp_freq=None):
     """For a freq series with N points and step size delta (i.e., df) and
 width-scale parameter sigma, return an array of the 'flat Gaussian'
 filter values.  NB: the 'flat Gaussian' is the FT partner of the
@@ -17,14 +17,19 @@ Gaussian standard normal-distribution, whose height is always 1.
 
 Default sigma value is 1, in units of Hz (bigger sigma -> wider filter).
 
+One can also turn on highpassfiltering as part of this filter, if
+non-None hp_freq is provided.
+
 Parameters
 ----------
 N : int
     total number of frequencies in the frequency series
 delta : float
     step size along abscissa (like, df for freq series)
-sigma: float
-    what would be the standard deviation parameter in a Gaussian
+sigma : float
+    what would be the standard deviation parameter in a Gaussian (phys units)
+hp_freq : float
+    if present, do highpass filtering from this value (phys units)
 
 Returns
 -------
@@ -49,6 +54,11 @@ y : np.ndarray
     fhalf      = np.arange(kmaxp1)*delta
     y[:kmaxp1] = np.exp(-0.5*fhalf*fhalf/sigma/sigma)
 
+    # optionally add in HP filter, zero out low freqs
+    if hp_freq :
+        hp_num = int(hp_freq / delta)
+        y[:hp_num] = 0.0
+
     # ... and second half of filt, filled in symmetrically
     if N % 2 :    y[kmaxp1:] = y[kmax:0:-1]
     else:         y[kmax:]   = y[kmax:0:-1]
@@ -56,7 +66,7 @@ y : np.ndarray
     return y
 
 
-def func_blackman_nuttall(N, delta=None, sigma=1.0):
+def func_blackman_nuttall(N, delta=None, sigma=1.0, hp_freq=None):
     """For a freq series with N points and step size delta (i.e., df) and
 width-scale parameter sigma, return an array of the Blackman-Nuttall
 filter values.  NB: the 'Blackman-Nuttall' window is symmetric and
@@ -66,6 +76,9 @@ kinda Gaussian shaped, but tapers faster.  Its peak height is always
 
 Default sigma value is 1, in units of Hz (bigger sigma -> wider filter).
 
+One can also turn on highpassfiltering as part of this filter, if
+non-None hp_freq is provided.
+
 Parameters
 ----------
 N : int
@@ -74,6 +87,8 @@ delta : float
     step size along abscissa (like, df for freq series)
 sigma: float
     what would be the standard deviation parameter in a Gaussian
+hp_freq : float
+    if present, do highpass filtering from this value (phys units)
 
 Returns
 -------
@@ -113,6 +128,11 @@ y : np.ndarray
     # first half of filter
     if nhwin <= kmaxp1 :    y[:nhwin]  = w
     else:                   y[:kmaxp1] = w[:kmaxp1]
+
+    # optionally add in HP filter, zero out low freqs
+    if hp_freq :
+        hp_num = int(hp_freq / delta)
+        y[:hp_num] = 0.0
 
     # ... and second half of filt, filled in symmetrically
     if N % 2 :    y[kmaxp1:] = y[kmax:0:-1]
@@ -200,6 +220,13 @@ idx_freq_peak : int
     idx_freq_peak = np.argmax(Xabs[idx_min:idx_max]) + idx_min
     freq_peak = idx_freq_peak * delta_f
 
+    # for card time series, will use high bandpass by default; seems
+    # to help in cases where big changes at lower freqs occur
+    if label == 'card' :
+        highpass_freq = freq_peak / 2.0                 # phys value
+    else:
+        highpass_freq = None
+
     print('++ (' + label + ') Bandpass filter frequency peak: '
           '{:.6f} Hz'.format(freq_peak))
 
@@ -214,10 +241,12 @@ idx_freq_peak : int
     # the tapering.
     if win_shape == 'blackman_nuttall' :
         sigma = 1.0*freq_peak                         # scale width
-        filt  = func_blackman_nuttall(N, delta=delta_f, sigma=sigma)
+        filt  = func_blackman_nuttall(N, delta=delta_f, sigma=sigma,
+                                      hp_freq = highpass_freq)
     elif win_shape == 'flat_gaussian' :
         sigma = 1.0*freq_peak                         # scale width
-        filt  = func_flatgauss(N, delta=delta_f, sigma=sigma)
+        filt  = func_flatgauss(N, delta=delta_f, sigma=sigma,
+                               hp_freq = highpass_freq)
     else:
         print("** ERROR: '{}' is not an allowed win_shape"
               "".format(win_shape))
