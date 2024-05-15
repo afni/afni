@@ -4114,7 +4114,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SurfCont->alphaOpacityModel = QUADRATIC;
                }
                else {
-                  SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L\Q",
+                  SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L/Q",
                               NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
                }
                if (!sv) sv = &(SUMAg_SVv[0]); 
@@ -6521,7 +6521,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
 
       /* set the XYZ of the cross hair based on the
          coordinates of the upcoming surface, if possible */
-      LocalHead = 1;
+      // LocalHead = 1;
       if (j >= 0) {
          SO_nxt = (SUMA_SurfaceObject *)(dov[j].OP);
          ND = SO_nxt->NodeDim;
