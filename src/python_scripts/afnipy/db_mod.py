@@ -15059,7 +15059,7 @@ OPTIONS:  ~2~
             e.g. -regress_compute_tsnr_stats Glasser 4 41 99 999
 
             e.g. -anat_follower_ROI aeseg epi SUMA/aparc.a2009s+aseg.nii.gz \\
-                 -ROI_import Glasser ~/abin/MNI_Glasser_HCP_v1.0.nii.gz     \\
+                 -ROI_import Glasser MNI_Glasser_HCP_v1.0.nii.gz            \\
                  -regress_compute_tsnr_stats aeseg   4 41 99 999            \\
                  -regress_compute_tsnr_stats Glasser 4 41 99 999
 
@@ -16081,6 +16081,31 @@ OPTIONS:  ~2~
 
         Please see '3dClustSim -help' for more information.
         See also -regress_run_clustsim.
+
+    -ROI_import LABEL RSET       : import a final grid ROI with the given label
+
+            e.g. -ROI_import Glasser MNI_Glasser_HCP_v1.0.nii.gz
+            e.g. -ROI_import Benny my_habenula_rois.nii.gz
+            e.g. -ROI_import Benny path/to/ROIs/my_habenula_rois.nii.gz
+
+        Use this option to import an ROI dataset that is in the final space of
+        the EPI data.  It will merely be resampled onto the final EPI grid
+        (not transformed).
+
+            o  this might be based on the group template
+            o  no warping will be done to this dataset
+            o  this dataset WILL be resampled to match the final EPI
+
+        This option was added to be applied with -regress_compute_tsnr_stats,
+        for example:
+
+            -ROI_import Glasser MNI_Glasser_HCP_v1.0.nii.gz  \\
+            -regress_compute_tsnr_stats Glasser 4 41 99 999  \\
+
+        This mask can be applied via LABEL as other masks, using options
+        like: -regress_ROI, -regress_ROI_PC, -regress_make_corr_vols,
+              -regress_anaticor_label, -mask_intersect, -mask_union,
+              (and for the current purpose) -regress_compute_tsnr_stats.
 """
 g_help_trailer = """
 - R Reynolds  Dec, 2006                             thanks to Z Saad
