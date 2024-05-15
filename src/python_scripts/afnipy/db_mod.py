@@ -1939,7 +1939,7 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
         "%s# final result: add REML errts to polynomial baseline\n" \
         "%s# (and separate back into individual runs)\n"            \
         "%sset startind = 0\n"                                      \
-        "%sforeach rind ( `count -digits 1 1 $#runs` )\n"           \
+        "%sforeach rind ( `count_afni -digits 1 1 $#runs` )\n"          \
         "%s    set run = $runs[$rind]\n"                            \
         "%s    set runlen = $tr_counts[$rind]\n"                    \
         "%s    @ endind = $startind + $runlen - 1\n"                \
@@ -7229,7 +7229,7 @@ def db_cmd_regress_rsfc(proc, block):
           set b0 = 0
           set b1 = -1
           # run index is 1 digit (wary of octal), run part of file name is 2
-          foreach rind ( `count -digits 1 1 $#runs` )
+          foreach rind ( `count_afni -digits 1 1 $#runs` )
              reps = $tr_counts[$rind]
              @ b1 += $reps
              3dRSFC -prefix RSFC/run_$runs[$rind] -nodetrend MASK \
@@ -7277,7 +7277,7 @@ def db_cmd_regress_rsfc(proc, block):
           'set b0 = 0\n'                                                    \
           'set b1 = -1\n'                                                   \
           '# run index is 1 digit (wary of octal), file name run is 2\n'    \
-          'foreach rind ( `count -digits 1 1 $#runs` )\n'                   \
+          'foreach rind ( `count_afni -digits 1 1 $#runs` )\n'                  \
           '    set reps = $tr_counts[$rind]\n'                              \
           '    @ b1 += $reps\n'                                             \
           '%s'                                                              \
@@ -8261,7 +8261,7 @@ def db_cmd_regress_bandpass(proc, block):
         cmd += '1dBport -nodata %s %s %s -invert -nozero' \
                ' > %s\n\n' % (proc.reps, proc.tr, bpopt_str, bfile)
     else: # loop over 1dBport and 1d_tool.py
-        cmd += 'foreach index ( `count -digits 1 1 $#runs` )\n'               \
+        cmd += 'foreach index ( `count_afni -digits 1 1 $#runs` )\n'              \
                '    set nt = $tr_counts[$index]\n'                            \
                '    set run = $runs[$index]\n'                                \
                '    1dBport -nodata $nt %g %s -invert -nozero >! %s\n'\
@@ -12898,6 +12898,17 @@ OPTIONS:  ~2~
         See "1d_tool.py -help" for details on '-look_like_*' options.
         See also -regress_stim_files, -regress_extra_stim_files,
         -regress_stim_times, -regress_local_times, -regress_global_times.
+
+    -uvar UVAR VAL VAL ..   : set a user variable and its values
+
+            e.g. -uvar taskname my.glorious.task
+                 -uvar ses ses-003
+                 -uvar somelistvar A B C
+
+        Use this option once per uvar.  Each such option will be passed along
+        as part of the user variable list, along to APQC, for example.
+
+        These variables will be initialed in out.ap_uvars.json .
 
     -verb LEVEL             : specify the verbosity of this script
 

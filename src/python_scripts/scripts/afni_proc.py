@@ -785,9 +785,10 @@ g_history = """
     7.72 Apr  1, 2024: add reg_echo and echo_times as uvars
     7.73 Apr  7, 2024: the default warp vox dim will round up if very close
     7.74 Apr  8, 2024: add -anat_follower_erode_level
+    7.75 Apr 25, 2024: add -uvar option, to pass user vars along
 """
 
-g_version = "version 7.74, April 8, 2024"
+g_version = "version 7.75, April 25, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1467,6 +1468,8 @@ class SubjProcSream:
                        helpstr="only write 3dDeconvolve script (to given file)")
         self.valid_opts.add_opt('-write_ppi_3dD_scripts', 0, [],
                        helpstr="flag: write no-censor and PPI extras scripts")
+        self.valid_opts.add_opt('-uvar', -2, [],
+                        helpstr="specify a uvar its value(s)")
         self.valid_opts.add_opt('-verb', 1, [],
                         helpstr="set the verbose level")
 
@@ -2128,6 +2131,11 @@ class SubjProcSream:
         opt = opt_list.find_opt('-script')
         if opt != None: self.script = opt.parlist[0]
         else:           self.script = 'proc.%s' % self.subj_id
+
+        opt = opt_list.find_opt('-uvar')
+        olist = self.user_opts.find_all_opts('-uvar')
+        for opt in olist:
+           self.uvars.set_var(opt.parlist[0], opt.parlist[1:])
 
         opt = opt_list.find_opt('-write_3dD_prefix')
         if opt != None:
@@ -3217,13 +3225,13 @@ class SubjProcSream:
         self.write_text('# set list of runs\n')
         digs = 2
         if self.runs > 99: digs = 3
-        self.write_text('set runs = (`count -digits %d 1 %d`)\n\n' \
+        self.write_text('set runs = (`count_afni -digits %d 1 %d`)\n\n' \
                         % (digs,self.runs) )
 
         if self.have_me:
            self.write_text('# note %d echoes and registration echo index\n' \
                            % self.num_echo)
-           self.write_text('set echo_list = (`count -digits 2 1 %d`)\n' \
+           self.write_text('set echo_list = (`count_afni -digits 2 1 %d`)\n' \
                            % self.num_echo)
            if len(self.echo_times) > 0:
               etimes = ['%s' % et for et in self.echo_times]

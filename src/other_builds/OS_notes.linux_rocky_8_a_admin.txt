@@ -1,0 +1,30 @@
+# Quick build setup script 1/3.  Should match with 'steps_linux_rocky_8.rst'
+# From bash shell:
+#   sudo bash OS_notes.linux_rocky_8_a_admin.txt 2>&1 | tee o.rocky_8_a.txt
+# From tcsh shell:
+#   sudo bash OS_notes.linux_rocky_8_a_admin.txt |& tee o.rocky_8_a.txt
+
+# RedHat/CentOS/Rocky 8 Linux setup, 14 Apr, 2023   R Reynolds
+# (this is for a build machine, requiring more than for a user)
+
+echo "++ main dependencies part"
+# tcsh is used in part of the build
+sudo dnf install -y tcsh gcc motif-devel gsl-devel libXpm-devel
+sudo dnf install -y mesa-libGLw-devel mesa-libGLU-devel libXi-devel glib2-devel
+
+echo "++ R part"
+# R needs to come from EPEL (Extra Packages for Enterprise Linux)
+sudo dnf config-manager --set-enabled powertools
+sudo dnf install -y epel-release
+sudo dnf install -y R-devel
+
+echo "++ Python part"
+# for users (and to do a simple build test), we need python and matplotlib
+# cmake: for building R packages
+# -- note: python3 does not come with 'python', we have to ask for that
+sudo dnf install -y cmake Xvfb
+sudo dnf install -y python39 python3-matplotlib python3-numpy
+sudo dnf install -y python3-flask python3-flask-cors
+sudo alternatives --set python /usr/bin/python3
+
+echo "++ Done with sudo-required part"

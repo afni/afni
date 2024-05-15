@@ -115,7 +115,7 @@ EXTRAS   = cjpeg djpeg whirlgif myget rmz aiv mycat quotize $(EXPROGS)
 ## the program list is now split into 4 parts, to facilite the build process
 ## [RWC - Feb 2018]
 
-PROGS_1  = afni to3d from3d 3dclust nsize 3dinfo 3dmerge count                \
+PROGS_1  = afni to3d from3d 3dclust nsize 3dinfo 3dmerge count count_afni         \
            sfim tfim imrotate imreg imstat 3dnvals                            \
            fim2 imand immask imdump imaver 3dhistog 3daxialize                \
            cdf 2swap 4swap 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta              \
@@ -140,7 +140,7 @@ PROGS_2  = 3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot   \
 
 PROGS_3  = 3dAnhist 3dAFNIto3D 3dWarp nicat                                   \
            3dSpatNorm fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive      \
-           nifti_tool 3dAllineate whereami plugout_drive 3dLSS                \
+           nifti_tool 3dAllineate whereami whereami_afni plugout_drive 3dLSS  \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml        \
            3dedge3 DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth   \
            3dmaxima GLTsymtest 3dPval stimband 1dNLfit 1dApar2mat             \
@@ -187,7 +187,8 @@ PROGRAMS_NOPLUG =                                                             \
         3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna imstack byteorder      \
         3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot 24swap 3dTsmooth RSFgen  \
         float_scan 1ddot 1dsvd 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat  \
-        3ddelay 3dDTeig 3dDWItoDT 1dtranspose whereami 3dAFNItoNIML 3dcopy    \
+        3ddelay 3dDTeig 3dDWItoDT 1dtranspose whereami whereami_afni 		   \
+		  3dAFNItoNIML 3dcopy    															   \
         imcat 3dDetrend 1dfft 3drename 1dnorm afni_vcheck 3ddot 3dBrickStat   \
         imcutup 3dMean 3dAttribute 3dZeropad 3dWinsor 3dmaskdump 3dfim+       \
         3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy         \
@@ -211,8 +212,8 @@ PROGRAMS_NOPLUG =                                                             \
         3dToyProg nifti1_tool gifti_tool cifti_tool images_equal uniq_images  \
         stimband 1dNLfit tokens 3dLocalACF 3dDegreeCentrality 3dECM 3dLFCD    \
         3dMSE 3dsvm_linpredict 3dTto1D 3dExchange 2dcat get_afni_model_PRF    \
-        get_afni_model_PRF_6 get_afni_model_PRF_6_BAD 3dEdu_01_scale    	   \
-        p2dsetstat dsetstat2p                                                 \
+        get_afni_model_PRF_6 get_afni_model_PRF_6_BAD 3dEdu_01_scale          \
+        p2dsetstat dsetstat2p count_afni                                          \
         $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -246,7 +247,7 @@ PROGRAMS_EXE =                                                                \
         niccc 3dXYZcat column_cat GLTsymtest nifti1_tool gifti_tool           \
         cifti_tool images_equal uniq_images stimband 1dNLfit 3dExchange       \
         3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict 2dcat          \
-        3dEdu_01_scale p2dsetstat dsetstat2p
+        3dEdu_01_scale p2dsetstat dsetstat2p count_afni
 
 
 # put all scripts to install here (no SCRIPTS variable)
@@ -289,10 +290,12 @@ LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h             \
 ### Make everything, install it too, and cleanup
 
 totality:clean all plugins install install_plugins install_lib cleann
+	echo "== compilation complete: totality, yay"
 
 ### Make everything, install it too, but don't cleanup
 
 vastness:all plugins install install_plugins install_lib
+	echo "== compilation complete: vastness, yay"
 
 ### Make many things
 
@@ -308,6 +311,7 @@ afobjs: afobj
 ### Make a few more things
 
 itall:all plugins install install_plugins install_lib
+	echo "== compilation complete: itall, yay"
 
 $(INSTALLDIR):
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo Made directory $(INSTALLDIR); fi
@@ -960,9 +964,15 @@ hide:hide.o
 	$(RM) $@
 	$(CC) -o hide hide.o $(LFLAGS)
 
+# to be deprecated
 count:count.o
 	$(RM) $@
 	$(CC) -o count count.o $(LFLAGS) $(LLIBS)
+
+# a replacement name for 'count', since it clashes with other software
+count_afni:count_afni.o
+	$(RM) $@
+	$(CC) -o count_afni count_afni.o $(LFLAGS) $(LLIBS)
 
 nsize:nsize.o
 	$(RM) $@
@@ -1054,6 +1064,10 @@ mri_intedge.o:mri_intedge.c
 whereami:whereami.c
 	$(RM) $@
 	$(CC) -o whereami whereami.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(LLIBS)
+
+whereami_afni:whereami_afni.c
+	$(RM) $@
+	$(CC) -o whereami_afni whereami_afni.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 apsearch:apsearch.c
 	$(RM) $@

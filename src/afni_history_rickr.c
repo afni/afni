@@ -53,6 +53,47 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, May, 2024, RCR, "3dCM", MICRO, TYPE_BUG_FIX,
+   "3dCM briefly required a mask",
+   "Thanks to P Kundu for pointing out the problem."
+ } ,
+
+ { 29, Apr, 2024, RCR, "afni-general", MAJOR, TYPE_MODIFY,
+   "change 'count' program and usage to 'count_afni'",
+   "Add count_afni to the distribution, modify scripts to use it, and\n"
+   "allow use of count_afni is sub-brick selection, e.g.,\n"
+   "    dset'[count_afni 3 5]'\n"
+   "Note that 'count' is still allowed, for now."
+ } ,
+
+ { 26, Apr, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "in any script calling whereami, invoke with 'tcsh -f' at top",
+   "This is a quick fix for biowulf usage, since there is a new whereami\n"
+   "in town (/usr/local/bin/wheremai), and because they reset the PATH.\n"
+   "Modify: @Atlasize @MakeLabelTable @chauffeur_afni\n"
+   "        compute_ROI_stats.tcsh gen_cluster_table"
+ } ,
+
+ { 26, Apr, 2024, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "-init_uvars_json will now pass through unknown uvars",
+   "This enables users to pass uvars through afni_proc.py to the APQC."
+ } ,
+
+ { 25, Apr, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -uvar option to pass through AP uvars",
+   NULL
+ } ,
+
+ { 25, Apr, 2024, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "warn if tcsh version is 6.22.03 - it has $var:h bug",
+   NULL
+ } ,
+
+ { 24, Apr, 2024, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -sort_method geme_suid",
+   NULL
+ } ,
+
  { 22, Apr, 2024, RCR, "3dmaskdump", MINOR, TYPE_BUG_FIX,
    "singleton coordinates should round to the closest voxel center",
    "Originally, box coordinates rounded to the nearest voxel, effectively\n"

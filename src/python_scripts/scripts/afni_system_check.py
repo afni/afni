@@ -91,6 +91,7 @@ details displayed via -check_all (just run to see):
       - check for multiple afni packages in PATH
       - check that various AFNI programs run
       - check for AFNI $HOME dot files (.afnirc, .sumarc, etc.)
+      - warn on tcsh version 6.22.03
 
    python libs:
       - check that various python libraries are found and loaded
@@ -351,9 +352,10 @@ g_history = """
    1.30 Feb 22, 2024 - check for conda
    1.31 Mar  4, 2024 - add option -disp_ver_afni (do include build source)
    1.32 Mar 21, 2024 - add option -disp_abin
+   1.33 Apr 25, 2024 - warn if tcsh version is 6.22.03
 """
 
-g_version = "afni_system_check.py version 1.32, March 21, 2024"
+g_version = "afni_system_check.py version 1.33, April 25, 2024"
 
 
 class CmdInterface:

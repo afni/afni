@@ -149,7 +149,7 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
 
       -init_uvars_json FNAME    : initialize uvars from the given JSON file
                                   (akin to many -uvar options)
-
+                                  (this will now pass through unknown uvars)
       -subj SID                 : subject ID
       -rm_trs N                 : number of TRs removed per run
       -num_stim N               : number of main stimulus classes
@@ -569,7 +569,7 @@ if ( $was_censored && $num_stim > 0 ) then
     set stim_trs = ()
     set stim_trs_censor = ()
     set stim_frac_censor = ()
-    foreach index ( `count -digits 1 0 $nm1` )
+    foreach index ( `count_afni -digits 1 0 $nm1` )
         # count response TRs, with and without censoring
         # (their difference is the number of TRs lost to censoring)
         set st = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
@@ -591,7 +591,7 @@ if ( $was_censored && $num_stim > 0 ) then
 else if ( $num_stim > 0 ) then
     # no censoring - just compute num TRs per regressor
     set stim_trs = ()
-    foreach index ( `count -digits 1 0 $nm1` )
+    foreach index ( `count_afni -digits 1 0 $nm1` )
         set st = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
         set stim_trs = ( $stim_trs $st )
     end
@@ -608,7 +608,7 @@ g_ave_mot_sresp_str = """
 if ( $was_censored && $num_stim > 0 ) then
     set sresp_mot = ()
     set sresp_mot_cen = ()
-    foreach index ( `count -digits 1 0 $nm1` )
+    foreach index ( `count_afni -digits 1 0 $nm1` )
         set st  = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
         set snc = `1deval -a $xstim"[$index]" -b $censor_dset   \\
                    -expr 'bool(a*b)' | grep 1 | wc -l`
@@ -629,7 +629,7 @@ if ( $was_censored && $num_stim > 0 ) then
 
 else if ( $num_stim > 0 ) then
     set sresp_mot = ()
-    foreach index ( `count -digits 1 0 $nm1` )
+    foreach index ( `count_afni -digits 1 0 $nm1` )
         set st = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
         set sm = `1deval -a $xstim"[$index]" -b $enorm_dset -expr 'bool(a)*b'\\
                   | 3dTstat -sum -prefix - 1D:stdin\\' |& tail -n 1`
@@ -939,9 +939,10 @@ g_history = """
    1.27 Feb  6, 2023: report mb_level and slice_timing in basic output
    1.28 Mar 11, 2024: add max_4095_warn_dset key
    1.29 Apr  5, 2024: add reg_echo and echo_times (ET to basic output)
+   1.30 Apr 26, 2024: -init_uvars_json will now pass through unknown uvars
 """
 
-g_version = "gen_ss_review_scripts.py version 1.29, April 5, 2024"
+g_version = "gen_ss_review_scripts.py version 1.30, April 26, 2024"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1003,6 +1004,7 @@ class MyInterface:
                     helpstr='save uvars dictionary to JSON file')
 
       # user variable options - add from dictionary
+      # do we really want to have an option per uvar?  better to use -uvar
       ukeys = list(g_uvar_dict.keys())
       ukeys.sort()
       for opt in ukeys:
@@ -1124,7 +1126,26 @@ class MyInterface:
             C.udict_in = val
             # and apply all to self.uvars
             dfill = UTIL.read_json_file(C.udict_in)
-            self.uvars.set_var_list_w_defs(dfill, g_eg_uvar, verb=C.verb)
+
+            # Allow unrecognized uvars to pass through.  [26 Apr 2024 rickr]
+            #
+            # So to allow for type conversion based on g_eg_uvar, partition
+            # into known and unknown keys, testing only the known ones.
+            # Unknown keys have no known types, and are simply left as strings.
+            # Unknown elements of length 1 are not applied as lists.
+            known = {}
+            unknown = {}
+            for key in dfill.keys():
+               if g_eg_uvar.valid(key): known[key] = dfill[key]
+               else:                    unknown[key] = dfill[key]
+            # apply known uvars to self.uvars
+            self.uvars.set_var_list_w_defs(known, g_eg_uvar, verb=C.verb)
+            # and fill with unknowns (but single elements are not lists)
+            for key in unknown.keys():
+               vlist = unknown[key]
+               # if there is only 1 element, do not use a list
+               if len(vlist) == 1: self.uvars.set_var(key, vlist[0])
+               else:               self.uvars.set_var(key, vlist)
 
          # check uvar opts by name (process as strings)
          elif uvar in ukeys:

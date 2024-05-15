@@ -453,13 +453,34 @@ def get_warn_level_3( val, cutoff_list=[] ):
 
 # --------------------------------------------------------------------
 
+def check_if_niml_dset(D, x):
+    '''Does x in dictionary 'D' appear to be a *.niml.dset? (and hence on
+the surface)? Here, x is just a string, not a list.
+    '''
+
+    if type(x) != str :
+        sys.exit("** ERROR: input to check_if_niml_dset() needs to be a str, "
+                 "not: {}".format(type(x)))
+
+    # general check: based on existence
+    if not(x in D) :
+        return 0
+
+    # check if string is long enough
+    if len(D[x]) < 10 :
+        return 0
+
+    if D[x][-10:] == ".niml.dset" :
+        return 1
+
+    return 0
+
 def check_dep(D, lcheck):
     '''Does dictionary 'D' contain each of the elements of 'lcheck'?'''
 
     if type(lcheck) != list :
         sys.exit("** ERROR: input to check_dep() needs to be a list, not:\n"
                  "          {}".format(type(lcheck)))
-
 
     HAS_ALL = 1
     for x in lcheck:

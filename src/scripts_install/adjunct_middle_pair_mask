@@ -216,11 +216,13 @@ set mid_rl = `echo "scale=5; (${ext_00[1]} + ${ext_00[2]})/2.0" | bc`
 # get midway points in each "half mask": the main info of interest
 set icent_l = `3dCM -Icent                                            \
                     -mask "3dcalc( -a ${dset_mask_00}                 \
+                                   -RAI                               \
                                    -expr bool(a)*step(x-${mid_rl}) )" \
                     "${dset_mask_00}"`
 
 set icent_r = `3dCM -Icent                                            \
                     -mask "3dcalc( -a ${dset_mask_00}                 \
+                                   -RAI                               \
                                    -expr bool(a)*not(step(x-${mid_rl})) )" \
                     "${dset_mask_00}"`
 
@@ -288,20 +290,22 @@ if ( "${dset_restrict}" != "" ) then
 
     # try to make each of the l/r combined restrictor masks; at least
     # one of these is nonzero, so we can use the other if one fails
-    3dcalc \
-        -overwrite \
+    3dcalc                                                    \
+        -overwrite                                            \
         -a      "dset_03_inp_rest_olap.nii.gz"                \
+        -RAI                                                  \
         -expr   "bool(a)*step(x-${mid_rl})"                   \
         -prefix "dset_13_inp_rest_l.nii.gz"                   \
-        -datum  byte \
+        -datum  byte                                          \
         -nscale
 
-    3dcalc \
-        -overwrite \
-        -a    "dset_03_inp_rest_olap.nii.gz"                \
-        -expr "bool(a)*not(step(x-${mid_rl}))"              \
-        -prefix "dset_13_inp_rest_r.nii.gz"                 \
-        -datum  byte \
+    3dcalc                                                    \
+        -overwrite                                            \
+        -a      "dset_03_inp_rest_olap.nii.gz"                \
+        -RAI                                                  \
+        -expr   "bool(a)*not(step(x-${mid_rl}))"              \
+        -prefix "dset_13_inp_rest_r.nii.gz"                   \
+        -datum  byte                                          \
         -nscale
 
     # check and fix left coord

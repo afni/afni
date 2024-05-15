@@ -1479,7 +1479,7 @@ FileCol <- dim(lop$dataStr)[2]
 lop$NoFile <- dim(lop$dataStr[1])[1]
 
 # check afex version
-lop$afex_new <- (packageVersion('afex') >= 0.14)
+lop$afex_new <- TRUE #(packageVersion('afex') >= 0.14)
 
 # Repeated-measures (use lme) or not (use lm)
 #if (length(unique(lop$dataStr$Subj)) != length(lop$dataStr$Subj)) RM <- TRUE else RM <- FALSE
