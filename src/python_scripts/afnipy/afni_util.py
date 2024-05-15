@@ -5678,7 +5678,15 @@ str_ow_modes  = ', '.join([x for x in list_ow_modes])
 hstr_ow_modes = '\n'.join(['{:12s} -> {}'.format(x, dict_ow_modes[x]) \
                            for x in list_ow_modes])
 
-def make_new_odir(new_dir, ow_mode='backup', bup_dir=None):
+def is_valid_ow_mode(ow_mode):
+    """Simple check about whether input ow_mode is a valid one. Return
+True if valid, and False otherwise."""
+
+    is_valid = ow_mode in list_ow_modes
+
+    return is_valid
+
+def make_new_odir(new_dir, ow_mode='backup', bup_dir=''):
     """When outputting to a new directory new_dir, just create it if it
 doesn't exist already; but if a dir *does* pre-exist there, then do
 one of the following behaviors, based on keyword values of ow_mode
@@ -5709,7 +5717,7 @@ num : int
     do_cap = True
 
     # valid ow_mode?
-    if not( ow_mode in list_ow_modes ) :
+    if not( is_valid_ow_mode(ow_mode) ) :
         print("** ERROR: illegal ow_mode '{}', not in the list:\n"
               "   {}".format(ow_mode, str_ow_modes))
         sys.exit(11)
@@ -5725,7 +5733,7 @@ num : int
             sys.exit(10)
         
         elif ow_mode=='backup' :
-            if bup_dir==None :
+            if not(bup_dir) :
                 # make our own backup dir with timestamp
                 now     = datetime.now()          # current date and time
                 bup_dir = now.strftime( new_dir + "_%Y-%m-%d-%H-%M-%S")
