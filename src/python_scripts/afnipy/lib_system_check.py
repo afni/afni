@@ -165,7 +165,7 @@ class SysInfo:
          gfound = 0
          if f1found and f2found:
             # does f1name reference f2name?
-            st, so, se = UTIL.limited_shell_exec("\grep %s $HOME/%s" \
+            st, so, se = UTIL.limited_shell_exec("\\grep %s $HOME/%s" \
                                                  % (f2name, f1name))
             if not st: gfound = 1
 
@@ -201,7 +201,7 @@ class SysInfo:
          print("-- found both %s and %s" % (cfile,tfile))
 
       found = 0
-      st, so, se = UTIL.limited_shell_exec("\grep %s $HOME/%s" % (cfile,tfile))
+      st, so, se = UTIL.limited_shell_exec("\\grep %s $HOME/%s" % (cfile,tfile))
       # if we find something, test to see if it is valid
       if st == 0:
          for line in so:
