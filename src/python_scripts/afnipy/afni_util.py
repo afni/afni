@@ -5753,7 +5753,8 @@ num : int
             com    = BASE.shell_com(cmd, capture=do_cap)
             stat   = com.run()
 
-        elif ow_mode=='simple' :
+        elif ow_mode=='simple_ok' :
+            # just leads to essentially doing 'mkdir -p ..' with the new_dir
             print("++ OK, output dir exists already: {}".format(new_dir))
 
     # Now make the new output dir
