@@ -82,7 +82,8 @@ class ap_deriv_obj:
     """
 
     def __init__( self, ap_res_dir, deriv_dir = '',
-                  verb = 0, ow_mode = 'backup' ):
+                  verb = 0, ow_mode_top = 'simple_ok',
+                  ow_mode_subj = 'backup' ):
         """Create object holding mapping information from AP output to 
         derivatives. 
 
@@ -91,7 +92,8 @@ class ap_deriv_obj:
         """
 
         self.verb          = verb             # int, verbosity level
-        self.ow_mode       = ow_mode          # str, manage overwriting
+        self.ow_mode_top   = ow_mode_top      # str, manage overwriting topdir
+        self.ow_mode_subj  = ow_mode_subj     # str, manage overwriting subjdir
 
         # AP results info
         self.ap_res_dir    = ''               # str, path of AP results dir
@@ -102,12 +104,13 @@ class ap_deriv_obj:
         self.deriv_dir     = ''               # str, path of deriv dir
         self.deriv_ssdict  = {}               # dict, mapping of uvars in deriv
 
-        # info
+        # info (to come via: uvars_json->ap_ssdict)
         self.subj          = ''               # str, subj ID (from ap_ssdict)
         self.map_dict      = {}               # dict, record map of AP->deriv
 
         # ----- set and check vars from inputs
-        au.is_valid_ow_mode(ow_mode)
+        au.is_valid_ow_mode(ow_mode_top)
+        au.is_valid_ow_mode(ow_mode_subj)
 
         self.set_ap_res_dir(ap_res_dir)
         self.set_ap_uvars_json()
@@ -183,18 +186,22 @@ class ap_deriv_obj:
         in number of uvar keys mapped."""
 
         # make top-level directory
-        _tmp = au.make_new_odir(self.deriv_dir, ow_mode=self.ow_mode)
+        _tmp2 = au.make_new_odir(self.deriv_dir, ow_mode=self.ow_mode_top)
         
+        # make subj-level directory
+        sdir  = self.deriv_dir + '/' + self.subj
+        _tmp2 = au.make_new_odir(sdir, ow_mode=self.ow_mode_subj)
+
         # process all the uvars that are simply dsets to rename+copy
         for uvar in list_uvars_simple_3dcopy:
-            _tmp = self.map_simple_3dcopy(uvar)
+            _tmp3 = self.map_simple_3dcopy(uvar)
 
         # process all the uvars that are split/burst in time
         for uvar in list_uvars_3dTsplit4D:
-            _tmp = self.map_3dTsplit4D(uvar)
+            _tmp4 = self.map_3dTsplit4D(uvar)
 
         # try to copy over the typical log file, output.proc.${subj}
-        _tmp2 = self.map_log_output()
+        _tmp5 = self.map_log_output()
         
         return 0
 

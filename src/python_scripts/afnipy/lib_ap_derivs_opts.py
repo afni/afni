@@ -20,7 +20,8 @@ from afnipy import afni_base as ab
 DEF = {
     'subj_dir'  : '',             # str, AP results directory for 1 subj
     'deriv_dir' : '',             # str, deriv dir to map to
-    'ow_mode'   : 'backup',       # str, control of overwriting
+    'ow_mode_top'  : 'simple_ok', # str, control of overwriting topdir
+    'ow_mode_subj' : 'backup',    # str, control of overwriting subjdir
     'verb'      : 0,              # int, verbosity level
 }
 

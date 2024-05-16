@@ -93,10 +93,19 @@ parser.add_argument('-deriv_dir', nargs=1,
                     '(def: "{}_SUBJ", in "-subj_dir ..").'
                     ''.format(ladopts.DEF_deriv_dir_base))
 
-parser.add_argument('-ow_mode', nargs=1,
-                    default=[ladopts.DEF['ow_mode']],
-                    help='set overwrite mode; choices are:\n'
-                    ''.format(UTIL.hstr_ow_modes))
+parser.add_argument('-ow_mode_top', nargs=1,
+                    default=[ladopts.DEF['ow_mode_top']],
+                    help='set overwrite mode for top-level dir; '
+                    'choices are:\n{}\n'
+                    '(def: {})'.format(UTIL.hstr_ow_modes, 
+                                       ladopts.DEF['ow_mode_top']))
+
+parser.add_argument('-ow_mode_subj', nargs=1,
+                    default=[ladopts.DEF['ow_mode_subj']],
+                    help='set overwrite mode for subject-level dir; '
+                    'choices are:\n{}\n'
+                    '(def: {})'.format(UTIL.hstr_ow_modes, 
+                                       ladopts.DEF['ow_mode_subj']))
 
 parser.add_argument('-verb', nargs=1,
                     default=[ladopts.DEF['verb']],
@@ -118,7 +127,8 @@ parser.add_argument('-hview', action="store_true",
 args             = parser.parse_args()
 ap_res_dir       = args.subj_dir[0].rstrip('/')
 deriv_dir        = args.deriv_dir[0].rstrip('/')
-ow_mode          = args.ow_mode[0]
+ow_mode_top      = args.ow_mode_top[0]
+ow_mode_subj     = args.ow_mode_subj[0]
 verb             = int(args.verb[0])
 do_ver           = args.ver
 do_help          = args.help
@@ -154,28 +164,27 @@ if __name__ == "__main__":
     is_not_valid = ladopts.is_valid_ap_res_dir( ap_res_dir )
     if is_not_valid :    sys.exit(1)
 
-    # get dictionary form of uvar json (and esp. subj ID)
-    uvar_json = ap_res_dir + '/' + 'out.ss_review_uvars.json'
-    with open(uvar_json, 'r') as fff:
-        ap_ssdict = json.load(fff)
-    subj = ap_ssdict['subj']
-
-    # ow_mode?
-    is_valid = UTIL.is_valid_ow_mode( ow_mode )
+    # ow_modes?
+    is_valid = UTIL.is_valid_ow_mode( ow_mode_top )
+    if not(is_valid) :    sys.exit(2)
+    is_valid = UTIL.is_valid_ow_mode( ow_mode_subj )
     if not(is_valid) :    sys.exit(2)
 
-    # make deriv dir (might also have to generate its name)
-    deriv_dir = ladopts.determine_deriv_dir_name(deriv_dir, ap_res_dir, 
-                                                 subj=subj)
-    bad_mno = UTIL.make_new_odir(deriv_dir, ow_mode=ow_mode, bup_dir=None)
-    if bad_mno :    sys.exit(3)
+    # check or make deriv_dir name
+    deriv_dir = ladopts.determine_deriv_dir_name(deriv_dir, ap_res_dir)
+
+    # make deriv dir itself (will *always* be made; ow_mode applies to
+    # subdir)
+    ##bad_mno   = UTIL.make_new_odir(deriv_dir, ow_mode=ow_mode_top)
+    ##if bad_mno :    sys.exit(3)     # should not happen, bc of ow_mode
 
     # ---------------------------------------------------------------------
     # do main work
 
     apder_obj = lader.ap_deriv_obj( ap_res_dir,
                                     deriv_dir=deriv_dir,
-                                    ow_mode=ow_mode,
+                                    ow_mode_top=ow_mode_top,
+                                    ow_mode_subj=ow_mode_subj,
                                     verb=verb,
     )
 
