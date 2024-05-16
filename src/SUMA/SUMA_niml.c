@@ -691,7 +691,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    if( tt < 0 ) {/* should never happen unless nini was NULL*/
       fprintf(SUMA_STDERR,"Error %s: Should never have happened.\n", FuncName);
       SUMA_RETURN(NOPE);

@@ -17560,7 +17560,7 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       SUMA_LH("Nothing to do, returning");
       SUMA_RETURNe;
    }
-   
+
    if (!SurfObj->DW->DrwPtchs) {
       SUMA_S_Err("Should not have null DrwPtchs at this point");
       SUMA_RETURNe;
@@ -17964,13 +17964,13 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_ENTRY;
 
    SUMA_LH("Entered DrawMesh");
-   
+
    if (LocalHead) {
       SUMA_EnablingRecord SER;
       SUMA_RecordEnablingState(&SER, SurfObj->Label);
       SUMA_DiffEnablingState(&SER, NULL, NULL, NULL);
    }
-   
+
    if (  SurfObj->PolyMode == SRM_Hide ||
          sv->PolyMode == SRM_Hide ||
          SurfObj->TransMode == STM_16 ||
@@ -18169,9 +18169,6 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             case TRIANGLES:
                SUMA_LH("Tri %d %p",NP, SurfObj->glar_FaceSetList);
 	       if (NP==3) {
-                for (int i=0; i<(GLsizei)N_glar_FaceSet; ++i){
-                    int i3 = 3*i;
-                }
                   glDrawElements (  GL_TRIANGLES, (GLsizei)N_glar_FaceSet*3,
                                     GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
                } else if (NP==4) {

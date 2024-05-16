@@ -6521,7 +6521,6 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
 
       /* set the XYZ of the cross hair based on the
          coordinates of the upcoming surface, if possible */
-      // LocalHead = 1;
       if (j >= 0) {
          SO_nxt = (SUMA_SurfaceObject *)(dov[j].OP);
          ND = SO_nxt->NodeDim;

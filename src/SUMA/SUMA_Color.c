@@ -8282,7 +8282,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          if (LocalHead)
             fprintf (SUMA_STDERR,"%s: Mixing Background colors ...\n", FuncName);
 
-         // This is called when the sliding bar is adjusted"Background colors
+         // This is called when the sliding bar is adjusted
          if (!SUMA_MixOverlays ( Overlays, N_Overlays, ShowOverLays_Back_sort,
                                  NshowOverlays_Back, glcolar_Back, N_Node,
                                  isColored_Back, NOPE)) {
@@ -8330,7 +8330,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         "Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
-            int red = nodeIndex * 4, green = red + 1, blue = red + 2;
+
            if (reload){ // Reload colormap used for alpha transparencies
                 /************************************************************
                 As of 2024-02-02, this block is only called (reload true) 
@@ -8431,10 +8431,10 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    float opacity = activeAlphaOpacities[i];
                    float complement = 1.0f - opacity;
                    int i3 = 3 * i;
+                   int i4 = 4 * i;
                    i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2;
                    avg_Back = (glcolar_Back[i4_0] + glcolar_Back[i4_1] +
                                glcolar_Back[i4_2])/3;
-                   int i4 = 4 * i;
                    glcolar[i4] = (currentOverlay->originalColVec[i3]*opacity) +
                     (avg_Back * complement); ++i4; ++i3;
                    glcolar[i4] = (currentOverlay->originalColVec[i3]*opacity) +
