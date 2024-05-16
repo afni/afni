@@ -59,7 +59,7 @@ Examples ~1~
 
      map_ap_to_deriv.py                               \\
          -subj_dir   .                                \\
-         -deriv_dir  ../../group_derivs/deriv_sub-001
+         -deriv_dir  /path/to/derivatives/task_NAME
 
 
 
@@ -90,7 +90,7 @@ parser.add_argument('-deriv_dir', nargs=1,
                     default=[ladopts.DEF['deriv_dir']],
                     help='location of the output derivatives directory, '
                     'which can include path as well as output directory name. '
-                    '(def: "{}_SUBJ", in "-subj_dir ..").'
+                    '(def: "{}", in "-subj_dir ..").'
                     ''.format(ladopts.DEF_deriv_dir_base))
 
 parser.add_argument('-ow_mode_top', nargs=1,
