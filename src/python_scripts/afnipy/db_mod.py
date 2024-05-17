@@ -12908,7 +12908,7 @@ OPTIONS:  ~2~
         Use this option once per uvar.  Each such option will be passed along
         as part of the user variable list, along to APQC, for example.
 
-        These variables will be initialed in out.ap_uvars.json .
+        These variables will be initialized in out.ap_uvars.json .
 
     -verb LEVEL             : specify the verbosity of this script
 
