@@ -1364,7 +1364,7 @@ class apqc_1dplot_opts:
         '''
 
         ypm = []
-        for fff in self.infiles:
+        for fff in self.yfile_pm:
             x = LAD.Afni1D(fff)
             print("++ FOR: {}: {} arrays with {} pts".format(fff, 
                                                              x.nvec, 
