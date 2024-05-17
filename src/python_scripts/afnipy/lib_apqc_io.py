@@ -484,8 +484,14 @@ COMMAND OPTIONS ~1~
                 in a list, when some subplots have censor_hline values
                 and others don't.
 
--censor_RGB COL :choose the color of the censoring background; default
-                is: {def_cen_RGB}.
+-censor_RGB COL :choose the color of the censoring background; from the 
+                command line, users enter a string, which could be:
+                + 3 space-separated floats in range [0, 1], of RGB values
+                + 4 space-separated floats in range [0, 1], of RGBA values
+                + 1 string of a valid matplotlib color
+                + 1 string of a valid matplotlib color and 1 floats in 
+                  range [0, 1], which is an alpha opacity value.
+                (default is: '{def_cen_RGB}').
 
 -bkgd_color BC :change the background color outside of the plot
                 windows.  Default is the Python color: {def_col_bkdg}.
