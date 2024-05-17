@@ -102,6 +102,7 @@ ver = '2.10' ; date = 'June 5, 2023'
 # Supplementary stuff and I/O functions for the AP QC tcsh script
 
 import sys, copy, os
+import matplotlib.colors        as mcol
 from   afnipy import lib_afni1D as LAD
 from   afnipy import afni_util  as au
 from   afnipy import afni_base  as ab
@@ -136,7 +137,7 @@ DEF_fontsize      = 10
 DEF_fontfamily    = "monospace"
 DEF_fontstyles    = [] # empty by default, so comp would go through list
 DEF_layout        = "tight"  # good for single plots; 'nospace' for multiplot
-DEF_censor_RGB    = [1, 0.7, 0.7] #'red' #'green'
+DEF_censor_RGB    = '1 0.7 0.7' #[1, 0.7, 0.7] #'red' #'green'
 DEF_censor_hline_RGB = 'cyan'
 DEF_patch_alt_RGB = '0.95'
 DEF_bkgd_color    = '0.9'
@@ -571,6 +572,61 @@ def ARG_missing_arg(arg):
     print("** ERROR: missing argument after option flag: {}".format(arg))
     sys.exit(1)
 
+# ------------------------------------------------------------------------
+
+def interpret_censor_RGB(c):
+    '''Take in a string c to be interpreted as either just a color or a
+color plus alpha opacity value. c can take many forms (space separated):
+    - a list of 3 numbers, each between [0,1], like RGB
+    - a string of 3 numbers, each between [0,1], like RGB
+    - a string of 4 numbers, each between [0,1], like RGBA
+    - a string of 1 item, to be interpreted as a color via mcol.to_rgb()
+    - a string of 2 items: the first to be interpreted as a color via 
+      mcol.to_rgb(), and the second to be an alpha opacity
+
+Parameters
+----------
+c : str (or list)
+    str or list to be interpreted as a color, as above
+
+Returns
+-------
+rgb : list
+    a list of 3 or 4 floats, each in [0,1], that is either RGB or RGBA,
+    respectively
+
+    '''
+
+    if type(c) != str :
+        return c
+
+    # ... from here, assume we are interpreting a string of 1,2,3 or 4 items
+    l = c.split()
+    n = len(l)
+
+    if n == 1 :
+        # assume this is a colorname to parse
+        try:
+            rgb = list(mcol.to_rgb(l[0]))
+        except:
+            sys.exit("** ERROR: could not interpret censor_RGB "
+                     "color '{}'".format(c))
+
+    elif n == 2 :
+        # assume this is a colorname + alpha value to parse
+        try:
+            rgb = list(mcol.to_rgb(l[0]))
+            rgb.append(float(l[1]))
+        except:
+            sys.exit("** ERROR: could not interpret censor_RGB "
+                     "color '{}'".format(c))
+
+    elif n == 3 or n == 4 :
+        # assume RGB or RGBA
+        rgb = [float(x) for x in l]
+
+    return rgb
+
 # ========================================================================
 # ======================== for 1dplotting pythonly =======================
 
@@ -591,7 +647,7 @@ class figplobj:
         self.layout       = DEF_layout
         self.see_xax      = True
         self.color_table  = []
-        self.censor_RGB   = DEF_censor_RGB
+        self.censor_RGB   = interpret_censor_RGB(DEF_censor_RGB)
         self.censor_width = 0
         self.censor_arr   = []              # NB: really stays a list
         self.censor_on    = DEF_censor_on
@@ -608,8 +664,11 @@ class figplobj:
         self.ylim_use_pm  = False
         self.ylabels_maxlen = None
 
+
+    # ----------------------------
+
     def set_censor_RGB(self, c):
-        self.censor_RGB = c
+        self.censor_RGB = interpret_censor_RGB(c)
 
     def set_censor_on(self, c):
         self.censor_on = c
@@ -929,7 +988,7 @@ class apqc_1dplot_opts:
         self.censor_arr   = []     # the final list; this is used
         self.ncensor      = 0
         self.censor_width = 0
-        self.censor_RGB   = DEF_censor_RGB
+        self.censor_RGB   = interpret_censor_RGB(DEF_censor_RGB)
         self.censor_hline = []
 
         self.scale        = []  # [PT: June 28, 2019] vertical, y-scale possible
@@ -1013,7 +1072,7 @@ class apqc_1dplot_opts:
         self.censor_on = True
 
     def set_censor_RGB(self, c):
-        self.censor_RGB = c
+        self.censor_RGB = interpret_censor_RGB(c)
 
     def set_ylabels_maxlen(self, ml):
         self.ylabels_maxlen = int(ml)
