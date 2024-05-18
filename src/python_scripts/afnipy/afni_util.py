@@ -5667,6 +5667,7 @@ y : str
 
 # control overwriting/backing up any existing dirs
 dict_ow_modes = {
+    'simple_ok'   : 'make new dir, ok if pre-exist (mkdir -p ..)',
     'shy'         : 'make new dir only if one does not exist',
     'overwrite'   : 'purge old dir and make new dir in its vacant place',
     'backup'      : 'move existing dir to dir_<time>; then make new dir',
@@ -5691,6 +5692,7 @@ def make_new_odir(new_dir, ow_mode='backup', bup_dir=''):
 doesn't exist already; but if a dir *does* pre-exist there, then do
 one of the following behaviors, based on keyword values of ow_mode
 (and with consideration of bup_dir value):
+  'simple_ok'   : make new dir, ok if pre-exist (mkdir -p ..)
   'overwrite'   : remove pre-existing new_dir and create empty one in
                   its place
   'backup' and bup_dir != '' : move that pre-existing dir to bup_dir
@@ -5750,6 +5752,10 @@ num : int
             cmd    = '''\\rm -rf {}'''.format(new_dir)
             com    = BASE.shell_com(cmd, capture=do_cap)
             stat   = com.run()
+
+        elif ow_mode=='simple_ok' :
+            # just leads to essentially doing 'mkdir -p ..' with the new_dir
+            print("++ OK, output dir exists already: {}".format(new_dir))
 
     # Now make the new output dir
     cmd    = '''\\mkdir -p {}'''.format(new_dir)
