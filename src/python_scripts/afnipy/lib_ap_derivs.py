@@ -218,7 +218,7 @@ class ap_deriv_obj:
             bbb    = os.path.abspath(aaa)
             ccc    = os.path.dirname(bbb)
             log_ap = ccc + '/' + fname
-            
+
         if not os.path.exists(log_ap) :
             ab.WP("Cannot find log file to copy: {}".format(log_ap))
             stat = -2
@@ -362,6 +362,14 @@ D : dict
     for uvar in U:
         UC[uvar] = U[uvar]
 
+    # this is how we deal with possibility that a ${ses} variable may
+    # or may not be present (sigh)
+    UC['ss_name'] = UC['subj']         # to be used in file names
+    UC['ss_path'] = UC['subj']         # to be used in path struct
+    if 'ses' in U.keys() :
+        UC['ss_name']+= '_' + UC['ses']
+        UC['ss_path']+= '/' + UC['ses']
+
     # ... then add any possible special ones, if needed
     if not('taskname' in UC.keys()) :
         UC['taskname'] = 'TASKNAME'
@@ -390,40 +398,40 @@ D : dict
     D = {}
     
     #anat aligned with orig EPI: "${subj}_task-${taskname}_[run-${runnum}_][echo-${echonum}_]space-boldref_${type_anat}.nii.gz
-    D['align_anat']  = "{subj}/func/{subj}_task-{taskname}_space-boldref_{type_anat}".format(**UC)
+    D['align_anat']  = "{ss_path}/func/{ss_name}_task-{taskname}_space-boldref_{type_anat}".format(**UC)
     
     #${subj}_[${ses}_]space-orig_${type_anat}.nii.gz
-    D['copy_anat']  = "{subj}/anat/{subj}_space-{spacename_anat}_{type_anat}".format(**UC)
+    D['copy_anat']  = "{ss_path}/anat/{ss_name}_space-{spacename_anat}_{type_anat}".format(**UC)
 
     # ${subj}_[${ses}_]task-${taskname}_space-${spacename}_desc-resid_bold.nii.gz
-    D['errts_dset']  = "{subj}/func/{subj}_task-{taskname}_space-{spacename_final_epi}_desc-resid_bold".format(**UC)
+    D['errts_dset']  = "{ss_path}/func/{ss_name}_task-{taskname}_space-{spacename_final_epi}_desc-resid_bold".format(**UC)
 
     #${subj}_[${ses}_]space-${spacename}_desc-${preprocessedornot}_${type_anat}.nii.gz
-    D['final_anat']  = "{subj}/anat/{subj}-{spacename_final_anat}_desc-{preproc_yn_final_anat}_{type_anat}".format(**UC)
+    D['final_anat']  = "{ss_path}/anat/{ss_name}-{spacename_final_anat}_desc-{preproc_yn_final_anat}_{type_anat}".format(**UC)
 
     #${subj}_[${ses}_]task-${taskname}_[run-${runnum}_][echo-${echonum}_]space-${spacename}_boldref.nii.gz
-    D['final_epi_dset'] = "{subj}/func/{subj}_task-{taskname}_space-{spacename_final_epi}_desc-resid_bold".format(**UC)
+    D['final_epi_dset'] = "{ss_path}/func/{ss_name}_task-{taskname}_space-{spacename_final_epi}_desc-resid_bold".format(**UC)
 
     # ${subj}_[${ses}_]task-${taskname}_[run-${runnum}_][echo-${echonum}_]space-${spacename}_desc-brain_mask.nii.gz
-    D['mask_dset']   = "{subj}/func/{subj}_task-{taskname}_space-{spacename_final_epi}_desc-brain_mask".format(**UC)
+    D['mask_dset']   = "{ss_path}/func/{ss_name}_task-{taskname}_space-{spacename_final_epi}_desc-brain_mask".format(**UC)
 
     # ${subj}_[${ses}_]task-${taskname}_space-${spacename}_contrast-${GLT label part}_stat-${single letter stat}_statmap.nii.gz
-    D['stats_dset']  = "{subj}/func_stats/{subj}_task-{taskname}_space-{spacename_final_epi}_contrast-".format(**UC)
+    D['stats_dset']  = "{ss_path}/func_stats/{ss_name}_task-{taskname}_space-{spacename_final_epi}_contrast-".format(**UC)
 
     # ${subj}_[${ses}_]space-${spacename}_desc-surfvol_${type_anat}.nii.gz
-    D['surf_vol']    = "{subj}/anat/{subj}_space-{spacename_anat}_{type_anat}_desc-surfvol_{type_anat}".format(**UC)
+    D['surf_vol']    = "{ss_path}/anat/{ss_name}_space-{spacename_anat}_{type_anat}_desc-surfvol_{type_anat}".format(**UC)
 
     # ${subj}_[${ses}_]task-${taskname}_[run-${runnum}_][echo-${echonum}_]space-orig_desc-tcat_bold.nii.gz
-    D['tcat_dset']   = "{subj}/func/{subj}_task-{taskname}_space-orig_desc-tcat_bold".format(**UC)
+    D['tcat_dset']   = "{ss_path}/func/{ss_name}_task-{taskname}_space-orig_desc-tcat_bold".format(**UC)
 
     # <just direct copy of filename>
-    D['template']    = "{subj}/anat/{template}".format(**UC)
+    D['template']    = "{ss_path}/anat/{template}".format(**UC)
 
     # ${subj}_[${ses}_]task-${taskname}_space-${spacename}_stat-residtsnr_statmap.nii.gz
-    D['tsnr_dset']   = "{subj}/func/{subj}_task-{taskname}_space-{spacename_final_epi}_stat-residtsnr_statmap".format(**UC)
+    D['tsnr_dset']   = "{ss_path}/func/{ss_name}_task-{taskname}_space-{spacename_final_epi}_stat-residtsnr_statmap".format(**UC)
 
     # ${subj}_[${ses}_]task-${taskname}_[run-${runnum}_][echo-${echonum}_]space-orig_boldref.nii.gz
-    D['vr_base_dset'] = "{subj}/func/{subj}_task-{taskname}_space-orig_boldref".format(**UC)
+    D['vr_base_dset'] = "{ss_path}/func/{ss_name}_task-{taskname}_space-orig_boldref".format(**UC)
 
 
     return D
