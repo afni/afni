@@ -158,8 +158,8 @@ int main( int argc , char * argv[] )
       if(fac==0.0) fac=1.0;
       nvox = data_im->nvox;             /* number of voxels in the sub-brik */
       outbar = (byte *) mri_data_pointer(out_data_im);
-      outfar = mri_data_pointer(out_data_im);
-      outsar = mri_data_pointer(out_data_im);
+      outfar = (float *) mri_data_pointer(out_data_im);
+      outsar = (short *) mri_data_pointer(out_data_im);
       badsb_type = 0;
       switch(data_im->kind){
            case MRI_short:{
