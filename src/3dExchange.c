@@ -157,9 +157,9 @@ int main( int argc , char * argv[] )
       fac = DSET_BRICK_FACTOR(dset, i); /* get scale factor for each sub-brik*/
       if(fac==0.0) fac=1.0;
       nvox = data_im->nvox;             /* number of voxels in the sub-brik */
-
-      outfar = outsar = outbar = mri_data_pointer(out_data_im);
-
+      outbar = (byte *) mri_data_pointer(out_data_im);
+      outfar = mri_data_pointer(out_data_im);
+      outsar = mri_data_pointer(out_data_im);
       badsb_type = 0;
       switch(data_im->kind){
            case MRI_short:{
