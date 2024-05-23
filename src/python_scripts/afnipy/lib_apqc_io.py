@@ -102,6 +102,7 @@ ver = '2.10' ; date = 'June 5, 2023'
 # Supplementary stuff and I/O functions for the AP QC tcsh script
 
 import sys, copy, os
+import matplotlib.colors        as mcol
 from   afnipy import lib_afni1D as LAD
 from   afnipy import afni_util  as au
 from   afnipy import afni_base  as ab
@@ -136,7 +137,7 @@ DEF_fontsize      = 10
 DEF_fontfamily    = "monospace"
 DEF_fontstyles    = [] # empty by default, so comp would go through list
 DEF_layout        = "tight"  # good for single plots; 'nospace' for multiplot
-DEF_censor_RGB    = [1, 0.7, 0.7] #'red' #'green'
+DEF_censor_RGB    = '1 0.7 0.7' #[1, 0.7, 0.7] #'red' #'green'
 DEF_censor_hline_RGB = 'cyan'
 DEF_patch_alt_RGB = '0.95'
 DEF_bkgd_color    = '0.9'
@@ -280,6 +281,21 @@ COMMAND OPTIONS ~1~
                       That is, each time point is divided by the
                       max value. When using this, a visually
                       pleasing yaxis range might be 0:1.1.
+
+-yfiles_pm YP :one or more file names of text files. Each column in
+               this file will be treated as a separate time series for
+               plotting a plus/minus colorized range for an associated
+               yfile/infile line. The number of files input with YP
+               must exactly match that of either '-infiles ..' or
+               '-yfiles ..'. The color will match the line color, but at
+               greatly reduced opacity.
+
+-ylim_use_pm  :by default, if not '-yaxis ..' opt is used, the ylim
+               range each subplot comes from (slightly expanded)
+               bounds of the min and max yvalue in each. But if
+               '-yfiles_pm ..' is used, you can use this option to expand
+               those limits by the min and max of the extra error-bounded
+               space.
 
 -xfile   XX   :one way to input x-values explicitly: as a "1D" file XX, a
                containing a single file of numbers.  If no xfile is 
@@ -468,8 +484,14 @@ COMMAND OPTIONS ~1~
                 in a list, when some subplots have censor_hline values
                 and others don't.
 
--censor_RGB COL :choose the color of the censoring background; default
-                is: {def_cen_RGB}.
+-censor_RGB COL :choose the color of the censoring background; from the 
+                command line, users enter a string, which could be:
+                + 3 space-separated floats in range [0, 1], of RGB values
+                + 4 space-separated floats in range [0, 1], of RGBA values
+                + 1 string of a valid matplotlib color
+                + 1 string of a valid matplotlib color and 1 floats in 
+                  range [0, 1], which is an alpha opacity value.
+                (default is: '{def_cen_RGB}').
 
 -bkgd_color BC :change the background color outside of the plot
                 windows.  Default is the Python color: {def_col_bkdg}.
@@ -556,6 +578,61 @@ def ARG_missing_arg(arg):
     print("** ERROR: missing argument after option flag: {}".format(arg))
     sys.exit(1)
 
+# ------------------------------------------------------------------------
+
+def interpret_censor_RGB(c):
+    '''Take in a string c to be interpreted as either just a color or a
+color plus alpha opacity value. c can take many forms (space separated):
+    - a list of 3 numbers, each between [0,1], like RGB
+    - a string of 3 numbers, each between [0,1], like RGB
+    - a string of 4 numbers, each between [0,1], like RGBA
+    - a string of 1 item, to be interpreted as a color via mcol.to_rgb()
+    - a string of 2 items: the first to be interpreted as a color via 
+      mcol.to_rgb(), and the second to be an alpha opacity
+
+Parameters
+----------
+c : str (or list)
+    str or list to be interpreted as a color, as above
+
+Returns
+-------
+rgb : list
+    a list of 3 or 4 floats, each in [0,1], that is either RGB or RGBA,
+    respectively
+
+    '''
+
+    if type(c) != str :
+        return c
+
+    # ... from here, assume we are interpreting a string of 1,2,3 or 4 items
+    l = c.split()
+    n = len(l)
+
+    if n == 1 :
+        # assume this is a colorname to parse
+        try:
+            rgb = list(mcol.to_rgb(l[0]))
+        except:
+            sys.exit("** ERROR: could not interpret censor_RGB "
+                     "color '{}'".format(c))
+
+    elif n == 2 :
+        # assume this is a colorname + alpha value to parse
+        try:
+            rgb = list(mcol.to_rgb(l[0]))
+            rgb.append(float(l[1]))
+        except:
+            sys.exit("** ERROR: could not interpret censor_RGB "
+                     "color '{}'".format(c))
+
+    elif n == 3 or n == 4 :
+        # assume RGB or RGBA
+        rgb = [float(x) for x in l]
+
+    return rgb
+
 # ========================================================================
 # ======================== for 1dplotting pythonly =======================
 
@@ -576,7 +653,7 @@ class figplobj:
         self.layout       = DEF_layout
         self.see_xax      = True
         self.color_table  = []
-        self.censor_RGB   = DEF_censor_RGB
+        self.censor_RGB   = interpret_censor_RGB(DEF_censor_RGB)
         self.censor_width = 0
         self.censor_arr   = []              # NB: really stays a list
         self.censor_on    = DEF_censor_on
@@ -590,10 +667,14 @@ class figplobj:
         self.bplot_view   = ''
         self.boxplot_ycen = DEF_boxplot_ycen
         self.legend_on    = False
+        self.ylim_use_pm  = False
         self.ylabels_maxlen = None
 
+
+    # ----------------------------
+
     def set_censor_RGB(self, c):
-        self.censor_RGB = c
+        self.censor_RGB = interpret_censor_RGB(c)
 
     def set_censor_on(self, c):
         self.censor_on = c
@@ -756,6 +837,7 @@ class subplobj:
         self.legloc = None
         self.xlim   = []
         self.ylim   = []
+        self.ylim_use_pm = False
         self.npts   = -1
         self.color  = ""
         self.ymin   = 0.
@@ -774,12 +856,19 @@ class subplobj:
         self.ymax = ymax
         self.npts = len(y)
 
+    def set_yran(self, bot, top):
+        #ymin, ymean, ymax, ystdev = au.min_mean_max_stdev(y)
+        self.yranbot = bot
+        self.yrantop = top
+
+        if self.ylim_use_pm :
+            self.ymin = min(bot)
+            self.ymax = max(top)
+
     # [PT: Jan 15, 2019] put these properties for each single subj now
     def set_ycen(self, y):
         ymin, ymean, ymax, ystdev = au.min_mean_max_stdev(y)
         self.ycen = y
-        #self.ymin = np.min(self.y)
-        #self.ymax = np.max(self.y)
         self.ycenmin = ymin
         self.ycenmax = ymax
         self.ycennpts = len(y)
@@ -789,6 +878,9 @@ class subplobj:
 
     def set_ylabel(self, ylabel):
         self.ylabel = ylabel
+
+    def set_ylim_use_pm(self, x):
+        self.ylim_use_pm = x
 
     def set_leglabel(self, sss):
         self.leglabel = sss
@@ -851,6 +943,12 @@ class apqc_1dplot_opts:
         self.prefix   = DEF_prefix
         self.ninfiles = 0
 
+        self.yfile_pm     = []
+        self.n_yfile_pm   = 0
+        self.yfile_rantop = []
+        self.yfile_ranbot = []
+        self.ylim_use_pm  = False
+
         self.legend_on  = False 
         self.leglabels  = []    # can have legend, def. labels are -yfiles arg
         self.nleglabels = 0
@@ -896,7 +994,7 @@ class apqc_1dplot_opts:
         self.censor_arr   = []     # the final list; this is used
         self.ncensor      = 0
         self.censor_width = 0
-        self.censor_RGB   = DEF_censor_RGB
+        self.censor_RGB   = interpret_censor_RGB(DEF_censor_RGB)
         self.censor_hline = []
 
         self.scale        = []  # [PT: June 28, 2019] vertical, y-scale possible
@@ -917,6 +1015,10 @@ class apqc_1dplot_opts:
     def add_infile(self, fff):
         self.infiles.append(fff)
         self.ninfiles+= 1
+
+    def add_yfile_pm(self, fff):
+        self.yfile_pm.append(fff)
+        self.n_yfile_pm+= 1
 
     # !!!! also check to put a file extension on end -- jpg by default?
     def set_prefix(self, prefix):
@@ -976,7 +1078,7 @@ class apqc_1dplot_opts:
         self.censor_on = True
 
     def set_censor_RGB(self, c):
-        self.censor_RGB = c
+        self.censor_RGB = interpret_censor_RGB(c)
 
     def set_ylabels_maxlen(self, ml):
         self.ylabels_maxlen = int(ml)
@@ -1320,6 +1422,71 @@ class apqc_1dplot_opts:
 
         return 0
 
+    def create_all_yran(self):
+        '''Populate ordinate/y-range values from one or more filenames of
+    -yfile_pm values.
+
+        '''
+
+        ypm = []
+        for fff in self.yfile_pm:
+            x = LAD.Afni1D(fff)
+            print("++ FOR: {}: {} arrays with {} pts".format(fff, 
+                                                             x.nvec, 
+                                                             x.nt))
+            # this is done a bit clunkily here at the mo b/c; used to
+            # read in as AfniData, which was relatively backwards; can
+            # simplify later...
+            for i in range(x.nvec):
+                p = []
+                for j in range(x.nt):
+                    # take absolute value of each number
+                    p.append(abs(x.mat[i][j]))
+                ypm.append(p)
+
+        # need to have matching lengths of inputs, if ypm has been input
+        lypm = len(ypm)
+        ly   = len(self.all_y)
+        if not( lypm ) :
+            self.all_yrantop = []
+            self.all_yranbot = []
+        else:
+            if lypm != ly :
+                print("** num of yfiles_pm ({}) != num of yfiles ({})"
+                      "".format(lypm, ly))
+                sys.exit(3)
+
+            Nypm = len(ypm[0])
+            Ny   = len(self.all_y[0])
+            if Nypm != Ny :
+                print("** length of yfiles_pm ({}) != len of yfiles ({})"
+                      "".format(Nypm, Ny))
+                sys.exit(4)
+
+            self.all_yranbot = [[self.all_y[j][i] - ypm[j][i] \
+                                 for i in range(len(ypm[j]))] \
+                                for j in range(ly)]
+            self.all_yrantop = [[self.all_y[j][i] + ypm[j][i] \
+                                 for i in range(len(ypm[j]))] \
+                                for j in range(ly)]
+        #self.set_npts()
+        #self.set_ndsets()
+        if self.ylim_use_pm :
+            self.set_yran_minmax()
+
+    def set_yran_minmax(self):
+        # this would be run after set_y_minmax(), and hence re-set it
+        gmin = 10**100
+        gmax = -gmin
+        for i in range(self.ndsets):
+            lmin = min(self.all_yranbot[i])
+            lmax = max(self.all_yrantop[i])
+            if lmin < gmin :
+                gmin = lmin
+            if lmax > gmax :
+                gmax = lmax
+        self.all_ymin = gmin
+        self.all_ymax = gmax
 
     def create_all_x(self):
         '''Populate abscissa/x-values depending on what the user entered,
@@ -1484,6 +1651,26 @@ def parse_1dplot_args(full_argv):
             iopts.set_prefix(argv[i])
 
         # ---------- opt ---------------
+
+        # can have multiple yfiles_pm; must all have same len
+        elif argv[i] == "-yfiles_pm":
+            count = 0
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            while i < Narg:
+                if not(all_opts.__contains__(argv[i])): 
+                    iopts.add_yfile_pm(argv[i])
+                    count+=1
+                    i+=1
+                else:
+                    i-=1
+                    break
+            if not(count):
+                ARG_missing_arg(argv[i])
+
+        elif argv[i] == "-ylim_use_pm":
+            iopts.ylim_use_pm = True
 
         elif argv[i] == "-ylabels":
             count = 0
