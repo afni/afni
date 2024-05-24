@@ -1581,7 +1581,7 @@ args_dict2 : dict
 
 def interpret_vol_info(vol_dict, verb=1):
     """This function takes a dictionary of all command line-entered items
-that are/might be related to MRI acquistion, and will: 1)
+that are/might be related to MRI acquisition, and will: 1)
 expand/calculate any info (like slice times); 2) check info for
 conflicts; 3) reduce info down (= reconcile items) where it is OK to do so.
 

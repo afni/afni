@@ -256,7 +256,7 @@ char * COMPRESS_add_suffix( char * fname , int mm )
 
 /*--------------------------------------------------------------*/
 
-/*** open a file for readin, possibly using compresson ***/
+/*** open a file for reading, possibly using compresson ***/
 
 FILE * COMPRESS_fopen_read( char * fname )
 {

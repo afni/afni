@@ -225,7 +225,7 @@ static char *afni_papers[] = {
    "  Integrated strategy for improving functional connectivity mapping using\n" ,
    "  multiecho fMRI.  PNAS 110: 16187-16192, 2013.\n" ,
    "\n" ,
-   "  * A data acquistion and processing strategy for improving resting state FMRI.\n" ,
+   "  * A data acquisition and processing strategy for improving resting state FMRI.\n" ,
    "  * https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3791700/\n" ,
    "  * https://dx.doi.org/10.1073/pnas.1301725110\n" ,
    "----------------------------------------------------------------------------\n" ,

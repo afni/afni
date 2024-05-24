@@ -1273,7 +1273,7 @@ afni_history_struct ziad_history[] = {
  { 4, Jun , 2013 , ZSS , "SurfToSurf" , MINOR , TYPE_NEW_OPT,
    "Added nearest neighbor search option",
    "There is no need to search along a certain direction when\n"
-   "mapping between two speres of identical radius and size.\n"
+   "mapping between two spheres of identical radius and size.\n"
  },
  
  { 9, May , 2013 , ZSS , "R_io" , MINOR , TYPE_BUG_FIX,
