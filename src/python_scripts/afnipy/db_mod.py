@@ -9448,7 +9448,7 @@ default blocks (the user may skip these, or alter their order): ~2~
     tshift      : slice timing alignment on volumes (default is -time 0)
     volreg      : volume registration (default to third volume)
     blur        : blur each volume (default is 4mm fwhm)
-    mask        : create a 'brain' mask from the EPI data (dilate 1 voxel)
+    mask        : create a 'brain' mask from the EPI data
     scale       : scale each run mean to 100, for each voxel (max of 200)
     regress     : regression analysis (default is GAM, peak 1, with motion
                   params)
@@ -9461,15 +9461,14 @@ optional blocks (the default is to _not_ apply these blocks) ~2~
     empty       : placeholder for some user command (uses 3dTcat as sample)
     ricor       : RETROICOR - removal of cardiac/respiratory regressors
     surf        : project volumetric data into the surface domain
-    tlrc        : warp anat to standard space
+    tlrc        : warp anat to a standard space/specified template
 
 implicit blocks (controlled by program, added when appropriate) ~2~
 
-    blip                   : perform B0 distortion correction
-    outcount               : temporal outlier detection
-    quality control review : generate QC review scripts and HTML report
-    @radial_correlate      : QC - compute local neighborhood correlations
-    uniformity correction  : anatomical uniformity correction
+    blip        : perform B0 distortion correction
+    outcount    : temporal outlier detection
+    QC review   : generate QC review scripts and HTML report
+    anat_unif   : anatomical uniformity correction
 
 ==================================================
 DEFAULTS: basic defaults for each block (blocks listed in default order) ~1~
