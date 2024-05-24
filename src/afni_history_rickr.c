@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, May, 2024, RCR, "suma-general", MINOR, TYPE_ENHANCE,
+   "merge SUMA directory of suma20240327 branch",
+   "This is a remerge from the 2024.0328 revert, with updates."
+ } ,
+
  {  7, May, 2024, RCR, "3dCM", MICRO, TYPE_BUG_FIX,
    "3dCM briefly required a mask",
    "Thanks to P Kundu for pointing out the problem."
