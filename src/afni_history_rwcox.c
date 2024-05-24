@@ -98,7 +98,7 @@ afni_history_struct rwcox_history[] = {
    "LCB = LASSO Centro Block\n"
    "The penalty in a block is\n"
    "  sum{ ABS[ beta[i] - centromean(beta[i],...) ] }\n"
-   "which is intendend to make all the beta[i] in a block shrink towards a\n"
+   "which is intended to make all the beta[i] in a block shrink towards a\n"
    "common value, rather than towards 0. The intent is to use this with IM\n"
    "regression models from 3dDeconvolve, to reduce outliers in the\n"
    "stimulus-wise beta estimates." } ,
