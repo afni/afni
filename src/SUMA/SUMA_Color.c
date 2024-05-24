@@ -154,7 +154,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap ( float **Fiducials, int Nfid, byte isRGBA,
       }
    }
 
-   /* package the resutls */
+   /* package the results */
    SM = (SUMA_COLOR_MAP *)SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
    if (SM == NULL) {
       fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM.\n", FuncName);
@@ -297,7 +297,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, byte isRGBA,
       } else M[im][3] = 1.0;
    }
 
-   /* package the resutls */
+   /* package the results */
    SM = (SUMA_COLOR_MAP *)SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
    if (SM == NULL) {
       fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM.\n", FuncName);
@@ -7546,7 +7546,7 @@ GLfloat *makeGlOldGlColar(SUMA_SurfaceObject *SO){
     // Allocate memory to old GLcolor
     int numElements = SO->N_Node * 4;
     if (!(glOldGlColar = (GLfloat *)malloc(numElements*sizeof(GLfloat)))){
-        SUMA_S_Err("Error allocating memory to old glOldGlColar vactor\n");
+        SUMA_S_Err("Error allocating memory to old glOldGlColar vector\n");
         return NULL;
     }
     
@@ -9083,7 +9083,7 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
          // NodeEDef is just a monotonically increasing, array of integers giving the indices
          // of the nodes, typically 0,1,2,3,4,...,N_Node-1
          // glcolar is an array of RGBA values (GLFloat). for the first four tetrads, A always 
-         //     seems to be zero.  Setting the A value to 1.0 seems to have no effect.  Whne the 
+         //     seems to be zero.  Setting the A value to 1.0 seems to have no effect.  When the 
          // color is gone, the RGB values are set to zero
          // Before SUMA_RGBv_PnGnL_AR4op is called, glcolar is all zeros.  SUMA_RGBv_PnGnL_AR4op
          // Assigns the RGB values, in ColEVec to the RGB values of glcolar.  The A values
