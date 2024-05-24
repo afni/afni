@@ -151,8 +151,10 @@ extrudeSolidFromPolygon(GLfloat data[][2], unsigned int dataSize,
     tobj = gluNewTess();  /* create and initialize a GLU
                              polygon tessellation object */
     /* cast 3rd args as _GLUfuncptr for some machines   02 Aug 2004 [rickr] */
-    gluTessCallback(tobj, GLU_BEGIN, CAST_GLU_FUNCPTR glBegin);
-    gluTessCallback(tobj, GLU_VERTEX, CAST_GLU_FUNCPTR glVertex2fv);/* tricky */
+    gluTessCallback(tobj, GLU_BEGIN,  (void *) glBegin);
+//    gluTessCallback(tobj, GLU_BEGIN, CAST_GLU_FUNCPTR glBegin);
+    gluTessCallback(tobj, GLU_VERTEX, (void *) glVertex2fv);/* tricky */
+//    gluTessCallback(tobj, GLU_VERTEX, CAST_GLU_FUNCPTR glVertex2fv);/* tricky */
     gluTessCallback(tobj, GLU_END, CAST_GLU_FUNCPTR glEnd);
   }
   glNewList(side, GL_COMPILE);
