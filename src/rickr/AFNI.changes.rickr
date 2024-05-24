@@ -351,7 +351,7 @@
 
 07 November 2003:
   * Added SUMA_SurfMeasures.[ch] -> SurfMeasures (v0.2)
-      - this is not a release version (this checkin is for backup)
+      - this is not a release version (this check-in is for backup)
       - supported functions are coord_A, coord_B, n_area_A, n_area_B,
         nodes, node_vol and thick
 
@@ -2071,7 +2071,7 @@
   * modified CMakeLists.txt, niftilib/CMakeLists.txt, nifti1_io.c
 
 29 Jun 2007: file_tool can work with ANALYZE headers
-  * added fields.[ch], incorportating field lists from nifti_tool
+  * added fields.[ch], incorporating field lists from nifti_tool
   * modified file_tool.[ch]:
         - added options -def_ana_hdr, -diff_ana_hdrs, -disp_ana_hdr, -hex
   * modified rickr/Makefile: file_tool depends on fields.[ch]

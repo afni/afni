@@ -88,7 +88,7 @@ required.add_argument('-input',type=str,help='At least one 3d+time dataset.',
 ## optional
 parser.add_argument('-help',action='help',help='Show this help and exit.')
 
-## mutally exclusive but one required
+## mutually exclusive but one required
 OnlyOne.add_argument('-TR_match',action="store_true",default=False,
                      help=('Check if the TR in the json file matches the'+
                            ' TR from input dataset header. (1 if match)'))

@@ -89,8 +89,8 @@ X(N).*/
 
 /*    Partition the working space array, so that different parts of it can
  be*/
-/*    treated separately by the subroutine that performs the main calculat
-ion.*/
+/*    treated separately by the subroutine that performs the main
+ calculation.*/
 
     /* Parameter adjustments */
     --w;

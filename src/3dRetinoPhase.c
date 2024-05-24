@@ -617,7 +617,7 @@ static void RP_tsfunc( double tzero, double tdelta ,
    } else {
       val[0] =  phz[rpud->stk[1]];
    }
-   /* linear interpolation between closest frequecies for amplitude */
+   /* linear interpolation between closest frequencies for amplitude */
    val[1] = (  mag[rpud->stk[0]]*rpud->stw[0] + 
                mag[rpud->stk[1]]*rpud->stw[1] );
    val[1] *= val[1]; /* square for power*/

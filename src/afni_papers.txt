@@ -223,7 +223,7 @@ P Kundu, ND Brenowitz, V Voon, Y Worbe, PE Vertes, SJ Inati, ZS Saad,
   Integrated strategy for improving functional connectivity mapping using
   multiecho fMRI.  PNAS 110: 16187-16192, 2013.
 
-  * A data acquistion and processing strategy for improving resting state FMRI.
+  * A data acquisition and processing strategy for improving resting state FMRI.
   * https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3791700/
   * https://dx.doi.org/10.1073/pnas.1301725110
 ----------------------------------------------------------------------------

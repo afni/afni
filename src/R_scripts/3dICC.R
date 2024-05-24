@@ -22,7 +22,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
    intro <- 
 '
           ================== Welcome to 3dICC ==================          
-          AFNI Program for IntraClass Correlatin (ICC) Analysis
+          AFNI Program for IntraClass Correlation (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Version 1.0, Oct 4, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)

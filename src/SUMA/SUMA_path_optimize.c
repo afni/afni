@@ -30,7 +30,7 @@ void usage_path_optimize (SUMA_GENERIC_ARGV_PARSE *ps)
                "                    Default is no adjustment.                                                  \n"  
                "  -sin_kern         Choose to use the expansion factor that includes the sine term.            \n"
                "                    Default is without the sine component of the kernel,  but the default      \n"
-               "                       doesn't work. This option is manditory for successful deformations.     \n"
+               "                       doesn't work. This option is mandatory for successful deformations.     \n"
                "  -dot:             Choose to use a dot product requirement when calculated the weights         \n"
                "                    to ensure tangency.                                                        \n"
                "  -neighb_check:    Will check at each iteration if the distance to each node's nearest        \n"

@@ -224,7 +224,7 @@ struct _list_node
 
 /* freeing all of the allocated mem on an error can get a little messy. instead
    we can use this macro to check what has been allocated and kill it. this of 
-   course requires strict discipline for initiazing all pointers to NULL and 
+   course requires strict discipline for initializing all pointers to NULL and 
    resetting them to NULL when free'd. i should be able to handle that */
 #define CHECK_AND_FREE_ALL_ALLOCATED_MEM \
 { \

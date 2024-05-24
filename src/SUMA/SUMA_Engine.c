@@ -3884,6 +3884,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_UpdateViewerTitle(sv);
                   }
                }
+               
+               SUMA_cb_SurfCont_SwitchPage ((void *)ado);
             }
 
             if (NI_get_attribute(EngineData->ngr, "switch_dset")) {
@@ -4076,6 +4078,69 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
                XmToggleButtonSetState ( SurfCont->ShowZero_tb,
                               SurfCont->curColPlane->OptScl->MaskZero, YUP);
+            }
+
+            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA")) {
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "y")){
+                fprintf(stderr, "Show alpha\n");
+                  // SurfCont->AlphaOpacityFalloff = 1;
+                  if (!(SurfCont->AlphaOpacityFalloff))
+                    XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+                      !(SurfCont->AlphaOpacityFalloff), YUP);
+
+               }
+               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "n"))
+               {
+                  if (SurfCont->AlphaOpacityFalloff)
+                    XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+                      !(SurfCont->AlphaOpacityFalloff), YUP);
+                  // SurfCont->AlphaOpacityFalloff = 0;
+               }
+               else {
+                  SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA, setting to 'y'\n",
+                              NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA"));
+                  SurfCont->AlphaOpacityFalloff = NOPE;
+               }
+//               XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+//                              SurfCont->AlphaOpacityFalloff, YUP);
+            }
+
+            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE")) {
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "L")){
+                  SurfCont->alphaOpacityModel = LINEAR;
+               }
+               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "Q"))
+               {
+                  SurfCont->alphaOpacityModel = QUADRATIC;
+               }
+               else {
+                  SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L/Q",
+                              NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
+               }
+               if (!sv) sv = &(SUMAg_SVv[0]); 
+               SO = SUMA_SV_Focus_SO(sv);
+               SO->SurfCont->alphaOpacityModel = SurfCont->alphaOpacityModel;
+   
+               // Refresh display
+               SUMA_Remixedisplay(ado);
+               SUMA_UpdateNodeLblField(ado);
+            }
+
+            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED")) {
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_BOXED", "y")){
+                  SurfCont->BoxOutlineThresh = 1;
+               }
+               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_BOXED", "n"))
+               {
+                  SurfCont->BoxOutlineThresh = 0;
+               }
+               else {
+                  SUMA_S_Errv("Bad value of %s for SET_FUNC_BOXED, setting to 'y'\n",
+                              NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED"));
+                  SurfCont->BoxOutlineThresh = NOPE;
+               }
+               XmToggleButtonSetState ( SurfCont->BoxOutlineThresh_tb,
+                              SurfCont->BoxOutlineThresh, YUP);
             }
 
             if (NI_get_attribute(EngineData->ngr, "B_sb")) {
@@ -6500,6 +6565,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
 
          /* if the surface controller is open, update it */
          if (SUMA_isADO_Cont_Realized((SUMA_ALL_DO *)SO_nxt))   {
+            // Artifactual surface control menu stretching happens here
             SUMA_Init_SurfCont_SurfParam((SUMA_ALL_DO *)SO_nxt);
          }
 

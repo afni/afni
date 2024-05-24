@@ -228,7 +228,7 @@ getOverlayVisualInfoRGB(unsigned int mode)
 
      I'd be interested.
 
-     For the record, SGI's expiremental Framebuffer Configuration
+     For the record, SGI's experimental Framebuffer Configuration
      experimental GLX extension uses option TWO.  Transparency
      modes for "none" and "RGB" are defined (others could be
      defined later).  What RGB value is the transparent one must be 

@@ -58,7 +58,7 @@ endif
 file_tool -overwrite -show_file_type  -show_bad_char -infiles $LabelFile \
           -prefix delete.me00.2D
 
-## give a chance for interuption after the temp files are created
+## give a chance for interruption after the temp files are created
 onintr CLEAN_BAD
 
 ## read in the labels
