@@ -2405,6 +2405,7 @@ def db_mod_volreg(block, proc, user_opts):
     apply_uopt_to_block('-volreg_method', user_opts, block)
     apply_uopt_to_block('-volreg_allin_cost', user_opts, block)
     apply_uopt_to_block('-volreg_allin_auto_stuff', user_opts, block)
+    apply_uopt_to_block('-volreg_allin_warp', user_opts, block)
     apply_uopt_to_block('-volreg_post_vr_allin', user_opts, block)
     apply_uopt_to_block('-volreg_pvra_base_index', user_opts, block)
     apply_uopt_to_block('-volreg_interp', user_opts, block)
@@ -3228,8 +3229,16 @@ def make_volreg_command_allin(block, prev_prefix, prefix, basestr, matstr,
                               other_opts="", resam="Cu"):
     """return the main volreg command string, but using 3dAllineate"""
 
+    # get/set cost function
     allin_cost, rv = block.opts.get_string_opt('-volreg_allin_cost',
                                                default='lpa')
+    if rv:
+       print("** failed to parse -volreg_allin_cost")
+       return
+
+    # get/set warp restriction
+    allin_warp, rv = block.opts.get_string_opt('-volreg_allin_warp',
+                                               default='shift_rotate')
     if rv:
        print("** failed to parse -volreg_allin_cost")
        return
@@ -3251,12 +3260,13 @@ def make_volreg_command_allin(block, prev_prefix, prefix, basestr, matstr,
             "        -base %s \\\n"                      \
             "        -source %s \\\n"                    \
             "        -prefix %s \\\n"                    \
+            "        -warp %s \\\n"                      \
             "        -1Dfile dfile.m12.r$run.1D \\\n"    \
             "%s"                                         \
             "%s"                                         \
             "        -cost %s %s\n\n" %                  \
             (autostuff, basestr, prev_prefix, prefix,
-             matstr, other_opts, allin_cost, resam)
+             allin_warp, matstr, other_opts, allin_cost, resam)
 
     vrcmd += "    # and extract the 6 rigid-body params\n"   \
              "    1dcat dfile.m12.r$run.1D'[3..5,0..2]' > dfile.r$run.1D\n"
@@ -12310,6 +12320,13 @@ OPTIONS:  ~2~
             BDIR    : a path to a derivative directory
                       (must be absolute, i.e. staring with a /)
 
+        The resulting directory will include the directories:
+
+            anat        : anat and template
+            func        : EPI BOLD time series, mask, residuals...
+            func_stats  : statistical contrasts and stats datasets
+            logs        : any copied log files
+
         Please see 'map_ap_to_deriv.py -help' for more information.  Note that
         map_ap_to_deriv.py can easily be run separately.
 
@@ -13604,7 +13621,7 @@ OPTIONS:  ~2~
 
     -volreg_allin_auto_stuff OPT ...  : specify 'auto' options for 3dAllin.
 
-            e.g. -volreg_allin_auto_stuff -autoweight -warp shift_rotate
+            e.g. -volreg_allin_auto_stuff -autoweight
 
         When using 3dAllineate to do EPI motion correction, the default
         'auto' options applied are:
@@ -13616,7 +13633,29 @@ OPTIONS:  ~2~
       * All 3 options will be replaced, so if -autoweight is still wanted,
         for example, please include it with -volreg_allin_auto_stuff.
 
+      * Do not pass -warp through here, but via -volreg_allin_warp.
+
         Please see '3dAllineate -help' for more details.
+
+    -volreg_allin_warp WARP : specify -warp for 3dAllineate EPI volreg step
+
+            e.g.    -volreg_allin_warp affine_general
+            default -volreg_allin_warp shift_rotate
+
+        When using 3dAllineate to do EPI motion correction, the default -warp
+        type is shift_rotate (rigid body).  Use this option to specify another.
+
+        The valid WARP options are:
+
+            shift_rotates       : 6-param rigid body
+            shift_rotate_scale  : 9-param with scaling
+            affine_general      : 12-param full affine
+
+        While 3dAllinate allows shift_rotate, afni_proc.py does not, as it
+        would currently require an update to handle the restricted parameter
+        list.  Please let rickr know if this is wanted.
+
+        Please see '-warp' from '3dAllineate -help' for more details.
 
     -volreg_allin_cost COST : specify the cost function used in 3dAllineate
 

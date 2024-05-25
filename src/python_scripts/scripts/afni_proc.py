@@ -786,7 +786,9 @@ g_history = """
     7.73 Apr  7, 2024: the default warp vox dim will round up if very close
     7.74 Apr  8, 2024: add -anat_follower_erode_level
     7.75 Apr 25, 2024: add -uvar option, to pass user vars along
-    7.76 May 25, 2024: add -bids_deriv, to output a BIDS derivative tree
+    7.76 May 25, 2024:
+       - add -bids_deriv, to output a BIDS derivative tree
+       - add -volreg_allin_warp (def shift_rotate)
 """
 
 g_version = "version 7.76, May 25, 2024"
@@ -857,6 +859,7 @@ interesting milestones for afni_proc.py:
    2021.11 : updated MEICA group tedana
    2022.11 : find_variance_lines.tcsh
    2024.02 : new examples (demo, short, publish), with mod date
+   2024.05 : can output BIDS derivative tree
 """
 
 
@@ -891,6 +894,9 @@ More detailed changes, starting May, 2018.
 
    10 Mar 2022 : run 3dAllineate for -align_epi_ext_dset to volreg base
       - apply an additional xform between anat2epi base and epi2epi one
+
+   25 May 2024 : make volreg_method 3dAllinate default warp shift_rotate
+      - add -volreg_allin_warp to control
 
 """
 
@@ -1573,6 +1579,10 @@ class SubjProcSream:
                         helpstr="specify -*auto* options for 3dAllineate")
         self.valid_opts.add_opt('-volreg_allin_cost', 1, [],
                         helpstr="specify -cost for 3dAllineate in volreg [lpa]")
+        self.valid_opts.add_opt('-volreg_allin_warp', 1, [],
+                        acplist=['shift_rotate', 'shift_rotate_scale',
+                                 'affine_general'],
+                        helpstr="specify -warp for 3dAllineate in volreg")
         self.valid_opts.add_opt('-volreg_post_vr_allin', 1, [],
                         acplist=['yes','no'],
                         helpstr='do cross-run allin after within-run volreg')
