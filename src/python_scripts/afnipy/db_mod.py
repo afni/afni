@@ -12296,6 +12296,23 @@ OPTIONS:  ~2~
 
         Please see "man bash" or "man tee" for more information.
 
+    -bids_deriv BDIR        : request BIDS derivative output
+
+            e.g. -bids_deriv yes
+            e.g. -bids_deriv /my/path/to/derivatives/TASK_PICKLES
+            default: -bids_deriv no
+
+        Use this option to request a copy of relevant output converted to BIDS
+        tree format.  BDIR can be one of:
+
+            no      : (default) do not produce any BIDS tree
+            yes     : the BIDS tree will go under the subject results directory
+            BDIR    : a path to a derivative directory
+                      (must be absolute, i.e. staring with a /)
+
+        Please see 'map_ap_to_deriv.py -help' for more information.  Note that
+        map_ap_to_deriv.py can easily be run separately.
+
     -blocks BLOCK1 ...      : specify the processing blocks to apply
 
             e.g. -blocks volreg blur scale regress

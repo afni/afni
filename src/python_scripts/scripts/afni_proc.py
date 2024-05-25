@@ -786,9 +786,10 @@ g_history = """
     7.73 Apr  7, 2024: the default warp vox dim will round up if very close
     7.74 Apr  8, 2024: add -anat_follower_erode_level
     7.75 Apr 25, 2024: add -uvar option, to pass user vars along
+    7.76 May 25, 2024: add -bids_deriv, to output a BIDS derivative tree
 """
 
-g_version = "version 7.75, April 25, 2024"
+g_version = "version 7.76, May 25, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

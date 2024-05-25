@@ -53,9 +53,10 @@
 
 afni_history_struct rickr_history[] = {
 
- { 24, May, 2024, RCR, "suma-general", MINOR, TYPE_ENHANCE,
-   "merge SUMA directory of suma20240327 branch",
-   "This is a remerge from the 2024.0328 revert, with updates."
+ { 25, May, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add -bids_deriv option",
+   "This adds a call to P Taylor's map_ap_to_deriv.py program, to output a\n"
+   "BIDS derivative tree.\n"
  } ,
 
  {  7, May, 2024, RCR, "3dCM", MICRO, TYPE_BUG_FIX,
