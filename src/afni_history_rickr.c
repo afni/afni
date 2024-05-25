@@ -59,6 +59,12 @@ afni_history_struct rickr_history[] = {
    "BIDS derivative tree.\n"
  } ,
 
+ { 25, May, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add -volreg_allin_warp option",
+   "This allows specific control over 3dAllineate -warp, using a default\n"
+   "of shift_rotate for rigid body registration.\n"
+ } ,
+
  {  7, May, 2024, RCR, "3dCM", MICRO, TYPE_BUG_FIX,
    "3dCM briefly required a mask",
    "Thanks to P Kundu for pointing out the problem."
