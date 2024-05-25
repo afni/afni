@@ -7391,7 +7391,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
 int *boxThresholdOutline(SUMA_SurfaceObject *SO, int *numThresholdNodes){
     static char FuncName[]={"boxThresholdOutline"};
     int o, i, j, k;
-    SUMA_OVERLAYS *overlay;
+    SUMA_OVERLAYS *overlay=NULL;
     float threshold;
     // float tolerance = 0.005;
     float tolerance = 0.05;
@@ -8332,6 +8332,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
             }
 
            if (reload){ // Reload colormap used for alpha transparencies
+                int ii, jj, i3, i4;
                 /************************************************************
                 As of 2024-02-02, this block is only called (reload true) 
                 when SUMA_Overlays_2_GLCOLAR4_SO is called from inside the 
@@ -8346,10 +8347,10 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 is called, before the beginning of SUMA_Overlays_2_GLCOLAR4_SO.
                 ************************************************************/
                 reload = 0;
-                for (int i=0; i<N_Node; ++i){
-                    int i3 = i*3;
-                    int i4 = i*4;
-                    for (int j=0; j<3; ++j)
+                for (ii=0; ii<N_Node; ++ii){
+                    i3 = ii*3;
+                    i4 = ii*4;
+                    for (jj=0; jj<3; ++jj)
                         currentOverlay->originalColVec[i3++] = glcolar_Fore[i4++];
                 }
            }
