@@ -1402,7 +1402,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-bash', 0, [],
                         helpstr='obsolete: show execution help in bash syntax')
         self.valid_opts.add_opt('-bids_deriv', 1, [],
-                        helpstr='specify BIDS output direcory (def=no)')
+                        helpstr='specify BIDS output directory (def=no)')
         self.valid_opts.add_opt('-check_afni_version', 1, [],
                         acplist=['yes','no'],
                         helpstr='check that AFNI is current enough')
