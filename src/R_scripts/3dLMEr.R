@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.8, Feb 13, 2024
+Version 1.0.9, May 25, 2024
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -985,7 +985,7 @@ if(dim(lop$dataStr)[2] > 3) for(ii in 3:(dim(lop$dataStr)[2]-1)) if(class(lop$da
    cat(length(lop$dataStr[,ii]), 'centered values for numeric variable', names(lop$dataStr)[ii], ':', lop$dataStr[,ii], '\n')
 #cat(lop$num_glt, 'post hoc tests\n')
 
-cat('\nContingency tables of subject distributions among the categorical variables:\n\n')
+#cat('\nContingency tables of subject distributions among the categorical variables:\n\n')
 
 cat('***** End of data structure information *****\n')
 cat('++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n')
