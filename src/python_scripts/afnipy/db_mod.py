@@ -9448,7 +9448,7 @@ default blocks (the user may skip these, or alter their order): ~2~
     tshift      : slice timing alignment on volumes (default is -time 0)
     volreg      : volume registration (default to third volume)
     blur        : blur each volume (default is 4mm fwhm)
-    mask        : create a 'brain' mask from the EPI data (dilate 1 voxel)
+    mask        : create a 'brain' mask from the EPI data
     scale       : scale each run mean to 100, for each voxel (max of 200)
     regress     : regression analysis (default is GAM, peak 1, with motion
                   params)
@@ -9461,15 +9461,14 @@ optional blocks (the default is to _not_ apply these blocks) ~2~
     empty       : placeholder for some user command (uses 3dTcat as sample)
     ricor       : RETROICOR - removal of cardiac/respiratory regressors
     surf        : project volumetric data into the surface domain
-    tlrc        : warp anat to standard space
+    tlrc        : warp anat to a standard space/specified template
 
 implicit blocks (controlled by program, added when appropriate) ~2~
 
-    blip                   : perform B0 distortion correction
-    outcount               : temporal outlier detection
-    quality control review : generate QC review scripts and HTML report
-    @radial_correlate      : QC - compute local neighborhood correlations
-    uniformity correction  : anatomical uniformity correction
+    blip        : perform B0 distortion correction
+    outcount    : temporal outlier detection
+    QC review   : generate QC review scripts and HTML report
+    anat_unif   : anatomical uniformity correction
 
 ==================================================
 DEFAULTS: basic defaults for each block (blocks listed in default order) ~1~
@@ -12296,6 +12295,23 @@ OPTIONS:  ~2~
             tcsh -x proc.ED.8.glt 2>&1 | tee output.proc.ED.8.glt
 
         Please see "man bash" or "man tee" for more information.
+
+    -bids_deriv BDIR        : request BIDS derivative output
+
+            e.g. -bids_deriv yes
+            e.g. -bids_deriv /my/path/to/derivatives/TASK_PICKLES
+            default: -bids_deriv no
+
+        Use this option to request a copy of relevant output converted to BIDS
+        tree format.  BDIR can be one of:
+
+            no      : (default) do not produce any BIDS tree
+            yes     : the BIDS tree will go under the subject results directory
+            BDIR    : a path to a derivative directory
+                      (must be absolute, i.e. staring with a /)
+
+        Please see 'map_ap_to_deriv.py -help' for more information.  Note that
+        map_ap_to_deriv.py can easily be run separately.
 
     -blocks BLOCK1 ...      : specify the processing blocks to apply
 

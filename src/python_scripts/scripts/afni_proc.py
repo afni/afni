@@ -786,9 +786,10 @@ g_history = """
     7.73 Apr  7, 2024: the default warp vox dim will round up if very close
     7.74 Apr  8, 2024: add -anat_follower_erode_level
     7.75 Apr 25, 2024: add -uvar option, to pass user vars along
+    7.76 May 25, 2024: add -bids_deriv, to output a BIDS derivative tree
 """
 
-g_version = "version 7.75, April 25, 2024"
+g_version = "version 7.76, May 25, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1173,6 +1174,7 @@ class SubjProcSream:
         self.have_3dd_stats = 1         # do we have 3dDeconvolve stats
         self.have_reml_stats = 0        # do we have 3dREMLfit stats
         self.epi_review = '@epi_review.$subj' # filename for gen_epi_review.py
+        self.bids_deriv   = 'no'        # yes/no/BIDS derivative directory root
         self.html_rev_style = 'pythonic' # html_review_style
         self.html_rev_opts = []         # user opts for apqc_make_tcsh.py
         self.made_ssr_scr = 0           # did we make subj review scripts
@@ -1399,6 +1401,8 @@ class SubjProcSream:
                         helpstr='have afni_proc.py as the user for options')
         self.valid_opts.add_opt('-bash', 0, [],
                         helpstr='obsolete: show execution help in bash syntax')
+        self.valid_opts.add_opt('-bids_deriv', 1, [],
+                        helpstr='specify BIDS output directory (def=no)')
         self.valid_opts.add_opt('-check_afni_version', 1, [],
                         acplist=['yes','no'],
                         helpstr='check that AFNI is current enough')
@@ -2092,6 +2096,9 @@ class SubjProcSream:
         if opt != None:
             if opt.parlist[0] == 'no': self.anat_has_skull = 0
             else:                      self.anat_has_skull = 1
+
+        opt = opt_list.find_opt('-bids_deriv') # make BIDS deriv?
+        if opt != None: self.bids_deriv = opt.parlist[0]
 
         opt = opt_list.find_opt('-copy_anat')
         if opt != None:
@@ -3550,6 +3557,24 @@ class SubjProcSream:
             self.write_text('# remove temporary files\n'
                             '\\rm -f%s %s\n\n' % (ropt, delstr))
 
+        # do we write output to a BIDS derivate tree?
+        blower = self.bids_deriv.lower()
+        if blower != 'no': # then the user wants BIDS
+           # require yes, no, or absolute path (check using lower case)
+           if blower not in ['no', 'yes']:
+              # any path is required to be absolute
+              if not self.bids_deriv.startswith('/'):
+                print("** -bids_deriv path must be absolute (start with /)")
+                return 1
+           if blower == 'yes': bdir = '.'
+           else              : bdir = self.bids_deriv
+           if bdir == '.'    : bstr = ''
+           else              : bstr = ' \\\n    -deriv_dir %s' % bdir
+           ss = '# --------------------------------------------------\n' \
+                '# generate BIDS derivative output\n'                    \
+                'map_ap_to_deriv.py -subj_dir .%s\n\n' % bstr
+           self.write_text(ss)
+
         # at the end, if the basic review script is here, run it
         if self.epi_review:
            # maybe we will have an html sub-section
@@ -3570,7 +3595,8 @@ class SubjProcSream:
                  if rv == 0:
                     print("+- consider use of: -html_review_style pythonic")
                 
-           ss = '# if the basic subject review script is here, run it\n' \
+           ss = '# --------------------------------------------------\n' \
+                '# if the basic subject review script is here, run it\n' \
                 '# (want this to be the last text output)\n'             \
                 'if ( -e %s ) then\n'                                    \
                 '    ./%s |& tee %s\n'                                   \
@@ -3628,6 +3654,8 @@ class SubjProcSream:
                 tstr += ' '.join(quotize_list(opt.parlist,''))
             tstr += '\n'
             self.write_text(add_line_wrappers(tstr))
+
+        return 0
 
     def get_ap_command_str(self, style='compact', lstart='# '):
        """return a commented command string, depending on the desired style
