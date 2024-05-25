@@ -111,7 +111,9 @@ char * make_output_prefix(char *prelim, int ndigits, int index,
    }
 
    /* start with prefix and digits */
-   if ( do_bids_deriv ) 
+   /* add . after prelim if following alpha or numeric char */
+   /* (and if not doing bids output) */
+   if ( isalnum(prelim[strlen(prelim)-1]) && ! do_bids_deriv )
       sprintf(sprefix, "%s.%0*d", prelim, ndigits, index);
    else
       sprintf(sprefix, "%s%0*d", prelim, ndigits, index);
