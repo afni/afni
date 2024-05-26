@@ -6696,8 +6696,6 @@ SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover)
    if (!SUMA_SetOverlay_Vecs(Sover, 'A', -1, "clear", 0)) {
       SUMA_S_Err("Failed to clear T/V");
    }
-
-   SUMA_free(Sover); Sover = NULL;
    
    if (Sover->originalColVec) {
        SUMA_free(Sover->originalColVec);
@@ -6708,6 +6706,8 @@ SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover)
        SUMA_free(Sover->originalCMapName);
        Sover->originalCMapName = NULL;
    }
+
+   SUMA_free(Sover); Sover = NULL;
 
    SUMA_RETURN (YUP);
 }
