@@ -844,6 +844,9 @@ class subplobj:
         self.ymax   = 0.
         self.censor_hline  = [] # will be list of number(s) and/or 'NONE'
 
+        self.yrantop = []
+        self.yranbot = []
+
     def set_x(self, x):
         self.x = x
 
