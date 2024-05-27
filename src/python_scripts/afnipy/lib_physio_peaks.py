@@ -146,6 +146,7 @@ def apply_bandpass_smooth(x, samp_freq,
                           min_bps, max_bps=None,
                           label='', retobj=None,
                           win_shape='blackman_nuttall',
+                          extend_bp=False,
                           verb=0):
     """Bandpass filter raw data based on overall typical period of the
 time series, and also return the peak (mode) of freq between [1,
@@ -176,6 +177,11 @@ label : str
 retobj : retro_obj class
     object with all necessary input time series info; will also store
     outputs from here; contains dictionary of phys_ts_objs
+win_shape : str
+    name of windowing shape function
+extend_bp : bool
+    opt to be more generous in bandpass (would only apply to resp data
+    at present, where there is more variability)
 
 Returns
 -------
@@ -236,15 +242,21 @@ idx_freq_peak : int
 
     # ----- window/attenuation/'bandpass'
 
+    # do we want extended hp range?
+    if extend_bp :
+        sig_fac = 2.0
+    else:
+        sig_fac = 1.0
+
     # [PT: Nov 22, 2023] Don't use a simple step filter---that can
     # introduce ringing. Each of these filters is better, because of
     # the tapering.
     if win_shape == 'blackman_nuttall' :
-        sigma = 1.0*freq_peak                         # scale width
+        sigma = sig_fac*freq_peak                         # scale width
         filt  = func_blackman_nuttall(N, delta=delta_f, sigma=sigma,
                                       hp_freq = highpass_freq)
     elif win_shape == 'flat_gaussian' :
-        sigma = 1.0*freq_peak                         # scale width
+        sigma = sig_fac*freq_peak                         # scale width
         filt  = func_flatgauss(N, delta=delta_f, sigma=sigma,
                                hp_freq = highpass_freq)
     else:
@@ -423,7 +435,8 @@ idx_freq_peak : int
     return xfilt, idx_freq_peak
 
 def get_peaks_from_bandpass(x, samp_freq, min_bps, max_bps=None, 
-                            width_fac=4, label='', retobj=None, verb=0):
+                            width_fac=4, label='', retobj=None, 
+                            extend_bp=False, verb=0):
     """Use bandpassing to smooth out the time series, and then search for
 peaks in what remains as a first pass.  The art of this is picking a
 good band to apply.  Here, we look for a major peak above the
@@ -449,6 +462,8 @@ width_fac : int/float
     default was simply used in original program formulation
 label : str
     label for the time series, like 'card' or 'resp'
+extend_bp : bool
+    extend bandpass range? (likely only used for resp)
 
 Returns
 -------
@@ -472,6 +487,7 @@ xfilt : np.ndarray
                                 max_bps=max_bps,
                                 label=label, 
                                 retobj=retobj,
+                                extend_bp=extend_bp,
                                 verb=0)
     if len(xfilt) == 0:
        print("** ERROR: Failed to band-pass filter '{}' data".format(label))
