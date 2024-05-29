@@ -416,6 +416,7 @@ Boolean getClippingEquationParameters(NI_element *nel, char *attribute, float *p
       return 0;
 }
 
+#if 0
 Boolean getEquationForClippingPlane(NI_element *nel, char attribute[32], float equation[4]){
     char *strbuf, *eqnBuffer;
     int feyl, i;
@@ -435,7 +436,7 @@ Boolean getEquationForClippingPlane(NI_element *nel, char attribute[32], float e
 
       return 0;
 }
-
+#endif
 // #include "GL/glcorearb.h"
 /* GL/glcorearb.h is restricted to newer style functionality,
  * and we are dependent on the old.  Hopefully it is not needed.
@@ -846,7 +847,7 @@ SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
     /* toggle the viewing for the cartesian axes */
     // DEBUG SO->ShowMeshAxis = clipPlaneIdentificationMode;
 
-    /* Create a Mesh Axis for the surface */
+   /* Create a Mesh Axis for the surface */
     SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis", AO_type);
         if (SO->MeshAxis == NULL) {
         fprintf( SUMA_STDERR,
@@ -1513,7 +1514,7 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
     } 
     clipIdentificationPlane[planeIndex] = SO;   // Record pointer to clip identification plane object
 
-    // Avoid gray planes 
+    // Avoid gray planes
     // A non-NULL SO->Overlays[*]->V is required for this operation
     if (SO && SO->Overlays && SO->Overlays[0]->V)
     {
@@ -1525,9 +1526,11 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
 
         SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
     }
-    else fprintf(stderr, 
-        "++ WARNING:  Colored clipping planes not currently handled for ");
-        fprintf(stderr, "this data type\n");
+    else {
+        fprintf(stderr, 
+            "++ WARNING:  Colored clipping planes not currently handled for ");
+            fprintf(stderr, "this data type\n");
+    }
 
     return TRUE;
 }
@@ -1615,7 +1618,7 @@ void lightenActiveClipPlaneSquare(int planeIndex){
             fprintf(stderr, "### Darken clipping plane square: switch to the recently loaded  cmap\n");
             fprintf(stderr, "### Darken clipping plane square: Cmp = %p\n", Cmp);
             fprintf(stderr, "### Darken clipping plane square: Cmp Name = %s\n", Cmp->Name);
-            fprintf(stderr, "### Darken clipping plane square: Cmp cname = %ls\n", Cmp->cname);
+            // fprintf(stderr, "### Darken clipping plane square: Cmp cname = %ls\n", Cmp->cname);
             fprintf(stderr, "### Darken clipping plane square: justEnteredClippingPlaneMode = %d\n", justEnteredClippingPlaneMode);
             fprintf(stderr, "### Darken clipping plane square: sv->N_ColList = %d\n", sv->N_ColList);
         }
