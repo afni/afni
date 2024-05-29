@@ -11795,10 +11795,6 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
    SUMA_LHv("Force setting %d surfconts to page %d, max %d\n",
                N_adolist, i, imax);
 
-   // This fixes the artifactual elongation of the surface control menu
-   // (mentioned below for the loop).
-   // Further testing is required, with mulitpl surfaces,  to ensure it 
-   // does not create problems
    N_adolist = imax;
 
     // NBB: This loop artifactually lengthens the surface control menu
@@ -11824,17 +11820,6 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
                SUMA_ADO_CropLabel((SUMA_ALL_DO *)SUMAg_DOv[adolist[k]].OP,
                                   SUMA_SURF_CONT_SWITCH_LABEL_LENGTH),
                      XmSTRING_DEFAULT_CHARSET);
-                     /*
-        fprintf(stderr, "%s: k = %d\n", FuncName, k);
-        fprintf(stderr, "%s: XmNlabelString = %s\n", FuncName, XmNlabelString);
-        fprintf(stderr, "%s: string = %s\n", FuncName, string);
-        fprintf(stderr, "%s: strlen(string) = %d\n", FuncName, strlen(string));
-        fprintf(stderr, "%s: strstr(string, \".gii\") - string = %d\n", FuncName, strstr(string, ".gii") - (char *)string);
-        */
-        
-//        fprintf(stderr, "%s: string[%d] = %s\n", FuncName, k, string);
-//        fprintf(stderr, "%s: NULL index[%d] = %d\n", FuncName, 
-//            k, (int)(strchr((char *)string, '\0') - (char *)string));
 
         // This call is responsible for the artifactual lengthening of the surface control menu when it happens.
          XtVaSetValues( SurfCont->SurfContPage_label,
@@ -14759,7 +14744,7 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
                (int)SurfCont->SurfContPage->value);
    }
 
-   // Set "A" check-box to reflect whether there should be variable overlay  
+   // Set "A" check-box to reflect whether there should be variable overlay 
    //   opacity for this object
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    if (SO && SO->SurfCont && SO->SurfCont->AlphaOpacityFalloff_tb)
