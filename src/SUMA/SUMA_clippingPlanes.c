@@ -62,9 +62,11 @@ void initializeIncrement(float objectMinMax[3][2]){
 }
 
 Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySelectedPlane){
+    static char FuncName[]={"toggleClippingPlaneMode"};
     int i, planeIndex;
-    char *FuncName = "toggleClippingPlaneMode";
 
+    SUMA_ENTRY;
+    
     clippingPlaneMode = !clippingPlaneMode; // Toggle clipping plane state
 
     if (SUMAg_CF->clippingPlaneVerbose) fprintf(stderr, "### Clipping plane mode %s\n",
@@ -227,7 +229,8 @@ Boolean determineAdditionalRotationsFromRequiredAndExistingRotations(float theta
 Boolean determineRotationAnglesFromEquation(float *equation, float *theta, float *phi){
     static float rad2degrees=180.0/M_PI, degrees2rad=M_PI/180;
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Determine rotation angles from equation\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) 
+        fprintf(stderr, "### Determine rotation angles from equation\n");
 
     if (equation[2] == 1.0){
         *theta = 0.0;
@@ -270,7 +273,8 @@ Boolean applyEquationParametersToClippingPlane(int planeIndex, float *theta, flo
     float deltaTheta, deltaPhi, deltaD;
     int     i;
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Apply equation parameters to clipping plane\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) 
+        fprintf(stderr, "### Apply equation parameters to clipping plane\n");
 
     // Determine additional rotations from required and existing rotations
     determineAdditionalRotationsFromRequiredAndExistingRotations(theta[planeIndex], phi[planeIndex],
@@ -289,7 +293,8 @@ Boolean applyEquationToClippingPlane(float *equation, int planeIndex){
     float theta, phi, deltaTheta, deltaPhi, deltaD;
     int     i;
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Apply equation to clipping plane %d\n", planeIndex+1);
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) 
+        fprintf(stderr, "### Apply equation to clipping plane %d\n", planeIndex+1);
 
     // Determine rotation angles from equation
     determineRotationAnglesFromEquation(equation, &theta, &phi);
@@ -317,7 +322,8 @@ Boolean loadSavedClippingPlanes(char *clippingPlaneFile, int *locallySelectedPla
     char *strbuf;
     float   theta[SUMA_MAX_N_CLIP_PLANES], phi[SUMA_MAX_N_CLIP_PLANES], offset[SUMA_MAX_N_CLIP_PLANES];
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Load saved clipping planes\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) 
+        fprintf(stderr, "### Load saved clipping planes\n");
 
     // Make sure correct form of filename supplied
     if (!clippingPlaneFile){
@@ -1463,8 +1469,11 @@ Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv){
 }
 
 Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv){
+    static char FuncName[]={"makeClipIdentificationPlane"};
     float plane[4], points[4][3];
     int i, j;
+
+    SUMA_ENTRY;
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Make clip identification plane\n");
@@ -1505,13 +1514,20 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
     clipIdentificationPlane[planeIndex] = SO;   // Record pointer to clip identification plane object
 
     // Avoid gray planes
-    for (i=0; i<4; ++i){
-        SO->Overlays[0]->V[i] = 0.583694;
-    }
-    for (i=0; i<4; ++i) SO->Overlays[0]->NodeDef[i] = i;
-    SO->Overlays[0]->isBackGrnd = 1;
+    // A non-NULL SO->Overlays[*]->V is required for this operation
+    if (SO && SO->Overlays && SO->Overlays[0]->V)
+    {
+        for (i=0; i<4; ++i){
+            SO->Overlays[0]->V[i] = 0.583694;
+        }
+        for (i=0; i<4; ++i) SO->Overlays[0]->NodeDef[i] = i;
+        SO->Overlays[0]->isBackGrnd = 1;
 
-    SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+        SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+    }
+    else fprintf(stderr, 
+        "++ WARNING:  Colored clipping planes not currently handled for ");
+        fprintf(stderr, "this data type\n");
 
     return TRUE;
 }
@@ -1809,9 +1825,6 @@ void writeClippingPlanes (char *s, void *data){
     SUMA_SurfaceViewer *sv = (SUMA_SurfaceViewer *)data;
     FILE *outFile;
     int     i, j, parameterInc=0, lastPlane = SUMAg_CF->N_ClipPlanes-1;
-
-     fprintf(stderr, "s = %s\n", s);
-
 
      // Open output file
     if (!(outFile = fopen(s, "w"))){
