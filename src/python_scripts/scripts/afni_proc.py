@@ -822,23 +822,23 @@ interesting milestones for afni_proc.py:
    2006.12 : initial release - basic processing blocks, can alter order
    2006.12 : -ask_me - interactive method for user options
    2007.05 : compatible for python 2.2 - 2.5
-   2008.01 : estimate smoothness (for use in cluster correction)
-   2008.12 : allow NIFTI inputs
-   2009.03 : allow use of 3dREMLfit
+   2008.01 : compute smoothness estimates (for use in cluster correction)
+   2008.12 : enable use of NIFTI inputs
+   2009.03 : enable use of 3dREMLfit
    2009.03 : default change - do not mask EPI results
-   2009.04 : ricor block - for physiological regressors
-   2009.05 : tlrc block - EPI to standard space (catenated transformation)
-   2009.05 : align block - run align_epi_anat.py
+   2009.04 : add ricor block - for physiological regressors
+   2009.05 : add tlrc block - EPI to standard space (catenated transformation)
+   2009.05 : add align block - run align_epi_anat.py (catenated transformation)
    2009.05 : base examples on AFNI_data4
    2009.08 : censoring based on motion parameters
    2010.06 : censoring based on initial outliers
-   2010.08 : allow amplitude modulation via married timing files
+   2010.08 : allow amplitude modulation in the linear regression model
    2011.06 : TSNR dataset
    2011.07 : graphical interface - uber_subject.py
    2011.07 : @ss QC review scripts - via gen_ss_review_scripts.py
    2011.10 : surface analysis
    2012.01 : base examples on AFNI_data6
-   2012.04 : bandpassing
+   2012.04 : enable bandpassing in linear regression model
    2012.05 : allow processing more than 99 runs
    2012.09 : tissue-based regression - via 3dSeg segmentation
    2013.01 : compute GCOR - average spatial pairwise correlation
@@ -850,16 +850,21 @@ interesting milestones for afni_proc.py:
    2015.04 : anatomical followers and ROI/PC regression
    2016.06 : distortion correction - using reverse blip
    2016.08 : mixed-model ACF blur estimation
-   2017.11 : python3 compatible
+   2017.11 : python3 compatible (maintaining compatibility with python 2)
    2018.02 : combine block - for multi-echo data (OC and tedana)
    2018.11 : APQC HTML report
    2019.01 : EPI alignment across per-run bases (-volreg_post_vr_allin)
    2019.10 : tedana from MEICA group - https://github.com/ME-ICA/tedana
    2019.02 : compare options with examples and other afni_proc.py commands
-   2021.11 : updated MEICA group tedana
-   2022.11 : find_variance_lines.tcsh
+   2021.04 : ap_run_simple_rest.tcsh: low-option afni_proc.py command for QC
+   2021.11 : apply updates from MEICA group tedana
+   2022.06 : local unifize option to assist inhomogenous EPI for anat alignment
+   2022.11 : find_variance_lines.tcsh - detect high-variance I/S lines in EPI
+   2022.11 : run APQC HTML from local server, for interactive features
    2024.02 : new examples (demo, short, publish), with mod date
-   2024.05 : can output BIDS derivative tree
+   2024.02 : compute TSNR stats across automatic or provided ROIs
+   2024.04 : ap_run_simple_rest_me.tcsh: low-option afni_proc.py for multiecho
+   2024.05 : enable output of BIDS derivative tree
 """
 
 
