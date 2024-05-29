@@ -1513,7 +1513,7 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
     } 
     clipIdentificationPlane[planeIndex] = SO;   // Record pointer to clip identification plane object
 
-    // Avoid gray planes
+    // Avoid gray planes 
     // A non-NULL SO->Overlays[*]->V is required for this operation
     if (SO && SO->Overlays && SO->Overlays[0]->V)
     {
