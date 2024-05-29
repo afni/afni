@@ -858,7 +858,7 @@ interesting milestones for afni_proc.py:
    2019.02 : compare options with examples and other afni_proc.py commands
    2021.04 : ap_run_simple_rest.tcsh: low-option afni_proc.py command for QC
    2021.11 : apply updates from MEICA group tedana
-   2022.06 : local unifize option to assist inhomogenous EPI for anat alignment
+   2022.06 : local unifize option to assist inhomogeneous EPI for anat alignment
    2022.11 : find_variance_lines.tcsh - detect high-variance I/S lines in EPI
    2022.11 : run APQC HTML from local server, for interactive features
    2024.02 : new examples (demo, short, publish), with mod date
