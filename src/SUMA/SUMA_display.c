@@ -11795,8 +11795,6 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
    SUMA_LHv("Force setting %d surfconts to page %d, max %d\n",
                N_adolist, i, imax);
 
-   N_adolist = imax;
-
     // NBB: This loop artifactually lengthens the surface control menu
     //  but is not necessary to switching surfaces.  May be necessary for 
     //  something else.
