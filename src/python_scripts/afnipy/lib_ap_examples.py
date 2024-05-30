@@ -2278,7 +2278,7 @@ def egs_publish():
    examples.append( APExample('AP publish 3d',
      source='AP_paper/scripts_rest/do_24_ap_ex4_mesurf.tcsh',
      descrip='do_24_ap_ex4_mesurf.tcsh - multi-echo surface-based analysis.',
-     moddate='2024.01.30',
+     moddate='2024.05.30',
      keywords=['complete', 'blip', 'ME', 'publish', 'rest',
                'surface', 'tedana'],
      header="""
@@ -2301,6 +2301,7 @@ def egs_publish():
             - the EPI time series are then  projected onto the surface
               (a previously computed set of surfaces, registered to the
               current anat, making a new SurfVol_Alnd_Exp anat dset)
+                - might have surf data gaps, due to coverage or tedana masking
             - (light) blurring _to_ of FWHM of 4 mm is applied on the surface
             - nodewise scaling to percent signal change
             - (light, since tedana) regression (projection) of:
@@ -2309,9 +2310,8 @@ def egs_publish():
                   or outliers exceeding 5% of brain 
 
             - QC options:
-                -anat_follower (with skull), -anat_follower_ROI (FS ROIs),
-                -radial_correlate_blocks, (-align_opts_aea) -check_flip,
-                -volreg_compute_tsnr, -regress_make_corr_vols,
+                -anat_follower (with skull), -radial_correlate_blocks,
+                (-align_opts_aea) -check_flip, -volreg_compute_tsnr,
                 -html_review_style
 
          * input dataset names have been shortened to protect the margins
@@ -2328,13 +2328,6 @@ def egs_publish():
         ['-anat_has_skull',           ['no']],
         ['-anat_follower',            ['anat_w_skull', 'anat',
                                        'ssw/anatU.sub-005.nii']],
-        ['-anat_follower_ROI',        ['aaseg', 'anat',
-                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
-        ['-anat_follower_ROI',        ['aeseg', 'epi',
-                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
-        ['-anat_follower_ROI',        ['FSvent', 'epi',
-                                       'SUMA/fs_ap_latvent.nii.gz']],
-        ['-anat_follower_erode',      ['FSvent']],
         ['-surf_anat',                ['SUMA/sub-005_SurfVol.nii']],
         ['-surf_spec',                ['SUMA/std.141.sub-005_lh.spec',
                                        'SUMA/std.141.sub-005_rh.spec']],
@@ -2357,7 +2350,6 @@ def egs_publish():
         ['-blur_size',                ['4']],
         ['-mask_epi_anat',            ['yes']],
         ['-regress_motion_per_run',   []],
-        ['-regress_make_corr_vols',   ['aeseg', 'FSvent']],
         ['-regress_censor_motion',    ['0.2']],
         ['-regress_censor_outliers',  ['0.05']],
         ['-regress_apply_mot_types',  ['demean', 'deriv']],
