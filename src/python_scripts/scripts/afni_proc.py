@@ -789,9 +789,11 @@ g_history = """
     7.76 May 25, 2024:
        - add -bids_deriv, to output a BIDS derivative tree
        - add -volreg_allin_warp (def shift_rotate)
+    7.77 May 30, 2024: fix volreg TSNR for ME: use eind -> fave_echo
+       - thanks to zhengchencai on MB for pointing it out
 """
 
-g_version = "version 7.76, May 25, 2024"
+g_version = "version 7.77, May 30, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
