@@ -848,6 +848,7 @@ interesting milestones for afni_proc.py:
    2014.04 : MIN_OUTLIER volreg base
    2015.02 : fast ANATICOR - Gaussian-weighted local mean, rather than flat
    2015.04 : anatomical followers and ROI/PC regression
+   2016.05 : check left/right flip of EPI vs anat
    2016.06 : distortion correction - using reverse blip
    2016.08 : mixed-model ACF blur estimation
    2017.11 : python3 compatible (maintaining compatibility with python 2)
