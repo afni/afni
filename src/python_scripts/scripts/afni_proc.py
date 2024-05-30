@@ -791,6 +791,7 @@ g_history = """
        - add -volreg_allin_warp (def shift_rotate)
     7.77 May 30, 2024: fix volreg TSNR for ME: use eind -> fave_echo
        - thanks to zhengchencai on MB for pointing it out
+       - remove unneeded followers from example 'publish 3d'
 """
 
 g_version = "version 7.77, May 30, 2024"

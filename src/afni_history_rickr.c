@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, May, 2024, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "remove unimportant anat followers from example 'publish 3d'",
+   NULL
+ } ,
+
  { 30, May, 2024, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fix volreg TSNR for ME: use eind -> fave_echo",
    "Thanks to zhengchencai on MB for pointing out the problem."
