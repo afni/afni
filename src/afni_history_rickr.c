@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, May, 2024, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fix volreg TSNR for ME: use eind -> fave_echo",
+   "Thanks to zhengchencai on MB for pointing out the problem."
+ } ,
+
  { 25, May, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add -bids_deriv option",
    "This adds a call to P Taylor's map_ap_to_deriv.py program, to output a\n"

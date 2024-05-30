@@ -3600,7 +3600,7 @@ def db_cmd_volreg_motsim(proc, block, basevol):
 def db_cmd_volreg_tsnr(proc, block, emask=''):
 
     # signal and error are both first run of previous output
-    signal = proc.prefix_form(block, 1)
+    signal = proc.prefix_form(block, 1, eind=-1)
 
     return db_cmd_tsnr(proc,
            "# --------------------------------------\n" \
@@ -4903,7 +4903,6 @@ def db_cmd_mask(proc, block):
     if olist != None: aopts = (' '.join(olist) + ' ')
     else:             aopts = ''
 
-    prev = proc.prev_dset_form_wild(block)
     prev = proc.prev_prefix_form_run(block, view=1, eind=-1)
     cmd = cmd + "# %s\n"                                                \
                 "# create 'full_mask' dataset (%s mask)\n"              \
