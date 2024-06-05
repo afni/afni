@@ -40,7 +40,7 @@ examples (very basic for now): ~1~
 
             or using column labels:
 
-         1d_tool.py -infile 'data/X.xmat.1D[Run#1Pol#0,,Run#1Pol#3]' \\
+         1d_tool.py -infile 'data/X.xmat.1D[Run#1Pol#0..Run#1Pol#3]' \\
                     -write run0_polorts.1D
 
    Example 2.  Compare with selection by separate options. ~2~
