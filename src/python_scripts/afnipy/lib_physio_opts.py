@@ -119,6 +119,7 @@ DEF = {
     'min_bpm_card'      : DEF_min_bpm_card, # (float) min beats per min
     'max_bpm_resp'      : DEF_max_bpm_resp, # (float) max breaths per min
     'max_bpm_card'      : DEF_max_bpm_card, # (float) max beats per min
+    'do_extend_bp_resp' : False,     # (bool) don't extend resp bp
     'verb'              : 0,         # (int) verbosity level
     'disp_all_slice_patterns' : False, # (bool) display known sli patterns
     'disp_all_opts'     : False,     # (bool) display opts for this prog
@@ -1327,6 +1328,12 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
 
 opt = '''no_resp_out'''
 hlp = '''Turn off output of respiratory regressors'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
+
+opt = '''do_extend_bp_resp'''
+hlp = '''Use less strict initial bandpass for resp data'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
