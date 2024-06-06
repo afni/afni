@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Jun, 2024, RCR, "rPkgsInstall", MINOR, TYPE_MODIFY,
+   "along with 3dMVM, handle not having afni in PATH",
+   NULL
+ } ,
+
  { 30, May, 2024, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "remove unimportant anat followers from example 'publish 3d'",
    NULL
