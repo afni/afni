@@ -1021,8 +1021,6 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
     ado = SUMA_SV_Focus_ADO(sv);
     SUMA_OVERLAYS *NewColPlane=NULL;
     static int squareIndex = 0;
-    
-    fprintf(stderr, "%\n", FuncName);
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Draw plane node and face set list\n");
