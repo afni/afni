@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Jun, 2024, RCR, "Makefile.macos_13_ARM", MINOR, TYPE_NEW_OPT,
+   "add this Makefile (in src) for corresponding build machine",
+   "This is a ~dupe of other_builds/Makefile.macos_13_ARM_clang."
+ } ,
+
  {  6, Jun, 2024, RCR, "rPkgsInstall", MINOR, TYPE_MODIFY,
    "along with 3dMVM, handle not having afni in PATH",
    NULL
