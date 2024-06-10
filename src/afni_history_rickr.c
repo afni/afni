@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Jun, 2024, RCR, "build_afni.py", MINOR, TYPE_MODIFY,
+   "prep for updates in backup directory removal",
+   NULL
+ } ,
+
  {  6, Jun, 2024, RCR, "Makefile.macos_13_ARM", MINOR, TYPE_NEW_OPT,
    "add this Makefile (in src) for corresponding build machine",
    "This is a ~dupe of other_builds/Makefile.macos_13_ARM_clang."

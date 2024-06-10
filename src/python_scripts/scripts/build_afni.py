@@ -361,10 +361,11 @@ g_history = """
    0.10 Dec  8, 2023
         - copy git/afni/doc/README/README.* into build_src
         - make prev a directory, not a name prefix
+   0.11 Jun 10, 2024 - prep for some backup removal
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.10, December 8, 2023" % g_prog
+g_version = "%s, version 0.11, June 10, 2024" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
@@ -988,10 +989,11 @@ class MyInterface:
       if do is not None:
          abin = do.abspath
       self.backup_abin = self.f_make_backup_abin_name()
+      if os.path.exists(self.backup_abin):
+         MESGe("failed to make backup.abin name, please delete some")
+         self.backup_abin = ''
 
-      # optimally, we now know:
-      #   abin, backup_abin, atlas_src, make_src
-
+      # optimally, we now know: abin, backup_abin, atlas_src, make_src
       # chat
       if self.verb > 2:
          MESGi("atlas dir   : %s" % self.sync_src_atlas)
@@ -1053,15 +1055,6 @@ class MyInterface:
       MESGi("    PLEASE WAIT FOR THE INSTALL TO COMPLETE...")
       MESG("")
 
-      # ------------------------------------------------------------
-      # possibly run backup
-
-      # if not syncing, we should not backup
-      if not self.sync_src_atlas or not self.sync_src_make:
-         if self.run_backup:
-            MESGp("skipping backup since no full sync to abin")
-            self.run_backup = 0
-
       # if abin does not exist, create it (and cancel any backup)
       if not os.path.exists(abin):
          MESGp("creating install abin: %s" % abin)
@@ -1069,61 +1062,11 @@ class MyInterface:
          if st: return st
          self.run_backup = 0
 
-      if not self.run_backup:
-         MESGm("skipping abin backup")
-      else:
-         MESGp("backing up %s to %s" % (abin, self.backup_abin))
-         MESGi("(backup via %s)" % self.backup_method)
+      # ------------------------------------------------------------
+      # possibly run backup
 
-         # create backup directory
-         st, ot = self.run_cmd('mkdir', self.backup_abin, pc=1)
-         if st: return st
-
-         # and actually do the backup
-         # (use backup method: mv or rsync)
-         if self.backup_method == 'mv':
-            cmd = 'mv %s/* %s/' % (abin, self.backup_abin)
-            st, ot = self.run_cmd(cmd)
-            if st: return st
-         else:
-            # use one of the rsync methods
-
-            # first make the actual backup
-            cmd = 'rsync -av %s/ %s/' % (abin, self.backup_abin)
-            st, ot = self.run_cmd(cmd)
-            if st: return st
-
-            # if we are not preserving the old files, clean out the abin
-            # ** on a large file system, are we sure the rsync is finished?
-            if self.backup_method != 'rsync_preserve':
-               MESGm("cleaning old abin")
-               # after sync, delete abin before repopulating
-               cmd = 'if ( `ls -a %s/ | wc -l` > 2 ) rm -fr %s/*' % (abin,abin)
-               st, ot = self.run_cmd(cmd)
-               if st: return st
-
-         # other options to consider for backups:
-         #
-         #    goal: make sure the abin contents are never lost
-         #    goal: be fast
-         #    goal: save disk space: do not have too many copies of results
-         #
-         #    If abin is not a link, we could 'mv' the actual abin directory to
-         #    the backup and recreate it with the new contents.
-         #    That might be the fastest way to go, plus it should preserve abin
-         #    without concerns about the file system handling rsync before rm.
-         #    Perhaps the only question would be whether the user owns the
-         #    *parent* directory.  Also, if 'mv' goes across file systems,
-         #    maybe it becomes the same sync question again.
-         #
-         #    If we finally went ahead and populated a local install directory,
-         #    then we could use rsync --delete for cleaning, or even use
-         #    --delete-after.
-         #
-
-         self.add_final_mesg("------------------------------")
-         self.add_final_mesg("to revert from backup, run:")
-         self.add_final_mesg("   rsync -av %s/ %s/" % (self.backup_abin, abin))
+      st = self.run_backup_abin(abin)
+      if st: return st
 
       # ------------------------------------------------------------
       # now actually sync to the destination
@@ -1160,14 +1103,118 @@ class MyInterface:
                       % (self.sync_src_niivue, abin, self.rsync_file)) 
          if st: return st
 
-      # inform user how many backup directories exist now
+      # inform user how many backup directories exist, and possibly clean up
+      st = self.run_clean_backup()
+      if st: return st
+
+      return 0
+
+   def run_clean_backup(self):
+      """remove some of the backup.abin directories:
+
+         to ponder:
+
+           - save most recent
+           - MAYBE: out of the remainder that are less than a year old:
+              - save most recent that is larger by at least 10%
+              - save most recent that is smaller by at least 10%
+      """
+
       glist = glob.glob('%s*' % self.backup_prefix)
+      glist.sort()
       self.add_final_mesg("------------------------------")
       self.add_final_mesg("have %d backup abin directories, %s*" \
             % (len(glist), self.backup_prefix))
+
+      # maybe there is nothing to do
+      if len(glist) <= 1:
+         if self.verb > 1: MESGm("no extra backups to remove")
+         return 0
+
+      # keep the most recent backup
+      if self.backup_abin in glist:
+         keep = self.backup_abin
+      else:
+         keep = glist[-1]
+
+      glist.remove(keep)
+
+      # ...
+
       del(glist)
 
-      return 0
+   def run_backup_abin(self, abin):
+      """decide whether to backup the install abin directory, and do it
+         return 0 on success, else error
+
+         other options to consider for backups:
+            goal: make sure the abin contents are never lost
+            goal: be fast
+            goal: save disk space: do not have too many copies of results
+         
+            If abin is not a link, we could 'mv' the actual abin directory to
+            the backup and recreate it with the new contents.
+            That might be the fastest way to go, plus it should preserve abin
+            without concerns about the file system handling rsync before rm.
+            Perhaps the only question would be whether the user owns the
+            *parent* directory.  Also, if 'mv' goes across file systems,
+            maybe it becomes the same sync question again.
+         
+            If we finally went ahead and populated a local install directory,
+            then we could use rsync --delete for cleaning, or even use
+            --delete-after.
+      """
+
+      # if not syncing, we should not backup
+      if not self.sync_src_atlas or not self.sync_src_make:
+         if self.run_backup:
+            MESGp("skipping backup since no full sync to abin")
+            self.run_backup = 0
+
+      if not self.run_backup:
+         MESGm("skipping abin backup")
+         return 0
+
+      if not os.path.isdir(abin):
+         MESGe("** run_backup_abin: no '%s' directory???" % abin)
+         return 1
+
+      # ------------------------------------------------------------
+      # ready to make a backup
+
+      MESGp("backing up %s to %s" % (abin, self.backup_abin))
+      MESGi("(backup via %s)" % self.backup_method)
+
+      # create backup directory
+      st, ot = self.run_cmd('mkdir', self.backup_abin, pc=1)
+      if st: return st
+
+      # and actually do the backup
+      # (use backup method: mv or rsync)
+      if self.backup_method == 'mv':
+         cmd = 'mv %s/* %s/' % (abin, self.backup_abin)
+         st, ot = self.run_cmd(cmd)
+         if st: return st
+      else:
+         # use one of the rsync methods
+
+         # first make the actual backup
+         cmd = 'rsync -av %s/ %s/' % (abin, self.backup_abin)
+         st, ot = self.run_cmd(cmd)
+         if st: return st
+
+         # if we are not preserving the old files, clean out the abin
+         # ** on a large file system, are we sure the rsync is finished?
+         if self.backup_method != 'rsync_preserve':
+            MESGm("cleaning old abin")
+            # after sync, delete abin before repopulating
+            cmd = 'if ( `ls -a %s/ | wc -l` > 2 ) rm -fr %s/*' % (abin,abin)
+            st, ot = self.run_cmd(cmd)
+            if st: return st
+
+      self.add_final_mesg("------------------------------")
+      self.add_final_mesg("to revert from backup, run:")
+      self.add_final_mesg("   rsync -av %s/ %s/" % (self.backup_abin, abin))
 
 
    def run_main_build(self):
@@ -1527,14 +1574,9 @@ class MyInterface:
          do = self.do_orig_abin
       return do
 
-   def f_make_backup_abin_name(self):
-      """make up a name for backing up abin
+   def f_fill_datestring(self, form='%Y_%m_%d_%H_%M_%S'):
+      """return date string for the given form, else NODATE"""
 
-         backup.abin.YYYY_MM_DD_hh_mm_ss
-         (self.backup.prefix.)YYYY_MM_DD_hh_mm_ss
-      """
-      # try to make a date signature
-      form = '%Y_%m_%d_%H_%M_%S'
       dstr = ''
       # first using datetime
       try:
@@ -1558,27 +1600,31 @@ class MyInterface:
       if dstr == '':
          dstr = 'NODATE'
 
+      return dstr
+
+   def f_make_backup_abin_name(self):
+      """make up a name for backing up abin
+
+         backup.abin.YYYY_MM_DD_hh_mm_ss
+         (self.backup.prefix.)YYYY_MM_DD_hh_mm_ss
+      """
+
+      # try to make a date signature
+      dstr = self.f_fill_datestring()
+
       # now set prefix, and if needed, find an incremenal suffix
       bname = '%s%s' % (self.backup_prefix, dstr)
 
       # see if bname is sufficient (should usually be)
       # if it exists, try adding a suffix for a while before failure
       if os.path.exists(bname):
-         for ind in range(1,100):
+         for ind in range(1,10):
             btmp = '%s.%02d' % (bname, ind)
             # if not here, we have a good candidate
             if not os.path.exists(btmp):
                bname = btmp
                break
             # else it exists, keep searching
-
-      if self.verb > 1:
-         MESGm("will try using back up abin, %s" % bname)
-
-      # okay, one more check
-      if os.path.exists(bname):
-         MESGe("failed to make backup.abin name, please delete some")
-         return ''
 
       return bname
 
