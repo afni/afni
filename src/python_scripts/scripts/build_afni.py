@@ -695,6 +695,7 @@ class MyInterface:
                # do not clean, do not update git
                self.clean_root = 0
                self.git_update = 0
+               self.update_atlases = 0
 
          elif opt.name == '-do_backup':
             if OL.opt_is_no(opt):
@@ -1112,34 +1113,60 @@ class MyInterface:
    def run_clean_backup(self):
       """remove some of the backup.abin directories:
 
-         to ponder:
-
+         save 1 or 2 (if different):
+           - save most recent that contains afni
            - save most recent
-           - MAYBE: out of the remainder that are less than a year old:
-              - save most recent that is larger by at least 10%
-              - save most recent that is smaller by at least 10%
       """
 
       glist = glob.glob('%s*' % self.backup_prefix)
       glist.sort()
+      nback = len(glist)
       self.add_final_mesg("------------------------------")
       self.add_final_mesg("have %d backup abin directories, %s*" \
-            % (len(glist), self.backup_prefix))
+            % (nback, self.backup_prefix))
 
       # maybe there is nothing to do
-      if len(glist) <= 1:
+      if nback <= 1:
          if self.verb > 1: MESGm("no extra backups to remove")
+         self.add_final_mesg("have %d backup abin directories, %s*" \
+               % (nback, self.backup_prefix))
          return 0
 
-      # keep the most recent backup
-      if self.backup_abin in glist:
+      # definitely keep the current backup
+      keepers = []
+      if self.backup_abin in glist: # should not be necessary, but...
          keep = self.backup_abin
       else:
          keep = glist[-1]
-
       glist.remove(keep)
+      keepers.append(keep)
+      nback = len(glist)
 
-      # ...
+      # if this does not contain 'afni', try to find the most recent that does
+      if not os.path.isfile('%s/afni' % keep):
+         for bind in range(nback-1, -1, -1):
+            if os.path.isfile('%s/afni' % glist[bind]):
+               # append to keepers, the remove from current list
+               keepers.append(glist[bind])
+               glist.remove(glist[bind])
+               nback -= 1
+               break
+
+      # report result
+      if self.verb:
+         MESGm("backup directories: keeping %d, removing %d" \
+               % (len(keepers), nback))
+         if 1 or self.verb > 1:
+            print("keep   : %s" % '\n       : '.join(keepers))
+            print("remove : %s" % '\n       : '.join(glist))
+
+      # do the damage
+      for rm in glist:
+         st, ot = self.run_cmd('rmtree', rm, pc=1)
+         if st: return st
+
+      self.add_final_mesg("have %d backup abin directories, %s*" \
+                          % (nback, self.backup_prefix))
 
       del(glist)
 
