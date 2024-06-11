@@ -488,6 +488,7 @@ class MyInterface:
       self.run_backup      = 1      # install build results and atlases
       self.run_install     = 1      # install build results and atlases
       self.update_atlases  = 1      # do we force an atlas update
+      self.update_niivue   = 1      # do we force a NiiVue update
 
       self.verb            = verb   # verbosity level
 
@@ -618,7 +619,10 @@ class MyInterface:
                       helpstr="should we run a 'make' build? (def=y)")
       self.valid_opts.add_opt('-update_atlases', 1, [],
                       acplist=['yes','no'],
-                      helpstr="should we re-download atlases? (def=n)")
+                      helpstr="should we re-download atlases? (def=y)")
+      self.valid_opts.add_opt('-update_niivue', 1, [],
+                      acplist=['yes','no'],
+                      helpstr="should we re-download NiiVue? (def=y)")
       self.valid_opts.add_opt('-verb', 1, [],
                       helpstr='set the verbose level (default is 1)')
 
@@ -696,6 +700,7 @@ class MyInterface:
                self.clean_root = 0
                self.git_update = 0
                self.update_atlases = 0
+               self.update_niivue = 0
 
          elif opt.name == '-do_backup':
             if OL.opt_is_no(opt):
@@ -760,6 +765,12 @@ class MyInterface:
                self.update_atlases = 1
             else:
                self.update_atlases = 0
+
+         elif opt.name == '-update_niivue':
+            if OL.opt_is_yes(opt):
+               self.update_niivue = 1
+            else:
+               self.update_niivue = 0
 
          elif opt.name == '-verb':
             val, err = uopts.get_type_opt(int, '', opt=opt)
@@ -1156,17 +1167,19 @@ class MyInterface:
       if self.verb:
          MESGm("backup directories: keeping %d, removing %d" \
                % (len(keepers), nback))
-         if 1 or self.verb > 1:
+         if self.verb > 1:
             print("keep   : %s" % '\n       : '.join(keepers))
             print("remove : %s" % '\n       : '.join(glist))
 
       # do the damage
-      for rm in glist:
-         st, ot = self.run_cmd('rmtree', rm, pc=1)
-         if st: return st
+      if nback > 0:
+         MESGm("removing %d backup dirs..." % len(glist))
+         for rm in glist:
+            st, ot = self.run_cmd('rmtree', rm, pc=1)
+            if st: return st
 
-      self.add_final_mesg("have %d backup abin directories, %s*" \
-                          % (nback, self.backup_prefix))
+      self.add_final_mesg("have %d final backup abin directory(ies), %s*" \
+                          % (len(keepers), self.backup_prefix))
 
       del(glist)
 
@@ -1768,6 +1781,17 @@ class MyInterface:
 
       # if it already exists, move to backup
       if os.path.exists(niivue):
+
+         # if NOT updating niivue, just check and return
+         if not self.update_niivue:
+            if not os.path.isfile(niivue):
+               MESGe("** have build_root/%s, but it is not a file??" \
+                     % niivue)
+               return 1
+
+            # we are done here
+            MESGm("will reuse existing NiiVue file, %s" % niivue)
+            return 0
 
          # remove old backup
          if os.path.exists(backup):
