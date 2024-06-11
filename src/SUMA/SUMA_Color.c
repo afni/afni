@@ -7506,7 +7506,6 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
                 alphaOpacityPtr[j] *= sqrt(alphaOpacityPtr[j]);
             }
             else if (opacityModel == QUADRATIC){
-                if (i<10) fprintf(stderr, "%s: opacityModel = QUADRATIC\n", FuncName);
                 alphaOpacityPtr[j] *= alphaOpacityPtr[j];
             }
         }
@@ -7651,12 +7650,9 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "%s:\n", FuncName);
-   
    el = dlist_head(SUMAg_CF->DsetList);
    while (el) {
       dd = (SUMA_DSET*)el->data;
-      fprintf(stderr, "%s: SUMA_isDsetRelated(dd,SO) = %d\n", FuncName, SUMA_isDsetRelated(dd,SO));
       if (SUMA_isDsetRelated(dd,SO)) {
          SUMA_LHv("Have Dset %s related to SO\n", SDSET_LABEL(dd));
          if (!(colplane = SUMA_Fetch_OverlayPointerByDset (
@@ -7680,24 +7676,17 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
                           SUMA_FindNamedColMap (colplane->cmapname), 1,
                           colplane->Label, SDSET_IDMDOM(colplane->dset_link),
                           &(colplane->N_Contours), 1, 1);
-                   fprintf(stderr, "%s: 1\n", FuncName);
         }
    
          /* any contours? */
-         fprintf(stderr, "%s: colplane->ShowMode = %d\n", FuncName, colplane->ShowMode);
-         fprintf(stderr, "%s: colplane->Contours = %p\n", FuncName, colplane->Contours);
-         fprintf(stderr, "%s: colplane->N_Contours = %d\n", FuncName, colplane->N_Contours);
          if ( colplane->Contours && colplane->N_Contours) {
             /* draw them */
             for (ic=0; ic<colplane->N_Contours; ++ic) {
                D_ROI = (SUMA_DRAWN_ROI *)colplane->Contours[ic];
                SUMA_LHv("Dset Contouring %d\n", ic);
 
-//                fprintf(stderr, "%s: D_ROI->FillColor = %f, %f, %f, %f\n", FuncName, colplane->N_Contours,
-//                    D_ROI->FillColor[0], D_ROI->FillColor[1], D_ROI->FillColor[2], D_ROI->FillColor[3]);
                if (D_ROI->CE && D_ROI->N_CE) {
                   /* Draw the contour */
-                  fprintf(stderr, "%s: SO->patchNodeMask = %d\n", FuncName, SO->patchNodeMask);
                   if (!SO->patchNodeMask) {
                      glLineWidth(sv->ContThick); /* Changed from horrible '6'
                                  now that glPolygonOffset is used to
@@ -7717,7 +7706,6 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
                                 SO->NodeList[id1cont+1],
                                 SO->NodeList[id1cont+2]);
                      i2last = D_ROI->CE[0].n1;
-                    fprintf(stderr, "%s: D_ROI->N_CE = %d\n", FuncName, D_ROI->N_CE);
                      for (icont = 0; icont < D_ROI->N_CE; ++icont) {
                         id2cont = 3 * D_ROI->CE[icont].n2;
                         if (i2last != D_ROI->CE[icont].n1) {
@@ -7725,7 +7713,6 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
                            glEnd(); /* end lines */
                            glBegin(GL_LINE_STRIP); /* begin again */
                            id1cont = 3 * D_ROI->CE[icont].n1;
-                           fprintf(stderr, "%s: SO->NodeList = %f, %f, %f\n", FuncName, SO->NodeList[id1cont], SO->NodeList[id1cont+1], SO->NodeList[id1cont+2]);
                            glVertex3f(SO->NodeList[id1cont],
                                       SO->NodeList[id1cont+1],
                                       SO->NodeList[id1cont+2]);
@@ -7981,13 +7968,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    // static float *ColVec;
    
    SUMA_ENTRY;
-   
-   // fprintf(stderr, "%s: SO->SurfCont->alphaOpacityModel = %d\n", FuncName, SO->SurfCont->alphaOpacityModel);
-   
-   // DEBUG
-//   fprintf(stderr, "+++++++++++  %s: SO = %p\n", FuncName, SO);
-//   fprintf(stderr, "+++++++++++  %s: SO->N_Node = %d\n", FuncName, SO->N_Node);
-//   fprintf(stderr, "%s: nSurfaces = %d\n", FuncName, nSurfaces);
    
    cmapChanged = 0;
    bytes2CopyToColVec = SO->N_Node*4*sizeof(float);
@@ -8605,8 +8585,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
       if (LocalHead)
          fprintf (SUMA_STDERR,"%s: Only Background colors.\n", FuncName);
          
-         // fprintf(stderr, "******* SO->SurfCont->AlphaOpacityFalloff = %d\n", SO->SurfCont->AlphaOpacityFalloff); 
-         
          // Make local opacities if A threshold true
          if (SO->SurfCont->AlphaOpacityFalloff){
          float *activeAlphaOpacities = alphaOpacitiesForOverlay(SO, 
@@ -8616,8 +8594,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
 
          for (i=0; i < N_Node; ++i) {
             i4 = 4 * i;
-            
-            // fprintf(stderr, "i = %d of %d\r", i, N_Node);
             
             // float opacity = alphaOpacitiesForOverlay(SO, currentOverlay)[i];
             float opacity = opacities[i];
