@@ -325,8 +325,20 @@ other options:
           default: -update_atlases yes
           e.g.   : -update_atlases no
 
-          By default, if the atlases directory exists (afni_atlases_dist),
-          it will not be updated.  Use this option to force a new download.
+          By default, even if the atlases directory exists (afni_atlases_dist),
+          it will be updated.  Use this option to avoid a new download.
+
+          If -clean_root is 'no', atlases will not be updated.
+
+      -update_niivue yes/no    : update NiiVue, even if the package exists
+
+          default: -update_niivue yes
+          e.g.   : -update_niivue no
+
+          By default, even if NiiVue exists, it will be updated.  Use this
+          option to avoid a new download.
+
+          If -clean_root is 'no', NiiVue will not be updated.
 
       -verb LEVEL               : set the verbosity level (default 1)
 
@@ -361,11 +373,13 @@ g_history = """
    0.10 Dec  8, 2023
         - copy git/afni/doc/README/README.* into build_src
         - make prev a directory, not a name prefix
-   0.11 Jun 10, 2024 - prep for some backup removal
+   0.11 Jun 11, 2024
+        - remove extra backup dirs (save 1, and must contain afni)
+        - add -update_niivue option
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.11, June 10, 2024" % g_prog
+g_version = "%s, version 0.11, June 11, 2024" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
