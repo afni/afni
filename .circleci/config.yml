@@ -192,7 +192,7 @@ commands:
           name: Write osx dependencies to a file
           command: |
             echo \
-              python python-setuptools \
+              python python-setuptools python-venv \
               cmake ninja  pkgconfig  \
               jpeg gsl gts openmotif libpng expat \
               freetype fontconfig netpbm git-annex | \
@@ -439,6 +439,8 @@ jobs:
           command: |
             mkdir build
             cd build
+            python3 -m venv venv
+            source venv/bin/activate
             cmake ..                                                           \
                 -GNinja                                                             \
                 -DCMAKE_TOOLCHAIN_FILE=../cmake/macos_toolchainfile.cmake      \
