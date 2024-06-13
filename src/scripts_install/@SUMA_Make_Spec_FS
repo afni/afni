@@ -1580,8 +1580,8 @@ L_ICO:
             endif
 
             # move the two potential parcellations here too
-            foreach alab ( aparc.annot.lbl aparc.a2009s.annot)
-                set aset = ${hem}.${alab}.niml.dset
+            foreach alab ( aparc aparc.a2009s)
+                set aset = ${hem}.${alab}.annot.niml.dset
                 if ( -f $aset ) then
                     set dm = ($dm "-NN_dset_map" $aset)
                 endif
