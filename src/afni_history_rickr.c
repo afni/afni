@@ -53,9 +53,10 @@
 
 afni_history_struct rickr_history[] = {
 
- { 10, Jun, 2024, RCR, "build_afni.py", MINOR, TYPE_MODIFY,
-   "prep for updates in backup directory removal",
-   NULL
+ { 11, Jun, 2024, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
+   "backup directory removal; add -update_niivue option",
+   "Save only most recent backup directory, possibly plus 1 containing afni.\n"
+   "Add -update_niivue, and skip the operation on '-clean_root no'."
  } ,
 
  {  6, Jun, 2024, RCR, "Makefile.macos_13_ARM", MINOR, TYPE_NEW_OPT,

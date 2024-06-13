@@ -325,8 +325,20 @@ other options:
           default: -update_atlases yes
           e.g.   : -update_atlases no
 
-          By default, if the atlases directory exists (afni_atlases_dist),
-          it will not be updated.  Use this option to force a new download.
+          By default, even if the atlases directory exists (afni_atlases_dist),
+          it will be updated.  Use this option to avoid a new download.
+
+          If -clean_root is 'no', atlases will not be updated.
+
+      -update_niivue yes/no    : update NiiVue, even if the package exists
+
+          default: -update_niivue yes
+          e.g.   : -update_niivue no
+
+          By default, even if NiiVue exists, it will be updated.  Use this
+          option to avoid a new download.
+
+          If -clean_root is 'no', NiiVue will not be updated.
 
       -verb LEVEL               : set the verbosity level (default 1)
 
@@ -361,11 +373,13 @@ g_history = """
    0.10 Dec  8, 2023
         - copy git/afni/doc/README/README.* into build_src
         - make prev a directory, not a name prefix
-   0.11 Jun 10, 2024 - prep for some backup removal
+   0.11 Jun 11, 2024
+        - remove extra backup dirs (save 1, and must contain afni)
+        - add -update_niivue option
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.11, June 10, 2024" % g_prog
+g_version = "%s, version 0.11, June 11, 2024" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
@@ -488,6 +502,7 @@ class MyInterface:
       self.run_backup      = 1      # install build results and atlases
       self.run_install     = 1      # install build results and atlases
       self.update_atlases  = 1      # do we force an atlas update
+      self.update_niivue   = 1      # do we force a NiiVue update
 
       self.verb            = verb   # verbosity level
 
@@ -618,7 +633,10 @@ class MyInterface:
                       helpstr="should we run a 'make' build? (def=y)")
       self.valid_opts.add_opt('-update_atlases', 1, [],
                       acplist=['yes','no'],
-                      helpstr="should we re-download atlases? (def=n)")
+                      helpstr="should we re-download atlases? (def=y)")
+      self.valid_opts.add_opt('-update_niivue', 1, [],
+                      acplist=['yes','no'],
+                      helpstr="should we re-download NiiVue? (def=y)")
       self.valid_opts.add_opt('-verb', 1, [],
                       helpstr='set the verbose level (default is 1)')
 
@@ -695,6 +713,8 @@ class MyInterface:
                # do not clean, do not update git
                self.clean_root = 0
                self.git_update = 0
+               self.update_atlases = 0
+               self.update_niivue = 0
 
          elif opt.name == '-do_backup':
             if OL.opt_is_no(opt):
@@ -759,6 +779,12 @@ class MyInterface:
                self.update_atlases = 1
             else:
                self.update_atlases = 0
+
+         elif opt.name == '-update_niivue':
+            if OL.opt_is_yes(opt):
+               self.update_niivue = 1
+            else:
+               self.update_niivue = 0
 
          elif opt.name == '-verb':
             val, err = uopts.get_type_opt(int, '', opt=opt)
@@ -1112,34 +1138,62 @@ class MyInterface:
    def run_clean_backup(self):
       """remove some of the backup.abin directories:
 
-         to ponder:
-
+         save 1 or 2 (if different):
+           - save most recent that contains afni
            - save most recent
-           - MAYBE: out of the remainder that are less than a year old:
-              - save most recent that is larger by at least 10%
-              - save most recent that is smaller by at least 10%
       """
 
       glist = glob.glob('%s*' % self.backup_prefix)
       glist.sort()
+      nback = len(glist)
       self.add_final_mesg("------------------------------")
       self.add_final_mesg("have %d backup abin directories, %s*" \
-            % (len(glist), self.backup_prefix))
+            % (nback, self.backup_prefix))
 
       # maybe there is nothing to do
-      if len(glist) <= 1:
+      if nback <= 1:
          if self.verb > 1: MESGm("no extra backups to remove")
+         self.add_final_mesg("have %d backup abin directories, %s*" \
+               % (nback, self.backup_prefix))
          return 0
 
-      # keep the most recent backup
-      if self.backup_abin in glist:
+      # definitely keep the current backup
+      keepers = []
+      if self.backup_abin in glist: # should not be necessary, but...
          keep = self.backup_abin
       else:
          keep = glist[-1]
-
       glist.remove(keep)
+      keepers.append(keep)
+      nback = len(glist)
 
-      # ...
+      # if this does not contain 'afni', try to find the most recent that does
+      if not os.path.isfile('%s/afni' % keep):
+         for bind in range(nback-1, -1, -1):
+            if os.path.isfile('%s/afni' % glist[bind]):
+               # append to keepers, the remove from current list
+               keepers.append(glist[bind])
+               glist.remove(glist[bind])
+               nback -= 1
+               break
+
+      # report result
+      if self.verb:
+         MESGm("backup directories: keeping %d, removing %d" \
+               % (len(keepers), nback))
+         if self.verb > 1:
+            print("keep   : %s" % '\n       : '.join(keepers))
+            print("remove : %s" % '\n       : '.join(glist))
+
+      # do the damage
+      if nback > 0:
+         MESGm("removing %d backup dirs..." % len(glist))
+         for rm in glist:
+            st, ot = self.run_cmd('rmtree', rm, pc=1)
+            if st: return st
+
+      self.add_final_mesg("have %d final backup abin directory(ies), %s*" \
+                          % (len(keepers), self.backup_prefix))
 
       del(glist)
 
@@ -1741,6 +1795,17 @@ class MyInterface:
 
       # if it already exists, move to backup
       if os.path.exists(niivue):
+
+         # if NOT updating niivue, just check and return
+         if not self.update_niivue:
+            if not os.path.isfile(niivue):
+               MESGe("** have build_root/%s, but it is not a file??" \
+                     % niivue)
+               return 1
+
+            # we are done here
+            MESGm("will reuse existing NiiVue file, %s" % niivue)
+            return 0
 
          # remove old backup
          if os.path.exists(backup):
