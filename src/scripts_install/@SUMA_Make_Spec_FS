@@ -918,7 +918,7 @@ L_CONVERT_SURFACES:
             if ($status) then
                 echo "** Failed to fix side for rh.lh.sphere.reg.gii"
             else 
-                mv __tmpfix rh.lh.sphere.reg.gii
+                \mv __tmpfix rh.lh.sphere.reg.gii
             endif 
         endif
    
@@ -1033,7 +1033,10 @@ L_CONVERT_SURFACES:
                 MakeColorMap -usercolutfile $DKtable \
                      -suma_cmap $ddd/${hand}.aparc.annot.1D.cmap \
                      -sdset $ddd/${hand}.aparc.annot.niml.dset
-
+                # rename the lbl labels to the previous annotation
+                # overwriting the original to avoid extra confusing files
+                \mv $ddd/${hand}.aparc.annot.lbl.niml.dset \
+                    $ddd/${hand}.aparc.annot.niml.dset
                 # old way - might be able to fix?
                 #FSread_annot   -input ${hand}.aparc.annot       \
                 #     $fsannot_opt                                      \
@@ -1079,7 +1082,7 @@ L_CONVERT_SURFACES:
             if ( -f ${hand}.${tp} ) then
                 echo "++ Converting surf dsets:  ${hand}.${tp}"
                 mris_convert -c ${hand}.${tp} ${hand}.white ${hand}.${tp}.gii
-                mv  ${hand}.${tp}.gii   \
+                \mv  ${hand}.${tp}.gii   \
                     $start_dir/$suma_dir/${hand}.${tp}.gii.dset
             endif
         end
@@ -1442,14 +1445,14 @@ L_CREATE_BRICK:
     endif
 
     if ( $neuro_ori == -1 ) then
-        mv \
+        \mv \
             $start_dir/$suma_dir/${orig_mgz:t:r}".nii"  \
             $start_dir/$suma_dir/$afni_dataset.nii
         # need an AFNI ID code for afni/suma communication [12 Apr 2024 rickr]
         3drefit -newid $start_dir/$suma_dir/$afni_dataset.nii
         echo "++ created AFNI file '$suma_dir/$afni_dataset.nii'"
     else
-        mv $afni_dataset.HEAD $afni_dataset.BRIK* $start_dir/$suma_dir
+        \mv $afni_dataset.HEAD $afni_dataset.BRIK* $start_dir/$suma_dir
 
         echo "++ created AFNI file '$suma_dir/$afni_dataset.HEAD'"
         echo "++ created AFNI file '$suma_dir/$afni_dataset.BRIK'"
@@ -1507,7 +1510,7 @@ L_CREATE_BRICK:
                     if (0) then
                         # kill this block soon.
                         set kk = `echo ${other:t:r} | cut -f 1 -d '+'`
-                        mv ${kk}.rankmap.1D ${other:t:r}.rankmap.1D 
+                        \mv ${kk}.rankmap.1D ${other:t:r}.rankmap.1D 
                     endif
                     @FS_roi_label                             \
                         -name ALL                             \
