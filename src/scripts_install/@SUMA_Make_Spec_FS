@@ -42,8 +42,9 @@
 # [May 12, 2021] PT : remove old NIFTI message about needing even matrix
 #      dimensions for anatomical input to recon-all.  Yikes, that wasn't
 #      need, just the way we were viewing it...
+# [Jun 11, 2023] DRG: handling FS-renamed DK atlases better (-1 value inside)
 
-set ver = 2.2.4
+set ver = 2.2.5
 
 #----------------------------------------------------------------------
 goto L_INIT_VARS
@@ -941,6 +942,21 @@ L_CONVERT_SURFACES:
            set fsannot_opt = ""
         endif
 
+        # find a surface to use as input to mris_convert
+        # also used with DK 2005 parcellation 
+        set sinput = ''
+        set surf_names = ( white smoothwm pial )
+        foreach stmp ( $surf_names )
+           if ( -f ../$surf_dir/lh.$stmp && -f ../$surf_dir/rh.$stmp ) then
+              set sinput = $stmp
+              break
+           endif
+        end
+
+        if ( $sinput != "" ) then
+           echo "-- using $sinput as surf input to mris_convert"
+        endif
+
         # ------------------------------------------------------------
         # process any extra annotation labels - use mris_convert
         # (convert and create GIFTI versions to pass to MapIcosahedron)
@@ -948,19 +964,7 @@ L_CONVERT_SURFACES:
            echo "++ have $#extra_annot_labels extra labels, " \
                 "including as if -extra_fs_dsets"
 
-           # find a surface to use as input to mris_convert
-           set sinput = ''
-           set surf_names = ( white smoothwm pial )
-           foreach stmp ( $surf_names )
-              if ( -f ../$surf_dir/lh.$stmp && -f ../$surf_dir/rh.$stmp ) then
-                 set sinput = $stmp
-                 break
-              endif
-           end
-
            if ( $sinput != "" ) then
-              echo "-- using $sinput as surf input to mris_convert"
-
               foreach exlab ( $extra_annot_labels )
                  # convert and make a GIFTI version
                  foreach hand ( lh rh )
@@ -990,11 +994,11 @@ L_CONVERT_SURFACES:
                     # Use 3dcopy instead, to just get color index values (and
                     # essentially throw away the colormap).
                     #
-                    # ConvertDset -i $ddd/${hand}.$exlab.FS.annot.gii \
-                    #             -o $ddd/${hand}.$exlab.annot.niml.dset
+                    ConvertDset -i $ddd/${hand}.$exlab.FS.annot.gii \
+                                 -o $ddd/${hand}.$exlab.annot.niml.dset
                     
-                    3dcopy $ddd/${hand}.$exlab.FS.annot.gii \
-                           $ddd/${hand}.$exlab.annot.niml.dset
+                    # 3dcopy $ddd/${hand}.$exlab.FS.annot.gii \
+                    #       $ddd/${hand}.$exlab.annot.niml.dset
                  end
               end
            else
@@ -1005,13 +1009,38 @@ L_CONVERT_SURFACES:
         # ------------------------------------------------------------
         # convert standard annot files
         foreach hand ( lh rh )
-            if ( -f ${hand}.aparc.a2005s.annot ) then
+            if ( -f ${hand}.aparc.annot ) then
+               if ( $sinput != "" ) then
                 set ddd = $start_dir/$suma_dir
-                FSread_annot   -input ${hand}.aparc.a2005s.annot       \
-                     $fsannot_opt                                      \
-                    -roi_1D  $ddd/${hand}.aparc.a2005s.annot.1D.roi    \
-                    -dset    $ddd/${hand}.aparc.a2005s.annot.niml.dset \
-                    -cmap_1D $ddd/${hand}.aparc.a2005s.annot.1D.cmap 
+                set isurf = ../$surf_dir/$hand.$sinput
+                # convert 2005 annotation as with extra annot
+                # but use special label file
+                # using Freesurfer's conversion to label gifti first
+                # this output shows labels but has RGB type numbering
+                mris_convert --annot ${hand}.aparc.annot $isurf  \
+                             $ddd/${hand}.aparc.annot.gii
+
+                # This has a color map too, 
+                # but suma does not properly use it
+                ConvertDset -i $ddd/${hand}.aparc.annot.gii \
+                            -o $ddd/${hand}.aparc.annot.niml.dset
+
+                # AFAICT 2005 Dessikan-Killiany parcellation labels stored here
+                # keeping variable definition close to its only use below 
+                # but probably want it up above somewhere in the future
+                set DKtable = $FREESURFER_HOME/average/colortable_desikan_killiany.txt
+                # add color map into new label.niml.dset
+                MakeColorMap -usercolutfile $DKtable \
+                     -suma_cmap $ddd/${hand}.aparc.annot.1D.cmap \
+                     -sdset $ddd/${hand}.aparc.annot.niml.dset
+
+                # old way - might be able to fix?
+                #FSread_annot   -input ${hand}.aparc.annot       \
+                #     $fsannot_opt                                      \
+                #    -roi_1D  $ddd/${hand}.aparc.annot.1D.roi    \
+                #    -dset    $ddd/${hand}.aparc.annot.niml.dset \
+                #    -cmap_1D $ddd/${hand}.aparc.annot.1D.cmap 
+               endif
             endif
      
             if ( -f ${hand}.aparc.a2009s.annot ) then
@@ -1146,8 +1175,8 @@ L_CREATE_SPEC:
             # check for SAME mapping ref
             if ( "$surf.${sex}" == "$s_head.smoothwm.${sex}" ) then
                 set map_ref = SAME
-                if ( -f ${hand}.aparc.a2005s.annot.niml.dset ) then
-                    set label_dset = ${hand}.aparc.a2005s.annot.niml.dset
+                if ( -f ${hand}.aparc.annot.niml.dset ) then
+                    set label_dset = ${hand}.aparc.annot.niml.dset
                 endif
                 if ( -f ${hand}.aparc.a2009s.annot.niml.dset ) then
                     set label_dset = ${hand}.aparc.a2009s.annot.niml.dset
@@ -1258,8 +1287,8 @@ L_CREATE_SPEC:
             # check for SAME mapping ref
             if ( "$surf.${sex}" == "$s_head.smoothwm.${sex}" ) then
                 set map_ref = SAME
-                if ( -f ${hand}.aparc.a2005s.annot.niml.dset ) then
-                    set label_dset = ${hand}.aparc.a2005s.annot.niml.dset
+                if ( -f ${hand}.aparc.annot.niml.dset ) then
+                    set label_dset = ${hand}.aparc.annot.niml.dset
                 endif
                 if ( -f ${hand}.aparc.a2009s.annot.niml.dset ) then
                     set label_dset = ${hand}.aparc.a2009s.annot.niml.dset
@@ -1452,6 +1481,8 @@ L_CREATE_BRICK:
                     -dset ${other:t:r}".nii"  \
                     -no_cp
             endif
+            # 2005 version is the simpler named aparc+aseg now
+            # keeping for old data reprocessing here on volumes
             if ( "${other:t:r}" == "aparc.a2005s+aseg" ||   \
                  "${other:t:r}" == "aparc.a2009s+aseg" ||   \
                  "${other:t:r}" == "aseg" ||                \
@@ -1545,6 +1576,14 @@ L_ICO:
                 end
             endif
 
+            # move the two potential parcellations here too
+            foreach alab ( aparc.annot.lbl aparc.a2009s.annot)
+                set aset = ${hem}.${alab}.niml.dset
+                if ( -f $aset ) then
+                    set dm = ($dm "-NN_dset_map" $aset)
+                endif
+            end
+ 
             if ( -f $sp) then
                 # possibly add -verb    19 Mar 2017 [rickr]
                 if ( $debug ) then
@@ -1804,8 +1843,8 @@ OPTIONS ~1~
           e.g. -extra_annot_labels aparc
 
           FS typically outputs annotation files:
-                lh.aparc.a2005s.annot
-                rh.aparc.a2005s.annot
+                lh.aparc.annot
+                rh.aparc.annot
                 lh.aparc.a2009s.annot
                 rh.aparc.a2009s.annot
           from each of which Make_Spec extracts a colormap, ROI and a
