@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Jun, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "change AFNI.afnirc AFNI_COMPRESSOR default to GZIP",
+   NULL
+ } ,
+
  { 11, Jun, 2024, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
    "backup directory removal; add -update_niivue option",
    "Save only most recent backup directory, possibly plus 1 containing afni.\n"
