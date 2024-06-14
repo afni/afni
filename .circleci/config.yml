@@ -442,13 +442,13 @@ jobs:
             python3 -m venv venv
             source venv/bin/activate
             pip install setuptools
-            cmake ..                                                           \
-                -GNinja                                                             \
-                -DCMAKE_TOOLCHAIN_FILE=../cmake/macos_toolchainfile.cmake      \
-                -DUSE_SYSTEM_GLW=OFF    \
-                -DUSE_SYSTEM_XMHTML=OFF \
-                -DUSE_SYSTEM_F2C=OFF \
-                -DCOMP_RSTATS=OFF \
+            cmake ..                                                      \
+                -GNinja                                                   \
+                -DCMAKE_TOOLCHAIN_FILE=../cmake/macos_toolchainfile.cmake \
+                -DUSE_SYSTEM_GLW=OFF                                      \
+                -DUSE_SYSTEM_XMHTML=OFF                                   \
+                -DUSE_SYSTEM_F2C=OFF                                      \
+                -DCOMP_RSTATS=OFF                                         \
                 -DUSE_SYSTEM_GIFTI=OFF
             ninja
 
