@@ -202,7 +202,8 @@
 
 // AFNI_STARTUP_SCRIPT    = /home/rwcox/.afni_script // script run at AFNI start
 
-AFNI_ONE_OBLIQUE_WARNING      = YES // In afni GUI, just one oblique warning
+// AFNI_ONE_OBLIQUE_WARNING   = YES // In afni GUI, just one oblique warning
+AFNI_NO_OBLIQUE_WARNING       = YES // Turn off obliquity warnings completely
 
 AFNI_GRAPH_FORCE_AUTO_SCALE   = YES // Autoscale graphs each time redrawn
 AFNI_AUTORANGE_PERC           = 95  // autorange for non-ROI olays, from data

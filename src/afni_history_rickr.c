@@ -54,8 +54,10 @@
 afni_history_struct rickr_history[] = {
 
  { 14, Jun, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
-   "change AFNI.afnirc AFNI_COMPRESSOR default to GZIP",
-   NULL
+   "AFNI.afnirc : use GZIP compression and turn off obliquity warnings",
+   "  AFNI_COMPRESSOR          : default to GZIP\n"
+   "  AFNI_NO_OBLIQUE_WARNING  : default to YES\n"
+   "  AFNI_ONE_OBLIQUE_WARNING : comment out (was YES)\n"
  } ,
 
  { 11, Jun, 2024, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
