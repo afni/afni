@@ -415,6 +415,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.img_fontsize = lpo.DEF_img_fontsize   # flt, FS for output images
         self.img_figsize  = lpo.DEF_img_figsize    # 2-ple, img height/wid
         self.img_line_time = lpo.DEF_img_line_time # flt, time per line in plt
+        self.img_fig_line  = lpo.DEF_img_fig_line  # int, lines per fig in plt
         self.img_dot_freq  = lpo.DEF_img_dot_freq  # flt, pts per sec
         self.img_bp_max_f  = lpo.DEF_img_bp_max_f  # flt, Hz for bp plot
 
@@ -598,6 +599,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.img_figsize      = copy.deepcopy(AD['img_figsize'])
         self.img_fontsize     = AD['img_fontsize']
         self.img_line_time    = AD['img_line_time']
+        self.img_fig_line     = AD['img_fig_line']
         self.img_dot_freq     = AD['img_dot_freq']
         self.img_bp_max_f     = AD['img_bp_max_f']
 

@@ -912,6 +912,7 @@ Returns
                         figsize        = retobj.img_figsize,
                         fontsize       = retobj.img_fontsize,
                         max_t_per_line = retobj.img_line_time,
+                        max_l_per_fig  = retobj.img_fig_line,
                         ylabel         = fig_ylabel,
                         verb           = verb,
         )

@@ -48,6 +48,7 @@ DEF_rvt_shift_linspace = None         # can be pars for np.linspace(A,B,C)
 DEF_img_figsize   = []
 DEF_img_fontsize  = 10
 DEF_img_line_time = 60               # units = seconds
+DEF_img_fig_line  = 6                # max num lines per fig
 DEF_img_dot_freq  = 50               # points per sec
 DEF_img_bp_max_f  = 5.0              # Hz, for bandpass plot
 
@@ -132,7 +133,8 @@ DEF = {
     'img_verb'          : 1,         # (int) amount of graphs to save
     'img_figsize'       : DEF_img_figsize,   # (tuple) figsize dims for QC imgs
     'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs 
-    'img_line_time'     : DEF_img_line_time, # (float) time per QC imgs
+    'img_line_time'     : DEF_img_line_time, # (float) time per line in QC imgs
+    'img_fig_line'      : DEF_img_fig_line,  # (int) lines per fig in QC imgs
     'img_dot_freq'      : DEF_img_dot_freq,  # (float) max dots per sec in img
     'img_bp_max_f'      : DEF_img_bp_max_f,  # (float) xaxis max for bp plot
     'save_proc_peaks'   : False,     # (bool) dump peaks to text file
@@ -199,6 +201,7 @@ all_quant_gt_zero = [
     'dset_nt',
     'dset_tr',
     'img_line_time',
+    'img_fig_line',
     'img_fontsize',
     'img_dot_freq',
     'img_bp_max_f',
@@ -1398,6 +1401,13 @@ hlp = '''Maximum time duration per line in the QC images, in units of sec
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
+
+opt = '''img_fig_line'''
+hlp = '''Maximum number of lines per fig in the QC images
+(def: {dopt}) '''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=int)
 
 opt = '''img_dot_freq'''
 hlp = '''Maximum number of dots per line in the QC images (to save filesize
