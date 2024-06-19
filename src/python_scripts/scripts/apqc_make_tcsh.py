@@ -933,7 +933,7 @@ if __name__ == "__main__":
 
     # not currently a uvar, check for known dir name in AP results
     # dir; check for certain 'automatic' stats files that do not have
-    # HTML encoding already (and are not WB ones)
+    # HTML encoding already (or brain in suffix)
     all_fname = glob.glob('tsnr_stats_regress/stats_auto_*.txt')
     for fname in all_fname :
         if fname.endswith('_brain.txt') or fname.endswith('eval_html.txt') :
@@ -1078,6 +1078,28 @@ if __name__ == "__main__":
         cmd      = lat.apqc_warns_vlines( ap_ssdict, obase, "warns", 
                                           "vlines" )
         idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "warns"
+    # item    : ROI stats for TSNR (final) via compute_ROI_stats.tcsh
+
+    # not currently a uvar, check for known dir name in AP results
+    # dir; check for certain 'user' stats files that do not have
+    # HTML encoding already 
+    all_fname = glob.glob('tsnr_stats_regress/stats_user_*.txt')
+    for fname in all_fname :
+        if fname.endswith('eval_html.txt') :
+            _tmp = all_fname.remove(fname)
+    all_fname.sort()
+
+    if len(all_fname) :
+        ban      = lat.bannerize('check TSNR ROI stats (for warns block)')
+        for fname in all_fname:
+            obase    = 'qc_{:02d}'.format(idx)
+            cmd      = lat.apqc_regr_roi_stats( ap_ssdict, obase, fname,
+                                                "warns", "roi_tsnr_fin" )
+            idx     += 1
 
     # --------------------------------------------------------------------
 
