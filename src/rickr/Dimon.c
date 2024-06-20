@@ -163,10 +163,11 @@ static char * g_history[] =
     " 4.30 Apr 22, 2022 [rickr]: add -sort_method rin, geme_rin\n"
     " 4.31 Nov  2, 2022 [rickr]: add -sort_method geme_xnat\n"
     " 4.32 Apr 24, 2024 [rickr]: add -sort_method geme_suid\n"
+    " 4.33 Jun 20, 2024 [rickr]: make -read_all the default (for RT sorting)\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.32 (April 24, 2024)"
+#define DIMON_VERSION "version 4.33 (June 20, 2024)"
 
 static char * g_milestones[] =
 {
@@ -3245,6 +3246,7 @@ static int init_param_t( param_t * p )
    p->opts.max_images = IFM_MAX_VOL_SLICES;   /* allow user override */
    p->opts.sleep_frac = 1.1;           /* fraction of TR to sleep    */
    p->opts.chan_digits = 3;            /* # digits for chan in dset  */
+   p->opts.read_all = 1;               /* def on, needed for RT sort */
    p->opts.te_list = NULL;
 
    init_string_list( &p->opts.drive_list, 0, 0 );   /* no allocation */
@@ -3591,6 +3593,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         }
         else if ( ! strcmp( argv[ac], "-read_all" ) )
         {
+            fprintf(stderr,"-- -read_all is now set by default\n");
             p->opts.read_all = 1;       /* just note the option */
         }
         else if ( ! strncmp( argv[ac], "-rev_org_dir", 8 ) )
@@ -6008,12 +6011,16 @@ printf(
     "\n"
     "        e.g.  -read_all\n"
     "\n"
-    "        There is typically a limit on the number of images initially\n"
-    "        read or stored at any one time.  This option is to remove that\n"
-    "        limit.\n"
+    "           ** June 2024: this option is now set by default **\n"
+    "\n"
+    "        There was originally a limit on the number of images initially\n"
+    "        read or stored at any one time, using this option is to remove\n"
+    "        that limit.  The program was changed in June 2024 to always\n"
+    "        apply -read_all.\n"
     "\n"
     "        It uses more memory, but is particularly important if sorting\n"
-    "        should be done over a complete image list.\n"
+    "        should be done over a complete image list (even just out of\n"
+    "        those currently written).\n"
     "\n"
     "    -rev_org_dir       : reverse the sort in dicom_org\n"
     "\n"
