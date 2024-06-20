@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Jun, 2024, RCR, "Dimon", MINOR, TYPE_MODIFY,
+   "make -read_all the default",
+   "Basically for real-time sorting, this forces the initial processing\n"
+   "of all (found) images, rather than a limited subset.  It allows for\n"
+   "proper sorting without requiring an initial alphabetical aspect."
+ } ,
+
  { 14, Jun, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "AFNI.afnirc : use GZIP compression and turn off obliquity warnings",
    "  AFNI_COMPRESSOR          : default to GZIP\n"
