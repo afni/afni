@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Jun, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "stop reporting assuming TR=1.0 warnings for now",
+   "Requested by P Taylor."
+ } ,
+
  { 20, Jun, 2024, RCR, "Dimon", MINOR, TYPE_MODIFY,
    "make -read_all the default",
    "Basically for real-time sorting, this forces the initial processing\n"

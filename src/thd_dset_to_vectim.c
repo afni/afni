@@ -1067,10 +1067,10 @@ int bsearch_int( int tt , int nar , int *ar )
 
    targ = tt ; ii = 0 ; jj = nar-1 ;      /* setup */
 
-        if( targ <  ar[0]  ) return -1 ;  /* not found */
+   if     ( targ <  ar[0]  ) return -1 ;  /* not found */
    else if( targ == ar[0]  ) return  0 ;  /* at start! */
 
-        if( targ >  ar[jj] ) return -1 ;  /* not found */
+   if     ( targ >  ar[jj] ) return -1 ;  /* not found */
    else if( targ == ar[jj] ) return jj ;  /* at end!   */
 
    /* at the start of this loop, we've already checked
