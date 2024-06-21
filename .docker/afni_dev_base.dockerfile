@@ -26,14 +26,15 @@ ENV SHELL=/bin/bash \
     LC_ALL="en_US.UTF-8" \
     AFNI_ROOT=/opt/afni
 
-ENV DESTDIR="$AFNI_ROOT/install" \
+ENV AFNI_ATLAS_PATH="$AFNI_ROOT/atlases" \
+    DESTDIR="$AFNI_ROOT/install" \
     PATH="$PYTHONUSERBASE/bin:$PATH" \
     HOME=/home/$CONTAINER_USER
 # For any variables that should be present for all users of the container they
 # should be set in /etc/environment (variables set by ENV do not cleanly
 # propagate to all users). Should do this for PATH again later in the dockerfile (or
 # child files)
-ENV PRESERVED_VARS "PYTHONUSERBASE AFNI_ROOT DESTDIR PATH TINI_SUBREAPER LC_ALL"
+ENV PRESERVED_VARS "PYTHONUSERBASE AFNI_ATLAS_PATH AFNI_ROOT DESTDIR PATH TINI_SUBREAPER LC_ALL"
 RUN bash -c 'for val in $PRESERVED_VARS;do \
              echo $val=${!val} >> /etc/environment ; \
              done'
@@ -177,6 +178,11 @@ RUN python3 -m pip install \
   && git config --global user.email "nobody@example.com" \
   && datalad wtf
 
+# Install atlases
+RUN wget -nv -O /tmp/afni_atlases.tgz https://afni.nimh.nih.gov/pub/dist/atlases/afni_atlases_dist.tgz \
+    && mkdir "$AFNI_ROOT/atlases" \
+    && tar -xzf /tmp/afni_atlases.tgz -C "$AFNI_ROOT/atlases" --strip-components=1 \
+    && rm /tmp/afni_atlases.tgz
 
 # add pdb alias ipy for easier pdb debugging
 RUN echo 'alias ipy from IPython import embed;embed()' >> ~/.pdbrc
