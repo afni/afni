@@ -15114,7 +15114,7 @@ OPTIONS:  ~2~
 
             e.g. -anat_follower_ROI aeseg epi SUMA/aparc.a2009s+aseg.nii.gz \\
                  -ROI_import Glasser MNI_Glasser_HCP_v1.0.nii.gz            \\
-                 -regress_compute_tsnr_stats aeseg   4 41 99 999            \\
+                 -regress_compute_tsnr_stats aeseg   18 54 11120 12120 2 41 \\
                  -regress_compute_tsnr_stats Glasser 4 41 99 999
 
             default: -regress_compute_tsnr_stats brain 1
@@ -15132,6 +15132,9 @@ OPTIONS:  ~2~
 
         ROI datasets (and their respective labels) are made via options like
         -anat_follower_ROI, -ROI_import or even -mask_segment_anat.
+
+      * Is it okay to specify ROI values that do not exist in the ROI dataset.
+        That is somewhat expected with subject specific datasets and resampling.
 
       * This option is currently automatically applied with a 'brain' ROI and
         the relevant APQC_atlas, if appropriate.  To override use of such an
