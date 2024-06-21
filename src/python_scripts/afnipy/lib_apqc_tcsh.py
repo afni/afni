@@ -4303,6 +4303,7 @@ num : int
 
 # summary quantities from comp_ROI_stats.tcsh (ROI-based TSNR properties)
 # tsnr_stats_*
+# can also be a 'warns' block item, 
 def apqc_regr_roi_stats( ap_ssdict, obase, fname, qcb, qci ):
     """Take a simple data table of text reporting on ROI properties and
 TSNR stats, and HTML encoding.  Also create text for above/below images.
@@ -4337,28 +4338,51 @@ num : int
         print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
-    cmd    = '''# degree of freedom (df) check for processing'''
+    cmd    = '''# tsnr and roi stats table check'''
+    if qcb == 'warns' :
+        cmd+= ''' (warns)'''
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
 
     # calculate HTML formatting for table, and output in QC dir
     cmd    = '''roi_stats_warnings.py -input {} -prefix {}'''.format(fname, 
                                                                      odat)
+    if qcb == 'warns' :
+        cmd+= ''' -disp_max_warn'''
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
+
+    # for warns QC block, parse output and get max warning level
+    if qcb == 'warns' :
+        warn_level = 'undecided'
+        if len(com.so) > 1 :
+            ttt = com.so[1].split(':')[-1].strip()
+            if len(ttt) :
+                warn_level = ttt
 
     # text above data
     otoptxt = "ROI shape and TSNR stats ({})".format(fname)
 
     # Make info below images 
-    otopdict = {
-        'itemtype'    : 'DAT',
-        'itemid'      : qci,
-        'blockid'     : qcb,
-        'blockid_hov' : lah.qc_blocks[qcb][0],
-        'title'       : lah.qc_blocks[qcb][1],
-        'text'        : otoptxt,
-    }
+    if qcb == 'regr' :
+        otopdict = {
+            'itemtype'    : 'DAT',
+            'itemid'      : qci,
+            'blockid'     : qcb,
+            'blockid_hov' : lah.qc_blocks[qcb][0],
+            'title'       : lah.qc_blocks[qcb][1],
+            'text'        : otoptxt,
+        }
+    elif qcb == 'warns' :
+        otopdict = {
+            'itemtype'    : 'WARN',
+            'itemid'      : qci,
+            'blockid'     : qcb,
+            'blockid_hov' : lah.qc_blocks[qcb][0],
+            'title'       : lah.qc_blocks[qcb][1],
+            'text'        : otoptxt,
+            'warn_level'  : warn_level,
+        }        
     with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 

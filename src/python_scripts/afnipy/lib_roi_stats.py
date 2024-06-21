@@ -26,7 +26,7 @@ class all_comp_roi_dset_table:
 This contains a *set* of one or more tables."""
 
     def __init__(self, ftext, prefix='', fname='input_file', 
-                 write_out=True, verb=0):
+                 write_out=True, disp_max_warn=False, verb=0):
         """Take a full file text (list of strings) and loop over tables
         within."""
 
@@ -35,6 +35,7 @@ This contains a *set* of one or more tables."""
         self.prefix            = prefix          # str, output filename radix
         self.fname             = fname           # str, input filename
         self.write_out         = write_out       # bool, make output file?
+        self.disp_max_warn     = disp_max_warn   # bool, show max warn str?
 
         # attributes defined by parsing self.ftext
         self.all_tables_raw    = []              # list of comp_roi_dset* text
@@ -90,7 +91,8 @@ This contains a *set* of one or more tables."""
         """ Run the quality evaluations for each table """
 
         for table_raw in self.all_tables_raw:
-            OBJ = comp_roi_dset_table(table_raw)
+            OBJ = comp_roi_dset_table(table_raw,
+                                      disp_max_warn = self.disp_max_warn)
             self.all_tables_eval.append(OBJ)
 
     def find_all_tables(self):
@@ -151,7 +153,7 @@ Probably the major products of interest from creating this object are:
                              HTML-style warning level coloration
 """
 
-    def __init__(self, table, verb=0):
+    def __init__(self, table, disp_max_warn=False, verb=0):
         """Take a dset table (list of strings) and go to work
         calculating/evaluating things.
         """
@@ -168,6 +170,7 @@ Probably the major products of interest from creating this object are:
         # attributes defined by evaluating table_values for warnings
         self.table_values_html  = []             # table_values + HTML colors
         self.table_maxwarn      = []             # list of max warn per item
+        self.disp_max_warn      = disp_max_warn  # do display max warning lev?
 
         # ----- start doing work
         _tmp = is_comp_roi_str_list_ok(self.table)
@@ -175,7 +178,9 @@ Probably the major products of interest from creating this object are:
         self.init_eval_tables()
         self.evaluate_all_warns()
         self.apply_warns_to_values_html()
-
+        if self.disp_max_warn :
+            self.do_display_max_warn()
+        
     # ---------------------------------------------------
 
     def assemble_table_values(self, table=None):
@@ -205,6 +210,20 @@ Probably the major products of interest from creating this object are:
             return ''
 
         return otext
+
+    def do_display_max_warn(self):
+        """Get the maximum warning level across the table, and output it as
+        text"""
+
+        max_warn     = 0
+        max_warn_str = ''
+        for idx in range(self.n_table_values):
+            for col in range(self.len_table_cols):
+                wlev = lahc.wlevel_ranks[ self.table_maxwarn[idx][col] ]
+                if wlev > max_warn :
+                    max_warn     = wlev
+                    max_warn_str = self.table_maxwarn[idx][col]
+        ab.IP("max warn level : {}".format(max_warn_str))
 
     def apply_warns_to_values_html(self):
         """Go through all warns, and add HTML wrappers in appropriate
