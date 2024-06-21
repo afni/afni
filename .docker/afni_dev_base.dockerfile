@@ -24,9 +24,9 @@ ENV SHELL=/bin/bash \
     TINI_SUBREAPER="" \
     LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \
-    AFNI_ROOT=/opt/afni/src
+    AFNI_ROOT=/opt/afni
 
-ENV DESTDIR="$AFNI_ROOT/../install" \
+ENV DESTDIR="$AFNI_ROOT/install" \
     PATH="$PYTHONUSERBASE/bin:$PATH" \
     HOME=/home/$CONTAINER_USER
 # For any variables that should be present for all users of the container they
@@ -133,7 +133,7 @@ USER $CONTAINER_UID
 
 
 ###### Switch to non privileged user ######
-RUN bash -c 'mkdir -p $AFNI_ROOT/../{build,src,install} && fix-permissions $AFNI_ROOT/../..'
+RUN bash -c 'mkdir -p $AFNI_ROOT/{build,src,install} && fix-permissions $AFNI_ROOT/..'
 
 ENV CMAKE_VER=3.14.7
 RUN wget -P /opt/cmake  https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-Linux-x86_64.tar.gz \
