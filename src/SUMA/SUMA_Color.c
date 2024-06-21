@@ -4350,13 +4350,14 @@ SUMA_Boolean SUMA_IsCmapOKForLabelDset(SUMA_DSET *dset, SUMA_COLOR_MAP *cmap)
          SUMA_RETURN(NOPE);
       }
    }
-   for (i=0; i<N_unq; ++i) {
+/* doesn't account for index < 0 - FreeSurfer newer versions can fail
+ *    for (i=0; i<N_unq; ++i) {
       if (SUMA_ColMapKeyIndex(unq[i], cmap) < 0) {
          SUMA_S_Errv("Key[%d] %d has no entry in cmap %s\n", i, unq[i], cmap->Name);
          SUMA_RETURN(NOPE);
       }
    }
-
+*/
    SUMA_RETURN(YUP);
 }
 
