@@ -27,9 +27,9 @@ ENV SHELL=/bin/bash \
     TINI_SUBREAPER="" \
     LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \
-    AFNI_ROOT=/opt/afni/src
+    AFNI_ROOT=/opt/afni
 
-ENV DESTDIR="$AFNI_ROOT/../install" \
+ENV DESTDIR="$AFNI_ROOT/install" \
     PATH="$PYTHONUSERBASE/bin:$PATH" \
     HOME=/home/$CONTAINER_USER
 
@@ -140,8 +140,7 @@ RUN fix-permissions /opt
 USER $CONTAINER_UID
 
 ###### Switch to non privileged user ######
-
-RUN bash -c 'mkdir -p $AFNI_ROOT/../{build,src,install} && fix-permissions $AFNI_ROOT/../..'
+RUN bash -c 'mkdir -p $AFNI_ROOT/{build,src,install} && fix-permissions $AFNI_ROOT/..'
 
 # [PT: 2025-xx-xx] Bump CMake from 3.14.7 -> 3.31.7 (CMakeLists.txt requires >= 3.16).
 # Note: starting with CMake 3.20, the prebuilt tarball uses lowercase "linux"
