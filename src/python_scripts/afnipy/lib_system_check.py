@@ -76,8 +76,17 @@ class SysInfo:
    def show_general_sys_info(self, header=1):
       if header: print(UTIL.section_divider('general', hchar='-'))
 
+      # report CPU via platform platform
+      # also, if 'uname -m' output differs, show and warn
+      cpustr = platform.processor()
+      status, cout = UTIL.exec_tcsh_command('uname -m', lines=1)
+      if status == 0 and len(cout) > 0:
+         if cout[0] != cpustr:
+            cpustr += ' (uname -m == %s)' % cout[0]
+            self.comments.append("CPU differs between python and uname?")
+
       print('architecture:         %s' % tup_str(platform.architecture()))
-      print('cpu type:             %s' % platform.processor())
+      print('cpu type:             %s' % cpustr)
       print('system:               %s' % platform.system())
       print('release:              %s' % platform.release())
       print('version:              %s' % platform.version())
@@ -1282,7 +1291,7 @@ class SysInfo:
       elist = ['PATH', 'PYTHONPATH', 'R_LIBS',
                'LD_LIBRARY_PATH',
                'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH',
-               'CONDA_SHLVL', 'CONDA_DEFAULT_ENV']
+               'CONDA_SHLVL', 'CONDA_DEFAULT_ENV', 'CC']
       maxlen = max(len(e) for e in elist)
 
       for evar in elist:

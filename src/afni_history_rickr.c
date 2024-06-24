@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Jun, 2024, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "display CC; warn if CPU type differs between platform and uname",
+   NULL
+ } ,
+
  { 24, Jun, 2024, RCR, "build_afni.py", MINOR, TYPE_ENHANCE,
    "when running 'make', warn if CC is set (which usually causes failure)",
    NULL
