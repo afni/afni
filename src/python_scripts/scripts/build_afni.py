@@ -376,10 +376,11 @@ g_history = """
    0.11 Jun 11, 2024
         - remove extra backup dirs (save 1, and must contain afni)
         - add -update_niivue option
+   0.12 Jun 24, 2024 - for make, warn if CC is set
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.11, June 11, 2024" % g_prog
+g_version = "%s, version 0.12, June 24, 2024" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
@@ -540,6 +541,7 @@ class MyInterface:
       self.dsdoc           = 'doc'
 
       # system and possible mac stuff
+      self.ekeys           = os.environ.keys()  # store env keys
       self.sysname         = platform.system()
       self.is_mac          = self.sysname == 'Darwin'
 
@@ -1414,6 +1416,7 @@ class MyInterface:
 
    def f_build_via_make(self):
       """run a make build
+            - fail or warn if CC is already set
             - have or try to choose a suitable package
             - copy git/afni/src tree
             - find corresponding Makefile
@@ -1453,6 +1456,14 @@ class MyInterface:
 
       st, ot = self.run_cmd('cd', self.dsbuild, pc=1)
       if st: return st
+
+      # -----------------------------------------------------------------
+      # check the environment
+
+      # we do not want CC set, warn for now
+      if 'CC' in self.ekeys:
+         MESGw("running make, but CC == %s" % os.environ['CC'])
+         MESGi("(CC should likely not be set)")
 
       # -----------------------------------------------------------------
       # copy package Makefile
@@ -1597,12 +1608,10 @@ class MyInterface:
 
          return whether we are in conda (SHLVL set)
       """
-      ekeys = os.environ.keys()
-
       elvl = 'CONDA_SHLVL'
       eenv = 'CONDA_DEFAULT_ENV'
       # if no shell level, we are done
-      if elvl not in ekeys:
+      if elvl not in self.ekeys:
          return 0
 
       # init main vars and check DEF_ENV
@@ -1610,7 +1619,7 @@ class MyInterface:
       venv = ''
 
       # make a string for DEFAULT_ENV
-      if eenv in ekeys:
+      if eenv in self.ekeys:
          venv = ', %s = %s' % (eenv, os.environ[eenv])
 
       MESGw('in conda environment')
