@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Jun, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "deal with -Wimplicit-int, mostly from old f2c, needed for gcc-14",
+   NULL
+ } ,
+
  { 24, Jun, 2024, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "display CC; warn if CPU type differs between platform and uname",
    NULL
