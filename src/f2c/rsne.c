@@ -37,7 +37,7 @@
 
  extern flag f__lquit;
  extern int f__lcount, nml_read;
- extern t_getc(Void);
+ extern int t_getc(Void);
 
 #ifdef KR_headers
  extern char *malloc(), *memset();
@@ -294,7 +294,7 @@ print_ne(cilist *a)
 #ifdef KR_headers
 x_rsne(a) cilist *a;
 #else
-x_rsne(cilist *a)
+int x_rsne(cilist *a)
 #endif
 {
 	int ch, got1, k, n, nd, quote, readall;
