@@ -261,6 +261,8 @@ char *argv[];
 
  fclose(fout);
  fprintf(stderr,"Processed %d files.\n",count);
+
+ return(0);
 }
 
 
