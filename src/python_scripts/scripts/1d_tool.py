@@ -2298,7 +2298,7 @@ class A1DInterface:
             self.show_labels = 1
 
          elif opt.name == '-show_max_displace':
-            self.show_displace = 3
+            self.show_displace = 1
 
          elif opt.name == '-show_mmms':
             self.show_mmms = 1
@@ -2633,6 +2633,7 @@ class A1DInterface:
          print(istr)
 
       if self.show_displace:
+         # note: enorm diff as L1 vs L2 norm will probably never be used here
          print(self.adata.get_max_displacement_str(verb=self.verb))
 
       if self.show_gcor:
