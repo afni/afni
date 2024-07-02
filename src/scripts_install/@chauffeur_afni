@@ -381,6 +381,7 @@ setenv AFNI_STARTUP_WARNINGS     NO
 setenv AFNI_MOTD_CHECK           NO
 setenv AFNI_NIFTI_TYPE_WARN      NO
 setenv AFNI_MESSAGE_COLORIZE     NO      # [PT: Jul 06, 2023]
+setenv AFNI_SKIP_DYLD_WARNING    YES     # [PT: Jul 01, 2024]
 
 # -------------------------------------------------------------------
 
@@ -1693,6 +1694,31 @@ EOF
     if ( $status ) then
         echo "** ERROR: 3dClusterize failed for some reason (see above)."
         goto BAD_EXIT
+    endif
+
+    # count num lines in cluster rep to see if there are any clusters
+    set nline = `cat "${odir}/${impref}_clust_rep.txt" | wc -l`
+    if ( `echo "${nline} < 2" | bc` ) then
+        # no clusters found, make empty dset of 0s; olay might have '[' char
+        if ( `echo "${olay}" | grep -c "\["` ) then
+            # copy as 0s and then get 0th vol
+            3dcalc                                     \
+                -a       "${olay}"                     \
+                -expr    '0*a'                         \
+                -prefix  "${read_dir}/__tmp.nii"       \
+                -datum   byte
+            3dcalc                                     \
+                -a       "${read_dir}/__tmp.nii[0]"    \
+                -expr    'a'                           \
+                -prefix  "${read_dir}/olay_clust.nii"
+        else
+            # only single vol as 0s
+            3dcalc                                     \
+                -a       "${olay}"                     \
+                -expr    '0*a'                         \
+                -prefix  "${read_dir}/olay_clust.nii"  \
+                -datum   byte
+        endif
     endif
 
     # [PT: Sept 22, 2022] use basic reporting on clusters
