@@ -105,7 +105,7 @@ The following software are distributed within AFNI directly:
 * `NiiVue <https://github.com/niivue/niivue>`_,
   included as ``niivue_afni.umd.js``
   
-AFNI also has several programs and features that 
+AFNI also has several programs and features that
 complement directly with the following projects:
 
 * `FreeSurfer <https://surfer.nmr.mgh.harvard.edu/>`_,
