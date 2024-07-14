@@ -139,8 +139,9 @@ field. Some projects that use AFNI include:
   packages
 * `LONI QC <https://qc.loni.usc.edu/>`_: data review platform for
   neuroimaging studies with one or more centers
-* `NeoRS <https://github.com/venguix/NeoRS>`_: Neonatal Resting State
-  fMRI data preprocessing pipeline
+* `Micapipe <https://micapipe.readthedocs.io/en/latest/>`_:
+* `NeoRS <https://github.com/venguix/NeoRS>`_: a processing pipeline 
+  to analyze multimodal MRI data
 * `NeuroDebian <https://neuro.debian.net/>`_: an open, turnkey
   platform for neuroscience, integrating software
 * `NeuroDesk <https://www.neurodesk.org/>`_: open platform of data
