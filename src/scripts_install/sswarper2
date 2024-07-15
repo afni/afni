@@ -500,7 +500,7 @@ endif
     -prefix ${odir}/ssw_align_hist.${SubID}/init_qc_00_usrc_obase_${SubID}
 
 set pref_alhi = $odir/ssw_align_hist.${SubID}/ssw.${SubID}  # pref for imgs
-set alhi_ct   = `count -digits 2 0 20`    # padded idx vals, up to large N
+set alhi_ct   = `count_afni -digits 2 0 20`  # padded idx vals, up to large N
 set alhidx    = 0                         # count index
 set olay_alhi = "${Basedset}[1]"          # always use this for olay edges
 
