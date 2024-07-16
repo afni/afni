@@ -117,7 +117,7 @@ L_INIT_VARS:
     #set fsdsets = (thickness curv sulc $fsdsets_extra ) 
     set inflates = ()
     
-    set surf_attribs = (            \
+    set poss_surf_attribs = (            \
             smoothwm                \
             pial                    \
             inflated                \
@@ -137,6 +137,7 @@ L_INIT_VARS:
             lh.sphere.reg           \
             pial-outer-smoothed     \
             )
+    set surf_attribs = ( )
 
 goto L_INIT_VARS_DONE
 
@@ -816,12 +817,18 @@ L_LOOK_FOR_SURF:
     set list_lh = "X"   # init to something useless - allows nice empty check
     set list_rh = "X"
 
-    foreach attrib ( $surf_attribs )
+    foreach attrib ( $poss_surf_attribs )
+        set found_attrib = 0
         if ( -f lh.$attrib ) then
             set list_lh = ( $list_lh lh.$attrib )
+            set found_attrib = 1
         endif
         if ( -f rh.$attrib ) then
             set list_rh = ( $list_rh rh.$attrib )
+            set found_attrib = 1
+        endif
+        if ($found_attrib == 1) then
+            set surf_attribs = ( $surf_attribs $attrib )
         endif
     end
 
