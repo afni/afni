@@ -174,7 +174,8 @@ ENTRY("THD_open_dataset") ;
    }
 
    if( cpt == pathname || bpt == pathname ){
-     if(qname!=NULL)free(qname); RETURN(NULL);  /* error */
+     if(qname!=NULL)free(qname);
+     RETURN(NULL);  /* error */
    }
 
    /* copy dataset filename to dname and selector string to subv */
