@@ -2120,19 +2120,28 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
 
    if (over1 && over2){
     if (SO->SurfCont->BoxOutlineThresh){
-        over1->ShowMode = SW_SurfCont_DsetViewCon;
+        over2->ShowMode = SW_SurfCont_DsetViewCon;
 
          /* kill current contours */
-         SUMA_KillOverlayContours(over1);
+         SUMA_KillOverlayContours(over2);
 
         if (OutlineContours){
-            over1->Contours = OutlineContours;
-            over1->N_Contours = N_OutlineContours;
+            over2->Contours = OutlineContours;
+            over2->N_Contours = N_OutlineContours;
         } else {
-               OriginalContours = over1->Contours;
-               N_OriginalContours = over1->N_Contours;
+               OriginalContours = over2->Contours;
+               N_OriginalContours = over2->N_Contours;
+               
+               for (i=j=0; i<over2->N_NodeDef; ++i){
+//                    int x = over2->NodeList[J++];
+//                    int y = over2->NodeList[J++];
+//                    int z = over2->NodeList[J++];
+                    
+                    over2->T[over2->NodeDef[i]] = 1000.0f;
+                    over2->V[over2->NodeDef[i]] = 1000.0f;
+               }
 
-               if (!SUMA_ColorizePlane (over1)) {
+               if (!SUMA_ColorizePlane (over2)) {
                      SUMA_SLP_Err("Failed to colorize plane.\n");
                      SUMA_RETURN(NOPE);
                 }
@@ -2144,23 +2153,23 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
                    SUMA_OVERLAYS *colplane = SUMA_Fetch_OverlayPointerByDset ((SUMA_ALL_DO *)SO, dd, &OverInd);
                    
                    if (colplane->Contours){
-                    over1->Contours = OutlineContours = colplane->Contours;
-                    over1->N_Contours = N_OutlineContours = colplane->N_Contours;
+                    over2->Contours = OutlineContours = colplane->Contours;
+                    over2->N_Contours = N_OutlineContours = colplane->N_Contours;
                     break;
                    }
                    
                    el = dlist_next(el);
                }
            
-               if (!(over1->Contours)){
+               if (!(over2->Contours)){
                    fprintf("%s: No contours available\n", FuncName);
                    SUMA_RETURNe;
                }
         }
     } else {
-        over1->ShowMode = SW_SurfCont_DsetViewCol;
-        over1->Contours = OriginalContours;
-        over1->N_Contours = N_OriginalContours;
+        over2->ShowMode = SW_SurfCont_DsetViewCol;
+        over2->Contours = OriginalContours;
+        over2->N_Contours = N_OriginalContours;
     }
    }
 
