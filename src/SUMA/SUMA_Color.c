@@ -7654,7 +7654,7 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
 
    SUMA_ENTRY;
    
-   SUMA_RETURN(NOPE);
+   // SUMA_RETURN(NOPE);
    
    el = dlist_head(SUMAg_CF->DsetList);
    while (el) {
@@ -7669,6 +7669,7 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
                SUMA_RETURN(NOPE);
          }
          /* any contours? */
+         fprintf(stderr, "%s: colplane->Contours = %p\n", FuncName, colplane->Contours);
          if ( (colplane->ShowMode == SW_SurfCont_DsetViewCon ||
                colplane->ShowMode == SW_SurfCont_DsetViewCaC ) &&
               colplane->Contours && colplane->N_Contours) {

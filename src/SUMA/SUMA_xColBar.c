@@ -2142,6 +2142,18 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
                      SUMA_RETURN(NOPE);
                 }
         }
+        
+        fprintf(stderr, "%s: colplane->Contours = %p\n", FuncName, over2->Contours);
+        
+        // Make contours black
+        if (over2->Contours){
+            for (i=0; i<over2->N_Contours; ++i){
+                for (j=0; j<4; ++j){
+                    over2->Contours[i]->EdgeColor[j] = 0.0f;
+                    over2->Contours[i]->FillColor[j] = 0.0f;
+                }
+            }
+        }
     } else {
         over2->ShowMode = SW_SurfCont_DsetViewCol;
         over2->Contours = OriginalContours;
