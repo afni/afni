@@ -6958,7 +6958,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
    static char FuncName[]={"SUMA_Overlays_2_GLCOLAR4"};
    SUMA_Boolean LocalHead = NOPE;
    
-   fprintf(stderr, "%s: \n", FuncName);
+   // fprintf(stderr, "%s: \n", FuncName);
 
 
    SUMA_ENTRY;
@@ -12500,7 +12500,7 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "%s: debugStackLevel = %d\r", FuncName, debugStackLevel);
+   // fprintf(stderr, "%s: debugStackLevel = %d\r", FuncName, debugStackLevel);
    
    ++debugStackLevel;
    
