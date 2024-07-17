@@ -2137,32 +2137,10 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
                     over2->V[over2->NodeDef[i]] = 1000.0f;
                }
                
-/*  DON'T DO THIS!!!
-               DListElmt *el = dlist_head(SUMAg_CF->DsetList);
-               while (el) {
-                   SUMA_DSET *dd = (SUMA_DSET*)el->data;
-                   int OverInd = 1;
-                   SUMA_OVERLAYS *colplane = SUMA_Fetch_OverlayPointerByDset ((SUMA_ALL_DO *)SO, dd, &OverInd);
-                   
-                   if (colplane->Contours){
-                    over2->Contours = OutlineContours = colplane->Contours;
-                    over2->N_Contours = N_OutlineContours = colplane->N_Contours;
-                    break;
-                   }
-                   
-                   el = dlist_next(el);
-               }
-*/
-
                if (!SUMA_ColorizePlane (over2)) {
                      SUMA_SLP_Err("Failed to colorize plane.\n");
                      SUMA_RETURN(NOPE);
                 }
-           
-               if (!(over2->Contours)){
-                   fprintf("%s: No contours available\n", FuncName);
-                   SUMA_RETURNe;
-               }
         }
     } else {
         over2->ShowMode = SW_SurfCont_DsetViewCol;
