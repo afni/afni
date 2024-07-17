@@ -29,7 +29,7 @@ intro <-
 	      Welcome to RBA ~1~
 Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.4, Dec 2, 2023 
+Version 1.1.5, Jun 15, 2024 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1423,4 +1423,4 @@ if(is.na(lop$mean)) {
 
 # save it again
 save.image(file=paste0(lop$outFN, ".RData"))
-cat("\nCongratulations! The above results are saved in file ", lop$lop$outFN, "\n\n", sep='')
+cat("\nCongratulations! The above results are saved in file ", lop$outFN, "\n\n", sep='')

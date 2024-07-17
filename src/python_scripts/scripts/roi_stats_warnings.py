@@ -37,6 +37,7 @@ main parameters:
 
       -input  INPUT             : input ROI stats text file
       -prefix PREFIX            : prefix for output HTML version
+      -disp_max_warn            : display max warning level string
 
 other options:
       -verb LEVEL               : set the verbosity level
@@ -51,9 +52,10 @@ g_history = """
 
    0.0  Mar  7, 2024    - ...
    0.1  Mar  8, 2024    - tweak in usage, in case no prefix provided
+   0.2  Jun 18, 2024    - add -disp_max_warn opt
 """
 
-g_version = "roi_stats_warnings.py version 0.0, March 7, 2024"
+g_version = "roi_stats_warnings.py version 0.2, June 18, 2024"
 
 
 class MyInterface:
@@ -67,6 +69,7 @@ class MyInterface:
       # main data variables, based on -input
       self.input           = None
       self.prefix          = None
+      self.disp_max_warn   = False
 
       # general variables
       self.verb            = verb
@@ -93,6 +96,10 @@ class MyInterface:
 
       self.valid_opts.add_opt('-prefix', 1, [], 
                       helpstr='prefix for output HTML version of stats file')
+
+      # optional parameters
+      self.valid_opts.add_opt('-disp_max_warn', 0, [], 
+                      helpstr='display max warning level string')
 
       # general options
       self.valid_opts.add_opt('-verb', 1, [], 
@@ -158,6 +165,9 @@ class MyInterface:
             if val is None or err: return -1
             self.prefix = val
 
+         elif opt.name == '-disp_max_warn':
+            self.disp_max_warn = True
+
          # general options
 
          elif opt.name == '-verb':
@@ -182,6 +192,7 @@ class MyInterface:
 
       # create HTML table
       self.roi_table = LRS.all_comp_roi_dset_table(self.text_lines,
+                                           disp_max_warn=self.disp_max_warn,
                                                    fname=self.input)
 
       # if we have no prefix, base it on input

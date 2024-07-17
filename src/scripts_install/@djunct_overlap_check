@@ -37,7 +37,8 @@ set version   = "0.46";   set rev_dat   = "May 10, 2022"
 #
 # ----------------------------------------------------------------
 
-setenv AFNI_COMPRESSOR NONE
+setenv AFNI_ENVIRON_WARNINGS  NO      # [PT: Jul 11, 2024] stop whiny msgs
+setenv AFNI_COMPRESSOR        NONE
 
 set this_prog = "@djunct_overlap_check"
 set tpname    = "${this_prog:gas/@djunct_//}"

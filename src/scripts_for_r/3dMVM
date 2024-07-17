@@ -15,8 +15,17 @@ else
 endif
 
 set tname = `basename $0`.R
+
+# set AFNI path to something useful, or a default
 set afpath = `which afni`
+if ( $status ) then
+   set afpath = `which afni_proc.py`
+   if ( $status ) then
+      set afpath = $HOME/abin/eat_more_cheese
+   endif
+endif
 set afpath = `dirname $afpath`
+
 if ( -f  $pp/${tname}) then
    set tname = $pp/${tname} 
 else if ( -f  $pp/R_scripts/${tname}) then

@@ -3600,7 +3600,7 @@ def db_cmd_volreg_motsim(proc, block, basevol):
 def db_cmd_volreg_tsnr(proc, block, emask=''):
 
     # signal and error are both first run of previous output
-    signal = proc.prefix_form(block, 1)
+    signal = proc.prefix_form(block, 1, eind=-1)
 
     return db_cmd_tsnr(proc,
            "# --------------------------------------\n" \
@@ -4903,7 +4903,6 @@ def db_cmd_mask(proc, block):
     if olist != None: aopts = (' '.join(olist) + ' ')
     else:             aopts = ''
 
-    prev = proc.prev_dset_form_wild(block)
     prev = proc.prev_prefix_form_run(block, view=1, eind=-1)
     cmd = cmd + "# %s\n"                                                \
                 "# create 'full_mask' dataset (%s mask)\n"              \
@@ -15115,7 +15114,7 @@ OPTIONS:  ~2~
 
             e.g. -anat_follower_ROI aeseg epi SUMA/aparc.a2009s+aseg.nii.gz \\
                  -ROI_import Glasser MNI_Glasser_HCP_v1.0.nii.gz            \\
-                 -regress_compute_tsnr_stats aeseg   4 41 99 999            \\
+                 -regress_compute_tsnr_stats aeseg   18 54 11120 12120 2 41 \\
                  -regress_compute_tsnr_stats Glasser 4 41 99 999
 
             default: -regress_compute_tsnr_stats brain 1
@@ -15133,6 +15132,9 @@ OPTIONS:  ~2~
 
         ROI datasets (and their respective labels) are made via options like
         -anat_follower_ROI, -ROI_import or even -mask_segment_anat.
+
+      * Is it okay to specify ROI values that do not exist in the ROI dataset.
+        That is somewhat expected with subject specific datasets and resampling.
 
       * This option is currently automatically applied with a 'brain' ROI and
         the relevant APQC_atlas, if appropriate.  To override use of such an

@@ -102,11 +102,16 @@ ver = '2.10' ; date = 'June 5, 2023'
 # Supplementary stuff and I/O functions for the AP QC tcsh script
 
 import sys, copy, os
-import matplotlib.colors        as mcol
 from   afnipy import lib_afni1D as LAD
 from   afnipy import afni_util  as au
 from   afnipy import afni_base  as ab
 from   afnipy import module_test_lib
+
+# put this import in try/except bc of 'basic' style of QC import
+try:
+    import matplotlib.colors        as mcol
+except:
+    pass
 
 # -------------------------------------------------------------------
 
@@ -843,6 +848,9 @@ class subplobj:
         self.ymin   = 0.
         self.ymax   = 0.
         self.censor_hline  = [] # will be list of number(s) and/or 'NONE'
+
+        self.yrantop = []
+        self.yranbot = []
 
     def set_x(self, x):
         self.x = x

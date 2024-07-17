@@ -19,7 +19,6 @@ import subprocess as     SP
 import argparse   as     argp
 from   datetime   import datetime
 from   platform   import python_version_tuple
-import numpy      as     np
 
 from   afnipy     import afni_base as BASE
 from   afnipy     import afni_util as UTIL
@@ -42,12 +41,13 @@ DEF_max_bpm_resp = 60.0
 all_rvt_opt = ['rvt_off', 'rvt_shift_list', 'rvt_shift_linspace']
 DEF_rvt_off            = False
 DEF_rvt_shift_list     = '0 1 2 3 4'  # split+listified, below, if used
-DEF_rvt_shift_linspace = None         # can be pars for np.linspace(A,B,C)
+DEF_rvt_shift_linspace = None         # can be pars for NumPy linspace(A,B,C)
 
 # some QC image plotting options that the user can change
 DEF_img_figsize   = []
 DEF_img_fontsize  = 10
 DEF_img_line_time = 60               # units = seconds
+DEF_img_fig_line  = 6                # max num lines per fig
 DEF_img_dot_freq  = 50               # points per sec
 DEF_img_bp_max_f  = 5.0              # Hz, for bandpass plot
 
@@ -119,6 +119,7 @@ DEF = {
     'min_bpm_card'      : DEF_min_bpm_card, # (float) min beats per min
     'max_bpm_resp'      : DEF_max_bpm_resp, # (float) max breaths per min
     'max_bpm_card'      : DEF_max_bpm_card, # (float) max beats per min
+    'do_extend_bp_resp' : False,     # (bool) don't extend resp bp
     'verb'              : 0,         # (int) verbosity level
     'disp_all_slice_patterns' : False, # (bool) display known sli patterns
     'disp_all_opts'     : False,     # (bool) display opts for this prog
@@ -131,7 +132,8 @@ DEF = {
     'img_verb'          : 1,         # (int) amount of graphs to save
     'img_figsize'       : DEF_img_figsize,   # (tuple) figsize dims for QC imgs
     'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs 
-    'img_line_time'     : DEF_img_line_time, # (float) time per QC imgs
+    'img_line_time'     : DEF_img_line_time, # (float) time per line in QC imgs
+    'img_fig_line'      : DEF_img_fig_line,  # (int) lines per fig in QC imgs
     'img_dot_freq'      : DEF_img_dot_freq,  # (float) max dots per sec in img
     'img_bp_max_f'      : DEF_img_bp_max_f,  # (float) xaxis max for bp plot
     'save_proc_peaks'   : False,     # (bool) dump peaks to text file
@@ -198,6 +200,7 @@ all_quant_gt_zero = [
     'dset_nt',
     'dset_tr',
     'img_line_time',
+    'img_fig_line',
     'img_fontsize',
     'img_dot_freq',
     'img_bp_max_f',
@@ -698,7 +701,7 @@ reconcile_phys_json_with_args.__doc__ = \
 
 def interpret_rvt_shift_linspace_opts(A, B, C):
     """Three numbers are used to determine the shifts for RVT when
-processing.  These get interpreted as np.linspace(A, B, C).  Verify
+processing.  These get interpreted as Numpy's linspace(A, B, C).  Verify
 that any entered set (which might come from the user) works fine.
 
 Parameters
@@ -720,11 +723,40 @@ shift_list : list
     """
 
     try :
-        shift_list = list(np.linspace(A, B, C))
+        shift_list = imitation_linspace_mini(A, B, C)
     except:
-        return True, np.zeros(0, dtype=float)
+        return True, [] 
     
     return False, shift_list
+
+def imitation_linspace_mini(A,B,C):
+    """Do simple linspace-like calcs, so we can remove numpy
+dependency. This returns a list, not a numpy array, though
+
+Parameters
+----------
+A : float
+    start of range
+B : float
+    end of range (inclusive)
+C : int
+    number of steps in range
+
+Returns
+-------
+L : list
+    list of (float) values
+    """
+
+    denom = C - 1
+    if not(C > 0) :
+        raise ValueError("(C-1) is not positive")
+    delta = (B - A)/denom
+
+    L = [A+delta*ii for ii in range(C)]
+
+    return L
+
 
 
 # ========================================================================== 
@@ -1303,7 +1335,7 @@ opt = '''rvt_shift_linspace'''
 hlp = '''Alternative to '-rvt_shift_list ..'. Provide three space-separated
 values (start stop N) used to determine how many and what kinds of
 shifted copies of RVT are output as regressors, according to the
-Python-Numpy function np.linspace(start, stop, N). Both start and stop
+Python-Numpy function linspace(start, stop, N). Both start and stop
 (units of seconds) can be negative, zero or positive.  Including 0 may
 be useful.  Example params: 0 4 5, which lead to shifts of 0, 1, 2, 3
 and 4 sec (def: None, use '-rvt_shift_list')'''
@@ -1327,6 +1359,12 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
 
 opt = '''no_resp_out'''
 hlp = '''Turn off output of respiratory regressors'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
+
+opt = '''do_extend_bp_resp'''
+hlp = '''Use less strict initial bandpass for resp data'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
@@ -1391,6 +1429,13 @@ hlp = '''Maximum time duration per line in the QC images, in units of sec
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
+
+opt = '''img_fig_line'''
+hlp = '''Maximum number of lines per fig in the QC images
+(def: {dopt}) '''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=int)
 
 opt = '''img_dot_freq'''
 hlp = '''Maximum number of dots per line in the QC images (to save filesize

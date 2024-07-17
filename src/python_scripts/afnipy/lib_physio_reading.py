@@ -36,6 +36,7 @@ derived data.
                  prefilt_init_freq = None, prefilt_mode = None, 
                  prefilt_win = None, do_interact = False,
                  duration_vol = None, vol_tr = None,
+                 extend_bp=False,
                  verb=0):
         """Create object holding a physio time series data.
         
@@ -54,6 +55,7 @@ derived data.
         self.ts_unfilt  = np.array(ts_unfilt) # arr, store raw ts
         self.ts_orig_bp = np.zeros(0, dtype=float) # arr, orig ts post-bandpass
         self.bp_idx_freq_mode = 0.           # flt, peak freq idx in bandpass
+        self.extend_bp  = extend_bp          # bool, more generous bandpass?
 
         self.duration_vol = duration_vol     # float, length of MRI in sec
         self.vol_tr       = vol_tr           # float, MRI TR in sec
@@ -390,6 +392,8 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
             'resp' : 0.,               # float, size (s) of window if downsamp
         }
 
+        self.do_extend_bp_resp = False # bool, do less strict BP for resp
+
         # MRI EPI volumetric info
         self.vol_slice_times = []      # list of floats for slice timing
         self.vol_slice_pat   = None    # str, name of slice pat (for ref)
@@ -411,6 +415,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.img_fontsize = lpo.DEF_img_fontsize   # flt, FS for output images
         self.img_figsize  = lpo.DEF_img_figsize    # 2-ple, img height/wid
         self.img_line_time = lpo.DEF_img_line_time # flt, time per line in plt
+        self.img_fig_line  = lpo.DEF_img_fig_line  # int, lines per fig in plt
         self.img_dot_freq  = lpo.DEF_img_dot_freq  # flt, pts per sec
         self.img_bp_max_f  = lpo.DEF_img_bp_max_f  # flt, Hz for bp plot
 
@@ -533,6 +538,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                                      do_interact = AD['do_interact'],
                                      duration_vol = self.duration_vol,
                                      vol_tr = self.vol_tr,
+                                     extend_bp = self.do_extend_bp_resp,
                                      verb=self.verb)
             elif label == 'card' :
                 self.data['card'] = phys_ts_obj(arr_fixed,
@@ -579,6 +585,8 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.prefilt_win['card'] = AD['prefilt_win_card'] 
         self.prefilt_win['resp'] = AD['prefilt_win_resp'] 
 
+        self.do_extend_bp_resp = AD['do_extend_bp_resp']
+
         self.out_dir          = AD['out_dir']
         self.prefix           = AD['prefix']
         self.do_out_rvt       = not(AD['rvt_off'])
@@ -591,6 +599,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.img_figsize      = copy.deepcopy(AD['img_figsize'])
         self.img_fontsize     = AD['img_fontsize']
         self.img_line_time    = AD['img_line_time']
+        self.img_fig_line     = AD['img_fig_line']
         self.img_dot_freq     = AD['img_dot_freq']
         self.img_bp_max_f     = AD['img_bp_max_f']
 

@@ -56,12 +56,8 @@
 import sys, os
 import copy
 
+# part of AFNI imports (more below, if going beyond help viewing)
 from afnipy import lib_physio_opts    as lpo
-from afnipy import lib_physio_reading as lpr
-from afnipy import lib_physio_logs    as lpl
-from afnipy import lib_physio_funcs   as lpf
-from afnipy import lib_physio_regress as lpreg
-from afnipy import lib_physio_plot    as lpplt
 
 # ===========================================================================
 
@@ -95,6 +91,14 @@ if __name__ == "__main__":
     # + error exit :(
     args_orig = copy.deepcopy(sys.argv)
     args_dict = lpo.main_option_processing( sys.argv )
+
+    # -------------------- if doing calc, import more -----------------------
+
+    from afnipy import lib_physio_reading as lpr
+    from afnipy import lib_physio_logs    as lpl
+    from afnipy import lib_physio_funcs   as lpf
+    from afnipy import lib_physio_regress as lpreg
+    from afnipy import lib_physio_plot    as lpplt
 
     # --------------------- organize/check/combine ---------------------------
 

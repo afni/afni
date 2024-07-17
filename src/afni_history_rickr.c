@@ -53,6 +53,67 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Jun, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "deal with -Wimplicit-int, mostly from old f2c, needed for gcc-14",
+   NULL
+ } ,
+
+ { 24, Jun, 2024, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "display CC; warn if CPU type differs between platform and uname",
+   NULL
+ } ,
+
+ { 24, Jun, 2024, RCR, "build_afni.py", MINOR, TYPE_ENHANCE,
+   "when running 'make', warn if CC is set (which usually causes failure)",
+   NULL
+ } ,
+
+ { 20, Jun, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "stop reporting assuming TR=1.0 warnings for now",
+   "Requested by P Taylor."
+ } ,
+
+ { 20, Jun, 2024, RCR, "Dimon", MINOR, TYPE_MODIFY,
+   "make -read_all the default",
+   "Basically for real-time sorting, this forces the initial processing\n"
+   "of all (found) images, rather than a limited subset.  It allows for\n"
+   "proper sorting without requiring an initial alphabetical aspect."
+ } ,
+
+ { 14, Jun, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "AFNI.afnirc : use GZIP compression and turn off obliquity warnings",
+   "  AFNI_COMPRESSOR          : default to GZIP\n"
+   "  AFNI_AUTOGZIP            : comment out (was YES)\n"
+   "  AFNI_NO_OBLIQUE_WARNING  : default to YES\n"
+   "  AFNI_ONE_OBLIQUE_WARNING : comment out (was YES)"
+ } ,
+
+ { 11, Jun, 2024, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
+   "backup directory removal; add -update_niivue option",
+   "Save only most recent backup directory, possibly plus 1 containing afni.\n"
+   "Add -update_niivue, and skip the operation on '-clean_root no'."
+ } ,
+
+ {  6, Jun, 2024, RCR, "Makefile.macos_13_ARM", MINOR, TYPE_NEW_OPT,
+   "add this Makefile (in src) for corresponding build machine",
+   "This is a ~dupe of other_builds/Makefile.macos_13_ARM_clang."
+ } ,
+
+ {  6, Jun, 2024, RCR, "rPkgsInstall", MINOR, TYPE_MODIFY,
+   "along with 3dMVM, handle not having afni in PATH",
+   NULL
+ } ,
+
+ { 30, May, 2024, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "remove unimportant anat followers from example 'publish 3d'",
+   NULL
+ } ,
+
+ { 30, May, 2024, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fix volreg TSNR for ME: use eind -> fave_echo",
+   "Thanks to zhengchencai on MB for pointing out the problem."
+ } ,
+
  { 25, May, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add -bids_deriv option",
    "This adds a call to P Taylor's map_ap_to_deriv.py program, to output a\n"
