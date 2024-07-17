@@ -217,7 +217,6 @@ set penfac     = 1          # later Qwarp; smaller val -> more warpy
 
 set gaus_wt    = 4.5        # def for 3dQwarp
 set saveall    = ""         # for 3dQwarp (def: don't);  just for debugging
-set SSopt      = " "
 set start2_thr = 500        # used before mask_tool to get rid of nonbrain
 
 set mask_ss      = ""
@@ -1315,7 +1314,6 @@ USAGE ~1~
        {-deoblique}          \
        {-deoblique_refitly}  \
        {-warpscale WS}       \
-       {-SSopt 'strings'     \
        {-aniso_off}          \
        {-ceil_off}           \
        {-verb}               \
