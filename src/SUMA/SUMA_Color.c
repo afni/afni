@@ -7654,6 +7654,8 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
 
    SUMA_ENTRY;
    
+   SUMA_RETURN(NOPE);
+   
    el = dlist_head(SUMAg_CF->DsetList);
    while (el) {
       dd = (SUMA_DSET*)el->data;

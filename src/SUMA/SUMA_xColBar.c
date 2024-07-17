@@ -2133,19 +2133,11 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
                N_OriginalContours = over2->N_Contours;
                
                for (i=j=0; i<over2->N_NodeDef; ++i){
-//                    int x = over2->NodeList[J++];
-//                    int y = over2->NodeList[J++];
-//                    int z = over2->NodeList[J++];
-                    
                     over2->T[over2->NodeDef[i]] = 1000.0f;
                     over2->V[over2->NodeDef[i]] = 1000.0f;
                }
-
-               if (!SUMA_ColorizePlane (over2)) {
-                     SUMA_SLP_Err("Failed to colorize plane.\n");
-                     SUMA_RETURN(NOPE);
-                }
-
+               
+/*  DON'T DO THIS!!!
                DListElmt *el = dlist_head(SUMAg_CF->DsetList);
                while (el) {
                    SUMA_DSET *dd = (SUMA_DSET*)el->data;
@@ -2160,6 +2152,12 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
                    
                    el = dlist_next(el);
                }
+*/
+
+               if (!SUMA_ColorizePlane (over2)) {
+                     SUMA_SLP_Err("Failed to colorize plane.\n");
+                     SUMA_RETURN(NOPE);
+                }
            
                if (!(over2->Contours)){
                    fprintf("%s: No contours available\n", FuncName);
