@@ -1118,7 +1118,7 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 
    /* call this one since it is not being called as the slider is dragged. */
    if (!(SUMA_set_threshold_label(ado, val, 0.0))) 
-    { SUMA_SL_Err("Error setting threshold label"); SUMA_RETURN(0); }
+      { SUMA_SL_Err("Error setting threshold label"); SUMA_RETURN(0); }
 
    /* sad as it is */
    SUMA_FORCE_SCALE_HEIGHT(SUMA_ADO_Cont(ado));
@@ -2045,9 +2045,8 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    static int AlphaOpacityFalloff = 0;
 
    SUMA_ENTRY;
-  
+   
    ado = (SUMA_ALL_DO *)data;
-
    if (!ado) SUMA_RETURNe;
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    if (!(SO->SurfCont=SUMA_ADO_Cont(ado))
@@ -2079,7 +2078,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
         }
     SUMA_RETURNe;
    }
-   
+
    // Default opacity model
    if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
    

@@ -978,7 +978,7 @@ SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
     /* toggle the viewing for the cartesian axes */
     // DEBUG SO->ShowMeshAxis = clipPlaneIdentificationMode;
 
-   /* Create a Mesh Axis for the surface */
+    /* Create a Mesh Axis for the surface */
     SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis", AO_type);
         if (SO->MeshAxis == NULL) {
         fprintf( SUMA_STDERR,
@@ -1065,7 +1065,7 @@ SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
     axisObject = SO;
 
     return SO;
-}
+    }
 
 SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
     SUMA_FreeSurfer_struct FS, int planeIndex){

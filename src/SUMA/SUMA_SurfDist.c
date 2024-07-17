@@ -260,7 +260,7 @@ int main (int argc,char *argv[])
    if (Opt->b1) {
       /* The secret option for Daniel,
       See NIH-5 labbook pp 46 for graph */
-      int N_Neighb_Max = 5; /* max number of nieghbors a node can have*/
+      int N_Neighb_Max = 5; /* max number of neighbors a node can have*/
       int N_Node = 7;
       int N_Neighb[7];
       int **FirstNeighb=NULL;
