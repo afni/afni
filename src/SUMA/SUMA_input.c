@@ -11182,7 +11182,7 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke
                         "%s: Last node of ROIstroke is %d\n",
                         FuncName, ROIstroke->nPath[ROIstroke->N_n-1]);
             if (ROIstroke->nPath[ROIstroke->N_n-1] != HeadNode) {
-               /* pretend this is not a JoinEnds exercise */
+               /* pretend this is not a JoinEnds exercice */
                BsA = SUMA_BSA_AppendStroke;
                SUMA_SL_Err ("Failed to close path. Continue with stroke.");
                SUMA_RETURN(DrawnROI);

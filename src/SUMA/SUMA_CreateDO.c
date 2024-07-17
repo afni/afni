@@ -15175,10 +15175,14 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   fprintf(stderr, "%s: SUMAg_CF = %p\n", FuncName, SUMAg_CF);
 
    el = dlist_head(SUMAg_CF->DsetList);
+   fprintf(stderr, "%s: el = %p\n", FuncName, el);
    while (el) {
       dd = (SUMA_DSET*)el->data;
+      fprintf(stderr, "%s: dd = %p\n", FuncName, dd);
       if (SUMA_isDsetRelated(dd,SO)) {
          SUMA_LHv("Have Dset %s related to SO\n", SDSET_LABEL(dd));
          if (!(colplane = SUMA_Fetch_OverlayPointerByDset (
@@ -15193,29 +15197,58 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                colplane->ShowMode == SW_SurfCont_DsetViewCaC ) &&
               colplane->Contours && colplane->N_Contours) {
             /* draw them */
+            fprintf(stderr, "%s: draw them\n", FuncName);
+            fprintf(stderr, "%s: colplane = %p\n", FuncName, colplane);
+            fprintf(stderr, "%s: colplane->N_Contours = %d\n", FuncName, colplane->N_Contours);
             for (ic=0; ic<colplane->N_Contours; ++ic) {
+                fprintf(stderr, "%s: ic = %d\n", FuncName, ic);
                D_ROI = (SUMA_DRAWN_ROI *)colplane->Contours[ic];
                SUMA_LHv("Dset Contouring %d\n", ic);
 
+                fprintf(stderr, "%s: D_ROI = %p\n", FuncName, D_ROI);
+                fprintf(stderr, "%s: D_ROI->CE = %p\n", FuncName, D_ROI->CE);
+                fprintf(stderr, "%s: D_ROI->N_CE = %d\n", FuncName, D_ROI->N_CE);
                if (D_ROI->CE && D_ROI->N_CE) {
                   /* Draw the contour */
+                    fprintf(stderr, "%s: SO = %p\n", FuncName, SO);
                   if (!SO->patchNodeMask) {
+                    fprintf(stderr, "%s: sv = %p\n", FuncName, sv);
                      glLineWidth(sv->ContThick); /* Changed from horrible '6'
                                  now that glPolygonOffset is used to
                                  allow for proper coplanar line and
                                  polygon rendering.  July 8th 2010 */
+                    fprintf(stderr, "%s: glMaterialfv\n", FuncName);
                      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE,
                                   D_ROI->FillColor);
                      SUMA_LH("Drawing contour ...");
 
                      #if 1 /* Should be a little faster */
                      /* initialize first point down */
+                    fprintf(stderr, "%s: initialize first point down\n", FuncName);
                      glBegin(GL_LINE_STRIP);
                      id1cont = 3 * D_ROI->CE[0].n1;
+                     fprintf(stderr, "%s: SO->NodeList = %p\n", FuncName, SO->NodeList);
+                     fprintf(stderr, "%s: SO->N_Node = %d\n", FuncName, SO->N_Node);
+                     fprintf(stderr, "%s: id1cont = %d\n", FuncName, id1cont);
+                     if (id1cont < 0 || id1cont >= SO->N_Node*3){
+                        fprintf (SUMA_STDERR,
+                           "Error %s: Index error for node indices.\n",
+                           FuncName);
+                        id1cont = SO->N_Node*3;
+                        SUMA_RETURN(NOPE);
+                     }
                      glVertex3f(SO->NodeList[id1cont],
                                 SO->NodeList[id1cont+1],
                                 SO->NodeList[id1cont+2]);
                      i2last = D_ROI->CE[0].n1;
+                     fprintf(stderr, "%s: i2last = %d\n", FuncName, i2last);
+                     if (i2last < 0 || i2last >= SO->N_Node*3){
+                        fprintf (SUMA_STDERR,
+                           "Error %s: Index error for node indices.\n",
+                           FuncName);
+                        i2last = SO->N_Node*3;
+                        SUMA_RETURN(NOPE);
+                     }
                      for (icont = 0; icont < D_ROI->N_CE; ++icont) {
                         id2cont = 3 * D_ROI->CE[icont].n2;
                         if (i2last != D_ROI->CE[icont].n1) {
@@ -15223,11 +15256,13 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                            glEnd(); /* end lines */
                            glBegin(GL_LINE_STRIP); /* begin again */
                            id1cont = 3 * D_ROI->CE[icont].n1;
+                            fprintf(stderr, "%s: i2last = %d\n", FuncName, i2last);
                            glVertex3f(SO->NodeList[id1cont],
                                       SO->NodeList[id1cont+1],
                                       SO->NodeList[id1cont+2]);
                         }
                         /* put down next vertex */
+                        fprintf(stderr, "%s: put down next vertex\n", FuncName);
                         glVertex3f(SO->NodeList[id2cont],
                                    SO->NodeList[id2cont+1],
                                    SO->NodeList[id2cont+2]);
@@ -17560,7 +17595,7 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       SUMA_LH("Nothing to do, returning");
       SUMA_RETURNe;
    }
-
+   
    if (!SurfObj->DW->DrwPtchs) {
       SUMA_S_Err("Should not have null DrwPtchs at this point");
       SUMA_RETURNe;
@@ -17944,7 +17979,6 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_RETURNe;
 } /* SUMA_DrawMesh_mask */
 
-
 /*! Create a tessellated mesh */
 void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 {
@@ -17964,13 +17998,13 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_ENTRY;
 
    SUMA_LH("Entered DrawMesh");
-
+   
    if (LocalHead) {
       SUMA_EnablingRecord SER;
       SUMA_RecordEnablingState(&SER, SurfObj->Label);
       SUMA_DiffEnablingState(&SER, NULL, NULL, NULL);
    }
-
+   
    if (  SurfObj->PolyMode == SRM_Hide ||
          sv->PolyMode == SRM_Hide ||
          SurfObj->TransMode == STM_16 ||
@@ -18169,6 +18203,9 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             case TRIANGLES:
                SUMA_LH("Tri %d %p",NP, SurfObj->glar_FaceSetList);
 	       if (NP==3) {
+                for (int i=0; i<(GLsizei)N_glar_FaceSet; ++i){
+                    int i3 = 3*i;
+                }
                   glDrawElements (  GL_TRIANGLES, (GLsizei)N_glar_FaceSet*3,
                                     GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
                } else if (NP==4) {

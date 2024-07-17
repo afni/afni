@@ -6568,6 +6568,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
             // Artifactual surface control menu stretching happens here
             SUMA_Init_SurfCont_SurfParam((SUMA_ALL_DO *)SO_nxt);
          }
+
       } else {
          fprintf( SUMA_STDERR,
                   "%s: No relatives between states. "

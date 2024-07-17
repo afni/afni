@@ -140,7 +140,7 @@ NULL
       },
    {  
 "-cset",
-"-cset CSET: Initial classification. If CSET is not given,\n"
+"-cset CSET: Initial classfication. If CSET is not given,\n"
 "            initialization is carried out with 3dkmean's engine.\n",
 NULL 
       },

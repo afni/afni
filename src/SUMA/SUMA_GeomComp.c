@@ -14128,7 +14128,7 @@ SUMA_Boolean SUMA_CenterOfSphere(double *p1, double *p2, double *p3,
       SUMA_RETURN(YUP);
    } else {
       c[0] = 1.0; c[1] = -2.0; c[2] = 3.0;
-      SUMA_LH("0 denominator, solution impossible\n");
+      SUMA_LH("0 denominator, solution impossibile\n");
       SUMA_RETURN(NOPE);
    }
 }

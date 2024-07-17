@@ -154,7 +154,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap ( float **Fiducials, int Nfid, byte isRGBA,
       }
    }
 
-   /* package the results */
+   /* package the resutls */
    SM = (SUMA_COLOR_MAP *)SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
    if (SM == NULL) {
       fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM.\n", FuncName);
@@ -297,7 +297,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, byte isRGBA,
       } else M[im][3] = 1.0;
    }
 
-   /* package the results */
+   /* package the resutls */
    SM = (SUMA_COLOR_MAP *)SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
    if (SM == NULL) {
       fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM.\n", FuncName);
@@ -6957,6 +6957,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
 {
    static char FuncName[]={"SUMA_Overlays_2_GLCOLAR4"};
    SUMA_Boolean LocalHead = NOPE;
+   
+   fprintf(stderr, "%s: \n", FuncName);
 
 
    SUMA_ENTRY;
@@ -7546,7 +7548,7 @@ GLfloat *makeGlOldGlColar(SUMA_SurfaceObject *SO){
     // Allocate memory to old GLcolor
     int numElements = SO->N_Node * 4;
     if (!(glOldGlColar = (GLfloat *)malloc(numElements*sizeof(GLfloat)))){
-        SUMA_S_Err("Error allocating memory to old glOldGlColar vector\n");
+        SUMA_S_Err("Error allocating memory to old glOldGlColar vactor\n");
         return NULL;
     }
     
@@ -7649,16 +7651,14 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
    int OverInd = -1, id2cont=0, id1cont=0, icont=0, ic, i2last=0;
    float off[3];
    SUMA_Boolean LocalHead = NOPE;
-   int kkk=0, *ind=NULL, *key=NULL, i;
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "%s:\n", FuncName);
+   SUMA_RETURN(YUP);
    
    el = dlist_head(SUMAg_CF->DsetList);
    while (el) {
       dd = (SUMA_DSET*)el->data;
-      fprintf(stderr, "%s: SUMA_isDsetRelated(dd,SO) = %d\n", FuncName, SUMA_isDsetRelated(dd,SO));
       if (SUMA_isDsetRelated(dd,SO)) {
          SUMA_LHv("Have Dset %s related to SO\n", SDSET_LABEL(dd));
          if (!(colplane = SUMA_Fetch_OverlayPointerByDset (
@@ -7668,50 +7668,26 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
                   SDSET_LABEL(dd));
                SUMA_RETURN(NOPE);
          }
-   
-           if (!(colplane->Contours)){
-                 ind = SDSET_NODE_INDEX_COL(colplane->dset_link);
-                 key = SDSET_VEC(colplane->dset_link, colplane->OptScl->find);
-                 colplane->Contours =
-                    SUMA_MultiColumnsToDrawnROI( colplane->N_NodeDef,
-                          (void *)ind, SUMA_int,
-                          (void *)key, SUMA_int,
-                          NULL, SUMA_notypeset,
-                          NULL, SUMA_notypeset,
-                          NULL, SUMA_notypeset,
-                          SUMA_FindNamedColMap (colplane->cmapname), 1,
-                          colplane->Label, SDSET_IDMDOM(colplane->dset_link),
-                          &(colplane->N_Contours), 1, 1);
-                   fprintf(stderr, "%s: 1\n", FuncName);
-        }
-   
          /* any contours? */
-         fprintf(stderr, "%s: colplane->ShowMode = %d\n", FuncName, colplane->ShowMode);
-         fprintf(stderr, "%s: colplane->Contours = %p\n", FuncName, colplane->Contours);
-         fprintf(stderr, "%s: colplane->N_Contours = %d\n", FuncName, colplane->N_Contours);
-         if ( colplane->Contours && colplane->N_Contours) {
+         if ( (colplane->ShowMode == SW_SurfCont_DsetViewCon ||
+               colplane->ShowMode == SW_SurfCont_DsetViewCaC ) &&
+              colplane->Contours && colplane->N_Contours) {
             /* draw them */
             for (ic=0; ic<colplane->N_Contours; ++ic) {
                D_ROI = (SUMA_DRAWN_ROI *)colplane->Contours[ic];
                SUMA_LHv("Dset Contouring %d\n", ic);
 
-//                fprintf(stderr, "%s: D_ROI->FillColor = %f, %f, %f, %f\n", FuncName, colplane->N_Contours,
-//                    D_ROI->FillColor[0], D_ROI->FillColor[1], D_ROI->FillColor[2], D_ROI->FillColor[3]);
                if (D_ROI->CE && D_ROI->N_CE) {
                   /* Draw the contour */
-                  fprintf(stderr, "%s: SO->patchNodeMask = %d\n", FuncName, SO->patchNodeMask);
                   if (!SO->patchNodeMask) {
                      glLineWidth(sv->ContThick); /* Changed from horrible '6'
                                  now that glPolygonOffset is used to
                                  allow for proper coplanar line and
                                  polygon rendering.  July 8th 2010 */
-                    for (i=0; i<3; ++i) D_ROI->FillColor[i] = 0.0f;
                      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE,
                                   D_ROI->FillColor);
-                    for (i=0; i<3; ++i) D_ROI->FillColor[i] = 0.0f;
                      SUMA_LH("Drawing contour ...");
 
-                     #if 1 /* Should be a little faster */
                      /* initialize first point down */
                      glBegin(GL_LINE_STRIP);
                      id1cont = 3 * D_ROI->CE[0].n1;
@@ -7719,7 +7695,6 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
                                 SO->NodeList[id1cont+1],
                                 SO->NodeList[id1cont+2]);
                      i2last = D_ROI->CE[0].n1;
-                    fprintf(stderr, "%s: D_ROI->N_CE = %d\n", FuncName, D_ROI->N_CE);
                      for (icont = 0; icont < D_ROI->N_CE; ++icont) {
                         id2cont = 3 * D_ROI->CE[icont].n2;
                         if (i2last != D_ROI->CE[icont].n1) {
@@ -7727,7 +7702,6 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
                            glEnd(); /* end lines */
                            glBegin(GL_LINE_STRIP); /* begin again */
                            id1cont = 3 * D_ROI->CE[icont].n1;
-                           fprintf(stderr, "%s: SO->NodeList = %f, %f, %f\n", FuncName, SO->NodeList[id1cont], SO->NodeList[id1cont+1], SO->NodeList[id1cont+2]);
                            glVertex3f(SO->NodeList[id1cont],
                                       SO->NodeList[id1cont+1],
                                       SO->NodeList[id1cont+2]);
@@ -7739,23 +7713,7 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
                         i2last = D_ROI->CE[icont].n2;
                      }
                      glEnd();
-                     #else /* old simpler way */
-                     for (icont = 0; icont < D_ROI->N_CE; ++icont) {
-                        id1cont = 3 * D_ROI->CE[icont].n1;
-                        id2cont = 3 * D_ROI->CE[icont].n2;
-                        glBegin(GL_LINES);
-                        glVertex3f(SO->NodeList[id1cont],
-                                   SO->NodeList[id1cont+1],
-                                   SO->NodeList[id1cont+2]);
-                        glVertex3f(SO->NodeList[id2cont],
-                                   SO->NodeList[id2cont+1],
-                                   SO->NodeList[id2cont+2]);
-                        glEnd();
-
-                     }
-                     #endif
                   } else {
-                    for (i=0; i<3; ++i) D_ROI->FillColor[i] = 0.0f;
                      if (SO->EmbedDim == 2) {
                         glLineWidth(sv->ContThick);
                         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE,
@@ -7765,7 +7723,6 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
                         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE,
                                      D_ROI->FillColor);
                      }
-                     for (i=0; i<3; ++i) D_ROI->FillColor[i] = 0.0f;
                      SUMA_LHv("Drawing contour on patch (%p)...",
                               SO->NodeNormList);
                               /* set default offset to nothing*/
@@ -7792,7 +7749,7 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
                            }
                         }
                      }
-                     #if 1 /* faster but more complicated */
+
                      icont = 0;
                      while (  icont < D_ROI->N_CE &&
                               ( (D_ROI->CE[icont].n1 >= SO->N_Node ||
@@ -7837,26 +7794,6 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
                         }
                         glEnd();
                      }
-                     #else /* slower way */
-                     for (icont = 0; icont < D_ROI->N_CE; ++icont) {
-                        id1cont = 3 * D_ROI->CE[icont].n1;
-                        id2cont = 3 * D_ROI->CE[icont].n2;
-                        if (D_ROI->CE[icont].n1 < SO->N_Node &&
-                            D_ROI->CE[icont].n2 < SO->N_Node &&
-                            SO->patchNodeMask[D_ROI->CE[icont].n1] &&
-                            SO->patchNodeMask[D_ROI->CE[icont].n2]) {
-
-                           glBegin(GL_LINES);
-                           glVertex3f(SO->NodeList[id2cont]+off[0],
-                                      SO->NodeList[id2cont+1]+off[1],
-                                      SO->NodeList[id2cont+2]+off[2]);
-                           glVertex3f(SO->NodeList[id1cont]+off[0],
-                                      SO->NodeList[id1cont+1]+off[1],
-                                      SO->NodeList[id1cont+2]+off[2]);
-                           glEnd();
-                        }
-                     }
-                     #endif
                   }
                }
 
@@ -9114,7 +9051,7 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
          // NodeEDef is just a monotonically increasing, array of integers giving the indices
          // of the nodes, typically 0,1,2,3,4,...,N_Node-1
          // glcolar is an array of RGBA values (GLFloat). for the first four tetrads, A always 
-         //     seems to be zero.  Setting the A value to 1.0 seems to have no effect.  When the 
+         //     seems to be zero.  Setting the A value to 1.0 seems to have no effect.  Whne the 
          // color is gone, the RGB values are set to zero
          // Before SUMA_RGBv_PnGnL_AR4op is called, glcolar is all zeros.  SUMA_RGBv_PnGnL_AR4op
          // Assigns the RGB values, in ColEVec to the RGB values of glcolar.  The A values
@@ -12559,27 +12496,40 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
    int i, i3, N_i, *iv, *Nv;
    float *Rv, *Bv, *Gv;
    SUMA_Boolean LocalHead = NOPE;
+   static int debugStackLevel;
 
    SUMA_ENTRY;
+   
+   fprintf(stderr, "%s: debugStackLevel = %d\r", FuncName, debugStackLevel);
+   
+   ++debugStackLevel;
+   
+   // Check for stack overflow
+   if (debugStackLevel>629){
+    fprintf(stderr, "\n-- ERROR: %s: Stack overflow\n", FuncName);
+    SUMA_SL_Err("SUMA_ColorizePlane: Stack overflow");
+    SUMA_RETURN(NOPE);
+   }
 
-
+   // Debug
    if (LocalHead)  {
       SUMA_LH("Color Plane Pre Colorizing");
       SUMA_DUMP_TRACE("Who called ColorizePlane?");
       SUMA_Show_ColorOverlayPlanes ( &cp, 1, 0);
    }
-   if (!cp) { SUMA_SL_Err("NULL cp"); SUMA_RETURN(NOPE); }
+   if (!cp) { SUMA_SL_Err("NULL cp"); --debugStackLevel; SUMA_RETURN(NOPE); }
    if (!cp->dset_link) {
       SUMA_SL_Err("Where's your dset_link?");
+      --debugStackLevel;
       SUMA_RETURN(NOPE);
    }
    if (!cp->cmapname) {
       SUMA_SL_Err("Where's your cmapname?");
+      --debugStackLevel;
       SUMA_RETURN(NOPE);
    }
 
-
-   if (!cp->ColVec) { SUMA_SL_Err("NULL cV"); SUMA_RETURN(NOPE); }
+   if (!cp->ColVec) { SUMA_SL_Err("NULL cV"); --debugStackLevel; SUMA_RETURN(NOPE); }
 
    /* is the coloring direct ? */
    if (strcmp(cp->cmapname, "explicit") == 0) {
@@ -12587,33 +12537,41 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
       /* make sure dataset is of type NODE_RGB */
       if (SDSET_TYPE(cp->dset_link) != SUMA_NODE_RGB) {
          SUMA_SL_Err("Direct mapping is only supported for SUMA_NODE_RGB types");
+         --debugStackLevel;
          SUMA_RETURN(NOPE);
       }
       if (!(Nv = SUMA_GetNodeDef(cp->dset_link))) {
          SUMA_SL_Err("Failed to find index column.");
+         --debugStackLevel;
          SUMA_RETURN(NOPE);
       }
       iv = SUMA_GetDsetColIndex (cp->dset_link, SUMA_NODE_R, &N_i);
       if (N_i != 1) {
          SUMA_SL_Err("Failed to find red column.");
          SUMA_free(iv);
+         --debugStackLevel;
          SUMA_RETURN(NOPE);
       }
-      Rv = (float *)cp->dset_link->dnel->vec[iv[0]];SUMA_free(iv); iv = NULL;
+      Rv = (float *)cp->dset_link->dnel->vec[iv[0]];
+      SUMA_free(iv); iv = NULL;
       iv = SUMA_GetDsetColIndex (cp->dset_link, SUMA_NODE_G, &N_i);
       if (N_i != 1) {
          SUMA_SL_Err("Failed to find green column.");
          SUMA_free(iv);
+         --debugStackLevel;
          SUMA_RETURN(NOPE);
       }
-      Gv = (float *)cp->dset_link->dnel->vec[iv[0]];SUMA_free(iv); iv = NULL;
+      Gv = (float *)cp->dset_link->dnel->vec[iv[0]];
+      SUMA_free(iv); iv = NULL;
       iv = SUMA_GetDsetColIndex (cp->dset_link, SUMA_NODE_B, &N_i);
       if (N_i != 1) {
          SUMA_SL_Err("Failed to find blue column.");
          SUMA_free(iv);
+         --debugStackLevel;
          SUMA_RETURN(NOPE);
       }
-      Bv = (float *)cp->dset_link->dnel->vec[iv[0]];SUMA_free(iv); iv = NULL;
+      Bv = (float *)cp->dset_link->dnel->vec[iv[0]];
+      SUMA_free(iv); iv = NULL;
       /* go ahead and populate cV */
 
       if (LocalHead) {
@@ -12644,17 +12602,17 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
       /* indirect mapping */
       if (!SUMA_ScaleToMap_Interactive (cp)) {
          SUMA_SL_Err("Failed in SUMA_ScaleToMap_Interactive.");
+         --debugStackLevel;
          SUMA_RETURN(0);
       }
       /* cp->N_NodeDef is taken care of inside SUMA_ScaleToMap_Interactive */
    }
 
-
-
    if (LocalHead)  {
       SUMA_LH("Color Plane Post Colorizing");
       SUMA_Show_ColorOverlayPlanes ( &cp, 1, 0);
    }
+   --debugStackLevel;
    SUMA_RETURN(1);
 }
 

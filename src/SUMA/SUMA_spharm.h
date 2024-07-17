@@ -9,7 +9,7 @@ static char SpharmEquation[]={
 "          l=0 m=-l            l,m   l,m              \n"
 " where\n"
 " L: Largest degree of spherical harmonics\n"
-" Y    : Spherical harmonic of degree l and order m\n"
+" Y    : Sperical harmonic of degree l and order m\n"
 "  l,m\n"
 "        Y is an (L+1 by N) complex matrix.\n"
 " B    : Coefficient associated with harmonic Y    \n"
