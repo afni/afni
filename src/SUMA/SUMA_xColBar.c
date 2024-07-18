@@ -2099,11 +2099,13 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    SUMA_OVERLAYS *over1 = NULL;
    SUMA_OVERLAYS *over2 = NULL;
    float *bckupColorMap, *onesVector;
-   int i, j, returnVal;    
+   int i, j, returnVal;   
+   float *overlayBackup; 
    static SUMA_DRAWN_ROI **OutlineContours = NULL;
    static int N_OutlineContours = 0;
    static SUMA_DRAWN_ROI **OriginalContours = NULL;
    static int N_OriginalContours = 0;
+   static float threshold;
 
    SUMA_ENTRY;
 
@@ -2129,30 +2131,48 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
             over2->Contours = OutlineContours;
             over2->N_Contours = N_OutlineContours;
         } else {
-               OriginalContours = over2->Contours;
-               N_OriginalContours = over2->N_Contours;
-               
-               for (i=j=0; i<over2->N_NodeDef; ++i){
-                    over2->T[over2->NodeDef[i]] = 1000.0f;
-                    over2->V[over2->NodeDef[i]] = 1000.0f;
-               }
-               
-               if (!SUMA_ColorizePlane (over2)) {
-                     SUMA_SLP_Err("Failed to colorize plane.\n");
-                     SUMA_RETURN(NOPE);
-                }
+           OriginalContours = over2->Contours;
+           N_OriginalContours = over2->N_Contours;
+           
+           // Back up overlay color map
+           size_t bytes2Copy = over2->N_NodeDef*sizeof(float);
+           if (!(overlayBackup=(float *)malloc(bytes2Copy))){
+                fprintf(stderr, "*** %s: Error allocating memory\n", FuncName);
+                SUMA_RETURNe;
+           }
+           for (i=j=0; i<over2->N_NodeDef; ++i){
+                overlayBackup[i] = over2->V[over2->NodeDef[i]];
+           }
+           
+           for (i=j=0; i<over2->N_NodeDef; ++i){
+                over2->V[over2->NodeDef[i]] = 1000.0f;
+           }
+           
+           if (!SUMA_ColorizePlane (over2)) {
+                 SUMA_SLP_Err("Failed to colorize plane.\n");
+                 SUMA_RETURN(NOPE);
+            }
+            
+           // Restore overlay colormap
+           for (i=j=0; i<over2->N_NodeDef; ++i){
+                over2->V[over2->NodeDef[i]] = overlayBackup[i];
+           }
+           free(overlayBackup);
         }
         
-        fprintf(stderr, "%s: colplane->Contours = %p\n", FuncName, over2->Contours);
+        // fprintf(stderr, "%s: colplane->Contours = %p\n", FuncName, over2->Contours);
         
         // Make contours black
         if (over2->Contours){
             for (i=0; i<over2->N_Contours; ++i){
                 for (j=0; j<4; ++j){
-                    over2->Contours[i]->EdgeColor[j] = 0.0f;
+                    // over2->Contours[i]->EdgeColor[j] = 0.0f;
                     over2->Contours[i]->FillColor[j] = 0.0f;
                 }
+                over2->Contours[i]->EdgeThickness = 8;
             }
+            OutlineContours = over2->Contours;
+            N_OutlineContours = over2->N_Contours;
         }
     } else {
         over2->ShowMode = SW_SurfCont_DsetViewCol;
@@ -2166,106 +2186,6 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    SUMA_UpdateNodeLblField(ado);
    
    
-#if 0
-   // if (SO->SurfCont->BoxOutlineThresh && over1->Contours) SUMA_RETURNe;
-   if (over1 && over2){
-       if (SO->SurfCont->BoxOutlineThresh){
-            over1->ShowMode = SW_SurfCont_DsetViewCon;
-
-             /* kill current contours */
-             SUMA_KillOverlayContours(over1);
-       }
-       else
-            over1->ShowMode = SW_SurfCont_DsetViewCol;
-            
-       // Backup color map
-       size_t bytes2Copy = 3*over1->N_NodeDef*sizeof(float);
-       if (!(bckupColorMap=(float *)malloc(bytes2Copy)) ||
-        !(onesVector=(float *)malloc(bytes2Copy))){
-        if (bckupColorMap) free(bckupColorMap);
-        fprintf(stderr, "%s: Error allocating memory\n", FuncName);
-        SUMA_RETURNe;
-       }
-       /*
-       memcpy(bckupColorMap, over1->ColVec, bytes2Copy);
-       memcpy(onesVector, over1->dset_link->dnel->vec, bytes2Copy);
-       
-       // Binarize color map based on threshold
-       for (i=j=0; i<3*over1->N_NodeDef; ++i){
-            onesVector[j] = 1.0f;
-            over1->ColVec[j++] = 1.0f;
-       }
-       
-       for (i=0; i<over2->N_V; ++i) over2->V[i] = 0.0f;
-       for (i=0; i<over2->N_T; ++i) over2->T[i] = 0.0f;
-       SUMA_SCALE_TO_MAP_OPT *Opt = over1->OptScl;
-       SUMA_COLOR_SCALED_VECT *SV = SUMA_Create_ColorScaledVect(SDSET_VECFILLED(over1->dset_link),
-                                    Opt->ColsContMode);
-       fprintf(stderr, "over1->N_NodeDef = %d\n", over1->N_NodeDef);
-       fprintf(stderr, "over1->N_V = %d\n", over1->N_V);
-       fprintf(stderr, "over1->N_T = %d\n", over1->N_T);
-       fprintf(stderr, "***1*** Contours = %p\n", over1->Contours);
-       returnVal = SUMA_ContourateDsetOverlay(over1, SV);
-       fprintf(stderr, "returnVal = %d\n", returnVal);
-       fprintf(stderr, "***2*** Contours = %p\n", over1->Contours);
-       // TODO: Add code
-/**/       
-       if (!SUMA_ColorizePlane (over2)) {
-             SUMA_SLP_Err("Failed to colorize plane.\n");
-             SUMA_RETURN(NOPE);
-       }
-/**/ /*      
-       returnVal = SUMA_ContourateDsetOverlay(over1, SV);
-       fprintf(stderr, "returnVal = %d\n", returnVal);
-       fprintf(stderr, "***3*** Contours = %p\n", over1->Contours);
-       
-       fprintf(stderr, "SUMAg_CF = %p\n", SUMAg_CF);
-       fprintf(stderr, "SUMAg_CF->DsetList = %p\n", SUMAg_CF->DsetList);
-       */
-       DListElmt *el = dlist_head(SUMAg_CF->DsetList);
-       fprintf(stderr, "el = %p\n", el);
-       
-       SUMA_DRAWN_ROI **Contours = NULL;
-       int N_Contours = 0;
-       while (el) {
-           SUMA_DSET *dd = (SUMA_DSET*)el->data;
-           fprintf(stderr, "dd = %p\n", dd);
-           int OverInd = 1;
-           SUMA_OVERLAYS *colplane = SUMA_Fetch_OverlayPointerByDset ((SUMA_ALL_DO *)SO, dd, &OverInd);
-           fprintf(stderr, "OverInd = %d\n", OverInd);
-           fprintf(stderr, "***4*** colplane->Contours = %p\n", colplane->Contours);
-           
-           if (colplane->Contours){
-            over1->Contours = colplane->Contours;
-            over1->N_Contours = colplane->N_Contours;
-            break;
-           }
-           
-           el = dlist_next(el);
-       }
-   
-       if (!(over1->Contours)){
-           fprintf("%s: No contours available\n", FuncName);
-           free(bckupColorMap);
-           free(onesVector);
-           SUMA_RETURNe;
-       }
-
-       // Refresh display
-       SUMA_Remixedisplay(ado);
-       SUMA_UpdateNodeLblField(ado);
-       
-       
-       // Restore color map
-       // TODO: Add code
-   } else {
-        fprintf("%s: Overlay unavailable\n", FuncName);
-        SUMA_RETURNe;
-   }
-
-   free(bckupColorMap);
-   free(onesVector);
-#endif
    SUMA_RETURNe;
 }
 
