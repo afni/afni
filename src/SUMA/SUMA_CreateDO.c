@@ -15212,10 +15212,24 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                      /* initialize first point down */
                      glBegin(GL_LINE_STRIP);
                      id1cont = 3 * D_ROI->CE[0].n1;
+                     if (id1cont < 0 || id1cont >= SO->N_Node*3){
+                        fprintf (SUMA_STDERR,
+                           "Error %s: Index error for node indices.\n",
+                           FuncName);
+                        id1cont = SO->N_Node*3;
+                        SUMA_RETURN(NOPE);
+                     }
                      glVertex3f(SO->NodeList[id1cont],
                                 SO->NodeList[id1cont+1],
                                 SO->NodeList[id1cont+2]);
                      i2last = D_ROI->CE[0].n1;
+                     if (i2last < 0 || i2last >= SO->N_Node*3){
+                        fprintf (SUMA_STDERR,
+                           "Error %s: Index error for node indices.\n",
+                           FuncName);
+                        i2last = SO->N_Node*3;
+                        SUMA_RETURN(NOPE);
+                     }
                      for (icont = 0; icont < D_ROI->N_CE; ++icont) {
                         id2cont = 3 * D_ROI->CE[icont].n2;
                         if (i2last != D_ROI->CE[icont].n1) {
@@ -17560,7 +17574,7 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       SUMA_LH("Nothing to do, returning");
       SUMA_RETURNe;
    }
-
+   
    if (!SurfObj->DW->DrwPtchs) {
       SUMA_S_Err("Should not have null DrwPtchs at this point");
       SUMA_RETURNe;
@@ -17944,7 +17958,6 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_RETURNe;
 } /* SUMA_DrawMesh_mask */
 
-
 /*! Create a tessellated mesh */
 void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 {
@@ -17964,13 +17977,13 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_ENTRY;
 
    SUMA_LH("Entered DrawMesh");
-
+   
    if (LocalHead) {
       SUMA_EnablingRecord SER;
       SUMA_RecordEnablingState(&SER, SurfObj->Label);
       SUMA_DiffEnablingState(&SER, NULL, NULL, NULL);
    }
-
+   
    if (  SurfObj->PolyMode == SRM_Hide ||
          sv->PolyMode == SRM_Hide ||
          SurfObj->TransMode == STM_16 ||
@@ -18169,6 +18182,9 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             case TRIANGLES:
                SUMA_LH("Tri %d %p",NP, SurfObj->glar_FaceSetList);
 	       if (NP==3) {
+                for (int i=0; i<(GLsizei)N_glar_FaceSet; ++i){
+                    int i3 = 3*i;
+                }
                   glDrawElements (  GL_TRIANGLES, (GLsizei)N_glar_FaceSet*3,
                                     GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
                } else if (NP==4) {

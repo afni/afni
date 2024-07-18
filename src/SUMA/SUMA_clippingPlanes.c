@@ -50,7 +50,8 @@ DList *list = NULL;
 
 void initializeIncrement(float objectMinMax[3][2])
 {
-    float max = 0;
+    static char FuncName[]={"initializeIncrement"};
+    float max = 0; 
     int i;
     float dim;
 
@@ -62,6 +63,8 @@ void initializeIncrement(float objectMinMax[3][2])
     }
     
     scrollInc = max/40;
+
+    SUMA_RETURNe;
 }
 
 Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySelectedPlane)
@@ -196,6 +199,7 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
 Boolean determineAdditionalRotationsFromRequiredAndExistingRotations(float theta, float phi,
     int planeIndex, float *deltaTheta, float *deltaPhi)
 {
+    static char FuncName[]={"determineAdditionalRotationsFromRequiredAndExistingRotations"};
 
     SUMA_ENTRY;
 
@@ -235,6 +239,7 @@ Boolean determineAdditionalRotationsFromRequiredAndExistingRotations(float theta
 
 Boolean determineRotationAnglesFromEquation(float *equation, float *theta, float *phi)
 {
+    static char FuncName[]={"determineRotationAnglesFromEquation"};
     static float rad2degrees=180.0/M_PI, degrees2rad=M_PI/180;
 
     SUMA_ENTRY;
@@ -274,7 +279,8 @@ Boolean determineRotationAnglesFromEquation(float *equation, float *theta, float
 
 Boolean determineDeltaDFromExistingDAndRequiredD(float requiredD, int planeIndex, float *deltaD)
 {
-
+   static char FuncName[]={"determineDeltaDFromExistingDAndRequiredD"};
+ 
     SUMA_ENTRY;
 
     *deltaD = requiredD - SUMAg_CF->ClipPlanes[4*planeIndex + 3];
@@ -284,6 +290,7 @@ Boolean determineDeltaDFromExistingDAndRequiredD(float requiredD, int planeIndex
 
 Boolean applyEquationParametersToClippingPlane(int planeIndex, float *theta, float *phi, float *offset)
 {
+    static char FuncName[]={"applyEquationParametersToClippingPlane"};
     float deltaTheta, deltaPhi, deltaD;
     int     i;
 
@@ -307,6 +314,7 @@ Boolean applyEquationParametersToClippingPlane(int planeIndex, float *theta, flo
 
 Boolean applyEquationToClippingPlane(float *equation, int planeIndex)
 {
+    static char FuncName[]={"applyEquationToClippingPlane"};
     float theta, phi, deltaTheta, deltaPhi, deltaD;
     int     i;
 
@@ -333,6 +341,7 @@ Boolean applyEquationToClippingPlane(float *equation, int planeIndex)
 
 Boolean loadSavedClippingPlanes(char *clippingPlaneFile, int *locallySelectedPlane)
 {
+    static char FuncName[]={"loadSavedClippingPlanes"};
     int feyl, planeIndex, i;
     Boolean isActive;
     float   equation[4], floatBuf[4];
@@ -420,6 +429,7 @@ Boolean loadSavedClippingPlanes(char *clippingPlaneFile, int *locallySelectedPla
 
 Boolean getClippingEquationParameters(NI_element *nel, char *attribute, float *parameters)
 {
+    static char FuncName[]={"getClippingEquationParameters"};
     char *strbuffer;
     int feyl, i;
 
@@ -525,6 +535,7 @@ int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
 
 Boolean activeClippingPlanes()
 {
+    static char FuncName[]={"activeClippingPlanes"};
     int i;
 
     SUMA_ENTRY;
@@ -540,6 +551,7 @@ Boolean activeClippingPlanes()
 
 void getObjectMinMaxForAxes(float objectMinMax[][2])
 {
+    static char FuncName[]={"activeClippingPlanes"};
     int allowableMin = -SUMA_TESSCON_DIFF_FLAG/2;
     int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
     int i, dov_ID;
@@ -572,10 +584,13 @@ void getObjectMinMaxForAxes(float objectMinMax[][2])
             objectMinMax[i][1] = 100;
         }
     }
+
+    SUMA_RETURNe;
 }
 
 void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO)
 {
+    static char FuncName[]={"dimensionsInscribeThoseOfPreviousSurfaceObjects"};
     int allowableMin = -SUMA_TESSCON_DIFF_FLAG/2;
     int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
     int i, dov_ID;
@@ -615,10 +630,13 @@ void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO)
         SO->aMaxDims = MIN(100.0, SO->aMaxDims);
         SO->aMinDims = MAX(-100.0, SO->aMinDims);
     }
+
+    SUMA_RETURNe;
 }
 
 void determineCornersOfSquare(SUMA_SurfaceObject *SO)
 {
+    static char FuncName[]={"determineCornersOfSquare"};
     SUMA_ENTRY;
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
@@ -635,6 +653,8 @@ void determineCornersOfSquare(SUMA_SurfaceObject *SO)
         MIN(SO->MinDims[1], SO->MinDims[2]);
     SO->aMaxDims = (SO->MaxDims[0]>SO->MaxDims[1])? MAX(SO->MaxDims[0], SO->MaxDims[2]) :
         MIN(SO->MaxDims[1], SO->MaxDims[2]);
+
+    SUMA_RETURNe;
 }
 
 #define DARK_COLOR 0.4
@@ -642,6 +662,7 @@ void determineCornersOfSquare(SUMA_SurfaceObject *SO)
 
 void makeCommonNodesOfRectangleDarkRed(SUMA_SurfaceObject *SO)
 {
+    static char FuncName[]={"makeCommonNodesOfRectangleDarkRed"};
     int i;
 
     SUMA_ENTRY;
@@ -651,10 +672,13 @@ void makeCommonNodesOfRectangleDarkRed(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[3] = DARK_COLOR;
     SO->Overlays[0]->ColVec[6] = DARK_COLOR;
     SO->Overlays[0]->ColVec[9] = DARK_COLOR;
+
+    SUMA_RETURNe;
 }
 
 void makeCommonNodesOfRectangleDarkGreen(SUMA_SurfaceObject *SO)
 {
+    static char FuncName[]={"makeCommonNodesOfRectangleDarkGreen"};
     int i;
 
     SUMA_ENTRY;
@@ -670,10 +694,12 @@ void makeCommonNodesOfRectangleDarkGreen(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[4] = DARK_COLOR;
     SO->Overlays[0]->ColVec[7] = DARK_COLOR;
     SO->Overlays[0]->ColVec[10] = DARK_COLOR;
+
+    SUMA_RETURNe;
 }
 
-void makeCommonNodesOfRectangleDarkBlue(SUMA_SurfaceObject *SO)
-{
+void makeCommonNodesOfRectangleDarkBlue(SUMA_SurfaceObject *SO){
+    static char FuncName[]={"makeCommonNodesOfRectangleDarkBlue"};
     int i;
 
     SUMA_ENTRY;
@@ -684,10 +710,13 @@ void makeCommonNodesOfRectangleDarkBlue(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[5] = DARK_COLOR;
     SO->Overlays[0]->ColVec[8] = DARK_COLOR;
     SO->Overlays[0]->ColVec[11] = DARK_COLOR;
+
+    SUMA_RETURNe;
 }
 
 void makeCommonNodesOfRectangleDarkCyan(SUMA_SurfaceObject *SO)
 {
+    static char FuncName[]={"makeCommonNodesOfRectangleDarkCyan"};
     int i;
 
     SUMA_ENTRY;
@@ -698,10 +727,13 @@ void makeCommonNodesOfRectangleDarkCyan(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[7] = SO->Overlays[0]->ColVec[8] = DARK_COLOR;
     SO->Overlays[0]->ColVec[4] = SO->Overlays[0]->ColVec[5] = DARK_COLOR;
     SO->Overlays[0]->ColVec[10] = SO->Overlays[0]->ColVec[11] = DARK_COLOR;
+
+    SUMA_RETURNe;
 }
 
 void makeCommonNodesOfRectangleDarkMagenta(SUMA_SurfaceObject *SO)
 {
+    static char FuncName[]={"makeCommonNodesOfRectangleDarkMagenta"};
     int i;
 
     SUMA_ENTRY;
@@ -712,10 +744,13 @@ void makeCommonNodesOfRectangleDarkMagenta(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = DARK_COLOR;
     SO->Overlays[0]->ColVec[3] = SO->Overlays[0]->ColVec[5] = DARK_COLOR;
     SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[11] = DARK_COLOR;
+
+    SUMA_RETURNe;
 }
 
 void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO)
 {
+    static char FuncName[]={"makeCommonNodesOfRectangleDarkYellow"};
     int i;
 
     SUMA_ENTRY;
@@ -726,11 +761,14 @@ void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[7] = DARK_COLOR;
     SO->Overlays[0]->ColVec[3] = SO->Overlays[0]->ColVec[4] = DARK_COLOR;
     SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[10] = DARK_COLOR;
+
+    SUMA_RETURNe;
 }
 
 
 void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO)
 {
+    static char FuncName[]={"makeCommonNodesOfRectangleRed"};
     int i;
 
     SUMA_ENTRY;
@@ -741,10 +779,13 @@ void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[3] = 1.0;
     SO->Overlays[0]->ColVec[6] = 1.0;
     SO->Overlays[0]->ColVec[9] = 1.0;
+
+    SUMA_RETURNe;
 }
 
 void makeCommonNodesOfRectangleGreen(SUMA_SurfaceObject *SO)
 {
+    static char FuncName[]={"makeCommonNodesOfRectangleGreen"};
     int i;
 
     SUMA_ENTRY;
@@ -755,10 +796,13 @@ void makeCommonNodesOfRectangleGreen(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[4] = 1.0;
     SO->Overlays[0]->ColVec[7] = 1.0;
     SO->Overlays[0]->ColVec[10] = 1.0;
+
+    SUMA_RETURNe;
 }
 
 void makeCommonNodesOfRectangleBlue(SUMA_SurfaceObject *SO)
 {
+    static char FuncName[]={"makeCommonNodesOfRectangleBlue"};
     int i;
 
     SUMA_ENTRY;
@@ -769,10 +813,13 @@ void makeCommonNodesOfRectangleBlue(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[5] = 1.0;
     SO->Overlays[0]->ColVec[8] = 1.0;
     SO->Overlays[0]->ColVec[11] = 1.0;
+
+    SUMA_RETURNe;
 }
 
 void makeCommonNodesOfRectangleCyan(SUMA_SurfaceObject *SO)
 {
+    static char FuncName[]={"makeCommonNodesOfRectangleCyan"};
     int i;
 
     SUMA_ENTRY;
@@ -783,10 +830,13 @@ void makeCommonNodesOfRectangleCyan(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[7] = SO->Overlays[0]->ColVec[8] = 1.0;
     SO->Overlays[0]->ColVec[4] = SO->Overlays[0]->ColVec[5] = 1.0;
     SO->Overlays[0]->ColVec[10] = SO->Overlays[0]->ColVec[11] = 1.0;
+
+    SUMA_RETURNe;
 }
 
 void makeCommonNodesOfRectangleMagenta(SUMA_SurfaceObject *SO)
 {
+    static char FuncName[]={"makeCommonNodesOfRectangleMagenta"};
     int i;
 
     SUMA_ENTRY;
@@ -797,10 +847,13 @@ void makeCommonNodesOfRectangleMagenta(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = 1.0;
     SO->Overlays[0]->ColVec[3] = SO->Overlays[0]->ColVec[5] = 1.0;
     SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[11] = 1.0;
+
+    SUMA_RETURNe;
 }
 
 void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO)
 {
+    static char FuncName[]={"makeCommonNodesOfRectangleYellow"};
     int i;
 
     SUMA_ENTRY;
@@ -811,14 +864,18 @@ void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[7] = 1.0;
     SO->Overlays[0]->ColVec[3] = SO->Overlays[0]->ColVec[4] = 1.0;
     SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[10] = 1.0;
+
+    SUMA_RETURNe;
 }
 
 SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
-    SUMA_FreeSurfer_struct FS){
+   SUMA_FreeSurfer_struct FS){
+    static char FuncName[]={"makeAxisPlaneFromNodeAndFaceSetList"};
     int i;
 
+    SUMA_ENTRY;
+
     // Set global variables
-    char *FuncName = "makeAxisPlaneFromNodeAndFaceSetList";
     SUMA_DO *dov = SUMAg_DOv;
     int N_dov = SUMAg_N_DOv-1;
     SUMA_ALL_DO *ado;
@@ -921,7 +978,7 @@ SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
     /* toggle the viewing for the cartesian axes */
     // DEBUG SO->ShowMeshAxis = clipPlaneIdentificationMode;
 
-   /* Create a Mesh Axis for the surface */
+    /* Create a Mesh Axis for the surface */
     SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis", AO_type);
         if (SO->MeshAxis == NULL) {
         fprintf( SUMA_STDERR,
@@ -1013,6 +1070,7 @@ SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
 SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
     SUMA_FreeSurfer_struct FS, int planeIndex){
     int i;
+
     // Set global variables
     char *FuncName = "drawPlaneFromNodeAndFaceSetList";
     SUMA_DO *dov = SUMAg_DOv;
@@ -1221,6 +1279,8 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
 
 void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2)
 {
+    static char FuncName[]={"compareSurfaces"};
+
     SUMA_ENTRY;
 
     fprintf(stderr, "Beginning surface comparison\n");
@@ -1425,6 +1485,8 @@ void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2)
 
 void getSquareOnPlane(float *plane, float points[4][3])
 {
+    static char FuncName[]={"getSquareOnPlane"};
+
     SUMA_ENTRY;
 
     float planeOrigin[3], otherPoint[3], normal[3], tangent[3], bitangent[3];
@@ -1466,10 +1528,13 @@ void getSquareOnPlane(float *plane, float points[4][3])
         points[2][i]=planeOrigin[i]-overallMax*tangent[i]+overallMax*bitangent[i];
         points[3][i]=planeOrigin[i]-overallMax*tangent[i]-overallMax*bitangent[i];
     }
+
+    SUMA_RETURNe;
 }
 
 Boolean updateClipSquare(int planeIndex)
 {
+    static char FuncName[]={"updateClipSquare"};
     float plane[4], points[4][3];
     int i, j;
 
@@ -1499,7 +1564,9 @@ Boolean updateClipSquare(int planeIndex)
     SUMA_RETURN(0);
 }
 
-Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv){
+Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv)
+{
+    static char FuncName[]={"makeAxisObject"};
 
     float plane[4], points[4][3];
     int i, j;
@@ -1555,7 +1622,8 @@ Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv){
     SUMA_RETURN (1); /* OK */
 }
 
-Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv){
+Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv)
+{
     static char FuncName[]={"makeClipIdentificationPlane"};
     float plane[4], points[4][3];
     int i, j;
@@ -1623,6 +1691,7 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
 
 void lightenActiveClipPlaneSquare(int planeIndex)
 {
+    static char FuncName[]={"makeClipIdentificationPlane"};
     SUMA_SurfaceObject* SO =clipIdentificationPlane[planeIndex];
     int i;
     SUMA_SurfaceViewer *sv;
@@ -1662,10 +1731,13 @@ void lightenActiveClipPlaneSquare(int planeIndex)
         case 4: makeCommonNodesOfRectangleMagenta(SO); break;
         case 5: makeCommonNodesOfRectangleYellow(SO); break;
     }
+
+    SUMA_RETURNe;
 }
 
  void darkenClipPlaneSquare(int planeIndex)
  {
+    static char FuncName[]={"makeClipIdentificationPlane"};
     SUMA_SurfaceObject* SO =clipIdentificationPlane[planeIndex];
         SUMA_SurfaceViewer *sv;
         Widget w=NULL;
@@ -1727,10 +1799,13 @@ void lightenActiveClipPlaneSquare(int planeIndex)
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Darken clipping plane square: completed\n");
+
+    SUMA_RETURNe;
 }
 
 void darkenInactiveClipPlaneSquares(int activePlane)
 {
+    static char FuncName[]={"darkenInactiveClipPlaneSquares"};
     int p, i;
 
     SUMA_ENTRY;
@@ -1743,11 +1818,14 @@ void darkenInactiveClipPlaneSquares(int activePlane)
     }
 
         SUMA_SurfaceObject* SO =clipIdentificationPlane[1];
+
+    SUMA_RETURNe;
 }
 
 void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *planeA,
     float *planeB, float *planeC)
-    {
+{
+    static char FuncName[]={"darkenInactiveClipPlaneSquares"};
     char chrTmp[64];
     int isv;
     SUMA_SurfaceViewer *sv;
@@ -1796,11 +1874,14 @@ void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *pla
 
     previousClipPlaneIdentificationMode=1;
     // clippingPlaneMode=0;
+
+    SUMA_RETURNe;
 }
 
 void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bool flip,
     int activePlane, Bool toggleOffOn, Bool reset)
 {
+    static char FuncName[]={"clipPlaneTransform"};
     static float  planeTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,180,270,180};
     static float  planePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,270};
     static float  planeA[SUMA_MAX_N_CLIP_PLANES]={0.0,0.0,1.0,0.0,0.0,0.0};
@@ -1923,10 +2004,13 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
      selectedPlane = planeIndex;
 
     SUMA_SetObjectClip(chrTmp, sv);
+
+    SUMA_RETURNe;
 }
 
 void writeClippingPlanes (char *s, void *data)
 {
+    static char FuncName[]={"writeClippingPlanes"};
     SUMA_SurfaceViewer *sv = (SUMA_SurfaceViewer *)data;
     FILE *outFile;
     int     i, j, parameterInc=0, lastPlane = SUMAg_CF->N_ClipPlanes-1;
@@ -1971,10 +2055,13 @@ void writeClippingPlanes (char *s, void *data)
 
      // Close output file
      fclose(outFile);
+
+    SUMA_RETURNe;
 }
 
  void getPlanePtClosestToViewerOrigin(float *plane, float *point)
  {
+    static char FuncName[]={"getPlanePtClosestToViewerOrigin"};
     int i;
     /* Returns the point, on the plane, closest to the viewer origin <0,0,0>.  This
     point is given by P = k<A,B,C> s.t. k(A^2 + B^2 + C^2) = D is satisfied.  I.e.
@@ -1986,10 +2073,13 @@ void writeClippingPlanes (char *s, void *data)
     float k = plane[3]/((plane[0]*plane[0])+(plane[1]*plane[1])+(plane[2]*plane[2]));
 
     for (i=0; i<3; ++i) point[i] = k*plane[i];
+
+    SUMA_RETURNe;
 }
 
  void getPlanePtClosestToViewerPoint(float *plane, float *viewerPt, float *point)
  {
+    static char FuncName[]={"getPlanePtClosestToViewerPoint"};
      int i;
    /* Returns the point, on the plane, closest to the viewer origin <0,0,0>.  This
     point is given by P = k<A,B,C> s.t. k(A^2 + B^2 + C^2) = D is satisfied.  I.e.
@@ -2001,19 +2091,26 @@ void writeClippingPlanes (char *s, void *data)
     float k = (plane[3]-(plane[0]*viewerPt[0])-(plane[1]*viewerPt[1])-(plane[2]*viewerPt[2]))/((plane[0]*plane[0])+(plane[1]*plane[1])+(plane[2]*plane[2]));
 
     for (i=0; i<3; ++i) point[i] = viewerPt[i] + k*plane[i];
+
+    SUMA_RETURNe;
 }
 
 void crossProduct(float input1[], float input2[], float output[])
 {
+    static char FuncName[]={"crossProduct"};
+
     SUMA_ENTRY;
 
     output[0] = (input1[1]*input2[2]) - (input1[2]*input2[1]);
     output[1] = (input1[2]*input2[0]) - (input1[0]*input2[2]);
     output[2] = (input1[0]*input2[1]) - (input1[1]*input2[0]);
+
+    SUMA_RETURNe;
 }
 
 void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *objectMinMax)
 {
+    static char FuncName[]={"getOveralMinAndMaxOfCurrentSurfaceObjects"};
     int i, dov_ID;
 
     SUMA_ENTRY;
@@ -2047,10 +2144,13 @@ void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *ob
             axisMinMax[i][1] = 100.0;
         }
     }
+
+    SUMA_RETURNe;
 }
 
 void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3])
 {
+    static char FuncName[]={"getFourCoordsJustInsideClipPlane"};
     SUMA_ENTRY;
 
     float divisor=plane[0]+plane[1]+plane[2];
@@ -2087,4 +2187,6 @@ void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3])
     points[3][0]=x;
     points[3][1]=y;
     points[3][2]=z;
+
+    SUMA_RETURNe;
 }

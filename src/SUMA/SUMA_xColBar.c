@@ -2061,7 +2061,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    SO->SurfCont->AlphaOpacityFalloff = !(SO->SurfCont->AlphaOpacityFalloff);
    
    // SO->SurfCont->AlphaThresh is common across period key
-   // SO->SurfCont->AlphaOpacityFalloff = /* SurfCont->AlphaOpacityFalloff = */ AlphaOpacityFalloff;
+   // SO->SurfCont->AlphaOpacityFalloff = /* SurfCont->AlphaOpacityFalloff =  AlphaOpacityFalloff;
 
    if (!(SO->Overlays)){
     if (SO->SurfCont->AlphaOpacityFalloff){
@@ -2096,6 +2096,16 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    static int BoxOutlineThresh = 0;
+   SUMA_OVERLAYS *over1 = NULL;
+   SUMA_OVERLAYS *over2 = NULL;
+   float *bckupColorMap, *onesVector;
+   int i, j, returnVal;   
+   float *overlayBackup; 
+   static SUMA_DRAWN_ROI **OutlineContours = NULL;
+   static int N_OutlineContours = 0;
+   static SUMA_DRAWN_ROI **OriginalContours = NULL;
+   static int N_OriginalContours = 0;
+   static float threshold;
 
    SUMA_ENTRY;
 
@@ -2107,10 +2117,75 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    BoxOutlineThresh = !BoxOutlineThresh;
    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
    
+   over1 = SO->Overlays[1];
+   over2 = SO->Overlays[2];
+
+   if (over1 && over2){
+    if (SO->SurfCont->BoxOutlineThresh){
+        over2->ShowMode = SW_SurfCont_DsetViewCon;
+
+         /* kill current contours */
+         SUMA_KillOverlayContours(over2);
+
+        if (OutlineContours){
+            over2->Contours = OutlineContours;
+            over2->N_Contours = N_OutlineContours;
+        } else {
+           OriginalContours = over2->Contours;
+           N_OriginalContours = over2->N_Contours;
+           
+           // Back up overlay color map
+           size_t bytes2Copy = over2->N_NodeDef*sizeof(float);
+           if (!(overlayBackup=(float *)malloc(bytes2Copy))){
+                fprintf(stderr, "*** %s: Error allocating memory\n", FuncName);
+                SUMA_RETURNe;
+           }
+           for (i=j=0; i<over2->N_NodeDef; ++i){
+                overlayBackup[i] = over2->V[over2->NodeDef[i]];
+           }
+           
+           for (i=j=0; i<over2->N_NodeDef; ++i){
+                over2->V[over2->NodeDef[i]] = 1000.0f;
+           }
+           
+           if (!SUMA_ColorizePlane (over2)) {
+                 SUMA_SLP_Err("Failed to colorize plane.\n");
+                 SUMA_RETURN(NOPE);
+            }
+            
+           // Restore overlay colormap
+           for (i=j=0; i<over2->N_NodeDef; ++i){
+                over2->V[over2->NodeDef[i]] = overlayBackup[i];
+           }
+           free(overlayBackup);
+        }
+        
+        // fprintf(stderr, "%s: colplane->Contours = %p\n", FuncName, over2->Contours);
+        
+        // Make contours black
+        if (over2->Contours){
+            for (i=0; i<over2->N_Contours; ++i){
+                for (j=0; j<4; ++j){
+                    // over2->Contours[i]->EdgeColor[j] = 0.0f;
+                    over2->Contours[i]->FillColor[j] = 0.0f;
+                }
+                over2->Contours[i]->EdgeThickness = 8;
+            }
+            OutlineContours = over2->Contours;
+            N_OutlineContours = over2->N_Contours;
+        }
+    } else {
+        over2->ShowMode = SW_SurfCont_DsetViewCol;
+        over2->Contours = OriginalContours;
+        over2->N_Contours = N_OriginalContours;
+    }
+   }
+
    // Refresh display
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
-
+   
+   
    SUMA_RETURNe;
 }
 
@@ -6883,12 +6958,12 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                SUMA_Alloc_Menu_Widget(N_items+1);
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
-// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "B", '\0', YUP, SwitchBrt_Menu,
-                           "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
+                            "B", '\0', YUP, SwitchBrt_Menu,
+         //                  "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
                            (void *)ado,
-// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "SurfCont->Dset_Mapping->B",
-                           "SurfCont->Dset_Mapping->_",  // TEMPORARY FOR MERGE WITH MASTER
-               "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
+                           "SurfCont->Dset_Mapping->B",
+                           // "SurfCont->Dset_Mapping->_",  // TEMPORARY FOR MERGE WITH MASTER
+                           "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
                            SUMA_SurfContHelp_SelBrt,
                            SurfCont->SwitchBrtMenu );
          XtInsertEventHandler( SurfCont->SwitchBrtMenu->mw[0] ,
@@ -7545,8 +7620,8 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                SUMA_Alloc_Menu_Widget(N_items+1);
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
-// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "B", '\0', YUP, SwitchBrt_Menu,
-                           "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
+                           "B", '\0', YUP, SwitchBrt_Menu,
+                           // "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
                            (void *)ado,
                            "VolCont->Dset_Mapping->B",
                "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
@@ -8177,11 +8252,11 @@ void SUMA_set_cmap_options_GLDO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                SUMA_Alloc_Menu_Widget(N_items+1);
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
-// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "B", '\0', YUP, SwitchBrt_Menu,
-                           "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
+                           "B", '\0', YUP, SwitchBrt_Menu,
+                           // "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
                            (void *)ado,
-// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "GraphCont->GDset_Mapping->B",
-                           "GraphCont->GDset_Mapping->_",  // TEMPORARY FOR MERGE WITH MASTER
+                           "GraphCont->GDset_Mapping->B",
+                           // "GraphCont->GDset_Mapping->_",  // TEMPORARY FOR MERGE WITH MASTER
                "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
                            SUMA_SurfContHelp_SelBrt,
                            SurfCont->SwitchBrtMenu );
@@ -10820,8 +10895,8 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
             SUMA_SET_SELECT_COLOR(SurfCont->AlphaOpacityFalloff_tb);
                     
             // create the "B" toggle checkbox 
-// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER            SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("B",
-            SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("_",     // TEMPORARY FOR MERGE WITH MASTER
+            SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("B",
+            // SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("_",     // TEMPORARY FOR MERGE WITH MASTER
             xmToggleButtonWidgetClass, ABCheckBoxContainer,
             NULL);
             // Make hover help, and BHelp, for "B" checkbox
