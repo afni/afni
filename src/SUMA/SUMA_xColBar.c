@@ -2101,6 +2101,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    float *bckupColorMap, *onesVector;
    int i, j, returnVal;   
    float *overlayBackup; 
+   float *CMapBackup; 
    static SUMA_DRAWN_ROI **OutlineContours = NULL;
    static int N_OutlineContours = 0;
    static SUMA_DRAWN_ROI **OriginalContours = NULL;
@@ -2136,13 +2137,17 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
            
            // Back up overlay color map
            size_t bytes2Copy = over2->N_NodeDef*sizeof(float);
-           if (!(overlayBackup=(float *)malloc(bytes2Copy))){
+           size_t bytes2Copy2 = 3*over2->N_NodeDef*sizeof(float);
+           if (!(overlayBackup=(float *)malloc(bytes2Copy)) ||
+                !(CMapBackup=(float *)malloc(bytes2Copy2))){
+                if (overlayBackup) free(overlayBackup);
                 fprintf(stderr, "*** %s: Error allocating memory\n", FuncName);
                 SUMA_RETURNe;
            }
            for (i=j=0; i<over2->N_NodeDef; ++i){
                 overlayBackup[i] = over2->V[over2->NodeDef[i]];
            }
+           memcpy((void *)CMapBackup, (void *)(over2->ColVec), bytes2Copy2);
            
            for (i=j=0; i<over2->N_NodeDef; ++i){
                 over2->V[over2->NodeDef[i]] = 1000.0f;
@@ -2157,23 +2162,25 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
            for (i=j=0; i<over2->N_NodeDef; ++i){
                 over2->V[over2->NodeDef[i]] = overlayBackup[i];
            }
+           memcpy((void *)(over2->ColVec), (void *)CMapBackup, bytes2Copy2);
+           free(CMapBackup);
            free(overlayBackup);
+        
+            // Make contours black
+            if (over2->Contours){
+                for (i=0; i<over2->N_Contours; ++i){
+                    for (j=0; j<4; ++j){
+                        // over2->Contours[i]->EdgeColor[j] = 0.0f;
+                        over2->Contours[i]->FillColor[j] = 0.0f;
+                    }
+                    over2->Contours[i]->EdgeThickness = 8;
+                }
+                OutlineContours = over2->Contours;
+                N_OutlineContours = over2->N_Contours;
+            }
         }
         
         // fprintf(stderr, "%s: colplane->Contours = %p\n", FuncName, over2->Contours);
-        
-        // Make contours black
-        if (over2->Contours){
-            for (i=0; i<over2->N_Contours; ++i){
-                for (j=0; j<4; ++j){
-                    // over2->Contours[i]->EdgeColor[j] = 0.0f;
-                    over2->Contours[i]->FillColor[j] = 0.0f;
-                }
-                over2->Contours[i]->EdgeThickness = 8;
-            }
-            OutlineContours = over2->Contours;
-            N_OutlineContours = over2->N_Contours;
-        }
     } else {
         over2->ShowMode = SW_SurfCont_DsetViewCol;
         over2->Contours = OriginalContours;
