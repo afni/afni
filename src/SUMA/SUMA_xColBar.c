@@ -2096,12 +2096,12 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    static int BoxOutlineThresh = 0;
-   SUMA_OVERLAYS *over1 = NULL;
    SUMA_OVERLAYS *over2 = NULL;
    float *bckupColorMap, *onesVector;
    int i, j, returnVal;   
    float *overlayBackup; 
    float *CMapBackup; 
+   Bool  thresholdChanged;
    static SUMA_DRAWN_ROI **OutlineContours = NULL;
    static int N_OutlineContours = 0;
    static SUMA_DRAWN_ROI **OriginalContours = NULL;
@@ -2114,21 +2114,20 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
             || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   over2 = SO->Overlays[2];
    
    BoxOutlineThresh = !BoxOutlineThresh;
    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
    
-   over1 = SO->Overlays[1];
-   over2 = SO->Overlays[2];
-
-   if (over1 && over2){
+   if (over2){
     if (SO->SurfCont->BoxOutlineThresh){
         over2->ShowMode = SW_SurfCont_DsetViewCon;
 
          /* kill current contours */
          SUMA_KillOverlayContours(over2);
 
-        if (OutlineContours){
+        if (OutlineContours && !thresholdChanged){
             over2->Contours = OutlineContours;
             over2->N_Contours = N_OutlineContours;
         } else {
