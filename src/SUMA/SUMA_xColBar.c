@@ -1075,6 +1075,14 @@ int SUMA_set_threshold(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 
    */
 
+   // Restore threshold boundary if necessary
+   // SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (SO->SurfCont->BoxOutlineThresh ){
+        // SO->SurfCont->BoxOutlineThresh = 0;
+        SUMA_OVERLAYS *over2 = SO->Overlays[2];
+        setBoxOutlineThresh(SO, over2, 1);        
+   }
+
    SUMA_RETURN(1);
 }
 
@@ -1154,6 +1162,15 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    fff = (float)cbs->value / pow(10.0, dec);
    SUMA_LHv("Have %f\n", fff);
    SUMA_set_threshold(ado, NULL, &fff);
+
+
+   // Restore threshold boundary if necessary
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (SO->SurfCont->BoxOutlineThresh ){
+        SO->SurfCont->BoxOutlineThresh = 0;
+        SUMA_cb_BoxOutlineThresh_tb_toggled(w, clientData, call);        
+        SUMA_cb_BoxOutlineThresh_tb_toggled(w, clientData, call);        
+   }
 
    SUMA_RETURNe;
 }
@@ -2089,37 +2106,20 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
-void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
-                                   XtPointer client_data)
+SUMA_Boolean setBoxOutlineThresh(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *over2, Bool thresholdChanged)
 {
-   static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
-   SUMA_ALL_DO *ado=NULL;
-   SUMA_X_SurfCont *SurfCont=NULL;
-   static int BoxOutlineThresh = 0;
-   SUMA_OVERLAYS *over2 = NULL;
+   static char FuncName[]={"setBoxOutlineThresh"};
    float *bckupColorMap, *onesVector;
    int i, j, returnVal;   
    float *overlayBackup; 
    float *CMapBackup; 
-   Bool  thresholdChanged;
    static SUMA_DRAWN_ROI **OutlineContours = NULL;
    static int N_OutlineContours = 0;
    static SUMA_DRAWN_ROI **OriginalContours = NULL;
    static int N_OriginalContours = 0;
-   static float threshold;
 
    SUMA_ENTRY;
 
-   ado = (SUMA_ALL_DO *)data;
-   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
-            || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   over2 = SO->Overlays[2];
-   
-   BoxOutlineThresh = !BoxOutlineThresh;
-   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-   thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
-   
    if (over2){
     if (SO->SurfCont->BoxOutlineThresh){
         over2->ShowMode = SW_SurfCont_DsetViewCon;
@@ -2141,7 +2141,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
                 !(CMapBackup=(float *)malloc(bytes2Copy2))){
                 if (overlayBackup) free(overlayBackup);
                 fprintf(stderr, "*** %s: Error allocating memory\n", FuncName);
-                SUMA_RETURNe;
+                SUMA_RETURN (NOPE);
            }
            for (i=j=0; i<over2->N_NodeDef; ++i){
                 overlayBackup[i] = over2->V[over2->NodeDef[i]];
@@ -2178,14 +2178,40 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
                 N_OutlineContours = over2->N_Contours;
             }
         }
-        
-        // fprintf(stderr, "%s: colplane->Contours = %p\n", FuncName, over2->Contours);
     } else {
         over2->ShowMode = SW_SurfCont_DsetViewCol;
         over2->Contours = OriginalContours;
         over2->N_Contours = N_OriginalContours;
     }
    }
+   
+   SUMA_RETURN (YUP);
+}
+
+void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
+                                   XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *over2 = NULL;
+   Bool  thresholdChanged;
+   static int BoxOutlineThresh = 0;
+   static float threshold;
+
+   SUMA_ENTRY;
+
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))/*
+            || !SurfCont->ColPlaneOpacity */) SUMA_RETURNe;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   over2 = SO->Overlays[2];
+   
+   BoxOutlineThresh = !BoxOutlineThresh;
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
+   
+   setBoxOutlineThresh(SO, over2, thresholdChanged);   
 
    // Refresh display
    SUMA_Remixedisplay(ado);
@@ -5564,6 +5590,7 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_UpdateNodeLblField(ado);
    SUMA_UpdatePvalueField( ado,
                            curColPlane->OptScl->ThreshRange[0]);
+   
    SUMA_RETURN(1);
 }
 
@@ -5603,6 +5630,14 @@ int SUMA_SetScaleThr(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
          if (!SUMA_SetScaleThr_one((SUMA_ALL_DO *)SOC,
                                     colpC, val, 1, redisplay)) SUMA_RETURN(0);
       }
+   }
+
+   // Restore threshold boundary if necessary
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (SO->SurfCont->BoxOutlineThresh ){
+        // SO->SurfCont->BoxOutlineThresh = 0;
+        SUMA_OVERLAYS *over2 = SO->Overlays[2];
+        setBoxOutlineThresh(SO, over2, 1);        
    }
    SUMA_RETURN(1);
 }
