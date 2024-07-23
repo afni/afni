@@ -5528,6 +5528,7 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
 
    SUMA_ENTRY;
 
@@ -5612,14 +5613,16 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 
    SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
 
-   SUMA_LH("Colorize");
-   if (!SUMA_ColorizePlane (curColPlane)) {
-      SUMA_SLP_Err("Failed to colorize plane.\n");
-      SUMA_RETURN(0);
-   }
+   if (!(SO->SurfCont->BoxOutlineThresh )){
+       SUMA_LH("Colorize");
+       if (!SUMA_ColorizePlane (curColPlane)) {
+          SUMA_SLP_Err("Failed to colorize plane.\n");
+          SUMA_RETURN(0);
+       }
 
-   SUMA_LH("Remix redisplay");
-   SUMA_Remixedisplay(ado);
+       SUMA_LH("Remix redisplay");
+       SUMA_Remixedisplay(ado);
+   }
 
    SUMA_UpdateNodeLblField(ado);
    SUMA_UpdatePvalueField( ado,
@@ -5627,7 +5630,6 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 
    // Restore threshold boundary if necessary
    fprintf(stderr, "%s: Restore threshold boundary if necessary\n", FuncName);
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    if (SO->SurfCont->BoxOutlineThresh ){
         XtPointer clientData = (XtPointer)ado;
         SUMA_RestoreThresholdContours(clientData);
