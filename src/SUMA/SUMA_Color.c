@@ -4875,6 +4875,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    }
 
    fprintf(stderr, "%s: if (Opt->interpmode == SUMA_NO_INTERP || Opt->interpmode == SUMA_INTERP)\n", FuncName);
+   fprintf(stderr, "%s: Opt = %p\n", FuncName, Opt);
    if (Opt->interpmode == SUMA_NO_INTERP || Opt->interpmode == SUMA_INTERP) {
       /* Now go through values and interpolate onto index of colormap */
       MinCol = 0.0; MaxCol = (float)ColMap->N_M[0];

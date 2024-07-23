@@ -2001,12 +2001,14 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_TABLE_FIELD *TF=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO;
 
    SUMA_ENTRY;
 
    SUMA_LH("Called");
 
    ado = (SUMA_ALL_DO *)data;
+   SO = (SUMA_SurfaceObject *)ado;
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
@@ -2050,11 +2052,19 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
          SUMA_RETURNe;
    }
 
-   SUMA_Remixedisplay(ado);
+   if (!(SO->SurfCont->BoxOutlineThresh )){
+    SUMA_Remixedisplay(ado);
+   }
 
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
 
+   // Restore threshold boundary if necessary
+   fprintf(stderr, "%s: Restore threshold boundary if necessary", FuncName);
+   if (SO->SurfCont->BoxOutlineThresh ){
+        XtPointer clientData = (XtPointer)ado;
+        SUMA_RestoreThresholdContours(clientData);
+   }
 
    SUMA_RETURNe;
 }
@@ -5629,7 +5639,6 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                            curColPlane->OptScl->ThreshRange[0]);
 
    // Restore threshold boundary if necessary
-   fprintf(stderr, "%s: Restore threshold boundary if necessary\n", FuncName);
    if (SO->SurfCont->BoxOutlineThresh ){
         XtPointer clientData = (XtPointer)ado;
         SUMA_RestoreThresholdContours(clientData);
