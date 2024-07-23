@@ -4640,6 +4640,8 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   fprintf(stderr, "%s: \n", FuncName);
 
 
    if (!ColMap) {
@@ -4661,6 +4663,8 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
 
    SUMA_LHv("Input Vmin..Vmax=%f..%f\n", Vmin, Vmax);
    /* No negative colormaps here */
+   
+   fprintf(stderr, "%s: ColMap = %p\n", FuncName, ColMap);
    if (ColMap->Sgn < 0) {
       /* proceed, in SUMA options were given to the user to make
          the range symmetric about 0.
@@ -4671,6 +4675,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    }
 
    /* find the values to be masked out */
+   fprintf(stderr, "%s: Opt = %p\n", FuncName, Opt);
    if (Opt->ApplyMask){
       SUMA_LH("Applying Mask");
       if (Opt->MaskZero) {
@@ -4791,6 +4796,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
                                     indices into the colormap do not match
                                     indices into non-linearized maps that are
                                     stored in memory. */
+   fprintf(stderr, "%s: SUMA_NeedsLinearizing\n", FuncName);
    if (SUMA_NeedsLinearizing(ColMap)) {
       if (Opt->interpmode == SUMA_NO_INTERP || Opt->interpmode == SUMA_INTERP) {
          /* linearize color map */
@@ -4823,6 +4829,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    }
 
    /* if brightness factor is given, apply it to color map and mask color */
+   fprintf(stderr, "%s: if brightness factor is given, apply it to color map and mask color \n", FuncName);
    Mbuf = NULL;
    if (Opt->BrightFact <= 0 || Opt->BrightFact > 2) {
       SUMA_S_Warn("Opt->BrightFact must be between ]0 2], Defaulting to 1\n");
@@ -4867,6 +4874,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
       SUMA_RETURN(NOPE);
    }
 
+   fprintf(stderr, "%s: if (Opt->interpmode == SUMA_NO_INTERP || Opt->interpmode == SUMA_INTERP)\n", FuncName);
    if (Opt->interpmode == SUMA_NO_INTERP || Opt->interpmode == SUMA_INTERP) {
       /* Now go through values and interpolate onto index of colormap */
       MinCol = 0.0; MaxCol = (float)ColMap->N_M[0];
@@ -5048,6 +5056,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    }
 
    /* change range for coord bias */
+   fprintf(stderr, "%s: change range for coord bias\n", FuncName);
    Vrange = (Opt->CoordBiasRange[1] - Opt->CoordBiasRange[0]) / ColMap->N_M[0];
    if (SV->BiasCoordVec) {
       SUMA_LH("Adding the CoordBias");
@@ -5062,6 +5071,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
       }
    }
 
+   fprintf(stderr, "%s: Mbuf = %p\n", FuncName, Mbuf);
    if (Mbuf) {
       /* free what is in ColMap->M */
       SUMA_free2D((char **)ColMap->M, ColMap->N_M[0]);

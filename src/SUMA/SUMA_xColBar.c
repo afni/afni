@@ -1033,27 +1033,32 @@ int SUMA_set_threshold(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 
    SUMA_ENTRY;
 
+/**/
    if (!SUMA_set_threshold_one(ado, colp, val)) SUMA_RETURN(0);
+/*
    if (!colp) colp = SUMA_ADO_CurColPlane(ado);
    if (!colp) SUMA_RETURN(0);
-
+/*
    if (ado->do_type == SO_type) {
-      /* do we have a contralateral SO and overlay? */
+      /* do we have a contralateral SO and overlay? *//*
       SO = (SUMA_SurfaceObject *)ado;
       colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
       if (colpC && SOC) {
+                      /* DEBUG
          SUMA_LHv("Found contralateral equivalent to:\n"
                       " %s and %s in\n"
                       " %s and %s\n",
                       SO->Label, CHECK_NULL_STR(colp->Label),
                       SOC->Label, CHECK_NULL_STR(colpC->Label));
+                      /* DEBUG
          if (!SUMA_SetScaleThr_one((SUMA_ALL_DO *)SOC, colpC, val, 1, 1)) {
             SUMA_S_Warn("Failed in contralateral");
             SUMA_RETURN(0);
          }
+         *//*
       }
    }
-
+*/
    /* CIFTI yoking outline
 
    if (colp->dset_link) is CIFTI subdomain (see a. below)
@@ -1074,7 +1079,7 @@ int SUMA_set_threshold(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    a. One way to find out if a dset is a subdomain would be to look for one of the MD_* attribute of dset->ngr that are created in SUMA_CIFTI_2_edset()
 
    */
-
+/*
    // Restore threshold boundary if necessary
    // SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    if (SO->SurfCont->BoxOutlineThresh ){
@@ -1082,7 +1087,7 @@ int SUMA_set_threshold(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
         SUMA_OVERLAYS *over2 = SO->Overlays[2];
         setBoxOutlineThresh(SO, over2, 1);        
    }
-
+*/
    SUMA_RETURN(1);
 }
 
@@ -1093,6 +1098,7 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    float oval, val;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
 
    SUMA_ENTRY;
 
@@ -1120,10 +1126,12 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
          /* Need a new clusterizing effort*/
          colp->OptScl->RecomputeClust = 1;
       }
-      SUMA_ColorizePlane(colp);
-      SUMA_Remixedisplay(ado);
+      if (!(SO->SurfCont->BoxOutlineThresh )){
+          SUMA_ColorizePlane(colp);
+          SUMA_Remixedisplay(ado);
+      }
    }
-
+        
    /* call this one since it is not being called as the slider is dragged. */
    if (!(SUMA_set_threshold_label(ado, val, 0.0))) 
       { SUMA_SL_Err("Error setting threshold label"); SUMA_RETURN(0); }
@@ -1163,13 +1171,10 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    SUMA_LHv("Have %f\n", fff);
    SUMA_set_threshold(ado, NULL, &fff);
 
-
    // Restore threshold boundary if necessary
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    if (SO->SurfCont->BoxOutlineThresh ){
-        SO->SurfCont->BoxOutlineThresh = 0;
-        SUMA_cb_BoxOutlineThresh_tb_toggled(w, clientData, call);        
-        SUMA_cb_BoxOutlineThresh_tb_toggled(w, clientData, call);        
+        SUMA_RestoreThresholdContours(w, clientData, call);
    }
 
    SUMA_RETURNe;
@@ -2188,6 +2193,36 @@ SUMA_Boolean setBoxOutlineThresh(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *over2, B
    SUMA_RETURN (YUP);
 }
 
+void SUMA_RestoreThresholdContours(Widget w, XtPointer data,
+                                   XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *over2 = NULL;
+   Bool  thresholdChanged;
+   static int BoxOutlineThresh = 0;
+   static float threshold;
+
+   SUMA_ENTRY;
+
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURNe;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   over2 = SO->Overlays[2];
+
+   thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
+
+   
+   setBoxOutlineThresh(SO, over2, thresholdChanged);   
+
+   // Refresh display
+   SUMA_Remixedisplay(ado);
+   SUMA_UpdateNodeLblField(ado);
+   
+   SUMA_RETURNe;
+}
+
 void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
                                    XtPointer client_data)
 {
@@ -2216,7 +2251,6 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    // Refresh display
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
-   
    
    SUMA_RETURNe;
 }
