@@ -491,8 +491,7 @@ char *SUMA_GetLabelsAtSelection(SUMA_ALL_DO *ado, int node, int sec);
 char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec);
 SUMA_Boolean setBoxOutlineThresh(SUMA_SurfaceObject *SO, 
     SUMA_OVERLAYS *over2, Bool thresholdChanged);
-void SUMA_RestoreThresholdContours(Widget w, XtPointer data, 
-    XtPointer client_data);
+void SUMA_RestoreThresholdContours(XtPointer data);
 SUMA_Boolean SUMA_GetValuesAtSelection(SUMA_ALL_DO *ado, int fromtable,
                                        float *I, float *T, float *B);
 SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_ALL_DO *ado, char *str);
