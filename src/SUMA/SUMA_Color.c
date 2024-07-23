@@ -4876,6 +4876,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
 
    fprintf(stderr, "%s: if (Opt->interpmode == SUMA_NO_INTERP || Opt->interpmode == SUMA_INTERP)\n", FuncName);
    fprintf(stderr, "%s: Opt = %p\n", FuncName, Opt);
+   fprintf(stderr, "%s: Opt->interpmode = %d\n", FuncName, Opt->interpmode);
    if (Opt->interpmode == SUMA_NO_INTERP || Opt->interpmode == SUMA_INTERP) {
       /* Now go through values and interpolate onto index of colormap */
       MinCol = 0.0; MaxCol = (float)ColMap->N_M[0];
@@ -4886,6 +4887,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
          SUMA_RETURN (NOPE);
       }
 
+        fprintf(stderr, "%s: Vrange = %d\n", FuncName, Vrange);
       if (Vrange > 0) {
          mxColindex = ColMap->N_M[0] -1;
          if (Opt->interpmode == SUMA_NO_INTERP) {
@@ -4931,7 +4933,9 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
             SUMA_LHv("Interp Mode, Vmin %f, Vmax %f, Vrange %f\n",
                      Vmin, Vmax, Vrange);
             SV->N_VCont = 0;
+            fprintf(stderr, "%s: N_V = %d\n", FuncName, N_V);
             for (i=0; i < N_V; ++i) {
+                fprintf(stderr, "%s: i = %d\r", FuncName, i);
                i3 = 3*i;
                if (!SV->isMasked[i]) {
                   Vscl = (V[i] - Vmin) / Vrange * ColMap->N_M[0];

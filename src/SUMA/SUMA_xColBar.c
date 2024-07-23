@@ -2060,7 +2060,6 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    SUMA_UpdateNodeLblField(ado);
 
    // Restore threshold boundary if necessary
-   fprintf(stderr, "%s: Restore threshold boundary if necessary", FuncName);
    if (SO->SurfCont->BoxOutlineThresh ){
         XtPointer clientData = (XtPointer)ado;
         SUMA_RestoreThresholdContours(clientData);
@@ -6137,6 +6136,7 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_TABLE_FIELD *TF=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
 
    SUMA_ENTRY;
 
@@ -6420,7 +6420,7 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
    }
 
    /* Now, you need to redraw the deal */
-   if (REDISP) {
+   if (!(SO->SurfCont->BoxOutlineThresh ) && REDISP) {
       SUMA_ColorizePlane(curColPlane);
       SUMA_Remixedisplay(ado);
    }
@@ -6431,6 +6431,18 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
    }
    SUMA_UpdateNodeLblField(ado);
 
+   // Restore threshold boundary if necessary
+   if (SO->SurfCont->BoxOutlineThresh ){
+        XtPointer clientData = (XtPointer)ado;
+        SUMA_RestoreThresholdContours(clientData);
+   }
+
+   // Restore threshold boundary if necessary
+   if (SO->SurfCont->BoxOutlineThresh ){
+        XtPointer clientData = (XtPointer)ado;
+        SUMA_RestoreThresholdContours(clientData);
+   }
+   
    SUMA_RETURN(1);
 }
 
