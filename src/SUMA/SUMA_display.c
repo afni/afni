@@ -1174,7 +1174,6 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    SUMA_RETURNe;
 }
 
-
 /*!
    \brief, retrieves an vector attribute
    and decodes it into m_fv (or m_dv for double). It is your
