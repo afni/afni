@@ -1096,9 +1096,17 @@ if __name__ == "__main__":
     if len(all_fname) :
         ban      = lat.bannerize('check TSNR ROI stats (for warns block)')
         for fname in all_fname:
+            # make string tag for this; we know that it starts with
+            # 'tsnr_stats_regress/stats_user_' and ends with '.txt',
+            # by definition (and not ('eval_html.txt'); so, remove
+            # those known prefix and suffix
+            flabel   = "roi_tsnr_warns_" 
+            if len(fname) > 34 :    flabel+= fname[30:-4]
+            else:                   flabel+= str(idx)
+
             obase    = 'qc_{:02d}'.format(idx)
             cmd      = lat.apqc_regr_roi_stats( ap_ssdict, obase, fname,
-                                                "warns", "roi_tsnr_fin" )
+                                                "warns", flabel )
             idx     += 1
 
     # --------------------------------------------------------------------
