@@ -1160,21 +1160,64 @@ def db_cmd_blip(proc, block):
    cmd =  "# %s\n" % block_header('blip')
    cmd += '# compute blip up/down non-linear distortion correction for EPI\n\n'
 
-   if proc.blip_dset_med != None and proc.blip_dset_warp != None:
-      cmd += '\n'                                               \
-          '# nothing to do: have external -blip_align_dsets\n'  \
-          '#\n'                                                 \
-          '# blip NL warp             : %s\n'                   \
-          '# blip align base (unused) : %s\n\n'                 \
-          % (proc.blip_dset_warp.shortinput(), proc.blip_dset_med.shortinput())
-      return cmd
+   # rcr todo: apply option -blip_warp_dset
 
+   # main step: actually comput the transformation (or else it was input)
+   if proc.blip_dset_warp == None:
+      bcmd = compute_blip_xform(proc, block, interp=blip_interp)
+      if bcmd == '': return ''
+   else:
+      bcmd = '\n# nothing to do: have external -blip_warp_dset %s\n\n' \
+             % proc.blip_dset_warp.shortinput()
+
+   cmd += bcmd
+
+   warp_for = proc.blip_dset_warp
+
+   # -----------------------------------------------------------------
+   # main result (besides actual xform): apply forward mid-warp to EPI
+   inform = proc.prev_prefix_form_run(block, view=1, eind=0)
+   outform = proc.prefix_form_run(block, eind=0)
+
+   # possibly pass an obliquity dset
+   # (not needed really, use EPI, but make sure it matches?)
+   if proc.blip_obl_for:
+       foblset = gen_afni_name(proc.prev_prefix_form_run(block, view=1, eind=0))
+   else:
+       foblset = None
+   
+   # potential extra indent if ME
+   if proc.use_me: exind = '    '
+   else:           exind = ''
+
+   bstr = blip_warp_command(proc, warp_for.shortinput(), inform, outform,
+           interp=blip_interp, oblset=foblset, indent='    '+exind)
+   cmd += '# warp EPI time series data\n' \
+          'foreach run ( $runs )\n'
+
+   # ME: prepare to loop across echoes
+   if proc.use_me:
+      cmd += '%sforeach %s ( $echo_list )\n' % (exind, proc.echo_var[1:])
+
+   # main loop
+   cmd += bstr
+
+   if proc.use_me:
+      cmd += '%send\n' % exind
+
+   cmd += 'end\n\n'
+
+   return cmd
+
+def compute_blip_xform(proc, block, interp='-quintic'):
    # compute the blip transformation
 
    proc.have_rm = 1            # rm.* files exist
+
    medf = proc.blip_dset_rev.new(new_pref='rm.blip.med.fwd')
    medr = proc.blip_dset_rev.new(new_pref='rm.blip.med.rev')
-   forwdset = proc.prev_prefix_form(1, block, view=1)
+
+   cmd = ''
    cmd += '# create median datasets from forward and reverse time series\n' \
           '3dTstat -median -prefix %s %s\n'                                 \
           '3dTstat -median -prefix %s %s\n\n'                               \
@@ -1230,13 +1273,13 @@ def db_cmd_blip(proc, block):
    else:    roblset = None
 
    cmd += blip_warp_command(proc, warp_for.shortinput(), medf.shortinput(),
-                            for_prefix, oblset=foblset, interp=blip_interp)
+                            for_prefix, oblset=foblset, interp=interp)
    cmd += '\n'
    proc.blip_dset_med = proc.blip_dset_warp.new(new_pref=for_prefix)
 
    # to forward masked median
    cmd += blip_warp_command(proc, warp_for.shortinput(), mmedf.shortinput(),
-                    '%s_masked'%for_prefix, oblset=foblset, interp=blip_interp)
+                    '%s_masked'%for_prefix, oblset=foblset, interp=interp)
    cmd += '\n'
 
    # to reverse masked median
@@ -1244,32 +1287,7 @@ def db_cmd_blip(proc, block):
    if fobl: oblset = proc.blip_dset_for
    else:    oblset = None
    cmd += blip_warp_command(proc, warp_rev.shortinput(), mmedr.shortinput(),
-                    '%s_masked'%rev_prefix, oblset=roblset, interp=blip_interp)
-   cmd += '\n'
-
-   # -----------------------------------------------------------------
-   # main result (besides actual xform): apply forward mid-warp to EPI
-   inform = proc.prev_prefix_form_run(block, view=1, eind=0)
-   outform = proc.prefix_form_run(block, eind=0)
-   bstr = blip_warp_command(proc, warp_for.shortinput(), inform, outform,
-           interp=blip_interp, oblset=foblset, indent='    ')
-   cmd += '# warp EPI time series data\n' \
-          'foreach run ( $runs )\n'
-
-   # ME: prepare to loop across echoes
-   indent = ''
-   if proc.use_me:
-      indent = '    '
-      cmd += '%sforeach %s ( $echo_list )\n' % (indent, proc.echo_var[1:])
-
-   # main loop
-   cmd += '%s%s'                    \
-          '%send\n'                 \
-          % (indent, bstr, indent)
-
-   if proc.use_me:
-      cmd += 'end\n'
-
+                    '%s_masked'%rev_prefix, oblset=roblset, interp=interp)
    cmd += '\n'
 
    return cmd
@@ -1298,9 +1316,10 @@ def blip_warp_command(proc, warp, source, prefix, interp=' -quintic',
          % (indent, intstr, warp, indent, source, indent, prefix)
 
    if oblset:
-      cmd += '%s3drefit -atrcopy %s IJK_TO_DICOM_REAL \\\n' \
-             '%s                 %s%s\n'                    \
-             % (indent, oblset.shortinput(), indent, prefix, proc.view)
+      cmd += '%s3drefit -atrcopy %s \\\n'                \
+             '%s                 IJK_TO_DICOM_REAL \\\n' \
+             '%s                 %s%s\n'                 \
+             % (indent, oblset.shortinput(), indent, indent, prefix, proc.view)
 
    return cmd
 
