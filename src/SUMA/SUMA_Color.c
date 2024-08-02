@@ -6983,8 +6983,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
    static char FuncName[]={"SUMA_Overlays_2_GLCOLAR4"};
    SUMA_Boolean LocalHead = NOPE;
    
-   // fprintf(stderr, "%s: \n", FuncName);
-
+   fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_ENTRY;
    if (!ado) SUMA_RETURN(NOPE);
@@ -10866,6 +10865,8 @@ void SUMA_RefreshDsetList (SUMA_ALL_DO *ado)
    SUMA_ENTRY;
 
 
+   fprintf(stderr, "+++++ %s\n", FuncName);
+
    SurfCont = SUMA_ADO_Cont(ado);
    LW = SurfCont->SwitchDsetlst;
 
@@ -12881,6 +12882,8 @@ SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
 
    SUMA_ENTRY;
 
+
+   fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (!ado || !(SurfCont = SUMA_ADO_Cont(ado)) || !Sover) {
       /* this can happen in normal cases where nothing is loaded or selected. */
