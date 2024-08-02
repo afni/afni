@@ -803,7 +803,7 @@ if(is.na(lop$mean)) {
    outDF(summary(lop$dataTable[[lop$ROI]]), lop$outFN)
    
 #   if(!lop$MD) if(nlevels(lop$dataTable$Subj)*nR < nrow(lop$dataTable))
-stop(sprintf('Error: with %d regions and %d subjects, it is expected to have %d rows per subject, leading to totally %d rows in the input data table. However, there are only %d rows. If you have missing data, use option -MD', nR, nlevels(lop$dataTable$Subj), nR, nlevels(lop$dataTable$Subj)*nR, nrow(lop$dataTable)))
+#stop(sprintf('Error: with %d regions and %d subjects, it is expected to have %d rows per subject, leading to totally %d rows in the input data table. However, there are only %d rows. If you have missing data, use option -MD', nR, nlevels(lop$dataTable$Subj), nR, nlevels(lop$dataTable$Subj)*nR, nrow(lop$dataTable)))
 }
 
 cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
