@@ -1028,7 +1028,7 @@ g_html_review_styles = ['none', 'basic', 'pythonic' ] # java?
 g_eg_skip_opts = [ 
    '-subj_id', '-script', '-out_dir', '-align_epi_ext_dset', 
    '-anat_follower', '-anat_follower_ROI', 
-   '-blip_forward_dset', '-blip_reverse_dset', 
+   '-blip_forward_dset', '-blip_reverse_dset', '-blip_warp_dset',
    '-copy_anat', '-dsets', '-dsets_me_echo', '-dsets_me_run', 
    '-surf_anat', '-surf_spec',
    '-tlrc_NL_warped_dsets', 
@@ -1540,6 +1540,8 @@ class SubjProcSream:
                         helpstr='reverse blip dset for blip up/down corretion')
         self.valid_opts.add_opt('-blip_opts_qw', -1, [],
                         helpstr='additional options for 3dQwarp in blip block')
+        self.valid_opts.add_opt('-blip_warp_dset', 1, [],
+                        helpstr='specify a precomputed distortion warp dset')
 
         self.valid_opts.add_opt('-align_epi_ext_dset', 1, [],
                         helpstr='external EPI volume for align_epi_anat.py')
@@ -2469,8 +2471,9 @@ class SubjProcSream:
            if err: return 1
 
         # do we want the blip block?
-        if self.user_opts.find_opt('-blip_reverse_dset') \
-              and not 'blip' in blocks:
+        if (    self.user_opts.find_opt('-blip_warp_dset')      \
+             or self.user_opts.find_opt('-blip_reverse_dset') ) \
+             and not 'blip' in blocks:
            err, blocks = self.add_block_to_list(blocks, 'blip')
            if err: return 1
 
@@ -3530,7 +3533,7 @@ class SubjProcSream:
            bstr += tstr
 
         if isinstance(self.blip_in_warp, afni_name):
-           self.blip_dset_warp = gen_afni_name('blip_NL_warp', view=self.view)
+           self.blip_dset_warp = gen_afni_name('distortion_warp',view=self.view)
            tstr = '# copy external blip NL warp (transformation) dataset\n' \
                   '3dcopy %s %s/%s\n' %                                     \
                   (self.blip_in_warp.nice_input(), self.od_var,
