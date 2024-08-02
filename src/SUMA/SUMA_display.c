@@ -1174,7 +1174,6 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    SUMA_RETURNe;
 }
 
-
 /*!
    \brief, retrieves an vector attribute
    and decodes it into m_fv (or m_dv for double). It is your
@@ -11490,9 +11489,6 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_ALL_DO *ado)
 
    if (!ado) SUMA_RETURN(NOPE);
    
-   // SUMA_RETURN(NOPE);   
-
-   fprintf(stderr, "%s: SO_type = %d\n", FuncName, SO_type);
    switch (ado->do_type) {
       case SO_type:
          SUMA_RETURN(SUMA_Init_SurfCont_SurfParam_SO((SUMA_SurfaceObject *)ado));
@@ -11798,6 +11794,15 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
    SUMA_LHv("Force setting %d surfconts to page %d, max %d\n",
                N_adolist, i, imax);
 
+   // This fixes the artifactual elongation of the surface control menu
+   // (mentioned below for the loop).
+   // Further testing is required, with mulitpl surfaces,  to ensure it 
+   // does not create problems
+   N_adolist = imax;
+
+    // NBB: This loop artifactually lengthens the surface control menu
+    //  but is not necessary to switching surfaces.  May be necessary for 
+    //  something else.
    for (k=0; k<N_adolist; ++k) {
       /* Note that many objects in this list maybe intimately
          related (they share the same parent graph link). So
@@ -11818,6 +11823,8 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
                SUMA_ADO_CropLabel((SUMA_ALL_DO *)SUMAg_DOv[adolist[k]].OP,
                                   SUMA_SURF_CONT_SWITCH_LABEL_LENGTH),
                      XmSTRING_DEFAULT_CHARSET);
+
+        // This call is responsible for the artifactual lengthening of the surface control menu when it happens.
          XtVaSetValues( SurfCont->SurfContPage_label,
                         XmNlabelString, string, NULL);
          XmStringFree (string);
@@ -13173,7 +13180,7 @@ SUMA_Register_Widget_Help( SUMAg_CF->X->DrawROI->AppShell , 0,
       XmNmarginWidth , 0 ,
       NULL);
 
-
+   // DEBUG: This function has nothing to do with the lengthening of the surface control menu
    SUMA_CreateTextField ( rc, "Label:",
                            6, SUMA_DrawROI_NewLabel,
                            "ROICont->ROI->Label",
@@ -14743,8 +14750,9 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
    // Set "A" check-box to reflect whether there should be variable overlay 
    //   opacity for this object
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
-                  SO->SurfCont->alphaOpacityModel, YUP);
+   if (SO && SO->SurfCont && SO->SurfCont->AlphaOpacityFalloff_tb)
+       XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
+                      SO->SurfCont->alphaOpacityModel, YUP);
 
    SUMA_RETURNe;
 }
@@ -20373,6 +20381,8 @@ void SUMA_cb_DrawROI_Load (Widget w, XtPointer data, XtPointer client_data)
 
 void SUMA_DrawROI_NewLabel (void *data)
 {
+    /* DEBUG: This function has nothing to do with the lengthening of the 
+	surface control menu */
    static char FuncName[]={"SUMA_DrawROI_NewLabel"};
    SUMA_DRAWN_ROI *DrawnROI=NULL;
    SUMA_ARROW_TEXT_FIELD * AF=NULL;
