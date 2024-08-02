@@ -1056,6 +1056,7 @@ class SubjProcSream:
         self.block_names= []            # list of block names, pre 'blocks'
         self.dsets      = []            # list of afni_name elements
         self.have_sels  = 0             # do the inputs have selectors
+        self.dsets_obl  = 0             # are the -dsets oblique
 
         self.check_rdir = 'yes'         # check for existence of results dir
         self.stims_orig = []            # orig list of stim files to apply
@@ -1098,8 +1099,9 @@ class SubjProcSream:
         self.blip_dset_rev  = None      # afni_name: local blip_in_rev dset
         self.blip_dset_med  = None      # afni_name: result: blip align median
         self.blip_dset_warp = None      # afni_name: result: blip NL warp dset
-        self.blip_obl_for = 0           # is it oblique
-        self.blip_obl_rev = 0           # is it oblique
+        self.blip_obl_warp  = 0         # is it oblique: warp
+        self.blip_obl_for   = 0         # is it oblique: forward blip
+        self.blip_obl_rev   = 0         # is it oblique: reverse blip
 
         self.vr_ext_base= None          # name of external volreg base 
         self.vr_ext_pre = 'vr_base_external' # copied volreg base prefix
@@ -2398,6 +2400,9 @@ class SubjProcSream:
         self.orig_delta = dims
         self.delta = dims
 
+        # note obliquity of first EPI dset
+        self.dsets_obl = dset_is_oblique(self.dsets[0], self.verb)
+
         return errs
 
     # init blocks from command line options, then check for an
@@ -3269,6 +3274,8 @@ class SubjProcSream:
         self.write_text('# create results and stimuli directories\n')
         self.write_text('mkdir -p %s\nmkdir %s/stimuli\n%s\n' \
                         % (self.od_var, self.od_var, stat_inc))
+
+        # start copying files and datasets into the results directory
 
         if len(self.stims_orig) > 0: # copy stim files into script's stim dir
           oname = '-regress_stim_times_offset'
