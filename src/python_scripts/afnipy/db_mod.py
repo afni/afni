@@ -13363,7 +13363,7 @@ OPTIONS:  ~2~
             -blip_reverse_dset DSET_REVERSE \\
             -blip_opts_qw      OPTIONS ...  \\
 
-        just use this one option to pas the warp:
+        use just this one option to pass the warp:
 
             -blip_warp_dset epi_b0_WARP.nii.gz \\
 
