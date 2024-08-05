@@ -7466,6 +7466,12 @@ def db_cmd_compute_tsnr_stats(proc, block):
           print("** compute_tsnr: missing ROI dset '%s'" % label)
           return 1, ''
 
+       # do not let a value of 0 through
+       if '0' in opt.parlist[1:]:
+          print("** compute_tsnr: an ROI value of zero is illegal")
+          print("   opt: %s %s" % (oname, ' '.join(opt.parlist)))
+          return 1, ''
+
        # let the name vary based on whether it is user requested or auto
        tlab = 'user'
        if proc.regress_auto_tsnr_rois is not None:
