@@ -15168,8 +15168,10 @@ OPTIONS:  ~2~
 
             e.g. -anat_follower_ROI aeseg epi SUMA/aparc.a2009s+aseg.nii.gz \\
                  -ROI_import Glasser MNI_Glasser_HCP_v1.0.nii.gz            \\
+                 -ROI_import faves my.favorite.ROIs.nii.gz                  \\
                  -regress_compute_tsnr_stats aeseg   18 54 11120 12120 2 41 \\
                  -regress_compute_tsnr_stats Glasser 4 41 99 999
+                 -regress_compute_tsnr_stats faves   ALL_LT
 
             default: -regress_compute_tsnr_stats brain 1
 
@@ -15179,7 +15181,8 @@ OPTIONS:  ~2~
 
         Then one can list ROI regions in each ROI dataset to compute TSNR
         statistics over.  Details will be output for each ROI region, such as
-        quartiles of the TSNR values, and maximum depth coordinates.
+        quartiles of the TSNR values, and maximum depth coordinates.  If the
+        ROI dataset has a label table, one can use ALL_LT to use all of them.
 
         This option results in a compute_ROI_stats.tcsh command being run for
         the ROI and TSNR datasets, and the ROI indices of interest.

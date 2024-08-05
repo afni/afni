@@ -792,9 +792,10 @@ g_history = """
     7.77 May 30, 2024: fix volreg TSNR for ME: use eind -> fave_echo
        - thanks to zhengchencai on MB for pointing it out
        - remove unneeded followers from example 'publish 3d'
+    7.78 Aug 5, 2024: add option -blip_warp_dset to input a computed warp
 """
 
-g_version = "version 7.77, May 30, 2024"
+g_version = "version 7.78, Aug 5, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -869,6 +870,7 @@ interesting milestones for afni_proc.py:
    2024.02 : compute TSNR stats across automatic or provided ROIs
    2024.04 : ap_run_simple_rest_me.tcsh: low-option afni_proc.py for multiecho
    2024.05 : enable output of BIDS derivative tree
+   2024.08 : input external distortion warp dataset
 """
 
 
