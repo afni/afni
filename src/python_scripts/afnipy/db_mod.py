@@ -13346,6 +13346,29 @@ OPTIONS:  ~2~
 
         Please see '3dQwarp -help' for more information.
 
+    -blip_warp_dset DSET    : specify extra options for 3dQwarp
+
+            e.g. -blip_warp_dset epi_b0_WARP.nii.gz
+
+        This option allows the user to pass a pre-computed distortion warp
+        dataset, to replace the computation of a warp in the blip block.
+        The most likely use is to first run epi_b0_correct.py for a b0
+        distortion map computation, rather than the reverse phase encoding
+        method that would be computed with afni_proc.py.
+
+        When applying this option in afni_proc.py, instead of using options
+        like:
+
+            -blip_forward_dset DSET_FORWARD \\
+            -blip_reverse_dset DSET_REVERSE \\
+            -blip_opts_qw      OPTIONS ...  \\
+
+        just use this one option to pas the warp:
+
+            -blip_warp_dset epi_b0_WARP.nii.gz \\
+
+        Please see 'epi_b0_correct.py -help' for more information.
+
     -tlrc_anat              : run @auto_tlrc on '-copy_anat' dataset
 
             e.g. -tlrc_anat
