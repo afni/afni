@@ -792,9 +792,10 @@ g_history = """
     7.77 May 30, 2024: fix volreg TSNR for ME: use eind -> fave_echo
        - thanks to zhengchencai on MB for pointing it out
        - remove unneeded followers from example 'publish 3d'
+    7.78 Aug 5, 2024: add option -blip_warp_dset to input a computed warp
 """
 
-g_version = "version 7.77, May 30, 2024"
+g_version = "version 7.78, Aug 5, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -869,6 +870,7 @@ interesting milestones for afni_proc.py:
    2024.02 : compute TSNR stats across automatic or provided ROIs
    2024.04 : ap_run_simple_rest_me.tcsh: low-option afni_proc.py for multiecho
    2024.05 : enable output of BIDS derivative tree
+   2024.08 : input external distortion warp dataset
 """
 
 
@@ -1028,7 +1030,7 @@ g_html_review_styles = ['none', 'basic', 'pythonic' ] # java?
 g_eg_skip_opts = [ 
    '-subj_id', '-script', '-out_dir', '-align_epi_ext_dset', 
    '-anat_follower', '-anat_follower_ROI', 
-   '-blip_forward_dset', '-blip_reverse_dset', 
+   '-blip_forward_dset', '-blip_reverse_dset', '-blip_warp_dset',
    '-copy_anat', '-dsets', '-dsets_me_echo', '-dsets_me_run', 
    '-surf_anat', '-surf_spec',
    '-tlrc_NL_warped_dsets', 
@@ -1056,6 +1058,7 @@ class SubjProcSream:
         self.block_names= []            # list of block names, pre 'blocks'
         self.dsets      = []            # list of afni_name elements
         self.have_sels  = 0             # do the inputs have selectors
+        self.dsets_obl  = 0             # are the -dsets oblique
 
         self.check_rdir = 'yes'         # check for existence of results dir
         self.stims_orig = []            # orig list of stim files to apply
@@ -1098,8 +1101,9 @@ class SubjProcSream:
         self.blip_dset_rev  = None      # afni_name: local blip_in_rev dset
         self.blip_dset_med  = None      # afni_name: result: blip align median
         self.blip_dset_warp = None      # afni_name: result: blip NL warp dset
-        self.blip_obl_for = 0           # is it oblique
-        self.blip_obl_rev = 0           # is it oblique
+        self.blip_obl_warp  = 0         # is it oblique: warp
+        self.blip_obl_for   = 0         # is it oblique: forward blip
+        self.blip_obl_rev   = 0         # is it oblique: reverse blip
 
         self.vr_ext_base= None          # name of external volreg base 
         self.vr_ext_pre = 'vr_base_external' # copied volreg base prefix
@@ -1538,6 +1542,8 @@ class SubjProcSream:
                         helpstr='reverse blip dset for blip up/down corretion')
         self.valid_opts.add_opt('-blip_opts_qw', -1, [],
                         helpstr='additional options for 3dQwarp in blip block')
+        self.valid_opts.add_opt('-blip_warp_dset', 1, [],
+                        helpstr='specify a precomputed distortion warp dset')
 
         self.valid_opts.add_opt('-align_epi_ext_dset', 1, [],
                         helpstr='external EPI volume for align_epi_anat.py')
@@ -2398,6 +2404,9 @@ class SubjProcSream:
         self.orig_delta = dims
         self.delta = dims
 
+        # note obliquity of first EPI dset
+        self.dsets_obl = dset_is_oblique(self.dsets[0], self.verb)
+
         return errs
 
     # init blocks from command line options, then check for an
@@ -2464,8 +2473,9 @@ class SubjProcSream:
            if err: return 1
 
         # do we want the blip block?
-        if self.user_opts.find_opt('-blip_reverse_dset') \
-              and not 'blip' in blocks:
+        if (    self.user_opts.find_opt('-blip_warp_dset')      \
+             or self.user_opts.find_opt('-blip_reverse_dset') ) \
+             and not 'blip' in blocks:
            err, blocks = self.add_block_to_list(blocks, 'blip')
            if err: return 1
 
@@ -3270,6 +3280,8 @@ class SubjProcSream:
         self.write_text('mkdir -p %s\nmkdir %s/stimuli\n%s\n' \
                         % (self.od_var, self.od_var, stat_inc))
 
+        # start copying files and datasets into the results directory
+
         if len(self.stims_orig) > 0: # copy stim files into script's stim dir
           oname = '-regress_stim_times_offset'
           val, err = self.user_opts.get_type_opt(float, oname)
@@ -3523,7 +3535,7 @@ class SubjProcSream:
            bstr += tstr
 
         if isinstance(self.blip_in_warp, afni_name):
-           self.blip_dset_warp = gen_afni_name('blip_NL_warp', view=self.view)
+           self.blip_dset_warp = gen_afni_name('distortion_warp',view=self.view)
            tstr = '# copy external blip NL warp (transformation) dataset\n' \
                   '3dcopy %s %s/%s\n' %                                     \
                   (self.blip_in_warp.nice_input(), self.od_var,
