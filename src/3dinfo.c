@@ -319,7 +319,23 @@ THD_3dim_dataset *load_3dinfo_dataset(char *name)
    return(dset);
 }
 
-typedef enum {
+/*
+  [PT: Aug 6, 2024] Important note about adding 3dinfo opts:
+
+  ** As noted below, keep enum INFO_FIELDS in sync with Field Names! **
+
+  This note is probably mostly need for PT, who ignored this sage advice
+  at least once in the past.
+
+  Also, on this August date of clarification and correction (thanks,
+  JKR for alerting us to the fact that things _had_ gotten out of
+  sync), some cleaning of unused+unnecessary items here was done.  For
+  example, at option reading time, '-d3' gets mapped to the effective
+  triplet '-di -dj -dk', so we don't need a separate D3 or DIJK field
+  in INFO_FIELDS (nor a corresponding string in Field_Names). This
+  applies for what could be called N3, N4, O3, AD3, etc.
+*/
+typedef enum { 
    CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, DSET_GEN_SPACE, INFO_NIFTI_CODE,
    IS_NIFTI, DSET_EXISTS,
    DSET_EXTENSION, STORAGE_MODE, /* 4 Jun 2019 [rickr] */
@@ -332,11 +348,10 @@ typedef enum {
    PREFIX , PREFIX_NOEXT,
    NI, NJ, NK, NT, NTI, NTIMES, MAX_NODE,
    NV, NVI, NIJK,
-   N3, N4,                 // [PT] these aren't actually needed/used
-   DI, DJ, DK, D3,
-   OI, OJ, OK, O3,
-   ADI, ADJ, ADK, AD3,
-   DCX, DCY, DCZ, DC3,
+   DI, DJ, DK,
+   OI, OJ, OK, 
+   ADI, ADJ, ADK, 
+   DCX, DCY, DCZ,
    LTABLE, LTABLE_AS_ATLAS_POINT_LIST, ATLAS_POINTS,
    SLICE_TIMING,
    FAC, DATUM, LABEL,
@@ -345,7 +360,8 @@ typedef enum {
    TR, HEADER_NAME, BRICK_NAME, ALL_NAMES,
    HISTORY, ORIENT,
    SAME_GRID, SAME_DIM, SAME_DELTA, SAME_ORIENT, SAME_CENTER,
-   SAME_OBL, SVAL_DIFF, VAL_DIFF, SAME_ALL_GRID, ID, SMODE,
+   SAME_OBL, SVAL_DIFF, VAL_DIFF, SAME_ALL_GRID, 
+   ID, SMODE,
    VOXVOL, INAME, HANDEDNESS,
    EXTENT_R, EXTENT_L, EXTENT_A, EXTENT_P, EXTENT_I, EXTENT_S, EXTENT,
    N_FIELDS } INFO_FIELDS; /* Keep synchronized with Field_Names
@@ -353,18 +369,21 @@ typedef enum {
 
 char Field_Names[][32]={
    {"-classic-"}, {"space"}, {"AV_spc"}, {"gen_spc"}, {"nifti_code"},
-   {"nifti?"}, {"exist?"}, {"exten"}, {"smode"},
-   {"atlas?"}, {"atlas_or_lt?"}, {"oblq?"}, {"oblq"},
+   {"nifti?"}, {"exist?"}, 
+   {"exten"}, {"smode"},
+   {"atlas?"}, {"lt?"}, {"atlas_or_lt?"}, 
+   {"oblq?"}, {"oblq"},
    {"aformr"}, {"aformr_line"}, {"aformr_refit"},
-   {"aformr_orth?"}, {"aform_orth"}, {"perm2ori"},
+   {"aformr_orth?"}, 
+   {"aform_orth"}, 
+   {"perm2ori"},
    {"prefix"}, {"pref_nx"},
    {"Ni"}, {"Nj"}, {"Nk"}, {"Nt"}, {"Nti"}, {"Ntimes"}, {"MxNode"},
    {"Nv"}, {"Nvi"}, {"Nijk"},
-   {"Ni_Nj_Nk_Nv"},
-   {"Di"}, {"Dj"}, {"Dk"}, {"Di_Dj_Dk"},
-   {"Oi"}, {"Oj"}, {"Ok"}, {"Oi_Oj_Ok"},
-   {"ADi"}, {"ADj"}, {"ADk"}, {"ADi_ADj_ADk"},
-   {"DCx"}, {"DCy"}, {"DCz"}, {"DCx_DCy_DCz"},
+   {"Di"}, {"Dj"}, {"Dk"}, 
+   {"Oi"}, {"Oj"}, {"Ok"}, 
+   {"ADi"}, {"ADj"}, {"ADk"}, 
+   {"DCx"}, {"DCy"}, {"DCz"},
    {"label_table"}, {"LT_as_atlas_point_list"}, {"atlas_point_list"},
    {"slice_timing"},
    {"factor"}, {"datum"}, {"label"},
