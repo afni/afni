@@ -350,8 +350,11 @@ set progname = @animal_warper
 #     + [PT] new opt '-init_scale ..' for pre-scaling input anatomical if
 #            it is much smaller/larger than the template (applied in AEA)
 #   
-set version   = "3.61";   set rev_dat   = "Dec 2, 2022"
+#set version   = "3.61";   set rev_dat   = "Dec 2, 2022"
 #     + [PT] add QC image when using '-init_scale ..'
+#   
+set version   = "4.00";   set rev_dat   = "Aug 6, 2024"
+#     + [PT, DRG] fix application of shift shifting.
 #   
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
