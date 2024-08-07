@@ -36,12 +36,13 @@ $prog modification history:
    1.6  : Mar  5, 2024: minor renaming in table
    1.7  : Mar  8, 2024: add -make_html opt, for APQC
    1.8  : Mar 25, 2024: fix for macOS: replace \n with empty line (for APQC)
+   1.9  : Aug  5, 2024: remove any zero if a labeltable has it
 
    current version: $script_version
 EOF
 exit 0
 SKIP_HIST:
-set script_version = "version 1.7, March 8, 2024"
+set script_version = "version 1.8, August 5, 2024"
 
 
 # ===========================================================================
@@ -257,6 +258,7 @@ if ( $tt == NO-DSET ) then
    exit 1
 endif
 
+# compare grids
 set tt = `3dinfo -same_grid "$dset_ROI" $dset_data | \grep 1 | wc -l`
 if ( $tt != 2 ) then
    echo "** -dset_ROI and -dset_data do not seem to be on the same grid"
@@ -285,6 +287,7 @@ if ( $rv_all_lt ) then
    endif
 endif
 
+# if ALL_LT, get a list of all table values (but exclude zero)
 if ( $rv_all_lt ) then
    set ltest = ALL_LT
 
@@ -312,6 +315,14 @@ if ( $rv_all_lt ) then
       endif
 
    endif
+
+   # remove 0 if it happens to be part of the labeltable
+   set newlist = ()
+   foreach val ( $rval_list )
+      if ( $val != 0 ) then
+         set newlist = ( $newlist $val )
+      endif
+   end
 
    if ( $#rval_list == 0 ) then
       echo "** found no labeltable labels for $ltest in $dset_ROI"
@@ -395,6 +406,10 @@ foreach rval ( $rval_list )
    # (now via whereami_afni -index_to_label instead of 3dinfo -labeltable
    # and grep)
    set ROI_name = `whereami_afni -index_to_label $rval -dset "$dset_ROI"`
+   if ( $status ) then
+      # just in case there is some error...
+      set ROI_name = NONE
+   endif
 
    # --------------------------------------------------
    # handle the all-zero cases and move on

@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/bin/tcsh
 
 # for olay, default will be "show all"-- update fatcats to call for
 # 98%iles of non-zeros

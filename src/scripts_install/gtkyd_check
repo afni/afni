@@ -14,9 +14,13 @@
 #set version   = "1.0";  set rev_dat   = "March 22, 2024"
 # + n4 -> n3 and nv.
 # 
-set version   = "1.1";  set rev_dat   = "March 22, 2024"
+#set version   = "1.1";  set rev_dat   = "March 22, 2024"
 # + check for bad infiles and exit if there are any
 # + check nifti header for exts and afni_exts
+# 
+set version   = "1.2";  set rev_dat   = "Jul 19, 2024"
+# + output 3dBrickStat min and max to separate columns
+# + better check/failure if input dsets are badly entered
 # 
 # ====================================================================
 
@@ -120,7 +124,7 @@ endif
 set NBAD = 0
 foreach dset ( ${dset_list:q} )
     set tmp = `3dinfo -prefix ${dset}`
-    if ( "${tmp}" == "NO-DSET" ) then
+    if ( "${tmp}" == "NO-DSET" || "${tmp}" == "" ) then
         @ NBAD+= 1
         echo "** ERROR: Bad infile (3dinfo error) : ${dset}"
     endif
@@ -173,8 +177,12 @@ set all_info = ( n3 nv orient ad3 tr space av_space is_oblique obliquity \
 # nifti_tool fields
 set all_nfield = ( datatype sform_code qform_code has_exts has_afni_exts )
 
-# 3dBrickStat params (these will be slow); will split these in usage
-set all_bstat = ( "min -max" )
+# 3dBrickStat params: these will be slow, so calc together and report
+# individually ('-' is prepended below); 
+### NB: using other perc-based will be tricky in practice, because it
+### is complicated to match option counts to output counts, as well as
+### the fact that some only work over single volumes.
+set all_bstat = ( min max )
 
 # -----------------------------------------------------------------------
 
@@ -314,34 +322,74 @@ if ( ! $DO_BSTAT ) then
     goto SKIP_BSTAT
 endif
 
-# only sort+uniq at the moment
+# make string of args for bstat 
+# ** at the moment each is a single word, not line percentiles, so be 
+#    simple here; can generalize later
+# ** later, if more are added, pay attention that the order output might
+#    be fixed in some cases, so make the input order match; just verify
+set opt_str = ""
 foreach bstat ( ${all_bstat:q} )
-    
-    echo "++ 3dBrickStat -slow -${bstat} ..."
+    set opt_str = "${opt_str} -${bstat}"
+end
 
-    # detailed text output (and init)
-    set otxt_det = ${odir}/rep_gtkyd_detail_bstat_"${bstat:gas/ //}".dat
-    echo "# 3dBrickStat -slow -${bstat}" > ${otxt_det}
+echo "++ 3dBrickStat -slow ${opt_str} ..."
 
-    # unique text output (and init)
-    set otxt_uni = ${odir}/rep_gtkyd_unique_bstat_"${bstat:gas/ //}".dat
-    echo "# 3dBrickStat -slow -${bstat}" > ${otxt_uni}
+# loop over all subj
+foreach ii ( `seq 1 1 ${ndset}` ) 
+    set dset      = ${dset_list[$ii]:q}
+    set dset_name = `basename ${dset:q}`
+    set dset_pref = `3dinfo -prefix_noext ${dset:q}`
+    set dset_txt  = "${odir}/dset_gtkyd_${dset_pref}.txt"
 
-    foreach ii ( `seq 1 1 ${ndset}` ) 
-        set dset      = ${dset_list[$ii]:q}
-        set dset_name = `basename ${dset:q}`
-        set dset_pref = `3dinfo -prefix_noext ${dset:q}`
-        set dset_txt  = "${odir}/dset_gtkyd_${dset_pref}.txt"
+    # detailed info: 1 line per dset (plus initial comment at file top)
+    ### NB: we run 1 3dBrickStat cmd per subj, and parse the several
+    ### outputs into sep files appropriaately
+    set all_line = ( `3dBrickStat -slow ${opt_str} "${dset}"` )
 
-        # detailed info: 1 line per dset (plus initial comment at file top)
-        set line = `3dBrickStat -slow -${bstat} "${dset}"` 
+    # bstat contains multiple fields, so split it and line together
+    set nline  = ${#all_line}
+    set nbstat = ${#all_bstat}
+    if ( ${nline} != ${nbstat} ) then
+        echo "** ERROR in 3dBrickStat calc: unmatched opt and output count"
+        echo "   line out   : '${all_line}'"
+        echo "   bstat opts : '${opt_str}'"
+        goto BAD_EXIT
+    endif
+
+    # only sort+uniq at the moment
+    foreach hh ( `seq 1 1 ${nbstat}` )
+        set bstat      = "${all_bstat[$hh]}"     # bstat opt used
+        set bstat_nosp = "${bstat:gas/ //}"      # 'no space' version
+        set line       = "${all_line[$hh]}"      # output from cmd
+
+        # detailed text output (and init)
+        set otxt_det = ${odir}/rep_gtkyd_detail_bstat_"${bstat_nosp}".dat
+        # ... and only add top line at time we process first subj (ii=1)
+        if ( $ii == 1 ) then
+            echo "# 3dBrickStat -slow -${bstat}" > ${otxt_det}
+        endif
 
         # report file
-        echo "${line}  ${dset_name}" >> ${otxt_det}
+        printf "%-6s %s\n" "${line}"  "${dset_name}" >> ${otxt_det}
         # dset indiv file
         printf "%-20s : %s\n" "${bstat}" "${line}" >> "${dset_txt}"
 
     end
+
+end
+
+# finish bstat, do unique part after looping over all subj
+
+# only sort+uniq at the moment (same bstat, etc. from above)
+foreach hh ( `seq 1 1 ${nbstat}` )
+    set bstat      = "${all_bstat[$hh]}"     # bstat opt used
+    set bstat_nosp = "${bstat:gas/ //}"      # 'no space' version
+
+    # detailed text output
+    set otxt_det = ${odir}/rep_gtkyd_detail_bstat_"${bstat_nosp}".dat
+    # unique text output (and init)
+    set otxt_uni = ${odir}/rep_gtkyd_unique_bstat_"${bstat_nosp}".dat
+    echo "# 3dBrickStat -slow -${bstat}" > ${otxt_uni}
 
     # unique info: read in detailed info, then remove top line
     # comment, remove last column (prefix), and then
@@ -349,6 +397,10 @@ foreach bstat ( ${all_bstat:q} )
     cat ${otxt_det} | sed 1d | awk 'BEGIN{FS=OFS=" "}{NF--; print}' \
                     | sort | uniq >> ${otxt_uni}
 end
+
+
+
+
 
 SKIP_BSTAT:
 

@@ -53,6 +53,24 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Aug, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add option -blip_warp_dset to input a pre-computed warp",
+   "For example, one can import the warp from epi_b0_correct.py."
+ } ,
+
+ {  5, Aug, 2024, RCR, "compute_ROI_stats.tcsh", MINOR, TYPE_MODIFY,
+   "if ALL_LT includes an ROI value of zero, remove it",
+   NULL
+ } ,
+
+ { 23, Jul, 2024, RCR, "@chauffeur_afni", MINOR, TYPE_BUG_FIX,
+   "undo the the problematic -f change from 2024/04/26",
+   "The -f was added to tcsh to prevent biowulf from updating the PATH\n"
+   "when using whereami, as they have a different program with that name.\n"
+   "But -f means that on macs DYLD vars would not be set, crashing afni\n"
+   "when using the macos_10.12_local binaries."
+ } ,
+
  { 25, Jun, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "deal with -Wimplicit-int, mostly from old f2c, needed for gcc-14",
    NULL

@@ -350,8 +350,11 @@ set progname = @animal_warper
 #     + [PT] new opt '-init_scale ..' for pre-scaling input anatomical if
 #            it is much smaller/larger than the template (applied in AEA)
 #   
-set version   = "3.61";   set rev_dat   = "Dec 2, 2022"
+#set version   = "3.61";   set rev_dat   = "Dec 2, 2022"
 #     + [PT] add QC image when using '-init_scale ..'
+#   
+set version   = "4.00";   set rev_dat   = "Aug 6, 2024"
+#     + [PT, DRG] fix application of shift shifting.
 #   
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -1587,12 +1590,17 @@ else
     # THIS is the aff matrix that goes from shft2 to template space,
     # and what we should use later; it should have NO translation
     # component
+    # [PT, DRG: Aug 5, 2024] fix how this is done, so that 
+    # after this is applied, the *_pshft_al2std.nii.gz will
+    # be essentially the same as *_shft_aff.nii.gz (just in
+    # ORIG and TLRC views, and on diff grids)
     cat_matvec -ONELINE                              \
-        "${imed}/${srcsh_prefix}_al2std_mat_TR_INV.aff12.1D" \
         "${imed}/${srcsh_prefix}_al2std_mat.aff12.1D"        \
+        "${imed}/${srcsh_prefix}_al2std_mat_TR_INV.aff12.1D" \
         >  "${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D"
 
-    # Finally, make the new shifted dset
+    # Finally, make the new shifted dset; that should overlap
+    # well with base_dset
     3dcopy                                       \
         -overwrite                               \
         ${imed}/${srcsh_dset}                    \

@@ -29,7 +29,7 @@ intro <-
 	      Welcome to RBA ~1~
 Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.5, Jun 15, 2024 
+Version 1.1.6, July 31, 2024 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -415,11 +415,11 @@ params <- list (
 "         .RBA.dbg.AFNI.args in the current directory so that debugging can be",
 "         performed.\n", sep='\n')),
 
-'-MD' = apl(n=0, h = paste(
-"-MD: This option indicates that there are missing data in the input. With n",
-"         regions, at least n(n-1)/2 values are assumed from each subject in the",
-"         input with no missing data (default). When missing data are present,",
-"         invoke this option so that the program will handle it properly.\n", sep='\n')),
+#'-MD' = apl(n=0, h = paste(
+#"-MD: This option indicates that there are missing data in the input. With n",
+#"         regions, at least n(n-1)/2 values are assumed from each subject in the",
+#"         input with no missing data (default). When missing data are present,",
+#"         invoke this option so that the program will handle it properly.\n", sep='\n')),
 
 '-r2z' = apl(n=0, h = paste(
 "-r2z: This option performs Fisher transformation on the response variable",
@@ -639,7 +639,7 @@ lop$PDP    <- NA
 lop$ridgePlot <- NULL
 
 lop$dbgArgs <- FALSE # for debugging purpose
-lop$MD      <- FALSE # for missing data 
+#lop$MD      <- FALSE # for missing data 
 lop$student <- FALSE
 lop$r2z     <- FALSE # Fisher transformation
 lop$verb    <- 0
@@ -675,7 +675,7 @@ switch(opname,
      ridgePlot = lop$ridgePlot <- ops[[i]],
      help    = help.RBA.opts(params, adieu=TRUE),
      dbgArgs = lop$dbgArgs <- TRUE,
-     MD      = lop$MD      <- TRUE,
+#     MD      = lop$MD      <- TRUE,
      
      scale   = lop$scale   <- ops[[i]],
      r2z     = lop$r2z     <- TRUE,
@@ -802,8 +802,8 @@ if(is.na(lop$mean)) {
    cat('ROIs:', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    outDF(summary(lop$dataTable[[lop$ROI]]), lop$outFN)
    
-   if(!lop$MD) if(nlevels(lop$dataTable$Subj)*nR < nrow(lop$dataTable))
-stop(sprintf('Error: with %d regions and %d subjects, it is expected to have %d rows per subject, leading to totally %d rows in the input data table. However, there are only %d rows. If you have missing data, use option -MD', nR, nlevels(lop$dataTable$Subj), nR, nlevels(lop$dataTable$Subj)*nR, nrow(lop$dataTable)))
+#   if(!lop$MD) if(nlevels(lop$dataTable$Subj)*nR < nrow(lop$dataTable))
+#stop(sprintf('Error: with %d regions and %d subjects, it is expected to have %d rows per subject, leading to totally %d rows in the input data table. However, there are only %d rows. If you have missing data, use option -MD', nR, nlevels(lop$dataTable$Subj), nR, nlevels(lop$dataTable$Subj)*nR, nrow(lop$dataTable)))
 }
 
 cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)

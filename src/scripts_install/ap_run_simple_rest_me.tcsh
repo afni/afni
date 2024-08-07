@@ -300,7 +300,7 @@ if ( $verb > 0 ) echo "++ writing afni_proc.py command script, $script_ap"
 # generate -dsets_me_run options
 set opt_me_run = ()
 set ebase = 1
-foreach run ( `count 1 $nruns` )
+foreach run ( `count_afni 1 $nruns` )
    @ elast = $ebase + $necho - 1
    set opt_me_run = ( $opt_me_run "-dsets_me_run" $epi_list[$ebase-$elast] )
    @ ebase += $necho

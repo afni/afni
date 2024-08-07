@@ -1075,43 +1075,76 @@ def combine_censor_files(proc, cfile, newfile=''):
 # its output might be used as the input to either the anat or tlrc blocks.
 
 def db_mod_blip(block, proc, user_opts):
-   """start simple, consider: -blip_aligned_dsets,
+   """handle -blip options, to either input or comput a warp
 
-      set proc.blip_rev_dset for copying
+      - set any proc.blip_in_* input names here
+      - afni_proc.py will create corresponding proc.blip_dset_* names
+        when copying the datasets into the results directory
    """
 
    apply_uopt_to_block('-blip_forward_dset', user_opts, block)
    apply_uopt_to_block('-blip_reverse_dset', user_opts, block)
    apply_uopt_to_block('-blip_opts_qw', user_opts, block)
+   apply_uopt_to_block('-blip_warp_dset', user_opts, block)
 
-   # note blip reverse input dset
+   # --- note any datasets before checking for consistency
+
+   # first note any precomputed blip warp dataset
+   bopt = block.opts.find_opt('-blip_warp_dset')
+   if bopt:
+      proc.blip_in_warp = gen_afni_name(bopt.parlist[0])
+      if proc.verb > 0:
+         print('-- have precomputed blip warp dset %s' \
+               % proc.blip_in_warp.shortinput(sel=1))
+      proc.blip_obl_warp = dset_is_oblique(proc.blip_in_warp, proc.verb)
+
+   # note blip reverse input dset (if no warp is passed)
    bopt = block.opts.find_opt('-blip_reverse_dset')
    if bopt:
       proc.blip_in_rev = gen_afni_name(bopt.parlist[0])
-      if proc.verb > 2:
+      if proc.verb > 1:
          print('-- will compute blip up/down warp via %s' \
                % proc.blip_in_rev.shortinput(sel=1))
-   else:
-      print('** have blip block without -blip_reverse_dset')
-      return
+      proc.blip_obl_rev = dset_is_oblique(proc.blip_in_rev, proc.verb)
 
    # note blip forward input dset (or make one up)
    bopt = block.opts.find_opt('-blip_forward_dset')
-   fblip_oblset = proc.dsets[0]  # default obl test is from -dsets
    if bopt:
       proc.blip_in_for = gen_afni_name(bopt.parlist[0])
-      if proc.verb > 2:
+      if proc.verb > 1:
          print('-- have blip forward dset %s' \
                % proc.blip_in_for.shortinput(sel=1))
-      fblip_oblset = proc.blip_in_for
-   # ME: both forward and reverse are required
-   elif proc.use_me:
+      proc.blip_obl_for = dset_is_oblique(proc.blip_in_for, proc.verb)
+
+   # --- check for consistency
+
+   # we should be doing *something* here
+   if proc.blip_in_warp is None and proc.blip_in_rev is None:
+      print('** have blip block without -blip_reverse_dset or -blip_warp_dset')
+      return
+
+   # do not both input and compute a warp
+   if proc.blip_in_warp is not None and \
+      (proc.blip_in_for is not None or proc.blip_in_rev is not None):
+      print("** use either -blip_warp_dset or -blip_reverse_dset, not both")
+      return
+
+   # ME: if reverse blip, then forward is also required
+   if proc.use_me and proc.blip_in_for is None and proc.blip_in_rev is not None:
       print("** when using multi-echo data and distortion correction,\n"
             "   -blip_reverse_dset requires corresponding -blip_forward_dset")
       return
 
-   proc.blip_obl_for = dset_is_oblique(fblip_oblset, proc.verb)
-   proc.blip_obl_rev = dset_is_oblique(proc.blip_in_rev, proc.verb)
+   # check for consistent obliquity of either the warp or rev
+   if proc.blip_in_warp is not None: 
+      if proc.dsets_obl != proc.blip_obl_warp:
+         print("** warning: blip warp obliquity (%d) does not match EPI (%d)" \
+               % (proc.blip_obl_warp, proc.dsets_obl))
+   else:
+      if proc.dsets_obl != proc.blip_obl_rev:
+         print("** error: reverse blip obliquity (%d) does not match EPI (%d)" \
+               % (proc.blip_obl_rev, proc.dsets_obl))
+         return
 
    # check for alignment to median forward blip base
    val, status = user_opts.get_string_opt('-volreg_align_to')
@@ -1121,13 +1154,6 @@ def db_mod_blip(block, proc, user_opts):
       inset = '%s%s' % (for_prefix, proc.view)
       set_vr_int_name(block, proc, 'vr_base_blip', inset=inset)
 
-   # set any, if possible, since they might all come from options
-   # proc.blip_rev_dset  = None
-   # proc.blip_med_dset  = None
-   # proc.blip_warp_dset = None
-
-   # #PCs will be added to the afni_name object before db_cmd_regress
-
    block.valid = 1
 
 # note: the input to 3dvolreg     should be the output from this
@@ -1135,7 +1161,7 @@ def db_mod_blip(block, proc, user_opts):
 #       i.e. prev_prefix = proc.prev_prefix_form_run(block, view=1)
 def db_cmd_blip(proc, block):
    """align median datasets for -blip_reverse_dset and current
-      compute proc.blip_med_dset, proc.blip_warp_dset
+      compute proc.blip_med_dset, proc.blip_dset_warp
 
       - get blip_NT from -blip_reverse_dset
       - extract that many from first current dset
@@ -1160,21 +1186,67 @@ def db_cmd_blip(proc, block):
    cmd =  "# %s\n" % block_header('blip')
    cmd += '# compute blip up/down non-linear distortion correction for EPI\n\n'
 
-   if proc.blip_dset_med != None and proc.blip_dset_warp != None:
-      cmd += '\n'                                               \
-          '# nothing to do: have external -blip_align_dsets\n'  \
-          '#\n'                                                 \
-          '# blip NL warp             : %s\n'                   \
-          '# blip align base (unused) : %s\n\n'                 \
-          % (proc.blip_dset_warp.shortinput(), proc.blip_dset_med.shortinput())
-      return cmd
+   # rcr todo: apply option -blip_warp_dset
 
+   # -----------------------------------------------------------------
+   # actually compute the transformation (or else it was input)
+   if proc.blip_dset_warp == None:
+      bcmd = compute_blip_xform(proc, block, interp=blip_interp)
+      if bcmd == '': return ''
+   else:
+      bcmd = '\n# nothing to do: have external -blip_warp_dset %s\n\n' \
+             % proc.blip_dset_warp.shortinput()
+   cmd += bcmd
+
+   if proc.blip_dset_warp is None:
+      print("** failed compute_blip_xform")
+      return ''
+
+   warp_for = proc.blip_dset_warp
+
+   # -----------------------------------------------------------------
+   # main result (besides actual xform): apply forward mid-warp to EPI
+   inform = proc.prev_prefix_form_run(block, view=1, eind=0)
+   outform = proc.prefix_form_run(block, eind=0)
+
+   # possibly pass an obliquity dset, if the EPI is oblique
+   if proc.dsets_obl:
+       foblset = gen_afni_name(proc.prev_prefix_form_run(block, view=1, eind=0))
+   else:
+       foblset = None
+   
+   # potential extra indent if ME
+   if proc.use_me: exind = '    '
+   else:           exind = ''
+
+   bstr = blip_warp_command(proc, warp_for.shortinput(), inform, outform,
+           interp=blip_interp, oblset=foblset, indent='    '+exind)
+   cmd += '# warp EPI time series data\n' \
+          'foreach run ( $runs )\n'
+
+   # ME: prepare to loop across echoes
+   if proc.use_me:
+      cmd += '%sforeach %s ( $echo_list )\n' % (exind, proc.echo_var[1:])
+
+   # main loop
+   cmd += bstr
+
+   if proc.use_me:
+      cmd += '%send\n' % exind
+
+   cmd += 'end\n\n'
+
+   return cmd
+
+def compute_blip_xform(proc, block, interp='-quintic'):
    # compute the blip transformation
 
    proc.have_rm = 1            # rm.* files exist
+
    medf = proc.blip_dset_rev.new(new_pref='rm.blip.med.fwd')
    medr = proc.blip_dset_rev.new(new_pref='rm.blip.med.rev')
-   forwdset = proc.prev_prefix_form(1, block, view=1)
+
+   cmd = ''
    cmd += '# create median datasets from forward and reverse time series\n' \
           '3dTstat -median -prefix %s %s\n'                                 \
           '3dTstat -median -prefix %s %s\n\n'                               \
@@ -1230,13 +1302,13 @@ def db_cmd_blip(proc, block):
    else:    roblset = None
 
    cmd += blip_warp_command(proc, warp_for.shortinput(), medf.shortinput(),
-                            for_prefix, oblset=foblset, interp=blip_interp)
+                            for_prefix, oblset=foblset, interp=interp)
    cmd += '\n'
    proc.blip_dset_med = proc.blip_dset_warp.new(new_pref=for_prefix)
 
    # to forward masked median
    cmd += blip_warp_command(proc, warp_for.shortinput(), mmedf.shortinput(),
-                    '%s_masked'%for_prefix, oblset=foblset, interp=blip_interp)
+                    '%s_masked'%for_prefix, oblset=foblset, interp=interp)
    cmd += '\n'
 
    # to reverse masked median
@@ -1244,32 +1316,7 @@ def db_cmd_blip(proc, block):
    if fobl: oblset = proc.blip_dset_for
    else:    oblset = None
    cmd += blip_warp_command(proc, warp_rev.shortinput(), mmedr.shortinput(),
-                    '%s_masked'%rev_prefix, oblset=roblset, interp=blip_interp)
-   cmd += '\n'
-
-   # -----------------------------------------------------------------
-   # main result (besides actual xform): apply forward mid-warp to EPI
-   inform = proc.prev_prefix_form_run(block, view=1, eind=0)
-   outform = proc.prefix_form_run(block, eind=0)
-   bstr = blip_warp_command(proc, warp_for.shortinput(), inform, outform,
-           interp=blip_interp, oblset=foblset, indent='    ')
-   cmd += '# warp EPI time series data\n' \
-          'foreach run ( $runs )\n'
-
-   # ME: prepare to loop across echoes
-   indent = ''
-   if proc.use_me:
-      indent = '    '
-      cmd += '%sforeach %s ( $echo_list )\n' % (indent, proc.echo_var[1:])
-
-   # main loop
-   cmd += '%s%s'                    \
-          '%send\n'                 \
-          % (indent, bstr, indent)
-
-   if proc.use_me:
-      cmd += 'end\n'
-
+                    '%s_masked'%rev_prefix, oblset=roblset, interp=interp)
    cmd += '\n'
 
    return cmd
@@ -1298,9 +1345,10 @@ def blip_warp_command(proc, warp, source, prefix, interp=' -quintic',
          % (indent, intstr, warp, indent, source, indent, prefix)
 
    if oblset:
-      cmd += '%s3drefit -atrcopy %s IJK_TO_DICOM_REAL \\\n' \
-             '%s                 %s%s\n'                    \
-             % (indent, oblset.shortinput(), indent, prefix, proc.view)
+      cmd += '%s3drefit -atrcopy %s \\\n'                \
+             '%s                 IJK_TO_DICOM_REAL \\\n' \
+             '%s                 %s%s\n'                 \
+             % (indent, oblset.shortinput(), indent, indent, prefix, proc.view)
 
    return cmd
 
@@ -7418,6 +7466,12 @@ def db_cmd_compute_tsnr_stats(proc, block):
           print("** compute_tsnr: missing ROI dset '%s'" % label)
           return 1, ''
 
+       # do not let a value of 0 through
+       if '0' in opt.parlist[1:]:
+          print("** compute_tsnr: an ROI value of zero is illegal")
+          print("   opt: %s %s" % (oname, ' '.join(opt.parlist)))
+          return 1, ''
+
        # let the name vary based on whether it is user requested or auto
        tlab = 'user'
        if proc.regress_auto_tsnr_rois is not None:
@@ -13292,6 +13346,29 @@ OPTIONS:  ~2~
 
         Please see '3dQwarp -help' for more information.
 
+    -blip_warp_dset DSET    : specify extra options for 3dQwarp
+
+            e.g. -blip_warp_dset epi_b0_WARP.nii.gz
+
+        This option allows the user to pass a pre-computed distortion warp
+        dataset, to replace the computation of a warp in the blip block.
+        The most likely use is to first run epi_b0_correct.py for a b0
+        distortion map computation, rather than the reverse phase encoding
+        method that would be computed with afni_proc.py.
+
+        When applying this option in afni_proc.py, instead of using options
+        like:
+
+            -blip_forward_dset DSET_FORWARD \\
+            -blip_reverse_dset DSET_REVERSE \\
+            -blip_opts_qw      OPTIONS ...  \\
+
+        use just this one option to pass the warp:
+
+            -blip_warp_dset epi_b0_WARP.nii.gz \\
+
+        Please see 'epi_b0_correct.py -help' for more information.
+
     -tlrc_anat              : run @auto_tlrc on '-copy_anat' dataset
 
             e.g. -tlrc_anat
@@ -15114,8 +15191,10 @@ OPTIONS:  ~2~
 
             e.g. -anat_follower_ROI aeseg epi SUMA/aparc.a2009s+aseg.nii.gz \\
                  -ROI_import Glasser MNI_Glasser_HCP_v1.0.nii.gz            \\
+                 -ROI_import faves my.favorite.ROIs.nii.gz                  \\
                  -regress_compute_tsnr_stats aeseg   18 54 11120 12120 2 41 \\
                  -regress_compute_tsnr_stats Glasser 4 41 99 999
+                 -regress_compute_tsnr_stats faves   ALL_LT
 
             default: -regress_compute_tsnr_stats brain 1
 
@@ -15125,7 +15204,8 @@ OPTIONS:  ~2~
 
         Then one can list ROI regions in each ROI dataset to compute TSNR
         statistics over.  Details will be output for each ROI region, such as
-        quartiles of the TSNR values, and maximum depth coordinates.
+        quartiles of the TSNR values, and maximum depth coordinates.  If the
+        ROI dataset has a label table, one can use ALL_LT to use all of them.
 
         This option results in a compute_ROI_stats.tcsh command being run for
         the ROI and TSNR datasets, and the ROI indices of interest.
