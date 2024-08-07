@@ -1183,10 +1183,15 @@ def db_cmd_blip(proc, block):
 
    blip_interp = '-quintic'
 
-   cmd =  "# %s\n" % block_header('blip')
-   cmd += '# compute blip up/down non-linear distortion correction for EPI\n\n'
+   # note the goal here, for the comment string
+   if proc.blip_dset_warp is not None:
+      taskstr = 'apply'
+   else:
+      taskstr = 'compute blip up/down'
 
-   # rcr todo: apply option -blip_warp_dset
+   cmd =  "# %s\n" % block_header('blip')
+   cmd += '# %s non-linear EPI distortion correction\n\n' \
+          % taskstr
 
    # -----------------------------------------------------------------
    # actually compute the transformation (or else it was input)
@@ -1194,7 +1199,7 @@ def db_cmd_blip(proc, block):
       bcmd = compute_blip_xform(proc, block, interp=blip_interp)
       if bcmd == '': return ''
    else:
-      bcmd = '\n# nothing to do: have external -blip_warp_dset %s\n\n' \
+      bcmd = '\n# no computation to do: have external -blip_warp_dset %s\n\n' \
              % proc.blip_dset_warp.shortinput()
    cmd += bcmd
 
