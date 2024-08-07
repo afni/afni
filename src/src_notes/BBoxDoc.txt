@@ -1,0 +1,457 @@
+﻿Appendix A shows the SUMA_xColBar.c functions that are called when suma starts up.
+
+The 
+SUMA_ENTRY;
+line causes the function to be included in the call stack if the program crashes.
+
+The following sequence of functions is called when the B checkbox is toggled on.
+
++++++ SUMA_cb_BoxOutlineThresh_tb_toggled
++++++ SUMA_ADO_Cont
++++++ setBoxOutlineThresh
++++++ SUMA_ADO_idcode
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_leave_TableField
++++++ SUMA_TableF_cb_label_change
++++++ SUMA_leave_TableField
++++++ SUMA_TableF_cb_label_change
++++++ SUMA_XhairInput
++++++ SUMA_ADO_Cont
++++++ SUMA_TableF_cb_label_Modify
+
+When B box is checked, SUMA_SetScaleThr is called and calls SUMA_SetScaleThr_one.
+The threshold sliding bar calls SUMA_cb_set_threshold which calls SUMA_set_threshold.
+The threshold edit box calls SUMA_SetScaleThr which calls SUMA_SetScaleThr_one
+“Sym I” button calls SUMA_cb_SymIrange_tb_toggled which calls SUMA_ScaleToMap
+
+The following sequence of functions is called when the I subbrick option is changed.
++++++ SUMA_optmenu_EV
++++++ SUMA_cb_SwitchIntensity
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_SwitchColPlaneIntensity
++++++ SUMA_SwitchColPlaneIntensity_one
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_Label
++++++ SUMA_InitRangeTable
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_TableF_SetString
+
++++++ SUMA_TableF_cb_label_Modify (3 times)
++++++ SUMA_TableF_SetString
+
++++++ SUMA_TableF_cb_label_Modify
++++++ SUMA_UpdateCrossHairNodeLabelFieldForDO
++++++ SUMA_UpdateCrossHairNodeLabelField
++++++ SUMA_ADO_idcode
++++++ SUMA_UpdateNodeValField
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
+
+The following sequence of functions is called when the T subbrick option is changed.
+
++++++ SUMA_optmenu_EV
++++++ SUMA_cb_SwitchThreshold
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_optmenu_EV
++++++ SUMA_cb_SwitchThreshold
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_SwitchColPlaneThreshold
++++++ SUMA_SwitchColPlaneThreshold_one
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_SetScaleRange
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_TableF_cb_label_Modify
++++++ SUMA_UpdatePvalueField
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_InitRangeTable
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_TableF_SetString
++++++ SUMA_TableF_cb_label_Modify
++++++ SUMA_TableF_SetString
++++++ SUMA_TableF_cb_label_Modify
++++++ SUMA_UpdateCrossHairNodeLabelFieldForDO
++++++ SUMA_UpdateCrossHairNodeLabelField
++++++ SUMA_UpdateNodeValField
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_idcode
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
+
+The following sequence of functions is called when the B subbrick option is changed.
++++++ SUMA_optmenu_EV
++++++ SUMA_cb_SwitchBrightness
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_SwitchColPlaneBrightness
++++++ SUMA_SwitchColPlaneBrightness_one
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_SetScaleRange
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_TableF_cb_label_Modify
++++++ SUMA_UpdatePvalueField
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_InitRangeTable
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_TableF_SetString
++++++ SUMA_TableF_cb_label_Modify
++++++ SUMA_TableF_SetString
++++++ SUMA_TableF_cb_label_Modify
++++++ SUMA_UpdateCrossHairNodeLabelFieldForDO
++++++ SUMA_UpdateCrossHairNodeLabelField
++++++ SUMA_UpdateNodeValField
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_leave_TableField
+
+SUMA_TableF_cb_label_Modify is called when I Min, or I Max, changed.
+
+Changing IxT elicits the following sequence of functions (and changes threshold contours).
++++++ SUMA_cb_SetLinkMode
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_idcode
++++++ SUMA_UpdateNodeNodeField
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_leave_TableField
+
+Changing the Col field calls the following sequence (and changes threshold contours).
++++++ SUMA_TableF_cb_label_change
++++++ SUMA_leave_TableField
++++++ SUMA_leave_TableField
++++++ SUMA_leave_TableField
++++++ SUMA_leave_TableField
++++++ SUMA_cb_SetCmapMode
++++++ SUMA_SetCmapMode
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_idcode
++++++ SUMA_UpdateNodeNodeField
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
+
+Changing the entry in the Bias field calls the following sequence  (and changes threshold contours).
++++++ SUMA_cb_SetCoordBias
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_Cont
+
+followed by several (typically 9) calls to the following sequence.
++++++ SUMA_ADO_N_Overlays
++++++ SUMA_ADO_Overlay
++++++ SUMA_ADO_Overlays
+
+The Cmp menu calls the following sequence of functions (and changes threshold contours).
++++++ SUMA_optmenu_EV
++++++ SUMA_leave_TableField
++++++ SUMA_cb_SwitchCmap
++++++ SUMA_SwitchCmap
++++++ SUMA_SwitchCmap_one
++++++ SUMA_SwitchColPlaneCmap
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_cmap_wid_handleRedisplay
++++++ SUMA_ADO_Cont
++++++ SUMA_cmap_wid_display
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_DrawCmap
++++++ SUMA_ADO_idcode
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
+
+|I| calls the following sequence of functions (and changes threshold contours).
++++++ SUMA_cb_AbsThresh_tb_toggled           
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_TableF_cb_label_Modify
++++++ SUMA_SetScaleRange
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_TableF_cb_label_Modify
++++++ SUMA_UpdatePvalueField
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_idcode
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
+
+“shw 0”  calls the following sequence of functions (and changes threshold contours).
++++++ SUMA_cb_ShowZero_tb_toggled
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_idcode
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
+
+Dim ▲▼calls the following sequence of functions whether activated by the arrows or edit box.
++++++ SUMA_cb_ColPlane_NewDimFact
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ColPlane_NewDimFact
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ColPlane_NewDimFact_one
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_UpdateColPlaneShellAsNeeded
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_idcode
++++++ SUMA_Overlays_2_GLCOLAR4
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
+
+Clicking on the threshold slider calls the following sequence of functions and fixes problems with the threshold outlines.
+
++++++ SUMA_cb_set_threshold
++++++ SUMA_set_threshold
++++++ SUMA_set_threshold_one
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_set_threshold_label
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_TableF_cb_label_Modify
++++++ SUMA_UpdatePvalueField
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_Cont
++++++ SUMA_UpdateNodeValField
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_UpdatePvalueField
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_cb_BoxOutlineThresh_tb_toggled
++++++ SUMA_ADO_Cont
++++++ setBoxOutlineForThresh
++++++ SUMA_ADO_idcode
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_CurColPlane
+
+Dsp changing also turned threshold boundaries into topographic contours sometimes but, other times, had the threshold contours superimposed on the colored overlay.  The desired result is obtained when Dsp → C&C just after the B box is checked (on).  Changing  Dsp to Col, and then to C&C, results in  the undesirable topographic contours.
++++++ SUMA_SetDsetViewMode
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_idcode
++++++ SUMA_Overlays_2_GLCOLAR4
+
+Changing the color map changes threshold contours to tomographic contours while making the following call sequence.
++++++ SUMA_cb_SwitchCmap
++++++ SUMA_SwitchCmap
++++++ SUMA_SwitchCmap_one
++++++ SUMA_SwitchColPlaneCmap
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_cmap_wid_handleRedisplay
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_cmap_wid_display
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_DrawCmap
++++++ SUMA_ADO_idcode
++++++ SUMA_Overlays_2_GLCOLAR4
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
+
+Appendix A: SUMA_xColBar.c functions called when SUMA starts up.
+
+ SUMA_isADO_Cont_Realized
+ SUMA_ADO_Cont
+ SUMA_ADO_Cont
+ SUMA_SwitchCmap
+ SUMA_SwitchCmap_one
+ SUMA_SetCmapMenuChoice
+ SUMA_ADO_Cont
+ SUMA_ADO_CurColPlane
+ SUMA_SwitchColPlaneCmap
+ SUMA_ADO_Cont
+ SUMA_ADO_CurColPlane
+ SUMA_cmap_wid_handleRedisplay
+ SUMA_ADO_Cont
+ SUMA_cmap_wid_display
+ SUMA_ADO_Cont
+ SUMA_ADO_CurColPlane
+ SUMA_DrawCmap
+ SUMA_ADO_idcode
+ SUMA_UpdateNodeLblField
+ SUMA_UpdateNodeLblField_ADO
+ SUMA_ADO_Cont
+ SUMA_ADO_SelectedSecondary
+ SUMA_ADO_SelectedDatum
+ SUMA_GetLabelsAtSelection_ADO
+ SUMA_ADO_CurColPlane
+ SUMA_FormNodeValFieldStrings
+ SUMA_ADO_Max_Datum_Index_Lev
+ SUMA_ADO_CurColPlane
+ SUMA_ADO_ColPlane_SelectedDatum
+ SUMA_ADO_SelectedDatum
+
+
+
+afni/src/src_notes/
