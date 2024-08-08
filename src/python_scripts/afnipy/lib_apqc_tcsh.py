@@ -3275,6 +3275,17 @@ num : int
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
 
+    # This is a place where failures can happen: if the t1dfile is all
+    # zeros or otherwise constant, then 3dTcorr1D produces an error
+    # and no output. In such a case, skip the image making, so we
+    # don't get a downstream Python failure about not being able to
+    # find a pbar.
+    if stat :
+        print("   ** ERROR: 3dTcorr1D failed for seed '{}' in {}. "
+              "Cannot make its QC image"
+              "".format(seed.roi_label, seed.netw))
+        return -1
+
     cmd = '''
     @chauffeur_afni                                                          \
         -ulay              {ulay}                                            \
