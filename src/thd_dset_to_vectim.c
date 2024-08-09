@@ -1129,6 +1129,7 @@ ENTRY("THD_vectim_to_dset") ;
        THD_insert_series( mrv->ivec[kk] , dset ,
                           nvals , MRI_float , var , 0 ) ;
      }
+     free(var) ; /* oops [12 Jul 2024] */
    }
 
    EXRETURN ;
