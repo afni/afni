@@ -489,6 +489,9 @@ SUMA_Boolean SUMA_UpdatePointField(SUMA_ALL_DO*ado);
 SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado);
 char *SUMA_GetLabelsAtSelection(SUMA_ALL_DO *ado, int node, int sec);
 char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec);
+SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, 
+    SUMA_OVERLAYS *over2, Bool thresholdChanged);
+void SUMA_RestoreThresholdContours(XtPointer data);
 SUMA_Boolean SUMA_GetValuesAtSelection(SUMA_ALL_DO *ado, int fromtable,
                                        float *I, float *T, float *B);
 SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_ALL_DO *ado, char *str);
@@ -1369,7 +1372,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "   OFF: Thresholded regions, of overlay, are identified\n"   \
 "        by color versus gray-scale, by different colors\n"   \
 "        or not at all.\n\n"   \
-"   ON: Thresholded regions are demarcated by black voxels\n"
+"   ON: Thresholded regions are demarcated by black voxels\n"   \ 
 
    #define  SUMA_SurfContHelp_AbsThr   \
 "Toggle Absolute thresholding.:LR:\n"   \
