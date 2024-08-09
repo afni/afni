@@ -15205,6 +15205,7 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                D_ROI = (SUMA_DRAWN_ROI *)colplane->Contours[ic];
                SUMA_LHv("Dset Contouring %d\n", ic);
 
+                 fprintf(stderr, "%s: colplane->Contours[ic] = %p\n", FuncName, colplane->Contours[ic]);
                  fprintf(stderr, "%s: D_ROI = %p\n", FuncName, D_ROI);
                  fprintf(stderr, "%s: D_ROI->CE = %p\n", FuncName, D_ROI->CE);
                  fprintf(stderr, "%s: D_ROI->N_CE = %d\n", FuncName, D_ROI->N_CE);
@@ -15237,6 +15238,7 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                         id1cont = SO->N_Node*3;
                         SUMA_RETURN(NOPE);
                      }
+                      fprintf(stderr, "%s: id1cont = %d\n", FuncName, id1cont);
                      glVertex3f(SO->NodeList[id1cont],
                                 SO->NodeList[id1cont+1],
                                 SO->NodeList[id1cont+2]);
@@ -21557,6 +21559,11 @@ SUMA_Boolean SUMA_freeDrawnROI (SUMA_DRAWN_ROI *D_ROI)
    static char FuncName[]={"SUMA_freeDrawnROI"};
 
    SUMA_ENTRY;
+   
+   if (!D_ROI){
+        fprintf(stderr, "%s: Error: Null D_ROI pointer\n", FuncName);
+        SUMA_RETURN (NOPE);
+   }
    
    fprintf(stderr, "%s: D_ROI = %p\n", FuncName, D_ROI);
    fprintf(stderr, "%s: D_ROI->Parent_idcode_str = %s\n", FuncName, D_ROI->Parent_idcode_str);

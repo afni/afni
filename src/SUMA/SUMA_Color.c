@@ -7989,7 +7989,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                             { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
                         
                         // Set slider location to zero
-                        if (reload) setSliderLocation(SO, 0.0f);
+                        // if (reload) setSliderLocation(SO, currentOverlay->OptScl->ThreshRange[0]);
                     }
                 }
            }
