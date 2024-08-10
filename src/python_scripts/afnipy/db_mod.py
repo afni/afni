@@ -9450,7 +9450,7 @@ Basic script outline: ~1~
    - copy all inputs to new 'results' directory
    - process data: e.g. despike,tshift/align/tlrc/volreg/blur/scale/regress
    - leave all (well, most) results there, so user can review processing
-   - create quality control data (APQC HTML page, ss_review_sccripts, etc.)
+   - create quality control data (APQC HTML page, ss_review_scripts, etc.)
 
 The exact processing steps are controlled by the user, including which main
 processing blocks to use, and their order.  See the 'DEFAULTS' section for
@@ -9559,14 +9559,14 @@ is a general set of choices that is good to consider:
       EPI datasets are required, for one or more runs and one or more echoes.
       Anything else is optional.
 
-      Tyically one also includes a subject anatomy, any task timing files, and
+      Typically one also includes a subject anatomy, any task timing files, and
       surface datasets (spec files an anatomy) if doing a surface analysis.
 
    d. extra input data
 
       It is common to supply a non-linear transformation warp dataset (from
       sswarper) to apply for anatomy->template alignment.  One might also have
-      a pre-computed non-linear B0 distorion map or reverse phase encoding
+      a pre-computed non-linear B0 distortion map or reverse phase encoding
       (blip) dataset, ROIs or other anatomical followers or physiological
       regressors.  An EPI base dataset might be provided to align the EPI to,
       and possibly one to guide alignment to the subject anatomical dataset.
@@ -9617,7 +9617,7 @@ is a general set of choices that is good to consider:
    h. other options
 
       Each step of processing has many control options around it.  It is
-      imporant to think through what might be appropriate for the data in
+      important to think through what might be appropriate for the data in
       question.  No one analysis fits all data.
 
 ==================================================
