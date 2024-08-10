@@ -2193,7 +2193,7 @@ def egs_publish():
    examples.append( APExample('AP publish 3c',
      source='AP_paper/scripts_rest/do_23_ap_ex3_vol.tcsh',
      descrip='do_23_ap_ex3_vol.tcsh - rest analysis.',
-     moddate='2024.03.08',
+     moddate='2024.08.09',
      keywords=['complete', 'publish', 'physio', 'rest'],
      header="""
               (recommended?  yes, an example of resting state analysis)
@@ -2244,6 +2244,8 @@ def egs_publish():
                                    'SUMA/aparc.a2009s+aseg_REN_gmrois.nii.gz']],
       ['-anat_follower_ROI',       ['aegm09', 'epi',
                                    'SUMA/aparc.a2009s+aseg_REN_gmrois.nii.gz']],
+      ['-ROI_import',              ['BrodPijn', 'Brodmann_pijn_afni.nii.gz']],
+      ['-ROI_import',              ['SchYeo7N', 'Schaefer_7N_400.nii.gz']],
       ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
       ['-tcat_remove_first_trs',   ['4']],
       ['-ricor_regs',              ['physio/sub-005_rest_physio.slibase.1D']],
@@ -2271,6 +2273,10 @@ def egs_publish():
       ['-regress_apply_mot_types', ['demean', 'deriv']],
       ['-regress_est_blur_epits',  []],
       ['-regress_est_blur_errts',  []],
+      ['-regress_compute_tsnr_stats', ['BrodPijn', '7', '10', '12', '39',
+                                       '107', '110', '112', '139']],
+      ['-regress_compute_tsnr_stats', ['SchYeo7N', '161', '149', '7', '364',
+                                       '367', '207']],
       ['-html_review_style',       ['pythonic']],
        ],
      ))
