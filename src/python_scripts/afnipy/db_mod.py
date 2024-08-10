@@ -9618,7 +9618,11 @@ is a general set of choices that is good to consider:
 
       Each step of processing has many control options around it.  It is
       important to think through what might be appropriate for the data in
-      question.  No one analysis fits all data.
+      question.
+
+      No one analysis fits all data.
+
+      Quality control "options" are not really considered optional.
 
 ==================================================
 PROCESSING BLOCKS (of the output script): ~1~
