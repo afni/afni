@@ -9505,8 +9505,13 @@ SETTING UP AN ANALYSIS: ~1~
 
 For those new to using afni_proc.py, it is very helpful to start with an
 example that is similar to what you want to do, generally taken from the help
-examples (afni_proc.py -show_example_names) or prior publication.  But there
-is a general set of choices that is good to consider:
+examples (afni_proc.py -show_example_names) or prior publication.
+
+Once satisfied with a single application of afni_proc.py, one would then loop
+over subjects by running afni_proc.py on each, using subject variables to refer
+to the individual set of input data and the output subject ID.
+
+Starting up, there is a general set of choices that is good to consider:
 
    a. type of analysis:    task or rest
    b. domain of analysis:  volume (ROI?) or surface
