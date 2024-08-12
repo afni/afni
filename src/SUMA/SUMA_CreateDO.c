@@ -17852,6 +17852,7 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             }
             /* draw dset contours (only label dset for now) */
             SUMA_LH("Dset contours ");
+            fprintf(stderr, "%s 2: drawing Dset Contour objects\n", FuncName);
             if (!SUMA_Draw_SO_Dset_Contours (SurfObj,  sv)) {
                fprintf (SUMA_STDERR,
                         "Error %s: Failed in drawing Dset Contour objects.\n",
@@ -18253,6 +18254,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 
          /* draw dset contours (only label dset for now) */
          SUMA_LH("Dset contours ");
+         fprintf(stderr, "%s 1: drawing Dset Contour objects\n", FuncName);
          if (!SUMA_Draw_SO_Dset_Contours (SurfObj,  sv)) {
             fprintf (SUMA_STDERR,
                      "Error %s: Failed in drawing Dset Contour objects.\n",
@@ -21565,14 +21567,14 @@ SUMA_Boolean SUMA_freeDrawnROI (SUMA_DRAWN_ROI *D_ROI)
         SUMA_RETURN (NOPE);
    }
    
-   fprintf(stderr, "%s: D_ROI = %p\n", FuncName, D_ROI);
-   fprintf(stderr, "%s: D_ROI->Parent_idcode_str = %s\n", FuncName, D_ROI->Parent_idcode_str);
-   fprintf(stderr, "%s: D_ROI->idcode_str = %s\n", FuncName, D_ROI->idcode_str);
-   fprintf(stderr, "%s: D_ROI->Label = %s\n", FuncName, D_ROI->Label);
-   fprintf(stderr, "%s: D_ROI->ColPlaneName = %s\n", FuncName, D_ROI->ColPlaneName);
-   fprintf(stderr, "%s: D_ROI->ROIstrokelist = %p\n", FuncName, D_ROI->ROIstrokelist);
-   fprintf(stderr, "%s: D_ROI->ActionStack = %p\n", FuncName, D_ROI->ActionStack);
-   fprintf(stderr, "%s: D_ROI->CE = %p\n", FuncName, D_ROI->CE);
+//   fprintf(stderr, "%s: D_ROI = %p\n", FuncName, D_ROI);
+//   fprintf(stderr, "%s: D_ROI->Parent_idcode_str = %s\n", FuncName, D_ROI->Parent_idcode_str);
+//   fprintf(stderr, "%s: D_ROI->idcode_str = %s\n", FuncName, D_ROI->idcode_str);
+//   fprintf(stderr, "%s: D_ROI->Label = %s\n", FuncName, D_ROI->Label);
+//   fprintf(stderr, "%s: D_ROI->ColPlaneName = %s\n", FuncName, D_ROI->ColPlaneName);
+//   fprintf(stderr, "%s: D_ROI->ROIstrokelist = %p\n", FuncName, D_ROI->ROIstrokelist);
+//   fprintf(stderr, "%s: D_ROI->ActionStack = %p\n", FuncName, D_ROI->ActionStack);
+//   fprintf(stderr, "%s: D_ROI->CE = %p\n", FuncName, D_ROI->CE);
 
 
    if (D_ROI->Parent_idcode_str) SUMA_free(D_ROI->Parent_idcode_str);

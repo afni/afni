@@ -1218,8 +1218,12 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
 
    // Restore threshold boundary if necessary.  This is called when the 
    //   threshold slider is moved
-   fprintf(stderr, "XXXXXXX %s: Restore threshold boundary after moving threshold slider\n", FuncName);
    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   
+   // Don't let threshold be exactly zero
+   if (BoxOutlineThresh) SO->Overlays[2]->OptScl->ThreshRange[0] += 0.0001;
+   
+   // Restore proper threshold contours
    if (SO->SurfCont->BoxOutlineThresh ){
         SUMA_RestoreThresholdContours(clientData);
    }
@@ -2227,6 +2231,7 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *over2
          /* kill current contours */
          // Remove existing conours which will be replaced
          SUMA_KillOverlayContours(over2);
+         over2->Contours = NULL;
 
         if (OutlineContours && !thresholdChanged){ // If threshold outline
                                 // contours exist and threshold unchanged
@@ -2268,6 +2273,10 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *over2
            free(overlayBackup);
         
             // Make contours black
+             fprintf(stderr, "%s: over2 = %p\n", FuncName, over2);
+             fprintf(stderr, "%s: over2->N_Contours = %d\n", FuncName, over2->N_Contours);
+             fprintf(stderr, "%s: over2->Contours = %p\n", FuncName, over2->Contours);
+             fprintf(stderr, "%s: over2->Contours[0] = %p\n", FuncName, over2->Contours[0]);
             if (over2->Contours){
                 for (i=0; i<over2->N_Contours; ++i){
                     for (j=0; j<4; ++j){
