@@ -5757,12 +5757,19 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   int BoxOutlineThresh;
 
    SUMA_ENTRY;
    
    fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_LH("Called");
+   
+   // Temporarily suspend threshold outline.  This appears to resolve the 
+   // problem of the color map changing with the threshold slider
+   SO = (SUMA_SurfaceObject *)ado;
+   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+   SO->SurfCont->BoxOutlineThresh = 0;
 
    if (!(SurfCont=SUMA_ADO_Cont(ado)) ||
        !SurfCont->SetThrScaleTable) SUMA_RETURN(0);
@@ -5858,11 +5865,15 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_UpdatePvalueField( ado,
                            curColPlane->OptScl->ThreshRange[0]);
 
+   // Restore threshold boundary if necessary.  This is called when the 
+   //   threshold slider is moved
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+
    // Restore threshold boundary if necessary
-//   if (SO->SurfCont->BoxOutlineThresh ){
-//        XtPointer clientData = (XtPointer)ado;
-//        SUMA_RestoreThresholdContours(clientData);
-//   }
+   if (SO->SurfCont->BoxOutlineThresh ){
+        XtPointer clientData = (XtPointer)ado;
+        SUMA_RestoreThresholdContours(clientData);
+   }
    
    SUMA_RETURN(1);
 }
