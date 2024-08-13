@@ -9513,8 +9513,8 @@ to the individual set of input data and the output subject ID.
 
 Starting up, there is a general set of choices that is good to consider:
 
-   a. type of analysis:    task or rest
-   b. domain of analysis:  volume (ROI?) or surface
+   a. type of analysis:    task or rest/naturalistic
+   b. domain of analysis:  volume or surface (possibly either as ROI)
    c. main input data:     anat, EPI runs (single or multi-echo), task timing,
                            surfaces and surface anatomical
    d. extra input data:    NL distortion warp, NL template warp, blip dsets,

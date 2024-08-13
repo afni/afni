@@ -792,7 +792,7 @@ g_history = """
     7.77 May 30, 2024: fix volreg TSNR for ME: use eind -> fave_echo
        - thanks to zhengchencai on MB for pointing it out
        - remove unneeded followers from example 'publish 3d'
-    7.78 Aug 5, 2024: add option -blip_warp_dset to input a computed warp
+    7.78 Aug  5, 2024: add option -blip_warp_dset to input a computed warp
 """
 
 g_version = "version 7.78, Aug 5, 2024"
