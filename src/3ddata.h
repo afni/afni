@@ -5117,6 +5117,8 @@ extern void THD_extract_many_arrays( int ns , int *ind ,
                                      THD_3dim_dataset *dset , float *dsar ) ;
 
 /*---------------------------------------------------------------------------*/
+/* vectim stuff (vector image)
+   time first, space second -- unlike datasets, which are space first */
 
 typedef struct {
   int    nvec , nvals , ignore ;
@@ -5222,6 +5224,8 @@ extern MRI_IMAGE * THD_temp_subim_from_vectim( MRI_vectim *vim ,
 #define VECTIM_TEMP_IMAGE(vvv) THD_temp_subim_from_vectim( (vvv) , 0 , 0 )
 
 
+/*-------- instacorr stuff (uses vectim liberally) --------*/
+
 #define ICOR_MAX_FTOP 99999  /* 26 Feb 2010 */
 
 typedef struct {
@@ -5233,12 +5237,14 @@ typedef struct {
   float fbot , ftop , blur , sblur ;
   int polort , cmeth , despike , change ;
   MRI_vectim *mv ;
-  char *prefix ; int ndet ;
+  char *prefix ;
+  char *prefix_ts ; int do_ts, mv_is_new ;  /* 12 Jul 2024 */
+  int ndet ;
   float *tseed ;
   int   iter_count ;  /* 05 Feb 2015 */
   float iter_thresh ;
 
-  THD_3dim_dataset *eset ; MRI_vectim *ev ;
+  THD_3dim_dataset *eset ; MRI_vectim *ev ; int ev_is_new ;
 } ICOR_setup ;
 
 #undef  INIT_ICOR_setup
@@ -5248,15 +5254,16 @@ typedef struct {
 #define ISVALID_ICOR_setup(is) ( (is) != NULL && (is)->mv != NULL )
 
 #undef  DESTROY_ICOR_setup
-#define DESTROY_ICOR_setup(is)                               \
- do{ if( (is) != NULL ){                                     \
-       if( (is)->mmm    != NULL ) free((is)->mmm) ;          \
-       if( (is)->gortim != NULL ) mri_free((is)->gortim) ;   \
-       if( (is)->mv     != NULL ) VECTIM_destroy((is)->mv) ; \
-       if( (is)->ev     != NULL ) VECTIM_destroy((is)->ev) ; \
-       if( (is)->prefix != NULL ) free((is)->prefix) ;       \
-       if( (is)->tseed  != NULL ) free((is)->tseed) ;        \
-       free((is)) ; (is) = NULL ;                            \
+#define DESTROY_ICOR_setup(is)                                  \
+ do{ if( (is) != NULL ){                                        \
+       if( (is)->mmm       != NULL ) free((is)->mmm) ;          \
+       if( (is)->gortim    != NULL ) mri_free((is)->gortim) ;   \
+       if( (is)->mv        != NULL ) VECTIM_destroy((is)->mv) ; \
+       if( (is)->ev        != NULL ) VECTIM_destroy((is)->ev) ; \
+       if( (is)->prefix    != NULL ) free((is)->prefix) ;       \
+       if( (is)->prefix_ts != NULL ) free((is)->prefix_ts) ;    \
+       if( (is)->tseed     != NULL ) free((is)->tseed) ;        \
+       free((is)) ; (is) = NULL ;                               \
  }} while(0)
 
 extern int         THD_instacorr_prepare( ICOR_setup *iset ) ;

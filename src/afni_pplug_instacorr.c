@@ -1,3 +1,18 @@
+/*----------
+  12 Jul 2024:
+    * changes to allow user to see the timeseries dataset which is
+      being correlated to produce the colorized map -- that is,
+      the filtered and scaled time series
+    * Search for this date to find the added code
+    * Basically, the "vectim" storing the preprocessed data is
+      converted to a 3D+time dataset for viewing in an AFNI controller
+    * see thd_instacorr.c for whence this vectim arrives on the scene
+    * AFNIman strikes again!
+------------*/
+
+/* This is how the filtered timeseries dataset will be named */
+#define ICORTS_NAME "ICORTS"   /* 12 Jul 2024 */
+
 #include "afni.h"
 #ifndef ALLOW_PLUGINS
 PLUGIN_interface * ICOR_init(char *lab)
@@ -135,6 +150,8 @@ static char i_helpstring[] =
   "    #PC      = Number of principal components of the collective input\n"
   "               time series vectors to compute and use as global orts.\n"
   "\n"
+  "    " ICORTS_NAME " == Store the timeseries dataset of the pre-processed data\n"
+  "\n"
   "* Misc Opts:\n"
   "  IF environment variable AFNI_INSTACORR_SEEDBLUR is YES\n"
   "    SeedBlur = Extra radius about which to Gaussian blur when extracting\n"
@@ -228,11 +245,11 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUGIN_interface *plint ;     /* will be the output of this routine */
    static char *yn[2] = { "No" , "Yes" } ;
    /* only the first 4 of these methods is available to a "normal" user */
-   /* [PT] should do Euclidian -> Euclidean, *if* that doesn't break 
-      anything */
+   /* [PT] should do Euclidian -> Euclidean, *if* that doesn't break
+      anything [RWC did it ... ha!] */
    static char *meth_string[10] = { "Pearson" , "Spearman" ,
                                     "Quadrant", "Ken Tau_b", "TicTacToe" ,
-                                    "BCpearson" , "VCpearson", "Euclidian",
+                                    "BCpearson" , "VCpearson", "Eucledean",
                                     "CityBlock" , "Quantile:9" } ;
    char sk[32] , sc[32] ;
    int gblur = AFNI_yesenv("AFNI_INSTACORR_SEEDBLUR") ;
@@ -273,9 +290,12 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_option    ( plint , "Global Orts" , "GlobalOrts" , FALSE ) ;
    PLUTO_add_timeseries( plint , "1D file" ) ;
    PLUTO_add_number    ( plint , "#PC" , 0 , 9 , 0 , 0 , TRUE ) ;
+   PLUTO_add_string    ( plint , ICORTS_NAME  , 2 , yn , 0 ) ;   /* 12 Jul 2024 */
 
+#if 0
    if( AFNI_yesenv("TCSV_EXPERIMENT") )         /* just for fun */
      PLUTO_add_tcsv( plint , "[tc]sv file" ) ;
+#endif
 
 #if 0
    PLUTO_add_option    ( plint , "Slice Orts" , "SliceOrts" , FALSE ) ;
@@ -331,6 +351,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    int despike = 0 ;
    int clen=0,cnum=0,cstep=0 ;
    int iter_count=0 ; float iter_thresh=0.0f ;
+   int do_icorts=0 ;              /* 12 Jul 2024 */
 
    /*** ncall = 0 ; ***/
 
@@ -414,20 +435,15 @@ static char * ICOR_main( PLUGIN_interface *plint )
      /** GlobalOrts **/
 
      if( strcmp(tag,"GlobalOrts") == 0 ){
+       char *dots ;
        MRI_IMAGE *qim = PLUTO_get_timeseries(plint) ;
-       NI_element *nel ;
-       if( qim == NULL ) ERROR_message("Ignoring NULL 'Global Orts' time series") ;
-       else              gortim = mri_copy(qim) ;
-       gortnpc = (int)PLUTO_get_number(plint) ;
+       if( qim == NULL ){ WARNING_message("Ignoring NULL 'Global Orts' time series") ; }
+       else             { gortim = mri_copy(qim) ; }
 
-       if( AFNI_yesenv("TCSV_EXPERIMENT") ){         /* just for fun */
-         NI_element *nel = PLUTO_get_tcsv(plint) ;
-         char *vstring = NI_preview_string(nel,9,"--- Just For Fun ---") ;
-         if( vstring != NULL ){
-           (void) MCW_popup_message( THE_TOPSHELL , vstring , MCW_USER_KILL ) ;
-           free( vstring ) ;
-         }
-       }
+       gortnpc = (int)PLUTO_get_number(plint) ;
+       dots    = PLUTO_get_string(plint) ;      /* Yes or No? 12 Jul 2024 */
+
+       do_icorts = (dots[0] == 'Y') ;
 
        continue ;
      }
@@ -545,15 +561,17 @@ static char * ICOR_main( PLUGIN_interface *plint )
        im3d->iset->blur     == blur     &&
        im3d->iset->despike  == despike  &&
        im3d->iset->polort   == polort   &&
-       THD_instacorr_cmeth_needs_norm(im3d->iset->cmeth) == THD_instacorr_cmeth_needs_norm(cmeth) ){
+       THD_instacorr_cmeth_needs_norm(im3d->iset->cmeth)
+         == THD_instacorr_cmeth_needs_norm(cmeth)       ){
 
      INFO_message("InstaCorr setup: minor changes accepted") ;
      im3d->iset->sblur = sblur ; im3d->iset->cmeth = cmeth ;
      im3d->iset->iter_count = iter_count; im3d->iset->iter_thresh = iter_thresh;
-     im3d->iset->change = 1; return NULL ;
+     im3d->iset->change = 1;
+     return NULL ;
    }
 
-   /** (re)create InstaCorr setup **/
+   /** OK, need to (re)create InstaCorr setup **/
 
    DESTROY_ICOR_setup(im3d->iset) ;
    INIT_ICOR_setup(iset) ;
@@ -575,6 +593,10 @@ static char * ICOR_main( PLUGIN_interface *plint )
    iset->polort   = polort ;  /* 26 Feb 2010 */
    iset->cmeth    = cmeth ;   /* 01 Mar 2010 */
    iset->prefix   = (char *)malloc(sizeof(char)*16) ;
+   iset->prefix_ts= (char *)malloc(sizeof(char)*16) ;  /* 12 Jul 2024 */
+   iset->do_ts    = 0 ;                                /* 12 Jul 2024 */
+   iset->mv_is_new= 0 ;                                /* 12 Jul 2024 */
+   iset->ev_is_new= 0 ;                                /* 12 Jul 2024 */
    iset->change   = 2;        /* 07 May 2012 ZSS */
    iset->clen     = clen ;    /* 07 Oct 2014 */
    iset->cnum     = cnum ;
@@ -582,7 +604,13 @@ static char * ICOR_main( PLUGIN_interface *plint )
    iset->iter_count  = iter_count ;  /* 05 Feb 2015 */
    iset->iter_thresh = iter_thresh ;
 
-   cpt = AFNI_controller_label(im3d); sprintf(iset->prefix,"%c_ICOR",cpt[1]);
+   cpt = AFNI_controller_label(im3d);       /* which AFNI controller? */
+
+   sprintf(iset->prefix,"%c_ICOR",cpt[1]);  /* name for correlation dataset (overlay) */
+
+                               /* name for filtered time series dataset */
+   sprintf(iset->prefix_ts,"%c_%s",cpt[1],ICORTS_NAME);  /* 12 Jul 2024 */
+   iset->do_ts = do_icorts ;          /* whether to create that dataset */
 
    etim = PLUTO_elapsed_time() ;
 
@@ -590,12 +618,111 @@ static char * ICOR_main( PLUGIN_interface *plint )
 
    INSTACORR_LABEL_OFF(im3d) ;
    SHOW_AFNI_PAUSE ;
-   /**************/   qq = THD_instacorr_prepare( iset ) ;  /**************/
+   /**************/
+   qq = THD_instacorr_prepare( iset ) ; /* do the work! */
+   /**************/
    SHOW_AFNI_READY ;
    if( qq == 0 ){
      DESTROY_ICOR_setup(iset) ; return "** Error in InstaCorr setup!? **" ;
    }
    INSTACORR_LABEL_ON(im3d) ;
+
+   im3d->iset = iset ;       /* save our creation */
+
+   /*------ Moved here from AFNI_icor_setref_xyz() because makes more sense -----*/
+   /*------ ((The overlay dataset is created when InstaCorr is activated))  -----*/
+
+   /*-- find or create output dataset [time series] IF NEEDED [12 Jul 2024] --*/
+
+       /* want it */        /* data changed [see thd_instacorr.c] */
+   if( im3d->iset->do_ts && im3d->iset->mv_is_new ){ /** OK, it's needed [sighs audibly] **/
+     THD_3dim_dataset *icoset_ts ;  /* dataset that gets the filtered timeseries */
+     Three_D_View     *qq3d ;       /* AFNI viewer that might be looking at this dataset */
+     THD_slist_find    slf ;        /* search result */
+     int               vv, bb, nds ;
+
+     /* search for the dataset in this session/directory/folder */
+
+     slf = THD_dset_in_session( FIND_PREFIX, im3d->iset->prefix_ts, im3d->ss_now ) ;
+
+     /* if it doesn't exist, or is not on the right grid, create it now */
+
+     if( !ISVALID_DSET (slf.dset)                                ||
+         !EQUIV_DATAXES(slf.dset->daxes,im3d->iset->dset->daxes) ||
+         DSET_NVALS(slf.dset) != im3d->iset->mv->nvals             ){
+
+       icoset_ts = EDIT_empty_copy( im3d->iset->dset ) ; /* make a new dataset */
+       EDIT_dset_items( icoset_ts ,                      /* and fix it up right */
+                          ADN_prefix    , im3d->iset->prefix_ts ,
+                          ADN_nvals     , im3d->iset->mv->nvals , /* num time points */
+                          ADN_datum_all , MRI_float ,
+                        ADN_none ) ;
+       if( DSET_HAS_TIMEAXIS(im3d->iset->dset) ){ /* make time steps match */
+         EDIT_dset_items( icoset_ts ,
+                            ADN_ntt   , im3d->iset->mv->nvals ,
+                            ADN_ttdel , DSET_TR(im3d->iset->dset) ,
+                            ADN_ttorg , DSET_TR(im3d->iset->dset)*im3d->iset->start ,
+                          ADN_none ) ;
+       } else {                                   /* time is a fiction */
+         EDIT_dset_items( icoset_ts ,
+                            ADN_ntt       , 0 ,
+                            ADN_func_type , FUNC_BUCK_TYPE ,
+                            ADN_type      , HEAD_FUNC_TYPE ,
+                          ADN_none ) ;
+       }
+       DSET_superlock(icoset_ts) ;
+
+       /* create zero-filled sub-bricks for this brand-new dataset */
+       for( bb=0 ; bb < im3d->iset->mv->nvals ; bb++ )
+         EDIT_substitute_brick( icoset_ts, bb, MRI_float, NULL ) ;
+
+       if( slf.dset != NULL ){       /* dataset exists, but isn't right for us */
+
+         MCW_idcode old_idc = slf.dset->idcode ;
+         THD_delete_3dim_dataset(slf.dset,True) ; /* destroy the old guts */
+         *slf.dset = *icoset_ts ;      /* copy the guts, keep the pointer */
+         slf.dset->idcode = old_idc ; /* and keep the old idcode [sneaky] */
+         nds = slf.dset_index ; /* not really needed [unlike for overlay] */
+         INFO_message("ICOR: trashed and recycled old dataset %s",im3d->iset->prefix_ts) ;
+
+       } else {                                  /* add to the session */
+
+         int vv = icoset_ts->view_type ;
+         nds = im3d->ss_now->num_dsset ;        /* not really needed */
+         SET_SESSION_DSET(icoset_ts, im3d->ss_now, nds, vv);
+         im3d->ss_now->num_dsset++ ;
+         AFNI_force_adoption( im3d->ss_now , False ) ;
+         /****** AFNI_make_descendants( GLOBAL_library.sslist ) ; ******/
+         INFO_message("ICOR: created new dataset %s",im3d->iset->prefix_ts) ;
+
+       }
+
+     /* just need to use existing dataset that matches */
+
+     } else {
+
+       icoset_ts = slf.dset ;
+       nds = slf.dset_index ;     /* not really needed */
+       DSET_mallocize(icoset_ts); /* make sure not mmap-ed file     ZSS */
+
+     }
+
+     icoset_ts->dblk->diskptr->allow_directwrite = 1 ; /* is this needed? */
+
+     /* now write filtered vectors into dataset */
+
+     THD_vectim_to_dset( im3d->iset->mv , icoset_ts ) ;
+
+     /* now force redisplay if this dataset is the underlay somewhere */
+     /* ((unlike the correlation dataset, we don't force user to see this)) */
+
+     for( vv=0 ; vv < MAX_CONTROLLERS ; vv++ ){
+       qq3d = GLOBAL_library.controllers[vv] ;
+       if( IM3D_OPEN(qq3d) && qq3d->anat_now == icoset_ts )
+         AFNI_set_viewpoint( qq3d , -1,-1,-1 , REDISPLAY_ALL ) ;
+     }
+
+   } /*----- end of creating time series dataset [12 Jul 2024] -----*/
 
    etim = PLUTO_elapsed_time() - etim ;
 
@@ -604,8 +731,6 @@ static char * ICOR_main( PLUGIN_interface *plint )
    ININFO_message("..... (Mouse-right-click menu in image viewer) .....") ;
    ININFO_message("..... (or Shift+Ctrl+left-click at seed point) .....") ;
    ININFO_message("..... (Shift+Ctrl+left-click-and-drag for fun) .....") ;
-
-   im3d->iset = iset ;
 
    ENABLE_INSTACORR(im3d) ;  /* manage the widgets */
    return NULL ;
@@ -788,13 +913,13 @@ INFO_message("AFNI_icor_setref_xyz: iv=%.3f,%.3f,%.3f  kv=%d,%d,%d  ijk=%d",
    UNLOAD_IVEC3( kv , im3d->vinfo->i1_icor ,
                       im3d->vinfo->j2_icor , im3d->vinfo->k3_icor ) ;
 
-   /* find the output dataset */
+   /*----- find or create the output dataset [correlations] -----*/
 
-   slf = THD_dset_in_session( FIND_PREFIX , im3d->iset->prefix , im3d->ss_now ) ;
+   slf = THD_dset_in_session( FIND_PREFIX, im3d->iset->prefix, im3d->ss_now ) ;
 
    /* if it doesn't exist, or is not the right grid, create it now */
 
-   if( !ISVALID_DSET (slf.dset) ||
+   if( !ISVALID_DSET (slf.dset)                                ||
        !EQUIV_DATAXES(slf.dset->daxes,im3d->iset->dset->daxes) ||
        DSET_NVALS(slf.dset) != nim                               ){
 
@@ -807,36 +932,37 @@ INFO_message("AFNI_icor_setref_xyz: iv=%.3f,%.3f,%.3f  kv=%d,%d,%d  ijk=%d",
                         ADN_type      , HEAD_FUNC_TYPE ,
                         ADN_datum_all , MRI_float ,
                       ADN_none ) ;
-     DSET_superlock(icoset) ;
+     DSET_superlock(icoset) ; /* don't allow it to be purged */
 
-     if( slf.dset != NULL ){       /* exists, but isn't right for us */
-
+     if( slf.dset != NULL ){ /* output dataset exists, but isn't right for us */
+                             /* so replace it with what we just created */
        MCW_idcode old_idc = slf.dset->idcode ;
-       THD_delete_3dim_dataset(slf.dset,True) ;  /* destroy the guts */
-       *slf.dset = *icoset ;      /* copy the guts, keep the pointer */
-       slf.dset->idcode = old_idc ;           /* and keep the idcode */
-       nds = slf.dset_index ;
-       INFO_message("trashed and reused old dataset %s",im3d->iset->prefix) ;
+       THD_delete_3dim_dataset(slf.dset,True) ;    /* destroy the old guts */
+       *slf.dset = *icoset ;        /* copy the new guts, keep the pointer */
+       slf.dset->idcode = old_idc ;                 /* and keep the idcode */
+       nds = slf.dset_index ;               /* index of dataset in session */
+       INFO_message("trashed and recycled old dataset %s",im3d->iset->prefix) ;
 
-     } else {                                  /* add to the session */
+     } else {                            /* add new dataset to the session */
        int vv = icoset->view_type ;
-       nds = im3d->ss_now->num_dsset ;
+       nds = im3d->ss_now->num_dsset ;      /* index of dataset in session */
        SET_SESSION_DSET(icoset, im3d->ss_now, nds, vv);
-       im3d->ss_now->num_dsset++ ;
+       im3d->ss_now->num_dsset++ ;         /* there's one more dataset now */
        AFNI_force_adoption( im3d->ss_now , False ) ;
        AFNI_make_descendants( GLOBAL_library.sslist ) ;
        INFO_message("created new dataset %s",im3d->iset->prefix) ;
      }
 
-     /* just need to use existing dataset that matches */
+     /* just need to use existing dataset that matches perfectissimo */
 
    } else {
-     icoset = slf.dset ; nds = slf.dset_index ;
+     icoset = slf.dset ;
+     nds    = slf.dset_index ;
      DSET_mallocize(icoset); /* make sure not mmap-ed file     ZSS */
    }
    icoset->dblk->diskptr->allow_directwrite = 1 ;
 
-   /* save the result into the output dataset */
+   /* save the correlation results into the output dataset */
 
    for( qim=0 ; qim < nim ; qim++ ){
      iim = IMARR_SUBIM(iimar,qim) ;
@@ -883,18 +1009,97 @@ INFO_message("AFNI_icor_setref_xyz: iv=%.3f,%.3f,%.3f  kv=%d,%d,%d  ijk=%d",
    DSET_BRICK_MDFCURVE_ALLKILL(icoset) ;
    flush_3Dview_sort(im3d,"T");  /* ZSS April 27 2012: Reset sorted threshold */
 
+#if 0
+   /*-- find or create output dataset [time series] IF NEEDED [12 Jul 2024] --*/
+
+       /* want it */        /* data changed [see thd_instacorr.c] */
+   if( im3d->iset->do_ts && im3d->iset->mv_is_new ){ /** OK, it's needed [sighs audibly] **/
+
+     slf = THD_dset_in_session( FIND_PREFIX, im3d->iset->prefix_ts, im3d->ss_now ) ;
+
+     int bb ; /* sub-brick index for looping */
+
+     /* if it doesn't exist, or is not on the right grid, create it now */
+
+     if( !ISVALID_DSET (slf.dset)                                ||
+         !EQUIV_DATAXES(slf.dset->daxes,im3d->iset->dset->daxes) ||
+         DSET_NVALS(slf.dset) != im3d->iset->mv->nvals             ){
+
+       icoset_ts = EDIT_empty_copy( im3d->iset->dset ) ; /* make new dataset */
+       EDIT_dset_items( icoset_ts ,
+                          ADN_prefix    , im3d->iset->prefix_ts ,
+                          ADN_nvals     , im3d->iset->mv->nvals , /* num time points */
+                          ADN_datum_all , MRI_float ,
+                        ADN_none ) ;
+       if( DSET_HAS_TIMEAXIS(im3d->iset->dset) ){ /* make time steps match */
+         EDIT_dset_items( icoset_ts ,
+                            ADN_ntt   , im3d->iset->mv->nvals ,
+                            ADN_ttdel , DSET_TR(im3d->iset->dset) ,
+                            ADN_ttorg , DSET_TR(im3d->iset->dset)*im3d->iset->start ,
+                          ADN_none ) ;
+       } else {                                   /* time is a fiction */
+         EDIT_dset_items( icoset_ts ,
+                            ADN_ntt       , 0 ,
+                            ADN_func_type , FUNC_BUCK_TYPE ,
+                            ADN_type      , HEAD_FUNC_TYPE ,
+                          ADN_none ) ;
+       }
+       DSET_superlock(icoset_ts) ;
+
+       /* create zero-filled sub-bricks for this brand-new dataset */
+       for( bb=0 ; bb < im3d->iset->mv->nvals ; bb++ )
+         EDIT_substitute_brick( icoset_ts, bb, MRI_float, NULL ) ;
+
+       if( slf.dset != NULL ){       /* exists, but isn't right for us */
+
+         MCW_idcode old_idc = slf.dset->idcode ;
+         THD_delete_3dim_dataset(slf.dset,True) ; /* destroy the old guts */
+         *slf.dset = *icoset ;         /* copy the guts, keep the pointer */
+         slf.dset->idcode = old_idc ;          /* and keep the old idcode */
+         nds = slf.dset_index ;
+         INFO_message("trashed and recycled old dataset %s",im3d->iset->prefix_ts) ;
+
+       } else {                                  /* add to the session */
+         int vv = icoset_ts->view_type ;
+         nds = im3d->ss_now->num_dsset ;
+         SET_SESSION_DSET(icoset_ts, im3d->ss_now, nds, vv);
+         im3d->ss_now->num_dsset++ ;
+         AFNI_force_adoption( im3d->ss_now , False ) ;
+         /****** AFNI_make_descendants( GLOBAL_library.sslist ) ; ******/
+         INFO_message("created new dataset %s",im3d->iset->prefix_ts) ;
+       }
+
+     /* just need to use existing dataset that matches */
+
+     } else {
+       icoset_ts = slf.dset ; nds = slf.dset_index ;
+       DSET_mallocize(icoset); /* make sure not mmap-ed file     ZSS */
+     }
+     icoset_ts->dblk->diskptr->allow_directwrite = 1 ; /* is this needed? */
+
+     /* now write filtered vectors into dataset */
+
+     THD_vectim_to_dset( im3d->iset->mv , icoset_ts ) ;
+
+   } /*----- end of creating time series dataset [12 Jul 2024] -----*/
+#endif
+
+   /*----- Let the (ab)user know what just happened -----*/
+
    if( ncall <= 1 )
      ININFO_message(" InstaCorr elapsed time = %.2f sec: dataset ops" ,
                     PLUTO_elapsed_time()-etim ) ;
 
-   if( AFNI_yesenv("AFNI_INSTACORR_FDR") ){
+   /*---- some final housekeeping, because who doesn't like that stuff? ----*/
+
+   if( AFNI_yesenv("AFNI_INSTACORR_FDR") ){ /* can be slow */
      THD_create_all_fdrcurves(icoset) ;
      if( ncall <= 1 )
        ININFO_message(" InstaCorr elapsed time = %.2f sec: FDR curve" ,
                       PLUTO_elapsed_time()-etim ) ;
    }
 
-   /* 10 May 2009: save seed timeseries into timeseries library */
+   /* 10 May 2009: save/replace seed timeseries into timeseries library */
 
    if( im3d->iset->tseed != NULL ){
      MRI_IMAGE *tsim ; float *tsar ;
@@ -910,6 +1115,7 @@ INFO_message("AFNI_icor_setref_xyz: iv=%.3f,%.3f,%.3f  kv=%d,%d,%d  ijk=%d",
    /* redisplay overlay */
 
    if( called_before[ic] ) AFNI_ignore_pbar_top(1) ;  /* 03 Jun 2014 */
+
    if( im3d->fim_now != icoset || im3d->iset->change ){  /* switch to this dataset */
      MCW_choose_cbs cbs ; char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
      cbs.ival = nds ;
@@ -924,6 +1130,7 @@ INFO_message("AFNI_icor_setref_xyz: iv=%.3f,%.3f,%.3f  kv=%d,%d,%d  ijk=%d",
        AFNI_driver(cmd) ;
      }
    }
+
    if( MCW_val_bbox(im3d->vwid->func->range_bbox) ){
      char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
      AFNI_ignore_pbar_top(0) ;
@@ -931,6 +1138,7 @@ INFO_message("AFNI_icor_setref_xyz: iv=%.3f,%.3f,%.3f  kv=%d,%d,%d  ijk=%d",
      AFNI_driver(cmd) ;
      AFNI_ignore_pbar_top(1) ;
    }
+
    AFNI_reset_func_range(im3d) ; called_before[ic]++ ;
    AFNI_ignore_pbar_top(0) ;
 
@@ -939,9 +1147,9 @@ INFO_message("AFNI_icor_setref_xyz: iv=%.3f,%.3f,%.3f  kv=%d,%d,%d  ijk=%d",
    if( VEDIT_good(im3d->vedset) ) im3d->vedset.flags = 1 ;  /* 18 Jun 2014 */
    if( MCW_val_bbox(im3d->vwid->view->see_func_bbox) == 0 ){ /* overlay is off */
      char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
-     sprintf(cmd,"SEE_OVERLAY %c.+",cpt[1]) ;
+     sprintf(cmd,"SEE_OVERLAY %c.+",cpt[1]) ;                /* so turn it on */
      AFNI_driver(cmd) ;
-   } else {                                                  /* overlay is on */
+   } else {                                                  /* overlay is already on */
      AFNI_redisplay_func(im3d) ;
    }
    AFNI_set_thr_pval(im3d) ; AFNI_process_drawnotice(im3d) ;
