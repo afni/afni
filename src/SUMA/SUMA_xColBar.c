@@ -1763,6 +1763,14 @@ int SUMA_SwitchColPlaneBrightness(
          }
       }
    }
+   
+   // Restore proper threshold contours
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (SO->SurfCont->BoxOutlineThresh ){
+        XtPointer clientData = (XtPointer)ado;
+        SUMA_RestoreThresholdContours(clientData);
+   }
+
    SUMA_RETURN(1);
 }
 
