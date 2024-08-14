@@ -1995,6 +1995,8 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
    SUMA_ALL_DO *ado = NULL;
    SUMA_COLOR_MAP *CM = NULL;
    SUMA_Boolean LocalHead = NOPE;
+   int BoxOutlineThresh;
+   SUMA_SurfaceObject *SO;
 
    SUMA_ENTRY;
 
@@ -2004,8 +2006,24 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
    datap = (SUMA_MenuCallBackData *)client_data;
    ado = (SUMA_ALL_DO *)datap->ContID;
    CM = (SUMA_COLOR_MAP *)datap->callback_data;
+   
+   // Temporarily suspend threshold outline.  This appears to resolve the 
+   // problem of the color map changing with the threshold slider
+   SO = (SUMA_SurfaceObject *)ado;
+   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+   SO->SurfCont->BoxOutlineThresh = 0;
 
    SUMA_SwitchCmap(ado, CM, 0);
+
+   // Restore threshold boundary if necessary.  This is called when the 
+   //   threshold slider is moved
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   
+   // Restore proper threshold contours
+   if (SO->SurfCont->BoxOutlineThresh ){
+        XtPointer clientData = (XtPointer)ado;
+        SUMA_RestoreThresholdContours(clientData);
+   }
 
    SUMA_RETURNe;
 }
@@ -2273,10 +2291,6 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *over2
            free(overlayBackup);
         
             // Make contours black
-             fprintf(stderr, "%s: over2 = %p\n", FuncName, over2);
-             fprintf(stderr, "%s: over2->N_Contours = %d\n", FuncName, over2->N_Contours);
-             fprintf(stderr, "%s: over2->Contours = %p\n", FuncName, over2->Contours);
-             fprintf(stderr, "%s: over2->Contours[0] = %p\n", FuncName, over2->Contours[0]);
             if (over2->Contours){
                 for (i=0; i<over2->N_Contours; ++i){
                     for (j=0; j<4; ++j){
@@ -2289,6 +2303,9 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *over2
                 // Save threshold outline contours
                 OutlineContours = over2->Contours;
                 N_OutlineContours = over2->N_Contours;
+            } else {
+                SUMA_SL_Err("ERROR: No contours found\n");
+                SUMA_RETURN (NOPE);
             }
         }
     } else {    // Don't show threshold contours
@@ -10077,6 +10094,13 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_ALL_DO *ado, char *str)
          SUMA_RETURN(YUP);
      }
    }
+   
+   // Restore proper threshold contours
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (SO->SurfCont->BoxOutlineThresh ){
+        XtPointer clientData = (XtPointer)ado;
+        SUMA_RestoreThresholdContours(clientData);
+   }
 
    SUMA_RETURN(NOPE);
 }
@@ -10197,6 +10221,13 @@ void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data,
    if (!SUMA_SelectSwitchCmap(ado, LW, ichoice, CloseShop, 1)) {
       SUMA_S_Err("glitch");
       SUMA_RETURNe;
+   }
+   
+   // Restore proper threshold contours
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (SO->SurfCont->BoxOutlineThresh ){
+        XtPointer clientData = (XtPointer)ado;
+        SUMA_RestoreThresholdContours(clientData);
    }
 
    SUMA_RETURNe;
@@ -12722,6 +12753,8 @@ int SUMA_ADO_ColPlane_SelectedDatum(SUMA_ALL_DO *ado, SUMA_OVERLAYS *Sover)
    static char FuncName[]={"SUMA_ADO_ColPlane_SelectedDatum"};
    int SelectedNode = -1, ivsel[SUMA_N_IALTSEL_TYPES];
    SUMA_Boolean LocalHead = NOPE;
+//   SUMA_SurfaceObject *SO = NULL;
+//   int BoxOutlineThresh;
 
    SUMA_ENTRY;
 
@@ -12731,6 +12764,12 @@ int SUMA_ADO_ColPlane_SelectedDatum(SUMA_ALL_DO *ado, SUMA_OVERLAYS *Sover)
       SUMA_LH("Null ado");
       SUMA_RETURN(-1);
    }
+   
+   // Temporarily suspend threshold outline.  This appears to resolve the 
+   // problem of the color map changing with the threshold slider
+//   SO = (SUMA_SurfaceObject *)ado;
+//   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+//   SO->SurfCont->BoxOutlineThresh = 0;
 
    if (!Sover) Sover = SUMA_ADO_CurColPlane(ado);
    if (!Sover) {
@@ -12755,6 +12794,14 @@ int SUMA_ADO_ColPlane_SelectedDatum(SUMA_ALL_DO *ado, SUMA_OVERLAYS *Sover)
             break;
       }
    }
+//   
+//   // Restore proper threshold contours
+//   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+//   fprintf(stderr, "%s: SO->SurfCont->BoxOutlineThresh = %d\n", FuncName, SO->SurfCont->BoxOutlineThresh);
+//   if (SO->SurfCont->BoxOutlineThresh ){
+//        XtPointer clientData = (XtPointer)ado;
+//        SUMA_RestoreThresholdContours(clientData);
+//   }
 
    SUMA_RETURN(SelectedNode);
 }
@@ -13378,6 +13425,13 @@ SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_ALL_DO *ado)
                   SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
          return(NOPE);
    }
+   
+   // Restore proper threshold contours
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (SO->SurfCont->BoxOutlineThresh ){
+        XtPointer clientData = (XtPointer)ado;
+        SUMA_RestoreThresholdContours(clientData);
+   }
    return(NOPE);
 }
 
@@ -13949,6 +14003,7 @@ SUMA_OVERLAYS * SUMA_ADO_CurColPlane(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_ADO_CurColPlane"};
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL;
 
    fprintf(stderr, "+++++ %s\n", FuncName);
 
@@ -13999,6 +14054,7 @@ SUMA_OVERLAYS * SUMA_ADO_CurColPlane(SUMA_ALL_DO *ado)
       default:
          return(NULL);
    }
+
    return(NULL);
 }
 

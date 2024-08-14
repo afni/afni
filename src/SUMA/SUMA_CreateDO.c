@@ -15197,40 +15197,40 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                colplane->ShowMode == SW_SurfCont_DsetViewCaC ) &&
               colplane->Contours && colplane->N_Contours) {
             /* draw them */
-             fprintf(stderr, "%s: draw them\n", FuncName);
-             fprintf(stderr, "%s: colplane = %p\n", FuncName, colplane);
-             fprintf(stderr, "%s: colplane->N_Contours = %d\n", FuncName, colplane->N_Contours);
+//             fprintf(stderr, "%s: draw them\n", FuncName);
+//             fprintf(stderr, "%s: colplane = %p\n", FuncName, colplane);
+//             fprintf(stderr, "%s: colplane->N_Contours = %d\n", FuncName, colplane->N_Contours);
             for (ic=0; ic<colplane->N_Contours; ++ic) {
                 // fprintf(stderr, "%s: ic = %d\n", FuncName, ic);
                D_ROI = (SUMA_DRAWN_ROI *)colplane->Contours[ic];
                SUMA_LHv("Dset Contouring %d\n", ic);
 
-                 fprintf(stderr, "%s: colplane->Contours[ic] = %p\n", FuncName, colplane->Contours[ic]);
-                 fprintf(stderr, "%s: D_ROI = %p\n", FuncName, D_ROI);
-                 fprintf(stderr, "%s: D_ROI->CE = %p\n", FuncName, D_ROI->CE);
-                 fprintf(stderr, "%s: D_ROI->N_CE = %d\n", FuncName, D_ROI->N_CE);
+//                 fprintf(stderr, "%s: colplane->Contours[ic] = %p\n", FuncName, colplane->Contours[ic]);
+//                 fprintf(stderr, "%s: D_ROI = %p\n", FuncName, D_ROI);
+//                 fprintf(stderr, "%s: D_ROI->CE = %p\n", FuncName, D_ROI->CE);
+//                 fprintf(stderr, "%s: D_ROI->N_CE = %d\n", FuncName, D_ROI->N_CE);
                if (D_ROI->CE && D_ROI->N_CE) {
                   /* Draw the contour */
-                     fprintf(stderr, "%s: SO = %p\n", FuncName, SO);
+                     // fprintf(stderr, "%s: SO = %p\n", FuncName, SO);
                   if (!SO->patchNodeMask) {
-                     fprintf(stderr, "%s: sv = %p\n", FuncName, sv);
+                     // fprintf(stderr, "%s: sv = %p\n", FuncName, sv);
                      glLineWidth(sv->ContThick); /* Changed from horrible '6'
                                  now that glPolygonOffset is used to
                                  allow for proper coplanar line and
                                  polygon rendering.  July 8th 2010 */
-                     fprintf(stderr, "%s: glMaterialfv\n", FuncName);
+                     // fprintf(stderr, "%s: glMaterialfv\n", FuncName);
                      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE,
                                   D_ROI->FillColor);
                      SUMA_LH("Drawing contour ...");
 
                      #if 1 /* Should be a little faster */
                      /* initialize first point down */
-                     fprintf(stderr, "%s: initialize first point down\n", FuncName);
+                     // fprintf(stderr, "%s: initialize first point down\n", FuncName);
                      glBegin(GL_LINE_STRIP);
                      id1cont = 3 * D_ROI->CE[0].n1;
-                      fprintf(stderr, "%s: SO->NodeList = %p\n", FuncName, SO->NodeList);
-                      fprintf(stderr, "%s: SO->N_Node = %d\n", FuncName, SO->N_Node);
-                      fprintf(stderr, "%s: id1cont = %d\n", FuncName, id1cont);
+//                      fprintf(stderr, "%s: SO->NodeList = %p\n", FuncName, SO->NodeList);
+//                      fprintf(stderr, "%s: SO->N_Node = %d\n", FuncName, SO->N_Node);
+//                      fprintf(stderr, "%s: id1cont = %d\n", FuncName, id1cont);
                      if (id1cont < 0 || id1cont >= SO->N_Node*3){
                         fprintf (SUMA_STDERR,
                            "Error %s: Index error for node indices.\n",
@@ -15238,12 +15238,12 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                         id1cont = SO->N_Node*3;
                         SUMA_RETURN(NOPE);
                      }
-                      fprintf(stderr, "%s: id1cont = %d\n", FuncName, id1cont);
+                      // fprintf(stderr, "%s: id1cont = %d\n", FuncName, id1cont);
                      glVertex3f(SO->NodeList[id1cont],
                                 SO->NodeList[id1cont+1],
                                 SO->NodeList[id1cont+2]);
                      i2last = D_ROI->CE[0].n1;
-                      fprintf(stderr, "%s: i2last = %d\n", FuncName, i2last);
+                      // fprintf(stderr, "%s: i2last = %d\n", FuncName, i2last);
                      if (i2last < 0 || i2last >= SO->N_Node*3){
                         fprintf (SUMA_STDERR,
                            "Error %s: Index error for node indices.\n",
@@ -15258,13 +15258,13 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                            glEnd(); /* end lines */
                            glBegin(GL_LINE_STRIP); /* begin again */
                            id1cont = 3 * D_ROI->CE[icont].n1;
-                             fprintf(stderr, "%s: i2last = %d\n", FuncName, i2last);
+                             // fprintf(stderr, "%s: i2last = %d\n", FuncName, i2last);
                            glVertex3f(SO->NodeList[id1cont],
                                       SO->NodeList[id1cont+1],
                                       SO->NodeList[id1cont+2]);
                         }
                         /* put down next vertex */
-                         fprintf(stderr, "%s: put down next vertex\n", FuncName);
+                         // fprintf(stderr, "%s: put down next vertex\n", FuncName);
                         glVertex3f(SO->NodeList[id2cont],
                                    SO->NodeList[id2cont+1],
                                    SO->NodeList[id2cont+2]);
@@ -17852,7 +17852,7 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             }
             /* draw dset contours (only label dset for now) */
             SUMA_LH("Dset contours ");
-            fprintf(stderr, "%s 2: drawing Dset Contour objects\n", FuncName);
+            // fprintf(stderr, "%s 2: drawing Dset Contour objects\n", FuncName);
             if (!SUMA_Draw_SO_Dset_Contours (SurfObj,  sv)) {
                fprintf (SUMA_STDERR,
                         "Error %s: Failed in drawing Dset Contour objects.\n",
@@ -18254,7 +18254,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 
          /* draw dset contours (only label dset for now) */
          SUMA_LH("Dset contours ");
-         fprintf(stderr, "%s 1: drawing Dset Contour objects\n", FuncName);
+         // fprintf(stderr, "%s 1: drawing Dset Contour objects\n", FuncName);
          if (!SUMA_Draw_SO_Dset_Contours (SurfObj,  sv)) {
             fprintf (SUMA_STDERR,
                      "Error %s: Failed in drawing Dset Contour objects.\n",
@@ -21563,7 +21563,7 @@ SUMA_Boolean SUMA_freeDrawnROI (SUMA_DRAWN_ROI *D_ROI)
    SUMA_ENTRY;
    
    if (!D_ROI){
-        fprintf(stderr, "%s: Error: Null D_ROI pointer\n", FuncName);
+        // fprintf(stderr, "%s: Error: Null D_ROI pointer\n", FuncName);
         SUMA_RETURN (NOPE);
    }
    
