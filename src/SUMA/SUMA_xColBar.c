@@ -2868,6 +2868,13 @@ void SUMA_cb_SetLinkMode(Widget widget, XtPointer client_data,
 
    SUMA_UpdateNodeNodeField(ado);
    SUMA_UpdateNodeLblField(ado);
+   
+   // Restore proper threshold contours
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (SO->SurfCont->BoxOutlineThresh ){
+        XtPointer clientData = (XtPointer)ado;
+        SUMA_RestoreThresholdContours(clientData);
+   }
 
    SUMA_RETURNe;
 }
