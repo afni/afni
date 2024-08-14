@@ -1269,6 +1269,13 @@ int SUMA_SwitchColPlaneIntensity(
          }
       }
    }
+   
+   // Restore proper threshold contours
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (SO->SurfCont->BoxOutlineThresh ){
+        XtPointer clientData = (XtPointer)ado;
+        SUMA_RestoreThresholdContours(clientData);
+   }
 
    SUMA_RETURN(1);
 }
@@ -10436,8 +10443,16 @@ void SUMA_optmenu_EV( Widget w , XtPointer cd ,
       SUMA_SLP_Err("wahtchyoutalkinaboutwillis?");
       SUMA_RETURNe;
    }
-   SUMA_RETURNe;
+   
+   // Restore proper threshold contours
+//   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+//   fprintf(stderr, "%s: SO->SurfCont->BoxOutlineThresh = %d\n", FuncName, SO->SurfCont->BoxOutlineThresh);
+//   if (SO->SurfCont->BoxOutlineThresh ){
+//        XtPointer clientData = (XtPointer)ado;
+//        SUMA_RestoreThresholdContours(clientData);
+//   }
 
+   SUMA_RETURNe;
 }
 
 void SUMA_CreateXhairWidgets(Widget parent, SUMA_ALL_DO *ado)
