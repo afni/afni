@@ -439,6 +439,7 @@ void SUMA_IJKInput(void*data);
 SUMA_Boolean SUMA_UpdateTriField(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_ALL_DO *ADO);
 SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ADO);
+void restoreProperThresholdCcontours(SUMA_ALL_DO *ado);
 char **SUMA_FormNodeValFieldStrings(SUMA_ALL_DO *ado, 
                                  SUMA_DSET *dset, int Node,
                                  int find, int tind, int bind, int dec,
@@ -499,6 +500,7 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
                                      SUMA_SurfaceViewer *sv);
 XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w, 
                                  char *fontname, char *tag);
+
 
 /* the help strings */
 

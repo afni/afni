@@ -1231,11 +1231,27 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    SUMA_RETURNe;
 }
 
+void restoreProperThresholdCcontours(SUMA_ALL_DO *ado)
+{
+   static char FuncName[]={"SUMA_SwitchColPlaneIntensity"};
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   XtPointer clientData = (XtPointer)ado;
+
+   SUMA_ENTRY;
+   
+   if (SO->SurfCont->BoxOutlineThresh ){
+        SUMA_RestoreThresholdContours(clientData);
+   }
+
+   SUMA_RETURNe;
+}
+
 int SUMA_SwitchColPlaneIntensity(
          SUMA_ALL_DO *ado,
          SUMA_OVERLAYS *colp,
          int ind, int setmen)
 {
+    // Changes Intensity (I) subbrick
    static char FuncName[]={"SUMA_SwitchColPlaneIntensity"};
    char srange[500];
    double range[2];
@@ -1271,11 +1287,12 @@ int SUMA_SwitchColPlaneIntensity(
    }
    
    // Restore proper threshold contours
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   if (SO->SurfCont->BoxOutlineThresh ){
-        XtPointer clientData = (XtPointer)ado;
-        SUMA_RestoreThresholdContours(clientData);
-   }
+   restoreProperThresholdCcontours(ado);
+//   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+//   if (SO->SurfCont->BoxOutlineThresh ){
+//        XtPointer clientData = (XtPointer)ado;
+//        SUMA_RestoreThresholdContours(clientData);
+//   }
 
    SUMA_RETURN(1);
 }
