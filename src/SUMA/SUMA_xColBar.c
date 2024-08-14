@@ -1704,6 +1704,14 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    }
 
    SUMA_SwitchColPlaneThreshold(ado, curColPlane, imenu -1, 0);
+   
+   // Restore proper threshold contours
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (SO->SurfCont->BoxOutlineThresh ){
+        XtPointer clientData = (XtPointer)ado;
+        SUMA_RestoreThresholdContours(clientData);
+   }
+
    SUMA_RETURNe;
 }
 
@@ -10443,14 +10451,6 @@ void SUMA_optmenu_EV( Widget w , XtPointer cd ,
       SUMA_SLP_Err("wahtchyoutalkinaboutwillis?");
       SUMA_RETURNe;
    }
-   
-   // Restore proper threshold contours
-//   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-//   fprintf(stderr, "%s: SO->SurfCont->BoxOutlineThresh = %d\n", FuncName, SO->SurfCont->BoxOutlineThresh);
-//   if (SO->SurfCont->BoxOutlineThresh ){
-//        XtPointer clientData = (XtPointer)ado;
-//        SUMA_RestoreThresholdContours(clientData);
-//   }
 
    SUMA_RETURNe;
 }
