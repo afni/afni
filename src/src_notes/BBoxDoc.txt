@@ -30,6 +30,118 @@ The following sequence of functions is called when the B checkbox is toggled on.
 +++++ SUMA_ADO_Cont
 +++++ SUMA_TableF_cb_label_Modify
 
+SUMA_cb_BoxOutlineThresh_tb_toggled has the following form.
+
+   // Get relevant overlay (overlay showing thresholded region)
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURNe;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   over2 = SO->Overlays[2];
+   
+   // Determine whether threshold changed
+   BoxOutlineThresh = !BoxOutlineThresh;
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
+   
+   // Set up outlines for thresholded regions
+   setBoxOutlineForThresh(SO, over2, thresholdChanged);
+
+   // Refresh display
+   SUMA_Remixedisplay(ado);
+   SUMA_UpdateNodeLblField(ado);
+-----------------------------------------------------------------------
+
+setBoxOutlineForThresh has the following form.
+
+  if (over2){ // If there are at least three overlay levels (as teh thrid has
+                // the colored region that the threshold relates to)
+    if (SO->SurfCont->BoxOutlineThresh){    // If B box checked
+        // Show threshold outline on topt of color overlay
+        // NB.  This is the basis of the C&C option of the Dsp control on the
+        // surface control menu
+        over2->ShowMode = SW_SurfCont_DsetViewCaC;
+
+         /* kill current contours */
+         // Remove existing conours which will be replaced
+         SUMA_KillOverlayContours(over2);
+         over2->Contours = NULL;
+
+        if (OutlineContours && !thresholdChanged){ // If threshold outline
+                                // contours exist and threshold unchanged
+            over2->Contours = OutlineContours;  // Used existing contuors
+            over2->N_Contours = N_OutlineContours;
+        } else {    // Need new contours
+           // Back up overlay color map
+           size_t bytes2Copy = over2->N_NodeDef*sizeof(float);
+           size_t bytes2Copy2 = 3*over2->N_NodeDef*sizeof(float);
+           if (!(overlayBackup=(float *)malloc(bytes2Copy)) ||
+                !(CMapBackup=(float *)malloc(bytes2Copy2))){
+                if (overlayBackup) free(overlayBackup);
+                fprintf(stderr, "*** %s: Error allocating memory\n", FuncName);
+                SUMA_RETURN (NOPE);
+           }
+           for (i=j=0; i<over2->N_NodeDef; ++i){
+                overlayBackup[i] = over2->V[over2->NodeDef[i]];
+           }
+           memcpy((void *)CMapBackup, (void *)(over2->ColVec), bytes2Copy2);
+
+           // Threshold based on relationship to threshold
+           for (i=j=0; i<over2->N_NodeDef; ++i){
+                over2->V[over2->NodeDef[i]] = 1.0f;
+           }
+
+           // Colorization also forms contours
+           if (!SUMA_ColorizePlane (over2)) {
+                 SUMA_SLP_Err("Failed to colorize plane.\n");
+                 SUMA_RETURN(NOPE);
+            }
+
+           // Restore overlay colormap
+           for (i=0; i<over2->N_NodeDef; ++i){
+                over2->V[over2->NodeDef[i]] = overlayBackup[i];
+           }
+           memcpy((void *)(over2->ColVec), (void *)CMapBackup, bytes2Copy2);
+           free(CMapBackup);
+           free(overlayBackup);
+
+            // Make contours black
+            if (over2→Contours){
+                for (i=0; i<over2->N_Contours; ++i){
+                    for (j=0; j<4; ++j){
+                        // over2->Contours[i]->EdgeColor[j] = 0.0f;
+                        over2->Contours[i]->FillColor[j] = 0.0f;
+                    }
+                    over2->Contours[i]->EdgeThickness = 8;
+                }
+
+                // Save threshold outline contours
+                OutlineContours = over2->Contours;
+                N_OutlineContours = over2->N_Contours;
+            } else {
+                SUMA_SL_Err("ERROR: No contours found\n");
+                SUMA_RETURN (NOPE);
+            }
+        }
+    } else {    // Don't show threshold contours
+        over2->ShowMode = SW_SurfCont_DsetViewCol;
+        over2->Contours = OriginalContours;
+        over2->N_Contours = N_OriginalContours;
+    }
+   }
+
+----------------------------------------------------------
+
+Note that the line
+
+over2->ShowMode = SW_SurfCont_DsetViewCaC;
+
+activates the C&C display mode.  However, changes need to be made in order for the threshold contours to be displayed properly.
+- The C&C contours tend to be based more on surface gradients rather than the thresholds.  Hence, the overlay, at or above the threshold, is set to a single, positive value before the contours are found.  After the contours are found, the overlay colors and values are restored.
+- The C&C contours tend to be the color of the overlay, making them more difficult to see.  Hence, they are colored black.
+
+
+----------------------------------------------------------
+
 When B box is checked, SUMA_SetScaleThr is called and calls SUMA_SetScaleThr_one.
 The threshold sliding bar calls SUMA_cb_set_threshold which calls SUMA_set_threshold.
 The threshold edit box calls SUMA_SetScaleThr which calls SUMA_SetScaleThr_one
