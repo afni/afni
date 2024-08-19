@@ -1224,9 +1224,10 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    if (BoxOutlineThresh) SO->Overlays[2]->OptScl->ThreshRange[0] += 0.0001;
    
    // Restore proper threshold contours
-   if (SO->SurfCont->BoxOutlineThresh ){
-        SUMA_RestoreThresholdContours(clientData);
-   }
+   restoreProperThresholdCcontours(ado);
+//   if (SO->SurfCont->BoxOutlineThresh ){
+//        SUMA_RestoreThresholdContours(clientData);
+//   }
 
    SUMA_RETURNe;
 }
@@ -1288,11 +1289,6 @@ int SUMA_SwitchColPlaneIntensity(
    
    // Restore proper threshold contours
    restoreProperThresholdCcontours(ado);
-//   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-//   if (SO->SurfCont->BoxOutlineThresh ){
-//        XtPointer clientData = (XtPointer)ado;
-//        SUMA_RestoreThresholdContours(clientData);
-//   }
 
    SUMA_RETURN(1);
 }
@@ -1314,6 +1310,8 @@ int SUMA_SwitchColPlaneIntensity_one (
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL;
+   int BoxOutlineThresh;
 
    SUMA_ENTRY;
 
@@ -1327,6 +1325,12 @@ int SUMA_SwitchColPlaneIntensity_one (
    if (  !ado || !SurfCont ||
          !curColPlane ||
          !colp || !colp->dset_link || !colp->OptScl) { SUMA_RETURN(0); }
+   
+   // Temporarily suspend threshold outline.  This appears to resolve the 
+   // problem of the color map changing with the threshold slider
+   SO = (SUMA_SurfaceObject *)ado;
+   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+   SO->SurfCont->BoxOutlineThresh = 0;
 
    if (ind < 0) {
       if (ind == SUMA_BACK_ONE_SUBBRICK) {/* --1 */
@@ -1522,6 +1526,10 @@ int SUMA_SwitchColPlaneIntensity_one (
 
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
+
+   // Restore threshold boundary if necessary.  This is called when the 
+   //   threshold slider is moved
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
 
    SUMA_RETURN(1);
 }
@@ -1723,11 +1731,12 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    SUMA_SwitchColPlaneThreshold(ado, curColPlane, imenu -1, 0);
    
    // Restore proper threshold contours
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   if (SO->SurfCont->BoxOutlineThresh ){
-        XtPointer clientData = (XtPointer)ado;
-        SUMA_RestoreThresholdContours(clientData);
-   }
+   restoreProperThresholdCcontours(ado);
+//   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+//   if (SO->SurfCont->BoxOutlineThresh ){
+//        XtPointer clientData = (XtPointer)ado;
+//        SUMA_RestoreThresholdContours(clientData);
+//   }
 
    SUMA_RETURNe;
 }
@@ -1782,11 +1791,12 @@ int SUMA_SwitchColPlaneBrightness(
    }
    
    // Restore proper threshold contours
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   if (SO->SurfCont->BoxOutlineThresh ){
-        XtPointer clientData = (XtPointer)ado;
-        SUMA_RestoreThresholdContours(clientData);
-   }
+   restoreProperThresholdCcontours(ado);
+//   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+//   if (SO->SurfCont->BoxOutlineThresh ){
+//        XtPointer clientData = (XtPointer)ado;
+//        SUMA_RestoreThresholdContours(clientData);
+//   }
 
    SUMA_RETURN(1);
 }
@@ -2060,10 +2070,11 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
    
    // Restore proper threshold contours
-   if (SO->SurfCont->BoxOutlineThresh ){
-        XtPointer clientData = (XtPointer)ado;
-        SUMA_RestoreThresholdContours(clientData);
-   }
+   restoreProperThresholdCcontours(ado);
+//   if (SO->SurfCont->BoxOutlineThresh ){
+//        XtPointer clientData = (XtPointer)ado;
+//        SUMA_RestoreThresholdContours(clientData);
+//   }
 
    SUMA_RETURNe;
 }
@@ -2241,7 +2252,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    if (!(SO->Overlays)){
     if (SO->SurfCont->AlphaOpacityFalloff){
         fprintf (SUMA_STDERR,
-            "ERROR %s: Cannot make overlay variably opqaue.  There is no overlay.\n", 
+            "WARNING %s: Cannot make overlay variably opaque.  There is no overlay.\n", 
             FuncName);
         // No variable opacity since there is no overlay
         SO->SurfCont->AlphaOpacityFalloff = 0;
@@ -2284,6 +2295,8 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *over2
                 // the colored region that the threshold relates to)
     if (SO->SurfCont->BoxOutlineThresh){    // If B box checked
         // Show threshold outline on topt of color overlay
+        // NB.  This is the basis of the C&C option of the Dsp control on the
+        // surface control menu
         over2->ShowMode = SW_SurfCont_DsetViewCaC; 
 
          /* kill current contours */
@@ -2312,7 +2325,6 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *over2
            
            // Threshold based on relationship to threshold
            for (i=j=0; i<over2->N_NodeDef; ++i){
-                // over2->V[over2->NodeDef[i]] = over2->OptScl->ThreshRange[0];  // TODO:CHANGE THIS VALUE
                 over2->V[over2->NodeDef[i]] = 1.0f;  
            }
            
@@ -2334,7 +2346,6 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *over2
             if (over2->Contours){
                 for (i=0; i<over2->N_Contours; ++i){
                     for (j=0; j<4; ++j){
-                        // over2->Contours[i]->EdgeColor[j] = 0.0f;
                         over2->Contours[i]->FillColor[j] = 0.0f;
                     }
                     over2->Contours[i]->EdgeThickness = 8;
@@ -2361,7 +2372,7 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *over2
 void SUMA_RestoreThresholdContours(XtPointer data)
 {
     // Called when B checkbox toggled
-   static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
+   static char FuncName[]={"SUMA_RestoreThresholdContours"};
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *over2 = NULL;
@@ -2910,11 +2921,12 @@ void SUMA_cb_SetLinkMode(Widget widget, XtPointer client_data,
    SUMA_UpdateNodeLblField(ado);
    
    // Restore proper threshold contours
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   if (SO->SurfCont->BoxOutlineThresh ){
-        XtPointer clientData = (XtPointer)ado;
-        SUMA_RestoreThresholdContours(clientData);
-   }
+   restoreProperThresholdCcontours(ado);
+//   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+//   if (SO->SurfCont->BoxOutlineThresh ){
+//        XtPointer clientData = (XtPointer)ado;
+//        SUMA_RestoreThresholdContours(clientData);
+//   }
 
    SUMA_RETURNe;
 }
@@ -10143,11 +10155,12 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_ALL_DO *ado, char *str)
    }
    
    // Restore proper threshold contours
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   if (SO->SurfCont->BoxOutlineThresh ){
-        XtPointer clientData = (XtPointer)ado;
-        SUMA_RestoreThresholdContours(clientData);
-   }
+   restoreProperThresholdCcontours(ado);
+//   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+//   if (SO->SurfCont->BoxOutlineThresh ){
+//        XtPointer clientData = (XtPointer)ado;
+//        SUMA_RestoreThresholdContours(clientData);
+//   }
 
    SUMA_RETURN(NOPE);
 }
@@ -10271,11 +10284,12 @@ void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data,
    }
    
    // Restore proper threshold contours
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   if (SO->SurfCont->BoxOutlineThresh ){
-        XtPointer clientData = (XtPointer)ado;
-        SUMA_RestoreThresholdContours(clientData);
-   }
+   restoreProperThresholdCcontours(ado);
+//   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+//   if (SO->SurfCont->BoxOutlineThresh ){
+//        XtPointer clientData = (XtPointer)ado;
+//        SUMA_RestoreThresholdContours(clientData);
+//   }
 
    SUMA_RETURNe;
 }
@@ -12841,14 +12855,6 @@ int SUMA_ADO_ColPlane_SelectedDatum(SUMA_ALL_DO *ado, SUMA_OVERLAYS *Sover)
             break;
       }
    }
-//   
-//   // Restore proper threshold contours
-//   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-//   fprintf(stderr, "%s: SO->SurfCont->BoxOutlineThresh = %d\n", FuncName, SO->SurfCont->BoxOutlineThresh);
-//   if (SO->SurfCont->BoxOutlineThresh ){
-//        XtPointer clientData = (XtPointer)ado;
-//        SUMA_RestoreThresholdContours(clientData);
-//   }
 
    SUMA_RETURN(SelectedNode);
 }
@@ -13474,11 +13480,12 @@ SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_ALL_DO *ado)
    }
    
    // Restore proper threshold contours
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   if (SO->SurfCont->BoxOutlineThresh ){
-        XtPointer clientData = (XtPointer)ado;
-        SUMA_RestoreThresholdContours(clientData);
-   }
+   restoreProperThresholdCcontours(ado);
+//   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+//   if (SO->SurfCont->BoxOutlineThresh ){
+//        XtPointer clientData = (XtPointer)ado;
+//        SUMA_RestoreThresholdContours(clientData);
+//   }
    return(NOPE);
 }
 

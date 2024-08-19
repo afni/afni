@@ -14800,10 +14800,9 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
 
    // Set "A" check-box to reflect whether there should be variable overlay 
    //   opacity for this object
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   if (SO && SO->SurfCont && SO->SurfCont->AlphaOpacityFalloff_tb)
-       XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
-                      SO->SurfCont->alphaOpacityModel, YUP);
+   if (SurfCont && SurfCont->AlphaOpacityFalloff_tb)
+       XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+                      SurfCont->alphaOpacityModel, YUP);
 
    SUMA_RETURNe;
 }
