@@ -1,0 +1,210 @@
+﻿+++++ SUMA_optmenu_EV
++++++ SUMA_cb_SwitchCmap
++++++ SUMA_SwitchCmap
++++++ SUMA_SwitchCmap_one
++++++ SUMA_SwitchColPlaneCmap
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_cmap_wid_handleRedisplay
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_cmap_wid_display
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_DrawCmap
++++++ SUMA_ADO_idcode
++++++ SUMA_Overlays_2_GLCOLAR4
++++++ SUMA_set_threshold
++++++ SUMA_set_threshold_one
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_idcode
++++++ SUMA_Overlays_2_GLCOLAR4
+SUMA_Overlays_2_GLCOLAR4_SO: SUMAg_CF = 0x5e93d3f55990
+SUMA_Overlays_2_GLCOLAR4_SO: SUMAg_CF->X = 0x5e93d3f3f980
++++++ SUMA_set_threshold_label
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_TableF_cb_label_Modify
++++++ SUMA_UpdatePvalueField
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_UpdateNodeValField
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_UpdatePvalueField
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_set_threshold
++++++ SUMA_set_threshold_one
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_idcode
++++++ SUMA_Overlays_2_GLCOLAR4
+SUMA_Overlays_2_GLCOLAR4_SO: SUMAg_CF = 0x5e93d3f55990
+SUMA_Overlays_2_GLCOLAR4_SO: SUMAg_CF->X = 0x5e93d3f3f980
++++++ SUMA_set_threshold_label
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_TableF_cb_label_Modify
++++++ SUMA_UpdatePvalueField
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_UpdateNodeValField
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_UpdatePvalueField
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_set_threshold
++++++ SUMA_set_threshold_one
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_idcode
++++++ SUMA_Overlays_2_GLCOLAR4
+SUMA_Overlays_2_GLCOLAR4_SO: SUMAg_CF = 0x5e93d3f55990
+SUMA_Overlays_2_GLCOLAR4_SO: SUMAg_CF->X = 0x5e93d3f3f980
++++++ SUMA_set_threshold_label
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_TableF_cb_label_Modify
++++++ SUMA_UpdatePvalueField
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_UpdateNodeValField
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_UpdatePvalueField
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_CurColPlane
+SUMA_Overlays_2_GLCOLAR4_SO: SUMAg_CF = 0x5e93d3f55990
+SUMA_Overlays_2_GLCOLAR4_SO: SUMAg_CF->X = 0x5e93d3f3f980
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_RestoreThresholdContours
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ setBoxOutlineForThresh
++++++ SUMA_ADO_idcode
++++++ SUMA_Overlays_2_GLCOLAR4
+SUMA_Overlays_2_GLCOLAR4_SO: SUMAg_CF = 0x5e93d3f55990
+SUMA_Overlays_2_GLCOLAR4_SO: SUMAg_CF->X = 0x5e93d3f3f980
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_RestoreThresholdContours
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ setBoxOutlineForThresh
++++++ SUMA_ADO_idcode
++++++ SUMA_Overlays_2_GLCOLAR4
+SUMA_Overlays_2_GLCOLAR4_SO: SUMAg_CF = 0x5e93d3f55990
+SUMA_Overlays_2_GLCOLAR4_SO: SUMAg_CF->X = 0x5e93d3f3f980
++++++ SUMA_UpdateNodeLblField
++++++ SUMA_UpdateNodeLblField_ADO
++++++ SUMA_ADO_Cont
++++++ SUMA_ADO_Cont: ado->do_type = 1
++++++ SUMA_ADO_SelectedSecondary
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_GetLabelsAtSelection_ADO
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_FormNodeValFieldStrings
++++++ SUMA_ADO_Max_Datum_Index_Lev
++++++ SUMA_ADO_CurColPlane
++++++ SUMA_ADO_ColPlane_SelectedDatum
++++++ SUMA_ADO_SelectedDatum
++++++ SUMA_leave_TableField
++++++ SUMA_leave_TableField
+
