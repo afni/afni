@@ -105,6 +105,10 @@ process options:
       This program can be used as a pipe for input and output, using '-'
       or file stream names.
 
+   -infiles_json JSON1 ... : specify JSON text files (= dictionaries) to
+                          process, and make a table based on all of
+                          the keys in these files.
+
    -overwrite           : overwrite the output -write_table, if it exists
 
       Without this option, an existing -write_table will not be overwritten.
@@ -150,6 +154,15 @@ process options:
       Use this option to specify the separation character or string between
       the labels and values of the input files.
 
+   -join_values GLUE    : concatenate multi-valued values with string GLUE
+
+      This only affects values that have multiple entries (like 3
+      dimensions of a voxel).
+
+      If using, make sure that GLUE contents do not coincide with
+      table separator, or you will end up with a sticky situation
+      (default = None, meaning multiple values go to separate columns).
+                          
    -showlabs            : display counts of all labels found, with parents
 
       This is mainly to help create a list of labels and parent labels.
@@ -311,9 +324,10 @@ g_history = """
    1.5  Feb 15, 2022   - added -show_keepers and display SHOW_KEEP
    1.6  Aug 31, 2022   - [pt] added -infiles_json and JSON-reading support
    1.7  Mar 21, 2024   - allow ANY or ANY0 for a field choice
+   1.8  Aug 07, 2024   - [pt] new opt -join_values, for JG-C
 """
 
-g_version = "gen_ss_review_table.py version 1.7, March 21, 2024"
+g_version = "gen_ss_review_table.py version 1.8, Aug 07, 2024"
 
 
 class MyInterface:
@@ -332,6 +346,7 @@ class MyInterface:
       # control
       self.valid_out_seps  = ['space', 'comma', 'tab']
       self.separator       = ':'# input field separator (only first applies)
+      self.join_vals       = None # if not None, a str to glue values 
       self.seplen          = 1  # length, to avoid recomputing
       self.out_sep         = '\t'# output field separator
       self.ev_outlier      = 0  # flag to treat empty test values as outliers
@@ -397,6 +412,8 @@ class MyInterface:
                     helpstr='how to format column headers')
       vopts.add_opt('-separator', 1, [],
                     helpstr="specify field separator (default=':')")
+      vopts.add_opt('-join_values', 1, [],
+                    helpstr="specify string to join values (default=None)")
       vopts.add_opt('-outlier_sep', 1, [],
                     helpstr="output field separator (default=tab)")
       vopts.add_opt('-showlabs', 0, [],
@@ -496,6 +513,16 @@ class MyInterface:
             if   self.separator == 'tab': self.separator = '\t'
             elif self.separator == 'whitespace': self.separator = 'ws'
             self.seplen = len(self.separator)
+
+         elif opt.name == '-join_values':
+            self.join_vals, err = uopts.get_string_opt('', opt=opt)
+            if self.join_vals == None or err:
+               print("** bad -join_vals option")
+               errs += 1
+            if   self.join_vals == 'tab'   : self.join_vals = '\t'
+            elif self.join_vals == 'comma' : self.join_vals = ','
+            elif self.join_vals == 'space' : self.join_vals = ' '
+            elif self.join_vals == 'None'  : self.join_vals = None
 
          elif opt.name == '-outlier_sep':
             self.out_sep, err = uopts.get_string_opt('', opt=opt)
@@ -624,7 +651,11 @@ class MyInterface:
             for lkey in ldict.keys() :
                lvalue = ldict[lkey]
                if type(lvalue) == list :
-                  ldict[lkey] = [str(x) for x in lvalue]
+                  if self.join_vals is not None :
+                     l1 = [str(x) for x in lvalue]
+                     ldict[lkey] = [(self.join_vals).join(l1)]
+                  else:
+                     ldict[lkey] = [str(x) for x in lvalue]
                else:
                   ldict[lkey] = [str(lvalue)]
 
@@ -758,6 +789,10 @@ class MyInterface:
 
          label = line[0:cind].strip()
          vals = line[cind+self.seplen:].split()
+
+      # glue together multiple values, for troublesome users
+      if self.join_vals is not None :
+         vals = [(self.join_vals).join(vals)]
 
       if self.verb > 4:
          print('-- GLV: label %s, vals %s' % (label, vals))

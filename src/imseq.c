@@ -4931,7 +4931,7 @@ ENTRY("ISQ_saver_CB") ;
                pattrn=getenv("AFNI_MPEG_PATTERN")  ;
                if( pattrn == NULL ){                  /* 07 Apr 2009 */
                  /* by default use only I-frames */
-                 if( adup <= 1 ) pattrn="-intra";
+                 if( adup <= 1 ) pattrn="-g 1";   /* -intra deprecated 2024*/
                  /* otherwise go with ffmpegs default */
                  else pattrn="";
                }
@@ -14485,7 +14485,7 @@ ENTRY("ISQ_save_anim") ;
         pattrn=getenv("AFNI_MPEG_PATTERN")  ;
         if( pattrn == NULL ){
             /* by default use only I-frames */
-            if( adup <= 1 ) pattrn="-intra";
+            if( adup <= 1 ) pattrn="-g 1";   /* -intra deprecated 2024*/
             /* otherwise go with ffmpegs default */
             else pattrn="";
         }

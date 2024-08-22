@@ -11492,7 +11492,6 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_ALL_DO *ado)
    
    // SUMA_RETURN(NOPE);   
 
-   fprintf(stderr, "%s: SO_type = %d\n", FuncName, SO_type);
    switch (ado->do_type) {
       case SO_type:
          SUMA_RETURN(SUMA_Init_SurfCont_SurfParam_SO((SUMA_SurfaceObject *)ado));
@@ -14742,9 +14741,9 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
 
    // Set "A" check-box to reflect whether there should be variable overlay 
    //   opacity for this object
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
-                  SO->SurfCont->alphaOpacityModel, YUP);
+   if (SurfCont && SurfCont->AlphaOpacityFalloff_tb)
+       XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+                      SurfCont->alphaOpacityModel, YUP);
 
    SUMA_RETURNe;
 }

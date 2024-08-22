@@ -74,6 +74,7 @@ int Syntax(TFORM targ, int detail)
 "   -is_atlas: 1 if dset is an atlas.\n"
 "   -is_atlas_or_labeltable: 1 if dset has an atlas or has a labeltable.\n"
 "   -is_nifti: 1 if dset is NIFTI format, 0 otherwise\n"
+"   -is_slice_timing_nz: is there slice timing, and is it not uniformly 0\n"
 "   -dset_extension: show filename extension for valid dataset (e.g. .nii.gz)\n"
 "   -storage_mode: show internal storage mode of dataset (e.g. NIFTI)\n"
 "   -space: dataset's space\n"
@@ -353,7 +354,7 @@ typedef enum {
    ADI, ADJ, ADK, 
    DCX, DCY, DCZ,
    LTABLE, LTABLE_AS_ATLAS_POINT_LIST, ATLAS_POINTS,
-   SLICE_TIMING,
+   SLICE_TIMING, IS_SLICE_TIMING_NZ,
    FAC, DATUM, LABEL,
    MIN, MAX, MINUS, MAXUS,
    DMIN, DMAX, DMINUS, DMAXUS,
@@ -385,7 +386,7 @@ char Field_Names[][32]={
    {"ADi"}, {"ADj"}, {"ADk"}, 
    {"DCx"}, {"DCy"}, {"DCz"},
    {"label_table"}, {"LT_as_atlas_point_list"}, {"atlas_point_list"},
-   {"slice_timing"},
+   {"slice_timing"}, {"is_slice_timing_nz"},
    {"factor"}, {"datum"}, {"label"},
    {"min"}, {"max"}, {"minus"}, {"maxus"},
    {"dmin"}, {"dmax"}, {"dminus"}, {"dmaxus"},
@@ -733,6 +734,8 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = SAME_OBL; needpair = 1; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-slice_timing") == 0) {
          sing[N_sing++] = SLICE_TIMING; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-is_slice_timing_nz") == 0) {
+         sing[N_sing++] = IS_SLICE_TIMING_NZ; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-sval_diff") == 0) {
          sing[N_sing++] = SVAL_DIFF; needpair = 1; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-val_diff") == 0) {
@@ -1360,6 +1363,20 @@ int main( int argc , char *argv[] )
                      fprintf(stdout,"%s%f", (isb > 0) ? sbdelim : "", 0.0);
                   }
                }
+            }
+            break;
+         case IS_SLICE_TIMING_NZ:     /* 15 Aug 2024 [pt] */
+            {
+               int istnz = 0;
+               // first, *is* there slice timing information?
+               if( DSET_HAS_SLICE_TIMING(dset) ) {
+                  DSET_UNMSEC(dset); /* make sure times are in seconds */
+                  // then, verify having >=1 nonzero slice_timing value
+                  for (isb=0; isb<dset->taxis->nsl; ++isb) 
+                     if ( dset->taxis->toff_sl[isb] )
+                        istnz = 1;
+               } 
+               fprintf(stdout,"%d", istnz);
             }
             break;
          case SVAL_DIFF:

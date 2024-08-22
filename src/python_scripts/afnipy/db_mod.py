@@ -1183,10 +1183,15 @@ def db_cmd_blip(proc, block):
 
    blip_interp = '-quintic'
 
-   cmd =  "# %s\n" % block_header('blip')
-   cmd += '# compute blip up/down non-linear distortion correction for EPI\n\n'
+   # note the goal here, for the comment string
+   if proc.blip_dset_warp is not None:
+      taskstr = 'apply'
+   else:
+      taskstr = 'compute blip up/down'
 
-   # rcr todo: apply option -blip_warp_dset
+   cmd =  "# %s\n" % block_header('blip')
+   cmd += '# %s non-linear EPI distortion correction\n\n' \
+          % taskstr
 
    # -----------------------------------------------------------------
    # actually compute the transformation (or else it was input)
@@ -1194,7 +1199,7 @@ def db_cmd_blip(proc, block):
       bcmd = compute_blip_xform(proc, block, interp=blip_interp)
       if bcmd == '': return ''
    else:
-      bcmd = '\n# nothing to do: have external -blip_warp_dset %s\n\n' \
+      bcmd = '\n# no computation to do: have external -blip_warp_dset %s\n\n' \
              % proc.blip_dset_warp.shortinput()
    cmd += bcmd
 
@@ -9445,7 +9450,7 @@ Basic script outline: ~1~
    - copy all inputs to new 'results' directory
    - process data: e.g. despike,tshift/align/tlrc/volreg/blur/scale/regress
    - leave all (well, most) results there, so user can review processing
-   - create @ss_review scripts to help user with basic quality control
+   - create quality control data (APQC HTML page, ss_review_scripts, etc.)
 
 The exact processing steps are controlled by the user, including which main
 processing blocks to use, and their order.  See the 'DEFAULTS' section for
@@ -9478,6 +9483,7 @@ line, even if using -ask_me.  See "-ask_me EXAMPLES", below.
 SECTIONS: order of sections in the "afni_proc.py -help" output ~1~
 
     program introduction    : (above) basic overview of afni_proc.py
+    SETTING UP AN ANALYSIS  : a guide for getting started
     PROCESSING BLOCKS       : list of possible processing blocks
     DEFAULTS                : basic default operations, per block
     EXAMPLES                : various examples of running this program
@@ -9493,6 +9499,135 @@ SECTIONS: order of sections in the "afni_proc.py -help" output ~1~
         informational       : options to get quick info and quit
         general execution   : options not specific to a processing block
         block options       : specific to blocks, in default block order
+
+==================================================
+SETTING UP AN ANALYSIS: ~1~
+
+For those new to using afni_proc.py, it is very helpful to start with an
+example that is similar to what you want to do, generally taken from the help
+examples (afni_proc.py -show_example_names) or prior publication.
+
+Once satisfied with a single application of afni_proc.py, one would then loop
+over subjects by running afni_proc.py on each, using subject variables to refer
+to the individual set of input data and the output subject ID.
+
+Starting up, there is a general set of choices that is good to consider:
+
+   a. type of analysis:    task or rest/naturalistic
+   b. domain of analysis:  volume or surface (possibly either as ROI)
+   c. main input data:     anat, EPI runs (single or multi-echo), task timing,
+                           surfaces and surface anatomical
+   d. extra input data:    NL distortion warp, NL template warp, blip dsets,
+                           ROI imports, anat followers, physio regressors,
+                           external registration base (for volreg or anat),
+                           external motion files, censor list, extra regressors
+   e. processing blocks:   main EPI processing blocks and their order
+                         - see "PROCESSING BLOCKS"
+   f. optional processing: physio regression, tedana, ANATICOR, ROI regression,
+                           bandpassing
+   g. main options:        template, blur level (if any), censor levels,
+                           EPI/anat cost and other alignment options
+   h. other options:       there are many, e.g.: motion regressors, bandpass,
+                           ANATICOR, and many that are specific to QC
+
+   ----------
+
+   a. type of analysis
+
+      For a task analysis, one provides stimulus timing files and corresponding
+      modeling options.  This is a large topic that centers on the use of
+      3dDeconvolve.
+
+      Options for task analysis generally start with -regress, as they pertain
+      to the regress block.  However one generally includes a regress block in
+      any analysis (even partial ones, such as for alignment), as it is the
+      gateway to the APQC HTML report.
+
+   b. domain of analysis
+
+      For a surface analysis, one provides a SUMA spec file per hemisphere,
+      along with a surface anatomical dataset.  Mapping from the volume to the
+      surface generally happens soon after all volumetric registration is done,
+      and importantly, before any blur block.  Restricting blurring to the
+      surface is one of the reasons to perform such an analysis.
+
+      In a surface analysis, no volumetric template or tlrc options are given.
+      Surface analysis is generally performed on SUMA's standard meshes, though
+      it need not be.
+
+      An ROI analysis is generally performed as a typical volume or surface
+      analysis, but without any applied blurring (which effectively happens
+      later, when averaging over the ROIs).
+
+   c. main input data
+
+      EPI datasets are required, for one or more runs and one or more echoes.
+      Anything else is optional.
+
+      Typically one also includes a subject anatomy, any task timing files, and
+      surface datasets (spec files an anatomy) if doing a surface analysis.
+
+   d. extra input data
+
+      It is common to supply a non-linear transformation warp dataset (from
+      sswarper) to apply for anatomy->template alignment.  One might also have
+      a pre-computed non-linear B0 distortion map or reverse phase encoding
+      (blip) dataset, ROIs or other anatomical followers or physiological
+      regressors.  An EPI base dataset might be provided to align the EPI to,
+      and possibly one to guide alignment to the subject anatomical dataset.
+
+      Precomputed motion parameter files could be provided (if skipping the
+      volreg block), as well as an external censor time series or precomputed
+      regressors (of interest or not).
+
+      These extra inputs will affect use of other options.
+
+   e. processing blocks
+
+      As described in the "PROCESSING BLOCKS" section, one can specify an
+      ordered list of main processing blocks.  The order of the listed blocks
+      will determine their order in the processing script.  Of course, for a
+      given set of blocks, there is typically a preferred order.
+
+      Options specific to one block will generally start with that block name.
+      For example, the -regress_* options apply to the regress block.
+
+      It is logically clear (but not necessary) to provide block options in the
+      same chronological order as the blocks.
+
+   f. optional processing
+
+      Optional processing might include things like:
+        - physiological noise regression, based on use of physio_calc.py
+        - tedana, or a variant, for use in combining multi-echo time series
+        - ANATICOR (local white matter regression)
+        - ROI regression (averages or principle components)
+        - bandpassing (low pass, high pass, or single or multiple bands)
+
+   g. main options
+
+      One typically provides:
+        - a template (and accompanying non-linear anat to template
+          transformation datasets)
+        - an amount to blur (or a choice to not blur, as would apply to an ROI
+          analysis), or a level to blur _to_
+        - censor levels (for outliers or the Euclidean norm of the motion
+          parameters)
+        - alignment options, such as the cost function for align_epi_anat.py
+          and a local EPI unifize option - there are many options to control
+          many aspects of registration
+        - many quality control options are also considered appropriate for
+          consistent use
+
+   h. other options
+
+      Each step of processing has many control options around it.  It is
+      important to think through what might be appropriate for the data in
+      question.
+
+      No one analysis fits all data.
+
+      Quality control "options" are not really considered optional.
 
 ==================================================
 PROCESSING BLOCKS (of the output script): ~1~
@@ -9810,7 +9945,7 @@ EXAMPLES (options can be provided in any order): ~1~
 
           EPI  ->  EPI base  ->  anat  ->  MNI 2009 template
 
-       The standard space transformation is applied to the EPI due to 
+       The standard space transformation is applied to the EPI due to
        specifying -volreg_tlrc_warp.
 
        A 4 mm blur is applied, to keep it very light (about 1.5 times the
@@ -9879,7 +10014,7 @@ EXAMPLES (options can be provided in any order): ~1~
              -regress_est_blur_epits                                  \\
              -regress_est_blur_errts                                  \\
              -regress_run_clustsim no                                 \\
-             -execute 
+             -execute
 
      * One could also use ANATICOR with task (e.g. -regress_anaticor_fast)
        in the case of -regress_reml_exec.  3dREMLfit supports voxelwise
