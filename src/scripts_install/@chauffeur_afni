@@ -354,8 +354,11 @@
 #    + [PT] add more fields to output pbar info, for APQC/NiiVue
 #         + left/left and left/post info
 #
-set version   = "6.7";   set rev_dat   = "Mar 19, 2024"
+#set version   = "6.7";   set rev_dat   = "Mar 19, 2024"
 #    + [PT] new opt c2s_mont_1x1 so script has 1x1 montages
+#
+set version   = "6.8";   set rev_dat   = "Aug 26, 2024"
+#    + [PT] add subbrick selection to AMASK_FOCUS_ULAY functionality
 #
 # =====================================================================
 
@@ -1298,6 +1301,12 @@ endif
 # should have no affect-- fine
 # ---> will have to be updated if applying obliquity
 set ulay_refbox = "${ulay}"
+# [PT: Aug 26, 2024] if using a 4D ulay (like SSW dset), might want
+# just the single, specified volume for automasking, which the next IF
+# condition does.
+if ( "${subbb[1]}" != "-1" ) then
+    set ulay_refbox = "${ulay}[${subbb[1]}]"
+endif
 
 # check blowup factor
 set check_list = ( `seq 1 1 8` )
