@@ -232,7 +232,7 @@ message = "Getting Info: "
 pb_len = lib_discoFunc.prog_bar_len(message,len(stats_dsets)-1)
 
 ## run 3dinfo to get the requested info
-## start at 1 beacuse of the header
+## start at 1 because of the header
 for i in lib_discoFunc.progressbar(range(1,len(stats_dsets)),message,pb_len):
     info_cmd = "3dinfo "+info_req+' '+stats_dsets[i]
     thd_info = subprocess.check_output(info_cmd,shell=True)
