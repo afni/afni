@@ -793,9 +793,10 @@ g_history = """
        - thanks to zhengchencai on MB for pointing it out
        - remove unneeded followers from example 'publish 3d'
     7.78 Aug  5, 2024: add option -blip_warp_dset to input a computed warp
+    7.79 Aug 26, 2024: minor updates to example comments and directory names
 """
 
-g_version = "version 7.78, Aug 5, 2024"
+g_version = "version 7.79, Aug 26, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

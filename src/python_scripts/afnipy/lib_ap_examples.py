@@ -1913,10 +1913,15 @@ def egs_publish():
    examples.append( APExample('AP publish 1',
      source='AFNI_demos',
      descrip='pamenc, ds000030.v16 parametric encoding task analysis.',
-     moddate='2020.02.10',
+     moddate='2024.08.26',
      keywords=['complete', 'publish', 'task'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
+
+           While this example is reasonable, 'publish 3b' has more QC options,
+           as well as updates for anat/EPI alignment and grid size.
+
+           Events are modeled using duration modulation, so AM1 is applied.
 
            original analysis was from:
                Gorgolewski KJ, Durnez J and Poldrack RA.
@@ -1980,7 +1985,8 @@ def egs_publish():
      header="""
               (recommended?  yes, reasonable for a complete analysis)
 
-           An amplitude modulation task analysis.
+           An amplitude modulation task analysis.  AM1 is used for NoResp
+           merely to consistently apply duration modulation.
             """,
      trailer=""" """,
      olist = [
@@ -2075,10 +2081,10 @@ def egs_publish():
      olist = [
         ['-subj_id',                 ['sub-005.eg1']],
         ['-blocks',                  ['align', 'tlrc', 'volreg', 'regress']],
-        ['-copy_anat',               ['sswarper/anatSS.sub-005.nii']],
+        ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
         ['-anat_has_skull',          ['no']],
         ['-anat_follower',           ['anat_w_skull', 'anat',
-                                      'sswarper/anatU.sub-005.nii']],
+                                      'ssw/anatU.sub-005.nii']],
         ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
         ['-blip_forward_dset',       ['func/sub-005_blip-match.nii.gz[0]']],
         ['-blip_reverse_dset',       ['func/sub-005_blip-opp.nii.gz[0]']],
@@ -2088,9 +2094,9 @@ def egs_publish():
                                       '-check_flip']],
         ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
         ['-tlrc_NL_warp',            []],
-        ['-tlrc_NL_warped_dsets',    ['sswarper/anatQQ.sub-005.nii',
-                                      'sswarper/anatQQ.sub-005.aff12.1D',
-                                      'sswarper/anatQQ.sub-005_WARP.nii']],
+        ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                      'ssw/anatQQ.sub-005.aff12.1D',
+                                      'ssw/anatQQ.sub-005_WARP.nii']],
         ['-volreg_align_to',         ['MIN_OUTLIER']],
         ['-volreg_align_e2a',        []],
         ['-volreg_tlrc_warp',        []],
@@ -2120,7 +2126,7 @@ def egs_publish():
             - voxelwise scaling to percent signal change
             - linear regression of task events using duration modulation with
               the BLOCK basis function (dmUBLOCK(-1)), where the ideal response
-              height is unit for a 1 s event
+              height is unit for a 1 s event; stim_type AM1 is required here
             - censoring time points where motion exceeds 0.3 mm or the outlier
               fraction exceeds 5%
             - regression is performed by 3dREMLfit, accounting for voxelwise
@@ -2577,10 +2583,10 @@ def egs_demo():
                                       'volreg', 'mask', 'blur', 'scale',
                                       'regress']],
         ['-radial_correlate_blocks', ['tcat', 'volreg']],
-        ['-copy_anat',               ['sswarper/anatSS.sub-005.nii']],
+        ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
         ['-anat_has_skull',          ['no']],
         ['-anat_follower',           ['anat_w_skull', 'anat',
-                                      'sswarper/anatU.sub-005.nii']],
+                                      'ssw/anatU.sub-005.nii']],
         ['-anat_follower_ROI',       ['aaseg', 'anat',
                                       'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
         ['-anat_follower_ROI',       ['aeseg', 'epi',
@@ -2595,9 +2601,9 @@ def egs_demo():
                                       '-check_flip']],
         ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
         ['-tlrc_NL_warp',            []],
-        ['-tlrc_NL_warped_dsets',    ['sswarper/anatQQ.sub-005.nii',
-                                      'sswarper/anatQQ.sub-005.aff12.1D',
-                                      'sswarper/anatQQ.sub-005_WARP.nii']],
+        ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                      'ssw/anatQQ.sub-005.aff12.1D',
+                                      'ssw/anatQQ.sub-005_WARP.nii']],
         ['-volreg_align_to',         ['MIN_OUTLIER']],
         ['-volreg_align_e2a',        []],
         ['-volreg_tlrc_warp',        []],
@@ -2666,10 +2672,10 @@ def egs_demo():
                                       'mask', 'combine', 'surf', 'blur',
                                       'scale', 'regress']],
         ['-radial_correlate_blocks', ['tcat', 'volreg']],
-        ['-copy_anat',               ['sswarper/anatSS.sub-005.nii']],
+        ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
         ['-anat_has_skull',          ['no']],
         ['-anat_follower',           ['anat_w_skull', 'anat',
-                                      'sswarper/anatU.sub-005.nii']],
+                                      'ssw/anatU.sub-005.nii']],
         ['-anat_follower_ROI',       ['aaseg', 'anat',
                                       'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
         ['-anat_follower_ROI',       ['aeseg', 'epi',
