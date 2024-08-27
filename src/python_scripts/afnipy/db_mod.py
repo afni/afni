@@ -14488,8 +14488,11 @@ OPTIONS:  ~2~
 
             e.g. -mask_import Tvent template_ventricle_3mm+tlrc
 
+      * Note: -ROI_import basically makes -mask_import unnecessary.
+
         Use this option to import a mask that is aligned with the final
-        EPI data _and_ is on the final grid.
+        EPI data _and_ is on the final grid (with -ROI_import, the ROI will
+        be resampled onto the final grid).
 
             o  this might be based on the group template
             o  this should already be resampled appropriately
@@ -14509,8 +14512,9 @@ OPTIONS:  ~2~
             -mask_union WM_vent Svent WMe                  \\
             -regress_ROI_PC WM_vent 3                      \\
 
-        See also -regress_ROI, -regress_ROI_PC, -regress_make_corr_vols,
-                 -regress_anaticor_label, -mask_intersect, -mask_union.
+        See also -ROI_import, -regress_ROI, -regress_ROI_PC,
+                 -regress_make_corr_vols, -regress_anaticor_label,
+                 -mask_intersect, -mask_union.
 
     -mask_intersect NEW_LABEL MASK_A MASK_B : intersect 2 masks
 
@@ -14858,7 +14862,7 @@ OPTIONS:  ~2~
         Any known label made via those options may be used.
 
         See also -mask_segment_anat, -mask_segment_erode, -regress_ROI_PC,
-            -anat_follower_ROI.
+            -anat_follower_ROI, -ROI_import.
 
     -regress_anaticor_radius RADIUS : specify RADIUS for local WM average
 
@@ -15427,10 +15431,11 @@ OPTIONS:  ~2~
            (over masked voxels).
 
         The labels specified can be from any ROI mask, such as those coming
-        via -anat_follower_ROI, -regress_ROI_PC, or from the automatic
-        masks from -mask_segment_anat.
+        via -ROI_import, -anat_follower_ROI, -regress_ROI_PC, or from the
+        automatic masks from -mask_segment_anat.
 
-        See also -anat_follower_ROI, -regress_ROI_PC, -mask_segment_anat.
+        See also -ROI_import, -anat_follower_ROI, -regress_ROI_PC,
+                 -mask_segment_anat.
 
     -regress_mot_as_ort yes/no : regress motion parameters using -ortvec
 
@@ -15922,13 +15927,13 @@ OPTIONS:  ~2~
             WM      white matter    mask_WM_resam     3dSeg -> Classes
             WMe     white (eroded)  mask_WMe_resam    3dSeg -> Classes
 
-        Other ROI labels can come from -anat_follower_ROI options, i.e.
-        imported masks.
+        Other ROI labels can come from -anat_follower_ROI or -ROI_import
+        options, i.e. imported masks.
 
       * Use of this option requires either -mask_segment_anat or labels
-        defined via -anat_follower_ROI options.
+        defined via -anat_follower_ROI or -ROI_import options.
 
-        See also -mask_segment_anat/_erode, -anat_follower_ROI.
+        See also -mask_segment_anat/_erode, -anat_follower_ROI, -ROI_import.
         Please see '3dSeg -help' for more information on the masks.
 
     -regress_ROI_PC LABEL NUM_PC    : regress out PCs within mask
@@ -15942,30 +15947,39 @@ OPTIONS:  ~2~
           - LABEL   : the class label given to this set of regressors
           - NUM_PC  : the number of principal components to include
 
-        The LABEL can apply to something defined via -mask_segment_anat
-        maybe with -mask_segment_erode, or from -anat_follower_ROI
-        (assuming 'epi' grid), or 'brain' (full_mask).  The -mask_segment*
-        options define ROI labels implicitly (see above), while the user
-        defines ROI labels in any -anat_follower_ROI options.
+        The LABEL can apply to something defined via -mask_segment_anat or
+        -anat_follower_ROI (assuming 'epi' grid), and possibly eroded via
+        -mask_segment_erode.  LABELs can also come from -ROI_import options,
+        or be simply 'brain' (defined as the final EPI mask).
+     
+        The -mask_segment* options define ROI labels implicitly (see above),
+        while the user defines ROI labels in any -anat_follower_ROI or
+        -ROI_import options.
 
-        Method (including 'follower' steps):
+        Method (mask alignment, including 'follower' steps):
 
-          If -anat_follower_ROI is used to define the label, then the
-          follower ROI steps would first be applied to that dataset.
+          The follower steps apply to only -anat_follower* datasets, not to
+          -ROI_import, -mask_import or -mask_segment_anat.
+
+          If -ROI_import is used to define the label, then the follower steps
+          do not apply, the ROI is merely resampled onto the final EPI grid.
 
           If ROIs are created 'automatically' via 3dSeg (-mask_segment_anat)
           then the follower steps do not apply.
 
-          F1. if requested (-anat_follower_erode) erode the ROI mask
-          F2. apply all anatomical transformations to the ROI mask
-              a. catenate all anatomical transformations
-                 i.   anat to EPI?
-                 ii.  affine xform of anat to template?
-                 iii. subsequent non-linear xform of anat to template?
-              b. sample the transformed mask on the EPI grid
-              c. use nearest neighbor interpolation, NN
+          If -anat_follower_ROI is used to define the label, then the
+          follower ROI steps would first be applied to that dataset:
 
-       Method (post-mask alignment):
+             F1. if requested (-anat_follower_erode) erode the ROI mask
+             F2. apply all anatomical transformations to the ROI mask
+                 a. catenate all anatomical transformations
+                    i.   anat to EPI?
+                    ii.  affine xform of anat to template?
+                    iii. subsequent non-linear xform of anat to template?
+                 b. sample the transformed mask on the EPI grid
+                 c. use nearest neighbor interpolation, NN
+
+        Method (post-mask alignment):
 
           P1. extract the top NUM_PC principal components from the volume
               registered EPI data, over the mask
