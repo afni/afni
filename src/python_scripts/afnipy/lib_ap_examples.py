@@ -21,6 +21,7 @@ import copy
 #       - trailer (after  the example in verbose -help output)
 #       - keywords = []; e.g. 'obsolete', 'complete', 'registration'. 'ME',
 #                             'surface', 'rest', 'task', 'physio'
+#                             ('noshow' : default to not showing with help)
 # ----------------------------------------------------------------------
 
 
@@ -354,11 +355,13 @@ def get_all_examples():
    return examples
 
 
-def populate_examples(keys_keep=[], keys_rm=[], verb=1):
+def populate_examples(keys_keep=[], keys_rm=['noshow'], verb=1):
    """only populate the examples array if someone wants it
 
         keys_keep : if not empty, keep only entries with any of these keywords
         keys_rm   : if not empty, remove entries with any of these keywords
+                    - default to 'noshow', those examples not shown by default
+                      with the -help output
 
       populate the global ap_examples array from some of the egs_* functions
    """
@@ -378,7 +381,7 @@ def populate_examples(keys_keep=[], keys_rm=[], verb=1):
       show_example_keywords(examples, mesg='initial examples')
 
    # --------------------------------------------------
-   # keep only those entries with at least one of the given keys
+   # keep only those entries with at least one of the given keep keys
    if len(keys_keep) > 0:
       newex = []
       for key in keys_keep:
@@ -393,7 +396,7 @@ def populate_examples(keys_keep=[], keys_rm=[], verb=1):
          show_example_keywords(examples, mesg='post-keep examples')
 
    # --------------------------------------------------
-   # remove any entry with any given key
+   # remove any entry with any given rm key
    poplist = []
       # counting from the end, pop unwanted indices
    for eind, eg in enumerate(examples):
@@ -2150,7 +2153,7 @@ def egs_publish():
       ['-copy_anat',                    ['ssw/anatSS.sub-10506.nii']],
       ['-anat_has_skull',               ['no']],
       ['-anat_follower',                ['anat_w_skull', 'anat',
-                                         'anat/sub-10506_T1w.nii.gz']],
+                                         'ssw/anatU.sub-10506.nii']],
       ['-dsets',                        ['func/sub-10506_pamenc_bold.nii.gz']],
       ['-tcat_remove_first_trs',        ['0']],
       ['-tshift_opts_ts',               ['-tpattern', 'alt+z2']],
@@ -2367,6 +2370,99 @@ def egs_publish():
         ['-regress_apply_mot_types',  ['demean', 'deriv']],
         ['-html_review_style',        ['pythonic']],
 
+       ],
+     ))
+
+   examples.append( APExample('AP publish 3e',
+     source='AP_paper/scripts_rest/do_35_ap_ex5_vol.tcsh',
+     descrip='do_35_ap_ex5_vol.tcsh - rest analysis, with bandpassing.',
+     moddate='2024.08.27',
+     keywords=['complete', 'physio', 'publish', 'rest'],
+     header="""
+              (recommended?  almost, bandpassing is not preferred)
+
+         This example is based on the APMULTI_Demo1_rest tree, to perform a
+         resting state analysis with a single echo time series.
+
+         This is a resting state processing command, including:
+            - physio regression, slicewise, before any temporal or volumetric
+              alterations (and per-run, though there is only 1 run here)
+            - slice timing correction (notably after physio regression)
+            - EPI registration to MIN_OUTLIER vr_base volume
+            - EPI/anat alignment, with -align_unifize_epi local
+            - NL warp to MNI152_2009 template, as computed by @SSwarper
+            - apply 5 mm FWHM Gaussian blur, approx 1.5*voxel size
+            - all registration transformations are concatenated
+            - voxelwise scaling to percent signal change
+            - regression (projection) of:
+                - per run motion and first differences
+                - first 3 principle components from volreg ventricles
+                  (per run, though only 1 run here)
+                - bandpassing to include frequencies in [0.01, 0.1]
+                - censor motion exceeding 0.2 ~mm from enorm time series,
+                  or outliers exceeding 5% of brain 
+            - estimate data blur from the regression residuals and the
+              regression input (separately) using the mixed-model ACF function
+
+            - QC options:
+                -anat_follower (with skull), -anat_follower_ROI (FS GM mask),
+                -radial_correlate_blocks, (-align_opts_aea) -check_flip,
+                -volreg_compute_tsnr, -regress_make_corr_vols,
+                -html_review_style
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+      ['-subj_id',                 ['sub-005.eg3']],
+      ['-blocks',                  ['ricor', 'tshift', 'align', 'tlrc',
+                                    'volreg', 'mask', 'blur', 'scale',
+                                    'regress']],
+      ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
+      ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
+      ['-anat_has_skull',          ['no']],
+      ['-anat_follower',           ['anat_w_skull', 'anat',
+                                   'ssw/anatU.sub-005.nii']],
+      ['-anat_follower_ROI',       ['aagm09', 'anat',
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii']],
+      ['-anat_follower_ROI',       ['aegm09', 'epi',
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii']],
+      ['-ROI_import',              ['BrodPijn', 'Brodmann_pijn_afni.nii.gz']],
+      ['-ROI_import',              ['SchYeo7N', 'Schaefer_7N_400.nii.gz']],
+      ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
+      ['-tcat_remove_first_trs',   ['4']],
+      ['-ricor_regs',              ['physio/sub-005_rest_physio.slibase.1D']],
+      ['-ricor_regs_nfirst',       ['4']],
+      ['-ricor_regress_method',    ['per-run']],
+      ['-align_unifize_epi',       ['local']],
+      ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
+      ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+      ['-tlrc_NL_warp',            []],
+      ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                    'ssw/anatQQ.sub-005.aff12.1D',
+                                    'ssw/anatQQ.sub-005_WARP.nii']],
+      ['-volreg_align_to',         ['MIN_OUTLIER']],
+      ['-volreg_align_e2a',        []],
+      ['-volreg_tlrc_warp',        []],
+      ['-volreg_warp_dxyz',        ['3']],
+      ['-volreg_compute_tsnr',     ['yes']],
+      ['-mask_epi_anat',           ['yes']],
+      ['-blur_size',               ['5']],
+      ['-regress_motion_per_run',  []],
+      ['-regress_make_corr_vols',  ['aegm09']],
+      ['-regress_censor_motion',   ['0.2']],
+      ['-regress_censor_outliers', ['0.05']],
+      ['-regress_apply_mot_types', ['demean', 'deriv']],
+      ['-regress_bandpass',        ['0.01', '0.1']],
+      ['-regress_est_blur_epits',  []],
+      ['-regress_est_blur_errts',  []],
+      ['-regress_compute_tsnr_stats', ['BrodPijn', '7', '10', '12', '39',
+                                       '107', '110', '112', '139']],
+      ['-regress_compute_tsnr_stats', ['SchYeo7N', '161', '149', '7', '364',
+                                       '367', '207']],
+      ['-html_review_style',       ['pythonic']],
        ],
      ))
 

@@ -15914,6 +15914,9 @@ OPTIONS:  ~2~
             e.g. -regress_ROI FSvent FSwhite
 
         Use this option to regress out one more more known ROI averages.
+        In this case, each ROI (dataset) will be used for a single regressor
+        (one volume cannot be used for multiple ROIs).
+
         ROIs that can be generated from -mask_segment_anat/_erode include:
 
             name    description     source dataset    creation program
@@ -15943,6 +15946,10 @@ OPTIONS:  ~2~
 
         Add the top principal components (PCs) over an anatomical mask as
         regressors of no interest.
+
+        As with -regress_ROI, each ROI volume is considered a single mask to
+        compute PCs over (for example, here the ventricle and white matter
+        masks are passed individually).
 
           - LABEL   : the class label given to this set of regressors
           - NUM_PC  : the number of principal components to include
