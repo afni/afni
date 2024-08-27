@@ -2131,7 +2131,7 @@ def egs_publish():
               fraction exceeds 5%
             - regression is performed by 3dREMLfit, accounting for voxelwise
               temporal autocorrelation in the noise
-            - estimate data blur is from the regression residuals using
+            - estimate data blur from the regression residuals using
               the mixed-model ACF function
 
             - QC options:
@@ -2200,14 +2200,14 @@ def egs_publish():
      source='AP_paper/scripts_rest/do_23_ap_ex3_vol.tcsh',
      descrip='do_23_ap_ex3_vol.tcsh - rest analysis.',
      moddate='2024.08.09',
-     keywords=['complete', 'publish', 'physio', 'rest'],
+     keywords=['complete', 'physio', 'publish', 'rest'],
      header="""
               (recommended?  yes, an example of resting state analysis)
 
          This example is based on the APMULTI_Demo1_rest tree, to perform a
          resting state analysis with a single echo time series.
 
-         This is a sample alignment processing command, including:
+         This is a resting state processing command, including:
             - physio regression, slicewise, before any temporal or volumetric
               alterations (and per-run, though there is only 1 run here)
             - slice timing correction (notably after physio regression)
@@ -2223,7 +2223,7 @@ def egs_publish():
                   (per run, though only 1 run here)
                 - censor motion exceeding 0.2 ~mm from enorm time series,
                   or outliers exceeding 5% of brain 
-            - estimate data blur is from the regression residuals and the
+            - estimate data blur from the regression residuals and the
               regression input (separately) using the mixed-model ACF function
 
             - QC options:
@@ -2247,9 +2247,9 @@ def egs_publish():
       ['-anat_follower',           ['anat_w_skull', 'anat',
                                    'ssw/anatU.sub-005.nii']],
       ['-anat_follower_ROI',       ['aagm09', 'anat',
-                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii.gz']],
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii']],
       ['-anat_follower_ROI',       ['aegm09', 'epi',
-                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii.gz']],
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii']],
       ['-ROI_import',              ['BrodPijn', 'Brodmann_pijn_afni.nii.gz']],
       ['-ROI_import',              ['SchYeo7N', 'Schaefer_7N_400.nii.gz']],
       ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
@@ -2299,7 +2299,7 @@ def egs_publish():
          This example is based on the APMULTI_Demo1_rest tree, to perform a
          resting state analysis on the surface with multi-echo data.
 
-         This is a sample alignment processing command, including:
+         This is a surface-based resting state processing command, including:
             - slice timing correction (using wsinc9 interpolation)
             - distortion correction using reverse blip phase encoding
             - EPI registration to MIN_OUTLIER vr_base volume
@@ -2368,6 +2368,95 @@ def egs_publish():
         ['-html_review_style',        ['pythonic']],
 
        ],
+     ))
+
+   examples.append( APExample('AP publish 3i',
+     source='AP_paper/scripts_rest/do_39_ap_ex9_mevol_oc.tcsh',
+     descrip='do_39_ap_ex9_mevol_oc.tcsh - ME volume rest analysis.',
+     moddate='2024.08.27',
+     keywords=['blip', 'complete', 'ME', 'publish', 'rest'],
+     header="""
+              (recommended?  yes, an example of resting state analysis)
+
+         This example is based on the APMULTI_Demo1_rest tree, to perform a
+         resting state analysis with a multi-echo time series.
+
+         This is a multi-echo resting state processing command, including:
+            - 1 run with 3 echoes of EPI time series data
+            - reverse phase encoding distortion correction
+            - slice timing correction
+            - EPI registration to MIN_OUTLIER vr_base volume
+            - EPI/anat alignment, with -align_unifize_epi local
+            - NL warp to MNI152_2009 template, as computed by sswarper2
+            - apply 4 mm FWHM Gaussian blur, approx 1.5*voxel size,
+              but lower because of multi-echo noise cancellation
+            - all registration transformations are concatenated
+            - combine echoes using the base OC (optimally combined) method
+            - voxelwise scaling to percent signal change
+            - regression (projection) of:
+                - per run motion and first differences
+                - censor motion exceeding 0.2 ~mm from enorm time series,
+                  or outliers exceeding 5% of brain 
+            - estimate data blur from the regression residuals and the
+              regression input (separately) using the mixed-model ACF function
+
+            - QC options:
+                -anat_follower (with skull), -anat_follower_ROI (Brodmann
+                 and Schaefer ROIs) for TSNR statistics
+                -radial_correlate_blocks, (-align_opts_aea) -check_flip,
+                -volreg_compute_tsnr, -html_review_style
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+      ['-subj_id',                 ['sub-005.eg9']],
+      ['-dsets_me_run',            ['func/sub-005_rest_r1_e1_bold.nii.gz',
+                                    'func/sub-005_rest_r1_e2_bold.nii.gz',
+                                    'func/sub-005_rest_r1_e3_bold.nii.gz']],
+      ['-echo_times',              ['12.5', '27.6', '42.7']],
+      ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
+      ['-anat_has_skull',          ['no']],
+      ['-anat_follower',           ['anat_w_skull', 'anat',
+                                   'ssw/anatU.sub-005.nii']],
+      ['-ROI_import',              ['BrodPijn', 'Brodmann_pijn_afni.nii.gz']],
+      ['-ROI_import',              ['SchYeo7N', 'Schaefer_7N_400.nii.gz']],
+      ['-blocks',                  ['tshift', 'align', 'tlrc', 'volreg',
+                                    'mask', 'combine', 'blur', 'scale',
+                                    'regress']],
+      ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
+      ['-tcat_remove_first_trs',   ['4']],
+      ['-blip_forward_dset',       ['func/sub-005_blip-match.nii.gz[0]']],
+      ['-blip_reverse_dset',       ['func/sub-005_blip-opp.nii.gz[0]']],
+      ['-align_unifize_epi',       ['local']],
+      ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
+      ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+      ['-tlrc_NL_warp',            []],
+      ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                    'ssw/anatQQ.sub-005.aff12.1D',
+                                    'ssw/anatQQ.sub-005_WARP.nii']],
+      ['-volreg_align_to',         ['MIN_OUTLIER']],
+      ['-volreg_align_e2a',        []],
+      ['-volreg_tlrc_warp',        []],
+      ['-volreg_warp_dxyz',        ['3']],
+      ['-volreg_compute_tsnr',     ['yes']],
+      ['-mask_epi_anat',           ['yes']],
+      ['-combine_method',          ['OC']],
+      ['-blur_size',               ['4']],
+      ['-regress_motion_per_run',  []],
+      ['-regress_censor_motion',   ['0.2']],
+      ['-regress_censor_outliers', ['0.05']],
+      ['-regress_apply_mot_types', ['demean', 'deriv']],
+      ['-regress_est_blur_epits',  []],
+      ['-regress_est_blur_errts',  []],
+      ['-regress_compute_tsnr_stats', ['BrodPijn', '7', '10', '12', '39',
+                                       '107', '110', '112', '139']],
+      ['-regress_compute_tsnr_stats', ['SchYeo7N', '161', '149', '7', '364',
+                                       '367', '207']],
+      ['-html_review_style',       ['pythonic']],
+     ],
      ))
 
    return examples
