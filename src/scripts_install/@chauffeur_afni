@@ -2908,7 +2908,8 @@ COMMAND OPTIONS ~1~
                         1sided
 
 -cbar    CCC       :specify a new colorbar, where CCC can be any of the
-                    cbars in the standard AFNI list (def: $my_cbar).
+                    cbars in the standard AFNI list, Matplotlib colornames,
+                    or hex values (def: $my_cbar).
 
 -colorscale_idx_file CI CF 
                    :another way to specify a colorbar, in this case
