@@ -4,6 +4,14 @@
 ## 08/2024 Justin Rajendra
 ## Find afni stats program outputs. Return table
 ## This is to be used as an input for a shiny app for "meta analysis"
+## so far I think we need these to compare the files later
+# 3dinfo -header_line -n3 -ad3 -dc3 -obliquity -orient -space
+# -space
+# -same_dim = -n3
+# -same_delta = -ad3
+# -same_orient = -orient
+# -same_center = -dc3
+# -same_obl = -obliquity
 
 ## system libraries
 import sys
@@ -138,6 +146,23 @@ def get_stats(dset_in):
     if stat_found:
         return (stat_found)
 
+def get_stats_info(dset_in,num_nfo):
+    '''pull info and history from a dataset and return stats dsets info'''
+    ## info we want
+    info_req = '-n3 -ad3 -dc3 -obliquity -orient -space -history'
+
+    ## what to find
+    stats_progs = ['3dttest++', '3dMVM', '3dLME', '3dLMEr', '3dMEMA', '3dANOVA',
+                   '3dANOVA2', '3dANOVA3', '3dICC', '3dISC', '3dRegAna']
+    nfo_cmd = "3dinfo "+info_req+" "+dset_in
+    nfo = subprocess.check_output(nfo_cmd,shell=True)
+    
+    if any((x := sub) for sub in stats_progs if sub in nfo.decode().split()):
+        nfo_out = nfo.decode().split()[0:num_nfo]
+        nfo_out.insert(len(nfo_out),x)
+        nfo_out.insert(len(nfo_out),dset_in)
+        return(nfo_out)
+
 #################################################
 ## check for overwrite
 if lib_discoFunc.check_overwrite(prefix+'.xls',overwrite):
@@ -175,83 +200,54 @@ if len(dset_files) < 1:
 print('\nIn the path '+search_path+',')
 print(str(len(dset_files))+' datasets were found.\n')
 
+
 #################################################
 ## find the ones that have stats programs in the history
 ## store the file with path and which stat program was found
 
 ## column headers
-stats_dsets = ['File']
-stat_used = ['StatProg']
+stats_info = [['Ni', 'Nj', 'Nk', 'ADi', 'ADj', 'ADk', 'DCx', 'DCy', 'DCz',
+                'oblq', 'orient', 'space', 'StatProg', 'File']]
+num_nfo = len(stats_info[0])-2
+
 
 ## parameters for the progress bar
 message = "Finding stats dsets: "
 pb_len = lib_discoFunc.prog_bar_len(message,len(dset_files))
 
 for i in lib_discoFunc.progressbar(range(len(dset_files)),message,pb_len):
-    su = get_stats(dset_files[i])
-    if su:
-        stats_dsets.append(dset_files[i])
-        stat_used.append(su)
+    temp_nfo = get_stats_info(dset_files[i],num_nfo)
+    if temp_nfo:
+        stats_info.append(temp_nfo)
 
 ## make sure we have at least one (1 for the header)
-if len(stats_dsets) < 2:
+if len(stats_info) < 2:
     lib_discoFunc.print_afni_error('No datasets from AFNI stats programs found')
     sys.exit(1)
 
-## print to screen if requested
-if verb:
-    first_col_max = len(max(stat_used, key=len)) + 2
-    for i in range(len(stats_dsets)):
-        print(
-            f"{stat_used[i]:<{first_col_max}} {os.path.basename(stats_dsets[i])}")
-    print()
+# ## print to screen if requested
+# if verb:
+#     first_col_max = len(max(stat_used, key=len)) + 2
+#     for i in range(len(stats_dsets)):
+#         print(
+#             f"{stat_used[i]:<{first_col_max}} {os.path.basename(stats_dsets[i])}")
+#     print()
 
-print(str(len(stats_dsets)-1)+' stats dsets were found.\n')
+print(str(len(stats_info)-1)+' stats dsets were found.\n')
 
 #################################################
 ## get info on stats files
 
-## so far I think we need these to compare the files later
-# 3dinfo -header_line -n3 -ad3 -dc3 -obliquity -orient -space
-# -space
-# -same_dim = -n3
-# -same_delta = -ad3
-# -same_orient = -orient
-# -same_center = -dc3
-# -same_obl = -obliquity
 
-## what do we want to know
-info_req = '-n3 -ad3 -dc3 -obliquity -orient -space'
 
-## change these to match the info requested (lazy...)
-stats_info = [['Ni', 'Nj', 'Nk', 'ADi', 'ADj', 'ADk', 'DCx', 'DCy', 'DCz',
-               'oblq', 'orient', 'space']]
-
-## parameters for the progress bar
-message = "Getting Info: "
-pb_len = lib_discoFunc.prog_bar_len(message,len(stats_dsets)-1)
-
-## run 3dinfo to get the requested info
-## start at 1 beacuse of the header
-for i in lib_discoFunc.progressbar(range(1,len(stats_dsets)),message,pb_len):
-    info_cmd = "3dinfo "+info_req+' '+stats_dsets[i]
-    thd_info = subprocess.check_output(info_cmd,shell=True)
-    stats_info.append(thd_info.decode().split())
 
 #################################################
 ## output a tsv
 
-## combine outputs
-tab_out = []
-for i, v in enumerate(stats_info):
-    tab_out.append(copy.deepcopy(v))
-    tab_out[-1].append(stat_used[i])
-    tab_out[-1].append(stats_dsets[i])
-
 ## write file
 with open(prefix+'.xls', 'w', newline='') as file:
     writer = csv.writer(file, delimiter=delim)
-    writer.writerows(tab_out)
+    writer.writerows(stats_info)
 
 print('Output file saved as: '+prefix+'.xls\n')
 sys.exit(0)
