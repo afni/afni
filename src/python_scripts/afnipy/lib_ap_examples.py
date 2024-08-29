@@ -36,8 +36,8 @@ import copy
 #      -surf dests go in surf block section
 #      -blip dsets do not go in blip block section (as not user specified)
 #   -regress order:
-#       ROI (regs of intereset), opts_3dD, polort, bandpass,
-#       motion, AICOR/RONI (regs of no interst), censoring,
+#       ROI (regs of interest), opts_3dD, polort, bandpass,
+#       motion, AICOR/RONI (regs of no interest), censoring,
 #       non-reg opts (3dD_stop, reml_exec, then post-reg options)
 
 # ----------------------------------------------------------------------
