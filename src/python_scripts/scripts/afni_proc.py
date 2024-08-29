@@ -794,6 +794,7 @@ g_history = """
        - remove unneeded followers from example 'publish 3d'
     7.78 Aug  5, 2024: add option -blip_warp_dset to input a computed warp
     7.79 Aug 27, 2024:
+       - reorder options in examples
        - minor updates to example comments and directory names
        - add example 'publish 3i', where 'i' corresponds to 9
 """
