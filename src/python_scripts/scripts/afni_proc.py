@@ -797,7 +797,7 @@ g_history = """
        - make example option order more consistent (id, EPI, anat, blocks, ...)
        - minor updates to example comments and directory names
        - add example 'publish 3i', where 'i' corresponds to 9
-       - add examples 3e, 3f and help section 'eshow'
+       - add examples publish 3e, 3f, 3g, 3h and help section 'eshow'
          - exclude 'noshow' examples from default help output
 """
 
