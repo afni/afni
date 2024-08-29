@@ -9356,7 +9356,7 @@ def show_program_help(section=''):
    if section == '':
       print(g_help_intro)
       # now print examples from lib_ap_examples
-      show_help_examples(source='eall')
+      show_help_examples(source='eshow')
       print(g_help_notes)
       print(g_help_options)
       print(g_help_trailer)
@@ -9364,7 +9364,7 @@ def show_program_help(section=''):
       return 0
 
    # process new example string separately for now
-   if section in ['enew', 'eold', 'eall', 'afni_proc.py']:
+   if section in ['enew', 'eold', 'eall', 'eshow', 'afni_proc.py']:
       show_help_examples(source=section)
       return 0
 
@@ -9387,7 +9387,11 @@ def show_help_examples(source='eold'):
 
    # print new-style examples
    from afnipy import lib_ap_examples as EGS
-   EGS.populate_examples()
+   keys_rm = []
+   # if 'show' example, exclude the noshow ones
+   if source == 'eshow':
+      keys_rm = ['noshow']
+   EGS.populate_examples(keys_rm=keys_rm)
 
    # print only AP examples, or all
    if source.lower() in ['enew', 'new', 'afni_proc', 'afni_proc.py']:

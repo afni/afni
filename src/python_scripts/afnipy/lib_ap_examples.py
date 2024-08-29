@@ -369,11 +369,10 @@ def get_all_examples():
    examples.extend(egs_short())
    examples.extend(egs_publish())
 
-
    return examples
 
 
-def populate_examples(keys_keep=[], keys_rm=['noshow'], verb=1):
+def populate_examples(keys_keep=[], keys_rm=[], verb=1):
    """only populate the examples array if someone wants it
 
         keys_keep : if not empty, keep only entries with any of these keywords
@@ -2474,6 +2473,119 @@ def egs_publish():
       ['-regress_censor_motion',   ['0.2']],
       ['-regress_censor_outliers', ['0.05']],
       ['-regress_make_corr_vols',  ['aegm09']],
+      ['-regress_est_blur_epits',  []],
+      ['-regress_est_blur_errts',  []],
+      ['-regress_compute_tsnr_stats', ['BrodPijn', '7', '10', '12', '39',
+                                       '107', '110', '112', '139']],
+      ['-regress_compute_tsnr_stats', ['SchYeo7N', '161', '149', '7', '364',
+                                       '367', '207']],
+      ['-html_review_style',       ['pythonic']],
+       ],
+     ))
+
+   examples.append( APExample('AP publish 3f',
+     source='AP_paper/scripts_rest/do_36_ap_ex6_vol.tcsh',
+     descrip='do_36_ap_ex6_vol.tcsh - rest analysis.',
+     moddate='2024.08.28',
+     keywords=['complete', 'noshow', 'physio', 'publish', 'rest'],
+     header="""
+              (recommended?  almost, this has extra regressors)
+
+         This example is based on the APMULTI_Demo1_rest tree, to perform a
+         resting state analysis with a single echo time series.
+
+         This is the same as AP publish 3c, but with:
+            - anat_follower_erode, ROI_PC, ANATICOR, extra followers
+
+         This is a resting state processing command, including:
+            - physio regression, slicewise, before any temporal or volumetric
+              alterations (and per-run, though there is only 1 run here)
+            - slice timing correction (notably after physio regression)
+            - EPI registration to MIN_OUTLIER vr_base volume
+            - EPI/anat alignment, with -align_unifize_epi local
+            - NL warp to MNI152_2009 template, as computed by @SSwarper
+            - apply 8 mm FWHM Gaussian blur using -blur_to_fwhm to account
+              for data from multiple sites
+            - all registration transformations are concatenated
+            - voxelwise scaling to percent signal change
+            - regression (projection) of:
+                - per run motion and first differences
+                - first 3 principle components from volreg ventricles
+                  (per run, though only 1 run here)
+                - fast ANATICOR: weighted local white matter (voxelwise regs)
+                - censor motion exceeding 0.2 ~mm from enorm time series,
+                  or outliers exceeding 5% of brain 
+            - estimate data blur from the regression residuals and the
+              regression input (separately) using the mixed-model ACF function
+
+            - QC options:
+                -anat_follower (with skull), -anat_follower_ROI (FS GM mask),
+                -radial_correlate_blocks, (-align_opts_aea) -check_flip,
+                -volreg_compute_tsnr, -regress_make_corr_vols,
+                -html_review_style
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+      ['-subj_id',                 ['sub-005.eg6']],
+      ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
+      ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
+      ['-anat_has_skull',          ['no']],
+      ['-anat_follower',           ['anat_w_skull', 'anat',
+                                   'ssw/anatU.sub-005.nii']],
+      ['-anat_follower_ROI',       ['aaseg', 'anat',
+                                    'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+      ['-anat_follower_ROI',       ['aeseg', 'epi',
+                                    'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+      ['-anat_follower_ROI',       ['aagm09', 'anat',
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii']],
+      ['-anat_follower_ROI',       ['aegm09', 'epi',
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii']],
+      ['-anat_follower_ROI',       ['aagm00', 'anat',
+                                   'SUMA/aparc+aseg_REN_gmrois.nii.gz']],
+      ['-anat_follower_ROI',       ['aegm00', 'epi',
+                                   'SUMA/aparc+aseg_REN_gmrois.nii.gz']],
+      ['-anat_follower_ROI',       ['FSvent', 'epi',
+                                    'SUMA/fs_ap_latvent.nii.gz']],
+      ['-anat_follower_ROI',       ['FSWe', 'epi', 'SUMA/fs_ap_wm.nii.gz']],
+      ['-anat_follower_erode',     ['FSvent', 'FSWe']],
+      ['-ROI_import',              ['BrodPijn', 'Brodmann_pijn_afni.nii.gz']],
+      ['-ROI_import',              ['SchYeo7N', 'Schaefer_7N_400.nii.gz']],
+      ['-blocks',                  ['ricor', 'tshift', 'align', 'tlrc',
+                                    'volreg', 'mask', 'blur', 'scale',
+                                    'regress']],
+      ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
+      ['-tcat_remove_first_trs',   ['4']],
+      ['-ricor_regs',              ['physio/sub-005_rest_physio.slibase.1D']],
+      ['-ricor_regs_nfirst',       ['4']],
+      ['-ricor_regress_method',    ['per-run']],
+      ['-align_unifize_epi',       ['local']],
+      ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
+      ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+      ['-tlrc_NL_warp',            []],
+      ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                    'ssw/anatQQ.sub-005.aff12.1D',
+                                    'ssw/anatQQ.sub-005_WARP.nii']],
+      ['-volreg_align_to',         ['MIN_OUTLIER']],
+      ['-volreg_align_e2a',        []],
+      ['-volreg_tlrc_warp',        []],
+      ['-volreg_warp_dxyz',        ['3']],
+      ['-volreg_compute_tsnr',     ['yes']],
+      ['-mask_epi_anat',           ['yes']],
+      ['-blur_size',               ['8']],
+      ['-blur_to_fwhm',            []],
+      ['-regress_apply_mot_types', ['demean', 'deriv']],
+      ['-regress_motion_per_run',  []],
+      ['-regress_anaticor_fast',   []],
+      ['-regress_anaticor_label',  ['FSWe']],
+      ['-regress_ROI_PC',          ['FSvent', '3']],
+      ['-regress_ROI_PC_per_run',  ['FSvent']],
+      ['-regress_censor_motion',   ['0.2']],
+      ['-regress_censor_outliers', ['0.05']],
+      ['-regress_make_corr_vols',  ['aeseg', 'FSvent']],
       ['-regress_est_blur_epits',  []],
       ['-regress_est_blur_errts',  []],
       ['-regress_compute_tsnr_stats', ['BrodPijn', '7', '10', '12', '39',
