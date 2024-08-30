@@ -15,6 +15,13 @@ from afnipy import option_list as OL
 from afnipy import lib_afni1D as LD
 from afnipy import lib_vars_object as VO
 
+# ---------------------------------------------------------------------------
+# some globals
+
+# help sections (see -help_section)
+g_valid_help_sections = ['enew', 'eold', 'eall', 'eshow',
+                         'afni_proc', 'afni_proc.py']
+
 # types of motion simulated datasets that can be created
 #    motion     : simulated motion time series - volreg base warped
 #                 by inverse motion transformations (forward motion)
@@ -9364,7 +9371,7 @@ def show_program_help(section=''):
       return 0
 
    # process new example string separately for now
-   if section in ['enew', 'eold', 'eall', 'eshow', 'afni_proc.py']:
+   if section in g_valid_help_sections:
       show_help_examples(source=section)
       return 0
 

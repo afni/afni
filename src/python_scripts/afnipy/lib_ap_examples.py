@@ -2486,7 +2486,7 @@ def egs_publish():
    examples.append( APExample('AP publish 3f',
      source='AP_paper/scripts_rest/do_36_ap_ex6_vol.tcsh',
      descrip='do_36_ap_ex6_vol.tcsh - rest analysis.',
-     moddate='2024.08.28',
+     moddate='2024.08.30',
      keywords=['complete', 'noshow', 'physio', 'publish', 'rest'],
      header="""
               (recommended?  almost, this has extra regressors)
@@ -2506,6 +2506,7 @@ def egs_publish():
             - NL warp to MNI152_2009 template, as computed by @SSwarper
             - apply 8 mm FWHM Gaussian blur using -blur_to_fwhm to account
               for data from multiple sites
+              * this results in the EPI being masked
             - all registration transformations are concatenated
             - voxelwise scaling to percent signal change
             - regression (projection) of:

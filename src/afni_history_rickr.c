@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, Aug, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "many updates to help examples",
+   "- make example option order more consistent\n"
+   "- add examples: publish 3e, 3f, 3g, 3h, 3i\n"
+   "- exclude 'noshow' examples from default help (currently 3e, 3f, 3g, 3h)"
+ } ,
+
  {  5, Aug, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add option -blip_warp_dset to input a pre-computed warp",
    "For example, one can import the warp from epi_b0_correct.py."
