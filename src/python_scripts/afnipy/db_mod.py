@@ -12316,7 +12316,9 @@ OPTIONS:  ~2~
             1 (def) : include parameter differences
                       (except where expected, e.g. -copy_anat dset)
                       (limit param lists to current text line)
-            2       : show complete parameter diffs
+            2       : show parameter diffs, but try to distinguish what might
+                      just be a difference in paths to a file
+            3       : show complete parameter diffs
 
         Types of differences shown include:
 
@@ -12328,7 +12330,7 @@ OPTIONS:  ~2~
                 specified target command is missing
             differing options       :
                 where the current command and target use the same option,
-                but their parameters differ
+                but their parameters differ (possibly just in a file path)
             fewer applied options   :
                 where the current command and target use multiple copies of
                 the same option, but the current command has fewer
@@ -12339,6 +12341,12 @@ OPTIONS:  ~2~
                 (what is beyond the matching/differing cases)
 
         This option is the basis for all of the -compare* options.
+
+        * Note: options with the same option name are compared in order, so
+                a different order of such options will appear as differences.
+                For example, -ROI_import options all need to be in the same
+                relative order, or they will be seen as differing.
+                Such is life.  If this fact proves disastrous, let me know.
 
         See also -show_example_names.
 

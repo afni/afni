@@ -134,7 +134,8 @@ class APExample:
             eskip list of keys for which elements should not be compared
             verb    0 - use short list notation
                     1 - show missing, extra and diffs
-                    2 - include all parameter lists
+                    2 - show diffs, but after trying to remove paths
+                    3 - include all parameter lists
       """
       print("="*75)
       print("==== comparing (current) '%s' vs (target) '%s'" \
@@ -164,6 +165,9 @@ class APExample:
       # loop over unique keys, counting number in both key lists
       uniq_target_keys = UTIL.get_unique_sublist(target.keys)
 
+      # rcr - right now, options of the same name need to be in the same order
+      #       to be equal, we could try to remove the requirement...
+
       for key in uniq_target_keys:
          if key not in source.keys: continue
 
@@ -184,6 +188,7 @@ class APExample:
          ncomp = min(nsource, ntarget)
          ncommon += ncomp
          for ind in range(ncomp):
+            # rcr - should we separate path diffs from true diffs here?
             if source.olist[ksource[ind]] != target.olist[ktarget[ind]]:
                # just store source and target indices here
                pdiff.append([ksource[ind], ktarget[ind]])
@@ -223,6 +228,7 @@ class APExample:
 
       print("==========  differing option(s) : %d" % len(pdiff))
       if len(pdiff) > 0:
+         samestr = '  : SAME, but path diff (skipping details)'
          skips = []
          for pair in pdiff:
              oname = source.olist[pair[0]][0]
@@ -232,8 +238,27 @@ class APExample:
                    continue
                 skips.append(oname)
 
-                print("%s%-*s  (verb=1; skipping details)" \
-                      % (ind1, maxk, oname))
+                # if only path diff, say so
+                if self.depath_lists_equal(source.olist[pair[0]][1],
+                                           target.olist[pair[1]][1]):
+                   print("%s%-*s%s" % (ind1, maxk, oname, samestr))
+                else:
+                   print("%s%-*s  (verb=1; skipping details)" \
+                         % (ind1, maxk, oname))
+
+             elif verb <= 2:
+                # try to remove any paths
+                kslist = self.depath_list(source.olist[pair[0]][1])
+                ktlist = self.depath_list(target.olist[pair[1]][1])
+                ksstr = ' '.join(kslist)
+                ktstr = ' '.join(ktlist)
+                # if removing paths makes them the same, say so
+                if ksstr == ktstr:
+                    print("%s%-*s%s" % (ind1, maxk, oname, samestr))
+                else:
+                    print("%s%-*s" % (ind1, maxk, oname))
+                    self._print_diff_line(ind2, 'current', ksstr, lmax=lmax)
+                    self._print_diff_line(ind2, 'target',  ktstr, lmax=lmax)
              else:
                 # full details
                 print("%s%-*s" % (ind1, maxk, oname))
@@ -259,6 +284,24 @@ class APExample:
       print("")
 
       print("")
+
+   def depath_lists_equal(self, list0, list1):
+       """if we depath_list() both lists, are they equal"""
+       kslist = self.depath_list(list0)
+       ktlist = self.depath_list(list1)
+       ksstr = ' '.join(kslist)
+       ktstr = ' '.join(ktlist)
+
+       return (ksstr == ktstr)
+
+   def depath_list(self, arglist):
+       """return a copy of arglist, removing anything up to each final '/'
+       """
+       # rfind returns the highest index of '/', else -1
+       # --> so always start at the return index+1
+       newlist = [s[s.rfind('/')+1:] for s in arglist]
+
+       return newlist
 
    def _print_opt_lin(self, indent, oname, maxlen, parstr, lmax=50):
        """if lmax > 0: restrict parstr to given length, plus ellipsis

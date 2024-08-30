@@ -793,15 +793,16 @@ g_history = """
        - thanks to zhengchencai on MB for pointing it out
        - remove unneeded followers from example 'publish 3d'
     7.78 Aug  5, 2024: add option -blip_warp_dset to input a computed warp
-    7.79 Aug 29, 2024:
+    7.79 Aug 30, 2024:
        - make example option order more consistent (id, EPI, anat, blocks, ...)
        - minor updates to example comments and directory names
        - add example 'publish 3i', where 'i' corresponds to 9
        - add examples publish 3e, 3f, 3g, 3h and help section 'eshow'
          - exclude 'noshow' examples from default help output
+       - compare_opts now considers file path differences separately
 """
 
-g_version = "version 7.79, Aug 29, 2024"
+g_version = "version 7.79, Aug 30, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
