@@ -134,7 +134,8 @@ class APExample:
             eskip list of keys for which elements should not be compared
             verb    0 - use short list notation
                     1 - show missing, extra and diffs
-                    2 - include all parameter lists
+                    2 - show diffs, but after trying to remove paths
+                    3 - include all parameter lists
       """
       print("="*75)
       print("==== comparing (current) '%s' vs (target) '%s'" \
@@ -164,6 +165,9 @@ class APExample:
       # loop over unique keys, counting number in both key lists
       uniq_target_keys = UTIL.get_unique_sublist(target.keys)
 
+      # rcr - right now, options of the same name need to be in the same order
+      #       to be equal, we could try to remove the requirement...
+
       for key in uniq_target_keys:
          if key not in source.keys: continue
 
@@ -184,6 +188,7 @@ class APExample:
          ncomp = min(nsource, ntarget)
          ncommon += ncomp
          for ind in range(ncomp):
+            # rcr - should we separate path diffs from true diffs here?
             if source.olist[ksource[ind]] != target.olist[ktarget[ind]]:
                # just store source and target indices here
                pdiff.append([ksource[ind], ktarget[ind]])
@@ -223,6 +228,7 @@ class APExample:
 
       print("==========  differing option(s) : %d" % len(pdiff))
       if len(pdiff) > 0:
+         samestr = '  : SAME, but path diff (skipping details)'
          skips = []
          for pair in pdiff:
              oname = source.olist[pair[0]][0]
@@ -232,8 +238,27 @@ class APExample:
                    continue
                 skips.append(oname)
 
-                print("%s%-*s  (verb=1; skipping details)" \
-                      % (ind1, maxk, oname))
+                # if only path diff, say so
+                if self.depath_lists_equal(source.olist[pair[0]][1],
+                                           target.olist[pair[1]][1]):
+                   print("%s%-*s%s" % (ind1, maxk, oname, samestr))
+                else:
+                   print("%s%-*s  (verb=1; skipping details)" \
+                         % (ind1, maxk, oname))
+
+             elif verb <= 2:
+                # try to remove any paths
+                kslist = self.depath_list(source.olist[pair[0]][1])
+                ktlist = self.depath_list(target.olist[pair[1]][1])
+                ksstr = ' '.join(kslist)
+                ktstr = ' '.join(ktlist)
+                # if removing paths makes them the same, say so
+                if ksstr == ktstr:
+                    print("%s%-*s%s" % (ind1, maxk, oname, samestr))
+                else:
+                    print("%s%-*s" % (ind1, maxk, oname))
+                    self._print_diff_line(ind2, 'current', ksstr, lmax=lmax)
+                    self._print_diff_line(ind2, 'target',  ktstr, lmax=lmax)
              else:
                 # full details
                 print("%s%-*s" % (ind1, maxk, oname))
@@ -259,6 +284,24 @@ class APExample:
       print("")
 
       print("")
+
+   def depath_lists_equal(self, list0, list1):
+       """if we depath_list() both lists, are they equal"""
+       kslist = self.depath_list(list0)
+       ktlist = self.depath_list(list1)
+       ksstr = ' '.join(kslist)
+       ktstr = ' '.join(ktlist)
+
+       return (ksstr == ktstr)
+
+   def depath_list(self, arglist):
+       """return a copy of arglist, removing anything up to each final '/'
+       """
+       # rfind returns the highest index of '/', else -1
+       # --> so always start at the return index+1
+       newlist = [s[s.rfind('/')+1:] for s in arglist]
+
+       return newlist
 
    def _print_opt_lin(self, indent, oname, maxlen, parstr, lmax=50):
        """if lmax > 0: restrict parstr to given length, plus ellipsis
@@ -2486,7 +2529,7 @@ def egs_publish():
    examples.append( APExample('AP publish 3f',
      source='AP_paper/scripts_rest/do_36_ap_ex6_vol.tcsh',
      descrip='do_36_ap_ex6_vol.tcsh - rest analysis.',
-     moddate='2024.08.28',
+     moddate='2024.08.30',
      keywords=['complete', 'noshow', 'physio', 'publish', 'rest'],
      header="""
               (recommended?  almost, this has extra regressors)
@@ -2506,6 +2549,7 @@ def egs_publish():
             - NL warp to MNI152_2009 template, as computed by @SSwarper
             - apply 8 mm FWHM Gaussian blur using -blur_to_fwhm to account
               for data from multiple sites
+              * this results in the EPI being masked
             - all registration transformations are concatenated
             - voxelwise scaling to percent signal change
             - regression (projection) of:
@@ -2688,7 +2732,7 @@ def egs_publish():
 
    examples.append( APExample('AP publish 3h',
      source='AP_paper/scripts_rest/do_38_ap_ex8_mesurf_oc.tcsh',
-     descrip='do_38_ap_ex8_mesurf_oc.tcsh - multi-echo surface-based analysis.',
+     descrip='do_38_ap_ex8_mesurf_oc.tcsh - multi-echo surface analysis.',
      moddate='2024.08.29',
      keywords=['complete', 'blip', 'ME', 'publish', 'rest', 'surface'],
      header="""
@@ -2857,6 +2901,103 @@ def egs_publish():
                                        '367', '207']],
       ['-html_review_style',       ['pythonic']],
      ],
+     ))
+
+   examples.append( APExample('AP publish 3j',
+     source='AP_paper/scripts_task/do_40_ap_ex10_task_bder.tcsh',
+     descrip='do_40_ap_ex10_task_bder.tcsh - pamenc task analysis.',
+     moddate='2024.02.20',
+     keywords=['complete', 'noshow', 'publish', 'task'],
+     header="""
+              (recommended?  yes, for a volumetric task analysis)
+
+         This example is based on the AFNI_demos/AFNI_pamenc data.
+
+         This is the same as AP publish 3b, but it sets taskname as a uvar
+         and outputs an extra bids derivative tree.
+
+         This is a full analysis, including:
+            - slice time correction (alt+z2 timing pattern)
+            - EPI registration to MIN_OUTLIER vr_base volume
+            - EPI/anat alignment, with -align_unifize_epi local
+            - NL warp to MNI152_2009 template, as computed by @SSwarper
+            - all registration transformations are concatenated
+            - computing an EPI mask intersected with the anatomical mask
+              for blurring and QC (-mask_epi_anat)
+            - applying a 6 mm FWHM Gaussian blur, restricted to the EPI mask
+            - voxelwise scaling to percent signal change
+            - linear regression of task events using duration modulation with
+              the BLOCK basis function (dmUBLOCK(-1)), where the ideal response
+              height is unit for a 1 s event; stim_type AM1 is required here
+            - censoring time points where motion exceeds 0.3 mm or the outlier
+              fraction exceeds 5%
+            - regression is performed by 3dREMLfit, accounting for voxelwise
+              temporal autocorrelation in the noise
+            - estimate data blur from the regression residuals using
+              the mixed-model ACF function
+
+            - QC options:
+                -anat_follower (with skull), (-align_opts_aea) -check_flip,
+                -radial_correlate_blocks, -volreg_compute_tsnr,
+                -regress_make_ideal_sum, -html_review_style
+
+         * input dataset names have been shortened
+
+            """,
+     trailer=""" """,
+     olist = [
+      ['-subj_id',                      ['sub-10506.ex10']],
+      ['-uvar',                         ['taskname', 'pamenc']],
+      ['-dsets',                        ['func/sub-10506_pamenc_bold.nii.gz']],
+      ['-copy_anat',                    ['ssw/anatSS.sub-10506.nii']],
+      ['-anat_has_skull',               ['no']],
+      ['-anat_follower',                ['anat_w_skull', 'anat',
+                                         'ssw/anatU.sub-10506.nii']],
+      ['-blocks',                       ['tshift', 'align', 'tlrc', 'volreg',
+                                         'mask', 'blur', 'scale', 'regress']],
+      ['-radial_correlate_blocks',      ['tcat', 'volreg', 'regress']],
+      ['-tcat_remove_first_trs',        ['0']],
+      ['-tshift_opts_ts',               ['-tpattern', 'alt+z2']],
+      ['-align_unifize_epi',            ['local']],
+      ['-align_opts_aea',               ['-giant_move', '-cost', 'lpc+ZZ',
+                                         '-check_flip']],
+      ['-tlrc_base',                    ['MNI152_2009_template_SSW.nii.gz']],
+      ['-tlrc_NL_warp',                 []],
+      ['-tlrc_NL_warped_dsets',         ['ssw/anatQQ.sub-10506.nii',
+                                         'ssw/anatQQ.sub-10506.aff12.1D',
+                                         'ssw/anatQQ.sub-10506_WARP.nii']],
+      ['-volreg_align_to',              ['MIN_OUTLIER']],
+      ['-volreg_align_e2a',             []],
+      ['-volreg_tlrc_warp',             []],
+      ['-volreg_warp_dxyz',             ['3.0']],
+      ['-volreg_compute_tsnr',          ['yes']],
+      ['-mask_epi_anat',                ['yes']],
+      ['-blur_size',                    ['6']],
+      ['-blur_in_mask',                 ['yes']],
+      ['-regress_stim_times',           ['timing/times.CONTROL.txt',
+                                         'timing/times.TASK.txt']],
+      ['-regress_stim_labels',          ['CONTROL', 'TASK']],
+      ['-regress_stim_types',           ['AM1']],
+      ['-regress_basis_multi',          ['dmUBLOCK(-1)']],
+      ['-regress_opts_3dD',             ['-jobs', '8',
+                                         '-gltsym', 'SYM: TASK -CONTROL',
+                                         '-glt_label', '1', 'T-C',
+                                         '-gltsym',
+                                         'SYM: 0.5*TASK +0.5*CONTROL',
+                                         '-glt_label', '2', 'meanTC']],
+      ['-regress_motion_per_run',       []],
+      ['-regress_censor_motion',        ['0.3']],
+      ['-regress_censor_outliers',      ['0.05']],
+      ['-regress_compute_fitts',        []],
+      ['-regress_fout',                 ['no']],
+      ['-regress_3dD_stop',             []],
+      ['-regress_reml_exec',            []],
+      ['-regress_make_ideal_sum',       ['sum_ideal.1D']],
+      ['-regress_est_blur_errts',       []],
+      ['-regress_run_clustsim',         ['no']],
+      ['-html_review_style',            ['pythonic']],
+      ['-bids_deriv',                   ['yes']],
+       ],
      ))
 
    return examples
