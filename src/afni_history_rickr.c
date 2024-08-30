@@ -54,10 +54,11 @@
 afni_history_struct rickr_history[] = {
 
  { 30, Aug, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
-   "many updates to help examples",
+   "many updates to help examples; separate paths in compare_opts",
    "- make example option order more consistent\n"
    "- add examples: publish 3e, 3f, 3g, 3h, 3i\n"
-   "- exclude 'noshow' examples from default help (currently 3e, 3f, 3g, 3h)"
+   "- exclude 'noshow' examples from default help (currently 3e, 3f, 3g, 3h)\n"
+   "- separate differing paths in -compare_opts"
  } ,
 
  {  5, Aug, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
