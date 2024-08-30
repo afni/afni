@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, Aug, 2024, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "mark linux_xorg7 and linux_xorg7_64 as being obsolete",
+   NULL
+ } ,
+
  { 30, Aug, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "many updates to help examples; separate paths in compare_opts",
    "- make example option order more consistent\n"
