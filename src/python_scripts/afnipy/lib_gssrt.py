@@ -1012,9 +1012,9 @@ class MyInterface:
                if check == 'VARY':
                   baseval = varyrow[posn]
                elif check in Z_COMP_OPS :
-                  chck, val = self.apply_Z_transform(float(baseval), label,
-                                                     inverse=True)
-                  if chck :  return 1, []
+                  check, val = self.apply_Z_transform(float(baseval), label,
+                                                      inverse=True)
+                  if check :  return 1, []
                   baseval = str(val)
                testval = table[rind][posn]
                outlier = self.ro_val_is_outlier(testval, check, baseval)
@@ -1215,9 +1215,9 @@ class MyInterface:
             newlab = check
          elif check in Z_COMP_OPS :
             # [PT: Sep 2, 2024] new label format for Z-score comparisons
-            chck, val = self.apply_Z_transform(float(otest[2]), label,
-                                               inverse=True)
-            if chck : return -1
+            check, val = self.apply_Z_transform(float(otest[2]), label,
+                                                inverse=True)
+            if check : return -1
             thr = UTIL.round_int_or_nsig(val, 3, stringify=True)
             newlab = '%s:%s (=%s)' % (check, otest[2], str(thr))
          else:
