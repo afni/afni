@@ -10,6 +10,9 @@ import json
 from afnipy import afni_util as UTIL
 from afnipy import option_list as OL
 
+# useful globals
+Z_COMP_OPS = ['ZLE', 'ZLT', 'ZGE', 'ZGT']
+
 # ----------------------------------------------------------------------
 # globals
 
@@ -121,12 +124,13 @@ process options:
 
       This option applies to -report_outliers.
 
-      If the user specifies a test that must be numerical (GT, GE, LT, LE)
-      against a valid float and the current column to test against is empty,
-      the default operation is to not report it (it is not treated as an
-      outlier).  For example, if looking for runs with "censor fraction"
-      greater than 0.1, a run without any censor fraction (e.g. if this subject
-      did not have the given run) would not be reported as an outlier.
+      If the user specifies a test that must be numerical (GT, GE, LT,
+      LE, ZGT, ZGE, ZLT, ZLE) against a valid float and the current
+      column to test against is empty, the default operation is to not
+      report it (it is not treated as an outlier).  For example, if
+      looking for runs with "censor fraction" greater than 0.1, a run
+      without any censor fraction (e.g. if this subject did not have
+      the given run) would not be reported as an outlier.
 
       Use this option to report such cases as outliers.
 
@@ -219,7 +223,22 @@ process options:
                   LE    : less than or equal to
                   GT    : greater than
                   GE    : greater than or equal to
-                  
+                  ZLT   : Z-score less than
+                  ZLE   : Z-score less than or equal to
+                  ZGT   : Z-score greater than
+                  ZGE   : Z-score greater than or equal to
+
+                  The Z* operators are implemented as follows for a given
+                  LABEL:
+                  In this case, the VAL will be treated as a Z-score
+                  value.  The mean and stdev across all subjects for
+                  that LABEL are calculated, and then the specified
+                  VAL is translated to local units as an inverse
+                  Z-transform: VAL -> VAL*stdev + mean. Then the
+                  comparison is made.
+                  The translated threshold is reported in the outlier
+                  report.
+
         VAL     : a comparison value (if needed, based on COMP)
 
       RO example 1.
@@ -358,12 +377,14 @@ class MyInterface:
       self.ro_tablefile    = '-'
       self.ro_list         = [] # list of [LABEL, COMPARE, VAL,...]
       self.ro_valid_comps  = ['SHOW', 'VARY', 'EQ', 'NE',
-                              'LT', 'LE', 'GT', 'GE']
+                              'LT', 'LE', 'GT', 'GE',
+                              'ZLT', 'ZLE', 'ZGT', 'ZGE']
       self.ro_valid_fills  = ['blank', 'na', 'value']
       self.ro_valid_heads  = ['label', 'acronym', 'blank']
       self.ro_fill_type    = 'blank'    # blank, na, value
       self.ro_head_type    = 'acronym'  # label, index, acronym
       self.ro_sep_type     = 'space'    # space, comma, tab
+      self.ro_zpar_dict    = {}         # mean and stdev for Z-scoring
 
       # infile name parsing
       self.infiles         = []
@@ -905,6 +926,10 @@ class MyInterface:
       if self.expand_ANY_tests():
          return 1
 
+      # check for 'Z*' tests
+      if self.prepare_Z_transform():
+         return 1
+
       # verify labels, operators and nvals
       if not self.outlier_tests_are_valid():
          return 1
@@ -986,7 +1011,11 @@ class MyInterface:
                # if VARY, comparison is against first row
                if check == 'VARY':
                   baseval = varyrow[posn]
-
+               elif check in Z_COMP_OPS :
+                  chck, val = self.apply_Z_transform(float(baseval), label,
+                                                     inverse=True)
+                  if chck :  return 1, []
+                  baseval = str(val)
                testval = table[rind][posn]
                outlier = self.ro_val_is_outlier(testval, check, baseval)
                # failure to run test
@@ -1034,6 +1063,10 @@ class MyInterface:
       if head == 'LE': return 'GT%s' % tail
       if head == 'GT': return 'LE%s' % tail
       if head == 'GE': return 'LT%s' % tail
+      if head == 'ZLT': return 'ZGE%s' % tail
+      if head == 'ZLE': return 'ZGT%s' % tail
+      if head == 'ZGT': return 'ZLE%s' % tail
+      if head == 'ZGE': return 'ZLT%s' % tail
 
       # otherwise, no change
       return test
@@ -1041,7 +1074,8 @@ class MyInterface:
    def ro_val_is_outlier(self, tval, comp, bval):
       """return whether "tval comp bval" seems true, e.g.
                          0.82 GE   1.0
-         comp_list: ['SHOW', 'VARY', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE']
+         comp_list: ['SHOW', 'VARY', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE',
+                     'ZLT', 'ZLE', 'ZGT', 'ZGE']
 
          all numerical tests are as floats
 
@@ -1079,7 +1113,7 @@ class MyInterface:
       # for case of empty string, allow for equality as strings
       # if strings are equal, we do not need float tests
       if scomp:
-         if comp == 'LE' or comp == 'GE':
+         if comp in ['LE', 'GE', 'ZLE', 'ZGE']:
             return 1
          else:
             # because even for non-float strings, x<x cannot hold, for example
@@ -1109,19 +1143,19 @@ class MyInterface:
       # --------------------------------------------------
       # continue with pure numerical tests (forget scomp)
 
-      if comp == 'LT':
+      if comp in ['LT', 'ZLT'] :
          if fcomp == -2: return 1 # cannot tell, return true as outlier
          return (fcomp < 0)
          
-      if comp == 'LE':
+      if comp in ['LE', 'ZLE'] :
          if fcomp == -2: return 1 # cannot tell, return true as outlier
          return (fcomp <= 0)
          
-      if comp == 'GT':
+      if comp in ['GT', 'ZGT'] :
          if fcomp == -2: return 1 # cannot tell, return true as outlier
          return (fcomp > 0)
          
-      if comp == 'GE':
+      if comp in ['GE', 'ZGE'] :
          if fcomp == -2: return 1 # cannot tell, return true as outlier
          return (fcomp >= 0)
          
@@ -1179,12 +1213,103 @@ class MyInterface:
          check = otest[1]
          if check == 'SHOW' or check == 'VARY':
             newlab = check
+         elif check in Z_COMP_OPS :
+            # [PT: Sep 2, 2024] new label format for Z-score comparisons
+            chck, val = self.apply_Z_transform(float(otest[2]), label,
+                                               inverse=True)
+            if chck : return -1
+            thr = UTIL.round_int_or_nsig(val, 3, stringify=True)
+            newlab = '%s:%s (=%s)' % (check, otest[2], str(thr))
          else:
             newlab = '%s:%s' % (check, otest[2])
 
          for repind in range(self.maxcounts[label]):
             table[1][posn] = newlab
             posn += 1
+
+      return 0
+
+   def apply_Z_transform(self, x, label, inverse=False):
+      """convert float x to a Z-transformed version, based on the
+      already-calculate mu and sigma values associated with the label.
+
+      if inverse=True, then apply the _inverse_transform: that is, use
+      mu and sigma to transform Z to a 'real' value
+
+      return two values:
+        + [0]: 0 for success, nonzero for failure
+        + [1]: Z-transformed value for successful conversion (or 0 on failure)
+
+      """
+
+      if label not in self.ro_zpar_dict :
+         print("** ERROR: label '{}' is not in the zpar_dict??"
+               "".format(label))
+         return -1, 0.
+
+      mu, sig = self.ro_zpar_dict[label] 
+
+      if inverse :
+         val = x * sig + mu
+      else:
+         val = (x - mu)/sig
+
+      return 0, val
+
+   def prepare_Z_transform(self):
+      """for any Z-comparisons like ZGT, ZLT, etc., calculate the necessary
+      parameters for Zscoring values in that column: mean and stdev
+
+      """
+
+      # since we are skipping [0]...
+      if len(self.labels) < 2:
+         return 0
+
+      # check for 'Z*' comparison operators, and populate z-parameter
+      # dictionary for each
+      nz = 0
+      for otest in self.ro_list :
+         if otest[1] in Z_COMP_OPS :
+            nz+= 1
+            if self.get_label_mean_stdev(otest[0]) :
+               return 1
+
+            if self.verb > 2 :
+               print("++ found Z-comparison operator:", otest)
+
+      return 0
+
+   def get_label_mean_stdev(self, label):
+      """for a given label (column header), go through ldict and calc mean
+         and stdev using all subj that have that label.  These params get 
+         stored in the Z-parameter dict, self.ro_zpar_dict
+         
+         at the moment, just assuming that the float(..) operation will work,
+         not pre-checking or managing
+      """
+      
+      # loop over all subject dictionaries, accumulate values
+      vals = []
+      for sdict in self.ldict:
+         if label in sdict :
+            n = len(sdict[label])
+            if n > 1 :
+               print("** ERROR: too many values ({}) for Z-parameterizing "
+                     "label: {}, {}".format(n, label))
+            try:
+               x = float(sdict[label][0])
+               vals.append(x)
+            except:
+               print("** ERROR for float calc of label:", label, sdict[label])
+               return 1
+
+      # make sure we have enough values for mean/std calc
+      if len(vals) > 2 :
+         mmms = UTIL.min_mean_max_stdev(vals)
+         self.ro_zpar_dict[label] = [mmms[1], mmms[3]]
+      else:
+         return 1
 
       return 0
 
