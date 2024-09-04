@@ -16383,6 +16383,8 @@ int SUMA_SelectSwitchColPlane(SUMA_ALL_DO *ado,
 
    SUMA_ENTRY;
 
+   fprintf(stderr, "+++++ %s\n", FuncName);
+
    if (!ado || !LW) SUMA_RETURN(0);
 
    if (!SUMA_SelectSwitchColPlane_one(ado, LW, ichoice, CloseShop, setmen)) {

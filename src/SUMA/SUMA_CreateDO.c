@@ -6345,6 +6345,8 @@ SUMA_Boolean SUMA_DrawTractDO_basic (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
 
    SUMA_ENTRY;
 
+   fprintf(stderr, "+++++ %s\n", FuncName);
+
    if (!TDO || !sv || !(TSaux = SUMA_ADO_TSaux(ado))) {
       fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
       SUMA_RETURN (NOPE);
@@ -6746,6 +6748,8 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+
+   fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (!TDO || !sv || !(TSaux = SUMA_ADO_TSaux(ado))) {
       fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
@@ -7953,6 +7957,8 @@ SUMA_NIDO * SUMA_GDSET_matrix_nido(SUMA_DSET *dset)
 
    SUMA_ENTRY;
 
+   fprintf(stderr, "+++++ %s\n", FuncName);
+
    if (!dset || !SUMA_isGraphDset(dset) || !(GSaux=SDSET_GSAUX(dset))) {
       fprintf(stderr,"Error %s: NULL or bad pointers.\n", FuncName);
       SUMA_RETURN (NULL);
@@ -8050,6 +8056,8 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+
+   fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (!gldo || !(dset=SUMA_find_GLDO_Dset(gldo)) || !sv
          || !SUMA_isGraphDset(dset) || !(GSaux=SDSET_GSAUX(dset))) {
@@ -11222,6 +11230,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+
+   fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (!GSaux || !sv || !(SDO=GSaux->SDO)) {
       fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);

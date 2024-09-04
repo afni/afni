@@ -1234,7 +1234,7 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
 
 void restoreProperThresholdCcontours(SUMA_ALL_DO *ado)
 {
-   static char FuncName[]={"SUMA_SwitchColPlaneIntensity"};
+   static char FuncName[]={"restoreProperThresholdCcontours"};
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    XtPointer clientData = (XtPointer)ado;
 
@@ -1314,7 +1314,6 @@ int SUMA_SwitchColPlaneIntensity_one (
    int BoxOutlineThresh;
 
    SUMA_ENTRY;
-
 
    fprintf(stderr, "+++++ %s\n", FuncName);
 
@@ -1524,12 +1523,15 @@ int SUMA_SwitchColPlaneIntensity_one (
       SUMA_UpdateColPlaneShellAsNeeded(ado);
    #endif
 
-   SUMA_UpdateNodeValField(ado);
-   SUMA_UpdateNodeLblField(ado);
-
    // Restore threshold boundary if necessary.  This is called when the 
    //   threshold slider is moved
    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   
+   // Restore proper threshold contours
+   restoreProperThresholdCcontours(ado);
+
+   SUMA_UpdateNodeValField(ado);
+   SUMA_UpdateNodeLblField(ado);
 
    SUMA_RETURN(1);
 }
@@ -1955,12 +1957,20 @@ int SUMA_SwitchCmap_one(SUMA_ALL_DO *ado,
 {
    static char FuncName[]={"SUMA_SwitchCmap_one"};
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL;
+   int BoxOutlineThresh;
 
    SUMA_ENTRY;
 
    if (!ado || !CM) SUMA_RETURN(0);
 
    fprintf(stderr, "+++++ %s\n", FuncName);
+   
+   // Temporarily suspend threshold outline.  This appears to resolve the 
+   // problem of the color map changing with the threshold slider
+   SO = (SUMA_SurfaceObject *)ado;
+   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+   SO->SurfCont->BoxOutlineThresh = 0;
 
    if (LocalHead) {
       fprintf(SUMA_STDERR, "%s:\n request to switch colormap to  (%s)\n",
@@ -1996,6 +2006,13 @@ int SUMA_SwitchCmap_one(SUMA_ALL_DO *ado,
       SUMA_PBAR_bigexpose_CB(NULL, (XtPointer)ado, NULL);
    }
 
+   // Restore threshold boundary if necessary.  This is called when the 
+   //   threshold slider is moved
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   
+   // Restore proper threshold contours
+   restoreProperThresholdCcontours(ado);
+
    SUMA_RETURN(1);
 }
 
@@ -2004,6 +2021,8 @@ int SUMA_SwitchCmap(SUMA_ALL_DO *ado,
 {
    static char FuncName[]={"SUMA_SwitchCmap"};
    SUMA_Boolean LocalHead = NOPE;
+   int BoxOutlineThresh;
+   SUMA_SurfaceObject *SO;
 
    SUMA_ENTRY;
 
@@ -2011,6 +2030,12 @@ int SUMA_SwitchCmap(SUMA_ALL_DO *ado,
    if (!ado || !CM) SUMA_RETURN(0);
 
    fprintf(stderr, "+++++ %s\n", FuncName);
+   
+   // Temporarily suspend threshold outline.  This appears to resolve the 
+   // problem of the color map changing with the threshold slider
+   SO = (SUMA_SurfaceObject *)ado;
+   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+   SO->SurfCont->BoxOutlineThresh = 0;
 
    if (!SUMA_SwitchCmap_one(ado, CM, setmenu)) SUMA_RETURN(0);
 
@@ -2031,6 +2056,14 @@ int SUMA_SwitchCmap(SUMA_ALL_DO *ado,
          }
       }
    }
+   
+   // Restore threshold boundary if necessary.  This is called when the 
+   //   threshold slider is moved
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   
+   // Restore proper threshold contours
+   restoreProperThresholdCcontours(ado);
+
    SUMA_RETURN(1);
 }
 
@@ -2059,15 +2092,15 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
    
    // Temporarily suspend threshold outline.  This appears to resolve the 
    // problem of the color map changing with the threshold slider
-   SO = (SUMA_SurfaceObject *)ado;
-   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
-   SO->SurfCont->BoxOutlineThresh = 0;
+//   SO = (SUMA_SurfaceObject *)ado;
+//   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+//   SO->SurfCont->BoxOutlineThresh = 0;
 
    SUMA_SwitchCmap(ado, CM, 0);
 
    // Restore threshold boundary if necessary.  This is called when the 
    //   threshold slider is moved
-   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   // SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
    
    // Restore proper threshold contours
    restoreProperThresholdCcontours(ado);
@@ -2271,6 +2304,9 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    // Refresh display
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
+   
+   // Restore proper threshold contours if required
+   restoreProperThresholdCcontours(ado);
 
    SUMA_RETURNe;
 }
@@ -5228,7 +5264,7 @@ void SUMA_leave_TableField( Widget w , XtPointer client_data ,
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
+   // fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_LH("Called");
    TF = (SUMA_TABLE_FIELD *)client_data ;
@@ -10099,6 +10135,8 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_ALL_DO *ado, char *str)
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   int BoxOutlineThresh;
+   SUMA_SurfaceObject *SO;
 
    SUMA_ENTRY;
 
@@ -10113,6 +10151,12 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_ALL_DO *ado, char *str)
       SUMA_S_Err("NULL input");
       SUMA_RETURN(NOPE);
    }
+   
+   // Temporarily suspend threshold outline.  This appears to resolve the 
+   // problem of the color map changing with the threshold slider
+   SO = (SUMA_SurfaceObject *)ado;
+   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+   SO->SurfCont->BoxOutlineThresh = 0;
 
    w = SurfCont->SwitchCmapMenu->mw;
    if (!w) {
@@ -10153,7 +10197,11 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_ALL_DO *ado, char *str)
          SUMA_RETURN(YUP);
      }
    }
-   
+
+   // Restore threshold boundary if necessary.  This is called when the 
+   //   threshold slider is moved
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+      
    // Restore proper threshold contours
    restoreProperThresholdCcontours(ado);
 //   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
@@ -10161,6 +10209,10 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_ALL_DO *ado, char *str)
 //        XtPointer clientData = (XtPointer)ado;
 //        SUMA_RestoreThresholdContours(clientData);
 //   }
+   
+   // Restore proper threshold contours
+   fprintf(stderr, "%s: SO->SurfCont->BoxOutlineThresh = %d\n", FuncName, SO->SurfCont->BoxOutlineThresh);
+   restoreProperThresholdCcontours(ado);
 
    SUMA_RETURN(NOPE);
 }
@@ -10267,6 +10319,8 @@ void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data,
    XmListCallbackStruct *cbs = (XmListCallbackStruct *) call_data;
    int ichoice = -1;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO=NULL;
+   static int BoxOutlineThresh;
 
    SUMA_ENTRY;
 
@@ -10275,6 +10329,10 @@ void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data,
    SUMA_LH("Called");
    ado = (SUMA_ALL_DO *)client_data;
    LW = SUMAg_CF->X->SwitchCmapLst;
+   
+   // Save box threshold outline status
+   SO=(SUMA_SurfaceObject *)ado;
+   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
 
    ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
 
@@ -10283,13 +10341,13 @@ void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data,
       SUMA_RETURNe;
    }
    
-   // Restore proper threshold contours
+   // Restore proper threshold contours after colormap changed by R-clicking
+   //  on Cmp and choosing colormap
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   fprintf(stderr, "%s: SO->SurfCont->BoxOutlineThresh = %d\n", 
+    FuncName, SO->SurfCont->BoxOutlineThresh);
    restoreProperThresholdCcontours(ado);
-//   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-//   if (SO->SurfCont->BoxOutlineThresh ){
-//        XtPointer clientData = (XtPointer)ado;
-//        SUMA_RestoreThresholdContours(clientData);
-//   }
+
 
    SUMA_RETURNe;
 }
@@ -14058,6 +14116,7 @@ SUMA_OVERLAYS * SUMA_ADO_CurColPlane(SUMA_ALL_DO *ado)
    static char FuncName[]={"SUMA_ADO_CurColPlane"};
    SUMA_Boolean LocalHead = NOPE;
    SUMA_SurfaceObject *SO = NULL;
+   int BoxOutlineThresh;
 
    fprintf(stderr, "+++++ %s\n", FuncName);
 
@@ -14108,6 +14167,14 @@ SUMA_OVERLAYS * SUMA_ADO_CurColPlane(SUMA_ALL_DO *ado)
       default:
          return(NULL);
    }
+
+   // Restore threshold boundary if necessary.  This is called when the 
+   //   threshold slider is moved
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   
+   // Restore proper threshold contours
+   fprintf(stderr, "%s: SO->SurfCont->BoxOutlineThresh = %d\n", FuncName, SO->SurfCont->BoxOutlineThresh);
+   restoreProperThresholdCcontours(ado);
 
    return(NULL);
 }
