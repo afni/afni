@@ -237,7 +237,8 @@ process options:
                   Z-transform: VAL -> VAL*stdev + mean. Then the
                   comparison is made.
                   The translated threshold is reported in the outlier
-                  report.
+                  report. This only applies to LABELs with scalar, numerical
+                  values.
 
         VAL     : a comparison value (if needed, based on COMP)
 
@@ -265,6 +266,17 @@ process options:
          the given field value in any output.  This will not affect which
          subject lines are displayed.  But for those that are, the GCOR column
          (in this example) and values will be included.
+
+      RO example 4.
+
+            -report_outliers 'anat/EPI mask Dice coef' ZLE -3
+
+         Any subject with a much lower 'anat/EPI mask Dice coef' than
+         other subjects will be considered an outlier.  Rather than
+         being an absolute exclusion criterion, this might more be
+         more appropriate simply to quickly point out subjects that
+         might have an alignment issue (or at least who differ from
+         the rest of the group in this parameter).
 
       See also -report_outliers_fill_style, -outlier_sep and -empty_is_outlier.
 
