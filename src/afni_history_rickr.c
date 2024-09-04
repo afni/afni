@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Sep, 2024, RCR, "afni_system_check.py", MINOR, TYPE_MODIFY,
+   "use uname -m for CPU, instead of platform.processor()",
+   NULL
+ } ,
+
  {  4, Sep, 2024, RCR, "OS_notes.macos_12_b_user.tcsh", MINOR, TYPE_ENHANCE,
    "allow the script to be re-run with no effect",
    NULL
