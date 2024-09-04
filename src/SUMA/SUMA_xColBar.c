@@ -2176,8 +2176,7 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
 
    SUMA_UpdateNodeLblField(ado);
    
-   // Restore proper threshold contours after colormap changed by R-clicking
-   //  on Cmp and choosing colormap
+   // Restore proper threshold contours after "shw 0" toggled
    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
    fprintf(stderr, "%s: SO->SurfCont->BoxOutlineThresh = %d\n", 
     FuncName, SO->SurfCont->BoxOutlineThresh);
@@ -2592,8 +2591,7 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
 
    SUMA_UpdateNodeLblField(ado);
    
-   // Restore proper threshold contours after colormap changed by R-clicking
-   //  on Cmp and choosing colormap
+   // Restore proper threshold contours after |T| toggled
    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
    fprintf(stderr, "%s: SO->SurfCont->BoxOutlineThresh = %d\n", 
     FuncName, SO->SurfCont->BoxOutlineThresh);
