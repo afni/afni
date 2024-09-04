@@ -2122,6 +2122,8 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO=NULL;
+   static int BoxOutlineThresh;
 
    SUMA_ENTRY;
 
@@ -2138,6 +2140,10 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
          !curColPlane->OptScl )  {
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
+   
+   // Save box threshold outline status
+   SO=(SUMA_SurfaceObject *)ado;
+   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
 
    curColPlane->OptScl->MaskZero =
       !curColPlane->OptScl->MaskZero;
@@ -2169,6 +2175,13 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    SUMA_Remixedisplay(ado);
 
    SUMA_UpdateNodeLblField(ado);
+   
+   // Restore proper threshold contours after colormap changed by R-clicking
+   //  on Cmp and choosing colormap
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   fprintf(stderr, "%s: SO->SurfCont->BoxOutlineThresh = %d\n", 
+    FuncName, SO->SurfCont->BoxOutlineThresh);
+   restoreProperThresholdCcontours(ado);
 
    SUMA_RETURNe;
 }
