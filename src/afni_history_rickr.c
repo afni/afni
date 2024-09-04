@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Sep, 2024, RCR, "OS_notes.macos_12_b_user.tcsh", MINOR, TYPE_ENHANCE,
+   "allow the script to be re-run with no effect",
+   NULL
+ } ,
+
  { 30, Aug, 2024, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
    "mark linux_xorg7 and linux_xorg7_64 as being obsolete",
    NULL
