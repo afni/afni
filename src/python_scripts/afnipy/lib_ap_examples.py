@@ -2733,8 +2733,9 @@ def egs_publish():
    examples.append( APExample('AP publish 3h',
      source='AP_paper/scripts_rest/do_38_ap_ex8_mesurf_oc.tcsh',
      descrip='do_38_ap_ex8_mesurf_oc.tcsh - multi-echo surface analysis.',
-     moddate='2024.08.29',
-     keywords=['complete', 'blip', 'ME', 'publish', 'rest', 'surface'],
+     moddate='2024.09.04',
+     keywords=['complete', 'blip', 'ME', 'noshow', 'publish',
+               'rest', 'surface'],
      header="""
               (recommended?  yes)
 
