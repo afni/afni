@@ -164,10 +164,11 @@ static char * g_history[] =
     " 4.31 Nov  2, 2022 [rickr]: add -sort_method geme_xnat\n"
     " 4.32 Apr 24, 2024 [rickr]: add -sort_method geme_suid\n"
     " 4.33 Jun 20, 2024 [rickr]: make -read_all the default (for RT sorting)\n"
+    " 4.34 Sep  5, 2024 [rickr]: add help comments regarding RT feedback\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.33 (June 20, 2024)"
+#define DIMON_VERSION "version 4.34 (September 5, 2024)"
 
 static char * g_milestones[] =
 {
@@ -5478,9 +5479,10 @@ printf(
 "       -rt_cmd 'PREFIX brie.would.be.good'                   \\\n"
 "\n"
 "  -------------------------------------------\n"
-"  example F (for testing complete real-time system):\n"
+"  example F (for testing a complete real-time system):\n"
 "\n"
 "    ** consider AFNI_data6/realtime.demos/demo.2.fback.*\n"
+"    ** consider also: @Install_APMULTI_Demo2_realtime\n"
 "\n"
 "    Use Dimon to send volumes to afni's real-time plugin, simulating\n"
 "    TR timing with Dimon's -pause option.  Motion parameters and ROI\n"
@@ -5517,7 +5519,11 @@ printf(
 "    \n"
 "           Dimon -rt -pause 2000 -infile_prefix EPI_run1/8HRBRAIN\n"
 "    \n"
-"       Note that Dimon can be run many times at this point.\n"
+"       Notes:\n"
+"         - Dimon can be run many times at this point.\n"
+"         - At the scanner, -pause might be replaced with either\n"
+"           -sleep_vol or -sleep_frac.\n"
+"         - It is common to apply an appropriate -sort_method here.\n"
 "\n"
 "    --------------------\n"
 "\n"
