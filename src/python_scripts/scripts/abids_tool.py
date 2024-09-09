@@ -47,7 +47,7 @@ Caveats ~1~
     So the dataset(s) will be overwritten!!
     Make sure you want to do this!!
     All of the caveates for 3drefit apply here...!!
-    (https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/3drefit_sphx.html)
+    (https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/alpha/3drefit_sphx.html)
 
     For example, when using -add_TR, if the dataset has slice time offsets,
     these will be scaled by the factor newTR/oldTR. So you may want to

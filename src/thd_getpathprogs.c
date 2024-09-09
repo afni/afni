@@ -1392,7 +1392,7 @@ char *web_prog_help_link(char *prog, int style)
    static int n;
    /* point to the new AFNI program help page     16 Mar 2020 [rickr] */
    const char * sphinx_help =
-      "https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs";
+      "https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/alpha";
    const char * old_help =
       "https://afni.nimh.nih.gov/pub/dist/doc/program_help";
    

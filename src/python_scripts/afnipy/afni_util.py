@@ -1550,6 +1550,38 @@ def test_truncation(top=10.0, bot=0.1, bits=3, e=0.0001):
         print(val, ' -> ', trunc)
         val = min(trunc-e, val-e)
 
+def round_int_or_nsig(x, nsig=None, stringify=False):
+    """if int(x) has at least nsig significant digits, then return
+    round(x); otherwise, round and keep nsig significant digits at a
+    minimum. If stringify=True, return as a string (since this
+    function is often for preparing string output to report).
+
+    if nsig=None, then just return the round(x)
+
+    """
+
+    # simple case: round to int
+    if nsig is None :
+       y = round(x)
+       if stringify :  return "{:d}".format(y)
+       else:           return y
+
+    # some work: in sci notation, what is the exponent?
+    nleft  = int(("{:e}".format(x)).split('e')[-1]) + 1
+    nright = nsig - nleft
+ 
+    # case: number of ints is >= num of sig figs, so round to int
+    if nright <= 0 :
+       y = round(x)
+       if stringify :  return "{:d}".format(y)
+       else:           return y
+
+    # more work: round to appropriate number of decimals
+    y = round(x, nright)
+
+    if stringify : return "{:.{:d}f}".format(y, nright)
+    else:          return y
+
 def get_dset_reps_tr(dset, notr=0, verb=1):
     """given an AFNI dataset, return err, reps, tr
 

@@ -15,6 +15,13 @@ from afnipy import option_list as OL
 from afnipy import lib_afni1D as LD
 from afnipy import lib_vars_object as VO
 
+# ---------------------------------------------------------------------------
+# some globals
+
+# help sections (see -help_section)
+g_valid_help_sections = ['enew', 'eold', 'eall', 'eshow',
+                         'afni_proc', 'afni_proc.py']
+
 # types of motion simulated datasets that can be created
 #    motion     : simulated motion time series - volreg base warped
 #                 by inverse motion transformations (forward motion)
@@ -1183,10 +1190,15 @@ def db_cmd_blip(proc, block):
 
    blip_interp = '-quintic'
 
-   cmd =  "# %s\n" % block_header('blip')
-   cmd += '# compute blip up/down non-linear distortion correction for EPI\n\n'
+   # note the goal here, for the comment string
+   if proc.blip_dset_warp is not None:
+      taskstr = 'apply'
+   else:
+      taskstr = 'compute blip up/down'
 
-   # rcr todo: apply option -blip_warp_dset
+   cmd =  "# %s\n" % block_header('blip')
+   cmd += '# %s non-linear EPI distortion correction\n\n' \
+          % taskstr
 
    # -----------------------------------------------------------------
    # actually compute the transformation (or else it was input)
@@ -1194,7 +1206,7 @@ def db_cmd_blip(proc, block):
       bcmd = compute_blip_xform(proc, block, interp=blip_interp)
       if bcmd == '': return ''
    else:
-      bcmd = '\n# nothing to do: have external -blip_warp_dset %s\n\n' \
+      bcmd = '\n# no computation to do: have external -blip_warp_dset %s\n\n' \
              % proc.blip_dset_warp.shortinput()
    cmd += bcmd
 
@@ -9351,7 +9363,7 @@ def show_program_help(section=''):
    if section == '':
       print(g_help_intro)
       # now print examples from lib_ap_examples
-      show_help_examples(source='eall')
+      show_help_examples(source='eshow')
       print(g_help_notes)
       print(g_help_options)
       print(g_help_trailer)
@@ -9359,7 +9371,7 @@ def show_program_help(section=''):
       return 0
 
    # process new example string separately for now
-   if section in ['enew', 'eold', 'eall', 'afni_proc.py']:
+   if section in g_valid_help_sections:
       show_help_examples(source=section)
       return 0
 
@@ -9382,7 +9394,11 @@ def show_help_examples(source='eold'):
 
    # print new-style examples
    from afnipy import lib_ap_examples as EGS
-   EGS.populate_examples()
+   keys_rm = []
+   # if 'show' example, exclude the noshow ones
+   if source == 'eshow':
+      keys_rm = ['noshow']
+   EGS.populate_examples(keys_rm=keys_rm)
 
    # print only AP examples, or all
    if source.lower() in ['enew', 'new', 'afni_proc', 'afni_proc.py']:
@@ -9445,7 +9461,7 @@ Basic script outline: ~1~
    - copy all inputs to new 'results' directory
    - process data: e.g. despike,tshift/align/tlrc/volreg/blur/scale/regress
    - leave all (well, most) results there, so user can review processing
-   - create @ss_review scripts to help user with basic quality control
+   - create quality control data (APQC HTML page, ss_review_scripts, etc.)
 
 The exact processing steps are controlled by the user, including which main
 processing blocks to use, and their order.  See the 'DEFAULTS' section for
@@ -9478,6 +9494,7 @@ line, even if using -ask_me.  See "-ask_me EXAMPLES", below.
 SECTIONS: order of sections in the "afni_proc.py -help" output ~1~
 
     program introduction    : (above) basic overview of afni_proc.py
+    SETTING UP AN ANALYSIS  : a guide for getting started
     PROCESSING BLOCKS       : list of possible processing blocks
     DEFAULTS                : basic default operations, per block
     EXAMPLES                : various examples of running this program
@@ -9493,6 +9510,135 @@ SECTIONS: order of sections in the "afni_proc.py -help" output ~1~
         informational       : options to get quick info and quit
         general execution   : options not specific to a processing block
         block options       : specific to blocks, in default block order
+
+==================================================
+SETTING UP AN ANALYSIS: ~1~
+
+For those new to using afni_proc.py, it is very helpful to start with an
+example that is similar to what you want to do, generally taken from the help
+examples (afni_proc.py -show_example_names) or prior publication.
+
+Once satisfied with a single application of afni_proc.py, one would then loop
+over subjects by running afni_proc.py on each, using subject variables to refer
+to the individual set of input data and the output subject ID.
+
+Starting up, there is a general set of choices that is good to consider:
+
+   a. type of analysis:    task or rest/naturalistic
+   b. domain of analysis:  volume or surface (possibly either as ROI)
+   c. main input data:     anat, EPI runs (single or multi-echo), task timing,
+                           surfaces and surface anatomical
+   d. extra input data:    NL distortion warp, NL template warp, blip dsets,
+                           ROI imports, anat followers, physio regressors,
+                           external registration base (for volreg or anat),
+                           external motion files, censor list, extra regressors
+   e. processing blocks:   main EPI processing blocks and their order
+                         - see "PROCESSING BLOCKS"
+   f. optional processing: physio regression, tedana, ANATICOR, ROI regression,
+                           bandpassing
+   g. main options:        template, blur level (if any), censor levels,
+                           EPI/anat cost and other alignment options
+   h. other options:       there are many, e.g.: motion regressors, bandpass,
+                           ANATICOR, and many that are specific to QC
+
+   ----------
+
+   a. type of analysis
+
+      For a task analysis, one provides stimulus timing files and corresponding
+      modeling options.  This is a large topic that centers on the use of
+      3dDeconvolve.
+
+      Options for task analysis generally start with -regress, as they pertain
+      to the regress block.  However one generally includes a regress block in
+      any analysis (even partial ones, such as for alignment), as it is the
+      gateway to the APQC HTML report.
+
+   b. domain of analysis
+
+      For a surface analysis, one provides a SUMA spec file per hemisphere,
+      along with a surface anatomical dataset.  Mapping from the volume to the
+      surface generally happens soon after all volumetric registration is done,
+      and importantly, before any blur block.  Restricting blurring to the
+      surface is one of the reasons to perform such an analysis.
+
+      In a surface analysis, no volumetric template or tlrc options are given.
+      Surface analysis is generally performed on SUMA's standard meshes, though
+      it need not be.
+
+      An ROI analysis is generally performed as a typical volume or surface
+      analysis, but without any applied blurring (which effectively happens
+      later, when averaging over the ROIs).
+
+   c. main input data
+
+      EPI datasets are required, for one or more runs and one or more echoes.
+      Anything else is optional.
+
+      Typically one also includes a subject anatomy, any task timing files, and
+      surface datasets (spec files an anatomy) if doing a surface analysis.
+
+   d. extra input data
+
+      It is common to supply a non-linear transformation warp dataset (from
+      sswarper) to apply for anatomy->template alignment.  One might also have
+      a pre-computed non-linear B0 distortion map or reverse phase encoding
+      (blip) dataset, ROIs or other anatomical followers or physiological
+      regressors.  An EPI base dataset might be provided to align the EPI to,
+      and possibly one to guide alignment to the subject anatomical dataset.
+
+      Precomputed motion parameter files could be provided (if skipping the
+      volreg block), as well as an external censor time series or precomputed
+      regressors (of interest or not).
+
+      These extra inputs will affect use of other options.
+
+   e. processing blocks
+
+      As described in the "PROCESSING BLOCKS" section, one can specify an
+      ordered list of main processing blocks.  The order of the listed blocks
+      will determine their order in the processing script.  Of course, for a
+      given set of blocks, there is typically a preferred order.
+
+      Options specific to one block will generally start with that block name.
+      For example, the -regress_* options apply to the regress block.
+
+      It is logically clear (but not necessary) to provide block options in the
+      same chronological order as the blocks.
+
+   f. optional processing
+
+      Optional processing might include things like:
+        - physiological noise regression, based on use of physio_calc.py
+        - tedana, or a variant, for use in combining multi-echo time series
+        - ANATICOR (local white matter regression)
+        - ROI regression (averages or principle components)
+        - bandpassing (low pass, high pass, or single or multiple bands)
+
+   g. main options
+
+      One typically provides:
+        - a template (and accompanying non-linear anat to template
+          transformation datasets)
+        - an amount to blur (or a choice to not blur, as would apply to an ROI
+          analysis), or a level to blur _to_
+        - censor levels (for outliers or the Euclidean norm of the motion
+          parameters)
+        - alignment options, such as the cost function for align_epi_anat.py
+          and a local EPI unifize option - there are many options to control
+          many aspects of registration
+        - many quality control options are also considered appropriate for
+          consistent use
+
+   h. other options
+
+      Each step of processing has many control options around it.  It is
+      important to think through what might be appropriate for the data in
+      question.
+
+      No one analysis fits all data.
+
+      Quality control "options" are not really considered optional.
 
 ==================================================
 PROCESSING BLOCKS (of the output script): ~1~
@@ -9810,7 +9956,7 @@ EXAMPLES (options can be provided in any order): ~1~
 
           EPI  ->  EPI base  ->  anat  ->  MNI 2009 template
 
-       The standard space transformation is applied to the EPI due to 
+       The standard space transformation is applied to the EPI due to
        specifying -volreg_tlrc_warp.
 
        A 4 mm blur is applied, to keep it very light (about 1.5 times the
@@ -9879,7 +10025,7 @@ EXAMPLES (options can be provided in any order): ~1~
              -regress_est_blur_epits                                  \\
              -regress_est_blur_errts                                  \\
              -regress_run_clustsim no                                 \\
-             -execute 
+             -execute
 
      * One could also use ANATICOR with task (e.g. -regress_anaticor_fast)
        in the case of -regress_reml_exec.  3dREMLfit supports voxelwise
@@ -12170,7 +12316,9 @@ OPTIONS:  ~2~
             1 (def) : include parameter differences
                       (except where expected, e.g. -copy_anat dset)
                       (limit param lists to current text line)
-            2       : show complete parameter diffs
+            2       : show parameter diffs, but try to distinguish what might
+                      just be a difference in paths to a file
+            3       : show complete parameter diffs
 
         Types of differences shown include:
 
@@ -12182,7 +12330,7 @@ OPTIONS:  ~2~
                 specified target command is missing
             differing options       :
                 where the current command and target use the same option,
-                but their parameters differ
+                but their parameters differ (possibly just in a file path)
             fewer applied options   :
                 where the current command and target use multiple copies of
                 the same option, but the current command has fewer
@@ -12193,6 +12341,12 @@ OPTIONS:  ~2~
                 (what is beyond the matching/differing cases)
 
         This option is the basis for all of the -compare* options.
+
+        * Note: options with the same option name are compared in order, so
+                a different order of such options will appear as differences.
+                For example, -ROI_import options all need to be in the same
+                relative order, or they will be seen as differing.
+                Such is life.  If this fact proves disastrous, let me know.
 
         See also -show_example_names.
 
@@ -14353,8 +14507,11 @@ OPTIONS:  ~2~
 
             e.g. -mask_import Tvent template_ventricle_3mm+tlrc
 
+      * Note: -ROI_import basically makes -mask_import unnecessary.
+
         Use this option to import a mask that is aligned with the final
-        EPI data _and_ is on the final grid.
+        EPI data _and_ is on the final grid (with -ROI_import, the ROI will
+        be resampled onto the final grid).
 
             o  this might be based on the group template
             o  this should already be resampled appropriately
@@ -14374,8 +14531,9 @@ OPTIONS:  ~2~
             -mask_union WM_vent Svent WMe                  \\
             -regress_ROI_PC WM_vent 3                      \\
 
-        See also -regress_ROI, -regress_ROI_PC, -regress_make_corr_vols,
-                 -regress_anaticor_label, -mask_intersect, -mask_union.
+        See also -ROI_import, -regress_ROI, -regress_ROI_PC,
+                 -regress_make_corr_vols, -regress_anaticor_label,
+                 -mask_intersect, -mask_union.
 
     -mask_intersect NEW_LABEL MASK_A MASK_B : intersect 2 masks
 
@@ -14723,7 +14881,7 @@ OPTIONS:  ~2~
         Any known label made via those options may be used.
 
         See also -mask_segment_anat, -mask_segment_erode, -regress_ROI_PC,
-            -anat_follower_ROI.
+            -anat_follower_ROI, -ROI_import.
 
     -regress_anaticor_radius RADIUS : specify RADIUS for local WM average
 
@@ -15292,10 +15450,11 @@ OPTIONS:  ~2~
            (over masked voxels).
 
         The labels specified can be from any ROI mask, such as those coming
-        via -anat_follower_ROI, -regress_ROI_PC, or from the automatic
-        masks from -mask_segment_anat.
+        via -ROI_import, -anat_follower_ROI, -regress_ROI_PC, or from the
+        automatic masks from -mask_segment_anat.
 
-        See also -anat_follower_ROI, -regress_ROI_PC, -mask_segment_anat.
+        See also -ROI_import, -anat_follower_ROI, -regress_ROI_PC,
+                 -mask_segment_anat.
 
     -regress_mot_as_ort yes/no : regress motion parameters using -ortvec
 
@@ -15774,6 +15933,9 @@ OPTIONS:  ~2~
             e.g. -regress_ROI FSvent FSwhite
 
         Use this option to regress out one more more known ROI averages.
+        In this case, each ROI (dataset) will be used for a single regressor
+        (one volume cannot be used for multiple ROIs).
+
         ROIs that can be generated from -mask_segment_anat/_erode include:
 
             name    description     source dataset    creation program
@@ -15787,13 +15949,13 @@ OPTIONS:  ~2~
             WM      white matter    mask_WM_resam     3dSeg -> Classes
             WMe     white (eroded)  mask_WMe_resam    3dSeg -> Classes
 
-        Other ROI labels can come from -anat_follower_ROI options, i.e.
-        imported masks.
+        Other ROI labels can come from -anat_follower_ROI or -ROI_import
+        options, i.e. imported masks.
 
       * Use of this option requires either -mask_segment_anat or labels
-        defined via -anat_follower_ROI options.
+        defined via -anat_follower_ROI or -ROI_import options.
 
-        See also -mask_segment_anat/_erode, -anat_follower_ROI.
+        See also -mask_segment_anat/_erode, -anat_follower_ROI, -ROI_import.
         Please see '3dSeg -help' for more information on the masks.
 
     -regress_ROI_PC LABEL NUM_PC    : regress out PCs within mask
@@ -15804,33 +15966,46 @@ OPTIONS:  ~2~
         Add the top principal components (PCs) over an anatomical mask as
         regressors of no interest.
 
+        As with -regress_ROI, each ROI volume is considered a single mask to
+        compute PCs over (for example, here the ventricle and white matter
+        masks are passed individually).
+
           - LABEL   : the class label given to this set of regressors
           - NUM_PC  : the number of principal components to include
 
-        The LABEL can apply to something defined via -mask_segment_anat
-        maybe with -mask_segment_erode, or from -anat_follower_ROI
-        (assuming 'epi' grid), or 'brain' (full_mask).  The -mask_segment*
-        options define ROI labels implicitly (see above), while the user
-        defines ROI labels in any -anat_follower_ROI options.
+        The LABEL can apply to something defined via -mask_segment_anat or
+        -anat_follower_ROI (assuming 'epi' grid), and possibly eroded via
+        -mask_segment_erode.  LABELs can also come from -ROI_import options,
+        or be simply 'brain' (defined as the final EPI mask).
+     
+        The -mask_segment* options define ROI labels implicitly (see above),
+        while the user defines ROI labels in any -anat_follower_ROI or
+        -ROI_import options.
 
-        Method (including 'follower' steps):
+        Method (mask alignment, including 'follower' steps):
 
-          If -anat_follower_ROI is used to define the label, then the
-          follower ROI steps would first be applied to that dataset.
+          The follower steps apply to only -anat_follower* datasets, not to
+          -ROI_import, -mask_import or -mask_segment_anat.
+
+          If -ROI_import is used to define the label, then the follower steps
+          do not apply, the ROI is merely resampled onto the final EPI grid.
 
           If ROIs are created 'automatically' via 3dSeg (-mask_segment_anat)
           then the follower steps do not apply.
 
-          F1. if requested (-anat_follower_erode) erode the ROI mask
-          F2. apply all anatomical transformations to the ROI mask
-              a. catenate all anatomical transformations
-                 i.   anat to EPI?
-                 ii.  affine xform of anat to template?
-                 iii. subsequent non-linear xform of anat to template?
-              b. sample the transformed mask on the EPI grid
-              c. use nearest neighbor interpolation, NN
+          If -anat_follower_ROI is used to define the label, then the
+          follower ROI steps would first be applied to that dataset:
 
-       Method (post-mask alignment):
+             F1. if requested (-anat_follower_erode) erode the ROI mask
+             F2. apply all anatomical transformations to the ROI mask
+                 a. catenate all anatomical transformations
+                    i.   anat to EPI?
+                    ii.  affine xform of anat to template?
+                    iii. subsequent non-linear xform of anat to template?
+                 b. sample the transformed mask on the EPI grid
+                 c. use nearest neighbor interpolation, NN
+
+        Method (post-mask alignment):
 
           P1. extract the top NUM_PC principal components from the volume
               registered EPI data, over the mask

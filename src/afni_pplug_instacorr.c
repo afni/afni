@@ -249,7 +249,7 @@ PLUGIN_interface * ICOR_init( char *lab )
       anything [RWC did it ... ha!] */
    static char *meth_string[10] = { "Pearson" , "Spearman" ,
                                     "Quadrant", "Ken Tau_b", "TicTacToe" ,
-                                    "BCpearson" , "VCpearson", "Eucledean",
+                                    "BCpearson" , "VCpearson", "Euclidean",
                                     "CityBlock" , "Quantile:9" } ;
    char sk[32] , sc[32] ;
    int gblur = AFNI_yesenv("AFNI_INSTACORR_SEEDBLUR") ;

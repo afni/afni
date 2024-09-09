@@ -55,7 +55,7 @@
   this simple syntax will be parsed to create a table of contents and
   prettier title for the RST/Sphinx-based documentation.  As an output
   example, see:
-  https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/afni_proc.py_sphx.html#ahelp-afni-proc-py
+  https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/alpha/afni_proc.py_sphx.html
 */
 int usage_3dEdu_01_scale() 
 {

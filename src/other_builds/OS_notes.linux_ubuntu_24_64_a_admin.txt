@@ -44,8 +44,8 @@ sudo apt-get install -y libgdal-dev libopenblas-dev       \
 
 echo "++ Fix GLwDrawA.h"
 cd /usr/include/GL
-mv GLwDrawA.h GLwDrawA.h.orig
-sed 's/GLAPI WidgetClass/extern GLAPI WidgetClass/' GLwDrawA.h.orig > GLwDrawA.h 
+sudo mv GLwDrawA.h GLwDrawA.h.orig
+sudo sed 's/GLAPI WidgetClass/extern GLAPI WidgetClass/' GLwDrawA.h.orig > GLwDrawA.h 
 
 
 echo "++ Done with sudo-required part"
