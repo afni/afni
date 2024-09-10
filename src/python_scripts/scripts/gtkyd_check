@@ -8,6 +8,7 @@ import sys, os
 # AFNI libraries
 from afnipy import option_list as OL
 from afnipy import afni_util as UTIL
+from afnipy import afni_base as BASE
 from afnipy import lib_gtkyd as lgtk
 
 # ----------------------------------------------------------------------
@@ -74,7 +75,7 @@ Usage ~1~
 
 -ver           :display program version number
 
--verb  VVV     :control verbosity (def: 0)
+-verb  VVV     :control verbosity (def: 1)
 
 -show_valid_opts :show valid options for this program
 
@@ -107,7 +108,7 @@ g_version = "gtkyd_check version 0.2, June 18, 2024"
 
 class MyInterface:
    """interface class for MyLibrary"""
-   def __init__(self, verb=0):
+   def __init__(self, verb=1):
       # main variables
       self.status          = 0                       # exit value
       self.valid_opts      = None

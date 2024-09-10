@@ -15,6 +15,10 @@ from afnipy import lib_format_cmd_str as lfcs
 
 # =============================================================================
 
+hline_mini = '-'*27
+
+# ---------------------------------------------------------------------------
+
 list_3dinfo_ignore = [ '-hview', '-h_view',
                        '-hweb',  '-h_web', 
                        '-help',  '-HELP',
@@ -81,7 +85,7 @@ gtkyd_brickstat_minmax = {
 class GtkydInfo:
 
     def __init__(self, infiles, outdir='GTKYD', do_minmax=False,
-                 do_ow=0, verb=0):
+                 do_ow=0, verb=1):
         """Create object holding GTKYD info data, namely dictionaries of
         header info.
 
@@ -123,7 +127,26 @@ class GtkydInfo:
         if self.write_gen_ss_review_table() :
             sys.exit(7)
 
+        if self.closing_text() :
+            sys.exit(8)
+
     # ---------- methods, etc.
+
+    def closing_text(self):
+        """some fond farewells"""
+
+        BASE.IP(hline_mini)
+        BASE.IP("DONE. See the outputs:")
+        ttt = self.outxls
+        print("   {:25s} : {}".format("group summary table", ttt))
+        ttt = self.outdir + '/rep_gtkyd_detail_*.dat'
+        print("   {:25s} : {}".format("group detailed values", ttt))
+        ttt = self.outdir + '/rep_gtkyd_unique_*.dat'
+        print("   {:25s} : {}".format("group unique values", ttt))
+        ttt = self.outdir + '/dset_*.txt'
+        print("   {:25s} : {}".format("individual value lists", ttt))
+
+        return 0
 
     def write_gen_ss_review_table(self):
         """run GSSRT on the individual subject text files"""
@@ -135,7 +158,7 @@ class GtkydInfo:
         cmd+= "-tablefile {} ".format(self.outxls)
         cmd+= "-infiles {} ".format(' '.join(self.all_otxt))
 
-        if self.verb :
+        if self.verb > 1 :
             _c, cmd_frmt = lfcs.afni_niceify_cmd_str(cmd)
             BASE.IP("Running command to create table:\n{}"
                     "".format(cmd_frmt))
@@ -151,12 +174,17 @@ class GtkydInfo:
         """write out reports for each item: one of values across all subj, and
         one for unique values across all subj"""
 
+        if self.verb > 1 :  BASE.IP(hline_mini)
+
         all_item = self.all_item
         nitem = len(all_item)
         for jj in range(nitem):
             key = all_item[jj]
             prog, opts, abbr = get_prog_of_key(key)
             top_str = "# {} {}{}\n".format(prog, opts, key)
+
+            if self.verb > 1 :
+                BASE.IP("{} ...".format(top_str[2:-1]))
 
             # list of all values, in order
             all_val = []
@@ -189,6 +217,8 @@ class GtkydInfo:
             for val in uniq_val:
                 fff.write("{:s}\n".format(val))
             fff.close()
+
+        if self.verb > 1 :  BASE.IP(hline_mini)
 
         return 0
 
@@ -228,7 +258,13 @@ class GtkydInfo:
         """go through all infiles and get header info. This populates a list
         of headers, one-for-one with the infiles"""
         
+        if self.verb :
+            BASE.IP("Now starting to Get To Know Your Data...")
+
         for fname in self.infiles :
+            if self.verb > 1 :
+                BASE.IP("Checking: {}".format(fname))
+
             _c, D = get_header_items_gtkyd(fname, 
                                            do_brickstat = self.do_minmax,
                                            do_nifti_if_brik = self.mixed_vols,
@@ -268,6 +304,9 @@ class GtkydInfo:
         # get list of fnames from infiles (no paths)
         self.all_fname = [x.split('/')[-1] for x in self.infiles]
 
+        if self.verb :
+            BASE.IP("Have {} dsets to check".format(self.ninfiles))
+
         return 0
 
     def check_and_prep_outnames(self):
@@ -284,6 +323,9 @@ class GtkydInfo:
         # strip trailing '/' and create XLS filename
         self.outdir = self.outdir.rstrip('/')
         self.outxls = self.outdir + '.xls'
+
+        if self.verb :
+            BASE.IP("Making new output directory: {}".format(self.outdir))
 
         # check output dir existence
         if os.path.exists(self.outdir) :
@@ -393,7 +435,7 @@ dict_info : dict
     elif prog == 'nifti_tool' :
         cmd = '''nifti_tool -quiet -disp_hdr {} -infiles {}'''.format(opt_str, 
                                                                       fname)
-    if verb :
+    if verb > 1 :
         BASE.IP("Header command:\n{}".format(cmd))
     com = BASE.shell_com(cmd, capture=1)
     com.run()
@@ -453,7 +495,7 @@ dict_info : dict
     dict_info = {}
 
     cmd = '''nifti_tool -quiet -disp_exts -infiles {}'''.format(fname)
-    if verb :
+    if verb > 1 :
         BASE.IP("Running extension-check command:\n{}".format(cmd))
     com = BASE.shell_com(cmd, capture=1)
     com.run()
@@ -509,7 +551,7 @@ dict_info : dict
     dict_info = {}
 
     cmd = '''3dBrickStat -slow -min -max {}'''.format(fname)
-    if verb :
+    if verb > 1 :
         BASE.IP("Running 3dBrickStat command:\n{}".format(cmd))
     com = BASE.shell_com(cmd, capture=1)
     com.run()
