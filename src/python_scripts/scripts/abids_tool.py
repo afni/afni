@@ -47,7 +47,7 @@ Caveats ~1~
     So the dataset(s) will be overwritten!!
     Make sure you want to do this!!
     All of the caveates for 3drefit apply here...!!
-    (https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/alpha/3drefit_sphx.html)
+    (https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/3drefit_sphx.html)
 
     For example, when using -add_TR, if the dataset has slice time offsets,
     these will be scaled by the factor newTR/oldTR. So you may want to
@@ -133,6 +133,15 @@ for i in range(0,len(dset_list)):
     ## name the dset
     dset = afni_base.afni_name(dset_list[i])
 
+    ## does the file exist?
+    if not os.path.isfile(dset_list[i]) :
+        afni_base.EP("This input file does not exist: {}"
+                     "".format(dset_list[i]))
+
+    if dset_list[i].endswith('.json') :
+        afni_base.WP("The input ends with '.json', but should be a dataset "
+                     "name (e.g., a NIFTI volume).")
+
     ## get some info
     afni_cmd = ("3dinfo -exists -ni -nj -nk -TR "+dset.rppv())
     if ENCODING_REQUIRED:
@@ -142,10 +151,9 @@ for i in range(0,len(dset_list)):
     else:
         check_info = subprocess.check_output(afni_cmd,shell=True).split()
 
-    ## is the input dataset there?
+    ## was 3dinfo successful?
     if check_info[0] == "0":
-        print("\nError: "+dset.pv()+" does not exist or is not loadable!!\n")
-        sys.exit(1)
+        afni_base.EP("3dinfo cannot load dataset '{}'".format(dset.pv()))
 
     ########################################################################
     ## check for the json file and read it in
