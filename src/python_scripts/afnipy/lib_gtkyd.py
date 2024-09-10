@@ -1,9 +1,10 @@
+#!/usr/bin/env python
 
+# Combine header info across multiple files to help users Get To Know
+# Their Data (GTKYD)
 
-# Make a dictionary of the 3dinfo props of a dset
-
-ver='1.0' ; date='Sept 16, 2019'
-# + [PT] 
+ver='2.0' ; date='Sep 10, 2024'
+# + [PT] migrated over original tcsh script to this
 #
 ###############################################################################
 
