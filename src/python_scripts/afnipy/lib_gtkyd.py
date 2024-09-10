@@ -11,6 +11,7 @@ import sys, os, copy
 import json
 from afnipy import afni_base as BASE
 from afnipy import afni_util as UTIL
+from afnipy import lib_format_cmd_str as lfcs
 
 # =============================================================================
 
@@ -134,6 +135,11 @@ class GtkydInfo:
         cmd+= "-tablefile {} ".format(self.outxls)
         cmd+= "-infiles {} ".format(' '.join(self.all_otxt))
 
+        if self.verb :
+            _c, cmd_frmt = lfcs.afni_niceify_cmd_str(cmd)
+            BASE.IP("Running command to create table:\n{}"
+                    "".format(cmd_frmt))
+
         com = BASE.shell_com(cmd, capture=1)
         com.run()
         if com.se :
@@ -197,9 +203,14 @@ class GtkydInfo:
             ofile = self.outdir + '/dset_gtkyd_' + subj + '.txt'
 
             fff = open(ofile, 'w')
+            fff.write("\n")
             for key in D.keys():
                 val = ' '.join(D[key])
-                fff.write("{:<20s} : {:<s}\n".format(key, val))
+                # special case here because 'subject ID' is special
+                # col header in GSSRT
+                if key == 'prefix_noext' : lll = 'subject ID'
+                else:                      lll = key
+                fff.write("{:<20s} : {:<s}\n".format(lll, val))
             fff.close()
             self.all_otxt.append(ofile)
 
@@ -279,7 +290,7 @@ class GtkydInfo:
             if self.do_ow :
                 BASE.WP("removing preexisting output dir: {}"
                         "".format(self.outdir))
-                cmd = """\rm -rf {}""".format(self.outdir)
+                cmd = """\\rm -rf {}""".format(self.outdir)
                 com = BASE.shell_com(cmd, capture=1)
                 com.run()
             else:
@@ -293,7 +304,7 @@ class GtkydInfo:
             if self.do_ow :
                 BASE.WP("removing preexisting XLS file  : {}"
                         "".format(self.outxls))
-                cmd = """\rm -f {}""".format(self.outdir)
+                cmd = """\\rm -f {}""".format(self.outxls)
                 com = BASE.shell_com(cmd, capture=1)
                 com.run()
             else:

@@ -55,7 +55,7 @@ Usage ~1~
 -infiles FILE1 [FILE2 FILE3 ...]
                :(req) name of one or more file to input
 
--outdir ODIR   :(req)name of output "report directory", for more the 
+-outdir ODIR   :(req) name of output "report directory", for more the 
                 reports of details and uniqueness of each property.
 
 -do_minmax     :include dataset min and max value info, which can be 
@@ -82,8 +82,8 @@ Usage ~1~
 Examples ~1~
 
 1) Basic example, running on a set of EPI:
-    gtkyd                                        \\
-        -infiles  group_study/*task*.nii.gz      \\
+    gtkyd                                                \\
+        -infiles  group_study/*task*.nii.gz              \\
         -outdir   group_summary
 
 2) Include (possibly slow) min/max info, and check anatomical dsets:
