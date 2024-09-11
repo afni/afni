@@ -69,6 +69,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 11, Sep , 2024 , PT , "gtkyd_check" , MINOR , TYPE_REMOVE,
+   "Remove the *tcsh script* version of gtkyd_check.",
+   "This has now been superseded by a Python version of same name.\n"
+},
+
+{ 10, Sep , 2024 , PT , "gtkyd_check" , MAJOR , TYPE_NEW_PROG,
+   "A *Python* version of previously-written tcsh script of same name.",
+   "Much faster way of checking/tabulating a glob of datasets for properties.\n"
+},
+
+{ 21, Mar , 2024 , PT , "gtkyd_check" , MINOR , TYPE_NEW_PROG,
+   "Add new program to make summaries of data file properties.",
+   "Glob many datasets, get tables to compare for similarities/diffs.\n"
+},
+
 { 6, Apr , 2023 , PT , "afni_base.py" , MINOR , TYPE_GENERAL,
    "Add new attribute/methods for shell_com logging (kinda like history).",
    "save_log, add_to_log, shell_log, etc.\n"
