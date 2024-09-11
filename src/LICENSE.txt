@@ -1,0 +1,425 @@
+CONTENTS
+
+  Public Domain Notice
+  Exceptions (for bundled code)
+  Copyright F.A.Q.
+
+
+===============================================================================
+                             PUBLIC DOMAIN NOTICE
+                        National Institutes of Health
+
+With the exception of certain third-party files, including those
+summarized below, this software is a "United States Government Work"
+under the terms of theUnited States Copyright Act. It was written as
+part of the authors' official duties as United States Government
+employees and thus cannot be copyrighted. This software is freely
+available to the public for use. The National Institute of Mental
+Health (NIMH) and the U.S. Government have not placed any restriction
+on its use or reproduction.
+
+Although all reasonable efforts have been taken to ensure the accuracy
+and reliability of the software and data, the NIMH and the
+U.S. Government do not and cannot warrant the performance or results
+that may be obtained by using this software or data. The NIMH and the
+U.S. Government disclaim all warranties, express or implied, including
+warranties of performance, merchantability or fitness for any
+particular purpose or that the use of software and data will not
+infringe any patent, copyright, trademark, or other proprietary
+rights. NIMH and the U.S. Government will not be liable for any
+losses, claims, demands, expenses, or damages arising from, out of or
+in connection with the software, data, or use thereof.
+
+Please cite the authors in any work or product based on this material.
+See here for details:
+  https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/published/citations.html
+
+
+===============================================================================
+                                  EXCEPTIONS
+
+Location: Major portions of this software are copyrighted by the
+          Medical College of Wisconsin
+Authors:  Robert W. Cox, et al. 
+License:  GNU General Public License 2 [doc/README/README.copyright and
+          top of files]
+
+Location: src/3DEdge/ and parts of src/SUMA/ using 3DEdge 
+Authors:  Gregoire Malandain
+License:  GNU GPL 3.0 [src/3DEdge/gpl-3.0.txt]
+
+Location: src/coxplot/
+Authors:  Medical College of Wisconsin
+License:  GNU GPL 2.0 [src/coxplot/coxplot.h]
+
+Location: much of src/crorden/dcm2niix_console/
+Authors:  Chris Rorden
+License:  Permissive 
+          [https://github.com/rordenlab/dcm2niix/blob/master/license.txt]
+
+Location: src/crorden/dcm2niix_console/charls/
+Authors:  Jan de Vaan
+License:  Permissive [src/crorden/charls/License.txt]
+
+Location: src/crorden/dcm2niix_console/miniz.c
+Authors:  Rich Geldreich
+License:  Permissive (unlicense) [top of file]
+
+Location: src/crorden/dcm2niix_console/nifti1_io_core.cpp
+Authors:  Robert W. Cox (NIH), Chris Rorden
+License:  Permissive [top of file]
+
+Location: src/crorden/dcm2niix_console/nifti1_io_core.cpp
+Authors:  Chris Rorden, Benjamin Irving
+License:  Permissive [top of file]
+
+Location: src/crorden/dcm2niix_console/ujpeg.cpp
+Authors:  Martin J. Fiedler
+License:  MIT [top of file]
+
+Location: src/crorden/dcm2niix_console/base64.{cpp,h}
+Authors:  Jouni Malinen
+License:  BSD [top of file]
+
+Location: src/crorden/dcm2niix_console/cJSON.{cpp,h}
+Authors:  Dave Gamble and cJSON contributors
+License:  Permissive [top of file]
+
+Location: src/crorden/dcm2niix_console/nii_foreign.cpp
+Authors:  Chris Rorden
+License:  BSD [top of file]
+
+Location: src/crorden/dcm2niix_console/ucm.cmake
+Authors:  Viktor Kirilov
+License:  MIT [top of file]
+
+Location: src/dlcompat/
+Authors:  Apple Computer, Inc.
+License:  Apple Public Source License [src/dlcompat/APPLE_LICENSE]
+
+Location: src/eispack/
+Authors:  Argonne National Laboratory
+License:  Free [https://www.netlib.org/misc/faq.html]
+
+Location: src/f2c/
+Authors:  Bell Laboratories
+License:  Free [https://www.netlib.org/misc/faq.html]
+
+Location: src/f2cdir/
+Authors:  AT&T Bell Laboratories, Bellcore
+License:  Free [src/f2cdir/gram.head]
+
+Location: src/gifsicle/
+Authors:  Eddie Kohler (and Anne Dudfield, David Hedbor, Emil Mikulic,
+          Hans Dinsen-Hansen)
+License:  GNU GPL 2.0 or later [src/gifsicle/README]
+
+Location: much of src/gifti/LICENSE
+Authors:  Richard Reynolds (NIH)
+License:  Free [src/gifti/LICENSE]
+
+Location: src/gifti/cmake/{GIFTICPackConfig,gifti_common}.cmake
+Authors:  Insight Software Consortium
+License:  Apache 2.0 [top of file]
+
+Location: much of src/jpeg-6b/
+Authors:  Tom Lane, Philip Gladstone, Jim Boucher, Lee Crocker, Julian
+          Minguillon, Luis Ortiz, George Phillips, Davide Rossi, Guido
+          Vollbeding, Ge' Weijers, and other members of the
+          Independent JPEG Group
+License:  Free [src/jpeg-6b/README]
+
+Location: src/jpeg-6b/lt{config,main.sh}
+Authors:  Gordon Matzigkeit
+License:  GNU GPL 2.0 or later [top of file]
+
+Location: src/jpeg-6b/config.sub
+Authors:  Free Software Foundation, Inc.
+License:  GNU GPL 2.0 or later [top of file]
+
+Location: src/jpeg-6b/config.guess
+Authors:  Per Bothner
+License:  GNU GPL 2.0 or later [top of file]
+
+Location: src/jpeg-6b/ansi2knr.c
+Authors:  Richard M. Stallman
+License:  Ghostscript GPL [top of file]
+
+Location: src/jzosky/RetroTS.py
+Authors:  Joshua Zosky
+License:  GNU GPL 3.0 or later [top of file]
+
+Location: much of src/mpeg_encodedir/
+Authors:  The Regents of the University of California
+License:  Permissive [src/mpeg_encodedir/COPYRIGHT]
+
+Location: src/mpeg_encodedir/{jrevdct,mfwddct}.c
+Authors:  Thomas G. Lane and Independent JPEG Group
+License:  Permissive [top of file]
+
+Location: src/mpegtoppm_dir
+Authors:  Aaron Holtzman, Michel Lespinasse, et al.
+License:  GNU GPL 2.0 [src/mpegtoppm_dir/COPYING]
+
+Location: much of src/nifti
+Authors:  NIFTI Data Format Working Group and volunteers
+License:  Free [src/nifti/LICENSE]
+
+Location: src/nifti/cmake/nifti_common.cmake
+Authors:  Insight Software Consortium
+License:  Apache 2.0 [top of file]
+
+Location: part of src/niml/niml_md5.c
+Authors:  RSA Data Security, Inc.
+License:  Permissive [top of file]
+
+Location: part of src/niml/niml_md5.c
+Authors:  Christophe Devine
+License:  GNU GPL 2.0 or later [top of file]
+
+Location: src/pkundu/meica.libs/nibabel/
+Authors:  Matthew Brett, Michael Hanke, Stephan Gerhard
+License:  MIT [src/pkundu/meica.libs/nibabel/info.py]
+
+Location: src/qhulldir/ and parts of src/SUMA/ using Qhull
+Authors:  The National Science and Technology Research Center for
+          Computation and Visualization of Geometric Structures (The
+          Geometry Center), University of Minnesota
+License:  Permissive [src/qhulldir/COPYING.txt]
+
+Location: part of src/rickr/l_mcw_glob.c
+Authors:  Guido van Rossum (Regents of the University of California)
+License:  Permissive [top of file]
+
+Location: part of src/rickr/l_mcw_glob.c
+Authors:  Medical College of Wisconsin 
+License:  GNU GPL 2.0 [top of file]
+
+Location: part of src/R_scripts/3dPFM.R
+Authors:  Muhammad Salman Asif (Georgia Tech)
+License:  Permissive (academic, non-commercial, not-for-profit purposes)
+          [top of file]
+
+Location: much of src/svm/
+Authors:  Stephen LaConte
+License:  GNU GPL 3.0 or later [src/svm/3dsvm.c]
+
+Location: SVM-Light functionality in src/svm/
+Authors:  Thorsten Joachims
+License:  Free for non-commercial use (contact author prior to
+          redistribution) [src/svm/3dsvm.c]
+
+Location: src/XmHTML/Makefile
+Authors:  Ripley Software Development
+License:  GNU GPL 2.0 or later [src/XmHTML/Makefile]
+
+Location: parts of src/SUMA using Open Motif
+Authors:  Integrated Computer Systems (ICS) Inc.
+License:  The Open Group Public License  [src/SUMA/SUMA_help.c]
+
+Location: src/SUMA/MarchingCubes/ and src/SUMA/SUMA_IsoSurface{.c,.h,Func.c}
+Authors:  Thomas Lewiner
+License:  Permission from author 
+          [src/SUMA/SUMA_help.c,src/SUMA/MarchingCubes/README]
+
+Location: src/SUMA/GLUT/
+Authors:  Mark. J. Kilgard
+License:  Freely distributable without licensing fees [src/SUMA/GLUT/NOTICE]
+
+Location: src/SUMA/GLw_local/GL/
+Authors:  Silicon Graphics, Inc.
+License:  Permissive [top of each file]
+
+Location: src/SUMA/gts/
+Authors:  Stéphane Popinet, et al.
+License:  GNU GPL 2.0 [src/SUMA/gts/COPYING]
+
+Location: src/SUMA/PLY/
+Authors:  Greg Turk (The Board of Trustees of The Leland Stanford Junior 
+          University; Georgia Institute of Technology)
+License:  Permissive [top of each file]
+
+Location: src/SUMA/SUMA_{coarsen.c,gts.c,gts.h}
+Authors:  Jakub Otwinowski
+License:  GNU GPL 2.0 [top of file]
+
+Location: part of src/SUMA/SUMA_display.c
+Authors:  Dan Heller and Paula Ferguson (O'Reilly & Associates, Inc.)
+License:  Freely distributable without licensing fees [top of file]
+
+Location: part of src/SUMA/SUMA_display.c
+Authors:  Mark J Kilgard
+License:  Freely distributable without licensing fees [top of file]
+
+Location: src/SUMA/SUMA_{glxdino,paperplane,pixmap2eps,trackball}.c
+Authors:  Mark J Kilgard
+License:  Freely distributable without licensing fees [top of file]
+
+Location: part of src/SUMA/SUMA_MiscFunc.c
+Authors:  Paul Bourke
+License:  Permissive for personal use; permission must be sought for any 
+          other use [src/SUMA/SUMA_help.c]
+
+Location: part of src/SUMA_Surface_IO.c
+Authors:  Greg Turk (The Board of Trustees of The Leland Stanford Junior 
+          University)
+License:  Permissive [top of each file]
+
+Location: parts of src/SUMA/SUMA_{MiscFunc.c,Macros.h}
+Authors:  Paul Embree and Bruce Kimble (O'Reilly & Associates)
+License:  Permissive [src/SUMA/SUMA_help.c]
+
+Location: parts of src/SUMA/ using SimpEnvelopes
+Authors:  Jonathan Cohen and Amitabh Varshney (University of North 
+          Carolina at Chapel Hill)
+License:  Permissive for educational, research and non-profit purposes 
+          [src/SUMA/SUMA_help.c]
+
+Location: parts of src/SUMA/ using UTHASH 
+Authors:  Troy D. Hanson
+License:  Permissive [src/SUMA/SUMA_help.c]
+
+Location: parts of src/SUMA/ using 'The C clustering library'
+Authors:  Michiel Jan Laurens de Hoon (Laboratory of DNA Information 
+          Analysis, Human Genome Center, Institute of Medical Science, 
+          University of Tokyo)
+License:  Permissive [src/SUMA/SUMA_help.c]
+
+Location: src/suma_algorithms.c
+Authors:  Kyle Loudon
+License:  Permissive (contact O'Reilly & Associates to include in any other
+          book, publication or educational product) [src/SUMA/SUMA_help.c]
+
+Location: src/mri_dicom_hdr.c 
+Authors:  Stephen M. Moore (Washington University); Radiological Society 
+          of North America
+License:  Permissive [top of file]
+
+Location: src/{plug_,3d}retroicor.c 
+Authors:  Fred Tam (Sunnybrook & Women's College Health Sciences Centre, 
+          Toronto, Canada)
+License:  GNU GPL 2.0 [top of file]
+
+Location: src/retroicor.c 
+Authors:  Fred Tam (Sunnybrook & Women's College Health Sciences Centre, 
+          Toronto, Canada)
+License:  GNU GPL 2.0 [top of file]
+
+Location: src/balloon.c 
+Authors:  Matthew Belmonte
+License:  GNU GPL 2.0 or later [top of file]
+
+Location: src/plug_{permtest,threshold}.c 
+Authors:  Matthew Belmonte
+License:  GNU GPL 2.0 or later [top of file]
+
+Location: src/efence.c 
+Authors:  Bruce Perens
+License:  GNU GPL 2.0 [https://opensource.apple.com/source/binutils/binutils-36/src/electric-fence/COPYING.auto.html]
+
+Location: src/{fftn,fftn_OMP}.c 
+Authors:  MJ Olesen (Queen's University at Kingston)
+License:  Free [top of file]
+
+Location: src/FIRdesign.c
+Authors:  Jake Janovetz
+License:  GNU GPL 2.0 or higher [top of file]
+
+Location: src/remez.c
+Authors:  Jake Janovetz
+License:  GNU GPL 2.0 or higher [top of file]
+
+Location: src/Ifile.c
+Authors:  Guido van Rossum (The Regents of the University of California)
+License:  Permissive [top of file]
+
+Location: src/mcw_glob.{c,h}
+Authors:  Guido van Rossum (The Regents of the University of California)
+License:  Permissive [top of file]
+
+Location: src/ktaub.c
+Authors:  David Simcha 
+License:  Boost Software License [top of file]
+
+Location: src/LiteClue.c
+Authors:  Gary Aviv (Computer Generation, Inc.)
+License:  Permissive [top of file]
+
+Location: src/mri_drawing.c
+Authors:  Jef Poskanzer, John Walker
+License:  Permissive [top of file]
+
+Location: part of src/plug_lsqfit.c
+Authors:  Nicholas Sidiropoulos (University of Maryland at College Park)
+License:  Permissive [top of file]
+
+Location: svdlib.c
+Authors:  University of Tennessee Research Foundation
+License:  Permissive [top of file]
+
+Location: src/thd_md5.c
+Authors:  RSA Data Security, Inc.
+License:  Permissive [top of file]
+
+Location: part of src/to3d.c
+Authors:  Guido van Rossum (The Regents of the University of California)
+License:  Permissive [top of file]
+
+Location: src/whirlgif.c
+Authors:  Kevin Kadow, Mark Podlipec
+License:  Permissive [top of file]
+
+Location: src/zgaussian.c
+Authors:  Jochen Voss
+License:  GNU GPL 2 or later [top of file]
+
+
+===============================================================================
+                              COPYRIGHT F.A.Q.
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Q. Who are the primary developers of the AFNI software package?
+
+A. AFNI was started by Robert W. Cox at the Medical College of
+   Wisconsin in 1994. Today, the primary developers of AFNI are the
+   members of the NIMH's Scientific and Statistical Computing Core
+   (SSCC), though many members of the neuroimaging community have also
+   made (and continue to make) valuable contributions.
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Q. I am not a member of the NIMH's SSCC. Can I contribute to the AFNI
+   source code?  What kind of licensing will apply to my contribution?
+
+A. Yes, many people have contributed to AFNI over the years!  You can
+   make pull requests on the AFNI GitHub page
+   (https://github.com/afni/afni), as well as raise Issues there. It
+   is often useful to be in contact with the primary software
+   developers (members of the NIMH's Scientific and Statistical
+   Computing Core (SSCC)) early on in the process.
+
+   US Government employees' work will automatically be in the Public
+   Domain.  Other contributions may have difference licensing, but
+   note that this is an open source, publicly available community
+   resource, and the intention is to have it remain so.  Any 3rd party
+   contributions should have appropriate licensing noted.
+   Contributions without explicit licensing will be assumed to be
+   entered into the public domain.  To make contributions with any
+   explicit licensing, please contact the SSCC as early as possible.
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Q. So, what _is_ the distribution license?
+
+A. Large portions of the code (and current active development) is in
+   the public domain. For example, the `afnipy` Python module is
+   entirely within the public domain.
+
+   But as outlined above, parts of the codebase also contain licenses,
+   such as GNU GPL 2.0, MIT, Apache 2.0, BSD, Apple Public Source, and
+   various free/permissive licensing descriptions; some very small
+   subsets contain "contact the author before redistribution"
+   notices.  Please review the relevant license for distribution terms
+   and conditions or directly contact the contributing author for more
+   information, as necessary.
+
+
+
