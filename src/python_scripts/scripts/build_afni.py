@@ -496,6 +496,7 @@ class MyInterface:
       self.make_target     = 'itall' # target in "make" command
       self.makefile        = ''     # an alternate Makefile to build from
       self.package         = ''     # to imply Makefile and build dir
+      self.cc_path         = ''     # empty, NONE or path
 
       self.prep_only       = 0      # prepare (c)make, but do not run
       self.run_cmake       = 0      # actually run camke?
@@ -1521,8 +1522,14 @@ class MyInterface:
       #    build    : from this (build_afni.py)
       #    official : official distributed binaires
       who = 'AFNI_WHOMADEIT=build'
-      st, ot = self.run_cmd('make %s %s >& %s' % (who,self.make_target,logfile))
 
+      # maybe the user specified a compiler, or maybe we should search for one
+      gver = self.get_alternate_compiler_str()
+      # if successful, add a space for separation
+      if gver != '': gver += ' '
+
+      st, ot = self.run_cmd('make %s%s %s >& %s' \
+                            % (who, gver, self.make_target, logfile))
       if st: tmesg = 'FAILURE'
       else:  tmesg = 'SUCCESS'
       MESGm("status: building %s" % tmesg)
@@ -1601,6 +1608,90 @@ class MyInterface:
       if st: return st
 
       return 0
+
+   def get_alternate_compiler_str(self, makefile='Makefile'):
+      """if it seems necessary or requested, return a string of the form:
+               LOCAL_CC_PATH=/path/to/gcc-XX
+
+         self.cc_path : NONE    - return an empty string
+                                  (do not use LOCAL_CC_PATH)
+                        PATH    - return LOCAL_CC_PATH=<PATH>
+                        empty   - if appropriate, try to guess
+
+         If using a Makefile that handles it (macos_12_x86_64 for now) and
+         the default compiler does not exist, try to find a suitable replacement
+      
+      """
+      lstr = "LOCAL_CC_PATH"
+
+      if self.verb > 2:
+         MESGm("looking for %s, sys=%s, cc_path=%s" \
+               % (lstr, self.sysname, self.cc_path))
+
+      # if NONE or non-empty, quick return
+      if self.cc_path == 'NONE':
+         return ''
+      elif self.cc_path != '':
+         return ' %s=%s' % (lstr, self.cc_path)
+
+      # otherwise, first decide if we should go looking for a compiler
+
+      # if not a mac, return?  maybe just proceed
+
+      # if our makefile sets LOCAL_CC_PATH, see that it exists
+      cmd = "grep '^%s' %s" % (lstr, makefile)
+      st, ot = self.run_cmd(cmd)
+      # if no such string, just return
+      if st: return ''
+      cc = ot.split()
+      if len(cc) < 3: return ''
+      cc = cc[2]
+
+      if self.verb > 2: MESGm("Makefile applies %s = %s" % (lstr, cc))
+
+      # we have a compiler: if it exists we are done
+      if os.path.exists(cc): return ''
+
+      # help, help, we need a different compiler
+
+      cc = self.find_alternate_compiler(cc)
+
+      # if we have something convert to LOCAL_CC_PATH
+      if cc != '':
+         MESGp("need alternate compiler, trying %s" % cc)
+         MESGi("(if this fails try passing one via ... SOME USEFUL OPTION)")
+         cc = ' %s=%s' % (lstr, cc)
+
+      return cc
+
+   def find_alternate_compiler(self, cpath):
+      """the makefile is looking for compiler cpath, can we find a similar one?
+
+         Expect cpath to end with ccNUM or cc-NUM (no slash).  If so, glob
+         similarly and try to return the one with the biggest number.
+         - allow NUM of the form a.b.c
+      """
+      plen = len(cpath)
+
+      # find the last non-digit/dot character, if any
+      posn = plen-1
+      while cpath[posn].isdigit() or cpath[posn] == '.':
+         posn -= 1
+         if posn < 0: return ''         # failure
+
+      # now posn >= 0 and cpath[posn] is not a digit or '.', glob after that
+
+      prefix = cpath[0:posn+1]
+      glist = glob.glob('%s*' % prefix)
+      if len(glist) == 0: return ''     # failure
+
+      # we have a list of candidates, now how to sort?
+
+      # rcr - fix, this is a bad route, but at least one that might give a
+      #       valid compiler : return the smallest alphabetically
+
+      glist.sort()
+      return glist[0]
 
    def check_conda_evars(self):
       """note whether we are in a conda environment
