@@ -180,6 +180,25 @@ other options:
 
           See also -do_backup.
 
+      -cc_path PATH/TO/COMPILER : specify the path to a C compiler to use
+
+          e.g.  -cc_path /usr/local/bin/gcc-14
+          e.g.  -cc_path NONE
+
+          If a Makefile uses LOCAL_CC_PATH (most do not), one can pass an
+          alternative to what is default in the Makefile.
+
+          For example, Makefile.macos_12_x86_64 uses /usr/local/bin/gcc-13.
+          This option can be used to override that compiler path as the user
+          sees fit, such as with /usr/local/bin/gcc-14 or even /usr/bin/clang.
+
+        * If this option is not used and the default compiler does not exist,
+          the program will attempt to find an alternate compiler with a
+          different version number.
+
+        * Use NONE to forcibly use the Makefile default, even if it does not
+          exist.
+
       -clean_root yes/no        : specify whether to clean up the build_root
 
           default -clean_root yes
@@ -377,10 +396,14 @@ g_history = """
         - remove extra backup dirs (save 1, and must contain afni)
         - add -update_niivue option
    0.12 Jun 24, 2024 - for make, warn if CC is set
+   0.13 Sep 12, 2024
+        - add option -cc_path
+        - else if LOCAL_CC_PATH does not exist, try to find alternate comipler
+
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.12, June 24, 2024" % g_prog
+g_version = "%s, version 0.13, September 12, 2024" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
@@ -496,7 +519,7 @@ class MyInterface:
       self.make_target     = 'itall' # target in "make" command
       self.makefile        = ''     # an alternate Makefile to build from
       self.package         = ''     # to imply Makefile and build dir
-      self.cc_path         = ''     # empty, NONE or path
+      self.cc_path         = ''     # empty, NONE or path (-cc_path)
 
       self.prep_only       = 0      # prepare (c)make, but do not run
       self.run_cmake       = 0      # actually run camke?
@@ -606,6 +629,8 @@ class MyInterface:
       self.valid_opts.add_opt('-backup_method', 1, [],
                       acplist=['mv','rsync','rsync_preseve'],
                       helpstr='specify method of backup (def=rsync)')
+      self.valid_opts.add_opt('-cc_path', 1, [],
+                      helpstr="specify an alternate C compiler path")
       self.valid_opts.add_opt('-clean_root', 1, [],
                       helpstr='clean up from old work? (def=y)')
       self.valid_opts.add_opt('-do_backup', 1, [],
@@ -708,6 +733,11 @@ class MyInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
             self.backup_method = val
+
+         elif opt.name == '-cc_path':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return -1
+            self.cc_path = val
 
          elif opt.name == '-clean_root':
             if OL.opt_is_yes(opt):
@@ -1632,6 +1662,8 @@ class MyInterface:
       if self.cc_path == 'NONE':
          return ''
       elif self.cc_path != '':
+         if not os.path.exists(self.cc_path):
+            MESGw("-cc_path compiler does not exist, expect problems")
          return ' %s=%s' % (lstr, self.cc_path)
 
       # otherwise, first decide if we should go looking for a compiler

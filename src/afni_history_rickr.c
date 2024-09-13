@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Sep, 2024, RCR, "build_afni.py", MINOR, TYPE_ENHANCE,
+   "add option -cc_path",
+   "Allow one to pass an alternate compiler if the relevant Makefile\n"
+   "uses LOCAL_CC_PATH.  If this option is not used and the default\n"
+   "compiler does not exist, try to find the most recent similar version."
+ } ,
+
  {  4, Sep, 2024, RCR, "afni_system_check.py", MINOR, TYPE_MODIFY,
    "use uname -m for CPU, instead of platform.processor()",
    NULL
