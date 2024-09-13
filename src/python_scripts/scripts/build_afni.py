@@ -398,7 +398,7 @@ g_history = """
    0.12 Jun 24, 2024 - for make, warn if CC is set
    0.13 Sep 12, 2024
         - add option -cc_path
-        - else if LOCAL_CC_PATH does not exist, try to find alternate comipler
+        - else if LOCAL_CC_PATH does not exist, try to find alternate compiler
 
 """
 
@@ -1691,7 +1691,7 @@ class MyInterface:
       # if we have something convert to LOCAL_CC_PATH
       if cc != '':
          MESGp("need alternate compiler, trying %s" % cc)
-         MESGi("(if this fails try passing one via ... SOME USEFUL OPTION)")
+         MESGi("(if this fails try passing one via -cc_path)")
          cc = ' %s=%s' % (lstr, cc)
 
       return cc
