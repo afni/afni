@@ -2608,6 +2608,9 @@ void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
    SUMA_ColorizePlane(curColPlane);
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
+   
+   // Restore proper threshold contours after switch Int (middle "v" toggled)
+   if  (ado->do_type == SO_type) restoreProperThresholdCcontours(ado);
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
@@ -2654,6 +2657,9 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
    SUMA_Remixedisplay(ado);
 
    SUMA_UpdateNodeLblField(ado);
+   
+   // Restore proper threshold contours after switch thresh (middle "v" toggled)
+   if  (ado->do_type == SO_type) restoreProperThresholdCcontours(ado);
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
@@ -2698,6 +2704,9 @@ void SUMA_cb_SwitchBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
    SUMA_ColorizePlane(curColPlane);
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
+   
+   // Restore proper threshold contours after switch bright (bottom "v" toggled)
+   if  (ado->do_type == SO_type) restoreProperThresholdCcontours(ado);
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
