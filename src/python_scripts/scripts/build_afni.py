@@ -1672,7 +1672,7 @@ class MyInterface:
 
       # if our makefile sets LOCAL_CC_PATH, see that it exists
       cmd = "grep '^%s' %s" % (lstr, makefile)
-      st, ot = self.run_cmd(cmd)
+      st, ot = self.run_cmd(cmd, quiet=1)  # and be vewy, vewy quiet
       # if no such string, just return
       if st: return ''
       cc = ot.split()
