@@ -23,7 +23,7 @@
 #   + put in viewing stuff
 #
 # Jan, 2017c
-#   + new automasking for better allineation (thanks, Bob!)
+#   + new automasking for better allineation (thanks, Bob)
 #
 # Jan, 2017d
 #   + allow brightness control for ulay
@@ -47,7 +47,7 @@
 #   + add in precentering opt
 #
 #set version   = "3.1";  set rev_dat   = "Apr 21, 2017"
-#   + Fix unifizing! 
+#   + Fix unifizing 
 #   + (some other stuff?)
 #
 #set version   = "3.2";  set rev_dat   = "Apr 24, 2017"
@@ -79,7 +79,7 @@
 #
 #set version   = "3.9";  set rev_dat   = "Apr 20, 2018"
 #   + show existence of -pre_center_mass option
-#   + fix how -remove_inf_sli N works -- thanks, lzhyoung!
+#   + fix how -remove_inf_sli N works -- thanks, lzhyoung
 #
 #set version   = "4.0";  set rev_dat   = "June 1, 2018"
 #   + introduce -pre_align_center_mass, as better/more useful
@@ -115,14 +115,14 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (?!)."
+    echo "** Cannot find 'afni' (??)."
     goto BAD_EXIT
 else
     set aa   = `which afni`
     set adir = $aa:h
 endif
 
-# default location of viewer: user could modify!
+# default location of viewer: user could modify
 set my_viewer = "$adir/@chauffeur_afni"
 
 # ----------------------- set defaults --------------------------
@@ -290,8 +290,8 @@ while ( $ac <= $#argv )
         @ ac += 1
         set frange2 = "$argv[$ac]"
         if ( $frange1 == $defran || $frange2 == $defran ) then
-            echo "** ERROR! I think you forgot to enter **2** values"
-            echo "          after '-qc1_ulay_range' (-> min and max!)!"
+            echo "** ERROR: I think you forgot to enter **2** values"
+            echo "          after '-qc1_ulay_range' (-> min and max)"
             goto BAD_EXIT
         endif
         set user_frange = "-ulay_range $frange1 $frange2"
@@ -342,7 +342,7 @@ set inp_VIEW  = "$inp_VIEW:gas/+//"
 # ========================= output/working dir ==========================
 
 if ( "$opref" == "" ) then
-    echo "** ERROR: need '-prefix ...' option provided!"
+    echo "** ERROR: need '-prefix ...' option provided"
     echo "   See the helpfile for more information."
     goto BAD_EXIT
 else
@@ -429,7 +429,7 @@ set idx = 0
 
 # copy ref here, while also making orientation match
 set rin  = "$iref"
-set rout = "REF.nii"    # this name/file gets used a lot later!
+set rout = "REF.nii"    # this name/file gets used a lot later
 3dresample -echo_edu           \
     -orient "$inp_ORIENT"      \
     -prefix "$wdir/$rout"      \
@@ -534,9 +534,9 @@ cd $wdir
 
 # [PT: May 18, 2017]: in case lots of nonbrain exists inferiorly
 if ( $INF_SLI != "" ) then 
-    echo "++ Pre-pre-step: remove $INF_SLI inferior (ha!) slices."
+    echo "++ Pre-pre-step: remove $INF_SLI inferior (ha) slices."
     set fin  = "$fout"
-    set inp0 = $fout    # !!!!!!!!!!! moved
+    set inp0 = $fout    # *** moved
     set fout = "${tpref}_${iidx}_cut.nii"
     # set inp0 = $fout 
     3dZeropad -echo_edu        \
@@ -926,7 +926,7 @@ if ( $DO_CEIL == "1" ) then
 endif
 
 
-# DONE, just copy endprod out!
+# DONE, just copy endprod out
 set fin  = $fout
 set fout = "${opref}.nii.gz"
 # copy, preserve history
@@ -1138,8 +1138,8 @@ cat << EOF
                     processing+alignment; the final, axialized volume
                     will not have the mask applied, it's just used to
                     help get rid of non-brain garbage.  Might be very 
-                    useful if the input volume has lots of non-brain 
-                    material!
+                    useful if the input volume has _lots_ of non-brain 
+                    material.
   -focus_mask MMM  :input a mask of the inset that gets applied early
                     on to focus the processing+alignment; the final,
                     axialized volume will not have the mask applied,
@@ -1264,7 +1264,7 @@ SHOW_VERSION:
    goto GOOD_EXIT
 
 FAIL_MISSING_ARG:
-    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
     goto BAD_EXIT
 
 BAD_EXIT:

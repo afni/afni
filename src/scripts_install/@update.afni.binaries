@@ -89,6 +89,7 @@ history for $prog :
   3.22  5 May 2023 : fix setting cur_afni
   3.23 27 Nov 2023 : add some comments about build_afni.py
   3.24  7 Dec 2023 : add -overwrite_build (required for that operation)
+  3.25 30 Aug 2024 : now obsolete: linux_xorg7, linux_xorg7_64
 
 -------------------------------------------------------------------------------
 EOF
@@ -102,11 +103,12 @@ set aub_version = "3.24, December 7, 2023"
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
 set obsolete_list = (                                           \
-        linux_gcc32 linux_gcc33_64 linux_glibc22                \
         NIH.openSUSE.11.4_64                                    \
+        solaris29_suncc            solaris29_suncc_64           \
+        linux_gcc32 linux_gcc33_64 linux_glibc22                \
+        linux_xorg7                linux_xorg7_64               \
         linux_fedora_21_64         linux_fedora_25_64           \
         linux_fedora_28_shared                                  \
-        solaris29_suncc            solaris29_suncc_64           \
         macosx_10.5_Intel_64       macosx_10.6_Intel_64         \
         macosx_10.7_Intel_64       macosx_10.7_local            \
         macosx_10.8_gcc            macosx_10.8_icc              \

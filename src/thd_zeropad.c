@@ -1,6 +1,7 @@
 #include "mrilib.h"
 
-/*------------------------------------------------------------------- Create a new dataset from an old one, with zero padding around
+/*-------------------------------------------------------------------
+  Create a new dataset from an old one, with zero padding around
   the edges.  For example,
     add_I = number of zero planes to add at inferior edge
             (if < 0, number of data planes to cut off inferior edge)

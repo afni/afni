@@ -42,17 +42,20 @@ class SysInfo:
 
    def __init__(self, data_root='', verb=1):
 
-      self.system          = platform.system()
-      self.cpu             = platform.processor()
-      self.home_dir        = os.environ['HOME']
-      self.data_root       = data_root
-      self.verb            = verb
+      self.verb            = verb   # set before calling any local functions
 
+      self.cpu             = self.get_cpu_type()
+      self.data_root       = data_root
+      self.home_dir        = os.environ['HOME']
+      self.system          = platform.system()
+
+      # info to fill and track
       self.afni_ver        = ''
       self.afni_label      = ''
       self.afni_dir        = ''
       self.python_prog     = '' # path to program
       self.os_dist         = ''
+
       self.comments        = [] # comments to print at the end
       self.afni_fails      = 0
 
@@ -73,20 +76,33 @@ class SysInfo:
 
       self.libs_missing    = [] # missing shared libraries
 
+   def get_cpu_type(self):
+      """return CPU type
+
+         This should be the output of uname -m, or else fall back to
+         platform.processor(), which might use the more confusing uname -p.
+      """
+      try:
+         cpup = os.uname().machine
+      except:
+         cpup = platform.processor()
+      status, cout = UTIL.exec_tcsh_command('uname -m', lines=1)
+      if status == 0 and len(cout) > 0:
+         cpu = cout[0]
+      else:
+         print("-- failed to exec 'uname -m'")
+         cpu = cpup
+
+      if self.verb > 1:
+         print("++ have cpu = %s, cpup = %s" % (cpu, cpup))
+
+      return cpu
+
    def show_general_sys_info(self, header=1):
       if header: print(UTIL.section_divider('general', hchar='-'))
 
-      # report CPU via platform platform
-      # also, if 'uname -m' output differs, show and warn
-      cpustr = platform.processor()
-      status, cout = UTIL.exec_tcsh_command('uname -m', lines=1)
-      if status == 0 and len(cout) > 0:
-         if cout[0] != cpustr:
-            cpustr += ' (uname -m == %s)' % cout[0]
-            self.comments.append("CPU differs between python and uname?")
-
       print('architecture:         %s' % tup_str(platform.architecture()))
-      print('cpu type:             %s' % cpustr)
+      print('cpu type:             %s' % self.cpu)
       print('system:               %s' % platform.system())
       print('release:              %s' % platform.release())
       print('version:              %s' % platform.version())

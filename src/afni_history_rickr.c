@@ -53,6 +53,36 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Sep, 2024, RCR, "build_afni.py", MINOR, TYPE_ENHANCE,
+   "add option -cc_path",
+   "Allow one to pass an alternate compiler if the relevant Makefile\n"
+   "uses LOCAL_CC_PATH.  If this option is not used and the default\n"
+   "compiler does not exist, try to find the most recent similar version."
+ } ,
+
+ {  4, Sep, 2024, RCR, "afni_system_check.py", MINOR, TYPE_MODIFY,
+   "use uname -m for CPU, instead of platform.processor()",
+   NULL
+ } ,
+
+ {  4, Sep, 2024, RCR, "OS_notes.macos_12_b_user.tcsh", MINOR, TYPE_ENHANCE,
+   "allow the script to be re-run with no effect",
+   NULL
+ } ,
+
+ { 30, Aug, 2024, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "mark linux_xorg7 and linux_xorg7_64 as being obsolete",
+   NULL
+ } ,
+
+ { 30, Aug, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "many updates to help examples; separate paths in compare_opts",
+   "- make example option order more consistent\n"
+   "- add examples: publish 3e ... 3j\n"
+   "- exclude 'noshow' examples from default help (currently 3e,f,g,h,j)\n"
+   "- separate differing paths in -compare_opts"
+ } ,
+
  {  5, Aug, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add option -blip_warp_dset to input a pre-computed warp",
    "For example, one can import the warp from epi_b0_correct.py."

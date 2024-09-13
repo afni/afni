@@ -354,9 +354,10 @@ g_history = """
    1.32 Mar 21, 2024 - add option -disp_abin
    1.33 Apr 25, 2024 - warn if tcsh version is 6.22.03
    1.34 Jun 24, 2024 - warn if CPU differs between platform and uname -m
+   1.35 Sep  4, 2024 - just get CPU from uname -m
 """
 
-g_version = "afni_system_check.py version 1.34, June 24, 2024"
+g_version = "afni_system_check.py version 1.35, September 4, 2024"
 
 
 class CmdInterface:

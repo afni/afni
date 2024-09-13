@@ -1,5 +1,41 @@
 #!/usr/bin/env AFNI_Batch_R
 
+# Program author: Cesar Caballero, BCBL
+# Email: c.caballero@bcbl.eu
+
+
+# Several of the functions below (see notes attributions for each) 
+# were originally developed in Matlab:
+# Written by: Salman Asif, Georgia Tech
+# Email: sasif@ece.gatech.edu
+#
+# These have been adapted for R here by: Cesar Caballero, BCBL
+# Email: c.caballero@bcbl.eu
+#
+# These functions are available from the original author's L1-homotopy
+# toolbox with the following license (see
+# https://github.com/sasif/L1-homotopy/blob/master/license.txt):
+# ------------------------------------------------------------------
+# Copyright (C) 2013, M. Salman Asif, all rights reserved.
+#
+# Redistribution and use of this code, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+# The software is provided under the terms of this license strictly
+# for academic, non-commercial, not-for-profit purposes.
+# Redistributions of source code must retain the above copyright
+# notice, this list of conditions (license) and the following
+# disclaimer. The name of the author may not be used to endorse or
+# promote products derived from this software without specific prior
+# written permission.
+#
+# This software is being provided "as is", without any express or
+# implied warranty. In particular, the authors do not make any
+# representation or warranty of any kind concerning the
+# merchantability of this software or its fitness for any particular
+# purpose.
+# ------------------------------------------------------------------
+
 #Clean up
 rm(list = ls())
 
@@ -1031,20 +1067,17 @@ DS_homotopy_function <- function(A, y, thresh = 0, maxiter) {
   # gamma_xk - Primal support at the solution
   # gamma_lambdak - Dual support at the solution
   
-  # Written by: Salman Asif, Georgia Tech
-  # Email: sasif@ece.gatech.edu
-  #-------------------------------------------+
-  # Copyright (c) 2007.  Muhammad Salman Asif 
-  #-------------------------------------------+
-  
   # Check the following reference for the homotopy functions
   # M Salman Asif and J Romberg, On the LASSO and Dantzig selector equivalence, 
   # Conference on Information Sciences and Systems (CISS), Princeton, NJ, March 2010.
   # http://dx.doi.org/10.1109/CISS.2010.5464890
-  
-  # Adapted for R by: Cesar Caballero, BCBL
+
+  # Written by: Salman Asif, Georgia Tech
+  # Email: sasif@ece.gatech.edu
+  # See license note above
+  # Adapted for R by: Cesar Caballero Gaudes, BCBL
   # Email: c.caballero@bcbl.eu
-  
+
   # t0 <- proc.time()
   
   
@@ -1439,6 +1472,7 @@ update_primal <- function(gamma_x, gamma_lambda, z_x, x_k, del_x_vec, pk, dk, ep
   #
   # Written by: Salman Asif, Georgia Tech
   # Email: sasif@ece.gatech.edu
+  # See license note above
   # Adapted for R by: Cesar Caballero Gaudes, BCBL
   # Email: c.caballero@bcbl.eu
   
@@ -1573,6 +1607,7 @@ update_dual <- function(gamma_x, gamma_lambda, z_lambda, lambda_k, del_lambda_p,
   # 
   # Written by: Salman Asif, Georgia Tech
   # Email: sasif@ece.gatech.edu
+  # See license note above
   # Adapted for R by: Cesar Caballero Gaudes, BCBL
   # Email: c.caballero@bcbl.eu
   # 
@@ -1684,6 +1719,7 @@ update_inverse <- function(AtB,iAtB_old,flag) {
   #
   # Written by: Salman Asif, Georgia Tech
   # Email: sasif@ece.gatech.edu
+  # See license note above
   # Adapted for R by: Cesar Caballero Gaudes, BCBL
   # Email: c.caballero@bcbl.eu
   

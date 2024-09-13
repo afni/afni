@@ -957,13 +957,13 @@ class MainWindow(QtGui.QMainWindow):
       obj = self.sender()
       if   obj == self.gvars.act_browse_all_progs:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
-                            '/htmldoc/programs/main_toc.html')
+                            '/htmldoc/programs/alpha/main_toc.html')
       elif obj == self.gvars.act_browse_ttest_help:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
-                            '/htmldoc/programs/3dttest++_sphx.html')
+                            '/htmldoc/programs/alpha/3dttest++_sphx.html')
       elif obj == self.gvars.act_browse_mema_help:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
-                            '/htmldoc/programs/3dMEMA_sphx.html')
+                            '/htmldoc/programs/alpha/3dMEMA_sphx.html')
       elif obj == self.gvars.act_browse_MB:
          self.open_web_site('https://discuss.afni.nimh.nih.gov')
       else: print('** cb_help_browse: invalid sender')

@@ -21,6 +21,25 @@ import copy
 #       - trailer (after  the example in verbose -help output)
 #       - keywords = []; e.g. 'obsolete', 'complete', 'registration'. 'ME',
 #                             'surface', 'rest', 'task', 'physio'
+#                             ('noshow' : default to not showing with help)
+#
+# --------------------------
+# preferred option ordering: 
+#
+#   - id and script specs
+#   - EPI data and specs, including blip
+#   - anat data and specs (followers)
+#   - non-block data inputs
+#   - block order (-blocks)
+#   - general block options (e.g. -radial_correlate_blocks)
+#   - block ordered options (e.g. -blur_size)
+#      -surf dests go in surf block section
+#      -blip dsets do not go in blip block section (as not user specified)
+#   -regress order:
+#       ROI (regs of interest), opts_3dD, polort, bandpass,
+#       motion, AICOR/RONI (regs of no interest), censoring,
+#       non-reg opts (3dD_stop, reml_exec, then post-reg options)
+
 # ----------------------------------------------------------------------
 
 
@@ -115,7 +134,8 @@ class APExample:
             eskip list of keys for which elements should not be compared
             verb    0 - use short list notation
                     1 - show missing, extra and diffs
-                    2 - include all parameter lists
+                    2 - show diffs, but after trying to remove paths
+                    3 - include all parameter lists
       """
       print("="*75)
       print("==== comparing (current) '%s' vs (target) '%s'" \
@@ -145,6 +165,9 @@ class APExample:
       # loop over unique keys, counting number in both key lists
       uniq_target_keys = UTIL.get_unique_sublist(target.keys)
 
+      # rcr - right now, options of the same name need to be in the same order
+      #       to be equal, we could try to remove the requirement...
+
       for key in uniq_target_keys:
          if key not in source.keys: continue
 
@@ -165,6 +188,7 @@ class APExample:
          ncomp = min(nsource, ntarget)
          ncommon += ncomp
          for ind in range(ncomp):
+            # rcr - should we separate path diffs from true diffs here?
             if source.olist[ksource[ind]] != target.olist[ktarget[ind]]:
                # just store source and target indices here
                pdiff.append([ksource[ind], ktarget[ind]])
@@ -204,6 +228,7 @@ class APExample:
 
       print("==========  differing option(s) : %d" % len(pdiff))
       if len(pdiff) > 0:
+         samestr = '  : SAME, but path diff (skipping details)'
          skips = []
          for pair in pdiff:
              oname = source.olist[pair[0]][0]
@@ -213,8 +238,27 @@ class APExample:
                    continue
                 skips.append(oname)
 
-                print("%s%-*s  (verb=1; skipping details)" \
-                      % (ind1, maxk, oname))
+                # if only path diff, say so
+                if self.depath_lists_equal(source.olist[pair[0]][1],
+                                           target.olist[pair[1]][1]):
+                   print("%s%-*s%s" % (ind1, maxk, oname, samestr))
+                else:
+                   print("%s%-*s  (verb=1; skipping details)" \
+                         % (ind1, maxk, oname))
+
+             elif verb <= 2:
+                # try to remove any paths
+                kslist = self.depath_list(source.olist[pair[0]][1])
+                ktlist = self.depath_list(target.olist[pair[1]][1])
+                ksstr = ' '.join(kslist)
+                ktstr = ' '.join(ktlist)
+                # if removing paths makes them the same, say so
+                if ksstr == ktstr:
+                    print("%s%-*s%s" % (ind1, maxk, oname, samestr))
+                else:
+                    print("%s%-*s" % (ind1, maxk, oname))
+                    self._print_diff_line(ind2, 'current', ksstr, lmax=lmax)
+                    self._print_diff_line(ind2, 'target',  ktstr, lmax=lmax)
              else:
                 # full details
                 print("%s%-*s" % (ind1, maxk, oname))
@@ -240,6 +284,24 @@ class APExample:
       print("")
 
       print("")
+
+   def depath_lists_equal(self, list0, list1):
+       """if we depath_list() both lists, are they equal"""
+       kslist = self.depath_list(list0)
+       ktlist = self.depath_list(list1)
+       ksstr = ' '.join(kslist)
+       ktstr = ' '.join(ktlist)
+
+       return (ksstr == ktstr)
+
+   def depath_list(self, arglist):
+       """return a copy of arglist, removing anything up to each final '/'
+       """
+       # rfind returns the highest index of '/', else -1
+       # --> so always start at the return index+1
+       newlist = [s[s.rfind('/')+1:] for s in arglist]
+
+       return newlist
 
    def _print_opt_lin(self, indent, oname, maxlen, parstr, lmax=50):
        """if lmax > 0: restrict parstr to given length, plus ellipsis
@@ -350,7 +412,6 @@ def get_all_examples():
    examples.extend(egs_short())
    examples.extend(egs_publish())
 
-
    return examples
 
 
@@ -359,6 +420,8 @@ def populate_examples(keys_keep=[], keys_rm=[], verb=1):
 
         keys_keep : if not empty, keep only entries with any of these keywords
         keys_rm   : if not empty, remove entries with any of these keywords
+                    - default to 'noshow', those examples not shown by default
+                      with the -help output
 
       populate the global ap_examples array from some of the egs_* functions
    """
@@ -378,7 +441,7 @@ def populate_examples(keys_keep=[], keys_rm=[], verb=1):
       show_example_keywords(examples, mesg='initial examples')
 
    # --------------------------------------------------
-   # keep only those entries with at least one of the given keys
+   # keep only those entries with at least one of the given keep keys
    if len(keys_keep) > 0:
       newex = []
       for key in keys_keep:
@@ -393,7 +456,7 @@ def populate_examples(keys_keep=[], keys_rm=[], verb=1):
          show_example_keywords(examples, mesg='post-keep examples')
 
    # --------------------------------------------------
-   # remove any entry with any given key
+   # remove any entry with any given rm key
    poplist = []
       # counting from the end, pop unwanted indices
    for eind, eg in enumerate(examples):
@@ -505,7 +568,7 @@ def egs_ap_run(keys_keep=[], keys_rm=[]):
         ['-script',                  ['proc.FT.run_ap']],
         ['-out_dir',                 [ 'FT.1.results']],
         ['-blocks',                  [ 'tshift', 'align', 'tlrc', 'volreg',
-                'mask', 'blur', 'scale', 'regress']],
+                                       'mask', 'blur', 'scale', 'regress']],
         ['-radial_correlate_blocks', [ 'tcat volreg']],
         ['-copy_anat',               [ 'FT_anat+orig']],
         ['-dsets',                   [ 'FT_epi_r1+orig.HEAD',
@@ -520,10 +583,10 @@ def egs_ap_run(keys_keep=[], keys_rm=[]):
         ['-volreg_compute_tsnr',     [ 'yes']],
         ['-mask_epi_anat',           [ 'yes']],
         ['-blur_size',               [ '6']],
+        ['-regress_apply_mot_types', [ 'demean deriv']],
+        ['-regress_motion_per_run',  []],
         ['-regress_censor_motion',   [ '0.25']],
         ['-regress_censor_outliers', [ '0.05']],
-        ['-regress_motion_per_run',  []],
-        ['-regress_apply_mot_types', [ 'demean deriv']],
         ['-regress_est_blur_epits',  []],
         ['-regress_est_blur_errts',  []],
         ['-regress_make_ideal_sum',  [ 'sum_ideal.1D']],
@@ -796,10 +859,10 @@ def egs_example():
         ['-volreg_align_e2a',      []],
         ['-volreg_tlrc_warp',      []],
         ['-blur_size',             ['6']],
-        ['-regress_motion_per_run', []],
-        ['-regress_censor_motion', ['0.2']],
         ['-regress_bandpass',      ['0.01', '0.1']],
         ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_motion_per_run', []],
+        ['-regress_censor_motion', ['0.2']],
         ['-regress_run_clustsim',  ['no']],
         ['-regress_est_blur_epits', []],
         ['-regress_est_blur_errts', []],
@@ -1084,13 +1147,13 @@ def egs_example():
         ['-regress_basis_multi',['BLOCK(30,1)', 'TENT(0,45,16)','BLOCK(30,1)',
                                  'BLOCK(30,1)', 'TENT(0,45,16)','BLOCK(30,1)',
                                  'BLOCK(30,1)', 'TENT(0,45,16)','BLOCK(30,1)']],
+        ['-regress_opts_3dD',      ['-bout', '-gltsym', 'SYM: +eneg -fneg',
+                            '-glt_label', '1', 'eneg_vs_fneg', '-jobs', '4']],
         ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-regress_motion_per_run', []],
         ['-regress_censor_motion', ['0.3']],
         ['-regress_censor_outliers', ['0.1']],
         ['-regress_compute_fitts', []],
-        ['-regress_opts_3dD',      ['-bout', '-gltsym', 'SYM: +eneg -fneg',
-                            '-glt_label', '1', 'eneg_vs_fneg', '-jobs', '4']],
         ['-regress_run_clustsim',  ['no']],
         ['-regress_est_blur_epits', []],
         ['-regress_est_blur_errts', []],
@@ -1156,10 +1219,10 @@ def egs_example():
         ['-regress_stim_times',    ['FT/AV1_vis.txt', 'FT/AV2_aud.txt']],
         ['-regress_stim_labels',   ['vis', 'aud']],
         ['-regress_basis',         ['BLOCK(20,1)']],
-        ['-regress_motion_per_run', []],
-        ['-regress_censor_motion', ['0.3']],
         ['-regress_opts_3dD',      ['-jobs', '2', '-gltsym', 'SYM: vis -aud',
                                     '-glt_label', '1', 'V-A']],
+        ['-regress_motion_per_run', []],
+        ['-regress_censor_motion', ['0.3']],
        ],
      ))
 
@@ -1242,10 +1305,10 @@ def egs_example():
         ['-volreg_tlrc_warp',      []],
         ['-mask_epi_anat',         ['yes']],
         ['-blur_size',             ['4']],
-        ['-regress_censor_motion', ['0.2']],
-        ['-regress_censor_outliers', ['0.05']],
         ['-regress_bandpass',      ['0.01', '0.1']],
         ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_censor_motion', ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
         ['-regress_est_blur_epits', []],
         ['-regress_est_blur_errts', []],
        ],
@@ -1283,11 +1346,11 @@ def egs_example():
         ['-volreg_tlrc_warp',      []],
         ['-mask_epi_anat',         ['yes']],
         ['-blur_size',             ['4']],
+        ['-regress_bandpass',      ['0.01', '0.1']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-regress_anaticor',      []],
         ['-regress_censor_motion', ['0.2']],
         ['-regress_censor_outliers', ['0.05']],
-        ['-regress_bandpass',      ['0.01', '0.1']],
-        ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-regress_est_blur_epits', []],
         ['-regress_est_blur_errts', []],
        ],
@@ -1339,11 +1402,11 @@ def egs_example():
         ['-mask_epi_anat',         ['yes']],
         ['-mask_segment_anat',     ['yes']],
         ['-mask_segment_erode',    ['yes']],
-        ['-regress_censor_motion', ['0.2']],
-        ['-regress_censor_outliers', ['0.05']],
         ['-regress_bandpass',      ['0.01', '0.1']],
         ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-regress_ROI',           ['WMe']],
+        ['-regress_censor_motion', ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
         ['-regress_est_blur_epits', []],
         ['-regress_est_blur_errts', []],
        ],
@@ -1473,17 +1536,17 @@ def egs_example():
         ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_align_e2a',      []],
         ['-volreg_tlrc_warp',      []],
-        ['-blur_size',             ['4']],
         ['-mask_epi_anat',         ['yes']],
+        ['-blur_size',             ['4']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-regress_motion_per_run', []],
-        ['-regress_ROI_PC',        ['FSvent', '3']],
-        ['-regress_ROI_PC_per_run', ['FSvent']],
-        ['-regress_make_corr_vols', ['aeseg', 'FSvent']],
         ['-regress_anaticor_fast', []],
         ['-regress_anaticor_label', ['FSWe']],
+        ['-regress_ROI_PC',        ['FSvent', '3']],
+        ['-regress_ROI_PC_per_run', ['FSvent']],
         ['-regress_censor_motion', ['0.2']],
         ['-regress_censor_outliers', ['0.05']],
-        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_make_corr_vols', ['aeseg', 'FSvent']],
         ['-regress_est_blur_epits', []],
         ['-regress_est_blur_errts', []],
         ['-html_review_style',     ['pythonic']],
@@ -1545,14 +1608,14 @@ def egs_example():
         ['-mask_import',           ['Tvent', 'template_ventricle_2.5mm+tlrc']],
         ['-mask_intersect',        ['Svent', 'CSFe', 'Tvent']],
         ['-mask_epi_anat',         ['yes']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-regress_motion_per_run', []],
+        ['-regress_anaticor_fast', []],
         ['-regress_ROI_PC',        ['Svent', '3']],
         ['-regress_ROI_PC_per_run', ['Svent']],
-        ['-regress_make_corr_vols', ['WMe', 'Svent']],
-        ['-regress_anaticor_fast', []],
         ['-regress_censor_motion', ['0.2']],
         ['-regress_censor_outliers', ['0.05']],
-        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_make_corr_vols', ['WMe', 'Svent']],
         ['-regress_est_blur_epits', []],
         ['-regress_est_blur_errts', []],
         ['-regress_run_clustsim',  ['yes']],
@@ -1669,10 +1732,10 @@ def egs_example():
         ['-mask_epi_anat',         ['yes']],
         ['-combine_method',        ['OC']],
         ['-blur_size',             ['4']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-regress_motion_per_run', []],
         ['-regress_censor_motion', ['0.2']],
         ['-regress_censor_outliers', ['0.05']],
-        ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-regress_est_blur_epits', []],
        ]
      ))
@@ -1716,10 +1779,10 @@ def egs_example():
         ['-combine_method',        ['tedana']],
         ['-blur_size',             ['4']],
         ['-blur_in_mask',          ['yes']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-regress_motion_per_run',[]],
         ['-regress_censor_motion', ['0.2']],
         ['-regress_censor_outliers', ['0.05']],
-        ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-regress_est_blur_epits',[]],
        ],
      ))
@@ -1731,6 +1794,8 @@ def egs_example():
      keywords=['complete', 'ME', 'physio', 'rest', 'surface'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
+
+         Example 'publish 3d' might be preferable.
 
          Key aspects of this example:
 
@@ -1757,29 +1822,24 @@ def egs_example():
      trailer=""" """,
      olist = [
         ['-subj_id',               ['FT.complicated']],
-        ['-blocks',                ['despike', 'ricor', 'tshift', 'align',
-                                    'volreg', 'mask', 'combine', 'surf',
-                                    'blur', 'scale', 'regress']],
-        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-dsets_me_echo',         ['FT/FT_epi_r?+orig.HEAD']],
+        ['-dsets_me_echo',         ['FT/FT_epi_r?+orig.HEAD']],
+        ['-dsets_me_echo',         ['FT/FT_epi_r?+orig.HEAD']],
+        ['-echo_times',            ['11', '22.72', '34.44']],
         ['-blip_forward_dset',     ['FT/FT_epi_r1+orig.HEAD[0]']],
         ['-blip_reverse_dset',     ['FT/FT_epi_r1+orig.HEAD[0]']],
         ['-copy_anat',             ['FT/FT_anat+orig']],
         ['-anat_follower_ROI',     ['FSvent', 'epi', 'FT/SUMA/FT_vent.nii']],
         ['-anat_follower_erode',   ['FSvent']],
-        ['-regress_ROI_PC',        ['FSvent', '3']],
-        ['-regress_ROI_PC_per_run', ['FSvent']],
-        ['-regress_make_corr_vols', ['FSvent']],
-        ['-dsets_me_echo',         ['FT/FT_epi_r?+orig.HEAD']],
-        ['-dsets_me_echo',         ['FT/FT_epi_r?+orig.HEAD']],
-        ['-dsets_me_echo',         ['FT/FT_epi_r?+orig.HEAD']],
-        ['-echo_times',            ['11', '22.72', '34.44']],
-        ['-combine_method',        ['OC']],
+        ['-blocks',                ['despike', 'ricor', 'tshift', 'align',
+                                    'volreg', 'mask', 'combine', 'surf',
+                                    'blur', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
         ['-tcat_remove_first_trs', ['2']],
-        ['-tshift_interp',         ['-wsinc9']],
-        ['-mask_epi_anat',         ['yes']],
         ['-ricor_regs_nfirst',     ['2']],
         ['-ricor_regs',            ['FT/fake.slibase.FT.r?.1D']],
         ['-ricor_regress_method',  ['per-run']],
+        ['-tshift_interp',         ['-wsinc9']],
         ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move']],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
@@ -1787,13 +1847,18 @@ def egs_example():
         ['-volreg_post_vr_allin',  ['yes']],
         ['-volreg_pvra_base_index', ['MIN_OUTLIER']],
         ['-volreg_warp_final_interp', ['wsinc5']],
+        ['-mask_epi_anat',         ['yes']],
+        ['-combine_method',        ['OC']],
         ['-surf_anat',             ['FT/SUMA/FT_SurfVol.nii']],
         ['-surf_spec',             ['FT/SUMA/std.141.FT_?h.spec']],
         ['-blur_size',             ['6']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_motion_per_run', []],
+        ['-regress_ROI_PC',        ['FSvent', '3']],
+        ['-regress_ROI_PC_per_run', ['FSvent']],
+        ['-regress_make_corr_vols', ['FSvent']],
         ['-regress_censor_motion', ['0.2']],
         ['-regress_censor_outliers', ['0.05']],
-        ['-regress_motion_per_run', []],
-        ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-html_review_style',     ['pythonic']],
        ]
      ))
@@ -1820,33 +1885,33 @@ def egs_class():
      trailer=""" """,
      olist = [
         ['-subj_id',               ['FT.surf']],
+        ['-dsets',                 ['FT/FT_epi_r?+orig.HEAD']],
+        ['-copy_anat',             ['FT/FT_anat+orig']],
         ['-blocks',                ['tshift', 'align', 'volreg', 'surf',
                                     'blur', 'scale', 'regress']],
-        ['-copy_anat',             ['FT/FT_anat+orig']],
-        ['-dsets',                 ['FT/FT_epi_r?+orig.HEAD']],
-        ['-surf_anat',             ['FT/SUMA/FT_SurfVol.nii']],
-        ['-surf_spec',             ['FT/SUMA/std.60.FT_?h.spec']],
         ['-tcat_remove_first_trs', ['2']],
         ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
                                     '-check_flip']],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_align_e2a',      []],
+        ['-surf_anat',             ['FT/SUMA/FT_SurfVol.nii']],
+        ['-surf_spec',             ['FT/SUMA/std.60.FT_?h.spec']],
         ['-blur_size',             ['6']],
         ['-regress_stim_times',    ['FT/AV1_vis.txt', 'FT/AV2_aud.txt']],
         ['-regress_stim_labels',   ['vis', 'aud']],
         ['-regress_basis',         ['BLOCK(20,1)']],
-        ['-regress_motion_per_run', []],
-        ['-regress_censor_motion', ['0.3']],
         ['-regress_opts_3dD',      ['-jobs', '2', '-gltsym', 'SYM: vis -aud',
                                     '-glt_label', '1', 'V-A']],
+        ['-regress_motion_per_run', []],
+        ['-regress_censor_motion', ['0.3']],
        ]
      ))
 
    examples.append( APExample('AP class 5',
      source='FT_analysis',
      descrip='s05.ap.uber - basic task analysis',
-     moddate='2022.11.23',
+     moddate='2024.08.29',
      keywords=['task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -1867,13 +1932,13 @@ def egs_class():
      trailer=""" """,
      olist = [
         ['-subj_id',               ['FT']],
-        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
-                                    'blur', 'mask', 'scale', 'regress']],
-        ['-radial_correlate_blocks', ['tcat', 'volreg']],
-        ['-copy_anat',             ['FT/FT_anat+orig']],
         ['-dsets',                 ['FT/FT_epi_r1+orig.HEAD',
                                     'FT/FT_epi_r2+orig.HEAD',
                                     'FT/FT_epi_r3+orig.HEAD']],
+        ['-copy_anat',             ['FT/FT_anat+orig']],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                                    'mask', 'blur', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
         ['-tcat_remove_first_trs', ['2']],
         ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
@@ -1881,18 +1946,18 @@ def egs_class():
         ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_align_e2a',      []],
         ['-volreg_tlrc_warp',      []],
-        ['-blur_size',             ['4.0']],
         ['-mask_epi_anat',         ['yes']],
+        ['-blur_size',             ['4.0']],
         ['-regress_stim_times',    ['FT/AV1_vis.txt', 'FT/AV2_aud.txt']],
         ['-regress_stim_labels',   ['vis', 'aud']],
         ['-regress_basis',         ['BLOCK(20,1)']],
-        ['-regress_censor_motion', ['0.3']],
-        ['-regress_censor_outliers', ['0.05']],
-        ['-regress_motion_per_run', []],
         ['-regress_opts_3dD',      ['-jobs', '2', '-gltsym', 'SYM: vis -aud',
                                     '-glt_label', '1', 'V-A',
                                     '-gltsym', 'SYM: 0.5*vis +0.5*aud',
                                     '-glt_label', '2', 'mean.VA']],
+        ['-regress_motion_per_run', []],
+        ['-regress_censor_motion', ['0.3']],
+        ['-regress_censor_outliers', ['0.05']],
         ['-regress_compute_fitts', []],
         ['-regress_make_ideal_sum', ['sum_ideal.1D']],
         ['-regress_est_blur_epits', []],
@@ -1913,10 +1978,15 @@ def egs_publish():
    examples.append( APExample('AP publish 1',
      source='AFNI_demos',
      descrip='pamenc, ds000030.v16 parametric encoding task analysis.',
-     moddate='2020.02.10',
+     moddate='2024.08.26',
      keywords=['complete', 'publish', 'task'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
+
+           While this example is reasonable, 'publish 3b' has more QC options,
+           as well as updates for anat/EPI alignment and grid size.
+
+           Events are modeled using duration modulation, so AM1 is applied.
 
            original analysis was from:
                Gorgolewski KJ, Durnez J and Poldrack RA.
@@ -1931,15 +2001,15 @@ def egs_publish():
         ['-subj_id',               ['SID']],
         ['-script',                ['proc.SID']],
         ['-scr_overwrite',         []],
-        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
-                                    'mask', 'blur', 'scale', 'regress']],
+        ['-dsets',                 ['func/SID_task-pamenc_bold.nii.gz']],
         ['-copy_anat',             ['anatSS.SID.nii']],
         ['-anat_has_skull',        ['no']],
         ['-anat_follower',         ['anat_w_skull', 'anat', 'anatU.SID.nii']],
-        ['-dsets',                 ['func/SID_task-pamenc_bold.nii.gz']],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                                    'mask', 'blur', 'scale', 'regress']],
+        ['-radial_correlate',      ['yes']],
         ['-tcat_remove_first_trs', ['0']],
         ['-tshift_opts_ts',        ['-tpattern', 'alt+z2']],
-        ['-radial_correlate',      ['yes']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
                                     '-check_flip']],
         ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
@@ -1957,12 +2027,12 @@ def egs_publish():
         ['-regress_stim_labels',   ['CONTROL', 'TASK']],
         ['-regress_stim_types',    ['AM1']],
         ['-regress_basis_multi',   ['dmBLOCK']],
+        ['-regress_opts_3dD',      ['-jobs', '8']],
         ['-regress_motion_per_run', []],
         ['-regress_censor_motion', ['0.3']],
         ['-regress_censor_outliers', ['0.05']],
         ['-regress_compute_fitts', []],
         ['-regress_fout',          ['no']],
-        ['-regress_opts_3dD',      ['-jobs', '8']],
         ['-regress_3dD_stop',      []],
         ['-regress_reml_exec',     []],
         ['-regress_make_ideal_sum', ['sum_ideal.1D']],
@@ -1980,7 +2050,8 @@ def egs_publish():
      header="""
               (recommended?  yes, reasonable for a complete analysis)
 
-           An amplitude modulation task analysis.
+           An amplitude modulation task analysis.  AM1 is used for NoResp
+           merely to consistently apply duration modulation.
             """,
      trailer=""" """,
      olist = [
@@ -2026,9 +2097,9 @@ def egs_publish():
         ['-regress_anaticor_fast', []],
         ['-regress_anaticor_fwhm', ['20']],
         ['-regress_anaticor_label', ['FS_wm_e']],
-        ['-regress_motion_per_run', []],
         ['-regress_censor_motion', ['0.3']],
         ['-regress_censor_outliers', ['0.05']],
+        ['-regress_motion_per_run', []],
         ['-regress_compute_fitts', []],
         ['-regress_opts_3dD',      ['-jobs', '8',
                         '-gltsym', 'SYM: Resp[1] -Resp[2]',
@@ -2073,24 +2144,24 @@ def egs_publish():
             """,
      trailer=""" """,
      olist = [
-        ['-subj_id',                 ['sub-005.eg1']],
-        ['-blocks',                  ['align', 'tlrc', 'volreg', 'regress']],
-        ['-copy_anat',               ['sswarper/anatSS.sub-005.nii']],
-        ['-anat_has_skull',          ['no']],
-        ['-anat_follower',           ['anat_w_skull', 'anat',
-                                      'sswarper/anatU.sub-005.nii']],
+        ['-subj_id',                 ['sub-005.ex1']],
         ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
         ['-blip_forward_dset',       ['func/sub-005_blip-match.nii.gz[0]']],
         ['-blip_reverse_dset',       ['func/sub-005_blip-opp.nii.gz[0]']],
+        ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
+        ['-anat_has_skull',          ['no']],
+        ['-anat_follower',           ['anat_w_skull', 'anat',
+                                      'ssw/anatU.sub-005.nii']],
+        ['-blocks',                  ['align', 'tlrc', 'volreg', 'regress']],
         ['-tcat_remove_first_trs',   ['4']],
         ['-align_unifize_epi',       ['local']],
         ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
                                       '-check_flip']],
         ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
         ['-tlrc_NL_warp',            []],
-        ['-tlrc_NL_warped_dsets',    ['sswarper/anatQQ.sub-005.nii',
-                                      'sswarper/anatQQ.sub-005.aff12.1D',
-                                      'sswarper/anatQQ.sub-005_WARP.nii']],
+        ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                      'ssw/anatQQ.sub-005.aff12.1D',
+                                      'ssw/anatQQ.sub-005_WARP.nii']],
         ['-volreg_align_to',         ['MIN_OUTLIER']],
         ['-volreg_align_e2a',        []],
         ['-volreg_tlrc_warp',        []],
@@ -2120,12 +2191,12 @@ def egs_publish():
             - voxelwise scaling to percent signal change
             - linear regression of task events using duration modulation with
               the BLOCK basis function (dmUBLOCK(-1)), where the ideal response
-              height is unit for a 1 s event
+              height is unit for a 1 s event; stim_type AM1 is required here
             - censoring time points where motion exceeds 0.3 mm or the outlier
               fraction exceeds 5%
             - regression is performed by 3dREMLfit, accounting for voxelwise
               temporal autocorrelation in the noise
-            - estimate data blur is from the regression residuals using
+            - estimate data blur from the regression residuals using
               the mixed-model ACF function
 
             - QC options:
@@ -2139,16 +2210,16 @@ def egs_publish():
      trailer=""" """,
      olist = [
       ['-subj_id',                      ['sub-10506.ex2']],
-      ['-blocks',                       ['tshift', 'align', 'tlrc', 'volreg',
-                                         'mask', 'blur', 'scale', 'regress']],
+      ['-dsets',                        ['func/sub-10506_pamenc_bold.nii.gz']],
       ['-copy_anat',                    ['ssw/anatSS.sub-10506.nii']],
       ['-anat_has_skull',               ['no']],
       ['-anat_follower',                ['anat_w_skull', 'anat',
-                                         'anat/sub-10506_T1w.nii.gz']],
-      ['-dsets',                        ['func/sub-10506_pamenc_bold.nii.gz']],
+                                         'ssw/anatU.sub-10506.nii']],
+      ['-blocks',                       ['tshift', 'align', 'tlrc', 'volreg',
+                                         'mask', 'blur', 'scale', 'regress']],
+      ['-radial_correlate_blocks',      ['tcat', 'volreg', 'regress']],
       ['-tcat_remove_first_trs',        ['0']],
       ['-tshift_opts_ts',               ['-tpattern', 'alt+z2']],
-      ['-radial_correlate_blocks',      ['tcat', 'volreg', 'regress']],
       ['-align_unifize_epi',            ['local']],
       ['-align_opts_aea',               ['-giant_move', '-cost', 'lpc+ZZ',
                                          '-check_flip']],
@@ -2170,17 +2241,17 @@ def egs_publish():
       ['-regress_stim_labels',          ['CONTROL', 'TASK']],
       ['-regress_stim_types',           ['AM1']],
       ['-regress_basis_multi',          ['dmUBLOCK(-1)']],
-      ['-regress_motion_per_run',       []],
-      ['-regress_censor_motion',        ['0.3']],
-      ['-regress_censor_outliers',      ['0.05']],
-      ['-regress_compute_fitts',        []],
-      ['-regress_fout',                 ['no']],
       ['-regress_opts_3dD',             ['-jobs', '8',
                                          '-gltsym', 'SYM: TASK -CONTROL',
                                          '-glt_label', '1', 'T-C',
                                          '-gltsym',
                                          'SYM: 0.5*TASK +0.5*CONTROL',
                                          '-glt_label', '2', 'meanTC']],
+      ['-regress_motion_per_run',       []],
+      ['-regress_censor_motion',        ['0.3']],
+      ['-regress_censor_outliers',      ['0.05']],
+      ['-regress_compute_fitts',        []],
+      ['-regress_fout',                 ['no']],
       ['-regress_3dD_stop',             []],
       ['-regress_reml_exec',            []],
       ['-regress_make_ideal_sum',       ['sum_ideal.1D']],
@@ -2194,14 +2265,14 @@ def egs_publish():
      source='AP_paper/scripts_rest/do_23_ap_ex3_vol.tcsh',
      descrip='do_23_ap_ex3_vol.tcsh - rest analysis.',
      moddate='2024.08.09',
-     keywords=['complete', 'publish', 'physio', 'rest'],
+     keywords=['complete', 'physio', 'publish', 'rest'],
      header="""
               (recommended?  yes, an example of resting state analysis)
 
          This example is based on the APMULTI_Demo1_rest tree, to perform a
          resting state analysis with a single echo time series.
 
-         This is a sample alignment processing command, including:
+         This is a resting state processing command, including:
             - physio regression, slicewise, before any temporal or volumetric
               alterations (and per-run, though there is only 1 run here)
             - slice timing correction (notably after physio regression)
@@ -2213,11 +2284,9 @@ def egs_publish():
             - voxelwise scaling to percent signal change
             - regression (projection) of:
                 - per run motion and first differences
-                - first 3 principle components from volreg ventricles
-                  (per run, though only 1 run here)
                 - censor motion exceeding 0.2 ~mm from enorm time series,
                   or outliers exceeding 5% of brain 
-            - estimate data blur is from the regression residuals and the
+            - estimate data blur from the regression residuals and the
               regression input (separately) using the mixed-model ACF function
 
             - QC options:
@@ -2231,22 +2300,22 @@ def egs_publish():
             """,
      trailer=""" """,
      olist = [
-      ['-subj_id',                 ['sub-005.eg3']],
-      ['-blocks',                  ['ricor', 'tshift', 'align', 'tlrc',
-                                    'volreg', 'mask', 'blur', 'scale',
-                                    'regress']],
-      ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
+      ['-subj_id',                 ['sub-005.ex3']],
+      ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
       ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
       ['-anat_has_skull',          ['no']],
       ['-anat_follower',           ['anat_w_skull', 'anat',
                                    'ssw/anatU.sub-005.nii']],
       ['-anat_follower_ROI',       ['aagm09', 'anat',
-                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii.gz']],
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii']],
       ['-anat_follower_ROI',       ['aegm09', 'epi',
-                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii.gz']],
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii']],
       ['-ROI_import',              ['BrodPijn', 'Brodmann_pijn_afni.nii.gz']],
       ['-ROI_import',              ['SchYeo7N', 'Schaefer_7N_400.nii.gz']],
-      ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
+      ['-blocks',                  ['ricor', 'tshift', 'align', 'tlrc',
+                                    'volreg', 'mask', 'blur', 'scale',
+                                    'regress']],
+      ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
       ['-tcat_remove_first_trs',   ['4']],
       ['-ricor_regs',              ['physio/sub-005_rest_physio.slibase.1D']],
       ['-ricor_regs_nfirst',       ['4']],
@@ -2266,11 +2335,11 @@ def egs_publish():
       ['-volreg_compute_tsnr',     ['yes']],
       ['-mask_epi_anat',           ['yes']],
       ['-blur_size',               ['5']],
+      ['-regress_apply_mot_types', ['demean', 'deriv']],
       ['-regress_motion_per_run',  []],
-      ['-regress_make_corr_vols',  ['aegm09']],
       ['-regress_censor_motion',   ['0.2']],
       ['-regress_censor_outliers', ['0.05']],
-      ['-regress_apply_mot_types', ['demean', 'deriv']],
+      ['-regress_make_corr_vols',  ['aegm09']],
       ['-regress_est_blur_epits',  []],
       ['-regress_est_blur_errts',  []],
       ['-regress_compute_tsnr_stats', ['BrodPijn', '7', '10', '12', '39',
@@ -2293,7 +2362,7 @@ def egs_publish():
          This example is based on the APMULTI_Demo1_rest tree, to perform a
          resting state analysis on the surface with multi-echo data.
 
-         This is a sample alignment processing command, including:
+         This is a surface-based resting state processing command, including:
             - slice timing correction (using wsinc9 interpolation)
             - distortion correction using reverse blip phase encoding
             - EPI registration to MIN_OUTLIER vr_base volume
@@ -2325,25 +2394,21 @@ def egs_publish():
             """,
      trailer=""" """,
      olist = [
-        ['-subj_id',                  ['sub-005.eg4']],
-        ['-blocks',                   ['tshift', 'align', 'volreg', 'mask',
-                                       'combine', 'surf', 'blur', 'scale',
-                                       'regress']],
-        ['-radial_correlate_blocks',  ['tcat', 'volreg']],
-        ['-copy_anat',                ['ssw/anatSS.sub-005.nii']],
-        ['-anat_has_skull',           ['no']],
-        ['-anat_follower',            ['anat_w_skull', 'anat',
-                                       'ssw/anatU.sub-005.nii']],
-        ['-surf_anat',                ['SUMA/sub-005_SurfVol.nii']],
-        ['-surf_spec',                ['SUMA/std.141.sub-005_lh.spec',
-                                       'SUMA/std.141.sub-005_rh.spec']],
-        ['-blip_forward_dset',        ['func/sub-005_blip-match.nii.gz[0]']],
-        ['-blip_reverse_dset',        ['func/sub-005_blip-opp.nii.gz[0]']],
+        ['-subj_id',                  ['sub-005.ex4']],
         ['-dsets_me_run',             ['func/sub-005_rest_echo-1_bold.nii.gz',
                                        'func/sub-005_rest_echo-2_bold.nii.gz',
                                        'func/sub-005_rest_echo-3_bold.nii.gz']],
         ['-echo_times',               ['12.5', '27.6', '42.7']],
-        ['-combine_method',           ['m_tedana']],
+        ['-blip_forward_dset',        ['func/sub-005_blip-match.nii.gz[0]']],
+        ['-blip_reverse_dset',        ['func/sub-005_blip-opp.nii.gz[0]']],
+        ['-copy_anat',                ['ssw/anatSS.sub-005.nii']],
+        ['-anat_has_skull',           ['no']],
+        ['-anat_follower',            ['anat_w_skull', 'anat',
+                                       'ssw/anatU.sub-005.nii']],
+        ['-blocks',                   ['tshift', 'align', 'volreg', 'mask',
+                                       'combine', 'surf', 'blur', 'scale',
+                                       'regress']],
+        ['-radial_correlate_blocks',  ['tcat', 'volreg']],
         ['-tcat_remove_first_trs',    ['4']],
         ['-tshift_interp',            ['-wsinc9']],
         ['-align_unifize_epi',        ['local']],
@@ -2353,14 +2418,586 @@ def egs_publish():
         ['-volreg_align_e2a',         []],
         ['-volreg_warp_final_interp', ['wsinc5']],
         ['-volreg_compute_tsnr',      ['yes']],
-        ['-blur_size',                ['4']],
         ['-mask_epi_anat',            ['yes']],
+        ['-combine_method',           ['m_tedana']],
+        ['-surf_anat',                ['SUMA/sub-005_SurfVol.nii']],
+        ['-surf_spec',                ['SUMA/std.141.sub-005_lh.spec',
+                                       'SUMA/std.141.sub-005_rh.spec']],
+        ['-blur_size',                ['4']],
+        ['-regress_apply_mot_types',  ['demean', 'deriv']],
         ['-regress_motion_per_run',   []],
         ['-regress_censor_motion',    ['0.2']],
         ['-regress_censor_outliers',  ['0.05']],
-        ['-regress_apply_mot_types',  ['demean', 'deriv']],
         ['-html_review_style',        ['pythonic']],
 
+       ],
+     ))
+
+   examples.append( APExample('AP publish 3e',
+     source='AP_paper/scripts_rest/do_35_ap_ex5_vol.tcsh',
+     descrip='do_35_ap_ex5_vol.tcsh - rest analysis, with bandpassing.',
+     moddate='2024.08.27',
+     keywords=['complete', 'noshow', 'physio', 'publish', 'rest'],
+     header="""
+              (recommended?  almost, bandpassing is not preferred)
+
+         This example is based on the APMULTI_Demo1_rest tree, to perform a
+         resting state analysis with a single echo time series.
+
+         This is the same as AP publish 3c, but with bandpassing added.
+
+         This is a resting state processing command, including:
+            - physio regression, slicewise, before any temporal or volumetric
+              alterations (and per-run, though there is only 1 run here)
+            - slice timing correction (notably after physio regression)
+            - EPI registration to MIN_OUTLIER vr_base volume
+            - EPI/anat alignment, with -align_unifize_epi local
+            - NL warp to MNI152_2009 template, as computed by @SSwarper
+            - apply 5 mm FWHM Gaussian blur, approx 1.5*voxel size
+            - all registration transformations are concatenated
+            - voxelwise scaling to percent signal change
+            - regression (projection) of:
+                - per run motion and first differences
+                - bandpassing to include frequencies in [0.01, 0.1]
+                - censor motion exceeding 0.2 ~mm from enorm time series,
+                  or outliers exceeding 5% of brain 
+            - estimate data blur from the regression residuals and the
+              regression input (separately) using the mixed-model ACF function
+
+            - QC options:
+                -anat_follower (with skull), -anat_follower_ROI (FS GM mask),
+                -radial_correlate_blocks, (-align_opts_aea) -check_flip,
+                -volreg_compute_tsnr, -regress_make_corr_vols,
+                -html_review_style
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+      ['-subj_id',                 ['sub-005.ex5']],
+      ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
+      ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
+      ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
+      ['-anat_has_skull',          ['no']],
+      ['-anat_follower',           ['anat_w_skull', 'anat',
+                                   'ssw/anatU.sub-005.nii']],
+      ['-anat_follower_ROI',       ['aagm09', 'anat',
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii']],
+      ['-anat_follower_ROI',       ['aegm09', 'epi',
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii']],
+      ['-ROI_import',              ['BrodPijn', 'Brodmann_pijn_afni.nii.gz']],
+      ['-ROI_import',              ['SchYeo7N', 'Schaefer_7N_400.nii.gz']],
+      ['-blocks',                  ['ricor', 'tshift', 'align', 'tlrc',
+                                    'volreg', 'mask', 'blur', 'scale',
+                                    'regress']],
+      ['-tcat_remove_first_trs',   ['4']],
+      ['-ricor_regs',              ['physio/sub-005_rest_physio.slibase.1D']],
+      ['-ricor_regs_nfirst',       ['4']],
+      ['-ricor_regress_method',    ['per-run']],
+      ['-align_unifize_epi',       ['local']],
+      ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
+      ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+      ['-tlrc_NL_warp',            []],
+      ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                    'ssw/anatQQ.sub-005.aff12.1D',
+                                    'ssw/anatQQ.sub-005_WARP.nii']],
+      ['-volreg_align_to',         ['MIN_OUTLIER']],
+      ['-volreg_align_e2a',        []],
+      ['-volreg_tlrc_warp',        []],
+      ['-volreg_warp_dxyz',        ['3']],
+      ['-volreg_compute_tsnr',     ['yes']],
+      ['-mask_epi_anat',           ['yes']],
+      ['-blur_size',               ['5']],
+      ['-regress_bandpass',        ['0.01', '0.1']],
+      ['-regress_apply_mot_types', ['demean', 'deriv']],
+      ['-regress_motion_per_run',  []],
+      ['-regress_censor_motion',   ['0.2']],
+      ['-regress_censor_outliers', ['0.05']],
+      ['-regress_make_corr_vols',  ['aegm09']],
+      ['-regress_est_blur_epits',  []],
+      ['-regress_est_blur_errts',  []],
+      ['-regress_compute_tsnr_stats', ['BrodPijn', '7', '10', '12', '39',
+                                       '107', '110', '112', '139']],
+      ['-regress_compute_tsnr_stats', ['SchYeo7N', '161', '149', '7', '364',
+                                       '367', '207']],
+      ['-html_review_style',       ['pythonic']],
+       ],
+     ))
+
+   examples.append( APExample('AP publish 3f',
+     source='AP_paper/scripts_rest/do_36_ap_ex6_vol.tcsh',
+     descrip='do_36_ap_ex6_vol.tcsh - rest analysis.',
+     moddate='2024.08.30',
+     keywords=['complete', 'noshow', 'physio', 'publish', 'rest'],
+     header="""
+              (recommended?  almost, this has extra regressors)
+
+         This example is based on the APMULTI_Demo1_rest tree, to perform a
+         resting state analysis with a single echo time series.
+
+         This is the same as AP publish 3c, but with:
+            - anat_follower_erode, ROI_PC, ANATICOR, extra followers
+
+         This is a resting state processing command, including:
+            - physio regression, slicewise, before any temporal or volumetric
+              alterations (and per-run, though there is only 1 run here)
+            - slice timing correction (notably after physio regression)
+            - EPI registration to MIN_OUTLIER vr_base volume
+            - EPI/anat alignment, with -align_unifize_epi local
+            - NL warp to MNI152_2009 template, as computed by @SSwarper
+            - apply 8 mm FWHM Gaussian blur using -blur_to_fwhm to account
+              for data from multiple sites
+              * this results in the EPI being masked
+            - all registration transformations are concatenated
+            - voxelwise scaling to percent signal change
+            - regression (projection) of:
+                - per run motion and first differences
+                - first 3 principle components from volreg ventricles
+                  (per run, though only 1 run here)
+                - fast ANATICOR: weighted local white matter (voxelwise regs)
+                - censor motion exceeding 0.2 ~mm from enorm time series,
+                  or outliers exceeding 5% of brain 
+            - estimate data blur from the regression residuals and the
+              regression input (separately) using the mixed-model ACF function
+
+            - QC options:
+                -anat_follower (with skull), -anat_follower_ROI (FS GM mask),
+                -radial_correlate_blocks, (-align_opts_aea) -check_flip,
+                -volreg_compute_tsnr, -regress_make_corr_vols,
+                -html_review_style
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+      ['-subj_id',                 ['sub-005.ex6']],
+      ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
+      ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
+      ['-anat_has_skull',          ['no']],
+      ['-anat_follower',           ['anat_w_skull', 'anat',
+                                   'ssw/anatU.sub-005.nii']],
+      ['-anat_follower_ROI',       ['aaseg', 'anat',
+                                    'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+      ['-anat_follower_ROI',       ['aeseg', 'epi',
+                                    'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+      ['-anat_follower_ROI',       ['aagm09', 'anat',
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii']],
+      ['-anat_follower_ROI',       ['aegm09', 'epi',
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii']],
+      ['-anat_follower_ROI',       ['aagm00', 'anat',
+                                   'SUMA/aparc+aseg_REN_gmrois.nii.gz']],
+      ['-anat_follower_ROI',       ['aegm00', 'epi',
+                                   'SUMA/aparc+aseg_REN_gmrois.nii.gz']],
+      ['-anat_follower_ROI',       ['FSvent', 'epi',
+                                    'SUMA/fs_ap_latvent.nii.gz']],
+      ['-anat_follower_ROI',       ['FSWe', 'epi', 'SUMA/fs_ap_wm.nii.gz']],
+      ['-anat_follower_erode',     ['FSvent', 'FSWe']],
+      ['-ROI_import',              ['BrodPijn', 'Brodmann_pijn_afni.nii.gz']],
+      ['-ROI_import',              ['SchYeo7N', 'Schaefer_7N_400.nii.gz']],
+      ['-blocks',                  ['ricor', 'tshift', 'align', 'tlrc',
+                                    'volreg', 'mask', 'blur', 'scale',
+                                    'regress']],
+      ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
+      ['-tcat_remove_first_trs',   ['4']],
+      ['-ricor_regs',              ['physio/sub-005_rest_physio.slibase.1D']],
+      ['-ricor_regs_nfirst',       ['4']],
+      ['-ricor_regress_method',    ['per-run']],
+      ['-align_unifize_epi',       ['local']],
+      ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
+      ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+      ['-tlrc_NL_warp',            []],
+      ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                    'ssw/anatQQ.sub-005.aff12.1D',
+                                    'ssw/anatQQ.sub-005_WARP.nii']],
+      ['-volreg_align_to',         ['MIN_OUTLIER']],
+      ['-volreg_align_e2a',        []],
+      ['-volreg_tlrc_warp',        []],
+      ['-volreg_warp_dxyz',        ['3']],
+      ['-volreg_compute_tsnr',     ['yes']],
+      ['-mask_epi_anat',           ['yes']],
+      ['-blur_size',               ['8']],
+      ['-blur_to_fwhm',            []],
+      ['-regress_apply_mot_types', ['demean', 'deriv']],
+      ['-regress_motion_per_run',  []],
+      ['-regress_anaticor_fast',   []],
+      ['-regress_anaticor_label',  ['FSWe']],
+      ['-regress_ROI_PC',          ['FSvent', '3']],
+      ['-regress_ROI_PC_per_run',  ['FSvent']],
+      ['-regress_censor_motion',   ['0.2']],
+      ['-regress_censor_outliers', ['0.05']],
+      ['-regress_make_corr_vols',  ['aeseg', 'FSvent']],
+      ['-regress_est_blur_epits',  []],
+      ['-regress_est_blur_errts',  []],
+      ['-regress_compute_tsnr_stats', ['BrodPijn', '7', '10', '12', '39',
+                                       '107', '110', '112', '139']],
+      ['-regress_compute_tsnr_stats', ['SchYeo7N', '161', '149', '7', '364',
+                                       '367', '207']],
+      ['-html_review_style',       ['pythonic']],
+       ],
+     ))
+
+   examples.append( APExample('AP publish 3g',
+     source='AP_paper/scripts_rest/do_37_ap_ex7_roi.tcsh',
+     descrip='do_37_ap_ex7_roi.tcsh - rest analysis.',
+     moddate='2024.08.29',
+     keywords=['complete', 'noshow', 'physio', 'publish', 'rest'],
+     header="""
+              (recommended?  yes, an example of resting state analysis)
+
+         This example is based on the APMULTI_Demo1_rest tree, to perform a
+         resting state analysis with a single echo time series.
+
+         This is the same as AP publish 3c, but it is for an ROI analysis,
+         and so does not have any 'blur' block or blur_size.
+
+         This is a resting state processing command, including:
+            - physio regression, slicewise, before any temporal or volumetric
+              alterations (and per-run, though there is only 1 run here)
+            - slice timing correction (notably after physio regression)
+            - EPI registration to MIN_OUTLIER vr_base volume
+            - EPI/anat alignment, with -align_unifize_epi local
+            - NL warp to MNI152_2009 template, as computed by @SSwarper
+            - do not apply any blur, to avoid corrupting regions of interest
+            - all registration transformations are concatenated
+            - voxelwise scaling to percent signal change
+            - regression (projection) of:
+                - per run motion and first differences
+                - censor motion exceeding 0.2 ~mm from enorm time series,
+                  or outliers exceeding 5% of brain 
+            - estimate data blur from the regression residuals and the
+              regression input (separately) using the mixed-model ACF function
+
+            - QC options:
+                -anat_follower (with skull), -anat_follower_ROI (FS GM mask),
+                -radial_correlate_blocks, (-align_opts_aea) -check_flip,
+                -volreg_compute_tsnr, -regress_make_corr_vols,
+                -html_review_style
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+      ['-subj_id',                 ['sub-005.ex7']],
+      ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
+      ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
+      ['-anat_has_skull',          ['no']],
+      ['-anat_follower',           ['anat_w_skull', 'anat',
+                                   'ssw/anatU.sub-005.nii']],
+      ['-anat_follower_ROI',       ['aagm09', 'anat',
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii']],
+      ['-anat_follower_ROI',       ['aegm09', 'epi',
+                                   'SUMA/aparc.a2009s+aseg_REN_gmrois.nii']],
+      ['-ROI_import',              ['BrodPijn', 'Brodmann_pijn_afni.nii.gz']],
+      ['-ROI_import',              ['SchYeo7N', 'Schaefer_7N_400.nii.gz']],
+      ['-blocks',                  ['ricor', 'tshift', 'align', 'tlrc',
+                                    'volreg', 'mask', 'scale', 'regress']],
+      ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
+      ['-tcat_remove_first_trs',   ['4']],
+      ['-ricor_regs',              ['physio/sub-005_rest_physio.slibase.1D']],
+      ['-ricor_regs_nfirst',       ['4']],
+      ['-ricor_regress_method',    ['per-run']],
+      ['-align_unifize_epi',       ['local']],
+      ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
+      ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+      ['-tlrc_NL_warp',            []],
+      ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                    'ssw/anatQQ.sub-005.aff12.1D',
+                                    'ssw/anatQQ.sub-005_WARP.nii']],
+      ['-volreg_align_to',         ['MIN_OUTLIER']],
+      ['-volreg_align_e2a',        []],
+      ['-volreg_tlrc_warp',        []],
+      ['-volreg_warp_dxyz',        ['3']],
+      ['-volreg_compute_tsnr',     ['yes']],
+      ['-mask_epi_anat',           ['yes']],
+      ['-regress_apply_mot_types', ['demean', 'deriv']],
+      ['-regress_motion_per_run',  []],
+      ['-regress_censor_motion',   ['0.2']],
+      ['-regress_censor_outliers', ['0.05']],
+      ['-regress_make_corr_vols',  ['aegm09']],
+      ['-regress_est_blur_epits',  []],
+      ['-regress_est_blur_errts',  []],
+      ['-regress_compute_tsnr_stats', ['BrodPijn', '7', '10', '12', '39',
+                                       '107', '110', '112', '139']],
+      ['-regress_compute_tsnr_stats', ['SchYeo7N', '161', '149', '7', '364',
+                                       '367', '207']],
+      ['-html_review_style',       ['pythonic']],
+       ],
+     ))
+
+   examples.append( APExample('AP publish 3h',
+     source='AP_paper/scripts_rest/do_38_ap_ex8_mesurf_oc.tcsh',
+     descrip='do_38_ap_ex8_mesurf_oc.tcsh - multi-echo surface analysis.',
+     moddate='2024.09.04',
+     keywords=['complete', 'blip', 'ME', 'noshow', 'publish',
+               'rest', 'surface'],
+     header="""
+              (recommended?  yes)
+
+         This example is based on the APMULTI_Demo1_rest tree, to perform a
+         resting state analysis on the surface with multi-echo data.
+
+         This is the same as AP publish 3d, but it uses AFNI's OC echo combine
+         method rather than tedana (-combine_method).  Because a mask is not
+         required, the mask block and option have also been removed (though it
+         is certainly fine to keep them).
+
+         This is a surface-based resting state processing command, including:
+            - slice timing correction (using wsinc9 interpolation)
+            - distortion correction using reverse blip phase encoding
+            - EPI registration to MIN_OUTLIER vr_base volume
+            - EPI/anat alignment, with -align_unifize_epi local
+            - all registration transformations are concatenated, and
+              based on echo 2 (as we did not specify), but applied to all
+              echoes, and resampled using a wsinc9 interpolant
+            - echos are combined and then "cleaned" by tedana
+            - the EPI time series are then  projected onto the surface
+              (a previously computed set of surfaces, registered to the
+              current anat, making a new SurfVol_Alnd_Exp anat dset)
+                - might have surf data gaps, due to coverage
+            - (light) blurring _to_ of FWHM of 4 mm is applied on the surface
+            - nodewise scaling to percent signal change
+            - (light, since tedana) regression (projection) of:
+                - per run motion and first differences
+                - censor motion exceeding 0.2 ~mm from enorm time series,
+                  or outliers exceeding 5% of brain 
+
+            - QC options:
+                -anat_follower (with skull), -radial_correlate_blocks,
+                (-align_opts_aea) -check_flip, -volreg_compute_tsnr,
+                -html_review_style
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',                  ['sub-005.ex8']],
+        ['-dsets_me_run',             ['func/sub-005_rest_echo-1_bold.nii.gz',
+                                       'func/sub-005_rest_echo-2_bold.nii.gz',
+                                       'func/sub-005_rest_echo-3_bold.nii.gz']],
+        ['-echo_times',               ['12.5', '27.6', '42.7']],
+        ['-blip_forward_dset',        ['func/sub-005_blip-match.nii.gz[0]']],
+        ['-blip_reverse_dset',        ['func/sub-005_blip-opp.nii.gz[0]']],
+        ['-copy_anat',                ['ssw/anatSS.sub-005.nii']],
+        ['-anat_has_skull',           ['no']],
+        ['-anat_follower',            ['anat_w_skull', 'anat',
+                                       'ssw/anatU.sub-005.nii']],
+        ['-blocks',                   ['tshift', 'align', 'volreg',
+                                       'combine', 'surf', 'blur', 'scale',
+                                       'regress']],
+        ['-radial_correlate_blocks',  ['tcat', 'volreg']],
+        ['-tcat_remove_first_trs',    ['4']],
+        ['-tshift_interp',            ['-wsinc9']],
+        ['-align_unifize_epi',        ['local']],
+        ['-align_opts_aea',           ['-cost', 'lpc+ZZ', '-giant_move',
+                                       '-check_flip']],
+        ['-volreg_align_to',          ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',         []],
+        ['-volreg_warp_final_interp', ['wsinc5']],
+        ['-volreg_compute_tsnr',      ['yes']],
+        ['-combine_method',           ['OC']],
+        ['-surf_anat',                ['SUMA/sub-005_SurfVol.nii']],
+        ['-surf_spec',                ['SUMA/std.141.sub-005_lh.spec',
+                                       'SUMA/std.141.sub-005_rh.spec']],
+        ['-blur_size',                ['4']],
+        ['-regress_apply_mot_types',  ['demean', 'deriv']],
+        ['-regress_motion_per_run',   []],
+        ['-regress_censor_motion',    ['0.2']],
+        ['-regress_censor_outliers',  ['0.05']],
+        ['-html_review_style',        ['pythonic']],
+
+       ],
+     ))
+
+   examples.append( APExample('AP publish 3i',
+     source='AP_paper/scripts_rest/do_39_ap_ex9_mevol_oc.tcsh',
+     descrip='do_39_ap_ex9_mevol_oc.tcsh - ME volume rest analysis.',
+     moddate='2024.08.27',
+     keywords=['blip', 'complete', 'ME', 'publish', 'rest'],
+     header="""
+              (recommended?  yes, an example of resting state analysis)
+
+         This example is based on the APMULTI_Demo1_rest tree, to perform a
+         resting state analysis with a multi-echo time series.
+
+         This is a multi-echo resting state processing command, including:
+            - 1 run with 3 echoes of EPI time series data
+            - reverse phase encoding distortion correction
+            - slice timing correction
+            - EPI registration to MIN_OUTLIER vr_base volume
+            - EPI/anat alignment, with -align_unifize_epi local
+            - NL warp to MNI152_2009 template, as computed by sswarper2
+            - apply 4 mm FWHM Gaussian blur, approx 1.5*voxel size,
+              but lower because of multi-echo noise cancellation
+            - all registration transformations are concatenated
+            - combine echoes using the base OC (optimally combined) method
+            - voxelwise scaling to percent signal change
+            - regression (projection) of:
+                - per run motion and first differences
+                - censor motion exceeding 0.2 ~mm from enorm time series,
+                  or outliers exceeding 5% of brain 
+            - estimate data blur from the regression residuals and the
+              regression input (separately) using the mixed-model ACF function
+
+            - QC options:
+                -anat_follower (with skull), -anat_follower_ROI (Brodmann
+                 and Schaefer ROIs) for TSNR statistics
+                -radial_correlate_blocks, (-align_opts_aea) -check_flip,
+                -volreg_compute_tsnr, -html_review_style
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+      ['-subj_id',                 ['sub-005.ex9']],
+      ['-dsets_me_run',            ['func/sub-005_rest_r1_e1_bold.nii.gz',
+                                    'func/sub-005_rest_r1_e2_bold.nii.gz',
+                                    'func/sub-005_rest_r1_e3_bold.nii.gz']],
+      ['-echo_times',              ['12.5', '27.6', '42.7']],
+      ['-blip_forward_dset',       ['func/sub-005_blip-match.nii.gz[0]']],
+      ['-blip_reverse_dset',       ['func/sub-005_blip-opp.nii.gz[0]']],
+      ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
+      ['-anat_has_skull',          ['no']],
+      ['-anat_follower',           ['anat_w_skull', 'anat',
+                                   'ssw/anatU.sub-005.nii']],
+      ['-ROI_import',              ['BrodPijn', 'Brodmann_pijn_afni.nii.gz']],
+      ['-ROI_import',              ['SchYeo7N', 'Schaefer_7N_400.nii.gz']],
+      ['-blocks',                  ['tshift', 'align', 'tlrc', 'volreg',
+                                    'mask', 'combine', 'blur', 'scale',
+                                    'regress']],
+      ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
+      ['-tcat_remove_first_trs',   ['4']],
+      ['-align_unifize_epi',       ['local']],
+      ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
+      ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+      ['-tlrc_NL_warp',            []],
+      ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                    'ssw/anatQQ.sub-005.aff12.1D',
+                                    'ssw/anatQQ.sub-005_WARP.nii']],
+      ['-volreg_align_to',         ['MIN_OUTLIER']],
+      ['-volreg_align_e2a',        []],
+      ['-volreg_tlrc_warp',        []],
+      ['-volreg_warp_dxyz',        ['3']],
+      ['-volreg_compute_tsnr',     ['yes']],
+      ['-mask_epi_anat',           ['yes']],
+      ['-combine_method',          ['OC']],
+      ['-blur_size',               ['4']],
+      ['-regress_censor_motion',   ['0.2']],
+      ['-regress_censor_outliers', ['0.05']],
+      ['-regress_apply_mot_types', ['demean', 'deriv']],
+      ['-regress_motion_per_run',  []],
+      ['-regress_est_blur_epits',  []],
+      ['-regress_est_blur_errts',  []],
+      ['-regress_compute_tsnr_stats', ['BrodPijn', '7', '10', '12', '39',
+                                       '107', '110', '112', '139']],
+      ['-regress_compute_tsnr_stats', ['SchYeo7N', '161', '149', '7', '364',
+                                       '367', '207']],
+      ['-html_review_style',       ['pythonic']],
+     ],
+     ))
+
+   examples.append( APExample('AP publish 3j',
+     source='AP_paper/scripts_task/do_40_ap_ex10_task_bder.tcsh',
+     descrip='do_40_ap_ex10_task_bder.tcsh - pamenc task analysis.',
+     moddate='2024.02.20',
+     keywords=['complete', 'noshow', 'publish', 'task'],
+     header="""
+              (recommended?  yes, for a volumetric task analysis)
+
+         This example is based on the AFNI_demos/AFNI_pamenc data.
+
+         This is the same as AP publish 3b, but it sets taskname as a uvar
+         and outputs an extra bids derivative tree.
+
+         This is a full analysis, including:
+            - slice time correction (alt+z2 timing pattern)
+            - EPI registration to MIN_OUTLIER vr_base volume
+            - EPI/anat alignment, with -align_unifize_epi local
+            - NL warp to MNI152_2009 template, as computed by @SSwarper
+            - all registration transformations are concatenated
+            - computing an EPI mask intersected with the anatomical mask
+              for blurring and QC (-mask_epi_anat)
+            - applying a 6 mm FWHM Gaussian blur, restricted to the EPI mask
+            - voxelwise scaling to percent signal change
+            - linear regression of task events using duration modulation with
+              the BLOCK basis function (dmUBLOCK(-1)), where the ideal response
+              height is unit for a 1 s event; stim_type AM1 is required here
+            - censoring time points where motion exceeds 0.3 mm or the outlier
+              fraction exceeds 5%
+            - regression is performed by 3dREMLfit, accounting for voxelwise
+              temporal autocorrelation in the noise
+            - estimate data blur from the regression residuals using
+              the mixed-model ACF function
+
+            - QC options:
+                -anat_follower (with skull), (-align_opts_aea) -check_flip,
+                -radial_correlate_blocks, -volreg_compute_tsnr,
+                -regress_make_ideal_sum, -html_review_style
+
+         * input dataset names have been shortened
+
+            """,
+     trailer=""" """,
+     olist = [
+      ['-subj_id',                      ['sub-10506.ex10']],
+      ['-uvar',                         ['taskname', 'pamenc']],
+      ['-dsets',                        ['func/sub-10506_pamenc_bold.nii.gz']],
+      ['-copy_anat',                    ['ssw/anatSS.sub-10506.nii']],
+      ['-anat_has_skull',               ['no']],
+      ['-anat_follower',                ['anat_w_skull', 'anat',
+                                         'ssw/anatU.sub-10506.nii']],
+      ['-blocks',                       ['tshift', 'align', 'tlrc', 'volreg',
+                                         'mask', 'blur', 'scale', 'regress']],
+      ['-radial_correlate_blocks',      ['tcat', 'volreg', 'regress']],
+      ['-tcat_remove_first_trs',        ['0']],
+      ['-tshift_opts_ts',               ['-tpattern', 'alt+z2']],
+      ['-align_unifize_epi',            ['local']],
+      ['-align_opts_aea',               ['-giant_move', '-cost', 'lpc+ZZ',
+                                         '-check_flip']],
+      ['-tlrc_base',                    ['MNI152_2009_template_SSW.nii.gz']],
+      ['-tlrc_NL_warp',                 []],
+      ['-tlrc_NL_warped_dsets',         ['ssw/anatQQ.sub-10506.nii',
+                                         'ssw/anatQQ.sub-10506.aff12.1D',
+                                         'ssw/anatQQ.sub-10506_WARP.nii']],
+      ['-volreg_align_to',              ['MIN_OUTLIER']],
+      ['-volreg_align_e2a',             []],
+      ['-volreg_tlrc_warp',             []],
+      ['-volreg_warp_dxyz',             ['3.0']],
+      ['-volreg_compute_tsnr',          ['yes']],
+      ['-mask_epi_anat',                ['yes']],
+      ['-blur_size',                    ['6']],
+      ['-blur_in_mask',                 ['yes']],
+      ['-regress_stim_times',           ['timing/times.CONTROL.txt',
+                                         'timing/times.TASK.txt']],
+      ['-regress_stim_labels',          ['CONTROL', 'TASK']],
+      ['-regress_stim_types',           ['AM1']],
+      ['-regress_basis_multi',          ['dmUBLOCK(-1)']],
+      ['-regress_opts_3dD',             ['-jobs', '8',
+                                         '-gltsym', 'SYM: TASK -CONTROL',
+                                         '-glt_label', '1', 'T-C',
+                                         '-gltsym',
+                                         'SYM: 0.5*TASK +0.5*CONTROL',
+                                         '-glt_label', '2', 'meanTC']],
+      ['-regress_motion_per_run',       []],
+      ['-regress_censor_motion',        ['0.3']],
+      ['-regress_censor_outliers',      ['0.05']],
+      ['-regress_compute_fitts',        []],
+      ['-regress_fout',                 ['no']],
+      ['-regress_3dD_stop',             []],
+      ['-regress_reml_exec',            []],
+      ['-regress_make_ideal_sum',       ['sum_ideal.1D']],
+      ['-regress_est_blur_errts',       []],
+      ['-regress_run_clustsim',         ['no']],
+      ['-html_review_style',            ['pythonic']],
+      ['-bids_deriv',                   ['yes']],
        ],
      ))
 
@@ -2396,13 +3033,13 @@ def egs_demo():
      trailer=""" """,
      olist = [
         ['-subj_id',               ['FT']],
-        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
-                                    'mask', 'blur', 'scale', 'regress']],
-        ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
-        ['-copy_anat',             ['FT_anat+orig']],
         ['-dsets',                 ['FT/FT_epi_r1+orig.HEAD',
                                     'FT/FT_epi_r2+orig.HEAD',
                                     'FT/FT_epi_r3+orig.HEAD']],
+        ['-copy_anat',             ['FT_anat+orig']],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                                    'mask', 'blur', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
         ['-tcat_remove_first_trs', ['2']],
         ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
@@ -2414,10 +3051,10 @@ def egs_demo():
         ['-volreg_compute_tsnr',   ['yes']],
         ['-mask_epi_anat',         ['yes']],
         ['-blur_size',             ['6']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_motion_per_run', []],
         ['-regress_censor_motion', ['0.25']],
         ['-regress_censor_outliers', ['0.05']],
-        ['-regress_motion_per_run', []],
-        ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-regress_est_blur_epits', []],
         ['-regress_est_blur_errts', []],
         ['-regress_make_ideal_sum',  ['sum_ideal.1D']],
@@ -2449,20 +3086,20 @@ def egs_demo():
         ['-subj_id',               ['FT']],
         ['-script',                ['proc.FT']],
         ['-out_dir',               ['FT.results']],
-        ['-blocks',                ['tshift', 'volreg', 'mask',
-                                    'blur', 'scale', 'regress']],
-        ['-radial_correlate_blocks', ['tcat', 'volreg']],
         ['-dsets',                 ['FT/FT_epi_r1+orig.HEAD',
                                     'FT/FT_epi_r2+orig.HEAD',
                                     'FT/FT_epi_r3+orig.HEAD']],
+        ['-blocks',                ['tshift', 'volreg', 'mask',
+                                    'blur', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
         ['-tcat_remove_first_trs', ['2']],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_compute_tsnr',   ['yes']],
         ['-blur_size',             ['6']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_motion_per_run', []],
         ['-regress_censor_motion', ['0.25']],
         ['-regress_censor_outliers', ['0.05']],
-        ['-regress_motion_per_run', []],
-        ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-regress_est_blur_epits', []],
         ['-regress_est_blur_errts', []],
         ['-regress_make_ideal_sum',  ['sum_ideal.1D']],
@@ -2502,17 +3139,16 @@ def egs_demo():
      trailer=""" """,
      olist = [
         ['-subj_id',               ['sub-005']],
+        ['-dsets_me_run',          ['func/sub-005_rest_r1_e1_bold.nii.gz',
+                                    'func/sub-005_rest_r1_e2_bold.nii.gz',
+                                    'func/sub-005_rest_r1_e3_bold.nii.gz']],
+        ['-echo_times',            ['12.5', '27.6', '42.7']],
+        ['-reg_echo',              ['2']],
+        ['-copy_anat',             ['anat/sub-005_mprage_run-1_T1w.nii.gz']],
         ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
                                     'mask', 'combine', 'blur', 'scale',
                                     'regress']],
         ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
-        ['-copy_anat',             ['anat/sub-005_mprage_run-1_T1w.nii.gz']],
-        ['-dsets_me_run',      ['func/sub-005_rest_r1_e1_bold.nii.gz',
-                                'func/sub-005_rest_r1_e2_bold.nii.gz',
-                                'func/sub-005_rest_r1_e3_bold.nii.gz']],
-        ['-echo_times',            ['12.5', '27.6', '42.7']],
-        ['-combine_method',        ['OC']],
-        ['-reg_echo',              ['2']],
         ['-tcat_remove_first_trs', ['4']],
         ['-tshift_interp',         ['-wsinc9']],
         ['-align_unifize_epi',     ['local']],
@@ -2525,11 +3161,12 @@ def egs_demo():
         ['-volreg_warp_final_interp', ['wsinc5']],
         ['-volreg_compute_tsnr',   ['yes']],
         ['-mask_epi_anat',         ['yes']],
+        ['-combine_method',        ['OC']],
         ['-blur_size',             ['4']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_motion_per_run', []],
         ['-regress_censor_motion', ['0.25']],
         ['-regress_censor_outliers', ['0.05']],
-        ['-regress_motion_per_run', []],
-        ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-regress_est_blur_epits', []],
         ['-regress_est_blur_errts', []],
         ['-regress_make_ideal_sum',  ['sum_ideal.1D']],
@@ -2573,14 +3210,11 @@ def egs_demo():
      trailer=""" """,
      olist = [
         ['-subj_id',                 ['sub-005']],
-        ['-blocks',                  ['despike', 'tshift', 'align', 'tlrc',
-                                      'volreg', 'mask', 'blur', 'scale',
-                                      'regress']],
-        ['-radial_correlate_blocks', ['tcat', 'volreg']],
-        ['-copy_anat',               ['sswarper/anatSS.sub-005.nii']],
+        ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
+        ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
         ['-anat_has_skull',          ['no']],
         ['-anat_follower',           ['anat_w_skull', 'anat',
-                                      'sswarper/anatU.sub-005.nii']],
+                                      'ssw/anatU.sub-005.nii']],
         ['-anat_follower_ROI',       ['aaseg', 'anat',
                                       'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
         ['-anat_follower_ROI',       ['aeseg', 'epi',
@@ -2589,31 +3223,34 @@ def egs_demo():
                                       'SUMA/fs_ap_latvent.nii.gz']],
         ['-anat_follower_ROI',       ['FSWe', 'epi', 'SUMA/fs_ap_wm.nii.gz']],
         ['-anat_follower_erode',     ['FSvent', 'FSWe']],
-        ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
+        ['-blocks',                  ['despike', 'tshift', 'align', 'tlrc',
+                                      'volreg', 'mask', 'blur', 'scale',
+                                      'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
         ['-tcat_remove_first_trs',   ['4']],
         ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
                                       '-check_flip']],
         ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
         ['-tlrc_NL_warp',            []],
-        ['-tlrc_NL_warped_dsets',    ['sswarper/anatQQ.sub-005.nii',
-                                      'sswarper/anatQQ.sub-005.aff12.1D',
-                                      'sswarper/anatQQ.sub-005_WARP.nii']],
+        ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                      'ssw/anatQQ.sub-005.aff12.1D',
+                                      'ssw/anatQQ.sub-005_WARP.nii']],
         ['-volreg_align_to',         ['MIN_OUTLIER']],
         ['-volreg_align_e2a',        []],
         ['-volreg_tlrc_warp',        []],
         ['-volreg_warp_dxyz',        ['3']],
         ['-volreg_compute_tsnr',     ['yes']],
-        ['-blur_size',               ['5']],
         ['-mask_epi_anat',           ['yes']],
+        ['-blur_size',               ['5']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-regress_motion_per_run',  []],
-        ['-regress_ROI_PC',          ['FSvent', '3']],
-        ['-regress_ROI_PC_per_run',  ['FSvent']],
-        ['-regress_make_corr_vols',  ['aeseg', 'FSvent']],
         ['-regress_anaticor_fast',   []],
         ['-regress_anaticor_label',  ['FSWe']],
+        ['-regress_ROI_PC',          ['FSvent', '3']],
+        ['-regress_ROI_PC_per_run',  ['FSvent']],
         ['-regress_censor_motion',   ['0.2']],
         ['-regress_censor_outliers', ['0.05']],
-        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_make_corr_vols',  ['aeseg', 'FSvent']],
         ['-regress_est_blur_epits',  []],
         ['-regress_est_blur_errts',  []],
         ['-html_review_style',       ['pythonic']],
@@ -2662,14 +3299,16 @@ def egs_demo():
      trailer=""" """,
      olist = [
         ['-subj_id',                 ['sub-005']],
-        ['-blocks',                  ['despike', 'tshift', 'align', 'volreg',
-                                      'mask', 'combine', 'surf', 'blur',
-                                      'scale', 'regress']],
-        ['-radial_correlate_blocks', ['tcat', 'volreg']],
-        ['-copy_anat',               ['sswarper/anatSS.sub-005.nii']],
+        ['-dsets_me_run',            ['func/sub-005_rest_echo-1_bold.nii.gz',
+                                      'func/sub-005_rest_echo-2_bold.nii.gz',
+                                      'func/sub-005_rest_echo-3_bold.nii.gz']],
+        ['-echo_times',              ['12.5', '27.6', '42.7']],
+        ['-blip_forward_dset',       ['func/sub-005_blip-match.nii.gz[0]']],
+        ['-blip_reverse_dset',       ['func/sub-005_blip-opp.nii.gz[0]']],
+        ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
         ['-anat_has_skull',          ['no']],
         ['-anat_follower',           ['anat_w_skull', 'anat',
-                                      'sswarper/anatU.sub-005.nii']],
+                                      'ssw/anatU.sub-005.nii']],
         ['-anat_follower_ROI',       ['aaseg', 'anat',
                                       'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
         ['-anat_follower_ROI',       ['aeseg', 'epi',
@@ -2678,16 +3317,10 @@ def egs_demo():
                                       'SUMA/fs_ap_latvent.nii.gz']],
         ['-anat_follower_ROI',       ['FSWe', 'epi', 'SUMA/fs_ap_wm.nii.gz']],
         ['-anat_follower_erode',     ['FSvent', 'FSWe']],
-        ['-surf_anat',               ['SUMA/sub-005_SurfVol.nii']],
-        ['-surf_spec',               ['SUMA/std.141.sub-005_lh.spec',
-                                      'SUMA/std.141.sub-005_rh.spec']],
-        ['-blip_forward_dset',       ['func/sub-005_blip-match.nii.gz[0]']],
-        ['-blip_reverse_dset',       ['func/sub-005_blip-opp.nii.gz[0]']],
-        ['-dsets_me_run',            ['func/sub-005_rest_echo-1_bold.nii.gz',
-                                      'func/sub-005_rest_echo-2_bold.nii.gz',
-                                      'func/sub-005_rest_echo-3_bold.nii.gz']],
-        ['-echo_times',              ['12.5', '27.6', '42.7']],
-        ['-combine_method',          ['m_tedana']],
+        ['-blocks',                  ['despike', 'tshift', 'align', 'volreg',
+                                      'mask', 'combine', 'surf', 'blur',
+                                      'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
         ['-tcat_remove_first_trs',   ['4']],
         ['-tshift_interp',           ['-wsinc9']],
         ['-align_unifize_epi',       ['local']],
@@ -2697,13 +3330,17 @@ def egs_demo():
         ['-volreg_align_e2a',        []],
         ['-volreg_warp_final_interp',['wsinc5']],
         ['-volreg_compute_tsnr',     ['yes']],
-        ['-blur_size',               ['4']],
         ['-mask_epi_anat',           ['yes']],
+        ['-combine_method',          ['m_tedana']],
+        ['-surf_anat',               ['SUMA/sub-005_SurfVol.nii']],
+        ['-surf_spec',               ['SUMA/std.141.sub-005_lh.spec',
+                                      'SUMA/std.141.sub-005_rh.spec']],
+        ['-blur_size',               ['4']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-regress_motion_per_run',  []],
-        ['-regress_make_corr_vols',  ['aeseg', 'FSvent']],
         ['-regress_censor_motion',   ['0.2']],
         ['-regress_censor_outliers', ['0.05']],
-        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_make_corr_vols',  ['aeseg', 'FSvent']],
         ['-html_review_style',       ['pythonic']],
        ],
      ))

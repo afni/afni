@@ -180,6 +180,25 @@ other options:
 
           See also -do_backup.
 
+      -cc_path PATH/TO/COMPILER : specify the path to a C compiler to use
+
+          e.g.  -cc_path /usr/local/bin/gcc-14
+          e.g.  -cc_path NONE
+
+          If a Makefile uses LOCAL_CC_PATH (most do not), one can pass an
+          alternative to what is default in the Makefile.
+
+          For example, Makefile.macos_12_x86_64 uses /usr/local/bin/gcc-13.
+          This option can be used to override that compiler path as the user
+          sees fit, such as with /usr/local/bin/gcc-14 or even /usr/bin/clang.
+
+        * If this option is not used and the default compiler does not exist,
+          the program will attempt to find an alternate compiler with a
+          different version number.
+
+        * Use NONE to forcibly use the Makefile default, even if it does not
+          exist.
+
       -clean_root yes/no        : specify whether to clean up the build_root
 
           default -clean_root yes
@@ -377,10 +396,14 @@ g_history = """
         - remove extra backup dirs (save 1, and must contain afni)
         - add -update_niivue option
    0.12 Jun 24, 2024 - for make, warn if CC is set
+   0.13 Sep 12, 2024
+        - add option -cc_path
+        - else if LOCAL_CC_PATH does not exist, try to find alternate compiler
+
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.12, June 24, 2024" % g_prog
+g_version = "%s, version 0.13, September 12, 2024" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
@@ -496,6 +519,7 @@ class MyInterface:
       self.make_target     = 'itall' # target in "make" command
       self.makefile        = ''     # an alternate Makefile to build from
       self.package         = ''     # to imply Makefile and build dir
+      self.cc_path         = ''     # empty, NONE or path (-cc_path)
 
       self.prep_only       = 0      # prepare (c)make, but do not run
       self.run_cmake       = 0      # actually run camke?
@@ -605,6 +629,8 @@ class MyInterface:
       self.valid_opts.add_opt('-backup_method', 1, [],
                       acplist=['mv','rsync','rsync_preseve'],
                       helpstr='specify method of backup (def=rsync)')
+      self.valid_opts.add_opt('-cc_path', 1, [],
+                      helpstr="specify an alternate C compiler path")
       self.valid_opts.add_opt('-clean_root', 1, [],
                       helpstr='clean up from old work? (def=y)')
       self.valid_opts.add_opt('-do_backup', 1, [],
@@ -707,6 +733,11 @@ class MyInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
             self.backup_method = val
+
+         elif opt.name == '-cc_path':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return -1
+            self.cc_path = val
 
          elif opt.name == '-clean_root':
             if OL.opt_is_yes(opt):
@@ -1184,8 +1215,8 @@ class MyInterface:
          MESGm("backup directories: keeping %d, removing %d" \
                % (len(keepers), nback))
          if self.verb > 1:
-            print("keep   : %s" % '\n       : '.join(keepers))
-            print("remove : %s" % '\n       : '.join(glist))
+            MESG("keep   : %s" % '\n       : '.join(keepers))
+            MESG("remove : %s" % '\n       : '.join(glist))
 
       # do the damage
       if nback > 0:
@@ -1521,8 +1552,14 @@ class MyInterface:
       #    build    : from this (build_afni.py)
       #    official : official distributed binaires
       who = 'AFNI_WHOMADEIT=build'
-      st, ot = self.run_cmd('make %s %s >& %s' % (who,self.make_target,logfile))
 
+      # maybe the user specified a compiler, or maybe we should search for one
+      gver = self.get_alternate_compiler_str()
+      # if successful, add a space for separation
+      if gver != '': gver += ' '
+
+      st, ot = self.run_cmd('make %s%s %s >& %s' \
+                            % (who, gver, self.make_target, logfile))
       if st: tmesg = 'FAILURE'
       else:  tmesg = 'SUCCESS'
       MESGm("status: building %s" % tmesg)
@@ -1601,6 +1638,135 @@ class MyInterface:
       if st: return st
 
       return 0
+
+   def get_alternate_compiler_str(self, makefile='Makefile'):
+      """if it seems necessary or requested, return a string of the form:
+               LOCAL_CC_PATH=/path/to/gcc-XX
+
+         self.cc_path : NONE    - return an empty string
+                                  (do not use LOCAL_CC_PATH)
+                        PATH    - return LOCAL_CC_PATH=<PATH>
+                        empty   - if appropriate, try to guess
+
+         If using a Makefile that handles it (macos_12_x86_64 for now) and
+         the default compiler does not exist, try to find a suitable replacement
+      
+      """
+      lstr = "LOCAL_CC_PATH"
+
+      if self.verb > 2:
+         MESGm("looking for %s, sys=%s, cc_path=%s" \
+               % (lstr, self.sysname, self.cc_path))
+
+      # if NONE or non-empty, quick return
+      if self.cc_path == 'NONE':
+         return ''
+      elif self.cc_path != '':
+         if not os.path.exists(self.cc_path):
+            MESGw("-cc_path compiler does not exist, expect problems")
+         return ' %s=%s' % (lstr, self.cc_path)
+
+      # otherwise, first decide if we should go looking for a compiler
+
+      # if not a mac, return?  maybe just proceed
+
+      # if our makefile sets LOCAL_CC_PATH, see that it exists
+      cmd = "grep '^%s' %s" % (lstr, makefile)
+      st, ot = self.run_cmd(cmd, quiet=1)  # and be vewy, vewy quiet
+      # if no such string, just return
+      if st: return ''
+      cc = ot.split()
+      if len(cc) < 3: return ''
+      cc = cc[2]
+
+      if self.verb > 2: MESGm("Makefile applies %s = %s" % (lstr, cc))
+
+      # we have a compiler: if it exists we are done
+      if os.path.exists(cc): return ''
+
+      # help, help, we need a different compiler
+
+      cc = self.find_alternate_compiler(cc)
+
+      # if we have something convert to LOCAL_CC_PATH
+      if cc != '':
+         MESGp("need alternate compiler, trying %s" % cc)
+         MESGi("(if this fails try passing one via -cc_path)")
+         cc = ' %s=%s' % (lstr, cc)
+
+      return cc
+
+   def find_alternate_compiler(self, cpath):
+      """the makefile is looking for compiler cpath, can we find a similar one?
+
+         Expect cpath to end with ccNUM or cc-NUM (no slash).  If so, glob
+         similarly and try to return the one with the biggest number.
+         - allow NUM of the form a.b.c
+      """
+      plen = len(cpath)
+      digchars = ['.', '-']      # allowable non-digit chars
+
+      # find the last non-digit/dot/dash character, if any
+      posn = plen-1
+      while cpath[posn].isdigit() or (cpath[posn] in digchars):
+         posn -= 1
+         if posn < 0: return ''         # failure
+
+      # now posn >= 0 and cpath[posn] is not a digit or digchar, glob after that
+
+      prefix = cpath[0:posn+1]
+      glist = glob.glob('%s*' % prefix)
+      if len(glist) == 0: return ''     # failure
+      if self.verb > 2:
+         MESGm("considering %d compiler candidates" % len(glist))
+         MESGi("\n   ".join(glist))
+
+      newlist = []
+      # we have a list of candidates, if any char after posn is non-digit,
+      # remove the candidate
+      for gstr in glist:
+         keep = 1
+         for dc in gstr[posn+1:]:
+            if dc not in digchars and not dc.isdigit():
+               # bad candidate
+               keep = 0
+               break
+         if keep:
+            newlist.append(gstr)
+      if len(newlist) == 0: return ''     # failure
+
+      # --- we have a list of candidates
+
+      # if there is only one, just return it
+      if len(newlist) == 1:
+         return newlist[0]
+
+      # okay, the sorting... I should put this in afni_util.py
+      # - in each path suffix (after the common prefix),
+      #   convert all digchars to '.' and split the string over '.'
+      #   (ignoring empty string)
+      # - these should all be integers, so convert to them
+      # - then sort the list of lists (with original index appended)
+      # - grab the newlist element with the index from the desired 
+      #   position of the sorted list
+
+      # we have digits and digchars in the suffix
+      # - convert all digchars to '.', split, convert to ints and sort
+      splitlist = []
+      for ind, newcc in enumerate(newlist):
+         suffix = newcc[posn+1:]
+         for c in digchars:
+            if c != '.': suffix = suffix.replace(c, '.')
+         # make a list of elements
+         sufints = [int(s) for s in suffix.split('.') if s != '']
+         # add split intlist and index to new list
+         splitlist.append([sufints, ind])
+
+      # sort the split integers, and the 'ind' field is where they came from
+      splitlist.sort()
+
+      # so return the newlist element: index the [1] field of the last element
+      return newlist[splitlist[-1][1]]
 
    def check_conda_evars(self):
       """note whether we are in a conda environment
