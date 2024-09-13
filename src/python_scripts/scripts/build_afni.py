@@ -1185,8 +1185,8 @@ class MyInterface:
          MESGm("backup directories: keeping %d, removing %d" \
                % (len(keepers), nback))
          if self.verb > 1:
-            print("keep   : %s" % '\n       : '.join(keepers))
-            print("remove : %s" % '\n       : '.join(glist))
+            MESG("keep   : %s" % '\n       : '.join(keepers))
+            MESG("remove : %s" % '\n       : '.join(glist))
 
       # do the damage
       if nback > 0:
@@ -1672,26 +1672,69 @@ class MyInterface:
          - allow NUM of the form a.b.c
       """
       plen = len(cpath)
+      digchars = ['.', '-']      # allowable non-digit chars
 
-      # find the last non-digit/dot character, if any
+      # find the last non-digit/dot/dash character, if any
       posn = plen-1
-      while cpath[posn].isdigit() or cpath[posn] == '.':
+      while cpath[posn].isdigit() or (cpath[posn] in digchars):
          posn -= 1
          if posn < 0: return ''         # failure
 
-      # now posn >= 0 and cpath[posn] is not a digit or '.', glob after that
+      # now posn >= 0 and cpath[posn] is not a digit or digchar, glob after that
 
       prefix = cpath[0:posn+1]
       glist = glob.glob('%s*' % prefix)
       if len(glist) == 0: return ''     # failure
+      if self.verb > 2:
+         MESGm("considering %d compiler candidates" % len(glist))
+         MESGi("\n   ".join(glist))
 
-      # we have a list of candidates, now how to sort?
+      newlist = []
+      # we have a list of candidates, if any char after posn is non-digit,
+      # remove the candidate
+      for gstr in glist:
+         keep = 1
+         for dc in gstr[posn+1:]:
+            if dc not in digchars and not dc.isdigit():
+               # bad candidate
+               keep = 0
+               break
+         if keep:
+            newlist.append(gstr)
+      if len(newlist) == 0: return ''     # failure
 
-      # rcr - fix, this is a bad route, but at least one that might give a
-      #       valid compiler : return the smallest alphabetically
+      # --- we have a list of candidates
 
-      glist.sort()
-      return glist[0]
+      # if there is only one, just return it
+      if len(newlist) == 1:
+         return newlist[0]
+
+      # okay, the sorting... I should put this in afni_util.py
+      # - in each path suffix (after the common prefix),
+      #   convert all digchars to '.' and split the string over '.'
+      #   (ignoring empty string)
+      # - these should all be integers, so convert to them
+      # - then sort the list of lists (with original index appended)
+      # - grab the newlist element with the index from the desired 
+      #   position of the sorted list
+
+      # we have digits and digchars in the suffix
+      # - convert all digchars to '.', split, convert to ints and sort
+      splitlist = []
+      for ind, newcc in enumerate(newlist):
+         suffix = newcc[posn+1:]
+         for c in digchars:
+            if c != '.': suffix = suffix.replace(c, '.')
+         # make a list of elements
+         sufints = [int(s) for s in suffix.split('.') if s != '']
+         # add split intlist and index to new list
+         splitlist.append([sufints, ind])
+
+      # sort the split integers, and the 'ind' field is where they came from
+      splitlist.sort()
+
+      # so return the newlist element: index the [1] field of the last element
+      return newlist[splitlist[-1][1]]
 
    def check_conda_evars(self):
       """note whether we are in a conda environment
