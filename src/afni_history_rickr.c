@@ -53,6 +53,15 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Sep, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "in eispack C files, include math.h before f2c.h",
+   "This should generally have no effect, since the local f2c.h\n"
+   "includes math.h.  However, if one is using cmake and the system\n"
+   "f2c for linking (rather than using afni/src/f2c), then the f2c.h\n"
+   "included with the eispack files will not thave math.h.\n"
+   "So locally include math.h, just to be sure."
+ } ,
+
  { 12, Sep, 2024, RCR, "build_afni.py", MINOR, TYPE_ENHANCE,
    "add option -cc_path",
    "Allow one to pass an alternate compiler if the relevant Makefile\n"
