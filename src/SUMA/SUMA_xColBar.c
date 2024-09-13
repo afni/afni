@@ -2256,7 +2256,6 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
         SO->SurfCont->AlphaOpacityFalloff = 0;
         
         // Uncheck "A" check-box
-        // SurfCont->AlphaOpacityFalloff = 0;
         XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
                               SO->SurfCont->AlphaOpacityFalloff, YUP);    
         }
@@ -2421,9 +2420,19 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
 
    // Get relevant overlay (overlay showing thresholded region)
    ado = (SUMA_ALL_DO *)data;
-   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))/*
-            || !SurfCont->ColPlaneOpacity */) SUMA_RETURNe;
+   if (!ado || ado->do_type != SO_type | !(SurfCont=SUMA_ADO_Cont(ado))) {
+    fprintf(stderr, "ERROR %s: Cannot have surface threshold outline.  No surface\n", 
+        FuncName);
+    XmToggleButtonSetState(w, 0, 0);
+    SUMA_RETURNe;
+   }
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (!(SO->SurfCont)){
+        fprintf(stderr, "ERROR %s: Cannot have surface threshold outline.  No surface\n", 
+            FuncName);
+        XmToggleButtonSetState(w, 0, 0);
+        SUMA_RETURNe;
+   }
    over2 = SO->Overlays[2];
    
    // Determine whether threshold changed
@@ -11458,7 +11467,6 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                     
             // create the "B" toggle checkbox 
             SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("B",
-            // SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("_",     // TEMPORARY FOR MERGE WITH MASTER
             xmToggleButtonWidgetClass, ABCheckBoxContainer,
             NULL);
             // Make hover help, and BHelp, for "B" checkbox
@@ -11470,6 +11478,12 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                                    SUMA_SurfContHelp_BoxOutlineThr );
 
             SUMA_SET_SELECT_COLOR(SurfCont->BoxOutlineThresh_tb);
+            
+            // Disable "A" and "B" checkboxes if not a surface object
+            if (ado->do_type != SO_type){
+                XtSetSensitive(SurfCont->AlphaOpacityFalloff_tb, 0);
+                XtSetSensitive(SurfCont->BoxOutlineThresh_tb, 0);
+            } 
 
             XtManageChild(ABCheckBoxContainer);
         }
