@@ -1128,7 +1128,6 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    float oval, val;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
 
    SUMA_ENTRY;
 
@@ -1158,10 +1157,8 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
          /* Need a new clusterizing effort*/
          colp->OptScl->RecomputeClust = 1;
       }
-      if (!(SO->SurfCont->BoxOutlineThresh )){
           SUMA_ColorizePlane(colp);
           SUMA_Remixedisplay(ado);
-      }
    }
         
    /* call this one since it is not being called as the slider is dragged. */
@@ -5853,7 +5850,7 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   SUMA_SurfaceObject *SO = NULL;
    int BoxOutlineThresh;
 
    SUMA_ENTRY;
@@ -5864,9 +5861,11 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    
    // Temporarily suspend threshold outline.  This appears to resolve the 
    // problem of the color map changing with the threshold slider
-   SO = (SUMA_SurfaceObject *)ado;
-   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
-   SO->SurfCont->BoxOutlineThresh = 0;
+   if (ado->do_type == SO_type) {
+       SO = (SUMA_SurfaceObject *)ado;
+       BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+       SO->SurfCont->BoxOutlineThresh = 0;
+   }
 
    if (!(SurfCont=SUMA_ADO_Cont(ado)) ||
        !SurfCont->SetThrScaleTable) SUMA_RETURN(0);
@@ -5947,7 +5946,7 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 
    SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
 
-   if (!(SO->SurfCont->BoxOutlineThresh )){
+   // if (!(SO->SurfCont->BoxOutlineThresh )){
        SUMA_LH("Colorize");
        if (!SUMA_ColorizePlane (curColPlane)) {
           SUMA_SLP_Err("Failed to colorize plane.\n");
@@ -5956,21 +5955,23 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 
        SUMA_LH("Remix redisplay");
        SUMA_Remixedisplay(ado);
-   }
+   // }
 
    SUMA_UpdateNodeLblField(ado);
    SUMA_UpdatePvalueField( ado,
                            curColPlane->OptScl->ThreshRange[0]);
 
-   // Restore threshold boundary if necessary.  This is called when the 
-   //   threshold slider is moved
-   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+    if (ado->do_type == SO_type) {
+       // Restore threshold boundary if necessary.  This is called when the 
+       //   threshold slider is moved
+       SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
 
-   // Restore threshold boundary if necessary
-   if (SO->SurfCont->BoxOutlineThresh ){
-        XtPointer clientData = (XtPointer)ado;
-        SUMA_RestoreThresholdContours(clientData);
-   }
+       // Restore threshold boundary if necessary
+       if (SO->SurfCont->BoxOutlineThresh ){
+            XtPointer clientData = (XtPointer)ado;
+            SUMA_RestoreThresholdContours(clientData);
+       }
+    }
    
    SUMA_RETURN(1);
 }
