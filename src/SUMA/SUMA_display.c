@@ -15086,17 +15086,19 @@ void SUMA_cb_ColPlane_NewDimFact (void *data)
        SurfCont->ColPlaneDimFact->value) SUMA_RETURNe;
    
    // Save box threshold outline status
-   SO=(SUMA_SurfaceObject *)ado;
-   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+   if (ado->do_type == SO_type) {
+       SO=(SUMA_SurfaceObject *)ado;
+       BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+   }
 
    SUMA_ColPlane_NewDimFact(ado, curColPlane,
                             SurfCont->ColPlaneDimFact->value, 1);
    
    // Restore proper threshold contours after Dim changed
-   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-   fprintf(stderr, "%s: SO->SurfCont->BoxOutlineThresh = %d\n", 
-    FuncName, SO->SurfCont->BoxOutlineThresh);
-   restoreProperThresholdCcontours(ado);
+   if (ado->do_type == SO_type && SO) {
+       SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+       restoreProperThresholdCcontours(ado);
+   }
 
    SUMA_RETURNe;
 }
