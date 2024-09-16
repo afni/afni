@@ -20,7 +20,7 @@ from afnipy import afni_util as UTIL
 from afnipy import lib_system_check as SC
 
 g_dotfiles = ['.profile', '.bash_profile', '.bashrc', '.bash_dyld_vars',
-              '.cshrc', '.tcshrc', '.zshrc' ]
+              '.cshrc', '.tcshrc', '.login', '.zshrc' ]
 
 g_help_string = """
 =============================================================================
