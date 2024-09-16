@@ -962,6 +962,22 @@ class SysInfo:
             print('%-20s : %s' % ('%s version'%prog, v))
             continue
 
+         # Xvfb
+         elif prog == 'Xvfb':
+            cmd = 'which %s' % prog
+            s, so, se = BASE.simple_shell_exec(cmd, capture=1)
+            if not s: # found one
+               print('%-20s : %s' % (cmd, so.strip()))
+            elif show_missing:
+               print('%-20s :' % cmd)
+               xpath = '/opt/X11/bin'
+               if os.path.exists('%s/Xvfb' % xpath):
+                  self.comments.append("have %s/Xvfb, but not in PATH" % xpath)
+                  self.comments.append(" (please add %s to PATH)" % xpath)
+               else:
+                  self.comments.append("please install %s" % prog)
+            continue
+
          # test python - just add a comment if they are using a version < 2.7
          # (the version is printed later, do not print it here)
          elif prog == 'python':
