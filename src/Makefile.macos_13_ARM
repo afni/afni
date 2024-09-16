@@ -81,7 +81,10 @@ CEXTRA = -m64 -Wall -Wno-deprecated-declarations -Wcomment -Wformat -DUSE_TRACIN
 # CCMIN  = /opt/homebrew/bin/gcc-13 -arch arm64 -DDARWIN -DARM_M1
 # CC     = /opt/homebrew/bin/gcc-10 -O2  -DDARWIN $(CEXTRA)
 
-CCMIN  = /opt/homebrew/bin/gcc-13 -arch arm64 -DDARWIN -DARM_M1
+# allow an alternate compiler or just gcc version to be used
+LOCAL_CC_PATH ?= /opt/homebrew/bin/gcc-13
+
+CCMIN  = $(LOCAL_CC_PATH) -arch arm64 -DDARWIN -DARM_M1
 CC     = $(CCMIN) -O1 $(CEXTRA)
 CCVOL  = $(CC)
 CCFAST = $(CC)
