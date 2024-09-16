@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Sep, 2024, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "apply LOCAL_CC_PATH in Makefile.macos_13_ARM and Makefile.macos_12_x86_64",
+   NULL
+ } ,
+
  { 13, Sep, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "in eispack C files, include math.h before f2c.h",
    "This should generally have no effect, since the local f2c.h\n"
