@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Sep, 2024, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "if which Xvfb fails, check for its existence on disk",
+   "Also, include .login and report fewer homebrew link suggestions."
+ } ,
+
  { 16, Sep, 2024, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "apply LOCAL_CC_PATH in Makefile.macos_13_ARM and Makefile.macos_12_x86_64",
    NULL
