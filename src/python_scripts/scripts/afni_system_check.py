@@ -358,6 +358,7 @@ g_history = """
    1.36 Sep 16, 2024
         - get .login with other dotfiles
         - if no Xvfb in PATH, check whether file exists
+        - report fewer link suggestions
 """
 
 g_version = "afni_system_check.py version 1.36, September 16, 2024"

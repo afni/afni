@@ -721,7 +721,7 @@ class SysInfo:
       if len(clibs) == 0:
          if self.afni_fails > 0:
              self.comments.append('consider installing %s under homebrew'%sname)
-         else:
+         elif self.verb > 1:
              print('-- consider installing %s under homebrew' % sname)
          return 1
 
@@ -741,7 +741,8 @@ class SysInfo:
          mesg = 'consider linking %s under %s' % (clibs[0],libdir)
          if self.afni_fails > 0:
             self.comments.append(mesg)
-         print("** %s" % mesg)
+         if self.verb > 1 or self.afni_fails > 0:
+            print("** %s" % mesg)
          return 1
 
       # huston, we have a bad link, say something useful
