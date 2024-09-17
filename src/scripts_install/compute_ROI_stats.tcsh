@@ -4,7 +4,7 @@
 # compute ROI statistics (intended for TSNR dset)
 #
 #    inputs:    dset_ROI      - to restrict statistics to regions
-#               dset_data     - to compute statisics from
+#               dset_data     - to compute statistics from
 #               label_roiset  - label for dset_ROI
 #               out_dir       - directory to put all results in
 #               rval_list     - ROI value list (ints), compute stats per rval
@@ -518,7 +518,7 @@ SHOW_HELP:
 cat << EOF
 
 ------------------------------------------------------------------------------
-$prog  - compute per-ROI value statisics over a given dataset
+$prog  - compute per-ROI value statistics over a given dataset
 
    usage: $prog [options] many_required_parameters...
 
@@ -530,7 +530,7 @@ $prog  - compute per-ROI value statisics over a given dataset
       rval_list   : a list of ROI values to compute stats over (e.g. 2 41 99)
 
    and maybe:
-      stats_file  : name for the resulting statisics text file
+      stats_file  : name for the resulting statistics text file
 
    create a stats (text) file:
       create a depth map for dset_ROI
