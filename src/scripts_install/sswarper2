@@ -150,8 +150,14 @@
 #set version   = "2.71"; set rev_dat   = "Mar 16, 2021"
 # [PT] put -mask_ss info into help
 #    
-set version   = "2.72"; set rev_dat   = "Apr 29, 2024"
+#set version   = "2.72"; set rev_dat   = "Apr 29, 2024"
 # [PT] remove old opts (that no longer exist) from help
+#    
+set version   = "2.73"; set rev_dat   = "Sep 18, 2024"
+# [PT] fix final output text if '-skipwarp' is used
+#    + some QC images are *not* made in this case, so don't
+#      try to talk about them.  Thanks, Dan Handwerker for
+#      pointing this issue out. 
 #    
 # ----------------------------------------------------------------
 # ----------------------------------------------------------------
@@ -1255,7 +1261,7 @@ echo "   ... for warping (in ref base space):"
 echo "       ulay = anat // olay = base edges  :  $odir/AM${SubID}.jpg"
 echo "       ulay = base edges // olay = anat  :  $odir/MA${SubID}.jpg"
 
-if ( ${DO_EXTRA_QC} ) then
+if ( ${DO_EXTRA_QC} && ! ${skipwarp} ) then
 echo "       ulay = anat // olay = base edges  :  ${opref_exqc2}"
 echo ""
 echo "   ... for skullstripping (in native space):"
