@@ -1184,6 +1184,8 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    SUMA_Boolean LocalHead = NOPE;
    SUMA_SurfaceObject *SO = NULL;
    int BoxOutlineThresh;
+   int colorplaneIndex = -1;
+   int i;
 
    SUMA_ENTRY;
    
@@ -1193,6 +1195,8 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    ado = (SUMA_ALL_DO *)clientData;
    if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }
    
+   
+   fprintf(stderr, "+++++ %s: Temporarily suspend threshold outline\n", FuncName);
    // Temporarily suspend threshold outline.  This appears to resolve the 
    // problem of the color map changing with the threshold slider
    if (ado->do_type == SO_type){
@@ -1202,20 +1206,39 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    }
 
    // Change threshold   
+   fprintf(stderr, "+++++ %s: Change threshold\n", FuncName);
    XtVaGetValues(w, XmNuserData, &dec, NULL);
    fff = (float)cbs->value / pow(10.0, dec);
    SUMA_LHv("Have %f\n", fff);
    SUMA_set_threshold(ado, NULL, &fff);
    
+    fprintf(stderr, "+++++ %s: SO->SurfCont = %p\n", FuncName, SO->SurfCont);
     if (SO && SO->SurfCont){
+        fprintf(stderr, "+++++ %s: Restore threshold boundary if necessary\n", FuncName);
        // Restore threshold boundary if necessary.  This is called when the 
        //   threshold slider is moved
        SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   
+       // Get index of colorplane overlay
+       if (SO->N_Overlays > 0){
+            for (i=0; i<SO->N_Overlays; ++i)
+                if (SO->SurfCont->curColPlane == SO->Overlays[i]){
+                    colorplaneIndex = i;
+                    break;
+                }
+       }
+       if (colorplaneIndex<0){
+            fprintf(stderr, "ERROR %s: No colorplabe overlay found\n", 
+                FuncName);
+            SUMA_RETURNe;
+       }
        
        // Don't let threshold be exactly zero
-       if (BoxOutlineThresh) SO->Overlays[2]->OptScl->ThreshRange[0] += 0.0001;
+        fprintf(stderr, "+++++ %s: Don't let threshold be exactly zero\n", FuncName);
+       if (BoxOutlineThresh) SO->Overlays[colorplaneIndex]->OptScl->ThreshRange[0] += 0.0001;
        
        // Restore proper threshold contours when threshold changed
+        fprintf(stderr, "+++++ %s: Restore proper threshold contours when threshold changed\n", FuncName);
        restoreProperThresholdCcontours(ado);
    }
 
@@ -2373,6 +2396,8 @@ void SUMA_RestoreThresholdContours(XtPointer data)
    Bool  thresholdChanged;
    static int BoxOutlineThresh = 0;
    static float threshold;
+   int colorplaneIndex = -1;
+   int i, j;
 
    SUMA_ENTRY;
 
@@ -2382,7 +2407,23 @@ void SUMA_RestoreThresholdContours(XtPointer data)
    ado = (SUMA_ALL_DO *)data;
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURNe;
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   over2 = SO->Overlays[2];
+   
+   // Get index of colorplane overlay
+   if (SO->N_Overlays > 0){
+        for (i=0; i<SO->N_Overlays; ++i)
+            if (SO->SurfCont->curColPlane == SO->Overlays[i]){
+                colorplaneIndex = i;
+                break;
+            }
+   }
+   if (colorplaneIndex<0){
+        fprintf(stderr, "ERROR %s: No colorplabe overlay found\n", 
+            FuncName);
+        SUMA_RETURNe;
+   }
+   
+   // Get colorplane overlay
+   over2 = SO->Overlays[colorplaneIndex];
 
    // Determine whether threshold changed
    thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
@@ -2407,6 +2448,8 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    Bool  thresholdChanged;
    static int BoxOutlineThresh = 0;
    static float threshold;
+   int colorplaneIndex = -1;
+   int i, j;
 
    SUMA_ENTRY;
 
@@ -2427,13 +2470,55 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
         XmToggleButtonSetState(w, 0, 0);
         SUMA_RETURNe;
    }
-   over2 = SO->Overlays[2];
+   
+   // Get index of colorplane overlay
+   if (SO->N_Overlays > 0){
+        for (i=0; i<SO->N_Overlays; ++i)
+            if (SO->SurfCont->curColPlane == SO->Overlays[i]){
+                colorplaneIndex = i;
+                break;
+            }
+   }
+   if (colorplaneIndex<0){
+        fprintf(stderr, "ERROR %s: No colorplabe overlay found\n", 
+            FuncName);
+        SUMA_RETURNe;
+   }
+   
+   // Get colorplane overlay
+   over2 = SO->Overlays[colorplaneIndex];
+
+   /*   
+   if (SO->N_Overlays < 4){
+    int i, j;
+    
+    for (j=0; j<SUMAg_N_DOv; ++j) {
+         if (SUMAg_DOv[j].ObjectType == SO_type){
+            ado = (SUMA_ALL_DO *)((SUMAg_DOv[j].OP));
+            SO = (SUMA_SurfaceObject *)ado;
+            fprintf(stderr, "+++++ %s:%d: SO->N_Overlays = %d\n", FuncName, j, SO->N_Overlays);
+            if (SO->N_Overlays > 0){
+                for (i=0; i<SO->N_Overlays; ++i){
+                    fprintf(stderr, "SO->Overlays[%d]->isBackGrnd = %d\n", i, SO->Overlays[i]->isBackGrnd);
+                    fprintf(stderr, "(SO->SurfCont->curColPlane == SO->Overlays[%d]) = %d\n", i, (SO->SurfCont->curColPlane == SO->Overlays[i]));
+                }
+            }
+         }
+        }
+   }
+   */
+   
+   if (!over2){
+        fprintf(stderr, "+++++ WARNING: %s: Required overlay unavailable\n",
+            FuncName);
+        SUMA_RETURNe;
+   }
    
    // Determine whether threshold changed
    BoxOutlineThresh = !BoxOutlineThresh;
    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
    thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
-   
+
    // Set up outlines for thresholded regions
    setBoxOutlineForThresh(SO, over2, thresholdChanged);   
 
