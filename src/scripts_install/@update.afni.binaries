@@ -143,6 +143,9 @@ endif
 # ----------------------------------------------------------------------
 # other option-controlled variables
 set build_afni  = 0     # whether to use build_afni.py
+set build_opts = ( )    # if build_afni, include extra options
+set build_root = ~/afni_build # if build_afni, where to do it
+
 set cert_verify = 1     # whether to verify CA certificate via SSL/TLS
 set do_apsearch = 0     # run apserach -update_all_afni_help
 set do_dotfiles = 0     # if needed, initialize dotfiles
@@ -193,6 +196,21 @@ while ( $ac <= $#argv )
         set abin = $argv[$ac]
     else if ( "$argv[$ac]" == "-build_afni" ) then
         set build_afni = 1
+    else if ( "$argv[$ac]" == "-build_opts" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-build_opts'"
+            exit 1
+        endif
+        # should be a list contained in quotes
+        set build_opts = ( $argv[$ac] )
+    else if ( "$argv[$ac]" == "-build_root" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-build_root'"
+            exit 1
+        endif
+        set build_root = $argv[$ac]
     else if ( "$argv[$ac]" == "-curl" ) then
         set use_curl = 1
     else if ( "$argv[$ac]" == "-d" || "$argv[$ac]" == "-defaults" ) then
@@ -831,7 +849,7 @@ if ( $package =~ *.tgz ) then
     set package = $package:r
 endif
 
-# rcr - entire package or just prog_list (though prog_list requires package)
+# entire package or just prog_list (though prog_list requires package)
 echo "-- attempting to install package $package under"
 if ( $#prog_list > 0 ) echo "   (including only $#prog_list programs)"
 echo "   install dir: $abin..."
@@ -1408,14 +1426,12 @@ endif
 
 DO_BUILD_AFNI:
 if ( $build_afni ) then
-    # rcr - make option for build_root and build_opts
-    set build_root = ~/afni_build
-    set build_opts = ( -update_atlases no )
-    set build_cmd = ( build_afni.py -build_root $build_root -package $package )
-    echo "++ running: $build_cmd $build_opts"
+    set build_cmd = ( build_afni.py -build_root $build_root -package $package \
+                      $build_opts )
+    echo "++ running: $build_cmd"
     echo ""
 
-    $build_cmd $build_opts
+    $build_cmd
     if ( $status ) then
        exit 1
     endif
