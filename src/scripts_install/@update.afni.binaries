@@ -90,7 +90,9 @@ history for $prog :
   3.23 27 Nov 2023 : add some comments about build_afni.py
   3.24  7 Dec 2023 : add -overwrite_build (required for that operation)
   3.25 30 Aug 2024 : now obsolete: linux_xorg7, linux_xorg7_64
-
+  3.26 19 Sep 2024 : allow use of build_afni.py to compile a new package
+                   - add -build_afni (only to override current source)
+                   - add -build_root and -built_opts for build_afni.py
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -98,7 +100,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.25, August 30, 2024"
+set aub_version = "3.26, September 19, 2024"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -391,8 +393,9 @@ This program can be used to (at least):
      - as an admin or a non-admin user
    - update the current precompiled binaries
    - update locally compiled binaries, created using build_afni.py
+     (but it seems like a better idea to use build_afni.py directly)
 
-   Note: one can use build_afni.py to compile locally
+   Note: one can use build_afni.py to compile locally.
 
 examples: ~1~
 
@@ -459,7 +462,47 @@ examples: ~1~
 
         @update.afni.binaries -package linux_openmp_64 -programs suma 3dRSFC
 
- 4. other "random" examples: ~2~
+ 4. other examples ~2~
+
+    4a. install the small, text-only package in the directory of that same name
+
+        @update.afni.binaries -package anyos_text -bindir anyos_text
+
+    4b. include atlases, and install in a system directory
+
+        @update.afni.binaries -package anyos_text_atlas \\
+                              -bindir /usr/local/AFNI/anyos_text_atlas
+
+    4c. test running build_afni.py, but do not install it
+        (-build_afni is only needed if the current package was not made by it)
+
+        @update.afni.binaries -build_afni -build_root ~/afni_build \\
+                              -build_opts "-do_install no"
+
+    4d. use build_afni.py to replace the current "official" package
+
+        @update.afni.binaries -build_afni -build_root ~/afni_build
+
+    4e. update the current package if it was made using build_afni.py,
+        and run the apserach updates, for tab completion
+        (this is the same command that works for the official package)
+
+        @update.afni.binaries -apsearch
+
+    4f. update the current package if it was made using build_afni.py,
+        but do nothing else (just update the current package)
+        (this is the same command that works for the official package)
+
+        @update.afni.binaries -quick
+
+    4g. a quick build_afni.py update can be done in either of these ways
+        (these commands should effectively both run the latter)
+
+        @update.afni.binaries -quick
+
+        build_afni.py -build_root ~/afni_build
+
+ 5. other "random" examples: ~2~
 
        @update.afni.binaries -apsearch
        @update.afni.binaries -d
@@ -471,22 +514,47 @@ examples: ~1~
        @update.afni.binaries -local_package macos_10.12_local.tgz
 
 
- 5. examples to install packages without compiled binaries: ~2~
-
-       @update.afni.binaries -no_recur -package anyos_text -bindir anyos_text
-       @update.afni.binaries -no_recur -package anyos_text_atlas \\
-                             -bindir /usr/local/AFNI/anyos_text_atlas
-
 ------------------------------------------------------------
 options: ~1~
 
     -help                 : show this help
     -help_sys_progs       : list system programs that block update
 
-       See -sys_ok for details.
+        See -sys_ok for details.
 
     -apsearch yes/no      : specify getting apsearch updates
     -bindir ABIN          : set AFNI binary directory to ABIN
+
+    -build_afni           : specify to use build_afni.py, regardless
+
+        This option will for the installation process to use build_afni.py.
+        That is to say, rather than downloading and installing a previously
+        compiled binary package from the AFNI website (an "official" release),
+        use build_afni.py to compile an AFNI package locally.
+
+        If the currently installed AFNI package was made using build_afni.py,
+        then this option is not necessary.
+
+        See also -build_root and -build_opts.
+
+    -build_opts "OPT LIST" : specify a list of options to pass to build_afni.py
+
+        e.g. -build_opts "-do_install no"
+
+        If build_afni.py will be used for compiling new binaries, include the
+        given options in the command.  To make programming easier in this
+        shell script, this list of options should be contained in quotes, so
+        that this program sees it as a single argument.
+
+    -build_root DIR       : specify a directory for build_afni.py to work under
+
+        default -build_root ~/afni_build
+        e.g.    -build_root some/other/dir
+
+        If build_afni.py will be used for compiling new binaries, ~/afni_build
+        will be used for such work by default.  Use this option to specify an
+        alternate location.
+
     -curl                 : default to curl instead of wget
 
     -defaults             : install current package into abin
