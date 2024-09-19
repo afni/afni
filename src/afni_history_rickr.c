@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Sep, 2024, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "allow use of build_afni.py for updating the current package",
+   "If build_afni.py was used to create the current package, then @uab\n"
+   "will also use it for updating (rather than downloading an official\n"
+   "package.  One can also specify to use it via -build_afni."
+ } ,
+
  { 16, Sep, 2024, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "if which Xvfb fails, check for its existence on disk",
    "Also, include .login and report fewer homebrew link suggestions."
@@ -68,7 +75,7 @@ afni_history_struct rickr_history[] = {
    "This should generally have no effect, since the local f2c.h\n"
    "includes math.h.  However, if one is using cmake and the system\n"
    "f2c for linking (rather than using afni/src/f2c), then the f2c.h\n"
-   "included with the eispack files will not thave math.h.\n"
+   "included with the eispack files will not have math.h.\n"
    "So locally include math.h, just to be sure."
  } ,
 
@@ -209,7 +216,7 @@ afni_history_struct rickr_history[] = {
  { 26, Apr, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "in any script calling whereami, invoke with 'tcsh -f' at top",
    "This is a quick fix for biowulf usage, since there is a new whereami\n"
-   "in town (/usr/local/bin/wheremai), and because they reset the PATH.\n"
+   "in town (/usr/local/bin/whereami), and because they reset the PATH.\n"
    "Modify: @Atlasize @MakeLabelTable @chauffeur_afni\n"
    "        compute_ROI_stats.tcsh gen_cluster_table"
  } ,
@@ -384,7 +391,7 @@ afni_history_struct rickr_history[] = {
  { 29, Feb, 2024, RCR, "afni_util.py", MINOR, TYPE_MODIFY,
    "use raw straing format for some regular expressions",
    "So python 3.12 has upgraded Deprecation Warnings to SyntaxWarnings,\n"
-   "making wanings pop up where they did not previously.  Previously, one\n"
+   "making warnings pop up where they did not previously.  Previously, one\n"
    "would need to turn on deprecation warnings to see such things."
  } ,
 
