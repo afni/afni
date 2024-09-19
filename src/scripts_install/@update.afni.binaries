@@ -365,51 +365,99 @@ endif
 if ( $help ) then
 cat << EOF
 ------------------------------------------------------------
-$prog   - upgrade AFNI binaries ~1~
+$prog   - update or install AFNI binaries ~1~
 
-Install or update the AFNI binaries, either via '-defaults' or by the
-'-bindir' and/or '-package' options.
+This program can be used to (at least):
+  
+   - perform an initial install of precompiled binaries
+     - as an admin or a non-admin user
+   - update the current precompiled binaries
+   - update locally compiled binaries, created using build_afni.py
 
+   Note: one can use build_afni.py to compile locally
 
-    Note: one can use build_afni.py to compile locally
+examples: ~1~
 
-examples:
+ 1. individual user: initial install ~2~
 
-    individual user: initial install or update
+    1a. When doing initial install, always specify a package.
 
-       The default package is linux_openmp_64 (Linux) or macos_10.12_local
-       (OS X).  The default binary directory is ~/abin.
+        @update.afni.binaries -package linux_ubuntu_24_64 -bindir ~/abin
 
-       @update.afni.binaries -defaults
+    1b. Also initialize the dotfiles (.cshrc, .bashrc, etc).
 
+        @update.afni.binaries -package linux_ubuntu_24_64 -bindir ~/abin \\
+                              -do_dotfiles
 
-    root user: initial install or update
+    1c. And possibly include extras like dotfile and apsearch initialization.
 
-       @update.afni.binaries -package linux_openmp_64 \\
-                             -bindir /usr/local/AFNIbin
-       @update.afni.binaries -local_package linux_openmp_64.tgz \\
-                             -bindir /usr/local/AFNIbin
+        @update.afni.binaries -package linux_ubuntu_24_64 -bindir ~/abin \\
+                              -do_extras
 
+    1d. Possibly just install a the non-binary text package with atlases,
+        into the \$HOME/abin directory.
 
-    other examples:
+        @update.afni.binaries -package anyos_text_atlas -bindir ~/abin
 
-       @update.afni.binaries -defaults
+ 2. root user: initial install ~2~
+
+    2a. Install a specific package into a system directory.
+        Such a command would apply to either an initial install or an update.
+
+        @update.afni.binaries -package linux_ubuntu_24_64 \\
+                              -bindir /usr/local/AFNIbin
+
+    2b. Similar to 2a, but one can specify a path to a previously downloaded
+        .tgz package file, so such a download would not need to be repeated.
+        Use -local_package to specify the path to the tgz file.
+
+        @update.afni.binaries -local_package linux_ubuntu_24_64.tgz \\
+                              -bindir /usr/local/AFNIbin
+
+ 3. individual user: basic updates ~2~
+
+    3a. Basic: update the binaries and the apsearch setup (tab completion).
+      * Note that with an update, the package is already known.
+      * Note also that this would be appropriate for a locally compiled
+        package as well, which would run build_afni.py.
+
+        @update.afni.binaries -apsearch
+
+    3b. Basic: also make a backup of the current binaries.
+
+        @update.afni.binaries -apsearch -make_backup yes
+
+    3c. Basic: -defaults would do the same, but also try to update the dotfiles.
+        Since that step should already be done, this should be the same as 3b.
+
+        @update.afni.binaries -defaults
+        @update.afni.binaries -d
+
+    3d. Quick update, do nothing but update the current package.
+
+        @update.afni.binaries -quick
+
+    3e. Update only a specific list of programs (e.g. suma and 3dRSFC).
+
+        @update.afni.binaries -package linux_openmp_64 -programs suma 3dRSFC
+
+ 4. other "random" examples: ~2~
+
+       @update.afni.binaries -apsearch
+       @update.afni.binaries -d
        @update.afni.binaries -defaults -package macos_10.12_local
-       @update.afni.binaries -package linux_openmp_64
        @update.afni.binaries -package linux_openmp_64 -bindir ~/abin
-       @update.afni.binaries -package linux_openmp_64 -programs suma 3dRSFC
        @update.afni.binaries -package linux_openmp_64 \\
                              -programs file_tool python_scripts/*.py
        @update.afni.binaries -show_obsoletes
-
        @update.afni.binaries -local_package macos_10.12_local.tgz
 
 
-    examples to install packages without compiled binaries:
+ 5. examples to install packages without compiled binaries: ~2~
 
        @update.afni.binaries -no_recur -package anyos_text -bindir anyos_text
        @update.afni.binaries -no_recur -package anyos_text_atlas \\
-                             -bindir anyos_text_atlas
+                             -bindir /usr/local/AFNI/anyos_text_atlas
 
 ------------------------------------------------------------
 options: ~1~
@@ -598,8 +646,7 @@ options: ~1~
         There should be only 1 backup to revert to.  One cannot
         revert back 2 levels, say.
 
-Note that the user must have write permissions in the ABIN
-directory.
+Note that the user must have write permissions in the ABIN directory.
 
 EOF
 
@@ -1118,7 +1165,12 @@ if ( $revert ) then
 endif
 
 # ======================================================================
-# if we will run build_afni.py, skip the current block
+# if we will run build_afni.py, skip many "official package" blocks:
+#    - skip download binary comparison
+#    - skip full download of binaries or prog_list
+#    - skip package extraction
+#    - skip backup of current binaries
+#    - skip installation of official binaries
 if ( $build_afni ) then
    goto DO_BUILD_AFNI
 endif
@@ -1356,10 +1408,6 @@ endif
 
 DO_BUILD_AFNI:
 if ( $build_afni ) then
-    # rcr
-    # echo "** not ready to run build_afni.py"
-    # exit 1
-
     # rcr - make option for build_root and build_opts
     set build_root = ~/afni_build
     set build_opts = ( -update_atlases no )
