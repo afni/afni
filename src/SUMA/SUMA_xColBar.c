@@ -2438,9 +2438,69 @@ void SUMA_RestoreThresholdContours(XtPointer data)
    SUMA_RETURNe;
 }
 
+void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado, int BoxOutlineThresh)
+{
+   static char FuncName[]={"applyBoxOutlineThreshStatusToSurfaceObject"};
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_OVERLAYS *over2 = NULL;
+   Widget w;
+   int i, colorplaneIndex;
+   Bool  thresholdChanged;
+   static float threshold;
+
+   SUMA_ENTRY;
+   
+   SO = (SUMA_SurfaceObject *)ado;
+   if (!(SO->SurfCont)){
+        fprintf(stderr, "ERROR %s: Cannot have surface threshold outline.  No surface\n", 
+            FuncName);
+        XmToggleButtonSetState(w, 0, 0);
+        SUMA_RETURNe;
+   }
+   
+   // Set widget state without calling callback
+   w = SO->SurfCont->BoxOutlineThresh_tb;   
+   XmToggleButtonSetState(w, BoxOutlineThresh, 0);
+   
+   // Record threshold contour status for this surface object
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   
+   // Apply threshold contours
+    for (i=0; i<SO->N_Overlays; ++i){
+        if (SO->SurfCont->curColPlane == SO->Overlays[i]){
+           colorplaneIndex = i;
+
+           // Get colorplane overlay
+           over2 = SO->Overlays[colorplaneIndex];
+           
+           if (!over2){
+                fprintf(stderr, "+++++ WARNING: %s: Required overlay unavailable\n",
+                    FuncName);
+                SUMA_RETURNe;
+           }
+           
+           // Determine whether threshold changed
+           thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
+
+           // Set up outlines for thresholded regions
+           fprintf(stderr, "+++++ %s: Set up outlines for thresholded regions\n", FuncName);
+           setBoxOutlineForThresh(SO, over2, thresholdChanged);   
+
+           // Refresh display
+           SUMA_Remixedisplay(ado);
+           SUMA_UpdateNodeLblField(ado);
+           
+           break;
+        }
+    }   
+   
+   SUMA_RETURNe;   
+}
+
 void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
                                    XtPointer client_data)
 {
+    // NB: w = SO->SurfCont->BoxOutlineThresh_tb
    static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
@@ -2449,11 +2509,9 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    static int BoxOutlineThresh = 0;
    static float threshold;
    int colorplaneIndex = -1;
-   int i, j;
+   int i, j, imax, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    // Get relevant overlay (overlay showing thresholded region)
    ado = (SUMA_ALL_DO *)data;
@@ -2469,6 +2527,43 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
             FuncName);
         XmToggleButtonSetState(w, 0, 0);
         SUMA_RETURNe;
+   }
+   
+   // Get box outline threshold status from checkbox
+   BoxOutlineThresh = XmToggleButtonGetState(w); 
+   
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   
+   for (j=0; j<N_adolist; ++j){
+        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if (ado->do_type == SO_type){
+            applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh);
+        }
+   }
+   
+   SUMA_RETURNe;
+
+   fprintf(stderr, "+++++ %s\n", FuncName);
+   fprintf(stderr, "##### %s: w = %p\n", FuncName, w);
+   fprintf(stderr, "##### %s: SO->SurfCont->BoxOutlineThresh_tb = %p\n", FuncName, SO->SurfCont->BoxOutlineThresh_tb);
+   
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   fprintf(stderr, "##### %s: N_adolist = %d\n", FuncName, N_adolist);
+
+   fprintf(stderr, "##### %s: ado = %p\n", FuncName, ado);
+   for (j=0; j<N_adolist; ++j){
+    fprintf(stderr, "##### %s: (SUMA_ALL_DO *)SUMAg_DOv[adolist[%d]].OP = %p\n", FuncName, j, (SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+    SO = (SUMA_SurfaceObject *)((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+    fprintf(stderr, "##### %s: SO->SurfCont->SurfContPage->rc = %p\n", FuncName, SO->SurfCont->SurfContPage->rc);
+    fprintf(stderr, "##### %s: SO->Show = %d\n", FuncName, SO->Show);
+   }
+   
+   for (j=0; j<N_adolist; ++j){
+    SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        SO = (SUMA_SurfaceObject *)((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        fprintf(stderr, "##### %s: SurfCont->BoxOutlineThresh_tb = %p\n", FuncName, SurfCont->BoxOutlineThresh_tb);
+        fprintf(stderr, "##### %s: SO = %p\n", FuncName, SO);
+        fprintf(stderr, "##### %s: SO->SurfCont = %p\n", FuncName, SO->SurfCont);
    }
    
     // Get index of colorplane overlay
@@ -2509,6 +2604,10 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
             FuncName);
         SUMA_RETURNe;
    }
+   
+   // Look into setting threshold outline for all surfaces at once
+   XtVaGetValues(w, XmNlastPageNumber, &imax, NULL);
+   fprintf(stderr, "+++++ %s: imax = %d\n", FuncName, imax);
    
    SUMA_RETURNe;
 }
@@ -15232,13 +15331,12 @@ SUMA_X_SurfCont *SUMA_ADO_Cont(SUMA_ALL_DO *ado)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
+   // fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (!ado) SUMA_RETURN(NULL);
    SUMA_LHv("Here with %d (%s), %s\n",
              ado->do_type, ADO_TNAME(ado), SUMA_ADO_Label(ado));
 
-    fprintf(stderr, "+++++ %s: ado->do_type = %d\n", FuncName, ado->do_type);
    switch(ado->do_type) {
       case SO_type: {
          SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;

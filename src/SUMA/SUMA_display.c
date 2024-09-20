@@ -14785,7 +14785,7 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
 
    SUMA_LHv("About to change page to %d\n", (int)SurfCont->SurfContPage->value);
    
-   // This if function causes the surface control menu to expand downwards.
+   // This function causes the surface control menu to expand downwards.
    if (!(SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook,
                                     SurfCont->SurfContPage->value))) {
       /* revert to good value */
