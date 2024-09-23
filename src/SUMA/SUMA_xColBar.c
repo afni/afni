@@ -2421,40 +2421,6 @@ void SUMA_RestoreThresholdContours(XtPointer data)
    }
 
    SUMA_RETURNe;
-
-   // Get relevant overlay (overlay showing thresholded region)
-   ado = (SUMA_ALL_DO *)data;
-   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURNe;
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   
-   // Get index of colorplane overlay
-   if (SO->N_Overlays > 0){
-        for (i=0; i<SO->N_Overlays; ++i)
-            if (SO->SurfCont->curColPlane == SO->Overlays[i]){
-                colorplaneIndex = i;
-                break;
-            }
-   }
-   if (colorplaneIndex<0){
-        fprintf(stderr, "ERROR %s: No colorplabe overlay found\n", 
-            FuncName);
-        SUMA_RETURNe;
-   }
-   
-   // Get colorplane overlay
-   over2 = SO->Overlays[colorplaneIndex];
-
-   // Determine whether threshold changed
-   thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
-   
-   // Set up outlines for thresholded regions
-   setBoxOutlineForThresh(SO, over2, thresholdChanged);   
-
-   // Refresh display
-   SUMA_Remixedisplay(ado);
-   SUMA_UpdateNodeLblField(ado);
-   
-   SUMA_RETURNe;
 }
 
 void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado, int BoxOutlineThresh)
@@ -2512,12 +2478,6 @@ void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado, int BoxOutline
            break;
         }
     }   
-
-    if (colorplaneIndex<0){
-        fprintf(stderr, "ERROR %s: No colorplabe overlay found\n", 
-            FuncName);
-        SUMA_RETURNe;
-    }
    
    SUMA_RETURNe;   
 }
