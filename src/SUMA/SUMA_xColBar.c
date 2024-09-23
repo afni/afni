@@ -3058,10 +3058,11 @@ void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data,
    SUMA_Boolean NewDisp = NOPE;
    SUMA_VIS_XFORM_DATUM *x0=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL;
 
    SUMA_ENTRY;
    fprintf(stderr, "+++++ %s\n", FuncName);
-
+   
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
    ado = (SUMA_ALL_DO *)datap->ContID;
@@ -3147,6 +3148,13 @@ void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data,
 
    SUMA_UpdateNodeNodeField(ado);
 
+   // Restore threshold boundary if necessary
+   if (ado->do_type == SO_type) SO = (SUMA_SurfaceObject *)ado;
+   if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh ){
+        XtPointer clientData = (XtPointer)ado;
+        SUMA_RestoreThresholdContours(clientData);
+   }
+       
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
    #endif
