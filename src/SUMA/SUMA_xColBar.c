@@ -2397,11 +2397,30 @@ void SUMA_RestoreThresholdContours(XtPointer data)
    static int BoxOutlineThresh = 0;
    static float threshold;
    int colorplaneIndex = -1;
-   int i, j;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
 
    SUMA_ENTRY;
 
+   // Get relevant overlay (overlay showing thresholded region)
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURNe;
+   //  SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+
    fprintf(stderr, "+++++ %s\n", FuncName);
+   
+   // Get box outline threshold status from checkbox
+   BoxOutlineThresh = XmToggleButtonGetState(SurfCont->BoxOutlineThresh_tb); 
+   
+      // Process all surface objects
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);   
+   for (j=0; j<N_adolist; ++j){
+        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if (ado->do_type == SO_type){
+            applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh);
+        }
+   }
+
+   SUMA_RETURNe;
 
    // Get relevant overlay (overlay showing thresholded region)
    ado = (SUMA_ALL_DO *)data;
