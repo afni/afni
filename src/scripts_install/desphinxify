@@ -260,10 +260,13 @@ Options ~1~
 Examples ~1~
 
 1) Basic usage:
+
      desphinxify                                \
-        -orient_mid  RPI                        \
+        -orient_mid  RIP                        \
         -input       sub-001_T1w.nii.gz         \
         -prefix      sub-001_T1w_DSPH.nii.gz
+
+   ... and verify/validate results, for a given collection protocol.
 
 EOF
 
