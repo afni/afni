@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Sep, 2024, RCR, "3dTsplit4D", MINOR, TYPE_BUG_FIX,
+   "fix confusion over auto-gzip BRIK name",
+   NULL
+ } ,
+
  { 19, Sep, 2024, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
    "allow use of build_afni.py for updating the current package",
    "If build_afni.py was used to create the current package, then @uab\n"
