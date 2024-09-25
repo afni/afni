@@ -2203,8 +2203,9 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   static int AlphaOpacityFalloff = 0;
+   int AlphaOpacityFalloff = XmToggleButtonGetState(w);
    SUMA_SurfaceObject *SO = NULL;
+   int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
 
    SUMA_ENTRY;
    
@@ -2216,35 +2217,23 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    if (!SO || !(SO->SurfCont=SUMA_ADO_Cont(ado))
             || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
    
-   if (AlphaOpacityFalloff==0){
-    SO->SurfCont->AlphaOpacityFalloff = 0;
-    AlphaOpacityFalloff = 1;
-   }
+   SO->SurfCont->AlphaOpacityFalloff = AlphaOpacityFalloff;
    
-   // AlphaOpacityFalloff = !AlphaOpacityFalloff;
-   SO->SurfCont->AlphaOpacityFalloff = !(SO->SurfCont->AlphaOpacityFalloff);
-   
-   // SO->SurfCont->AlphaThresh is common across period key
-   // SO->SurfCont->AlphaOpacityFalloff = /* SurfCont->AlphaOpacityFalloff =  AlphaOpacityFalloff;
+   // Process all surface objects
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);   
+   for (j=0; j<N_adolist; ++j){
+        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if (ado->do_type == SO_type){
+            SO = (SUMA_SurfaceObject *)ado;
+            if (SO && SO->SurfCont){
+                SO->SurfCont->AlphaOpacityFalloff = AlphaOpacityFalloff;
 
-   if (!(SO->Overlays)){
-    if (SO->SurfCont->AlphaOpacityFalloff){
-        fprintf (SUMA_STDERR,
-            "WARNING %s: Cannot make overlay variably opaque.  There is no overlay.\n", 
-            FuncName);
-        // No variable opacity since there is no overlay
-        SO->SurfCont->AlphaOpacityFalloff = 0;
-        
-        // Uncheck "A" check-box
-        XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
-                              SO->SurfCont->AlphaOpacityFalloff, YUP);    
+            // Default opacity model
+            if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
+            }
         }
-    SUMA_RETURNe;
    }
 
-   // Default opacity model
-   if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
-   
    // Refresh display
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
@@ -2458,7 +2447,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    SUMA_OVERLAYS *over2 = NULL;
    static int BoxOutlineThresh = 0;
    static float threshold;
-   int j, imax, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
 
    SUMA_ENTRY;
 
@@ -2824,7 +2813,7 @@ SUMA_MenuItem LinkMode_Menu[] = {
 };
 
 SUMA_MenuItem AlphaMode_Menu[] = {
-/*
+/**/
    {  "Threshol", &xmPushButtonWidgetClass,
       '\0', NULL, NULL,
       SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_None, NULL},
@@ -2842,7 +2831,7 @@ SUMA_MenuItem AlphaMode_Menu[] = {
       SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_Stat, NULL},
 
    {NULL},
-*/
+/**/
 };
 
 /*!
@@ -7485,10 +7474,8 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
                             "B", '\0', YUP, SwitchBrt_Menu,
-         //                  "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
                            (void *)ado,
                            "SurfCont->Dset_Mapping->B",
-                           // "SurfCont->Dset_Mapping->_",  // TEMPORARY FOR MERGE WITH MASTER
                            "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
                            SUMA_SurfContHelp_SelBrt,
                            SurfCont->SwitchBrtMenu );
@@ -8151,7 +8138,6 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
                            "B", '\0', YUP, SwitchBrt_Menu,
-                           // "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
                            (void *)ado,
                            "VolCont->Dset_Mapping->B",
                "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
