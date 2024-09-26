@@ -1162,6 +1162,10 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
    SUMA_UpdatePvalueField (ado, colp->OptScl->ThreshRange[0]);
+   
+   // Restore proper threshold contours if required when Alpha opacity 
+   //   checkbox toggled
+   restoreProperThresholdCcontours(ado);
 
    SUMA_RETURN(1);
 }
