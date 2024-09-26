@@ -1227,7 +1227,7 @@ void restoreProperThresholdCcontours(SUMA_ALL_DO *ado)
    }
    
    if (SO->SurfCont->BoxOutlineThresh ){
-        SUMA_RestoreThresholdContours(clientData, YUP);
+        SUMA_RestoreThresholdContours(clientData, NOPE);
    }
 
    SUMA_RETURNe;
@@ -2194,7 +2194,7 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    // Restore threshold boundary if necessary when "Sym I" checkbox toggled
    if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh ){
         XtPointer clientData = (XtPointer)ado;
-        SUMA_RestoreThresholdContours(clientData, YUP);
+        SUMA_RestoreThresholdContours(clientData, NOPE);
    }
 
    SUMA_RETURNe;
@@ -2207,33 +2207,47 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   int AlphaOpacityFalloff = XmToggleButtonGetState(w);
    SUMA_SurfaceObject *SO = NULL;
-   int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist, AlphaOpacityFalloff;
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "+++++ %s\n", FuncName);
+   fprintf(stderr, "+++++ %s\n", FuncName);  
 
+   // Get relevant overlay (overlay showing thresholded region)
    ado = (SUMA_ALL_DO *)data;
-   if (!ado || ado->do_type != SO_type) SUMA_RETURNe;
+   if (!ado || ado->do_type != SO_type | !(SurfCont=SUMA_ADO_Cont(ado))) {
+    fprintf(stderr, "ERROR %s: Cannot have variable transparency.  No surface\n", 
+        FuncName);
+    XmToggleButtonSetState(w, 0, 0);
+    SUMA_RETURNe;
+   }
    SO = (SUMA_SurfaceObject *)ado;
-   if (!SO || !(SO->SurfCont=SUMA_ADO_Cont(ado))
-            || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
+   if (!(SO->SurfCont)){
+        fprintf(stderr, "ERROR %s: Cannot variable transparency.  No surface\n", 
+            FuncName);
+        XmToggleButtonSetState(w, 0, 0);
+        SUMA_RETURNe;
+   }
    
-   SO->SurfCont->AlphaOpacityFalloff = AlphaOpacityFalloff;
+   AlphaOpacityFalloff = XmToggleButtonGetState(w);
    
    // Process all surface objects
-   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);   
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist); 
+   fprintf(stderr, "+++++ %s: N_adolist = %d\n", FuncName, N_adolist);   
    for (j=0; j<N_adolist; ++j){
         ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if (ado->do_type == SO_type){
             SO = (SUMA_SurfaceObject *)ado;
             if (SO && SO->SurfCont){
+                fprintf(stderr, "+++++ %s: j = %d\n", FuncName, j);
+                fprintf(stderr, "+++++ %s: SO = %p\n", FuncName, SO);
                 SO->SurfCont->AlphaOpacityFalloff = AlphaOpacityFalloff;
+                fprintf(stderr, "+++++ %s: AlphaOpacityFalloff = %d\n", FuncName, AlphaOpacityFalloff);
+                XmToggleButtonSetState(SO->SurfCont->AlphaOpacityFalloff_tb, AlphaOpacityFalloff, 0);
 
-            // Default opacity model
-            if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
+                // Default opacity model
+                if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
             }
         }
    }
@@ -2241,6 +2255,13 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    // Restore proper threshold contours if required when Alpha opacity 
    //   checkbox toggled
    restoreProperThresholdCcontours(ado);
+
+   // Refresh display.  This loop appears to be necessary for alpha toggling to apply to all surfaces
+   for (j=0; j<N_adolist; ++j){
+        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+       SUMA_Remixedisplay(ado);
+       SUMA_UpdateNodeLblField(ado);
+    }
 
    SUMA_RETURNe;
 }
@@ -2484,9 +2505,12 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    for (j=0; j<N_adolist; ++j){
         ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if (ado->do_type == SO_type){
-            applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, YUP);
+            applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE);
         }
    }
+
+   SUMA_Remixedisplay(ado);
+   SUMA_UpdateNodeLblField(ado);
    
    SUMA_RETURNe;
 }

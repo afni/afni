@@ -7843,7 +7843,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    bytes2CopyToColVec = SO->N_Node*4*sizeof(float);
      
    
-   if (SO->SurfCont->AlphaOpacityFalloff != 1) SO->SurfCont->AlphaOpacityFalloff = 0;
+   // if (SO->SurfCont->AlphaOpacityFalloff != 1) SO->SurfCont->AlphaOpacityFalloff = 0;
    
    if (!thresholdReset && currentOverlay){
    
