@@ -67,6 +67,9 @@ static char uDS_surf_cont[]={
 "       DriveSuma -com surf_cont -switch_dset blooby.curv.1D.dset \\\n"
 "                      -view_surf_cont n -I_range -0.05 0.14\n"
 "       DriveSuma -com surf_cont -load_cmap bbr.1D.cmap\n"
+"       DriveSuma -com surf_cont -SET_FUNC_ALPHA\n"
+"       DriveSuma -com surf_cont -SET_FUNC_BOXED\n"
+"       DriveSuma -com surf_cont -T_abs\n"
 };
 
 static char uDS_tract_cont[]={
@@ -403,10 +406,13 @@ if (detail > 1) {
 "       -shw_0 y/n      or \n"
 "       -show_0 y/n: Set shw 0 toggle button of DSET.\n"
 "       -SET_FUNC_ALPHA y/n       or \n"
-"       -SET_FUNC_ALPHA on/off\n"
-"       -SET_FUNC_ALPHA A.Linear/A.Quadratic \n"
+"       -SET_FUNC_ALPHA on/off: Set variable opacity for color overlay as\n"
+"                               underlying value falls below the threshold\n"
+"       -SET_FUNC_ALPHA A.Linear/A.Quadratic: Set order of opacicy falloff as\n"
+"                               underlying value falls below the threshold\n"
 "       -SET_FUNC_BOXED y/n       or \n"
-"       -SET_FUNC_BOXED on/off\n"
+"       -SET_FUNC_BOXED on/off: Set threshold outline around color overlay.\n"
+"       -T_abs on/off: Absolute thresholding.\n"
 "       -Dsp MODE: Set the viewing mode of the current DSET.\n"
 "                  MODE is one of XXX, Con, Col, or 'C&C' \n"
 "                      (single quotes necessary for 'C&C' MODE).\n"
