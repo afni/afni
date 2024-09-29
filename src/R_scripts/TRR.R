@@ -36,7 +36,7 @@ SSCC/NIMH, National Institutes of Health, Bethesda MD20892
 
 Usage: ~1~
 ------ 
- TRR performs test-rest reliability analysis for behavior data as well as 
+ TRR performs test-retest reliability analysis for behavior data as well as 
  region-based neuroimaging data. If no multiple trials are involved in a
  dataset, use the conventional intraclass correlation (ICC) with, for 
  example, 3dICC for neuroimaging data. However, when there are multiple 
