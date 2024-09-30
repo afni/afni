@@ -107,6 +107,8 @@ int main( int argc , char * argv[] )
    char tmppref[THD_MAX_PREFIX];
    int i = 0;
 
+   mainENTRY("3dCM main") ; machdep() ;
+
    /*-- read command line arguments --*/
    if (argc == 1) { usage_3dCM(); exit(0); }
 
