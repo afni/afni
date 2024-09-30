@@ -630,6 +630,16 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
       }
       if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
       NI_free_element(ngr); ngr = NULL;
+   }  else if (strstr(com, "T_abs")) {
+      if (!(ngr = SUMA_ComToNgr(com, act))) {
+         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
+      }
+      SUMA_LH("Sending LoadCol to suma");
+      if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+      }
+      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
+      NI_free_element(ngr); ngr = NULL;
    } else if (strcmp((act), "surf_cont") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
          SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
@@ -1666,6 +1676,33 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          else {
             fprintf (SUMA_STDERR, "need a 'y/n', or 'on/off', after");
             fprintf (SUMA_STDERR, " -SET_FUNC_BOXED \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+
+      if (!brk && (  (strcmp(argt[kar], "-T_abs") == 0) ))
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a 'y/n', or 'on/off', after");
+            fprintf (SUMA_STDERR, " -T_abs \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y' ||
+            (strcmp(argt[kar], "on") == 0) || (strcmp(argt[kar], "On") == 0) ||
+            (strcmp(argt[kar], "ON") == 0))
+            NI_set_attribute(ngr, "T_abs", "y");
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N' ||
+            (strcmp(argt[kar], "off") == 0) || (strcmp(argt[kar], "Off") == 0)
+            || (strcmp(argt[kar], "OFF") == 0))
+            NI_set_attribute(ngr, "T_abs", "n");
+         else {
+            fprintf (SUMA_STDERR, "need a 'y/n', or 'on/off', after");
+            fprintf (SUMA_STDERR, " -T_abs \n");
             SUMA_RETURN(0);
          }
          argt[kar][0] = '\0';

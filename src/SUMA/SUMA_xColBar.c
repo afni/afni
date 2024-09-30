@@ -2518,7 +2518,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
 void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
                                    XtPointer client_data)
 {
-   // Called when |I| check box toggled
+   // Called when |T| check box toggled
    static char FuncName[]={"SUMA_cb_AbsThresh_tb_toggled"};
    SUMA_ALL_DO *ado = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
