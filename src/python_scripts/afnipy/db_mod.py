@@ -6826,7 +6826,7 @@ def db_cmd_regress(proc, block):
             if stop_opt: fstr += '\n'
             fstr += "%s# create fitts from REML errts\n" % istr
             fstr += "%s3dcalc -a %s%s -b %s%s -expr a-b \\\n" \
-                    "%s       -prefix %s\_REML%s\n"                 \
+                    "%s       -prefix %s\\_REML%s\n"          \
                     % (istr, proc.all_runs, vstr, proc.errts_reml, vstr,
                        istr, fitts_pre, suff)
         cmd = cmd + fstr + feh_end + '\n'

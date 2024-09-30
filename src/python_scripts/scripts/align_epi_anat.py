@@ -1971,7 +1971,7 @@ class RegWrap:
    # determine if dataset is oblique
    def oblique_dset( self, dset=None) :
       com = shell_com(  \
-        "3dinfo %s | \grep 'Data Axes Tilt:'|\grep 'Oblique'" % dset.input(),\
+        "3dinfo %s | \\grep 'Data Axes Tilt:'| \\grep 'Oblique'" %dset.input(),\
           ps.oexec,capture=1)
       com.run()
       if  ps.dry_run():
@@ -2776,7 +2776,7 @@ class RegWrap:
                        (ps.dset1_generic_name, ps.dset2_generic_name ))
 
             warp_str = "3dWarp -verb -card2oblique %s -prefix %s%s %s %s %s " \
-                     "  | \grep  -A 4 '# mat44 Obliquity Transformation ::'"  \
+                     "  | \\grep  -A 4 '# mat44 Obliquity Transformation ::'" \
                      "  > %s"                                                 \
                     % (e.input(), o.p(), o.out_prefix(),                      \
                      self.master_anat_option, oblique_opt,                    \
