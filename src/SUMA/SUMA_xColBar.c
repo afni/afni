@@ -2526,8 +2526,6 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
    char slabel[100];
    double range[2]; int loc[2];
    SUMA_Boolean LocalHead = NOPE;
-   SUMA_SurfaceObject *SO=NULL;
-   static int BoxOutlineThresh;
 
    SUMA_ENTRY;
 
@@ -2542,12 +2540,6 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if ( !curColPlane )  {
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
-   }
-   
-   // Save box threshold outline status
-   if  (ado->do_type == SO_type){
-       SO=(SUMA_SurfaceObject *)ado;
-       if (SO->SurfCont) BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
    }
 
    if (curColPlane->OptScl->ThrMode == SUMA_LESS_THAN) {
@@ -2615,18 +2607,16 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
          SUMA_SLP_Err("Failed to colorize plane.\n");
          SUMA_RETURNe;
    }
-
-   SUMA_Remixedisplay(ado);
-
-   SUMA_UpdateNodeLblField(ado);
    
    // Restore proper threshold contours after |T| toggled
-   if (SO && SO->SurfCont){
-       SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-       fprintf(stderr, "%s: SO->SurfCont->BoxOutlineThresh = %d\n", 
-        FuncName, SO->SurfCont->BoxOutlineThresh);
+   if (ado->do_type == SO_type){
+       SurfCont->BoxOutlineThresh = XmToggleButtonGetState (SurfCont->BoxOutlineThresh_tb);
        restoreProperThresholdCcontours(ado);
    }
+
+   // Refresh display
+   SUMA_Remixedisplay(ado);
+   SUMA_UpdateNodeLblField(ado);
 
    SUMA_RETURNe;
 }

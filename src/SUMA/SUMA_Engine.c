@@ -4080,6 +4080,24 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               SurfCont->curColPlane->OptScl->MaskZero, YUP);
             }
 
+            if (NI_get_attribute(EngineData->ngr, "T_abs")) {
+                SUMA_Boolean toggleOn;
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "T_abs", "y")){
+                  toggleOn = 1;
+               }
+               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "T_abs", "n"))
+               {
+                  toggleOn = 0;
+               }
+               else {
+                  SUMA_S_Errv("Bad value of %s for T_abs, setting to 'y'\n",
+                              NI_get_attribute(EngineData->ngr, "T_abs"));
+                  toggleOn = NOPE;
+               }
+               XmToggleButtonSetState ( SurfCont->AbsThresh_tb,
+                              toggleOn, YUP);
+            }
+
             if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "y")){
                 fprintf(stderr, "Show alpha\n");
@@ -4141,24 +4159,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
                XmToggleButtonSetState ( SurfCont->BoxOutlineThresh_tb,
                               SurfCont->BoxOutlineThresh, YUP);
-            }
-
-            if (NI_get_attribute(EngineData->ngr, "T_abs")) {
-                SUMA_Boolean toggleOn;
-               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "T_abs", "y")){
-                  toggleOn = 1;
-               }
-               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "T_abs", "n"))
-               {
-                  toggleOn = 0;
-               }
-               else {
-                  SUMA_S_Errv("Bad value of %s for T_abs, setting to 'y'\n",
-                              NI_get_attribute(EngineData->ngr, "T_abs"));
-                  toggleOn = NOPE;
-               }
-               XmToggleButtonSetState ( SurfCont->AbsThresh_tb,
-                              toggleOn, YUP);
             }
 
             if (NI_get_attribute(EngineData->ngr, "B_sb")) {
