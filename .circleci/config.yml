@@ -218,6 +218,9 @@ commands:
       #     version_file: "/tmp/macos_dependencies_version.txt"
       - run:
           name: Setup on macos
+          # [PT 2024-10-01] avoid: 'Too long with no output (exceeded
+          # 10m0s): context deadline exceeded' by doubling default timeout
+          no_output_timeout: 20m 
           command: |
             brew  install --cask xquartz
             if [[ -d /usr/local/Cellar/python@2 ]]; then
