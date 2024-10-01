@@ -1968,7 +1968,7 @@ class RegWrap:
        else: status = 0
        return (status)
      
-   # determine if dataset is oblique
+   # determine if dataset is oblique:
    def oblique_dset( self, dset=None) :
       com = shell_com(  \
         "3dinfo %s | \\grep 'Data Axes Tilt:'| \\grep 'Oblique'" %dset.input(),\
