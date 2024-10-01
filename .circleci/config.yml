@@ -433,7 +433,7 @@ jobs:
   macos_build:
     working_directory: /tmp/src/afni
     macos:
-        xcode: "13.4.1"
+        xcode: "14.2"   # [PT: 2024-10-01] updated from 13.4.1 
     steps: # a series of commands to run
       - checkout_afni
       - setup_macos_for_afni
