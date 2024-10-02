@@ -1376,7 +1376,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "   OFF: Thresholded regions, of overlay, are identified\n"   \
 "        by color versus gray-scale, by different colors\n"   \
 "        or not at all.\n\n"   \
-"   ON: Thresholded regions are demarcated by black voxels\n"   \ 
+"   ON: Thresholded regions are demarcated by black voxels\n"
 
    #define  SUMA_SurfContHelp_AbsThr   \
 "Toggle Absolute thresholding.:LR:\n"   \
