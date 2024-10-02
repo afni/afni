@@ -2232,6 +2232,13 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    
    AlphaOpacityFalloff = XmToggleButtonGetState(w);
    
+   // Turn [] 1 checkbox on.if alpha turned on
+   if (AlphaOpacityFalloff){
+       XmToggleButtonSetState(SurfCont->ColPlaneShowOneFore_tb, 1, 1);
+       SUMA_cb_ColPlaneShowOneFore_toggled (SurfCont->ColPlaneShowOneFore_tb, data,
+                                              client_data);
+   }
+   
    // Process all surface objects
    N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist); 
    fprintf(stderr, "+++++ %s: N_adolist = %d\n", FuncName, N_adolist);   

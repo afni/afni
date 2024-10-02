@@ -15706,6 +15706,13 @@ void SUMA_cb_ColPlaneShowOneFore_toggled (Widget w, XtPointer data,
    fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_LH("Called");
+   
+   // Turn off "A" checkbox if "1" checkbox toggled off
+   if (!(XmToggleButtonGetState(w))){
+       XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 0, 1);
+       SUMA_cb_ColPlaneShowOneFore_toggled (SurfCont->AlphaOpacityFalloff_tb, data,
+                                              client_data);
+   }
 
    ado = (SUMA_ALL_DO *)data;
 
