@@ -1369,7 +1369,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "where:\n\n"   \
 "     O(n) is the opacity set by the alpha mapping.:LR:\n"   \
 "     O(o) is the original opacity and\n"  \
-"     T is the threshold set by the sliding bar. "  \
+"     T is the threshold set by the sliding bar. "
 
    #define  SUMA_SurfContHelp_BoxOutlineThr  \
 "Box outline thresholded regions.:LR:\n\n"   \
