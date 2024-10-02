@@ -277,7 +277,8 @@ int main( int argc, char *argv[] )
       }
       
       DSET_write( oset );
-      if( ! THD_is_file(DSET_BRIKNAME(oset)) ) 
+      /* check HEAD file, as BRIK might have auto-gzip  [24 Sep 2024 rickr] */
+      if( ! THD_is_file(DSET_HEADNAME(oset)) ) 
          ERROR_exit("failed to write dataset %s", sub_prefix);
       //WROTE_DSET( oset );
       

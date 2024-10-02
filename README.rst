@@ -151,7 +151,8 @@ field. Some projects that use AFNI include:
   <https://nipype.readthedocs.io/en/latest/api/generated/nipype.interfaces.afni.html>`_:
   an open-source initiative to integrate different packages in a
   workflow
-* `PESTICA & SLOMOCO <https://www.nitrc.org/projects/pestica>`_: 
+* `PESTICA <https://github.com/wanyongshinccf/PESTICA>`_ & 
+  `SLOMOCO <https://github.com/wanyongshinccf/SLOMOCO>`_: 
   physio and slice-oriented motion correction tools
 
 NIFTI and GIFTI
