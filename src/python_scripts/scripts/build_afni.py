@@ -1690,8 +1690,10 @@ class MyInterface:
 
       # if we have something convert to LOCAL_CC_PATH
       if cc != '':
+         MESG("")
          MESGp("need alternate compiler, trying %s" % cc)
-         MESGi("(if this fails try passing one via -cc_path)")
+         MESGi("(if this fails, try passing one via -cc_path)")
+         MESG("")
          cc = ' %s=%s' % (lstr, cc)
 
       return cc
