@@ -424,7 +424,7 @@ class SubjectList(object):
          if self.verb > 1:
             print('++ setting common dir, %s = %s' % (cname, cdir))
 
-   def set_ids_from_dsets(self, prefix='', suffix='', hpad=0, tpad=0, dpre=0):
+   def set_ids_from_dsets(self, prefix='', suffix='', hpad=0, tpad=0, dpre=2):
       """use the varying part of the dataset names for subject IDs
 
          If hpad > 0 or tpad > 0, expand into the head or tail of the dsets.

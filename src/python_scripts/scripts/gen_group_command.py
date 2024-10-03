@@ -432,6 +432,74 @@ examples (by program) ~1~
                              -dsets group_results/OLSQ*D        \\
                              -dsets group_results/REML*D
 
+   --------------------
+
+   F. datatable creation ~2~
+
+      These are examples of how to create a datatable file, suitable for
+      input via -dataTable to 3dMVM, 3dLME, etc.
+
+      Creation of a datatable is divided into logical components:
+
+         A. a table of subject attributes that is not paired to datasets,
+            but has one fixed entry per subject
+
+            e.g. -dt_tsv my_glorious_attributes.txt
+
+                 my_glorious_attributes.txt :
+                    Subj        Group Score    Age
+                    subj-0044   A     -33.33   24
+                    subj-0060   B      36.84   19
+                    ...
+
+         B. the actual dataset inputs: one set per factor level (task attribute),
+            or one set and factor-corresponding sub-brick selectors
+            (either way, factors are listed for dset volume correspondence)
+            
+            e.g. -dsets results/sub*/cond.A.B.C/sub*.nii.gz \\
+                 -factor_list ...                           \\
+                 -subs_betas B_R_T1 B_R_T2 B_R_T3 ...       \\
+
+            e.g. -dsets results/sub*/cond.A/sub*.nii.gz     \\
+                 -dsets results/sub*/cond.B/sub*.nii.gz     \\
+                 -dsets results/sub*/cond.C/sub*.nii.gz     \\
+                 -factor_list ...                           \\
+
+         C. todo: consider including table of task-varying attributes
+                  (e.g. ave response time per task/level)
+
+      1. no -dt_tsv option (skip part A), so result is just an ANOVA table
+
+      1a. simple: no -dt_tsv, one -dsets option ~3~
+
+        Only one -dsets option implies all factor levels/sub-bricks/task attrs
+        exist in each subject's input dataset.
+        This requires -subs_betas to connect task attrs to sub-bricks.
+
+        gen_group_command.py                     \\
+           -command datatable                    \\
+           -dsets $dsets                         \\
+           -factor_list visit before after       \\
+           -factor_list color red green          \\
+           -factor_list task  T1 T2 T3           \\
+           -subs_betas B_R_T1 B_R_T2 B_R_T3      \\
+                       B_G_T1 B_G_T2 B_G_T3      \\
+                       A_R_T1 A_R_T2 A_R_T3      \\
+                       A_G_T1 A_G_T2 A_G_T3
+
+      * to restrict to a specific list of subjects, include something like:
+
+            -dset_sid_list $my_favorite_subjects
+
+        later example
+           -dset_sid_list $only_these_subjects
+
+      1b. ...
+
+        gen_group_command.py                     \\
+
+      ...
+
 ------------------------------------------
 command-line options: ~1~
 ------------------------------------------
@@ -563,6 +631,8 @@ other options: ~2~
         Akin to -subj_prefix, this flag expands the subject prefix list to
         include everything up to the beginning of the directory names (at
         the level that varies across input datasets).
+
+        By default, if names start with 'sub', this will be appplied.
 
         Example 1:
            datasets:
@@ -727,7 +797,7 @@ class CmdInterface:
 
       self.subj_prefix     = ''         # prefix for each subject ID
       self.subj_suffix     = ''         # suffix for each subject ID
-      self.dent_pre        = 0          # flag: keep dir entry prefix
+      self.dent_pre        = 2          # flag: keep dir entry prefix (if subj)
       self.verb            = verb
 
       # lists

@@ -3855,7 +3855,7 @@ def glob_form_matches_list(slist, ordered=1):
    return 1
    
 
-def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
+def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=2, strip=''):
    """given a list of strings, return the inner part of the list that varies
       (i.e. remove the consistent head and tail elements)
 
@@ -3864,7 +3864,10 @@ def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
 
       hpad NPAD         : number of characters to pad at prefix
       tpad NPAD         : number of characters to pad at suffix
-      keep_dent_pre Y/N : (flag) keep entire prefix from directory entry
+      keep_dent_pre     : possibly keep direcotry entry prefix
+                          0 : never
+                          1 : keep entire prefix from directory entry
+                          2 : do it if dir ent starts with sub
       strip             : one of ['', 'dir', 'file', 'ext', 'fext']
 
       If hpad > 0, then pad with that many characters back into the head
@@ -3875,7 +3878,7 @@ def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
              return [ 'subjA1.', 'subjB4.', 'subjA2.' ]
 
       If keep_dent_pre is set, then (if '/' is found) decrement hlen until 
-      that '/'.
+      that '/'.  If '/' is not found, start from the beginning.
 
         e.g. given ['dir/subjA1.txt', 'dir/subjB4.txt', 'dir/subjA2.txt' ]
                 -> return = [ 'A1.', 'B4.', 'A2.' ]
@@ -3938,8 +3941,12 @@ def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
       posn = s.rfind('/', 0, hlen)
       # if found, start at position to right of it
       # otherwise, use entire prefix
-      if posn >= 0: hlen = posn + 1
-      else:         hlen = 0
+      if posn >= 0: htmp = posn + 1
+      else:         htmp = 0
+
+      # apply unless KDP == 2 and not 'subj'
+      if keep_dent_pre != 2 or s[htmp:htmp+4] == 'subj':
+         hlen = htmp
 
    # and return the list of center strings
    if tlen == 0: return [ s[hlen:]      for s in slist ]
