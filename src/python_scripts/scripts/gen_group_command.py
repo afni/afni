@@ -656,7 +656,7 @@ other options: ~2~
         include everything up to the beginning of the directory names (at
         the level that varies across input datasets).
 
-        By default, if names start with 'sub', this will be appplied.
+        By default, if names start with 'sub', this will be applied.
 
         Example 1:
            datasets:
