@@ -16368,10 +16368,8 @@ void *SUMA_ADO_Saux(SUMA_ALL_DO *ado)
             SUMA_RETURN((void *)VDO_VSAUX((SUMA_VolumeObject *)ado));
          break; }
       default:
-         SUMA_RETURNe;
+         SUMA_RETURN(NULL);
    }
-   
-   SUMA_RETURNe;
 }
 
 SUMA_DSET *SUMA_ADO_Dset(SUMA_ALL_DO *ado)
@@ -16406,7 +16404,6 @@ SUMA_DSET *SUMA_ADO_Dset(SUMA_ALL_DO *ado)
       default:
          SUMA_RETURN(NULL);
    }
-   SUMA_RETURN(NULL);
 }
 
 /*!
@@ -16435,5 +16432,4 @@ int SUMA_Anatomical_DOs(SUMA_DO *dov, int N_dov, int *rdov)
    }
 
    SUMA_RETURN(N);
-
 }

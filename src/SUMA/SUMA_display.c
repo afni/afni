@@ -15699,22 +15699,21 @@ void SUMA_cb_ColPlaneShowOneFore_toggled (Widget w, XtPointer data,
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_ALL_DO *ado=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = NOPE, oneBoxChecked;
 
    SUMA_ENTRY;
 
    fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_LH("Called");
-   
-   // Turn off "A" checkbox if "1" checkbox toggled off
-   if (!(XmToggleButtonGetState(w))){
-       XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 0, 1);
-       SUMA_cb_ColPlaneShowOneFore_toggled (SurfCont->AlphaOpacityFalloff_tb, data,
-                                              client_data);
-   }
 
    ado = (SUMA_ALL_DO *)data;
+   
+   // Turn off "A" checkbox if "1" checkbox toggled off
+   oneBoxChecked = XmToggleButtonGetState(w);
+   if (!(XmToggleButtonGetState(w)) && (SurfCont = SUMA_ADO_Cont(ado))){
+       XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 0, 1);
+   }
 
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
