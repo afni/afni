@@ -982,7 +982,7 @@ class SubjectList(object):
       """
       SDL = []
       for slist in subjlists:
-         SDL.append( {subj.sid:subj.dfile for subj in slist.subjects} )
+         SDL.append( {subj.sid:subj.dset for subj in slist.subjects} )
       return SDL
 
    def get_all_subjs_from_lists(self, subjlists, verb=1):
