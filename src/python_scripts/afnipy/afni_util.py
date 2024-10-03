@@ -3945,7 +3945,7 @@ def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=2, strip=''):
       else:         htmp = 0
 
       # apply unless KDP == 2 and not 'subj'
-      if keep_dent_pre != 2 or s[htmp:htmp+4] == 'subj':
+      if keep_dent_pre != 2 or s[htmp:htmp+3] == 'sub':
          hlen = htmp
 
    # and return the list of center strings

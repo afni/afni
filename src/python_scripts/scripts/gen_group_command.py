@@ -482,21 +482,23 @@ examples (by program) ~1~
                                  A_G_T1 A_G_T2 A_G_T3
 
 
-      1. no -dt_tsv option (skip part A), so result is just an ANOVA table
+      1. simple: no -dt_tsv, one -dsets option, with -subs_betas ~3~
 
-      1a. simple: no -dt_tsv, one -dsets option ~3~
+        This skips part A above, generating basically an ANOVA table without
+        subject-specific attributes.
 
-        Only one -dsets option implies one dataset per subject, and all
-        factor levels/sub-bricks/task attrs exist in each subject's dataset.
-        This requires -subs_betas to connect task attrs to sub-bricks, listing
-        the sub-bricks that correspond with the ordered combination of factors.
+        Only one -dsets option implies one dataset per subject, so all factor
+        levels/sub-bricks/task attrs exist in each subject dataset.  This
+        requires -subs_betas to connect task attrs to sub-bricks, listing the
+        sub-bricks that correspond with the ordered combination of factors.
+
         Note that betas should be in factor-major order, where the first
         factor changes the slowest (so here all 'before' betas come before all
         'after' betas, and then with reds before greens, etc).
 
             gen_group_command.py                        \\
                -command datatable                       \\
-               -dsets all_results/sub*/sub*.nii.gz      \\
+               -dsets all_results/sub*.nii.gz           \\
                -factor_list visit before after          \\
                -factor_list color red green             \\
                -factor_list task  T1 T2 T3              \\
@@ -508,11 +510,12 @@ examples (by program) ~1~
       * to restrict to a specific list of subjects, include something like:
             -dset_sid_list $my_favorite_subjects
 
-      1b. simple: no -dt_tsv, one -dsets option per factor combination ~3~
+      2. simple: no -dt_tsv, one -dsets option per factor combination ~3~
 
-        Like 1a, but with each subject beta volume in a separate dataset.
-        The generated table should be similar, with identical ordering, but
-        using varying files rather than beta volume indexing.
+        Like 1, but with each subject beta volume in a separate dataset
+        (so no -subs_betas option is applied).  The generated table should be
+        similar to that from 1, with identical ordering, but using varying
+        files rather than beta volume indexing.
 
             gen_group_command.py                        \\
                -command datatable                       \\
@@ -532,11 +535,63 @@ examples (by program) ~1~
                -dsets all_results/data.A_G_T2/sub*.gz   \\
                -dsets all_results/data.A_G_T3/sub*.gz
 
+      3. include -dt_tsv, with one -dsets option per factor combination ~3~
 
-   consider: table of task-varying attributes
-             (e.g. ave response time per task/level)
+        The -dt_tsv option can be a simple addition to either of the above
+        examples.  Each subject would then have their row of the TSV included
+        in each of their output rows.  Here we pass subject_attrs.tsv.
 
-   --------------------
+        Same as 2, but include:
+
+               -dt_tsv subject_attrs.tsv
+
+
+            gen_group_command.py                        \\
+               -command datatable                       \\
+               -dt_tsv subject_attrs.tsv                \\
+               -factor_list visit before after          \\
+               -factor_list color red green             \\
+               -factor_list task  T1 T2 T3              \\
+               -dsets all_results/data.B_R_T1/sub*.gz   \\
+               -dsets all_results/data.B_R_T2/sub*.gz   \\
+               -dsets all_results/data.B_R_T3/sub*.gz   \\
+               -dsets all_results/data.B_G_T1/sub*.gz   \\
+               -dsets all_results/data.B_G_T2/sub*.gz   \\
+               -dsets all_results/data.B_G_T3/sub*.gz   \\
+               -dsets all_results/data.A_R_T1/sub*.gz   \\
+               -dsets all_results/data.A_R_T2/sub*.gz   \\
+               -dsets all_results/data.A_R_T3/sub*.gz   \\
+               -dsets all_results/data.A_G_T1/sub*.gz   \\
+               -dsets all_results/data.A_G_T2/sub*.gz   \\
+               -dsets all_results/data.A_G_T3/sub*.gz
+
+
+      test. test examples F1, F2 and F3 by abusing the shell ~3~
+
+        If one wanted to be sneaky and test these examples with a set of
+        10 random subject names and corresponding empty files, then before
+        running 1 or 2, consider (here in 'tcsh' syntax):
+
+            # make lists of beta labels and subject codes
+            set bstr = '{B,A}_{R,G}_T{1,2,3}'
+            set sstr = '{0044,0046,0049,0053,0060,0061,0064,0073,0075,0076}'
+
+            # create a directory tree for example F1, and then run F1
+            mkdir all_results
+            touch all_results/sub-$sstr.nii.gz
+            # run command F1 here
+
+            # create a directory tree for example F2, and then run F2
+            mkdir -p all_results/data.$bstr
+            touch all_results/data.$bstr/sub-$sstr.nii.gz
+            # run command F2 here
+
+            # create an additional attributes file, and then run F3
+            echo Subj Group ValA ValB > subject_attrs.tsv
+            foreach subj ( $sstr )
+                echo sub-$subj G_$subj VA_$subj VB_$subj >> subject_attrs.tsv
+            end
+            # run command F3 here
 
    --------------------
 
