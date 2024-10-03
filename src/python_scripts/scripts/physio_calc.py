@@ -4,17 +4,6 @@
 """
     2022-2023 Peter Lauren, Paul Taylor
     peterdlauren@gmail.com
-
-    "retroicorTaylor" is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    "retroicorLauren2" is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with "retroicorLauren".  If not, see <http://www.gnu.org/licenses/>.
     
     TODO:
         - Variance in linear model used to assess quality.  (How it affects the
@@ -56,12 +45,8 @@
 import sys, os
 import copy
 
+# part of AFNI imports (more below, if going beyond help viewing)
 from afnipy import lib_physio_opts    as lpo
-from afnipy import lib_physio_reading as lpr
-from afnipy import lib_physio_logs    as lpl
-from afnipy import lib_physio_funcs   as lpf
-from afnipy import lib_physio_regress as lpreg
-from afnipy import lib_physio_plot    as lpplt
 
 # ===========================================================================
 
@@ -95,6 +80,14 @@ if __name__ == "__main__":
     # + error exit :(
     args_orig = copy.deepcopy(sys.argv)
     args_dict = lpo.main_option_processing( sys.argv )
+
+    # -------------------- if doing calc, import more -----------------------
+
+    from afnipy import lib_physio_reading as lpr
+    from afnipy import lib_physio_logs    as lpl
+    from afnipy import lib_physio_funcs   as lpf
+    from afnipy import lib_physio_regress as lpreg
+    from afnipy import lib_physio_plot    as lpplt
 
     # --------------------- organize/check/combine ---------------------------
 

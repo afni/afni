@@ -66,7 +66,7 @@ end
 
 figure(Opt.Fig);
 
-%get the axis roperties of the figure
+%get the axis properties of the figure
 Xlim = get(gca,'Xlim');
 Ylim = get(gca,'ylim');
 Zlim = get(gca,'Zlim');

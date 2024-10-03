@@ -66,6 +66,11 @@
 #include <stdarg.h>
 #include <ctype.h>
 
+#if defined(LINUX) || defined(LINUX2)
+#define __USE_XOPEN
+#include <unistd.h>
+#endif
+	
 #include "mri_dicom_hdr.h"
 #include "mri_dicom_elist.h"  /* for whining  [6 Mar 2019 rickr] */
 

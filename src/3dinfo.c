@@ -74,6 +74,7 @@ int Syntax(TFORM targ, int detail)
 "   -is_atlas: 1 if dset is an atlas.\n"
 "   -is_atlas_or_labeltable: 1 if dset has an atlas or has a labeltable.\n"
 "   -is_nifti: 1 if dset is NIFTI format, 0 otherwise\n"
+"   -is_slice_timing_nz: is there slice timing, and is it not uniformly 0\n"
 "   -dset_extension: show filename extension for valid dataset (e.g. .nii.gz)\n"
 "   -storage_mode: show internal storage mode of dataset (e.g. NIFTI)\n"
 "   -space: dataset's space\n"
@@ -319,7 +320,23 @@ THD_3dim_dataset *load_3dinfo_dataset(char *name)
    return(dset);
 }
 
-typedef enum {
+/*
+  [PT: Aug 6, 2024] Important note about adding 3dinfo opts:
+
+  ** As noted below, keep enum INFO_FIELDS in sync with Field Names! **
+
+  This note is probably mostly need for PT, who ignored this sage advice
+  at least once in the past.
+
+  Also, on this August date of clarification and correction (thanks,
+  JKR for alerting us to the fact that things _had_ gotten out of
+  sync), some cleaning of unused+unnecessary items here was done.  For
+  example, at option reading time, '-d3' gets mapped to the effective
+  triplet '-di -dj -dk', so we don't need a separate D3 or DIJK field
+  in INFO_FIELDS (nor a corresponding string in Field_Names). This
+  applies for what could be called N3, N4, O3, AD3, etc.
+*/
+typedef enum { 
    CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, DSET_GEN_SPACE, INFO_NIFTI_CODE,
    IS_NIFTI, DSET_EXISTS,
    DSET_EXTENSION, STORAGE_MODE, /* 4 Jun 2019 [rickr] */
@@ -332,20 +349,20 @@ typedef enum {
    PREFIX , PREFIX_NOEXT,
    NI, NJ, NK, NT, NTI, NTIMES, MAX_NODE,
    NV, NVI, NIJK,
-   N3, N4,                 // [PT] these aren't actually needed/used
-   DI, DJ, DK, D3,
-   OI, OJ, OK, O3,
-   ADI, ADJ, ADK, AD3,
-   DCX, DCY, DCZ, DC3,
+   DI, DJ, DK,
+   OI, OJ, OK, 
+   ADI, ADJ, ADK, 
+   DCX, DCY, DCZ,
    LTABLE, LTABLE_AS_ATLAS_POINT_LIST, ATLAS_POINTS,
-   SLICE_TIMING,
+   SLICE_TIMING, IS_SLICE_TIMING_NZ,
    FAC, DATUM, LABEL,
    MIN, MAX, MINUS, MAXUS,
    DMIN, DMAX, DMINUS, DMAXUS,
    TR, HEADER_NAME, BRICK_NAME, ALL_NAMES,
    HISTORY, ORIENT,
    SAME_GRID, SAME_DIM, SAME_DELTA, SAME_ORIENT, SAME_CENTER,
-   SAME_OBL, SVAL_DIFF, VAL_DIFF, SAME_ALL_GRID, ID, SMODE,
+   SAME_OBL, SVAL_DIFF, VAL_DIFF, SAME_ALL_GRID, 
+   ID, SMODE,
    VOXVOL, INAME, HANDEDNESS,
    EXTENT_R, EXTENT_L, EXTENT_A, EXTENT_P, EXTENT_I, EXTENT_S, EXTENT,
    N_FIELDS } INFO_FIELDS; /* Keep synchronized with Field_Names
@@ -353,20 +370,23 @@ typedef enum {
 
 char Field_Names[][32]={
    {"-classic-"}, {"space"}, {"AV_spc"}, {"gen_spc"}, {"nifti_code"},
-   {"nifti?"}, {"exist?"}, {"exten"}, {"smode"},
-   {"atlas?"}, {"atlas_or_lt?"}, {"oblq?"}, {"oblq"},
+   {"nifti?"}, {"exist?"}, 
+   {"exten"}, {"smode"},
+   {"atlas?"}, {"lt?"}, {"atlas_or_lt?"}, 
+   {"oblq?"}, {"oblq"},
    {"aformr"}, {"aformr_line"}, {"aformr_refit"},
-   {"aformr_orth?"}, {"aform_orth"}, {"perm2ori"},
+   {"aformr_orth?"}, 
+   {"aform_orth"}, 
+   {"perm2ori"},
    {"prefix"}, {"pref_nx"},
    {"Ni"}, {"Nj"}, {"Nk"}, {"Nt"}, {"Nti"}, {"Ntimes"}, {"MxNode"},
    {"Nv"}, {"Nvi"}, {"Nijk"},
-   {"Ni_Nj_Nk_Nv"},
-   {"Di"}, {"Dj"}, {"Dk"}, {"Di_Dj_Dk"},
-   {"Oi"}, {"Oj"}, {"Ok"}, {"Oi_Oj_Ok"},
-   {"ADi"}, {"ADj"}, {"ADk"}, {"ADi_ADj_ADk"},
-   {"DCx"}, {"DCy"}, {"DCz"}, {"DCx_DCy_DCz"},
+   {"Di"}, {"Dj"}, {"Dk"}, 
+   {"Oi"}, {"Oj"}, {"Ok"}, 
+   {"ADi"}, {"ADj"}, {"ADk"}, 
+   {"DCx"}, {"DCy"}, {"DCz"},
    {"label_table"}, {"LT_as_atlas_point_list"}, {"atlas_point_list"},
-   {"slice_timing"},
+   {"slice_timing"}, {"is_slice_timing_nz"},
    {"factor"}, {"datum"}, {"label"},
    {"min"}, {"max"}, {"minus"}, {"maxus"},
    {"dmin"}, {"dmax"}, {"dminus"}, {"dmaxus"},
@@ -714,6 +734,8 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = SAME_OBL; needpair = 1; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-slice_timing") == 0) {
          sing[N_sing++] = SLICE_TIMING; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-is_slice_timing_nz") == 0) {
+         sing[N_sing++] = IS_SLICE_TIMING_NZ; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-sval_diff") == 0) {
          sing[N_sing++] = SVAL_DIFF; needpair = 1; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-val_diff") == 0) {
@@ -1341,6 +1363,20 @@ int main( int argc , char *argv[] )
                      fprintf(stdout,"%s%f", (isb > 0) ? sbdelim : "", 0.0);
                   }
                }
+            }
+            break;
+         case IS_SLICE_TIMING_NZ:     /* 15 Aug 2024 [pt] */
+            {
+               int istnz = 0;
+               // first, *is* there slice timing information?
+               if( DSET_HAS_SLICE_TIMING(dset) ) {
+                  DSET_UNMSEC(dset); /* make sure times are in seconds */
+                  // then, verify having >=1 nonzero slice_timing value
+                  for (isb=0; isb<dset->taxis->nsl; ++isb) 
+                     if ( dset->taxis->toff_sl[isb] )
+                        istnz = 1;
+               } 
+               fprintf(stdout,"%d", istnz);
             }
             break;
          case SVAL_DIFF:

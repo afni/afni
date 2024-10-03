@@ -20,7 +20,7 @@ from afnipy import afni_util as UTIL
 from afnipy import lib_system_check as SC
 
 g_dotfiles = ['.profile', '.bash_profile', '.bashrc', '.bash_dyld_vars',
-              '.cshrc', '.tcshrc', '.zshrc' ]
+              '.cshrc', '.tcshrc', '.login', '.zshrc' ]
 
 g_help_string = """
 =============================================================================
@@ -353,9 +353,15 @@ g_history = """
    1.31 Mar  4, 2024 - add option -disp_ver_afni (do include build source)
    1.32 Mar 21, 2024 - add option -disp_abin
    1.33 Apr 25, 2024 - warn if tcsh version is 6.22.03
+   1.34 Jun 24, 2024 - warn if CPU differs between platform and uname -m
+   1.35 Sep  4, 2024 - just get CPU from uname -m
+   1.36 Sep 16, 2024
+        - get .login with other dotfiles
+        - if no Xvfb in PATH, check whether file exists
+        - report fewer link suggestions
 """
 
-g_version = "afni_system_check.py version 1.33, April 25, 2024"
+g_version = "afni_system_check.py version 1.36, September 16, 2024"
 
 
 class CmdInterface:

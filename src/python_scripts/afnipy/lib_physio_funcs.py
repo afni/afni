@@ -367,6 +367,7 @@ is_ok : int
                                     max_bps=phobj.max_bps,
                                     label=label,
                                     retobj=retobj,
+                                    extend_bp=phobj.extend_bp,
                                     verb=verb)
     phobj.ts_orig_bp = copy.deepcopy(xfilt)          # save BPed ver of ts
     phobj.bp_idx_freq_mode = idx_freq_mode           # save peak freq's idx

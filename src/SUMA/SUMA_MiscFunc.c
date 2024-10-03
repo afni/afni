@@ -8108,7 +8108,8 @@ SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL,
 }
 
 /*! 
-   frees the dyamically allocated pointer of the type SUMA_FACESET_FIRST_EDGE_NEIGHB 
+   frees the dynamically allocated pointer of the
+   type SUMA_FACESET_FIRST_EDGE_NEIGHB 
    SUMA_free_FaceSet_Edge_Neighb (S)
    \param S (SUMA_FACESET_FIRST_EDGE_NEIGHB *)
    

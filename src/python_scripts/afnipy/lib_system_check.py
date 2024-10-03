@@ -42,17 +42,20 @@ class SysInfo:
 
    def __init__(self, data_root='', verb=1):
 
-      self.system          = platform.system()
-      self.cpu             = platform.processor()
-      self.home_dir        = os.environ['HOME']
-      self.data_root       = data_root
-      self.verb            = verb
+      self.verb            = verb   # set before calling any local functions
 
+      self.cpu             = self.get_cpu_type()
+      self.data_root       = data_root
+      self.home_dir        = os.environ['HOME']
+      self.system          = platform.system()
+
+      # info to fill and track
       self.afni_ver        = ''
       self.afni_label      = ''
       self.afni_dir        = ''
       self.python_prog     = '' # path to program
       self.os_dist         = ''
+
       self.comments        = [] # comments to print at the end
       self.afni_fails      = 0
 
@@ -73,11 +76,33 @@ class SysInfo:
 
       self.libs_missing    = [] # missing shared libraries
 
+   def get_cpu_type(self):
+      """return CPU type
+
+         This should be the output of uname -m, or else fall back to
+         platform.processor(), which might use the more confusing uname -p.
+      """
+      try:
+         cpup = os.uname().machine
+      except:
+         cpup = platform.processor()
+      status, cout = UTIL.exec_tcsh_command('uname -m', lines=1)
+      if status == 0 and len(cout) > 0:
+         cpu = cout[0]
+      else:
+         print("-- failed to exec 'uname -m'")
+         cpu = cpup
+
+      if self.verb > 1:
+         print("++ have cpu = %s, cpup = %s" % (cpu, cpup))
+
+      return cpu
+
    def show_general_sys_info(self, header=1):
       if header: print(UTIL.section_divider('general', hchar='-'))
 
       print('architecture:         %s' % tup_str(platform.architecture()))
-      print('cpu type:             %s' % platform.processor())
+      print('cpu type:             %s' % self.cpu)
       print('system:               %s' % platform.system())
       print('release:              %s' % platform.release())
       print('version:              %s' % platform.version())
@@ -165,7 +190,7 @@ class SysInfo:
          gfound = 0
          if f1found and f2found:
             # does f1name reference f2name?
-            st, so, se = UTIL.limited_shell_exec("\grep %s $HOME/%s" \
+            st, so, se = UTIL.limited_shell_exec("\\grep %s $HOME/%s" \
                                                  % (f2name, f1name))
             if not st: gfound = 1
 
@@ -201,7 +226,7 @@ class SysInfo:
          print("-- found both %s and %s" % (cfile,tfile))
 
       found = 0
-      st, so, se = UTIL.limited_shell_exec("\grep %s $HOME/%s" % (cfile,tfile))
+      st, so, se = UTIL.limited_shell_exec("\\grep %s $HOME/%s" % (cfile,tfile))
       # if we find something, test to see if it is valid
       if st == 0:
          for line in so:
@@ -696,7 +721,7 @@ class SysInfo:
       if len(clibs) == 0:
          if self.afni_fails > 0:
              self.comments.append('consider installing %s under homebrew'%sname)
-         else:
+         elif self.verb > 1:
              print('-- consider installing %s under homebrew' % sname)
          return 1
 
@@ -716,7 +741,8 @@ class SysInfo:
          mesg = 'consider linking %s under %s' % (clibs[0],libdir)
          if self.afni_fails > 0:
             self.comments.append(mesg)
-         print("** %s" % mesg)
+         if self.verb > 1 or self.afni_fails > 0:
+            print("** %s" % mesg)
          return 1
 
       # huston, we have a bad link, say something useful
@@ -935,6 +961,22 @@ class SysInfo:
          elif prog in ['XQuartz', 'X11']:
             s, v = self.get_prog_version(prog)
             print('%-20s : %s' % ('%s version'%prog, v))
+            continue
+
+         # Xvfb
+         elif prog == 'Xvfb':
+            cmd = 'which %s' % prog
+            s, so, se = BASE.simple_shell_exec(cmd, capture=1)
+            if not s: # found one
+               print('%-20s : %s' % (cmd, so.strip()))
+            elif show_missing:
+               print('%-20s :' % cmd)
+               xpath = '/opt/X11/bin'
+               if os.path.exists('%s/Xvfb' % xpath):
+                  self.comments.append("have %s/Xvfb, but not in PATH" % xpath)
+                  self.comments.append(" (please add %s to PATH)" % xpath)
+               else:
+                  self.comments.append("please install %s" % prog)
             continue
 
          # test python - just add a comment if they are using a version < 2.7
@@ -1282,7 +1324,7 @@ class SysInfo:
       elist = ['PATH', 'PYTHONPATH', 'R_LIBS',
                'LD_LIBRARY_PATH',
                'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH',
-               'CONDA_SHLVL', 'CONDA_DEFAULT_ENV']
+               'CONDA_SHLVL', 'CONDA_DEFAULT_ENV', 'CC']
       maxlen = max(len(e) for e in elist)
 
       for evar in elist:

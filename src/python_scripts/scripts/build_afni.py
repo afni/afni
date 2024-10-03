@@ -180,6 +180,25 @@ other options:
 
           See also -do_backup.
 
+      -cc_path PATH/TO/COMPILER : specify the path to a C compiler to use
+
+          e.g.  -cc_path /usr/local/bin/gcc-14
+          e.g.  -cc_path NONE
+
+          If a Makefile uses LOCAL_CC_PATH (most do not), one can pass an
+          alternative to what is default in the Makefile.
+
+          For example, Makefile.macos_12_x86_64 uses /usr/local/bin/gcc-13.
+          This option can be used to override that compiler path as the user
+          sees fit, such as with /usr/local/bin/gcc-14 or even /usr/bin/clang.
+
+        * If this option is not used and the default compiler does not exist,
+          the program will attempt to find an alternate compiler with a
+          different version number.
+
+        * Use NONE to forcibly use the Makefile default, even if it does not
+          exist.
+
       -clean_root yes/no        : specify whether to clean up the build_root
 
           default -clean_root yes
@@ -325,8 +344,20 @@ other options:
           default: -update_atlases yes
           e.g.   : -update_atlases no
 
-          By default, if the atlases directory exists (afni_atlases_dist),
-          it will not be updated.  Use this option to force a new download.
+          By default, even if the atlases directory exists (afni_atlases_dist),
+          it will be updated.  Use this option to avoid a new download.
+
+          If -clean_root is 'no', atlases will not be updated.
+
+      -update_niivue yes/no    : update NiiVue, even if the package exists
+
+          default: -update_niivue yes
+          e.g.   : -update_niivue no
+
+          By default, even if NiiVue exists, it will be updated.  Use this
+          option to avoid a new download.
+
+          If -clean_root is 'no', NiiVue will not be updated.
 
       -verb LEVEL               : set the verbosity level (default 1)
 
@@ -361,10 +392,18 @@ g_history = """
    0.10 Dec  8, 2023
         - copy git/afni/doc/README/README.* into build_src
         - make prev a directory, not a name prefix
+   0.11 Jun 11, 2024
+        - remove extra backup dirs (save 1, and must contain afni)
+        - add -update_niivue option
+   0.12 Jun 24, 2024 - for make, warn if CC is set
+   0.13 Sep 12, 2024
+        - add option -cc_path
+        - else if LOCAL_CC_PATH does not exist, try to find alternate compiler
+
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.10, December 8, 2023" % g_prog
+g_version = "%s, version 0.13, September 12, 2024" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
@@ -480,6 +519,7 @@ class MyInterface:
       self.make_target     = 'itall' # target in "make" command
       self.makefile        = ''     # an alternate Makefile to build from
       self.package         = ''     # to imply Makefile and build dir
+      self.cc_path         = ''     # empty, NONE or path (-cc_path)
 
       self.prep_only       = 0      # prepare (c)make, but do not run
       self.run_cmake       = 0      # actually run camke?
@@ -487,6 +527,7 @@ class MyInterface:
       self.run_backup      = 1      # install build results and atlases
       self.run_install     = 1      # install build results and atlases
       self.update_atlases  = 1      # do we force an atlas update
+      self.update_niivue   = 1      # do we force a NiiVue update
 
       self.verb            = verb   # verbosity level
 
@@ -524,6 +565,7 @@ class MyInterface:
       self.dsdoc           = 'doc'
 
       # system and possible mac stuff
+      self.ekeys           = os.environ.keys()  # store env keys
       self.sysname         = platform.system()
       self.is_mac          = self.sysname == 'Darwin'
 
@@ -587,6 +629,8 @@ class MyInterface:
       self.valid_opts.add_opt('-backup_method', 1, [],
                       acplist=['mv','rsync','rsync_preseve'],
                       helpstr='specify method of backup (def=rsync)')
+      self.valid_opts.add_opt('-cc_path', 1, [],
+                      helpstr="specify an alternate C compiler path")
       self.valid_opts.add_opt('-clean_root', 1, [],
                       helpstr='clean up from old work? (def=y)')
       self.valid_opts.add_opt('-do_backup', 1, [],
@@ -617,7 +661,10 @@ class MyInterface:
                       helpstr="should we run a 'make' build? (def=y)")
       self.valid_opts.add_opt('-update_atlases', 1, [],
                       acplist=['yes','no'],
-                      helpstr="should we re-download atlases? (def=n)")
+                      helpstr="should we re-download atlases? (def=y)")
+      self.valid_opts.add_opt('-update_niivue', 1, [],
+                      acplist=['yes','no'],
+                      helpstr="should we re-download NiiVue? (def=y)")
       self.valid_opts.add_opt('-verb', 1, [],
                       helpstr='set the verbose level (default is 1)')
 
@@ -687,6 +734,11 @@ class MyInterface:
             if val == None or err: return -1
             self.backup_method = val
 
+         elif opt.name == '-cc_path':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return -1
+            self.cc_path = val
+
          elif opt.name == '-clean_root':
             if OL.opt_is_yes(opt):
                self.clean_root = 1
@@ -694,6 +746,8 @@ class MyInterface:
                # do not clean, do not update git
                self.clean_root = 0
                self.git_update = 0
+               self.update_atlases = 0
+               self.update_niivue = 0
 
          elif opt.name == '-do_backup':
             if OL.opt_is_no(opt):
@@ -758,6 +812,12 @@ class MyInterface:
                self.update_atlases = 1
             else:
                self.update_atlases = 0
+
+         elif opt.name == '-update_niivue':
+            if OL.opt_is_yes(opt):
+               self.update_niivue = 1
+            else:
+               self.update_niivue = 0
 
          elif opt.name == '-verb':
             val, err = uopts.get_type_opt(int, '', opt=opt)
@@ -988,10 +1048,11 @@ class MyInterface:
       if do is not None:
          abin = do.abspath
       self.backup_abin = self.f_make_backup_abin_name()
+      if os.path.exists(self.backup_abin):
+         MESGe("failed to make backup.abin name, please delete some")
+         self.backup_abin = ''
 
-      # optimally, we now know:
-      #   abin, backup_abin, atlas_src, make_src
-
+      # optimally, we now know: abin, backup_abin, atlas_src, make_src
       # chat
       if self.verb > 2:
          MESGi("atlas dir   : %s" % self.sync_src_atlas)
@@ -1053,15 +1114,6 @@ class MyInterface:
       MESGi("    PLEASE WAIT FOR THE INSTALL TO COMPLETE...")
       MESG("")
 
-      # ------------------------------------------------------------
-      # possibly run backup
-
-      # if not syncing, we should not backup
-      if not self.sync_src_atlas or not self.sync_src_make:
-         if self.run_backup:
-            MESGp("skipping backup since no full sync to abin")
-            self.run_backup = 0
-
       # if abin does not exist, create it (and cancel any backup)
       if not os.path.exists(abin):
          MESGp("creating install abin: %s" % abin)
@@ -1069,61 +1121,11 @@ class MyInterface:
          if st: return st
          self.run_backup = 0
 
-      if not self.run_backup:
-         MESGm("skipping abin backup")
-      else:
-         MESGp("backing up %s to %s" % (abin, self.backup_abin))
-         MESGi("(backup via %s)" % self.backup_method)
+      # ------------------------------------------------------------
+      # possibly run backup
 
-         # create backup directory
-         st, ot = self.run_cmd('mkdir', self.backup_abin, pc=1)
-         if st: return st
-
-         # and actually do the backup
-         # (use backup method: mv or rsync)
-         if self.backup_method == 'mv':
-            cmd = 'mv %s/* %s/' % (abin, self.backup_abin)
-            st, ot = self.run_cmd(cmd)
-            if st: return st
-         else:
-            # use one of the rsync methods
-
-            # first make the actual backup
-            cmd = 'rsync -av %s/ %s/' % (abin, self.backup_abin)
-            st, ot = self.run_cmd(cmd)
-            if st: return st
-
-            # if we are not preserving the old files, clean out the abin
-            # ** on a large file system, are we sure the rsync is finished?
-            if self.backup_method != 'rsync_preserve':
-               MESGm("cleaning old abin")
-               # after sync, delete abin before repopulating
-               cmd = 'if ( `ls -a %s/ | wc -l` > 2 ) rm -fr %s/*' % (abin,abin)
-               st, ot = self.run_cmd(cmd)
-               if st: return st
-
-         # other options to consider for backups:
-         #
-         #    goal: make sure the abin contents are never lost
-         #    goal: be fast
-         #    goal: save disk space: do not have too many copies of results
-         #
-         #    If abin is not a link, we could 'mv' the actual abin directory to
-         #    the backup and recreate it with the new contents.
-         #    That might be the fastest way to go, plus it should preserve abin
-         #    without concerns about the file system handling rsync before rm.
-         #    Perhaps the only question would be whether the user owns the
-         #    *parent* directory.  Also, if 'mv' goes across file systems,
-         #    maybe it becomes the same sync question again.
-         #
-         #    If we finally went ahead and populated a local install directory,
-         #    then we could use rsync --delete for cleaning, or even use
-         #    --delete-after.
-         #
-
-         self.add_final_mesg("------------------------------")
-         self.add_final_mesg("to revert from backup, run:")
-         self.add_final_mesg("   rsync -av %s/ %s/" % (self.backup_abin, abin))
+      st = self.run_backup_abin(abin)
+      if st: return st
 
       # ------------------------------------------------------------
       # now actually sync to the destination
@@ -1160,14 +1162,146 @@ class MyInterface:
                       % (self.sync_src_niivue, abin, self.rsync_file)) 
          if st: return st
 
-      # inform user how many backup directories exist now
-      glist = glob.glob('%s*' % self.backup_prefix)
-      self.add_final_mesg("------------------------------")
-      self.add_final_mesg("have %d backup abin directories, %s*" \
-            % (len(glist), self.backup_prefix))
-      del(glist)
+      # inform user how many backup directories exist, and possibly clean up
+      st = self.run_clean_backup()
+      if st: return st
 
       return 0
+
+   def run_clean_backup(self):
+      """remove some of the backup.abin directories:
+
+         save 1 or 2 (if different):
+           - save most recent that contains afni
+           - save most recent
+      """
+
+      glist = glob.glob('%s*' % self.backup_prefix)
+      glist.sort()
+      nback = len(glist)
+      self.add_final_mesg("------------------------------")
+      self.add_final_mesg("have %d backup abin directories, %s*" \
+            % (nback, self.backup_prefix))
+
+      # maybe there is nothing to do
+      if nback <= 1:
+         if self.verb > 1: MESGm("no extra backups to remove")
+         self.add_final_mesg("have %d backup abin directories, %s*" \
+               % (nback, self.backup_prefix))
+         return 0
+
+      # definitely keep the current backup
+      keepers = []
+      if self.backup_abin in glist: # should not be necessary, but...
+         keep = self.backup_abin
+      else:
+         keep = glist[-1]
+      glist.remove(keep)
+      keepers.append(keep)
+      nback = len(glist)
+
+      # if this does not contain 'afni', try to find the most recent that does
+      if not os.path.isfile('%s/afni' % keep):
+         for bind in range(nback-1, -1, -1):
+            if os.path.isfile('%s/afni' % glist[bind]):
+               # append to keepers, the remove from current list
+               keepers.append(glist[bind])
+               glist.remove(glist[bind])
+               nback -= 1
+               break
+
+      # report result
+      if self.verb:
+         MESGm("backup directories: keeping %d, removing %d" \
+               % (len(keepers), nback))
+         if self.verb > 1:
+            MESG("keep   : %s" % '\n       : '.join(keepers))
+            MESG("remove : %s" % '\n       : '.join(glist))
+
+      # do the damage
+      if nback > 0:
+         MESGm("removing %d backup dirs..." % len(glist))
+         for rm in glist:
+            st, ot = self.run_cmd('rmtree', rm, pc=1)
+            if st: return st
+
+      self.add_final_mesg("have %d final backup abin directory(ies), %s*" \
+                          % (len(keepers), self.backup_prefix))
+
+      del(glist)
+
+   def run_backup_abin(self, abin):
+      """decide whether to backup the install abin directory, and do it
+         return 0 on success, else error
+
+         other options to consider for backups:
+            goal: make sure the abin contents are never lost
+            goal: be fast
+            goal: save disk space: do not have too many copies of results
+         
+            If abin is not a link, we could 'mv' the actual abin directory to
+            the backup and recreate it with the new contents.
+            That might be the fastest way to go, plus it should preserve abin
+            without concerns about the file system handling rsync before rm.
+            Perhaps the only question would be whether the user owns the
+            *parent* directory.  Also, if 'mv' goes across file systems,
+            maybe it becomes the same sync question again.
+         
+            If we finally went ahead and populated a local install directory,
+            then we could use rsync --delete for cleaning, or even use
+            --delete-after.
+      """
+
+      # if not syncing, we should not backup
+      if not self.sync_src_atlas or not self.sync_src_make:
+         if self.run_backup:
+            MESGp("skipping backup since no full sync to abin")
+            self.run_backup = 0
+
+      if not self.run_backup:
+         MESGm("skipping abin backup")
+         return 0
+
+      if not os.path.isdir(abin):
+         MESGe("** run_backup_abin: no '%s' directory???" % abin)
+         return 1
+
+      # ------------------------------------------------------------
+      # ready to make a backup
+
+      MESGp("backing up %s to %s" % (abin, self.backup_abin))
+      MESGi("(backup via %s)" % self.backup_method)
+
+      # create backup directory
+      st, ot = self.run_cmd('mkdir', self.backup_abin, pc=1)
+      if st: return st
+
+      # and actually do the backup
+      # (use backup method: mv or rsync)
+      if self.backup_method == 'mv':
+         cmd = 'mv %s/* %s/' % (abin, self.backup_abin)
+         st, ot = self.run_cmd(cmd)
+         if st: return st
+      else:
+         # use one of the rsync methods
+
+         # first make the actual backup
+         cmd = 'rsync -av %s/ %s/' % (abin, self.backup_abin)
+         st, ot = self.run_cmd(cmd)
+         if st: return st
+
+         # if we are not preserving the old files, clean out the abin
+         # ** on a large file system, are we sure the rsync is finished?
+         if self.backup_method != 'rsync_preserve':
+            MESGm("cleaning old abin")
+            # after sync, delete abin before repopulating
+            cmd = 'if ( `ls -a %s/ | wc -l` > 2 ) rm -fr %s/*' % (abin,abin)
+            st, ot = self.run_cmd(cmd)
+            if st: return st
+
+      self.add_final_mesg("------------------------------")
+      self.add_final_mesg("to revert from backup, run:")
+      self.add_final_mesg("   rsync -av %s/ %s/" % (self.backup_abin, abin))
 
 
    def run_main_build(self):
@@ -1313,6 +1447,7 @@ class MyInterface:
 
    def f_build_via_make(self):
       """run a make build
+            - fail or warn if CC is already set
             - have or try to choose a suitable package
             - copy git/afni/src tree
             - find corresponding Makefile
@@ -1352,6 +1487,14 @@ class MyInterface:
 
       st, ot = self.run_cmd('cd', self.dsbuild, pc=1)
       if st: return st
+
+      # -----------------------------------------------------------------
+      # check the environment
+
+      # we do not want CC set, warn for now
+      if 'CC' in self.ekeys:
+         MESGw("running make, but CC == %s" % os.environ['CC'])
+         MESGi("(CC should likely not be set)")
 
       # -----------------------------------------------------------------
       # copy package Makefile
@@ -1409,8 +1552,14 @@ class MyInterface:
       #    build    : from this (build_afni.py)
       #    official : official distributed binaires
       who = 'AFNI_WHOMADEIT=build'
-      st, ot = self.run_cmd('make %s %s >& %s' % (who,self.make_target,logfile))
 
+      # maybe the user specified a compiler, or maybe we should search for one
+      gver = self.get_alternate_compiler_str()
+      # if successful, add a space for separation
+      if gver != '': gver += ' '
+
+      st, ot = self.run_cmd('make %s%s %s >& %s' \
+                            % (who, gver, self.make_target, logfile))
       if st: tmesg = 'FAILURE'
       else:  tmesg = 'SUCCESS'
       MESGm("status: building %s" % tmesg)
@@ -1490,18 +1639,147 @@ class MyInterface:
 
       return 0
 
+   def get_alternate_compiler_str(self, makefile='Makefile'):
+      """if it seems necessary or requested, return a string of the form:
+               LOCAL_CC_PATH=/path/to/gcc-XX
+
+         self.cc_path : NONE    - return an empty string
+                                  (do not use LOCAL_CC_PATH)
+                        PATH    - return LOCAL_CC_PATH=<PATH>
+                        empty   - if appropriate, try to guess
+
+         If using a Makefile that handles it (macos_12_x86_64 for now) and
+         the default compiler does not exist, try to find a suitable replacement
+      
+      """
+      lstr = "LOCAL_CC_PATH"
+
+      if self.verb > 2:
+         MESGm("looking for %s, sys=%s, cc_path=%s" \
+               % (lstr, self.sysname, self.cc_path))
+
+      # if NONE or non-empty, quick return
+      if self.cc_path == 'NONE':
+         return ''
+      elif self.cc_path != '':
+         if not os.path.exists(self.cc_path):
+            MESGw("-cc_path compiler does not exist, expect problems")
+         return ' %s=%s' % (lstr, self.cc_path)
+
+      # otherwise, first decide if we should go looking for a compiler
+
+      # if not a mac, return?  maybe just proceed
+
+      # if our makefile sets LOCAL_CC_PATH, see that it exists
+      cmd = "grep '^%s' %s" % (lstr, makefile)
+      st, ot = self.run_cmd(cmd, quiet=1)  # and be vewy, vewy quiet
+      # if no such string, just return
+      if st: return ''
+      cc = ot.split()
+      if len(cc) < 3: return ''
+      cc = cc[2]
+
+      if self.verb > 2: MESGm("Makefile applies %s = %s" % (lstr, cc))
+
+      # we have a compiler: if it exists we are done
+      if os.path.exists(cc): return ''
+
+      # help, help, we need a different compiler
+
+      cc = self.find_alternate_compiler(cc)
+
+      # if we have something convert to LOCAL_CC_PATH
+      if cc != '':
+         MESG("")
+         MESGp("need alternate compiler, trying %s" % cc)
+         MESGi("(if this fails, try passing one via -cc_path)")
+         MESG("")
+         cc = ' %s=%s' % (lstr, cc)
+
+      return cc
+
+   def find_alternate_compiler(self, cpath):
+      """the makefile is looking for compiler cpath, can we find a similar one?
+
+         Expect cpath to end with ccNUM or cc-NUM (no slash).  If so, glob
+         similarly and try to return the one with the biggest number.
+         - allow NUM of the form a.b.c
+      """
+      plen = len(cpath)
+      digchars = ['.', '-']      # allowable non-digit chars
+
+      # find the last non-digit/dot/dash character, if any
+      posn = plen-1
+      while cpath[posn].isdigit() or (cpath[posn] in digchars):
+         posn -= 1
+         if posn < 0: return ''         # failure
+
+      # now posn >= 0 and cpath[posn] is not a digit or digchar, glob after that
+
+      prefix = cpath[0:posn+1]
+      glist = glob.glob('%s*' % prefix)
+      if len(glist) == 0: return ''     # failure
+      if self.verb > 2:
+         MESGm("considering %d compiler candidates" % len(glist))
+         MESGi("\n   ".join(glist))
+
+      newlist = []
+      # we have a list of candidates, if any char after posn is non-digit,
+      # remove the candidate
+      for gstr in glist:
+         keep = 1
+         for dc in gstr[posn+1:]:
+            if dc not in digchars and not dc.isdigit():
+               # bad candidate
+               keep = 0
+               break
+         if keep:
+            newlist.append(gstr)
+      if len(newlist) == 0: return ''     # failure
+
+      # --- we have a list of candidates
+
+      # if there is only one, just return it
+      if len(newlist) == 1:
+         return newlist[0]
+
+      # okay, the sorting... I should put this in afni_util.py
+      # - in each path suffix (after the common prefix),
+      #   convert all digchars to '.' and split the string over '.'
+      #   (ignoring empty string)
+      # - these should all be integers, so convert to them
+      # - then sort the list of lists (with original index appended)
+      # - grab the newlist element with the index from the desired 
+      #   position of the sorted list
+
+      # we have digits and digchars in the suffix
+      # - convert all digchars to '.', split, convert to ints and sort
+      splitlist = []
+      for ind, newcc in enumerate(newlist):
+         suffix = newcc[posn+1:]
+         for c in digchars:
+            if c != '.': suffix = suffix.replace(c, '.')
+         # make a list of elements
+         sufints = [int(s) for s in suffix.split('.') if s != '']
+         # add split intlist and index to new list
+         splitlist.append([sufints, ind])
+
+      # sort the split integers, and the 'ind' field is where they came from
+      splitlist.sort()
+
+      # so return the newlist element: index the [1] field of the last element
+      return newlist[splitlist[-1][1]]
+
    def check_conda_evars(self):
       """note whether we are in a conda environment
          print: CONDA_SHLVL and CONDA_DEFAULT_ENV, if set
 
          return whether we are in conda (SHLVL set)
       """
-      ekeys = os.environ.keys()
-
       elvl = 'CONDA_SHLVL'
       eenv = 'CONDA_DEFAULT_ENV'
       # if no shell level, we are done
-      if elvl not in ekeys:
+      if elvl not in self.ekeys:
          return 0
 
       # init main vars and check DEF_ENV
@@ -1509,7 +1787,7 @@ class MyInterface:
       venv = ''
 
       # make a string for DEFAULT_ENV
-      if eenv in ekeys:
+      if eenv in self.ekeys:
          venv = ', %s = %s' % (eenv, os.environ[eenv])
 
       MESGw('in conda environment')
@@ -1527,14 +1805,9 @@ class MyInterface:
          do = self.do_orig_abin
       return do
 
-   def f_make_backup_abin_name(self):
-      """make up a name for backing up abin
+   def f_fill_datestring(self, form='%Y_%m_%d_%H_%M_%S'):
+      """return date string for the given form, else NODATE"""
 
-         backup.abin.YYYY_MM_DD_hh_mm_ss
-         (self.backup.prefix.)YYYY_MM_DD_hh_mm_ss
-      """
-      # try to make a date signature
-      form = '%Y_%m_%d_%H_%M_%S'
       dstr = ''
       # first using datetime
       try:
@@ -1558,27 +1831,31 @@ class MyInterface:
       if dstr == '':
          dstr = 'NODATE'
 
+      return dstr
+
+   def f_make_backup_abin_name(self):
+      """make up a name for backing up abin
+
+         backup.abin.YYYY_MM_DD_hh_mm_ss
+         (self.backup.prefix.)YYYY_MM_DD_hh_mm_ss
+      """
+
+      # try to make a date signature
+      dstr = self.f_fill_datestring()
+
       # now set prefix, and if needed, find an incremenal suffix
       bname = '%s%s' % (self.backup_prefix, dstr)
 
       # see if bname is sufficient (should usually be)
       # if it exists, try adding a suffix for a while before failure
       if os.path.exists(bname):
-         for ind in range(1,100):
+         for ind in range(1,10):
             btmp = '%s.%02d' % (bname, ind)
             # if not here, we have a good candidate
             if not os.path.exists(btmp):
                bname = btmp
                break
             # else it exists, keep searching
-
-      if self.verb > 1:
-         MESGm("will try using back up abin, %s" % bname)
-
-      # okay, one more check
-      if os.path.exists(bname):
-         MESGe("failed to make backup.abin name, please delete some")
-         return ''
 
       return bname
 
@@ -1695,6 +1972,17 @@ class MyInterface:
 
       # if it already exists, move to backup
       if os.path.exists(niivue):
+
+         # if NOT updating niivue, just check and return
+         if not self.update_niivue:
+            if not os.path.isfile(niivue):
+               MESGe("** have build_root/%s, but it is not a file??" \
+                     % niivue)
+               return 1
+
+            # we are done here
+            MESGm("will reuse existing NiiVue file, %s" % niivue)
+            return 0
 
          # remove old backup
          if os.path.exists(backup):

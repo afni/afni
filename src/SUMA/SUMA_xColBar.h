@@ -1345,7 +1345,31 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "See also envs :ref:`SUMA_CmapsDir<SUMA_CmapsDir>`, "\
    ":ref:`SUMA_RetinoAngle_DsetColorMap<SUMA_RetinoAngle_DsetColorMap>` "\
    "and :ref:`SUMA_VFR_DsetColorMap<SUMA_VFR_DsetColorMap>`"
-   
+ 
+   #define  SUMA_SurfContHelp_AlphaThr  \
+"Use transparency (alpha) threshold.:LR:\n\n"   \
+"   OFF: The alpha/opacity of the surface overlays can\n"   \
+"        range from 0 (maximum transparency) to 1\n"   \
+"        (maximum opacity). That is\n\n"   \
+"          O(n) = O(o):LR:\n\n"   \
+"   ON: Opacities at, or above, the threshold, set by the\n"   \
+"       sliding bar, are set to 1.  Lower opacities are\n"   \
+"       linearly, or quadratically, scaled into the range\n"   \
+"       [0,1].  That is,\n\n"   \
+"          O(n) = 1, O(o)>=T\n"   \
+"          O(n) = O(o)/T, O(o)<T, linear case\n"   \
+"          O(n) = (O(o)/T)^2, O(o)<T, quadratic case\n\n"   \
+"where:\n\n"   \
+"     O(n) is the opacity set by the alpha mapping.:LR:\n"   \
+"     O(o) is the original opacity and\n"  \
+"     T is the threshold set by the sliding bar. "  \
+
+   #define  SUMA_SurfContHelp_BoxOutlineThr  \
+"Box outline thresholded regions.:LR:\n\n"   \
+"   OFF: Thresholded regions, of overlay, are identified\n"   \
+"        by color versus gray-scale, by different colors\n"   \
+"        or not at all.\n\n"   \
+"   ON: Thresholded regions are demarcated by black voxels\n"
 
    #define  SUMA_SurfContHelp_AbsThr   \
 "Toggle Absolute thresholding.:LR:\n"   \

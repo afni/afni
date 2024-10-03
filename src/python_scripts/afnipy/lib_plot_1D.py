@@ -335,7 +335,14 @@ lots of individual subject 'ss' instances of the subplobj object.
                       color = ss.color,
                       lw=calc_lw_from_npts(ss.npts),
                       label=ss.leglabel )
-        
+
+        # if using yrange: can have a semitransparent filled area
+        if len(ss.yrantop) :
+            spran = pp.fill_between( ss.x, ss.yranbot, ss.yrantop, 
+                                     color = ss.color,
+                                     alpha=0.2,
+                                     lw=0.0 )
+
         pp.set_xlim(ss.xlim)
         pp.set_ylim(ss.ylim)
 
@@ -561,6 +568,10 @@ def populate_1dplot_fig(iopts):
             ss.set_xlabel( iopts.xlabel )
 
         ss.set_y( iopts.all_y[ii] )
+        # include plus/min y-range values, if they were input
+        if len(iopts.all_yrantop) :
+            ss.set_ylim_use_pm( iopts.ylim_use_pm )
+            ss.set_yran( iopts.all_yranbot[ii], iopts.all_yrantop[ii] )
 
         # if not a null set, then there is one for each subj; for
         # plotting in "after censoring" boxplot, if selected at the
@@ -618,6 +629,8 @@ def populate_1dplot_arrays(iopts):
 
     iopts.create_all_x()
     ok2 = iopts.check_dims_all_x_ys()
+
+    iopts.create_all_yran()  # if plus/min ranges entered; len checked here.
 
     # once arrays are read in, so the total number is known, sort out
     # color table: will either be what user entered or default palette

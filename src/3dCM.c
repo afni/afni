@@ -26,34 +26,10 @@ int dset_get_orient( THD_3dim_dataset *ddd,
    return 0;
 }
 
-int main( int argc , char * argv[] )
+void usage_3dCM() 
 {
-   int narg=1, do_automask=0 , iv , nxyz , do_set=0 , 
-      *rois=NULL, N_rois=0, all_rois = 0;
-   THD_3dim_dataset *xset = NULL ;
-   byte *mmm=NULL ; int nmask=0 , nvox_mask=0 ;
-   THD_fvec3 cmv , setv ;
-
-   int cmode = 0; // default: return xyz in DICOM
-   int cm_cmode;
-   int LocalHead = wami_lh();
-   int Icent = 0;  // compute Icent internal center
-   int Dcent = 0;  // compute Dcent distance center
-   
-   THD_3dim_dataset *mask_dset = NULL ;
-
-   // [PT: Apr 23, 2024] for resampling internally
-   char *dset_orient_ref   = NULL ;  // internally resampling all to this
-	char dset_orient_inp[4] = "   ";  // [4]="---";
-	char dset_orient_ext[4] = "   ";  // [4]="---";
-   THD_3dim_dataset *tmpset = NULL;
-   char tmppref[THD_MAX_PREFIX];
-   int i = 0;
-
-   /*-- read command line arguments --*/
-
-   if( argc < 2 || strncmp(argv[1],"-help",5) == 0 ){
-      printf("Usage: 3dCM [options] dset\n"
+   printf("\n"
+"Usage: 3dCM [options] dset\n"
 "\n"
 "Output = center of mass of dataset, to stdout.\n"
 "    Note: by default, the output is (x,y,z) values in RAI-DICOM\n"
@@ -103,13 +79,47 @@ int main( int argc , char * argv[] )
 "                when using '-set ..'.\n"
 "\n"
 "  NOTE: Masking options are ignored with -roi_vals and -all_rois\n"
-             ) ;
-      PRINT_COMPILE_DATE ; exit(0) ;
-   }
+);
+	return;
+}
+
+int main( int argc , char * argv[] )
+{
+   int narg=1, do_automask=0 , iv , nxyz , do_set=0 , 
+      *rois=NULL, N_rois=0, all_rois = 0;
+   THD_3dim_dataset *xset = NULL ;
+   byte *mmm=NULL ; int nmask=0 , nvox_mask=0 ;
+   THD_fvec3 cmv , setv ;
+
+   int cmode = 0; // default: return xyz in DICOM
+   int cm_cmode;
+   int LocalHead = wami_lh();
+   int Icent = 0;  // compute Icent internal center
+   int Dcent = 0;  // compute Dcent distance center
+   
+   THD_3dim_dataset *mask_dset = NULL ;
+
+   // [PT: Apr 23, 2024] for resampling internally
+   char *dset_orient_ref   = NULL ;  // internally resampling all to this
+	char dset_orient_inp[4] = "   ";  // [4]="---";
+	char dset_orient_ext[4] = "   ";  // [4]="---";
+   THD_3dim_dataset *tmpset = NULL;
+   char tmppref[THD_MAX_PREFIX];
+   int i = 0;
+
+   mainENTRY("3dCM main") ; machdep() ;
+
+   /*-- read command line arguments --*/
+   if (argc == 1) { usage_3dCM(); exit(0); }
 
    LOAD_FVEC3(setv,0,0,0) ;   /* ZSS: To quiet init. warnings */
    narg = 1 ;
    while( narg < argc && argv[narg][0] == '-' ){
+      if( strcmp(argv[narg],"-help") == 0 || 
+          strcmp(argv[narg],"-h") == 0 ) {
+         usage_3dCM();
+         exit(0);
+      }
 
       if( strcmp(argv[narg],"-set") == 0 ){
          float xin,yin,zin ;
@@ -268,7 +278,7 @@ int main( int argc , char * argv[] )
 
       // [PT: Apr 23, 2024] check if grids match, *after* they have
       // both been resampled (if that is the case)
-      if (THD_dataset_mismatch( xset , mask_dset )) {
+      if ( mask_dset && THD_dataset_mismatch( xset , mask_dset )) {
          ERROR_message("Mismatch between mask dset and input %s",argv[narg]);
          ERROR_message("For info, run '3dinfo -same_all_grid ...' on them");
          DSET_delete(xset) ; 

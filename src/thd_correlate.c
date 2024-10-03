@@ -27,22 +27,29 @@ void rank_order_float( int n , float *a )
    b = (int   *) malloc(sizeof(int  )*n) ;
    c = (float *) malloc(sizeof(float)*n) ;
 
+   /*- initialize position b[] and rank [c] -*/
+
    for( ii=0 ; ii < n ; ii++ ) c[ii] = b[ii] = ii ;
 
-   /*- sort input, carrying b along -*/
+   /*- sort input a, carrying b along; when sorted, a[i] is in a[b[i]] -*/
 
    qsort_floatint( n , a , b ) ;  /* see cs_sort_fi.c */
 
-   /* compute ranks into c[] */
+   /* compute tied ranks into c[] */
 
    n1 = n-1 ;
    for( ii=0 ; ii < n1 ; ii++ ){
-     if( a[ii] == a[ii+1] ){                  /* handle ties */
-       cs = 2*ii+1 ; ns = 2 ; ib = ii ; ii++ ;
+     if( a[ii] == a[ii+1] ){ /*- handle ties -*/
+       cs = 2*ii+1 ;           /* sum of tied ranks */
+       ns = 2 ;                /* number of tied ranks */
+       ib = ii ; ii++ ;        /* scan ii up until no ties */
        while( ii < n1 && a[ii] == a[ii+1] ){ ii++ ; ns++ ; cs += ii ; }
+                               /* rescan to fill tied ranks with average rank */
        for( cs/=ns ; ib <= ii ; ib++ ) c[ib] = cs ;
      }
    }
+
+   /*- store the rank c[] back into input a[] (if no ties, c[i] == i) -*/
 
    for( ii=0 ; ii < n ; ii++ ) a[b[ii]] = c[ii] ;
 

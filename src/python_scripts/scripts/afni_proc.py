@@ -786,9 +786,23 @@ g_history = """
     7.73 Apr  7, 2024: the default warp vox dim will round up if very close
     7.74 Apr  8, 2024: add -anat_follower_erode_level
     7.75 Apr 25, 2024: add -uvar option, to pass user vars along
+    7.76 May 25, 2024:
+       - add -bids_deriv, to output a BIDS derivative tree
+       - add -volreg_allin_warp (def shift_rotate)
+    7.77 May 30, 2024: fix volreg TSNR for ME: use eind -> fave_echo
+       - thanks to zhengchencai on MB for pointing it out
+       - remove unneeded followers from example 'publish 3d'
+    7.78 Aug  5, 2024: add option -blip_warp_dset to input a computed warp
+    7.79 Aug 30, 2024:
+       - make example option order more consistent (id, EPI, anat, blocks, ...)
+       - minor updates to example comments and directory names
+       - add example 'publish 3i', where 'i' corresponds to 9
+       - add examples publish 3e, 3f, 3g, 3h, 3j and help section 'eshow'
+         - exclude 'noshow' examples from default help output
+       - compare_opts now considers file path differences separately
 """
 
-g_version = "version 7.75, April 25, 2024"
+g_version = "version 7.79, Aug 30, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -819,23 +833,23 @@ interesting milestones for afni_proc.py:
    2006.12 : initial release - basic processing blocks, can alter order
    2006.12 : -ask_me - interactive method for user options
    2007.05 : compatible for python 2.2 - 2.5
-   2008.01 : estimate smoothness (for use in cluster correction)
-   2008.12 : allow NIFTI inputs
-   2009.03 : allow use of 3dREMLfit
+   2008.01 : compute smoothness estimates (for use in cluster correction)
+   2008.12 : enable use of NIFTI inputs
+   2009.03 : enable use of 3dREMLfit
    2009.03 : default change - do not mask EPI results
-   2009.04 : ricor block - for physiological regressors
-   2009.05 : tlrc block - EPI to standard space (catenated transformation)
-   2009.05 : align block - run align_epi_anat.py
+   2009.04 : add ricor block - for physiological regressors
+   2009.05 : add tlrc block - EPI to standard space (catenated transformation)
+   2009.05 : add align block - run align_epi_anat.py (catenated transformation)
    2009.05 : base examples on AFNI_data4
    2009.08 : censoring based on motion parameters
    2010.06 : censoring based on initial outliers
-   2010.08 : allow amplitude modulation via married timing files
+   2010.08 : allow amplitude modulation in the linear regression model
    2011.06 : TSNR dataset
    2011.07 : graphical interface - uber_subject.py
    2011.07 : @ss QC review scripts - via gen_ss_review_scripts.py
    2011.10 : surface analysis
    2012.01 : base examples on AFNI_data6
-   2012.04 : bandpassing
+   2012.04 : enable bandpassing in linear regression model
    2012.05 : allow processing more than 99 runs
    2012.09 : tissue-based regression - via 3dSeg segmentation
    2013.01 : compute GCOR - average spatial pairwise correlation
@@ -845,17 +859,25 @@ interesting milestones for afni_proc.py:
    2014.04 : MIN_OUTLIER volreg base
    2015.02 : fast ANATICOR - Gaussian-weighted local mean, rather than flat
    2015.04 : anatomical followers and ROI/PC regression
+   2016.05 : check left/right flip of EPI vs anat
    2016.06 : distortion correction - using reverse blip
    2016.08 : mixed-model ACF blur estimation
-   2017.11 : python3 compatible
+   2017.11 : python3 compatible (maintaining compatibility with python 2)
    2018.02 : combine block - for multi-echo data (OC and tedana)
    2018.11 : APQC HTML report
    2019.01 : EPI alignment across per-run bases (-volreg_post_vr_allin)
    2019.10 : tedana from MEICA group - https://github.com/ME-ICA/tedana
    2019.02 : compare options with examples and other afni_proc.py commands
-   2021.11 : updated MEICA group tedana
-   2022.11 : find_variance_lines.tcsh
+   2021.04 : ap_run_simple_rest.tcsh: low-option afni_proc.py command for QC
+   2021.11 : apply updates from MEICA group tedana
+   2022.06 : local unifize option to assist inhomogeneous EPI for anat alignment
+   2022.11 : find_variance_lines.tcsh - detect high-variance I/S lines in EPI
+   2022.11 : run APQC HTML from local server, for interactive features
    2024.02 : new examples (demo, short, publish), with mod date
+   2024.02 : compute TSNR stats across automatic or provided ROIs
+   2024.04 : ap_run_simple_rest_me.tcsh: low-option afni_proc.py for multiecho
+   2024.05 : enable output of BIDS derivative tree
+   2024.08 : input external distortion warp dataset
 """
 
 
@@ -890,6 +912,9 @@ More detailed changes, starting May, 2018.
 
    10 Mar 2022 : run 3dAllineate for -align_epi_ext_dset to volreg base
       - apply an additional xform between anat2epi base and epi2epi one
+
+   25 May 2024 : make volreg_method 3dAllinate default warp shift_rotate
+      - add -volreg_allin_warp to control
 
 """
 
@@ -1012,7 +1037,7 @@ g_html_review_styles = ['none', 'basic', 'pythonic' ] # java?
 g_eg_skip_opts = [ 
    '-subj_id', '-script', '-out_dir', '-align_epi_ext_dset', 
    '-anat_follower', '-anat_follower_ROI', 
-   '-blip_forward_dset', '-blip_reverse_dset', 
+   '-blip_forward_dset', '-blip_reverse_dset', '-blip_warp_dset',
    '-copy_anat', '-dsets', '-dsets_me_echo', '-dsets_me_run', 
    '-surf_anat', '-surf_spec',
    '-tlrc_NL_warped_dsets', 
@@ -1040,6 +1065,7 @@ class SubjProcSream:
         self.block_names= []            # list of block names, pre 'blocks'
         self.dsets      = []            # list of afni_name elements
         self.have_sels  = 0             # do the inputs have selectors
+        self.dsets_obl  = 0             # are the -dsets oblique
 
         self.check_rdir = 'yes'         # check for existence of results dir
         self.stims_orig = []            # orig list of stim files to apply
@@ -1082,8 +1108,9 @@ class SubjProcSream:
         self.blip_dset_rev  = None      # afni_name: local blip_in_rev dset
         self.blip_dset_med  = None      # afni_name: result: blip align median
         self.blip_dset_warp = None      # afni_name: result: blip NL warp dset
-        self.blip_obl_for = 0           # is it oblique
-        self.blip_obl_rev = 0           # is it oblique
+        self.blip_obl_warp  = 0         # is it oblique: warp
+        self.blip_obl_for   = 0         # is it oblique: forward blip
+        self.blip_obl_rev   = 0         # is it oblique: reverse blip
 
         self.vr_ext_base= None          # name of external volreg base 
         self.vr_ext_pre = 'vr_base_external' # copied volreg base prefix
@@ -1173,6 +1200,7 @@ class SubjProcSream:
         self.have_3dd_stats = 1         # do we have 3dDeconvolve stats
         self.have_reml_stats = 0        # do we have 3dREMLfit stats
         self.epi_review = '@epi_review.$subj' # filename for gen_epi_review.py
+        self.bids_deriv   = 'no'        # yes/no/BIDS derivative directory root
         self.html_rev_style = 'pythonic' # html_review_style
         self.html_rev_opts = []         # user opts for apqc_make_tcsh.py
         self.made_ssr_scr = 0           # did we make subj review scripts
@@ -1399,6 +1427,8 @@ class SubjProcSream:
                         helpstr='have afni_proc.py as the user for options')
         self.valid_opts.add_opt('-bash', 0, [],
                         helpstr='obsolete: show execution help in bash syntax')
+        self.valid_opts.add_opt('-bids_deriv', 1, [],
+                        helpstr='specify BIDS output directory (def=no)')
         self.valid_opts.add_opt('-check_afni_version', 1, [],
                         acplist=['yes','no'],
                         helpstr='check that AFNI is current enough')
@@ -1519,6 +1549,8 @@ class SubjProcSream:
                         helpstr='reverse blip dset for blip up/down corretion')
         self.valid_opts.add_opt('-blip_opts_qw', -1, [],
                         helpstr='additional options for 3dQwarp in blip block')
+        self.valid_opts.add_opt('-blip_warp_dset', 1, [],
+                        helpstr='specify a precomputed distortion warp dset')
 
         self.valid_opts.add_opt('-align_epi_ext_dset', 1, [],
                         helpstr='external EPI volume for align_epi_anat.py')
@@ -1569,6 +1601,10 @@ class SubjProcSream:
                         helpstr="specify -*auto* options for 3dAllineate")
         self.valid_opts.add_opt('-volreg_allin_cost', 1, [],
                         helpstr="specify -cost for 3dAllineate in volreg [lpa]")
+        self.valid_opts.add_opt('-volreg_allin_warp', 1, [],
+                        acplist=['shift_rotate', 'shift_rotate_scale',
+                                 'affine_general'],
+                        helpstr="specify -warp for 3dAllineate in volreg")
         self.valid_opts.add_opt('-volreg_post_vr_allin', 1, [],
                         acplist=['yes','no'],
                         helpstr='do cross-run allin after within-run volreg')
@@ -2093,6 +2129,9 @@ class SubjProcSream:
             if opt.parlist[0] == 'no': self.anat_has_skull = 0
             else:                      self.anat_has_skull = 1
 
+        opt = opt_list.find_opt('-bids_deriv') # make BIDS deriv?
+        if opt != None: self.bids_deriv = opt.parlist[0]
+
         opt = opt_list.find_opt('-copy_anat')
         if opt != None:
             self.anat = gen_afni_name(opt.parlist[0])
@@ -2372,6 +2411,9 @@ class SubjProcSream:
         self.orig_delta = dims
         self.delta = dims
 
+        # note obliquity of first EPI dset
+        self.dsets_obl = dset_is_oblique(self.dsets[0], self.verb)
+
         return errs
 
     # init blocks from command line options, then check for an
@@ -2438,8 +2480,9 @@ class SubjProcSream:
            if err: return 1
 
         # do we want the blip block?
-        if self.user_opts.find_opt('-blip_reverse_dset') \
-              and not 'blip' in blocks:
+        if (    self.user_opts.find_opt('-blip_warp_dset')      \
+             or self.user_opts.find_opt('-blip_reverse_dset') ) \
+             and not 'blip' in blocks:
            err, blocks = self.add_block_to_list(blocks, 'blip')
            if err: return 1
 
@@ -3244,6 +3287,8 @@ class SubjProcSream:
         self.write_text('mkdir -p %s\nmkdir %s/stimuli\n%s\n' \
                         % (self.od_var, self.od_var, stat_inc))
 
+        # start copying files and datasets into the results directory
+
         if len(self.stims_orig) > 0: # copy stim files into script's stim dir
           oname = '-regress_stim_times_offset'
           val, err = self.user_opts.get_type_opt(float, oname)
@@ -3497,7 +3542,7 @@ class SubjProcSream:
            bstr += tstr
 
         if isinstance(self.blip_in_warp, afni_name):
-           self.blip_dset_warp = gen_afni_name('blip_NL_warp', view=self.view)
+           self.blip_dset_warp = gen_afni_name('distortion_warp',view=self.view)
            tstr = '# copy external blip NL warp (transformation) dataset\n' \
                   '3dcopy %s %s/%s\n' %                                     \
                   (self.blip_in_warp.nice_input(), self.od_var,
@@ -3550,6 +3595,24 @@ class SubjProcSream:
             self.write_text('# remove temporary files\n'
                             '\\rm -f%s %s\n\n' % (ropt, delstr))
 
+        # do we write output to a BIDS derivate tree?
+        blower = self.bids_deriv.lower()
+        if blower != 'no': # then the user wants BIDS
+           # require yes, no, or absolute path (check using lower case)
+           if blower not in ['no', 'yes']:
+              # any path is required to be absolute
+              if not self.bids_deriv.startswith('/'):
+                print("** -bids_deriv path must be absolute (start with /)")
+                return 1
+           if blower == 'yes': bdir = '.'
+           else              : bdir = self.bids_deriv
+           if bdir == '.'    : bstr = ''
+           else              : bstr = ' \\\n    -deriv_dir %s' % bdir
+           ss = '# --------------------------------------------------\n' \
+                '# generate BIDS derivative output\n'                    \
+                'map_ap_to_deriv.py -subj_dir .%s\n\n' % bstr
+           self.write_text(ss)
+
         # at the end, if the basic review script is here, run it
         if self.epi_review:
            # maybe we will have an html sub-section
@@ -3570,7 +3633,8 @@ class SubjProcSream:
                  if rv == 0:
                     print("+- consider use of: -html_review_style pythonic")
                 
-           ss = '# if the basic subject review script is here, run it\n' \
+           ss = '# --------------------------------------------------\n' \
+                '# if the basic subject review script is here, run it\n' \
                 '# (want this to be the last text output)\n'             \
                 'if ( -e %s ) then\n'                                    \
                 '    ./%s |& tee %s\n'                                   \
@@ -3628,6 +3692,8 @@ class SubjProcSream:
                 tstr += ' '.join(quotize_list(opt.parlist,''))
             tstr += '\n'
             self.write_text(add_line_wrappers(tstr))
+
+        return 0
 
     def get_ap_command_str(self, style='compact', lstart='# '):
        """return a commented command string, depending on the desired style
@@ -4143,12 +4209,12 @@ class SubjProcSream:
 
     # ----------------------------------------------------------------------
     # APExample functions, based on EGS
-    def egs(self):
+    def egs(self, keys_rm=[]):
         """return imported EGS library, so it is hidden if not used"""
         if self.EGS == None:
            from afnipy import lib_ap_examples as EGS
            self.EGS = EGS
-           self.EGS.populate_examples()
+           self.EGS.populate_examples(keys_rm=keys_rm)
         return self.EGS
 
     def show_example(self, ename, verb=1):

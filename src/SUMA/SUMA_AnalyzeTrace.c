@@ -549,7 +549,10 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
    /* seal comp_fl and write to disk */
    if (0){
       comp_fl[N_comp_fl] = '\0'; 
-      fopen("CompactTrace","w");
+      if (!(fopen("CompactTrace","w"))){
+        fprintf(SUMA_STDERR, "Failure to open file CompactTrace\n.\n");
+        return 0;
+      }
       fprintf(fff,"%s",comp_fl);
       SUMA_free(comp_fl); comp_fl = NULL;
       fclose(fff); fff = NULL;

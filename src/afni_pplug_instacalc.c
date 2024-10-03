@@ -1065,7 +1065,7 @@ if(DEBUG) ININFO_message("  string = %s",str) ;
            ics->value_string = THD_zzprintf( ics->value_string, " %s == %g",
                                              str+ist, ics->inval[ids]       ) ;
 
-         } /* end of dataset statisick-ization */
+         } /* end of dataset statistick-ization */
 
 if(DEBUG) ININFO_message("  completely done with dataset processing") ;
        DSET_DONE: /*nada*/ ;

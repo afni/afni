@@ -2749,6 +2749,7 @@ class Afni1D:
 
             compute max pairwise displacement among the coordinate pairs
                using L1 norm (sum of abs(diffs))
+            this might be akin to FD vs enorm, though FD is adjacent diffs
             
           cset is an optional censor dataset (1=keep, 0=censor)
       """

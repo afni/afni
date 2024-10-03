@@ -3,7 +3,8 @@ set pp = $0:h
 #Run R in script more. Better than R CMD BATCH
 
 if ($#argv == 0) then
-   set arglist = (-interactive)
+#   set arglist = (-interactive)
+   set arglist = (-help)
 else
    set noglob
    set arglist = ($*)

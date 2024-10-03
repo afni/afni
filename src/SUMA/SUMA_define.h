@@ -1090,6 +1090,9 @@ typedef struct {
    byte *ClustOfNode; /*!< Tells which cluster a node belongs to, Should have
                            SO->N_Node values in it*/
    float AlphaThresh;
+   float *originalColVec;
+   char *originalCMapName;
+   double IntRange[2];
 } SUMA_OVERLAYS;
 
 
@@ -1765,6 +1768,11 @@ typedef struct {
    int DeleteMask_row;
    float tract_length_mask[2];
    int UseMaskLen;
+   Widget AlphaOpacityFalloff_tb; /*!< alpha threshold */
+   Widget BoxOutlineThresh_tb; /*!< box outline threshold */
+   int AlphaOpacityFalloff;
+   int alphaOpacityModel;   // Model used for the opacity falloff from the alpha threshold
+   int BoxOutlineThresh;
 }SUMA_X_SurfCont;
 
 typedef struct {

@@ -9,7 +9,7 @@ from   afnipy import lib_physio_util as lpu
 
 # ==========================================================================
 
-def func_flatgauss(N, delta=None, sigma=1.0):
+def func_flatgauss(N, delta=None, sigma=1.0, hp_freq=None):
     """For a freq series with N points and step size delta (i.e., df) and
 width-scale parameter sigma, return an array of the 'flat Gaussian'
 filter values.  NB: the 'flat Gaussian' is the FT partner of the
@@ -17,14 +17,19 @@ Gaussian standard normal-distribution, whose height is always 1.
 
 Default sigma value is 1, in units of Hz (bigger sigma -> wider filter).
 
+One can also turn on highpassfiltering as part of this filter, if
+non-None hp_freq is provided.
+
 Parameters
 ----------
 N : int
     total number of frequencies in the frequency series
 delta : float
     step size along abscissa (like, df for freq series)
-sigma: float
-    what would be the standard deviation parameter in a Gaussian
+sigma : float
+    what would be the standard deviation parameter in a Gaussian (phys units)
+hp_freq : float
+    if present, do highpass filtering from this value (phys units)
 
 Returns
 -------
@@ -49,6 +54,11 @@ y : np.ndarray
     fhalf      = np.arange(kmaxp1)*delta
     y[:kmaxp1] = np.exp(-0.5*fhalf*fhalf/sigma/sigma)
 
+    # optionally add in HP filter, zero out low freqs
+    if hp_freq :
+        hp_num = int(hp_freq / delta)
+        y[:hp_num] = 0.0
+
     # ... and second half of filt, filled in symmetrically
     if N % 2 :    y[kmaxp1:] = y[kmax:0:-1]
     else:         y[kmax:]   = y[kmax:0:-1]
@@ -56,7 +66,7 @@ y : np.ndarray
     return y
 
 
-def func_blackman_nuttall(N, delta=None, sigma=1.0):
+def func_blackman_nuttall(N, delta=None, sigma=1.0, hp_freq=None):
     """For a freq series with N points and step size delta (i.e., df) and
 width-scale parameter sigma, return an array of the Blackman-Nuttall
 filter values.  NB: the 'Blackman-Nuttall' window is symmetric and
@@ -66,6 +76,9 @@ kinda Gaussian shaped, but tapers faster.  Its peak height is always
 
 Default sigma value is 1, in units of Hz (bigger sigma -> wider filter).
 
+One can also turn on highpassfiltering as part of this filter, if
+non-None hp_freq is provided.
+
 Parameters
 ----------
 N : int
@@ -74,6 +87,8 @@ delta : float
     step size along abscissa (like, df for freq series)
 sigma: float
     what would be the standard deviation parameter in a Gaussian
+hp_freq : float
+    if present, do highpass filtering from this value (phys units)
 
 Returns
 -------
@@ -114,6 +129,11 @@ y : np.ndarray
     if nhwin <= kmaxp1 :    y[:nhwin]  = w
     else:                   y[:kmaxp1] = w[:kmaxp1]
 
+    # optionally add in HP filter, zero out low freqs
+    if hp_freq :
+        hp_num = int(hp_freq / delta)
+        y[:hp_num] = 0.0
+
     # ... and second half of filt, filled in symmetrically
     if N % 2 :    y[kmaxp1:] = y[kmax:0:-1]
     else:         y[kmax:]   = y[kmax:0:-1]
@@ -126,6 +146,7 @@ def apply_bandpass_smooth(x, samp_freq,
                           min_bps, max_bps=None,
                           label='', retobj=None,
                           win_shape='blackman_nuttall',
+                          extend_bp=False,
                           verb=0):
     """Bandpass filter raw data based on overall typical period of the
 time series, and also return the peak (mode) of freq between [1,
@@ -156,6 +177,11 @@ label : str
 retobj : retro_obj class
     object with all necessary input time series info; will also store
     outputs from here; contains dictionary of phys_ts_objs
+win_shape : str
+    name of windowing shape function
+extend_bp : bool
+    opt to be more generous in bandpass (would only apply to resp data
+    at present, where there is more variability)
 
 Returns
 -------
@@ -200,6 +226,13 @@ idx_freq_peak : int
     idx_freq_peak = np.argmax(Xabs[idx_min:idx_max]) + idx_min
     freq_peak = idx_freq_peak * delta_f
 
+    # for card time series, will use high bandpass by default; seems
+    # to help in cases where big changes at lower freqs occur
+    if label == 'card' :
+        highpass_freq = freq_peak / 2.0                 # phys value
+    else:
+        highpass_freq = None
+
     print('++ (' + label + ') Bandpass filter frequency peak: '
           '{:.6f} Hz'.format(freq_peak))
 
@@ -209,15 +242,23 @@ idx_freq_peak : int
 
     # ----- window/attenuation/'bandpass'
 
+    # do we want extended hp range?
+    if extend_bp :
+        sig_fac = 2.0
+    else:
+        sig_fac = 1.0
+
     # [PT: Nov 22, 2023] Don't use a simple step filter---that can
     # introduce ringing. Each of these filters is better, because of
     # the tapering.
     if win_shape == 'blackman_nuttall' :
-        sigma = 1.0*freq_peak                         # scale width
-        filt  = func_blackman_nuttall(N, delta=delta_f, sigma=sigma)
+        sigma = sig_fac*freq_peak                         # scale width
+        filt  = func_blackman_nuttall(N, delta=delta_f, sigma=sigma,
+                                      hp_freq = highpass_freq)
     elif win_shape == 'flat_gaussian' :
-        sigma = 1.0*freq_peak                         # scale width
-        filt  = func_flatgauss(N, delta=delta_f, sigma=sigma)
+        sigma = sig_fac*freq_peak                         # scale width
+        filt  = func_flatgauss(N, delta=delta_f, sigma=sigma,
+                               hp_freq = highpass_freq)
     else:
         print("** ERROR: '{}' is not an allowed win_shape"
               "".format(win_shape))
@@ -394,7 +435,8 @@ idx_freq_peak : int
     return xfilt, idx_freq_peak
 
 def get_peaks_from_bandpass(x, samp_freq, min_bps, max_bps=None, 
-                            width_fac=4, label='', retobj=None, verb=0):
+                            width_fac=4, label='', retobj=None, 
+                            extend_bp=False, verb=0):
     """Use bandpassing to smooth out the time series, and then search for
 peaks in what remains as a first pass.  The art of this is picking a
 good band to apply.  Here, we look for a major peak above the
@@ -420,6 +462,8 @@ width_fac : int/float
     default was simply used in original program formulation
 label : str
     label for the time series, like 'card' or 'resp'
+extend_bp : bool
+    extend bandpass range? (likely only used for resp)
 
 Returns
 -------
@@ -443,6 +487,7 @@ xfilt : np.ndarray
                                 max_bps=max_bps,
                                 label=label, 
                                 retobj=retobj,
+                                extend_bp=extend_bp,
                                 verb=0)
     if len(xfilt) == 0:
        print("** ERROR: Failed to band-pass filter '{}' data".format(label))

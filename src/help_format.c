@@ -19,9 +19,10 @@ static int   nwign = 0 ;
 static char **wign = NULL ;
 static int  *lwign = NULL ;
 
-/* old web help and new sphinx one    16 Mar 2020 [rickr] */
+/* old web help and new sphinx one    16 Mar 2020 [rickr] 
+   [PT: 27 Aug 2024] update the sphinx web link */
 #define WEB "/pub/dist/doc/program_help/"
-#define AFNISPHINX_WEB "/pub/dist/doc/htmldoc/programs/"
+#define AFNISPHINX_WEB "/pub/dist/doc/htmldoc/programs/alpha/"
 
 static void qsort_intchar( int n , int *a , char **ia ) ; /* at end of file */
 

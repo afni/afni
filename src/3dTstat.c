@@ -797,7 +797,9 @@ int main( int argc , char *argv[] )
    }
 
    if( DSET_NUM_TIMES(old_dset) < 2 ){
-     WARNING_message("Input dataset is not 3D+time; assuming TR=1.0") ;
+     /* be more quiet, on the orders of P Taylor       [20 Jun 2024 rickr] */
+     /* WARNING_message("Input dataset is not 3D+time; assuming TR=1.0") ; */
+
      EDIT_dset_items( old_dset ,
                         ADN_ntt    , DSET_NVALS(old_dset) ,
                         ADN_ttorg  , 0.0 ,

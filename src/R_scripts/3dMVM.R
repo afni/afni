@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.2.1, Apr 4, 2024
+Version 4.2.2, May 30, 2024
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1117,7 +1117,8 @@ runAOV <- function(inData, dataframe, ModelForm) {
    out <- lop$outInit
    # when a voxel-wise covariate is included, 2nd half of input data inData stores the covariate
    #if(!is.null(lop$resid)) if(is.na(lop$vQV)) residout <- rep(0, length(inData)) else residout <- rep(0, length(inData)/2)
-   if(!is.null(lop$resid)) if(is.na(lop$vQV)) residout <- rep(0, lop$nResid)
+   #if(!is.null(lop$resid)) if(is.na(lop$vQV)) residout <- rep(0, lop$nResid)
+   if(!is.null(lop$resid)) residout <- rep(0, lop$nResid)
    options(warn = -1)
    if (!all(abs(na.omit(inData)) < 10e-8)) {  # not all 0s
       dataframe$Beta<-inData[1:lop$NoFile]
@@ -1479,7 +1480,7 @@ FileCol <- dim(lop$dataStr)[2]
 lop$NoFile <- dim(lop$dataStr[1])[1]
 
 # check afex version
-lop$afex_new <- (packageVersion('afex') >= 0.14)
+lop$afex_new <- TRUE #(packageVersion('afex') >= 0.14)
 
 # Repeated-measures (use lme) or not (use lm)
 #if (length(unique(lop$dataStr$Subj)) != length(lop$dataStr$Subj)) RM <- TRUE else RM <- FALSE

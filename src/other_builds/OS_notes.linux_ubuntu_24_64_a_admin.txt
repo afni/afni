@@ -1,4 +1,7 @@
-# Quick build setup script 1/3.  Should match with 'steps_linux_ubuntu24.rst'
+# Quick build setup script 1/3.
+# - Should match with 'steps_linux_ubuntu24.rst' for setting up a user system.
+# - This setup script is to create a build system, which can also apply to users.
+#
 # From bash shell:
 #   sudo bash OS_notes.linux_ubuntu_24_64_a_admin.txt 2>&1 | tee o.ubu_24_a.txt
 # From tcsh shell:
@@ -28,18 +31,21 @@ sudo apt-get install -y tcsh xfonts-base libssl-dev       \
                         libgfortran-14-dev libgomp1       \
                         gnome-terminal nautilus           \
                         firefox xfonts-100dpi             \
-                        r-base-dev cmake bc
-
+                        r-base-dev cmake bc               \
+                        libxext-dev libxmu-dev libxpm-dev \
+                        libgsl-dev libglut-dev libxi-dev  \
+                        libglib2.0-dev 
+      
 
 echo "++ Get more dependencies for R-package brms"
 sudo apt-get install -y libgdal-dev libopenblas-dev       \
                         libnode-dev libudunits2-dev
 
 
-echo "++ Make symlink for package GSL"
-sudo ln -s \
-        /usr/lib/x86_64-linux-gnu/libgsl.so.27            \
-        /usr/lib/x86_64-linux-gnu/libgsl.so.19
+echo "++ Fix GLwDrawA.h"
+cd /usr/include/GL
+sudo mv GLwDrawA.h GLwDrawA.h.orig
+sudo sed 's/GLAPI WidgetClass/extern GLAPI WidgetClass/' GLwDrawA.h.orig > GLwDrawA.h 
 
 
 echo "++ Done with sudo-required part"

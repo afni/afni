@@ -56,16 +56,26 @@ defaults write com.apple.Terminal FocusFollowsMouse -string YES
 # install initial AFNI package (no binaries), to be able to run AFNI scripts
 # install under initial abin (relevant if we -do_extras)
 
-curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/@update.afni.binaries
-tcsh @update.afni.binaries -no_recur -package anyos_text_atlas \
-        -bindir $HOME/abin
+# install AFNI's anyos_text_atlas package if nothing appears to be installed
+if ( ! -f $HOME/abin/init_user_dotfiles.py ) then
+   echo "++ installing AFNI anyos_text_atlas"
+   curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/@update.afni.binaries
+   tcsh @update.afni.binaries -no_recur -package anyos_text_atlas \
+                              -bindir $HOME/abin
+else
+   echo "-- skipping install of AFNI anyos_text_atlas"
+endif
 
+# always init dotfiles, as it does not compound
+echo "++ setting up user dotfiles"
 ~/abin/init_user_dotfiles.py -shell_list bash zsh tcsh \
-        -do_updates path apsearch -dir_bin ~/abin
+                             -do_updates path apsearch -dir_bin ~/abin
 
-# put AFNI in PATH
-source ~/.cshrc
-
+# put AFNI in PATH, if not already there
+`which init_user_dotfiles.py` >& /dev/null
+if ( $status ) then
+   source ~/.cshrc
+endif
 
 # ----------------------------------------------------------------------
 # build AFNI, using top level directory $HOME/afni_build
@@ -76,7 +86,10 @@ else
    set package = macos_13_ARM_clang
 endif
 
-build_afni.py -build_root $HOME/afni_build -package $package
+# if we are in this script, always run the build
+echo "++ compiling AFNI package $package"
+echo "++ running: build_afni.py -build_root ~/afni_build -package $package"
+build_afni.py -build_root ~/afni_build -package $package
 
 # and make sure we can see the new programs
 rehash
@@ -86,41 +99,73 @@ rehash
 # (here it is under home directory, but might want at system or conda)
 # (going this route, R_LIBS must be set in shell)
 
-setenv R_LIBS $HOME/sw/R-$rver
+if ( ! $?R_LIBS ) then
+   echo "++ setting R_LIBS=$HOME/sw/R-$rver"
+   setenv R_LIBS $HOME/sw/R-$rver
 
-echo "export R_LIBS=$R_LIBS" >> ~/.zshrc
-echo "export R_LIBS=$R_LIBS" >> ~/.bashrc
-echo "setenv R_LIBS $HOME/sw/R-$rver" >> ~/.cshrc
-mkdir -p $R_LIBS
+   echo "export R_LIBS=$R_LIBS" >> ~/.zshrc
+   echo "export R_LIBS=$R_LIBS" >> ~/.bashrc
+   echo "setenv R_LIBS $HOME/sw/R-$rver" >> ~/.cshrc
+else
+   echo "-- already have R_LIBS=$R_LIBS"
+endif
 
-rPkgsInstall -pkgs ALL |& tee out.rPkgsInstall.txt
+if ( ! -d $R_LIBS ) then
+   echo "++ building R libraries: rPkgsInstall -pkgs ALL"
+   mkdir -p $R_LIBS
+   rPkgsInstall -pkgs ALL |& tee out.rPkgsInstall.txt
+else
+   echo "-- already have directory $R_LIBS"
+endif
 
 # ----------------------------------------------------------------------
 # verify that Xvfb is in the PATH
-which Xvfb >& /dev/null
-if ( $status ) then
-   # add /opt/X11/bin to PATH
-   echo 'export PATH=$PATH:/opt/X11/bin' >> ~/.zshrc
-   echo 'export PATH=$PATH:/opt/X11/bin' >> ~/.bashrc
-   echo 'setenv PATH ${PATH}:/opt/X11/bin' >> ~/.cshrc
+if ( -f /opt/X11/bin/Xvfb ) then
+   which Xvfb >& /dev/null
+   if ( $status ) then
+      echo "++ adding /opt/X11/bin to PATH, for Xvfb"
+      echo 'export PATH=$PATH:/opt/X11/bin' >> ~/.zshrc
+      echo 'export PATH=$PATH:/opt/X11/bin' >> ~/.bashrc
+      echo 'setenv PATH ${PATH}:/opt/X11/bin' >> ~/.cshrc
+   else
+      echo "-- already have Xvfb in PATH"
+   endif
+else
+   echo ""
+   echo "** missing /opt/X11/bin/Xvfb, this should be fixed"
+   echo ""
 endif
 
 # ----------------------------------------------------------------------
 # misc, for ASC whining
 
-cp ~/abin/AFNI.afnirc ~/.afnirc
-suma -update_env
-apsearch -update_all_afni_help
+if ( ! -f ~/.afnirc ) then
+   echo '++ running:  cp ~/abin/AFNI.afnirc ~/.afnirc'
+   cp ~/abin/AFNI.afnirc ~/.afnirc
+endif
+
+if ( ! -f ~/.sumarc ) then
+   echo '++ running: suma -update_env'
+   suma -update_env
+endif
+
+if ( ! -f ~/.afni/help/all_progs.COMP ) then
+   echo ++ running: apsearch -update_all_afni_help
+   apsearch -update_all_afni_help
+endif
 
 # ----------------------------------------------------------------------
 # check the state of things
 
+echo ++ running: afni_system_check.py -check_all
 afni_system_check.py -check_all |& tee out.ASC.txt
 
 # ----------------------------------------------------------------------
 # suggest what users might do to use AFNI right now
 echo ""
-echo "to use AFNI now (in zsh), start with:"
-echo '   source ~/.zshrc'
+echo "++ AFNI setup is complete, to use AFNI now (in zsh), start with:"
+echo "   source ~/.zshrc"
+echo ""
+echo "   (or source the appropriate startup file, or just reboot to be sure)"
 echo ""
 

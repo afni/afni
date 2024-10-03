@@ -53,6 +53,163 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Sep, 2024, RCR, "3dTsplit4D", MINOR, TYPE_BUG_FIX,
+   "fix confusion over auto-gzip BRIK name",
+   NULL
+ } ,
+
+ { 19, Sep, 2024, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "allow use of build_afni.py for updating the current package",
+   "If build_afni.py was used to create the current package, then @uab\n"
+   "will also use it for updating (rather than downloading an official\n"
+   "package.  One can also specify to use it via -build_afni."
+ } ,
+
+ { 16, Sep, 2024, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "if which Xvfb fails, check for its existence on disk",
+   "Also, include .login and report fewer homebrew link suggestions."
+ } ,
+
+ { 16, Sep, 2024, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "apply LOCAL_CC_PATH in Makefile.macos_13_ARM and Makefile.macos_12_x86_64",
+   NULL
+ } ,
+
+ { 13, Sep, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "in eispack C files, include math.h before f2c.h",
+   "This should generally have no effect, since the local f2c.h\n"
+   "includes math.h.  However, if one is using cmake and the system\n"
+   "f2c for linking (rather than using afni/src/f2c), then the f2c.h\n"
+   "included with the eispack files will not have math.h.\n"
+   "So locally include math.h, just to be sure."
+ } ,
+
+ { 12, Sep, 2024, RCR, "build_afni.py", MINOR, TYPE_ENHANCE,
+   "add option -cc_path",
+   "Allow one to pass an alternate compiler if the relevant Makefile\n"
+   "uses LOCAL_CC_PATH.  If this option is not used and the default\n"
+   "compiler does not exist, try to find the most recent similar version."
+ } ,
+
+ {  4, Sep, 2024, RCR, "afni_system_check.py", MINOR, TYPE_MODIFY,
+   "use uname -m for CPU, instead of platform.processor()",
+   NULL
+ } ,
+
+ {  4, Sep, 2024, RCR, "OS_notes.macos_12_b_user.tcsh", MINOR, TYPE_ENHANCE,
+   "allow the script to be re-run with no effect",
+   NULL
+ } ,
+
+ { 30, Aug, 2024, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "mark linux_xorg7 and linux_xorg7_64 as being obsolete",
+   NULL
+ } ,
+
+ { 30, Aug, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "many updates to help examples; separate paths in compare_opts",
+   "- make example option order more consistent\n"
+   "- add examples: publish 3e ... 3j\n"
+   "- exclude 'noshow' examples from default help (currently 3e,f,g,h,j)\n"
+   "- separate differing paths in -compare_opts"
+ } ,
+
+ {  5, Aug, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add option -blip_warp_dset to input a pre-computed warp",
+   "For example, one can import the warp from epi_b0_correct.py."
+ } ,
+
+ {  5, Aug, 2024, RCR, "compute_ROI_stats.tcsh", MINOR, TYPE_MODIFY,
+   "if ALL_LT includes an ROI value of zero, remove it",
+   NULL
+ } ,
+
+ { 23, Jul, 2024, RCR, "@chauffeur_afni", MINOR, TYPE_BUG_FIX,
+   "undo the the problematic -f change from 2024/04/26",
+   "The -f was added to tcsh to prevent biowulf from updating the PATH\n"
+   "when using whereami, as they have a different program with that name.\n"
+   "But -f means that on macs DYLD vars would not be set, crashing afni\n"
+   "when using the macos_10.12_local binaries."
+ } ,
+
+ { 25, Jun, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "deal with -Wimplicit-int, mostly from old f2c, needed for gcc-14",
+   NULL
+ } ,
+
+ { 24, Jun, 2024, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "display CC; warn if CPU type differs between platform and uname",
+   NULL
+ } ,
+
+ { 24, Jun, 2024, RCR, "build_afni.py", MINOR, TYPE_ENHANCE,
+   "when running 'make', warn if CC is set (which usually causes failure)",
+   NULL
+ } ,
+
+ { 20, Jun, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "stop reporting assuming TR=1.0 warnings for now",
+   "Requested by P Taylor."
+ } ,
+
+ { 20, Jun, 2024, RCR, "Dimon", MINOR, TYPE_MODIFY,
+   "make -read_all the default",
+   "Basically for real-time sorting, this forces the initial processing\n"
+   "of all (found) images, rather than a limited subset.  It allows for\n"
+   "proper sorting without requiring an initial alphabetical aspect."
+ } ,
+
+ { 14, Jun, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "AFNI.afnirc : use GZIP compression and turn off obliquity warnings",
+   "  AFNI_COMPRESSOR          : default to GZIP\n"
+   "  AFNI_AUTOGZIP            : comment out (was YES)\n"
+   "  AFNI_NO_OBLIQUE_WARNING  : default to YES\n"
+   "  AFNI_ONE_OBLIQUE_WARNING : comment out (was YES)"
+ } ,
+
+ { 11, Jun, 2024, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
+   "backup directory removal; add -update_niivue option",
+   "Save only most recent backup directory, possibly plus 1 containing afni.\n"
+   "Add -update_niivue, and skip the operation on '-clean_root no'."
+ } ,
+
+ {  6, Jun, 2024, RCR, "Makefile.macos_13_ARM", MINOR, TYPE_NEW_OPT,
+   "add this Makefile (in src) for corresponding build machine",
+   "This is a ~dupe of other_builds/Makefile.macos_13_ARM_clang."
+ } ,
+
+ {  6, Jun, 2024, RCR, "rPkgsInstall", MINOR, TYPE_MODIFY,
+   "along with 3dMVM, handle not having afni in PATH",
+   NULL
+ } ,
+
+ { 30, May, 2024, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "remove unimportant anat followers from example 'publish 3d'",
+   NULL
+ } ,
+
+ { 30, May, 2024, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fix volreg TSNR for ME: use eind -> fave_echo",
+   "Thanks to zhengchencai on MB for pointing out the problem."
+ } ,
+
+ { 25, May, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add -bids_deriv option",
+   "This adds a call to P Taylor's map_ap_to_deriv.py program, to output a\n"
+   "BIDS derivative tree.\n"
+ } ,
+
+ { 25, May, 2024, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add -volreg_allin_warp option",
+   "This allows specific control over 3dAllineate -warp, using a default\n"
+   "of shift_rotate for rigid body registration.\n"
+ } ,
+
+ {  7, May, 2024, RCR, "3dCM", MICRO, TYPE_BUG_FIX,
+   "3dCM briefly required a mask",
+   "Thanks to P Kundu for pointing out the problem."
+ } ,
+
  { 29, Apr, 2024, RCR, "afni-general", MAJOR, TYPE_MODIFY,
    "change 'count' program and usage to 'count_afni'",
    "Add count_afni to the distribution, modify scripts to use it, and\n"
@@ -64,7 +221,7 @@ afni_history_struct rickr_history[] = {
  { 26, Apr, 2024, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "in any script calling whereami, invoke with 'tcsh -f' at top",
    "This is a quick fix for biowulf usage, since there is a new whereami\n"
-   "in town (/usr/local/bin/wheremai), and because they reset the PATH.\n"
+   "in town (/usr/local/bin/whereami), and because they reset the PATH.\n"
    "Modify: @Atlasize @MakeLabelTable @chauffeur_afni\n"
    "        compute_ROI_stats.tcsh gen_cluster_table"
  } ,
@@ -239,7 +396,7 @@ afni_history_struct rickr_history[] = {
  { 29, Feb, 2024, RCR, "afni_util.py", MINOR, TYPE_MODIFY,
    "use raw straing format for some regular expressions",
    "So python 3.12 has upgraded Deprecation Warnings to SyntaxWarnings,\n"
-   "making wanings pop up where they did not previously.  Previously, one\n"
+   "making warnings pop up where they did not previously.  Previously, one\n"
    "would need to turn on deprecation warnings to see such things."
  } ,
 

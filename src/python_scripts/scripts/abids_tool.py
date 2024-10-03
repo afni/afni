@@ -88,7 +88,7 @@ required.add_argument('-input',type=str,help='At least one 3d+time dataset.',
 ## optional
 parser.add_argument('-help',action='help',help='Show this help and exit.')
 
-## mutally exclusive but one required
+## mutually exclusive but one required
 OnlyOne.add_argument('-TR_match',action="store_true",default=False,
                      help=('Check if the TR in the json file matches the'+
                            ' TR from input dataset header. (1 if match)'))
@@ -133,6 +133,15 @@ for i in range(0,len(dset_list)):
     ## name the dset
     dset = afni_base.afni_name(dset_list[i])
 
+    ## does the file exist?
+    if not os.path.isfile(dset_list[i]) :
+        afni_base.EP("This input file does not exist: {}"
+                     "".format(dset_list[i]))
+
+    if dset_list[i].endswith('.json') :
+        afni_base.WP("The input ends with '.json', but should be a dataset "
+                     "name (e.g., a NIFTI volume).")
+
     ## get some info
     afni_cmd = ("3dinfo -exists -ni -nj -nk -TR "+dset.rppv())
     if ENCODING_REQUIRED:
@@ -142,10 +151,9 @@ for i in range(0,len(dset_list)):
     else:
         check_info = subprocess.check_output(afni_cmd,shell=True).split()
 
-    ## is the input dataset there?
+    ## was 3dinfo successful?
     if check_info[0] == "0":
-        print("\nError: "+dset.pv()+" does not exist or is not loadable!!\n")
-        sys.exit(1)
+        afni_base.EP("3dinfo cannot load dataset '{}'".format(dset.pv()))
 
     ########################################################################
     ## check for the json file and read it in

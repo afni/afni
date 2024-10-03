@@ -15,6 +15,13 @@ from afnipy import option_list as OL
 from afnipy import lib_afni1D as LD
 from afnipy import lib_vars_object as VO
 
+# ---------------------------------------------------------------------------
+# some globals
+
+# help sections (see -help_section)
+g_valid_help_sections = ['enew', 'eold', 'eall', 'eshow',
+                         'afni_proc', 'afni_proc.py']
+
 # types of motion simulated datasets that can be created
 #    motion     : simulated motion time series - volreg base warped
 #                 by inverse motion transformations (forward motion)
@@ -1075,43 +1082,76 @@ def combine_censor_files(proc, cfile, newfile=''):
 # its output might be used as the input to either the anat or tlrc blocks.
 
 def db_mod_blip(block, proc, user_opts):
-   """start simple, consider: -blip_aligned_dsets,
+   """handle -blip options, to either input or comput a warp
 
-      set proc.blip_rev_dset for copying
+      - set any proc.blip_in_* input names here
+      - afni_proc.py will create corresponding proc.blip_dset_* names
+        when copying the datasets into the results directory
    """
 
    apply_uopt_to_block('-blip_forward_dset', user_opts, block)
    apply_uopt_to_block('-blip_reverse_dset', user_opts, block)
    apply_uopt_to_block('-blip_opts_qw', user_opts, block)
+   apply_uopt_to_block('-blip_warp_dset', user_opts, block)
 
-   # note blip reverse input dset
+   # --- note any datasets before checking for consistency
+
+   # first note any precomputed blip warp dataset
+   bopt = block.opts.find_opt('-blip_warp_dset')
+   if bopt:
+      proc.blip_in_warp = gen_afni_name(bopt.parlist[0])
+      if proc.verb > 0:
+         print('-- have precomputed blip warp dset %s' \
+               % proc.blip_in_warp.shortinput(sel=1))
+      proc.blip_obl_warp = dset_is_oblique(proc.blip_in_warp, proc.verb)
+
+   # note blip reverse input dset (if no warp is passed)
    bopt = block.opts.find_opt('-blip_reverse_dset')
    if bopt:
       proc.blip_in_rev = gen_afni_name(bopt.parlist[0])
-      if proc.verb > 2:
+      if proc.verb > 1:
          print('-- will compute blip up/down warp via %s' \
                % proc.blip_in_rev.shortinput(sel=1))
-   else:
-      print('** have blip block without -blip_reverse_dset')
-      return
+      proc.blip_obl_rev = dset_is_oblique(proc.blip_in_rev, proc.verb)
 
    # note blip forward input dset (or make one up)
    bopt = block.opts.find_opt('-blip_forward_dset')
-   fblip_oblset = proc.dsets[0]  # default obl test is from -dsets
    if bopt:
       proc.blip_in_for = gen_afni_name(bopt.parlist[0])
-      if proc.verb > 2:
+      if proc.verb > 1:
          print('-- have blip forward dset %s' \
                % proc.blip_in_for.shortinput(sel=1))
-      fblip_oblset = proc.blip_in_for
-   # ME: both forward and reverse are required
-   elif proc.use_me:
+      proc.blip_obl_for = dset_is_oblique(proc.blip_in_for, proc.verb)
+
+   # --- check for consistency
+
+   # we should be doing *something* here
+   if proc.blip_in_warp is None and proc.blip_in_rev is None:
+      print('** have blip block without -blip_reverse_dset or -blip_warp_dset')
+      return
+
+   # do not both input and compute a warp
+   if proc.blip_in_warp is not None and \
+      (proc.blip_in_for is not None or proc.blip_in_rev is not None):
+      print("** use either -blip_warp_dset or -blip_reverse_dset, not both")
+      return
+
+   # ME: if reverse blip, then forward is also required
+   if proc.use_me and proc.blip_in_for is None and proc.blip_in_rev is not None:
       print("** when using multi-echo data and distortion correction,\n"
             "   -blip_reverse_dset requires corresponding -blip_forward_dset")
       return
 
-   proc.blip_obl_for = dset_is_oblique(fblip_oblset, proc.verb)
-   proc.blip_obl_rev = dset_is_oblique(proc.blip_in_rev, proc.verb)
+   # check for consistent obliquity of either the warp or rev
+   if proc.blip_in_warp is not None: 
+      if proc.dsets_obl != proc.blip_obl_warp:
+         print("** warning: blip warp obliquity (%d) does not match EPI (%d)" \
+               % (proc.blip_obl_warp, proc.dsets_obl))
+   else:
+      if proc.dsets_obl != proc.blip_obl_rev:
+         print("** error: reverse blip obliquity (%d) does not match EPI (%d)" \
+               % (proc.blip_obl_rev, proc.dsets_obl))
+         return
 
    # check for alignment to median forward blip base
    val, status = user_opts.get_string_opt('-volreg_align_to')
@@ -1121,13 +1161,6 @@ def db_mod_blip(block, proc, user_opts):
       inset = '%s%s' % (for_prefix, proc.view)
       set_vr_int_name(block, proc, 'vr_base_blip', inset=inset)
 
-   # set any, if possible, since they might all come from options
-   # proc.blip_rev_dset  = None
-   # proc.blip_med_dset  = None
-   # proc.blip_warp_dset = None
-
-   # #PCs will be added to the afni_name object before db_cmd_regress
-
    block.valid = 1
 
 # note: the input to 3dvolreg     should be the output from this
@@ -1135,7 +1168,7 @@ def db_mod_blip(block, proc, user_opts):
 #       i.e. prev_prefix = proc.prev_prefix_form_run(block, view=1)
 def db_cmd_blip(proc, block):
    """align median datasets for -blip_reverse_dset and current
-      compute proc.blip_med_dset, proc.blip_warp_dset
+      compute proc.blip_med_dset, proc.blip_dset_warp
 
       - get blip_NT from -blip_reverse_dset
       - extract that many from first current dset
@@ -1157,24 +1190,75 @@ def db_cmd_blip(proc, block):
 
    blip_interp = '-quintic'
 
+   # note the goal here, for the comment string
+   if proc.blip_dset_warp is not None:
+      taskstr = 'apply'
+   else:
+      taskstr = 'compute blip up/down'
+
    cmd =  "# %s\n" % block_header('blip')
-   cmd += '# compute blip up/down non-linear distortion correction for EPI\n\n'
+   cmd += '# %s non-linear EPI distortion correction\n\n' \
+          % taskstr
 
-   if proc.blip_dset_med != None and proc.blip_dset_warp != None:
-      cmd += '\n'                                               \
-          '# nothing to do: have external -blip_align_dsets\n'  \
-          '#\n'                                                 \
-          '# blip NL warp             : %s\n'                   \
-          '# blip align base (unused) : %s\n\n'                 \
-          % (proc.blip_dset_warp.shortinput(), proc.blip_dset_med.shortinput())
-      return cmd
+   # -----------------------------------------------------------------
+   # actually compute the transformation (or else it was input)
+   if proc.blip_dset_warp == None:
+      bcmd = compute_blip_xform(proc, block, interp=blip_interp)
+      if bcmd == '': return ''
+   else:
+      bcmd = '\n# no computation to do: have external -blip_warp_dset %s\n\n' \
+             % proc.blip_dset_warp.shortinput()
+   cmd += bcmd
 
+   if proc.blip_dset_warp is None:
+      print("** failed compute_blip_xform")
+      return ''
+
+   warp_for = proc.blip_dset_warp
+
+   # -----------------------------------------------------------------
+   # main result (besides actual xform): apply forward mid-warp to EPI
+   inform = proc.prev_prefix_form_run(block, view=1, eind=0)
+   outform = proc.prefix_form_run(block, eind=0)
+
+   # possibly pass an obliquity dset, if the EPI is oblique
+   if proc.dsets_obl:
+       foblset = gen_afni_name(proc.prev_prefix_form_run(block, view=1, eind=0))
+   else:
+       foblset = None
+   
+   # potential extra indent if ME
+   if proc.use_me: exind = '    '
+   else:           exind = ''
+
+   bstr = blip_warp_command(proc, warp_for.shortinput(), inform, outform,
+           interp=blip_interp, oblset=foblset, indent='    '+exind)
+   cmd += '# warp EPI time series data\n' \
+          'foreach run ( $runs )\n'
+
+   # ME: prepare to loop across echoes
+   if proc.use_me:
+      cmd += '%sforeach %s ( $echo_list )\n' % (exind, proc.echo_var[1:])
+
+   # main loop
+   cmd += bstr
+
+   if proc.use_me:
+      cmd += '%send\n' % exind
+
+   cmd += 'end\n\n'
+
+   return cmd
+
+def compute_blip_xform(proc, block, interp='-quintic'):
    # compute the blip transformation
 
    proc.have_rm = 1            # rm.* files exist
+
    medf = proc.blip_dset_rev.new(new_pref='rm.blip.med.fwd')
    medr = proc.blip_dset_rev.new(new_pref='rm.blip.med.rev')
-   forwdset = proc.prev_prefix_form(1, block, view=1)
+
+   cmd = ''
    cmd += '# create median datasets from forward and reverse time series\n' \
           '3dTstat -median -prefix %s %s\n'                                 \
           '3dTstat -median -prefix %s %s\n\n'                               \
@@ -1230,13 +1314,13 @@ def db_cmd_blip(proc, block):
    else:    roblset = None
 
    cmd += blip_warp_command(proc, warp_for.shortinput(), medf.shortinput(),
-                            for_prefix, oblset=foblset, interp=blip_interp)
+                            for_prefix, oblset=foblset, interp=interp)
    cmd += '\n'
    proc.blip_dset_med = proc.blip_dset_warp.new(new_pref=for_prefix)
 
    # to forward masked median
    cmd += blip_warp_command(proc, warp_for.shortinput(), mmedf.shortinput(),
-                    '%s_masked'%for_prefix, oblset=foblset, interp=blip_interp)
+                    '%s_masked'%for_prefix, oblset=foblset, interp=interp)
    cmd += '\n'
 
    # to reverse masked median
@@ -1244,32 +1328,7 @@ def db_cmd_blip(proc, block):
    if fobl: oblset = proc.blip_dset_for
    else:    oblset = None
    cmd += blip_warp_command(proc, warp_rev.shortinput(), mmedr.shortinput(),
-                    '%s_masked'%rev_prefix, oblset=roblset, interp=blip_interp)
-   cmd += '\n'
-
-   # -----------------------------------------------------------------
-   # main result (besides actual xform): apply forward mid-warp to EPI
-   inform = proc.prev_prefix_form_run(block, view=1, eind=0)
-   outform = proc.prefix_form_run(block, eind=0)
-   bstr = blip_warp_command(proc, warp_for.shortinput(), inform, outform,
-           interp=blip_interp, oblset=foblset, indent='    ')
-   cmd += '# warp EPI time series data\n' \
-          'foreach run ( $runs )\n'
-
-   # ME: prepare to loop across echoes
-   indent = ''
-   if proc.use_me:
-      indent = '    '
-      cmd += '%sforeach %s ( $echo_list )\n' % (indent, proc.echo_var[1:])
-
-   # main loop
-   cmd += '%s%s'                    \
-          '%send\n'                 \
-          % (indent, bstr, indent)
-
-   if proc.use_me:
-      cmd += 'end\n'
-
+                    '%s_masked'%rev_prefix, oblset=roblset, interp=interp)
    cmd += '\n'
 
    return cmd
@@ -1298,9 +1357,10 @@ def blip_warp_command(proc, warp, source, prefix, interp=' -quintic',
          % (indent, intstr, warp, indent, source, indent, prefix)
 
    if oblset:
-      cmd += '%s3drefit -atrcopy %s IJK_TO_DICOM_REAL \\\n' \
-             '%s                 %s%s\n'                    \
-             % (indent, oblset.shortinput(), indent, prefix, proc.view)
+      cmd += '%s3drefit -atrcopy %s \\\n'                \
+             '%s                 IJK_TO_DICOM_REAL \\\n' \
+             '%s                 %s%s\n'                 \
+             % (indent, oblset.shortinput(), indent, indent, prefix, proc.view)
 
    return cmd
 
@@ -2405,6 +2465,7 @@ def db_mod_volreg(block, proc, user_opts):
     apply_uopt_to_block('-volreg_method', user_opts, block)
     apply_uopt_to_block('-volreg_allin_cost', user_opts, block)
     apply_uopt_to_block('-volreg_allin_auto_stuff', user_opts, block)
+    apply_uopt_to_block('-volreg_allin_warp', user_opts, block)
     apply_uopt_to_block('-volreg_post_vr_allin', user_opts, block)
     apply_uopt_to_block('-volreg_pvra_base_index', user_opts, block)
     apply_uopt_to_block('-volreg_interp', user_opts, block)
@@ -3228,8 +3289,16 @@ def make_volreg_command_allin(block, prev_prefix, prefix, basestr, matstr,
                               other_opts="", resam="Cu"):
     """return the main volreg command string, but using 3dAllineate"""
 
+    # get/set cost function
     allin_cost, rv = block.opts.get_string_opt('-volreg_allin_cost',
                                                default='lpa')
+    if rv:
+       print("** failed to parse -volreg_allin_cost")
+       return
+
+    # get/set warp restriction
+    allin_warp, rv = block.opts.get_string_opt('-volreg_allin_warp',
+                                               default='shift_rotate')
     if rv:
        print("** failed to parse -volreg_allin_cost")
        return
@@ -3251,12 +3320,13 @@ def make_volreg_command_allin(block, prev_prefix, prefix, basestr, matstr,
             "        -base %s \\\n"                      \
             "        -source %s \\\n"                    \
             "        -prefix %s \\\n"                    \
+            "        -warp %s \\\n"                      \
             "        -1Dfile dfile.m12.r$run.1D \\\n"    \
             "%s"                                         \
             "%s"                                         \
             "        -cost %s %s\n\n" %                  \
             (autostuff, basestr, prev_prefix, prefix,
-             matstr, other_opts, allin_cost, resam)
+             allin_warp, matstr, other_opts, allin_cost, resam)
 
     vrcmd += "    # and extract the 6 rigid-body params\n"   \
              "    1dcat dfile.m12.r$run.1D'[3..5,0..2]' > dfile.r$run.1D\n"
@@ -3590,7 +3660,7 @@ def db_cmd_volreg_motsim(proc, block, basevol):
 def db_cmd_volreg_tsnr(proc, block, emask=''):
 
     # signal and error are both first run of previous output
-    signal = proc.prefix_form(block, 1)
+    signal = proc.prefix_form(block, 1, eind=-1)
 
     return db_cmd_tsnr(proc,
            "# --------------------------------------\n" \
@@ -4893,7 +4963,6 @@ def db_cmd_mask(proc, block):
     if olist != None: aopts = (' '.join(olist) + ' ')
     else:             aopts = ''
 
-    prev = proc.prev_dset_form_wild(block)
     prev = proc.prev_prefix_form_run(block, view=1, eind=-1)
     cmd = cmd + "# %s\n"                                                \
                 "# create 'full_mask' dataset (%s mask)\n"              \
@@ -6757,7 +6826,7 @@ def db_cmd_regress(proc, block):
             if stop_opt: fstr += '\n'
             fstr += "%s# create fitts from REML errts\n" % istr
             fstr += "%s3dcalc -a %s%s -b %s%s -expr a-b \\\n" \
-                    "%s       -prefix %s\_REML%s\n"                 \
+                    "%s       -prefix %s\\_REML%s\n"          \
                     % (istr, proc.all_runs, vstr, proc.errts_reml, vstr,
                        istr, fitts_pre, suff)
         cmd = cmd + fstr + feh_end + '\n'
@@ -7407,6 +7476,12 @@ def db_cmd_compute_tsnr_stats(proc, block):
        aname = proc.get_roi_dset(label)
        if not aname:
           print("** compute_tsnr: missing ROI dset '%s'" % label)
+          return 1, ''
+
+       # do not let a value of 0 through
+       if '0' in opt.parlist[1:]:
+          print("** compute_tsnr: an ROI value of zero is illegal")
+          print("   opt: %s %s" % (oname, ' '.join(opt.parlist)))
           return 1, ''
 
        # let the name vary based on whether it is user requested or auto
@@ -9288,7 +9363,7 @@ def show_program_help(section=''):
    if section == '':
       print(g_help_intro)
       # now print examples from lib_ap_examples
-      show_help_examples(source='eall')
+      show_help_examples(source='eshow')
       print(g_help_notes)
       print(g_help_options)
       print(g_help_trailer)
@@ -9296,7 +9371,7 @@ def show_program_help(section=''):
       return 0
 
    # process new example string separately for now
-   if section in ['enew', 'eold', 'eall', 'afni_proc.py']:
+   if section in g_valid_help_sections:
       show_help_examples(source=section)
       return 0
 
@@ -9319,7 +9394,11 @@ def show_help_examples(source='eold'):
 
    # print new-style examples
    from afnipy import lib_ap_examples as EGS
-   EGS.populate_examples()
+   keys_rm = []
+   # if 'show' example, exclude the noshow ones
+   if source == 'eshow':
+      keys_rm = ['noshow']
+   EGS.populate_examples(keys_rm=keys_rm)
 
    # print only AP examples, or all
    if source.lower() in ['enew', 'new', 'afni_proc', 'afni_proc.py']:
@@ -9382,7 +9461,7 @@ Basic script outline: ~1~
    - copy all inputs to new 'results' directory
    - process data: e.g. despike,tshift/align/tlrc/volreg/blur/scale/regress
    - leave all (well, most) results there, so user can review processing
-   - create @ss_review scripts to help user with basic quality control
+   - create quality control data (APQC HTML page, ss_review_scripts, etc.)
 
 The exact processing steps are controlled by the user, including which main
 processing blocks to use, and their order.  See the 'DEFAULTS' section for
@@ -9415,6 +9494,7 @@ line, even if using -ask_me.  See "-ask_me EXAMPLES", below.
 SECTIONS: order of sections in the "afni_proc.py -help" output ~1~
 
     program introduction    : (above) basic overview of afni_proc.py
+    SETTING UP AN ANALYSIS  : a guide for getting started
     PROCESSING BLOCKS       : list of possible processing blocks
     DEFAULTS                : basic default operations, per block
     EXAMPLES                : various examples of running this program
@@ -9430,6 +9510,135 @@ SECTIONS: order of sections in the "afni_proc.py -help" output ~1~
         informational       : options to get quick info and quit
         general execution   : options not specific to a processing block
         block options       : specific to blocks, in default block order
+
+==================================================
+SETTING UP AN ANALYSIS: ~1~
+
+For those new to using afni_proc.py, it is very helpful to start with an
+example that is similar to what you want to do, generally taken from the help
+examples (afni_proc.py -show_example_names) or prior publication.
+
+Once satisfied with a single application of afni_proc.py, one would then loop
+over subjects by running afni_proc.py on each, using subject variables to refer
+to the individual set of input data and the output subject ID.
+
+Starting up, there is a general set of choices that is good to consider:
+
+   a. type of analysis:    task or rest/naturalistic
+   b. domain of analysis:  volume or surface (possibly either as ROI)
+   c. main input data:     anat, EPI runs (single or multi-echo), task timing,
+                           surfaces and surface anatomical
+   d. extra input data:    NL distortion warp, NL template warp, blip dsets,
+                           ROI imports, anat followers, physio regressors,
+                           external registration base (for volreg or anat),
+                           external motion files, censor list, extra regressors
+   e. processing blocks:   main EPI processing blocks and their order
+                         - see "PROCESSING BLOCKS"
+   f. optional processing: physio regression, tedana, ANATICOR, ROI regression,
+                           bandpassing
+   g. main options:        template, blur level (if any), censor levels,
+                           EPI/anat cost and other alignment options
+   h. other options:       there are many, e.g.: motion regressors, bandpass,
+                           ANATICOR, and many that are specific to QC
+
+   ----------
+
+   a. type of analysis
+
+      For a task analysis, one provides stimulus timing files and corresponding
+      modeling options.  This is a large topic that centers on the use of
+      3dDeconvolve.
+
+      Options for task analysis generally start with -regress, as they pertain
+      to the regress block.  However one generally includes a regress block in
+      any analysis (even partial ones, such as for alignment), as it is the
+      gateway to the APQC HTML report.
+
+   b. domain of analysis
+
+      For a surface analysis, one provides a SUMA spec file per hemisphere,
+      along with a surface anatomical dataset.  Mapping from the volume to the
+      surface generally happens soon after all volumetric registration is done,
+      and importantly, before any blur block.  Restricting blurring to the
+      surface is one of the reasons to perform such an analysis.
+
+      In a surface analysis, no volumetric template or tlrc options are given.
+      Surface analysis is generally performed on SUMA's standard meshes, though
+      it need not be.
+
+      An ROI analysis is generally performed as a typical volume or surface
+      analysis, but without any applied blurring (which effectively happens
+      later, when averaging over the ROIs).
+
+   c. main input data
+
+      EPI datasets are required, for one or more runs and one or more echoes.
+      Anything else is optional.
+
+      Typically one also includes a subject anatomy, any task timing files, and
+      surface datasets (spec files an anatomy) if doing a surface analysis.
+
+   d. extra input data
+
+      It is common to supply a non-linear transformation warp dataset (from
+      sswarper) to apply for anatomy->template alignment.  One might also have
+      a pre-computed non-linear B0 distortion map or reverse phase encoding
+      (blip) dataset, ROIs or other anatomical followers or physiological
+      regressors.  An EPI base dataset might be provided to align the EPI to,
+      and possibly one to guide alignment to the subject anatomical dataset.
+
+      Precomputed motion parameter files could be provided (if skipping the
+      volreg block), as well as an external censor time series or precomputed
+      regressors (of interest or not).
+
+      These extra inputs will affect use of other options.
+
+   e. processing blocks
+
+      As described in the "PROCESSING BLOCKS" section, one can specify an
+      ordered list of main processing blocks.  The order of the listed blocks
+      will determine their order in the processing script.  Of course, for a
+      given set of blocks, there is typically a preferred order.
+
+      Options specific to one block will generally start with that block name.
+      For example, the -regress_* options apply to the regress block.
+
+      It is logically clear (but not necessary) to provide block options in the
+      same chronological order as the blocks.
+
+   f. optional processing
+
+      Optional processing might include things like:
+        - physiological noise regression, based on use of physio_calc.py
+        - tedana, or a variant, for use in combining multi-echo time series
+        - ANATICOR (local white matter regression)
+        - ROI regression (averages or principle components)
+        - bandpassing (low pass, high pass, or single or multiple bands)
+
+   g. main options
+
+      One typically provides:
+        - a template (and accompanying non-linear anat to template
+          transformation datasets)
+        - an amount to blur (or a choice to not blur, as would apply to an ROI
+          analysis), or a level to blur _to_
+        - censor levels (for outliers or the Euclidean norm of the motion
+          parameters)
+        - alignment options, such as the cost function for align_epi_anat.py
+          and a local EPI unifize option - there are many options to control
+          many aspects of registration
+        - many quality control options are also considered appropriate for
+          consistent use
+
+   h. other options
+
+      Each step of processing has many control options around it.  It is
+      important to think through what might be appropriate for the data in
+      question.
+
+      No one analysis fits all data.
+
+      Quality control "options" are not really considered optional.
 
 ==================================================
 PROCESSING BLOCKS (of the output script): ~1~
@@ -9448,7 +9657,7 @@ default blocks (the user may skip these, or alter their order): ~2~
     tshift      : slice timing alignment on volumes (default is -time 0)
     volreg      : volume registration (default to third volume)
     blur        : blur each volume (default is 4mm fwhm)
-    mask        : create a 'brain' mask from the EPI data (dilate 1 voxel)
+    mask        : create a 'brain' mask from the EPI data
     scale       : scale each run mean to 100, for each voxel (max of 200)
     regress     : regression analysis (default is GAM, peak 1, with motion
                   params)
@@ -9461,15 +9670,14 @@ optional blocks (the default is to _not_ apply these blocks) ~2~
     empty       : placeholder for some user command (uses 3dTcat as sample)
     ricor       : RETROICOR - removal of cardiac/respiratory regressors
     surf        : project volumetric data into the surface domain
-    tlrc        : warp anat to standard space
+    tlrc        : warp anat to a standard space/specified template
 
 implicit blocks (controlled by program, added when appropriate) ~2~
 
-    blip                   : perform B0 distortion correction
-    outcount               : temporal outlier detection
-    quality control review : generate QC review scripts and HTML report
-    @radial_correlate      : QC - compute local neighborhood correlations
-    uniformity correction  : anatomical uniformity correction
+    blip        : perform B0 distortion correction
+    outcount    : temporal outlier detection
+    QC review   : generate QC review scripts and HTML report
+    anat_unif   : anatomical uniformity correction
 
 ==================================================
 DEFAULTS: basic defaults for each block (blocks listed in default order) ~1~
@@ -9748,7 +9956,7 @@ EXAMPLES (options can be provided in any order): ~1~
 
           EPI  ->  EPI base  ->  anat  ->  MNI 2009 template
 
-       The standard space transformation is applied to the EPI due to 
+       The standard space transformation is applied to the EPI due to
        specifying -volreg_tlrc_warp.
 
        A 4 mm blur is applied, to keep it very light (about 1.5 times the
@@ -9817,7 +10025,7 @@ EXAMPLES (options can be provided in any order): ~1~
              -regress_est_blur_epits                                  \\
              -regress_est_blur_errts                                  \\
              -regress_run_clustsim no                                 \\
-             -execute 
+             -execute
 
      * One could also use ANATICOR with task (e.g. -regress_anaticor_fast)
        in the case of -regress_reml_exec.  3dREMLfit supports voxelwise
@@ -12108,7 +12316,9 @@ OPTIONS:  ~2~
             1 (def) : include parameter differences
                       (except where expected, e.g. -copy_anat dset)
                       (limit param lists to current text line)
-            2       : show complete parameter diffs
+            2       : show parameter diffs, but try to distinguish what might
+                      just be a difference in paths to a file
+            3       : show complete parameter diffs
 
         Types of differences shown include:
 
@@ -12120,7 +12330,7 @@ OPTIONS:  ~2~
                 specified target command is missing
             differing options       :
                 where the current command and target use the same option,
-                but their parameters differ
+                but their parameters differ (possibly just in a file path)
             fewer applied options   :
                 where the current command and target use multiple copies of
                 the same option, but the current command has fewer
@@ -12131,6 +12341,12 @@ OPTIONS:  ~2~
                 (what is beyond the matching/differing cases)
 
         This option is the basis for all of the -compare* options.
+
+        * Note: options with the same option name are compared in order, so
+                a different order of such options will appear as differences.
+                For example, -ROI_import options all need to be in the same
+                relative order, or they will be seen as differing.
+                Such is life.  If this fact proves disastrous, let me know.
 
         See also -show_example_names.
 
@@ -12296,6 +12512,30 @@ OPTIONS:  ~2~
             tcsh -x proc.ED.8.glt 2>&1 | tee output.proc.ED.8.glt
 
         Please see "man bash" or "man tee" for more information.
+
+    -bids_deriv BDIR        : request BIDS derivative output
+
+            e.g. -bids_deriv yes
+            e.g. -bids_deriv /my/path/to/derivatives/TASK_PICKLES
+            default: -bids_deriv no
+
+        Use this option to request a copy of relevant output converted to BIDS
+        tree format.  BDIR can be one of:
+
+            no      : (default) do not produce any BIDS tree
+            yes     : the BIDS tree will go under the subject results directory
+            BDIR    : a path to a derivative directory
+                      (must be absolute, i.e. staring with a /)
+
+        The resulting directory will include the directories:
+
+            anat        : anat and template
+            func        : EPI BOLD time series, mask, residuals...
+            func_stats  : statistical contrasts and stats datasets
+            logs        : any copied log files
+
+        Please see 'map_ap_to_deriv.py -help' for more information.  Note that
+        map_ap_to_deriv.py can easily be run separately.
 
     -blocks BLOCK1 ...      : specify the processing blocks to apply
 
@@ -12908,7 +13148,7 @@ OPTIONS:  ~2~
         Use this option once per uvar.  Each such option will be passed along
         as part of the user variable list, along to APQC, for example.
 
-        These variables will be initialed in out.ap_uvars.json .
+        These variables will be initialized in out.ap_uvars.json .
 
     -verb LEVEL             : specify the verbosity of this script
 
@@ -13260,6 +13500,29 @@ OPTIONS:  ~2~
 
         Please see '3dQwarp -help' for more information.
 
+    -blip_warp_dset DSET    : specify extra options for 3dQwarp
+
+            e.g. -blip_warp_dset epi_b0_WARP.nii.gz
+
+        This option allows the user to pass a pre-computed distortion warp
+        dataset, to replace the computation of a warp in the blip block.
+        The most likely use is to first run epi_b0_correct.py for a b0
+        distortion map computation, rather than the reverse phase encoding
+        method that would be computed with afni_proc.py.
+
+        When applying this option in afni_proc.py, instead of using options
+        like:
+
+            -blip_forward_dset DSET_FORWARD \\
+            -blip_reverse_dset DSET_REVERSE \\
+            -blip_opts_qw      OPTIONS ...  \\
+
+        use just this one option to pass the warp:
+
+            -blip_warp_dset epi_b0_WARP.nii.gz \\
+
+        Please see 'epi_b0_correct.py -help' for more information.
+
     -tlrc_anat              : run @auto_tlrc on '-copy_anat' dataset
 
             e.g. -tlrc_anat
@@ -13588,7 +13851,7 @@ OPTIONS:  ~2~
 
     -volreg_allin_auto_stuff OPT ...  : specify 'auto' options for 3dAllin.
 
-            e.g. -volreg_allin_auto_stuff -autoweight -warp shift_rotate
+            e.g. -volreg_allin_auto_stuff -autoweight
 
         When using 3dAllineate to do EPI motion correction, the default
         'auto' options applied are:
@@ -13600,7 +13863,29 @@ OPTIONS:  ~2~
       * All 3 options will be replaced, so if -autoweight is still wanted,
         for example, please include it with -volreg_allin_auto_stuff.
 
+      * Do not pass -warp through here, but via -volreg_allin_warp.
+
         Please see '3dAllineate -help' for more details.
+
+    -volreg_allin_warp WARP : specify -warp for 3dAllineate EPI volreg step
+
+            e.g.    -volreg_allin_warp affine_general
+            default -volreg_allin_warp shift_rotate
+
+        When using 3dAllineate to do EPI motion correction, the default -warp
+        type is shift_rotate (rigid body).  Use this option to specify another.
+
+        The valid WARP options are:
+
+            shift_rotates       : 6-param rigid body
+            shift_rotate_scale  : 9-param with scaling
+            affine_general      : 12-param full affine
+
+        While 3dAllinate allows shift_rotate, afni_proc.py does not, as it
+        would currently require an update to handle the restricted parameter
+        list.  Please let rickr know if this is wanted.
+
+        Please see '-warp' from '3dAllineate -help' for more details.
 
     -volreg_allin_cost COST : specify the cost function used in 3dAllineate
 
@@ -14222,8 +14507,11 @@ OPTIONS:  ~2~
 
             e.g. -mask_import Tvent template_ventricle_3mm+tlrc
 
+      * Note: -ROI_import basically makes -mask_import unnecessary.
+
         Use this option to import a mask that is aligned with the final
-        EPI data _and_ is on the final grid.
+        EPI data _and_ is on the final grid (with -ROI_import, the ROI will
+        be resampled onto the final grid).
 
             o  this might be based on the group template
             o  this should already be resampled appropriately
@@ -14243,8 +14531,9 @@ OPTIONS:  ~2~
             -mask_union WM_vent Svent WMe                  \\
             -regress_ROI_PC WM_vent 3                      \\
 
-        See also -regress_ROI, -regress_ROI_PC, -regress_make_corr_vols,
-                 -regress_anaticor_label, -mask_intersect, -mask_union.
+        See also -ROI_import, -regress_ROI, -regress_ROI_PC,
+                 -regress_make_corr_vols, -regress_anaticor_label,
+                 -mask_intersect, -mask_union.
 
     -mask_intersect NEW_LABEL MASK_A MASK_B : intersect 2 masks
 
@@ -14592,7 +14881,7 @@ OPTIONS:  ~2~
         Any known label made via those options may be used.
 
         See also -mask_segment_anat, -mask_segment_erode, -regress_ROI_PC,
-            -anat_follower_ROI.
+            -anat_follower_ROI, -ROI_import.
 
     -regress_anaticor_radius RADIUS : specify RADIUS for local WM average
 
@@ -15059,9 +15348,11 @@ OPTIONS:  ~2~
             e.g. -regress_compute_tsnr_stats Glasser 4 41 99 999
 
             e.g. -anat_follower_ROI aeseg epi SUMA/aparc.a2009s+aseg.nii.gz \\
-                 -ROI_import Glasser ~/abin/MNI_Glasser_HCP_v1.0.nii.gz     \\
-                 -regress_compute_tsnr_stats aeseg   4 41 99 999            \\
+                 -ROI_import Glasser MNI_Glasser_HCP_v1.0.nii.gz            \\
+                 -ROI_import faves my.favorite.ROIs.nii.gz                  \\
+                 -regress_compute_tsnr_stats aeseg   18 54 11120 12120 2 41 \\
                  -regress_compute_tsnr_stats Glasser 4 41 99 999
+                 -regress_compute_tsnr_stats faves   ALL_LT
 
             default: -regress_compute_tsnr_stats brain 1
 
@@ -15071,13 +15362,17 @@ OPTIONS:  ~2~
 
         Then one can list ROI regions in each ROI dataset to compute TSNR
         statistics over.  Details will be output for each ROI region, such as
-        quartiles of the TSNR values, and maximum depth coordinates.
+        quartiles of the TSNR values, and maximum depth coordinates.  If the
+        ROI dataset has a label table, one can use ALL_LT to use all of them.
 
         This option results in a compute_ROI_stats.tcsh command being run for
         the ROI and TSNR datasets, and the ROI indices of interest.
 
         ROI datasets (and their respective labels) are made via options like
         -anat_follower_ROI, -ROI_import or even -mask_segment_anat.
+
+      * Is it okay to specify ROI values that do not exist in the ROI dataset.
+        That is somewhat expected with subject specific datasets and resampling.
 
       * This option is currently automatically applied with a 'brain' ROI and
         the relevant APQC_atlas, if appropriate.  To override use of such an
@@ -15155,10 +15450,11 @@ OPTIONS:  ~2~
            (over masked voxels).
 
         The labels specified can be from any ROI mask, such as those coming
-        via -anat_follower_ROI, -regress_ROI_PC, or from the automatic
-        masks from -mask_segment_anat.
+        via -ROI_import, -anat_follower_ROI, -regress_ROI_PC, or from the
+        automatic masks from -mask_segment_anat.
 
-        See also -anat_follower_ROI, -regress_ROI_PC, -mask_segment_anat.
+        See also -ROI_import, -anat_follower_ROI, -regress_ROI_PC,
+                 -mask_segment_anat.
 
     -regress_mot_as_ort yes/no : regress motion parameters using -ortvec
 
@@ -15637,6 +15933,9 @@ OPTIONS:  ~2~
             e.g. -regress_ROI FSvent FSwhite
 
         Use this option to regress out one more more known ROI averages.
+        In this case, each ROI (dataset) will be used for a single regressor
+        (one volume cannot be used for multiple ROIs).
+
         ROIs that can be generated from -mask_segment_anat/_erode include:
 
             name    description     source dataset    creation program
@@ -15650,13 +15949,13 @@ OPTIONS:  ~2~
             WM      white matter    mask_WM_resam     3dSeg -> Classes
             WMe     white (eroded)  mask_WMe_resam    3dSeg -> Classes
 
-        Other ROI labels can come from -anat_follower_ROI options, i.e.
-        imported masks.
+        Other ROI labels can come from -anat_follower_ROI or -ROI_import
+        options, i.e. imported masks.
 
       * Use of this option requires either -mask_segment_anat or labels
-        defined via -anat_follower_ROI options.
+        defined via -anat_follower_ROI or -ROI_import options.
 
-        See also -mask_segment_anat/_erode, -anat_follower_ROI.
+        See also -mask_segment_anat/_erode, -anat_follower_ROI, -ROI_import.
         Please see '3dSeg -help' for more information on the masks.
 
     -regress_ROI_PC LABEL NUM_PC    : regress out PCs within mask
@@ -15667,33 +15966,46 @@ OPTIONS:  ~2~
         Add the top principal components (PCs) over an anatomical mask as
         regressors of no interest.
 
+        As with -regress_ROI, each ROI volume is considered a single mask to
+        compute PCs over (for example, here the ventricle and white matter
+        masks are passed individually).
+
           - LABEL   : the class label given to this set of regressors
           - NUM_PC  : the number of principal components to include
 
-        The LABEL can apply to something defined via -mask_segment_anat
-        maybe with -mask_segment_erode, or from -anat_follower_ROI
-        (assuming 'epi' grid), or 'brain' (full_mask).  The -mask_segment*
-        options define ROI labels implicitly (see above), while the user
-        defines ROI labels in any -anat_follower_ROI options.
+        The LABEL can apply to something defined via -mask_segment_anat or
+        -anat_follower_ROI (assuming 'epi' grid), and possibly eroded via
+        -mask_segment_erode.  LABELs can also come from -ROI_import options,
+        or be simply 'brain' (defined as the final EPI mask).
+     
+        The -mask_segment* options define ROI labels implicitly (see above),
+        while the user defines ROI labels in any -anat_follower_ROI or
+        -ROI_import options.
 
-        Method (including 'follower' steps):
+        Method (mask alignment, including 'follower' steps):
 
-          If -anat_follower_ROI is used to define the label, then the
-          follower ROI steps would first be applied to that dataset.
+          The follower steps apply to only -anat_follower* datasets, not to
+          -ROI_import, -mask_import or -mask_segment_anat.
+
+          If -ROI_import is used to define the label, then the follower steps
+          do not apply, the ROI is merely resampled onto the final EPI grid.
 
           If ROIs are created 'automatically' via 3dSeg (-mask_segment_anat)
           then the follower steps do not apply.
 
-          F1. if requested (-anat_follower_erode) erode the ROI mask
-          F2. apply all anatomical transformations to the ROI mask
-              a. catenate all anatomical transformations
-                 i.   anat to EPI?
-                 ii.  affine xform of anat to template?
-                 iii. subsequent non-linear xform of anat to template?
-              b. sample the transformed mask on the EPI grid
-              c. use nearest neighbor interpolation, NN
+          If -anat_follower_ROI is used to define the label, then the
+          follower ROI steps would first be applied to that dataset:
 
-       Method (post-mask alignment):
+             F1. if requested (-anat_follower_erode) erode the ROI mask
+             F2. apply all anatomical transformations to the ROI mask
+                 a. catenate all anatomical transformations
+                    i.   anat to EPI?
+                    ii.  affine xform of anat to template?
+                    iii. subsequent non-linear xform of anat to template?
+                 b. sample the transformed mask on the EPI grid
+                 c. use nearest neighbor interpolation, NN
+
+        Method (post-mask alignment):
 
           P1. extract the top NUM_PC principal components from the volume
               registered EPI data, over the mask
@@ -16081,6 +16393,31 @@ OPTIONS:  ~2~
 
         Please see '3dClustSim -help' for more information.
         See also -regress_run_clustsim.
+
+    -ROI_import LABEL RSET       : import a final grid ROI with the given label
+
+            e.g. -ROI_import Glasser MNI_Glasser_HCP_v1.0.nii.gz
+            e.g. -ROI_import Benny my_habenula_rois.nii.gz
+            e.g. -ROI_import Benny path/to/ROIs/my_habenula_rois.nii.gz
+
+        Use this option to import an ROI dataset that is in the final space of
+        the EPI data.  It will merely be resampled onto the final EPI grid
+        (not transformed).
+
+            o  this might be based on the group template
+            o  no warping will be done to this dataset
+            o  this dataset WILL be resampled to match the final EPI
+
+        This option was added to be applied with -regress_compute_tsnr_stats,
+        for example:
+
+            -ROI_import Glasser MNI_Glasser_HCP_v1.0.nii.gz  \\
+            -regress_compute_tsnr_stats Glasser 4 41 99 999  \\
+
+        This mask can be applied via LABEL as other masks, using options
+        like: -regress_ROI, -regress_ROI_PC, -regress_make_corr_vols,
+              -regress_anaticor_label, -mask_intersect, -mask_union,
+              (and for the current purpose) -regress_compute_tsnr_stats.
 """
 g_help_trailer = """
 - R Reynolds  Dec, 2006                             thanks to Z Saad

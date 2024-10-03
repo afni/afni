@@ -836,7 +836,7 @@ PTA.help.select(),
 '\n')
    cat (sh)
    #tkmessageBox(message=sh)     #ugly...
-   #use reults output instead
+   #use results output instead
    tkconfigure(txt, state="normal") #allow editing
    tkinsert(txt,"0.0",sh)
    tkconfigure(txt, state="disabled") #no more editing 

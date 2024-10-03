@@ -360,7 +360,7 @@ if (NF == 1),
 % dmat(:, num_col0+1:num_col1+num_col0) is the matrix for 1st order contrasts
    if (Contr.ord1.tot > 0),
       for (i = 1:1:Contr.ord1.tot),
-         LC.t1(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0			
+         LC.t1(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0			
          LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
          tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
          if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
@@ -374,7 +374,7 @@ if (NF == 2),
 % dmat(:, num_col0+1:num_col1+num_col0) is the matrix for 1st order contrasts
    if (Contr.ord1.tot > 0),
       for (i = 1:1:Contr.ord1.tot),
-         LC.t1(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0			
+         LC.t1(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0			
 	      LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
 	      tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
 	      if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
@@ -383,7 +383,7 @@ if (NF == 2),
 	
 	if (Contr.ord2.tot > 0),    % 7 terms: 1 (A); 2 (B); 3 (AB)
       for (i = 1:1:Contr.ord2.tot),
-         LC.t2(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t2(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 	      LC.t2(i).value = Contr.ord2.cnt(i).vec * y0;   % intensity for this 2nd order contrast
 	      tmp = msdenom(Contr.ord2.cnt(i).idx2)*Contr.ord2.cnt(i).scalar;
 	      if (tmp > 0), LC.t2(i).t = LC.t2(i).value/sqrt(tmp); end
@@ -398,7 +398,7 @@ if (NF == 3),
 % dmat(:, num_col0+1:num_col1+num_col0) is the matrix for 1st order contrasts
    if (Contr.ord1.tot > 0),
       for (i = 1:1:Contr.ord1.tot),
-         LC.t1(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0			
+         LC.t1(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0			
 	      LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
 	      tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
 	      if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
@@ -410,7 +410,7 @@ if (NF == 3),
 % dmat(:, num_col0+num_col1+1:num_col1+num_col0+num_col2) is the matrix for 2nd order contrasts
    if (Contr.ord2.tot > 0),    % 7 terms: 1 (A); 2 (B); 3 (C); 4 (AB), 5 (AC), 6 BC, 7 ABC
       for (i = 1:1:Contr.ord2.tot),
-         LC.t2(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t2(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 	      switch Contr.ord2.cnt(i).idx1
 	         case 1,
 	            switch Contr.ord2.cnt(i).idx2
@@ -432,7 +432,7 @@ if (NF == 3),
 % dmat(:, num_col0+num_col1+1:num_col1+num_col0+num_col2) is the matrix for 2nd order contrasts
    if (Contr.ord3.tot > 0),
       for (i = 1:1:Contr.ord3.tot),
-         LC.t3(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t3(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 	 switch Contr.ord3.cnt(i).idx1
 	    case 1,
 	       switch Contr.ord3.cnt(i).idx2
@@ -459,7 +459,7 @@ if (NF == 4),
 % dmat(:, num_col0+1:num_col1+num_col0) is the matrix for 1st order contrasts
    if (Contr.ord1.tot > 0),
       for (i = 1:1:Contr.ord1.tot),
-         LC.t1(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0			
+         LC.t1(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0			
 	      LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
 	      tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
 	      if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
@@ -470,7 +470,7 @@ if (NF == 4),
 % dmat(:, num_col0+num_col1+1:num_col1+num_col0+num_col2) is the matrix for 2nd order contrasts
    if (Contr.ord2.tot > 0),
       for (i = 1:1:Contr.ord2.tot),
-         LC.t2(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t2(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 %		switch dsgn
          switch Contr.ord2.cnt(i).idx1
 	         case 1,
@@ -505,7 +505,7 @@ if (NF == 4),
    % dmat(:, num_col0+num_col1+1:num_col1+num_col0+num_col2) is the matrix for 2nd order contrasts
    if (Contr.ord3.tot > 0),
       for (i = 1:1:Contr.ord3.tot),
-         LC.t3(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t3(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 %		if (dsgn == 3),
 	      switch Contr.ord3.cnt(i).idx1
 	
@@ -555,7 +555,7 @@ if (NF == 5),
 % dmat(:, num_col0+1:num_col1+num_col0) is the matrix for 1st order contrasts
    if (Contr.ord1.tot > 0),
       for (i = 1:1:Contr.ord1.tot),
-         LC.t1(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0			
+         LC.t1(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0			
 	      LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
 	      tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
 	      if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
@@ -570,7 +570,7 @@ if (NF == 5),
 
    if (Contr.ord2.tot > 0),
       for (i = 1:1:Contr.ord2.tot),
-         LC.t2(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t2(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 %		switch dsgn
          switch Contr.ord2.cnt(i).idx1
 	         case 1,
@@ -613,7 +613,7 @@ if (NF == 5),
    % dmat(:, num_col0+num_col1+1:num_col1+num_col0+num_col2) is the matrix for 2nd order contrasts
    if (Contr.ord3.tot > 0),
       for (i = 1:1:Contr.ord3.tot),
-         LC.t3(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t3(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 %		if (dsgn == 3),
 	      switch Contr.ord3.cnt(i).idx1
 	
@@ -681,7 +681,7 @@ if (NF == 5),
 
    if (Contr.ord4.tot > 0),
       for (i = 1:1:Contr.ord4.tot),
-         LC.t4(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t4(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 	      switch Contr.ord4.cnt(i).idx1
 	
 				case 1,

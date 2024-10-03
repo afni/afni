@@ -569,7 +569,7 @@ PARSE:
 #      goto END
    endif
    
-   #if in apar mode, no need for skull strippin 
+   #if in apar mode, no need for skull stripping
    if ($apar_mode == 1) then
       set RemoveSkull = 0
    endif
@@ -796,7 +796,7 @@ AUTO_TLRC_MODE:
    goto CLEANUP
 
    PAD:
-   #Paddin the reference since tt vols are perrty tight
+   #Padding the reference since tt vols are perrty tight
    if ( `@CheckForAfniDset ${ref_pref_pad}${ref_view}` == 0 ) then
       echo "Padding ..."
       3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \

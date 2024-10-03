@@ -50,6 +50,7 @@ int help_3dTsplit4D( )
       " -digits DIGITS : number of digits to use for output filenames\n"
       " -keep_datum    : output uses original datum (no conversion to float)\n"
       " -label_prefix  : include volume label in each output prefix\n"
+      " -bids_deriv    : format string for BIDS-Derivative-style naming\n"
       "\n\n"
       "Authored by: Peter Molfese, UConn"
       );
@@ -73,7 +74,7 @@ int help_3dTsplit4D( )
  *                                     [12 Apr 2024 rickr]
  */
 char * make_output_prefix(char *prelim, int ndigits, int index,
-                          char *label, char *ext)
+                          char *label, char *ext, int do_bids_deriv)
 {
    static char *sprefix=NULL, *slabel=NULL;
    static int   splen  =0,     sllen=0;
@@ -110,7 +111,12 @@ char * make_output_prefix(char *prelim, int ndigits, int index,
    }
 
    /* start with prefix and digits */
-   sprintf(sprefix, "%s.%0*d", prelim, ndigits, index);
+   /* add . after prelim if following alpha or numeric char */
+   /* (and if not doing bids output) */
+   if ( isalnum(prelim[strlen(prelim)-1]) && ! do_bids_deriv )
+      sprintf(sprefix, "%s.%0*d", prelim, ndigits, index);
+   else
+      sprintf(sprefix, "%s%0*d", prelim, ndigits, index);
 
    /* if there is a label, add it, replacing space or # with _ */
    if( label ) {
@@ -143,6 +149,7 @@ int main( int argc, char *argv[] )
    int   iarg=1, kk, nval;
    int   datum=MRI_float, keep_datum=0, ndigits=0, smode;
    int   do_label_prefix=0;
+   int   do_bids_deriv=0;
    char *prefix = "SPLIT";
    char *sub_prefix, newlabel[32];
    char *precopy=NULL, *exten=NULL;  /* copied prefix and any needed ext */
@@ -173,6 +180,8 @@ int main( int argc, char *argv[] )
          keep_datum = 1;
       } else if( strcmp( argv[iarg], "-label_prefix") == 0 ) {
          do_label_prefix = 1;
+      } else if( strcmp( argv[iarg], "-bids_deriv") == 0 ) {
+         do_bids_deriv = 1;
       } else {
          ERROR_exit("unknown option %s", argv[iarg]);
       }
@@ -227,7 +236,7 @@ int main( int argc, char *argv[] )
                         precopy, ndigits, kk,
                         (do_label_prefix && DSET_HAS_LABEL(iset, kk)) ?
                            DSET_BRICK_LABEL(iset, kk) : NULL,
-                        exten);
+                        exten, do_bids_deriv);
       
       // INFO_message("File Saved: %s", sub_prefix);
       if( kk == 0 || kk == (nval-1) )
@@ -268,7 +277,8 @@ int main( int argc, char *argv[] )
       }
       
       DSET_write( oset );
-      if( ! THD_is_file(DSET_BRIKNAME(oset)) ) 
+      /* check HEAD file, as BRIK might have auto-gzip  [24 Sep 2024 rickr] */
+      if( ! THD_is_file(DSET_HEADNAME(oset)) ) 
          ERROR_exit("failed to write dataset %s", sub_prefix);
       //WROTE_DSET( oset );
       
@@ -282,7 +292,7 @@ int main( int argc, char *argv[] )
    
 
    /* and free the allocated memory */
-   make_output_prefix(NULL, 0, 0, NULL, NULL);
+   make_output_prefix(NULL, 0, 0, NULL, NULL, 0);
 
    printf("\n...Done\n");
 

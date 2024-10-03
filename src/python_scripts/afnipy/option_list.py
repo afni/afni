@@ -268,7 +268,7 @@ class OptionList:
         if not opt or not opt.parlist: return default, 0
         if not opt_name: opt_name = opt.name
         if len(opt.parlist) != 1:
-            print("** expectin 1 parameter for option '%s', have: %s" % \
+            print("** expecting 1 parameter for option '%s', have: %s" % \
                   (opt_name, opt.parlist))
             return default, 1
         try: val = otype(opt.parlist[0])

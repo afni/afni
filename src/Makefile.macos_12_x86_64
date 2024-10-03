@@ -30,11 +30,14 @@ XLIBS = -lXm -ljpeg -lXt
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE \
-	 -DDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
+         -DDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
+
+# allow an alternate compiler or just gcc version to be used
+LOCAL_CC_PATH ?= /usr/local/bin/gcc-13
 
 # specify minimum CC and others
 # CCMIN  = /usr/bin/gcc
-CCMIN  = /usr/local/bin/gcc-13
+CCMIN  = $(LOCAL_CC_PATH)
 CC     = $(CCMIN) -O2 -DDARWIN $(CEXTRA)
 
 CCVOL  = $(CC)

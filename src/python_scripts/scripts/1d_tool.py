@@ -40,7 +40,7 @@ examples (very basic for now): ~1~
 
             or using column labels:
 
-         1d_tool.py -infile 'data/X.xmat.1D[Run#1Pol#0,,Run#1Pol#3]' \\
+         1d_tool.py -infile 'data/X.xmat.1D[Run#1Pol#0..Run#1Pol#3]' \\
                     -write run0_polorts.1D
 
    Example 2.  Compare with selection by separate options. ~2~
@@ -2298,7 +2298,7 @@ class A1DInterface:
             self.show_labels = 1
 
          elif opt.name == '-show_max_displace':
-            self.show_displace = 3
+            self.show_displace = 1
 
          elif opt.name == '-show_mmms':
             self.show_mmms = 1
@@ -2633,6 +2633,7 @@ class A1DInterface:
          print(istr)
 
       if self.show_displace:
+         # note: enorm diff as L1 vs L2 norm will probably never be used here
          print(self.adata.get_max_displacement_str(verb=self.verb))
 
       if self.show_gcor:

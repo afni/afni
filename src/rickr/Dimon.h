@@ -13,7 +13,7 @@
 #define IFM_MAX_RUN_NAPS     2       /* maximum number of mid-run naps   */
 #define IFM_MAX_GE_FAILURES  3       /* file read failures before exit   */
 #define IFM_MAX_NT       32767       /* maximum valid num time points    */
-#define IFM_SUFFIX_LEN      10       /* allocated space for I-file sufix */
+#define IFM_SUFFIX_LEN      10       /* allocated space for I-file suffix */
 
 #define IFM_MIN_NICE_INC   -19       /* minimum nice value increment     */
 #define IFM_MAX_NICE_INC    20       /* maximum nice value increment     */

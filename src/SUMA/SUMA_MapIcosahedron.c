@@ -1548,7 +1548,6 @@ int main (int argc, char *argv[])
    
    SCRUBIT;   
 
-
    SUMA_RETURN(0);
    
 }/* main SUMA_MapIcosahedron*/
