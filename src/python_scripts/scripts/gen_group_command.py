@@ -24,7 +24,6 @@ gen_group_command.py    - generate group analysis command scripts
 
        1. generate group commands: 3dttest++, 3dMEMA, 3dANOVA2, 3dANOVA3
        2. generate generic commands
-       3. todo (maybe): 3dttest, GroupAna (or maybe not)
 
    This program is to assist in writing group commands.  The hardest part (or
    most tedious) is generally listing datasets and such, particularly including
@@ -439,6 +438,8 @@ examples (by program) ~1~
       These are examples of how to create a datatable file, suitable for
       input via -dataTable to 3dMVM, 3dLME, etc.
 
+        apply via: -command datatable
+
       Creation of a datatable is divided into logical components:
 
          A. a table of subject attributes that is not paired to datasets,
@@ -452,18 +453,34 @@ examples (by program) ~1~
                     subj-0060   B      36.84   19
                     ...
 
-         B. the actual dataset inputs: one set per factor level (task attribute),
-            or one set and factor-corresponding sub-brick selectors
-            (either way, factors are listed for dset volume correspondence)
-            
-            e.g. -dsets results/sub*/cond.A.B.C/sub*.nii.gz \\
-                 -factor_list ...                           \\
-                 -subs_betas B_R_T1 B_R_T2 B_R_T3 ...       \\
+         B. the actual dataset inputs: 2 ways to do it
+            (either way, per subject)
 
-            e.g. -dsets results/sub*/cond.A/sub*.nii.gz     \\
-                 -dsets results/sub*/cond.B/sub*.nii.gz     \\
-                 -dsets results/sub*/cond.C/sub*.nii.gz     \\
-                 -factor_list ...                           \\
+            i. one data file per factor level (task attribute)
+               - so each data set will have a single volume
+
+                e.g. -dsets results/sub*/cond.A/sub*.nii.gz     \\
+                     -dsets results/sub*/cond.B/sub*.nii.gz     \\
+                     -dsets results/sub*/cond.C/sub*.nii.gz     \\
+                     -factor_list ...                           \\
+
+            ii. one set of input and factor-corresponding sub-brick selectors
+                (either way, factors are listed for dset volume correspondence)
+            
+                e.g. -dsets results/sub*/cond.A.B.C/sub*.nii.gz \\
+                     -factor_list ... ... ...                   \\
+                     -subs_betas B_R_T1 B_R_T2 B_R_T3 ...       \\
+
+                more completely:
+                     -dsets 
+                     -factor_list visit before after    \\
+                     -factor_list color red green       \\
+                     -factor_list task  T1 T2 T3        \\
+                     -subs_betas B_R_T1 B_R_T2 B_R_T3   \\
+                                 B_G_T1 B_G_T2 B_G_T3   \\
+                                 A_R_T1 A_R_T2 A_R_T3   \\
+                                 A_G_T1 A_G_T2 A_G_T3
+
 
          C. todo: consider including table of task-varying attributes
                   (e.g. ave response time per task/level)
@@ -472,33 +489,40 @@ examples (by program) ~1~
 
       1a. simple: no -dt_tsv, one -dsets option ~3~
 
-        Only one -dsets option implies all factor levels/sub-bricks/task attrs
-        exist in each subject's input dataset.
-        This requires -subs_betas to connect task attrs to sub-bricks.
+        Only one -dsets option implies one dataset per subject, and all
+        factor levels/sub-bricks/task attrs exist in each subject's dataset.
+        This requires -subs_betas to connect task attrs to sub-bricks, listing
+        the sub-bricks that correspond with the ordered combination of factors.
+        Note that betas should be in factor-major order, where the first
+        factor changes the slowest (so here all 'before' betas come before all
+        'after' betas, and then with reds before greens, etc).
 
-        gen_group_command.py                     \\
-           -command datatable                    \\
-           -dsets $dsets                         \\
-           -factor_list visit before after       \\
-           -factor_list color red green          \\
-           -factor_list task  T1 T2 T3           \\
-           -subs_betas B_R_T1 B_R_T2 B_R_T3      \\
-                       B_G_T1 B_G_T2 B_G_T3      \\
-                       A_R_T1 A_R_T2 A_R_T3      \\
+        gen_group_command.py                          \\
+           -command datatable                         \\
+           -dsets all/results/sub*/sub*.nii.gz        \\
+           -factor_list visit before after            \\
+           -factor_list color red green               \\
+           -factor_list task  T1 T2 T3                \\
+           -subs_betas B_R_T1 B_R_T2 B_R_T3           \\
+                       B_G_T1 B_G_T2 B_G_T3           \\
+                       A_R_T1 A_R_T2 A_R_T3           \\
                        A_G_T1 A_G_T2 A_G_T3
 
       * to restrict to a specific list of subjects, include something like:
-
             -dset_sid_list $my_favorite_subjects
-
-        later example
-           -dset_sid_list $only_these_subjects
 
       1b. ...
 
         gen_group_command.py                     \\
 
       ...
+
+   consider: table of task-varying attributes
+             (e.g. ave response time per task/level)
+
+   --------------------
+
+   --------------------
 
 ------------------------------------------
 command-line options: ~1~
