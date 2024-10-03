@@ -482,9 +482,6 @@ examples (by program) ~1~
                                  A_G_T1 A_G_T2 A_G_T3
 
 
-         C. todo: consider including table of task-varying attributes
-                  (e.g. ave response time per task/level)
-
       1. no -dt_tsv option (skip part A), so result is just an ANOVA table
 
       1a. simple: no -dt_tsv, one -dsets option ~3~
@@ -497,25 +494,44 @@ examples (by program) ~1~
         factor changes the slowest (so here all 'before' betas come before all
         'after' betas, and then with reds before greens, etc).
 
-        gen_group_command.py                          \\
-           -command datatable                         \\
-           -dsets all/results/sub*/sub*.nii.gz        \\
-           -factor_list visit before after            \\
-           -factor_list color red green               \\
-           -factor_list task  T1 T2 T3                \\
-           -subs_betas B_R_T1 B_R_T2 B_R_T3           \\
-                       B_G_T1 B_G_T2 B_G_T3           \\
-                       A_R_T1 A_R_T2 A_R_T3           \\
-                       A_G_T1 A_G_T2 A_G_T3
+            gen_group_command.py                        \\
+               -command datatable                       \\
+               -dsets all_results/sub*/sub*.nii.gz      \\
+               -factor_list visit before after          \\
+               -factor_list color red green             \\
+               -factor_list task  T1 T2 T3              \\
+               -subs_betas B_R_T1 B_R_T2 B_R_T3         \\
+                           B_G_T1 B_G_T2 B_G_T3         \\
+                           A_R_T1 A_R_T2 A_R_T3         \\
+                           A_G_T1 A_G_T2 A_G_T3
 
       * to restrict to a specific list of subjects, include something like:
             -dset_sid_list $my_favorite_subjects
 
-      1b. ...
+      1b. simple: no -dt_tsv, one -dsets option per factor combination ~3~
 
-        gen_group_command.py                     \\
+        Like 1a, but with each subject beta volume in a separate dataset.
+        The generated table should be similar, with identical ordering, but
+        using varying files rather than beta volume indexing.
 
-      ...
+            gen_group_command.py                        \\
+               -command datatable                       \\
+               -factor_list visit before after          \\
+               -factor_list color red green             \\
+               -factor_list task  T1 T2 T3              \\
+               -dsets all_results/data.B_R_T1/sub*.gz   \\
+               -dsets all_results/data.B_R_T2/sub*.gz   \\
+               -dsets all_results/data.B_R_T3/sub*.gz   \\
+               -dsets all_results/data.B_G_T1/sub*.gz   \\
+               -dsets all_results/data.B_G_T2/sub*.gz   \\
+               -dsets all_results/data.B_G_T3/sub*.gz   \\
+               -dsets all_results/data.A_R_T1/sub*.gz   \\
+               -dsets all_results/data.A_R_T2/sub*.gz   \\
+               -dsets all_results/data.A_R_T3/sub*.gz   \\
+               -dsets all_results/data.A_G_T1/sub*.gz   \\
+               -dsets all_results/data.A_G_T2/sub*.gz   \\
+               -dsets all_results/data.A_G_T3/sub*.gz
+
 
    consider: table of task-varying attributes
              (e.g. ave response time per task/level)
@@ -792,6 +808,11 @@ g_history = """
 
 g_version = "gen_group_command.py version 1.3 July 30, 2019"
 
+g_todo = """
+  - consider including a table of task-varying attributes
+    (e.g. ave response time per task/level)
+
+"""
 
 class CmdInterface:
    """interface class for getting commands from SubjectList class
