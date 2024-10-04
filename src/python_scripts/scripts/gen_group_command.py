@@ -440,6 +440,10 @@ examples (by program) ~1~
 
         apply via: -command datatable
 
+      Note: at this time, the output is specific to an external datatable file,
+            rather than one to paste on the command line (the difference being
+            quotes for sub-brick selectors and line continuation characers, \\).
+
       Creation of a datatable is divided into logical components:
 
          A. a table of subject attributes that is not paired to datasets,
@@ -864,6 +868,7 @@ g_history = """
 g_version = "gen_group_command.py version 1.3 July 30, 2019"
 
 g_todo = """
+  - add option to output in 'shell' format, with quoted selectors and line wrap
   - consider including a table of task-varying attributes
     (e.g. ave response time per task/level)
 

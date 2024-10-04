@@ -635,7 +635,7 @@ class SubjectList(object):
       return cmd
 
    def make_datatable_text(self, subjlists, condlists=[], bsubs=None, 
-                           tsvfile='', sep='  ', wrap=1, verb=1):
+                           tsvfile='', sep='  ', shell=0, verb=1):
       """create text for a -dataTable file
 
             subjlists      - one list, or one list per condition
@@ -650,7 +650,7 @@ class SubjectList(object):
                              ** MUST have a header line, and subjects first
             sep            - column separator for table
                              (if has tab, no uniformity)
-            wrap           - include line wrapper (should not need)
+            shell          - if shell form, include line wrapper
             verb           - verbose level
 
     *** decide on -dsets (subjlists), -factors (factors), -subs_betas (bsubs)
@@ -724,8 +724,8 @@ class SubjectList(object):
          dunif = _make_uniform_col_widths(dtable)
 
       lines = []
-      if wrap: wstr = '%s\\' % sep
-      else:    wstr = ''
+      if shell: wstr = '%s\\' % sep
+      else:     wstr = ''
       for row in dunif:
          lines.append(sep.join(row) + wstr)
 
@@ -846,7 +846,9 @@ class SubjectList(object):
       return newsubjects, tsvdata
 
    def combine_subjects_n_factors(self, subj_all, SDL, TSV, clabs, CT, bsubs,
-                                  verb=1):
+                                  shell=0, verb=1):
+      """shell  : make the output in shell form
+      """
 
       if verb > 2:
          print("-- combining subjects and factor table, have TSV = %s" \
@@ -859,7 +861,9 @@ class SubjectList(object):
       if bsubs is None: nb = 0
       else:             nb = len(bsubs)
       if   nb == 0: select = ''
-      elif nb == 1: select = '[%s]' % bsubs[0]
+      elif nb == 1:
+         if shell:  select = '"[%s]"' % bsubs[0]
+         else:      select = '[%s]' % bsubs[0]
       else:         select = 'eatmorecheese'
 
       # count missing subjects per condition set
@@ -893,8 +897,9 @@ class SubjectList(object):
                continue
 
             # do we want a volume selection?
-            if nb < 2: dset += select
-            else:      dset += '[%s]' % bsubs[ic]
+            if nb < 2:  dset += select
+            elif shell: dset += '"[%s]"' % bsubs[ic]
+            else:       dset += '[%s]' % bsubs[ic]
 
             # formulate row: subj, TSV_cols..., factor_labels..., inputfile
             drow = [subj]
