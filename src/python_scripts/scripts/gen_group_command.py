@@ -442,7 +442,8 @@ examples (by program) ~1~
 
       Note: at this time, the output is specific to an external datatable file,
             rather than one to paste on the command line (the difference being
-            quotes for sub-brick selectors and line continuation characers, \\).
+            quotes for sub-brick selectors and line continuation characters,
+            \\ at the end of a line).
 
       Creation of a datatable is divided into logical components:
 
