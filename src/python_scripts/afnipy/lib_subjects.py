@@ -847,7 +847,10 @@ class SubjectList(object):
 
    def combine_subjects_n_factors(self, subj_all, SDL, TSV, clabs, CT, bsubs,
                                   shell=0, verb=1):
-      """shell  : make the output in shell form
+      """for each subject x condition, create a row of text items
+         - include the TSV entry columns, if given
+
+          shell  : make the output in shell form
       """
 
       if verb > 2:

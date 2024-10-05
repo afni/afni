@@ -531,6 +531,8 @@ examples (by program) ~1~
            Here, the first -dsets option would correspond to before-red-T1, and
            the last/12th -dsets option would correspond to after-green-T3.
 
+      Where were we?  Oh right, examples...
+
       1. simple: no -dt_tsv, one -dsets option, with -subs_betas ~3~
 
         This skips part A above, generating basically an ANOVA table without
@@ -911,9 +913,10 @@ g_history = """
         - change max line len and whether data dir vars are used
         - no require on restricted subjects
    1.3  Jul 30, 2019 - sphinx help update
+   1.4  Oct  4, 2024 - datatable creation
 """
 
-g_version = "gen_group_command.py version 1.3 July 30, 2019"
+g_version = "gen_group_command.py version 1.4 October 4, 2024"
 
 g_todo = """
   - add option to output in 'shell' format, with quoted selectors and line wrap
