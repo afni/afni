@@ -443,7 +443,7 @@ examples (by program) ~1~
       Note: at this time, the output is specific to an external datatable file,
             rather than one to paste on the command line (the difference being
             quotes for sub-brick selectors and line continuation characters,
-            \\ at the end of a line).
+            i.e. \\ at the end of a line).
 
       Creation of a datatable is divided into logical components:
 
@@ -476,16 +476,60 @@ examples (by program) ~1~
                      -factor_list ... ... ...                   \\
                      -subs_betas B_R_T1 B_R_T2 B_R_T3 ...       \\
 
-                more completely:
-                     -dsets 
-                     -factor_list visit before after    \\
-                     -factor_list color red green       \\
-                     -factor_list task  T1 T2 T3        \\
-                     -subs_betas B_R_T1 B_R_T2 B_R_T3   \\
-                                 B_G_T1 B_G_T2 B_G_T3   \\
-                                 A_R_T1 A_R_T2 A_R_T3   \\
-                                 A_G_T1 A_G_T2 A_G_T3
+      Correspondence between TSV, input datasets, factors and betas: ~3~
 
+         - Subject IDs must be extractable from the input dataset names (i.e.
+           the program should be able to guess them from the part of the input
+           files that varies across the names).  This applies to any use of
+           gen_group_command.py, not just for datatable.
+
+           IDs starting with sub/subj are more readily found in their entirety.
+
+           Such found IDs must match Subj entries in any -dt_tsv file.  
+
+         - The -factor list options should define volumes in a factor-major
+           order, say.  So the first factor list is the slowest changing, down
+           to the last factor list being the fastest changing.  These are like
+           digits of sequential integers, where the first factors are the
+           left-most "digit" position, and the last factors are the right-most.
+
+           Consider the factor lists from example 1 (2 x 2 x 3 factors):
+
+               -factor_list visit before after          \\
+               -factor_list color red green             \\
+               -factor_list task  T1 T2 T3              \\
+
+           Here 'visit' has 2 levels, 'color' has 2 and 'task' has 3.  So there
+           are 12 = 2x2x3 combinations in this factorization.
+
+           The order of these factor sets mapping to dataset volumes (i.e. the
+           order of the -subs_betas arguments or the order of the -dsets
+           options) as specified is, first to last:
+
+                most sig    next most sig    least significant
+                --------    -------------    -----------------
+                before      red              T1
+                before      red              T2
+                before      red              T3
+                before      green            T1
+                before      green            T2
+                before      green            T3
+                after       red              T1
+                after       red              T2
+                after       red              T3
+                after       green            T1
+                after       green            T2
+                after       green            T3
+
+         - If there is only one -dsets line (so each subject dataset contains
+           all input volumes), then there should be a -subs_betas option given.
+           In this case, the order of the factor combinations should match the
+           order of the -subs_betas arguments.
+
+           If there is more than one -dsets line, there must be exactly as many
+           -dsets lines as there are are factor combinations, 12 in example 1.
+           Here, the first -dsets option would correspond to before-red-T1, and
+           the last/12th -dsets option would correspond to after-green-T3.
 
       1. simple: no -dt_tsv, one -dsets option, with -subs_betas ~3~
 
@@ -617,10 +661,13 @@ required parameters: ~2~
         The current list of group commands is: 3dttest++, 3dMEMA, 3dANOVA2,
         3dANOVA3.
 
-           3dANOVA2:    applied as -type 3 only (factor x subjects)
-           3dANOVA3:    -type 4: condition x condition x subject
+           3dANOVA2   : applied as -type 3 only (factor x subjects)
+           3dANOVA3   : -type 4: condition x condition x subject
                                  (see -factors option)
                         -type 5: group x condition x subject
+           3dMEMA     : pairing betas and t-stats
+           3dttest++  : allows basically full control
+           datatable  : generate -dataTable files for Gang's R stats programs
 
    -dsets datasets ...       : list of input datasets
 
