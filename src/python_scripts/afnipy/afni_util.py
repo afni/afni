@@ -14,6 +14,7 @@ from afnipy import lib_textdata as TD
 from afnipy import lib_format_cmd_str as lfcs
 import glob
 import re
+from   datetime   import datetime
 
 # global lists for basis functions
 basis_known_resp_l = ['GAM', 'BLOCK', 'dmBLOCK', 'dmUBLOCK', 'SPMG1',
@@ -1641,6 +1642,38 @@ def test_truncation(top=10.0, bot=0.1, bits=3, e=0.0001):
         trunc = truncate_to_N_bits(val, bits, scale=1.0001)
         print(val, ' -> ', trunc)
         val = min(trunc-e, val-e)
+
+def round_int_or_nsig(x, nsig=None, stringify=False):
+    """if int(x) has at least nsig significant digits, then return
+    round(x); otherwise, round and keep nsig significant digits at a
+    minimum. If stringify=True, return as a string (since this
+    function is often for preparing string output to report).
+
+    if nsig=None, then just return the round(x)
+
+    """
+
+    # simple case: round to int
+    if nsig is None :
+       y = round(x)
+       if stringify :  return "{:d}".format(y)
+       else:           return y
+
+    # some work: in sci notation, what is the exponent?
+    nleft  = int(("{:e}".format(x)).split('e')[-1]) + 1
+    nright = nsig - nleft
+ 
+    # case: number of ints is >= num of sig figs, so round to int
+    if nright <= 0 :
+       y = round(x)
+       if stringify :  return "{:d}".format(y)
+       else:           return y
+
+    # more work: round to appropriate number of decimals
+    y = round(x, nright)
+
+    if stringify : return "{:.{:d}f}".format(y, nright)
+    else:          return y
 
 def get_dset_reps_tr(dset, notr=0, verb=1):
     """given an AFNI dataset, return err, reps, tr
@@ -5759,6 +5792,109 @@ y : str
     y = y.replace('.', '____')
 
     return y
+
+# ----------------------------------------------------------------------
+# [PT: 2024-05-08] when output is a new dir, this is useful to control
+# behavior (happens in APQC generation, and now more)
+
+# control overwriting/backing up any existing dirs
+dict_ow_modes = {
+    'simple_ok'   : 'make new dir, ok if pre-exist (mkdir -p ..)',
+    'shy'         : 'make new dir only if one does not exist',
+    'overwrite'   : 'purge old dir and make new dir in its vacant place',
+    'backup'      : 'move existing dir to dir_<time>; then make new dir',
+}
+
+list_ow_modes = list(dict_ow_modes.keys())
+list_ow_modes.sort()
+str_ow_modes  = ', '.join([x for x in list_ow_modes])
+hstr_ow_modes = '\n'.join(['{:12s} -> {}'.format(x, dict_ow_modes[x]) \
+                           for x in list_ow_modes])
+
+def is_valid_ow_mode(ow_mode):
+    """Simple check about whether input ow_mode is a valid one. Return
+True if valid, and False otherwise."""
+
+    is_valid = ow_mode in list_ow_modes
+
+    return is_valid
+
+def make_new_odir(new_dir, ow_mode='backup', bup_dir=''):
+    """When outputting to a new directory new_dir, just create it if it
+doesn't exist already; but if a dir *does* pre-exist there, then do
+one of the following behaviors, based on keyword values of ow_mode
+(and with consideration of bup_dir value):
+  'simple_ok'   : make new dir, ok if pre-exist (mkdir -p ..)
+  'overwrite'   : remove pre-existing new_dir and create empty one in
+                  its place
+  'backup' and bup_dir != '' : move that pre-existing dir to bup_dir
+  'backup' and bup_dir == '' : move that pre-existing dir to new_dir_<TIMESTAMP>
+  'shy'         : make new_dir only if one does not pre-exist.
+
+Parameters
+----------
+new_dir : str
+    name of new dir to make
+ow_mode : str
+    label for the overwrite mode behavior of replacing or backing up
+    an existing new_dir (or a file with the same name as the dir)
+bup_dir : str
+    possible name for backup directory    
+
+Returns
+----------
+num : int
+    return 0 up on success, or a different int if failure
+
+    """
+
+    do_cap = True
+
+    # valid ow_mode?
+    if not( is_valid_ow_mode(ow_mode) ) :
+        print("** ERROR: illegal ow_mode '{}', not in the list:\n"
+              "   {}".format(ow_mode, str_ow_modes))
+        sys.exit(11)
+
+    # check if the main QC dir exists already
+    DIR_EXISTS = os.path.exists(new_dir)
+
+    if DIR_EXISTS :
+        if ow_mode=='shy' or ow_mode==None :
+            print("** ERROR: output dir exists already: {}\n"
+                  "   Exiting.".format(new_dir))
+            print("   Check out '-ow_mode ..' for overwrite/backup opts.")
+            sys.exit(10)
+        
+        elif ow_mode=='backup' :
+            if not(bup_dir) :
+                # make our own backup dir with timestamp
+                now     = datetime.now()          # current date and time
+                bup_dir = now.strftime( new_dir + "_%Y-%m-%d-%H-%M-%S")
+
+            print("+* WARN: output dir exists already: {}\n"
+                  "   -> backing it up to: {}".format(new_dir, bup_dir))
+            cmd  = '''\\mv {} {}'''.format(new_dir, bup_dir)
+            com  = BASE.shell_com(cmd, capture=do_cap)
+            stat = com.run()
+
+        elif ow_mode=='overwrite' :
+            print("+* WARN: output dir exists already: {}\n"
+                  "   -> overwriting it".format(new_dir))
+            cmd    = '''\\rm -rf {}'''.format(new_dir)
+            com    = BASE.shell_com(cmd, capture=do_cap)
+            stat   = com.run()
+
+        elif ow_mode=='simple_ok' :
+            # just leads to essentially doing 'mkdir -p ..' with the new_dir
+            print("++ OK, output dir exists already: {}".format(new_dir))
+
+    # Now make the new output dir
+    cmd    = '''\\mkdir -p {}'''.format(new_dir)
+    com    = BASE.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+
+    return 0
 
 # ----------------------------------------------------------------------
 
