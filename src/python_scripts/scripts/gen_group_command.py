@@ -445,6 +445,20 @@ examples (by program) ~1~
             quotes for sub-brick selectors and line continuation characters,
             i.e. \\ at the end of a line).
 
+      The purpose of this option is to specify datasets and possibly volume
+      labels (sub-brick selectors) and a set of task attributes that would
+      connect each subject volume (beta weight) to one attribute set.  This
+      is based on a full factorization of the attributes.  Each attribute gets
+      a column in the output datatable.
+
+      Optionally, one can also specify across subject attribute, one set per
+      subject.  Such columns are then duplicated for each row of a given
+      subject.
+
+    * Note that missing volumes are allowed by this program, but only when the
+      input volumes for a single subject are in separate files, as with 
+      example 2.
+
       Creation of a datatable is divided into logical components:
 
          A. a table of subject attributes that is not paired to datasets,
@@ -492,6 +506,9 @@ examples (by program) ~1~
            to the last factor list being the fastest changing.  These are like
            digits of sequential integers, where the first factors are the
            left-most "digit" position, and the last factors are the right-most.
+
+           The first parameter of -factor_list is the column label, and the
+           rest are the actual factor levels or values.
 
            Consider the factor lists from example 1 (2 x 2 x 3 factors):
 
@@ -658,7 +675,7 @@ terminal options: ~2~
 
 required parameters: ~2~
 
-   -command COMMAND_NAME     : resulting command, such as 3dttest++
+   -command COMMAND_NAME     : resulting command, such as 3dttest++ ~3~
 
         The current list of group commands is: 3dttest++, 3dMEMA, 3dANOVA2,
         3dANOVA3.
@@ -671,7 +688,7 @@ required parameters: ~2~
            3dttest++  : allows basically full control
            datatable  : generate -dataTable files for Gang's R stats programs
 
-   -dsets datasets ...       : list of input datasets
+   -dsets datasets ...       : list of input datasets ~3~
 
         Each use of this option essentially describes one group of subjects.
         All volumes for a given subject should be in a single dataset.
@@ -680,7 +697,7 @@ required parameters: ~2~
 
 other options: ~2~
 
-   -dset_sid_list SID SID ...   : restrict -dsets datasets to this SID list
+   -dset_sid_list SID SID ...   : restrict -dsets datasets to this SID list ~3~
 
         In some cases it is easy to use a wildcard to specify all datasets via
         -dsets, but where subject groups would not be partitioned that way.
@@ -703,8 +720,8 @@ other options: ~2~
            -dsets sub-*/*.results/stats.sub*REML+tlrc.HEAD \\
            -dset_sid_list `cat group2_subjects.txt`        \\
 
-   -dset_index0_list values...  : restrict -dsets datasets to this 0-based list
-   -dset_index1_list values...  : restrict -dsets datasets to this 1-based list
+   -dset_index0_list values...  : restrict -dsets datasets to a 0-based list ~3~
+   -dset_index1_list values...  : restrict -dsets datasets to a 1-based list ~3~
 
         In some cases it is easy to use a wildcard to specify datasets via
         -dsets, but there may be a grouping of subjects within that list.
@@ -741,7 +758,35 @@ other options: ~2~
         The format for these index lists is the same as for AFNI sub-brick
         selection.
 
-   -factors NF1 NF2 ...         : list of factor levels, per condition
+   -dt_sep SEP                 : specify separator between table columns ~3~
+
+           example: -dt_sep '\\t'
+           default: -dt_sep '  '
+
+        for: -command datatable
+
+        The default separation between the output datatable columns is varying
+        space, so the columns are visually aligned using a minimum of 2 spaces.
+
+        Use this option to modify the separator, such as using tabs, '\\t'.
+
+   -dt_tsv TSV_FILE             : specify a subject parameter file ~3~
+
+           example: -dt_tsv subject_attrs.tsv
+
+        for: -command datatable
+
+        The output data table would have a Subj column, factor/attribute
+        columns (from -factor_list options) and an Inputfile column.  Use this
+        option to provide a TSV file with a Subj column and columns for any
+        desired subject-specific attributes (group, age, ave reaction time,
+        etc).
+
+        For each subject in the output datatable, the -dt_tsv attribute columns
+        will also be included.  Note that the Subj ID must match between this
+        TSV file and what is parsed from the input -dsets lists.
+
+   -factors NF1 NF2 ...         : list of factor levels, per condition ~3~
 
            example: -factors 2 3
 
@@ -775,7 +820,7 @@ other options: ~2~
         See the example with '3dANOVA3 -type 4' as part of example D, above.
         See also -subs_betas.
 
-   -keep_dirent_pre             : keep directory entry prefix
+   -keep_dirent_pre             : keep directory entry prefix ~3~
 
         Akin to -subj_prefix, this flag expands the subject prefix list to
         include everything up to the beginning of the directory names (at
@@ -814,32 +859,32 @@ other options: ~2~
            Note that these IDs come at the dataset level, since the dataset
            names vary.
 
-   -hpad PAD                    : pad subject prefix by PAD chars toward header
+   -hpad PAD                    : pad subject prefix by PAD chars left ~3~
 
         Akin to -subj_prefix and -tpad, this flag expands the subject prefix
-        list to include PAD extra characters toward the beginning.
+        list to include PAD extra characters toward the head/beginning.
 
         See also -tpad.
 
-   -tpad PAD                    : pad subject prefix by PAD chars toward tail
+   -tpad PAD                    : pad subject prefix by PAD chars right ~3~
 
         Akin to -subj_prefix and -hpad, this flag expands the subject prefix
-        list to include PAD extra characters toward the beginning.
+        list to include PAD extra characters toward the tail/end.
 
         See also -hpad.
 
-   -options OPT1 OPT2 ...       : list of options to pass along to result
+   -options OPT1 OPT2 ...       : list of options to pass along to result ~3~
 
         The given options will be passed directly to the resulting command.  If
         the -command is 3dMEMA, say, these should be 3dMEMA options.  This
         program will not evaluate or inspect the options, but will put them at
         the end of the command.
 
-   -prefix PREFIX               : apply as COMMAND -prefix
-   -set_labels LAB1 LAB2 ...    : labels corresponding to -dsets entries
-   -subj_prefix PREFIX          : prefix for subject names (3dMEMA)
-   -subj_suffix SUFFIX          : suffix for subject names (3dMEMA)
-   -subs_betas B0 B1            : sub-bricks for beta weights (or similar)
+   -prefix PREFIX               : apply as COMMAND -prefix ~3~
+   -set_labels LAB1 LAB2 ...    : labels corresponding to -dsets entries ~3~
+   -subj_prefix PREFIX          : prefix for subject names (3dMEMA) ~3~
+   -subj_suffix SUFFIX          : suffix for subject names (3dMEMA) ~3~
+   -subs_betas B0 B1            : sub-bricks for beta weights (or similar) ~3~
 
         If this option is not given, sub-brick 0 will be used.  The entries
         can be either numbers or labels (which should match what is seen in
@@ -847,7 +892,7 @@ other options: ~2~
 
         If there are 2 -set_labels, there should be 2 betas (or no option).
 
-   -subs_tstats T0 T1           : sub-bricks for t-stats (3dMEMA)
+   -subs_tstats T0 T1           : sub-bricks for t-stats (3dMEMA) ~3~
 
         If this option is not given, sub-brick 1 will be used.  The entries can
         be either numbers or labels (which should match what is seen in the
@@ -858,7 +903,7 @@ other options: ~2~
 
         See also -subs_betas.
 
-   -type TEST_TYPE              : specify the type of test to perform
+   -type TEST_TYPE              : specify the type of test to perform ~3~
 
         The test type may depend on the given command, but generally implies
         there are multiple sets of values to compare.  Currently valid tests
@@ -868,9 +913,9 @@ other options: ~2~
 
         If this option is not applied, a useful default will be chosen.
 
-   -verb LEVEL                  : set the verbosity level
+   -verb LEVEL                  : set the verbosity level ~3~
 
-   -write_script FILE_NAME      : write command script to FILE_NAME
+   -write_script FILE_NAME      : write command script to FILE_NAME ~3~
 
         If this option is given, the command will be written to the specified
         file name.  Otherwise, it will be written to the terminal window.

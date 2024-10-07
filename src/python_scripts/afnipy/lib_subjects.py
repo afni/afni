@@ -729,7 +729,7 @@ class SubjectList(object):
       for row in dunif:
          lines.append(sep.join(row) + wstr)
 
-      return '\n'.join(lines)
+      return '\n'.join(lines) + '\n'
 
    def make_datatable(self, subjlists, condlists=[], bsubs=None, tsvfile='',
                       verb=1):
