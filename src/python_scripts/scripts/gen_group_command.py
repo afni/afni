@@ -481,13 +481,13 @@ examples (by program) ~1~
                 e.g. -dsets results/sub*/cond.A/sub*.nii.gz     \\
                      -dsets results/sub*/cond.B/sub*.nii.gz     \\
                      -dsets results/sub*/cond.C/sub*.nii.gz     \\
-                     -factor_list ...                           \\
+                     -dt_factor_list ...                        \\
 
             ii. one set of input and factor-corresponding sub-brick selectors
                 (either way, factors are listed for dset volume correspondence)
             
                 e.g. -dsets results/sub*/cond.A.B.C/sub*.nii.gz \\
-                     -factor_list ... ... ...                   \\
+                     -dt_factor_list ... ... ...                \\
                      -subs_betas B_R_T1 B_R_T2 B_R_T3 ...       \\
 
       Correspondence between TSV, input datasets, factors and betas: ~3~
@@ -507,14 +507,14 @@ examples (by program) ~1~
            digits of sequential integers, where the first factors are the
            left-most "digit" position, and the last factors are the right-most.
 
-           The first parameter of -factor_list is the column label, and the
+           The first parameter of -dt_factor_list is the column label, and the
            rest are the actual factor levels or values.
 
            Consider the factor lists from example 1 (2 x 2 x 3 factors):
 
-               -factor_list visit before after          \\
-               -factor_list color red green             \\
-               -factor_list task  T1 T2 T3              \\
+               -dt_factor_list visit before after       \\
+               -dt_factor_list color red green          \\
+               -dt_factor_list task  T1 T2 T3           \\
 
            Here 'visit' has 2 levels, 'color' has 2 and 'task' has 3.  So there
            are 12 = 2x2x3 combinations in this factorization.
@@ -567,9 +567,9 @@ examples (by program) ~1~
             gen_group_command.py                        \\
                -command datatable                       \\
                -dsets all_results/sub*.nii.gz           \\
-               -factor_list visit before after          \\
-               -factor_list color red green             \\
-               -factor_list task  T1 T2 T3              \\
+               -dt_factor_list visit before after       \\
+               -dt_factor_list color red green          \\
+               -dt_factor_list task  T1 T2 T3           \\
                -subs_betas B_R_T1 B_R_T2 B_R_T3         \\
                            B_G_T1 B_G_T2 B_G_T3         \\
                            A_R_T1 A_R_T2 A_R_T3         \\
@@ -587,9 +587,9 @@ examples (by program) ~1~
 
             gen_group_command.py                        \\
                -command datatable                       \\
-               -factor_list visit before after          \\
-               -factor_list color red green             \\
-               -factor_list task  T1 T2 T3              \\
+               -dt_factor_list visit before after       \\
+               -dt_factor_list color red green          \\
+               -dt_factor_list task  T1 T2 T3           \\
                -dsets all_results/data.B_R_T1/sub*.gz   \\
                -dsets all_results/data.B_R_T2/sub*.gz   \\
                -dsets all_results/data.B_R_T3/sub*.gz   \\
@@ -617,9 +617,9 @@ examples (by program) ~1~
             gen_group_command.py                        \\
                -command datatable                       \\
                -dt_tsv subject_attrs.tsv                \\
-               -factor_list visit before after          \\
-               -factor_list color red green             \\
-               -factor_list task  T1 T2 T3              \\
+               -dt_factor_list visit before after       \\
+               -dt_factor_list color red green          \\
+               -dt_factor_list task  T1 T2 T3           \\
                -dsets all_results/data.B_R_T1/sub*.gz   \\
                -dsets all_results/data.B_R_T2/sub*.gz   \\
                -dsets all_results/data.B_R_T3/sub*.gz   \\
@@ -758,6 +758,52 @@ other options: ~2~
         The format for these index lists is the same as for AFNI sub-brick
         selection.
 
+   -dt_factor_list LABEL V1 V2 ... : specify a factor label and value list ~3~
+
+           example: -dt_factor_list Visit before after
+                    -dt_factor_list Food  pizza carrot chocolate
+                    -dt_factor_list Task  T1 T2 T3
+
+        for: -command datatable
+
+        Use this option to specify a factor label (the datatable column header
+        for that factor type) and a set of factor levels/values for it.
+        The full factorization of all such options would define the number of
+        volumes/sub-bricks to be input for each subject (ignoring missing
+        data).
+
+        For example, using just:
+                    -dt_factor_list Task  T1 T2 T3
+        each subject would have 3 volumes/beta weights of input, one for each
+        task type T1, T2 and T3.
+
+        But if 3 just options were used, as in:
+                    -dt_factor_list Visit before after
+                    -dt_factor_list Food  pizza carrot chocolate
+                    -dt_factor_list Task  T1 T2 T3
+        Then each subject would have 18 (= 2*3*3) volumes of input:
+                    before-pizza-T1
+                    before-pizza-T2
+                    before-pizza-T3
+                        ...
+                    after-chocolate-T3
+
+        To see the full list, consider running the shell command:
+            echo {before,after}-{pizza,carrot,chocolate}-{T1,T2,T3}
+        or extending it with:
+            echo {before,after}-{pizza,carrot,chocolate}-{T1,T2,T3} \\
+                 tr ' ' '\\n'
+
+        Each of these factor combinations would then refer to a single volume
+        of data for each subject.
+
+        These 18 volumes per subject would input using either:
+            18 -dsets options, each listing all subject volumes for that beta
+        or, if all 18 volumes are in a single subject dataset:
+            1 -dsets option, listing all subject datasets
+            1 -subs_betas option, listing all sub-brick selectors
+            (as integers or as labels, such as those from the 'echo' commands)
+
    -dt_sep SEP                 : specify separator between table columns ~3~
 
            example: -dt_sep '\\t'
@@ -777,9 +823,9 @@ other options: ~2~
         for: -command datatable
 
         The output data table would have a Subj column, factor/attribute
-        columns (from -factor_list options) and an Inputfile column.  Use this
-        option to provide a TSV file with a Subj column and columns for any
-        desired subject-specific attributes (group, age, ave reaction time,
+        columns (from -dt_factor_list options) and an Inputfile column.  Use
+        this option to provide a TSV file with a Subj column and columns for
+        any desired subject-specific attributes (group, age, ave reaction time,
         etc).
 
         For each subject in the output datatable, the -dt_tsv attribute columns
@@ -1074,7 +1120,7 @@ class CmdInterface:
                       helpstr='restrict dsets to these subject IDs')
       self.valid_opts.add_opt('-dset_sid_omit_list', -1, [], okdash=0,
                       helpstr='remove these subject IDs from dsets')
-      self.valid_opts.add_opt('-factor_list', -2, [], okdash=0,
+      self.valid_opts.add_opt('-dt_factor_list', -2, [], okdash=0,
                       helpstr='factor type, and all factor levels')
       self.valid_opts.add_opt('-factors', -1, [], okdash=0,
                       helpstr='num factors, per condition (probably 2 ints)')
@@ -1206,7 +1252,7 @@ class CmdInterface:
             self.sid_omit.append(val)        # allow multiple such options
             continue
 
-         if opt.name == '-factor_list':
+         if opt.name == '-dt_factor_list':
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return 1
             self.factor_lists.append(val)
