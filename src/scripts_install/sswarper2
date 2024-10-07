@@ -1376,10 +1376,13 @@ grown/improved over time):
               the calculations.  (def: use '-lite' for faster
               calculations).
 
-  -skipwarp  :(opt) Do not compute past the output of anatSS.{subid}.nii.
-              This option is used if you just want the skull-stripped
-              result in original coordinates, without the warping
-              to the template space (anatQQ). The script will run faster.
+  -skipwarp  :(opt) Do not compute the nonlinear parts of the
+              alignment. This might be useful in troubleshooting early
+              stages of the alignment, like when initial overlap (even
+              after preliminary shifting) is poor, or when affine cost
+              functions need to be tested out. This will not produce
+              detailed skullstripping or alignment, and is likely just
+              for trial or intermediate usage.
 
   -deoblique :(opt) apply obliquity information to deoblique the input
               volume ('3dWarp -deoblique -wsinc5 ...'), as an initial step.

@@ -12978,8 +12978,10 @@ OPTIONS:  ~2~
 
     -radial_correlate_blocks B0 B1 ... : specify blocks for correlations
 
-            e.g. -radial_correlate_blocks tcat volreg
-            e.g. -radial_correlate_blocks tcat volreg regress
+            e.g.    -radial_correlate_blocks tcat volreg
+            e.g.    -radial_correlate_blocks tcat volreg regress
+            default -radial_correlate_blocks regress
+            e.g.    -radial_correlate_blocks NONE
 
         With this option set, @radial_correlate will be run at the end of
         each listed block.  It computes, for each voxel, the correlation
@@ -12990,7 +12992,10 @@ OPTIONS:  ~2~
 
         Valid blocks include:
 
-            tcat, tshift, volreg, blur, scale, regress
+            tcat, tshift, volreg, blur, scale, regress, NONE
+
+      * The default is to apply "-radial_correlate_blocks regress".
+        To omit all blocks, use "-radial_correlate_blocks NONE".
 
         The @radial_correlate command will produce an output directory of
         the form radcor.pbAA.BBBB, where 'AA' is the processing block index

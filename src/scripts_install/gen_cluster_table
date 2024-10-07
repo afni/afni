@@ -390,13 +390,13 @@ Examples ~1~
 
 1) Basic usage to create a table:
    gen_cluster_table                                  \
-        -input_map   Clust_mask+tlrc.HEAD             \
-        -input_atlas MNI_Glasser_HCP_v1.0.nii.gz      \
-        -prefix      table_cluster_olap_glasser.txt
+        -input_clust  Clust_mask+tlrc.HEAD            \
+        -input_atlas  MNI_Glasser_HCP_v1.0.nii.gz     \
+        -prefix       table_cluster_olap_glasser.txt
 
 2) Basic usage to create a table, using a lower overlap fraction cut-off:
    gen_cluster_table                                  \
-        -input_map     Clust_mask+tlrc.HEAD           \
+        -input_clust   Clust_mask+tlrc.HEAD           \
         -input_atlas   MNI_Glasser_HCP_v1.0.nii.gz    \
         -min_olap_perc 5                              \
         -prefix        table_cluster_olap _glasser.txt
