@@ -76,6 +76,11 @@ gtkyd_nifti_tool_exts = {
     'has_afni_exts' : 1,
 }
 
+# right now, this one is just for nifti case
+gtkyd_nifti_sidecar = {
+    'has_sidecar' : 1,
+}
+
 gtkyd_brickstat_minmax = {
     'min' : 1,
     'max' : 1,
@@ -461,10 +466,51 @@ dict_info : dict
 
     # for this prog, add some additional calcs
     if prog == 'nifti_tool' :
-        tmp, dd = get_nifti_tool_exts(fname, verb=verb)
-        for key in dd:
-            dict_info[key] = dd[key]
+        tmp, dd_ext = get_nifti_tool_exts(fname, verb=verb)
+        for key in dd_ext:
+            dict_info[key] = dd_ext[key]
 
+        tmp, dd_car = get_nifti_sidecar(fname, verb=verb)
+        for key in dd_car:
+            dict_info[key] = dd_car[key]
+
+    return 0, dict_info
+
+def get_nifti_sidecar(fname, verb=0):
+    """Check if there is a JSON file accompanying fname.  For a given
+nifti fname AAA.nii or AAA.nii.gz, just check if AAA.json exists
+
+Parameters
+----------
+fname : str
+    input volume name 'pon which to run check
+verb : int
+    verbosity level for terminal output whilst running
+
+Returns
+-------
+check : int
+    0 for OK, nonzero for all else
+dict_info : dict
+    dictionary of one response: 1 for yes (has sidecar), 0 for no.
+
+    """
+    BAD_RETURN = -1, {}
+
+    if not os.path.isfile(fname) :               return BAD_RETURN
+
+    dict_info = {}
+
+    if fname.endswith('.nii.gz') :
+        fname_base = fname[:-7]
+    elif fname.endswith('.nii') :
+        fname_base = fname[:-4]
+    else:
+        BASE.EP("In sidecar check, filename doesn't end .nii.gz or .nii : {}"
+                "".format(fname), end_exit=1)
+   
+    # OK, simply do the check now.
+    dict_info['has_sidecar'] = [str(int(os.path.isfile(fname_base + '.json')))]
     return 0, dict_info
 
 
@@ -476,7 +522,7 @@ construct a dictionary to output.
 Parameters
 ----------
 fname : str
-    input volume name 'pon which to run 3dinfo.
+    input volume name 'pon which to run nifti_tool
 verb : int
     verbosity level for terminal output whilst running
 
@@ -641,6 +687,8 @@ dict_info : dict
             dict_info[key] = [gtkyd_nifti_tool_all[x] * 'NA']
         for key in gtkyd_nifti_tool_exts.keys():
             dict_info[key] = [gtkyd_nifti_tool_exts[x] * 'NA']
+        for key in gtkyd_nifti_sidecar.keys():
+            dict_info[key] = [gtkyd_nifti_sidecar[x] * 'NA']
 
     # 3dBrickStat part
     if do_brickstat :
@@ -687,9 +735,14 @@ abbr : str
         return 'nifti_tool', '-disp_hdr field ', 'nifti'
     elif key in gtkyd_nifti_tool_exts :
         return 'nifti_tool', '-disp_exts (with parsing) ', 'nifti'
+    elif key in gtkyd_nifti_sidecar :
+        return 'os.path.isfile(PREFIX.json)', ': ', 'nifti'
     elif key in gtkyd_brickstat_minmax :
         return '3dBrickStat', '-', 'brickstat'
-    
+    else: 
+        BASE.EP('Unknown key parsed: {}'.format(key))
+
+
     return '', ''
 
 
