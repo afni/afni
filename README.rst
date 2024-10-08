@@ -9,12 +9,12 @@ programs, as well as shell scripts, primarily developed for the
 analysis and display of multiple MRI modalities:
 
 * functional MRI (FMRI)
-  * resting state, task-based or naturalistic paradigms
-  * single- or multi-echo acquisitions
+   * resting state, task-based or naturalistic paradigms
+   * single- or multi-echo acquisitions
 * anatomical/structural MRI
-  * at various field strengths
+   * at various field strengths
 * diffusion weighted imaging (DWI)
-  * for DTI or HARDI modeling and tractography
+   * for DTI or HARDI modeling and tractography
 
 Many AFNI programs have been applied and adapted to other modalities,
 such as ECoG, EEG, MEG, and more.
