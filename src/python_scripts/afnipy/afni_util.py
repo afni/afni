@@ -123,9 +123,14 @@ def wrap_file_text(infile='stdin', outfile='stdout', method='pt'):
    if tdata != '': write_text_to_file(outfile, tdata, wrap=1, method=method)
    
 
-def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):
+def read_text_file(fname='stdin', lines=1, strip=1, nonl=0, noblank=0, verb=1):
    """return the text text from the given file as either one string
-      or as an array of lines"""
+      or as an array of lines
+
+        strip:   remove all surrounding whitespace from each line
+        nonl:    remove only trailing '\n' characters (useless with strip)
+        noblank: remove all completely blank lines
+   """
 
    if fname == 'stdin' or fname == '-': fp = sys.stdin
    else:
@@ -138,6 +143,7 @@ def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):
    if lines:
       tdata = fp.readlines()
       if strip: tdata = [td.strip() for td in tdata]
+      if nonl:  tdata = [td.replace('\n','') for td in tdata]
       if noblank: tdata = [td for td in tdata if td != '']
    else:
       tdata = fp.read()
@@ -146,6 +152,93 @@ def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):
    fp.close()
 
    return tdata
+
+def read_tsv_file(fname='stdin', strip=0, verb=1):
+   """read a TSV file, and return a 2-D matrix of strings in row-major order
+      (it must be rectangular)
+
+      allow tab separators, else comma, else space
+      if only 1 column, hard to guess
+   """
+
+   # get lines of text, omitting blank ones, and not including newlines
+   tdata = read_text_file(fname, strip=strip, nonl=1, noblank=1, verb=verb)
+   nlines = len(tdata)
+   if verb > 1: print("-- TSV '%s' has %d lines" % (fname, nlines))
+   if nlines == 0:
+      return []
+
+   # test for separators, require rectangular input
+   nt = tdata[0].count('\t')
+   nc = tdata[0].count(',')
+   ns = tdata[0].count(' ')
+
+   # try to find a good separator
+   sep = ''
+
+   # test for tabs first
+   if nt > 0:
+     c = '\t'
+     matches = 1
+     for tline in tdata:
+       nn = tline.count(c)
+       if nn != nt:
+          matches = 0
+          break
+     if matches:
+        # declare a winner
+        sep = c
+
+   # test for commas (change nt and c)
+   if sep == '' and nc > 0:
+     c = ','
+     matches = 1
+     for tline in tdata:
+       nn = tline.count(c)
+       if nn != nc:
+          matches = 0
+          break
+     if matches:
+        # declare a winner
+        sep = c
+
+   # test for spaces (change nt and c)
+   if sep == '' and ns > 0:
+     c = ' '
+     matches = 1
+     for tline in tdata:
+       nn = tline.count(c)
+       if nn != ns:
+          matches = 0
+          break
+     if matches:
+        # declare a winner
+        sep = c
+
+   if verb > 1:
+      print("-- read_tsv_file: have sep '%s'" % sep)
+
+   # if nothing found, assume one column, but each column must be a list
+   if sep == '':
+      table = [[tline] for tline in tdata]
+   # otherwise, partition the table based on sep
+   else:
+      table = [tline.split(sep) for tline in tdata]
+
+   # and make sure it is rectangular
+   if len(table) == 0:
+      return table
+
+   ncols = len(table[0])
+   for rind, row in enumerate(table):
+      if len(row) != ncols:
+         print("** table %s is not rectangular at line %d" % (fname, rind))
+         return []
+
+   if verb > 2:
+      print("-- have %d x %d TSV data from %s" % (len(table), ncols, fname))
+
+   return table
 
 def read_top_lines(fname='stdin', nlines=1, strip=0, verb=1):
    """use read_text_file, but return only the first 'nlines' lines"""
@@ -3795,7 +3888,7 @@ def glob_form_matches_list(slist, ordered=1):
    return 1
    
 
-def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
+def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=2, strip=''):
    """given a list of strings, return the inner part of the list that varies
       (i.e. remove the consistent head and tail elements)
 
@@ -3804,7 +3897,10 @@ def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
 
       hpad NPAD         : number of characters to pad at prefix
       tpad NPAD         : number of characters to pad at suffix
-      keep_dent_pre Y/N : (flag) keep entire prefix from directory entry
+      keep_dent_pre     : possibly keep directory entry prefix
+                          0 : never
+                          1 : keep entire prefix from directory entry
+                          2 : do it if dir ent starts with sub
       strip             : one of ['', 'dir', 'file', 'ext', 'fext']
 
       If hpad > 0, then pad with that many characters back into the head
@@ -3815,7 +3911,7 @@ def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
              return [ 'subjA1.', 'subjB4.', 'subjA2.' ]
 
       If keep_dent_pre is set, then (if '/' is found) decrement hlen until 
-      that '/'.
+      that '/'.  If '/' is not found, start from the beginning.
 
         e.g. given ['dir/subjA1.txt', 'dir/subjB4.txt', 'dir/subjA2.txt' ]
                 -> return = [ 'A1.', 'B4.', 'A2.' ]
@@ -3878,8 +3974,12 @@ def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
       posn = s.rfind('/', 0, hlen)
       # if found, start at position to right of it
       # otherwise, use entire prefix
-      if posn >= 0: hlen = posn + 1
-      else:         hlen = 0
+      if posn >= 0: htmp = posn + 1
+      else:         htmp = 0
+
+      # apply unless KDP == 2 and not 'subj'
+      if keep_dent_pre != 2 or s[htmp:htmp+3] == 'sub':
+         hlen = htmp
 
    # and return the list of center strings
    if tlen == 0: return [ s[hlen:]      for s in slist ]

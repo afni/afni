@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Oct, 2024, RCR, "gen_group_command.py", MAJOR, TYPE_NEW_OPT,
+   "add -datatable 'command', to generate table for R stats programs",
+   "Use gen_group_command.py -command datatable to generate datatable files\n"
+   "for -dataTable options, for programs like 3dMVM, 3dLME, etc."
+ } ,
+
  { 24, Sep, 2024, RCR, "3dTsplit4D", MINOR, TYPE_BUG_FIX,
    "fix confusion over auto-gzip BRIK name",
    NULL

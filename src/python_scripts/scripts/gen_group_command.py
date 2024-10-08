@@ -24,7 +24,6 @@ gen_group_command.py    - generate group analysis command scripts
 
        1. generate group commands: 3dttest++, 3dMEMA, 3dANOVA2, 3dANOVA3
        2. generate generic commands
-       3. todo (maybe): 3dttest, GroupAna (or maybe not)
 
    This program is to assist in writing group commands.  The hardest part (or
    most tedious) is generally listing datasets and such, particularly including
@@ -432,6 +431,238 @@ examples (by program) ~1~
                              -dsets group_results/OLSQ*D        \\
                              -dsets group_results/REML*D
 
+   --------------------
+
+   F. datatable creation ~2~
+
+      These are examples of how to create a datatable file, suitable for
+      input via -dataTable to 3dMVM, 3dLME, etc.
+
+        apply via: -command datatable
+
+      Note: at this time, the output is specific to an external datatable file,
+            rather than one to paste on the command line (the difference being
+            quotes for sub-brick selectors and line continuation characters,
+            i.e. \\ at the end of a line).
+
+      The purpose of this option is to specify datasets and possibly volume
+      labels (sub-brick selectors) and a set of task attributes that would
+      connect each subject volume (beta weight) to one attribute set.  This
+      is based on a full factorization of the attributes.  Each attribute gets
+      a column in the output datatable.
+
+      Optionally, one can also specify across subject attribute, one set per
+      subject.  Such columns are then duplicated for each row of a given
+      subject.
+
+    * Note that missing volumes are allowed by this program, but only when the
+      input volumes for a single subject are in separate files, as with 
+      example 2.
+
+      Creation of a datatable is divided into logical components:
+
+         A. a table of subject attributes that is not paired to datasets,
+            but has one fixed entry per subject
+
+            e.g. -dt_tsv my_glorious_attributes.txt
+
+                 my_glorious_attributes.txt :
+                    Subj        Group Score    Age
+                    subj-0044   A     -33.33   24
+                    subj-0060   B      36.84   19
+                    ...
+
+         B. the actual dataset inputs: 2 ways to do it
+            (either way, per subject)
+
+            i. one data file per factor level (task attribute)
+               - so each data set will have a single volume
+
+                e.g. -dsets results/sub*/cond.A/sub*.nii.gz     \\
+                     -dsets results/sub*/cond.B/sub*.nii.gz     \\
+                     -dsets results/sub*/cond.C/sub*.nii.gz     \\
+                     -dt_factor_list ...                        \\
+
+            ii. one set of input and factor-corresponding sub-brick selectors
+                (either way, factors are listed for dset volume correspondence)
+            
+                e.g. -dsets results/sub*/cond.A.B.C/sub*.nii.gz \\
+                     -dt_factor_list ... ... ...                \\
+                     -subs_betas B_R_T1 B_R_T2 B_R_T3 ...       \\
+
+      Correspondence between TSV, input datasets, factors and betas: ~3~
+
+         - Subject IDs must be extractable from the input dataset names (i.e.
+           the program should be able to guess them from the part of the input
+           files that varies across the names).  This applies to any use of
+           gen_group_command.py, not just for datatable.
+
+           IDs starting with sub/subj are more readily found in their entirety.
+
+           Such found IDs must match Subj entries in any -dt_tsv file.  
+
+         - The -factor list options should define volumes in a factor-major
+           order, say.  So the first factor list is the slowest changing, down
+           to the last factor list being the fastest changing.  These are like
+           digits of sequential integers, where the first factors are the
+           left-most "digit" position, and the last factors are the right-most.
+
+           The first parameter of -dt_factor_list is the column label, and the
+           rest are the actual factor levels or values.
+
+           Consider the factor lists from example 1 (2 x 2 x 3 factors):
+
+               -dt_factor_list visit before after       \\
+               -dt_factor_list color red green          \\
+               -dt_factor_list task  T1 T2 T3           \\
+
+           Here 'visit' has 2 levels, 'color' has 2 and 'task' has 3.  So there
+           are 12 = 2x2x3 combinations in this factorization.
+
+           The order of these factor sets mapping to dataset volumes (i.e. the
+           order of the -subs_betas arguments or the order of the -dsets
+           options) as specified is, first to last:
+
+                most sig    next most sig    least significant
+                --------    -------------    -----------------
+                before      red              T1
+                before      red              T2
+                before      red              T3
+                before      green            T1
+                before      green            T2
+                before      green            T3
+                after       red              T1
+                after       red              T2
+                after       red              T3
+                after       green            T1
+                after       green            T2
+                after       green            T3
+
+         - If there is only one -dsets line (so each subject dataset contains
+           all input volumes), then there should be a -subs_betas option given.
+           In this case, the order of the factor combinations should match the
+           order of the -subs_betas arguments.
+
+           If there is more than one -dsets line, there must be exactly as many
+           -dsets lines as there are are factor combinations, 12 in example 1.
+           Here, the first -dsets option would correspond to before-red-T1, and
+           the last/12th -dsets option would correspond to after-green-T3.
+
+      Where were we?  Oh right, examples...
+
+      1. simple: no -dt_tsv, one -dsets option, with -subs_betas ~3~
+
+        This skips part A above, generating basically an ANOVA table without
+        subject-specific attributes.
+
+        Only one -dsets option implies one dataset per subject, so all factor
+        levels/sub-bricks/task attrs exist in each subject dataset.  This
+        requires -subs_betas to connect task attrs to sub-bricks, listing the
+        sub-bricks that correspond with the ordered combination of factors.
+
+        Note that betas should be in factor-major order, where the first
+        factor changes the slowest (so here all 'before' betas come before all
+        'after' betas, and then with reds before greens, etc).
+
+            gen_group_command.py                        \\
+               -command datatable                       \\
+               -dsets all_results/sub*.nii.gz           \\
+               -dt_factor_list visit before after       \\
+               -dt_factor_list color red green          \\
+               -dt_factor_list task  T1 T2 T3           \\
+               -subs_betas B_R_T1 B_R_T2 B_R_T3         \\
+                           B_G_T1 B_G_T2 B_G_T3         \\
+                           A_R_T1 A_R_T2 A_R_T3         \\
+                           A_G_T1 A_G_T2 A_G_T3
+
+      * to restrict to a specific list of subjects, include something like:
+            -dset_sid_list $my_favorite_subjects
+
+      2. simple: no -dt_tsv, one -dsets option per factor combination ~3~
+
+        Like 1, but with each subject beta volume in a separate dataset
+        (so no -subs_betas option is applied).  The generated table should be
+        similar to that from 1, with identical ordering, but using varying
+        files rather than beta volume indexing.
+
+            gen_group_command.py                        \\
+               -command datatable                       \\
+               -dt_factor_list visit before after       \\
+               -dt_factor_list color red green          \\
+               -dt_factor_list task  T1 T2 T3           \\
+               -dsets all_results/data.B_R_T1/sub*.gz   \\
+               -dsets all_results/data.B_R_T2/sub*.gz   \\
+               -dsets all_results/data.B_R_T3/sub*.gz   \\
+               -dsets all_results/data.B_G_T1/sub*.gz   \\
+               -dsets all_results/data.B_G_T2/sub*.gz   \\
+               -dsets all_results/data.B_G_T3/sub*.gz   \\
+               -dsets all_results/data.A_R_T1/sub*.gz   \\
+               -dsets all_results/data.A_R_T2/sub*.gz   \\
+               -dsets all_results/data.A_R_T3/sub*.gz   \\
+               -dsets all_results/data.A_G_T1/sub*.gz   \\
+               -dsets all_results/data.A_G_T2/sub*.gz   \\
+               -dsets all_results/data.A_G_T3/sub*.gz
+
+      3. include -dt_tsv, with one -dsets option per factor combination ~3~
+
+        The -dt_tsv option can be a simple addition to either of the above
+        examples.  Each subject would then have their row of the TSV included
+        in each of their output rows.  Here we pass subject_attrs.tsv.
+
+        Same as 2, but include:
+
+               -dt_tsv subject_attrs.tsv
+
+
+            gen_group_command.py                        \\
+               -command datatable                       \\
+               -dt_tsv subject_attrs.tsv                \\
+               -dt_factor_list visit before after       \\
+               -dt_factor_list color red green          \\
+               -dt_factor_list task  T1 T2 T3           \\
+               -dsets all_results/data.B_R_T1/sub*.gz   \\
+               -dsets all_results/data.B_R_T2/sub*.gz   \\
+               -dsets all_results/data.B_R_T3/sub*.gz   \\
+               -dsets all_results/data.B_G_T1/sub*.gz   \\
+               -dsets all_results/data.B_G_T2/sub*.gz   \\
+               -dsets all_results/data.B_G_T3/sub*.gz   \\
+               -dsets all_results/data.A_R_T1/sub*.gz   \\
+               -dsets all_results/data.A_R_T2/sub*.gz   \\
+               -dsets all_results/data.A_R_T3/sub*.gz   \\
+               -dsets all_results/data.A_G_T1/sub*.gz   \\
+               -dsets all_results/data.A_G_T2/sub*.gz   \\
+               -dsets all_results/data.A_G_T3/sub*.gz
+
+
+      test. test examples F1, F2 and F3 by abusing the shell ~3~
+
+        If one wanted to be sneaky and test these examples with a set of
+        10 random subject names and corresponding empty files, then before
+        running 1 or 2, consider (here in 'tcsh' syntax):
+
+            # make lists of beta labels and subject codes
+            set bstr = '{B,A}_{R,G}_T{1,2,3}'
+            set sstr = '{0044,0046,0049,0053,0060,0061,0064,0073,0075,0076}'
+
+            # create a directory tree for example F1, and then run F1
+            mkdir all_results
+            touch all_results/sub-$sstr.nii.gz
+            # run command F1 here
+
+            # create a directory tree for example F2, and then run F2
+            mkdir -p all_results/data.$bstr
+            touch all_results/data.$bstr/sub-$sstr.nii.gz
+            # run command F2 here
+
+            # create an additional attributes file, and then run F3
+            echo Subj Group ValA ValB > subject_attrs.tsv
+            foreach subj ( $sstr )
+                echo sub-$subj G_$subj VA_$subj VB_$subj >> subject_attrs.tsv
+            end
+            # run command F3 here
+
+   --------------------
+
 ------------------------------------------
 command-line options: ~1~
 ------------------------------------------
@@ -444,17 +675,20 @@ terminal options: ~2~
 
 required parameters: ~2~
 
-   -command COMMAND_NAME     : resulting command, such as 3dttest++
+   -command COMMAND_NAME     : resulting command, such as 3dttest++ ~3~
 
         The current list of group commands is: 3dttest++, 3dMEMA, 3dANOVA2,
         3dANOVA3.
 
-           3dANOVA2:    applied as -type 3 only (factor x subjects)
-           3dANOVA3:    -type 4: condition x condition x subject
+           3dANOVA2   : applied as -type 3 only (factor x subjects)
+           3dANOVA3   : -type 4: condition x condition x subject
                                  (see -factors option)
                         -type 5: group x condition x subject
+           3dMEMA     : pairing betas and t-stats
+           3dttest++  : allows basically full control
+           datatable  : generate -dataTable files for Gang's R stats programs
 
-   -dsets   datasets ...     : list of datasets
+   -dsets datasets ...       : list of input datasets ~3~
 
         Each use of this option essentially describes one group of subjects.
         All volumes for a given subject should be in a single dataset.
@@ -463,7 +697,7 @@ required parameters: ~2~
 
 other options: ~2~
 
-   -dset_sid_list SID SID ...   : restrict -dsets datasets to this SID list
+   -dset_sid_list SID SID ...   : restrict -dsets datasets to this SID list ~3~
 
         In some cases it is easy to use a wildcard to specify all datasets via
         -dsets, but where subject groups would not be partitioned that way.
@@ -486,8 +720,8 @@ other options: ~2~
            -dsets sub-*/*.results/stats.sub*REML+tlrc.HEAD \\
            -dset_sid_list `cat group2_subjects.txt`        \\
 
-   -dset_index0_list values...  : restrict -dsets datasets to this 0-based list
-   -dset_index1_list values...  : restrict -dsets datasets to this 1-based list
+   -dset_index0_list values...  : restrict -dsets datasets to a 0-based list ~3~
+   -dset_index1_list values...  : restrict -dsets datasets to a 1-based list ~3~
 
         In some cases it is easy to use a wildcard to specify datasets via
         -dsets, but there may be a grouping of subjects within that list.
@@ -524,7 +758,81 @@ other options: ~2~
         The format for these index lists is the same as for AFNI sub-brick
         selection.
 
-   -factors NF1 NF2 ...         : list of factor levels, per condition
+   -dt_factor_list LABEL V1 V2 ... : specify a factor label and value list ~3~
+
+           example: -dt_factor_list Visit before after
+                    -dt_factor_list Food  pizza carrot chocolate
+                    -dt_factor_list Task  T1 T2 T3
+
+        for: -command datatable
+
+        Use this option to specify a factor label (the datatable column header
+        for that factor type) and a set of factor levels/values for it.
+        The full factorization of all such options would define the number of
+        volumes/sub-bricks to be input for each subject (ignoring missing
+        data).
+
+        For example, using just:
+                    -dt_factor_list Task  T1 T2 T3
+        each subject would have 3 volumes/beta weights of input, one for each
+        task type T1, T2 and T3.
+
+        But if 3 just options were used, as in:
+                    -dt_factor_list Visit before after
+                    -dt_factor_list Food  pizza carrot chocolate
+                    -dt_factor_list Task  T1 T2 T3
+        Then each subject would have 18 (= 2*3*3) volumes of input:
+                    before-pizza-T1
+                    before-pizza-T2
+                    before-pizza-T3
+                        ...
+                    after-chocolate-T3
+
+        To see the full list, consider running the shell command:
+            echo {before,after}-{pizza,carrot,chocolate}-{T1,T2,T3}
+        or extending it with:
+            echo {before,after}-{pizza,carrot,chocolate}-{T1,T2,T3} \\
+                 tr ' ' '\\n'
+
+        Each of these factor combinations would then refer to a single volume
+        of data for each subject.
+
+        These 18 volumes per subject would input using either:
+            18 -dsets options, each listing all subject volumes for that beta
+        or, if all 18 volumes are in a single subject dataset:
+            1 -dsets option, listing all subject datasets
+            1 -subs_betas option, listing all sub-brick selectors
+            (as integers or as labels, such as those from the 'echo' commands)
+
+   -dt_sep SEP                 : specify separator between table columns ~3~
+
+           example: -dt_sep '\\t'
+           default: -dt_sep '  '
+
+        for: -command datatable
+
+        The default separation between the output datatable columns is varying
+        space, so the columns are visually aligned using a minimum of 2 spaces.
+
+        Use this option to modify the separator, such as using tabs, '\\t'.
+
+   -dt_tsv TSV_FILE             : specify a subject parameter file ~3~
+
+           example: -dt_tsv subject_attrs.tsv
+
+        for: -command datatable
+
+        The output data table would have a Subj column, factor/attribute
+        columns (from -dt_factor_list options) and an Inputfile column.  Use
+        this option to provide a TSV file with a Subj column and columns for
+        any desired subject-specific attributes (group, age, ave reaction time,
+        etc).
+
+        For each subject in the output datatable, the -dt_tsv attribute columns
+        will also be included.  Note that the Subj ID must match between this
+        TSV file and what is parsed from the input -dsets lists.
+
+   -factors NF1 NF2 ...         : list of factor levels, per condition ~3~
 
            example: -factors 2 3
 
@@ -558,11 +866,13 @@ other options: ~2~
         See the example with '3dANOVA3 -type 4' as part of example D, above.
         See also -subs_betas.
 
-   -keep_dirent_pre             : keep directory entry prefix
+   -keep_dirent_pre             : keep directory entry prefix ~3~
 
         Akin to -subj_prefix, this flag expands the subject prefix list to
         include everything up to the beginning of the directory names (at
         the level that varies across input datasets).
+
+        By default, if names start with 'sub', this will be applied.
 
         Example 1:
            datasets:
@@ -595,32 +905,32 @@ other options: ~2~
            Note that these IDs come at the dataset level, since the dataset
            names vary.
 
-   -hpad PAD                    : pad subject prefix by PAD chars toward header
+   -hpad PAD                    : pad subject prefix by PAD chars left ~3~
 
         Akin to -subj_prefix and -tpad, this flag expands the subject prefix
-        list to include PAD extra characters toward the beginning.
+        list to include PAD extra characters toward the head/beginning.
 
         See also -tpad.
 
-   -tpad PAD                    : pad subject prefix by PAD chars toward tail
+   -tpad PAD                    : pad subject prefix by PAD chars right ~3~
 
         Akin to -subj_prefix and -hpad, this flag expands the subject prefix
-        list to include PAD extra characters toward the beginning.
+        list to include PAD extra characters toward the tail/end.
 
         See also -hpad.
 
-   -options OPT1 OPT2 ...       : list of options to pass along to result
+   -options OPT1 OPT2 ...       : list of options to pass along to result ~3~
 
         The given options will be passed directly to the resulting command.  If
         the -command is 3dMEMA, say, these should be 3dMEMA options.  This
         program will not evaluate or inspect the options, but will put them at
         the end of the command.
 
-   -prefix PREFIX               : apply as COMMAND -prefix
-   -set_labels LAB1 LAB2 ...    : labels corresponding to -dsets entries
-   -subj_prefix PREFIX          : prefix for subject names (3dMEMA)
-   -subj_suffix SUFFIX          : suffix for subject names (3dMEMA)
-   -subs_betas B0 B1            : sub-bricks for beta weights (or similar)
+   -prefix PREFIX               : apply as COMMAND -prefix ~3~
+   -set_labels LAB1 LAB2 ...    : labels corresponding to -dsets entries ~3~
+   -subj_prefix PREFIX          : prefix for subject names (3dMEMA) ~3~
+   -subj_suffix SUFFIX          : suffix for subject names (3dMEMA) ~3~
+   -subs_betas B0 B1            : sub-bricks for beta weights (or similar) ~3~
 
         If this option is not given, sub-brick 0 will be used.  The entries
         can be either numbers or labels (which should match what is seen in
@@ -628,7 +938,7 @@ other options: ~2~
 
         If there are 2 -set_labels, there should be 2 betas (or no option).
 
-   -subs_tstats T0 T1           : sub-bricks for t-stats (3dMEMA)
+   -subs_tstats T0 T1           : sub-bricks for t-stats (3dMEMA) ~3~
 
         If this option is not given, sub-brick 1 will be used.  The entries can
         be either numbers or labels (which should match what is seen in the
@@ -639,7 +949,7 @@ other options: ~2~
 
         See also -subs_betas.
 
-   -type TEST_TYPE              : specify the type of test to perform
+   -type TEST_TYPE              : specify the type of test to perform ~3~
 
         The test type may depend on the given command, but generally implies
         there are multiple sets of values to compare.  Currently valid tests
@@ -649,9 +959,9 @@ other options: ~2~
 
         If this option is not applied, a useful default will be chosen.
 
-   -verb LEVEL                  : set the verbosity level
+   -verb LEVEL                  : set the verbosity level ~3~
 
-   -write_script FILE_NAME      : write command script to FILE_NAME
+   -write_script FILE_NAME      : write command script to FILE_NAME ~3~
 
         If this option is given, the command will be written to the specified
         file name.  Otherwise, it will be written to the terminal window.
@@ -694,10 +1004,17 @@ g_history = """
         - change max line len and whether data dir vars are used
         - no require on restricted subjects
    1.3  Jul 30, 2019 - sphinx help update
+   1.4  Oct  4, 2024 - datatable creation
 """
 
-g_version = "gen_group_command.py version 1.3 July 30, 2019"
+g_version = "gen_group_command.py version 1.4 October 4, 2024"
 
+g_todo = """
+  - add option to output in 'shell' format, with quoted selectors and line wrap
+  - consider including a table of task-varying attributes
+    (e.g. ave response time per task/level)
+
+"""
 
 class CmdInterface:
    """interface class for getting commands from SubjectList class
@@ -719,12 +1036,15 @@ class CmdInterface:
       self.tstatsubs       = None       # list of t-stat sub-brick indices
       self.lablist         = None       # list of set labels
       self.factors         = []         # list of factors of each type
+      self.factor_lists    = []         # list of factor type and all levels
+      self.dt_tsv          = ''         # TSV-based file to add to datatable
+      self.dt_sep          = '  '       # column separator for datatable output
       self.hpad            = 0          # hpad for list_minus_glob_form
       self.tpad            = 0          # tpad for list_minus_glob_form
 
       self.subj_prefix     = ''         # prefix for each subject ID
       self.subj_suffix     = ''         # suffix for each subject ID
-      self.dent_pre        = 0          # flag: keep dir entry prefix
+      self.dent_pre        = 2          # flag: keep dir entry prefix (if subj)
       self.verb            = verb
 
       # lists
@@ -788,6 +1108,10 @@ class CmdInterface:
                       helpstr='apply 3dttest++ test as set A minus set B')
       self.valid_opts.add_opt('-BminusA', 0, [], 
                       helpstr='apply 3dttest++ test as set B minus set A')
+      self.valid_opts.add_opt('-dt_tsv', 1, [], okdash=0,
+                      helpstr='TSV table to restrict and include in datatable')
+      self.valid_opts.add_opt('-dt_sep', 1, [], okdash=0,
+                      helpstr='specify column separator in datatable')
       self.valid_opts.add_opt('-dset_index0_list', -1, [], okdash=0,
                       helpstr='restrict dsets to 0-based index list')
       self.valid_opts.add_opt('-dset_index1_list', -1, [], okdash=0,
@@ -796,6 +1120,8 @@ class CmdInterface:
                       helpstr='restrict dsets to these subject IDs')
       self.valid_opts.add_opt('-dset_sid_omit_list', -1, [], okdash=0,
                       helpstr='remove these subject IDs from dsets')
+      self.valid_opts.add_opt('-dt_factor_list', -2, [], okdash=0,
+                      helpstr='factor type, and all factor levels')
       self.valid_opts.add_opt('-factors', -1, [], okdash=0,
                       helpstr='num factors, per condition (probably 2 ints)')
       self.valid_opts.add_opt('-hpad', 1, [], okdash=0,
@@ -884,6 +1210,18 @@ class CmdInterface:
             self.command = val
             continue
 
+         if opt.name == '-dt_sep':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return 1
+            self.dt_sep = val
+            continue
+
+         if opt.name == '-dt_tsv':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return 1
+            self.dt_tsv = val
+            continue
+
          if opt.name == '-dsets':
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return 1
@@ -912,6 +1250,12 @@ class CmdInterface:
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return 1
             self.sid_omit.append(val)        # allow multiple such options
+            continue
+
+         if opt.name == '-dt_factor_list':
+            val, err = uopts.get_string_list('', opt=opt)
+            if val == None or err: return 1
+            self.factor_lists.append(val)
             continue
 
          if opt.name == '-factors':
@@ -1123,6 +1467,8 @@ class CmdInterface:
          cmd = self.get_anova2_command()
       elif self.command == '3dANOVA3':
          cmd = self.get_anova3_command()
+      elif self.command == 'datatable':
+         cmd = self.get_datatable()
       elif self.command:
          cmd = self.get_generic_command()
       else:
@@ -1188,6 +1534,21 @@ class CmdInterface:
       return self.slist[0].make_anova3_command( bsubs=self.betasubs,
                prefix=self.prefix, subjlists=self.slist, options=self.options,
                factors=self.factors, verb=self.verb)
+
+   def get_datatable(self):
+      """generate a -dataTable option (not a command)
+                This allows for multiple groups (might be for betas) and
+                multiple betas, possibly if one list of dsets.
+      """
+
+      return self.make_datatable_text()
+
+   def make_datatable_text(self):
+
+      return self.slist[0].make_datatable_text(
+                    subjlists=self.slist, condlists=self.factor_lists,
+                    bsubs=self.betasubs, tsvfile=self.dt_tsv, sep=self.dt_sep,
+                    verb=self.verb) 
 
    def help_mema_command(self):
       helpstr = """
