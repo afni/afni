@@ -246,6 +246,7 @@ commands:
 
             # Install dependency list
             # cat /tmp/macos_dependencies_version.txt | xargs brew install
+            # (or is this just a homebrew bug that might soon be fixed?)
             brew install $(cat /tmp/macos_dependencies_version.txt)
             # note other useful dependencies:
             # ffmpeg
