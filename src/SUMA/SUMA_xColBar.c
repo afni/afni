@@ -1244,20 +1244,23 @@ int SUMA_SwitchColPlaneIntensity(
    double range[2];
    int loc[2];
    SUMA_Boolean LocalHead = NOPE;
-
+   
    SUMA_ENTRY;
 
    fprintf(stderr, "+++++ %s\n", FuncName);
 
+   // Infinite recursion problem happens here.
    if (!SUMA_SwitchColPlaneIntensity_one(ado, colp, ind, setmen)) {
       SUMA_S_Err("Failed in _one");
       SUMA_RETURN(0);
    }
+   
+   /* DEBUG
 
    if (ado->do_type == SO_type) {
       SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
       SUMA_OVERLAYS *colpC=NULL;
-      /* do we have a contralateral SO and overlay? */
+      /* do we have a contralateral SO and overlay? *//*
       SO = (SUMA_SurfaceObject *)ado;
       colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
       if (colpC && SOC) {
@@ -1272,6 +1275,8 @@ int SUMA_SwitchColPlaneIntensity(
          }
       }
    }
+   
+   */
 
    SUMA_RETURN(1);
 }
@@ -1294,7 +1299,7 @@ int SUMA_SwitchColPlaneIntensity_one (
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_SurfaceObject *SO = NULL;
-   int BoxOutlineThresh;
+   int BoxOutlineThresh, AlphaOpacityFalloff;
 
    SUMA_ENTRY;
 
@@ -1314,7 +1319,10 @@ int SUMA_SwitchColPlaneIntensity_one (
        SO = (SUMA_SurfaceObject *)ado;
        if (SO->SurfCont){
            BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+           AlphaOpacityFalloff = SO->SurfCont->AlphaOpacityFalloff;
            SO->SurfCont->BoxOutlineThresh = 0;
+           SO->SurfCont->AlphaOpacityFalloff = 0;
+           XmToggleButtonSetState(SO->SurfCont->AlphaOpacityFalloff_tb, 0, 1);
        }
    }
 
@@ -1362,7 +1370,6 @@ int SUMA_SwitchColPlaneIntensity_one (
       SUMA_LHv("Setting menu values, %d\n", colp->OptScl->find+1);
       SUMA_Set_Menu_Widget(SurfCont->SwitchIntMenu, colp->OptScl->find+1);
    }
-
 
    dset=colp->dset_link;
    switch(curColPlane->LinkMode) {/* corresponding threshold sb */
@@ -1489,7 +1496,6 @@ int SUMA_SwitchColPlaneIntensity_one (
          break;
    }
 
-
    SUMA_LH("Setting Range, Intensity change");
    SUMA_InitRangeTable(ado, 0) ;
    SUMA_UpdateCrossHairNodeLabelFieldForDO(ado);
@@ -1503,25 +1509,32 @@ int SUMA_SwitchColPlaneIntensity_one (
          SUMA_RETURN(0);
    }
 
+//   #if 0   // DEBUG
 
-   SUMA_Remixedisplay(ado);
-
+   
+// #endif
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
    #endif
-
+   
    if (SO && SO->SurfCont){
        // Restore threshold boundary if necessary.  This is called when the 
        //   threshold slider is moved
-       SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+       // SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
        
        // Restore proper threshold contours when intensity (I) subbrick changed
-       restoreProperThresholdCcontours(ado);
+       // restoreProperThresholdCcontours(ado);
+       
+       // Restore alpha opacity falloff if applicable
+       // if (AlphaOpacityFalloff) XmToggleButtonSetState(SO->SurfCont->AlphaOpacityFalloff_tb, 1, 1);
    }
 
+   SUMA_Remixedisplay(ado);
+
+/* DEBUG
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
-
+*/
    SUMA_RETURN(1);
 }
 
@@ -2203,6 +2216,59 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
 void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
                                    XtPointer client_data)
 {
+   static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   // static int AlphaOpacityFalloff = 0;
+
+   SUMA_ENTRY;
+   
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado) SUMA_RETURNe;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (!(SO->SurfCont=SUMA_ADO_Cont(ado))
+            || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
+//   
+//   if (AlphaOpacityFalloff==0){
+//    SO->SurfCont->AlphaOpacityFalloff = 0;
+//    AlphaOpacityFalloff = 1;
+//   }
+   
+   // AlphaOpacityFalloff = !AlphaOpacityFalloff;
+   SO->SurfCont->AlphaOpacityFalloff =  XmToggleButtonGetState(w);;
+
+   // SO->SurfCont->AlphaThresh is common across period key
+   // SO->SurfCont->AlphaOpacityFalloff = /* SurfCont->AlphaOpacityFalloff = */ AlphaOpacityFalloff;
+
+   if (!(SO->Overlays)){
+    if (SO->SurfCont->AlphaOpacityFalloff){
+        fprintf (SUMA_STDERR,
+            "ERROR %s: Cannot make overlay variably opqaue.  There is no overlay.\n", 
+            FuncName);
+        // No variable opacity since there is no overlay
+        SO->SurfCont->AlphaOpacityFalloff = 0;
+        
+        // Uncheck "A" check-box
+        // SurfCont->AlphaOpacityFalloff = 0;
+        XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
+                              SO->SurfCont->AlphaOpacityFalloff, YUP);    
+        }
+    SUMA_RETURNe;
+   }
+
+   // Default opacity model
+   if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
+   
+   // Refresh display
+   SUMA_Remixedisplay(ado);
+   SUMA_UpdateNodeLblField(ado);
+
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_AlphaOpacityFalloff_tb_toggled_Temp(Widget w, XtPointer data,
+                                   XtPointer client_data)
+{
     // Alpha opacity checkbox toggled
    static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
    SUMA_ALL_DO *ado=NULL;
@@ -2447,6 +2513,9 @@ void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
 
            // Get colorplane overlay
            over2 = SO->Overlays[colorplaneIndex];
+           
+           // Don't process if threshold zero
+           if (over2->OptScl->ThreshRange[0] == 0) continue;
            
            if (!over2){
                 fprintf(stderr, "+++++ WARNING: %s: Required overlay unavailable\n",

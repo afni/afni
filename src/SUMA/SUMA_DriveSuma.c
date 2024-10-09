@@ -13,10 +13,6 @@ Change DriveSuma to the program name of your choosing.
    + DONE: support control of intensity range
 */
 
-
-
-  
-
 int main (int argc,char *argv[])
 {/* Main */    
    static char FuncName[]={"DriveSuma"}; 

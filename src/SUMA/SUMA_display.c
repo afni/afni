@@ -15598,8 +15598,16 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
    DList *list=NULL;
    char *idcode=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   static stackLevel;
 
    SUMA_ENTRY;
+   
+   fprintf(stderr, "XXXXXXXXXXXXXXXXXXXXXXXX %s: stackLevel = %d\n", FuncName, stackLevel++);
+   
+   if (stackLevel > 100){
+    fprintf(stderr, "##### ERROR %s: Recursive stack overflow\n", FuncName, stackLevel++);
+    SUMA_RETURN(NOPE);
+   }
 
    SUMA_LHv("Called with ado=%p, ado->do_type=%d, ado->idcode_str=%s\n",
       ADO, ADO?ADO->do_type:-1, SUMA_CHECK_NULL_STR(SUMA_ADO_idcode(ADO)));
@@ -15634,11 +15642,13 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
    if (!list) list = SUMA_CreateList ();
    SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_RedisplayNow_AllVisible,
                                        SES_Suma, NULL);
+
    if (!SUMA_Engine(&list)) {
       SUMA_SLP_Err("Failed to redisplay.");
       SUMA_RETURN(NOPE);
    }
 
+   --stackLevel;
    SUMA_RETURN(YUP);
 }
 
@@ -15699,7 +15709,7 @@ void SUMA_cb_ColPlaneShowOneFore_toggled (Widget w, XtPointer data,
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_ALL_DO *ado=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
-   SUMA_Boolean LocalHead = NOPE, oneBoxChecked;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
@@ -15710,7 +15720,6 @@ void SUMA_cb_ColPlaneShowOneFore_toggled (Widget w, XtPointer data,
    ado = (SUMA_ALL_DO *)data;
    
    // Turn off "A" checkbox if "1" checkbox toggled off
-   oneBoxChecked = XmToggleButtonGetState(w);
    if (!(XmToggleButtonGetState(w)) && (SurfCont = SUMA_ADO_Cont(ado))){
        XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 0, 1);
    }
