@@ -1,3 +1,4 @@
+eat more cheese
 
 general outline of Dimon main()
    init_options()
