@@ -83,12 +83,12 @@ Usage ~1~
 Examples ~1~
 
 1) Basic example, running on a set of EPI:
-    gtkyd                                                \\
+    gtkyd_check.py                                       \\
         -infiles  group_study/*task*.nii.gz              \\
         -outdir   group_summary
 
 2) Include (possibly slow) min/max info, and check anatomical dsets:
-    gtkyd_check                                          \\
+    gtkyd_check.py                                       \\
         -infiles    group_study2/*T1w*.nii.gz *T1w*HEAD  \\
         -do_minmax                                       \\
         -outdir     group_summary2
@@ -97,13 +97,14 @@ Examples ~1~
 """
 
 g_history = """
-   gtkyd_check history:
+   gtkyd_check.py history:
 
    0.0  Mar 21, 2024    - started in tcsh
    0.1  Sep 10, 2024    - migrated to Python
+   0.2  Oct  8, 2024    - add .py to name
 """
 
-g_version = "gtkyd_check version 0.2, June 18, 2024"
+g_version = "gtkyd_check.py version 0.2, Oct 8, 2024"
 
 
 class MyInterface:
@@ -122,7 +123,6 @@ class MyInterface:
 
       # general variables
       self.verb            = verb
-      self.ver             = verb
 
       # initialize valid_opts
       self.init_options()
