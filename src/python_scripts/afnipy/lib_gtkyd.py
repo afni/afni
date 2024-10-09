@@ -240,9 +240,18 @@ class GtkydInfo:
 
         for ii in range(self.ninfiles):
 
+            if self.id_keeps_dirs :
+                # calc extra parts to attach to subj ID and prefix_noext val
+                lpath = self.all_absdir[ii].split('/')
+                N = min(len(lpath), self.id_keeps_dirs)
+                extra_subj = '_'.join(lpath[-N:]) + '_'
+                extra_pref = '/'.join(lpath[-N:]) + '/'
+
             # dictionary and subj
             D = self.all_hdrs[ii]
             subj = D['prefix_noext'][0]
+            if self.id_keeps_dirs :
+                subj = extra_subj + subj
             ofile = 'dset_gtkyd_' + subj + '.txt'  # local filenames, no path
 
             fff = open(self.outdir + '/' + ofile, 'w')
@@ -255,9 +264,7 @@ class GtkydInfo:
                 if key == 'prefix_noext' : 
                     lll = 'subject ID'
                     if self.id_keeps_dirs :
-                        lpath = self.all_absdir[ii].split('/')
-                        N = min(len(lpath), self.id_keeps_dirs)
-                        val = '/'.join(lpath[-N:]) + '/' + val
+                        val = extra_pref + val
                 else:
                     lll = key
                 fff.write("{:<20s} : {:<s}\n".format(lll, val))
