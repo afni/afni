@@ -90,8 +90,8 @@ gtkyd_brickstat_minmax = {
 
 class GtkydInfo:
 
-    def __init__(self, infiles, outdir='GTKYD', do_minmax=False,
-                 do_ow=0, verb=1):
+    def __init__(self, infiles, outdir='GTKYD', do_minmax=False, 
+                 id_keeps_dirs=0, do_ow=0, verb=1):
         """Create object holding GTKYD info data, namely dictionaries of
         header info.
 
@@ -103,11 +103,12 @@ class GtkydInfo:
         self.mixed_vols = False               # bool, have B/H *and* NIFTI?
 
         self.do_minmax  = do_minmax           # bool, run 3dBrickStat (slow)
-
+        self.id_keeps_dirs = id_keeps_dirs    # int, add N dirs to prefix_noext
         self.outdir     = outdir              # str, output dir name
         self.outxls     = ''                  # str, XLS file (prepped below)
 
         self.all_fname  = []                  # list, all filenames (no path)
+        self.all_absdir = []                  # list, all abs path dirs of infiles
         self.all_hdrs   = []                  # list, hdr dict (1 per infile)
         self.all_otxt   = []                  # list, all written txt per dset
 
@@ -160,8 +161,13 @@ class GtkydInfo:
         if self.do_ow :  ow_str = '-overwrite'
         else:            ow_str = ''
 
+        # to avoid GSSRT guessing subject IDs oddly, jump into dir
+        # with files (so need to jump back)
+        here = os.getcwd()
+        os.chdir(self.outdir)  # jump to outdir to do work
+
         cmd = "gen_ss_review_table.py {} ".format(ow_str)
-        cmd+= "-tablefile {} ".format(self.outxls)
+        cmd+= "-tablefile ../{} ".format(self.outxls_name)
         cmd+= "-infiles {} ".format(' '.join(self.all_otxt))
 
         if self.verb > 1 :
@@ -171,6 +177,7 @@ class GtkydInfo:
 
         com = BASE.shell_com(cmd, capture=1)
         com.run()
+        os.chdir(here)  # jump back
         if com.se :
             return -1
 
@@ -236,16 +243,23 @@ class GtkydInfo:
             # dictionary and subj
             D = self.all_hdrs[ii]
             subj = D['prefix_noext'][0]
-            ofile = self.outdir + '/dset_gtkyd_' + subj + '.txt'
+            ofile = 'dset_gtkyd_' + subj + '.txt'  # local filenames, no path
 
-            fff = open(ofile, 'w')
+            fff = open(self.outdir + '/' + ofile, 'w')
             fff.write("\n")
             for key in D.keys():
                 val = ' '.join(D[key])
                 # special case here because 'subject ID' is special
-                # col header in GSSRT
-                if key == 'prefix_noext' : lll = 'subject ID'
-                else:                      lll = key
+                # col header in GSSRT; also now might include some
+                # path info in subject ID
+                if key == 'prefix_noext' : 
+                    lll = 'subject ID'
+                    if self.id_keeps_dirs :
+                        lpath = self.all_absdir[ii].split('/')
+                        N = min(len(lpath), self.id_keeps_dirs)
+                        val = '/'.join(lpath[-N:]) + '/' + val
+                else:
+                    lll = key
                 fff.write("{:<20s} : {:<s}\n".format(lll, val))
             fff.close()
             self.all_otxt.append(ofile)
@@ -309,6 +323,9 @@ class GtkydInfo:
 
         # get list of fnames from infiles (no paths)
         self.all_fname = [x.split('/')[-1] for x in self.infiles]
+        # ... and list of all abs path dirs from infiles
+        self.all_absdir = [os.path.abspath(os.path.dirname(x))  \
+                           for x in self.infiles]
 
         if self.verb :
             BASE.IP("Have {} dsets to check".format(self.ninfiles))
@@ -364,6 +381,10 @@ class GtkydInfo:
         return 0
 
     @property
+    def outxls_name(self):
+        """Just the filename of outxls, without no path"""
+        return self.outxls.split('/')[-1]
+    @property
     def ninfiles(self):
         """The total number of infiles."""
         return len(self.infiles)
@@ -383,6 +404,7 @@ class GtkydInfo:
         """The number of item names (keys per subj in all_hdrs; should be
         constant per subj). """
         return len(self.all_item)
+
 
 # =============================================================================
 

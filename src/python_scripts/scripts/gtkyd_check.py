@@ -63,6 +63,12 @@ Usage ~1~
                 slow (uses '3dBrickStat -slow ...' to calculate it 
                 afresh)
 
+-id_keeps_dirs N  :keep N directories (counting backward from the 
+                input filename) as part of the 'subject ID' field; 
+                default is to only keep the prefix_noext of the input
+                filename (i.e., N=0). This can be useful if the paths
+                encode useful information to identify subject infiles.
+
 -overwrite     :overwrite any preexisting outdir and corresponding XLS 
                 file
 
@@ -102,9 +108,10 @@ g_history = """
    0.0  Mar 21, 2024    - started in tcsh
    0.1  Sep 10, 2024    - migrated to Python
    0.2  Oct  8, 2024    - add .py to name
+   0.3  Oct  9, 2024    - add -id_keeps_dirs opt
 """
 
-g_version = "gtkyd_check.py version 0.2, Oct 8, 2024"
+g_version = "gtkyd_check.py version 0.3 : Oct  9, 2024"
 
 
 class MyInterface:
@@ -120,6 +127,7 @@ class MyInterface:
       self.outdir          = None
       self.do_ow           = False
       self.do_minmax       = False
+      self.id_keeps_dirs   = 0
 
       # general variables
       self.verb            = verb
@@ -150,6 +158,10 @@ class MyInterface:
       # optional parameters
       self.valid_opts.add_opt('-do_minmax', 0, [], 
                       helpstr='include dset min and max info (can be slow)')
+
+      self.valid_opts.add_opt('-id_keeps_dirs', 1, [], 
+                      helpstr='keep N dirs as part of subject ID')
+
       self.valid_opts.add_opt('-overwrite', 0, [], 
                       helpstr='overwrite preexisting outputs')
 
@@ -218,6 +230,11 @@ class MyInterface:
             if val is None or err: return -1
             self.outdir = val
 
+         elif opt.name == '-id_keeps_dirs':
+            val, err = uopts.get_type_opt(int, '', opt=opt)
+            if val is None or err: return -1
+            self.id_keeps_dirs = val
+
          elif opt.name == '-do_minmax':
             self.do_minmax = True
 
@@ -245,6 +262,7 @@ class MyInterface:
       gtkyd_obj = lgtk.GtkydInfo( self.infiles,
                                   outdir = self.outdir,
                                   do_minmax = self.do_minmax,
+                                  id_keeps_dirs = self.id_keeps_dirs,
                                   do_ow = self.do_ow,
                                   verb=self.verb )
 
