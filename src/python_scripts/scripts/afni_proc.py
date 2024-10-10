@@ -4617,13 +4617,19 @@ class TrackedFlist:
        vo.short_in   = ''
        vo.short_out  = ''
 
-       if vo.ftype == 'dset':
-          # make afni_name for any dset
-          vo.in_an  = gen_afni_name(vo.oldname)
-          vo.out_an = gen_afni_name(vo.newname)
-          vo.short_in = vo.in_an.shortinput()
-          vo.short_out = vo.out_an.shortinput()
+       # make afni_name for any dset
+       vo.in_an  = gen_afni_name(vo.oldname)
+       vo.out_an = gen_afni_name(vo.newname)
+       vo.short_in = vo.in_an.shortinput()
+       vo.short_out = vo.out_an.shortinput()
 
+       # possibly let user know of this glorious addition
+       if self.verb > 2:
+          if self.verb == 3: fname = vo.in_an.shortinput()
+          else:              fname = vo.in_an.rel_input()
+          print("-- TrackedFile %s, exists = %s" % (fname, vo.in_an.exist()))
+
+       if vo.ftype == 'dset':
           # set and check input view
           # (run locate in case we need to search for the dset)
           vo.in_an.locate()
