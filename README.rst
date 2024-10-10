@@ -154,6 +154,8 @@ field. Some projects that use AFNI include:
 * `PESTICA <https://github.com/wanyongshinccf/PESTICA>`_ & 
   `SLOMOCO <https://github.com/wanyongshinccf/SLOMOCO>`_: 
   physio and slice-oriented motion correction tools
+* `XCP-D <https://xcp-d.readthedocs.io/en/latest/>`_: 
+  fMRI post-processing and noise regression pipeline
 
 NIFTI and GIFTI
 ----------------
