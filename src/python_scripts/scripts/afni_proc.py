@@ -800,9 +800,10 @@ g_history = """
        - add examples publish 3e, 3f, 3g, 3h, 3j and help section 'eshow'
          - exclude 'noshow' examples from default help output
        - compare_opts now considers file path differences separately
+    7.80 Oct 10, 2024: make sure intersect datasets have views
 """
 
-g_version = "version 7.79, Aug 30, 2024"
+g_version = "version 7.80, October 10, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
