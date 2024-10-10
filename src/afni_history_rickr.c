@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Oct, 2024, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "mask intersect inputs did not have views",
+   "Thanks to martinsingua on the MB for pointing out the problem."
+ } ,
+
  {  4, Oct, 2024, RCR, "gen_group_command.py", MAJOR, TYPE_NEW_OPT,
    "add -datatable 'command', to generate table for R stats programs",
    "Use gen_group_command.py -command datatable to generate datatable files\n"

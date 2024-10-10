@@ -5211,6 +5211,10 @@ def get_cmd_mask_combine(proc, block, oper='union'):
           print('** no %s label %s for option %s' % (ostr, ilabel, oname))
           return ''
 
+       # be sure that we have views
+       if aset.view == '': aset.view = proc.view
+       if bset.view == '': bset.view = proc.view
+
        iset = gen_afni_name('mask_%s_%s'%(oper,ilabel), view=proc.view)
        if proc.add_roi_dict_key(ilabel, iset, overwrite=1): return ''
 
