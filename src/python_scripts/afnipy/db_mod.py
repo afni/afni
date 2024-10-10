@@ -1337,9 +1337,9 @@ def dset_is_oblique(aname, verb):
    cmd = '3dinfo -is_oblique %s' % aname.rel_input()
    st, so, se = UTIL.limited_shell_exec(cmd)
 
-   if verb > 2:
+   if verb > 2 or (verb > 1 and st):
       print('== dset_is_oblique cmd: %s' % cmd)
-      print('       so = %s, se = %s' % (so, se))
+      print('       st = %s, so = %s, se = %s' % (st, so, se))
 
    if len(so) < 1:    return 0
    elif so[0] == '1': return 1
