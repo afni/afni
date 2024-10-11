@@ -3295,8 +3295,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    } else {
       /* a la SUMA */
       SUMA_LHv("Scaling a la SUMA %f %f\n", Opt->IntRange[0], Opt->IntRange[1]);
-//      fprintf(stderr, "%s: Sover->NV = %d\n", FuncName, Sover->N_V);
-//      fprintf(stderr, "%s: SDSET_VECFILLED(Sover->dset_link) = %d\n", FuncName, SDSET_VECFILLED(Sover->dset_link));
       if (!SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
                             Opt->IntRange[0], Opt->IntRange[1],
                             ColMap, Opt,
@@ -4570,9 +4568,6 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
-   // fprintf(stderr, "%s: \n", FuncName);
-
 
    if (!ColMap) {
       SUMA_SL_Err("NULL ColMap");
@@ -4593,8 +4588,6 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
 
    SUMA_LHv("Input Vmin..Vmax=%f..%f\n", Vmin, Vmax);
    /* No negative colormaps here */
-   
-   // fprintf(stderr, "%s: ColMap = %p\n", FuncName, ColMap);
    if (ColMap->Sgn < 0) {
       /* proceed, in SUMA options were given to the user to make
          the range symmetric about 0.
@@ -4605,7 +4598,6 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    }
 
    /* find the values to be masked out */
-   // fprintf(stderr, "%s: Opt = %p\n", FuncName, Opt);
    if (Opt->ApplyMask){
       SUMA_LH("Applying Mask");
       if (Opt->MaskZero) {
@@ -4726,7 +4718,6 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
                                     indices into the colormap do not match
                                     indices into non-linearized maps that are
                                     stored in memory. */
-   // fprintf(stderr, "%s: SUMA_NeedsLinearizing\n", FuncName);
    if (SUMA_NeedsLinearizing(ColMap)) {
       if (Opt->interpmode == SUMA_NO_INTERP || Opt->interpmode == SUMA_INTERP) {
          /* linearize color map */
@@ -4759,7 +4750,6 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    }
 
    /* if brightness factor is given, apply it to color map and mask color */
-   // fprintf(stderr, "%s: if brightness factor is given, apply it to color map and mask color \n", FuncName);
    Mbuf = NULL;
    if (Opt->BrightFact <= 0 || Opt->BrightFact > 2) {
       SUMA_S_Warn("Opt->BrightFact must be between ]0 2], Defaulting to 1\n");
@@ -4803,9 +4793,6 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
       SUMA_RETURN(NOPE);
    }
 
-   // fprintf(stderr, "%s: if (Opt->interpmode == SUMA_NO_INTERP || Opt->interpmode == SUMA_INTERP)\n", FuncName);
-   // fprintf(stderr, "%s: Opt = %p\n", FuncName, Opt);
-   // fprintf(stderr, "%s: Opt->interpmode = %d\n", FuncName, Opt->interpmode);
    if (Opt->interpmode == SUMA_NO_INTERP || Opt->interpmode == SUMA_INTERP) {
       /* Now go through values and interpolate onto index of colormap */
       MinCol = 0.0; MaxCol = (float)ColMap->N_M[0];
@@ -4816,7 +4803,6 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
          SUMA_RETURN (NOPE);
       }
 
-        // fprintf(stderr, "%s: Vrange = %d\n", FuncName, Vrange);
       if (Vrange > 0) {
          mxColindex = ColMap->N_M[0] -1;
          if (Opt->interpmode == SUMA_NO_INTERP) {
@@ -4853,7 +4839,6 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
                      SV->cV[i3+2] = Opt->MaskColor[2];
                   }
                } else {
-                  // fprintf(stderr, "%s: SV->cV[i3] = %f\n", FuncName, SV->cV[i3]);
                   SV->cV[i3  ] = Opt->MaskColor[0];
                   SV->cV[i3+1] = Opt->MaskColor[1];
                   SV->cV[i3+2] = Opt->MaskColor[2];
@@ -4864,14 +4849,11 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
                      Vmin, Vmax, Vrange);
             SV->N_VCont = 0;
             for (i=0; i < N_V; ++i) {
-                // fprintf(stderr, "%s: i = %d\r", FuncName, i);
                i3 = 3*i;
                if (!SV->isMasked[i]) {
                   if (isnan(V[i])){
                     fprintf (SUMA_STDERR, "Error %s: V[%d] = %f\n", FuncName, 
                         i, V[i]);
-                        fprintf(stderr, "%s: N_V = %d\n", FuncName, N_V);
-                        fprintf(stderr, "%s: SV->N_Node = %d\n", FuncName, SV->N_Node);
                     SUMA_RETURN(NOPE);
                   }
                     // fprintf(stderr, "%s: V[%d] = %f\r", FuncName, i, V[i]);
@@ -4996,7 +4978,6 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    }
 
    /* change range for coord bias */
-   // fprintf(stderr, "%s: change range for coord bias\n", FuncName);
    Vrange = (Opt->CoordBiasRange[1] - Opt->CoordBiasRange[0]) / ColMap->N_M[0];
    if (SV->BiasCoordVec) {
       SUMA_LH("Adding the CoordBias");
@@ -5011,7 +4992,6 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
       }
    }
 
-   // fprintf(stderr, "%s: Mbuf = %p\n", FuncName, Mbuf);
    if (Mbuf) {
       /* free what is in ColMap->M */
       SUMA_free2D((char **)ColMap->M, ColMap->N_M[0]);
@@ -7561,8 +7541,6 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
 
    SUMA_ENTRY;
    
-   // SUMA_RETURN(NOPE);
-   
    el = dlist_head(SUMAg_CF->DsetList);
    while (el) {
       dd = (SUMA_DSET*)el->data;
@@ -7576,7 +7554,6 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
                SUMA_RETURN(NOPE);
          }
          /* any contours? */
-         // fprintf(stderr, "%s: colplane->Contours = %p\n", FuncName, colplane->Contours);
          if ( (colplane->ShowMode == SW_SurfCont_DsetViewCon ||
                colplane->ShowMode == SW_SurfCont_DsetViewCaC ) &&
               colplane->Contours && colplane->N_Contours) {
@@ -7756,14 +7733,9 @@ void setSliderLocation(SUMA_SurfaceObject *SO, float sliderPosition){
     fprintf(stderr, "%s: OK 1\n", FuncName);
 
     Widget w = SO->SurfCont->thr_sc;
-    fprintf(stderr, "%s: OK 2\n", FuncName);
-    fprintf(stderr, "%s: w = %p\n", FuncName, w);
-    fprintf(stderr, "%s: XmNvalue = %s\n", FuncName, XmNvalue);
-    fprintf(stderr, "%s: sliderPosition = %f\n", FuncName, sliderPosition);
     XtVaSetValues(w,
     XmNvalue, sliderPosition,
     NULL);
-    fprintf(stderr, "%s: OK 3\n", FuncName);
 
     SUMA_RETURNe;
 }
@@ -7841,9 +7813,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    
    cmapChanged = 0;
    bytes2CopyToColVec = SO->N_Node*4*sizeof(float);
-     
    
-   // if (SO->SurfCont->AlphaOpacityFalloff != 1) SO->SurfCont->AlphaOpacityFalloff = 0;
+   if (SO->SurfCont->AlphaOpacityFalloff != 1) SO->SurfCont->AlphaOpacityFalloff = 0;
    
    if (!thresholdReset && currentOverlay){
    
