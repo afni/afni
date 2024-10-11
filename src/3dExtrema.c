@@ -1256,7 +1256,8 @@ int EX_read_opts( int argc , char * argv[] )
 
 void initialize_program (int argc, char * argv[], int * nopt)
 {
-  const int MIN_NTHR = 10;    /* minimum number of voxels above threshold */
+  /* [PT: Oct 11, 2024] minimum vox num reduced from 10 */
+  const int MIN_NTHR = 1;    /* minimum number of voxels above threshold */
 
   int iv;                  /* index number of sub-brick */
   void * vfim = NULL;      /* sub-brick data pointer */
