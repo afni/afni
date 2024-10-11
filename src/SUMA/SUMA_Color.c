@@ -8373,6 +8373,9 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
       NshowOverlays = 0;
    }
    /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^  Foreground colors -------------------------*/
+   
+   fprintf(stderr, "%s: NshowOverlays = %d\n", FuncName, NshowOverlays);
+   fprintf(stderr, "%s: NshowOverlays_Back = %d\n", FuncName, NshowOverlays_Back);
 
    /* time to modulate the mixed colors with the average brightness */
    // (NshowOverlays_Back gives the status of show background colors)
@@ -8501,8 +8504,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                   FuncName);
    }
    
-   // return 1; // DEBUG
-
+   // This is called when the background is toggled off with the B key
    if (NshowOverlays && !NshowOverlays_Back) {
       if (LocalHead)
          fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n", FuncName);
@@ -8547,15 +8549,17 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          for (i=0; i < N_Node; ++i) {
             if (isColored_Fore[i]) {
                i4 = 4 * i;
+               /*
                int i3 = 3 * i;
                glcolar[i4] = currentOverlay->originalColVec[i3]; ++i3;
                glcolar[i4] = currentOverlay->originalColVec[i3]; ++i3;
                glcolar[i4] = currentOverlay->originalColVec[i3]; ++i3;
-            /*
-               glcolar[i4] = glcolar_Fore[i4]; ++i4;
-               glcolar[i4] = glcolar_Fore[i4]; ++i4;
-               glcolar[i4] = glcolar_Fore[i4]; ++i4;
                */
+            /**/
+               glcolar[i4] = glcolar_Fore[i4]; ++i4;
+               glcolar[i4] = glcolar_Fore[i4]; ++i4;
+               glcolar[i4] = glcolar_Fore[i4]; ++i4;
+               /**/
                isColored[i] = YUP;
                continue;
             } else {
@@ -8569,8 +8573,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
       }
 
    }
-   
-   // return 1; // DEBUG
 
   if (!NshowOverlays && NshowOverlays_Back) {   // Toy examples
       if (LocalHead)
@@ -8623,8 +8625,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          }
          
          free(opacities);
-         
-         // fprintf(stderr, "\n");
           
           free(activeAlphaOpacities);
     }else{
@@ -8650,8 +8650,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          }
 
    }
-   
-   // return 1; // DEBUG
 
    if (!(ShowBackground) && !ShowForeground) {
       for (i=0; i < N_Node; ++i) {
@@ -10128,6 +10126,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
       }
       if (sv->ColList[i]->Remix) {
          ++sv->ColList[i]->RemixID;
+         fprintf("%s: tp = %d\n", FuncName, tp);
          switch (tp) {
             case SO_type:
                if (LocalHead)
