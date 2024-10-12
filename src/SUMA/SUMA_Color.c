@@ -7842,7 +7842,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
        
        // This block causes the left-hand surface to be lighter when both
        //   hemispheres are loaded
-       if (SO->SurfCont->AlphaOpacityFalloff && SO->N_Overlays > 0){  
+       if (SO->SurfCont->AlphaOpacityFalloff && SO->N_Overlays > 0){
             // Check whether display changed
             cmapChanged = (strcmp(currentOverlay->originalCMapName, currentOverlay->cmapname) ||
                 currentOverlay->IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
@@ -8213,7 +8213,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    } else {
       NshowOverlays = 0;
    }
-   
    /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^  Foreground colors -------------------------*/
 
    /* time to modulate the mixed colors with the average brightness */
@@ -8343,6 +8342,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                   FuncName);
    }
    
+   // This is called when the background is toggled off with the B key
    if (NshowOverlays && !NshowOverlays_Back) {
       if (LocalHead)
          fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n", FuncName);
@@ -8387,15 +8387,17 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          for (i=0; i < N_Node; ++i) {
             if (isColored_Fore[i]) {
                i4 = 4 * i;
+               /*
                int i3 = 3 * i;
                glcolar[i4] = currentOverlay->originalColVec[i3]; ++i3;
                glcolar[i4] = currentOverlay->originalColVec[i3]; ++i3;
                glcolar[i4] = currentOverlay->originalColVec[i3]; ++i3;
-            /*
-               glcolar[i4] = glcolar_Fore[i4]; ++i4;
-               glcolar[i4] = glcolar_Fore[i4]; ++i4;
-               glcolar[i4] = glcolar_Fore[i4]; ++i4;
                */
+            /**/
+               glcolar[i4] = glcolar_Fore[i4]; ++i4;
+               glcolar[i4] = glcolar_Fore[i4]; ++i4;
+               glcolar[i4] = glcolar_Fore[i4]; ++i4;
+               /**/
                isColored[i] = YUP;
                continue;
             } else {
@@ -8409,7 +8411,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
       }
 
    }
-   
+
   if (!NshowOverlays && NshowOverlays_Back) {   // Toy examples
       if (LocalHead)
          fprintf (SUMA_STDERR,"%s: Only Background colors.\n", FuncName);
@@ -8461,8 +8463,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          }
          
          free(opacities);
-         
-         // fprintf(stderr, "\n");
           
           free(activeAlphaOpacities);
     }else{
@@ -8488,7 +8488,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          }
 
    }
-   
+
    if (!(ShowBackground) && !ShowForeground) {
       for (i=0; i < N_Node; ++i) {
          i4 = 4 * i;
@@ -8497,8 +8497,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
       }
    } else {
-        fprintf(stderr, "%s: SUMAg_CF = %p\n", FuncName, SUMAg_CF);
-        fprintf(stderr, "%s: SUMAg_CF->X = %p\n", FuncName, SUMAg_CF->X);
       /* any final airbrushing ? */
       if (SUMAg_CF->X->NumFinalSmoothing > 0) {
          glcolar_Fore_tmp = NULL;
@@ -12318,12 +12316,10 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
 
    SUMA_ENTRY;
    
-   // fprintf(stderr, "%s: debugStackLevel = %d\r", FuncName, debugStackLevel);
-   
    ++debugStackLevel;
    
    // Check for stack overflow
-   if (debugStackLevel>629){
+   if (debugStackLevel>100){
     fprintf(stderr, "\n-- ERROR: %s: Stack overflow\n", FuncName);
     SUMA_SL_Err("SUMA_ColorizePlane: Stack overflow");
     SUMA_RETURN(NOPE);
@@ -12335,7 +12331,8 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
       SUMA_DUMP_TRACE("Who called ColorizePlane?");
       SUMA_Show_ColorOverlayPlanes ( &cp, 1, 0);
    }
-   if (!cp) { SUMA_SL_Err("NULL cp"); --debugStackLevel; SUMA_RETURN(NOPE); }
+   if (!cp) { SUMA_SL_Err("NULL cp"); 
+	--debugStackLevel; SUMA_RETURN(NOPE); }
    if (!cp->dset_link) {
       SUMA_SL_Err("Where's your dset_link?");
       --debugStackLevel;
@@ -12347,7 +12344,8 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
       SUMA_RETURN(NOPE);
    }
 
-   if (!cp->ColVec) { SUMA_SL_Err("NULL cV"); --debugStackLevel; SUMA_RETURN(NOPE); }
+   if (!cp->ColVec) { SUMA_SL_Err("NULL cV"); 
+	--debugStackLevel; SUMA_RETURN(NOPE); }
 
    /* is the coloring direct ? */
    if (strcmp(cp->cmapname, "explicit") == 0) {
