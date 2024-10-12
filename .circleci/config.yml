@@ -119,7 +119,7 @@ commands:
           # [PT: 2024-07-16] here and below, update docker ver and use
           # format from this CircleCI help page:
           # https://discuss.circleci.com/t/remote-docker-image-deprecations-and-eol-for-2024/50176
-          version: docker23
+          version: docker24
       - setup_dev_base_image:
           image_cache_version: << parameters.image_cache_version >>
       - restore_afni_image_cache:
@@ -139,7 +139,7 @@ commands:
         type: string
     steps:
       - setup_remote_docker:
-          version: docker23
+          version: docker24
       - restore_afni_image_cache:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
@@ -359,7 +359,7 @@ jobs:
     steps:
       - checkout_afni
       - setup_remote_docker:
-          version: docker23
+          version: docker24
       - build_afni_image:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
@@ -400,7 +400,7 @@ jobs:
     steps:
       - checkout_afni
       - setup_remote_docker:
-          version: docker23
+          version: docker24
       - write_test_data_cache_version_file:
           cache_name: test_data
       - restore_a_cache:
@@ -475,7 +475,7 @@ jobs:
       - run: id # quick check to see who is running this!
       - checkout_afni
       - setup_remote_docker:
-          version: docker23
+          version: docker24
       - build_afni_image:
           build_type: cmake_build
           image_cache_version: << parameters.image_cache_version >>
