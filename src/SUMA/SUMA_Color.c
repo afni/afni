@@ -7798,7 +7798,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    SUMA_OVERLAYS *baseOverlay = SO->Overlays[0];
    SUMA_OVERLAYS *currentOverlay = SO->SurfCont->curColPlane;
    SUMA_Boolean cmapChanged;
-   SUMA_Boolean DSET_MapChanged;
+   static SUMA_Boolean DSET_MapChanged;
    size_t bytes2CopyToColVec/* = SO->N_Node*3*sizeof(float)*/;
    int numThresholdNodes = 0;
    int nodeIndex = getNodeIndex(SO, SV);
@@ -7815,6 +7815,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    bytes2CopyToColVec = SO->N_Node*4*sizeof(float);
    
    if (SO->SurfCont->AlphaOpacityFalloff != 1) SO->SurfCont->AlphaOpacityFalloff = 0;
+   if (DSET_MapChanged) DSET_MapChanged = 0;
    
    if (!thresholdReset && currentOverlay){
    
@@ -7920,7 +7921,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 ITB[1] != currentOverlay->OptScl->tind ||
                 ITB[2] != currentOverlay->OptScl->bind);
 
-               if (DSET_MapChanged){
+               if (DSET_MapChanged){   
                     ITB[0] = currentOverlay->OptScl->find;
                     ITB[1] = currentOverlay->OptScl->tind;
                     ITB[2] = currentOverlay->OptScl->bind;
@@ -7929,7 +7930,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                     applyColorMapToOverlay(SO, currentOverlay);
                     memcpy(currentOverlay->originalColVec, currentOverlay->ColVec, bytes2CopyToColVec);
                     
-                    if (!thresholdReset){
+                    if (!thresholdReset){ // DEBUG
                         // Reinitialize threshold
                         currentThreshold = currentOverlay->OptScl->ThreshRange[0];
                         float val = 0.0f; 
@@ -7955,6 +7956,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         
                         // Reset threshold to what it was before setting it to zero.
                         // This is necessary to set the edit box as well as the sliding bar.
+                        thresholdReset = 1; // To prevent infonote recursion
                         val = currentThreshold;
                         if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
                             { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }

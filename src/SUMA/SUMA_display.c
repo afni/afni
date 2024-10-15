@@ -15598,17 +15598,11 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
    DList *list=NULL;
    char *idcode=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   static stackLevel;
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "XXXXXXXXXXXXXXXXXXXXXXXX %s: stackLevel = %d\n", FuncName, stackLevel++);
+   fprintf(stderr, "%s\n", FuncName);
    
-   if (stackLevel > 100){
-    fprintf(stderr, "##### ERROR %s: Recursive stack overflow\n", FuncName, stackLevel++);
-    SUMA_RETURN(NOPE);
-   }
-
    SUMA_LHv("Called with ado=%p, ado->do_type=%d, ado->idcode_str=%s\n",
       ADO, ADO?ADO->do_type:-1, SUMA_CHECK_NULL_STR(SUMA_ADO_idcode(ADO)));
 
@@ -15648,7 +15642,6 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
       SUMA_RETURN(NOPE);
    }
 
-   --stackLevel;
    SUMA_RETURN(YUP);
 }
 

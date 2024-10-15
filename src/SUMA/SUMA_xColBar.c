@@ -2213,7 +2213,7 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
-void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
+void SUMA_cb_AlphaOpacityFalloff_tb_toggled_Temp(Widget w, XtPointer data,
                                    XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
@@ -2266,7 +2266,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
-void SUMA_cb_AlphaOpacityFalloff_tb_toggled_Temp(Widget w, XtPointer data,
+void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
                                    XtPointer client_data)
 {
     // Alpha opacity checkbox toggled
@@ -2321,6 +2321,8 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled_Temp(Widget w, XtPointer data,
 
                 // Default opacity model
                 if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
+               SUMA_Remixedisplay(ado);
+               SUMA_UpdateNodeLblField(ado);
             }
         }
    }
@@ -2328,14 +2330,15 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled_Temp(Widget w, XtPointer data,
    // Restore proper threshold contours if required when Alpha opacity 
    //   checkbox toggled
    restoreProperThresholdCcontours(ado);
-
+/**/
    // Refresh display.  This loop appears to be necessary for alpha toggling to apply to all surfaces
-   for (j=0; j<N_adolist; ++j){
-        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-       SUMA_Remixedisplay(ado);
-       SUMA_UpdateNodeLblField(ado);
-    }
-
+//   for (j=0; j<N_adolist; ++j){
+//        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+//       ado = (SUMA_ALL_DO *)data;
+//       SUMA_Remixedisplay(ado);
+//       SUMA_UpdateNodeLblField(ado);
+//    }
+/**/
    SUMA_RETURNe;
 }
 
