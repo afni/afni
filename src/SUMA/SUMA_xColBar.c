@@ -1255,12 +1255,10 @@ int SUMA_SwitchColPlaneIntensity(
       SUMA_RETURN(0);
    }
    
-   /* DEBUG
-
    if (ado->do_type == SO_type) {
       SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
       SUMA_OVERLAYS *colpC=NULL;
-      /* do we have a contralateral SO and overlay? *//*
+      /* do we have a contralateral SO and overlay? */
       SO = (SUMA_SurfaceObject *)ado;
       colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
       if (colpC && SOC) {
@@ -1275,8 +1273,6 @@ int SUMA_SwitchColPlaneIntensity(
          }
       }
    }
-   
-   */
 
    SUMA_RETURN(1);
 }
@@ -1509,32 +1505,28 @@ int SUMA_SwitchColPlaneIntensity_one (
          SUMA_RETURN(0);
    }
 
-//   #if 0   // DEBUG
-
-   
-// #endif
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
    #endif
    
    if (SO && SO->SurfCont){
-       // Restore threshold boundary if necessary.  This is called when the 
-       //   threshold slider is moved
-       // SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+        // Restore threshold boundary if necessary. // This is called when the 
+          // threshold slider is moved
+        SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
        
-       // Restore proper threshold contours when intensity (I) subbrick changed
-       // restoreProperThresholdCcontours(ado);
+        // Restore proper threshold contours when intensity (I) subbrick changed
+        restoreProperThresholdCcontours(ado);
        
-       // Restore alpha opacity falloff if applicable
-       // if (AlphaOpacityFalloff) XmToggleButtonSetState(SO->SurfCont->AlphaOpacityFalloff_tb, 1, 1);
+        // Restore alpha opacity falloff if applicable
+        if (AlphaOpacityFalloff) XmToggleButtonSetState(SO->SurfCont->AlphaOpacityFalloff_tb, 1, 1);
    }
 
    SUMA_Remixedisplay(ado);
 
-/* DEBUG
+/* DEBUG */
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
-*/
+/**/
    SUMA_RETURN(1);
 }
 
@@ -2330,15 +2322,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    // Restore proper threshold contours if required when Alpha opacity 
    //   checkbox toggled
    restoreProperThresholdCcontours(ado);
-/**/
-   // Refresh display.  This loop appears to be necessary for alpha toggling to apply to all surfaces
-//   for (j=0; j<N_adolist; ++j){
-//        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-//       ado = (SUMA_ALL_DO *)data;
-//       SUMA_Remixedisplay(ado);
-//       SUMA_UpdateNodeLblField(ado);
-//    }
-/**/
+
    SUMA_RETURNe;
 }
 
