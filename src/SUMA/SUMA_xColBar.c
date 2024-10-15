@@ -1523,10 +1523,9 @@ int SUMA_SwitchColPlaneIntensity_one (
 
    SUMA_Remixedisplay(ado);
 
-/* DEBUG */
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
-/**/
+
    SUMA_RETURN(1);
 }
 
@@ -1736,6 +1735,7 @@ int SUMA_SwitchColPlaneBrightness(
          SUMA_OVERLAYS *colp,
          int ind, int setmen)
 {
+   // Called when B subbrick option changed
    static char FuncName[]={"SUMA_SwitchColPlaneBrightness"};
    char srange[500];
    double range[2];
@@ -1931,6 +1931,9 @@ void SUMA_cb_SwitchBrightness(Widget w, XtPointer client_data, XtPointer call)
 
    SUMA_UpdateNodeLblField(ado);
    #endif
+   
+   // Restore proper threshold contours when bright (B) subbrick switched
+   restoreProperThresholdCcontours(ado);
 
    SUMA_RETURNe;
 }
