@@ -10126,7 +10126,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
       }
       if (sv->ColList[i]->Remix) {
          ++sv->ColList[i]->RemixID;
-         fprintf("%s: tp = %d\n", FuncName, tp);
+
          switch (tp) {
             case SO_type:
                if (LocalHead)
