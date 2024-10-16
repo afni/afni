@@ -8374,9 +8374,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    }
    /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^  Foreground colors -------------------------*/
    
-   fprintf(stderr, "%s: NshowOverlays = %d\n", FuncName, NshowOverlays);
-   fprintf(stderr, "%s: NshowOverlays_Back = %d\n", FuncName, NshowOverlays_Back);
-
    /* time to modulate the mixed colors with the average brightness */
    // (NshowOverlays_Back gives the status of show background colors)
    if (NshowOverlays && NshowOverlays_Back) {
