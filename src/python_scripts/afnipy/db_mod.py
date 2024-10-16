@@ -4373,16 +4373,18 @@ def db_mod_surf(block, proc, user_opts):
     opt = user_opts.find_opt('-surf_B')
     if opt: proc.surf_B = opt.parlist[0]
 
-    val, err = user_opts.get_type_opt(float, '-blur_size')
-    if err:
-        print('** error: -blur_size requires float argument')
-        return 1
-    elif val != None and val > 0.0:
-        proc.surf_blur_fwhm = val
-    else:
-        proc.surf_blur_fwhm = 4.0
-        print('** applying default -blur_size of %s mm FWHM' \
-              % proc.surf_blur_fwhm)
+    # the Maya fix: only warn of default if no blur block
+    if proc.find_block('blur'):
+       val, err = user_opts.get_type_opt(float, '-blur_size')
+       if err:
+           print('** error: -blur_size requires float argument')
+           return 1
+       elif val != None and val > 0.0:
+           proc.surf_blur_fwhm = val
+       else:
+           proc.surf_blur_fwhm = 4.0
+           print('** applying default -blur_size of %s mm FWHM' \
+                 % proc.surf_blur_fwhm)
 
     if proc.verb > 2:
         print('-- surf info\n'          \
