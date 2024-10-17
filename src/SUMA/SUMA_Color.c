@@ -7812,6 +7812,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    SUMA_ENTRY;
    
    cmapChanged = 0;
+   thresholdReset = !thresholdReset;
    bytes2CopyToColVec = SO->N_Node*4*sizeof(float);
    
    if (SO->SurfCont->AlphaOpacityFalloff != 1) SO->SurfCont->AlphaOpacityFalloff = 0;
@@ -7930,12 +7931,13 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                     applyColorMapToOverlay(SO, currentOverlay);
                     memcpy(currentOverlay->originalColVec, currentOverlay->ColVec, bytes2CopyToColVec);
                     
-                    if (!thresholdReset){ // DEBUG
+                    if (!thresholdReset){
                         // Reinitialize threshold
                         currentThreshold = currentOverlay->OptScl->ThreshRange[0];
                         float val = 0.0f; 
                         reload = 1;
                         
+                        /*
                         if (thresholdReset){
                             val = currentThreshold;
                         } 
@@ -7952,17 +7954,18 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         SUMA_Overlays_2_GLCOLAR4_SO, execution continues here.  Hence
                         this is the point to reset the threshold back to what it was 
                         before it was set to zero.
-                        *************************************************************/
+                        *************************************************************//*
                         
                         // Reset threshold to what it was before setting it to zero.
                         // This is necessary to set the edit box as well as the sliding bar.
-                        thresholdReset = 1; // To prevent infonote recursion
+                        // thresholdReset = 1; // To prevent infonote recursion
                         val = currentThreshold;
                         if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
                             { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
                         
                         // Set slider location to zero
                         // if (reload) setSliderLocation(SO, currentOverlay->OptScl->ThreshRange[0]);
+                        */
                     }
                 }
            }
@@ -11486,7 +11489,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
                         NI_free_element(GSaux->net); GSaux->net = NULL;
                      }
                   } else {
-                     if (ss=NI_get_attribute(nilink,"network_file")) {
+                     if ((ss=NI_get_attribute(nilink,"network_file"))) {
                         SUMA_S_Errv(
                            "Could not find network_file \"%s\" "
                            "on disk for dset %s\n", ss, SDSET_FILENAME(dset));
