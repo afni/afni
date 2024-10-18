@@ -1273,6 +1273,9 @@ int SUMA_SwitchColPlaneIntensity(
          }
       }
    }
+   
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   XmScaleSetValue (SO->SurfCont->Thr_tb, 0);
 
    SUMA_RETURN(1);
 }
