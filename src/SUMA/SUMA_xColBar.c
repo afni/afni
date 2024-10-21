@@ -1272,10 +1272,14 @@ int SUMA_SwitchColPlaneIntensity(
             SUMA_S_Warn("Failed in contralateral");
          }
       }
+   
+        fprintf(stderr, "+++++ %s: SO = %p\n", FuncName, SO);
+        fprintf(stderr, "+++++ %s: SO->SurfCont = %p\n", FuncName, SO->SurfCont);
+        fprintf(stderr, "+++++ %s: SO->SurfCont->Thr_tb = %p\n", FuncName, SO->SurfCont->Thr_tb);
+       XmScaleSetValue (SO->SurfCont->Thr_tb, 1);
    }
    
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   XmScaleSetValue (SO->SurfCont->Thr_tb, 0);
+   fprintf(stderr, "+++++ %s ended\n", FuncName);
 
    SUMA_RETURN(1);
 }

@@ -7808,11 +7808,19 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    int nSurfaces = SV->N_ColList;
    static int *outlinevector = NULL;
    static int ITB[3] = {-1, -1, -1};
+   static int thresholdZeroed;
    
    SUMA_ENTRY;
    
+   if (thresholdZeroed == 2 || thresholdZeroed == 4){
+    thresholdZeroed = 0;
+    SUMA_RETURN(1);
+   }
+   if (thresholdZeroed == 1) thresholdZeroed = 2;
+   if (thresholdZeroed == 3) thresholdZeroed = 4;
+   
    cmapChanged = 0;
-   thresholdReset = !thresholdReset;
+   // thresholdReset = !thresholdReset;
    bytes2CopyToColVec = SO->N_Node*4*sizeof(float);
    
    if (SO->SurfCont->AlphaOpacityFalloff != 1) SO->SurfCont->AlphaOpacityFalloff = 0;
@@ -7903,9 +7911,9 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         
                         // Reset threshold to what it was before setting it to zero.
                         // This is necessary to set the edit box as well as the sliding bar.
-                        val = currentThreshold;
-                        if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
-                            { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
+//                        val = currentThreshold;
+//                        if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
+//                            { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
                     }
             }
            
@@ -7932,10 +7940,10 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                     memcpy(currentOverlay->originalColVec, currentOverlay->ColVec, bytes2CopyToColVec);
                     
                     if (!thresholdReset){
-//                        // Reinitialize threshold
-//                        currentThreshold = currentOverlay->OptScl->ThreshRange[0];
-//                        float val = 0.0f; 
-//                        reload = 1;
+                        // Reinitialize threshold
+                        currentThreshold = currentOverlay->OptScl->ThreshRange[0];
+                        float val = 0.0f; 
+                        reload = 1;
 
                            SUMA_MixOverlays ( Overlays, N_Overlays, ShowOverLays_sort,
                                     NshowOverlays, glcolar_Fore, N_Node,
@@ -7952,10 +7960,11 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                             }
 
                         
-                        /*
+                        /**/
                         if (thresholdReset){
                             val = currentThreshold;
                         } 
+                        thresholdZeroed = 1;
                         if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
                             { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
                             
@@ -7973,12 +7982,12 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         
                         // Reset threshold to what it was before setting it to zero.
                         // This is necessary to set the edit box as well as the sliding bar.
-                        // thresholdReset = 1; // To prevent infonote recursion
+                        // thresholdReset = 1; // To prevent infinite recursion
                         */
-                        thresholdReset = 1;
-                        float val = currentThreshold;
-                        if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
-                            { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
+//                        thresholdReset = 3;
+//                        val = currentThreshold;
+//                        if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
+//                            { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
                         
                         // Set slider location to zero
                         // if (reload) setSliderLocation(SO, currentOverlay->OptScl->ThreshRange[0]);
