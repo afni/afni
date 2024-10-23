@@ -4373,19 +4373,6 @@ def db_mod_surf(block, proc, user_opts):
     opt = user_opts.find_opt('-surf_B')
     if opt: proc.surf_B = opt.parlist[0]
 
-    # the Maya fix: only warn of default if no blur block
-    if proc.find_block('blur'):
-       val, err = user_opts.get_type_opt(float, '-blur_size')
-       if err:
-           print('** error: -blur_size requires float argument')
-           return 1
-       elif val != None and val > 0.0:
-           proc.surf_blur_fwhm = val
-       else:
-           proc.surf_blur_fwhm = 4.0
-           print('** applying default -blur_size of %s mm FWHM' \
-                 % proc.surf_blur_fwhm)
-
     if proc.verb > 2:
         print('-- surf info\n'          \
               '   spec          : %s\n' \
@@ -4394,14 +4381,12 @@ def db_mod_surf(block, proc, user_opts):
               '   anat_has_skull: %s\n' \
               '   surf_A        : %s\n' \
               '   surf_B        : %s\n' \
-              '   blur_size     : %s\n' \
               '   spec_dir      : %s\n' \
               '   surf_spd_var  : %s\n' \
               '   spec_var      : %s\n' \
               % (proc.surf_spec, proc.surf_anat, proc.surf_anat_aligned,
                  proc.surf_anat_has_skull, proc.surf_A, proc.surf_B,
-                 proc.surf_blur_fwhm, proc.surf_spec_dir, proc.surf_spd_var,
-                 proc.surf_spec_var))
+                 proc.surf_spec_dir, proc.surf_spd_var, proc.surf_spec_var))
 
     errs = 0
     if not proc.surf_anat.exist():
@@ -4797,6 +4782,22 @@ def mod_blur_surf(block, proc, user_opts):
 
 def cmd_blur_surf(proc, block):
     """surface analysis: return a command to blur the data"""
+
+    # the Maya fix: do not warn on blur_size without blur
+    if proc.find_block('blur'):
+       val, err = proc.user_opts.get_type_opt(float, '-blur_size')
+       if err:
+           print('** error: -blur_size requires float argument')
+           return 1
+       elif val != None and val > 0.0:
+           proc.surf_blur_fwhm = val
+       else:
+           proc.surf_blur_fwhm = 4.0
+           print('** applying default -blur_size of %s mm FWHM' \
+                 % proc.surf_blur_fwhm)
+
+    if proc.verb > 2:
+       print('-- surf blur_size : %s\n' % proc.surf_blur_fwhm
 
     # check for number of requested iterations
     niter, err = block.opts.get_type_opt(int, '-surf_smooth_niter')
