@@ -1273,10 +1273,7 @@ int SUMA_SwitchColPlaneIntensity(
          }
       }
    
-        fprintf(stderr, "+++++ %s: SO = %p\n", FuncName, SO);
-        fprintf(stderr, "+++++ %s: SO->SurfCont = %p\n", FuncName, SO->SurfCont);
-        fprintf(stderr, "+++++ %s: SO->SurfCont->Thr_tb = %p\n", FuncName, SO->SurfCont->Thr_tb);
-       XmScaleSetValue (SO->SurfCont->Thr_tb, 1);
+       // XmScaleSetValue (SO->SurfCont->Thr_tb, 1);
    }
    
    fprintf(stderr, "+++++ %s ended\n", FuncName);

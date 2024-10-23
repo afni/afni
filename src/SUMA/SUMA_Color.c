@@ -7809,9 +7809,11 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    static int *outlinevector = NULL;
    static int ITB[3] = {-1, -1, -1};
    static int thresholdZeroed;
+   SUMA_ALL_DO *ado = SUMA_Overlay_OwnerADO(currentOverlay);
    
    SUMA_ENTRY;
    
+   // Prevent infinite recursion
    if (thresholdZeroed == 2 || thresholdZeroed == 4){
     thresholdZeroed = 0;
     SUMA_RETURN(1);
@@ -7820,7 +7822,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    if (thresholdZeroed == 3) thresholdZeroed = 4;
    
    cmapChanged = 0;
-   // thresholdReset = !thresholdReset;
    bytes2CopyToColVec = SO->N_Node*4*sizeof(float);
    
    if (SO->SurfCont->AlphaOpacityFalloff != 1) SO->SurfCont->AlphaOpacityFalloff = 0;
@@ -7930,7 +7931,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 ITB[1] != currentOverlay->OptScl->tind ||
                 ITB[2] != currentOverlay->OptScl->bind);
 
-               if (DSET_MapChanged){   
+               if (DSET_MapChanged || cmapChanged){   
                     ITB[0] = currentOverlay->OptScl->find;
                     ITB[1] = currentOverlay->OptScl->tind;
                     ITB[2] = currentOverlay->OptScl->bind;
@@ -7988,9 +7989,12 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
 //                        val = currentThreshold;
 //                        if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
 //                            { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
+//                        currentOverlay->OptScl->ThreshRange[0] = val;
+//                        SUMA_UpdateNodeLblField(ado);
+//                        SUMA_UpdatePvalueField( ado, currentOverlay->OptScl->ThreshRange[0]);
                         
-                        // Set slider location to zero
-                        // if (reload) setSliderLocation(SO, currentOverlay->OptScl->ThreshRange[0]);
+                        // Set slider location to val
+                        // setSliderLocation(SO, currentOverlay->OptScl->ThreshRange[0]);
                         /**/
                     }
                 }
