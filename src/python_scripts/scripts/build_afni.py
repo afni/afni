@@ -866,6 +866,7 @@ class MyInterface:
                  1 on non-fatal termination error
                 -1 on fatal error
       """
+
       # -----------------------------------------------------------------
       # note where we are starting from, and any current abin
       rv = self.set_orig_dirs()
@@ -2250,6 +2251,7 @@ class MyInterface:
       self.do_orig_dir = dirobj('orig_dir', '.')
 
       MESG("")
+      MESGm(g_version)
       prog = 'afni_proc.py' # since 'afni' might not be in text distribution
       wp = UTIL.which(prog)
       if wp != '':
