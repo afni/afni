@@ -2528,10 +2528,14 @@ def db_mod_volreg(block, proc, user_opts):
                     "   (consider -volreg_tlrc_adwarp instead)")
               return 1
 
-    uopt = user_opts.find_opt('-volreg_no_extent_mask')
-    bopt = block.opts.find_opt('-volreg_no_extent_mask')
-    if uopt and not bopt:
+    # do we want to omit the actual volreg step?
+    apply_uopt_to_block('-volreg_no_volreg', user_opts, block)
+
+    # if so, there is no need for an extents mask, let that opt be conditional
+    if user_opts.find_opt('-volreg_no_volreg'):
         block.opts.add_opt('-volreg_no_extent_mask', 0, [])
+    else:
+        apply_uopt_to_block('-volreg_no_extent_mask', user_opts, block)
 
     uopt = user_opts.find_opt('-volreg_align_e2a')
     bopt = block.opts.find_opt('-volreg_align_e2a')
@@ -2673,6 +2677,9 @@ def db_cmd_volreg(proc, block):
     else:                                             do_extents = 0
     if block.opts.find_opt('-volreg_no_extent_mask'): do_extents = 0
 
+    # make note of the per run affine/volreg transformation matrix
+    volreg_xform = 'mat.r$run.vr.aff12.1D'
+
     cur_prefix = proc.prefix_form_run(block, eind=-1)
     cur_prefix_me = proc.prefix_form_run(block, eind=0)
     proc.volreg_prefix = cur_prefix
@@ -2692,7 +2699,7 @@ def db_cmd_volreg(proc, block):
 
         prefix = 'rm.epi.volreg.r$run%s' % estr
         proc.have_rm = 1            # rm.* files exist
-        matstr = '-1Dmatrix_save mat.r$run.vr.aff12.1D'
+        matstr = '-1Dmatrix_save %s' % volreg_xform
         if doblip:        cstr = cstr + ', blip warp'
         if do_pvr_allin:  cstr = cstr + ', across runs'
         if doe2a:         cstr = cstr + ', to anat'
@@ -2838,30 +2845,37 @@ def db_cmd_volreg(proc, block):
        cmd += pvr_cmd
 
     # ============================================================
-    # include main volreg command
-    cmd = cmd + "    # register each volume to the base image\n"  \
-                "%s" % (mestr)
+    # include main volreg command, or an identity substitute
 
-    vrmeth = '3dvolreg'
-    vv, rv = block.opts.get_string_opt('-volreg_method')
-    if vv and not rv:
-       if vv not in ['3dvolreg', '3dAllineate']:
-          print("** bad -volreg_method %s" % vv)
-          return
-       if proc.verb > 1: print("++ updating -volreg_method to %s" % vv)
-       vrmeth = vv
-    
-    if vrmeth == '3dAllineate':
-       vrcmd = make_volreg_command_allin(block, prev_prefix, prefix,
-                    vr_base_str, matstr, other_opts=other_opts, resam=resam)
-       if not vrcmd: return
+    # do main volreg/Allineate step, unless users wants to omit
+    do_volreg = block.opts.find_opt('-volreg_no_volreg') is None
+    if do_volreg:
+       # run 3dvolreg or 3dAllineate
+       cmnt = "    # register each volume to the base image\n%s" % (mestr)
+       vrmeth = '3dvolreg'
+       vv, rv = block.opts.get_string_opt('-volreg_method')
+       if vv and not rv:
+          if vv not in ['3dvolreg', '3dAllineate']:
+             print("** bad -volreg_method %s" % vv)
+             return
+          if proc.verb > 1: print("++ updating -volreg_method to %s" % vv)
+          vrmeth = vv
 
-    else: # '3dvolreg'
-       vrcmd = make_volreg_command(block, prev_prefix, prefix, vr_base_str,
-                    matstr, zpad, other_opts=other_opts, resam=resam)
-       if not vrcmd: return
+       if vrmeth == '3dAllineate':
+          vrcmd = make_volreg_command_allin(block, prev_prefix, prefix,
+                       vr_base_str, matstr, other_opts=other_opts, resam=resam)
+          if not vrcmd: return
 
-    cmd = cmd + vrcmd
+       else: # '3dvolreg'
+          vrcmd = make_volreg_command(block, prev_prefix, prefix, vr_base_str,
+                       matstr, zpad, other_opts=other_opts, resam=resam)
+          if not vrcmd: return
+    else:
+       # skip 3dvolreg and use identity
+       cmnt  = "    # skip 3dvolreg, replacing xform with identity\n"
+       vrcmd = "    echo '1 0 0 0  0 1 0 0  0 0 1 0' > %s\n\n" % volreg_xform
+
+    cmd = cmd + cmnt + vrcmd
 
     # if pvr_allin, reset the volreg base to the global one, not local per run
     if do_pvr_allin:
@@ -2992,11 +3006,11 @@ def db_cmd_volreg(proc, block):
         else:
             allinbase = ''
 
-        # resulting affine xform of orig EPI, per run
+        # resulting affine xform of orig EPI, per run (used in a few places)
         runwarpmat = 'mat.r$run.warp.aff12.1D'
 
         # final affine xmat is from volreg step
-        cmd += '               mat.r$run.vr.aff12.1D > %s\n' % runwarpmat
+        cmd += '               %s > %s\n' % (volreg_xform, runwarpmat)
 
         if do_extents:
            if proc.use_me:
@@ -3078,10 +3092,16 @@ def db_cmd_volreg(proc, block):
         if wcmd == None: return
         cmd += wcmd
 
+    cmd = cmd + "end\n\n"
+
+    # save the motion file for motsim
+    # note: proc.mot_file is either used above, or passed as different,
+    #       but use the passed one (proc.mot_file) for motsim
     proc.mot_default = 'dfile_rall.1D'
-    cmd = cmd + "end\n\n"                                                     \
-                "# make a single file of registration params\n"               \
-                "cat dfile.r*.1D > %s\n\n" % proc.mot_default
+
+    if do_volreg: 
+        cmd = cmd + "# make a single file of registration params\n"  \
+                    "cat dfile.r*.1D > %s\n\n" % proc.mot_default
 
     # if not censoring motion, make a generic motion file
     if not proc.user_opts.find_opt('-regress_censor_motion'):
@@ -3619,7 +3639,7 @@ def old_apply_cat_warps(proc, runwarpmat, gridbase, winput, dowarp,
 # create @simulate_motion commands
 def db_cmd_volreg_motsim(proc, block, basevol):
     """generate a @simulate_motion command
-          - use proc.mot_default and proc.e2final_mv
+          - use proc.mot_file and proc.e2final_mv
           - if self.nlw_NL_mat, apply with 3dNwarpApply
        return 0 on success, along with any command string
     """
@@ -3640,10 +3660,11 @@ def db_cmd_volreg_motsim(proc, block, basevol):
         other_opts = '%17s%s \\\n' % (' ', ' '.join(olist))
     else: other_opts = ''
 
+    # use proc.mot_file, in case a modified version was passed
     cmd += "@simulate_motion -epi %s -prefix %s \\\n"   \
            "                 -motion_file %s \\\n"      \
            "%s"                                         \
-           % (basevol, proc.mot_simset.prefix, proc.mot_default, other_opts)
+           % (basevol, proc.mot_simset.prefix, proc.mot_file, other_opts)
 
     if proc.e2final == '':
         cmd += "                 -warp_method VOLREG\n\n"

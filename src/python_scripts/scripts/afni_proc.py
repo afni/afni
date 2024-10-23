@@ -1606,6 +1606,8 @@ class SubjProcSream:
                         acplist=['shift_rotate', 'shift_rotate_scale',
                                  'affine_general'],
                         helpstr="specify -warp for 3dAllineate in volreg")
+        self.valid_opts.add_opt('-volreg_no_volreg', 0, [],
+                        helpstr="skip 3dvolreg step (maybe already aligned")
         self.valid_opts.add_opt('-volreg_post_vr_allin', 1, [],
                         acplist=['yes','no'],
                         helpstr='do cross-run allin after within-run volreg')
