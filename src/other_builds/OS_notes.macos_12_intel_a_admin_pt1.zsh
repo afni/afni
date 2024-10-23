@@ -44,7 +44,6 @@ brew install --cask xquartz
 brew install libpng jpeg expat freetype fontconfig openmotif  \
              libomp gsl glib pkg-config gcc libiconv autoconf \
              libxt mesa mesa-glu libxpm
-brew install gcc@13
 
 # ----------------------------------------------------------------------
 # put python in path and install matplotlib via pip (multiple shells)
