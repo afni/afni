@@ -2873,7 +2873,7 @@ def db_cmd_volreg(proc, block):
     else:
        # skip 3dvolreg and use identity
        cmnt  = "    # skip 3dvolreg, replacing xform with identity\n"
-       vrcmd = "    echo '1 0 0 0  0 1 0 0  0 0 1 0' > %s\n\n" % volreg_xform
+       vrcmd = "    echo '1 0 0 0  0 1 0 0  0 0 1 0' > %s\n" % volreg_xform
 
     cmd = cmd + cmnt + vrcmd
 
@@ -4818,7 +4818,7 @@ def cmd_blur_surf(proc, block):
                  % proc.surf_blur_fwhm)
 
     if proc.verb > 2:
-       print('-- surf blur_size : %s\n' % proc.surf_blur_fwhm
+       print('-- surf blur_size : %s\n' % proc.surf_blur_fwhm)
 
     # check for number of requested iterations
     niter, err = block.opts.get_type_opt(int, '-surf_smooth_niter')
@@ -14069,6 +14069,25 @@ OPTIONS:  ~2~
         rcr - note relevant options once they are in
 
         Please see '@simulate_motion -help' for more information.
+
+    -volreg_no_volreg       : omit 3dvolreg operation in the volreg block
+
+            e.g. -volreg_no_volreg
+                 -regress_motion_file motion_params.1D
+
+        For EPI data that is already aligned (registered at the scanner?), one
+        might still want to align to the anat, to a template, and possibly do
+        distortion correction, concatenating the transformations in the volreg
+        block.  So process the data as usual, except that the 3dvolreg xform
+        will be replaced by an identity xform.
+
+        One would typically also want to pass parameters from motion
+        registration to the regress block.  Adding these two options to an
+        otherwise typical command would generally be appropriate.
+
+        The B Feige option.
+
+        See also '-regress_motion_file'.
 
     -volreg_opts_ms OPTS ... : specify extra options for @simulate_motion
 
