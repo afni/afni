@@ -801,9 +801,12 @@ g_history = """
          - exclude 'noshow' examples from default help output
        - compare_opts now considers file path differences separately
     7.80 Oct 10, 2024: make sure intersect datasets have views
+    7.81 Oct 23, 2024:
+       - redo default surface blur
+       - add -volreg_no_volreg, the B Feige option
 """
 
-g_version = "version 7.80, October 10, 2024"
+g_version = "version 7.81, October 23, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1606,6 +1609,8 @@ class SubjProcSream:
                         acplist=['shift_rotate', 'shift_rotate_scale',
                                  'affine_general'],
                         helpstr="specify -warp for 3dAllineate in volreg")
+        self.valid_opts.add_opt('-volreg_no_volreg', 0, [],
+                        helpstr="skip 3dvolreg step (maybe already aligned)")
         self.valid_opts.add_opt('-volreg_post_vr_allin', 1, [],
                         acplist=['yes','no'],
                         helpstr='do cross-run allin after within-run volreg')
