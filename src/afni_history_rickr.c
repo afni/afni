@@ -55,7 +55,7 @@ afni_history_struct rickr_history[] = {
 
  { 23, Oct, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -volreg_no_volreg",
-   "replace 3dvolreg alignment transformation with the identity"
+   "Replace the 3dvolreg alignment transformation with the identity.\n"
    "The B Feige option."
  } ,
 
