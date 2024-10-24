@@ -442,11 +442,11 @@ examples: ~1~
       * Note also that this would be appropriate for a locally compiled
         package as well, which would run build_afni.py.
 
-        @update.afni.binaries -apsearch
+        @update.afni.binaries -apsearch yes
 
     3b. Basic: also make a backup of the current binaries.
 
-        @update.afni.binaries -apsearch -make_backup yes
+        @update.afni.binaries -apsearch yes -make_backup yes
 
     3c. Basic: -defaults would do the same, but also try to update the dotfiles.
         Since that step should already be done, this should be the same as 3b.
@@ -487,7 +487,7 @@ examples: ~1~
         and run the apserach updates, for tab completion
         (this is the same command that works for the official package)
 
-        @update.afni.binaries -apsearch
+        @update.afni.binaries -apsearch yes
 
     4f. update the current package if it was made using build_afni.py,
         but do nothing else (just update the current package)
@@ -504,7 +504,7 @@ examples: ~1~
 
  5. other "random" examples: ~2~
 
-       @update.afni.binaries -apsearch
+       @update.afni.binaries -apsearch yes
        @update.afni.binaries -d
        @update.afni.binaries -defaults -package macos_10.12_local
        @update.afni.binaries -package linux_openmp_64 -bindir ~/abin
