@@ -1522,12 +1522,9 @@ class SysInfo:
 
       print('')
 
+      # time to do away with the py2 vs py3 comment, per PT  [24 Oct 2024]
       # explicit python2 vs python3 check    7 Dec 2016
-      n2 = UTIL.num_found_in_path('python2', mtype=1)
-      n3 = UTIL.num_found_in_path('python3', mtype=1)
-      if n3 > 0 and n2 <= 0:
-         print("** have python3 but not python2")
-      print('')
+      # was: n2 = UTIL.num_found_in_path('python2', mtype=1)
 
    def check_select_AFNI_progs(self):
       # try select AFNI programs

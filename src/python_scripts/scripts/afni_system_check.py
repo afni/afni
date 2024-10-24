@@ -359,9 +359,10 @@ g_history = """
         - get .login with other dotfiles
         - if no Xvfb in PATH, check whether file exists
         - report fewer link suggestions
+   1.37 Oct 24, 2024 - do away with "have python3 but not python2"
 """
 
-g_version = "afni_system_check.py version 1.36, September 16, 2024"
+g_version = "afni_system_check.py version 1.37, October 24, 2024"
 
 
 class CmdInterface:
