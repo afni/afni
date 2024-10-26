@@ -83,7 +83,7 @@ endif
 if ( "$cpu" == "x86_64" ) then
    set package = macos_12_x86_64
 else
-   set package = macos_13_ARM_clang
+   set package = macos_13_ARM
 endif
 
 # if we are in this script, always run the build
