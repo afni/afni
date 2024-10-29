@@ -934,10 +934,11 @@ if __name__ == "__main__":
     # not currently a uvar, check for known dir name in AP results
     # dir; check for certain 'automatic' stats files that do not have
     # HTML encoding already (or brain in suffix)
-    all_fname = glob.glob('tsnr_stats_regress/stats_auto_*.txt')
-    for fname in all_fname :
-        if fname.endswith('_brain.txt') or fname.endswith('eval_html.txt') :
-            _tmp = all_fname.remove(fname)
+    all_fname_00 = glob.glob('tsnr_stats_regress/stats_auto_*.txt')
+    all_fname    = []
+    for fname in all_fname_00 :
+        if not(fname.endswith('_brain.txt') or fname.endswith('eval_html.txt')) :
+            all_fname.append(fname)
     all_fname.sort()
 
     if len(all_fname) :
