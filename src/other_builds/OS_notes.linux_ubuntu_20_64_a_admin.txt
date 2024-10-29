@@ -34,7 +34,7 @@ sudo apt-get install -y tcsh xfonts-base libssl-dev       \
                         gnome-terminal nautilus           \
                         gnome-icon-theme-symbolic         \
                         firefox xfonts-100dpi             \
-                        r-base-dev cmake bc
+                        r-base-dev cmake bc git
 
 
 echo "++ Get more dependencies for R-package brms"
