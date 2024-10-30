@@ -193,9 +193,12 @@ commands:
     steps:
       - run:
           name: Write osx dependencies to a file
+          # [PT: 2024-10-30] we used to include 'python' in the
+          # command list here, but CCI started failing on macos-build with:
+          #   'Error: Formula installation already attempted: python@3.13'
+          # and removing explicit 'python' resolved that.
           command: |
             echo \
-              python \
               cmake ninja  pkgconfig  \
               jpeg gsl gts openmotif libpng expat \
               freetype fontconfig netpbm git-annex | \
