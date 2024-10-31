@@ -80,7 +80,7 @@ static int perc_val = -666;
 #define METH_SKEWNESS      46 /* PDL 17 July 2020 */
 #define METH_KURTOSIS      47 /* PDL 17 July 2020 */
 
-#define MAX_NUM_OF_METHS   48
+#define MAX_NUM_OF_METHS   48 /* *** methods must match meth_names in Tstat.h *** */
 
 /* allow single inputs for some methods (test as we care to add) */
 #define NUM_1_INPUT_METHODS 12
@@ -114,7 +114,7 @@ static int do_tdiff = 0 ;  /* 25 May 2011 */
     "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
     "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"    ,
     "Percentile %d" , "FirstValue"   , "TSNR"          , "MSSD"        ,
-    "MSSDsqrt"      , "MASDx"
+    "MSSDsqrt"      , "MASDx"        , "Skewness"      , "Kurtosis"
  };
 #endif
 
