@@ -90,14 +90,25 @@ Examples ~1~
 
 1) Basic example, running on a set of EPI:
     gtkyd_check.py                                       \\
-        -infiles  group_study/*task*.nii.gz              \\
+        -infiles  group_study/sub*/func*/*task*.nii.gz   \\
         -outdir   group_summary
 
 2) Include (possibly slow) min/max info, and check anatomical dsets:
     gtkyd_check.py                                       \\
-        -infiles    group_study2/*T1w*.nii.gz *T1w*HEAD  \\
+        -infiles    group_study2/sub*/*T1w*.nii.gz       \\
+                    group_study2/sub*/*T1w*HEAD          \\
         -do_minmax                                       \\
         -outdir     group_summary2
+
+... and any of these might be usefully followed up with
+gen_ss_review_table.py (querying the dset*.txt files in the outdir),
+to find subject datasets that have certain properties.  For example:
+
+    gen_ss_review_table.py                               \\
+       -infiles group_summary/dset*txt                   \\
+       -report_outliers 'nv'     VARY                    \\
+       -report_outliers 'orient' VARY                    \\
+       -report_outliers 'ad3'    LT 3.0 
 
 
 """
