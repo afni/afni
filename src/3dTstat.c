@@ -102,20 +102,8 @@ static int do_tdiff = 0 ;  /* 25 May 2011 */
 #if 1
 # include "Tstat.h"
 #else
- static char *meth_names[] = {
-    "Mean"          , "Slope"        , "Std Dev"       , "Coef of Var" ,
-    "Median"        , "Med Abs Dev"  , "Max"           , "Min"         ,
-    "Durbin-Watson" , "Std Dev(NOD)" , "Coef Var(NOD)" , "AutoCorr"    ,
-    "AutoReg"       , "Absolute Max" , "ArgMax"        , "ArgMin"      ,
-    "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
-    "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
-    "Offset"        , "Accumulate"   , "SS"            , "BiwtMidV"    ,
-    "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"  ,
-    "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
-    "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"    ,
-    "Percentile %d" , "FirstValue"   , "TSNR"          , "MSSD"        ,
-    "MSSDsqrt"      , "MASDx"        , "Skewness"      , "Kurtosis"
- };
+/* meth_names moved to Tstat.h for InstaCorr menu button   23 Mar 2023 [rwcox] */
+ static char *meth_names[] = { "Mean", ...  };
 #endif
 
 static void STATS_tsfunc( double tzero , double tdelta ,
