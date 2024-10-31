@@ -72,7 +72,8 @@
 #define METH_SKEWNESS      46 /* PDL 17 July 2020 */
 #define METH_KURTOSIS      47 /* PDL 17 July 2020 */
 
-#define MAX_NUM_OF_METHS   48 /* *** must match meth_names, below *** */
+#define MAX_NUM_OF_METHS   48 /* *** must match meth_names and
+                                     meth_pluginned, below     *** */
 
 
 static char *meth_names[] = {
