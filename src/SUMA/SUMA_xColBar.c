@@ -1249,7 +1249,6 @@ int SUMA_SwitchColPlaneIntensity(
 
    fprintf(stderr, "+++++ %s\n", FuncName);
 
-   // Infinite recursion problem happens here.
    if (!SUMA_SwitchColPlaneIntensity_one(ado, colp, ind, setmen)) {
       SUMA_S_Err("Failed in _one");
       SUMA_RETURN(0);
@@ -1272,11 +1271,7 @@ int SUMA_SwitchColPlaneIntensity(
             SUMA_S_Warn("Failed in contralateral");
          }
       }
-   
-       // XmScaleSetValue (SO->SurfCont->Thr_tb, 1);
    }
-   
-   fprintf(stderr, "+++++ %s ended\n", FuncName);
 
    SUMA_RETURN(1);
 }
@@ -6625,6 +6620,8 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
    SUMA_ENTRY;
    
    fprintf(stderr, "+++++ %s\n", FuncName);
+   
+   fprintf(stderr, "XXXXXXXXXXXXXX %s: v1 = %f\n\n", FuncName, v1);
 
    if (LocalHead) {
       SUMA_DUMP_TRACE("Who called SUMA_SetRangeValueNew_one?");
@@ -6698,6 +6695,10 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
       /* Remove percentile units */
       if (TF) TF->num_units = SUMA_NO_NUM_UNITS;
    }
+   
+   fprintf(stderr, "$$$$$$$$$$$$$$$$$$$$$ %s: v1 = %f\n\n", FuncName, v1);
+   fprintf(stderr, "$$$$$$$$$$$$$$$$$$$$$ %s: row = %d\n\n", FuncName, row);
+   fprintf(stderr, "$$$$$$$$$$$$$$$$$$$$$ %s: col = %d\n\n", FuncName, col);
 
    NewDisp = NOPE;
    /* What are we dealing with ? */
