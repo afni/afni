@@ -709,7 +709,7 @@ other options: ~2~
 
            -subj_prefix sub-                               \\
            -dsets sub-*/*.results/stats.sub*REML+tlrc.HEAD \\
-           -dset_sid_list sub-0*
+           -dset_sid_list sub-0*                           \\
 
         or make 2 subject lists, each starting with all subjects, but with
         group lists contained in text files:
@@ -719,6 +719,35 @@ other options: ~2~
            -dset_sid_list `cat group1_subjects.txt`        \\
            -dsets sub-*/*.results/stats.sub*REML+tlrc.HEAD \\
            -dset_sid_list `cat group2_subjects.txt`        \\
+
+        This option specifies subjects to include, while -dset_sid_omit_list
+        specifies subjects to exclude.
+
+   -dset_sid_omit_list SID SID ... : omit these SIDs from -dsets datasets ~3~
+
+        In some cases it is easy to use a wildcard to specify all datasets via
+        -dsets, and then to remove select subjects IDs found from that wildcard
+        list.  For example, this can be used to omit subjects dropped due to
+        quality control considerations.
+
+        One -dset_sid_omit_list option should be provided per -dsets option,
+        (to omit subjects from that particular list), or else one
+        -dset_sid_omit_list option should be provided to apply to all -dsets
+        options.
+
+        The SID entries must match the subject IDs found from -dsets.
+
+        Consider this example:
+
+           -dsets sub-*/*.results/stats.sub*REML+tlrc.HEAD \\
+           -dset_sid_omit_list sub-010 sub-117 sub-358     \\
+
+        Here all subject IDs found from the initial wildcard would initially be
+        included, but then sub-010, sub-117 and sub-358 would be removed from
+        that list.
+
+        This option specifies subjects to exclude, while -dset_sid_list
+        specifies subjects to include.
 
    -dset_index0_list values...  : restrict -dsets datasets to a 0-based list ~3~
    -dset_index1_list values...  : restrict -dsets datasets to a 1-based list ~3~
@@ -1088,13 +1117,13 @@ class CmdInterface:
       self.valid_opts = OL.OptionList('valid opts')
 
       # terminal options
-      self.valid_opts.add_opt('-help', 0, [],           \
+      self.valid_opts.add_opt('-help', 0, [],
                       helpstr='display program help')
-      self.valid_opts.add_opt('-hist', 0, [],           \
+      self.valid_opts.add_opt('-hist', 0, [],
                       helpstr='display the modification history')
-      self.valid_opts.add_opt('-show_valid_opts', 0, [],\
+      self.valid_opts.add_opt('-show_valid_opts', 0, [],
                       helpstr='display all valid options')
-      self.valid_opts.add_opt('-ver', 0, [],            \
+      self.valid_opts.add_opt('-ver', 0, [],
                       helpstr='display the current version number')
 
       # required parameters
