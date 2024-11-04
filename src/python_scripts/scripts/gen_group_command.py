@@ -228,7 +228,7 @@ examples (by program) ~1~
 
          Run 3dMEMA, but restrict the subjects to partial lists from within
          an entire list.  This applies -dset_index0_list (or the sister
-         -dset_index1_list).
+         -dset_index1_list option).
 
             # assume these 9 subjects represent all under the 'data' dir
             set subjects = ( AA BB CC DD EE FF GG HH II )
