@@ -6980,6 +6980,7 @@ int SUMA_SetRangeValueNew (SUMA_ALL_DO *ado,
 
 void SUMA_cb_SetRangeValue (void *data)
 {
+    // Set threshold range values
    static char FuncName[]={"SUMA_cb_SetRangeValue"};
    SUMA_SRV_DATA srvdC, *srvd=NULL;
    SUMA_ALL_DO *ado=NULL;
@@ -7033,7 +7034,13 @@ void SUMA_cb_SetRangeValue (void *data)
          SUMA_S_Err("Erriosity");
       }
    }
-
+   
+   // Ensure alpha colormap changes accordingly
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   float val = 0.0f;
+   if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &val)))
+        { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
+   
    SUMA_RETURNe;
 }
 
