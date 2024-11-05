@@ -7037,8 +7037,10 @@ void SUMA_cb_SetRangeValue (void *data)
    
    // Ensure alpha colormap changes accordingly
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   float val = 0.0f;
+   float val = 0.0f, oldVal = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
    if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &val)))
+        { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
+   if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &oldVal)))
         { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
    
    SUMA_RETURNe;
