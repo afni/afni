@@ -1284,7 +1284,6 @@ int SUMA_SwitchColPlaneIntensity(
    SUMA_RETURN(1);
 }
 
-
 /* changes you do here should be reflected under SE_SetSurfCont in SUMA_Engine*/
 int SUMA_SwitchColPlaneIntensity_one (
          SUMA_ALL_DO *ado,

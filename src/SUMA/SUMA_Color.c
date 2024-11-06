@@ -942,7 +942,7 @@ int SUMA_LoadUserCmapsDir( char * dname, SUMA_AFNI_COLORS *SAC)
    if(!SAC) {
       SUMA_RETURN(-1) ;
    }
-   /*----- find all *.cmap files -----*/
+   /*----- ISubbrickChanged all *.cmap files -----*/
 
    ii  = strlen(dname) ;
    pat = (char *) malloc(sizeof(char)*(ii+18)) ;
@@ -8130,7 +8130,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    float **alphaOpacities = NULL;
    SUMA_OVERLAYS *baseOverlay = SO->Overlays[0];
    SUMA_OVERLAYS *currentOverlay = SO->SurfCont->curColPlane;
-   SUMA_Boolean cmapChanged;
    SUMA_Boolean DSET_MapChanged;
    size_t bytes2CopyToColVec = SO->N_Node*3*sizeof(float);
    int numThresholdNodes = 0;
@@ -8142,33 +8141,51 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    static int *outlinevector = NULL;
    static int ITB[3] = {-1, -1, -1};
    static GLfloat *origignal4color;
-   SUMA_Boolean rangeChanged = (currentOverlay->IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
-        currentOverlay->IntRange[1] != currentOverlay->OptScl->IntRange[1]);
-   // SUMA_Boolean 
-   // static double IntRange[2]={DBL_MAX, -DBL_MAX};
-   // static char *cMapName;
-   // static float *ColVec;
+   static char *cmapName;
+   static int find = -1, tind = -1, bind = -1;
+   static SUMA_Boolean rangeChanged, cmapChanged;
+   static SUMA_Boolean ISubbrickChanged, TSubbrickChanged, BSubbrickChanged;
    
    SUMA_ENTRY;
    
-   if (rangeChanged){
+   if (!cmapName && !(cmapName=(char *)malloc(128))){
+      SUMA_SL_Err("Error allocating memory to colormap name in SUMA_Overlays_2_GLCOLAR4_SO!");
+      SUMA_RETURN(NOPE);
+   }
+
+   // Check whether threshold range changed
+   if (rangeChanged = (currentOverlay->IntRange != currentOverlay->OptScl->IntRange ||
+        currentOverlay->IntRange[1] != currentOverlay->OptScl->IntRange[1])) {
         currentOverlay->IntRange[0] = currentOverlay->OptScl->IntRange[0];
         currentOverlay->IntRange[1] = currentOverlay->OptScl->IntRange[1];
    }
    
-   // fprintf(stderr, "%s: SO->SurfCont->alphaOpacityModel = %d\n", FuncName, SO->SurfCont->alphaOpacityModel);
+   // Color map changed
+   if (cmapChanged = (strcmp(cmapName, currentOverlay->cmapname))){
+        sprintf(cmapName, "%s", currentOverlay->cmapname);
+   }
    
-   // DEBUG
-//   fprintf(stderr, "+++++++++++  %s: SO = %p\n", FuncName, SO);
-//   fprintf(stderr, "+++++++++++  %s: SO->N_Node = %d\n", FuncName, SO->N_Node);
-//   fprintf(stderr, "%s: nSurfaces = %d\n", FuncName, nSurfaces);
+   // I subbrick changed
+   if (ISubbrickChanged = (currentOverlay->OptScl->find != find)){
+        find = currentOverlay->OptScl->find;
+   }
    
+   // T subbrick changed
+   if (TSubbrickChanged = (currentOverlay->OptScl->tind != tind)){
+        tind = currentOverlay->OptScl->tind;
+   }
+   
+   // B subbrick changed
+   if (BSubbrickChanged = (currentOverlay->OptScl->bind != bind)){
+        bind = currentOverlay->OptScl->bind;
+   }
+   
+   /*
     cmapChanged = (strcmp(currentOverlay->originalCMapName, currentOverlay->cmapname) ||
         currentOverlay->IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
         currentOverlay->IntRange[1] != currentOverlay->OptScl->IntRange[1]);
-   // bytes2CopyToColVec = SO->N_Node*4*sizeof(float);
-     
-   
+        */
+
    if (SO->SurfCont->AlphaOpacityFalloff != 1) SO->SurfCont->AlphaOpacityFalloff = 0;
    
    
@@ -8458,31 +8475,24 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
 
         }
    }   
-
-   */
-   
-   
-
-            // if (DSET_MapChanged || cmapChanged || )
-            //if (!origignal4color || rangeChanged){
-//            if (rangeChanged) {
-//                origignal4color = applyColorMapToOriginalColorvec(SO, currentOverlay, origignal4color);
-//            }
-                SUMA_THRESH_MODE oldfThrMode = currentOverlay->OptScl->ThrMode;
-                currentOverlay->OptScl->ThrMode = SUMA_NO_THRESH;
-                currentOverlay->OptScl->ApplyMask = 0;
-                if (!origignal4color) origignal4color = (GLfloat *)malloc(4*N_Node*sizeof(float));
-                isColored_alpha = (SUMA_Boolean *)
-                                 SUMA_calloc (N_Node, sizeof(SUMA_Boolean));
-               if (!SUMA_MixOverlays ( Overlays, N_Overlays, ShowOverLays_sort,
-                                        NshowOverlays, origignal4color, N_Node,
-                                        isColored_alpha, NOPE)) {
-                   fprintf (SUMA_STDERR,
-                            "Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
-                   SUMA_RETURN (NOPE);
-                }
-                currentOverlay->OptScl->ThrMode = oldfThrMode;
-            //}
+*/
+    if (!origignal4color || rangeChanged || ISubbrickChanged || 
+        TSubbrickChanged || BSubbrickChanged){
+        SUMA_THRESH_MODE oldfThrMode = currentOverlay->OptScl->ThrMode;
+        currentOverlay->OptScl->ThrMode = SUMA_NO_THRESH;
+        currentOverlay->OptScl->ApplyMask = 0;
+        if (!origignal4color) origignal4color = (GLfloat *)malloc(4*N_Node*sizeof(float));
+        isColored_alpha = (SUMA_Boolean *)
+                         SUMA_calloc (N_Node, sizeof(SUMA_Boolean));
+       if (!SUMA_MixOverlays ( Overlays, N_Overlays, ShowOverLays_sort,
+                                NshowOverlays, origignal4color, N_Node,
+                                isColored_alpha, NOPE)) {
+           fprintf (SUMA_STDERR,
+                    "Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
+           SUMA_RETURN (NOPE);
+        }
+        currentOverlay->OptScl->ThrMode = oldfThrMode;
+    }
    
    
    
