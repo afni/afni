@@ -7043,6 +7043,21 @@ void SUMA_cb_SetRangeValue (void *data)
    }
    
    // Ensure alpha colormap changes accordingly
+   /*
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist); 
+   for (j=0; j<N_adolist; ++j){
+        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if (ado->do_type == SO_type){
+            SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+           float val = 0.0f, oldVal = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
+           if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &val)))
+                { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
+           if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &oldVal)))
+                { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
+        }
+    }
+    */
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    float val = 0.0f, oldVal = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
    if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &val)))
