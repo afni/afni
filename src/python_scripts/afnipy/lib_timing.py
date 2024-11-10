@@ -1148,7 +1148,259 @@ class AfniTiming(LD.AfniData):
       del(off_means); del(off_stdev)
 
       return rv, rstr
+
+   def detailed_TR_offset_stats_str(self, tr, perrun=1):
+      """return a string to display detailed statistics regarding within-TR
+                offsets of stimuli
+
+            tr          : show mean/stdev for stimuli within TRs
+                          (so 0 <= mean < tr)
+            perrun      : if more than 1 run, also include per-run results
+
+         This is like detailed_TR_offset_stats_str, but is more detailed.
+
+         return status, stats string
+
+                status > 0 : success, warnings were issued
+                       = 0 : success, no warnings
+                       < 0 : errors
+      """
+      if not self.ready:
+         return 1, '** Timing: nothing to compute ISI stats from'
       
+      if self.nrows != len(self.data):
+         return 1, '** bad Timing, nrows=%d, datalen=%d, failing...' % \
+                   (self.nrows, len(self.data))
+
+      if tr < 0.0:
+         return 1, '** show_TR_offset_stats: invalid TR %s' % tr
+
+      rv = 0
+
+      # print out offset info
+      rstr = '\nwithin-TR stimulus offset statistics (%s):\n\n' % self.fname
+
+      # ------------------------------------------------------------
+      # if more than one run, display per run stats
+      if self.nrows > 1 and perrun:
+
+         # per run lists of min, mean, max, stdev
+         # off_mmms : mmms for offsets, in seconds
+         # fr_mmms  : mmms for TR fractional offsets, in [0,1.0)
+         # frd_mmms : mmms for diffs of fr offsets, in [0,1]
+         # fru_mmms : mmms for diffs of unique fr offsets, in [0,1]
+         off_mmms, fr_mmms, frd_mmms, fru_mmms \
+            = self.get_offset_mmms_lists(self.data, tr)
+
+         # if no events are found, we're outta here
+         if len(off_mmms) == 0:
+            print('file %s: no events?' % self.name)
+            return 0, ''
+
+         rstr += self._mms_per_run_str(off_mmms, 'in seconds')
+         rstr += self._mms_per_run_str(fr_mmms,  'in TR fractions', c=1)
+         rstr += self._mms_per_run_str(frd_mmms, 'diffs of frac onsets')
+         rstr += self._mms_per_run_str(fru_mmms, 'diffs of unique fracs')
+
+      # ------------------------------------------------------------
+      # either way (1 run or more), display similar overall stats
+
+      allruns = []
+      for drun in self.data:
+         allruns.extend(drun)
+
+      off_mmms, fr_mmms, frd_mmms, fru_mmms \
+         = self.get_offset_mmms_lists([allruns], tr)
+
+      # if no events ere found, we're outta here
+      if len(off_mmms) == 0:
+         print('file %s: no events?' % self.name)
+         return 0, ''
+
+      rstr += self._mms_overall_str([off_mmms, fr_mmms, frd_mmms, fru_mmms],
+                                    ['offsets', 'frac', 'diffs', 'unique'])
+
+      # comments are now in the overall str
+
+      # clean up, just to be kind
+      del(off_mmms); del(fr_mmms); del(frd_mmms); del(fru_mmms)
+
+      return rv, rstr
+
+   def _mms_overall_str(self, mmms_list, name_list, ndec=3, do_c=1):
+      """
+            mmms_list : array of mmms lists
+            name_list : names for each mmms list
+            ndec      : number of decimal places to print
+            do_c      : flag: do we show comment strings
+      """
+
+      lmin  = [m[0][0] for m in mmms_list]
+      lmean = [m[0][1] for m in mmms_list]
+      lmax  = [m[0][2] for m in mmms_list]
+      lstd  = [m[0][3] for m in mmms_list]
+
+      # make a single formatted string from the names
+      nlist = ['%8s' % n for n in name_list]
+      nstr  = ' '.join(nlist)
+
+      # print using 7.3 + 2 char spacing
+      mstr = '\n'                                                       \
+             '                   %s\n'                                  \
+             '                    ----------------------------------\n' \
+             '    global min      %s\n'                                 \
+             '    global mean     %s\n'                                 \
+             '    global max      %s\n'                                 \
+             '    global stdev    %s\n\n'                               \
+             % (nstr,
+                float_list_string(lmin  ,ndec=ndec),
+                float_list_string(lmean ,ndec=ndec),
+                float_list_string(lmax  ,ndec=ndec),
+                float_list_string(lstd  ,ndec=ndec))
+
+      # generate any comment string, if there is something to say
+      # this might grow : e.g. pass 'frac' and maybe 'unique' to get comment
+      if do_c:
+         cstr = ''
+         if 'frac' in name_list:
+            ind = name_list.index('frac')
+            mmms = mmms_list[ind][0]
+
+            c = self._mmms_comment(mmms)
+            if c != '':
+               mstr += '           comment: %s\n\n' % c
+
+      return mstr
+
+   def _mms_per_run_str(self, mmms, pmesg='', ndec=3, c=0):
+      """
+            mmms    : array of mmms values, one set per run
+            pmesg   : parenthetical message to print
+            ndec    : number of decimal places to print
+            c       : flag: do we show comment strings
+      """
+
+      lmin  = [m[0] for m in mmms]
+      lmean = [m[1] for m in mmms]
+      lmax  = [m[2] for m in mmms]
+      lstd  = [m[3] for m in mmms]
+
+      # generate and comment string, if there is something to say
+      cstr = ''
+      if c:
+         cl = [self._mmms_comment(m) for m in mmms]
+         ml = max([len(cc) for cc in cl])
+         if ml > 0:
+            # if we have something, pad it out
+            cl = ['%7s' % cc for cc in cl]
+            cstr = '    any comments...   %s\n' % '  '.join(cl)
+
+      if pmesg != '':
+         pstr = ' (%s)' % pmesg
+      else:
+         pstr = pmesg
+
+      # print using 7.3 + 2 char spacing
+      mstr = '                    per run%s\n'                      \
+             '                    ------------------------------\n' \
+             '    offset min      %s\n'                             \
+             '    offset mean     %s\n'                             \
+             '    offset max      %s\n'                             \
+             '    offset stdev    %s\n'                             \
+             '%s\n'                                                 \
+             % (pstr,
+                float_list_string(lmin  ,ndec=ndec),
+                float_list_string(lmean ,ndec=ndec),
+                float_list_string(lmax  ,ndec=ndec),
+                float_list_string(lstd  ,ndec=ndec),
+                cstr)
+
+      return mstr
+
+   def _mmms_comment(self, mmms):
+      """return any apparent comment about the values
+         - if stdev == 0, either tr-locked or constant
+         - if min and max are close to but not 0 or 1,
+           we may be 'almost' tr-locked
+      """
+      if mmms[0] == 0 and mmms[3] == 0:
+         return 'tr-lock'
+      # check close to lock before const
+      if mmms[0] > 0 and mmms[2] < 0.1:
+         return '~lock'
+      if mmms[0] > 0.9:
+         return '~lock'
+      if mmms[0] > 0 and mmms[3] == 0:
+         return 'const'
+      return ''
+
+   def get_offset_mmms_lists(self, etimes, tr):
+      """given a list (stimulus, presumably) event onset times per run and
+         a TR, return four lists of : min, mean, max, stdev of
+
+         offset: for any event time, this is the time *within* a TR
+                 - like (etime modulo TR)
+                   e.g. etime 73.4, TR 1 -> offset 1.4
+                 - an offset will real and in [0, tr)
+
+         per-run mmms lists to return:
+
+            raw   : raw within-TR offset times
+            fr    : TR fractional offsets (so val/TR for each val in 'raw')
+            frd   : from the diffs of sorted 'fr' values, including 0.0 and 1.0
+                    e.g. fr [0.2, 0.3, 0.4] does not just give [0.1, 0.1],
+                         but [0.2, 0.1, 0.1, 0.6] to include TR boundaries
+            fru   : same as frd, but where 'fr' values are unique
+      """
+
+      # per run lists of [min, mean, max, stdev]
+      raw_mmms = []     # mmms: for raw times
+      fr_mmms  = []     # mmms: for TR fractional offsets, in [0,1.0)
+      frd_mmms = []     # mmms: for diffs of fr offsets, in [0,1]
+      fru_mmms = []     # mmms: for diffs of unique fr offsets
+
+      # for each run of etimes
+      for ron in etimes:
+         # skip any empty run
+         if len(ron) == 0: continue
+
+         # raw offsets
+         roffsets = UTIL.interval_offsets([val for val in ron], tr)
+         # self._add_to_mmms_list(roffsets, raw_mmms)
+         raw_mmms.append(list(UTIL.min_mean_max_stdev(roffsets)))
+
+         # fractional offsets
+         foffsets = [v/tr for v in roffsets]
+         fr_mmms.append(list(UTIL.min_mean_max_stdev(foffsets)))
+         # self._add_to_mmms_list(foffsets, fr_mmms)
+
+         # diffs of fractional timing offsets
+         # for diffs, require foffsets to include 0 and 1 (1, if not locked)
+         foffsets.sort()
+         if 0.0 not in foffsets: foffsets.insert(0,0.0)
+         if (1.0 not in foffsets) and max(foffsets) > 0: foffsets.append(1.0)
+         # and get diffs of these
+         doffsets = [foffsets[i+1]-foffsets[i] for i in range(len(foffsets)-1)]
+         frd_mmms.append(list(UTIL.min_mean_max_stdev(doffsets)))
+         # self._add_to_mmms_list(doffsets, frd_mmms)
+
+         # same, but restricted to a list of unique foffsets
+         uoffsets = UTIL.get_unique_sublist(foffsets)
+         doffsets = [uoffsets[i+1]-uoffsets[i] for i in range(len(uoffsets)-1)]
+         fru_mmms.append(list(UTIL.min_mean_max_stdev(doffsets)))
+         # self._add_to_mmms_list(doffsets, fru_mmms)
+
+      return raw_mmms, fr_mmms, frd_mmms, fru_mmms
+
+   def _add_to_mmms_list(self, vals, mmms):
+      """for the given vals, append mmms results to the 4 mmms lists
+
+         vals  : array of real values
+         mmms  : list of 4 lists, for min, mean, max, stdev results
+      """
+      m0, m1, m2, ss = UTIL.min_mean_max_stdev(vals)
+      mmms.append(list(UTIL.min_mean_max_stdev(vals)))
+
 def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
    str = ''
    for val in vals: str += '%*.*f%*s' % (nchar, ndec, val, nspaces, '')

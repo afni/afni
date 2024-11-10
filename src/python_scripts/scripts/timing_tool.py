@@ -281,9 +281,15 @@ examples: ~1~
 
              timing_tool.py -timing stim01_houses.txt -verb 0 \\
                             -show_tr_offsets -tr 1.25         \\
-                            | 3dhistog -nbin 20 1D:stdin
+                            | 3dhistog -nbin 20 1D:stdin > hist.1D
+             1dplot -hist -x hist.1D'[0]' hist.1D'[1]'
 
           consider also:  3dhistog -noempty 1D:stdin
+
+       e. show per run and global TR-offset statistics
+
+             timing_tool.py -timing stim01_houses.txt         \\
+                            -show_tr_offset_stats -tr 1.25
 
    Example 11.  test a file for local/global timing issues ~2~
 
@@ -870,6 +876,32 @@ action options (apply to single timing element, only): ~1~
               15.8           1.8
 
         Use -verb 0 to get only the times (in case of scripting).
+
+            See also '-show_tr_stats', '-warn_tr_stats'.
+
+   -show_tr_offset_stats        : display stats of within-TR stim offsets ~2~
+
+        This is a more detailed version of -show_tr_stats, and might replace it.
+
+        This displays the min, mean, max and stdev of stimulus times modulo
+        the TR, both in seconds and as fractions of the TR.
+
+        This also outputs similar values for the differences of the sorted list
+        of fractional offset times.  And the same numbers are output restricted
+        to onsets that are unique.
+
+        Assuming onsets are uniformly distributed across the TR, we would
+        expect something like:
+
+            fractional:   min close to 0, max close to 1
+            frac diffs:   small values for all, notably max
+            frac u diffs: small values for all, notably max
+
+        If more than 1 run, results are shown per run.
+        Results are always shown globally.
+        Include -verb 0 to avoid per-run stats.
+
+        Some comments may be made for the global results.
 
             See also '-show_tr_stats', '-warn_tr_stats'.
 
@@ -1664,9 +1696,10 @@ g_history = """
    3.19 Jan  3, 2023 - fix -write_tsv_cols_of_interest with -tsv_labels
    3.20 Jan  4, 2023 - include -help_basis output in main -help
    3.21 Dec  4, 2023 - allow n/a in more tsv fields
+   3.22 Nov 10, 2024 - add -show_tr_offset_stats, and consider -verb 0
 """
 
-g_version = "timing_tool.py version 3.21, December 4, 2023"
+g_version = "timing_tool.py version 3.22, November 10, 2024"
 
 
 
@@ -2213,8 +2246,10 @@ class ATInterface:
                          helpstr='specify the lengths of each run (seconds)')
       self.valid_opts.add_opt('-show_tr_offsets', 0, [],
                          helpstr='show stimulus times modulo the TR')
+      self.valid_opts.add_opt('-show_tr_offset_stats', 0, [],
+                         helpstr='show detailed fractional TR stats')
       self.valid_opts.add_opt('-show_tr_stats', 0, [],
-                         helpstr='show fractional TR stats timing files')
+                         helpstr='show fractional TR stats of timing')
       self.valid_opts.add_opt('-show_tsv_label_details', 0, [],
                          helpstr='show column labels from TSV file')
       self.valid_opts.add_opt('-write_tsv_cols_of_interest', 1, [],
@@ -2625,6 +2660,15 @@ class ATInterface:
 
          elif opt.name == '-show_tr_offsets':
             if self.show_tr_offsets(): return 1
+
+         elif opt.name == '-show_tr_offset_stats':
+            if not self.timing and len(self.m_timing) == 0:
+               print("** '%s' requires -timing or -multi_timing" % opt.name)
+               return 1
+            if self.tr <= 0.0:
+               print("** '%s' requires -tr" % opt.name)
+               return 1
+            if self.show_tr_offset_stats(): return 1
 
          elif opt.name == '-show_tr_stats':
             if not self.timing and len(self.m_timing) == 0:
@@ -3448,6 +3492,34 @@ class ATInterface:
          if rv or not warn: print(rstr)
 
       return 0
+
+   def show_tr_offset_stats(self):
+      """show results from detailed_TR_offset_stats_str()
+      """
+
+      if self.min_frac >= 0 and self.min_frac < 1: frac = self.min_frac
+      else:                                        frac = 0.3
+
+      if not self.timing and len(self.m_timing) == 0:
+         print('** no timing, cannot show stats')
+         return 1
+
+      if self.tr <= 0.0:
+         print("** show_tr_stats requires -tr")
+         return 1
+
+      # do per run if verbose
+      perrun = self.verb > 0
+
+      # either way, process as a list
+      tlist = self.m_timing
+      if len(tlist) == 0: tlist = [self.timing]
+
+      for timing in tlist:
+         rv, rstr = timing.detailed_TR_offset_stats_str(self.tr, perrun=perrun)
+         print(rstr)
+
+      return rv
 
    def test_local_timing(self):
       """test timing files for known issues
