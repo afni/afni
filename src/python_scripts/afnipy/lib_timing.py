@@ -1325,12 +1325,13 @@ class AfniTiming(LD.AfniData):
       """
       if mmms[0] == 0 and mmms[3] == 0:
          return 'tr-lock'
-      if mmms[0] > 0 and mmms[3] == 0:
-         return 'const'
+      # check close to lock before const
       if mmms[0] > 0 and mmms[2] < 0.1:
          return '~lock'
       if mmms[0] > 0.9:
          return '~lock'
+      if mmms[0] > 0 and mmms[3] == 0:
+         return 'const'
       return ''
 
    def get_offset_mmms_lists(self, etimes, tr):
