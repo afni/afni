@@ -16403,12 +16403,23 @@ int SUMA_SelectSwitchColPlane(SUMA_ALL_DO *ado,
 {
    static char FuncName[]={"SUMA_SelectSwitchColPlane"};
    SUMA_Boolean LocalHead = NOPE;
+   int N_adolist, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], j;
+   SUMA_ALL_DO *ado2;
 
    SUMA_ENTRY;
 
    fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (!ado || !LW) SUMA_RETURN(0);
+      
+    // Enure threshold outline is deactivated for other datasets
+    N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);   
+    for (j=0; j<N_adolist; ++j){
+        ado2 = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if (ado2->do_type == SO_type){
+            applyBoxOutlineThreshStatusToSurfaceObject(ado2, 0, NOPE);
+        }
+    }
 
    if (!SUMA_SelectSwitchColPlane_one(ado, LW, ichoice, CloseShop, setmen)) {
       SUMA_RETURN(0);
