@@ -1301,7 +1301,7 @@ int SUMA_SwitchColPlaneIntensity_one (
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_SurfaceObject *SO = NULL;
-   int BoxOutlineThresh, AlphaOpacityFalloff;
+   int BoxOutlineThresh = NOPE, AlphaOpacityFalloff = NOPE;
 
    SUMA_ENTRY;
 
@@ -2480,7 +2480,7 @@ void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
    static char FuncName[]={"applyBoxOutlineThreshStatusToSurfaceObject"};
    SUMA_SurfaceObject *SO = NULL;
    SUMA_OVERLAYS *over2 = NULL;
-   Widget w;
+   Widget w = NULL;
    int i, colorplaneIndex = -1;
    Bool  thresholdChanged;
    static float threshold;
@@ -5996,7 +5996,7 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_SurfaceObject *SO = NULL;
-   int BoxOutlineThresh;
+   int BoxOutlineThresh = 0;
 
    SUMA_ENTRY;
    
@@ -10290,8 +10290,8 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_ALL_DO *ado, char *str)
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   int BoxOutlineThresh;
-   SUMA_SurfaceObject *SO;
+   int BoxOutlineThresh = 0;
+   SUMA_SurfaceObject *SO = NULL;
 
    SUMA_ENTRY;
 

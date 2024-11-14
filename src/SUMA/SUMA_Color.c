@@ -7396,7 +7396,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
 int *boxThresholdOutline(SUMA_SurfaceObject *SO, int *numThresholdNodes){
     static char FuncName[]={"boxThresholdOutline"};
     int o, i, j, k;
-    SUMA_OVERLAYS *overlay;
+    SUMA_OVERLAYS *overlay = NULL;
     float threshold;
     // float tolerance = 0.005;
     float tolerance = 0.05;
@@ -7534,11 +7534,11 @@ void applyColorMapToOriginal4Colorvec(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ove
     GLfloat *origignal4color)
 {
     static char FuncName[]={"applyColorMapToOriginal4Colorvec"};
-    int i, j, index, maxIndex, i3, i4;
+    int i, j, index, maxIndex = -1, i3, i4;
     SUMA_COLOR_MAP *colormap = SUMA_CmapOfPlane (overlay);
     SUMA_COLOR_SCALED_VECT * SV = SUMA_Create_ColorScaledVect(SDSET_VECFILLED(overlay->dset_link),
                                     overlay->OptScl->ColsContMode);
-    float fMin, fMax, indexStep, maxDiff;
+    float fMin, fMax, indexStep = 1, maxDiff;
     float *buffer;
     int totalNumNodes = SDSET_VECFILLED(overlay->dset_link);
     size_t  bytes2CopyToColVec = totalNumNodes*3*sizeof(float);
@@ -7651,7 +7651,7 @@ float *applyColorMapToOriginalColorvec(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ov
     SUMA_COLOR_MAP *colormap = SUMA_CmapOfPlane (overlay);
     SUMA_COLOR_SCALED_VECT * SV = SUMA_Create_ColorScaledVect(SDSET_VECFILLED(overlay->dset_link),
                                     overlay->OptScl->ColsContMode);
-    float fMin, fMax, indexStep, maxDiff;
+    float fMin, fMax, indexStep = 1, maxDiff;
     float *buffer;
     int totalNumNodes = SDSET_VECFILLED(overlay->dset_link);
     size_t  bytes2CopyToColVec = totalNumNodes*3*sizeof(float);
@@ -8186,38 +8186,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
 
    if (SO->SurfCont->AlphaOpacityFalloff != 1) SO->SurfCont->AlphaOpacityFalloff = 0;
    
-   
-   
-   
-   
-
-   if (0 && !thresholdReset && currentOverlay){
-   
-       // Ititialize display changing variables
-       if (!(currentOverlay->originalCMapName)){
-          int allocationLength = strlen(currentOverlay->cmapname)+512;
-          if (!(currentOverlay->originalCMapName=(char *)malloc(allocationLength*sizeof(char)))){
-            SUMA_SL_Err("Failed to allocate memory to colormap name buffer!");
-          }
-          sprintf(currentOverlay->originalCMapName, "%s", currentOverlay->cmapname);
-       } 
-
-       if (currentOverlay->IntRange[0] > currentOverlay->IntRange[1]){
-        currentOverlay->IntRange[0] = currentOverlay->OptScl->IntRange[0];
-        currentOverlay->IntRange[1] = currentOverlay->OptScl->IntRange[1];
-       }
-       
-   }
-
-   
-   
-   
-   
-   
-   
-      
-   // return 1; // DEBUG
-
+ 
    if (!SO || !SV || !glcolar) {
       SUMA_SL_Err("Null input to SUMA_Overlays_2_GLCOLAR4_SO!");
       SUMA_RETURN(NOPE);
@@ -8450,31 +8419,11 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
       NshowOverlays = 0;
    }
    
-/* DEBUG   
-
-   if (SO->SurfCont->AlphaOpacityFalloff){
-          // DEBUG
-       if (currentOverlay->originalColVec) free(currentOverlay->originalColVec);
-       currentOverlay->originalColVec = NULL;
-
-        // Initialize color map.  Seems to fix the color problem when I subbrick changed
-        if (!(currentOverlay->originalColVec)){
-            currentOverlay->originalColVec = applyColorMapToOriginalColorvec(SO, currentOverlay);
-
-        }
-   }   
-*/
     if (!(currentOverlay->originalColVec)) currentOverlay->originalColVec = 
         (GLfloat *)malloc(3*N_Node*sizeof(GLfloat));
 
     if (!origignal4color || currentOverlay->OptScl->ThreshRange[0] == 0 /* || rangeChanged || ISubbrickChanged || 
         TSubbrickChanged || BSubbrickChanged */){
-        fprintf(stderr, "!!!!!!!!!!!!!CHANGE!!!!!!!\n");
-        fprintf(stderr, "origignal4color = %p\n\n", origignal4color);
-        fprintf(stderr, "rangeChanged = %d\n", rangeChanged);
-        fprintf(stderr, "ISubbrickChanged = %d\n", ISubbrickChanged);
-        fprintf(stderr, "TSubbrickChanged = %d\n", TSubbrickChanged);
-        fprintf(stderr, "BSubbrickChanged = %d\n", BSubbrickChanged);
         SUMA_THRESH_MODE oldfThrMode = currentOverlay->OptScl->ThrMode;
         currentOverlay->OptScl->ThrMode = SUMA_NO_THRESH;
         currentOverlay->OptScl->ApplyMask = 0;
@@ -8488,6 +8437,10 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                     "Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
            SUMA_RETURN (NOPE);
         }
+        
+        // MB: It is necessary to have the original color vector associated
+        //  with the surface.  Otherwise the surface colors, of different
+        //  surfaces, tend to vary as the threshold is adjusted
         for (i=0; i < N_Node; ++i) {
             int i3 = 3 * i;
             int i4 = 4 * i;
@@ -8540,7 +8493,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
              
              i4 = 4 * i;
              float opacity = activeAlphaOpacities[i];
-             opacity = 1.0f;    // DEBUG
+             // opacity = 1.0f;    // DEBUG
              
              if (isColored_Fore[i]) {
                 int i3 = 3 * i;
@@ -8560,7 +8513,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    isColored[i] = NOPE;
              } else {
                    float opacity = activeAlphaOpacities[i];
-             opacity = 1.0f;    // DEBUG
+             // opacity = 1.0f;    // DEBUG
                    float complement = 1.0f - opacity;
                    int i3 = 3 * i;
                    int i4 = 4 * i;
@@ -8643,7 +8596,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          for (i=0; i < N_Node; ++i) {
             i4 = 4 * i;
             float opacity = activeAlphaOpacities[i];
-             opacity = 1.0f;    // DEBUG
+             // opacity = 1.0f;    // DEBUG
 
             if (isColored_Fore[i]) {
                i4 = 4 * i;
@@ -8661,7 +8614,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    isColored[i] = NOPE;
              } else {
                float opacity = activeAlphaOpacities[i];
-             opacity = 1.0f;    // DEBUG
+             // opacity = 1.0f;    // DEBUG
                float complement = 1.0f - opacity;
                int i3 = 3 * i;
                i4 = 4 * i;
@@ -8684,11 +8637,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                glcolar[i4] = currentOverlay->originalColVec[i3]; ++i4; ++i3;
                glcolar[i4] = currentOverlay->originalColVec[i3]; ++i4; ++i3;
                glcolar[i4] = currentOverlay->originalColVec[i3]; ++i4; ++i3;
-            /*
-               glcolar[i4] = glcolar_Fore[i4]; ++i4;
-               glcolar[i4] = glcolar_Fore[i4]; ++i4;
-               glcolar[i4] = glcolar_Fore[i4]; ++i4;
-               */
+
                isColored[i] = YUP;
                continue;
             } else {
@@ -8702,8 +8651,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
       }
 
    }
-   
-   // return 1; // DEBUG
 
   if (!NshowOverlays && NshowOverlays_Back) {   // Toy examples
       if (LocalHead)
@@ -8756,8 +8703,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          }
          
          free(opacities);
-         
-         // fprintf(stderr, "\n");
           
           free(activeAlphaOpacities);
     }else{
