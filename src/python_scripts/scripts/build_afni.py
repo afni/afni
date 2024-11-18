@@ -104,6 +104,14 @@ examples: ~1~
         build_afni.py -build_root my/build/dir -prep_only \\
                       -git_update no -makefile preferred_makefile 
 
+   6. no internet: build from current git and no downloads ~2~
+
+      Do not update git, atlases or niivue (use existing results).
+      For kicks, also pass a make flag and increase verbosity.
+
+        build_afni.py -build_root ~/afni_build                            \\
+                      -git_update no -update_atlases no -update_niivue no \\
+                      -make_flags INSTALL_PREREQ='' -verb 2
 
 ------------------------------------------
 todo:
@@ -287,6 +295,18 @@ other options:
           nothing will be done to it.  This option cannot be used with
           -git_branch or -git_tag.
 
+      -make_flags VAR=VAL VAR=VAL : provide list of extra make flags
+
+          e.g. -make_flags INSTALL_PREREQ=
+          e.g. -make_flags INSTALL_PREREQ=suma_gts SYSTEM_NAME=macos_13_ARM
+
+          Pass a list of flags to the make process, overriding what might be
+          set in the Makefile.
+
+          The passed parameters to -make_flags should be a list in the form
+          VARIABLE=VALUE.  Multiple such parameters can be passed in a single
+          option use.
+
       -make_target TARGET       : specify target for make command
 
           default -make_target itall
@@ -399,11 +419,12 @@ g_history = """
    0.13 Sep 12, 2024
         - add option -cc_path
         - else if LOCAL_CC_PATH does not exist, try to find alternate compiler
+   0.14 Nov 17, 2024 - add -make_flags option
 
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.13, September 12, 2024" % g_prog
+g_version = "%s, version 0.14, November 17, 2024" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
@@ -516,6 +537,7 @@ class MyInterface:
       self.git_branch      = ''     # branch to check out (def master)
       self.git_tag         = ''     # tag to check out (def LAST_TAG)
       self.git_update      = 1      # do git clone or pull
+      self.make_flags      = []     # list of VAR=VALUE strings
       self.make_target     = 'itall' # target in "make" command
       self.makefile        = ''     # an alternate Makefile to build from
       self.package         = ''     # to imply Makefile and build dir
@@ -647,6 +669,8 @@ class MyInterface:
                       acplist=['yes','no'],
                       helpstr='should we update the local git repo')
 
+      self.valid_opts.add_opt('-make_flags', -1, [],
+                      helpstr="specify list of extra VAR=VALUE strings")
       self.valid_opts.add_opt('-make_target', 1, [],
                       helpstr="specify target for make (def=itall)")
       self.valid_opts.add_opt('-makefile', 1, [],
@@ -776,6 +800,11 @@ class MyInterface:
                self.git_update = 1
             else:
                self.git_update = 0
+
+         elif opt.name == '-make_flags':
+            val, err = uopts.get_string_list('', opt=opt)
+            if val == None or err: return -1
+            self.make_flags = val
 
          elif opt.name == '-make_target':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -1531,6 +1560,8 @@ class MyInterface:
       buildpath = '%s/%s' % (self.do_root.dname, self.dsbuild)
 
       MESGm("building make target '%s'" % self.make_target)
+      if len(self.make_flags) > 0 or self.verb > 1:
+         MESGm("extra make_flags: %s" % ' '.join(self.make_flags))
 
       # if -prep_only, we are done
       if self.prep_only:
@@ -1552,15 +1583,18 @@ class MyInterface:
       #    local    : default
       #    build    : from this (build_afni.py)
       #    official : official distributed binaires
-      who = 'AFNI_WHOMADEIT=build'
+      self.make_flags.append('AFNI_WHOMADEIT=build')
 
       # maybe the user specified a compiler, or maybe we should search for one
       gver = self.get_alternate_compiler_str()
       # if successful, add a space for separation
-      if gver != '': gver += ' '
+      if gver != '':
+         self.make_flags.append(gver)
 
-      st, ot = self.run_cmd('make %s%s %s >& %s' \
-                            % (who, gver, self.make_target, logfile))
+      flags = ' '.join(self.make_flags)
+
+      st, ot = self.run_cmd('make %s %s >& %s' \
+                            % (flags, self.make_target, logfile))
       if st: tmesg = 'FAILURE'
       else:  tmesg = 'SUCCESS'
       MESGm("status: building %s" % tmesg)
@@ -2183,7 +2217,7 @@ class MyInterface:
          MESGe("run_cmd: invalid param type for %s" % params)
          return 1, ''
 
-      if self.verb > 2:
+      if self.verb > 1:
          MESGm("attempting cmd: %s %s" % (cmd, pstr))
 
       # handle system commands first (non-python commands, pc=0)

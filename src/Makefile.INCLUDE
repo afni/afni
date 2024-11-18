@@ -301,6 +301,7 @@ vastness:all plugins install install_plugins install_lib
 
 all:$(LIBDL) $(LIBMRI_OBJ) libmrix.a libcoxplot.a libtracktools.a $(EXLIBS) \
              R_io.so programs ptaylor_all
+	echo "== make all, INSTALL_PREREQ =" $(INSTALL_PREREQ)
 
 ### Make afni binaries
 
