@@ -43,6 +43,9 @@ DEF_rvt_off            = False
 DEF_rvt_shift_list     = '0 1 2 3 4'  # split+listified, below, if used
 DEF_rvt_shift_linspace = None         # can be pars for NumPy linspace(A,B,C)
 
+# convolve RVT with respiratory response function (RRF)
+DEF_rvtrrf = False
+
 # some QC image plotting options that the user can change
 DEF_img_figsize   = []
 DEF_img_fontsize  = 10
@@ -127,6 +130,7 @@ DEF = {
     'help'              : False,     # (bool) do show help in term?
     'hview'             : False,     # (bool) do show help in text ed?
     'rvt_off'           : DEF_rvt_off, # (bool) turn off RVT output
+    'rvtrrf'            : DEF_rvtrrf, # (bool) RVT*RRF output
     'rvt_shift_list'    : None,      # (str) space sep list of nums
     'rvt_shift_linspace': DEF_rvt_shift_linspace, # (str) pars for RVT shift 
     'img_verb'          : 1,         # (int) amount of graphs to save
@@ -1396,6 +1400,13 @@ hlp = '''Set the maximum beats per minute for cardiac proc (def: {})
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
+
+opt = '''rvtrrf'''
+hlp = '''Determine and output RVT*RRF where * denotes convolution and RRF is the
+respiratory response function (def: 0)'''.format(DEF_rvtrrf)
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=int)
 
 opt = '''img_verb'''
 hlp = '''Verbosity level for saving QC images during processing, by choosing

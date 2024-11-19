@@ -11,6 +11,8 @@ from   afnipy import lib_physio_phases  as lpph
 from   afnipy import lib_physio_rvt     as lprvt
 from   afnipy import lib_physio_plot    as lpplt
 from   afnipy import lib_physio_util    as lpu
+from   afnipy import RRF                as rrf
+
 
 
 # ===========================================================================
@@ -796,6 +798,54 @@ is_ok : int
     phobj.phases = phases
 
     return 0
+
+# ===========================================================================
+
+def calc_time_series_rvtrrf(retobj, label=None, verb=0):
+    """Calculate regression volume per time (RVT), convolved with the
+    respiratory response function (RRF), as described in:
+
+    ``The respiration response function: the temporal dynamics of fMRI signal 
+    fluctuations related to changes in respiration'' by Rasmus M. Birn, Monica 
+    A. Smith, Tyler B. Jones and Peter A. Bandettini (2008).
+
+This convolves the time series RVT with the respiratory response function (RRF)
+described in the paper mentioned above.
+
+    """
+    
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    
+    # Get RRF vector
+    rrf_vector = rrf.makeRRF()
+    
+    # Convolve RVT vector with RRFR vector to get RVTRRFr
+    retobj.rvtrrf = np.convolve(rrf_vector, phobj.rvt_ts)
+    
+    # Save plots of RVT and RVTRRF
+    import matplotlib.pyplot as plt
+
+    #RVT
+    plt.plot(phobj.rvt_ts, color='red')
+    plt.xlabel("Time (s)")
+    plt.ylabel("RVT")    
+    plt.savefig('/home/peterlauren/retroicor/RVTRRF/FigRVT.pdf') 
+    plt.show(block=True)
+
+    #RVTRRF
+    plt.plot(retobj.rvtrrf, color='red')
+    plt.xlabel("Time (s)")
+    plt.ylabel("RVTRRF")    
+    plt.savefig('/home/peterlauren/retroicor/RVTRRF/FigRVTRRF.pdf', pad_inches=0.2) 
+    plt.show(block=True)
+     
+    return 0
+
+    
+    
 
 # ===========================================================================
 

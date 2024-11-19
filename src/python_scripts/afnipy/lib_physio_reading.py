@@ -405,6 +405,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.out_dir      = None       # str, name of output dir
         self.prefix       = None       # str, prefix of output filenames
         self.do_out_rvt   = True       # bool, flag
+        self.do_out_rvtrrf   = False       # bool, flag
         self.do_out_card  = True       # bool, flag
         self.do_out_resp  = True       # bool, flag
         self.save_proc_peaks = False   # bool, flag to write proc peaks to file
@@ -590,6 +591,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.out_dir          = AD['out_dir']
         self.prefix           = AD['prefix']
         self.do_out_rvt       = not(AD['rvt_off'])
+        self.do_out_rvtrrf    = AD['rvtrrf']
         self.do_out_card      = not(AD['no_card_out'])
         self.do_out_resp      = not(AD['no_resp_out'])
         self.save_proc_peaks  = AD['save_proc_peaks']
