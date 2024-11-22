@@ -29,6 +29,7 @@ def write_regressor_file(retobj):
         if retobj.have_label(label) :
             phobj = retobj.data[label]        # simplify coding below
             nreg+= phobj.n_regress_rvt
+            if retobj.do_out_rvtrrf: nreg+= phobj.n_regress_rvt
             nreg+= phobj.n_regress_phys
             
     ntype = nreg * nslice                     # ni_type quantity, ncol data
@@ -76,7 +77,7 @@ def write_regressor_file(retobj):
                     
                 if retobj.do_out_rvtrrf:
                     # process any/all RVTRRF regressors
-                    rcount -= phobj.n_regress_rvt
+                    # rcount -= phobj.n_regress_rvt
                     for ii in range(phobj.n_regress_rvt):
                         key = phobj.regress_rvtrrf_keys[ii]
                         title = slab + '.' + key      # column header title
