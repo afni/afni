@@ -133,6 +133,8 @@ if __name__ == "__main__":
     label = 'resp'
     if retobj.data[label] :
         lpf.calc_timing_selection_rvt( retobj, label=label, verb=verb )
+        if retobj.do_out_rvtrrf:
+            lpf.calc_timing_selection_rvtrrf( retobj, label=label, verb=verb )
 
     # ------------- Process any card/resp/etc. time series ------------------
 
@@ -159,6 +161,7 @@ if __name__ == "__main__":
         lpf.calc_time_series_rvt( retobj, label=label, verb=verb )
         if retobj.do_out_rvtrrf:
             lpf.calc_time_series_rvtrrf( retobj, label=label, verb=verb )
+            phobj = retobj.data[label]
 
     # ------------- Calculate regressors ------------------
 
@@ -181,6 +184,8 @@ if __name__ == "__main__":
     label = 'resp'
     if retobj.data[label] :
         lpf.calc_regress_rvt( retobj, label=label, verb=verb )
+        if retobj.do_out_rvtrrf:
+            lpf.calc_regress_rvtrrf( retobj, label=label, verb=verb )
 
     # ------------- Write out regressors ------------------
 

@@ -41,7 +41,9 @@ DEF_max_bpm_resp = 60.0
 all_rvt_opt = ['rvt_off', 'rvt_shift_list', 'rvt_shift_linspace']
 DEF_rvt_off            = False
 DEF_rvt_shift_list     = '0 1 2 3 4'  # split+listified, below, if used
+DEF_rvtrrf_shift_list  = '0 1 2 3 4'  # split+listified, below, if used
 DEF_rvt_shift_linspace = None         # can be pars for NumPy linspace(A,B,C)
+DEF_rvtrrf_shift_linspace = None         # can be pars for NumPy linspace(A,B,C)
 
 # convolve RVT with respiratory response function (RRF)
 DEF_rvtrrf = False
@@ -132,7 +134,9 @@ DEF = {
     'rvt_off'           : DEF_rvt_off, # (bool) turn off RVT output
     'rvtrrf'            : DEF_rvtrrf, # (bool) RVT*RRF output
     'rvt_shift_list'    : None,      # (str) space sep list of nums
+    'rvtrrf_shift_list' : None,      # (str) space sep list of nums
     'rvt_shift_linspace': DEF_rvt_shift_linspace, # (str) pars for RVT shift 
+    'rvtrrf_shift_linspace': DEF_rvtrrf_shift_linspace, # (str) pars for RVT shift 
     'img_verb'          : 1,         # (int) amount of graphs to save
     'img_figsize'       : DEF_img_figsize,   # (tuple) figsize dims for QC imgs
     'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs 
@@ -1335,6 +1339,16 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     metavar=('SHIFT1', 'SHIFT2'),
                     nargs='+', type=str) # parse later
 
+opt = '''rvtrrf_shift_list'''
+hlp = '''Provide one or more values to specify how many and what kinds of
+shifted copies of RVTRRF are output as regressors. Units are seconds, and
+including 0 may be useful. Shifts could also be entered via
+'-rvtrrf_shift_linspace ..' (def: {}) '''.format(DEF_rvtrrf_shift_list)
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    metavar=('SHIFT1', 'SHIFT2'),
+                    nargs='+', type=str) # parse later
+
 opt = '''rvt_shift_linspace'''
 hlp = '''Alternative to '-rvt_shift_list ..'. Provide three space-separated
 values (start stop N) used to determine how many and what kinds of
@@ -1343,6 +1357,19 @@ Python-Numpy function linspace(start, stop, N). Both start and stop
 (units of seconds) can be negative, zero or positive.  Including 0 may
 be useful.  Example params: 0 4 5, which lead to shifts of 0, 1, 2, 3
 and 4 sec (def: None, use '-rvt_shift_list')'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    metavar=('START', 'STOP', 'N'),
+                    nargs=3, type=str) # parse later
+
+opt = '''rvtrrf_shift_linspace'''
+hlp = '''Alternative to '-rvtrrf_shift_list ..'. Provide three space-separated
+values (start stop N) used to determine how many and what kinds of
+shifted copies of RVTRRF are output as regressors, according to the
+Python-Numpy function linspace(start, stop, N). Both start and stop
+(units of seconds) can be negative, zero or positive.  Including 0 may
+be useful.  Example params: 0 4 5, which lead to shifts of 0, 1, 2, 3
+and 4 sec (def: None, use '-rvtrrf_shift_list')'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     metavar=('START', 'STOP', 'N'),
@@ -2006,6 +2033,42 @@ args_dict2 : dict
             IS_BAD = 1
 
         if IS_BAD :  sys.exit(1)
+    elif args_dict2['rvt_shift_list'] != None :
+        # RVT branch A: direct list of shifts from user to make into array
+
+        IS_BAD = 0
+
+        L = args_dict2['rvt_shift_list'].split()
+
+        try:
+            # make list of floats
+            shift_list = [float(ll) for ll in L]
+            # and copy list of shifts
+            args_dict2['rvt_shift_list'] = copy.deepcopy(shift_list) 
+        except:
+            print("** ERROR interpreting '-rvt_shift_list ..' args: '{}'"
+                  "".format(args_dict2['rvt_shift_list']))
+            IS_BAD = 1
+
+        if IS_BAD :  sys.exit(1)
+    elif args_dict2['rvt_shift_list'] != None :
+        # RVT branch A: direct list of shifts from user to make into array
+
+        IS_BAD = 0
+
+        L = args_dict2['rvt_shift_list'].split()
+
+        try:
+            # make list of floats
+            shift_list = [float(ll) for ll in L]
+            # and copy list of shifts
+            args_dict2['rvt_shift_list'] = copy.deepcopy(shift_list) 
+        except:
+            print("** ERROR interpreting '-rvt_shift_list ..' args: '{}'"
+                  "".format(args_dict2['rvt_shift_list']))
+            IS_BAD = 1
+
+        if IS_BAD :  sys.exit(1)
     elif args_dict2['rvt_shift_linspace'] :
         # RVT branch B: linspace pars from user, list of ints or floats
 
@@ -2036,13 +2099,47 @@ args_dict2 : dict
             IS_BAD = 1
 
         if IS_BAD :  sys.exit(1)
+    elif args_dict2['rvtrrf_shift_linspace'] :
+        # RVTRRF branch B: linspace pars from user, list of ints or floats
+
+        IS_BAD = 0
+
+        # make sure -rvtrrf_shift_list had 3 entries
+        L = args_dict2['rvtrrf_shift_linspace'].split()
+        if len(L) != 3 :
+            print("** ERROR, '-rvtrrf_shift_linspace ..' takes exactly 3 values.")
+            IS_BAD = 1
+
+        try:
+            # first 2 numbers can be int or float, but last must be int
+            lll     = [float(ll) for ll in L]
+            lll[-1] = int(lll[-1])
+            # These 3 values get interpreted as (start, stop, N);
+            # verify that this is a legit expression
+            IS_BAD, all_shift = \
+                interpret_rvtrrf_shift_linspace_opts(lll[0], lll[1], lll[2])
+
+            # copy original params in place
+            args_dict2['rvtrrf_shift_linspace'] = copy.deepcopy(lll) 
+            # and copy arr of shifts
+            args_dict2['rvtrrf_shift_list'] = copy.deepcopy(all_shift) 
+        except:
+            print("** ERROR interpreting '-rvtrrf_shift_linspace ..' args: '{}'"
+                  "".format(args_dict2['rvtrrf_shift_linspace']))
+            IS_BAD = 1
+
+        if IS_BAD :  sys.exit(1)
     elif  args_dict2['rvt_off'] :
         # RVT branch C: no shifts (simple), as per user
         args_dict2['rvt_shift_list'] = []
+        args_dict2['rvtrrf_shift_list'] = []
     else:
         # RVT branch D: use default shifts
         L   = DEF_rvt_shift_list.split()
-        args_dict2['rvt_shift_list'] = [float(ll) for ll in L]
+        args_dict2['rvt_shift_list'] = [float(ll) for ll in L]       
+        if (args_dict2['rvtrrf']):
+            L   = DEF_rvtrrf_shift_list.split()
+            args_dict2['rvtrrf_shift_list'] = [float(ll) for ll in L]       
 
     if args_dict2['img_figsize'] :
         # Interpret string to be list of floats.

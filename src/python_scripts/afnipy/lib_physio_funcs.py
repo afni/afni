@@ -189,6 +189,67 @@ is_ok : int
 
     return 0
 
+
+def calc_timing_selection_rvtrrf(retobj, label=None, verb=0):
+    """Calculate the 'timing selection array' for the phys_obj
+(=retobj.data[label]) time series tvalues, **just starting at time 0,
+for the RVTRRF regressor**, based on the slice timing information.  That
+is, we need to know where to sample the physio time series to match
+with the MRI volume (just initial slice, which we assume is at t=0.0).
+The 'timing array' records this information.  We basically step
+through the finely-sampled physio data 'x-axis', and figure out which
+values correspond to a given coarse-sampled MRI slice.
+
+NB: we *could* have just gotten this info as a special case of the
+full physio slicewise regressors calculation, but decided to keep this
+separate, to be more general.
+
+Parameters
+----------
+retobj : retro_obj class
+    object with all necessary input time series info; will also store
+    outputs from here; contains dictionary of phys_ts_objs
+label : str
+    (non-optional kwarg) label to determine which time series is
+    processed, and in which sub-object information is stored.  Allowed
+    labels are stored in the PO_all_label list.
+
+Returns
+-------
+is_ok : int
+    was processing OK (= 0) or not (= nonzero)
+
+    """
+
+    if verb : print("++ Start RVTRRF arr timing calc for {} data".format(label))
+
+    check_label_all(label)
+    check_label_rvt(label)      # a practical RVT reality, at present
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+
+    slice_times = retobj.vol_slice_times            # coarse, MRI timing
+    nslice      = len(slice_times)                  # num of MRI slices
+    vol_nv      = retobj.vol_nv                     # num of MRI vols
+    vol_tr      = retobj.vol_tr                     # coarse, MRI sampling (s)
+    tvals       = retobj.data[label].tvalues        # fine, physio ts timing
+    ntval       = len(tvals)                        # num of physio timepts
+    samp_rate   = retobj.data[label].samp_rate      # fine, physio sampling (s)
+    
+    # calc list of time-array indices for all MRI volumes for this slice
+    all_ind = find_vol_slice_times(tvals, samp_rate, 0.0, 0,
+                                   vol_nv, vol_tr, verb=verb)
+
+    # done, store
+    phobj.list_slice_sel_rvtrrf = all_ind
+
+    return 0
+
 def find_vol_slice_times(tvals, samp_rate, slice_time0, slice_idx,
                          vol_nv, vol_tr, verb=0):
     """Take in a list of finely sampled physio data, whose 'x-axis' of
@@ -823,7 +884,7 @@ described in the paper mentioned above.
     rrf_vector = rrf.makeRRF()
     
     # Convolve RVT vector with RRFR vector to get RVTRRFr
-    retobj.rvtrrf = np.convolve(rrf_vector, phobj.rvt_ts)
+    phobj.rvtrrf_ts = np.convolve(rrf_vector, phobj.rvt_ts)
     
     # Save plots of RVT and RVTRRF
     import matplotlib.pyplot as plt
@@ -836,7 +897,7 @@ described in the paper mentioned above.
     plt.show(block=True)
 
     #RVTRRF
-    plt.plot(retobj.rvtrrf, color='red')
+    plt.plot(phobj.rvtrrf_ts, color='red')
     plt.xlabel("Time (s)")
     plt.ylabel("RVTRRF")    
     plt.savefig('/home/peterlauren/retroicor/RVTRRF/FigRVTRRF.pdf', pad_inches=0.2) 
@@ -938,6 +999,8 @@ Eq. 1 of Glover et al., 2000.
 
     check_label_all(label)
 
+    regress_dict_rvtrrf = {}
+
     # the specific card/resp/etc. obj we use here (NB: not copying
     # obj, just dual-labelling for simplifying function calls while
     # still updating peaks info, at end)
@@ -1018,6 +1081,105 @@ def calc_regress_rvt(retobj, label=None, verb=0):
 
     return 0
 
+def calc_regress_rvtrrf(retobj, label=None, verb=0):
+    """Calculate RVTRRF regressors, as described in Birn et al.,
+2006.  Apply shifts here
+
+    """
+
+    if verb : print("++ Start RVTRRF regressor calc for {} data".format(label))
+
+    check_label_all(label)
+    check_label_rvt(label)      # a practical RVT reality, at present
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+    shift_list = retobj.rvtrrf_shift_list
+
+    nshift = len(shift_list)
+    regress_dict_rvtrrf = {}
+
+    if verb :
+        print("++ The {} RVTRRF shift values are: {}".format(nshift, shift_list))
+
+    # shifts here are made by shifting a copy of the underlying
+    # tvalues array, and then selecting the same MRI-snapshot points.
+    # We use the time series median to pad values
+
+    # the primary, unshifted regressor
+    rvtrrf_regr = phobj.rvtrrf_ts[phobj.list_slice_sel_rvtrrf]
+
+    for ii in range(nshift):
+        # make shifted regressors
+        lab = 'rvtrrf{:02d}'.format(ii)
+        shift = shift_list[ii]
+        regress_dict_rvtrrf[lab] = get_shifted_rvtrrf(phobj.rvtrrf_ts,
+                                                phobj.samp_freq,
+                                                phobj.list_slice_sel_rvtrrf,
+                                                shift)
+
+    phobj.regress_dict_rvtrrf = regress_dict_rvtrrf
+
+    # make lineplot image of the RVT regressors
+    tmp = lpplt.plot_regressors_rvtrrf(retobj, label)
+
+    return 0
+
+
+def get_shifted_rvtrrf(x, samp_freq, all_ind, shift):
+    """Take input time series x and shift it by delta_t=shift to the left
+or right.  'Gaps' left by shifting are filled in with the first or
+last value present from the original time series in the direction of
+that shift.
+
+Parameters
+----------
+x : np.ndarray
+    1D array
+all_ind : np.ndarray
+    array of all original indices for selecting values out of x
+samp_freq : float
+    sampling frequency of x, in units of Hz
+shift: float
+    amount of time shift to shift the time series left ('earlier') or
+    right ('later')
+
+Returns
+-------
+y : np.ndarray
+    1D array, with shift applied
+
+    """
+
+    Nx   = len(x)                      # len of RVTRRF time series
+    Nind = len(all_ind)                # num of sampling points
+
+    # to be output: will hold sampled values
+    y = np.zeros(Nind, dtype=x.dtype)
+
+    # shift along RVTRRF grid, in terms of indices
+    delta_ind = int(shift * samp_freq)
+
+    # collection of shifted indices
+    new_ind = np.array(all_ind) - delta_ind
+
+    # which indices are valid for selecting within x
+    arr_use = new_ind <  Nx
+    arr_use*= new_ind >= 0
+
+    # get mean value of valid signal points (for mean-padding, below)
+    pad_val = np.mean(x[new_ind[arr_use]])
+
+    # get the shifted data, with mean padding
+    for ii in range(Nind):
+        if arr_use[ii] :    y[ii] = x[new_ind[ii]]
+        else:               y[ii] = pad_val
+
+    return y
 
 def get_shifted_rvt(x, samp_freq, all_ind, shift):
     """Take input time series x and shift it by delta_t=shift to the left
