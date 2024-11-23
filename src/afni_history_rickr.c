@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Nov, 2024, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
+   "add -make_flags option",
+   NULL
+ } ,
+
  { 11, Nov, 2024, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add -show_tr_offset_stats",
    "This enhances -show_tr_stats, and might replace it.\n"
