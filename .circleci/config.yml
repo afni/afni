@@ -199,7 +199,7 @@ commands:
           # and removing explicit 'python' resolved that.
           command: |
             echo \
-              cmake ninja  pkgconfig  \
+              cmake ninja \
               jpeg gsl gts openmotif libpng expat \
               freetype fontconfig netpbm git-annex | \
               tr " " '\n' | sort > /tmp/macos_dependencies_version.txt
