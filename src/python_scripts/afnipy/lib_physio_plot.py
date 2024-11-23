@@ -1471,6 +1471,33 @@ def plot_regressors_phys(retobj, ext='svg'):
 
     print("++ Made plot of {}-based RVT regressors: {}".format(label, fname))
 
+    # PLot RVT (and RRF)
+        
+    #RVT
+    if retobj.do_out_rvt:
+        # Make abscissa scale
+        nElements = len(phobj.rvt_ts)
+        abscissa = np.zeros(nElements)
+        for i in range(0,nElements): abscissa[i] = i/phobj.samp_freq
+    
+        plt.plot(abscissa, phobj.rvt_ts, color='red')
+        plt.xlabel("Time (s)")
+        plt.ylabel("RVT")    
+        plt.savefig(retobj.out_dir + '/FigRVT.pdf') 
+        plt.show(block=True)
+    
+    #RVTRRF
+    if retobj.do_out_rvtrrf:
+        # Make abscissa scale
+        nElements = len(phobj.rvtrrf_ts)
+        abscissa = np.zeros(nElements)
+        for i in range(0,nElements): abscissa[i] = i/phobj.samp_freq
+
+        plt.plot(abscissa, phobj.rvtrrf_ts, color='red')
+        plt.xlabel("Time (s)")
+        plt.ylabel("RVTRRF")    
+        plt.savefig(retobj.out_dir + '/FigRVTRRF.pdf', pad_inches=0.2) 
+        plt.show(block=True)
 
     return 0
 

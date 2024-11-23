@@ -888,16 +888,26 @@ described in the paper mentioned above.
     
     # Save plots of RVT and RVTRRF
     import matplotlib.pyplot as plt
+    
+    # Make abscissa scale
+    nElements = len(phobj.rvt_ts)
+    abscissa = np.zeros(nElements)
+    for i in range(0,nElements): abscissa[i] = i/phobj.samp_freq
 
     #RVT
-    plt.plot(phobj.rvt_ts, color='red')
+    plt.plot(abscissa, phobj.rvt_ts, color='red')
     plt.xlabel("Time (s)")
     plt.ylabel("RVT")    
     plt.savefig('/home/peterlauren/retroicor/RVTRRF/FigRVT.pdf') 
     plt.show(block=True)
+    
+    # Make abscissa scale
+    nElements = len(phobj.rvtrrf_ts)
+    abscissa = np.zeros(nElements)
+    for i in range(0,nElements): abscissa[i] = i/phobj.samp_freq
 
     #RVTRRF
-    plt.plot(phobj.rvtrrf_ts, color='red')
+    plt.plot(abscissa, phobj.rvtrrf_ts, color='red')
     plt.xlabel("Time (s)")
     plt.ylabel("RVTRRF")    
     plt.savefig('/home/peterlauren/retroicor/RVTRRF/FigRVTRRF.pdf', pad_inches=0.2) 
