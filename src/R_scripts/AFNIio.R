@@ -171,7 +171,7 @@ set_R_io <- function() {
       dd <- try(dyn.load(ll), silent=TRUE)
       # newer versions might return R_io.so   8 Dec 2017 [rickr]
       if (dd[[1]]!="R_io" && dd[[1]]!="R_io.so") {
-         warn.AFNI(paste("Failed to load R_io.so with this error message:\n"));
+         warn.AFNI(paste("Failed to load R_io.so with this error message: \n", ll));
          dyn.load(ll)
       } else {
          rio <- 1
@@ -1032,6 +1032,8 @@ parse.AFNI.args <- function ( args, params = NULL,
             if (length(nm) && length(which(newnm == nm)) &&
                 (newnm != '-gltLabel') && (newnm != '-gltCode') &&  # 10/18/2012 GC: added this line for 3dMVM
                 (newnm != '-glfLabel') && (newnm != '-glfCode') &&  # 12/22/2014 GC: added this line for 3dMVM
+                (newnm != '-level') &&  # 11/23/2024 GC: added this line for 3dGLMM
+                (newnm != '-slope') &&  # 11/23/2024 GC: added this line for 3dGLMM
                 (!length(duplicate_okvec) || 
                  length(which(iflg[i] == duplicate_okvec))) ){
                 warning(paste('option ', newnm, 'already specified.\n'),
@@ -1063,7 +1065,7 @@ parse.AFNI.args <- function ( args, params = NULL,
                 }
                 pp <- strsplit(clean.args.string(pp), ' ')
             }
-            if((newnm != '-gltLabel') && (newnm != '-glfLabel') && (newnm != '-gltCode') && (newnm != '-glfCode')) { # 12/22/2014 GC: added this line for 3dMVM
+            if((newnm != '-gltLabel') && (newnm != '-glfLabel') && (newnm != '-gltCode') && (newnm != '-glfCode') && (newnm != '-level') && (newnm != '-slope')) { # 12/22/2014 GC: added this line for 3dMVM
                 ops <- c(ops, (pp))
                 names(ops)[length(ops)] <- newnm
             } else if(length(which(newnm == nm))) 
