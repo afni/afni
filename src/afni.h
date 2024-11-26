@@ -2180,7 +2180,7 @@ extern THD_3dim_dataset * AFNI_init_warp( Three_D_View * ,
                                           THD_3dim_dataset * ,
                                           THD_warp * , float  ) ;
 
-extern void AFNI_handler( char * ) ;
+extern void AFNI_handler( const char * ) ;
 
 extern void AFNI_thr_scale_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_set_thr_pval( Three_D_View * im3d ) ;
