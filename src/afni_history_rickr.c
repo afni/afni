@@ -53,7 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 17, Nov, 2024, RCR, "afni-general", MICRO, TYPE_MODIFY,
+ { 26, Nov, 2024, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "use xcode 15.3 in .circleci/config.yml",
+   "Code updates: pcor.[ch] for proper prototypes, AFNI_handler() for const."
+ } ,
+
+ { 25, Nov, 2024, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "use xcode 15.1 in .circleci/config.yml",
    "Version 14.2 was too old (macos 12), and 15.3 has proto issues to fix."
  } ,
