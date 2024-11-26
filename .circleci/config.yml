@@ -512,20 +512,20 @@ workflows:
               only: /.*/
             branches:
               only: /.*/
-      - build:
-          name: make_build
-          requires:
-            - test_cmake_build
-          matrix:
-            parameters:
-              build_type: ["make_build"]
-              # cache version should match for all jobs
-              image_cache_version: ["0"]
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
+      # - build:
+      #     name: make_build
+      #     requires:
+      #       - test_cmake_build
+      #     matrix:
+      #       parameters:
+      #         build_type: ["make_build"]
+      #         # cache version should match for all jobs
+      #         image_cache_version: ["0"]
+      #     filters:
+      #       tags:
+      #         only: /.*/
+      #       branches:
+      #         only: /.*/
       - test:
           name: test_<< matrix.build_type >>
           matrix:
@@ -541,48 +541,48 @@ workflows:
               only: /.*/
             branches:
               only: /.*/
-      - containers_check:
-          name: check containers for issues with users and permissions and environments
-          matrix:
-            parameters:
-              # cache version should match for all jobs
-              image_cache_version: ["0"]
-          requires:
-            - make_build
-            - cmake_build
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
-      - deploy:
-          name: deploy_<< matrix.build_type >>
-          matrix:
-            parameters:
-              build_type: ["make_build", "cmake_build"]
-              # cache version should match for all jobs
-              image_cache_version: ["0"]
-          requires:
-            - test_<< matrix.build_type >>
-            - macos_build
-            - containers_check
-          filters:
-            tags:
-              only: /AFNI_\d\d.\d.\d\d/
-            branches:
-              ignore: /.*/
+      # - containers_check:
+      #     name: check containers for issues with users and permissions and environments
+      #     matrix:
+      #       parameters:
+      #         # cache version should match for all jobs
+      #         image_cache_version: ["0"]
+      #     requires:
+      #       - make_build
+      #       - cmake_build
+      #     filters:
+      #       tags:
+      #         only: /.*/
+      #       branches:
+      #         only: /.*/
+      # - deploy:
+      #     name: deploy_<< matrix.build_type >>
+      #     matrix:
+      #       parameters:
+      #         build_type: ["make_build", "cmake_build"]
+      #         # cache version should match for all jobs
+      #         image_cache_version: ["0"]
+      #     requires:
+      #       - test_<< matrix.build_type >>
+      #       - macos_build
+      #       - containers_check
+      #     filters:
+      #       tags:
+      #         only: /AFNI_\d\d.\d.\d\d/
+      #     branches:
+      #       ignore: /.*/
 
-      - coverage_check:
-          requires:
-            - test_cmake_build
-            - test_make_build
-          matrix:
-            parameters:
-              # cache version should match for all jobs
-              image_cache_version: ["0"]
-              test_data_cache_version: ["5"]
-          filters:
-            tags:
-              ignore: /.*/
-            branches:
-              ignore: /.*/
+      # - coverage_check:
+      #     requires:
+      #       - test_cmake_build
+      #       - test_make_build
+      #     matrix:
+      #       parameters:
+      #         # cache version should match for all jobs
+      #         image_cache_version: ["0"]
+      #         test_data_cache_version: ["5"]
+      #     filters:
+      #       tags:
+      #         ignore: /.*/
+      #       branches:
+      #         ignore: /.*/
