@@ -118,7 +118,7 @@ static char * FALLback[] =
    It simply does nothing -- it replaces the default Xt warning handler.
 -------------------------------------------------------------------------*/
 
-void AFNI_handler(const char * msg){}
+void AFNI_handler(char * msg){}
 
 #define CURSOR_normalize                               \
   do{ NORMAL_cursorize(wset.topshell) ;                \
