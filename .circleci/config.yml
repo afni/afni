@@ -530,7 +530,7 @@ workflows:
           name: test_<< matrix.build_type >>
           matrix:
             parameters:
-              build_type: ["make_build", "cmake_build"]
+              build_type: ["cmake_build"]
               # cache version should match for all jobs
               image_cache_version: ["0"]
               test_data_cache_version: ["0"]
