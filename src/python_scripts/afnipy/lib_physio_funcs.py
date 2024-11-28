@@ -883,40 +883,20 @@ described in the paper mentioned above.
     # Get RRF vector
     rrf_vector = rrf.makeRRF()
     
+    # Pad RVT vector to avoid edge effects
+    # windowWidth = 5 * phobj.samp_freq # Roughly one breath
+    # mean = np.mean(rrf_vector[0:windowWidth])
+    
+    # Deal with edge effects by subtracting the RVT mean from RVT
+    modRVT = phobj.rvt_ts - np.mean(phobj.rvt_ts)
+    
     # Convolve RVT vector with RRFR vector to get RVTRRFr
-    phobj.rvtrrf_ts = np.convolve(rrf_vector, phobj.rvt_ts)
-    
-    # Save plots of RVT and RVTRRF
-    import matplotlib.pyplot as plt
-    
-    # Make abscissa scale
-    nElements = len(phobj.rvt_ts)
-    abscissa = np.zeros(nElements)
-    for i in range(0,nElements): abscissa[i] = i/phobj.samp_freq
+    # phobj.rvtrrf_ts = np.convolve(rrf_vector, phobj.rvt_ts)
+    phobj.rvtrrf_ts = np.convolve(modRVT, rrf_vector)
+    phobj.rvtrrf_ts[0] = 0
+    phobj.rvtrrf_ts[-1] = 0
 
-    #RVT
-    plt.plot(abscissa, phobj.rvt_ts, color='red')
-    plt.xlabel("Time (s)")
-    plt.ylabel("RVT")    
-    plt.savefig('/home/peterlauren/retroicor/RVTRRF/FigRVT.pdf') 
-    plt.show(block=True)
-    
-    # Make abscissa scale
-    nElements = len(phobj.rvtrrf_ts)
-    abscissa = np.zeros(nElements)
-    for i in range(0,nElements): abscissa[i] = i/phobj.samp_freq
-
-    #RVTRRF
-    plt.plot(abscissa, phobj.rvtrrf_ts, color='red')
-    plt.xlabel("Time (s)")
-    plt.ylabel("RVTRRF")    
-    plt.savefig('/home/peterlauren/retroicor/RVTRRF/FigRVTRRF.pdf', pad_inches=0.2) 
-    plt.show(block=True)
-     
     return 0
-
-    
-    
 
 # ===========================================================================
 
