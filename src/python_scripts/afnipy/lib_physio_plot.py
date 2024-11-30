@@ -1228,12 +1228,20 @@ def plot_regressors_rvt(retobj, label, ext='svg'):
     data_lab   = ['LABEL'] * nrvt
 
     # process any/all RVT regressors
-    for ii in range(nrvt):
-        key  = phobj.regress_rvt_keys[ii]
-        ylab = key + '\\n' + '$\Delta={}$'.format(retobj.rvt_shift_list[ii])
-
-        data_lab[ii] = ylab
-        data_arr[:,ii] = phobj.regress_dict_rvt[key]
+    if len(retobj.rvt_shift_list) == nrvt:
+        for ii in range(nrvt):
+            key  = phobj.regress_rvt_keys[ii]
+            ylab = key + '\\n' + '$\Delta={}$'.format(retobj.rvt_shift_list[ii])
+    
+            data_lab[ii] = ylab
+            data_arr[:,ii] = phobj.regress_dict_rvt[key]
+    else:
+        for ii in range(nrvt):
+            key  = phobj.regress_rvtrrf_keys[ii]
+            ylab = key + '\\n' + '$\Delta={}$'.format(retobj.rvtrrf_shift_list[ii])
+    
+            data_lab[ii] = ylab
+            data_arr[:,ii] = phobj.regress_dict_rvtrrf[key]
 
     # --------------------- write tmp data file ---------------------
 

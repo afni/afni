@@ -28,8 +28,8 @@ def write_regressor_file(retobj):
     for label in lpf.PO_all_label :
         if retobj.have_label(label) :
             phobj = retobj.data[label]        # simplify coding below
-            nreg+= phobj.n_regress_rvt
-            if retobj.do_out_rvtrrf: nreg+= phobj.n_regress_rvt
+            if retobj.do_out_rvt: nreg+= phobj.n_regress_rvt
+            if retobj.do_out_rvtrrf: nreg += phobj.n_regress_rvtrrf
             nreg+= phobj.n_regress_phys
             
     ntype = nreg * nslice                     # ni_type quantity, ncol data
@@ -64,16 +64,18 @@ def write_regressor_file(retobj):
         for label in lpf.PO_all_label :
             if retobj.have_label(label) :
                 phobj = retobj.data[label]        # simplify coding below
-                # process any/all RVT regressors
-                for ii in range(phobj.n_regress_rvt):
-                    key = phobj.regress_rvt_keys[ii]
-                    title = slab + '.' + key      # column header title
-
-                    # go to column, and add info (RVT = const across slice)
-                    cc = ss*nreg + rcount
-                    data_lab[cc] = title
-                    data_arr[:,cc] = phobj.regress_dict_rvt[key]
-                    rcount+= 1
+                
+                if retobj.do_out_rvt:
+                    # process any/all RVT regressors
+                    for ii in range(phobj.n_regress_rvt):
+                        key = phobj.regress_rvt_keys[ii]
+                        title = slab + '.' + key      # column header title
+    
+                        # go to column, and add info (RVT = const across slice)
+                        cc = ss*nreg + rcount
+                        data_lab[cc] = title
+                        data_arr[:,cc] = phobj.regress_dict_rvt[key]
+                        rcount+= 1
                     
                 if retobj.do_out_rvtrrf:
                     # process any/all RVTRRF regressors

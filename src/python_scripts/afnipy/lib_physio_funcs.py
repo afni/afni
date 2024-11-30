@@ -1041,9 +1041,14 @@ def calc_regress_rvt(retobj, label=None, verb=0):
     odir   = retobj.out_dir
     prefix = retobj.prefix
     shift_list = retobj.rvt_shift_list
+    
+    # Allow rvtrrf output without RVT output
+    if retobj.do_out_rvtrrf and len(shift_list) == 0:
+        shift_list = retobj.rvtrrf_shift_list
 
     nshift = len(shift_list)
     regress_dict_rvt = {}
+    if retobj.do_out_rvtrrf: regress_dict_rvtrrf = {}
 
     if verb :
         print("++ The {} RVT shift values are: {}".format(nshift, shift_list))
@@ -1063,8 +1068,16 @@ def calc_regress_rvt(retobj, label=None, verb=0):
                                                 phobj.samp_freq,
                                                 phobj.list_slice_sel_rvt,
                                                 shift)
+        if retobj.do_out_rvtrrf:
+            lab = 'rvtrrf{:02d}'.format(ii)
+            # shift = shift_list[ii]
+            regress_dict_rvtrrf[lab] = get_shifted_rvtrrf(phobj.rvtrrf_ts,
+                                                    phobj.samp_freq,
+                                                    phobj.list_slice_sel_rvtrrf,
+                                                    shift)
 
     phobj.regress_dict_rvt = regress_dict_rvt
+    phobj.regress_dict_rvtrrf = regress_dict_rvtrrf
 
     # make lineplot image of the RVT regressors
     tmp = lpplt.plot_regressors_rvt(retobj, label)

@@ -67,18 +67,6 @@ def main():
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 # ================================ main =====================================
 
 if __name__ == "__main__":
@@ -133,6 +121,8 @@ if __name__ == "__main__":
     label = 'resp'
     if retobj.data[label] :
         lpf.calc_timing_selection_rvt( retobj, label=label, verb=verb )
+        
+        # Make RVTRRF vector if required
         if retobj.do_out_rvtrrf:
             lpf.calc_timing_selection_rvtrrf( retobj, label=label, verb=verb )
 
