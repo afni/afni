@@ -157,8 +157,10 @@ if __name__ == "__main__":
 
     # Regressors, for all physio inputs
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
-            lpf.calc_regress_phys( retobj, label=label, verb=verb )
+        if (label=='resp' and retobj.do_out_resp) or\
+            (label=='card' and retobj.do_out_card):
+            if retobj.data[label] :
+                lpf.calc_regress_phys( retobj, label=label, verb=verb )
 
     ### Comment: after this step, here is an example of the physio
     ### regressors being stored:

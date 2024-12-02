@@ -91,21 +91,23 @@ def write_regressor_file(retobj):
                         rcount+= 1
 
         # physio regressors: add label+data (these *are* slicewise)
-        for label in lpf.PO_all_label :
-            if retobj.have_label(label) :
-                phobj = retobj.data[label]        # simplify coding below
-                # process any/all phys regressors
-                for ii in range(phobj.n_regress_phys):
-                    keyA = phobj.regress_rvt_phys[ii]
-                    keyB = phobj.regress_dict_phys[keyA][ss][0]
-                    
-                    title = keyB + '.' + keyA     # column header title
-
-                    # go to column, and add info (RVT = const across slice)
-                    cc = ss*nreg + rcount
-                    data_lab[cc] = title
-                    data_arr[:,cc] = phobj.regress_dict_phys[keyA][ss][1]
-                    rcount+= 1
+        if (label=='resp' and retobj.do_out_resp) or\
+            (label=='card' and retobj.do_out_card):
+            for label in lpf.PO_all_label :
+                if retobj.have_label(label) :
+                    phobj = retobj.data[label]        # simplify coding below
+                    # process any/all phys regressors
+                    for ii in range(phobj.n_regress_phys):
+                        keyA = phobj.regress_rvt_phys[ii]
+                        keyB = phobj.regress_dict_phys[keyA][ss][0]
+                        
+                        title = keyB + '.' + keyA     # column header title
+    
+                        # go to column, and add info (RVT = const across slice)
+                        cc = ss*nreg + rcount
+                        data_lab[cc] = title
+                        data_arr[:,cc] = phobj.regress_dict_phys[keyA][ss][1]
+                        rcount+= 1
 
     # --------------------- write -------------------------------
 
