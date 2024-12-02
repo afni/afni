@@ -85,7 +85,7 @@ static char wintit[256] = { "Images" } ;
 /*------------------------------------------------------------------------*/
 
 static void killer( void *pt ){ exit(0); }
-static void AFNI_handler(const char *msg){ return ; } /* hide X11 warnings */
+static void AFNI_handler(char *msg){ return ; } /* hide X11 warnings */
 
 /*------------------------------------------------------------------------*/
 /*! Called to start up display, after X11 has had time to get going. */

@@ -26,7 +26,8 @@
       output: pointer to the data structure
 ***/
 
-references * new_references(int numref)
+references * new_references(numref)
+     int numref;
 {
    references *ref ;
    int ii,jj ;
@@ -106,7 +107,9 @@ references * new_references(int numref)
                 the alpha, f, and g factors are saved for later use
 ***/
 
-void update_references(float *vec, references *ref)
+void update_references(vec, ref)
+     float *vec;
+     references *ref;
 {
    int nr = ref->nref , jj,kk ;
    ref_float bold , bnew , aaa,fff,ggg ;
@@ -185,7 +188,9 @@ void update_references(float *vec, references *ref)
       output:  pointer to voxel_corr data structure
 ***/
 
-voxel_corr * new_voxel_corr(int numvox, int numref)
+voxel_corr * new_voxel_corr(numvox, numref)
+     int numvox;
+     int numref;
 {
    int vox , jj ;
    voxel_corr *vc ;
@@ -233,7 +238,8 @@ voxel_corr * new_voxel_corr(int numvox, int numref)
 
 /*** de-allocate a references data structure ***/
 
-void free_references(references *ref)
+void free_references(ref)
+     references *ref;
 {
    int ii , nr ;
 
@@ -252,7 +258,8 @@ void free_references(references *ref)
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
-void free_voxel_corr(voxel_corr *vc)
+void free_voxel_corr(vc)
+     voxel_corr *vc;
 {
    if( vc != NULL ){
       free( vc->chrow ) ;
@@ -270,7 +277,10 @@ void free_voxel_corr(voxel_corr *vc)
       output:  updated vc
 ***/
 
-void update_voxel_corr(vox_data *vdata, references *ref, voxel_corr *vc)
+void update_voxel_corr(vdata, ref, vc)
+     vox_data *vdata;
+     references *ref;
+     voxel_corr *vc;
 {
    int vox , jj ,       /* loop indices */
        nv = vc->nvox ,  /* number of voxels */
@@ -447,7 +457,10 @@ void update_voxel_corr(vox_data *vdata, references *ref, voxel_corr *vc)
 
 /*** compute the partial correlation coefficients ***/
 
-void get_pcor(references *ref, voxel_corr *vc, float *pcor)
+void get_pcor(ref, vc, pcor)
+     references *ref;
+     voxel_corr *vc;
+     float *pcor;
 {
    int vox , nv = vc->nvox , nr = vc->nref ;
    ref_float den ;
@@ -485,7 +498,10 @@ void get_pcor(references *ref, voxel_corr *vc, float *pcor)
 
 /*** get activation coefficient ***/
 
-void get_coef(references *ref, voxel_corr *vc, float *coef)
+void get_coef(ref, vc, coef)
+     references *ref;
+     voxel_corr *vc;
+     float *coef;
 {
    int vox , nv = vc->nvox , nr = vc->nref ;
    ref_float scale ;
@@ -516,7 +532,9 @@ void get_coef(references *ref, voxel_corr *vc, float *coef)
 
 /*** get variance estimate (June 1995) ***/
 
-void get_variance(voxel_corr *vc, float *var)
+void get_variance(vc, var)
+     voxel_corr *vc;
+     float *var;
 {
    int vox , nv = vc->nvox , nr = vc->nref , nup = vc->nupdate ;
    ref_float scale ;
@@ -551,7 +569,10 @@ void get_variance(voxel_corr *vc, float *var)
      If fit[j] != NULL, then it points to an array of size nvox that
      will get the coefficient for reference #j (j=0..nref-1).  [June 1995] ***/
 
-void get_lsqfit(references *ref, voxel_corr *vc, float *fit[])
+void get_lsqfit(ref, vc, fit)
+     references *ref;
+     voxel_corr *vc;
+     float *fit[] ;
 {
    int vox,jj,kk , nv = vc->nvox , nr = vc->nref ;
    ref_float sum ;
@@ -606,8 +627,14 @@ void get_lsqfit(references *ref, voxel_corr *vc, float *fit[])
        cothresh * max|coef| will be also be set to zero
 ***/
 
-void get_pcor_thresh_coef(references *ref, voxel_corr *vc, float pcthresh,
-                 float cothresh, float *pcor, float *coef, thresh_result *thr)
+void get_pcor_thresh_coef(ref, vc, pcthresh, cothresh, pcor, coef, thr)
+     references *ref;
+     voxel_corr *vc;
+     float pcthresh;
+     float cothresh;
+     float *pcor;
+     float *coef;
+     thresh_result *thr;
 {
    int vox , nv = vc->nvox , nr = vc->nref ;
    ref_float den , num , scale ;

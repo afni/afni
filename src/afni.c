@@ -2037,7 +2037,7 @@ fprintf(stderr,"\ncoorder: signs = %d %d %d  order = %d %d %d\n" ,
    It does very little -- it replaces the default Xt warning handler.
 -------------------------------------------------------------------------*/
 
-void AFNI_handler(const char *msg){
+void AFNI_handler(char *msg){
    if( GLOBAL_argopt.xtwarns > 0 &&
        msg != NULL               &&
        strstr(msg,"Attempt to add wrong") == NULL ){
