@@ -2164,7 +2164,7 @@ def ricor_qc_varmaps(proc, qcdir, inset, polmat, errset, detset,
            detset  - detrend dset (no +view)
            STATS:  
               ricor.sd.{orig,ricor} : stdev of detrended time series
-              ricor.vrat            : variance ratio
+              ricor.vrat.m1         : variance ratio minus 1
    """
 
    # 4 cases for a comment string...
@@ -2198,7 +2198,7 @@ def ricor_qc_varmaps(proc, qcdir, inset, polmat, errset, detset,
 
    stdev_orig  = 'ricor.sd.orig%s%s' % (rstr, eistr)
    stdev_ricor = 'ricor.sd.ricor%s%s' % (rstr, eistr)
-   var_rat     = 'ricor.vrat%s%s' % (rstr, eistr)
+   var_rat     = 'ricor.vrat.m1%s%s' % (rstr, eistr)
 
    qcstr = qcstr +                                              \
        "%s# compute stdev maps: orig and ricor (detrended)\n"   \
@@ -2209,13 +2209,15 @@ def ricor_qc_varmaps(proc, qcdir, inset, polmat, errset, detset,
        % (indent, indent, qcdir, stdev_orig, indent, detset, proc.view,
                   indent, qcdir, stdev_ricor, indent, errset)
 
-   qcstr = qcstr +                                                  \
-       "%s# compute variance ratio (>1), removing small values\n"   \
-       "%s3dcalc -a %s/%s%s \\\n"                                   \
-       "%s       -b %s/%s%s \\\n"                                   \
-       "%s       -expr 'step(a-1)*step(b-1)*a**2/b**2' \\\n"        \
-       "%s       -prefix %s/%s\n"                                   \
-       % (indent, indent, qcdir, stdev_orig, proc.view,
+   qcstr = qcstr +                                                    \
+       "%s# compute variance ratio minus 1, removing small values\n"  \
+       "%s# (ratio>1, so subtract 1 to show only frac improvement)\n" \
+       "%s3dcalc -a %s/%s%s \\\n"                                     \
+       "%s       -b %s/%s%s \\\n"                                     \
+       "%s       -expr 'step(a-1)*step(b-1)*(a**2/b**2-1)' \\\n"      \
+       "%s       -prefix %s/%s\n"                                     \
+       % (indent, indent,
+          indent, qcdir, stdev_orig, proc.view,
                   indent, qcdir, stdev_ricor, proc.view,
           indent, indent, qcdir, var_rat)
 
