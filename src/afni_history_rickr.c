@@ -53,6 +53,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Dec, 2024, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "subtract 1 from ricor QC vrat, for more a useful display",
+   "Previously output ratio of orig/ricor variances to view improvement.\n"
+   "Subtract 1 for better visualization, since the orig ratio must be > 1,\n"
+   "leaving the image as a more direct 'fractional improvement', say.\n"
+   "Or equivalently, call it (orig-ricor)/ricor."
+ } ,
+
  { 17, Nov, 2024, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "use xcode 15.1 in .circleci/config.yml",
    "Version 14.2 was too old (macos 12), and 15.3 has proto issues to fix."
