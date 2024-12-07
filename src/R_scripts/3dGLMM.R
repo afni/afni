@@ -1031,7 +1031,7 @@ cat('the model specification or other factors.\n\n')
 
 
 # wrapper function glmmTMB_t() for modeling through a t-distribuion with 
-# currenlty with 3 start DFs (currently 9, 30, 50). Often DF of 9 works
+# currently with 3 start DFs (currently 9, 30, 50). Often DF of 9 works
 # as a start value leads to convergence, but it may occasionally fail.
 # Possible convergence indicators: 
 # 1) error message: even though various estimates are provided; 
