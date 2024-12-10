@@ -3827,7 +3827,7 @@ class AfniData(object):
       if run > self.nrows: return []
 
       if self.verb > 2:
-         print("-- get_am_list: numa %d, rows %d, run %d, adin %d" \
+         print("-- get_am_list: numa %d, rows %d, run %d, aindex %d" \
                % (numa, self.nrows, run, aindex))
 
       try:
