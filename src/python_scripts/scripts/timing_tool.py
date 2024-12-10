@@ -291,6 +291,11 @@ examples: ~1~
              timing_tool.py -timing stim01_houses.txt         \\
                             -show_tr_offset_stats -tr 1.25
 
+       f. show per run and global amplitude modulation statistics
+          (can be run with -multi_timing)
+
+             timing_tool.py -timing stim01_houses.txt -show_modulator_stats
+
    Example 11.  test a file for local/global timing issues ~2~
 
        Test a timing file for timing issues, which currently means having
@@ -857,6 +862,13 @@ action options (apply to single timing element, only): ~1~
 
         Show the minimum, mean, maximum and standard deviation of the list of
         all event durations.
+
+   -show_modulator_stats        : display stats for amplitude modulators ~2~
+
+        For each file (if -multi_timing) and each modulator, show per-run
+        statistics (if more than one run) and global statistics of the
+        amplitude modulators.  Statistics include the typical min, mean, max
+        and stdev values.
 
    -show_timing                 : display the current single timing data ~2~
 

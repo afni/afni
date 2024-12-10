@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Dec, 2024, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_modulator_stats option, showing min,mean,max,stdev stats",
+   NULL
+ } ,
+
  {  6, Dec, 2024, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "subtract 1 from ricor QC vrat, for more a useful display",
    "Previously output ratio of orig/ricor variances to view improvement.\n"
