@@ -3812,6 +3812,39 @@ class AfniData(object):
          return len(row[0][1])  # have amplitudes, return the length
       return 0 # no valid rows found
 
+   def get_am_list(self, aindex, run=0):
+      """return the list of amplitude modulators for the given index
+
+            aindex  : which amplitude modulators to return (0-based)
+                      (0 <= aindex < num_amplitudes)
+
+            run     : run index (0-based)
+                      (use -1 for all runs together)
+      """
+      numa = self.num_amplitudes()
+
+      if numa < 1: return []
+      if run > self.nrows: return []
+
+      if self.verb > 2:
+         print("-- get_am_list: numa %d, rows %d, run %d, adin %d" \
+               % (numa, self.nrows, run, aindex))
+
+      try:
+         if run >= 0:
+            row = self.mdata[run]
+            amlist = [row[i][1][aindex] for i in range(len(row))]
+         else:
+            # return a composite list across all runs
+            amlist = []
+            for row in self.mdata:
+               amlist.extend([row[i][1][aindex] for i in range(len(row))])
+      except:
+         amlist = []
+         print("** get_am_list: severe failure")
+
+      return amlist
+
    def ave_dur_modulation(self):
       if not self.mtype & MTYPE_DUR: return 0
       if not self.mdata: return 0
