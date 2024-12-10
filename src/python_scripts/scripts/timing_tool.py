@@ -291,6 +291,11 @@ examples: ~1~
              timing_tool.py -timing stim01_houses.txt         \\
                             -show_tr_offset_stats -tr 1.25
 
+       f. show per run and global amplitude modulation statistics
+          (can be run with -multi_timing)
+
+             timing_tool.py -timing stim01_houses.txt -show_modulator_stats
+
    Example 11.  test a file for local/global timing issues ~2~
 
        Test a timing file for timing issues, which currently means having
@@ -857,6 +862,13 @@ action options (apply to single timing element, only): ~1~
 
         Show the minimum, mean, maximum and standard deviation of the list of
         all event durations.
+
+   -show_modulator_stats        : display stats for amplitude modulators ~2~
+
+        For each file (if -multi_timing) and each modulator, show per-run
+        statistics (if more than one run) and global statistics of the
+        amplitude modulators.  Statistics include the typical min, mean, max
+        and stdev values.
 
    -show_timing                 : display the current single timing data ~2~
 
@@ -1697,9 +1709,10 @@ g_history = """
    3.20 Jan  4, 2023 - include -help_basis output in main -help
    3.21 Dec  4, 2023 - allow n/a in more tsv fields
    3.22 Nov 10, 2024 - add -show_tr_offset_stats, and consider -verb 0
+   3.23 Dec 10, 2024 - add -show_modulator_stats
 """
 
-g_version = "timing_tool.py version 3.22, November 10, 2024"
+g_version = "timing_tool.py version 3.23, December 10, 2024"
 
 
 
@@ -2244,6 +2257,8 @@ class ATInterface:
                          helpstr='perform operations per run (one file each)')
       self.valid_opts.add_opt('-run_len', -1, [], okdash=0,
                          helpstr='specify the lengths of each run (seconds)')
+      self.valid_opts.add_opt('-show_modulator_stats', 0, [],
+                         helpstr='show stats of amplitude modulators')
       self.valid_opts.add_opt('-show_tr_offsets', 0, [],
                          helpstr='show stimulus times modulo the TR')
       self.valid_opts.add_opt('-show_tr_offset_stats', 0, [],
@@ -2657,6 +2672,12 @@ class ATInterface:
                print("** '%s' requires -multi_timing" % opt.name)
                return 1
             if self.multi_show_isi_stats(): return 1
+
+         elif opt.name == '-show_modulator_stats':
+            if not self.timing and len(self.m_timing) == 0:
+               print("** '%s' requires -timing or -multi_timing" % opt.name)
+               return 1
+            if self.show_modulator_stats(): return 1
 
          elif opt.name == '-show_tr_offsets':
             if self.show_tr_offsets(): return 1
@@ -3492,6 +3513,27 @@ class ATInterface:
          if rv or not warn: print(rstr)
 
       return 0
+
+   def show_modulator_stats(self):
+      """show statistics for amplitude modulators in timing files
+      """
+
+      if not self.timing and len(self.m_timing) == 0:
+         print('** no timing, cannot show stats')
+         return 1
+
+      # do per run if verbose
+      perrun = self.verb > 0
+
+      # either way, process as a list
+      tlist = self.m_timing
+      if len(tlist) == 0: tlist = [self.timing]
+
+      for timing in tlist:
+         rv, rstr = timing.modulator_stats_str(perrun=perrun)
+         print(rstr)
+
+      return rv
 
    def show_tr_offset_stats(self):
       """show results from detailed_TR_offset_stats_str()

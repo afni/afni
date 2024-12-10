@@ -1149,6 +1149,66 @@ class AfniTiming(LD.AfniData):
 
       return rv, rstr
 
+   def modulator_stats_str(self, perrun=1):
+      """return a string to display detailed statistics regarding
+                amplitude modulators within a stimulus file
+
+            perrun      : if more than 1 run, also include per-run results
+
+         return status, stats string
+
+                status > 0 : success, warnings were issued
+                       = 0 : success, no warnings
+                       < 0 : errors
+      """
+      if not self.ready:
+         return 1, '** Timing: nothing to compute ISI stats from'
+      
+      num_am = self.num_amplitudes()
+      if num_am == 0:
+         return 1, '** no amplitude modulators for file %s' % self.name
+
+      rv = 0
+
+      # print out offset info
+      if self.nrows > 1: rstr = '%d runs' % self.nrows
+      else:              rstr = '1 run'
+      rstr = '\namplitude modulator statistics (%s - %s):\n\n' \
+             % (self.fname, rstr)
+
+      # ------------------------------------------------------------
+      # if more than one run, display per run stats
+      if self.nrows > 1 and perrun:
+
+         # for each modulator (index)
+         for amindex in range(num_am):
+            # mmms values across runs : [ [m,m,m,s], [m,m,m,s], ... ]
+            rlist = []
+            for rindex in range(self.nrows):
+               amlist = self.get_am_list(amindex, rindex)
+               rlist.append(list(UTIL.min_mean_max_stdev(amlist)))
+
+            pstr = 'mod_%d' % amindex
+            rstr += self._mms_per_run_str(rlist, pmesg=pstr, mtype='')
+
+      # ------------------------------------------------------------
+      # either way (1 run or more), display similar overall stats
+
+      # for each modulator, per run lists of min, mean, max, stdev
+      # [ MOD_0, MOD_1, ...], MOD_0 = [ [m,m,m,s], [m,m,m,s] ... runs ]
+      mmms_lists = []
+      lablist = []
+      for amindex in range(num_am):
+         amlist = self.get_am_list(amindex, 0)
+         mmms = list(UTIL.min_mean_max_stdev(amlist))
+         # each as a 1-run list of mmms values
+         mmms_lists.append([mmms])
+         lablist.append("mod_%d" % amindex)
+
+      rstr += self._mms_overall_str(mmms_lists, lablist)
+
+      return rv, rstr
+
    def detailed_TR_offset_stats_str(self, tr, perrun=1):
       """return a string to display detailed statistics regarding within-TR
                 offsets of stimuli
@@ -1227,10 +1287,14 @@ class AfniTiming(LD.AfniData):
 
       return rv, rstr
 
-   def _mms_overall_str(self, mmms_list, name_list, ndec=3, do_c=1):
+   def _mms_overall_str(self, mmms_list, name_list, mtype='global',
+                        ndec=3, do_c=1):
       """
-            mmms_list : array of mmms lists
+            mmms_list : array of (single element array) mmms lists
+                      : [ [[m,m,m,s]], [[m,m,m,s]], ... ]
+                      : (where each mmms_list *could* have had multiple runs)
             name_list : names for each mmms list
+            mtype     : type of mmms values to show, max 10 chars
             ndec      : number of decimal places to print
             do_c      : flag: do we show comment strings
       """
@@ -1244,19 +1308,22 @@ class AfniTiming(LD.AfniData):
       nlist = ['%8s' % n for n in name_list]
       nstr  = ' '.join(nlist)
 
+      # header:      each of the names in name_list
+      # global vals: the mmms values for each of the mmms lists
       # print using 7.3 + 2 char spacing
+      tstr = '%10s' % mtype
       mstr = '\n'                                                       \
              '                   %s\n'                                  \
              '                    ----------------------------------\n' \
-             '    global min      %s\n'                                 \
-             '    global mean     %s\n'                                 \
-             '    global max      %s\n'                                 \
-             '    global stdev    %s\n\n'                               \
+             '%s min      %s\n'                                         \
+             '%s mean     %s\n'                                         \
+             '%s max      %s\n'                                         \
+             '%s stdev    %s\n\n'                                       \
              % (nstr,
-                float_list_string(lmin  ,ndec=ndec),
-                float_list_string(lmean ,ndec=ndec),
-                float_list_string(lmax  ,ndec=ndec),
-                float_list_string(lstd  ,ndec=ndec))
+                tstr, float_list_string(lmin  ,ndec=ndec),
+                tstr, float_list_string(lmean ,ndec=ndec),
+                tstr, float_list_string(lmax  ,ndec=ndec),
+                tstr, float_list_string(lstd  ,ndec=ndec))
 
       # generate any comment string, if there is something to say
       # this might grow : e.g. pass 'frac' and maybe 'unique' to get comment
@@ -1272,10 +1339,12 @@ class AfniTiming(LD.AfniData):
 
       return mstr
 
-   def _mms_per_run_str(self, mmms, pmesg='', ndec=3, c=0):
+   def _mms_per_run_str(self, mmms, pmesg='', mtype='offset', ndec=3, c=0):
       """
             mmms    : array of mmms values, one set per run
+                      [min, mean, max, stdev], [min, mean, max, stdev], ... ]
             pmesg   : parenthetical message to print
+            mtype   : type of mms values to show, max 10 chars
             ndec    : number of decimal places to print
             c       : flag: do we show comment strings
       """
@@ -1303,16 +1372,16 @@ class AfniTiming(LD.AfniData):
       # print using 7.3 + 2 char spacing
       mstr = '                    per run%s\n'                      \
              '                    ------------------------------\n' \
-             '    offset min      %s\n'                             \
-             '    offset mean     %s\n'                             \
-             '    offset max      %s\n'                             \
-             '    offset stdev    %s\n'                             \
+             '%10s min      %s\n'                                   \
+             '%10s mean     %s\n'                                   \
+             '%10s max      %s\n'                                   \
+             '%10s stdev    %s\n'                                   \
              '%s\n'                                                 \
              % (pstr,
-                float_list_string(lmin  ,ndec=ndec),
-                float_list_string(lmean ,ndec=ndec),
-                float_list_string(lmax  ,ndec=ndec),
-                float_list_string(lstd  ,ndec=ndec),
+                mtype, float_list_string(lmin  ,ndec=ndec),
+                mtype, float_list_string(lmean ,ndec=ndec),
+                mtype, float_list_string(lmax  ,ndec=ndec),
+                mtype, float_list_string(lstd  ,ndec=ndec),
                 cstr)
 
       return mstr
