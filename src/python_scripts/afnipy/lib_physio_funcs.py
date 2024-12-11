@@ -4,6 +4,7 @@ import sys, os
 import copy
 import numpy  as np
 from   scipy  import signal             as sps
+from scipy.interpolate import interp1d
 
 from   afnipy import lib_physio_opts    as lpo
 from   afnipy import lib_physio_peaks   as lpp
@@ -12,6 +13,7 @@ from   afnipy import lib_physio_rvt     as lprvt
 from   afnipy import lib_physio_plot    as lpplt
 from   afnipy import lib_physio_util    as lpu
 from   afnipy import RRF                as rrf
+from   afnipy import CRF                as crf
 
 
 
@@ -20,6 +22,7 @@ from   afnipy import RRF                as rrf
 # set of allowed time series labels for calculation at present
 PO_all_label = ['card', 'resp']
 PO_rvt_label = ['resp']
+PO_hr_label = ['card']
 
 # ===========================================================================
 
@@ -47,6 +50,19 @@ valid for RVT calcs (e.g., might only apply to 'resp' label)."""
     elif not(label in PO_rvt_label) :
         print("** ERROR: label '{}' is not in allowed RVT list:".format(label))
         print("   {}".format(', '.join(PO_rvt_label)))
+        sys.exit(3)
+
+def check_label_hr(label):
+    """Simple check for some main funcs, that label is both present and
+valid for HR calcs (e.g., might only apply to 'card' label)."""
+
+    if not(label) :
+        print("** ERROR: must provide label kwarg from allowed HR list:")
+        print("   {}".format(', '.join(PO_hr_label)))
+        sys.exit(3)
+    elif not(label in PO_hr_label) :
+        print("** ERROR: label '{}' is not in allowed HT list:".format(label))
+        print("   {}".format(', '.join(PO_hr_label)))
         sys.exit(3)
 
 def check_empty_list(x, count, lab_title, label):
@@ -189,6 +205,66 @@ is_ok : int
 
     return 0
 
+def calc_timing_selection_hr(retobj, label=None, verb=0):
+    """Calculate the 'timing selection array' for the phys_obj
+(=retobj.data[label]) time series tvalues, **just starting at time 0,
+for the HR regressor**, based on the slice timing information.  That
+is, we need to know where to sample the physio time series to match
+with the MRI volume (just initial slice, which we assume is at t=0.0).
+The 'timing array' records this information.  We basically step
+through the finely-sampled physio data 'x-axis', and figure out which
+values correspond to a given coarse-sampled MRI slice.
+
+NB: we *could* have just gotten this info as a special case of the
+full physio slicewise regressors calculation, but decided to keep this
+separate, to be more general.
+
+Parameters
+----------
+retobj : retro_obj class
+    object with all necessary input time series info; will also store
+    outputs from here; contains dictionary of phys_ts_objs
+label : str
+    (non-optional kwarg) label to determine which time series is
+    processed, and in which sub-object information is stored.  Allowed
+    labels are stored in the PO_all_label list.
+
+Returns
+-------
+is_ok : int
+    was processing OK (= 0) or not (= nonzero)
+
+    """
+
+    if verb : print("++ Start HR arr timing calc for {} data".format(label))
+
+    check_label_all(label)
+    check_label_hr(label)      # a practical HR reality, at present
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+
+    slice_times = retobj.vol_slice_times            # coarse, MRI timing
+    nslice      = len(slice_times)                  # num of MRI slices
+    vol_nv      = retobj.vol_nv                     # num of MRI vols
+    vol_tr      = retobj.vol_tr                     # coarse, MRI sampling (s)
+    tvals       = retobj.data[label].tvalues        # fine, physio ts timing
+    ntval       = len(tvals)                        # num of physio timepts
+    samp_rate   = retobj.data[label].samp_rate      # fine, physio sampling (s)
+    
+    # calc list of time-array indices for all MRI volumes for this slice
+    all_ind = find_vol_slice_times(tvals, samp_rate, 0.0, 0,
+                                   vol_nv, vol_tr, verb=verb)
+
+    # done, store
+    phobj.list_slice_sel_hr = all_ind
+
+    return 0
+
 
 def calc_timing_selection_rvtrrf(retobj, label=None, verb=0):
     """Calculate the 'timing selection array' for the phys_obj
@@ -250,6 +326,57 @@ is_ok : int
 
     return 0
 
+def calc_timing_selection_hrtcrf(retobj, label=None, verb=0):
+    """Calculate the HR time series convolver with cardiac response function
+    (CRT) for the phys_obj (=retobj.data[label]) time series tvalues, **just 
+    starting at time 0, for the HRTCRF regressor**, based on the slice timing 
+    information.  That is, we need to know where to sample the physio time 
+    series to match with the MRI volume (just initial slice, which we assume is 
+    at t=0.0). The 'timing array' records this information.  We basically step
+    through the finely-sampled physio data 'x-axis', and figure out which
+    values correspond to a given coarse-sampled MRI slice.
+
+Parameters
+----------
+retobj : retro_obj class
+    object with all necessary input time series info; will also store
+    outputs from here; contains dictionary of phys_ts_objs
+label : str
+    (non-optional kwarg) label to determine which time series is
+    processed, and in which sub-object information is stored.  Allowed
+    labels are stored in the PO_all_label list.
+
+Returns
+-------
+is_ok : int
+    was processing OK (= 0) or not (= nonzero)
+
+    """
+
+    if verb : print("++ Start RVTRRF arr timing calc for {} data".format(label))
+
+    check_label_all(label)
+    check_label_hr(label)      # a practical RVT reality, at present
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+
+    vol_nv      = retobj.vol_nv                     # num of MRI vols
+    vol_tr      = retobj.vol_tr                     # coarse, MRI sampling (s)
+    tvals       = retobj.data[label].tvalues        # fine, physio ts timing
+    samp_rate   = retobj.data[label].samp_rate      # fine, physio sampling (s)
+    
+    # calc list of time-array indices for all MRI volumes for this slice
+    all_ind = find_vol_slice_times(tvals, samp_rate, 0.0, 0,
+                                   vol_nv, vol_tr, verb=verb)
+
+    # done, store
+    phobj.list_slice_sel_hrtcrf = all_ind
+
+    return 0
+
 def find_vol_slice_times(tvals, samp_rate, slice_time0, slice_idx,
                          vol_nv, vol_tr, verb=0):
     """Take in a list of finely sampled physio data, whose 'x-axis' of
@@ -284,6 +411,7 @@ all_ind : list
 
     ntval = len(tvals)              # len of tvalue array
     EPS   = 1.1* samp_rate / 2.0    # slightly generous epsilon
+    nslice      = len(tvals)        # num of MRI slices
 
     all_ind  = []                   # init: empty list of indices
     start    = 0                    # init: first index in tvals
@@ -900,6 +1028,41 @@ described in the paper mentioned above.
 
 # ===========================================================================
 
+def calc_time_series_hrtcrf(retobj, label=None, verb=0):
+    """Calculate heart rate time series (HRT), convolved with the
+    cardiac response function (CRF), as described in:
+
+    Chang, C, Cunningham, JP & Glover, GH,“Influence of heart rate on the BOLD 
+    signal: The cardiac response function”, NeuroImage 44 (2009) 857–869
+
+This convolves the heart rate time series (HRT) with the cardiac response 
+function (CRF) described in the paper mentioned above.
+
+    """
+    
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    
+    # Get RRF vector
+    crf_vector = crf.makeCRF()
+    
+    # Get HR time series (HRT)
+    calc_time_series_hr( retobj, label=label, verb=verb )
+    
+    # Deal with edge effects by subtracting the RVT mean from RVT
+    modHT = phobj.hr_ts - np.mean(phobj.hr_ts)
+    
+    # Convolve RVT vector with RRFR vector to get RVTRRFr
+    # phobj.rvtrrf_ts = np.convolve(rrf_vector, phobj.rvt_ts)
+    phobj.hrtcrf_ts = np.convolve(modHT, crf_vector)
+
+    return 0
+
+# ===========================================================================
+
+
 def calc_time_series_rvt(retobj, label=None, verb=0):
     """Calculate regression volume per time (RVT), as described in:
 
@@ -973,6 +1136,67 @@ intervals to estimate 'instantaneous period'.
 
 # --------------------------------------------------------------------------
 
+def calc_time_series_hr(retobj, label=None, verb=0):
+    """Calculate heart rate time series (HRT), as described in:
+
+    Shmueli, K., van Gelderen, P., de Zwart, J.A., Horovitz, S.G., Fukunaga, M.,
+    Jansma, J.M., Duyn, J.H., 2007. Low-frequency ﬂuctuations in the cardiac 
+    rate as a source of variance in the resting-state fMRI BOLD signal. 
+    Neuroimage 38, 306–320..
+
+This just uses the time series and cardiac peak/trough info to
+calculate the heart rate for the time series, and the inter-peak
+intervals to estimate 'instantaneous period'.
+
+    """
+
+    if verb : print("++ Start HRT calc for {} data".format(label))
+
+    check_label_all(label)
+    check_label_hr(label)      # a practical RVT reality, at present
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+
+    # ------ heart rate series
+    count     = 21 
+    lab_title = 'HR estimation'
+    lab_short = 'hr'
+    if verb :   print('++ ({}) {}'.format(label, lab_title))
+    
+    # Get midpoints of cardiac peaks
+    midpoints = [round((i+j)/2) 
+        for i, j in zip(phobj.peaks[:-1], phobj.peaks[1:])]
+        
+    # Get heart rate values, in seconds, at mid points
+    midpointValues = [phobj.samp_freq/(j-i) 
+        for i, j in zip(phobj.peaks[:-1], phobj.peaks[1:])]
+        
+    # HR time series is found by interpoalting the HR (in seconds) among 
+    # the midpoints
+    interpolationOrder = "quadratic"
+    f = interp1d(midpoints, midpointValues, kind = interpolationOrder)    
+    HR = f([x for x in range(midpoints[0],midpoints[-1])])
+    
+    # Apply first HR to beginning
+    insertion = [HR[0]] * phobj.peaks[0]
+    HR = np.insert(HR, 0, insertion)
+
+    # Apply last HR to end
+    fullLength = phobj.n_ts_orig
+    appendage = (fullLength - len(HR)) * [HR[-1]]
+    HR = np.append(HR, appendage)
+
+    phobj.hr_ts = HR
+
+    return 0
+
+# --------------------------------------------------------------------------
+
 
 def calc_regress_phys(retobj, label=None, verb=0):
     """Calculate physio regressors from the phase info, as described in
@@ -990,6 +1214,7 @@ Eq. 1 of Glover et al., 2000.
     check_label_all(label)
 
     regress_dict_rvtrrf = {}
+    regress_dict_hrtcrf = {}
 
     # the specific card/resp/etc. obj we use here (NB: not copying
     # obj, just dual-labelling for simplifying function calls while
@@ -1077,10 +1302,76 @@ def calc_regress_rvt(retobj, label=None, verb=0):
                                                     shift)
 
     phobj.regress_dict_rvt = regress_dict_rvt
-    phobj.regress_dict_rvtrrf = regress_dict_rvtrrf
+    if retobj.do_out_rvtrrf: 
+        phobj.regress_dict_rvtrrf = regress_dict_rvtrrf
 
     # make lineplot image of the RVT regressors
     tmp = lpplt.plot_regressors_rvt(retobj, label)
+
+    return 0
+
+def calc_regress_hr(retobj, label=None, verb=0):
+    """Calculate HR regressors, as described in Shmueli, K., van Gelderen, P., 
+    de Zwart,J.A., Horovitz, S.G., Fukunaga, M.,Jansma, J.M., & Duyn, J.H., 
+    2007. “Low-frequency fluctuations in the cardiac rate as a source of 
+    variance in the resting-state fMRI BOLD signal”. Neuroimage 38, 306–320 
+    2006.  Apply shifts here
+
+    """
+
+    if verb : print("++ Start HT regressor calc for {} data".format(label))
+
+    check_label_all(label)
+    check_label_hr(label)      # a practical HR reality, at present
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+    shift_list = retobj.hr_shift_list
+    
+    # Allow hrtCRF output without HR output
+    if retobj.do_out_hrtcrf and len(shift_list) == 0:
+        shift_list = retobj.hrtcrf_shift_list
+
+    nshift = len(shift_list)
+    regress_dict_hr = {}
+    if retobj.do_out_hrtcrf: regress_dict_hrtcrf = {}
+
+    if verb :
+        print("++ The {} HT shift values are: {}".format(nshift, shift_list))
+
+    # shifts here are made by shifting a copy of the underlying
+    # tvalues array, and then selecting the same MRI-snapshot points.
+    # We use the time series median to pad values
+
+    # the primary, unshifted regressor
+    hr_regr = phobj.hr_ts[phobj.list_slice_sel_hr]
+
+    for ii in range(nshift):
+        # make shifted regressors
+        lab = 'HR{:02d}'.format(ii)
+        shift = shift_list[ii]
+        regress_dict_hr[lab] = get_shifted_hr(phobj.hr_ts,
+                                                phobj.samp_freq,
+                                                phobj.list_slice_sel_hr,
+                                                shift)
+        if retobj.do_out_hrtcrf:
+            lab = 'hrtcrf{:02d}'.format(ii)
+            # shift = shift_list[ii]
+            regress_dict_hrtcrf[lab] = get_shifted_hrtcrf(phobj.hrtcrf_ts,
+                                                    phobj.samp_freq,
+                                                    phobj.list_slice_sel_hrtcrf,
+                                                    shift)
+
+    phobj.regress_dict_hr = regress_dict_hr
+    if retobj.do_out_hrtcrf: 
+        phobj.regress_dict_hrtcrf = regress_dict_hrtcrf
+
+    # make lineplot image of the HR regressors
+    tmp = lpplt.plot_regressors_hr(retobj, label)
 
     return 0
 
@@ -1132,6 +1423,54 @@ def calc_regress_rvtrrf(retobj, label=None, verb=0):
 
     return 0
 
+def calc_regress_hrtcrf(retobj, label=None, verb=0):
+    """Calculate HRTCRF regressors, as described in Chang, C, Cunningham, JP & 
+    Glover, GH, “Influence of heart rate on the BOLD signal: The cardiac 
+    response function”, NeuroImage 44 (2009) 857–869.  Apply shifts here
+
+    """
+
+    if verb : print("++ Start HRTCRF regressor calc for {} data".format(label))
+
+    check_label_all(label)
+    check_label_hr(label)      # a practical HR reality, at present
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+    shift_list = retobj.hrtcrf_shift_list
+
+    nshift = len(shift_list)
+    regress_dict_hrtcrf = {}
+
+    if verb :
+        print("++ The {} HRTCRF shift values are: {}".format(nshift, shift_list))
+
+    # shifts here are made by shifting a copy of the underlying
+    # tvalues array, and then selecting the same MRI-snapshot points.
+    # We use the time shrtcrferies median to pad values
+
+    # the primary, unshifted regressor
+    hrtcrf_regr = phobj.hrtcrf_ts[phobj.list_slice_sel_hrtcrf]
+
+    for ii in range(nshift):
+        # make shifted regressors
+        lab = 'hrtcrf{:02d}'.format(ii)
+        shift = shift_list[ii]
+        regress_dict_hrtcrf[lab] = get_shifted_hrtcrf(phobj.hrtcrf_ts,
+                                                phobj.samp_freq,
+                                                phobj.list_slice_sel_hrtcrf,
+                                                shift)
+
+    phobj.regress_dict_hrtcrf = regress_dict_hrtcrf
+
+    # make lineplot image of the HR regressors
+    tmp = lpplt.plot_regressors_hrtcrf(retobj, label)
+
+    return 0
 
 def get_shifted_rvtrrf(x, samp_freq, all_ind, shift):
     """Take input time series x and shift it by delta_t=shift to the left
@@ -1184,6 +1523,57 @@ y : np.ndarray
 
     return y
 
+def get_shifted_hrtcrf(x, samp_freq, all_ind, shift):
+    """Take input time series x and shift it by delta_t=shift to the left
+or right.  'Gaps' left by shifting are filled in with the first or
+last value present from the original time series in the direction of
+that shift.
+
+Parameters
+----------
+x : np.ndarray
+    1D array
+all_ind : np.ndarray
+    array of all original indices for selecting values out of x
+samp_freq : float
+    sampling frequency of x, in units of Hz
+shift: float
+    amount of time shift to shift the time series left ('earlier') or
+    right ('later')
+
+Returns
+-------
+y : np.ndarray
+    1D array, with shift applied
+
+    """
+
+    Nx   = len(x)                      # len of HRTCRF time series
+    Nind = len(all_ind)                # num of sampling points
+
+    # to be output: will hold sampled values
+    y = np.zeros(Nind, dtype=x.dtype)
+
+    # shift along HRTCRF grid, in terms of indices
+    delta_ind = int(shift * samp_freq)
+
+    # collection of shifted indices
+    new_ind = np.array(all_ind) - delta_ind
+
+    # which indices are valid for selecting within x
+    arr_use = new_ind <  Nx
+    arr_use*= new_ind >= 0
+
+    # get mean value of valid signal points (for mean-padding, below)
+    pad_val = np.mean(x[new_ind[arr_use]])
+
+    # get the shifted data, with mean padding
+    for ii in range(Nind):
+        if arr_use[ii] :    y[ii] = x[new_ind[ii]]
+        else:               y[ii] = pad_val
+
+    return y
+
 def get_shifted_rvt(x, samp_freq, all_ind, shift):
     """Take input time series x and shift it by delta_t=shift to the left
 or right.  'Gaps' left by shifting are filled in with the first or
@@ -1216,6 +1606,57 @@ y : np.ndarray
     y = np.zeros(Nind, dtype=x.dtype)
 
     # shift along RVT grid, in terms of indices
+    delta_ind = int(shift * samp_freq)
+
+    # collection of shifted indices
+    new_ind = np.array(all_ind) - delta_ind
+
+    # which indices are valid for selecting within x
+    arr_use = new_ind <  Nx
+    arr_use*= new_ind >= 0
+
+    # get mean value of valid signal points (for mean-padding, below)
+    pad_val = np.mean(x[new_ind[arr_use]])
+
+    # get the shifted data, with mean padding
+    for ii in range(Nind):
+        if arr_use[ii] :    y[ii] = x[new_ind[ii]]
+        else:               y[ii] = pad_val
+
+    return y
+
+def get_shifted_hr(x, samp_freq, all_ind, shift):
+    """Take input time series x and shift it by delta_t=shift to the left
+or right.  'Gaps' left by shifting are filled in with the first or
+last value present from the original time series in the direction of
+that shift.
+
+Parameters
+----------
+x : np.ndarray
+    1D array
+all_ind : np.ndarray
+    array of all original indices for selecting values out of x
+samp_freq : float
+    sampling frequency of x, in units of Hz
+shift: float
+    amount of time shift to shift the time series left ('earlier') or
+    right ('later')
+
+Returns
+-------
+y : np.ndarray
+    1D array, with shift applied
+
+    """
+
+    Nx   = len(x)                      # len of HR time series
+    Nind = len(all_ind)                # num of sampling points
+
+    # to be output: will hold sampled values
+    y = np.zeros(Nind, dtype=x.dtype)
+
+    # shift along HR grid, in terms of indices
     delta_ind = int(shift * samp_freq)
 
     # collection of shifted indices

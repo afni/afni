@@ -21,8 +21,6 @@
             variance in linear model. Ratio of variance with/without regressors)
             - Does it explain more of the variance in the data (which would be 
               a good thing) - (Permanent item)
-        - Convolve RVT with some function using physiological regressors (Catie 
-          Chang)
         - Get percentage of variance accounted for by cardio
         - Histogram of model
         - Remove large outliers in cardio
@@ -32,6 +30,7 @@
         - Options that might change do not have default
             
     DONE:
+        - Convolve RVT with some function using physiological regressors 
         - RVT without shifts (Single regressor for RVT.) 
         - Write alternative functions for
             - Finding peaks
@@ -126,6 +125,12 @@ if __name__ == "__main__":
         if retobj.do_out_rvtrrf:
             lpf.calc_timing_selection_rvtrrf( retobj, label=label, verb=verb )
 
+    # Set up HRTCRF if required
+    label = 'card'
+    if retobj.data[label] and retobj.do_out_hrtcrf:
+        lpf.calc_timing_selection_hr( retobj, label=label, verb=verb )
+        lpf.calc_timing_selection_hrtcrf( retobj, label=label, verb=verb )
+
     # ------------- Process any card/resp/etc. time series ------------------
 
     # Peak and trough estimation
@@ -153,6 +158,12 @@ if __name__ == "__main__":
             lpf.calc_time_series_rvtrrf( retobj, label=label, verb=verb )
             phobj = retobj.data[label]
 
+    # HRTCRF time series estimation (prob just for card)
+    label = 'card'
+    if retobj.data[label] and retobj.do_out_hrtcrf:
+        lpf.calc_time_series_hrtcrf( retobj, label=label, verb=verb )
+        phobj = retobj.data[label]
+
     # ------------- Calculate regressors ------------------
 
     # Regressors, for all physio inputs
@@ -178,6 +189,12 @@ if __name__ == "__main__":
         lpf.calc_regress_rvt( retobj, label=label, verb=verb )
         if retobj.do_out_rvtrrf:
             lpf.calc_regress_rvtrrf( retobj, label=label, verb=verb )
+
+    # Regressors, for HRTCRF time series (plot is made within this func)
+    label = 'card'
+    if retobj.data[label] and retobj.do_out_hrtcrf:
+        lpf.calc_regress_hr( retobj, label=label, verb=verb )
+        lpf.calc_regress_hrtcrf( retobj, label=label, verb=verb )
 
     # ------------- Write out regressors ------------------
 

@@ -30,6 +30,7 @@ def write_regressor_file(retobj):
             phobj = retobj.data[label]        # simplify coding below
             if retobj.do_out_rvt: nreg+= phobj.n_regress_rvt
             if retobj.do_out_rvtrrf: nreg += phobj.n_regress_rvtrrf
+            if retobj.do_out_hrtcrf: nreg += phobj.n_regress_hrtcrf
             nreg+= phobj.n_regress_phys
             
     ntype = nreg * nslice                     # ni_type quantity, ncol data
@@ -60,7 +61,7 @@ def write_regressor_file(retobj):
         # count number of regressors per slice, as added
         rcount = 0 
  
-        # RVT regressors: add label+data
+        # RVT and HR regressors: add label+data
         for label in lpf.PO_all_label :
             if retobj.have_label(label) :
                 phobj = retobj.data[label]        # simplify coding below
@@ -89,25 +90,38 @@ def write_regressor_file(retobj):
                         data_lab[cc] = title
                         data_arr[:,cc] = phobj.regress_dict_rvtrrf[key]
                         rcount+= 1
-
-        # physio regressors: add label+data (these *are* slicewise)
-        if (label=='resp' and retobj.do_out_resp) or\
-            (label=='card' and retobj.do_out_card):
-            for label in lpf.PO_all_label :
-                if retobj.have_label(label) :
-                    phobj = retobj.data[label]        # simplify coding below
-                    # process any/all phys regressors
-                    for ii in range(phobj.n_regress_phys):
-                        keyA = phobj.regress_rvt_phys[ii]
-                        keyB = phobj.regress_dict_phys[keyA][ss][0]
-                        
-                        title = keyB + '.' + keyA     # column header title
+                    
+                if retobj.do_out_hrtcrf:
+                    # process any/all HRTCRF regressors
+                    # rcount -= phobj.n_regress_rvt
+                    for ii in range(phobj.n_regress_hrtcrf):
+                        key = phobj.regress_hrtcrf_keys[ii]
+                        title = slab + '.' + key      # column header title
     
-                        # go to column, and add info (RVT = const across slice)
+                        # go to column, and add info (HRTCRF = const across slice)
                         cc = ss*nreg + rcount
                         data_lab[cc] = title
-                        data_arr[:,cc] = phobj.regress_dict_phys[keyA][ss][1]
+                        data_arr[:,cc] = phobj.regress_dict_hrtcrf[key]
                         rcount+= 1
+
+                # physio regressors: add label+data (these *are* slicewise)
+                if (label=='resp' and retobj.do_out_resp) or\
+                    (label=='card' and retobj.do_out_card):
+                    for label in lpf.PO_all_label :
+                        if retobj.have_label(label) :
+                            phobj = retobj.data[label]        # simplify coding below
+                            # process any/all phys regressors
+                            for ii in range(phobj.n_regress_phys):
+                                keyA = phobj.regress_rvt_phys[ii]
+                                keyB = phobj.regress_dict_phys[keyA][ss][0]
+                                
+                                title = keyB + '.' + keyA     # column header title
+            
+                                # go to column, and add info (RVT = const across slice)
+                                cc = ss*nreg + rcount
+                                data_lab[cc] = title
+                                data_arr[:,cc] = phobj.regress_dict_phys[keyA][ss][1]
+                                rcount+= 1
 
     # --------------------- write -------------------------------
 
