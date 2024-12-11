@@ -1434,6 +1434,15 @@ grown/improved over time):
               of possible outliers (ceil = 98%ile of non-zero voxels in
               the whole volume).  This option will turn that off.
 
+  -start2_thr STHR :(opt) unifizing is applied to the data to normalize
+              brightness values a bit; then, a thresholding is applied for 
+              an initial masking. The default value for thresholding is:
+                ${start2_thr}
+              This applies well to most anatomicals acquired at 3T, but if
+              you are using 7T data, we have found that setting this to
+              100 is often better to avoid over-chopping, particularly in
+              the cerebellum.
+
   -extra_qc_off :(opt) don't make extra QC images QC*jpg (for some
               unknown reason).
 
