@@ -2375,12 +2375,13 @@ args_dict2 : dict
         args_dict2['rvt_shift_list'] = [float(ll) for ll in L]       
         if (args_dict2['rvtrrf']):
             L   = DEF_rvtrrf_shift_list.split()
-            args_dict2['rvtrrf_shift_list'] = [float(ll) for ll in L]       
-        if (args_dict2['hrtcrf']):
-            L   = DEF_hrtcrf_shift_list.split()
-            args_dict2['hrtcrf_shift_list'] = [float(ll) for ll in L]       
-            L   = DEF_hr_shift_list.split()
-            args_dict2['hr_shift_list'] = [float(ll) for ll in L]       
+            args_dict2['rvtrrf_shift_list'] = [float(ll) for ll in L] 
+            
+    if (args_dict2['hrtcrf']):
+        L   = DEF_hrtcrf_shift_list.split()
+        args_dict2['hrtcrf_shift_list'] = [float(ll) for ll in L]       
+        L   = DEF_hr_shift_list.split()
+        args_dict2['hr_shift_list'] = [float(ll) for ll in L]       
 
     if args_dict2['img_figsize'] :
         # Interpret string to be list of floats.

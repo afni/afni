@@ -1333,7 +1333,7 @@ def calc_regress_hr(retobj, label=None, verb=0):
     shift_list = retobj.hr_shift_list
     
     # Allow hrtCRF output without HR output
-    if retobj.do_out_hrtcrf and len(shift_list) == 0:
+    if retobj.do_out_hrtcrf and (shift_list is None or len(shift_list) == 0):
         shift_list = retobj.hrtcrf_shift_list
 
     nshift = len(shift_list)
