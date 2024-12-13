@@ -154,6 +154,9 @@ field. Some projects that use AFNI include:
 * `PESTICA <https://github.com/wanyongshinccf/PESTICA>`_ & 
   `SLOMOCO <https://github.com/wanyongshinccf/SLOMOCO>`_: 
   physio and slice-oriented motion correction tools
+* `QSIPrep <https://github.com/PennLINC/qsiprep_build>`_: 
+  configure pipelines for processing diffusion-weighted MRI 
+  (dMRI) data
 * `XCP-D <https://xcp-d.readthedocs.io/en/latest/>`_: 
   fMRI post-processing and noise regression pipeline
 
