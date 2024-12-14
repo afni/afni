@@ -2,6 +2,8 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
+unalias grep
+
 # ----------------------------------------------------------------------
 # Look for bars of high variance that might suggest scanner interference.
 #
@@ -39,7 +41,7 @@ set nfirst     = 0              # number of first time points to exclude
 set perc       = 90             # percentile limit of variance
 set polort     = A              # polort for trend removal (A = auto)
 set rdir       = vlines.result  # output directory
-set thresh     = 0.95           # threshold for tscale average
+set thresh     = 0.97           # threshold for tscale average (was .95)
 
 
 set prog = find_variance_lines.tcsh
@@ -668,6 +670,7 @@ $prog modification history:
    0.3  14 Nov 2022 : [PT] update images and text info
    0.4  23 Nov 2022 : [PT] shell calls not aliased;
                       all exits are belong to integers
+   0.5  14 Dec 2024 : change thresh from 0.95 to 0.97 to restrict results
 
 EOF
 # check $version, at top
