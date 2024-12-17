@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Dec, 2024, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "add a simple convolve function",
+   NULL
+ } ,
+
  { 10, Dec, 2024, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add -show_modulator_stats option, showing min,mean,max,stdev stats",
    NULL
