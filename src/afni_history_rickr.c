@@ -58,6 +58,11 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
+ { 17, Dec, 2024, RCR, "Makefile.linux_ubuntu_24_ARM", MINOR, TYPE_NEW_OPT,
+   "duplicate the 24_64 Makefile but with the ARM system name",
+   NULL
+ } ,
+
  { 10, Dec, 2024, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add -show_modulator_stats option, showing min,mean,max,stdev stats",
    NULL
