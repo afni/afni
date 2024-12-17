@@ -5216,6 +5216,34 @@ def gaussian_at_fwhm(x, fwhm):
 
    return gaussian_at_hwhm_frac(2.0*x/fwhm)
 
+def convolve(data, kernel, length=0):
+   """simple convolution of data with a kernel
+
+      data      : array of values to convolve with kernel
+      kernel    : convolution kernel (usually shorter)
+      length    : if > 0: defines output length (else len(data))
+
+      return convolved array
+   """
+   klen = len(kernel)
+   if length == 0: rlen = len(data)
+   else:           rlen = length
+
+   if len(data) == 0 or klen == 0:
+      return []
+
+   res = [0]*rlen
+   for dind, dval in enumerate(data):
+      if dind >= rlen:
+         break
+
+      for kind, kval in enumerate(kernel):
+         if dind+kind >= rlen:
+            break
+         res[dind+kind] += dval * kval
+
+   return res
+
 # ----------------------------------------------------------------------
 # random list routines: shuffle, merge, swap, extreme checking
 # ----------------------------------------------------------------------

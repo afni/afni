@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Dec, 2024, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "add a simple convolve function",
+   NULL
+ } ,
+
  { 17, Dec, 2024, RCR, "Makefile.linux_ubuntu_24_ARM", MINOR, TYPE_NEW_OPT,
    "duplicate the 24_64 Makefile but with the ARM system name",
    NULL
