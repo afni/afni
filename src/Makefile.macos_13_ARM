@@ -82,7 +82,9 @@ CEXTRA = -m64 -Wall -Wno-deprecated-declarations -Wcomment -Wformat -DUSE_TRACIN
 # CC     = /opt/homebrew/bin/gcc-10 -O2  -DDARWIN $(CEXTRA)
 
 # allow an alternate compiler or just gcc version to be used
-LOCAL_CC_PATH ?= /opt/homebrew/bin/gcc-13
+# homebrew now defaults to gcc-14, default use it
+# (build_afni.py can look for -13 or other options)
+LOCAL_CC_PATH ?= /opt/homebrew/bin/gcc-14
 
 CCMIN  = $(LOCAL_CC_PATH) -arch arm64 -DDARWIN -DARM_M1
 CC     = $(CCMIN) -O1 $(CEXTRA)
