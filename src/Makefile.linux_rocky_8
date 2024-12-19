@@ -89,6 +89,21 @@ INSTALL_PREREQ = suma_gts
 GSLPROGS = balloon
 EXPROGS = $(GSLPROGS)
 
+# ---------------------------------------------------------------------------
+# include libraries with versions that change often
+
+# copy /lib64/libgsl.so.23.1.0 locally as libgsl.so.23, similarly for cblas
+EXTRA_INSTALL_FILES = /lib64/libgsl.so.23.1.0 \
+                      /lib64/libgslcblas.so.0.0.0
+
+EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                         \
+                           mv libgsl.so.23.1.0 libgsl.so.23 ;         \
+                           mv libgslcblas.so.0.0.0 libgslcblas.so.0 ; \
+                           chmod 755 libgsl.so.23 ;                   \
+                           chmod 755 libgslcblas.so.0 ;               \
+                         )
+
+# ---------------------------------------------------------------------------
 # for pure dynamic linking
 
 # LLIBS  = -lmri -lf2c -lXm -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
