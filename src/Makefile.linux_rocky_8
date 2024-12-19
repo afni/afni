@@ -91,6 +91,9 @@ EXPROGS = $(GSLPROGS)
 
 # ---------------------------------------------------------------------------
 # include libraries with versions that change often
+# (official build only, so non-exact systems do not require specific files)
+
+ifeq ($(AFNI_WHOMADEIT), official)
 
 # copy /lib64/libgsl.so.23.1.0 locally as libgsl.so.23, similarly for cblas
 EXTRA_INSTALL_FILES = /lib64/libgsl.so.23.1.0 \
@@ -102,6 +105,8 @@ EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                         \
                            chmod 755 libgsl.so.23 ;                   \
                            chmod 755 libgslcblas.so.0 ;               \
                          )
+endif
+# end official build
 
 # ---------------------------------------------------------------------------
 # for pure dynamic linking
