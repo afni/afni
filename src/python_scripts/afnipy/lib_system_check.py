@@ -1061,6 +1061,14 @@ class SysInfo:
       if self.verb > 1:
          print("++ afni_vinfo: %s" % self.afni_vinfo)
 
+      if self.cpu == 'arm64' and self.afni_vinfo['sys'] == 'macos_10.12_local':
+         wstr = "have ARM cpu, but Intel AFNI binaries"
+         bstr = "build_afni.py -build_root ~/afni_build -package macos_13_ARM"
+         self.comments.append(wstr)
+         self.comments.append(" - consider online install instructions" \
+                              " for local build, or more directly:")
+         self.comments.append("   %s" % bstr)
+
    def test_python_lib_matplotlib(self, verb=2):
       """check for existence of matplotlib.pyplot and min matplotlib version
          (>= 2.2)
