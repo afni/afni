@@ -51,6 +51,8 @@ class SysInfo:
 
       # info to fill and track
       self.afni_ver        = ''
+      self.afni_vinfo      = [] # split contents of AFNI_version.txt
+                                # ver, system, date, (optional) whomadeit
       self.afni_label      = ''
       self.afni_dir        = ''
       self.python_prog     = '' # path to program
@@ -523,7 +525,8 @@ class SysInfo:
             self.comments.append('consider installing PyQt4')
 
    def show_spec_macos(self):
-      """look for fink, macports, homebrew, PyQt4"""
+      """look for fink, macports, homebrew, PyQt4
+      """
 
       # first check on XQuartz (and Xcode?)
       self.check_for_progs(['XQuartz'], show_missing=1)
@@ -535,15 +538,15 @@ class SysInfo:
          # self.comments.append('consider installing fink')
          print('** no package manager found (okay for bootcamp)')
       self.hunt_for_homebrew()
-      maj, min = self.get_macos_ver()
-      if maj < 10 or (maj == 10 and min < 7):
+      maj, vmin = self.get_macos_ver()
+      if maj < 10 or (maj == 10 and vmin < 7):
          self.comments.append('OS X version might be old')
 
       if self.verb > 1:
-         print("-- have mac version (major, minor) = %s, %s" % (maj, min))
+         print("-- have mac version (major, minor) = %s, %s" % (maj, vmin))
 
       # add PyQt4 comment, if missing (check for brew and fink packages)
-      if not self.have_pyqt4:
+      if self.warn_pyqt and not self.have_pyqt4:
          glist = glob.glob('/usr/local/lib/python2*/site-packages/PyQt4')
          if len(glist) == 0:
             glist = glob.glob('/sw/lib/qt4*/lib/python2*/site-packages/PyQt4')
@@ -593,8 +596,10 @@ class SysInfo:
       self.check_for_pre_11_dylib()
 
       # in 10.11, check for gcc under homebrew
+      # (this are useless in modern macos)
       self.check_for_10_11_lib('libgomp.1.dylib', wpath='gcc/*/lib/gcc/*')
       self.check_for_10_11_lib('libglib-2.0.dylib', wpath='glib/*/lib')
+
       if self.need_flat:
          self.check_for_flat_namespace()
 
@@ -631,8 +636,8 @@ class SysInfo:
       if self.afni_fails < 2: return
             
       # this check only applis to OS X 10.7 through 10.10 (and if that)
-      maj, min = self.get_macos_ver()
-      if maj != 10 or min < 7 or min > 10:
+      maj, vmin = self.get_macos_ver()
+      if maj != 10 or vmin < 7 or vmin > 10:
          return
 
       # count AFNI dylib files
@@ -695,7 +700,9 @@ class SysInfo:
          self.comments.append(" add dir: %s" % rbin_cur)
 
    def check_for_10_11_lib(self, libname, wpath='gcc/*/lib/gcc/*'):
-      """in 10.11, check for library under homebrew
+      """in 10.11 or 10.12, check for library under homebrew
+
+         ** homebrew does support 10.x, so maybe this is mute
 
          wpath = wildcard path to library name
 
@@ -705,9 +712,11 @@ class SysInfo:
       if self.repo_prog != 'brew':
          return 0
 
-      # require 10.11, unless being verbose
-      maj, min = self.get_macos_ver()
-      if maj == 10 and min < 11 and self.verb <= 1:
+      # require 10 and 10.11, unless being verbose
+      maj, vmin = self.get_macos_ver()
+      if maj != 10:
+         return 0
+      if vmin < 11 and self.verb <= 1:
          return 0
 
       sname   = wpath.split('/')[0]    # short name, e.g. gcc
@@ -939,6 +948,7 @@ class SysInfo:
          if prog == 'AFNI_version.txt':
             show_comment = 0 # no comments.append()
             vinfo = UTIL.read_AFNI_version_file()
+            self.afni_vinfo = [v.strip() for v in vinfo.split(',')]
             if vinfo != '':
                if vinfo.find('macos_10.12_local') >= 0 or \
                      vinfo.find('macosx_10.7_local') >= 0:
@@ -1320,7 +1330,7 @@ class SysInfo:
 
    def show_env_vars(self, header=1):
       print(UTIL.section_divider('env vars', hchar='-'))
-      maj, min = self.get_macos_ver()
+      maj, vmin = self.get_macos_ver()
       elist = ['PATH', 'PYTHONPATH', 'R_LIBS',
                'LD_LIBRARY_PATH',
                'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH',
@@ -1333,7 +1343,7 @@ class SysInfo:
             envval = os.environ[evar]
             print("%-*s = %s" % (maxlen, evar, envval))
             if len(envval) > 60: print("")
-         elif evar.startswith('DY') and maj > 10 or (maj == 10 and min >= 11):
+         elif evar.startswith('DY') and maj > 10 or (maj == 10 and vmin >= 11):
             if self.verb > 2:
                print("-- SEV: get DY var from macos child env (cur shell)...")
             s, so = self.get_shell_value(self.cur_shell, evar)
