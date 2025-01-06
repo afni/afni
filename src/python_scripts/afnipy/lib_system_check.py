@@ -51,12 +51,14 @@ class SysInfo:
 
       # info to fill and track
       self.afni_ver        = ''
-      self.afni_vinfo      = [] # split contents of AFNI_version.txt
-                                # ver, system, date, (optional) whomadeit
       self.afni_label      = ''
       self.afni_dir        = ''
       self.python_prog     = '' # path to program
       self.os_dist         = ''
+
+      # initialize a dict based on AFNI_version.txt : ver, sys, date, who
+      self.vinfo           = '' # raw AFNI_version.txt contents
+      self.afni_vinfo      = {'ver':'', 'sys':'', 'date':'', 'who':''}
 
       self.comments        = [] # comments to print at the end
       self.afni_fails      = 0
@@ -947,16 +949,16 @@ class SysInfo:
          # the version file is treated specially here
          if prog == 'AFNI_version.txt':
             show_comment = 0 # no comments.append()
-            vinfo = UTIL.read_AFNI_version_file()
-            self.afni_vinfo = [v.strip() for v in vinfo.split(',')]
-            if vinfo != '':
-               if vinfo.find('macos_10.12_local') >= 0 or \
-                     vinfo.find('macosx_10.7_local') >= 0:
-                  self.need_flat = 1
-               nfound += 1
-            else:
+            # populate version info dict
+            self.set_afni_vinfo()
+            vsys = self.afni_vinfo['sys']
+            if vsys == '':
                self.comments.append('missing %s, maybe package is old'%prog)
-            print('%-20s : %s' % (prog, vinfo))
+            else:
+               nfound += 1
+               if vsys == 'macos_10.12_local' or vsys == 'macosx_10.7_local':
+                  self.need_flat = 1
+            print('%-20s : %s' % (prog, self.vinfo))
             continue
 
          # as is afni
@@ -1039,6 +1041,25 @@ class SysInfo:
       print('')
 
       return nfound
+
+   def set_afni_vinfo(self):
+      """populate the afni_vinfo dict {'ver':'', 'sys':'', 'date','', 'who':''}
+      """
+      self.vinfo = UTIL.read_AFNI_version_file()
+      vlist = [v.strip() for v in self.vinfo.split(',')]
+      vlen  = len(vlist)
+
+      if vlen > 0:
+         self.afni_vinfo['ver'] = vlist[0]
+      if vlen > 1:
+         self.afni_vinfo['sys'] = vlist[1]
+      if vlen > 2:
+         self.afni_vinfo['date'] = vlist[2]
+      if vlen > 3:
+         self.afni_vinfo['who'] = vlist[3]
+
+      if self.verb > 1:
+         print("++ afni_vinfo: %s" % self.afni_vinfo)
 
    def test_python_lib_matplotlib(self, verb=2):
       """check for existence of matplotlib.pyplot and min matplotlib version
