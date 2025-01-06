@@ -357,8 +357,11 @@
 #set version   = "6.7";   set rev_dat   = "Mar 19, 2024"
 #    + [PT] new opt c2s_mont_1x1 so script has 1x1 montages
 #
-set version   = "6.8";   set rev_dat   = "Aug 26, 2024"
+#set version   = "6.8";   set rev_dat   = "Aug 26, 2024"
 #    + [PT] add subbrick selection to AMASK_FOCUS_ULAY functionality
+#
+set version   = "6.9";   set rev_dat   = "Jan 6, 2025"
+#    + [PT] add -olay_boxed_color opt
 #
 # =====================================================================
 
@@ -385,6 +388,14 @@ setenv AFNI_MOTD_CHECK           NO
 setenv AFNI_NIFTI_TYPE_WARN      NO
 setenv AFNI_MESSAGE_COLORIZE     NO      # [PT: Jul 06, 2023]
 setenv AFNI_SKIP_DYLD_WARNING    YES     # [PT: Jul 01, 2024]
+
+# NB: this env var is interesting. if "black" is the value, then it
+# behaves like "none". In the source code, the default RGB value is
+# (0.005, 0.005, 0.005). So, "black" is not really RGB=(0,0,0), but
+# ~1/255 for each value.  That is OK, and we follow suit here and
+# below where the value is set. That is, a user entry of "black" is
+# recoded to this.
+setenv AFNI_FUNC_BOXED_COLOR     "#010101"   # [PT: Jan 06, 2025]
 
 # -------------------------------------------------------------------
 
@@ -888,6 +899,16 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set olay_boxed = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-olay_boxed_color" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        # "black" is the default, but it has to be specified in a
+        # special way, which is described in the note for the
+        # initialization of this env var, above
+        if ( "$argv[$ac]" != "black" ) then
+            setenv AFNI_FUNC_BOXED_COLOR "$argv[$ac]"
+        endif
 
     else if ( "$argv[$ac]" == "-image_zoom_nn_no" ) then
         setenv AFNI_IMAGE_ZOOM_NN NO
@@ -3181,6 +3202,14 @@ COMMAND OPTIONS ~1~
                     viewing; put a box around supra-threshold
                     voxels/clusters. Default value is "No".  (see DR:
                     SET_FUNC_BOXED)
+
+-olay_boxed_color OBC :set the color of the box lines that are put around
+                    the suprathreshold content. Color values can be the 
+                    usual known names in AFNI or matplotlib, or a hex
+                    specification. Default value is "black".
+                    NB: RBG=(0,0,0) gets mapped to "none" here, so black
+                    is actually RGB=(0.005, 0.005, 0.005) or hex="#010101".
+                    (see ENV: AFNI_FUNC_BOXED_COLOR)
 
 -image_zoom_nn_no  :the default zoom is set to NN mode, so no smoothing
                     occurs (see ENV: AFNI_IMAGE_ZOOM_NN).  This option
