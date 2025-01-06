@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Jan, 2025, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "warn user of ARM mac using macos_10.12_local",
+   NULL
+ } ,
+
  { 17, Dec, 2024, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
    "add a simple convolve function",
    NULL

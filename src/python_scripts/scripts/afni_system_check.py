@@ -360,9 +360,10 @@ g_history = """
         - if no Xvfb in PATH, check whether file exists
         - report fewer link suggestions
    1.37 Oct 24, 2024 - do away with "have python3 but not python2"
+   1.38 Jan  6, 2026 - warn user of ARM mac using macos_10.12_local"
 """
 
-g_version = "afni_system_check.py version 1.37, October 24, 2024"
+g_version = "afni_system_check.py version 1.38, January 6, 2025"
 
 
 class CmdInterface:
