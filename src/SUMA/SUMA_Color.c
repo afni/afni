@@ -11394,12 +11394,9 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
 
    SUMA_ENTRY;
 
-   /*   
    // Disable variable transparency  
    if (SO && SO->SurfCont && SO->SurfCont->AlphaOpacityFalloff_tb) 
     XtSetSensitive(SO->SurfCont->AlphaOpacityFalloff_tb, 0);
-    */
-
 
    if (!filename) {
       SUMA_S_Err("Null data");
