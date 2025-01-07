@@ -20,7 +20,7 @@ unalias grep
 #    - get 90th %ile in volume mask
 #    - scale variance to val/90%, with max of 1
 #    - Localstat -mask mean over columns
-#    - 
+#    - bad columns are those with mean >= .97 (see -thresh)
 #
 #    * consider Color_circle_AJJ (tighter color ranges up top)
 #
@@ -34,7 +34,7 @@ set do_clean   = 1              # do we remove temporary files
 set do_img     = 1              # make images
 set mask_in    = 'AUTO'         # any input mask (possibly renamed)
 set max_img    = 7              # maximum number of high-var images to make
-set min_cvox   = 5              # minimum voxels in a column
+set min_cvox   = 6              # minimum voxels in a column
 set min_nt     = 10             # minimum time series length (after nfirst)
 set nerode     = 0              # number of mask erosions
 set nfirst     = 0              # number of first time points to exclude
@@ -63,35 +63,75 @@ while ( $ac <= $#argv )
 
    # general processing options
    else if ( "$argv[$ac]" == "-do_clean" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
       @ ac += 1
       set do_clean = $argv[$ac]
    else if ( "$argv[$ac]" == "-do_img" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
       @ ac += 1
       set do_img = $argv[$ac]
    else if ( "$argv[$ac]" == "-echo" ) then
       set echo
    else if ( "$argv[$ac]" == "-mask" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
       @ ac += 1
       set mask_in = $argv[$ac]
    else if ( "$argv[$ac]" == "-max_img" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
       @ ac += 1
       set max_img = $argv[$ac]
    else if ( "$argv[$ac]" == "-min_cvox" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
       @ ac += 1
       set min_cvox = $argv[$ac]
    else if ( "$argv[$ac]" == "-min_nt" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
       @ ac += 1
       set min_nt = $argv[$ac]
    else if ( "$argv[$ac]" == "-nerode" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
       @ ac += 1
       set nerode = $argv[$ac]
    else if ( "$argv[$ac]" == "-nfirst" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
       @ ac += 1
       set nfirst = $argv[$ac]
    else if ( "$argv[$ac]" == "-perc" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
       @ ac += 1
       set perc = $argv[$ac]
    else if ( "$argv[$ac]" == "-polort" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
       @ ac += 1
       set polort = $argv[$ac]
       if ( $polort == AUTO ) then
@@ -99,7 +139,18 @@ while ( $ac <= $#argv )
       else if ( $polort == NONE ) then
          set polort = -1
       endif
+   else if ( "$argv[$ac]" == "-thresh" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
+      @ ac += 1
+      set thresh = $argv[$ac]
    else if ( "$argv[$ac]" == "-rdir" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
       @ ac += 1
       set rdir = $argv[$ac]
 
@@ -115,7 +166,7 @@ end
 
 # if there are input remaining datasets, bail
 if ( $#din_list < 1 ) then
-   echo "** missing input datasets (they should come as trailing arguments"
+   echo "** missing input datasets (they should come as trailing arguments)"
    echo ""
    exit 0
 endif
@@ -511,7 +562,8 @@ the (masked) slices.
       - get p90 = 90th %ile in volume mask, default %ile = $perc
       - scale variance to val/p90, with max of 1
       - Localstat -mask mean over columns
-      - find separate clusters of them
+      - find separate clusters of them,
+        where a vline is a column with Localstat mean >= $thresh
 
 ------------------------------------------------------------
 Examples:
@@ -647,6 +699,15 @@ Options (processing):
 
                           All output is put into this results directory.
 
+   -thresh THRESH       : variance threshold to be considered a variance line
+
+                             default : $thresh
+
+                             THRESH should probably be just under 1.0.
+
+                          This is the minimum 3dLocalstat variance average for
+                          a column to be consider a variance line.
+
 
 - R Reynolds, P Taylor, D Glen
   Nov, 2022
@@ -671,6 +732,8 @@ $prog modification history:
    0.4  23 Nov 2022 : [PT] shell calls not aliased;
                       all exits are belong to integers
    0.5  14 Dec 2024 : change thresh from 0.95 to 0.97 to restrict results
+   0.6   7 Jan 2024 : min_cvox: 5->6
+                      add -thresh option
 
 EOF
 # check $version, at top
