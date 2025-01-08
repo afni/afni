@@ -34,19 +34,20 @@ set do_clean   = 1              # do we remove temporary files
 set do_img     = 1              # make images
 set mask_in    = 'AUTO'         # any input mask (possibly renamed)
 set max_img    = 7              # maximum number of high-var images to make
-set min_cvox   = 6              # minimum voxels in a column
+set min_cvox   = 7              # minimum voxels in a column
 set min_nt     = 10             # minimum time series length (after nfirst)
 set nerode     = 0              # number of mask erosions
 set nfirst     = 0              # number of first time points to exclude
 set perc       = 90             # percentile limit of variance
 set polort     = A              # polort for trend removal (A = auto)
 set rdir       = vlines.result  # output directory
+set sdpower    = 2              # power on stdev (2=default variance)
 set thresh     = 0.97           # threshold for tscale average (was .95)
 
 
 set prog = find_variance_lines.tcsh
 
-set version = "0.4, 23 Nov, 2022"
+set version = "0.6, 8 Jan, 2025"
 
 if ( $#argv < 1 ) goto SHOW_HELP
 
@@ -139,6 +140,13 @@ while ( $ac <= $#argv )
       else if ( $polort == NONE ) then
          set polort = -1
       endif
+   else if ( "$argv[$ac]" == "-stdev_power" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
+      @ ac += 1
+      set sdpower = $argv[$ac]
    else if ( "$argv[$ac]" == "-thresh" ) then
       if ( $ac >= $#argv ) then
          echo "** missing parameter after $argv[$ac]"
@@ -195,6 +203,9 @@ foreach dset ( $din_list )
 end
 
 echo "++ have nslices : $nk_list"
+echo "++ params: min_cvox $min_cvox, nerode $nerode,"
+echo "           perc $perc, sdpower $sdpower, thresh $thresh"
+echo ""
 
 # ----------------------------------------------------------------------
 # make results dir, enter it and remove old results
@@ -344,7 +355,7 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
    # compute temporal variance dset (square stdev for now)
    set sset = var.0.orig.r$ind02.nii.gz
    3dTstat -stdevNOD -prefix tmp.stdev.nii.gz $dset
-   3dcalc -prefix $sset -a tmp.stdev.nii.gz -expr 'a*a'
+   3dcalc -prefix $sset -a tmp.stdev.nii.gz -expr "a**$sdpower"
    \rm tmp.stdev.nii.gz
 
    # get 90%ile in mask
@@ -699,14 +710,28 @@ Options (processing):
 
                           All output is put into this results directory.
 
+   -stdev_power POW     : power on stdev to apply before ave/thresh
+
+                             default :  -stdev_power $sdpower
+                             example :  -stdev_power 4 -thresh 0.92
+
+                          The is the power the stdandard deviation is taken to
+                          before any subsequent computations.  Higher values
+                          (powers) allow for better contrast when close to 1.0.
+                          Higher values might allow for lower -thresh.
+
+                          A value of 1 will lead to computations with stdev.
+                          A value of 2 will imply variance.
+                          Higher values continues the pattern.
+
+
    -thresh THRESH       : variance threshold to be considered a variance line
 
-                             default : $thresh
-
-                             THRESH should probably be just under 1.0.
+                             default : -thresh $thresh
 
                           This is the minimum 3dLocalstat variance average for
-                          a column to be consider a variance line.
+                          a column to be consider a variance line.  A value 
+                          just under 1.0 might be reasonable.
 
 
 - R Reynolds, P Taylor, D Glen
@@ -732,8 +757,9 @@ $prog modification history:
    0.4  23 Nov 2022 : [PT] shell calls not aliased;
                       all exits are belong to integers
    0.5  14 Dec 2024 : change thresh from 0.95 to 0.97 to restrict results
-   0.6   7 Jan 2024 : min_cvox: 5->6
-                      add -thresh option
+   0.6   8 Jan 2025 : min_cvox: 5->7
+                    - add -thresh option
+                    - add -stdev_power
 
 EOF
 # check $version, at top
