@@ -730,7 +730,7 @@ Options (processing):
                              default : -thresh $thresh
 
                           This is the minimum 3dLocalstat variance average for
-                          a column to be consider a variance line.  A value 
+                          a column to be consider a variance line.  A value
                           just under 1.0 might be reasonable.
 
 
