@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Jan, 2025, RCR, "find_variance_lines.tcsh", MINOR, TYPE_NEW_OPT,
+   "add -thresh and -stdev_power; init min_cvox to 7",
+   NULL
+ } ,
+
  {  6, Jan, 2025, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
    "warn user of ARM mac using macos_10.12_local",
    NULL
