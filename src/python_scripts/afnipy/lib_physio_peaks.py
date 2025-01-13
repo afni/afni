@@ -147,6 +147,7 @@ def apply_bandpass_smooth(x, samp_freq,
                           label='', retobj=None,
                           win_shape='blackman_nuttall',
                           extend_bp=False,
+                          my_sigma=None,
                           verb=0):
     """Bandpass filter raw data based on overall typical period of the
 time series, and also return the peak (mode) of freq between [1,
@@ -182,6 +183,12 @@ win_shape : str
 extend_bp : bool
     opt to be more generous in bandpass (would only apply to resp data
     at present, where there is more variability)
+my_sigma : int or float
+    mainly for testing purposes: by default, this function determines
+    its own filter window width. Using this parameter, though, the
+    auto-determined filter window width is ignored and this value will
+    be used to specify the width (see help of each allowed win_shape
+    for description of the sigma used therein). Units of this are in Hz.
 
 Returns
 -------
@@ -253,10 +260,12 @@ idx_freq_peak : int
     # the tapering.
     if win_shape == 'blackman_nuttall' :
         sigma = sig_fac*freq_peak                         # scale width
+        if my_sigma != None : sigma = my_sigma            # use user test value
         filt  = func_blackman_nuttall(N, delta=delta_f, sigma=sigma,
                                       hp_freq = highpass_freq)
     elif win_shape == 'flat_gaussian' :
         sigma = sig_fac*freq_peak                         # scale width
+        if my_sigma != None : sigma = my_sigma            # use user test value
         filt  = func_flatgauss(N, delta=delta_f, sigma=sigma,
                                hp_freq = highpass_freq)
     else:
