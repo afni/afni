@@ -48,6 +48,7 @@ class SysInfo:
       self.data_root       = data_root
       self.home_dir        = os.environ['HOME']
       self.system          = platform.system()
+      self.user            = "NONE"
 
       # info to fill and track
       self.afni_ver        = ''
@@ -117,7 +118,10 @@ class SysInfo:
          
       print('number of CPUs:       %s' % self.get_cpu_count())
 
-      # note shell, and if we are not in login shell
+      # note user and shell, and if we are not in login shell
+      self.user            = self.get_user()
+      print('user:                 %s' % self.user)
+
       logshell = UTIL.get_login_shell()
       curshell = UTIL.get_current_shell()
       if logshell == curshell: note = ''
@@ -137,6 +141,28 @@ class SysInfo:
       else:                                   fstr = 'does not exist'
       print('shell RC file:        %s (%s)' % (self.rc_file, fstr))
       print('')
+
+   def get_user(self):
+      """get user ID, hopefully by USER env var, else possibly whoami
+      """
+      fail = 1
+      user = 'FAILURE'
+
+      try:
+         user = os.environ['USER']
+         fail = 0
+      except:
+         if self.verb > 1:
+            print("-- no USER environment variable")
+
+      if fail:
+         try:
+            status, cout = UTIL.exec_tcsh_command('whoami', lines=1)
+            user = cout[0].strip()
+         except:
+            pass
+
+      return user
 
    def set_shell_rc_file(self, slist):
       """and many any useful comments"""
