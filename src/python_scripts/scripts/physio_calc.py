@@ -125,10 +125,22 @@ if __name__ == "__main__":
 
     # ------------- Process any card/resp/etc. time series ------------------
 
-    # Peak and trough estimation
+    # Peak and trough estimation: now can also be loaded in from a previous run
     for label in lpf.PO_all_label:
         if retobj.data[label] :
-            lpf.calc_time_series_peaks( retobj, label=label, verb=verb )
+            # check if the peaks/troughs were loaded in already
+            if not(retobj.count_load_proc(label)) :
+                # do all peak/trough processing steps
+                tmp3 = lpf.calc_time_series_peaks( retobj, label=label, 
+                                                   verb=verb )
+            # see if interactive mode refinement is on
+            if retobj.data[label].do_interact :
+                tmp4 = lpf.run_interactive_peaks( retobj, label=label, 
+                                                  verb=verb )
+            # make final peak/trough images
+            tmp5 = lpf.make_final_image_peaks( retobj, label=label, 
+                                               verb=verb )
+
 
     # save/write out peaks/troughs, if user asks
     for label in lpf.PO_all_label:

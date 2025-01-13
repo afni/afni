@@ -308,6 +308,7 @@ title : str
 # --------------------------------------------------------------------------
 
 def calc_time_series_peaks(retobj, label=None, verb=0):
+
     """Calculate the peaks for one of the phys_obj time series.  The time
 series and processing is determined by the label given.  There is both
 overlap and differentiation in the processing of various time series.
@@ -328,6 +329,8 @@ is_ok : int
     was processing OK (= 0) or not (= nonzero)
 
     """
+
+    BAD_RETURN = 1    # in case things go awry
 
     if verb : 
         print("++ Start peak/trough calc for {} data".format(label))
@@ -371,7 +374,7 @@ is_ok : int
                                     verb=verb)
     phobj.ts_orig_bp = copy.deepcopy(xfilt)          # save BPed ver of ts
     phobj.bp_idx_freq_mode = idx_freq_mode           # save peak freq's idx
-    if check_empty_list(peaks, count, lab_title, label) :  return 1
+    if check_empty_list(peaks, count, lab_title, label) :  return BAD_RETURN
 
     # save output figure, if desired
     if retobj.img_verb > 1 :
@@ -406,7 +409,7 @@ is_ok : int
                                     phobj.ts_orig,
                                     is_troughs = False,
                                     verb=verb)
-    if check_empty_list(peaks, count, lab_title, label) :  return 1
+    if check_empty_list(peaks, count, lab_title, label) :  return BAD_RETURN
 
     if retobj.img_verb > 1 :
         fname, title = make_str_ts_peak_trough(label, count, 
@@ -435,7 +438,7 @@ is_ok : int
                                             phobj.ts_orig,
                                             is_troughs = False,
                                             verb=verb)
-    if check_empty_list(peaks, count, lab_title, label) :  return 1
+    if check_empty_list(peaks, count, lab_title, label) :  return BAD_RETURN
 
     if retobj.img_verb > 1 :
         fname, title = make_str_ts_peak_trough(label, count, 
@@ -463,7 +466,7 @@ is_ok : int
                                  phobj.ts_orig,
                                  is_troughs = False,
                                  verb=verb)
-    if check_empty_list(peaks, count, lab_title, label) :  return 1
+    if check_empty_list(peaks, count, lab_title, label) :  return BAD_RETURN
 
     if retobj.img_verb > 1 :
         fname, title = make_str_ts_peak_trough(label, count, 
@@ -487,7 +490,7 @@ is_ok : int
 #                                phobj.ts_orig,
 #                                is_troughs = False,
 #                                verb=verb)
-#    if check_empty_list(peaks, count, lab_title, label) :  return 1
+#    if check_empty_list(peaks, count, lab_title, label) :  return BAD_RETURN
 #
 #    if retobj.img_verb > 1 :
 #        fname, title = make_str_ts_peak_trough(label, count, 
@@ -510,7 +513,8 @@ is_ok : int
         if verb :   print('++ ({}) {}'.format(label, lab_title))
         troughs, _ = sps.find_peaks(-xfilt,
                                     width=int(phobj.samp_freq/8))
-        if check_empty_list(troughs, count, lab_title, label) :  return 1
+        if check_empty_list(troughs, count, lab_title, label) :  
+            return BAD_RETURN
 
         if retobj.img_verb > 1 :
             fname, title = make_str_ts_peak_trough(label, count, 
@@ -544,7 +548,8 @@ is_ok : int
                                           phobj.ts_orig,
                                           is_troughs = True,
                                           verb=verb)
-        if check_empty_list(troughs, count, lab_title, label) :  return 1
+        if check_empty_list(troughs, count, lab_title, label) :
+            return BAD_RETURN
 
         if retobj.img_verb > 1 :
             fname, title = make_str_ts_peak_trough(label, count, 
@@ -566,7 +571,8 @@ is_ok : int
                                               perc_filt = 90.0,
                                               is_troughs = True, 
                                               verb=verb)
-        if check_empty_list(troughs, count, lab_title, label) :  return 1
+        if check_empty_list(troughs, count, lab_title, label) :
+            return BAD_RETURN
 
         if retobj.img_verb > 1 :
             fname, title = make_str_ts_peak_trough(label, count, 
@@ -594,7 +600,8 @@ is_ok : int
                                        phobj.ts_orig,
                                        is_troughs = True,
                                        verb=verb)
-        if check_empty_list(troughs, count, lab_title, label) :  return 1
+        if check_empty_list(troughs, count, lab_title, label) :
+            return BAD_RETURN
 
         if retobj.img_verb > 1 :
             fname, title = make_str_ts_peak_trough(label, count, 
@@ -619,7 +626,8 @@ is_ok : int
 #                                      phobj.ts_orig,
 #                                      is_troughs = True,
 #                                      verb=verb)
-#        if check_empty_list(troughs, count, lab_title, label) :  return 1
+#        if check_empty_list(troughs, count, lab_title, label) :
+#            return BAD_RETURN
 #
 #        if retobj.img_verb > 1 :
 #            fname, title = make_str_ts_peak_trough(label, count, 
@@ -631,61 +639,165 @@ is_ok : int
 #                                              retobj=retobj,
 #                                              verb=verb)
 
-    # ----- DONE with peak+trough estimation+refinement: add to obj -----
+
+    # ----- DONE with peak+trough estimation+refinement
+
+    # add calculated results to obj 
     phobj.peaks = peaks
-    p_ival = np.median([j-i for i, j in zip(peaks[:-1], peaks[1:])])
-    p_ival*= phobj.samp_rate
     if len(troughs) :
         phobj.troughs = troughs
+    phobj.proc_count+= count
 
-    # ----- INTERACTIVE plot
-    if phobj.do_interact :
-        count+=1
-        lab_title = 'Interactive peaks ($\Delta t_{\\rm med}$ = '
-        lab_title+= '{:0.3f} s)'.format(p_ival)
-        lab_short = 'interact_peaks'
-        if len(troughs) :
-            lab_title+= ' and troughs'
-            lab_short+= '_troughs'
-            if verb :   print('++ ({}) {}'.format(label, lab_title))
-            if retobj.img_verb > 0 :
-                fname, title = make_str_ts_peak_trough(label, count, 
-                                                       lab_title, lab_short,
-                                                       prefix=prefix, 
-                                                       odir=odir)
-                lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
-                                                  troughs=troughs,
-                                                  add_ibandT=True,
-                                                  add_ibandB=True,
-                                                  title=title, fname=fname,
-                                                  retobj=retobj,
-                                                  do_show=True,
-                                                  do_interact=True,
-                                                  do_save=False,
-                                                  verb=verb)
-                # ... and update local ones
-                peaks   = copy.deepcopy(phobj.peaks)
-                troughs = copy.deepcopy(phobj.troughs)
-        else:
-            if verb :   print('++ ({}) {}'.format(label, lab_title))
-            if retobj.img_verb > 0 :
-                fname, title = make_str_ts_peak_trough(label, count, 
-                                                       lab_title, lab_short, 
-                                                       prefix=prefix, 
-                                                       odir=odir)
-                lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
-                                                  add_ibandT=True,
-                                                  title=title, fname=fname,
-                                                  retobj=retobj,
-                                                  do_show=True,
-                                                  do_interact=True,
-                                                  do_save=False,
-                                                  verb=verb)
-                # ... and update local ones
-                peaks = copy.deepcopy(phobj.peaks)
+    return 0
+
+def run_interactive_peaks(retobj, label=None, verb=0):
+    """Do the interactive peak/trough selection for the 'label' data in
+the retobj. This updates the peaks within retobj itself.
+
+Parameters
+----------
+retobj : retro_obj class
+    object with all necessary input time series info; will also store
+    outputs from here; contains dictionary of phys_ts_objs
+label : str
+    (non-optional kwarg) label to determine which time series is
+    processed, and in which sub-object information is stored.  Allowed
+    labels are stored in the PO_all_label list.
+
+Returns
+-------
+is_ok : int
+    was processing OK (= 0) or not (= nonzero)
+
+    """
+
+    BAD_RETURN = 1    # in case things go awry
+
+    if verb : 
+        print("++ Start interactive plot for {} data".format(label))
+
+    check_label_all(label)
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+
+    # set up local quantities
+    count = phobj.proc_count
+    peaks = phobj.peaks
+    troughs = phobj.troughs    # might be empty list, which is fine
+    p_ival = np.median([j-i for i, j in zip(peaks[:-1], peaks[1:])])
+    p_ival*= phobj.samp_rate
+    # **** decide if we still need local peaks and troughs arrays in
+    # **** this func
+
+    if verb > 1 :
+        print("++ In plots, step interval for lines: {}"
+              "".format(phobj.img_arr_step))
+
+    # ----- run INTERACTIVE plot
+    count+=1
+    lab_title = 'Interactive peaks ($\Delta t_{\\rm med}$ = '
+    lab_title+= '{:0.3f} s)'.format(p_ival)
+    lab_short = 'interact_peaks'
+    if len(troughs) :
+        lab_title+= ' and troughs'
+        lab_short+= '_troughs'
+        if verb :   print('++ ({}) {}'.format(label, lab_title))
+        if retobj.img_verb > 0 :
+            fname, title = make_str_ts_peak_trough(label, count, 
+                                                   lab_title, lab_short,
+                                                   prefix=prefix, 
+                                                   odir=odir)
+            lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
+                                              troughs=troughs,
+                                              add_ibandT=True,
+                                              add_ibandB=True,
+                                              title=title, fname=fname,
+                                              retobj=retobj,
+                                              do_show=True,
+                                              do_interact=True,
+                                              do_save=False,
+                                              verb=verb)
+            # ... and update local ones
+            peaks   = copy.deepcopy(phobj.peaks)
+            troughs = copy.deepcopy(phobj.troughs)
+    else:
+        if verb :   print('++ ({}) {}'.format(label, lab_title))
+        if retobj.img_verb > 0 :
+            fname, title = make_str_ts_peak_trough(label, count, 
+                                                   lab_title, lab_short, 
+                                                   prefix=prefix, 
+                                                   odir=odir)
+            lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
+                                              add_ibandT=True,
+                                              title=title, fname=fname,
+                                              retobj=retobj,
+                                              do_show=True,
+                                              do_interact=True,
+                                              do_save=False,
+                                              verb=verb)
+            # ... and update local ones
+            peaks = copy.deepcopy(phobj.peaks)
+
+    # add calculated results to obj:
+    # NB: the peaks/troughts get updated in phobj when the interactive
+    # mode is on in pplt.makefig_phobj_peaks_troughs(), which it is by
+    # definition here
+    phobj.proc_count+= count
+
+    return 0
+
+def make_final_image_peaks(retobj, label=None, verb=0):
+    """Make the final plot of peak/trough values for the 'label' data in
+the retobj.
+
+Parameters
+----------
+retobj : retro_obj class
+    object with all necessary input time series info; will also store
+    outputs from here; contains dictionary of phys_ts_objs
+label : str
+    (non-optional kwarg) label to determine which time series is
+    processed, and in which sub-object information is stored.  Allowed
+    labels are stored in the PO_all_label list.
+
+Returns
+-------
+is_ok : int
+    was processing OK (= 0) or not (= nonzero)
+
+    """
+
+    BAD_RETURN = 1    # in case things go awry
+
+    if verb : 
+        print("++ Make final peaks/troughs plot for {} data".format(label))
+
+    check_label_all(label)
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+
+    # set up local quantities
+    count = phobj.proc_count
+    peaks = phobj.peaks
+    troughs = phobj.troughs    # might be empty list, which is fine
+    p_ival = np.median([j-i for i, j in zip(peaks[:-1], peaks[1:])])
+    p_ival*= phobj.samp_rate
 
     # -------------- FINAL plot
-    count+=1
+    if count >= 10 :
+        count+=1
+    else:
+        count = 10
     lab_title = 'Final peaks ($\Delta t_{\\rm med}$ = '
     lab_title+= '{:0.3f} s)'.format(p_ival)
     lab_short = 'final_peaks'
