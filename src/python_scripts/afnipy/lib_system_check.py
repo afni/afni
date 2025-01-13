@@ -575,6 +575,7 @@ class SysInfo:
          print("-- have mac version (major, minor) = %s, %s" % (maj, vmin))
 
       self.check_for_progs(['git', 'gcc'])
+      self.show_brew_gcc()
 
       # add PyQt4 comment, if missing (check for brew and fink packages)
       if self.warn_pyqt and not self.have_pyqt4:
@@ -639,6 +640,57 @@ class SysInfo:
       # forget this function - I forgot that the problem was a non-flat version
       #                        of libXt6, not a 6 vs 7 issue...
       # self.check_for_libXt7()
+
+   def show_brew_gcc(self):
+      """report all files of the form $HOMEBREW_PREFIX/bin/gcc-??
+
+         return 1 on an error
+      """
+
+      bdirs = [] # bin parent directories to search
+
+      # start with brew's "current" location, and store edir
+      bpre = '$HOMEBREW_PREFIX'
+      ebin = ''
+      if bpre in os.environ:
+         ebin = '%s/bin' % os.environ[bpre]
+         if os.path.isdir(ebin):
+            bdirs.append(ebin)
+
+      # if intel, start with /usr/local, else start with /opt/homebrew
+      if self.cpu.startswith('x86'):
+         btest = ['/usr/local/bin', '/opt/homebrew/bin']
+      else:
+         btest = ['/opt/homebrew/bin', '/usr/local/bin']
+
+      # put either or both into the list
+      for tdir in btest:
+         if os.path.isdir(tdir) and tdir not in bdirs:
+            bdirs.append(tdir)
+
+      # set these info bits early, to be used more than once
+      spaces = ' '*23
+      jstr = '\n%s' % spaces
+
+      if self.verb > 2:
+         print("-- have brew bin(s)  : %s" % jstr.join(bdirs))
+
+      if len(bdirs) == 0:
+         return 0
+
+      # finally, look for gcc in the first brew directory
+      bdir = bdirs[0]
+      gfiles = glob.glob('%s/gcc-[0-9][0-9]' % bdir)
+
+      print("brew gcc(s)          : %s" % jstr.join(gfiles))
+
+      # and show the current CommandLineTools SDK
+      sdklink = '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk'
+      sfile = os.path.realpath(sdklink)
+      sfile = sfile.split('/')[-1]
+      print("CommandLineTools SDK : %s" % sfile)
+
+      return 0
 
    def hunt_for_homebrew(self):
       """assuming it was not found, just look for the file"""
