@@ -4098,7 +4098,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               toggleOn, YUP);
             }
 
-            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA")) {
+            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA") &&
+            
+                // Ensure "A" button is not disabled
+                XtIsSensitive(SUMA_SV_Focus_SO(sv)->SurfCont->AlphaOpacityFalloff_tb)) {
+                
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "y")){
                 fprintf(stderr, "Show alpha\n");
                   // SurfCont->AlphaOpacityFalloff = 1;
