@@ -112,7 +112,7 @@ class SysInfo:
       print('version:              %s' % platform.version())
 
       # check distributions by type - now all over the place
-      self.os_dist = distribution_string() # save for later
+      self.os_dist = distribution_string(self.verb) # save for later
       print('distribution:         %s' % self.os_dist)
          
       print('number of CPUs:       %s' % self.get_cpu_count())
@@ -2209,58 +2209,88 @@ def tup_str(some_tuple):
    """just listify some string tuple"""
    return ' '.join(list(some_tuple))
 
-def distribution_string():
+def distribution_string(verb=1):
    """check distributions by type - now a bit messy"""
    import platform
    sysname = platform.system()
-   checkdist = 0        # set in any failure case
    dstr = 'bad pizza'
    dtest = 'NOT SET'
 
+   fail = 1  # track failure state, flatten try/except cases
+   label = 'NONE' # label for verbosity
+
    if sysname == 'Linux':
       # through python 3.7 (if they still use mac_ver, why not linux?)
-      try: dstr = tup_str(platform.linux_distribution())
+      try:
+         dstr = tup_str(platform.linux_distribution())
+         fail = 0
+         label = 'L0 p.ld'
       except: 
+         pass
+
+      if fail:
          try:
             # python 3.4+
             import distro
             dtest = distro.linux_distribution(full_distribution_name=False)
             dstr = tup_str(dtest)
+            fail = 0
+            label = 'L1 d.ld'
          except:
-            # deprecated since 2.6, but why not give it a try?
-            try:
-               dtest = platform.dist()
-               dstr = tup_str(dtest)
-            except:
-               checkdist = 1
-      # backup plan for linux checkdist
-      if checkdist:
+            pass
+
+      if fail:
+         # deprecated since 2.6, but why not give it a try?
+         try:
+            dtest = platform.dist()
+            dstr = tup_str(dtest)
+            fail = 0
+            label = 'L2 p.d'
+         except:
+            pass
+
+      # backup plan for linux
+      if fail:
          dstr = linux_dist_from_os_release()
          if dstr != '':
-            checkdist = 0
+            fail = 0
+         label = 'L3 ldfor'
+
    elif sysname == 'Darwin':
       try:
          dtest = platform.mac_ver()
          dstr = tup_str(dtest)
+         fail = 0
+         label = 'M0 p.mac_ver'
       except:
+         pass
+
+      if fail:
          try:
             dtest = list(platform.mac_ver())
             dstr = dtest[0]
-            if type(dstr) != str:
-               checkdist = 1
-            elif dstr == '':
-               checkdist = 1
+            if type(dstr) == str:
+              if dstr != '':
+                 fail = 0
+            label = 'M1 p.mac_ver'
          except:
-            checkdist = 1
+            pass
+
    else:
       try:
          dtest = platform.dist()
          dstr = tup_str(dtest)
-      except: checkdist = 1
+         label = 'other p.dist'
+      except:
+         fail = 1
 
    # backup plan
-   if checkdist:
+   if fail:
       dstr = 'unknown %s (%s)' % (sysname, dtest)
+      label = 'unknown'
+
+   if verb > 1:
+      print("-- dist_str : %s, %s, %s, %s" % (sysname, label, dstr, fail))
 
    return dstr
 
