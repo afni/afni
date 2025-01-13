@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Jan, 2025, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "updates for OS version, gcc and CLT SDK",
+   NULL
+ } ,
+
  {  8, Jan, 2025, RCR, "find_variance_lines.tcsh", MINOR, TYPE_NEW_OPT,
    "add -thresh and -stdev_power; init min_cvox to 7",
    NULL

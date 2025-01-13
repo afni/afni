@@ -48,6 +48,7 @@ class SysInfo:
       self.data_root       = data_root
       self.home_dir        = os.environ['HOME']
       self.system          = platform.system()
+      self.user            = "NONE"
 
       # info to fill and track
       self.afni_ver        = ''
@@ -112,12 +113,15 @@ class SysInfo:
       print('version:              %s' % platform.version())
 
       # check distributions by type - now all over the place
-      self.os_dist = distribution_string() # save for later
+      self.os_dist = distribution_string(self.verb) # save for later
       print('distribution:         %s' % self.os_dist)
          
       print('number of CPUs:       %s' % self.get_cpu_count())
 
-      # note shell, and if we are not in login shell
+      # note user and shell, and if we are not in login shell
+      self.user            = self.get_user()
+      print('user:                 %s' % self.user)
+
       logshell = UTIL.get_login_shell()
       curshell = UTIL.get_current_shell()
       if logshell == curshell: note = ''
@@ -137,6 +141,28 @@ class SysInfo:
       else:                                   fstr = 'does not exist'
       print('shell RC file:        %s (%s)' % (self.rc_file, fstr))
       print('')
+
+   def get_user(self):
+      """get user ID, hopefully by USER env var, else possibly whoami
+      """
+      fail = 1
+      user = 'FAILURE'
+
+      try:
+         user = os.environ['USER']
+         fail = 0
+      except:
+         if self.verb > 1:
+            print("-- no USER environment variable")
+
+      if fail:
+         try:
+            status, cout = UTIL.exec_tcsh_command('whoami', lines=1)
+            user = cout[0].strip()
+         except:
+            pass
+
+      return user
 
    def set_shell_rc_file(self, slist):
       """and many any useful comments"""
@@ -502,6 +528,7 @@ class SysInfo:
 
       # check for repositories
       self.check_for_progs(['dnf', 'yum', 'apt-get'], repos=1)
+      self.check_for_progs(['git', 'gcc'])
 
       if self.os_dist.find('buntu') >= 0:
          print('have Ubuntu system: %s' % self.os_dist)
@@ -546,6 +573,9 @@ class SysInfo:
 
       if self.verb > 1:
          print("-- have mac version (major, minor) = %s, %s" % (maj, vmin))
+
+      self.check_for_progs(['git', 'gcc'])
+      self.show_brew_gcc()
 
       # add PyQt4 comment, if missing (check for brew and fink packages)
       if self.warn_pyqt and not self.have_pyqt4:
@@ -610,6 +640,57 @@ class SysInfo:
       # forget this function - I forgot that the problem was a non-flat version
       #                        of libXt6, not a 6 vs 7 issue...
       # self.check_for_libXt7()
+
+   def show_brew_gcc(self):
+      """report all files of the form $HOMEBREW_PREFIX/bin/gcc-??
+
+         return 1 on an error
+      """
+
+      bdirs = [] # bin parent directories to search
+
+      # start with brew's "current" location, and store edir
+      bpre = '$HOMEBREW_PREFIX'
+      ebin = ''
+      if bpre in os.environ:
+         ebin = '%s/bin' % os.environ[bpre]
+         if os.path.isdir(ebin):
+            bdirs.append(ebin)
+
+      # if intel, start with /usr/local, else start with /opt/homebrew
+      if self.cpu.startswith('x86'):
+         btest = ['/usr/local/bin', '/opt/homebrew/bin']
+      else:
+         btest = ['/opt/homebrew/bin', '/usr/local/bin']
+
+      # put either or both into the list
+      for tdir in btest:
+         if os.path.isdir(tdir) and tdir not in bdirs:
+            bdirs.append(tdir)
+
+      # set these info bits early, to be used more than once
+      spaces = ' '*23
+      jstr = '\n%s' % spaces
+
+      if self.verb > 2:
+         print("-- have brew bin(s)  : %s" % jstr.join(bdirs))
+
+      if len(bdirs) == 0:
+         return 0
+
+      # finally, look for gcc in the first brew directory
+      bdir = bdirs[0]
+      gfiles = glob.glob('%s/gcc-[0-9][0-9]' % bdir)
+
+      print("brew gcc(s)          : %s" % jstr.join(gfiles))
+
+      # and show the current CommandLineTools SDK
+      sdklink = '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk'
+      sfile = os.path.realpath(sdklink)
+      sfile = sfile.split('/')[-1]
+      print("CommandLineTools SDK : %s" % sfile)
+
+      return 0
 
    def hunt_for_homebrew(self):
       """assuming it was not found, just look for the file"""
@@ -1911,7 +1992,8 @@ class SysInfo:
          # either way, use what is returned
          return 1, vstr
 
-      elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink', 'git' ]:
+      elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink',
+                    'git', 'gcc' ]:
          cmd = '%s --version' % prog
          s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
          if s: return 1, se[0]
@@ -2209,58 +2291,95 @@ def tup_str(some_tuple):
    """just listify some string tuple"""
    return ' '.join(list(some_tuple))
 
-def distribution_string():
+def distribution_string(verb=1):
    """check distributions by type - now a bit messy"""
    import platform
    sysname = platform.system()
-   checkdist = 0        # set in any failure case
    dstr = 'bad pizza'
    dtest = 'NOT SET'
 
+   fail = 1  # track failure state, flatten try/except cases
+   label = 'NONE' # label for verbosity
+
    if sysname == 'Linux':
       # through python 3.7 (if they still use mac_ver, why not linux?)
-      try: dstr = tup_str(platform.linux_distribution())
+      try:
+         dstr = tup_str(platform.linux_distribution())
+         fail = 0
+         label = 'L0 p.ld'
       except: 
+         pass
+
+      if fail:
          try:
             # python 3.4+
             import distro
             dtest = distro.linux_distribution(full_distribution_name=False)
             dstr = tup_str(dtest)
+            fail = 0
+            label = 'L1 d.ld'
          except:
-            # deprecated since 2.6, but why not give it a try?
-            try:
-               dtest = platform.dist()
-               dstr = tup_str(dtest)
-            except:
-               checkdist = 1
-      # backup plan for linux checkdist
-      if checkdist:
+            pass
+
+      if fail:
+         # deprecated since 2.6, but why not give it a try?
+         try:
+            dtest = platform.dist()
+            dstr = tup_str(dtest)
+            fail = 0
+            label = 'L2 p.d'
+         except:
+            pass
+
+      # backup plan for linux
+      if fail:
          dstr = linux_dist_from_os_release()
          if dstr != '':
-            checkdist = 0
+            fail = 0
+         label = 'L3 ldfor'
+
    elif sysname == 'Darwin':
       try:
          dtest = platform.mac_ver()
          dstr = tup_str(dtest)
+         fail = 0
+         label = 'M0 p.mac_ver'
       except:
+         pass
+
+      if fail:
          try:
             dtest = list(platform.mac_ver())
             dstr = dtest[0]
-            if type(dstr) != str:
-               checkdist = 1
-            elif dstr == '':
-               checkdist = 1
+            if type(dstr) == str:
+              if dstr != '':
+                 fail = 0
+            label = 'M1 p.mac_ver'
          except:
-            checkdist = 1
+            pass
+
+      # shell out to test against 'sw_vers'
+      status, cout = UTIL.exec_tcsh_command('sw_vers --productVersion', lines=0)
+      if not status:
+         cout = cout.strip()
+         if dstr != cout:
+            dstr = '%s (sw_vers %s)' % (dstr, cout)
+
    else:
       try:
          dtest = platform.dist()
          dstr = tup_str(dtest)
-      except: checkdist = 1
+         label = 'other p.dist'
+      except:
+         fail = 1
 
    # backup plan
-   if checkdist:
+   if fail:
       dstr = 'unknown %s (%s)' % (sysname, dtest)
+      label = 'unknown'
+
+   if verb > 1:
+      print("-- dist_str : %s, %s, %s, %s" % (sysname, label, dstr, fail))
 
    return dstr
 
