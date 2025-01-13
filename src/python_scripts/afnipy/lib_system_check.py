@@ -528,6 +528,7 @@ class SysInfo:
 
       # check for repositories
       self.check_for_progs(['dnf', 'yum', 'apt-get'], repos=1)
+      self.check_for_progs(['git', 'gcc'])
 
       if self.os_dist.find('buntu') >= 0:
          print('have Ubuntu system: %s' % self.os_dist)
@@ -572,6 +573,8 @@ class SysInfo:
 
       if self.verb > 1:
          print("-- have mac version (major, minor) = %s, %s" % (maj, vmin))
+
+      self.check_for_progs(['git', 'gcc'])
 
       # add PyQt4 comment, if missing (check for brew and fink packages)
       if self.warn_pyqt and not self.have_pyqt4:
@@ -1937,7 +1940,8 @@ class SysInfo:
          # either way, use what is returned
          return 1, vstr
 
-      elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink', 'git' ]:
+      elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink',
+                    'git', 'gcc' ]:
          cmd = '%s --version' % prog
          s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
          if s: return 1, se[0]
