@@ -2306,6 +2306,13 @@ def distribution_string(verb=1):
          except:
             pass
 
+      # shell out to test against 'sw_vers'
+      status, cout = UTIL.exec_tcsh_command('sw_vers --productVersion', lines=0)
+      if not status:
+         cout = cout.strip()
+         if dstr != cout:
+            dstr = '%s (sw_vers %s)' % (dstr, cout)
+
    else:
       try:
          dtest = platform.dist()
