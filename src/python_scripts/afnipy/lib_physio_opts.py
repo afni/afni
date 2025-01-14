@@ -6,7 +6,8 @@
 
 #version = '1.0'
 #version = '1.1'   # add remove_val_list, for some vals to get replaced
-version = '1.2'   # better bandpassing and tapering, no 'add missing' for now
+#version = '1.2'   # better bandpassing and tapering, no 'add missing' for now
+version = '1.3'   # can read in previous peaks/troughs
 
 # ==========================================================================
 
@@ -138,6 +139,9 @@ DEF = {
     'img_bp_max_f'      : DEF_img_bp_max_f,  # (float) xaxis max for bp plot
     'save_proc_peaks'   : False,     # (bool) dump peaks to text file
     'save_proc_troughs' : False,     # (bool) dump troughs to text file
+    'load_proc_peaks_card'   : None,        # (str) file of troughs to read in 
+    'load_proc_peaks_resp'   : None,        # (str) file of peaks to read in 
+    'load_proc_troughs_resp' : None,        # (str) file of peaks to read in 
 }
 
 # list of keys for volume-related items, that will get parsed
@@ -949,6 +953,45 @@ delete a point, you can add one back, or vice versa.
 
 {ddashline}
 
+Loading in peaks/troughs from earlier physio_calc.py run ~1~
+
+It is possible to save estimated peak and trough values to a text file
+with this program, using '-save_proc_peaks' and '-save_proc_troughs',
+respectively.  These options tell the program to write *.1D files that
+contain the integer indices of the peaks or troughts within the
+processed time series.
+
+It is now possible to re-load those text files of integer indices back
+into the program, which might be useful when further editing of
+peaks/troughs is necessary, for example, via '-do_interact'.  
+
+To do this, you should basically run the same physio_calc.py command
+you initially ran to create the time points (same inputs, same
+'-prefilt_* ..' opts, etc.)  but perhaps with different output
+directory and/or prefix, and add the one or more of the following
+options:
+   -load_proc_peaks_resp  ..
+   -load_proc_troughs_resp  ..
+   -load_proc_peaks_card  ..
+Each of these takes a single argument, which is the appropriate file
+name to read in.
+
+**Note 1: it is important to keep all the same processing options
+  from the original command even when reading in already-generated
+  peaks and troughs. This is because prefiltering and start_time
+  options can affect how the read-in indices are interpreted. It is
+  important to maintain consistency. To facilitate recalling the
+  earlier options, there should be a 'PREFIX_pc_cmd.tcsh' file that is
+  saved among the outputs of a given physio_calc.py run.
+
+**Note 2: while re-using the same processing options is advised when
+  loading in earlier outputs to use, it might help reduce confusion
+  between those prior physio_calc.py outputs and the new results by
+  changing the '-out_dir ..' and '-prefix ..'.
+
+
+{ddashline}
+
 Output files ~1~
 
 The following files will/can be created in the output dir, with the
@@ -1469,6 +1512,30 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
+opt = '''load_proc_peaks_resp'''
+hlp = '''Load in a file of resp data peaks that have been saved via
+'-save_proc_peaks'. This file is a single column of integer values,
+which are indices of the peak locations in the processed time series.'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=str)
+
+opt = '''load_proc_troughs_resp'''
+hlp = '''Load in a file of resp data troughs that have been saved via
+'-save_proc_troughs'. This file is a single column of integer values,
+which are indices of the trough locations in the processed time series.'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=str)
+
+opt = '''load_proc_peaks_card'''
+hlp = '''Load in a file of card data peaks that have been saved via
+'-save_proc_peaks'. This file is a single column of integer values,
+which are indices of the peak locations in the processed time series.'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=str)
+
 opt = '''verb'''
 hlp = '''Integer values to control verbosity level 
 (def: {dopt})'''.format(dopt=DEF[opt])
@@ -1569,7 +1636,8 @@ args_dict2 : dict
     # for any filename that was provided, check if it actually exists
     # (dset_slice_pattern possible filename checked below)
     all_fopt = [ 'card_file', 'resp_file', 'phys_file', 'phys_json',
-                 'dset_epi' ]
+                 'dset_epi', 'load_proc_peaks_card', 
+                 'load_proc_peaks_resp', 'load_proc_troughs_resp' ]
     for fopt in all_fopt:
         if args_dict2[fopt] != None :
             if not(os.path.isfile(args_dict2[fopt])) :
@@ -2058,6 +2126,15 @@ args_dict2 : dict
         if args_dict2['prefilt_mode'] not in all_prefilt_mode :
            IS_BAD = 1
         if IS_BAD :  sys.exit(1)
+
+    # when loading in previous resp peaks/troughs, must use *both*
+    if int(bool(args_dict2['load_proc_peaks_resp'])) + \
+       int(bool(args_dict2['load_proc_troughs_resp'])) == 1 :
+        print("** ERROR: If you load in previously processed resp peaks or\n"
+              "   troughs, you must load in *both* files via:\n"
+              "   -load_proc_peaks_resp ..\n"
+              "   -load_proc_troughs_resp ..")
+        sys.exit(4)
 
     # check many numerical inputs for being >=0 or >0; probably leave this
     # one as last in this function

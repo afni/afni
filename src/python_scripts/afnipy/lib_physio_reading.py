@@ -75,6 +75,7 @@ derived data.
         # peak/trough stuff
         self.peaks     = []                      # list, for indices of peaks
         self.troughs   = []                      # list, for indices of troughs
+        self.proc_count = 0                      # int, num of proc steps done
 
         # phase stuff (M is upper summation index in Glover et
         # al. 2000, Eq. 1)
@@ -409,6 +410,10 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_out_resp  = True       # bool, flag
         self.save_proc_peaks = False   # bool, flag to write proc peaks to file
         self.save_proc_troughs = False # bool, flag to write proc trou to file
+        self.load_proc = {
+            'card' : [],               # list of files (will be 1 for card)
+            'resp' : [],               # list of files (will be 2 for resp)
+        }
 
         # QC image opts
         self.img_verb     = 1          # int, amount of graphs to save
@@ -439,13 +444,47 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                     print("** ERROR: {} physio data too short for MRI data"
                           "".format(label))
                     IS_BAD+=1 
-
         if IS_BAD :
             sys.exit(3)
+
+        # the peaks/troughs of previous runs can be input: read+check them
+        IS_BAD = 0
+        for label in lpf.PO_all_label:
+            if self.data[label] :
+                tmp = self.load_proc_peaks(label)
+
                 
     # ----------------------------------------------------------------------
 
+    def load_proc_peaks(self, label):
+        """See if we have any load_proc_* data to read in, and if so, do it.
+        The load_proc_* file inputs are just single columns of
+        ints. So, use existing functionality to read them in, just
+        being careful about data type.
+
+        """
+
+        if not(self.count_load_proc(label)) :
+            # simple, nothing to be loaded in
+            if self.verb > 1 :
+                print("++ No load_proc_* files for label: {}".format(label))
+            return 0
+
+        # [0] item: peaks
+        fname = self.load_proc[label][0]
+        check0, flt_int0 = self.read_data_from_solo_file(fname, dtype=int)
+        self.data[label].peaks = list(flt_int0)
+
+        # [1] item troughs
+        if self.count_load_proc(label) > 1 :
+            fname = self.load_proc[label][1]
+            check1, flt_int1 = self.read_data_from_solo_file(fname, dtype=int)
+            self.data[label].troughs = list(flt_int1)
+
+        return 0
+
     def read_in_physio_data(self):
+
         """Read in any physio (card, resp, etc.) data, from whatever sources
         might have some: a single 1D file, a pair of 1D files, a file+json
         combo, etc.
@@ -594,6 +633,14 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_out_resp      = not(AD['no_resp_out'])
         self.save_proc_peaks  = AD['save_proc_peaks']
         self.save_proc_troughs = AD['save_proc_troughs']
+        
+        # read in earlier processed peak indices
+        if AD['load_proc_peaks_card'] :
+            self.load_proc['card'].append( AD['load_proc_peaks_card'] )
+        if AD['load_proc_peaks_resp'] :
+            self.load_proc['resp'].append( AD['load_proc_peaks_resp'] )
+        if AD['load_proc_troughs_resp'] :
+            self.load_proc['resp'].append( AD['load_proc_troughs_resp'] )
 
         self.img_verb         = AD['img_verb']
         self.img_figsize      = copy.deepcopy(AD['img_figsize'])
@@ -666,18 +713,19 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
     # -----------------------
 
-    def read_data_from_solo_file(self, fname):
+    def read_data_from_solo_file(self, fname, dtype=float):
         """Using information stored in args_dict, try opening and reading
         either the resp_file or card_file.  
         
         Returns two objects: an int (0 if all went well, else
-        nonzero), and the 1D time series array.
+        nonzero), and the 1D time series array that is dtype=float by 
+        default.
 
         """
 
         # read in data
         all_col = self.read_and_check_data_file(fname)
-        arr     = self.extract_list_col(all_col, 0) 
+        arr     = self.extract_list_col(all_col, 0, dtype=dtype) 
 
         return 0, arr
 
@@ -723,11 +771,11 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
         return 0, data_dict
 
-    def extract_list_col(self, all_col, idx):
+    def extract_list_col(self, all_col, idx, dtype=float):
         """For data that has been read in as a list of lists, extract the
         [idx] column.
 
-        Return that column as an array of floats.
+        Return that column as an array of floats, by default.
         """
 
         ncol = len(all_col[0])
@@ -736,7 +784,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                   "".format(idx, ncol))
 
         N   = len(all_col)
-        arr = np.zeros(N, dtype=float)
+        arr = np.zeros(N, dtype=dtype)
         for ii in range(N):
             arr[ii] = all_col[ii][idx]
 
@@ -826,6 +874,10 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         else: 
             return self.data[label] != None
 
+    def count_load_proc(self, label):
+        """Get number of proc files loaded in for given label."""
+        return len(self.load_proc[label])
+
     def prefilt_winwid(self, label):
         """If prefiltering the card/resp (=label) time series (e.g. with a
         median filter), convert the specified window size (units of
@@ -897,7 +949,6 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         volumetric slice.
         """
         return self.duration_vol - self.vol_tr + max(self.vol_slice_times)
-
 
 def find_bad_vals(x, bad_nums=None, verb=0):
     """For a 1D array x of length N, check for NaNs as well as any list of
