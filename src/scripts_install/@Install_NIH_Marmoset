@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 set stat = 0
 set sdir = "$PWD"
@@ -18,7 +18,7 @@ echo "\rm -rf ./$demo"
 echo "   then run `basename $0` $argv[*] again."
 echo ""
 goto END
-   endif
+endif
 
 if ($use_curl == -1) then
    which curl
@@ -35,6 +35,14 @@ else
    curl -O https://afni.nimh.nih.gov/pub/dist/atlases/marmoset/NIH_Marmoset/$demo_download.tgz
 endif
 tar -xvzf $demo_download.tgz
+if ( $status ) then
+   echo ""
+   echo "** failure to download or extract $demo_download.tgz"
+   echo ""
+   set stat = 1
+   goto END
+endif
+
 # change name to simpler one here
 mv NIH_Marmoset_dist $demo
 cd $demo
