@@ -27,4 +27,6 @@ sudo dnf install -y python39 python3-matplotlib python3-numpy
 sudo dnf install -y python3-flask python3-flask-cors
 sudo alternatives --set python /usr/bin/python3
 
+# other
+sudo dnf install -y bc git
 echo "++ Done with sudo-required part"

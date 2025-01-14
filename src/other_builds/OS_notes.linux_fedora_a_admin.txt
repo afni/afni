@@ -13,7 +13,9 @@ sudo dnf install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
                     PyQt4 R-devel netpbm-progs gnome-tweak-tool ed     \
                     xorg-x11-server-Xvfb firefox                       \
                     python3-matplotlib python3-numpy                   \
-                    python3-flask python3-flask-cors
+                    python3-flask python3-flask-cors                   \
+                    bc git
+
 sudo dnf update -y
 
 
