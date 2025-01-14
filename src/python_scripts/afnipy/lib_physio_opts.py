@@ -953,6 +953,45 @@ delete a point, you can add one back, or vice versa.
 
 {ddashline}
 
+Loading in peaks/troughs from earlier physio_calc.py run ~1~
+
+It is possible to save estimated peak and trough values to a text file
+with this program, using '-save_proc_peaks' and '-save_proc_troughs',
+respectively.  These options tell the program to write *.1D files that
+contain the integer indices of the peaks or troughts within the
+processed time series.
+
+It is now possible to re-load those text files of integer indices back
+into the program, which might be useful when further editing of
+peaks/troughs is necessary, for example, via '-do_interact'.  
+
+To do this, you should basically run the same physio_calc.py command
+you initially ran to create the time points (same inputs, same
+'-prefilt_* ..' opts, etc.)  but perhaps with different output
+directory and/or prefix, and add the one or more of the following
+options:
+   -load_proc_peaks_resp  ..
+   -load_proc_troughs_resp  ..
+   -load_proc_peaks_card  ..
+Each of these takes a single argument, which is the appropriate file
+name to read in.
+
+**Note 1: it is important to keep all the same processing options
+  from the original command even when reading in already-generated
+  peaks and troughs. This is because prefiltering and start_time
+  options can affect how the read-in indices are interpreted. It is
+  important to maintain consistency. To facilitate recalling the
+  earlier options, there should be a 'PREFIX_pc_cmd.tcsh' file that is
+  saved among the outputs of a given physio_calc.py run.
+
+**Note 2: while re-using the same processing options is advised when
+  loading in earlier outputs to use, it might help reduce confusion
+  between those prior physio_calc.py outputs and the new results by
+  changing the '-out_dir ..' and '-prefix ..'.
+
+
+{ddashline}
+
 Output files ~1~
 
 The following files will/can be created in the output dir, with the
