@@ -1,4 +1,5 @@
-#!/bin/tcsh -fe 
+#!/usr/bin/env tcsh
+
 if ("$1" == "-h" || "$1" == "-help") goto HELP
 
 
@@ -45,6 +46,10 @@ set echo
                   -grid_parent ${pt}/${ipref}.DEL+orig.BRIK   \
                   -map_func    ave  \
                   -out_niml ${ipref}.DEL.niml.dset
+if ( $status ) then
+   goto BEND
+endif
+
 unset echo
 
    set l = `prompt_user -pause "\
@@ -64,6 +69,10 @@ set echo
                   -grid_parent ${pt}/${ipref}+orig.BRIK   \
                   -map_func    ave  \
                   -out_niml ${ipref}.niml.dset
+if ( $status ) then
+   goto BEND
+endif
+
 unset echo
                  
 
@@ -132,7 +141,11 @@ SurfSmooth     -met HEAT_07   \
                -detrend_master   \
                -output ${prefout}   \
                -target_fwhm 7 | tee ${prefout}.log
+if ( $status ) then
+   goto BEND
+endif
 unset echo
+
 set avelist = ($avelist ${prefout}.niml.dset )
     
    set l = `prompt_user -pause "\
@@ -214,6 +227,9 @@ foreach dset ($avelist)
    set pref = $dset:r:r
    echo "ConvertDset -input ${dset}'{5779}' -o_1Dpt_stdout > ${pref}_node${node}.1D"
    ConvertDset -input ${dset}'{5779}' -o_1Dpt_stdout > ${pref}_node${node}.1D
+   if ( $status ) then
+      goto BEND
+   endif
    set nl = ($nl ${pref}_node${node}.1D)
 end
 1dcat $nl | 1dplot -nopush -one -stdin &
@@ -377,7 +393,10 @@ STEND:
    echo ""
    echo "Stopped by user"
    goto END
-   
+
+
+BEND:
+exit 1
 
 END:
-
+exit 0

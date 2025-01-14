@@ -374,6 +374,11 @@ printf "\n\n++ Quick tensor fitting (just needed once):"
     $out_DSET                            \
     -overwrite
 
+if ( $status ) then
+    echo "** failed to make tensor fits"
+    goto BAD_EXIT
+endif
+
 set ext = `3dinfo -av_space ${out_DT}_FA*HEAD`
 
 printf "\n\n++ Make the new eigenvectors for each flip.\n\n\n"
@@ -435,6 +440,11 @@ foreach j ( `seq 1 1 4` )
         -mask           $out_mask            \
         -prefix         $out_TRK             \
         -overwrite
+
+    if ( $status ) then
+        echo "** failed to make long tracts"
+        goto BAD_EXIT
+    endif
 end
 
 ########################################################################
