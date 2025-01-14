@@ -448,7 +448,7 @@ if ( $both_lr ) then
 
 # make viewing script in outdir
 cat <<EOF >> ${s00}
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 # view SurfLayers result
     
@@ -480,7 +480,7 @@ else
 
 # make viewing script in outdir
 cat <<EOF >> ${s00}
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 # view SurfLayers result
     
