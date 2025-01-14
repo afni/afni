@@ -1,0 +1,174 @@
+#!/bin/bash
+
+# [PDL: May 22, 2024] Demo for Alpha transparency
+#
+# Runs from ~/abinDev
+#
+# Usage: @TestAlpha <Path to executable>
+#
+# Example: ./@TestAlpha "~/afniDev/afni/build/src/SUMA"
+#
+# If the path to the executable is not specified, the suma, in the default
+# search path, is used.
+
+# @global_parse `basename $0` "$*" ; if ($status) exit 0
+
+if [ "$#" -ne 0 ]; then
+	export PATH=$1:$PATH
+#
+#	echo 'PATH = ' $PATH
+fi
+
+# Test function
+AlphaTestFunction() {
+
+	echo "Number of arguments to function = " + $#
+
+	directory=$1
+	dataSet=$2
+	arguments=$3
+
+	if [ "$#" -gt 3 ]; then
+             export threshold1=$4
+	else
+             export threshold1=0.97
+	fi
+
+	if [ "$#" -gt 4 ]; then
+             export threshold2=$5
+	else
+             export threshold2=1
+	fi
+
+         # Variable transparency
+         set l = `prompt_user -pause \
+                 '@DriveSuma \n\
+                 Press OK for Variable transparency'`
+
+	 echo 'l = ' $l
+
+         set l = `prompt_user -pause \
+                 '@DriveSuma \n\
+                 Press OK for Variable transparency'`
+
+	 echo $directory
+	 echo $directory
+	 echo $arguments
+
+         cd $directory
+         suma $arguments &
+
+	 # Change viewing/inflation mode
+         DriveSuma -com  viewer_cont -key '.'
+         DriveSuma -com  viewer_cont -key '.'
+         DriveSuma -com  viewer_cont -key 'ctrl+s'
+         DriveSuma -com surf_cont -view_surf_cont y
+         DriveSuma -echo_edu   \
+                  -com surf_cont -load_dset $dataSet
+
+         set l = `prompt_user -pause \
+                 '@DriveSuma \n\
+                 Press OK to set colormap to Spectrum:red_to_blue'`
+ 
+         DriveSuma -com surf_cont -switch_cmap Spectrum:red_to_blue
+
+         set l = `prompt_user -pause \
+                 '@DriveSuma \n\
+                 Press OK to set Threshold to '$threshold1`
+ 
+        THR=$threshold1
+        DriveSuma -com  surf_cont -T_val $THR
+ 
+         set l = `prompt_user -pause \
+                 '@DriveSuma \n\
+                 Press OK to see Beta'`
+        DriveSuma -com surf_cont -SET_FUNC_BOXED yes
+ 
+         set l = `prompt_user -pause \
+                 '@DriveSuma \n\
+                 Press OK to see Alpha'`
+        DriveSuma -com surf_cont -SET_FUNC_ALPHA yes
+ 
+#         set l = `prompt_user -pause \
+#                 '@DriveSuma \n\
+#                 Press OK to raise threshold '`
+#        DriveSuma -com  surf_cont -T_val 35
+ 
+#         set l = `prompt_user -pause \
+#                 '@DriveSuma \n\
+#                 Press OK to lower threshold '`
+#        DriveSuma -com  surf_cont -T_val 10 
+ 
+#        set l = `prompt_user -pause \
+#                 '@DriveSuma \n\
+#                 Press OK to change I range'`
+#        DriveSuma -com surf_cont -I_range 0 1.0
+ 
+#       set l = `prompt_user -pause \
+#                '@DriveSuma \n\
+#                Press OK to switch I(ntensity) to 1'`
+#       DriveSuma -com surf_cont -I_sb 1
+ 
+#       set l = `prompt_user -pause \
+#                '@DriveSuma \n\
+#                Press OK to switch T(threshold) to 2'`
+#       DriveSuma -com surf_cont -I_sb 1
+ 
+#       set l = `prompt_user -pause \
+#                '@DriveSuma \n\
+#                Press OK to toggle |T| off'`
+#       DriveSuma -com surf_cont -T_abs n
+ 
+       set l = `prompt_user -pause \
+                '@DriveSuma \n\
+                Please close suma and press OK to continue'`
+ 
+       # DriveSuma -com kill_suma
+
+}
+
+# AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "stats.FT.surf.lh.niml.dset" \
+ #       "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv FT.surf_SurfVol_Alnd_Exp+orig" 21 30
+
+# AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "stats.FT.surf.lh.niml.dset" \
+ #       "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv anat_final.FT.surf+orig" 21 30
+
+# AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "errts.FT.surf.lh.niml.dset" \
+ #       "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv anat_final.FT.surf+orig" 1.76 3.00
+
+# AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "fitts.FT.surf.lh.niml.dset" \
+ #       "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv anat_final.FT.surf+orig" 101 102
+
+# AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "pb03.FT.surf.lh.r01.surf.niml.dset" \
+ #       "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv anat_final.FT.surf+orig" 1921 2000
+
+# AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "pb03.FT.surf.lh.r02.surf.niml.dset" \
+ #       "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv anat_final.FT.surf+orig" 1921 2000
+
+# AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "pb04.FT.surf.lh.r02.blur.niml.dset" \
+#       "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv anat_final.FT.surf+orig" 1921 2000
+
+ # AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "ipb05.FT.surf.lh.r02.scale.niml.dset" \
+  #      "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv anat_final.FT.surf+orig" 1921 2000
+
+ # AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "TSNR.FT.surf.lh.niml.dset" \
+  #      "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv anat_final.FT.surf+orig" 1921 2000
+
+ # AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "stats.FT.surf.lh.niml.dset" \
+  #     "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv FT_anat+orig" 21 30
+
+ #AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "stats.FT.surf.lh.niml.dset" \
+ #      "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv FT.surf_SurfVol_Alnd_Exp+orig" 21 30
+
+ # AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "stats.FT.surf.lh.niml.dset" \
+#       "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv pb00.FT.surf.r02.tcat+orig" 21 30
+
+ # AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "stats.FT.surf.lh.niml.dset" \
+  #     "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv pb02.FT.surf.r02.volreg+orig" 21 30
+
+ # AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "stats.FT.surf.lh.niml.dset" \
+  #     "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv vr_base_min_outlier_ts_ns+orig" 21 30
+
+ AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "stats.FT.surf.lh.niml.dset" \
+       "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv vr_base_min_outlier_ts_ns_wt+orig" 21 30
+
