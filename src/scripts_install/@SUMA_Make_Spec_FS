@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -1615,7 +1615,7 @@ L_MAKE_DRIVE_SCRIPT:
 
 printf "" >   $suma_dir/run_suma_01_with_afni.tcsh
 cat << EOF >> $suma_dir/run_suma_01_with_afni.tcsh
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 # This is an example script for driving AFNI+SUMA and having them talk
 

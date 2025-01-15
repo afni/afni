@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/usr/bin/env tcsh
 set estat = 1
 set eee = `date '+%H %M %S'`
 goto PARSE

@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 # ===========================================================================
 # show help - can only reach via goto HELP

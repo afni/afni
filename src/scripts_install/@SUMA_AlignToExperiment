@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/usr/bin/env tcsh
 
 # Jan, 2017: PT reformatted helpfile, which was hard to read in
 # eeeemacs viewer.

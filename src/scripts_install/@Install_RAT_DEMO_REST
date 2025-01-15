@@ -1,9 +1,11 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 set stat = 0
 set sdir = "$PWD"
 
 # [PT: Apr 05, 2024] create
+# [RR: Jan 14, 2025] call tcsh via env
+
 set demo = RAT_DEMO_REST
 
 goto PARSE
@@ -20,7 +22,7 @@ echo ""
 echo "Otherwise to run demos, see content of ./$demo/README.txt"
 echo ""
 goto END
-   endif
+endif
 
 echo "++ Going to fetch demo:  ${demo}"
 
@@ -39,6 +41,14 @@ else
    curl -O https://afni.nimh.nih.gov/pub/dist/tgz/$demo.tgz
 endif
 tar xvzf $demo.tgz
+if ( $status ) then
+   echo ""
+   echo "** failure to download or extract $demo.tgz"
+   echo ""
+   set stat = 1
+   goto END
+endif
+
 touch $demo
 
 

@@ -1,9 +1,10 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 set stat = 0
 set sdir = "$PWD"
 
 # [RR: Feb 18, 2022] creation
+# [RR: Jan 14, 2025] call tcsh via env
 
 set demo = APMULTI_Demo2_realtime
 set demo_link = https://afni.nimh.nih.gov/pub/dist/data/afni_demos/$demo.tgz
@@ -25,7 +26,7 @@ echo ""
 echo "Otherwise to run demos, see contents of ${demo}/${readme}"
 echo ""
 goto END
-   endif
+endif
 
 echo "++ Going to fetch demo: ${demo}"
 
@@ -50,6 +51,14 @@ $cmd
 # and unpack (quietly)
 echo tar xzf $demo.tgz
 tar xzf $demo.tgz
+if ( $status ) then
+   echo ""
+   echo "** failure to download or extract $demo.tgz"
+   echo ""
+   set stat = 1
+   goto END
+endif
+
 cd $demo
 
 if ( -f ${readme} ) then

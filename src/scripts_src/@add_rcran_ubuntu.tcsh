@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 # [PT: Apr 21, 2019] Updated to get to R version 3.5.*
 #

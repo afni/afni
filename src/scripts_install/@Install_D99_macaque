@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 set stat = 0
 set sdir = "$PWD"
@@ -23,7 +23,7 @@ echo "Otherwise to see what you can do with this atlas,"
 echo "  see content of ./$demo/README.txt"
 echo ""
 goto END
-   endif
+endif
 
 if ($use_curl == -1) then
    which curl
@@ -40,6 +40,14 @@ else
    curl -O https://afni.nimh.nih.gov/pub/dist/atlases/macaque/D99_Saleem/$demo_download.tgz
 endif
 tar -xvzf $demo_download.tgz
+if ( $status ) then
+   echo ""
+   echo "** failure to download or extract $demo_download.tgz"
+   echo ""
+   set stat = 1
+   goto END
+endif
+
 # change name to simpler one here
 #mv $demo_download $demo
 cd $demo_download_extract_name

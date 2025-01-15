@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 set stat = 0
 set RNS = `3dnewid -fun`
@@ -73,6 +73,7 @@ foreach dset ($dsets)
             -a $vol1${view} -b $vol2o${viewo} -expr 'a*(1-equals(a,b))' \
             -prefix  ${anib} >& $log                      
    
+   if ( $status ) goto BEND
    
       3dROIstats -1Dformat -mask_f2short -numROI ${numROI} -zerofill 0\
                   -nzvoxels -mask ${aib}$view ${aib}$view > {$RNS}.aib.1D
@@ -80,6 +81,8 @@ foreach dset ($dsets)
                   -nzvoxels -mask $vol1$view $vol1$view >> {$RNS}.aib.1D
       3dROIstats -1Dformat -mask_f2short -numROI ${numROI} -zerofill 0\
                   -nzvoxels -mask $vol2m$viewm $vol2m$viewm >> {$RNS}.aib.1D
+
+   if ( $status ) goto BEND
 
    set nvals = `3dnvals -all {$RNS}.aib.1D`
    set N_cl = `ccalc -i $nvals[4] / 2`

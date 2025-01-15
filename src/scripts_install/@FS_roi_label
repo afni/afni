@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/usr/bin/env tcsh
 
 set fsdb = FreeSurferColorLUT.txt
 set uid = `3dnewid -fun`

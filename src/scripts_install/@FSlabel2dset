@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 set stat = 1
 goto PARSE
@@ -20,6 +20,7 @@ MAKE_ROI_FILE:
    cat $f | awk '{if (NR!=1 && NR!=2) print $1 " " $5}' > /tmp/FSFILE2.1D
    ConvertDset -overwrite -o_niml_asc -input /tmp/FSFILE2.1D'[1]' \
                -prefix ./$f:r'.p' -node_index_1D /tmp/FSFILE2.1D'[0]'
+   if ( $status ) goto BEND
             
 CLEANUP:
    if ($cleanup) then

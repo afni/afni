@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 # lesion_align
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
