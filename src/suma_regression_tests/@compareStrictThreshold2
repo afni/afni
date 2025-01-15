@@ -19,10 +19,30 @@ if [ "$#" -ne 0 ]; then
 #	echo 'PATH = ' $PATH
 fi
 
+# Prompt function
+PromptUser(){
+     opts=(
+         -buttons Ok:0,"Next sample":1,"End program":2
+         -default Ok
+         -nearmouse
+         -timeout 10
+         $1
+     )
+
+     xmessage "${opts[@]}"
+
+     case $? in
+         0) response=ok;;
+         1) response=next_sample;;
+         2) response=end_program;;
+         *) echo "something else happened"; exit 1;;
+     esac
+
+     echo $response
+}
+
 # Test function
 AlphaTestFunction() {
-
-	echo "Number of arguments to function = " + $#
 
 	directory=$1
 	dataSet=$2
@@ -40,16 +60,13 @@ AlphaTestFunction() {
              export threshold2=1
 	fi
 
-         # Variable transparency
-         set l = `prompt_user -pause \
-                 '@DriveSuma \n\
-                 Press OK for Variable transparency'`
-
-	 echo 'l = ' $l
-
-         set l = `prompt_user -pause \
-                 '@DriveSuma \n\
-                 Press OK for Variable transparency'`
+        # Variable transparency
+	promptReturn=$(PromptUser "Press OK to run SUMA")
+        if [ $promptReturn == 'next_sample' ] || [ $promptReturn == 'end_program' ]
+        then
+          echo $promptReturn
+	  exit
+        fi
 
 	 echo $directory
 	 echo $directory
@@ -66,11 +83,23 @@ AlphaTestFunction() {
          DriveSuma -echo_edu   \
                   -com surf_cont -load_dset $dataSet
 
-         set l = `prompt_user -pause \
-                 '@DriveSuma \n\
-                 Press OK to set colormap to Spectrum:red_to_blue'`
- 
+	 # Set colormap to Spectrum:red_to_blue
+	 promptReturn=$(PromptUser "Press OK to set colormap to Spectrum:red_to_blue")
+         if [ $promptReturn == 'next_sample' ] || [ $promptReturn == 'end_program' ]
+         then
+           echo $promptReturn
+	   exit
+         fi
+
          DriveSuma -com surf_cont -switch_cmap Spectrum:red_to_blue
+
+	 # Set Threshold to '$threshold1`
+	 promptReturn=$(PromptUser "Press OK to set threshold to $threshold1")
+         if [ $promptReturn == 'next_sample' ] || [ $promptReturn == 'end_program' ]
+         then
+           echo $promptReturn
+	   exit
+         fi
 
          set l = `prompt_user -pause \
                  '@DriveSuma \n\
@@ -123,7 +152,7 @@ AlphaTestFunction() {
                 '@DriveSuma \n\
                 Please close suma and press OK to continue'`
  
-       # DriveSuma -com kill_suma
+       DriveSuma -com kill_suma
 
 }
 
@@ -169,6 +198,8 @@ AlphaTestFunction() {
  # AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "stats.FT.surf.lh.niml.dset" \
   #     "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv vr_base_min_outlier_ts_ns+orig" 21 30
 
- AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "stats.FT.surf.lh.niml.dset" \
-       "-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv vr_base_min_outlier_ts_ns_wt+orig" 21 30
+returnValue=$(AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "stats.FT.surf.lh.niml.dset" \
+	"-spec /home/peterlauren/AFNI_data6Old/FT_analysis/FT/SUMA/std.60.FT_both.spec -sv vr_base_min_outlier_ts_ns_wt+orig" 21 30)
+echo $returnValue 'returned by AlphaTestFunction'
+
 
