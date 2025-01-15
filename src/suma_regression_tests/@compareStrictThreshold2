@@ -101,21 +101,25 @@ AlphaTestFunction() {
 	   exit
          fi
 
-         set l = `prompt_user -pause \
-                 '@DriveSuma \n\
-                 Press OK to set Threshold to '$threshold1`
- 
         THR=$threshold1
         DriveSuma -com  surf_cont -T_val $THR
  
-         set l = `prompt_user -pause \
-                 '@DriveSuma \n\
-                 Press OK to see Beta'`
+	 # See Beta
+	 promptReturn=$(PromptUser "Press OK to see Beta")
+         if [ $promptReturn == 'next_sample' ] || [ $promptReturn == 'end_program' ]
+         then
+           echo $promptReturn
+	   exit
+         fi
         DriveSuma -com surf_cont -SET_FUNC_BOXED yes
  
-         set l = `prompt_user -pause \
-                 '@DriveSuma \n\
-                 Press OK to see Alpha'`
+	 # See alpha
+	 promptReturn=$(PromptUser "Press OK to see Alpha")
+         if [ $promptReturn == 'next_sample' ] || [ $promptReturn == 'end_program' ]
+         then
+           echo $promptReturn
+	   exit
+         fi
         DriveSuma -com surf_cont -SET_FUNC_ALPHA yes
  
 #         set l = `prompt_user -pause \
@@ -148,12 +152,15 @@ AlphaTestFunction() {
 #                Press OK to toggle |T| off'`
 #       DriveSuma -com surf_cont -T_abs n
  
-       set l = `prompt_user -pause \
-                '@DriveSuma \n\
-                Please close suma and press OK to continue'`
- 
-       DriveSuma -com kill_suma
+	 # Set colormap to Spectrum:red_to_blue
+	 promptReturn=$(PromptUser "Please close suma and press OK to continue")
+         if [ $promptReturn == 'next_sample' ] || [ $promptReturn == 'end_program' ]
+         then
+           echo $promptReturn
+	   exit
+         fi
 
+       DriveSuma -com kill_suma
 }
 
 # AlphaTestFunction "$HOME/AFNI_data6Old/FT_analysis/FT.surf.results" "stats.FT.surf.lh.niml.dset" \
