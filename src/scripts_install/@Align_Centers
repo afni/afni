@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 # Make AFNI's help readable in a text editor again!
 @global_parse `basename $0` "$*" ; if ($status) exit 0
@@ -206,9 +206,9 @@ if ( $v2coord != 1 ) then
       set pth2 = .
 
       # allow for template datasets in path, etc.  24 Apr 2011 [rickr]
-      # We execute with -e, and @FADP may exit with 1 if the dataset is
-      # not found.  So to fail here instead, put it in the background.
-
+      # without -e, not sure we need to keep running this in background
+      # this will fail somewhat gracefully, first blank for test_path
+      # then fails in CheckForAfniDset below
       set test_path = `@FindAfniDsetPath $v2i &`
       if ( $#test_path == 1 && "$test_path" != "./" ) then
          set pth2 = $test_path
@@ -222,7 +222,7 @@ else
 endif
 
 CHECKS:
-#make sure input exists
+#make sure input base dataset exists
 if ( $v2coord != 1 ) then
    if (`@CheckForAfniDset $v2` < 2) then
       echo "Error: base brick $v2 not found."
@@ -247,8 +247,15 @@ SETCENTER:
       set oname = $oprefix$dsview
    endif
 
+#make sure input dataset exists
+   if (`@CheckForAfniDset $v1` < 2) then
+      echo "Error: input dataset $v1 not found."
+      set retval = 1
+      goto END
+   endif
+
 if ($mode == 'grid') then
-   #orientation of v1
+   #orientation of v1 - fails if dataset doesn't exist
    set v1_orient = `@GetAfniOrient $v1`
    #center of v1, in native orientation
    set v1_center = `@VolCenter -dset $v1`
@@ -292,6 +299,11 @@ if ($mode == 'grid') then
          endif
 
          3dcopy $overf $v1  $v1_pth/$oname
+         if( $status ) then
+            echo "Could not copy $v1 to $v1_pth/$oname"
+            echo "Check disk space and permissions"
+            set retval = 1
+         endif 
          3drefit  -dxorigin $del_refit[1] \
                   -dyorigin $del_refit[2] \
                   -dzorigin $del_refit[3] $v1_pth/$oname
@@ -324,10 +336,18 @@ else if ($mode == "cm") then
             3dcopy $overf $v1  $v1_pth/$oname
             set v1_center_RAI = `3dCM $cm_amask -set $v2_center_RAI \
                                  $v1_pth/$oname`
+            if( $status ) then
+               echo "Could not set CM in output dataset $v1_pth/$oname"
+               set retval = 1
+            endif 
          endif
       else
          if ($xmat_only_meanit != 1) then
             set v1_center_RAI = `3dCM $cm_amask -set $v2_center_RAI $v1`
+            if( $status ) then
+               echo "Could not set CM in output dataset $v1"
+               set retval = 1
+            endif 
          endif
       endif
       
@@ -375,6 +395,12 @@ else if (($mode == "shift1D") || ($mode == "shift1D_inv")) then
          endif
    
          3dcopy $overf $v1  $v1_pth/$oname
+         if( $status ) then
+            echo "Could not copy $v1 to $v1_pth/$oname"
+            echo "Check disk space and permissions"
+            set retval = 1
+            goto END
+         endif 
          3drefit  -dxorigin $del_refit[1] \
                   -dyorigin $del_refit[2] \
                   -dzorigin $del_refit[3] $v1_pth/$oname
@@ -431,6 +457,12 @@ foreach v1foli ( $v1_list )
 
    if ("`@GetAfniID $v1fol`" != "`@GetAfniID $v1i`" && \
        "`@GetAfniID $v1fol`" != "`@GetAfniID $v2i`") then
+      if (`@CheckForAfniDset $v1fol` < 2) then
+         echo "Error: input dset follower $v1fol not found"
+         set retval = 1
+         goto END
+      endif
+
       #orientation of v1fol
       set v1fol_orient = `@GetAfniOrient $v1fol`
       #change del_RAI to v1fol_orient
@@ -457,6 +489,12 @@ foreach v1foli ( $v1_list )
             goto END
          endif
          3dcopy $overf $v1fol  $v1fol_pth/${oname}
+         if( $status ) then
+            echo "Could not copy follower to output dataset $v1fol_pth/$oname"
+            echo "Check disk space and permissions"
+            set retval = 1
+         endif 
+
          3drefit  -dxorigin $del_refit[1] \
                   -dyorigin $del_refit[2] \
                   -dzorigin $del_refit[3] $v1fol_pth/${oname}
@@ -500,13 +538,16 @@ Usage: `basename $0` <-base BASE> <-dset DSET> [-no_cp]
                 The transform is named DSET_shft.1D
    -1Dmat_only_nodset: Like above, but no dsets at all
                 are created or changed.
-   -base BASE: Base volume, typically a template. You can also replace BASE with RAI:X,Y,Z to have the script set the center of dset to RAI X,Y,Z 
+   -base BASE: Base volume, typically a template. 
+         You can also replace BASE with RAI:X,Y,Z 
+         to have the script set the center of dset to RAI X,Y,Z 
    -dset DSET: Typically an anatomical dset to be
                aligned to BASE.
    -child CHILD_'*': A bunch of datasets, originally
                      in register with DSET, that
                      should be shifted in the same
-                     way.
+                     way. The child dsets cannot be followed
+                     by other options. 
    -no_cp: Do not create new data, shift existing ones
            This is a good option if you know what you 
            are doing. It will save you a lot of space.
