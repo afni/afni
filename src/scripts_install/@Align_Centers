@@ -43,7 +43,7 @@ PARSE:
          else
             @ cnt ++
             set v2i = "$argv[$cnt]"
-            #script fails on any status (-fe) echo $v2i | grep -q '^...:' > & /dev/null
+            # use sed to grep for RAI:x,y,z string
             set cv2i = `echo $v2i | sed 's/^...:.*,.*,.*//g'`
             if ("$cv2i" == '') then
                set v2coord = 1
@@ -206,10 +206,9 @@ if ( $v2coord != 1 ) then
       set pth2 = .
 
       # allow for template datasets in path, etc.  24 Apr 2011 [rickr]
-      # without -e, not sure we need to keep running this in background
-      # this will fail somewhat gracefully, first blank for test_path
-      # then fails in CheckForAfniDset below
-      set test_path = `@FindAfniDsetPath $v2i &`
+      # if path is not found for input dataset,
+      # then fail in CheckForAfniDset below
+      set test_path = `@FindAfniDsetPath $v2i`
       if ( $#test_path == 1 && "$test_path" != "./" ) then
          set pth2 = $test_path
       endif
