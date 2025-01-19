@@ -2,7 +2,7 @@
 
 
 # A library of functions for taking an existing colorbar (cbar) and
-# outputting a new one with enhanged information, like a threshold
+# outputting a new one with enhanced information, like a threshold
 # line and Alpha fading.  This was suggested and first demo'ed by Dylan
 # Nielson---thanks!
 #
@@ -94,7 +94,8 @@ jdict : dict
 
 def blend_cbar(X, min_val=None, max_val=None, thr_val=None, alpha='No',
                thr_wid=2, thr_on=True, thr_nosc=4,
-               tick_nint=10, tick_frac=0.07):
+               tick_nint=10, tick_frac=0.07, 
+               orth_on=False, orth_frac = 1.0):
     """Take a 3-dim array X and create a new one with new features. If the
 min_val, max_val and thr_val kwargs are provided, then dashed vertical
 lines at the threshold value(s) will be placed at |thr_val|. If the
@@ -133,6 +134,13 @@ tick_nint : int
     to match AFNI colorbars
 tick_frac : float
     the fraction of the cbar width to make the interval ticks
+orth_on : bool
+    should the blend be applied orthogonal to colorbar gradation?  if
+    this is used, the thr_* opts are basically ignored, as well as the
+    *_val ones; the orth_* ones are used
+orth_frac : float
+    a value between 0 and 1 which determines at what fraction along the 
+    cbar width to start the fading+blending
 
 Returns
 -------
@@ -156,8 +164,10 @@ Y : np.array
 
     # init output RGB cbar array
     Y   = np.zeros((W, N, rgb), dtype=np.uint8)
-    # init weight array: no alpha
-    wt  = np.ones(N, dtype=float)
+    # init weight array along dim of length N: no alpha
+    wtN = np.ones(N, dtype=float)
+    # init weight array along dim of length W: no alpha
+    wtW = np.ones(W, dtype=float)
 
     # can we do quantitative stuff here? NB: if thr_val is None or 0, 
     # treat equivalently (no thr line, and no possible Alpha fade)
@@ -167,28 +177,55 @@ Y : np.array
         # actual vals at each cbar loc
         allv = np.linspace(min_val, max_val, N)
 
-    # Create alpha array (wt), if desired and enough info is available
     if alpha != 'No' :
-        if HAVE_ALL_VALS :
+        # check about blending along direction orthogonal to main one, or
+        # along cbar
+        if orth_on :
+            # make weight so fading will be top to bottom
+            allvW = np.linspace(1.0, 0.0, W)
+            # calculate color-blend weight (wt), restricted to [0,1]
+            for j in range(W):
+                rat   = np.abs(allvW[j]/orth_frac)
+                wtW[j] = min(max(rat,0.0),1.0)
+                if alpha == 'Yes' or alpha == 'Quadratic' :
+                    # quadratic Alpha situation
+                    wtW[j]**= 2
+
+        # Create alpha array (wtN), if desired and enough info is
+        # available
+        elif HAVE_ALL_VALS :
             # calculate color-blend weight (wt), restricted to [0,1]
             for i in range(N):
                 rat   = np.abs(allv[i]/thr_val)
-                wt[i] = min(max(rat,0.0),1.0)
+                wtN[i] = min(max(rat,0.0),1.0)
                 if alpha == 'Yes' or alpha == 'Quadratic' :
                     # quadratic Alpha situation
-                    wt[i]**= 2
+                    wtN[i]**= 2
         else:
             ab.WP("""You said you wanted Alpha on, but didn't provide enough 
             info for it: need min_val, max_val and thr_val""")
 
     # fill in colors everywhere in new array
-    for i in range(N):
-        if wt[i] < 1.0 :
-            new_rgb = wt[i]*X[W//2, i, :] + (1.0-wt[i])*abc
-        else:
-            new_rgb = X[W//2, i, :]
-        for j in range(W):
-            Y[j, i, :] = new_rgb.astype(np.uint8)
+    if orth_on :
+        # when fading is orthogonal to cbar gradient
+        for i in range(N):
+            # get base color from middle/spine of cbar
+            base_rgb = X[W//2, i, :]
+            for j in range(W):
+                if wtW[j] < 1.0 :
+                    new_rgb = wtW[j]*base_rgb + (1.0-wtW[j])*abc
+                else:
+                    new_rgb = base_rgb
+                Y[j, i, :] = new_rgb.astype(np.uint8)
+    else:
+        # when fading is parallel to cbar gradient
+        for i in range(N):
+            if wtN[i] < 1.0 :
+                new_rgb = wtN[i]*X[W//2, i, :] + (1.0-wtN[i])*abc
+            else:
+                new_rgb = X[W//2, i, :]
+            for j in range(W):
+                Y[j, i, :] = new_rgb.astype(np.uint8)
 
     # put in tick marks
     if tick_nint :
@@ -261,8 +298,18 @@ alpha : str
 
     return min_val, max_val, thr_val, alpha
 
-def main_prog(in_cbar_fname, out_cbar_fname=None, in_cbar_json=None):
-    """
+def main_prog(in_cbar_fname, out_cbar_fname=None, in_cbar_json=None,
+              alpha='No',
+              thr_wid=2, thr_on=True, thr_nosc=4,
+              tick_nint=10, tick_frac=0.07, 
+              orth_on=False, orth_frac = 1.0):
+    """The main parameters of inputs/outputs are described under
+Parameters, below.
+
+The additional ones like thr_wid, thr_nosc, etc. provide detailed
+control of the output cbar---see the function blend_cbar() for
+descriptions on those.  In particular, the orth_* kwargs mean that the
+blending/fading will be applied orthogonal to the cbar gradient.
 
 Parameters
 ----------
@@ -281,7 +328,7 @@ Returns
 Y : np.array
     updated array representing the new/output cbar
 
-"""
+    """
 
     # read in colorbar image to an array
     X = read_cbar(in_cbar_fname)
@@ -294,11 +341,16 @@ Y : np.array
             get_pbar_info_from_chauffeur_json(D)
     else:
         # no, so use default/off values
-        min_val, max_val, thr_val, alpha = None, None, None, 'No'
+        min_val, max_val, thr_val = None, None, None
+        # a synonym for alpha being None
+        if alpha == None :   alpha = 'No'
 
-    # create new cbar
+    # create new cbar [PT: now using more opts via kwargs from the top-level]
     Y   =  blend_cbar(X, min_val=min_val, max_val=max_val,
-                      thr_val=thr_val, alpha=alpha)
+                      thr_val=thr_val, alpha=alpha,
+                      thr_wid=thr_wid, thr_on=thr_on, thr_nosc=thr_nosc,
+                      tick_nint=tick_nint, tick_frac=tick_frac,
+                      orth_on=orth_on, orth_frac=orth_frac)
     
     # write the new cbar to disk
     if out_cbar_fname :
