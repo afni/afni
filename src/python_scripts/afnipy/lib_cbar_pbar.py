@@ -396,7 +396,8 @@ def main_prog(in_cbar_fname, out_cbar_fname=None, in_cbar_json=None,
               alpha='No',
               thr_wid=2, thr_on=True, thr_nosc=4, thr_col=[],
               tick_nint=10, tick_frac=0.07, tick_col=None,
-              orth_on=False, orth_frac = 1.0):
+              orth_on=False, orth_frac = 1.0,
+              outline_wid=None, outline_col=None):
     """The main parameters of inputs/outputs are described under
 Parameters, below.
 
@@ -416,6 +417,10 @@ in_cbar_json : str
     a JSON file accompanying the in_cbar_fname, created by @chauffeur_afni
     and which has min_val, max_val, thr_val and alpha information for
     adding information to the new cbar
+outline_wid : int
+    number of layers to add along each edge as an outline
+outline_col : str
+    color to make outline (def: black)
 
 Returns
 -------
@@ -448,12 +453,64 @@ Y : np.array
                       tick_col=tick_col,
                       orth_on=orth_on, orth_frac=orth_frac)
     
+    # potentially add some outline
+    if outline_wid :
+        Y = add_cbar_outline(Y, outline_wid=outline_wid, 
+                             outline_col=outline_col)
+
     # write the new cbar to disk
     if out_cbar_fname :
         plt.imsave(out_cbar_fname, Y) 
 
     return Y
     
+def add_cbar_outline(X, outline_wid, outline_col=None):
+    """Take a colorbar array X and add an outline of width outline_width
+(=number of layers), of color outline_col.
+
+Parameters
+----------
+X : np.array
+    a (width)x(length)x3 RGB array of colors. Each element is 
+    in the range [0, 255], and is of type np.uint8.
+outline_wid : int
+    number of layers to add, >0
+outline_col : str
+    string value for tick colors. When None, will use default (likely black)
+
+Returns
+-------
+Y : np.array
+    a (width+2*outline_wid)x(length+2*outline_wid)x3 RGB array of colors. 
+    Each element is in the range [0, 255], and is of type np.uint8.
+    """
+
+    # ----- get parameters
+    W, N, rgb = np.shape(X)             # cbar dimensions
+
+    outline_wid = int(outline_wid)
+    if outline_wid < 1 :
+        ab.WP("""The integer part of the selected outline_wid is <1. 
+        So, we won't add any outline to the colorbar""")
+        return X
+
+    # ----- set color of outline
+    if outline_col == None :
+        outline_col_rgb = zer
+    else:
+        outline_col_rgb = set_color_to_rgb(outline_col)
+
+    # ----- init output RGB cbar array
+    W2 = W + 2*outline_wid
+    N2 = N + 2*outline_wid
+    Y  = np.zeros((W2, N2, rgb), dtype=np.uint8)
+    # ... and initialize the color to be the outline col
+    Y[:,:,:] = outline_col_rgb
+
+    # copy the values of X into the middle in one, Pythonic jump
+    Y[outline_wid:outline_wid+W,outline_wid:outline_wid+N,:] = X
+
+    return Y
 
 # ============================================================================
 
