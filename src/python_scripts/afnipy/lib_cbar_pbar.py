@@ -23,6 +23,7 @@ import sys, os, copy
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcol
 
 from   afnipy     import afni_base as ab
 
@@ -37,8 +38,8 @@ list_alpha_str  = ', '.join(list_alpha)
 abc = np.array([200, 200, 200], dtype=np.uint8)  # light gray
 
 # the color(s) of tickmarks and the threshold line
-zer = np.array([0, 0, 0], dtype=np.uint8)
-rez = np.array([255,255,255], dtype=np.uint8)
+zer = np.array([0, 0, 0], dtype=np.uint8)       # black
+rez = np.array([255,255,255], dtype=np.uint8)   # white
 
 # ============================================================================
 
@@ -92,10 +93,66 @@ jdict : dict
         jdict = json.load(fff)    
     return jdict
 
+def set_color_to_rgb(x):
+    """Take input color x and translate it to an RGB representation,
+specifically an array of length=3, with dtype=uint8 and value in range
+[0, 255].  We expect most values of x to be strings, but we allow for
+the fact that they could be:
++ a list or an array of 3 or 4 values (NB: for the latter, the index=3
+  value will be ignored at present)
++ those values could be in range [0, 1] or [0, 255]
+
+Parameters
+----------
+x : str, or np.array or list of len 3 or 4
+    string name or RGB value of a color
+
+Returns
+-------
+rgb : np.array of len=3 and dtype=uint8
+    our RGB value to return in the correct format
+"""
+
+    # if it is a string, pre-convert it to an ordered collection of 4
+    # RGB values in range [0,1]
+    if type(x) == str :
+        x = mcol.to_rgba(x)
+
+    # error string that might get output a couple times
+    estring = """The input color type/format is not recognized: '{}'.  
+    Please read the help for set_color_to_rgb() and try again.""".format(x)
+
+    # now, x should/must be some ordered collection
+    try:
+        L = len(x)
+    except:
+        ab.EP(estring)
+
+    if L in [3, 4] :
+        if min(x) >= 0 and max(x) <= 1 :
+            # assume this is an RGB value in range [0, 1], so we can 
+            # scale it and output a fine type
+            y = np.zeros(3, dtype=np.uint8)
+            for i in range(3):
+                y[i] = min(max(255*x[i], 0), 255)
+            return y
+        elif min(x) >= 0 and max(x) <= 255 :
+            # assume this is an RGB value in range [0, 255], so we
+            # can output a fine type
+            y = np.zeros(3, dtype=np.uint8)
+            for i in range(3):
+                y[i] = x[i]
+            return y
+    else:
+        ab.EP(estring)
+
+
 def blend_cbar(X, min_val=None, max_val=None, thr_val=None, alpha='No',
                thr_wid=2, thr_on=True, thr_nosc=4,
-               tick_nint=10, tick_frac=0.07, 
+               thr_col = [], 
+               tick_nint=10, tick_frac=0.07, tick_col=None,
                orth_on=False, orth_frac = 1.0):
+
     """Take a 3-dim array X and create a new one with new features. If the
 min_val, max_val and thr_val kwargs are provided, then dashed vertical
 lines at the threshold value(s) will be placed at |thr_val|. If the
@@ -127,6 +184,11 @@ thr_nosc : int
     number of b/w oscillations to have in the threshold line (if present);
     higher int means shorter dashes, and the number is approximate if the 
     cbar width is not an integer multiple of this value
+thr_col : list (of str)
+    list of one or 2 strings, defining colors to use for the threshold line
+    in the output cbar. If [], will use defaults: if alpha is 'Yes', 'Linear'
+    or 'Quadratic', alternate 'black' and 'white'; if alpha is 'No', use
+    'black'.
 tick_nint : int
     if this value is >0, then short tickmarks will be placed along
     the cbar, dividing it up into the specified number of segments;
@@ -134,6 +196,8 @@ tick_nint : int
     to match AFNI colorbars
 tick_frac : float
     the fraction of the cbar width to make the interval ticks
+tick_col : str
+    string value for tick colors. When None, will use default (likely black)
 orth_on : bool
     should the blend be applied orthogonal to colorbar gradation?  if
     this is used, the thr_* opts are basically ignored, as well as the
@@ -155,14 +219,40 @@ Y : np.array
         ab.EP("""The alpha kwarg value is not recognized: {}.
         It must be one of: {}""".format(alpha, list_alpha_str))
 
-    # get parameters
+    # ----- set colors: defaults
+    if tick_col == None :
+        tick_col_rgb = zer
+    else:
+        tick_col_rgb = set_color_to_rgb(tick_col)
+
+    # ----- threshold line coloration
+    if type(thr_col) != list :
+        ab.EP("""The thr_col kwarg value must be a list; 
+        current type is: {}""".format(type(thr_col)))
+    elif len(thr_col) == 0 :
+        if alpha == 'No' :
+            thr_col_rgb = [zer, rez]
+        else:
+            thr_col_rgb = [zer, rez]
+    elif len(thr_col) > 2 :
+        ab.EP("""User entered >2 colors for thr_col. Only the first 2 
+        will be used""")
+    else:
+        # then make sure format is appropriate
+        thr_col_rgb = [set_color_to_rgb(x) for x in thr_col]
+    if len(thr_col_rgb) == 1 :
+        # internally, always want this to have 2 colors
+        thr_col_rgb.append(thr_col_rgb[1])
+
+
+    # ----- get parameters
     W, N, rgb = np.shape(X)             # cbar dimensions
     if tick_nint :
         nmark = N // tick_nint          # interval of each tick
     wmark     = int(W * tick_frac)      # width of each tick
     wdash     = W // (2*thr_nosc)       # width of threshold line dash
 
-    # init output RGB cbar array
+    # ----- init output RGB cbar array
     Y   = np.zeros((W, N, rgb), dtype=np.uint8)
     # init weight array along dim of length N: no alpha
     wtN = np.ones(N, dtype=float)
@@ -177,33 +267,37 @@ Y : np.array
         # actual vals at each cbar loc
         allv = np.linspace(min_val, max_val, N)
 
-    if alpha != 'No' :
-        # check about blending along direction orthogonal to main one, or
-        # along cbar
-        if orth_on :
-            # make weight so fading will be top to bottom
-            allvW = np.linspace(1.0, 0.0, W)
-            # calculate color-blend weight (wt), restricted to [0,1]
-            for j in range(W):
-                rat   = np.abs(allvW[j]/orth_frac)
-                wtW[j] = min(max(rat,0.0),1.0)
-                if alpha == 'Yes' or alpha == 'Quadratic' :
-                    # quadratic Alpha situation
-                    wtW[j]**= 2
-
-        # Create alpha array (wtN), if desired and enough info is
-        # available
-        elif HAVE_ALL_VALS :
-            # calculate color-blend weight (wt), restricted to [0,1]
-            for i in range(N):
-                rat   = np.abs(allv[i]/thr_val)
+    # check about blending along direction orthogonal to main one, or
+    # along cbar
+    if orth_on :
+        # make weight (wtW, vals in [0, 1]) so fading will be orth to grad
+        allvW = np.linspace(1.0, 0.0, W)
+        # calculate color-blend weight (wt), restricted to [0,1]
+        for j in range(W):
+            rat   = np.abs(allvW[j]/orth_frac)
+            wtW[j] = min(max(rat,0.0),1.0)
+            if alpha == 'Yes' or alpha == 'Quadratic' :
+                # quadratic Alpha situation
+                wtW[j]**= 2
+    elif HAVE_ALL_VALS :
+        # make weight (wtN, vals in [0, 1]) so fading will be along grad
+        for i in range(N):
+            rat   = np.abs(allv[i]/thr_val)
+            if alpha == None :
+                # no threshold: wtN[i] remains 1
+                continue
+            elif alpha == 'No' :
+                # opaque threshold: wtN[i] is 1 or 0
+                wtN[i] = min(max(int(rat),0.0),1.0)
+            else:
+                # transparent thresholding cases (linear or quad fading)
                 wtN[i] = min(max(rat,0.0),1.0)
                 if alpha == 'Yes' or alpha == 'Quadratic' :
                     # quadratic Alpha situation
                     wtN[i]**= 2
-        else:
-            ab.WP("""You said you wanted Alpha on, but didn't provide enough 
-            info for it: need min_val, max_val and thr_val""")
+    else:
+        ab.WP("""You said you wanted Alpha on, but didn't provide enough 
+        info for it: need min_val, max_val and thr_val""")
 
     # fill in colors everywhere in new array
     if orth_on :
@@ -231,8 +325,8 @@ Y : np.array
     if tick_nint :
         for i in range(N):
             if i % nmark == 0 and i and i < (N-0.5*nmark) :
-                Y[:wmark, i, :]   = zer
-                Y[W-wmark:, i, :] = zer
+                Y[:wmark, i, :]   = tick_col_rgb #zer
+                Y[W-wmark:, i, :] = tick_col_rgb #zer
 
     # put threshold line
     if HAVE_ALL_VALS and thr_on :
@@ -242,10 +336,10 @@ Y : np.array
             if diffs[i]*diffs[i-1] < 0 :
                 bmin = i - (thr_wid // 2)
                 bmax = bmin + thr_wid
-                Y[:, bmin:bmax, :] = zer
+                Y[:, bmin:bmax, :] = thr_col_rgb[0] #zer
                 for j in range(W):
                     if np.floor(j/wdash) % 2 :
-                        Y[j, bmin:bmax, :] = rez
+                        Y[j, bmin:bmax, :] = thr_col_rgb[1] #rez
                 i = bmax+1
             else:
                 i+= 1
@@ -300,8 +394,8 @@ alpha : str
 
 def main_prog(in_cbar_fname, out_cbar_fname=None, in_cbar_json=None,
               alpha='No',
-              thr_wid=2, thr_on=True, thr_nosc=4,
-              tick_nint=10, tick_frac=0.07, 
+              thr_wid=2, thr_on=True, thr_nosc=4, thr_col=[],
+              tick_nint=10, tick_frac=0.07, tick_col=None,
               orth_on=False, orth_frac = 1.0):
     """The main parameters of inputs/outputs are described under
 Parameters, below.
@@ -349,7 +443,9 @@ Y : np.array
     Y   =  blend_cbar(X, min_val=min_val, max_val=max_val,
                       thr_val=thr_val, alpha=alpha,
                       thr_wid=thr_wid, thr_on=thr_on, thr_nosc=thr_nosc,
-                      tick_nint=tick_nint, tick_frac=tick_frac,
+                      thr_col=thr_col,
+                      tick_nint=tick_nint, tick_frac=tick_frac, 
+                      tick_col=tick_col,
                       orth_on=orth_on, orth_frac=orth_frac)
     
     # write the new cbar to disk
