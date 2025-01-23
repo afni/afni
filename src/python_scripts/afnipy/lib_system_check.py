@@ -680,8 +680,25 @@ class SysInfo:
 
       # finally, look for gcc in the first brew directory
       bdir = bdirs[0]
-      gfiles = glob.glob('%s/gcc-[0-9][0-9]' % bdir)
+      gfiles = glob.glob('%s/gcc-[0-9]*' % bdir)
+      gfiles.sort() # does not necessarily do any good
 
+      # restrict to only gcc-INTEGER
+      gnew = []
+      for gg in gfiles:
+         # after directory trailer and 'gcc-', we should have an integer
+         g = os.path.basename(gg)[4:]
+         if g.isdigit():
+            gnew.append(gg)
+         elif self.verb > 1:
+            print("-- skipping improper gcc %s" % gg)
+
+      # if we did not find anything, whine a bit
+      if len(gnew) == 0 and os.path.isdir(bdir):
+         print("** found no gcc-* under %s" % bdir)
+
+      # proceed with gcc-INTEGER list
+      gfiles = gnew
       print("brew gcc(s)          : %s" % jstr.join(gfiles))
 
       # and show the current CommandLineTools SDK
