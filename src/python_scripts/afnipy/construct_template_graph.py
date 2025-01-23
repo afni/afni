@@ -716,8 +716,9 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
     # search for highest Level number warp
     for wl in wlg:
         print("Found warp named %s" % wl)
-        for iwl in wll:
-            if iwl in wl:
+        for iwl in wll: # searching backwards from highest level with list above
+           # warp files are named  
+           if ("Lev%s." % iwl) in wl:
                 print("%s matches file %s" % (iwl, wl))
                 iniwarp = "-iniwarp %s" % wl
                 iwset = pu.prepare_afni_output(dset, suffix, view=base.view)
@@ -788,8 +789,9 @@ def resize_warp(ps, warp, rsz_brain, suffix="_rsz"):
     # create output dataset structure
     rsz_warp = pu.prepare_afni_output(warp, suffix)
 
+    # strip the extension .gz for NIFTI file based named output in auto_tlrc
 #    aff_matrix = "%s.Xaff12.1D" % rsz_brain.rbn
-    aff_matrix = "%s.Xaff12.1D" % rsz_brain.out_prefix()
+    aff_matrix = "%s.Xaff12.1D" % str.strip(rsz_brain.out_prefix(), ".gz")
 
     input_name = warp.initname
     out_file = rsz_warp.initname
@@ -1636,7 +1638,9 @@ def warp_fs_seg(ps, fs_seg, aa_brain, warp, suffix="_warped"):
     fs_seg = align_centers(ps, dset=fs_seg, basedset=aa_brain, suffix="_ac")
 
     # affine matrix named similarly as affine dataset
-    aff_matrix = "%s.Xaff12.1D" % aa_brain.out_prefix()
+    # strip the extension .gz for NIFTI file based named output in auto_tlrc
+#    aff_matrix = "%s.Xaff12.1D" % rsz_brain.rbn
+    aff_matrix = "%s.Xaff12.1D" % str.strip(aa_brain.out_prefix(), ".gz")
 
     input_name = fs_seg.ppv()
     out_prefix = fs_seg_out.out_prefix()
