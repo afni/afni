@@ -1138,12 +1138,12 @@ if(dimy==1 & dimz==1) { # 1D data
    if (lop$nNodes==1) { # no parallelization
       if(!is.null(lop$mrr)) for (kk in 1:nSeg) {
          Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runMSS,
-                  DM=lop$dataStr, tag=0), c(2,3,1))
+                  DM=lop$dataStr, tag=0), c(2,1))
          cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
       }
       if(!is.null(lop$lme)) for (kk in 1:dimz) {
          Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runLME,
-                  DM=lop$dataStr, tag=0), c(2,3,1))
+                  DM=lop$dataStr, tag=0), c(2,1))
          cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
       }
    } else { # parallelization
