@@ -1432,7 +1432,7 @@ int main( int argc , char *argv[] )
 "                are NOT used.\n"
 "  -thresh r   = exclude connections with correlation < r. cannot be\n"
 "                used with FECM\n"
-"  -sparsity p = only include the top p%% (0 < p <= 100) connectoins in the calculation\n"
+"  -sparsity p = only include the top p%% (0 < p <= 100) connections in the calculation\n"
 "                cannot be used with FECM method. (default)\n"
 "  -do_binary  = perform the ECM calculation on a binarized version of the\n"
 "                connectivity matrix, this requires a connnectivity or \n"
