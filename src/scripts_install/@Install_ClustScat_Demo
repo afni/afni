@@ -36,7 +36,7 @@ if ( ! -f AFNI_ClustScatDemo.tgz) then
    endif
    tar xvzf AFNI_ClustScatDemo.tgz
 else
-   echo "Re-using existing AFNI_ClustScatDemo.tgz"
+   echo "Reusing existing AFNI_ClustScatDemo.tgz"
    tar xvzf AFNI_ClustScatDemo.tgz
 endif
 

@@ -862,7 +862,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "        Jane   25   300\n",
    "        Joe    22   313\n",
    "        ...    ..   ...\n",
-   "     This way, there is no amiguity as to which values are attributed to\n",
+   "     This way, there is no ambiguity as to which values are attributed to\n",
    "     which subject, nor to the label of the covariate(s). The word 'subj'\n",
    "     must be the first word of the first row. You can still get at the  \n",
    "     values of the columns of such a file with AFNI's 1dcat -ok_text, \n",

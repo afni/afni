@@ -299,7 +299,7 @@ endif   ## end check previous
 
 ## check if the mask copy was created as data
 set finished = 0
-while ( $finished == 0 )        ## keep going until you are satistfied
+while ( $finished == 0 )        ## keep going until you are satisfied
 
     ##################################
     ## run afni and set to strip

@@ -150,7 +150,7 @@ sets the select color of the widget to its foreground color */
 #define SUMA_SET_GL_PROJECTION(csv, ortho) {  \
    if (!ortho) { \
       SUMA_LH("Setting up matrix mode and perspective\n"\
-              "iState=%d, Apsect=%f, FOV=%p...\n",\
+              "iState=%d, Aspect=%f, FOV=%p...\n",\
               csv->iState, csv->Aspect, csv->FOV); \
       if (csv->FOV[csv->iState] < 0.00001) { \
          /* This can happen when only Non-SO objects are loaded

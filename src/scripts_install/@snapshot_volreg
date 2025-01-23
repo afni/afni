@@ -194,7 +194,7 @@ else
   set jnam = $anat.$epi
 endif
 
-# Are we re-using Xvfb?
+# Are we reusing Xvfb?
 
 unset xdisplay
 unset killX

@@ -239,7 +239,7 @@ int compute_meandiff(options_t * opts, int method)
          free(dwork);  free(fdata);  RETURN(1);
       }
 
-      /* accumuate squared differences; dwork[0] is already 0 */
+      /* accumulate squared differences; dwork[0] is already 0 */
       gmean += fdata[0];  /* and accumulate for mean */
       for( tind=1; tind < nt; tind++ ) {
          gmean += fdata[tind];      /* accumulate for mean */
@@ -460,7 +460,7 @@ int compute_enorm(options_t * opts, int method)
          free(dwork);  free(fdata);  RETURN(1);
       }
 
-      /* accumuate squared differences; dwork[0] is already 0 */
+      /* accumulate squared differences; dwork[0] is already 0 */
       gmean += fdata[0];  /* and accumulate for mean */
       for( tind=1; tind < nt; tind++ ) {
          gmean += fdata[tind];      /* accumulate for mean */
