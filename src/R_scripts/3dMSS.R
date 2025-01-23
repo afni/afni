@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.6, Sept 24, 2023
+Version 1.0.7, Jan 23, 2025
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -1131,9 +1131,9 @@ if(dimy==1 & dimz==1) { # 1D data
    # number of datasets need to be filled
    fill <- nSeg-dimx%%nSeg
    # pad with extra 0s
-   inData <- rbind(inData, array(0, dim=c(fill, NoFile)))
+   inData <- rbind(inData, array(0, dim=c(fill, nF)))
    # break input multiple segments for parrel computation
-   dim(inData) <- c(dimx_n, nSeg, NoFile)
+   dim(inData) <- c(dimx_n, nSeg, nF)
    Stat <- array(0, dim=c(dimx_n, nSeg, lop$nBrk))
    if (lop$nNodes==1) { # no parallelization
       if(!is.null(lop$mrr)) for (kk in 1:nSeg) {
