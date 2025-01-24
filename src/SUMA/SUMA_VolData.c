@@ -719,7 +719,7 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
    
    \param VP (SUMA_VOLPAR *) Volume parent structure.
    \return s (char *) pointer to NULL terminated string containing surface info.
-   It is your responsability to free it.
+   It is your responsibility to free it.
    
    \sa SUMA_Show_VolPar
 */
@@ -925,7 +925,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
          if (SF->caret_version < 5.2) {   
             THD_fvec3 fv, iv;
             float D[3];
-            /* Calcluate Delta caused by cropping */
+            /* Calculate Delta caused by cropping */
             for (i=0; i < 3; ++i) D[i] = SF->AC_WholeVolume[i] - SF->AC[i];
             SUMA_LHv("caret_version: %f\n"
                      "AC_WholeVolume:  [%f %f %f]\n"
@@ -962,7 +962,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
                         SO->NodeList[0], SO->NodeList[1],SO->NodeList[2]);  
          } else {
             float D[3]={0.0, 0.0, 0.0};
-            /* Calcluate Delta caused by cropping */
+            /* Calculate Delta caused by cropping */
             for (i=0; i < 3; ++i) D[i] = SF->AC_WholeVolume[i] - SF->AC[i];
             SUMA_LHv("caret_version: %f\n"
                      "AC_WholeVolume:  [%f %f %f]\n"
@@ -1122,7 +1122,7 @@ SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
             #if 0               
             {   THD_fvec3 fv, iv;
                float D[3];
-               /* Calcluate Delta caused by cropping */
+               /* Calculate Delta caused by cropping */
                for (i=0; i < 3; ++i) D[i] = SF->AC_WholeVolume[i] - SF->AC[i];
                /* fprintf (SUMA_STDERR,"%s: Shift Values: [%f, %f, %f]\n", FuncName, D[0], D[1], D[2]); */
                for (i=0; i < SO->N_Node; ++i) {
@@ -1143,7 +1143,7 @@ SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
             #endif
          } else {
             float D[3];
-            /* Calcluate Delta caused by cropping */
+            /* Calculate Delta caused by cropping */
             for (i=0; i < 3; ++i) D[i] = SF->AC_WholeVolume[i] - SF->AC[i];
             if (D[0] != 0.0f || D[1] != 0.0f ||D[2] != 0.0f) {
                fprintf (SUMA_STDERR,"Error %s: Shift Values: [%f, %f, %f]\n", FuncName, D[0], D[1], D[2]);
@@ -1183,7 +1183,7 @@ SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
                SUMA_RETURN (NOPE);
             }
          } else {
-            fprintf(SUMA_STDERR,"Error %s: Can't delign witout a volpar.\n", FuncName);
+            fprintf(SUMA_STDERR,"Error %s: Can't delign without a volpar.\n", FuncName);
             SUMA_RETURN (NOPE);
          }
          #endif
@@ -1227,7 +1227,7 @@ SUMA_Boolean SUMA_Apply_Coord_xform(float *NodeList,
    
    /* check for identity */
    if ( SUMA_IS_XFORM_IDENTITY(Xform)  ) {
-      SUMA_LH("Indentity, nothing to do.");
+      SUMA_LH("Identity, nothing to do.");
       SUMA_RETURN(YUP);      
    }
 
@@ -2434,7 +2434,7 @@ SUMA_Boolean SUMA_AFNItlrc_toMNI(float *NodeList, int N_Node, char *Coord)
 }
 /*!
 
-   \brief transforms XYZ coordinates by transfrom in warp.
+   \brief transforms XYZ coordinates by transform in warp.
    ans = SUMA_AFNI_forward_warp_xyz( warp , XYZv,  N);
    
    \param warp (THD_warp *) afni warp structure

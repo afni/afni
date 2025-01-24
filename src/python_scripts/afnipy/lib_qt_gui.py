@@ -18,11 +18,11 @@ g_history = """
      - process local vars in string format, not QString
      - current font is courier bold
   May 11, 2011: added createAction, addActions and resize_table_cols
-  May 13, 2011: added make_button, lable, checkbox, line
+  May 13, 2011: added make_button, label, checkbox, line
 
 - glt box:
    - write make_gltsym_table -> to self.gvars.Table_gltsym
-   - wrte self.gltsym_list_to_table
+   - write self.gltsym_list_to_table
    - set as global (call group_box_gltsym)
 
    - gbox_toggle_frame (close symbolic GLTs box)
@@ -1196,7 +1196,7 @@ class DatasetTableWidget(QtGui.QWidget):
          # rcr : if failure, clear table and whine???
          if not sids: sids = ['' for name in snames]
          self.update_table_column(sids, scol)
-         # if there is something to sort by, exptect to
+         # if there is something to sort by, expect to
          if not UTIL.vals_are_constant(sids, ''): self.set_sort_col(scol)
 
       if self.lvars.verb>1: print('-- populated, scol %d, dcol %d'%(scol, dcol))
@@ -1580,7 +1580,7 @@ class TcshCommandWindow(QtGui.QMainWindow):
                    self.readstdout)
 
       # self.connect(self.process, QtCore.SIGNAL('finished()'), self.finished)
-      # 'finished' does not work via QtCore.SIGNAL, but funtion is not so
+      # 'finished' does not work via QtCore.SIGNAL, but function is not so
       # necessary, so just 'try' the new way...
       try: self.process.finished.connect(self.finished)
       except: pass
@@ -1743,7 +1743,7 @@ class ProcessWindow(QtGui.QMainWindow):
                    self.readstdout)
 
       # self.connect(self.process, QtCore.SIGNAL('finished()'), self.finished)
-      # 'finished' does not work via QtCore.SIGNAL, but funtion is not so
+      # 'finished' does not work via QtCore.SIGNAL, but function is not so
       # necessary, so just 'try' the new way...
       try: self.process.finished.connect(self.finished)
       except: pass

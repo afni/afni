@@ -103,7 +103,7 @@ char *angle_strings[] = { "120" , "180" , "240" , "300" , "360" } ;
 char *globalrange_strings[] = { "Slice" , "Volume" , "Dataset" } ; /* 29 Jan 2014 */
 #define NUM_globalrange_strings 3
 
-/*--------------------- strings for Cooordinate format --------------------*/
+/*--------------------- strings for Coordinate format --------------------*/
 
 #define NUM_cord_strings 50
 
@@ -524,7 +524,7 @@ PLUGIN_interface * ENV_init(void)
 
    /* 04 Aug 2010 [RWCox] */
    ENV_add_numeric( "AFNI_CLUSTER_WAMIMAX" ,
-                    "Max clusters sent to 'whereami'" ,
+                    "Max clusters sent to 'whereami_afni'" ,
                     1,99,0,20 , NULL ) ;
 
    /* 28 Feb 2011 [RWCox] */
@@ -570,13 +570,13 @@ PLUGIN_interface * ENV_init(void)
 
    /* 27 Jun 2011 [DRG] */
    ENV_add_numeric( "AFNI_WHEREAMI_DEC_PLACES" ,
-                    "Number of decimal places for whereami output" ,
+                    "Number of decimal places for whereami_afni output" ,
                     0,4,0,0 , NULL ) ;
    ENV_add_numeric( "AFNI_WHEREAMI_MAX_FIND" ,
-                    "Maximum limit for structures from an atlas for whereami output" ,
+                    "Maximum limit for structures from an atlas for whereami_afni output" ,
                     1,50,0,9 , ENV_wami_maxfind ) ;
    ENV_add_string( "AFNI_WHEREAMI_MAX_SEARCH_RAD" ,
-                "Maximum radius for structures from an atlas for whereami output" ,
+                "Maximum radius for structures from an atlas for whereami_afni output" ,
                  0, NULL, ENV_wami_maxrad ) ;
    /* 01 Jul 2011 [DRG] */
    ENV_add_string( "AFNI_ATLAS_COLORS" ,

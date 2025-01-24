@@ -41,7 +41,7 @@ function [R] = McRetroTS(varargin)
 %     ResamKernel: Resampling kernel.
 %                 (default is 'linear', see help interp1 for more options)
 %     FIROrder: Order of FIR filter. (default is 40)
-%     Quiet: 1/0  flag. (defaut is 1)
+%     Quiet: 1/0  flag. (default is 1)
 %     Demo: 1/0 flag. (default is 0)
 %
 %Example:

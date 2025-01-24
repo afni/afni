@@ -30,7 +30,7 @@
 SUMA_MaskZero = YES
 //14- Threshold if Val < thr (NO) or | Val | < | Thr | (YES, default)
 SUMA_AbsThreshold = NO
-//15- Threshold scale precision. 2 is the default and the minimum. This value might be overriden in SUMA.
+//15- Threshold scale precision. 2 is the default and the minimum. This value might be overridden in SUMA.
 SUMA_ThresholdScalePower = 2 
 //16- Center of Rotation is based on nodes used in the mesh and not on all the nodes in NodeList (NOPE, default)
 SUMA_CenterOnPatch = YES
@@ -38,7 +38,7 @@ SUMA_CenterOnPatch = YES
 SUMA_UseCrossTicks = NO
 //18- Warn if 1D file looks like it needs a transpose
 SUMA_1D_Transponse_Warn = YES
-//19- Adjust roation and translation factor of mouse with changes in zoom levels (YES, default)
+//19- Adjust rotation and translation factor of mouse with changes in zoom levels (YES, default)
 SUMA_AdjustMouseMotionWithZoom = YES
 //20- Use orthographic projection (NOPE, default)
 SUMA_ViewOrthographicProjection = NOPE

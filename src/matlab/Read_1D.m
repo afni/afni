@@ -104,7 +104,7 @@ if (~isfield(Opt, 'chunk_index')) Opt.chunk_index = 0; end
 
 if (length(Opt.chunk_index(:)) ~= 1), fprintf(2,'Opt.chunk_index must contain one value'); return; end
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 v = [];

@@ -25,7 +25,7 @@
      val[]     = user_func should fill val[0..nbrik-1] with values to save
                  (presumably computed from ts[])
 
-   user_func should not destroy the data in ts[], since it will be re-used
+   user_func should not destroy the data in ts[], since it will be reused
    if more than one fimfunc is used at a time.
 
    Before the first call with time series data, user_func will be called like so:

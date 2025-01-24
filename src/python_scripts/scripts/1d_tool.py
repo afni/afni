@@ -40,7 +40,7 @@ examples (very basic for now): ~1~
 
             or using column labels:
 
-         1d_tool.py -infile 'data/X.xmat.1D[Run#1Pol#0,,Run#1Pol#3]' \\
+         1d_tool.py -infile 'data/X.xmat.1D[Run#1Pol#0..Run#1Pol#3]' \\
                     -write run0_polorts.1D
 
    Example 2.  Compare with selection by separate options. ~2~
@@ -161,6 +161,11 @@ examples (very basic for now): ~1~
 
          1d_tool.py -infile X.xmat.1D -show_xmat_stype_cols ALL \\
                     -show_regs_style encoded
+
+       g. Display X-matrix column index list for all-zero regressors.
+          Display regressor labels or in encoded column index format.
+
+         1d_tool.py -infile X.xmat.1D -show_xmat_stype_cols AM IM
 
    Example 6a.  Show correlation matrix warnings for this matrix. ~2~
 
@@ -462,11 +467,14 @@ examples (very basic for now): ~1~
 
        b. show rank order of slice times piped directly from 3dinfo
 
-         3dinfo -slice_timing epi+orig | 1d_tool.py -infile - -rank -write -
+          Note: input should be space separated, not '|' separated.
+
+         3dinfo -slice_timing -sb_delim ' ' epi+orig \\
+                | 1d_tool.py -infile - -rank -write -
 
        c. show rank order using 'competition' rank, instead of default 'dense'
 
-         3dinfo -slice_timing epi+orig \\
+         3dinfo -slice_timing -sb_delim ' ' epi+orig \\
                 | 1d_tool.py -infile - -rank_style competition -write -
 
    Example 22. Guess volreg base index from motion parameters. ~2~
@@ -593,6 +601,47 @@ examples (very basic for now): ~1~
 
             1d_tool.py -show_regs set -infile zerocols.X.xmat.1D \\
                        -select_groups POS -verb 0
+
+   Example 31. Determine slice timing pattern (for EPI data) ~2~
+
+       Determine the slice timing pattern from a list of slice times.
+       The output is :
+            - multiband level (usually 1) 
+            - tpattern, one such pattern from those in 'to3d -help'
+
+       a. where slice times are in a file
+
+            1d_tool.py -show_slice_timing_pattern -infile slice_times.1D
+
+       b. or as a filter
+
+            3dinfo -slice_timing -sb_delim ' ' FT_epi_r1+orig \\
+                   | 1d_tool.py -show_slice_timing_pattern -infile -
+
+       c. or if it fails, be gentle and verbose
+
+            1d_tool.py -infile slice_times.1D \\
+                       -show_slice_timing_gentle -verb 3
+
+   Example 32. Display slice timing ~2~
+
+       Display slice timing given a to3d timing pattern, the number of
+       slices, the multiband level, and optionally the TR.
+
+       a. pattern alt+z, 40 slices, multiband 1, TR 2s
+          (40 slices in 2s means slices are acquired every 0.05 s)
+
+            1d_tool.py -slice_pattern_to_times alt+z 40 1 -set_tr 2
+
+       b. same, but multiband 2
+          (so slices are acquired every 0.1 s, and there are 2 such sets)
+
+            1d_tool.py -slice_pattern_to_times alt+z 40 2 -set_tr 2
+
+       c. test this by feeding the output to -show_slice_timing_pattern
+
+            1d_tool.py -slice_pattern_to_times alt+z 40 2 -set_tr 2 \\
+                | 1d_tool.py -show_slice_timing_pattern -infile -
 
 ---------------------------------------------------------------------------
 command-line options: ~1~
@@ -992,8 +1041,9 @@ general options: ~2~
    -show_gcor_doc               : display descriptions of those ways
    -show_group_labels           : display group and label, per column
    -show_indices_baseline       : display column indices for baseline
-   -show_indices_motion         : display column indices for motion regressors
    -show_indices_interest       : display column indices for regs of interest
+   -show_indices_motion         : display column indices for motion regressors
+   -show_indices_zero           : display column indices for all-zero columns
    -show_label_ordering         : display the labels
    -show_labels                 : display the labels
    -show_max_displace           : display max displacement (from motion params)
@@ -1030,6 +1080,19 @@ general options: ~2~
         (label, encoded, comma, space) and -verb (0, 1 or 2).
 
    -show_rows_cols              : display the number of rows and columns
+
+   -show_slice_timing_pattern   : display the to3d tpattern for the data
+
+        e.g. -show_slice_timing_pattern -infile slice_times.txt
+
+        The output will be 2 values, the multiband level (the number of
+        sets of unique slice times) and the tpattern for those slice times.
+        The tpattern will be one of those from 'to3d -help', such as alt+z.
+
+        This operation is the reverse of -slice_pattern_to_times.
+        See also -slice_pattern_to_times.
+        See example 31 and example 32
+
    -show_tr_run_counts STYLE    : display TR counts per run, according to STYLE
                                   STYLE can be one of:
                                      trs        : TR counts
@@ -1088,21 +1151,71 @@ general options: ~2~
         cases, people have an ordered list of slices.  So the sorting needs
         to change.
 
-        If TR=2 and the slice order is:  0  2  4  6  8  1  3  5  7  9
+           input:  a file with TIME-SORTED slice indices
+           output: a SLICE-SORTED list of slice times
 
+      * Note, this is a list of slice indices over time (one TR interval).
+        Across one TR, this lists each slice index as acquired.
+
+        It IS a per-slice-time index of acquired slices.
+        It IS **NOT** a per-slice index of its acquisition position.
+           (this latter case could be output by -slice_pattern_to_times)
+
+        If TR=2 and the slice order is alt+z:  0  2  4  6  8  1  3  5  7  9
         Then the slices/times ordered by time (as input) are:
 
-           slices: 0    2    4    6    8    1    3    5    7    9
            times:  0.0  0.2  0.4  0.6  0.8  1.0  1.2  1.4  1.6  1.8
+  input->  slices: 0    2    4    6    8    1    3    5    7    9
+                   (slices across time)
 
         And the slices/times ordered instead by slice index are:
 
            slices: 0    1    2    3    4    5    6    7    8    9
-           times:  0.0  1.0  0.2  1.2  0.4  1.4  0.6  1.6  0.8  1.8
+  output-> times:  0.0  1.0  0.2  1.2  0.4  1.4  0.6  1.6  0.8  1.8
+                   (timing across slices)
 
         It is this final list of times that is output.
 
+        For kicks, note that one can convert from per-time slice indices to
+        per-slice acquisition indices by setting TR=nslices.
+
         See example 28.
+
+   -slice_pattern_to_times PAT NS MB : output slice timing, given:
+                                       slice pattern, nslices, MBlevel
+                                       (TR is optionally set via -set_tr)
+
+        e.g. -slice_pattern_to_times alt+z 30 1
+             -set_tr                 2.0
+
+        Input description:
+
+            PAT     : a valid to3d-style slice timing pattern, one of:
+
+                        zero   simult
+                        seq+z  seqplus  seq-z   seqminus
+                        alt+z  altplus  alt+z2
+                        alt-z  altminus alt-z2
+
+            NS      : the total number of slices (MB * nunique_times)
+
+            MB      : the multiband level
+
+                      For a volume with NS slices and multiband MB and a
+                      slice timing pattern PAT with NST unique slice times,
+                      we must have:  NS = MB * NST
+
+            TR      : (optional) the volume repetition time
+                      TR is specified via -set_tr.
+
+        Output the appropriate slice times for the timing pattern, also given
+        the number of slices, multiband level and TR.  If TR is not specified,
+        the output will be as if TR=NST (number of unique slice times), which
+        means the output is order index of each slice.
+
+        This operation is the reverse of -show_slice_timing_pattern.
+        See also -show_slice_timing_pattern.
+        See example 32.
 
    -sort                        : sort data over time (smallest to largest)
                                   - sorts EVERY vector
@@ -1305,9 +1418,15 @@ g_history = """
    2.13 Dec 19, 2021 - added -show_distmat
    2.14 Jan 27, 2022 - added -write_sep, -write_style
    2.15 Aug  9, 2022 - minor update for get_max_displacement (no effect)
+   2.16 Feb  4, 2023 - added -show_slice_timing_pattern
+   2.17 Aug 17, 2023
+        - added -slice_pattern_to_times
+        - rewrote -show_slice_timing_pattern to be more forgiving
+   2.18 Sep  1, 2023 - added -show_slice_timing_gentle
+   2.19 Sep 13, 2023 - have -write_xstim create an empty file if need be
 """
 
-g_version = "1d_tool.py version 2.15, August 9, 2022"
+g_version = "1d_tool.py version 2.19, September 13, 2023"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
@@ -1375,7 +1494,7 @@ class A1DInterface:
       self.show_corwarnfull= 0          # show cormat warnings, inc baseline
       self.show_displace   = 0          # max_displacement (0,1,2)
       self.show_distmat    = 0          # show distmat
-      self.show_df_info    = 0          # show infor on degrees of freedom in xmat.1D
+      self.show_df_info    = 0          # show xmat degrees of freedom info
       self.show_df_protect = 1          # flag for show_df_info()
       self.show_gcor       = 0          # bitmask: GCOR, all, doc
       self.show_group_labels = 0        # show the groups and labels
@@ -1388,6 +1507,7 @@ class A1DInterface:
       self.show_rows_cols  = 0          # show the number of rows and columns
       self.show_regs       = ''         # see g_show_regs_list
       self.show_regs_style = 'label'    # see g_show_regs_style_list
+      self.show_tpattern   = 0          # show the slice timing pattern (0,1,2)
       self.show_tr_run_counts = ''      # style variable can be in:
                                         #   trs, trs_cen, trs_no_cen, frac_cen
       self.show_trs_censored = ''       # style variable can be in:
@@ -1398,6 +1518,7 @@ class A1DInterface:
       self.show_xmat_stim_info = ''     # show xmat stimulus information
       self.show_xmat_stype_cols = []    # show columns of given stim types
       self.slice_order_to_times = 0     # re-sort slices indices to times
+      self.slice_pattern_to_times = []  # slice time parameters (pat, NS, MB)
       self.sort            = 0          # sort data over time
       self.transpose       = 0          # transpose the input matrix
       self.transpose_w     = 0          # transpose the output matrix
@@ -1436,7 +1557,8 @@ class A1DInterface:
          adata = LAD.Afni1D(fname, verb=self.verb)
          self.dtype = 1
 
-      if not adata.ready: return 1
+      if not adata.ready:
+         return 1
 
       if self.verb > 2: print("++ read 1D data from file '%s'" % fname)
 
@@ -1675,6 +1797,9 @@ class A1DInterface:
       self.valid_opts.add_opt('-show_indices_motion', 0, [], 
                       helpstr='display index list for motion regressors')
 
+      self.valid_opts.add_opt('-show_indices_allzero', 0, [], 
+                      helpstr='display index list for all-zero regressors')
+
       self.valid_opts.add_opt('-show_label_ordering', 0, [], 
                       helpstr='show whether labels are in slice-major order')
 
@@ -1700,6 +1825,12 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_rows_cols', 0, [], 
                       helpstr='display the number of rows and columns')
+
+      self.valid_opts.add_opt('-show_slice_timing_gentle', 0, [], 
+                      helpstr='more forgiving than -show_slice_timing_pattern')
+
+      self.valid_opts.add_opt('-show_slice_timing_pattern', 0, [], 
+                      helpstr='display nbands and the to3d-style tpattern')
 
       self.valid_opts.add_opt('-show_tr_run_counts', 1, [], 
                    acplist=['trs', 'trs_cen', 'trs_no_cen', 'frac_cen'],
@@ -1727,6 +1858,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-slice_order_to_times', 0, [], 
                    helpstr='convert slice indices to slice times')
+
+      self.valid_opts.add_opt('-slice_pattern_to_times', 3, [], 
+                   helpstr='show timing, given pattern, nslices, MBlevel')
 
       self.valid_opts.add_opt('-sort', 0, [], 
                       helpstr='sort the data per column (over time)')
@@ -2154,6 +2288,9 @@ class A1DInterface:
          elif opt.name == '-show_indices_interest':
             self.show_indices |= 4
 
+         elif opt.name == '-show_indices_allzero':
+            self.show_indices |= 8
+
          elif opt.name == '-show_label_ordering':
             self.show_label_ord = 1
 
@@ -2161,13 +2298,20 @@ class A1DInterface:
             self.show_labels = 1
 
          elif opt.name == '-show_max_displace':
-            self.show_displace = 3
+            self.show_displace = 1
 
          elif opt.name == '-show_mmms':
             self.show_mmms = 1
 
          elif opt.name == '-show_rows_cols':
             self.show_rows_cols = 1
+
+         # this is a special case of -show_slice_timing_pattern
+         elif opt.name == '-show_slice_timing_gentle':
+            self.show_tpattern = 2
+
+         elif opt.name == '-show_slice_timing_pattern':
+            self.show_tpattern = 1
 
          elif opt.name == '-show_num_runs':
             self.show_num_runs = 1
@@ -2207,6 +2351,9 @@ class A1DInterface:
 
          elif opt.name == '-slice_order_to_times':
             self.slice_order_to_times = 1
+
+         elif opt.name == '-slice_pattern_to_times':
+            self.slice_pattern_to_times = opt.parlist
 
          elif opt.name == '-sort':
             self.sort = 1
@@ -2311,12 +2458,26 @@ class A1DInterface:
    def process_data(self):
       """return None on completion, else error code (0 being okay)"""
 
+      # ---- handle any options without input -----
+
+      # do we do any non-input processing?
+      noinput = 0
+
+      if len(self.slice_pattern_to_times) > 0:
+         self.show_slice_pattern_times()
+         noinput = 1
+
+      # if we have done something and there is no input, return
+      if noinput and not self.infile:
+         return 0
+
       # ---- data input options -----
 
       if self.incheck and not self.infile:
          print('** missing -infile option')
          return 1
-      elif self.infile and self.init_from_file(self.infile): return 1
+      elif self.infile and self.init_from_file(self.infile):
+         return 1
 
       # process AfniData separately
       if self.dtype == 2: return self.process_afnidata()
@@ -2472,6 +2633,7 @@ class A1DInterface:
          print(istr)
 
       if self.show_displace:
+         # note: enorm diff as L1 vs L2 norm will probably never be used here
          print(self.adata.get_max_displacement_str(verb=self.verb))
 
       if self.show_gcor:
@@ -2496,6 +2658,11 @@ class A1DInterface:
       if self.show_regs != '': self.show_regressors(show=self.show_regs)
 
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
+
+      if self.show_tpattern:
+         if self.show_tpattern == 2: rdigits = 0
+         else:                       rdigits = 1
+         self.adata.show_tpattern(rdigits=rdigits, verb=self.verb)
 
       if self.show_tr_run_counts  != '': self.show_TR_run_counts()
 
@@ -2560,6 +2727,71 @@ class A1DInterface:
       else:             pstr = ''
       print('%s%s' % (pstr, self.adata.nruns))
 
+   def show_slice_pattern_times(self):
+      """display slice timing, given:
+           pattern, nslices, MBlevel (and optional TR)
+           (stored in self.slice_pattern_to_times)
+
+         return status (0 on success)
+      """
+
+      # ----- set and test the parameters from the option parlist -----
+
+      if len(self.slice_pattern_to_times) != 3:
+         print("** error: -slice_pattern_to_times requires 3 parameters:\n"
+               "          PATTERN  NSLICES  MBlevel")
+         return 1
+
+      # pattern
+      errs = 0
+      pattern = self.slice_pattern_to_times[0]
+      if pattern not in UTIL.g_valid_slice_patterns:
+         print("** -slice_pattern_to_times: invalid slice pattern %s" % pattern)
+         print("   example (alt+z): -slice_pattern_to_times alt+z 34 2")
+         print("   see 'tpattern' examples from 'to3d -help'")
+         errs += 1
+
+      # nslices
+      try :
+         nslices = int(self.slice_pattern_to_times[1])
+         if nslices <= 0:
+            print("** -slice_pattern_to_times: nslices must be positive")
+            print("   example(34): -slice_pattern_to_times alt+z 34 2")
+            errs += 1
+      except:
+         print("** -slice_pattern_to_times: nslices must be an integer > 0")
+         print("   example(34): -slice_pattern_to_times alt+z 34 2")
+         errs += 1
+
+      # mblevel
+      try :
+         mblevel = int(self.slice_pattern_to_times[2])
+         if mblevel <= 0:
+            print("** -slice_pattern_to_times: mblevel must be positive")
+            print("   example(2): -slice_pattern_to_times alt+z 34 2")
+            errs += 1
+      except:
+         print("** -slice_pattern_to_times: mblevel must be an integer > 0")
+         print("   example(2): -slice_pattern_to_times alt+z 34 2")
+         errs += 1
+
+      if errs > 0:
+         return 1
+
+      if self.verb > 1:
+         print("-- pattern to timing: pat %s, nslices %d, TR %g, mb %d" \
+               % (pattern, nslices, self.set_tr, mblevel))
+
+      # ----- okay, inputs seem usable, generate the actual results -----
+
+      timing = UTIL.slice_pattern_to_timing(pattern, nslices, TR=self.set_tr,
+                                            mblevel=mblevel, verb=self.verb)
+
+      print(UTIL.gen_float_list_string(timing, sep='  '))
+
+      return 0
+
+
    def show_TR_run_counts(self):
       """display list of TRs per run, according to self.show_tr_run_counts
             can be one of: trs, trs_cen, trs_no_cen, frac_cen
@@ -2595,7 +2827,7 @@ class A1DInterface:
          print(UTIL.int_list_string(trs_nc, sepstr=' '))
       elif style == 'frac_cen':
          tlist = [1.0-trs[r]*1.0/trs_nc[r] for r in range(len(trs))]
-         print(UTIL.gen_float_list_string(tlist))
+         print(UTIL.gen_float_list_string(tlist, sep='  '))
       else:
          print('** invalid -show_tr_run_counts STYLE %s' \
                % self.show_tr_run_counts)

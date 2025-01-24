@@ -50,7 +50,7 @@ endif
 set ttpref = ${sspref}
 
 CALC_DEED:
-#Now create a mask of a particular region (see whereami -help for details):
+#Now create a mask of a particular region (see whereami_afni -help for details):
 if ( $symbolic_roi) then
    if ($ShowTime) echo "TLRC mask generation at `date '+%H:%M:%S'`"
    set noglob
@@ -120,7 +120,7 @@ HELP:
    echo  "The script is meant to work rapidly for realtime fmri applications"
    echo  "Parameters:"
    echo  "  -region REGION: Symbolic atlas-based region name. "
-   echo  "                  See whereami -help for details."
+   echo  "                  See whereami_afni -help for details."
    echo  "                 You can use repeated instances of this option"
    echo  "                 to specify a mask of numerous regions."
    echo  "                 Each region is assigned a power of 2 integer"

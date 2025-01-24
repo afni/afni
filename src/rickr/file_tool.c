@@ -26,9 +26,9 @@
  *        -ge_all              display GE header and extras info
  *        -ge_header           display GE header info
  *        -ge_extras           display extra GE image info
- *        -ge_uv17             diplay the value of the uv17 variable
- *        -ge_run              diplay the run number - same as uv17
- *        -ge_off              diplay file offsets for various fields
+ *        -ge_uv17             display the value of the uv17 variable
+ *        -ge_run              display the run number - same as uv17
+ *        -ge_off              display file offsets for various fields
  *
  *     GEMS 4.x options
  *
@@ -42,6 +42,8 @@
  *        -show_bad_backslash  show any lines with only whitespace after '\'
  *        -show_bad_char       show any non-printable characters
  *        -show_file_type      show whether UNIX, Mac or MS file type
+ *        -wrap_lines          show script with line wrappers
+ *        -wrap_method METH    apply METH as a wrap method (prob 'rr' or 'pt')
  *        -test                same as -show_bad_all
  *
  *     raw ascii options:
@@ -120,7 +122,7 @@ static char g_history[] =
  "      - added '-def_ana_hdr' to show the definition of an ANALYZE header\n"
  "      - added '-diff_ana_hdrs' to show differences between 2 headers\n"
  "      - added '-disp_ana_hdr' to display the contents of each header\n"
- "      - added '-hex' to show field output in hexidecimal\n"
+ "      - added '-hex' to show field output in hexadecimal\n"
  "      - file_tool now depends on new files fields.[ch]\n"
  " 3.6  July 1, 2007    - added ability to modify fields of an ANALYZE file\n"
  "      - added '-mod_ana_hdr' to modiefy fields of an ANALYZE header file\n"
@@ -143,9 +145,10 @@ static char g_history[] =
  "      - fix rich-text single or double quotes; added -fix_rich_quotes\n"
  "      - add any missing newline character at end of file\n"
  " 3.19 Jun 18, 2018    - return status 0 on options like -help\n"
+ " 3.20 Jan 21, 2024    - add -wrap_lines and -wrap_method\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.19 (June 18, 2018)"
+#define VERSION         "3.20 (January 21, 2024)"
 
 
 /* ----------------------------------------------------------------------
@@ -292,6 +295,7 @@ process_script( char * filename, param_t * p )
     if (!rv && p->script & SCR_SHOW_BAD_CH) rv = scr_show_bad_ch(&fname, p);
     if (!rv && p->script & SCR_SHOW_FILE  ) rv = scr_show_file  (&fname, p);
     if (!rv && p->script & SCR_SHOW_BAD_BS) rv = scr_show_bad_bs(&fname, p);
+    if (!rv && p->script & SCR_SHOW_WRAP  ) rv = scr_wrap_lines (&fname, p);
 
     return rv;
 }
@@ -322,6 +326,63 @@ FILE * open_correction_file(char * fname, char * check_type, int overwrite,
                       check_type, fname);
 
    return outfp;
+}
+
+
+/*------------------------------------------------------------
+ * Apply line wrappers "\\\n" to long lines.
+ * This is done by shelling out to:
+ *     afni_python_wrapper.py -eval 'wrap_file_text()'
+ *------------------------------------------------------------*/
+int
+scr_wrap_lines( char ** fname, param_t * p )
+{
+    char * filename=*fname;
+    char * cmd=NULL;
+    int    rv, nlen=strlen(*fname);
+
+    if( p->debug )
+       fprintf(stderr,"-- show_bad_wrap: file %s ...\n", filename);
+
+    if( p->num_files > 1 ) {
+        fprintf(stderr,"** multiple files not allowed with -wrap\n");
+        return -1;
+    }
+    if( p->prefix ) {
+        fprintf(stderr,"** -prefix is currently not allowed with -wrap\n");
+        return -1;
+    }
+
+    if( p->wrap_method ) nlen += 10 + strlen(p->wrap_method);
+
+    cmd = malloc((nlen+60) * sizeof(char));
+
+    /* if not stdin, include the file name */
+    if( strcmp(filename, "stdin") ) {
+       if( p->wrap_method)
+         sprintf(cmd, "cat %s | afni_python_wrapper.py -eval "
+                      "'wrap_file_text(method=\"%s\")'",
+                      filename, p->wrap_method);
+       else
+         sprintf(cmd, "cat %s | afni_python_wrapper.py -eval "
+                      "'wrap_file_text()'", filename);
+    } else {
+       if( p->wrap_method)
+         sprintf(cmd, "cat | afni_python_wrapper.py -eval "
+                      "'wrap_file_text(method=\"%s\")'",
+                      p->wrap_method);
+       else
+         strcpy(cmd, "cat | afni_python_wrapper.py -eval 'wrap_file_text()'");
+    }
+
+
+    if( p->debug > 1)
+       fprintf(stderr,"-- show_bad_wrap, cmd %s\n", cmd);
+
+    rv = system(cmd);
+
+    free(cmd);
+    return rv;
 }
 
 
@@ -1412,6 +1473,16 @@ set_params( param_t * p, int argc, char * argv[] )
         {
             p->script |= SCR_SHOW_FILE;
         }
+        else if ( ! strcmp(argv[ac], "-wrap_method") )
+        {
+            ac++;
+            p->wrap_method = argv[ac]; /* to pass along for wrapping */
+            p->script |= SCR_SHOW_WRAP;
+        }
+        else if ( ! strncmp(argv[ac], "-wrap_lines", 5 ) )
+        {
+            p->script |= SCR_SHOW_WRAP;
+        }
         else if ( ! strncmp(argv[ac], "-swap_bytes", 3 ) )
         {
             p->swap = 1;
@@ -1830,6 +1901,14 @@ help_full( char * prog )
         "\n"
         "      %s -show_bad_backslash -infile scripts.txt -prefix s.fixed.txt\n"
         "\n"
+        "   5. add line wrappers (multiple examples):\n"
+        "\n"
+        "      %s -wrap -infile script.txt\n"
+        "\n"
+        "      %s -wrap_method rr -infile script.txt\n"
+        "\n"
+        "      cat script.txt | %s -wrap -infile stdin\n"
+        "\n"
         "   ----- character modification examples -----\n"
         "\n"
         "   1. in each file, change the 8 characters at 2515 to 'hi there':\n"
@@ -1914,7 +1993,7 @@ help_full( char * prog )
         "      -def_ana_hdr     : display the definition of an ANALYZE header\n"
         "      -diff_ana_hdrs   : display field differences between 2 headers\n"
         "      -disp_ana_hdr    : display ANALYZE headers\n"
-        "      -hex             : display field values in hexidecimal\n"
+        "      -hex             : display field values in hexadecimal\n"
         "      -mod_ana_hdr     : modify ANALYZE headers\n"
         "      -mod_field       : specify a field and value(s) to modify\n"
         "\n"
@@ -1974,6 +2053,22 @@ help_full( char * prog )
         "      -test  : short for -show_bad_all\n"
         "\n"
         "          Check script files for known issues.\n"
+        "\n"
+        "      -wrap            : apply line wrappers to long lines\n"
+        "      -wrap_lines      : apply line wrappers to long lines\n"
+        "\n"
+        "          Try to make the script more readable by adding automatic\n"
+        "          line wrappers.  Wrapping is done via:\n"
+        "\n"
+        "             afni_python_wrapper.py -eval 'wrap_file_text()'\n"
+        "\n"
+        "        * Currently -prefix is not allowed with this option.\n"
+        "\n"
+        "      -wrap_method METHOD: apply method METHOD for line wrapping\n"
+        "\n"
+        "          Run as with -wrap_lines, but execute with:\n"
+        "\n"
+        "             'wrap_file_text(method=METHOD)'\n"
         "\n"
         "  raw ascii options:\n"
         "\n"
@@ -2068,6 +2163,7 @@ help_full( char * prog )
         "\n",
         prog, prog,
         prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
+        prog, prog, prog,
         prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
         VERSION, __DATE__
         );

@@ -34,7 +34,7 @@ FuncName = 'CondNum';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 %N_tasks=4;
 %N_basis = 1;
@@ -61,7 +61,7 @@ end
 one = ones(N_TR,1);
 
 %slope = 0;
-for (i = 1:N_TR),  %create the coloumn(s) for the drifting
+for (i = 1:N_TR),  %create the column(s) for the drifting
    for (j = 1:1:polort),
       slope(i, j) = (i-1)^j;
 	end	

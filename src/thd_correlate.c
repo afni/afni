@@ -27,22 +27,29 @@ void rank_order_float( int n , float *a )
    b = (int   *) malloc(sizeof(int  )*n) ;
    c = (float *) malloc(sizeof(float)*n) ;
 
+   /*- initialize position b[] and rank [c] -*/
+
    for( ii=0 ; ii < n ; ii++ ) c[ii] = b[ii] = ii ;
 
-   /*- sort input, carrying b along -*/
+   /*- sort input a, carrying b along; when sorted, a[i] is in a[b[i]] -*/
 
    qsort_floatint( n , a , b ) ;  /* see cs_sort_fi.c */
 
-   /* compute ranks into c[] */
+   /* compute tied ranks into c[] */
 
    n1 = n-1 ;
    for( ii=0 ; ii < n1 ; ii++ ){
-     if( a[ii] == a[ii+1] ){                  /* handle ties */
-       cs = 2*ii+1 ; ns = 2 ; ib = ii ; ii++ ;
+     if( a[ii] == a[ii+1] ){ /*- handle ties -*/
+       cs = 2*ii+1 ;           /* sum of tied ranks */
+       ns = 2 ;                /* number of tied ranks */
+       ib = ii ; ii++ ;        /* scan ii up until no ties */
        while( ii < n1 && a[ii] == a[ii+1] ){ ii++ ; ns++ ; cs += ii ; }
+                               /* rescan to fill tied ranks with average rank */
        for( cs/=ns ; ib <= ii ; ib++ ) c[ib] = cs ;
      }
    }
+
+   /*- store the rank c[] back into input a[] (if no ties, c[i] == i) -*/
 
    for( ii=0 ; ii < n ; ii++ ) a[b[ii]] = c[ii] ;
 
@@ -668,6 +675,35 @@ ININFO_message("THD_pearson_corr_wt: n=%d ws=%g xm=%g ym=%g xv=%g yv=%g xy=%g",
 }
 
 /*----------------------------------------------------------------*/
+
+// [PT: Nov 9, 2022] weighted Pearson corr--double time!
+double THD_pearson_corrd_wt( int n, double *x , double *y , float *wt )
+{
+   double xv=0.0 , yv=0.0 , xy=0.0 , vv,ww ;
+   double xm=0.0 , ym=0.0 , ws=0.0 ;
+   int ii ;
+
+   if( wt == NULL ) return THD_pearson_corrd(n,x,y) ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+     xm += wt[ii]*x[ii]; ym += wt[ii]*y[ii]; ws += wt[ii];
+   }
+   xm /= ws ; ym /= ws ;
+   for( ii=0 ; ii < n ; ii++ ){
+     vv = x[ii]-xm ; ww = y[ii]-ym ;
+     xv += wt[ii]*vv*vv ; yv += wt[ii]*ww*ww ; xy += wt[ii]*vv*ww ;
+   }
+
+#if 0
+ININFO_message("THD_pearson_corrd_wt: n=%d ws=%g xm=%g ym=%g xv=%g yv=%g xy=%g",
+               n,ws,xm,ym,xv,yv,xy ) ;
+#endif
+
+   if( xv <= 0.0f || yv <= 0.0f ) return 0.0f ;
+   return xy/sqrt(xv*yv) ;
+}
+
+/*----------------------------------------------------------------*/
 /* compute distance between two arrays    ZSS May 04 2012 */
 float THD_distance( int n, float *x , float *y, int abs)
 {
@@ -782,7 +818,7 @@ double THD_eta_squared_masked( int n, float *x , float *y, byte *mask )
 /*! dice coefficient (allow for mask)          27 Oct 2015 [rickr]
  *  (float input)
  *
- *  dice = 2 * size(interection) / ( size(A) + size(B) )
+ *  dice = 2 * size(intersection) / ( size(A) + size(B) )
  *
  *  Simply count voxels for the 3 cases.
  -----------------------------------------------------------------*/
@@ -2060,7 +2096,7 @@ void rank_order_float_arrays( int nar , int *nn , float **aa )
 
    for( kk=0 ; kk < ntot ; kk++ ){
      jj = b[kk] / nmax ;  /* which array did it come from? */
-     ii = b[kk] % nmax ;  /* which element in that arrary? */
+     ii = b[kk] % nmax ;  /* which element in that array? */
      aa[jj][ii] = c[kk] ; /* replace data with rank */
    }
 

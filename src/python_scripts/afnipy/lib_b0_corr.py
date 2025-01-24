@@ -40,14 +40,14 @@
 #ver='1.7' ; date='Aug 12, 2019'
 # + [PT] *really* correct help @ Siemens scaling
 # + [PT] change internal scaling: *really* demand units of ang freq (rad/s)
-# + [PT] py23 compatability of help file-- single dictionary usage!
+# + [PT] py23 compatibility of help file-- single dictionary usage!
 #
 #ver='2.0' ; date='Aug 15, 2019'
 # + [PT] new parameter scaling of freq dset from Vinai-- better params
 # + [PT] apply obliquity info to output
 # + [PT] fixed ocmds_fname, if opref contains path
 # + [PT] output a useful params file
-# + [PT] another py23 compatability fix
+# + [PT] another py23 compatibility fix
 #
 #ver='2.1' ; date='Aug 16, 2019'
 # + [PT] change default number of erodes: 3 -> 1.  Vinai concurs!
@@ -277,7 +277,7 @@ help_string_b0_corr = '''
 
   {in_freq}   DSET_FREQ : (req) phase dset (frequency volume).  Should
                          be of similar spatial resolution and FOV as
-                         EPI dset to which it will be applie d; also,
+                         EPI dset to which it will be applied; also,
                          must be scaled appropriately, where the
                          expected units are: Hz.
 

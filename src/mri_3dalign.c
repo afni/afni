@@ -308,16 +308,19 @@ ENTRY("mri_3dalign_setup") ;
 
    basis->xa = -1 ;  /* flag for no wtrim */
 
+   /* tighten weight box, and report any useless trim */
    if( wtrim ){
      int xa=-1,xb , ya,yb , za,zb ;
      MRI_autobbox( imww , &xa,&xb , &ya,&yb , &za,&zb ) ;
-     if( xa >= 0 ){
+
+     /* require non-trivial result (0,0,0) */
+     if( xa >= 0 && (xb > 0 || yb > 0 || zb > 0) ) {
        float nxyz = imww->nx * imww->ny * imww->nz ;
        float nttt = (xb-xa+1)*(yb-ya+1)*(zb-za+1) ;
        float trat = 100.0 * nttt / nxyz ;
 
        if( verbose )
-         fprintf(stderr,"  wtrim: [%d..%d]x[%d..%d]x[%d..%d]"
+         fprintf(stderr," + wtrim: [%d..%d]x[%d..%d]x[%d..%d]"
                         " = %d voxels kept, out of %d (%.1f%%)\n" ,
                  xa,xb , ya,yb , za,zb , (int)nttt , (int)nxyz , trat ) ;
 
@@ -329,19 +332,30 @@ ENTRY("mri_3dalign_setup") ;
          basis->za = za ; basis->zb = zb ;
 
          TRIM(imww) ;
-       } else if( verbose ){
-         fprintf(stderr,"  skipping use of trim - too little savings\n");
+       } else {
+         fprintf(stderr," + skipping use of trim - too little savings\n");
        }
+     } else { /* report in any case */
+       fprintf(stderr," + skipping empty trim, {xyz}{a,b}"
+                      " = %d,%d, %d,%d, %d,%d\n",
+                      xa,xb, ya,yb, za,zb);
      }
    }
 
    VRANG("weight",imww) ;
-   if( verbose ){
+   if( imww ){
      float *f=MRI_FLOAT_PTR(imww) , perc ;
      int ii , nxyz = imww->nvox , nzer=0 ;
      for( ii=0 ; ii < nxyz ; ii++ ) nzer += (f[ii] == 0.0) ;
-     perc = (100.0*nzer)/nxyz ;
-     fprintf(stderr,"  # zero weights=%d out of %d (%.1f%%)\n",nzer,nxyz,perc);
+     /* warn on empty weights */
+     if( nzer == nxyz ) {
+       fprintf(stderr,"** error: weights are all zero\n");
+       /* trap here or elsewhere?  RETURN(NULL); */
+     }
+     if( verbose ){
+       perc = (100.0*nzer)/nxyz ;
+       fprintf(stderr," # zero weights=%d out of %d (%.1f%%)\n",nzer,nxyz,perc);
+     }
    }
 
    /*-- base image --*/

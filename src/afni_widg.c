@@ -1017,7 +1017,8 @@ STATUS("making imag->rowcol") ;
             NULL ) ;
       XtAddCallback( imag->pop_talto_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
-      if( TT_retrieve_atlas_dset("TT_Daemon",0) ){
+//      if( TT_retrieve_atlas_dset("TT_Daemon",0) ){
+      if( TT_retrieve_atlas_dset(Current_Atlas_Default_Name(),0) ) {
          imag->pop_whereami_pb =        /* 10 Jul 2001 */
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
@@ -1046,8 +1047,9 @@ STATUS("making imag->rowcol") ;
         if( first ){
           first = 0 ;
           fprintf(stderr,
-           "\n++ WARNING: Can't find TTatlas+tlrc or TTatlas.nii.gz dataset for 'whereami'!\n"
-             "++--------- See https://afni.nimh.nih.gov/pub/dist/data/\n" ) ;
+        "\n++ WARNING: Can't find default atlas (%s) dataset for 'whereami_afni'!\n"
+        "++--------- See https://afni.nimh.nih.gov/pub/dist/data/\n",
+        Current_Atlas_Default_Name() ) ;
         }
       }
       imag->pop_whereami_twin = NULL ;
@@ -4362,7 +4364,7 @@ STATUS("making func->rowcol") ;
 
    MCW_reghelp_children( func->anat_buck_av->wrowcol ,
                          "Use this to choose which\n"
-                         "sub-brick of the overlay\n"
+                         "sub-brick of the underlay\n"
                          "dataset to display (='ULay').\n"
                          "(The sub-brick labels are\n"
                          " assigned when the dataset\n"
@@ -4709,9 +4711,10 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->fim_dset_label , "Dataset to be FIM-ed") ;
 #endif
 
-   /* 25 Jul 2001: a toggle box to show the TT Atlas */
+   /* 25 Jul 2001: a toggle box to show the Atlas regions set by 
+    * AFNI_ATLAS_COLORS */
 
-   { char *see_ttatlas_label[1] = { "See TT Atlas Regions" } ;
+   { char *see_ttatlas_label[1] = { "See Atlas Regions" } ;
      func->see_ttatlas_bbox =
       new_MCW_bbox( func->options_rowcol ,
                     1 , see_ttatlas_label ,
@@ -4726,7 +4729,7 @@ STATUS("making func->rowcol") ;
 
      MCW_reghelp_children( func->see_ttatlas_bbox->wrowcol ,
                            "This button determines whether to show\n"
-                           "the Talairach-Tournoux Atlas regions,\n"
+                           "the Show Atlas regions,(set by AFNI_ATLAS_COLORS)\n"
                            "which are controlled by the 'Atlas Colors'\n"
                            "item on the image viewing window popup menu."
                          ) ;

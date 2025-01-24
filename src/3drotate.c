@@ -773,7 +773,7 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
             exit(1) ;
          }
 
-         /* toss input datset, replace with padded one */
+         /* toss input dataset, replace with padded one */
 
          DSET_delete(dset) ; dset = pset ;
       }

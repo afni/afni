@@ -56,7 +56,7 @@ static char *com[1024];
   This routine handles all communications with AFNI.
   The only input is the global variable afni_host, which determines
   on which system AFNI is running.
-  The output is -1 if an error occured, 0 if everything is OK.
+  The output is -1 if an error occurred, 0 if everything is OK.
 =====================================================================*/
 
 /***** Mode flags for determining what afni_io does.
@@ -408,7 +408,7 @@ void usage_plugout_drive(int detail)
 " 3. From AFNI GUI: Press the 'NIML+PO' button (near 'Overlay')\n"
 " 4. Set environment variable AFNI_YESPLUGOUTS to YES in .afnirc\n"
 "Otherwise, AFNI won't be listening for a plugout connection.\n"
-"  [AFNI does't listen for socket connections, unless]\n"
+"  [AFNI doesn't listen for socket connections, unless]\n"
 "  [it is told to,  in order to avoid the overhead of]\n"
 "  [checking for incoming data every few milliseconds]\n"
 "\n"

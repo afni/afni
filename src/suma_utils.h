@@ -110,7 +110,7 @@ typedef struct {
 }GUI_WIDGET_HELP;
 
 
-/*! string stucture */
+/*! string structure */
 typedef struct {
    int N_alloc;  /*!< space allocated for s */
    char *s; /*!< string s */

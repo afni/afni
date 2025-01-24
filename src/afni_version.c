@@ -11,9 +11,9 @@
           - 2 digit index (0-based index,incremented by build)
        - to be applied (by) Jan 1, 2016
        - stored in AFNI_version_base.txt
-       - geneated/updated by dist_src and checked into github
+       - generated/updated by dist_src and checked into github
        * so this label represents an AFNI build version
-         - it equates to a git commit object (commited to github by build)
+         - it equates to a git commit object (committed to github by build)
          - people doing local builds will not see this change
             - local build versions and dates will separate over time
 

@@ -717,7 +717,7 @@ int mcw_malloc_OK( void *fred )
 #endif
 
 /*-----------------------------------------------------------------
-    The actual replacment for free()
+    The actual replacement for free()
 -------------------------------------------------------------------*/
 
 void mcw_free( void *fred , char *fnam , int lnum )

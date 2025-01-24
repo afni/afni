@@ -18,7 +18,7 @@ int main( int argc , char *argv[] )
 "      -badonly : output only BAD messages, rather than all\n"
 "\n"
 "* 'varlist' is a list of allowed variable names in the expression.\n"
-"  These names can be separated by commans, semicolons, and/or\n"
+"  These names can be separated by commas, semicolons, and/or\n"
 "  spaces (varlist would have to be in quotes if it contains spaces).\n"
 "\n"
 "* Each 'expr' is a GLT symbolic expression, which should be in quotes\n"
@@ -59,7 +59,7 @@ int main( int argc , char *argv[] )
 "\n"
 "\n"
 "* Authored by RWCox on May Day 2015 to aid Rick Reynolds in detecting such\n"
-"  problems, induced for example when his boss does someting stupid during\n"
+"  problems, induced for example when his boss does something stupid during\n"
 "  an AFNI bootcamp in South Africa (a purely hypothetical case, I assure you).\n"
 "\n"
      ) ;

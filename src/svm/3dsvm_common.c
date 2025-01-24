@@ -79,7 +79,7 @@ void print_help_learn()
   printf("         -w [0..]    -> epsilon width of tube for regression\n");
   printf("                        (default 0.1)\n");
   printf("         -j float    -> Cost: cost-factor, by which training errors on\n");
-  printf("                        positive examples outweight errors on negative\n");
+  printf("                        positive examples outweigh errors on negative\n");
   printf("                        examples (default 1) (see [4])\n");
   printf("         -b [0,1]    -> use biased hyperplane (i.e. x*w+b>0) instead\n");
   printf("                        of unbiased hyperplane (i.e. x*w>0) (default 1)\n");
@@ -1160,7 +1160,7 @@ void freeMultiClassArrays( float **multiclass_dist, float *classCorrect,
   EXRETURN;
 }
 
-/* JL Mar 2014: Added this function for handeling mask datasets of various
+/* JL Mar 2014: Added this function for handling mask datasets of various
  * data types (byte only before that) */
 MaskType* getAllocateMaskArray( THD_3dim_dataset *dset, char *errorString )
 {
@@ -1565,7 +1565,7 @@ void freeModel( MODEL *model, AFNI_MODEL *afni_model, enum modes mode )
   }
 
   if( mode == TEST ) {
-    /* free the model throughly, we don't have other references to the
+    /* free the model thoroughly, we don't have other references to the
        original training data */
     for( sv=1; sv<nsv; ++sv) {
       IFree( (model->supvec[sv])->words );
@@ -1904,7 +1904,7 @@ int getAllocateModelArrays(THD_3dim_dataset *dsetModel,
 }
 
 
-/* just fills in the model data set (assumed constant accross class combinations) */
+/* just fills in the model data set (assumed constant across class combinations) */
 /* Need to also use updateModel for class */
 /* The idea is to only call this once and then updateModel for combination specific aspects */
 int get_svm_model(MODEL *model, DatasetType **dsetModelArray, 
@@ -2066,7 +2066,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
    */
 
    
-  /* --- determine version number for backward compatiblity ---*/
+  /* --- determine version number for backward compatibility ---*/
   atr_string = THD_find_string_atr( dsetModel->dblk, "3DSVM_VERSION" );
 
   /* version number in model header (introduced Apr. 2010) */
@@ -5138,7 +5138,7 @@ void freeAfniModelAndArrays(AFNI_MODEL *afniModel,
   EXRETURN;
 }
 
-/* JL Oct 2010: This functions determintes the svm learn type (svm_type),
+/* JL Oct 2010: This functions determines the svm learn type (svm_type),
  * reads and allocates afniModel, dsetModelArray and dsetMaskArray.
  */
 int readAllocateAfniModelAndArrays( ASLoptions *options, AFNI_MODEL *afniModel,
@@ -5365,7 +5365,7 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
     }
     else labels->lbls[i] = (LabelType) atof(labelString);
 
-    /* -- check for negative entires other than -9999 */
+    /* -- check for negative entries other than -9999 */
     if ( (labels->lbls[i] < 0.0) && ((int)labels->lbls[i] != -9999) ) {
       snprintf(errorString, LONG_STRING, "Labelfile: '%s' contains a negative "
           "entry in line %ld! ", labelFile, i+1);
@@ -5413,7 +5413,7 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
     }
     /* -- check if size of labelfile matches size of censorfile -- */
     if( labels->n != getFileSize(censorFile) ) {
-      snprintf(errorString, LONG_STRING, "Lenght of labelfile: '%s' (%ld) "
+      snprintf(errorString, LONG_STRING, "Length of labelfile: '%s' (%ld) "
           "does not match length of censorfile: '%s' (%ld)!", 
           labelFile, labels->n, censorFile, getFileSize(censorFile));
 
@@ -5671,7 +5671,7 @@ int getAllocateRegressionLabelsAndTarget(LABELS *labels, LabelType **target,
 
     if( labels->n != getFileSize(censorFile) ) {
       snprintf(errorString, LONG_STRING, 
-          "Lenght of labelfile: '%s' (%ld) does not match length of\n"
+          "Length of labelfile: '%s' (%ld) does not match length of\n"
           "censorfile: '%s' (%ld)!", labelFile, labels->n, censorFile,
            getFileSize(censorFile));
 
@@ -6378,7 +6378,7 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
     * Right hand edge is sequence N-2  +N-2 +N-3 + N-4 ...
     * And! if you leave that edge, you can't get back
     *
-    * everytime you go left, take one away from classAssignment N-1 
+    * every time you go left, take one away from classAssignment N-1 
     ***************************************************************************/
 
       snprintf(predictionsFile, LONG_STRING, "%s_overall_DAG.1D", options->predFile);
@@ -7176,7 +7176,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
           sampleCount, nvox, nvox_masked);
 
       /* JL Apr. 2010: No training if we want to write out the svm-light
-       * formated textfile only */
+       * formatted textfile only */
       if ( !options->docFileOnly[0] ) {
 
         /* ---- INITIALIZE KERNEL PARAMETERS & TRAIN ----*/
@@ -7212,7 +7212,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
         }
       }
 
-      /* ---- WRITE DATASET IN SVM-LIGHT FORMATED TEXTFILE  ----*/
+      /* ---- WRITE DATASET IN SVM-LIGHT FORMATTED TEXTFILE  ----*/
       if (options->docFile[0]) {
         if (labels.n_classes == 2) {
           snprintf( docFileName, LONG_STRING, "%s.svml", options->docFile);
@@ -7315,7 +7315,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
 
   DOC    *docsTrain       = NULL; /* svm-light data structure used for training */
   KERNEL_CACHE kernel_cache;      /* svm-light data structure holding kernel
-                                   * paramters */
+                                   * parameters */
 
 
   long nt                 = 0;   /* number of time points in TRAIN dataset */
@@ -7326,7 +7326,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
   long sampleCount        = 0;    /* number of samples used in training */
 
   long i                  = 0;
-  char docFileName[LONG_STRING];  /* nameing of svm-light textfile  output */
+  char docFileName[LONG_STRING];  /* naming of svm-light textfile  output */
 
 
   ENTRY("train_regression");
@@ -7533,7 +7533,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
       sampleCount, nvox, nvox_masked );
 
   /* JL Apr. 2010: No training if we want to write out the svm-light
-   * formated textfile only */
+   * formatted textfile only */
   if ( !options->docFileOnly[0] ) {
 
     /*----- PERFORM THE SV-REGRESSION -----*/
@@ -7633,7 +7633,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
 }
 
 /* Cameron - modified this function because it wasn't correctly
-             identifying missing arguements. Is this a OSX vs 
+             identifying missing arguments. Is this a OSX vs 
              linux thing? */
 /* JL Sep. 2009: Error checking for options with argument. 
  * Avoid out of bound error if last option and no argument
@@ -7682,7 +7682,7 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
   ENTRY("input_parse");
   
 
-  /* TODO: The definitions bellow should be a header entry ...*/
+  /* TODO: The definitions below should be a header entry ...*/
   /* svm-light defaults */
   strncpy (learn_parm->predfile, "trans_predictions", 200);
   strncpy (learn_parm->alphafile, "", 200);
@@ -7969,7 +7969,7 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
   }
   else {
       snprintf(errorString, LONG_STRING, "Unknown type '%s': Valid types are 'c' "
-          "(classification), 'r' (regession), and 'p' (preference ranking).",
+          "(classification), 'r' (regression), and 'p' (preference ranking).",
           type); RETURN(1);
   }
 

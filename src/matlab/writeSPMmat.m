@@ -36,7 +36,7 @@ FuncName = 'writeSPMmat';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 %does the input file exist ?

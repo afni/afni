@@ -292,7 +292,7 @@ void initialize_program
   float * tar;
 
 
-  /*----- intialize options -----*/
+  /*----- initialize options -----*/
   initialize_options (im1, nname, sname, nmodel, smodel, r, p, npname, spname, 
 		      min_nconstr, max_nconstr, min_sconstr, max_sconstr, 
 		      nabs, nrand, nbest, rms_min, tfilename);

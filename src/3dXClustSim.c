@@ -1679,7 +1679,7 @@ GARP_LOOPBACK:
      farperc    = (100.0f*nfar)/(float)niter_test ; /* what we got this time */
      farlast    = farperc ;                         /* save for next FPR goal */
 
-     /* save results for later re-use */
+     /* save results for later reuse */
      if( ntfp == ntfp_all ){
        ntfp_all += 128 ;
        tfs = (float *)realloc(tfs,sizeof(float)*ntfp_all) ;
@@ -2487,7 +2487,7 @@ FARP_LOOPBACK:
      farperc    = (100.0f*nfar)/(float)niter_test ; /* what we got this time */
      farlast    = farperc ;                /* save for next FPR goal, if any */
 
-     /* save results for later re-use [22 Feb 2018] */
+     /* save results for later reuse [22 Feb 2018] */
      if( ntfp == ntfp_all ){
        ntfp_all += 128 ;
        tfs = (float *)realloc(tfs,sizeof(float)*ntfp_all) ;
@@ -2773,7 +2773,7 @@ void qsort_IFFF( int n, int *iar, float *xar, float *yar, float *zar )
 }
 
 /*----------------------------------------------------------------------------*/
-/* Find the max FOM value that occured in any given iteration (iar).
+/* Find the max FOM value that occurred in any given iteration (iar).
    * inputs are the sorted-by-iar [xyz]ar arrays;
    * outputs [xyz]out are the largest [xyz]ar values for each
      distinct value of iar;

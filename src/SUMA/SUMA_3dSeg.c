@@ -64,7 +64,7 @@ NULL
    {  
 "-Bmrf",
 "-Bmrf BMRF: Weighting factor controlling spatial homogeneity of the \n"
-"            classifications. The larger BMRF, the more homogenious the\n"
+"            classifications. The larger BMRF, the more homogeneous the\n"
 "            classifications will be.\n"
 "            See Berthod et al. Image and Vision Computing 14 (1996),\n"
 "            MRFs are also used in FSL's FAST program.\n"
@@ -140,7 +140,7 @@ NULL
       },
    {  
 "-cset",
-"-cset CSET: Initial classfication. If CSET is not given,\n"
+"-cset CSET: Initial classification. If CSET is not given,\n"
 "            initialization is carried out with 3dkmean's engine.\n",
 NULL 
       },

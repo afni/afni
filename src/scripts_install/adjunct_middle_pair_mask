@@ -1,0 +1,525 @@
+#!/bin/tcsh
+
+#set version   = "0.5";  set rev_dat   = "April 18, 2024"
+# + initial program for getting a pair of middling (and maybe
+#   constrained) points within a mask
+#
+#set version   = "0.6";  set rev_dat   = "April 18, 2024"
+# + add in fixes with restrictor_mask and add dset checks at
+#   start of program run
+#
+#set version   = "0.7";  set rev_dat   = "April 22, 2024"
+# + squash if/endif bug
+#
+set version   = "0.8";  set rev_dat   = "April 22, 2024"
+# + '3dmask_dump -xbox ...' -> '3dmask_dump -dbox ...'
+#   and 3dmask_dump will soon undergo parallel improvements with
+#   individual coordinate selection, a la RCR and DRG conversation
+#
+# ----------------------------------------------------------------
+
+set this_prog = "adjunct_middle_pair_mask"
+set prog_abbr = "ampm"
+#set tpname    = "${this_prog:gas///}"
+set here      = $PWD
+
+# ----------------------- set defaults --------------------------
+
+set input    = ""
+set DO_AMASK = 0                        # automask input?
+
+set prefix   = ""
+set odir     = .
+set opref    = ""
+
+
+set DO_WDIR  = 0 
+set wdir     = ""
+
+set dset_restrict = ""                  # opt restrictor mask for points
+
+set DO_OW     = 0
+set DO_NUMOUT = 1
+
+set DO_CLEAN  = 1                       # default: keep working dir
+set verb      = 0
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    if ( "$argv[$ac]" == '-echo' ) then
+        set echo
+
+    # --------- required
+
+    else if ( "$argv[$ac]" == "-input" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set input = "$argv[$ac]"
+
+    # --------- opt
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set prefix = "$argv[$ac]"
+        set opref  = `basename "$argv[$ac]"`
+        set odir   = `dirname  "$argv[$ac]"`
+
+
+    else if ( "$argv[$ac]" == "-restrict_mask" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set dset_restrict = "$argv[$ac]"
+        set DO_WDIR = 1
+
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
+
+        set tf = `python -c "print('/' in '${wdir}')"`
+        if ( "${tf}" == "True" ) then
+            echo "** ERROR: '-workdir ..' is a name only, no '/' allowed\n"
+            goto BAD_EXIT
+        endif
+
+    else if ( "$argv[$ac]" == "-automask" ) then
+        set DO_AMASK = 1
+        set DO_WDIR  = 1
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = 0
+
+    else if ( "$argv[$ac]" == "-overwrite" ) then
+        set DO_OW = 1
+
+    else if ( "$argv[$ac]" == "-verb" ) then
+        set verb = 1
+        
+    else if ( "$argv[$ac]" == "-no_num_out" ) then
+        set DO_NUMOUT = 0
+
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ======================== ** Verify + setup ** =========================
+# =======================================================================
+
+### [PT] this is not required here
+#if ( "${prefix}" == "" ) then
+#    echo "** ERROR: need to provide output name with '-prefix ..'"
+#    goto BAD_EXIT
+#endif
+
+# check inputs, if they are used
+
+if ( "${input}" == "" ) then
+    echo "** ERROR: need to provide input dataset with '-input ..'"
+    goto BAD_EXIT
+else
+    set check = `3dinfo -prefix "${input}"`
+    if ( "${check}" == "NO-DSET" ) then
+        echo "** ERROR: cannot find/open input file:  ${input}"
+        goto BAD_EXIT
+    endif
+endif
+
+# opt dset to use
+if ( "${dset_restrict}" != "" ) then
+    set check = `3dinfo -prefix "${dset_restrict}"`
+    if ( "${check}" == "NO-DSET" ) then
+        echo "** ERROR: cannot find/open restrict_mask file:  ${dset_restrict}"
+        goto BAD_EXIT
+    endif
+endif
+
+# if we are outputting a file, make sure the output dir for it exists
+if ( "${opref}" != "" ) then
+    # check output directory, use input one if nothing given
+    if ( ! -e "${odir}" ) then
+        if ( ${verb} ) then
+            echo "++ Making new output directory: $odir"
+        endif
+        \mkdir -p "${odir}"
+    endif
+endif
+
+if ( $DO_WDIR ) then
+    ## [PT] we only need a wdir in some cases, controlled by user opts
+    if ( "${wdir}" == "" ) then
+        set tmp_code = `3dnewid -fun11`  # should be essentially unique hash
+        set wdir     = __workdir_${this_prog}_${tmp_code}
+    endif
+    # make the working directory
+    if ( ! -e "${odir}/${wdir}" ) then
+        if ( ${verb} ) then
+            echo "++ Making working directory: ${odir}/${wdir}"
+        endif
+        \mkdir -p "${odir}/${wdir}"
+    else
+        if ( ${verb} ) then
+            echo "+* WARNING:  Somehow found a premade working directory (?):"
+            echo "      ${odir}/${wdir}"
+        endif
+    endif
+endif
+
+# =======================================================================
+# =========================== ** Main work ** ===========================
+# =======================================================================
+
+# starter mask
+set dset_mask_00 = "${input}"
+
+# if we automask the input, then we have something for the wdir
+if ( $DO_AMASK ) then
+    # copy original dset to wdir
+    3dcalc                                                          \
+        -a      "${input}"                                          \
+        -expr   "a"                                                 \
+        -prefix "${odir}/${wdir}/dset_00_input.nii.gz"
+
+    # ... and automask that input
+    cd "${odir}/${wdir}"
+    3dAutomask                                                      \
+        -prefix dset_01_amask.nii.gz                                \
+        dset_00_input.nii.gz
+    cd -
+    set dset_mask_00 = "${odir}/${wdir}/dset_01_amask.nii.gz"
+endif
+
+
+# get extents of input mask, RLAPIS order
+set ext_00 = `3dAutobox -extent_xyz_quiet "${dset_mask_00}"`
+
+# calc midway point along RL axis
+set mid_rl = `echo "scale=5; (${ext_00[1]} + ${ext_00[2]})/2.0" | bc`
+
+# get midway points in each "half mask": the main info of interest
+set icent_l = `3dCM -Icent                                            \
+                    -mask "3dcalc( -a ${dset_mask_00}                 \
+                                   -RAI                               \
+                                   -expr bool(a)*step(x-${mid_rl}) )" \
+                    "${dset_mask_00}"`
+
+set icent_r = `3dCM -Icent                                            \
+                    -mask "3dcalc( -a ${dset_mask_00}                 \
+                                   -RAI                               \
+                                   -expr bool(a)*not(step(x-${mid_rl})) )" \
+                    "${dset_mask_00}"`
+
+# if using restrictor, check about being in that mask
+if ( "${dset_restrict}" != "" ) then
+
+    # use 3dmaskdump in this way: it produces nonzero status if the
+    # xyz coord is outside the grid; if that doesn't happen, check for
+    # mask value
+
+    3dmaskdump -quiet -noijk -dbox ${icent_l} "${dset_restrict}" >& /dev/null
+    set check_l = $status
+    if ( ! $check_l ) then
+        set ttt = `3dmaskdump -quiet -noijk -dbox ${icent_l} "${dset_restrict}"`
+        set check_l = `echo "! ${ttt}" | bc`
+    endif
+
+    3dmaskdump -quiet -noijk -dbox ${icent_r} "${dset_restrict}" >& /dev/null
+    set check_r = $status
+    if ( ! $check_r ) then
+        set ttt = `3dmaskdump -quiet -noijk -dbox ${icent_r} "${dset_restrict}"`
+        set check_r = `echo "! ${ttt}" | bc`
+    endif
+
+    if ( $check_l == 0 && $check_r == 0 ) then
+        # best scenario---checks passed
+        goto GOOD_RESTRICT
+    endif
+
+    # ... or at this point at least one of the L and R checks failed,
+    # so we have to do more work to follow-up. Sigh.
+
+    # map restrictor to input dset grid
+    3dAllineate                                             \
+        -overwrite                                          \
+        -1Dmatrix_apply IDENTITY                            \
+        -prefix         "${odir}/${wdir}/dset_02_restrict.nii.gz"  \
+        -master         "${input}"                          \
+        -source         "${dset_restrict}"                  \
+        -final          NN
+
+    # calc overall overlap of input and restrictor
+    3dcalc \
+        -overwrite \
+        -a    "${dset_mask_00}"                             \
+        -b    "${odir}/${wdir}/dset_02_restrict.nii.gz"     \
+        -expr "bool(a)*bool(b)"                             \
+        -prefix "${odir}/${wdir}/dset_03_inp_rest_olap.nii.gz" \
+        -datum  byte \
+        -nscale
+
+    # check overlap
+    set max = `3dinfo -max ${odir}/${wdir}/dset_03_inp_rest_olap.nii.gz`
+    if ( "${max}" == "0" ) then
+        # bad scenario: no overlap, so nothing to do; make dummy coords
+        set icent_l = ( 0 0 0 )
+        set icent_r = ( 0 0 0 )
+        goto BAD_RESTRICT
+    endif 
+
+    # ... and if we continue here, we know there is at least some
+    # overlap
+
+    cd "${odir}/${wdir}"
+
+    # try to make each of the l/r combined restrictor masks; at least
+    # one of these is nonzero, so we can use the other if one fails
+    3dcalc                                                    \
+        -overwrite                                            \
+        -a      "dset_03_inp_rest_olap.nii.gz"                \
+        -RAI                                                  \
+        -expr   "bool(a)*step(x-${mid_rl})"                   \
+        -prefix "dset_13_inp_rest_l.nii.gz"                   \
+        -datum  byte                                          \
+        -nscale
+
+    3dcalc                                                    \
+        -overwrite                                            \
+        -a      "dset_03_inp_rest_olap.nii.gz"                \
+        -RAI                                                  \
+        -expr   "bool(a)*not(step(x-${mid_rl}))"              \
+        -prefix "dset_13_inp_rest_r.nii.gz"                   \
+        -datum  byte                                          \
+        -nscale
+
+    # check and fix left coord
+    if ( $check_l ) then
+        set max = `3dinfo -max dset_13_inp_rest_l.nii.gz`
+        if ( `echo "${max} > 0" | bc` ) then
+            # things are OK, and we can make new coord fine
+            set icent_l = `3dCM -Icent                                \
+                                -mask   dset_13_inp_rest_l.nii.gz     \
+                                dset_13_inp_rest_l.nii.gz`
+        else
+            # we know that the other hemisphere exists, so get the
+            # self-sided one from that
+            adjunct_middle_pair_mask \
+                -no_num_out                        \
+                -input   dset_13_inp_rest_r.nii.gz \
+                -prefix  __tmp_restrict_calc_l.txt 
+            set ttt = `cat __tmp_restrict_calc_l.txt`
+            set icent_l = ( $ttt[1] $ttt[2] $ttt[3] )
+        endif 
+    endif
+
+    # ... and check and fix right coord (same way as above)
+    if ( $check_r ) then
+        set max = `3dinfo -max "${odir}/${wdir}/dset_13_inp_rest_r.nii.gz"`
+        if ( `echo "${max} > 0" | bc` ) then
+            # things are OK, and we can make new coord fine
+            set icent_r = `3dCM -Icent                                \
+                                -mask   dset_13_inp_rest_r.nii.gz     \
+                                dset_13_inp_rest_r.nii.gz`
+            set check_r = 0
+        else
+            # we know that the other hemisphere exists, so get the
+            # self-sided one from that
+            adjunct_middle_pair_mask \
+                -no_num_out                        \
+                -input   dset_13_inp_rest_l.nii.gz \
+                -prefix  __tmp_restrict_calc_r.txt 
+            set ttt = `cat __tmp_restrict_calc_r.txt`
+            set icent_r = ( $ttt[4] $ttt[5] $ttt[6] )
+        endif 
+    endif
+    cd -
+endif
+
+GOOD_RESTRICT:
+BAD_RESTRICT:
+
+# report, if you want
+if ( $verb ) then
+cat <<EOF
+-----------------------------------
+initial extent  : ${ext_00}
+coord of mid-RL : ${mid_rl}
+
+Icent on left   : ${icent_l}
+Icent on right  : ${icent_r}
+-----------------------------------
+EOF
+endif
+
+if ( $DO_NUMOUT ) then
+    # report to terminal, which can be grabbed with redirect
+    printf "%9.5f  %9.5f  %9.5f\n"                 \
+        ${icent_l[1]} ${icent_l[2]} ${icent_l[3]}
+    printf "%9.5f  %9.5f  %9.5f\n"                 \
+        ${icent_r[1]} ${icent_r[2]} ${icent_r[3]}
+endif
+
+# Write to a text file, if the user provides a '-prefix'
+if ( "${opref}" != "" ) then
+    # check about existing files and overwriting
+    if ( -e "${prefix}" && $DO_OW == 0 ) then
+        echo "** ERROR: cannot overwrite existing output '${prefix}'"
+        echo "   without using '-overwrite' opt. Exiting."
+        goto BAD_EXIT
+    endif
+
+    # output to file
+    printf "" > "${prefix}"
+    printf "%9.5f  %9.5f  %9.5f\n"                 \
+        ${icent_l[1]} ${icent_l[2]} ${icent_l[3]}  >> "${prefix}"
+    printf "%9.5f  %9.5f  %9.5f\n"                 \
+        ${icent_r[1]} ${icent_r[2]} ${icent_r[3]}  >> "${prefix}"
+endif
+
+
+# ---------------------------------------------------------------------
+# move out of wdir to the odir
+
+if ( $DO_WDIR && $DO_CLEAN == 1 ) then
+    cd "${odir}"
+    \rm -rf "${wdir}"
+    cd -
+else if ( $DO_WDIR ) then
+    echo "++ NOT removing temporary working dir: ${odir}/${wdir}"
+endif
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP: 
+
+cat << EOF
+
+Overview ~1~
+
+This is an adjunct program to find 2 points within a mask that are
+centered along the AP and IS axes for a mask/input dset, and then one
+is also centered in the "left half" and one centered in the "right
+half".
+
+This is primarily meant to be used for APQC HTML creation for ORIG or
+TLRC datasets without recognized seed locations.
+
+The locations are found by first running 3dAutobox on the input, which
+is expected to be a mask by default. If the input is not a mask, users
+can also use the '-automask' option to automask it.  After that, each
+output point is found in each half of the autoboxed input using '3dCM
+-Icent ...'.  The output is two sets of three numbers, the coordinates
+in question.
+
+Users can use '-prefix ..' to save the results to a text file, or they
+could redirect the output with '... > FILE.txt'.
+
+auth : PA Taylor (SSCC, NIMH, NIH, USA)
+ver  : ${version}
+date : ${rev_dat}
+
+-------------------------------------------------------------------------
+
+Options ~1~
+
+-input    III      :(req) input dset, which can be a mask or a dset  
+
+-prefix   PPP      :output the two lines of 3 coords each to a text file
+
+-automask          :use this to run 3dAutomask on the input, *if* the 
+                    input is not a mask already
+
+-restrict_mask RM :add in another mask as a constraint, which the two
+                    points must also fall within. This RM dset need
+                    not be on the same grid as the input III dset
+                    (resampling will happen internally).
+                    Using this opt can lead to complicated logic if
+                    there is poor overlap between this and the
+                    input. If this doesn't overlap with one of the
+                    intermediate hemispheres of the input, then the
+                    output points might both be in the same apparent
+                    hemisphere. And if there is no overlap between
+                    this restrictor and the input, you will get two
+                    sets of null coords: (0 0 0). But that will be
+                    your own fault.
+
+-overwrite         :flag to turn on overwriting of prior existing file
+                    if '-prefix ..' is used
+
+-verb              :spit out a bit of extra text info about calcs. 
+                    NB: if you use this opt, then you won't want to try to
+                    get the seed-based coordinates by redirecting 
+                    output to a file with '>' but instead would need
+                    to use '-prefix ..' for that.
+
+-no_num_out        :do not report the two coordinates in the terminal output
+                    (stdout). Probably this means you are using '-prefix ..'
+                    to save the output results.
+
+-echo              :run this script with '-e' opt, to echo every line before
+                    it is executed (so, very verbose output)
+
+-workdir  WWW      :provide a name of a temporary working directory.
+                    NB: no path should be included in it; it will be placed
+                    into the output directory location
+                     
+-no_clean          :if a workdir is used, then this opt turns off 
+                    removing it (def: remove working dir)
+
+-ver               :display program version
+
+-help, -h          :display this help (soooo meta)
+
+-------------------------------------------------------------------------
+
+Examples ~1~
+
+1) simple case, just input a mask:
+    adjunct_middle_pair_mask                                \
+        -input  mask_epi_anat.sub-001+tlrc.HEAD
+
+2) input a template, automask it and get two points that are also 
+   constrained to be in a secondary mask:
+    adjunct_middle_pair_mask                                \
+        -input            MNI152_2009_template_SSW.nii.gz   \
+        -automask                                           \
+        -restrictor_mask  mask_epi_anat.sub-001+tlrc.HEAD
+
+EOF
+
+# ----------------------------------------------------------------------
+
+goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

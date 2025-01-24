@@ -57,7 +57,7 @@ THD_3dim_dataset * New_Dataset_From_Scratch(char *prefix)
    
    /* Now let us fill up this dataset with time series, and say we want the 
       results to be stored in MRI_short.  
-      I use short because in thie example, one is forced to consider what
+      I use short because in this example, one is forced to consider what
       the scaling factor, if any should be before inserting the time series
       into the volume. 
       Here I know that my values are between -1.0 and 1.0 so a factor of 

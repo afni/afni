@@ -738,7 +738,7 @@ compiler."
       # It is impossible to link a dll without this setting, and
       # we shouldn't force the makefile maintainer to figure out
       # which system we are compiling for in order to pass an extra
-      # flag for every libtool invokation.
+      # flag for every libtool invocation.
       # allow_undefined=no
 
       # FIXME: Unfortunately, there are problems with the above when trying
@@ -2568,7 +2568,7 @@ EOF
 	      fi
 	    done
 	  else
-	    # Error occured in the first compile.  Let's try to salvage
+	    # Error occurred in the first compile.  Let's try to salvage
 	    # the situation: Compile a separate program for each library.
 	    for i in $deplibs; do
 	      name="`expr $i : '-l\(.*\)'`"
@@ -4717,7 +4717,7 @@ relink_command=\"$relink_command\""
 	eval "export $shlibpath_var"
       fi
 
-      # Restore saved enviroment variables
+      # Restore saved environment variables
       if test "${save_LC_ALL+set}" = set; then
 	LC_ALL="$save_LC_ALL"; export LC_ALL
       fi

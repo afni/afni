@@ -559,7 +559,7 @@ INFO_message("prefilter [%d] '%s'",ii,argv[ii]) ;
        if( ttt ) fprintf(stderr,"++ argv[%d] is -all_opts\n",ii) ;
        print_prog_options(argv[0]); used[ii] = 1 ;
        exit(0);
-         /* better exit, otherwise output get burried by program's own -help */
+         /* better exit, otherwise output get buried by program's own -help */
      }
 
      if( strcmp(argv[ii],"-h_find") == 0 ){
@@ -572,7 +572,7 @@ INFO_message("prefilter [%d] '%s'",ii,argv[ii]) ;
        suggest_best_prog_option(argv[0], argv[ii]);
        used[ii] = 1 ;
        exit(0);
-         /* better exit, otherwise output get burried by program's own -help */
+         /* better exit, otherwise output get buried by program's own -help */
      }
 
      if( strcmp(argv[ii],"-h_aspx") == 0 && ii == 1){
@@ -593,7 +593,7 @@ INFO_message("prefilter [%d] '%s'",ii,argv[ii]) ;
        view_prog_help(argv[0]);
        used[ii] = 1 ;
        exit(0);
-         /* better exit, otherwise output get burried by program's own -help */
+         /* better exit, otherwise output get buried by program's own -help */
      }
 
      if( strcmp(argv[ii],"-h_web") == 0  || strcmp(argv[ii],"-hweb") == 0 ){
@@ -601,7 +601,7 @@ INFO_message("prefilter [%d] '%s'",ii,argv[ii]) ;
        web_prog_help(argv[0],0);
        used[ii] = 1 ;
        exit(0);
-         /* better exit, otherwise output get burried by program's own -help */
+         /* better exit, otherwise output get buried by program's own -help */
      }
 
      /*** -ok_1D_text to set AFNI_1D_ZERO_TEXT ZSS Dec 09 ***/

@@ -116,7 +116,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "    minabove, maxbelow, extreme, absextreme    , acfwxm\n"                  \
   "    gamp , gampq\n"                                                         \
   "\n"                                                                         \
-  " where some of the less obvious funcions are:\n"                            \
+  " where some of the less obvious functions are:\n"                            \
   " * qg(x)    = reversed cdf of a standard normal distribution\n"             \
   " * qginv(x) = inverse function to qg\n"                                     \
   " * min, max, atan2 each take 2 arguments ONLY\n"                            \
@@ -168,7 +168,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "   estimated in program 3dFWHMx.\n"                                         \
   " * gamp(peak,fwhm) returns the parameter p in the formula\n"                \
   "      g(t) = (t/(p*q))^p * exp(p-t/q)\n"                                    \
-  "   that gives the peak value of g(t) occuring at t=peak when the\n"         \
+  "   that gives the peak value of g(t) occurring at t=peak when the\n"         \
   "   FWHM of g(t) is given by fwhm; gamq(peak,fwhm) gives the q parameter.\n" \
   "   These functions are largely used for creating FMRI hemodynamic shapes.\n"\
   "\n"                                                                         \

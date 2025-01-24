@@ -4653,7 +4653,7 @@ void old_calculate_acontrasts (anova_options * option_data)
     ANOVA_error ("unable to allocate sufficient memory");
 
 
-  /*----- loop over user specified constrasts -----*/
+  /*----- loop over user specified contrasts -----*/
   for (icontr = 0;  icontr < num_contr;  icontr++)
     {
       volume_zero (contr, nxyz);
@@ -4761,7 +4761,7 @@ void old_calculate_bcontrasts (anova_options * option_data)
     ANOVA_error ("unable to allocate sufficient memory");
 
 
-  /*----- loop over user specified constrasts -----*/
+  /*----- loop over user specified contrasts -----*/
   for (icontr = 0;  icontr < num_contr;  icontr++)
     {
       volume_zero (contr, nxyz);
@@ -5647,7 +5647,7 @@ void calculate_acontrasts (anova_options * option_data)
   if ((contr == NULL) || (tcontr == NULL))
     ANOVA_error ("unable to allocate sufficient memory");
 
-  /*----- loop over user specified constrasts -----*/
+  /*----- loop over user specified contrasts -----*/
   for (icontr = 0;  icontr < num_contr;  icontr++)
   {
       if (option_data->model == 1)
@@ -5753,7 +5753,7 @@ void calculate_bcontrasts (anova_options * option_data)
   if ((contr == NULL) || (tcontr == NULL))
     ANOVA_error ("unable to allocate sufficient memory");
 
-  /*----- loop over user specified constrasts -----*/
+  /*----- loop over user specified contrasts -----*/
   for (icontr = 0;  icontr < num_contr;  icontr++)
   {
       bcontr = option_data->bcontr[icontr];  /* set a pointer to the contrast */
@@ -5857,7 +5857,7 @@ void calculate_ccontrasts (anova_options * option_data)
     ANOVA_error ("unable to allocate sufficient memory");
 
 
-  /*----- loop over user specified constrasts -----*/
+  /*----- loop over user specified contrasts -----*/
   for (icontr = 0;  icontr < num_contr;  icontr++)
     {
       volume_zero (contr, nxyz);
@@ -5946,7 +5946,7 @@ void calculate_aBcontrasts (anova_options * option_data)
   if ((contr == NULL) || (tcontr == NULL))
     ANOVA_error ("unable to allocate sufficient memory");
 
-  /*----- loop over user specified constrasts -----*/
+  /*----- loop over user specified contrasts -----*/
   for (icontr = 0;  icontr < num_contr;  icontr++)
   {
       acontr = option_data->aBcontr[icontr];
@@ -6025,7 +6025,7 @@ void calculate_Abcontrasts (anova_options * option_data)
   if ((contr == NULL) || (tcontr == NULL))
     ANOVA_error ("unable to allocate sufficient memory");
 
-  /*----- loop over user specified constrasts -----*/
+  /*----- loop over user specified contrasts -----*/
   for (icontr = 0;  icontr < num_contr;  icontr++)
   {
       Alevel = option_data->Abclevel[icontr];
@@ -6096,7 +6096,7 @@ void calculate_aBdiffs (anova_options * option_data)
   if ((contr == NULL) || (tcontr == NULL) || (acontr == NULL))
     ANOVA_error ("unable to allocate sufficient memory");
 
-  /*----- loop over user specified constrasts -----*/
+  /*----- loop over user specified contrasts -----*/
   for (idiff = 0;  idiff < num_diffs;  idiff++)
   {
       for( i=0; i<a; i++ ) acontr[i] = 0;    /* clear old contr */
@@ -6176,7 +6176,7 @@ void calculate_Abdiffs (anova_options * option_data)
   if ((contr == NULL) || (tcontr == NULL) || (bcontr == NULL))
     ANOVA_error ("unable to allocate sufficient memory");
 
-  /*----- loop over user specified constrasts -----*/
+  /*----- loop over user specified contrasts -----*/
   for (idiff = 0;  idiff < num_diffs;  idiff++)
   {
       for( i=0; i<b; i++ ) bcontr[i] = 0;    /* clear old contr */
@@ -6258,7 +6258,7 @@ void calculate_abmeans (anova_options * option_data)
       exit(1);
   }
 
-  /*----- loop over user specified constrasts -----*/
+  /*----- loop over user specified contrasts -----*/
   for (imean = 0;  imean < num_means;  imean++)
   {
       Alevel = option_data->abmeans[imean][0];
@@ -6968,7 +6968,7 @@ void terminate (anova_options * option_data)
     create_bucket (option_data);
 
 
-  /*----- if 'bucket' datset was created, remove the individual 2-subbrick
+  /*----- if 'bucket' dataset was created, remove the individual 2-subbrick
           data files -----*/
   if (option_data->bucket_filename != NULL)
     {

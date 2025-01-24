@@ -10,6 +10,8 @@
 #                    affect *.nii?)
 # [PT: June 2, 2020] ... rolled back to use all *.nii, because RCR fixed how 
 #                    AFNI_COMPRESSOR works with NIFTI (-> now ignores them)
+# [PT: Mar 3,  2023] running this prog with no opts now produces FULL help
+#                  + add in -hview functionality
 # --------------------------------------------------------------------------
 
 
@@ -26,7 +28,7 @@ from afnipy import ask_me
 
 g_help_string = """
     ===========================================================================
-    auto_warp.py     - Nonlinear regisration 
+    auto_warp.py     - Nonlinear registration 
     
     Basic Usage:
       auto_warp.py -base TT_N27+tlrc -input anat.nii  \\
@@ -53,7 +55,7 @@ g_help_string = """
 class RegWrap:
    def __init__(self, label):
       self.align_version = "0.06" # software version (update for changes)
-      self.label = label
+      self.label = label          # this program's name
       self.valid_opts = None
       self.user_opts = None
       self.verb = 1    # a little talkative by default
@@ -94,7 +96,10 @@ class RegWrap:
                
       self.valid_opts.add_opt('-help', 0, [], \
                helpstr="The main help describing this program with options")
-               
+
+      self.valid_opts.add_opt('-hview', 0, [], \
+               helpstr="Like '-help', but opening in a text editor")
+
       self.valid_opts.add_opt('-limited_help', 0, [], \
                helpstr="The main help without all available options")
                
@@ -222,6 +227,12 @@ class RegWrap:
          ps.self_help(2)   # always give full help now by default
          ps.ciao(0)  # terminate
 
+      opt = opt_list.find_opt('-hview')    # does the user want help IN A GUI?
+      if opt != None:
+         cmd = 'apsearch -view_prog_help {}'.format( self.label )
+         simple_shell_exec(cmd)            # from afni_base.py
+         ps.ciao(0)  # terminate
+
       opt = opt_list.find_opt('-limited_help')  # less help?
       if opt != None:
          ps.self_help()
@@ -319,7 +330,7 @@ class RegWrap:
       # no options: apply -help
       if ( len(self.user_opts.olist) == 0 or \
            len(sys.argv) <= 1 ) :
-         ps.self_help()
+         ps.self_help(2)
          ps.ciao(0)  # terminate
       if self.user_opts.trailers:
          opt = self.user_opts.find_opt('trailers')

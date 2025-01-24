@@ -126,7 +126,7 @@ static GtsFace * closest_face (GtsSurface * s, GtsPoint * p)
 
 #  else /* VERSION < 2.4.0 */
 
-/* Due to an unkown reason g_hash_table_foreach does not allow to stop 
+/* Due to an unknown reason g_hash_table_foreach does not allow to stop 
  * the loop, hence the redefinition. I hope they don't change
  * the GHashTable, GHashNode structures ... */
 typedef struct _GHashNode      GHashNode;

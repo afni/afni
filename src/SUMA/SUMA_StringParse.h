@@ -8,7 +8,7 @@
 #define SUMA_IS_PURE_BLANK(c) ( ((c) == ' ' || (c) == '\t' ) )
 
 /*! a macro version of C's isspace
-   returns 1 if charater is considered a blank
+   returns 1 if character is considered a blank
    \sa SUMA_SKIP_BLANK
 */
 #define SUMA_IS_BLANK(c) ( (SUMA_IS_PURE_BLANK(c) || (c) == '\n' || (c) == '\v' || (c) == '\f' || (c) == '\r') ? 1 : 0 )

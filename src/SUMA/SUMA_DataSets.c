@@ -182,7 +182,7 @@ int SUMA_GetNodeRow_FromNodeIndex_s(SUMA_DSET *dset, int node, int N_Node)
                                   to guess. In that case the function
                                   will set the value of form
    \return (SUMA_DSET *) dset 
-   The datset does not get associated with a surface (owner_id[0] = '\0')
+   The dataset does not get associated with a surface (owner_id[0] = '\0')
    You'll have to do this manually later on if you wish
    You typically want to insert that dataset into SUMA's DsetList list...
 */

@@ -4,7 +4,7 @@
 
    Gifsicle is free software; you can copy, distribute, or alter it at will, as
    long as this notice is kept intact and this source code is made available.
-   Hypo(pa)thetical commerical developers are asked to write the author a note,
+   Hypo(pa)thetical commercial developers are asked to write the author a note,
    which might make his day. There is no warranty, express or implied. */
 
 #include "config.h"

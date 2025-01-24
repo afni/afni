@@ -81,7 +81,7 @@
    SUMA_AbsThreshold = YES
 // 015-SUMA_ThresholdScalePower:
 //     Threshold scale precision. 2 is the minimum allowed. 
-//       This value might be overriden in SUMA.
+//       This value might be overridden in SUMA.
 //     default:   SUMA_ThresholdScalePower = 2
    SUMA_ThresholdScalePower = 2
 // 016-SUMA_CenterOnPatch:
@@ -98,7 +98,7 @@
 //     default:   SUMA_1D_Transpose_Warn = YES
    SUMA_1D_Transpose_Warn = YES
 // 019-SUMA_AdjustMouseMotionWithZoom:
-//     Adjust roation and translation factor of mouse with changes 
+//     Adjust rotation and translation factor of mouse with changes 
 //       in zoom levels 
 //     default:   SUMA_AdjustMouseMotionWithZoom = YES
    SUMA_AdjustMouseMotionWithZoom = YES

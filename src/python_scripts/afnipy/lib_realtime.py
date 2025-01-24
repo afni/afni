@@ -231,7 +231,7 @@ class RTInterface:
 
       odata = self.bytes_to_ord(data)
       if self.verb > 2:
-         print('++ recieved as magic_hi: %s' % UTIL.data_to_hex_str(odata))
+         print('++ received as magic_hi: %s' % UTIL.data_to_hex_str(odata))
 
       # test whether we have magic, start by ignoring the last byte
       for ind in range(g_magic_len-1):

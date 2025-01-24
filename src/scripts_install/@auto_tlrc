@@ -432,7 +432,7 @@ PARSE:
          set pLoc = $cnt      
          if ($pLoc == $Narg) then
             echo "Need name of space for output after -out_space"
-            echo "See whereami -show_spaces for some possibilities"
+            echo "See whereami_afni -show_spaces for some possibilities"
             goto END
          else
             @ cnt ++
@@ -569,7 +569,7 @@ PARSE:
 #      goto END
    endif
    
-   #if in apar mode, no need for skull strippin 
+   #if in apar mode, no need for skull stripping
    if ($apar_mode == 1) then
       set RemoveSkull = 0
    endif
@@ -621,7 +621,7 @@ PARSE:
          goto BEND
       endif
       if ($RemoveSkull != 1) then
-         # if intput and output are identical, do not run   19 Feb 2020 [rickr]
+         # if input and output are identical, do not run   19 Feb 2020 [rickr]
          # (avoid confusing FATAL ERROR: already exists, e.g. Robin on MB)
          if ( "`@GetAfniPrefix $anat_in`" != ${ns_pref} ) then
             echo "++ anat already stripped, copying $anat_in as $ns_pref"
@@ -796,7 +796,7 @@ AUTO_TLRC_MODE:
    goto CLEANUP
 
    PAD:
-   #Paddin the reference since tt vols are perrty tight
+   #Padding the reference since tt vols are perrty tight
    if ( `@CheckForAfniDset ${ref_pref_pad}${ref_view}` == 0 ) then
       echo "Padding ..."
       3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
@@ -1004,7 +1004,7 @@ AUTO_TLRC_MODE:
                   echo "much else to try automatically. "
                   echo "Check your results, the -help tips"
                   echo "and report persisting problems to "
-                  echo "progam authors."
+                  echo "program authors."
                   echo ""
                   echo "Script will stop ..."
                   echo ""
@@ -1020,7 +1020,7 @@ AUTO_TLRC_MODE:
                   echo "without shear operation."
                   echo "Check your results, the -help tips"
                   echo "and report persisting problems to "
-                  echo "progam authors."
+                  echo "program authors."
                   echo ""
                   echo "Script will stop ..."
                   echo ""
@@ -1251,7 +1251,7 @@ AUTO_TLRC_MODE:
    ACPCIATE:
    if ($acpciate == 1) then
       echo "Doing the MSB thing..."
-      #create a version witout scaling
+      #create a version without scaling
       if ($warpdrive_method == "3dAllineate") then
          cat_matvec  ${out_pref}.Xat.1D -P \
                   > ${out_pref}.Xat.rigid.1D
@@ -1609,7 +1609,7 @@ echo "                        (+tlrc)."
 echo "                        Preferably, this reference volume should have had"
 echo "                        the skull removed but that is not mandatory."
 echo "                        AFNI's distribution contains several templates."
-echo '                        For a longer list, use "whereami -show_templates"'
+echo '                        For a longer list, use "whereami_afni -show_templates"'
 echo "          TT_N27+tlrc --> Single subject, skull stripped volume."
 echo "                       This volume is also known as "
 echo "                       N27_SurfVol_NoSkull+tlrc elsewhere in "
@@ -1821,7 +1821,7 @@ echo "                          created using Usage 1 of `basename $0`"
 echo "                          From the example for usage 1, TLRC_parent"
 echo "                          would be: SubjectHighRes+TLRC"
 echo "      -input DSET       : Dataset (typically EPI time series or"
-echo "                          statistical datset) to transform to"
+echo "                          statistical dataset) to transform to"
 echo "                          tlrc space per the xform in TLRC_parent"
 echo "      -dxyz MM          : Cubic voxel size of output DSET in TLRC"
 echo "                          space Default MM is 1. If you do not"

@@ -80,7 +80,7 @@ series data. AFNI then outputs a text file with the average value at each
 time point (and standard deviation, if desired) which can be graphed in
 Excel or any other plotting program.
   Some difficulties arise when the mask BRIK and the 3d+time BRIK have
-different co-ordinate spaces or voxel dimensions. For instance, when the
+different coordinate spaces or voxel dimensions. For instance, when the
 "Draw Dataset" plug-in is used to define an anatomical region of interest
 (like a specific gyrus) on a high-resolution (e.g. SPGR) anatomical
 dataset. The user then wishes to find the average time-series from all
@@ -93,7 +93,7 @@ directly applied to the 3d+time dataset.
   To solve this problem, both the mask and 3d+time datasets are converted to
 the same image volume by translation to Talairach space. 
 Simplest Method:
-  For the mask dataset, After the Talairach transormation is performed on
+  For the mask dataset, After the Talairach transformation is performed on
 the hi-res anatomical, a transformed BRIK is written to disk (with the
 "Write Anat" button), a copy made, and "draw dataset" performed on the
 duplicate Talairach BRIK to make a mask in Talairach space.

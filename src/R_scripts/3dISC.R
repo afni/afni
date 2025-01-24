@@ -9,7 +9,7 @@ first.in.path <- function(file) {
 source(first.in.path('AFNIio.R'))
 ExecName <- '3dISC'
 # Global variables
-tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
+tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avoiding analyzing data with most 0's
 
 #################################################################################
 ##################### Begin 3dISC Input functions ################################
@@ -23,9 +23,8 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.3, Dec 19, 2021
+Version 1.0.7, Sept 24, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -63,7 +62,7 @@ Introduction
  predictors (regressors) can be overwhelming especially when there are more 
  than two factor levels or when an interaction effect is involved. So, 
  familiarize yourself with the details of the two popular factor coding 
- strageties (dummy and deviation coding):
+ strategies (dummy and deviation coding):
  https://stats.idre.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables/
 
  The four exemplifying scripts below are good demonstrations.More examples will
@@ -72,7 +71,7 @@ Introduction
  are similar to your data structure, use the example(s) as a template and then
  build up your own script.
  
- In addition to R installtion, the following R packages need to be installed
+ In addition to R installation, the following R packages need to be installed
  first before running 3dISC: "lme4" and "snow". To install these packages, 
  run the following command at the terminal:
 
@@ -102,7 +101,7 @@ Introduction
 "Example 1 --- Simplest case: ISC analysis for one group of subjects without
   any explanatory variables. In other words, the effect of interest is the ISC
   at the populaton level. The output is the group ISC plus its t-statistic.
-  The components within paratheses in the -model specifications are R 
+  The components within parentheses in the -model specifications are R 
   notations for random effects.
 
 -------------------------------------------------------------------------
@@ -138,7 +137,7 @@ Introduction
   the model, which is the average effect across all the factor levels (and
   corresponds to the zero value of a quantitative variable if present). If dummy 
   coding is preferred, check out the next script below. The components within 
-  paratheses in the -model specifications are R notations for random effects. 
+  parentheses in the -model specifications are R notations for random effects. 
   Here is a good reference about factor coding strategies:
   https://stats.idre.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables/
 
@@ -174,7 +173,11 @@ Introduction
   specification, which makes the weight coding much more intuitive. In this
   particular case, the three weights are associated with the three
   categories, G11, G12 and G22 (no intercept is assumed in the model as
-  requested with the zero (0) in the model specifications).
+  requested with the zero (0) in the model specifications). 
+  ** Alert ** This coding strategy, using no intercept, only works when 
+  there is a single explanatory variable (e.g., 'group' in this example). 
+  For cases with more than one explanatory variable, consider adopting 
+  other coding methods.
 
 -------------------------------------------------------------------------
     3dISC -prefix ISC2b -jobs 12                  \\
@@ -236,10 +239,10 @@ Introduction
       ex3 <-  
 "Example 3 --- ISC analysis for one group of subjects. The only difference
   from Example 1 is that we want to add an explanatory variable 'Age'. 
-  Before the age values are incoporated in the data table, do two things:
+  Before the age values are incorporated in the data table, do two things:
   1) center the age by subtracting the cener (e.g., overall mean) from each 
   subject's age, and 2) for each subject pair (each row in the data table)
-  add up the two ages (after centering). The components within paratheses 
+  add up the two ages (after centering). The components within parentheses 
   in the -model specifications are R notations for random effects.
 
 -------------------------------------------------------------------------
@@ -270,7 +273,7 @@ Introduction
   modeling strategy in the third analysis of Example 2 with Example 3. In 
   addition, we consider the interaction between Sex and Age by adding their
   product as another column (called 'SA' in the data table). The components 
-  within paratheses in the -model specifications are R notations for random 
+  within parentheses in the -model specifications are R notations for random 
   effects.
 
 -------------------------------------------------------------------------
@@ -443,9 +446,9 @@ read.ISC.opts.batch <- function (args=NULL, verb = 0) {
    "         In the ISC context the simplest model is \"1+(1|Subj1)+(1|Subj2)\"in",
    "         while the random effect from each of the two subjects in a pair is",
    "         symmetrically incorporated in the model. Each random-effects factor is",
-   "         specified within paratheses per formula convention in R. Any",
+   "         specified within parentheses per formula convention in R. Any",
    "         effects of intereste and confounding variables (quantitative or",
-   "         categorical variables) can be added as fixed effects without paratheses.\n", sep = '\n'
+   "         categorical variables) can be added as fixed effects without parentheses.\n", sep = '\n'
              ) ),
 
        '-dbgArgs' = apl(n=0, h = paste(
@@ -628,7 +631,7 @@ read.ISC.opts.batch <- function (args=NULL, verb = 0) {
              qVarCenters = lop$qVarCenters <- ops[[i]],
              #vVarCenters = lop$vVarCenters <- ops[[i]],
              #ISC     = lop$ISC     <- ops[[i]],
-             dataTable  = lop$dataTable <- dataTable.AFNI.parse(ops[[i]]),
+             dataTable  = lop$dataTable <- dataTable.AFNI.parse.orig(ops[[i]]),
              
              help = help.ISC.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
@@ -741,7 +744,8 @@ process.ISC.opts <- function (lop, verb = 0) {
          return(NULL)
       }
       #lop$maskData <- mm$brk[,,,1]
-      lop$maskData <- mm$brk
+      #lop$maskData <- mm$brk
+      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeros
       if(verb) cat("Done read ", lop$maskFN,'\n')
       if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!")
    }
@@ -758,27 +762,27 @@ process.ISC.opts <- function (lop, verb = 0) {
 # LME: bare-bone approach with LME for ISC: some voxels may have 0 ISC values: effect estimates as input only
 runLME <- function(myData, ModelForm, DM, gltM, intercept, nF, nS, tag) {
    #browser()
-   if(!all(myData == 0)) {     
+   #if(!all(na.omit(myData) == 0)) {
+   if(!any(myData) == 0) {
       DM$ISC <- myData
       options(warn=-1)
       DM <- rbind(DM, DM)
       DM$Subj1[(nF+1):(2*nF)] <- DM$Subj2[1:nF]
       DM$Subj2[(nF+1):(2*nF)] <- DM$Subj1[1:nF]
-      
-      try(fm <- summary(lmer(ModelForm, data=DM)), silent=TRUE)
-     
-      if(is.null(fm)) {
+      m <- NULL; try(fm <- lmer(ModelForm, data=DM))
+      try(m <- summary(fm), silent=TRUE)
+      if(is.null(m)) {
          if(intercept==1) return(rep(0,2)) else return(rep(0,2*nrow(gltM)))
       } else {
          if(intercept==1) {
-            cc <- fm$coefficients
-            tt <- cc[1]*sqrt(nS-1)/(cc[2]*sqrt(2*nS-1))  # new t-value
+            cc <- m$coefficients
+            tt <- cc[1]*sqrt(nS-ncol(model.matrix(fm)))/(cc[2]*sqrt(2*nS-ncol(model.matrix(fm))))  # new t-value
             return(c(z2r(cc[1]), tt))
 	 } else {
-	    vv <- t(gltM %*% coef(fm)[,1])
+	    vv <- t(gltM %*% coef(m)[,1])
             se <- rep(1e8, nrow(gltM))
-            for(ii in 1:nrow(gltM)) se[ii] <- as.numeric(sqrt(t(gltM[ii,]) %*% vcov(fm) %*% gltM[ii,]))
-            tt <- (vv*sqrt(nS-1))/(se*sqrt(2*nS-1))
+            for(ii in 1:nrow(gltM)) se[ii] <- as.numeric(sqrt(t(gltM[ii,]) %*% vcov(m) %*% gltM[ii,]))
+            tt <- (vv*sqrt(nS-ncol(model.matrix(fm))))/(se*sqrt(2*nS-ncol(model.matrix(fm))))
 	    return(c(rbind(vv,tt)))
 	 }
       }
@@ -789,20 +793,21 @@ runLME <- function(myData, ModelForm, DM, gltM, intercept, nF, nS, tag) {
 runLME2 <- function(myData, ModelForm, DM, nF, nS, nBrk, tag) {
    #browser()
    #myStat<-vector(mode="numeric", length= nBrk)
-   if(!all(myData == 0)) {     
+   #if(!all(na.omit(myData) == 0)) {
+   if(!any(myData) == 0) {
       DM$ISC <- myData
       options(warn=-1)
       DM <- rbind(DM, DM)
       DM$Subj1[(nF+1):(2*nF)] <- DM$Subj2[1:nF]
       DM$Subj2[(nF+1):(2*nF)] <- DM$Subj1[1:nF]
-      
-      try(fm <- summary(lmer(ModelForm, data=DM)), silent=TRUE)
-      #if(is.null(fm)) return(rep(0,14))) else {
-      #   cc <- fm$coefficients
-      #   tt <- cc[1]*sqrt(nS-1)/(cc[2]*sqrt(2*nS-1))  # new t-value
+      m <- NULL; try(fm <- lmer(ModelForm, data=DM))            
+      try(m <- summary(fm), silent=TRUE)
+      #if(is.null(m)) return(rep(0,14))) else {
+      #   cc <- m$coefficients
+      #   tt <- cc[1]*sqrt(nS-ncol(model.matrix(fm)))/(cc[2]*sqrt(2*nS-ncol(model.matrix(fm))))  # new t-value
       #	 return(c(z2r(cc[1]), tt))
       #}
-      if(is.null(fm)) return(rep(0,14)) else {
+      if(is.null(m)) return(rep(0,14)) else {
          ww <- matrix(c(0.5, 0, 0.5,    # average
                         1,0,0,    # G1
                         0,1,0,    # G12
@@ -812,10 +817,10 @@ runLME2 <- function(myData, ModelForm, DM, nF, nS, nBrk, tag) {
 			0,1,-1,    # G12 - G2
                         0.5,-1,0.5), # (G1+G2)/2 - G12
                       nrow = 7, ncol = 3, byrow = TRUE)
-         vv <- t(ww%*%coef(fm)[,1])
+         vv <- t(ww%*%coef(m)[,1])
          se <- rep(1e8, 7)
-         for(ii in 1:7) se[ii] <- as.numeric(sqrt(t(ww[ii,]) %*% vcov(fm) %*% ww[ii,]))
-         tt <- (vv*sqrt(nS-1))/(se*sqrt(2*nS-1))
+         for(ii in 1:7) se[ii] <- as.numeric(sqrt(t(ww[ii,]) %*% vcov(m) %*% ww[ii,]))
+         tt <- (vv*sqrt(nS-ncol(model.matrix(fm))))/(se*sqrt(2*nS-ncol(model.matrix(fm))))
 	 return(c(rbind(vv,tt)))
       }
    } else return(rep(0,14))
@@ -906,7 +911,7 @@ cat('***** Summary information of data structure *****\n')
 
 S1 <- levels(lop$dataStr$Subj1)
 S2 <- levels(lop$dataStr$Subj2)
-Sa <- union(S1, S2)  # all subject lables
+Sa <- union(S1, S2)  # all subject labels
 nS <- length(Sa)  # total number of subjects
 NN <- nS*(nS-1)
 nF <- dim(lop$dataStr[1])[1] # number of input files
@@ -969,7 +974,7 @@ cat('++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n')
 cat('Reading input files now...\n\n')
 
 # Read in the 1st input file so that we have the dimension information
-inData <- read.AFNI(lop$dataStr[1, lop$IF], verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
+inData <- read.AFNI(lop$dataStr[1, 'InputFile'], verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
 dimx <- inData$dim[1]
 dimy <- inData$dim[2]
 dimz <- inData$dim[3]
@@ -978,7 +983,7 @@ head <- inData
 NoFile <- dim(lop$dataStr[1])[1]
 
 # Read in all input files
-inData <- unlist(lapply(lapply(lop$dataStr[, lop$IF], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
+inData <- unlist(lapply(lapply(lop$dataStr[, 'InputFile'], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
 tryCatch(dim(inData) <- c(dimx, dimy, dimz, nF), error=function(e)
    errex.AFNI(c("At least one of the input files has different dimensions:\n",
    "either (1) numbers of voxels along X, Y, Z axes are different across files;\n",
@@ -1072,7 +1077,7 @@ while(is.null(fm)) {
    lop$dataStr$ISC <- inData[ii, jj, kk,]
    options(warn=-1)
    DM <- lop$dataStr
-   DM <- DM[, -which(names(DM) %in% lop$IF)] # remove input file column
+   DM <- DM[, -which(names(DM) %in% 'InputFile')] # remove input file column
    DM <- rbind(DM, DM)
    DM$Subj1[(nF+1):(2*nF)] <- DM$Subj2[1:nF]
    DM$Subj2[(nF+1):(2*nF)] <- DM$Subj1[1:nF]
@@ -1109,7 +1114,7 @@ if(dimy==1 & dimz==1) { # 1D data
    nSeg <- 20
    # drop the dimensions with a length of 1
    inData <- inData[, , ,]
-   # break into 20 segments, leading to 5% increamental in parallel computing
+   # break into 20 segments, leading to 5% incremental in parallel computing
    dimx_n <- dimx%/%nSeg + 1
    # number of datasets need to be filled
    fill <- nSeg-dimx%%nSeg
@@ -1159,7 +1164,7 @@ if(dimy==1 & dimz==1) { # 1D data
       clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
       for (kk in 1:dimz) {
          Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME, ModelForm=lop$model,
-                  DM=lop$dataStr, gltM=lop$gltM, intercept=intercept, nF=nF, nS=nS, tag=0), c(2,3,1)) 
+            DM=lop$dataStr, gltM=lop$gltM, intercept=intercept, nF=nF, nS=nS, tag=0), c(2,3,1)) 
          cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
       } # for (kk in 1:dimz)
       stopCluster(cl)
@@ -1172,7 +1177,7 @@ Stat[is.nan(Stat)] <- 0
 brickNames <- c(rbind(lop$gltLabel, paste(lop$gltLabel, 't')))
 statsym <- NULL
 #if(lop$num_glt>0) for(ii in 1:lop$num_glt)
-for(ii in 1:(lop$NoBrick/2)) statsym <- c(statsym, list(list(sb=2*ii-1, typ="fitt", par=nS-1)))
+for(ii in 1:(lop$NoBrick/2)) statsym <- c(statsym, list(list(sb=2*ii-1, typ="fitt", par=nS-ncol(model.matrix(fm)))))
 
 #write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], brickNames, defhead=head, idcode=newid.AFNI(),
 write.AFNI(lop$outFN, Stat, brickNames, defhead=head, idcode=newid.AFNI(),

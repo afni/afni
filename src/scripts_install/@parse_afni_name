@@ -18,13 +18,13 @@ if ("$bling" == "$1") then
     set bling = ""
 endif
 
-set anat_path = $anat_in:h
+set anat_path = "$anat_in:h"
 if ( "$anat_path" == "${anat_in}" ) then
     set anat_path = "."
 endif
 
-set ana_pref = `@GetAfniPrefix ${anat_in}`
-set ana_view = `@GetAfniView ${anat_in}`
+set ana_pref = `@GetAfniPrefix "${anat_in}"`
+set ana_view = `@GetAfniView "${anat_in}"`
 if ("$ana_view" == '' && "$bling" != '') then
     set ana_view = "----"
 endif

@@ -627,7 +627,7 @@ ENTRY("set_output_labels");
     if( sopt->gp_index >= 0 || p->over_steps )  /* get one label */
     {
         if(sd->nlab != sd->max_vals)
-            fprintf(stderr,"** SOL: nlabel mis-match: %d vs %d\n",
+            fprintf(stderr,"** SOL: nlabel mismatch: %d vs %d\n",
                     sd->nlab, sd->max_vals);
 
 	/* set label (prefix) from sub-brick, if possible */
@@ -944,7 +944,7 @@ ENTRY("segment_imarr");
 
 
 /*----------------------------------------------------------------------
- * f3mm_out_of_bounds    - check wether cp is between min and max
+ * f3mm_out_of_bounds    - check whether cp is between min and max
  *
  *                       - v2.3 [rickr]
  *----------------------------------------------------------------------

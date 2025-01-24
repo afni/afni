@@ -532,7 +532,7 @@ int main( int argc , char * argv[] )
              "              [default = 1.e-4]\n"
              "  -bout   = Use 'b' for the output, instead of thr\n"
              "  -aout   = Use 'a' for the output, instead of thr\n"
-             "  -about  = Use 'a' AND 'b' for the ouput.\n"
+             "  -about  = Use 'a' AND 'b' for the output.\n"
          ) ;
          PRINT_COMPILE_DATE ; exit(0) ;
    }

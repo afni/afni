@@ -100,7 +100,7 @@ extern void machdep() ;
 
     SOLARIS_DIRENT_PATCH = if this is set, then a patch for the
                            difference between Sun's "dirent" functions
-                           and everbody else's is used in the file
+                           and everybody else's is used in the file
                            mcw_glob.c -- this seems to be necessary
                            on Solaris 2.6 systems in order to get the
                            AFNI file reading software to work.

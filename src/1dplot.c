@@ -167,7 +167,7 @@ void usage_1dplot(int detail)
      "              or just a single '-' to separate the xmulti 1D files\n"
      "              from the data files to be plotted.\n"
      "           ** If you don't provide enough xmulti columns for all the\n"
-     "              data files, the last xmulti column will be re-used.\n"
+     "              data files, the last xmulti column will be reused.\n"
      "           ** Useless but fun example:\n"
      "               1deval -num 100 -expr '(i-i)+z+gran(0,6)' > X1.1D\n"
      "               1deval -num 100 -expr '(i-i)+z+gran(0,6)' > X2.1D\n"

@@ -110,7 +110,7 @@ jpeg_copy_critical_parameters (j_decompress_ptr srcinfo,
     outcomp->v_samp_factor = incomp->v_samp_factor;
     outcomp->quant_tbl_no = incomp->quant_tbl_no;
     /* Make sure saved quantization table for component matches the qtable
-     * slot.  If not, the input file re-used this qtable slot.
+     * slot.  If not, the input file reused this qtable slot.
      * IJG encoder currently cannot duplicate this.
      */
     tblno = outcomp->quant_tbl_no;

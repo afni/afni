@@ -103,7 +103,7 @@
  * added realQuiet
  *
  * Revision 1.7  1994/12/07  00:40:36  smoot
- * Added seperate P and B search ranges
+ * Added separate P and B search ranges
  *
  * Revision 1.6  1994/11/28  21:46:45  smoot
  * Added version printing
@@ -676,7 +676,7 @@ fflush(stdout);
     } else {
       /* What should the correct value be?  Most likely 1.  "numBits" is
          used below, so we need to make sure it's properly initialized 
-       to somthing (anything).  */
+       to something (anything).  */
       numBits = 1;
     }
 
@@ -742,7 +742,7 @@ IncrementTCTime()
        otherwise, it is the number of extra 1/1001 frames we've passed by
 
        so far; for example, if fps = 24000/1001, then 24 frames = 24024/24000
-       seconds = 1 second + 24/24000 seconds = 1 + 1/1000 seconds; similary,
+       seconds = 1 second + 24/24000 seconds = 1 + 1/1000 seconds; similarly,
        if fps = 30000/1001, then 30 frames = 30030/30000 = 1 + 1/1000 seconds
        and if fps = 60000/1001, then 60 frames = 1 + 1/1000 seconds
 

@@ -7,7 +7,7 @@ if ( $#argv > 0 ) then
       echo ""
       echo "The purpose is for one to review this script while executing it."
       echo ""
-      echo "This program requres the AFNI_data6 class data directory and must"
+      echo "This program requires the AFNI_data6 class data directory and must"
       echo "be run just above it (i.e. typing 'ls' should include AFNI_data6"
       echo "in the output)."
       echo ""

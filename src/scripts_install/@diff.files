@@ -78,8 +78,16 @@ endif
 if ( $diffprog != "" ) then
    which $diffprog >& /dev/null
    if ( $status ) then
-      echo "** $prog : missing Unix program $diffprog (please install)"
-      exit
+      # try meld, and possibly switch automatically
+      which meld >& /dev/null
+      if ( $status ) then
+         echo "** missing Unix program $diffprog, please install and try again"
+         exit
+      else
+         echo "-- switching to meld for diff prog"
+         set diffprog = meld
+      endif
+
    endif
 endif
 
@@ -243,8 +251,8 @@ cat << EOF
       -diff_opts 'OPTS'  : add options to diff command
                            e.g. -diff_opts -w
       -diff_prog DPROG   : display diffs using DPROG (probably graphical)
-                           e.g. -diff_opts meld
-                           e.g. -diff_opts xxdiff    [same as -xxdiff]
+                           e.g. -diff_prog meld
+                           e.g. -diff_prog xxdiff    [same as -xxdiff]
                            Consider also: kdiff3, tkdiff.
       -ignore_missing    : continue even if files are missing
                            alt: -im

@@ -261,7 +261,7 @@ double ComputeA(double freq, int r, double ad[], double x[], double y[])
  * int gridsize  - Number of elements in the dense frequency grid
  * double Grid[] - Frequencies on the dense grid [gridsize]
  * double D[]    - Desired response on the dense grid [gridsize]
- * double W[]    - Weight function on the desnse grid [gridsize]
+ * double W[]    - Weight function on the dense grid [gridsize]
  *
  * OUTPUT:
  * -------
@@ -487,7 +487,7 @@ void FreqSample(int N, double A[], double h[], int symm)
  *
  * INPUT:
  * ------
- * int    r     - 1/2 the number of filter coeffiecients
+ * int    r     - 1/2 the number of filter coefficients
  * int    Ext[] - Indexes to extremal frequencies [r+1]
  * double E[]   - Error function on the dense grid [gridsize]
  *
@@ -521,7 +521,7 @@ short isDone(int r, int Ext[], double E[])
  *=======
  * Calculates the optimal (in the Chebyshev/minimax sense)
  * FIR filter impulse response given a set of band edges,
- * the desired reponse on those bands, and the weight given to
+ * the desired response on those bands, and the weight given to
  * the error in those bands.
  *
  * INPUT:

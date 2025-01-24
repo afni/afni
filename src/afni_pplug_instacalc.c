@@ -495,7 +495,7 @@ if(DEBUG) ININFO_message("hollowing out old dataset") ;
        *slf.dset = *icaset ;      /* copy the guts, keep the pointer */
        slf.dset->idcode = old_idc ;           /* and keep the idcode */
        nds = slf.dset_index ;
-       INFO_message("trashed and re-used old dataset %s",ics->prefix) ;
+       INFO_message("trashed and reused old dataset %s",ics->prefix) ;
 
      } else {                                  /* add to the session */
        int vv = icaset->view_type ;
@@ -634,7 +634,7 @@ static char *helpstring =
    " * Pre-defined variables (if not set as described above) are\n"
    "     x = DICOM x coordinate (R=- L=+)\n"
    "     y = DICOM y coordinate (A=- P=+)\n"
-   "     z = DICOM z coordiante (I=- S=+)\n"
+   "     z = DICOM z coordinate (I=- S=+)\n"
    "     i = #1 3D index  j = #2 3D index  k = #3 3D index\n"
    "   You can use these variable names in the expression without defining them\n"
    "   in the variable choosers.  Other variables names used in the expression\n"
@@ -643,7 +643,7 @@ static char *helpstring =
    "Author -- RW Cox -- Sep 2009\n"
    "\n"
    "DEBUGGING:\n"
-   "  If you can make InstaCalc realiably crash, please re-run AFNI with\n"
+   "  If you can make InstaCalc reliably crash, please re-run AFNI with\n"
    "  the extra option '-DAFNI_INSTACALC_DEBUG=YES' and then make it crash;\n"
    "  the screen printout of the processing steps might help figure out what\n"
    "  is going on when you report it to me.\n"
@@ -1065,7 +1065,7 @@ if(DEBUG) ININFO_message("  string = %s",str) ;
            ics->value_string = THD_zzprintf( ics->value_string, " %s == %g",
                                              str+ist, ics->inval[ids]       ) ;
 
-         } /* end of dataset statisick-ization */
+         } /* end of dataset statistick-ization */
 
 if(DEBUG) ININFO_message("  completely done with dataset processing") ;
        DSET_DONE: /*nada*/ ;

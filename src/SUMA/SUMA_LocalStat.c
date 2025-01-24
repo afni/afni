@@ -716,7 +716,7 @@ SUMA_DSET * SUMA_DsetAvgGradient(
    /* what columns can we process ?*/
    icols = SUMA_FindNumericDataDsetCols(din, &N_icols);
    if (N_icols <= 0) {
-      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_SL_Err("No appropriate data columns in dset");
       SUMA_RETURN(NOPE);   
    }
    SUMA_LHv("Have %d numeric columns of input.\n", N_icols);
@@ -907,7 +907,7 @@ SUMA_DSET *SUMA_DsetExtrema(
    /* what columns can we process ?*/
    icols = SUMA_FindNumericDataDsetCols(din, &N_icols);
    if (N_icols <= 0) {
-      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_SL_Err("No appropriate data columns in dset");
       SUMA_RETURN(NOPE);   
    }
    SUMA_LHv("Have %d numeric columns of input.\n", N_icols);
@@ -1947,7 +1947,7 @@ SUMA_DSET *SUMA_SurfClust_list_2_DsetMask(
                Function will fill centralnode and weightedcentralnode
    \param UseSurfDist (int) 0: use distances along the surface 
                                (approximated by distances on the graph)
-                            1: use Euclidian distances. 
+                            1: use Euclidean distances. 
    \return ans (int) : NOPE failed, YUP succeeded.
                        
 */
@@ -2468,7 +2468,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(
    icols = SUMA_FindNumericDataDsetCols(din, &N_icols);
          
    if (N_icols <= 0) {
-      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_SL_Err("No appropriate data columns in dset");
       SUMA_RETURN(NULL);   
    }
    

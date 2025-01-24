@@ -530,7 +530,7 @@ char          *color[5] = {"cyan","red","yellow","green","cornflowerblue"};
 int           im_size, offs;
 float         gamm;
 
-/* Stuff for gausian smoothing of time course lines */
+/* Stuff for gaussian smoothing of time course lines */
 #define MAX_SMOOTH 301
 int           AJ_nr, AJ_off, i_plot[NF_MAX];
 float         AJ_sigma, AJ_norm;
@@ -3280,7 +3280,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
    cursor = XCreateFontCursor(Disp, shape);        /* new cursor shape */
    XDefineCursor(Disp, Wind, cursor);
-   XParseColor(Disp, CM, fg_col, &Im_cur_fg);    /* forground  color */
+   XParseColor(Disp, CM, fg_col, &Im_cur_fg);    /* foreground  color */
    XParseColor(Disp, CM, bg_col, &Im_cur_bg);    /* background color */
    XRecolorCursor(Disp, cursor, &Im_cur_fg, &Im_cur_bg);
 }
@@ -4895,7 +4895,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
    fval = strtod( strp , &cpt ) ;
    if( *cpt != ASC_NUL || fval < .1 || fval > fmax ) {
       fprintf(stderr,
-         "\n*** Sigma valule out of range [.1-%d] %s!\n" , (int) fmax, strp ) ;
+         "\n*** Sigma value out of range [.1-%d] %s!\n" , (int) fmax, strp ) ;
       AJ_sigma = -1.;
       XBell(theDisp, 100);
    }

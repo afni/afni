@@ -2524,7 +2524,7 @@ void old_calculate_acontrasts (anova_options * option_data)
       ANOVA_error ("unable to allocate sufficient memory");
 
 
-   /*----- loop over user specified constrasts -----*/
+   /*----- loop over user specified contrasts -----*/
    for (icontr = 0;  icontr < num_contr;  icontr++)
    {
       volume_zero (contr, nxyz);
@@ -3173,7 +3173,7 @@ void calculate_acontrasts (anova_options * option_data)
       ANOVA_error ("unable to allocate sufficient memory");
 
 
-   /*----- loop over user specified constrasts -----*/
+   /*----- loop over user specified contrasts -----*/
    for (icontr = 0;  icontr < num_contr;  icontr++)
    {
       if (option_data->model == 1)
@@ -3269,7 +3269,7 @@ void calculate_bcontrasts (anova_options * option_data)
       ANOVA_error ("unable to allocate sufficient memory");
 
 
-   /*----- loop over user specified constrasts -----*/
+   /*----- loop over user specified contrasts -----*/
    for (icontr = 0;  icontr < num_contr;  icontr++)
    {
       volume_zero (contr, nxyz);
@@ -3360,7 +3360,7 @@ void calculate_xcontrasts (anova_options * option_data)
       ANOVA_error ("unable to allocate sufficient memory");
 
 
-   /*----- loop over user specified constrasts -----*/
+   /*----- loop over user specified contrasts -----*/
    for (icontr = 0;  icontr < num_contr;  icontr++)
    {
       volume_zero (contr, nxyz);
@@ -3847,7 +3847,7 @@ void terminate (anova_options * option_data)
     create_bucket (option_data);
 
 
-  /*----- if 'bucket' datset was created, remove the individual 2-subbrick
+  /*----- if 'bucket' dataset was created, remove the individual 2-subbrick
           data files -----*/
   if (option_data->bucket_filename != NULL)
     {

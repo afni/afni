@@ -9,9 +9,10 @@ set pname = `basename $0`
 goto PARSE
 RET_PARSE:
 
+set alist=()
 foreach prog ($proglist)
    if ("$pif" == '') then
-      echo "searching for talking $prog..."
+      if ($quiet == 0) echo "searching for talking $prog..."
       if ($no_npb == 1) then
          set pidl = `ps ${psopt} |  \grep -w $prog |\
                               \grep -v grep |\
@@ -19,8 +20,8 @@ foreach prog ($proglist)
                               \sed 's/^[ \t]*//g' | \
                               \cut -d ' ' -f 1`   
          if ($list == 1) then
-            echo $pidl
-            goto END
+            set alist = ( $alist $pidl )
+            goto NEXT_PROG
          endif
          if ($#pidl > 0) then
             foreach pid ($pidl)
@@ -45,8 +46,8 @@ foreach prog ($proglist)
                                  \sed 's/^[ \t]*//g' | \
                                  \cut -d ' ' -f 1`
             if ($list == 1) then
-               echo $pidl
-               goto END
+               set alist = ( $alist $pidl )
+               goto NEXT_PROG
             endif
             if ($#pidl > 0) then
                foreach pid ($pidl)
@@ -70,8 +71,8 @@ foreach prog ($proglist)
                            \sed 's/^[ \t]*//g' | \
                            \cut -d ' ' -f 1`   
       if ($list == 1) then
-         echo $pidl
-         goto END
+         set alist = ( $alist $pidl )
+         goto NEXT_PROG
       endif
       if ($#pidl > 0) then
          foreach pid ($pidl)
@@ -85,7 +86,12 @@ foreach prog ($proglist)
          end 
       endif     
    endif
+   NEXT_PROG:
 end
+if ($list == 1) then
+   echo $alist | tr ' ' '\n'
+   goto END
+endif
 
 goto END
 
@@ -162,7 +168,7 @@ PARSE:
       
       if ($donext && "$argv[$cnt]" == "-npb_val") then
          if ($cnt == $Narg) then
-            echo "Option -npb_val needs an interger"
+            echo "Option -npb_val needs an integer"
             goto BEND
          endif
          @ cnt ++
@@ -172,18 +178,18 @@ PARSE:
       
       if ($donext && "$argv[$cnt]" == "-npb_range") then
          if ($cnt == $Narg) then
-            echo "Option -npb_range needs 2 interger"
+            echo "Option -npb_range needs 2 integer"
             goto BEND
          endif
          @ cnt ++
          set npb0 = $argv[$cnt]
          if ($cnt == $Narg) then
-            echo "Option -npb_range needs 2 interger"
+            echo "Option -npb_range needs 2 integer"
             goto BEND
          endif
          @ cnt ++
          set npb1 = $argv[$cnt]
-         foreach nn (`count -digits 1 $npb0 $npb1`)
+         foreach nn (`count_afni -digits 1 $npb0 $npb1`)
             set npb_vals = ($npb_vals $nn)
          end
          set donext = 0; goto NEXT		

@@ -542,7 +542,7 @@ FFTN (int ndim,
 	  }
      }
 
-   /* determine maximum number of factors and permuations */
+   /* determine maximum number of factors and permutations */
 #if 1
    /*
     * follow John Beale's example, just use the largest dimension and don't

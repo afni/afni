@@ -287,7 +287,7 @@ function f=get_ascii_printer(vec_typ,data)
         f=@(x)sprintf(pat,x');
     else
         if ~iscell(data)
-            error('illegal data: espected cell, found %s', class(data));
+            error('illegal data: expected cell, found %s', class(data));
         end
 
         n_col=numel(data);

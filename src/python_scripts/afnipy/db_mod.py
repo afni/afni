@@ -15,6 +15,13 @@ from afnipy import option_list as OL
 from afnipy import lib_afni1D as LD
 from afnipy import lib_vars_object as VO
 
+# ---------------------------------------------------------------------------
+# some globals
+
+# help sections (see -help_section)
+g_valid_help_sections = ['enew', 'eold', 'eall', 'eshow',
+                         'afni_proc', 'afni_proc.py']
+
 # types of motion simulated datasets that can be created
 #    motion     : simulated motion time series - volreg base warped
 #                 by inverse motion transformations (forward motion)
@@ -98,6 +105,28 @@ def apply_uopt_list_to_block(opt_name, user_opts, block):
         found = 1
 
     return found
+
+def gen_afni_name(name, **kwargs):
+   """local wrapper for BASE.afni_name
+
+      partition keywords into those for afni_name and those to add locally
+
+      require a first name argument for this wrapper, as it's what I do anyway
+   """
+   # first, partition the afni_base keywords
+   ankws = {}
+   for k in ['do_sel', 'view']:
+      if k in kwargs:
+         ankws[k] = kwargs.pop(k)
+
+   aname = BASE.afni_name(name, **ankws)
+
+   # now, mutate as we see fit, bwahaha...
+
+   # add a to_resam attribute, -ROI_import datasets will be resampled
+   aname.ap_to_resam = 0
+
+   return aname
 
 def warp_item(desc='', wtype='', warpset=''):
    """desc      = description of warp
@@ -283,7 +312,7 @@ def db_cmd_tcat(proc, block):
 
     if proc.have_sels: selstr = "while applying volume selectors"
     else:              selstr = "while removing the first %d TRs" % first
-       
+
 
     cmd = cmd + "# %s\n"                                                \
                 "# apply 3dTcat to copy input dsets to results dir,\n"  \
@@ -387,9 +416,9 @@ def tcat_make_blip_in_for(proc, block):
     if nt == 0: return 1, ''
 
     if nt == 1:
-       proc.blip_in_for = BASE.afni_name("%s[0]" % forinput)
+       proc.blip_in_for = gen_afni_name("%s[0]" % forinput)
     else:
-       proc.blip_in_for = BASE.afni_name("%s[0..%d]" % (forinput, nt-1))
+       proc.blip_in_for = gen_afni_name("%s[0..%d]" % (forinput, nt-1))
     proc.blip_in_for.view = proc.view
 
     if proc.verb > 2:
@@ -397,7 +426,7 @@ def tcat_make_blip_in_for(proc, block):
              % proc.blip_in_for.shortinput(sel=1))
 
     # populate proc.blip_dset_for
-    proc.blip_dset_for = BASE.afni_name('blip_forward', view=proc.view)
+    proc.blip_dset_for = gen_afni_name('blip_forward', view=proc.view)
 
     # make actual command
     cmd = '# -------------------------------------------------------\n' \
@@ -513,9 +542,31 @@ def db_mod_postdata(block, proc, user_opts):
        This block will probably never get named options.
     """
 
+    # ------------------------------------------------------------
     # note other anat followers (-anat_follower*)
     if apply_general_anat_followers(proc): return
 
+    # ------------------------------------------------------------
+    # ROI_import steps
+
+    # ROI imports may be predecated on proc.tlrc_base, so set it now
+    if 'tlrc' in proc.block_names:
+       prepare_tlrc_base(proc)
+
+    # note any ROI import user options (-ROI_import)
+    #   - add to dict now
+    #   - resample in regress block
+    #   - initial 3dcopy is in afni_proc.py
+    if apply_general_ROI_imports(proc): return
+
+    # initialize automatic ROI options (maybe append -ROI_import opts):
+    #   - if SPACE is known and we have an APQC_atlas_SPACE dset
+    #     (and we have a regress block)
+    #     - add APQC atlas as -ROI_import
+    #     - add SPACE ALL to -regress_compute_tsnr_stats
+    if init_auto_tsnr_rois(proc): return
+    
+    # ------------------------------------------------------------
     if len(block.opts.olist) == 0: pass
     block.valid = 1
 
@@ -533,7 +584,7 @@ def db_cmd_postdata(proc, block):
        if rv: return   # failure (error has been printed)
        cmd = cmd + oc
 
-    # probaby get outlier fractions
+    # probably get outlier fractions
     if proc.user_opts.have_yes_opt('-outlier_count', default=1):
        if min(proc.reps_all) >= 5:
           rv, oc = make_outlier_commands(proc, block)
@@ -570,13 +621,134 @@ def db_cmd_postdata(proc, block):
 
     return cmd
 
+def db_mod_post_process(proc):
+    """this happens after all db_mod functions but before any db_cmd ones
+
+       nothing yet...
+    """
+    return 0
+
+def init_auto_tsnr_rois(proc):
+    """initialize automatic ROI options
+       - start with 'brain', and try to add an APQC atlas
+       - if SPACE is known and we have an APQC_atlas_SPACE dset
+         (and we have a regress block)
+         (and SPACE is not already being used for an ROI label)
+         - add APQC atlas as -ROI_import
+         - add SPACE ALL to -regress_compute_tsnr_stats
+    """
+
+    # if this has already been turned off, we are done
+    if proc.regress_auto_tsnr_rois is None:
+       return 0
+
+    # if the user does not want this, set regress_auto_tsnr_rois to None
+    oname = '-regress_compute_auto_tsnr_stats'
+    if proc.user_opts.have_no_opt(oname, default=0):
+       if proc.verb > 1: print("-- skipping auto tsnr stats at user request")
+       # disable
+       proc.regress_auto_tsnr_rois = None
+       return 0
+
+    # initialize auto list with 'brain'
+    label = 'brain'
+    if label not in proc.regress_auto_tsnr_rois:
+       proc.regress_auto_tsnr_rois.append(label)
+
+    # do we have a regress block?
+    # note: find_block() will not succeed yet, so use block_names
+    if not 'regress' in proc.block_names:
+       if proc.verb > 2: print("IATR: no regress block")
+       return 0
+
+    # do we have a known final space and existent dataset?
+    if proc.tlrc_base is None or proc.tlrc_space == '':
+       if proc.verb > 2: print("IATR: tlrc base or space")
+       return 0
+
+    if not proc.tlrc_base.locate():
+       if proc.verb > 2: print("IATR: failed tlrc_base.locate()")
+       return 0
+
+    # if the user has already applied the space label, do not add
+    if proc.tlrc_space in proc.roi_dict:
+       print("-- will not add auto tsnr stats, label %s is in use" \
+             % proc.tlrc_space)
+       return 0
+
+    # now search for APQC_atlas_SPACE.nii.gz
+    label = proc.tlrc_space
+    roidset = 'APQC_atlas_%s.nii.gz' % label
+    rname = gen_afni_name(roidset)
+    if not rname.locate():
+       if proc.verb > 2: print("IATR: no APQC atlas %s" % roidset)
+       return 0
+
+    print("-- have APQC atlas %s" % roidset)
+
+    # add to roi_dict (dupe final apply_general_ROI_imports step)
+    # (change rname to be for the resulting name)
+    rname = gen_afni_name('ROI_import_%s' % label)
+    rname.to_resam = 1
+    if proc.add_roi_dict_key(label, aname=rname):
+       return 1
+ 
+    # and actually add an import option
+    proc.user_opts.add_opt('-ROI_import', 2, [label, roidset], setpar=1)
+    proc.regress_auto_tsnr_rois.append(label)
+
+    return 0
+
+
+def apply_general_ROI_imports(proc):
+   """for each -ROI_import option
+        - create an afni_name
+        - add_roi_dict_key
+   """
+   oname = '-ROI_import'
+
+   # nothing to do?
+   if not proc.user_opts.find_opt(oname):
+      return 0
+
+   # add roi dict keys
+   for opt in proc.user_opts.find_all_opts(oname):
+      label = opt.parlist[0]
+      dname = opt.parlist[1]
+
+      aname = gen_afni_name('ROI_import_%s' % label)
+      # and note this dataset for resampling
+      aname.to_resam = 1
+      if proc.add_roi_dict_key(label, aname=aname):
+         return 1
+
+   return 0
+
 def apply_general_anat_followers(proc):
    # add any other anat follower datasets
 
    elist, rv = proc.user_opts.get_string_list('-anat_follower_erode')
    if elist == None: elist = []
-   for oname in ['-anat_follower', '-anat_follower_ROI' ]:
 
+   # make a dictionary from -anat_follower_erode_level options
+   edict = {}
+   for opt in proc.user_opts.find_all_opts('-anat_follower_erode_level'):
+      label = opt.parlist[0]
+      level = opt.parlist[1]
+      try: level = int(level)
+      except:
+         print("** -anat_follower_erode_level %s" \
+               "   level '%s' must be an integer" \
+               % (' '.join(opt.parlist), level))
+         return 1
+      edict[label] = level
+
+   # and append every -anat_follower_erode label at level 1
+   for label in elist:
+      if label not in edict:
+         edict[label] = 1
+
+   for oname in ['-anat_follower', '-anat_follower_ROI' ]:
       for opt in proc.user_opts.find_all_opts(oname):
          label = opt.parlist[0]
          dgrid = opt.parlist[1]
@@ -595,7 +767,8 @@ def apply_general_anat_followers(proc):
             return 1
 
          # note whether we erode this mask
-         if label in elist: ff.set_var('erode', 1)
+         if label in edict:
+            ff.set_var('erode', edict[label])
 
          ff.set_var('final_prefix', '%s_%s'%(flab, label))
 
@@ -708,8 +881,8 @@ def make_outlier_commands(proc, block):
     proc.out_wfile = 'out.pre_ss_warn.txt'
     proc.outl_rfile = ofile    # per run outlier file
 
-    cmd  = '# %s\n'                                                       \
-           '# data check: compute outlier fraction for each volume\n'     \
+    cmd  = '# %s\n'                                               \
+           '# QC: compute outlier fraction for each volume\n'     \
            % block_header('auto block: outcount')
 
     if proc.out_ss_lim > 0.0: cmd += 'touch %s\n' % proc.out_wfile
@@ -731,6 +904,33 @@ def make_outlier_commands(proc, block):
            '# catenate outlier counts into a single time series\n'        \
            'cat outcount.r*.1D > outcount_rall.1D\n'                      \
            '%s\n' % cs1
+
+    # add a check for maximum values of exactly 4095
+    rv, c4095 = make_4095_check_commands(proc, block, prev_prefix)
+    cmd += c4095
+
+    return rv, cmd
+
+def make_4095_check_commands(proc, block, input_form):
+    """run 3dTto1D -method 4095_warn, saving any warnings to out.4095_all.txt
+       
+       Also, add out.4095_all.txt to the uvars, for use in the APQC report.
+
+       return the status (0 on success) and command string
+    """
+    warnfile = 'out.4095_warn.txt'
+    cmd = '# ---------------------------------------------------------\n' \
+          '# check for potential 4095 saturation issues\n'                \
+          'foreach run ( $runs )\n'                                       \
+          '    3dTto1D -method 4095_warn -input %s\\\n'                   \
+          '            |& tee -a out.4095_all.txt\n'                      \
+          'end\n\n'                                                       \
+          '# make a file showing any resulting warnings\n'                \
+          "awk '/warning/ {print}' out.4095_all.txt | tee %s\n\n"         \
+          % (input_form, warnfile)
+
+    # and add the uvar
+    proc.uvars.set_var('max_4095_warn_dset', [warnfile])
 
     return 0, cmd
 
@@ -761,29 +961,96 @@ def run_radial_correlate(proc, block, full=0):
     else:
        dsets = proc.dset_form_wild(block.label, eind=-1)
 
+    # if block is scale or scale has happened, pass any EPI mask
+    # (since we do not want to automask a scaled dataset)
+    # also, mask in regress block due to errts
+    mopt = ''
+    if block.label == 'scale' or block.label == 'regress' \
+       or (proc.blocks_ordered('scale', block.label) 
+           and 'scale' in proc.block_names):
+
+       # be sure we have created the mask
+       if mask_created(proc.mask):
+          mopt = '%18s-mask %s \\\n' % (' ', proc.mask.nice_input())
+       else:
+          print("** warning: computing radcor on scaled/errts without mask")
+          print("   (might get weak results along brain edges)")
+
+    # fail if we have entered the dreaded surface domain
+    if proc.surf_anat and (block.label == 'surf' or \
+                           proc.blocks_ordered('surf', block.label)):
+       print("** cannot compute radcor on surface data")
+       return 1, ''
+
     # if doing the full form, include a header, clust, etc.
     if full:
        rdir = 'radcor.pb%02d.%s.full' % (block.index, block.label)
        # rdir = 'corr_test.results.%s' % block.label
 
-       cmd  = '# %s\n'                                                       \
-              '# data check: compute correlations with spherical averages\n' \
+       cmd  = '# %s\n'                                                    \
+              '# QC: compute correlations with spherical averages\n'      \
               % block_header('@radial_correlate (%s)' % block.label)
 
        cmd += '@radial_correlate -nfirst 0 -polort %s -do_clust yes \\\n' \
               '                  -rdir %s \\\n'                           \
               '%s'                                                        \
+              '%s'                                                        \
               '                  %s\n\n'                                  \
-              % (proc.regress_polort, rdir, other_opts, dsets)
+              % (proc.regress_polort, rdir, mopt, other_opts, dsets)
     else:
        rdir = 'radcor.pb%02d.%s' % (block.index, block.label)
        cmd  = '# ---------------------------------------------------------\n' \
-              '# data check: compute correlations with spherical ~averages\n' \
+              '# QC: compute correlations with spherical ~averages\n'         \
               '@radial_correlate -nfirst 0 -polort %s -do_clean yes \\\n'     \
               '                  -rdir %s \\\n'                               \
               '%s'                                                            \
+              '%s'                                                            \
               '                  %s\n\n'                                      \
-              % (proc.regress_polort, rdir, other_opts, dsets)
+              % (proc.regress_polort, rdir, mopt, other_opts, dsets)
+
+    return 0, cmd
+
+def run_qc_var_line_blocks(proc, block):
+    """
+    """
+    prog = 'find_variance_lines.tcsh'
+    if min(proc.reps_all) < 10:
+       print('** warning: %s requires 10+ time points\n' \
+             '   (are all -dsets parameters actually time series?)\n' \
+             % prog)
+       return 1, ''
+
+    # todo?
+    olist, rv = proc.user_opts.get_string_list('-vlines_opts')
+    if olist and len(olist) > 0:
+        other_opts = '%8s%s \\\n' % (' ', ' '.join(olist))
+    else: other_opts = ''
+
+    # note the dsets that will be applied
+    # in the regress case, go after errts as a single time series
+    if block.label == 'regress':
+       print("** RCR - todo: find_variance_lines for regress block")
+       return 1
+       if proc.errts_final == '':
+          print("** missing errts dataset for find_variance_lines in regress")
+          return 1, ''
+       dsets = '%s%s.HEAD %s%s.HEAD' % (proc.all_runs, proc.view,
+                                        proc.errts_final, proc.view)
+    else:
+       dsets = proc.dset_form_wild(block.label, eind=-1)
+
+    # set the result directory, and save as a uvar
+    rdir = 'vlines.pb%02d.%s' % (block.index, block.label)
+    proc.uvars.set_var('vlines_%s_dir' % block.label, [rdir])
+
+    nerode = 2
+    cmd  = '# ---------------------------------------------------------\n' \
+           '# QC: look for columns of high variance\n'                     \
+           'find_variance_lines.tcsh -polort %s -nerode %s \\\n'           \
+           '%s'                                                            \
+           '       -rdir %s \\\n'                                          \
+           '       %s |& tee out.%s.txt\n\n'                               \
+           % (proc.regress_polort, nerode, other_opts, rdir, dsets, rdir)
 
     return 0, cmd
 
@@ -815,58 +1082,84 @@ def combine_censor_files(proc, cfile, newfile=''):
 # its output might be used as the input to either the anat or tlrc blocks.
 
 def db_mod_blip(block, proc, user_opts):
-   """start simple, consider: -blip_aligned_dsets,
+   """handle -blip options, to either input or comput a warp
 
-      set proc.blip_rev_dset for copying
+      - set any proc.blip_in_* input names here
+      - afni_proc.py will create corresponding proc.blip_dset_* names
+        when copying the datasets into the results directory
    """
 
    apply_uopt_to_block('-blip_forward_dset', user_opts, block)
    apply_uopt_to_block('-blip_reverse_dset', user_opts, block)
    apply_uopt_to_block('-blip_opts_qw', user_opts, block)
+   apply_uopt_to_block('-blip_warp_dset', user_opts, block)
 
-   # note blip reverse input dset
+   # --- note any datasets before checking for consistency
+
+   # first note any precomputed blip warp dataset
+   bopt = block.opts.find_opt('-blip_warp_dset')
+   if bopt:
+      proc.blip_in_warp = gen_afni_name(bopt.parlist[0])
+      if proc.verb > 0:
+         print('-- have precomputed blip warp dset %s' \
+               % proc.blip_in_warp.shortinput(sel=1))
+      proc.blip_obl_warp = dset_is_oblique(proc.blip_in_warp, proc.verb)
+
+   # note blip reverse input dset (if no warp is passed)
    bopt = block.opts.find_opt('-blip_reverse_dset')
    if bopt:
-      proc.blip_in_rev = BASE.afni_name(bopt.parlist[0])
-      if proc.verb > 2:
+      proc.blip_in_rev = gen_afni_name(bopt.parlist[0])
+      if proc.verb > 1:
          print('-- will compute blip up/down warp via %s' \
                % proc.blip_in_rev.shortinput(sel=1))
-   else:
-      print('** have blip block without -blip_reverse_dset')
-      return
+      proc.blip_obl_rev = dset_is_oblique(proc.blip_in_rev, proc.verb)
 
    # note blip forward input dset (or make one up)
    bopt = block.opts.find_opt('-blip_forward_dset')
-   fblip_oblset = proc.dsets[0]  # default obl test is from -dsets
    if bopt:
-      proc.blip_in_for = BASE.afni_name(bopt.parlist[0])
-      if proc.verb > 2:
+      proc.blip_in_for = gen_afni_name(bopt.parlist[0])
+      if proc.verb > 1:
          print('-- have blip forward dset %s' \
                % proc.blip_in_for.shortinput(sel=1))
-      fblip_oblset = proc.blip_in_for
-   # ME: both forward and reverse are required
-   elif proc.use_me:
+      proc.blip_obl_for = dset_is_oblique(proc.blip_in_for, proc.verb)
+
+   # --- check for consistency
+
+   # we should be doing *something* here
+   if proc.blip_in_warp is None and proc.blip_in_rev is None:
+      print('** have blip block without -blip_reverse_dset or -blip_warp_dset')
+      return
+
+   # do not both input and compute a warp
+   if proc.blip_in_warp is not None and \
+      (proc.blip_in_for is not None or proc.blip_in_rev is not None):
+      print("** use either -blip_warp_dset or -blip_reverse_dset, not both")
+      return
+
+   # ME: if reverse blip, then forward is also required
+   if proc.use_me and proc.blip_in_for is None and proc.blip_in_rev is not None:
       print("** when using multi-echo data and distortion correction,\n"
             "   -blip_reverse_dset requires corresponding -blip_forward_dset")
       return
 
-   proc.blip_obl_for = dset_is_oblique(fblip_oblset, proc.verb)
-   proc.blip_obl_rev = dset_is_oblique(proc.blip_in_rev, proc.verb)
+   # check for consistent obliquity of either the warp or rev
+   if proc.blip_in_warp is not None: 
+      if proc.dsets_obl != proc.blip_obl_warp:
+         print("** warning: blip warp obliquity (%d) does not match EPI (%d)" \
+               % (proc.blip_obl_warp, proc.dsets_obl))
+   else:
+      if proc.dsets_obl != proc.blip_obl_rev:
+         print("** error: reverse blip obliquity (%d) does not match EPI (%d)" \
+               % (proc.blip_obl_rev, proc.dsets_obl))
+         return
 
    # check for alignment to median forward blip base
    val, status = user_opts.get_string_opt('-volreg_align_to')
    if val == 'MEDIAN_BLIP':
-      # matching the same varible in db_cmd_blip
+      # matching the same variable in db_cmd_blip
       for_prefix = 'blip_med_for'
       inset = '%s%s' % (for_prefix, proc.view)
       set_vr_int_name(block, proc, 'vr_base_blip', inset=inset)
-
-   # set any, if possible, since they might all come from options
-   # proc.blip_rev_dset  = None
-   # proc.blip_med_dset  = None
-   # proc.blip_warp_dset = None
-
-   # #PCs will be added to the afni_name object before db_cmd_regress
 
    block.valid = 1
 
@@ -875,7 +1168,7 @@ def db_mod_blip(block, proc, user_opts):
 #       i.e. prev_prefix = proc.prev_prefix_form_run(block, view=1)
 def db_cmd_blip(proc, block):
    """align median datasets for -blip_reverse_dset and current
-      compute proc.blip_med_dset, proc.blip_warp_dset
+      compute proc.blip_med_dset, proc.blip_dset_warp
 
       - get blip_NT from -blip_reverse_dset
       - extract that many from first current dset
@@ -897,24 +1190,75 @@ def db_cmd_blip(proc, block):
 
    blip_interp = '-quintic'
 
+   # note the goal here, for the comment string
+   if proc.blip_dset_warp is not None:
+      taskstr = 'apply'
+   else:
+      taskstr = 'compute blip up/down'
+
    cmd =  "# %s\n" % block_header('blip')
-   cmd += '# compute blip up/down non-linear distortion correction for EPI\n\n'
+   cmd += '# %s non-linear EPI distortion correction\n\n' \
+          % taskstr
 
-   if proc.blip_dset_med != None and proc.blip_dset_warp != None:
-      cmd += '\n'                                               \
-          '# nothing to do: have external -blip_align_dsets\n'  \
-          '#\n'                                                 \
-          '# blip NL warp             : %s\n'                   \
-          '# blip align base (unused) : %s\n\n'                 \
-          % (proc.blip_dset_warp.shortinput(), proc.blip_dset_med.shortinput())
-      return cmd
+   # -----------------------------------------------------------------
+   # actually compute the transformation (or else it was input)
+   if proc.blip_dset_warp == None:
+      bcmd = compute_blip_xform(proc, block, interp=blip_interp)
+      if bcmd == '': return ''
+   else:
+      bcmd = '\n# no computation to do: have external -blip_warp_dset %s\n\n' \
+             % proc.blip_dset_warp.shortinput()
+   cmd += bcmd
 
+   if proc.blip_dset_warp is None:
+      print("** failed compute_blip_xform")
+      return ''
+
+   warp_for = proc.blip_dset_warp
+
+   # -----------------------------------------------------------------
+   # main result (besides actual xform): apply forward mid-warp to EPI
+   inform = proc.prev_prefix_form_run(block, view=1, eind=0)
+   outform = proc.prefix_form_run(block, eind=0)
+
+   # possibly pass an obliquity dset, if the EPI is oblique
+   if proc.dsets_obl:
+       foblset = gen_afni_name(proc.prev_prefix_form_run(block, view=1, eind=0))
+   else:
+       foblset = None
+   
+   # potential extra indent if ME
+   if proc.use_me: exind = '    '
+   else:           exind = ''
+
+   bstr = blip_warp_command(proc, warp_for.shortinput(), inform, outform,
+           interp=blip_interp, oblset=foblset, indent='    '+exind)
+   cmd += '# warp EPI time series data\n' \
+          'foreach run ( $runs )\n'
+
+   # ME: prepare to loop across echoes
+   if proc.use_me:
+      cmd += '%sforeach %s ( $echo_list )\n' % (exind, proc.echo_var[1:])
+
+   # main loop
+   cmd += bstr
+
+   if proc.use_me:
+      cmd += '%send\n' % exind
+
+   cmd += 'end\n\n'
+
+   return cmd
+
+def compute_blip_xform(proc, block, interp='-quintic'):
    # compute the blip transformation
 
    proc.have_rm = 1            # rm.* files exist
+
    medf = proc.blip_dset_rev.new(new_pref='rm.blip.med.fwd')
    medr = proc.blip_dset_rev.new(new_pref='rm.blip.med.rev')
-   forwdset = proc.prev_prefix_form(1, block, view=1)
+
+   cmd = ''
    cmd += '# create median datasets from forward and reverse time series\n' \
           '3dTstat -median -prefix %s %s\n'                                 \
           '3dTstat -median -prefix %s %s\n\n'                               \
@@ -970,13 +1314,13 @@ def db_cmd_blip(proc, block):
    else:    roblset = None
 
    cmd += blip_warp_command(proc, warp_for.shortinput(), medf.shortinput(),
-                            for_prefix, oblset=foblset, interp=blip_interp)
+                            for_prefix, oblset=foblset, interp=interp)
    cmd += '\n'
    proc.blip_dset_med = proc.blip_dset_warp.new(new_pref=for_prefix)
 
    # to forward masked median
    cmd += blip_warp_command(proc, warp_for.shortinput(), mmedf.shortinput(),
-                    '%s_masked'%for_prefix, oblset=foblset, interp=blip_interp)
+                    '%s_masked'%for_prefix, oblset=foblset, interp=interp)
    cmd += '\n'
 
    # to reverse masked median
@@ -984,32 +1328,7 @@ def db_cmd_blip(proc, block):
    if fobl: oblset = proc.blip_dset_for
    else:    oblset = None
    cmd += blip_warp_command(proc, warp_rev.shortinput(), mmedr.shortinput(),
-                    '%s_masked'%rev_prefix, oblset=roblset, interp=blip_interp)
-   cmd += '\n'
-
-   # -----------------------------------------------------------------
-   # main result (besides actual xform): apply forward mid-warp to EPI
-   inform = proc.prev_prefix_form_run(block, view=1, eind=0)
-   outform = proc.prefix_form_run(block, eind=0)
-   bstr = blip_warp_command(proc, warp_for.shortinput(), inform, outform,
-           interp=blip_interp, oblset=foblset, indent='    ')
-   cmd += '# warp EPI time series data\n' \
-          'foreach run ( $runs )\n'
-
-   # ME: prepare to loop across echoes
-   indent = ''
-   if proc.use_me:
-      indent = '    '
-      cmd += '%sforeach %s ( $echo_list )\n' % (indent, proc.echo_var[1:])
-
-   # main loop
-   cmd += '%s%s'                    \
-          '%send\n'                 \
-          % (indent, bstr, indent)
-
-   if proc.use_me:
-      cmd += 'end\n'
-
+                    '%s_masked'%rev_prefix, oblset=roblset, interp=interp)
    cmd += '\n'
 
    return cmd
@@ -1018,9 +1337,9 @@ def dset_is_oblique(aname, verb):
    cmd = '3dinfo -is_oblique %s' % aname.rel_input()
    st, so, se = UTIL.limited_shell_exec(cmd)
 
-   if verb > 2:
+   if verb > 2 or (verb > 1 and st):
       print('== dset_is_oblique cmd: %s' % cmd)
-      print('       so = %s, se = %s' % (so, se))
+      print('       st = %s, so = %s, se = %s' % (st, so, se))
 
    if len(so) < 1:    return 0
    elif so[0] == '1': return 1
@@ -1038,9 +1357,10 @@ def blip_warp_command(proc, warp, source, prefix, interp=' -quintic',
          % (indent, intstr, warp, indent, source, indent, prefix)
 
    if oblset:
-      cmd += '%s3drefit -atrcopy %s IJK_TO_DICOM_REAL \\\n' \
-             '%s                 %s%s\n'                    \
-             % (indent, oblset.shortinput(), indent, prefix, proc.view)
+      cmd += '%s3drefit -atrcopy %s \\\n'                \
+             '%s                 IJK_TO_DICOM_REAL \\\n' \
+             '%s                 %s%s\n'                 \
+             % (indent, oblset.shortinput(), indent, indent, prefix, proc.view)
 
    return cmd
 
@@ -1110,7 +1430,7 @@ def db_cmd_align(proc, block):
     oname = '-align_unifize_epi'
     umeth, err = block.opts.get_string_opt(oname, default='no')
     if umeth != 'no' and not err:
-       epi_in = BASE.afni_name(basevol)
+       epi_in = gen_afni_name(basevol)
        epi_out = epi_in.new(new_pref=('%s_unif' % epi_in.prefix))
        basepre = epi_out.prefix
        basevol = epi_out.shortinput()
@@ -1187,7 +1507,7 @@ def db_cmd_align(proc, block):
           print("++ align anat/epi base %s with epi/epi base %s" \
                 % (basepre, proc.vr_ext_pre))
 
-       # so aea really did anat2inter, compute inter2epi usinng another aea
+       # so aea really did anat2inter, compute inter2epi using another aea
        #  - intermediate was proc.align_ebase, real ebase is proc.vr_ext_pre
        #  - basevol is proc.align_ebase
        #  - use aea to handle potential obliquity difference
@@ -1594,9 +1914,14 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
     cmd = '# %s\n'                                                      \
           '# RETROICOR - remove cardiac and respiratory signals\n'      \
           '#           - across runs: catenate regressors across runs\n'\
-          'foreach run ( $runs )\n' % block_header('ricor')
+          % block_header('ricor')
+
+    # create QC directory for variance ratios
+    qcdir = 'ricor_QC'
+    cmd = cmd + ricor_qc_mkdir(qcdir)
 
     cmd = cmd +                                                         \
+        "foreach run ( $runs )\n"                                       \
         "    # detrend regressors (make orthogonal to poly baseline)\n" \
         "    3dDetrend -polort %d -prefix rm.ricor.$run.1D \\\n"        \
         "              stimuli/ricor_orig_r$run.1D\\'\n\n"              \
@@ -1624,15 +1949,18 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
 
     # process 3D+time data
     if proc.use_me:
-       eprefix = prefix + '.e$eind'
+       eistr = '.e$eind'
        indent = '   '
-       eiter = '.e$eind'
        cmd += "# process one echo at a time, across runs\n" \
               "foreach eind ( $echo_list )\n"
     else:
-       eprefix = prefix
+       eistr = ''
        indent = ''
-       eiter = ''
+
+    # set more complete variables, to include QC
+    eprefix = prefix + eistr
+    errset = '%s.errts' % eprefix
+    detset = '%s.det' % eprefix
 
     cmd = cmd +                                                      \
         "%s# 3dREMLfit does not currently catenate a dataset list\n" \
@@ -1644,11 +1972,11 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
         '%s3dREMLfit -input "$dsets" \\\n'                        \
         "%s    -matrix %s \\\n"                                   \
         "%s    -%sbeta %s.betas \\\n"                             \
-        "%s    -%serrts %s.errts \\\n"                            \
+        "%s    -%serrts %s \\\n"                                  \
         "%s    -slibase_sm stimuli/ricor_det_rall.1D\n\n"         \
         % (indent, indent, indent, indent, matrix,
            indent, solver, eprefix,
-           indent, solver, eprefix, indent)
+           indent, solver, errset, indent)
 
     cmd = cmd +                                                   \
         "%s# re-create polynomial baseline\n"                     \
@@ -1671,22 +1999,27 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
         "%s# final result: add REML errts to polynomial baseline\n" \
         "%s# (and separate back into individual runs)\n"            \
         "%sset startind = 0\n"                                      \
-        "%sforeach rind ( `count -digits 1 1 $#runs` )\n"           \
+        "%sforeach rind ( `count_afni -digits 1 1 $#runs` )\n"          \
         "%s    set run = $runs[$rind]\n"                            \
         "%s    set runlen = $tr_counts[$rind]\n"                    \
         "%s    @ endind = $startind + $runlen - 1\n"                \
         "\n" % (indent, indent, indent, indent, indent, indent, indent)
 
     cmd = cmd +                                                     \
-        '%s    3dcalc -a %s.errts%s"[$startind..$endind]" \\\n'     \
+        '%s    3dcalc -a %s%s"[$startind..$endind]" \\\n'           \
         '%s           -b %s.polort%s"[$startind..$endind]" \\\n'    \
         '%s'                                                        \
         '%s           -expr a+b -prefix %s\n'                       \
         "%s    @ startind = $endind + 1\n"                          \
-        '%send\n'                                                   \
-        % (indent, eprefix, proc.view,
+        % (indent, errset, proc.view,
            indent, eprefix, proc.view, dstr,
-           indent, cur_prefix, indent, indent)
+           indent, cur_prefix, indent)
+    cmd = cmd + '%send\n' % indent
+
+
+    # QC: create string for variance maps (1 and '    ' for perrun)
+    cmd = cmd + ricor_qc_varmaps(proc, qcdir, '"$dsets"', matrix,
+                     '%s%s'%(errset,proc.view), detset, eistr, 0, indent)
 
     if proc.use_me:
        cmd = cmd + 'end\n'
@@ -1720,9 +2053,14 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
     cmd = '# %s\n'                                                      \
           '# RETROICOR - remove cardiac and respiratory signals\n'      \
           '#           - per run: each run uses separate regressors\n'  \
-          'foreach run ( $runs )\n' % block_header('ricor')
+          % block_header('ricor')
+
+    # create QC directory for variance ratios
+    qcdir = 'ricor_QC'
+    cmd = cmd + ricor_qc_mkdir(qcdir)
 
     cmd = cmd +                                                            \
+        "foreach run ( $runs )\n"                                          \
         "    # detrend regressors (make orthogonal to poly baseline)\n"    \
         "    3dDetrend -polort %d -prefix rm.ricor.$run.1D \\\n"           \
         "              stimuli/ricor_orig_r$run.1D\\'\n\n"                 \
@@ -1781,16 +2119,22 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
     else:
        dstr = '%s          -datum %s \\\n' % (indent, rdatum)
 
+    errset = '%s.errts.r$run%s%s' % (prefix, eistr, proc.view)
+    detset = '%s.det.r$run%s'     % (prefix, eistr)
     cmd = cmd +                                                         \
         "%s    # final result: add REML errts to polynomial baseline\n" \
-        "%s    3dcalc -a %s.errts.r$run%s%s \\\n"                       \
+        "%s    3dcalc -a %s \\\n"                                       \
         "%s           -b %s.polort.r$run%s%s \\\n"                      \
         '%s'                                                            \
         "%s           -expr a+b -prefix %s\n"                           \
         % (indent,
-           indent, prefix, eistr, proc.view,
+           indent, errset,
            indent, prefix, eistr, proc.view,
            dstr, indent, cur_prefix)
+
+    # QC: create string for variance maps (1 and '    ' for perrun)
+    cmd = cmd + ricor_qc_varmaps(proc, qcdir, prev_prefix, matrix,
+                                 errset, detset, eistr, 1, indent+'    ')
 
     if proc.use_me:
        cmd = cmd + "    end\n\n"
@@ -1803,6 +2147,85 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
         "1dcat rm.ricor_s0_r[0-9]*.1D > %s\n\n" % proc.ricor_reg
 
     return cmd
+
+def ricor_qc_varmaps(proc, qcdir, inset, polmat, errset, detset,
+                     eistr, perrun, indent):
+   """create QC variance ratio dset, and intermediate stdev maps
+
+      given:
+           qcdir   - qc directory name
+           inset   - orig dset
+           polmat  - polort X-matrix (xmat.1D)
+           errset  - errts from regression
+           eistr   - echo index string, in case we write per echo
+           perrun  - is this per run (do we need a $run variable)?
+           indent  - indentation string
+      create:
+           detset  - detrend dset (no +view)
+           STATS:  
+              ricor.sd.{orig,ricor} : stdev of detrended time series
+              ricor.vrat.m1         : variance ratio minus 1
+   """
+
+   # 4 cases for a comment string...
+   cstr = ''
+   if eistr != '':
+      cstr = 'per echo'
+   if perrun:
+      if cstr == '':    # new comment
+         cstr += 'per run'
+      else:             # already have per echo
+         cstr += ' and run'
+   if cstr != '':
+      cstr = ' (%s)' % cstr
+
+   # input: prev_prefix, matrix (polort)
+   qcstr = "\n"                                                        \
+       "%s# -------------------------------------------------------\n" \
+       "%s# QC: compute stdev and variance ratio%s\n"                  \
+       "\n"                                                            \
+       "%s# remove polort baseline from original (for variance)\n"     \
+       "%s3dTproject -polort 0 -ort %s \\\n"                           \
+       "%s           -input %s \\\n"                                   \
+       "%s           -prefix %s\n\n"                                   \
+       % (indent, indent, cstr, indent,
+          indent, polmat, indent, inset,
+          indent, detset)
+
+   # include $run var if needed
+   if perrun: rstr = '.r$run'
+   else:      rstr = ''
+
+   stdev_orig  = 'ricor.sd.orig%s%s' % (rstr, eistr)
+   stdev_ricor = 'ricor.sd.ricor%s%s' % (rstr, eistr)
+   var_rat     = 'ricor.vrat.m1%s%s' % (rstr, eistr)
+
+   qcstr = qcstr +                                              \
+       "%s# compute stdev maps: orig and ricor (detrended)\n"   \
+       "%s3dTstat -stdevNOD -prefix %s/%s \\\n"                 \
+       "%s        %s%s\n"                                       \
+       "%s3dTstat -stdevNOD -prefix %s/%s \\\n"                 \
+       "%s        %s\n\n"                                       \
+       % (indent, indent, qcdir, stdev_orig, indent, detset, proc.view,
+                  indent, qcdir, stdev_ricor, indent, errset)
+
+   qcstr = qcstr +                                                    \
+       "%s# compute variance ratio minus 1, removing small values\n"  \
+       "%s# (ratio>1, so subtract 1 to show only frac improvement)\n" \
+       "%s3dcalc -a %s/%s%s \\\n"                                     \
+       "%s       -b %s/%s%s \\\n"                                     \
+       "%s       -expr 'step(a-1)*step(b-1)*(a**2/b**2-1)' \\\n"      \
+       "%s       -prefix %s/%s\n"                                     \
+       % (indent, indent,
+          indent, qcdir, stdev_orig, proc.view,
+                  indent, qcdir, stdev_ricor, proc.view,
+          indent, indent, qcdir, var_rat)
+
+   return qcstr
+
+def ricor_qc_mkdir(qcdir):
+    return "\n# store variance maps in QC directory\n" \
+           "mkdir %s\n\n" % qcdir
 
 # --------------- tshift ---------------
 
@@ -1858,8 +2281,17 @@ def db_cmd_tshift(proc, block):
 
     # maybe there are extra options to append to the command
     opt = block.opts.find_opt('-tshift_opts_ts')
-    if not opt or not opt.parlist: other_opts = ''
-    else: other_opts = '%s             %s \\\n' % (indent,' '.join(opt.parlist))
+    if not opt or not opt.parlist:
+       other_opts = ''
+    else:
+       other_opts = '%s             %s \\\n' % (indent,' '.join(opt.parlist))
+       # if -tpattern is in this list, apply it is a uvar
+       oname = '-tpattern'
+       if oname in opt.parlist:
+          tind = opt.parlist.index(oname)
+          if tind < len(opt.parlist) - 1:
+             # propagate as a valid uvar
+             proc.uvars.set_var('slice_pattern', [opt.parlist[tind+1]])
 
     # write commands
     cmd = cmd + '# %s\n'                                                \
@@ -2035,6 +2467,7 @@ def db_mod_volreg(block, proc, user_opts):
     apply_uopt_to_block('-volreg_method', user_opts, block)
     apply_uopt_to_block('-volreg_allin_cost', user_opts, block)
     apply_uopt_to_block('-volreg_allin_auto_stuff', user_opts, block)
+    apply_uopt_to_block('-volreg_allin_warp', user_opts, block)
     apply_uopt_to_block('-volreg_post_vr_allin', user_opts, block)
     apply_uopt_to_block('-volreg_pvra_base_index', user_opts, block)
     apply_uopt_to_block('-volreg_interp', user_opts, block)
@@ -2097,10 +2530,14 @@ def db_mod_volreg(block, proc, user_opts):
                     "   (consider -volreg_tlrc_adwarp instead)")
               return 1
 
-    uopt = user_opts.find_opt('-volreg_no_extent_mask')
-    bopt = block.opts.find_opt('-volreg_no_extent_mask')
-    if uopt and not bopt:
+    # do we want to omit the actual volreg step?
+    apply_uopt_to_block('-volreg_no_volreg', user_opts, block)
+
+    # if so, there is no need for an extents mask, let that opt be conditional
+    if user_opts.find_opt('-volreg_no_volreg'):
         block.opts.add_opt('-volreg_no_extent_mask', 0, [])
+    else:
+        apply_uopt_to_block('-volreg_no_extent_mask', user_opts, block)
 
     uopt = user_opts.find_opt('-volreg_align_e2a')
     bopt = block.opts.find_opt('-volreg_align_e2a')
@@ -2150,7 +2587,7 @@ def vr_prep_for_warp_master(proc, user_opts):
     if view == '':
        print("** failed to get view from -volreg_warp_master, %s" % warp_master)
        return 1
-    proc.vr_warp_mast = BASE.afni_name('vr_warp_master', view=view)
+    proc.vr_warp_mast = gen_afni_name('vr_warp_master', view=view)
     if proc.verb > 1:
        print("-- have warp master dataset %s in view %s"%(warp_master, view))
 
@@ -2172,9 +2609,13 @@ def db_cmd_volreg(proc, block):
               '   aligning EPI to end the runs, this looks fishy...')
 
     # volreg base should now either be external or locally created
+    basevol = None
+    basehead = None
     if proc.vr_ext_base != None or proc.vr_int_name != '':
-       proc.vr_base_dset = BASE.afni_name("%s%s" % (proc.vr_ext_pre,proc.view))
+       proc.vr_base_dset = gen_afni_name("%s%s" % (proc.vr_ext_pre,proc.view))
        basevol = proc.vr_base_dset.nice_input()
+       # save this in case we add a uvar
+       basehead = proc.vr_base_dset.nice_input(head=1)
     else:
        print("** warning: basevol should always be set now")
        return
@@ -2238,6 +2679,9 @@ def db_cmd_volreg(proc, block):
     else:                                             do_extents = 0
     if block.opts.find_opt('-volreg_no_extent_mask'): do_extents = 0
 
+    # make note of the per run affine/volreg transformation matrix
+    volreg_xform = 'mat.r$run.vr.aff12.1D'
+
     cur_prefix = proc.prefix_form_run(block, eind=-1)
     cur_prefix_me = proc.prefix_form_run(block, eind=0)
     proc.volreg_prefix = cur_prefix
@@ -2257,7 +2701,7 @@ def db_cmd_volreg(proc, block):
 
         prefix = 'rm.epi.volreg.r$run%s' % estr
         proc.have_rm = 1            # rm.* files exist
-        matstr = '-1Dmatrix_save mat.r$run.vr.aff12.1D'
+        matstr = '-1Dmatrix_save %s' % volreg_xform
         if doblip:        cstr = cstr + ', blip warp'
         if do_pvr_allin:  cstr = cstr + ', across runs'
         if doe2a:         cstr = cstr + ', to anat'
@@ -2403,30 +2847,37 @@ def db_cmd_volreg(proc, block):
        cmd += pvr_cmd
 
     # ============================================================
-    # include main volreg command
-    cmd = cmd + "    # register each volume to the base image\n"  \
-                "%s" % (mestr)
+    # include main volreg command, or an identity substitute
 
-    vrmeth = '3dvolreg'
-    vv, rv = block.opts.get_string_opt('-volreg_method')
-    if vv and not rv:
-       if vv not in ['3dvolreg', '3dAllineate']:
-          print("** bad -volreg_method %s" % vv)
-          return
-       if proc.verb > 1: print("++ updating -volreg_method to %s" % vv)
-       vrmeth = vv
-    
-    if vrmeth == '3dAllineate':
-       vrcmd = make_volreg_command_allin(block, prev_prefix, prefix,
-                    vr_base_str, matstr, other_opts=other_opts, resam=resam)
-       if not vrcmd: return
+    # do main volreg/Allineate step, unless users wants to omit
+    do_volreg = block.opts.find_opt('-volreg_no_volreg') is None
+    if do_volreg:
+       # run 3dvolreg or 3dAllineate
+       cmnt = "    # register each volume to the base image\n%s" % (mestr)
+       vrmeth = '3dvolreg'
+       vv, rv = block.opts.get_string_opt('-volreg_method')
+       if vv and not rv:
+          if vv not in ['3dvolreg', '3dAllineate']:
+             print("** bad -volreg_method %s" % vv)
+             return
+          if proc.verb > 1: print("++ updating -volreg_method to %s" % vv)
+          vrmeth = vv
 
-    else: # '3dvolreg'
-       vrcmd = make_volreg_command(block, prev_prefix, prefix, vr_base_str,
-                    matstr, zpad, other_opts=other_opts, resam=resam)
-       if not vrcmd: return
+       if vrmeth == '3dAllineate':
+          vrcmd = make_volreg_command_allin(block, prev_prefix, prefix,
+                       vr_base_str, matstr, other_opts=other_opts, resam=resam)
+          if not vrcmd: return
 
-    cmd = cmd + vrcmd
+       else: # '3dvolreg'
+          vrcmd = make_volreg_command(block, prev_prefix, prefix, vr_base_str,
+                       matstr, zpad, other_opts=other_opts, resam=resam)
+          if not vrcmd: return
+    else:
+       # skip 3dvolreg and use identity
+       cmnt  = "    # skip 3dvolreg, replacing xform with identity\n"
+       vrcmd = "    echo '1 0 0 0  0 1 0 0  0 0 1 0' > %s\n" % volreg_xform
+
+    cmd = cmd + cmnt + vrcmd
 
     # if pvr_allin, reset the volreg base to the global one, not local per run
     if do_pvr_allin:
@@ -2435,7 +2886,7 @@ def db_cmd_volreg(proc, block):
     # ============================================================
     # include extents
     if do_extents:
-       all1_input = BASE.afni_name('rm.epi.all1'+proc.view)
+       all1_input = gen_afni_name('rm.epi.all1'+proc.view)
        cmd = cmd + '\n' \
           "    # create an all-1 dataset to mask the extents of the warp\n" \
           "    3dcalc -overwrite -a %s -expr 1 \\\n"                        \
@@ -2461,7 +2912,9 @@ def db_cmd_volreg(proc, block):
                return
             proc.delta = dims
         else:
-            dim = UTIL.get_truncated_grid_dim(proc.dsets[0].rel_input())
+            # truncate min dimension, but scale up slightly
+            dim = UTIL.get_truncated_grid_dim(proc.dsets[0].rel_input(),
+                                              scale=1.0001)
             if dim <= 0:
                 print('** failed to get grid dim from %s' \
                       % proc.dsets[0].rel_input())
@@ -2555,11 +3008,11 @@ def db_cmd_volreg(proc, block):
         else:
             allinbase = ''
 
-        # resulting affine xform of orig EPI, per run
+        # resulting affine xform of orig EPI, per run (used in a few places)
         runwarpmat = 'mat.r$run.warp.aff12.1D'
 
         # final affine xmat is from volreg step
-        cmd += '               mat.r$run.vr.aff12.1D > %s\n' % runwarpmat
+        cmd += '               %s > %s\n' % (volreg_xform, runwarpmat)
 
         if do_extents:
            if proc.use_me:
@@ -2641,10 +3094,16 @@ def db_cmd_volreg(proc, block):
         if wcmd == None: return
         cmd += wcmd
 
+    cmd = cmd + "end\n\n"
+
+    # save the motion file for motsim
+    # note: proc.mot_file is either used above, or passed as different,
+    #       but use the passed one (proc.mot_file) for motsim
     proc.mot_default = 'dfile_rall.1D'
-    cmd = cmd + "end\n\n"                                                     \
-                "# make a single file of registration params\n"               \
-                "cat dfile.r*.1D > %s\n\n" % proc.mot_default
+
+    if do_volreg: 
+        cmd = cmd + "# make a single file of registration params\n"  \
+                    "cat dfile.r*.1D > %s\n\n" % proc.mot_default
 
     # if not censoring motion, make a generic motion file
     if not proc.user_opts.find_opt('-regress_censor_motion'):
@@ -2669,7 +3128,7 @@ def db_cmd_volreg(proc, block):
                % (proc.mot_file, proc.runs, proc.mot_enorm)
 
     if do_extents:
-        proc.mask_extents = BASE.afni_name('mask_epi_extents' + proc.view)
+        proc.mask_extents = gen_afni_name('mask_epi_extents' + proc.view)
 
         cmd = cmd +                                             \
             "# ----------------------------------------\n"      \
@@ -2718,7 +3177,7 @@ def db_cmd_volreg(proc, block):
     # next, see if we want to apply a (manual) warp to tlrc space
     if block.opts.find_opt('-volreg_tlrc_adwarp'):
         if proc.view == '+tlrc':
-            print('** cannot apply -volreg_tlrc_adwarp: alread in tlrc space')
+            print('** cannot apply -volreg_tlrc_adwarp: already in tlrc space')
             return
         if not proc.tlrcanat:
             print('** need -copy_anat with tlrc for -volreg_tlrc_adwarp')
@@ -2757,6 +3216,14 @@ def db_cmd_volreg(proc, block):
         if st: return
         cmd += wtmp + '\n'
         get_allcostX += 1
+
+        # and since we are warping, clear any generic variables that depend on
+        # the current grid
+        clear_grid_dependent_vars(proc, block)
+
+    elif basehead:
+        # we are not creating a final_epi, so pass use the base for a uvar
+        proc.uvars.set_var('final_epi_dset', [basehead])
 
     # ---------------
     # make a copy of the "final" anatomy, called "anat_final.$subj"
@@ -2816,6 +3283,14 @@ def db_cmd_volreg(proc, block):
 
     return cmd
 
+
+def clear_grid_dependent_vars(proc, block):
+    """clear any generic proc variables that depend on the current grid,
+       and which must be regenerated if it changes
+    """
+    proc.tsnr_dset = None
+
+
 def make_volreg_command(block, prev_prefix, prefix, basestr, matstr,
                         zpad, other_opts="", resam="Cu"):
     """return the main 3dvolreg command string"""
@@ -2836,8 +3311,16 @@ def make_volreg_command_allin(block, prev_prefix, prefix, basestr, matstr,
                               other_opts="", resam="Cu"):
     """return the main volreg command string, but using 3dAllineate"""
 
+    # get/set cost function
     allin_cost, rv = block.opts.get_string_opt('-volreg_allin_cost',
                                                default='lpa')
+    if rv:
+       print("** failed to parse -volreg_allin_cost")
+       return
+
+    # get/set warp restriction
+    allin_warp, rv = block.opts.get_string_opt('-volreg_allin_warp',
+                                               default='shift_rotate')
     if rv:
        print("** failed to parse -volreg_allin_cost")
        return
@@ -2859,12 +3342,13 @@ def make_volreg_command_allin(block, prev_prefix, prefix, basestr, matstr,
             "        -base %s \\\n"                      \
             "        -source %s \\\n"                    \
             "        -prefix %s \\\n"                    \
+            "        -warp %s \\\n"                      \
             "        -1Dfile dfile.m12.r$run.1D \\\n"    \
             "%s"                                         \
             "%s"                                         \
             "        -cost %s %s\n\n" %                  \
             (autostuff, basestr, prev_prefix, prefix,
-             matstr, other_opts, allin_cost, resam)
+             allin_warp, matstr, other_opts, allin_cost, resam)
 
     vrcmd += "    # and extract the 6 rigid-body params\n"   \
              "    1dcat dfile.m12.r$run.1D'[3..5,0..2]' > dfile.r$run.1D\n"
@@ -2935,9 +3419,9 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
 
    if epi_aname == None:
       if prevepi:
-         epi_aname = BASE.afni_name(proc.prev_prefix_form(1, block, eind=-1))
+         epi_aname = gen_afni_name(proc.prev_prefix_form(1, block, eind=-1))
       else:
-         epi_aname = BASE.afni_name(proc.prefix_form(block, 1, eind=-1))
+         epi_aname = gen_afni_name(proc.prefix_form(block, 1, eind=-1))
       epi_aname.new_view(proc.view)
 
    warps = proc.anat_warps[:]
@@ -2992,16 +3476,16 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
    # perform any pre-erode
    efirst = 1
    for afobj in proc.afollowers:
-       if afobj.erode != 1: continue
+       if afobj.erode <= 0: continue
 
        if efirst: # first eroded dataset
           efirst = 0
           wstr += '\n# first perform any pre-warp erode operations\n'
 
        cname = afobj.cname.new(new_pref=(afobj.cname.prefix+'_erode'))
-       wstr += '3dmask_tool -input %s -dilate_input -1 \\\n'    \
+       wstr += '3dmask_tool -input %s -dilate_input -%d \\\n'   \
                '            -prefix %s\n'                       \
-               % (afobj.cname.shortinput(), cname.out_prefix())
+               % (afobj.cname.shortinput(), afobj.erode, cname.out_prefix())
        afobj.cname = cname
    if not efirst: wstr += '\n# and apply any warp operations\n\n'
 
@@ -3157,11 +3641,11 @@ def old_apply_cat_warps(proc, runwarpmat, gridbase, winput, dowarp,
 # create @simulate_motion commands
 def db_cmd_volreg_motsim(proc, block, basevol):
     """generate a @simulate_motion command
-          - use proc.mot_default and proc.e2final_mv
+          - use proc.mot_file and proc.e2final_mv
           - if self.nlw_NL_mat, apply with 3dNwarpApply
        return 0 on success, along with any command string
     """
-    proc.mot_simset = BASE.afni_name('motsim_$subj%s' % proc.view)
+    proc.mot_simset = gen_afni_name('motsim_$subj%s' % proc.view)
     # first generate any needed cat_matvec command using proc.e2final_mv
     cmd = "# ----------------------------------------\n"      \
           "# generate simulated motion dataset: %s\n" % proc.mot_simset.pv()
@@ -3178,10 +3662,11 @@ def db_cmd_volreg_motsim(proc, block, basevol):
         other_opts = '%17s%s \\\n' % (' ', ' '.join(olist))
     else: other_opts = ''
 
+    # use proc.mot_file, in case a modified version was passed
     cmd += "@simulate_motion -epi %s -prefix %s \\\n"   \
            "                 -motion_file %s \\\n"      \
            "%s"                                         \
-           % (basevol, proc.mot_simset.prefix, proc.mot_default, other_opts)
+           % (basevol, proc.mot_simset.prefix, proc.mot_file, other_opts)
 
     if proc.e2final == '':
         cmd += "                 -warp_method VOLREG\n\n"
@@ -3198,13 +3683,18 @@ def db_cmd_volreg_motsim(proc, block, basevol):
 def db_cmd_volreg_tsnr(proc, block, emask=''):
 
     # signal and error are both first run of previous output
-    signal = proc.prefix_form(block, 1)
+    signal = proc.prefix_form(block, 1, eind=-1)
 
     return db_cmd_tsnr(proc,
            "# --------------------------------------\n" \
            "# create a TSNR dataset, just from run 1\n",
            signal, signal, proc.view, mask=emask,
            name_qual='.vreg.r01',detrend=1, oksurf=0)
+
+    # if block.opts.find_opt('-volreg_compute_tsnr_stats'):
+    #    # given ROIs and new proc.tsnr_dset
+    #    rv, scmd = db_cmd_volreg_tsnr_stats(proc, block)
+    #    tsnr_cmd += '\n' + scmd
 
 # --------------- combine block ---------------
 
@@ -3749,7 +4239,7 @@ def cmd_combine_OC(proc, block, method='OC'):
           '        -work_dir oc.work.r$run\n'                       \
           'end\n\n' % (mstr, prev_prefix)
 
-   proc.OC_weightset = BASE.afni_name('oc.weights.$subj%s' % proc.view)
+   proc.OC_weightset = gen_afni_name('oc.weights.$subj%s' % proc.view)
    cmd += '# average weights across runs\n'          \
           '3dMean -prefix %s oc.weights.r*.HEAD\n\n' \
           % proc.OC_weightset.out_prefix()
@@ -3906,17 +4396,6 @@ def db_mod_surf(block, proc, user_opts):
     opt = user_opts.find_opt('-surf_B')
     if opt: proc.surf_B = opt.parlist[0]
 
-    val, err = user_opts.get_type_opt(float, '-blur_size')
-    if err:
-        print('** error: -blur_size requires float argument')
-        return 1
-    elif val != None and val > 0.0:
-        proc.surf_blur_fwhm = val
-    else:
-        proc.surf_blur_fwhm = 4.0
-        print('** applying default -blur_size of %s mm FWHM' \
-              % proc.surf_blur_fwhm)
-
     if proc.verb > 2:
         print('-- surf info\n'          \
               '   spec          : %s\n' \
@@ -3925,14 +4404,12 @@ def db_mod_surf(block, proc, user_opts):
               '   anat_has_skull: %s\n' \
               '   surf_A        : %s\n' \
               '   surf_B        : %s\n' \
-              '   blur_size     : %s\n' \
               '   spec_dir      : %s\n' \
               '   surf_spd_var  : %s\n' \
               '   spec_var      : %s\n' \
               % (proc.surf_spec, proc.surf_anat, proc.surf_anat_aligned,
                  proc.surf_anat_has_skull, proc.surf_A, proc.surf_B,
-                 proc.surf_blur_fwhm, proc.surf_spec_dir, proc.surf_spd_var,
-                 proc.surf_spec_var))
+                 proc.surf_spec_dir, proc.surf_spd_var, proc.surf_spec_var))
 
     errs = 0
     if not proc.surf_anat.exist():
@@ -4094,7 +4571,7 @@ def cmd_surf_align(proc):
         print('** missing final anat to align to as experiment base')
         return None
 
-    # current surf_sv is surely remote, so apply dirctory and variables
+    # current surf_sv is surely remote, so apply directory and variables
     if proc.surf_anat_has_skull == 'yes': sstr = ' -strip_skull surf_anat'
     else: sstr = ''
 
@@ -4329,6 +4806,22 @@ def mod_blur_surf(block, proc, user_opts):
 def cmd_blur_surf(proc, block):
     """surface analysis: return a command to blur the data"""
 
+    # the Maya fix: do not warn on blur_size without blur
+    if proc.find_block('blur'):
+       val, err = proc.user_opts.get_type_opt(float, '-blur_size')
+       if err:
+           print('** error: -blur_size requires float argument')
+           return 1
+       elif val != None and val > 0.0:
+           proc.surf_blur_fwhm = val
+       else:
+           proc.surf_blur_fwhm = 4.0
+           print('** applying default -blur_size of %s mm FWHM' \
+                 % proc.surf_blur_fwhm)
+
+    if proc.verb > 2:
+       print('-- surf blur_size : %s\n' % proc.surf_blur_fwhm)
+
     # check for number of requested iterations
     niter, err = block.opts.get_type_opt(int, '-surf_smooth_niter')
     if err: return
@@ -4348,6 +4841,9 @@ def cmd_blur_surf(proc, block):
     prefix = proc.prefix_form_run(block)
     param_file = 'surf.smooth.params.1D'
 
+    # get later params from smrec rather than stdout  30 Jan 2023 [rickr]
+    blur_hist = '%s.1D.smrec' % prefix
+
     cmd +='%s'                                                          \
           '    foreach run ( $runs )\n'                                 \
           '        # to save time, estimate blur parameters only once\n'\
@@ -4360,23 +4856,25 @@ def cmd_blur_surf(proc, block):
           '                       -blurmaster %s \\\n'                  \
           '                       -detrend_master \\\n'                 \
           '                       -output %s \\\n'                      \
-          '                       | tee %s \n'                          \
+          '                       | tee %s\n'                           \
+          '            set bfile  = %s\n'                               \
+          '            set params = ( `1dcat $bfile | tail -n 1` )\n'   \
           '        else\n'                                              \
-          '            set params = `1dcat %s`\n'                       \
+          '            # get blur params from smrec file\n'             \
           '            SurfSmooth -spec %s \\\n'                        \
           '                       -surf_A %s \\\n'                      \
           '                       -input %s \\\n'                       \
           '                       -met HEAT_07 \\\n'                    \
           '                       -Niter $params[1] \\\n'               \
-          '                       -sigma $params[2] \\\n'               \
-          '                       -output %s \n'                        \
+          '                       -sigma $params[3] \\\n'               \
+          '                       -output %s\n'                         \
           '        endif\n'                                             \
           '    end\n'                                                   \
           'end\n\n'                                                     \
           % (feh_str,
              param_file, spec_str, proc.surf_A, prev,
              proc.surf_blur_fwhm, prev, prefix, param_file,
-             param_file, spec_str, proc.surf_A, prev, prefix)
+             blur_hist, spec_str, proc.surf_A, prev, prefix)
 
     return cmd
 
@@ -4394,7 +4892,7 @@ def db_mod_mask(block, proc, user_opts):
     if uopt and bopt:
         try: bopt.parlist[0] = int(uopt.parlist[0])
         except:
-            print("** -mask_dilate requres an int nsteps (have '%s')" % \
+            print("** -mask_dilate requires an int nsteps (have '%s')" % \
                   uopt.parlist[0])
             block.valid = 0
             return 1
@@ -4411,10 +4909,10 @@ def db_mod_mask(block, proc, user_opts):
     apply_uopt_list_to_block('-mask_intersect',user_opts, block)
     apply_uopt_list_to_block('-mask_union',   user_opts, block)
 
-    proc.mask_epi = BASE.afni_name('full_mask%s$subj' % proc.sep_char)
+    proc.mask_epi = gen_afni_name('full_mask%s$subj' % proc.sep_char)
 
     # we have an EPI mask, add it to the roi_dict for optional regress_ROI
-    if not proc.have_roi_label('brain'):
+    if proc.mask_epi and not proc.have_roi_label('brain'):
        if proc.add_roi_dict_key('brain', proc.mask_epi): return 1
 
     # possibly note that we will add some automatic ROIs
@@ -4430,7 +4928,7 @@ def db_mod_mask(block, proc, user_opts):
     oname = '-mask_import'
     for opt in block.opts.find_all_opts(oname):
        label = opt.parlist[0]
-       aname = BASE.afni_name('mask_import_%s' % label)
+       aname = gen_afni_name('mask_import_%s' % label)
        if proc.add_roi_dict_key(label, aname=aname): return 1
 
     # add any intersection or union masks
@@ -4491,7 +4989,6 @@ def db_cmd_mask(proc, block):
     if olist != None: aopts = (' '.join(olist) + ' ')
     else:             aopts = ''
 
-    prev = proc.prev_dset_form_wild(block)
     prev = proc.prev_prefix_form_run(block, view=1, eind=-1)
     cmd = cmd + "# %s\n"                                                \
                 "# create 'full_mask' dataset (%s mask)\n"              \
@@ -4507,6 +5004,7 @@ def db_cmd_mask(proc, block):
     proc.mask_epi.created = 1  # so this mask 'exists' now
 
     # if possible make a subject anat mask, resampled to EPI
+    # (and probably mask_epi_anat)
     if proc.warp_epi or not proc.anat_has_skull:
         mc = anat_mask_command(proc, block)
         if mc == None: return
@@ -4570,6 +5068,7 @@ def db_cmd_mask(proc, block):
        dims = UTIL.get_3dinfo_val_list(dset, 'd3', float, verb=1)
        if not UTIL.lists_are_same(dims, proc.delta,
                     epsilon=abs(proc.delta[0]*0.01),doabs=1):
+          # flag for resampling
           print("** bad dims for -mask_import dataset: \n" \
                 "   %s\n"                                  \
                 "   import dims = %s, analysis dims = %s"  \
@@ -4624,8 +5123,8 @@ def mask_segment_anat(proc, block):
         return ''
     # and proc.anat_has_skull:
 
-    cin  = BASE.afni_name('Segsy/Classes%s' % proc.view)
-    cres = BASE.afni_name('Classes_resam%s' % proc.view)
+    cin  = gen_afni_name('Segsy/Classes%s' % proc.view)
+    cres = gen_afni_name('Classes_resam%s' % proc.view)
     mset = proc.prev_prefix_form(1, block, view=1)
 
     # maybe we will take more classes in some option...
@@ -4642,15 +5141,10 @@ def mask_segment_anat(proc, block):
     cmd += '# copy resulting Classes dataset to current directory\n'
     cmd += '3dcopy %s .\n\n' % cin.rpv()
 
-    # ==== if not doing ROI regression and not eroding, we are done ====
-    if not proc.user_opts.find_opt('-regress_ROI') and \
-       not OL.opt_is_yes(block.opts.find_opt('-mask_segment_erode')):
-       return cmd
-
-    ### else continue and make ROI masks
-
     # make erosion ROIs?  (default = yes)
     erode = not OL.opt_is_no(block.opts.find_opt('-mask_segment_erode'))
+
+    ### always continue and make ROI masks
 
     # list ROI labels for comments
     baseliststr = ' '.join(sclasses)
@@ -4698,12 +5192,13 @@ def mask_segment_anat(proc, block):
 
     proc.mask_classes = cres    # store, just in case
 
+    # and create all dict keys
     for sc in sclasses:
-       newname = BASE.afni_name('mask_%s_resam%s' % (sc, proc.view))
+       newname = gen_afni_name('mask_%s_resam%s' % (sc, proc.view))
        if proc.add_roi_dict_key(sc, newname, overwrite=1): return ''
        if erode:
           ec = '%se' % sc
-          newname = BASE.afni_name('mask_%s_resam%s'%(ec,proc.view))
+          newname = gen_afni_name('mask_%s_resam%s'%(ec,proc.view))
           if proc.add_roi_dict_key(ec, newname, overwrite=1): return ''
 
     return cmd
@@ -4742,7 +5237,11 @@ def get_cmd_mask_combine(proc, block, oper='union'):
           print('** no %s label %s for option %s' % (ostr, ilabel, oname))
           return ''
 
-       iset = BASE.afni_name('mask_%s_%s'%(oper,ilabel), view=proc.view)
+       # be sure that we have views
+       if aset.view == '': aset.view = proc.view
+       if bset.view == '': bset.view = proc.view
+
+       iset = gen_afni_name('mask_%s_%s'%(oper,ilabel), view=proc.view)
        if proc.add_roi_dict_key(ilabel, iset, overwrite=1): return ''
 
        cmd += '# create %s mask %s from masks %s and %s\n'      \
@@ -4797,7 +5296,7 @@ def group_mask_command(proc, block):
     tanat = proc.mask_group.new('rm.resam.group') # temp resampled group dset
     cmd = cmd + "3dresample -master %s -prefix ./%s \\\n" \
                 "           -input %s%s\n\n"              \
-                % (proc.mask_epi.pv(), tanat.prefix,
+                % (proc.mask.pv(), tanat.prefix,
                    proc.tlrc_base.input(), volstr)
 
     # convert to a binary mask via 3dmask_tool, to fill in a bit
@@ -4888,6 +5387,16 @@ def anat_mask_command(proc, block):
               "            -inter -prefix %s\n\n"                           \
               % (proc.mask_epi.shortinput(), proc.mask_anat.shortinput(),
                  proc.mask_epi_anat.out_prefix())
+
+       # if 'brain' ROI is mask_epi, replace it with mask_epi_anat  2024.0222
+       label = 'brain'
+       mset = proc.get_roi_dset(label)
+       if mset == proc.mask_epi:
+          if proc.verb > 1:
+             print("++ replacing '%s' ROI with mask_epi_anat" % label)
+          if proc.add_roi_dict_key(label, proc.mask_epi_anat, overwrite=1):
+             return 1
+
        proc.mask_epi_anat.created = 1  # so this mask 'exists' now
        cmd += rcmd
 
@@ -4919,7 +5428,7 @@ def db_mod_scale(block, proc, user_opts):     # no options at this time
     if uopt and bopt:
         try: bopt.parlist[0] = int(uopt.parlist[0])
         except:
-            print("** -scale_max_val requres an int param (have '%s')" % \
+            print("** -scale_max_val requires an int param (have '%s')" % \
                   uopt.parlist[0])
             block.valid = 0
             return 1
@@ -5096,7 +5605,7 @@ def add_ROI_PC_followers(proc, block):
         if label in newlabs:
            print("** error: %s label '%s' already used" % (oname, label))
            return 1
-        badname = BASE.afni_name(label)
+        badname = gen_afni_name(label)
         if badname.exist():
            print('** ERROR: %s label exists as a dataset, %s' % (oname, label))
            print("   format: %s LABEL NUM_PCs DATASET" % oname)
@@ -5369,7 +5878,7 @@ def db_mod_regress(block, proc, user_opts):
                   (nxorts, nxlabs))
             errs += 1
     elif bopt and len(proc.extra_ortvec) > 0:
-        # no ortvec label option, so fasion some
+        # no ortvec label option, so fashion some
         print("-- auto-generating labels for extra ortvec files")
         proc.extra_ortvec_labs = \
               ['xort%02d'%ind for ind in range(len(proc.extra_ortvec))]
@@ -5633,6 +6142,8 @@ def db_mod_regress(block, proc, user_opts):
 
     # check on tsnr and gcor
     apply_uopt_to_block('-regress_compute_tsnr', user_opts, block)
+    apply_uopt_list_to_block('-regress_compute_tsnr_stats',  user_opts, block)
+
     apply_uopt_to_block('-regress_compute_gcor', user_opts, block)
     apply_uopt_to_block('-regress_mask_tsnr', user_opts, block)
 
@@ -5799,8 +6310,19 @@ def db_cmd_regress(proc, block):
        print("   either omit 'tlrc' block, or add -volreg_tlrc_warp")
        return
     
+    # ----------------------------------------------------------------
+    # start handling ROIs: first perform any resampling for ROI_import
+    # ----------------------------------------------------------------
+
     # ----------------------------------------
-    # gmean?  change to generic -regress_RONI
+    # check for user option -ROI_import, and resample any ROI dsets
+    if proc.user_opts.find_opt('-ROI_import'):
+        err, newcmd = db_cmd_resam_ROI_imports(proc, block)
+        if err: return
+        if newcmd: cmd = cmd + newcmd
+
+    # ----------------------------------------
+    # gmean?  change to generic -regress_ROI
     if block.opts.find_opt('-regress_ROI'):
         err, newcmd = db_cmd_regress_ROI(proc, block)
         if err: return
@@ -5808,6 +6330,7 @@ def db_cmd_regress(proc, block):
 
     # ----------------------------------------
     # last censoring is done, so possibly generate keep_trs as $ktrs
+    # (also, generate keep_trs as $ktrs)
     newcmd = get_keep_trs_cmd(proc)
     if newcmd: cmd += newcmd
 
@@ -5896,8 +6419,8 @@ def db_cmd_regress(proc, block):
        reg_orts.append('    -ortvec %s %s' % (ort[0], ort[1]))
     if mot_as_ort and len(proc.mot_regs) > 0:
        if len(proc.mot_regs) != len(proc.mot_names):
-           print('** mis-match between mot_regs and mot_names\n' \
-                 '   regs = %s\n'                                \
+           print('** mismatch between mot_regs and mot_names\n' \
+                 '   regs = %s\n'                               \
                  '   names = %s\n\n' % (proc.mot_regs, proc.mot_names))
            return
        for ind in range(len(proc.mot_regs)):
@@ -5909,7 +6432,7 @@ def db_cmd_regress(proc, block):
     #    (O3dd = list of 3dd option lines, which may need an extra indent)
 
     # note first input, to have a known afni_name
-    proc.regress_inset = BASE.afni_name(proc.prev_prefix_form(1, block, view=1),
+    proc.regress_inset = gen_afni_name(proc.prev_prefix_form(1, block, view=1),
                                         do_sel=0)
 
     O3dd = ['%s3dDeconvolve -input %s'%(istr, proc.prev_dset_form_wild(block)),
@@ -5977,7 +6500,7 @@ def db_cmd_regress(proc, block):
     tent_times = []
     for ind in range(len(proc.stims)):
         # rcr - allow -stim_times_AM/IM here?  make user choose one?
-        #       (so mabye -stim_times can be set from proc.stim_times_opt)
+        #       (so maybe -stim_times can be set from proc.stim_times_opt)
         if sfiles:  # then -stim_file and no basis function
             O3dd.append("    -stim_file %d %s" % (ind+1, proc.stims[ind]))
         elif stim_types[ind] == 'file':
@@ -6069,12 +6592,12 @@ def db_cmd_regress(proc, block):
     # if there is no errts prefix, but the user wants to measure blur, add one
     # (or if there are no normal regressors)
     if nregsOI == 0 or (not opt.parlist and (bluropt or tsnropt)):
-        opt.parlist = ['errts.${subj}%s' % suff]
+        opt.parlist = ['errts.${subj}']
 
     if not opt or not opt.parlist: errts = ''
     else:
         # note and apply
-        proc.errts_pre_3dd = opt.parlist[0]
+        proc.errts_pre_3dd = '%s%s' % (opt.parlist[0], suff)
         proc.errts_pre     = proc.errts_pre_3dd
         errts = '    -errts %s%s' % (tmp_prefix, proc.errts_pre)
     # -- end errts --
@@ -6217,7 +6740,7 @@ def db_cmd_regress(proc, block):
     # if censor file, note the xmat that ignores censoring
     if proc.censor_file: proc.xmat_nocen = newmat
 
-    # possibly run the REML script (run eariler in the case of surfaces)
+    # possibly run the REML script (run earlier in the case of surfaces)
     if block.opts.find_opt('-regress_reml_exec') and not proc.surf_anat:
         rcmd = db_cmd_reml_exec(proc, block)
         if not rcmd: return
@@ -6294,8 +6817,8 @@ def db_cmd_regress(proc, block):
     opt = block.opts.find_opt('-regress_compute_tsnr')
     if opt.parlist[0] == 'yes':
        if errts:
-          tcmd = db_cmd_regress_tsnr(proc, block, proc.all_runs, errts)
-          if tcmd == None: return  # error
+          rv, tcmd = db_cmd_regress_tsnr(proc, block, proc.all_runs, errts)
+          if rv or tcmd == None: return  # error
           if tcmd != '': cmd += tcmd
        else: print('-- no errts, will not compute final TSNR')
 
@@ -6303,8 +6826,10 @@ def db_cmd_regress(proc, block):
     # unit errts (leave as rm. dataset)
     opt = block.opts.find_opt('-regress_compute_gcor')
     if opt.parlist[0] == 'yes':
-       if errts and proc.mask_epi and not proc.surf_anat:
-          tcmd = db_cmd_regress_gcor(proc, block, errts)
+       bmask = proc.get_roi_dset('brain')
+       if not bmask: bmask = proc.mask
+       if errts and bmask and not proc.surf_anat:
+          tcmd = db_cmd_regress_gcor(proc, block, errts, bmask)
           if tcmd == None: return  # error
           if tcmd != '': cmd += tcmd
        elif proc.verb > 1:
@@ -6331,7 +6856,7 @@ def db_cmd_regress(proc, block):
             if stop_opt: fstr += '\n'
             fstr += "%s# create fitts from REML errts\n" % istr
             fstr += "%s3dcalc -a %s%s -b %s%s -expr a-b \\\n" \
-                    "%s       -prefix %s\_REML%s\n"                 \
+                    "%s       -prefix %s\\_REML%s\n"          \
                     % (istr, proc.all_runs, vstr, proc.errts_reml, vstr,
                        istr, fitts_pre, suff)
         cmd = cmd + fstr + feh_end + '\n'
@@ -6481,9 +7006,9 @@ def db_cmd_reml_exec(proc, block, short=0):
     return cmd
 
 # compute GCOR
-def db_cmd_regress_gcor(proc, block, errts_pre):
+def db_cmd_regress_gcor(proc, block, errts_pre, bmask):
 
-    if not errts_pre or not proc.mask_epi: return ''
+    if not errts_pre or not bmask: return ''
     if proc.surf_anat:
        if proc.verb > 1: print("** no gcor until handle 'both' hemis")
        return ''
@@ -6492,16 +7017,16 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
 
     gcor_file  = 'out.gcor.1D'
     gu_mean    = 'mean.errts.unit.1D'
-    uset       = BASE.afni_name('rm.errts.unit%s' % proc.view)
+    uset       = gen_afni_name('rm.errts.unit%s' % proc.view)
     errts_dset = '%s%s' % (errts_pre, proc.view)
 
     cmd = '# ---------------------------------------------------\n'     \
           '# compute and store GCOR (global correlation average)\n'     \
           '# (sum of squares of global mean of unit errts)\n'           \
           '3dTnorm -norm2 -prefix %s %s\n'                              \
-          '3dmaskave -quiet -mask %s %s \\\n'                           \
-          '          > %s\n'                                            \
-          % (uset.prefix, errts_dset, proc.mask_epi.pv(),
+          '3dmaskave -quiet -mask %s \\\n'                              \
+          '          %s > %s\n'                                         \
+          % (uset.prefix, errts_dset, bmask.pv(),
              uset.pv(), gu_mean)
 
     cmd += "3dTstat -sos -prefix - %s\\' > %s\n"                        \
@@ -6513,10 +7038,10 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
     cmd += '# ---------------------------------------------------\n'    \
            "# compute correlation volume\n"                             \
            "# (per voxel: correlation with masked brain average)\n"     \
-           "3dmaskave -quiet -mask %s %s \\\n"                          \
-           "          > %s\n"                                           \
+           "3dmaskave -quiet -mask %s \\\n"                             \
+           "          %s > %s\n"                                        \
            "3dTcorr1D -prefix %s %s%s %s\n\n"                           \
-           % (proc.mask_epi.pv(), errts_dset, gmean,
+           % (bmask.pv(), errts_dset, gmean,
               corset, errts_pre, proc.view, gmean)
 
     # compute extra correlation volumes (assuming EPI grid ROIs followers):
@@ -6546,9 +7071,9 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
           rstr += '# create correlation volume %s\n' % cvol
           rstr += "3dcalc -a %s -b %s -expr 'a*b' \\\n"         \
                   "       -prefix %s\n" \
-                  % (mset.pv(), proc.mask_epi.pv(), mpre)
-          rstr += "3dmaskave -q -mask %s%s %s \\\n"             \
-                  "          > %s\n"                            \
+                  % (mset.pv(), bmask.pv(), mpre)
+          rstr += "3dmaskave -q -mask %s%s \\\n"                \
+                  "          %s > %s\n"                         \
                   % (mpre, proc.view, errts_dset, meants)
           rstr += "3dTcorr1D -prefix %s %s %s\n\n"              \
                   % (cvol, errts_dset, meants)
@@ -6612,7 +7137,7 @@ def db_cmd_regress_anaticor(proc, block):
        print('** -regress_anaticor: not ready for surface analysis')
        return 1, ''
 
-    # maybe we already have such a datset
+    # maybe we already have such a dataset
     if proc.aic_lset != None: return 0, ''
 
     if proc.anaticor == 1:
@@ -6658,7 +7183,7 @@ def db_cmd_regress_anaticor(proc, block):
               % (vall, mset.shortinput(), vmask)
 
        # note the radius fraction to terminate blur at
-       # (match method in @radial_correlate, defaul=0.5)
+       # (match method in @radial_correlate, default=0.5)
        oname = '-regress_anaticor_term_frac'
        merge_frad, err = block.opts.get_type_opt(float, oname, default=0.5)
        if err:
@@ -6742,12 +7267,29 @@ def db_cmd_regress_anaticor(proc, block):
 def get_keep_trs_cmd(proc):
     # sub-brick selection, in case of censoring
     # (only return this once)
+    #
+    # note: this is currently used only in TSNR computation
+    #     : 3dpc is used after 3dTproject -cenmode KILL
+    #     : blur estimation does $trs per run, so it might also need changing
+
     if proc.censor_file and proc.keep_trs == '':
-       c1 = '1d_tool.py -infile %s \\\n'                        \
-            '%22s -show_trs_uncensored encoded' % (proc.censor_file, ' ')
-       cs = '# note TRs that were not censored\n'               \
-            'set ktrs = `%s`\n\n' % c1
+
+       # ** 21 Aug 2023: Shruti reports failure to read sub-brick selectors
+       #                 because a lot of censoring leads to file names that
+       #                 are beyond our size limits.  Use text files, instead.
+       #               : so do not use encoded trs, but unencoded from a file
+       
+       ktr_text = 'out.keep_trs_rall.txt'
+
+       cs = '# note TRs that were not censored\n'                         \
+            '# (apply from a text file, in case of a lot of censoring)\n' \
+            '1d_tool.py -infile %s \\\n'                                  \
+            '           -show_trs_uncensored space \\\n'                  \
+            '           > %s\n'                                           \
+            'set ktrs = "1dcat %s"\n\n'                                   \
+            % (proc.censor_file, ktr_text, ktr_text)
        proc.keep_trs = '"[$ktrs]"'
+
     else:
        cs = ''
 
@@ -6786,7 +7328,7 @@ def db_cmd_regress_rsfc(proc, block):
           set b0 = 0
           set b1 = -1
           # run index is 1 digit (wary of octal), run part of file name is 2
-          foreach rind ( `count -digits 1 1 $#runs` )
+          foreach rind ( `count_afni -digits 1 1 $#runs` )
              reps = $tr_counts[$rind]
              @ b1 += $reps
              3dRSFC -prefix RSFC/run_$runs[$rind] -nodetrend MASK \
@@ -6812,7 +7354,7 @@ def db_cmd_regress_rsfc(proc, block):
        print("** RSFC: missing -regress_bandpass option")
        return 1, ''
     elif len(proc.bandpass) > 2:
-       print("** RSFC: -regress_bandpass must have exatly 2 frequencies")
+       print("** RSFC: -regress_bandpass must have exactly 2 frequencies")
        return 1, ''
 
     if proc.mask and proc.regmask:
@@ -6834,7 +7376,7 @@ def db_cmd_regress_rsfc(proc, block):
           'set b0 = 0\n'                                                    \
           'set b1 = -1\n'                                                   \
           '# run index is 1 digit (wary of octal), file name run is 2\n'    \
-          'foreach rind ( `count -digits 1 1 $#runs` )\n'                   \
+          'foreach rind ( `count_afni -digits 1 1 $#runs` )\n'                  \
           '    set reps = $tr_counts[$rind]\n'                              \
           '    @ b1 += $reps\n'                                             \
           '%s'                                                              \
@@ -6859,12 +7401,139 @@ def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
        if proc.mask and not proc.surf_anat:
           mask_pre = proc.mask.prefix
 
-    return db_cmd_tsnr(proc,
+    tsnr_cmd = db_cmd_tsnr(proc,
            '# --------------------------------------------------\n' \
            "# create a temporal signal to noise ratio dataset \n"   \
            "#    signal: if 'scale' block, mean should be 100\n"    \
            "#    noise : compute standard deviation of errts\n",
            all_runs, errts_pre, proc.view, mask=mask_pre)
+
+    # -----------------------------------------------------------------
+    # if the user has not requested TSNR stats for the automatic ROIs,
+    # but we have and can compute them, do so
+    # (if we have an 'auto' list and a tsnr_dset)
+    if proc.regress_auto_tsnr_rois is not None and proc.tsnr_dset is not None:
+       # try to add anything not already given with compute_tsnr_stats opts
+       oname = '-%s_compute_tsnr_stats' % block.label
+       dlablist = [opt.parlist[0] for opt in block.opts.find_all_opts(oname)]
+
+       # make a new list where we might remove some
+       new_auto_rois = []
+       for blabel in proc.regress_auto_tsnr_rois:
+           # if already there, the user wants it, so exclude from auto list
+           if blabel in dlablist:
+              continue
+
+           # if we do not have the label, exclude from auto list
+           if not proc.have_roi_label(blabel):
+              continue
+
+           if proc.verb > 1:
+              print("-- will also compute regress TSNR stats across '%s'" \
+                    % blabel)
+
+           # include the label and add a compute option
+           # (use ALL_LT for non-brain auto ROIs)
+
+           if blabel == 'brain':
+              ltval = '1'
+           else:
+              ltval = 'ALL_LT'
+
+           new_auto_rois.append(blabel)
+           block.opts.add_opt(oname, 2, [blabel, ltval], setpar=1)
+
+       # apply the updated list
+       proc.regress_auto_tsnr_rois = new_auto_rois
+
+    # -----------------------------------------------------------------
+    # compute TSNR stats across all requested ROIs
+    if block.opts.find_opt('-regress_compute_tsnr_stats'):
+       # given ROIs and new proc.tsnr_dset
+       rv, scmd = db_cmd_compute_tsnr_stats(proc, block)
+       if rv:
+          return 1, ''
+       tsnr_cmd += '\n' + scmd
+
+    return 0, tsnr_cmd
+
+# compute temporal signal to noise after the regression
+def db_cmd_compute_tsnr_stats(proc, block):
+    """create a string for computing statistics on ROIs across the TSNR stats
+       dataset
+    """
+
+    # make a list of ROI dset labels to work with
+    oname = '-%s_compute_tsnr_stats' % block.label
+    olist = block.opts.find_all_opts(oname)
+    if proc.verb > 2:
+       print("-- db_cmd_compute_tsnr_stats: have %s %s option(s)" \
+             % (len(olist), oname))
+
+    # note which labels we plan to apply
+    dlablist = [opt.parlist[0] for opt in olist]
+
+    # if nothing to do, bail
+    if len(olist) == 0:
+       return 0, ''
+
+    # warn user of impending doom
+    if proc.verb > 0:
+       print("++ will compute %s TSNR stats for dsets: %s" \
+             % (block.label, ', '.join(dlablist)))
+
+    # if we don't have a tsnr_dset for some reason, panic into error
+    if proc.tsnr_dset is None:
+       print("** cannot compute_tsnr_stats without TSNR dset")
+       return 1, ''
+
+    # prep header, output directory and input dataset (-dset_data)
+    cmd = '# --------------------------------------------------\n' \
+          '# compute TSNR stats for dset labels: %s\n'             \
+          % (', '.join(dlablist))
+    if len(dlablist) > 1:
+       cmd += '\n'
+
+    outdir = 'tsnr_stats_%s' % block.label
+    dset_data = proc.tsnr_dset.shortinput()
+
+    # resample the given datasets
+    for opt in olist:
+       if len(opt.parlist) < 2:
+          print("** %s %s : missing ROI values" % (oname, label))
+          return 1, ''
+       label = opt.parlist[0]
+       aname = proc.get_roi_dset(label)
+       if not aname:
+          print("** compute_tsnr: missing ROI dset '%s'" % label)
+          return 1, ''
+
+       # do not let a value of 0 through
+       if '0' in opt.parlist[1:]:
+          print("** compute_tsnr: an ROI value of zero is illegal")
+          print("   opt: %s %s" % (oname, ' '.join(opt.parlist)))
+          return 1, ''
+
+       # let the name vary based on whether it is user requested or auto
+       tlab = 'user'
+       if proc.regress_auto_tsnr_rois is not None:
+          if label in proc.regress_auto_tsnr_rois:
+             tlab = 'auto'
+
+       stats_file = '%s/stats_%s_%s.txt' % (outdir, tlab, label)
+
+       cmd += "compute_ROI_stats.tcsh \\\n"  \
+              "    -out_dir    %s \\\n"      \
+              "    -stats_file %s \\\n"      \
+              "    -dset_ROI   %s \\\n"      \
+              "    -dset_data  %s \\\n"      \
+              "    -rset_label %s \\\n"      \
+              "    -rval_list  %s\n\n"       \
+              % (outdir, stats_file, aname.shortinput(),
+                 proc.tsnr_dset.shortinput(),
+                 label, ' '.join(opt.parlist[1:]))
+
+    return 0, cmd
 
 # compute temporal signal to noise after the regression
 def db_cmd_tsnr(proc, comment, signal, noise, view,
@@ -6878,6 +7547,8 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
          name_qual: (optional) qualifier for name, such as '.r01'
          detrend:   (optional) if > 0,
          oksurf:    (optional) flag to allow surf analysis
+
+         This can currently be run for either the volreg or regress blocks.
     """
     if not signal or not noise or not view:
         print('** compute TSNR: missing input')
@@ -6905,6 +7576,14 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
         istr    = ''
 
     dname = 'TSNR%s%s$subj%s' % (name_qual, proc.sep_char, suff)
+    # for now, only store this in volume mode - with $subj
+    if not proc.surf_anat or not oksurf:
+        proc.tsnr_dset = gen_afni_name(dname+suff, view=vsuff)
+        if proc.verb > 1:
+           print("++ TSNR dset: %s" % proc.tsnr_dset.shortinput(head=1))
+    else:
+        # clear any old dset, if the circumstance arises
+        proc.tsnr_dset = None
 
     if detrend:
         polort=proc.regress_polort
@@ -7014,9 +7693,10 @@ def db_cmd_blur_est(proc, block):
     # clustsim_types = ['FWHM', 'ACF', 'both', 'yes', 'no']
     copt,rv = block.opts.get_string_opt('-regress_run_clustsim', default='yes')
     if rv: return
-    if copt == 'yes':
-       print('** the default 3dClustSim method has changed from FWHM to ACF')
-       print("   (to get FWHM, use '-regress_run_clustsim FWHM')")
+    # no longer warn about ACF on default [15 Feb 2024]
+    # if copt == 'yes':
+    #    print('** the default 3dClustSim method has changed from FWHM to ACF')
+    #    print("   (to get FWHM, use '-regress_run_clustsim FWHM')")
 
     if copt == 'FWHM':   cmethods = [copt]
     elif copt == 'ACF':  cmethods = [copt]
@@ -7093,10 +7773,10 @@ def blur_est_loop_str(proc, dname, mname, label, outfile, trs_cen=0,
         outfile  : final output filename
         trs_cen  : were censored TRs removed from this data?
     """
-    dset  = BASE.afni_name(dname)
+    dset  = gen_afni_name(dname)
     inset = dset.shortinput()
     inset = dname
-    mset  = BASE.afni_name(mname)
+    mset  = gen_afni_name(mname)
     mask  = mset.shortinput()
     tmpfile = 'blur.%s.1D' % label
 
@@ -7430,6 +8110,84 @@ def regress_pc_followers_regressors(proc, optname, roipcs, pcdset,
 
    return 0, clist
 
+def db_cmd_resam_ROI_imports(proc, block):
+    """resample any -ROI_import datasets (onto the final EPI grid)
+
+       This could be run in the volreg block, for example, to compute
+       TSNR stats from.  Or it could be run in the regress block, to compute
+       PC ortvec's, or to compute regress TSNR stats.
+
+       Perhaps we must allow this to be run in the tcat block as well...
+
+       return an error code (0=success) and command string
+    """
+    oname = '-ROI_import'
+    olist = proc.user_opts.find_all_opts(oname)
+    # is there anything to do?
+    if len(olist) == 0:
+       return 0, ''
+
+    # does anything need resampling?
+    do_some = 0
+    for opt in proc.user_opts.find_all_opts(oname):
+       label = opt.parlist[0]
+       aname = proc.get_roi_dset(label)
+       if not aname:
+          print("** missing -ROI_import ROI '%s'" % label)
+          return 1, ''
+       if aname.to_resam:
+          do_some = 1
+
+    # if nothing to resample, we are outta here...
+    if not do_some:
+       return 0, ''
+
+    # get to work
+
+    # note the final vr_base dset, and be sure one has been made
+    vbase = proc.epi_final
+    if vbase is None:
+       vbase = proc.vr_base_dset
+    if vbase is None:
+       print("** cannot resample ROIs without vr_base_dset")
+       return 1, ''
+
+    cmd = '# resample any -ROI_import dataset onto the EPI grid\n' \
+          '# (and copy its labeltable)\n\n'
+
+    # resample the given datasets
+    for opt in proc.user_opts.find_all_opts(oname):
+       label = opt.parlist[0]
+       aname = proc.get_roi_dset(label)
+       if not aname:
+          print("** missing -ROI_import ROI '%s'" % label)
+          return 1, ''
+
+       # if we do not need to resample this dataset, skip it
+       if not aname.to_resam:
+          continue
+
+       aname = proc.roi_dict[label]
+       aname.view = proc.view
+
+       # append _resam to prefix, but note current input name
+       inname = aname.shortinput()
+       aname.prefix += '_resam'
+
+       cmd += '3dresample -master %s -rmode NN \\\n' \
+              '           -input %s \\\n'  \
+              '           -prefix %s\n\n'  \
+              % (vbase.nice_input(head=0), inname, aname.out_prefix())
+
+       cmd += '3drefit -copytables %s %s\n'   \
+              '3drefit -cmap INT_CMAP %s\n\n' \
+              % (inname, aname.shortinput(), aname.shortinput())
+
+       # mark as resampled
+       aname.to_resam = 0
+
+    return 0, cmd
+
 def db_cmd_regress_ROI(proc, block):
     """remove any regressors of no interest
 
@@ -7608,7 +8366,7 @@ def db_cmd_regress_bandpass(proc, block):
         cmd += '1dBport -nodata %s %s %s -invert -nozero' \
                ' > %s\n\n' % (proc.reps, proc.tr, bpopt_str, bfile)
     else: # loop over 1dBport and 1d_tool.py
-        cmd += 'foreach index ( `count -digits 1 1 $#runs` )\n'               \
+        cmd += 'foreach index ( `count_afni -digits 1 1 $#runs` )\n'              \
                '    set nt = $tr_counts[$index]\n'                            \
                '    set run = $runs[$index]\n'                                \
                '    1dBport -nodata $nt %g %s -invert -nozero >! %s\n'\
@@ -7721,6 +8479,7 @@ def db_cmd_regress_mot_types(proc, block):
     else: ropt = '-set_nruns %d' % proc.runs
 
     # handle 3 cases of motion parameters: 'basic', 'demean' and 'deriv'
+    # (regardless of possible 'none')
 
     # 1. update mot_regs for 'basic' case
     if 'basic' in apply_types:
@@ -7855,29 +8614,40 @@ def db_cmd_regress_censor_motion(proc, block):
 # --------------- tlrc (anat) ---------------
 
 def db_mod_tlrc(block, proc, user_opts):
-    if len(block.opts.olist) == 0:      # then init to defaults
-        block.opts.add_opt('-tlrc_base', 1, ['TT_N27+tlrc'], setpar=1)
 
+    # --------------------------------------------------
     # verify that anatomical dataset exists
     opt_anat = user_opts.find_opt('-copy_anat')
     if not opt_anat:
         print('** tlrc (anat) block requires anatomy via -copy_anat')
         return
 
-    dset = BASE.afni_name(opt_anat.parlist[0])
+    dset = gen_afni_name(opt_anat.parlist[0])
     if not dset.exist():  # allow for no +view
-        dset = BASE.afni_name(opt_anat.parlist[0]+'+orig')
+        dset = gen_afni_name(opt_anat.parlist[0]+'+orig')
         if not dset.exist():
-            print("** -tlrc_anat dataset '%s' does not exist" % \
+            print("** -copy_anat dataset '%s' does not exist" % \
                   opt_anat.parlist[0])
             return
 
     # --------------------------------------------------
     # handle the template dataset: verify existence, etc
 
-    apply_uopt_to_block('-tlrc_base', user_opts, block)
+    # check before template init: if -tlrc_NL_warped_dsets, require -tlrc_base
+    if user_opts.find_opt('-tlrc_NL_warped_dsets') and \
+       not user_opts.find_opt('-tlrc_base'):
+       print("** error: -tlrc_NL_warped_dsets requires option -tlrc_base")
+       print("   (please verify which template was used to make warped_dsets)")
+       return
 
-    prepare_tlrc_base(proc, block)
+    # set template
+    oname = '-tlrc_base'
+    if user_opts.find_opt(oname):
+        apply_uopt_to_block('-tlrc_base', user_opts, block)
+    else:
+        block.opts.add_opt('-tlrc_base', 1, ['TT_N27+tlrc'], setpar=1)
+
+    prepare_tlrc_base(proc)
 
     # --------------------------------------------------
     # add other options
@@ -7909,7 +8679,7 @@ def mod_check_tlrc_NL_warp_dsets(proc, block):
        return 1
 
     # get and check anat, 1D warp, NL warp
-    aname = BASE.afni_name(dslist[0])
+    aname = gen_afni_name(dslist[0])
     if aname.view == '' and aname.type == 'BRIK': aname.new_view('+tlrc')
     dims = aname.dims()
     if dims[3] != 1:
@@ -7917,13 +8687,13 @@ def mod_check_tlrc_NL_warp_dsets(proc, block):
        print('   but dataset %s shows %d' % (aname.shortinput(), dims[3]))
        return 1
 
-    axname = BASE.afni_name(dslist[1])
+    axname = gen_afni_name(dslist[1])
     if axname.type != '1D':
        print('** error in %s p2: affine xform %s should be 1D' \
              % (oname, axname.shortinput()))
        return 1
 
-    nlname = BASE.afni_name(dslist[2])
+    nlname = gen_afni_name(dslist[2])
     if nlname.view == '' and nlname.type == 'BRIK': nlname.new_view('+tlrc')
     dims = nlname.dims()
     if dims[3] != 3:
@@ -7938,27 +8708,47 @@ def mod_check_tlrc_NL_warp_dsets(proc, block):
 
     return 0
 
-def prepare_tlrc_base(proc, block):
+def prepare_tlrc_base(proc):
     """if we have a tlrc block:
            - assign proc.tlrc_base
            - verify existence
            - expect it to be copied into results directory (not done here)
            - prepare to store as uvar
+           - note the final space of the tlrc_base dset
+
+        This might be run from db_mod_postdata() or db_mod_tlrc(), since we
+        might want to know about the template early on.
     """
+
+    # if no tlrc block, nothing to do
+    if not 'tlrc' in proc.block_names:
+       return
+
+    # if this has already been run, we are done
+    if proc.tlrc_base is not None:
+       return
+
     # first assign based on any option
     
-    opt = block.opts.find_opt('-tlrc_base')
+    opt = proc.user_opts.find_opt('-tlrc_base')
     if opt: base = opt.parlist[0]
     else:   base = 'TT_N27+tlrc'
 
-    proc.tlrc_base = BASE.afni_name(base)       # store for later
+    proc.tlrc_base = gen_afni_name(base)       # store for later
 
     #--- first things first, see if we can locate the tlrc base
     #    if the user didn't already tell us where it is
-
     # locate() will search using input path, and if not found run
     #   @FindAfniDsetPath without that original path
-    if not proc.tlrc_base.locate():
+    have_dset = proc.tlrc_base.locate()
+
+    # if we have a template, get the space, else whine
+    if have_dset:
+       cmd = '3dinfo -space %s' % proc.tlrc_base.input()
+       st, so, se = UTIL.limited_shell_exec(cmd)
+       if st: print("** failed to get space: %s" % cmd)
+       proc.tlrc_space = so[0]
+    else:
        print("** failed to find tlrc_base '%s'" % proc.tlrc_base.initname)
 
     print("-- template = '%s', exists = %d"   \
@@ -8016,7 +8806,7 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
        suffix   : result suffix         [string]
        exopts   : extra options         [list of strings]
 
-       same options as tlrc_cmd_warp, excpet no rmode
+       same options as tlrc_cmd_warp, except no rmode
 
        resulting files under awpy:
           PREFIX.aw.nii           : final NL-warped anat
@@ -8485,7 +9275,7 @@ cat << EOF | afni_python_wrapper.py -eval "data_file_to_json()" \
    mask_dset   :     mask_epi_anat.$subj+tlrc.HEAD
 EOF
 
-       First generate a table, so that we can choose a reasonble column size.
+       First generate a table, so that we can choose a reasonable column size.
 
        return an appropriate string, or ''
     """
@@ -8573,7 +9363,8 @@ def ap_uvars_table(proc):
     if proc.mask and not proc.surf_anat:
        aptab.append(['mask_dset', ['%s' % proc.mask.shortinput(head=1)]])
     if proc.tlrc_base:
-       aptab.append(['tlrc_base', ['%s' % proc.tlrc_base.shortinput(head=1)]])
+       # tlrc_base is called template
+       aptab.append(['template', ['%s' % proc.tlrc_base.shortinput(head=1)]])
 
     if proc.ssr_b_out != '':
        aptab.append(['ss_review_dset', ['%s' % proc.ssr_b_out]])
@@ -8602,7 +9393,7 @@ def show_program_help(section=''):
    if section == '':
       print(g_help_intro)
       # now print examples from lib_ap_examples
-      show_help_examples(source='eall')
+      show_help_examples(source='eshow')
       print(g_help_notes)
       print(g_help_options)
       print(g_help_trailer)
@@ -8610,7 +9401,7 @@ def show_program_help(section=''):
       return 0
 
    # process new example string separately for now
-   if section in ['enew', 'eold', 'eall', 'afni_proc.py']:
+   if section in g_valid_help_sections:
       show_help_examples(source=section)
       return 0
 
@@ -8633,7 +9424,11 @@ def show_help_examples(source='eold'):
 
    # print new-style examples
    from afnipy import lib_ap_examples as EGS
-   EGS.populate_examples()
+   keys_rm = []
+   # if 'show' example, exclude the noshow ones
+   if source == 'eshow':
+      keys_rm = ['noshow']
+   EGS.populate_examples(keys_rm=keys_rm)
 
    # print only AP examples, or all
    if source.lower() in ['enew', 'new', 'afni_proc', 'afni_proc.py']:
@@ -8648,17 +9443,17 @@ def show_help_examples(source='eold'):
    return
 
 g_egnew_header = """
-    ==================================================
-    EXAMPLES (options can be provided in any order): ~1~
+==================================================
+EXAMPLES (options can be provided in any order): ~1~
 """
 
 g_egnew_trailer = """
-    -ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated ** ~2~
+-ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated ** ~2~
 
-                afni_proc.py -ask_me
+            afni_proc.py -ask_me
 
-        Perhaps at some point this will be revived.  It would be useful.
-        The -ask_me methods have not been seriously updated since 2006.
+    Perhaps at some point this will be revived.  It would be useful.
+    The -ask_me methods have not been seriously updated since 2006.
 """
 
 # ----------------------------------------------------------------------
@@ -8666,6598 +9461,7021 @@ g_egnew_trailer = """
 # -- this is long, get it out of the main library
 
 g_help_intro = """
-    ===========================================================================
-    afni_proc.py        - generate a tcsh script for an AFNI process stream
+===========================================================================
+afni_proc.py        - generate a tcsh script for an AFNI process stream
 
-    Purpose: ~1~
+Purpose: ~1~
 
-       This program is meant to create single subject processing scripts for
-       task, resting state or surface-based analyses.  The processing scripts
-       are written in the tcsh language.
+   This program is meant to create single subject processing scripts for
+   task, resting state or surface-based analyses.  The processing scripts
+   are written in the tcsh language.
 
-       The typical goal is to create volumes of aligned response magnitudes
-       (stimulus beta weights) to use as input for a group analysis.
+   The typical goal is to create volumes of aligned response magnitudes
+   (stimulus beta weights) to use as input for a group analysis.
 
-    Inputs (only EPI is required): ~1~
+Inputs (only EPI is required): ~1~
 
-       - anatomical dataset
-       - EPI time series datasets
-       - stimulus timing files
-       - processing and design decisions:
-           e.g. TRs to delete, blur size, censoring options, basis functions
+   - anatomical dataset
+   - EPI time series datasets
+   - stimulus timing files
+   - processing and design decisions:
+       e.g. TRs to delete, blur size, censoring options, basis functions
 
-    Main outputs (many datasets are created): ~1~
+Main outputs (many datasets are created): ~1~
 
-       - for task-based analysis: stats dataset (and anat_final)
-       - for resting-state analysis: errts datasets ("cleaned up" EPI)
+   - for task-based analysis: stats dataset (and anat_final)
+   - for resting-state analysis: errts datasets ("cleaned up" EPI)
 
-    Basic script outline: ~1~
+Basic script outline: ~1~
 
-       - copy all inputs to new 'results' directory
-       - process data: e.g. despike,tshift/align/tlrc/volreg/blur/scale/regress
-       - leave all (well, most) results there, so user can review processing
-       - create @ss_review scripts to help user with basic quality control
+   - copy all inputs to new 'results' directory
+   - process data: e.g. despike,tshift/align/tlrc/volreg/blur/scale/regress
+   - leave all (well, most) results there, so user can review processing
+   - create quality control data (APQC HTML page, ss_review_scripts, etc.)
 
-    The exact processing steps are controlled by the user, including which main
-    processing blocks to use, and their order.  See the 'DEFAULTS' section for
-    a description of the default options for each block.
+The exact processing steps are controlled by the user, including which main
+processing blocks to use, and their order.  See the 'DEFAULTS' section for
+a description of the default options for each block.
 
-    The output script (when executed) would create a results directory, copy
-    input files into it, and perform all processing there.  So the user can
-    delete the results directory and modify/re-run the script at their whim.
+The output script (when executed) would create a results directory, copy
+input files into it, and perform all processing there.  So the user can
+delete the results directory and modify/re-run the script at their whim.
 
-    Note that the user need not actually run the output script.  The user
-    should feel free to modify the script for their own evil purposes, or to
-    just compare the processing steps with those in their own scripts.  Also,
-    even if a user is writing their own processing scripts, it is a good idea
-    to get some independent confirmation of the processing, such as by using
-    afni_proc.py to compare the results on occasion.
+Note that the user need not actually run the output script.  The user
+should feel free to modify the script for their own evil purposes, or to
+just compare the processing steps with those in their own scripts.  Also,
+even if a user is writing their own processing scripts, it is a good idea
+to get some independent confirmation of the processing, such as by using
+afni_proc.py to compare the results on occasion.
 
-    The text interface can be accessed via the -ask_me option.  It invokes a
-    question & answer session, during which this program sets user options on
-    the fly.  The user may elect to enter some of the options on the command
-    line, even if using -ask_me.  See "-ask_me EXAMPLES", below.
+The text interface can be accessed via the -ask_me option.  It invokes a
+question & answer session, during which this program sets user options on
+the fly.  The user may elect to enter some of the options on the command
+line, even if using -ask_me.  See "-ask_me EXAMPLES", below.
 
-    ** However, -ask_me has not been touched in many years.  I suggest starting
-       with the 'modern' examples (for task/rest/surface), or by using the
-       uber_subject.py GUI (graphical user interface) to generate an initial
-       afni_proc.py command script.
+** However, -ask_me has not been touched in many years.  I suggest starting
+   with the 'modern' examples (for task/rest/surface), or by using the
+   uber_subject.py GUI (graphical user interface) to generate an initial
+   afni_proc.py command script.
 
-       See uber_subject.py -help (or just start the GUI) for details.
+   See uber_subject.py -help (or just start the GUI) for details.
 
-    ==================================================
-    SECTIONS: order of sections in the "afni_proc.py -help" output ~1~
+==================================================
+SECTIONS: order of sections in the "afni_proc.py -help" output ~1~
 
-        program introduction    : (above) basic overview of afni_proc.py
-        PROCESSING BLOCKS       : list of possible processing blocks
-        DEFAULTS                : basic default operations, per block
-        EXAMPLES                : various examples of running this program
-        NOTE sections           : details on various topics
-            GENERAL ANALYSIS NOTE, QUALITY CONTROL NOTE,
-            RESTING STATE NOTE, FREESURFER NOTE,
-            TIMING FILE NOTE, MASKING NOTE,
-            ANAT/EPI ALIGNMENT CASES NOTE, ANAT/EPI ALIGNMENT CORRECTIONS NOTE,
-            WARP TO TLRC NOTE,
-            RETROICOR NOTE, MULTI ECHO NOTE,
-            RUNS OF DIFFERENT LENGTHS NOTE, SCRIPT EXECUTION NOTE
-        OPTIONS                 : desriptions of all program options
-            informational       : options to get quick info and quit
-            general execution   : options not specific to a processing block
-            block options       : specific to blocks, in default block order
+    program introduction    : (above) basic overview of afni_proc.py
+    SETTING UP AN ANALYSIS  : a guide for getting started
+    PROCESSING BLOCKS       : list of possible processing blocks
+    DEFAULTS                : basic default operations, per block
+    EXAMPLES                : various examples of running this program
+    NOTE sections           : details on various topics
+        GENERAL ANALYSIS NOTE, QUALITY CONTROL NOTE,
+        RESTING STATE NOTE, FREESURFER NOTE,
+        TIMING FILE NOTE, MASKING NOTE,
+        ANAT/EPI ALIGNMENT CASES NOTE, ANAT/EPI ALIGNMENT CORRECTIONS NOTE,
+        WARP TO TLRC NOTE,
+        RETROICOR NOTE, MULTI ECHO NOTE,
+        RUNS OF DIFFERENT LENGTHS NOTE, SCRIPT EXECUTION NOTE
+    OPTIONS                 : descriptions of all program options
+        informational       : options to get quick info and quit
+        general execution   : options not specific to a processing block
+        block options       : specific to blocks, in default block order
 
-    ==================================================
-    PROCESSING BLOCKS (of the output script): ~1~
+==================================================
+SETTING UP AN ANALYSIS: ~1~
 
-    The output script will go through the following steps, unless the user
-    specifies otherwise.
+For those new to using afni_proc.py, it is very helpful to start with an
+example that is similar to what you want to do, generally taken from the help
+examples (afni_proc.py -show_example_names) or prior publication.
 
-    automatic blocks (the tcsh script will always perform these): ~2~
+Once satisfied with a single application of afni_proc.py, one would then loop
+over subjects by running afni_proc.py on each, using subject variables to refer
+to the individual set of input data and the output subject ID.
 
-        setup       : check subject arg, set run list, create output dir, and
-                      copy stim files
-        tcat        : copy input datasets and remove unwanted initial TRs
+Starting up, there is a general set of choices that is good to consider:
 
-    default blocks (the user may skip these, or alter their order): ~2~
+   a. type of analysis:    task or rest/naturalistic
+   b. domain of analysis:  volume or surface (possibly either as ROI)
+   c. main input data:     anat, EPI runs (single or multi-echo), task timing,
+                           surfaces and surface anatomical
+   d. extra input data:    NL distortion warp, NL template warp, blip dsets,
+                           ROI imports, anat followers, physio regressors,
+                           external registration base (for volreg or anat),
+                           external motion files, censor list, extra regressors
+   e. processing blocks:   main EPI processing blocks and their order
+                         - see "PROCESSING BLOCKS"
+   f. optional processing: physio regression, tedana, ANATICOR, ROI regression,
+                           bandpassing
+   g. main options:        template, blur level (if any), censor levels,
+                           EPI/anat cost and other alignment options
+   h. other options:       there are many, e.g.: motion regressors, bandpass,
+                           ANATICOR, and many that are specific to QC
 
-        tshift      : slice timing alignment on volumes (default is -time 0)
-        volreg      : volume registration (default to third volume)
-        blur        : blur each volume (default is 4mm fwhm)
-        mask        : create a 'brain' mask from the EPI data (dilate 1 voxel)
-        scale       : scale each run mean to 100, for each voxel (max of 200)
-        regress     : regression analysis (default is GAM, peak 1, with motion
-                      params)
+   ----------
 
-    optional blocks (the default is to _not_ apply these blocks) ~2~
+   a. type of analysis
 
-        align       : align EPI anat anatomy (via align_epi_anat.py)
-        combine     : combine echoes into one
-        despike     : truncate spikes in each voxel's time series
-        empty       : placeholder for some user command (uses 3dTcat as sample)
-        ricor       : RETROICOR - removal of cardiac/respiratory regressors
-        surf        : project volumetric data into the surface domain
-        tlrc        : warp anat to standard space
+      For a task analysis, one provides stimulus timing files and corresponding
+      modeling options.  This is a large topic that centers on the use of
+      3dDeconvolve.
 
-    implicit blocks (controlled by program, added when appropriate) ~2~
+      Options for task analysis generally start with -regress, as they pertain
+      to the regress block.  However one generally includes a regress block in
+      any analysis (even partial ones, such as for alignment), as it is the
+      gateway to the APQC HTML report.
 
-        blip                   : perform B0 distortion correction
-        outcount               : temporal outlier detection
-        quality control review : generate QC review scripts and HTML report
-        @radial_correlate      : QC - compute local neighborhood correlations
-        uniformity correction  : anatomical uniformity correction
+   b. domain of analysis
 
-    ==================================================
-    DEFAULTS: basic defaults for each block (blocks listed in default order) ~1~
+      For a surface analysis, one provides a SUMA spec file per hemisphere,
+      along with a surface anatomical dataset.  Mapping from the volume to the
+      surface generally happens soon after all volumetric registration is done,
+      and importantly, before any blur block.  Restricting blurring to the
+      surface is one of the reasons to perform such an analysis.
 
-        A : denotes automatic block that is not a 'processing' option
-        D : denotes a default processing block (others must be requested)
+      In a surface analysis, no volumetric template or tlrc options are given.
+      Surface analysis is generally performed on SUMA's standard meshes, though
+      it need not be.
 
-    A   setup:    - use 'SUBJ' for the subject id
-                        (option: -subj_id SUBJ)
-                  - create a t-shell script called 'proc_subj'
-                        (option: -script proc_subj)
-                  - use results directory 'SUBJ.results'
-                        (option: -out_dir SUBJ.results)
+      An ROI analysis is generally performed as a typical volume or surface
+      analysis, but without any applied blurring (which effectively happens
+      later, when averaging over the ROIs).
 
-    A   tcat:     - do not remove any of the first TRs
+   c. main input data
 
-        despike:  - NOTE: by default, this block is _not_ used
-                  - automasking is not done (requires -despike_mask)
+      EPI datasets are required, for one or more runs and one or more echoes.
+      Anything else is optional.
 
-        ricor:    - NOTE: by default, this block is _not_ used
-                  - polort based on twice the actual run length
-                  - solver is OLSQ, not REML
-                  - do not remove any first TRs from the regressors
+      Typically one also includes a subject anatomy, any task timing files, and
+      surface datasets (spec files an anatomy) if doing a surface analysis.
 
-    D   tshift:   - align slices to the beginning of the TR
-                  - use quintic interpolation for time series resampling
-                        (option: -tshift_interp -quintic)
+   d. extra input data
 
-        align:    - align the anatomy to match the EPI
-                    (also required for the option of aligning EPI to anat)
+      It is common to supply a non-linear transformation warp dataset (from
+      sswarper) to apply for anatomy->template alignment.  One might also have
+      a pre-computed non-linear B0 distortion map or reverse phase encoding
+      (blip) dataset, ROIs or other anatomical followers or physiological
+      regressors.  An EPI base dataset might be provided to align the EPI to,
+      and possibly one to guide alignment to the subject anatomical dataset.
 
-        tlrc:     - use TT_N27+tlrc as the base (-tlrc_base TT_N27+tlrc)
-                  - no additional suffix (-tlrc_suffix NONE)
-                  - use affine registration (no -tlrc_NL_warp)
+      Precomputed motion parameter files could be provided (if skipping the
+      volreg block), as well as an external censor time series or precomputed
+      regressors (of interest or not).
 
-    D   volreg:   - align to third volume of first run, -zpad 1
-                        (option: -volreg_align_to third)
-                        (option: -volreg_zpad 1)
-                  - use cubic interpolation for volume resampling
-                        (option: -volreg_interp -cubic)
-                  - apply motion params as regressors across all runs at once
-                  - do not align EPI to anat
-                  - do not warp to standard space
+      These extra inputs will affect use of other options.
 
-        combine:  - combine methods using OC (optimally combined)
+   e. processing blocks
 
-    D   blur:     - blur data using a 4 mm FWHM filter with 3dmerge
-                        (option: -blur_filter -1blur_fwhm)
-                        (option: -blur_size 4)
-                        (option: -blur_in_mask no)
+      As described in the "PROCESSING BLOCKS" section, one can specify an
+      ordered list of main processing blocks.  The order of the listed blocks
+      will determine their order in the processing script.  Of course, for a
+      given set of blocks, there is typically a preferred order.
 
-    D   mask:     - create a union of masks from 3dAutomask on each run
-                  - not applied in regression without -regress_apply_mask
-                  - if possible, create a subject anatomy mask
-                  - if possible, create a group anatomy mask (tlrc base)
+      Options specific to one block will generally start with that block name.
+      For example, the -regress_* options apply to the regress block.
 
-    D   scale:    - scale each voxel to mean of 100, clip values at 200
+      It is logically clear (but not necessary) to provide block options in the
+      same chronological order as the blocks.
 
-    D   regress:  - use GAM regressor for each stim
-                        (option: -regress_basis)
-                  - compute the baseline polynomial degree, based on run length
-                        (e.g. option: -regress_polort 2)
-                  - do not censor large motion
-                  - output fit time series
-                  - output ideal curves for GAM/BLOCK regressors
-                  - output iresp curves for non-GAM/non-BLOCK regressors
+   f. optional processing
 
-        empty:    - do nothing (just copy the data using 3dTcat)
+      Optional processing might include things like:
+        - physiological noise regression, based on use of physio_calc.py
+        - tedana, or a variant, for use in combining multi-echo time series
+        - ANATICOR (local white matter regression)
+        - ROI regression (averages or principle components)
+        - bandpassing (low pass, high pass, or single or multiple bands)
+
+   g. main options
+
+      One typically provides:
+        - a template (and accompanying non-linear anat to template
+          transformation datasets)
+        - an amount to blur (or a choice to not blur, as would apply to an ROI
+          analysis), or a level to blur _to_
+        - censor levels (for outliers or the Euclidean norm of the motion
+          parameters)
+        - alignment options, such as the cost function for align_epi_anat.py
+          and a local EPI unifize option - there are many options to control
+          many aspects of registration
+        - many quality control options are also considered appropriate for
+          consistent use
+
+   h. other options
+
+      Each step of processing has many control options around it.  It is
+      important to think through what might be appropriate for the data in
+      question.
+
+      No one analysis fits all data.
+
+      Quality control "options" are not really considered optional.
+
+==================================================
+PROCESSING BLOCKS (of the output script): ~1~
+
+The output script will go through the following steps, unless the user
+specifies otherwise.
+
+automatic blocks (the tcsh script will always perform these): ~2~
+
+    setup       : check subject arg, set run list, create output dir, and
+                  copy stim files
+    tcat        : copy input datasets and remove unwanted initial TRs
+
+default blocks (the user may skip these, or alter their order): ~2~
+
+    tshift      : slice timing alignment on volumes (default is -time 0)
+    volreg      : volume registration (default to third volume)
+    blur        : blur each volume (default is 4mm fwhm)
+    mask        : create a 'brain' mask from the EPI data
+    scale       : scale each run mean to 100, for each voxel (max of 200)
+    regress     : regression analysis (default is GAM, peak 1, with motion
+                  params)
+
+optional blocks (the default is to _not_ apply these blocks) ~2~
+
+    align       : align EPI anat anatomy (via align_epi_anat.py)
+    combine     : combine echoes into one
+    despike     : truncate spikes in each voxel's time series
+    empty       : placeholder for some user command (uses 3dTcat as sample)
+    ricor       : RETROICOR - removal of cardiac/respiratory regressors
+    surf        : project volumetric data into the surface domain
+    tlrc        : warp anat to a standard space/specified template
+
+implicit blocks (controlled by program, added when appropriate) ~2~
+
+    blip        : perform B0 distortion correction
+    outcount    : temporal outlier detection
+    QC review   : generate QC review scripts and HTML report
+    anat_unif   : anatomical uniformity correction
+
+==================================================
+DEFAULTS: basic defaults for each block (blocks listed in default order) ~1~
+
+    A : denotes automatic block that is not a 'processing' option
+    D : denotes a default processing block (others must be requested)
+
+A   setup:    - use 'SUBJ' for the subject id
+                    (option: -subj_id SUBJ)
+              - create a t-shell script called 'proc_subj'
+                    (option: -script proc_subj)
+              - use results directory 'SUBJ.results'
+                    (option: -out_dir SUBJ.results)
+
+A   tcat:     - do not remove any of the first TRs
+
+    despike:  - NOTE: by default, this block is _not_ used
+              - automasking is not done (requires -despike_mask)
+
+    ricor:    - NOTE: by default, this block is _not_ used
+              - polort based on twice the actual run length
+              - solver is OLSQ, not REML
+              - do not remove any first TRs from the regressors
+
+D   tshift:   - align slices to the beginning of the TR
+              - use quintic interpolation for time series resampling
+                    (option: -tshift_interp -quintic)
+
+    align:    - align the anatomy to match the EPI
+                (also required for the option of aligning EPI to anat)
+
+    tlrc:     - use TT_N27+tlrc as the base (-tlrc_base TT_N27+tlrc)
+              - no additional suffix (-tlrc_suffix NONE)
+              - use affine registration (no -tlrc_NL_warp)
+
+D   volreg:   - align to third volume of first run, -zpad 1
+                    (option: -volreg_align_to third)
+                    (option: -volreg_zpad 1)
+              - use cubic interpolation for volume resampling
+                    (option: -volreg_interp -cubic)
+              - apply motion params as regressors across all runs at once
+              - do not align EPI to anat
+              - do not warp to standard space
+
+    combine:  - combine methods using OC (optimally combined)
+
+D   blur:     - blur data using a 4 mm FWHM filter with 3dmerge
+                    (option: -blur_filter -1blur_fwhm)
+                    (option: -blur_size 4)
+                    (option: -blur_in_mask no)
+
+D   mask:     - create a union of masks from 3dAutomask on each run
+              - not applied in regression without -regress_apply_mask
+              - if possible, create a subject anatomy mask
+              - if possible, create a group anatomy mask (tlrc base)
+
+D   scale:    - scale each voxel to mean of 100, clip values at 200
+
+D   regress:  - use GAM regressor for each stim
+                    (option: -regress_basis)
+              - compute the baseline polynomial degree, based on run length
+                    (e.g. option: -regress_polort 2)
+              - do not censor large motion
+              - output fit time series
+              - output ideal curves for GAM/BLOCK regressors
+              - output iresp curves for non-GAM/non-BLOCK regressors
+
+    empty:    - do nothing (just copy the data using 3dTcat)
 """
 g_help_examples = """
-    ==================================================
-    EXAMPLES (options can be provided in any order): ~1~
-
-        Example 1. Minimum use. ~2~
-
-           Provide datasets and stim files (or stim_times files).  Note that a
-           dataset suffix (e.g. HEAD) must be used with wildcards, so that
-           datasets are not applied twice.  In this case, a stim_file with many
-           columns is given, where the script to changes it to stim_times files.
-
-                afni_proc.py -dsets epiRT*.HEAD              \\
-                             -regress_stim_files stims.1D
-
-           or without any wildcard, the .HEAD suffix is not needed:
-
-                afni_proc.py -dsets epiRT_r1+orig epiRT_r2+orig epiRT_r3+orig \\
-                             -regress_stim_files stims.1D
-
-     **************************************************************
-     *  New and improved!  Examples that apply to AFNI_data4.     *
-     *  (were quickly OLD and OBSOLETE, as we now use AFNI_data6) *
-     **************************************************************
-
-        The following examples can be run from the AFNI_data4 directory, and
-        are examples of how one might process the data for subject sb23.
-
-        Example 2. Very simple. ~2~
-
-           Use all defaults, except remove 3 TRs and use basis
-           function BLOCK(30,1).  The default basis function is GAM.
-
-                afni_proc.py -subj_id sb23.e2.simple                       \\
-                        -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -tcat_remove_first_trs 3                           \\
-                        -regress_stim_times sb23/stim_files/blk_times.*.1D \\
-                        -regress_basis 'BLOCK(30,1)'
-
-        Example 3. (no longer) The current class example.  ~2~
-
-           Copy the anatomy into the results directory, register EPI data to
-           the last TR, specify stimulus labels, compute blur estimates, and
-           provide GLT options directly to 3dDeconvolve.  The GLTs will be
-           ignored after this, as they take up too many lines.
-
-                afni_proc.py -subj_id sb23.blk                             \\
-                        -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -copy_anat sb23/sb23_mpra+orig                     \\
-                        -tcat_remove_first_trs 3                           \\
-                        -volreg_align_to last                              \\
-                        -regress_stim_times sb23/stim_files/blk_times.*.1D \\
-                        -regress_stim_labels tneg tpos tneu eneg epos      \\
-                                             eneu fneg fpos fneu           \\
-                        -regress_basis 'BLOCK(30,1)'                       \\
-                        -regress_opts_3dD                                  \\
-                            -gltsym 'SYM: +eneg -fneg'                     \\
-                            -glt_label 1 eneg_vs_fneg                      \\
-                            -gltsym 'SYM: 0.5*fneg 0.5*fpos -1.0*fneu'     \\
-                            -glt_label 2 face_contrast                     \\
-                            -gltsym 'SYM: tpos epos fpos -tneg -eneg -fneg'\\
-                            -glt_label 3 pos_vs_neg                        \\
-                        -regress_est_blur_epits                            \\
-                        -regress_est_blur_errts
-
-        Example 4. Similar to 3, but specify the processing blocks. ~2~
-
-           Adding despike and tlrc, and removing tshift.  Note that
-           the tlrc block is to run @auto_tlrc on the anat.  Ignore the GLTs.
-
-                afni_proc.py -subj_id sb23.e4.blocks                       \\
-                        -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -blocks despike volreg blur mask scale regress tlrc\\
-                        -copy_anat sb23/sb23_mpra+orig                     \\
-                        -tcat_remove_first_trs 3                           \\
-                        -regress_stim_times sb23/stim_files/blk_times.*.1D \\
-                        -regress_stim_labels tneg tpos tneu eneg epos      \\
-                                             eneu fneg fpos fneu           \\
-                        -regress_basis 'BLOCK(30,1)'                       \\
-                        -regress_est_blur_epits                            \\
-                        -regress_est_blur_errts
-
-        Example 5a. RETROICOR, resting state data. ~2~
-
-           Assuming the class data is for resting-state and that we have the
-           appropriate slice-based regressors from RetroTS.py, apply the
-           despike and ricor processing blocks.  Note that '-do_block' is used
-           to add non-default blocks into their default positions.  Here the
-           'despike' and 'ricor' processing blocks would come before 'tshift'.
-
-           Remove 3 TRs from the ricor regressors to match the EPI data.  Also,
-           since degrees of freedom are not such a worry, regress the motion
-           parameters per-run (each run gets a separate set of 6 regressors).
-
-           The regression will use 81 basic regressors (all of "no interest"),
-           with 13 retroicor regressors being removed during pre-processing:
-
-                 27 baseline  regressors ( 3 per run * 9 runs)
-                 54 motion    regressors ( 6 per run * 9 runs)
-
-           To example #3, add -do_block, -ricor_* and -regress_motion_per_run.
-
-                afni_proc.py -subj_id sb23.e5a.ricor            \\
-                        -dsets sb23/epi_r??+orig.HEAD           \\
-                        -do_block despike ricor                 \\
-                        -tcat_remove_first_trs 3                \\
-                        -ricor_regs_nfirst 3                    \\
-                        -ricor_regs sb23/RICOR/r*.slibase.1D    \\
-                        -regress_motion_per_run
-
-           If tshift, blurring and masking are not desired, consider replacing
-           the -do_block option with an explicit list of blocks:
-
-                -blocks despike ricor volreg regress
-
-        Example 5b. RETROICOR, while running a normal regression. ~2~
-
-           Add the ricor regressors to a normal regression-based processing
-           stream.  Apply the RETROICOR regressors across runs (so using 13
-           concatenated regressors, not 13*9).  Note that concatenation is
-           normally done with the motion regressors too.
-
-           To example #3, add -do_block and three -ricor options.
-
-                afni_proc.py -subj_id sb23.e5b.ricor                       \\
-                        -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -do_block despike ricor                            \\
-                        -copy_anat sb23/sb23_mpra+orig                     \\
-                        -tcat_remove_first_trs 3                           \\
-                        -ricor_regs_nfirst 3                               \\
-                        -ricor_regs sb23/RICOR/r*.slibase.1D               \\
-                        -ricor_regress_method 'across-runs'                \\
-                        -volreg_align_to last                              \\
-                        -regress_stim_times sb23/stim_files/blk_times.*.1D \\
-                        -regress_stim_labels tneg tpos tneu eneg epos      \\
-                                             eneu fneg fpos fneu           \\
-                        -regress_basis 'BLOCK(30,1)'                       \\
-                        -regress_est_blur_epits                            \\
-                        -regress_est_blur_errts
-
-           Also consider adding -regress_bandpass.
-
-        Example 5c. RETROICOR (modern): censor and band pass. ~2~
-
-           This is an example of how we might currently suggest analyzing
-           resting state data.  If no RICOR regressors exist, see example 9
-           (or just remove any ricor options).
-
-           Censoring due to motion has long been considered appropriate in
-           BOLD FMRI analysis, but is less common for those doing bandpass
-           filtering in RS FMRI because the FFT requires one to either break
-           the time axis (evil) or to replace the censored data with something
-           probably inappropriate.
-
-           Instead, it is slow (no FFT, but maybe SFT :) but effective to
-           regress frequencies within the regression model, where censoring
-           is simple.
-
-           Note: band passing in the face of RETROICOR is questionable.  It may
-                 be questionable in general.  To skip bandpassing, remove the
-                 -regress_bandpass option line.
-
-           Also, align EPI to anat and warp to standard space.
-
-                afni_proc.py -subj_id sb23.e5a.ricor            \\
-                        -dsets sb23/epi_r??+orig.HEAD           \\
-                        -blocks despike ricor tshift align tlrc \\
-                                volreg blur mask regress        \\
-                        -copy_anat sb23/sb23_mpra+orig          \\
-                        -tcat_remove_first_trs 3                \\
-                        -ricor_regs_nfirst 3                    \\
-                        -ricor_regs sb23/RICOR/r*.slibase.1D    \\
-                        -volreg_align_e2a                       \\
-                        -volreg_tlrc_warp                       \\
-                        -blur_size 6                            \\
-                        -regress_motion_per_run                 \\
-                        -regress_censor_motion 0.2              \\
-                        -regress_bandpass 0.01 0.1              \\
-                        -regress_apply_mot_types demean deriv   \\
-                        -regress_run_clustsim no                \\
-                        -regress_est_blur_epits                 \\
-                        -regress_est_blur_errts
-
-        Example 6. A simple task example, based on AFNI_data6. ~2~
-
-           This example has changed to more closely correspond with the
-           the class analysis example, AFNI_data6/FT_analysis/s05.ap.uber.
-
-           The tshift block will interpolate each voxel time series to adjust
-           for differing slice times, where the result is more as if each
-           entire volume were acquired at the beginning of the TR.
-
-           The 'align' block implies using align_epi_anat.py to align the
-           anatomy with the EPI.  Extra options specify using lpc+ZZ for the
-           cost function (probably more robust than lpc), and -giant_move (in
-           case the anat and EPI start a bit far apart).  This block computes
-           the anat to EPI transformation matrix, which will then be inverted
-           in the volreg block, based on -volreg_align_e2a.
-
-           Also, compute the transformation of the anatomy to MNI space, using
-           affine registration (for speed in this simple example) to align to
-           the 2009c template.
-
-           In the volreg block, align the EPI to the MIN_OUTLIER volume (a
-           low-motion volume, determined from the data).  Then concatenate all
-           EPI transformations, warping the EPI to standard space in one step
-           (without multiple resampling operations), combining:
-
-              EPI  ->  EPI base  ->  anat  ->  MNI 2009c template
-
-           The standard space transformation is applied to the EPI due to 
-           specifying -volreg_tlrc_warp.
-
-           A 4 mm blur is applied, to keep it very light (about 1.5 times the
-           voxel size).
-
-           The regression model is based on 2 conditions, each lasting 20 s
-           per event, modeled by convolving a 20 s boxcar function with the
-           BLOCK basis function, specified as BLOCK(20,1) to make the regressor
-           unit height (height 1).
-
-           One extra general linear test (GLT) is included, contrasting the
-           visual reliable condition (vis) with auditory reliable (aud).
-
-           Motion regression will be per run (using one set of 6 regressors for
-           each run, i.e. 18 regressors in this example).
-
-           The regression includes censoring of large motion (>= 0.3 ~mm
-           between successive time points, based on the motion parameters),
-           as well as censoring of outlier time points, where at least 5% of
-           the brain voxels are computed as outliers.
-
-           The regression model starts from the full time series, for time
-           continuity, before censored time points are removed.  The output
-           errts will be zero at censored time points (no error there), and so
-           the output fit times series (fitts) will match the original data.
-
-           The model fit time series (fitts) will be computed AFTER the linear
-           regression, to save RAM on class laptops.
-
-           Create sum_ideal.1D, as the sum of all non-baseline regressors, for
-           quality control.
-
-           Estimate the blur in the residual time series.  The resulting 3 ACF
-           parameters can be averaged across subjects for cluster correction at
-           the group level.
-
-           Skip running the Monte Carlo cluster simulation example (which would
-           specify minimum cluster sizes for cluster significance, based on the
-           ACF parameters and mask), for speed.
-
-           Once the proc script is created, execute it.
-
-              afni_proc.py                                                \\
-                 -subj_id FT.e6                                           \\
-                 -copy_anat FT/FT_anat+orig                               \\
-                 -dsets FT/FT_epi_r?+orig.HEAD                            \\
-                 -blocks tshift align tlrc volreg blur mask scale regress \\
-                 -radial_correlate_blocks tcat volreg                     \\
-                 -tcat_remove_first_trs 2                                 \\
-                 -align_opts_aea -cost lpc+ZZ -giant_move                 \\
-                 -tlrc_base MNI152_T1_2009c+tlrc                          \\
-                 -volreg_align_to MIN_OUTLIER                             \\
-                 -volreg_align_e2a                                        \\
-                 -volreg_tlrc_warp                                        \\
-                 -blur_size 4.0                                           \\
-                 -regress_stim_times FT/AV1_vis.txt FT/AV2_aud.txt        \\
-                 -regress_stim_labels vis aud                             \\
-                 -regress_basis 'BLOCK(20,1)'                             \\
-                 -regress_opts_3dD -jobs 2 -gltsym 'SYM: vis -aud'        \\
-                     -glt_label 1 V-A                                     \\
-                 -regress_motion_per_run                                  \\
-                 -regress_censor_motion 0.3                               \\
-                 -regress_censor_outliers 0.05                            \\
-                 -regress_compute_fitts                                   \\
-                 -regress_make_ideal_sum sum_ideal.1D                     \\
-                 -regress_est_blur_epits                                  \\
-                 -regress_est_blur_errts                                  \\
-                 -regress_run_clustsim no                                 \\
-                 -execute 
-
-         * One could also use ANATICOR with task (e.g. -regress_anaticor_fast)
-           in the case of -regress_reml_exec.  3dREMLfit supports voxelwise
-           regression, but 3dDeconvolve does not.
-
-        Example 6b. A modern task example, with preferable options. ~2~
-
-           GOOD TO CONSIDER
-
-           This is based on Example 6, but is more complete.
-           Example 6 is meant to run quickly, as in an AFNI bootcamp setting.
-           Example 6b is meant to process more as we might suggest.
-
-              - apply -check_flip in align_epi_anat.py, to monitor consistency
-              - apply non-linear registration to MNI template, using output
-                from @SSwarper:
-                  o apply skull-stripped anat in -copy_anat
-                  o apply original anat as -anat_follower (QC, for comparison)
-                  o pass warped anat and transforms via -tlrc_NL_warped_dsets,
-                    to apply those already computed transformations
-              - use -mask_epi_anat to tighten the EPI mask (for QC),
-                intersecting it (full_mask) with the anat mask (mask_anat)
-              - use 3dREMLfit for the regression, to account for temporal
-                autocorrelation in the noise
-                (-regress_3dD_stop, -regress_reml_exec)
-              - generate the HTML QC report using the nicer pythonic functions
-                (requires matplotlib)
-           
-              afni_proc.py                                                \\
-                 -subj_id FT.e6                                           \\
-                 -copy_anat Qwarp/anat_warped/anatSS.FT.nii               \\
-                 -anat_has_skull no                                       \\
-                 -anat_follower anat_w_skull anat FT/FT_anat+orig         \\
-                 -dsets FT/FT_epi_r?+orig.HEAD                            \\
-                 -blocks tshift align tlrc volreg blur mask scale regress \\
-                 -radial_correlate_blocks tcat volreg                     \\
-                 -tcat_remove_first_trs 2                                 \\
-                 -align_opts_aea -cost lpc+ZZ -giant_move -check_flip     \\
-                 -tlrc_base MNI152_2009_template_SSW.nii.gz               \\
-                 -tlrc_NL_warp                                            \\
-                 -tlrc_NL_warped_dsets anatQQ.FT.nii                      \\
-                                       anatQQ.FT.aff12.1D                 \\
-                                       anatQQ.FT_WARP.nii                 \\
-                 -volreg_align_to MIN_OUTLIER                             \\
-                 -volreg_align_e2a                                        \\
-                 -volreg_tlrc_warp                                        \\
-                 -mask_epi_anat yes                                       \\
-                 -blur_size 4.0                                           \\
-                 -regress_stim_times FT/AV1_vis.txt FT/AV2_aud.txt        \\
-                 -regress_stim_labels vis aud                             \\
-                 -regress_basis 'BLOCK(20,1)'                             \\
-                 -regress_opts_3dD -jobs 2 -gltsym 'SYM: vis -aud'        \\
-                     -glt_label 1 V-A                                     \\
-                 -regress_motion_per_run                                  \\
-                 -regress_censor_motion 0.3                               \\
-                 -regress_censor_outliers 0.05                            \\
-                 -regress_3dD_stop                                        \\
-                 -regress_reml_exec                                       \\
-                 -regress_compute_fitts                                   \\
-                 -regress_make_ideal_sum sum_ideal.1D                     \\
-                 -regress_est_blur_epits                                  \\
-                 -regress_est_blur_errts                                  \\
-                 -regress_run_clustsim no                                 \\
-                 -html_review_style pythonic                              \\
-                 -execute 
-
-           To compare one's own command against this one, consider adding
-                -compare_opts 'example 6b'
-           to the end of (or anywhere in) the current command, as in:
-
-                afni_proc.py ... my options ...   -compare_opts 'example 6b'
-
-        Example 7. Apply some esoteric options. ~2~
-
-           a. Blur only within the brain, as far as an automask can tell.  So
-              add -blur_in_automask to blur only within an automatic mask
-              created internally by 3dBlurInMask (akin to 3dAutomask).
-
-           b. Let the basis functions vary.  For some reason, we expect the
-              BOLD responses to the telephone classes to vary across the brain.
-              So we have decided to use TENT functions there.  Since the TR is
-              3.0s and we might expect up to a 45 second BOLD response curve,
-              use 'TENT(0,45,16)' for those first 3 out of 9 basis functions.
-
-              This means using -regress_basis_multi instead of -regress_basis,
-              and specifying all 9 basis functions appropriately.
-
-           c. Use amplitude modulation.
-
-              We expect responses to email stimuli to vary proportionally with
-              the number of punctuation characters used in the message (in
-              certain brain regions).  So we will use those values as auxiliary
-              parameters 3dDeconvolve by marrying the parameters to the stim
-              times (using 1dMarry).
-
-              Use -regress_stim_types to specify that the epos/eneg/eneu stim
-              classes should be passed to 3dDeconvolve using -stim_times_AM2.
-
-           d. Not only censor motion, but censor TRs when more than 10% of the
-              automasked brain are outliers.  So add -regress_censor_outliers.
-
-           e. Include both de-meaned and derivatives of motion parameters in
-              the regression.  So add '-regress_apply_mot_types demean deriv'.
-
-           f. Output baseline parameters so we can see the effect of motion.
-              So add -bout under option -regress_opts_3dD.
-
-           g. Save on RAM by computing the fitts only after 3dDeconvolve.
-              So add -regress_compute_fitts.
-
-           h. Speed things up.  Have 3dDeconvolve use 4 CPUs and skip the
-              single subject 3dClustSim execution.  So add '-jobs 4' to the
-              -regress_opts_3dD option and add '-regress_run_clustsim no'.
-
-                afni_proc.py -subj_id sb23.e7.esoteric                     \\
-                        -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -blocks tshift align tlrc volreg blur mask         \\
-                                scale regress                              \\
-                        -copy_anat sb23/sb23_mpra+orig                     \\
-                        -tcat_remove_first_trs 3                           \\
-                        -align_opts_aea -cost lpc+ZZ                       \\
-                        -tlrc_base MNI152_T1_2009c+tlrc                    \\
-                        -tlrc_NL_warp                                      \\
-                        -volreg_align_to MIN_OUTLIER                       \\
-                        -volreg_align_e2a                                  \\
-                        -volreg_tlrc_warp                                  \\
-                        -mask_epi_anat yes                                 \\
-                        -blur_size 4                                       \\
-                        -blur_in_automask                                  \\
-                        -regress_stim_times sb23/stim_files/blk_times.*.1D \\
-                        -regress_stim_types times times times              \\
-                                            AM2   AM2   AM2                \\
-                                            times times times              \\
-                        -regress_stim_labels tneg tpos tneu                \\
-                                             eneg epos eneu                \\
-                                             fneg fpos fneu                \\
-                        -regress_basis_multi                               \\
-                           'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
-                           'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
-                           'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
-                        -regress_apply_mot_types demean deriv              \\
-                        -regress_motion_per_run                            \\
-                        -regress_censor_motion 0.3                         \\
-                        -regress_censor_outliers 0.1                       \\
-                        -regress_compute_fitts                             \\
-                        -regress_opts_3dD                                  \\
-                            -bout                                          \\
-                            -gltsym 'SYM: +eneg -fneg'                     \\
-                            -glt_label 1 eneg_vs_fneg                      \\
-                            -jobs 4                                        \\
-                        -regress_run_clustsim no                           \\
-                        -regress_est_blur_epits                            \\
-                        -regress_est_blur_errts
-
-        Example 8. Surface-based analysis. ~2~
-
-           This example is intended to be run from AFNI_data6/FT_analysis.
-           It is provided with the class data in file s03.ap.surface.
-
-           Add -surf_spec and -surf_anat to provide the required spec and
-           surface volume datasets.  The surface volume will be aligned to
-           the current anatomy in the processing script.  Two spec files
-           (lh and rh) are provided, one for each hemisphere (via wildcard).
-
-           Also, specify a (resulting) 6 mm FWHM blur via -blur_size.  This
-           does not add a blur, but specifies a resulting blur level.  So
-           6 mm can be given directly for correction for multiple comparisons
-           on the surface.
-
-           Censor per-TR motion above 0.3 mm.
-
-           Note that no -regress_est_blur_errts option is given, since that
-           applies to the volume only (and since the 6 mm blur is a resulting
-           blur level, so the estimates are not needed).
-
-           The -blocks option is provided, but it is the same as the default
-           for surface-based analysis, so is not really needed here.  Note that
-           the 'surf' block is added and the 'mask' block is removed from the
-           volume-based defaults.
-
-           important options:
-
-                -blocks         : includes surf, but no mask
-                                  (default blocks for surf, so not needed)
-                -surf_anat      : volume aligned with surface
-                -surf_spec      : spec file(s) for surface
-
-           Note: one would probably want to use standard mesh surfaces here.
-                 This example will be updated with them in the future.
-
-                afni_proc.py -subj_id FT.surf                            \\
-                    -blocks tshift align volreg surf blur scale regress  \\
-                    -copy_anat FT/FT_anat+orig                           \\
-                    -dsets FT/FT_epi_r?+orig.HEAD                        \\
-                    -surf_anat FT/SUMA/FTmb_SurfVol+orig                 \\
-                    -surf_spec FT/SUMA/FTmb_?h.spec                      \\
-                    -tcat_remove_first_trs 2                             \\
-                    -align_opts_aea -cost lpc+ZZ                         \\
-                    -volreg_align_to third                               \\
-                    -volreg_align_e2a                                    \\
-                    -blur_size 6                                         \\
-                    -regress_stim_times FT/AV1_vis.txt FT/AV2_aud.txt    \\
-                    -regress_stim_labels vis aud                         \\
-                    -regress_basis 'BLOCK(20,1)'                         \\
-                    -regress_motion_per_run                              \\
-                    -regress_censor_motion 0.3                           \\
-                    -regress_opts_3dD                                    \\
-                        -jobs 2                                          \\
-                        -gltsym 'SYM: vis -aud' -glt_label 1 V-A
-
-        Example 9. Resting state analysis (modern): ~2~
-
-           With censoring and bandpass filtering.
-
-           This is our suggested way to do pre-processing for resting state
-           analysis, under the assumption that no cardio/physio recordings
-           were made (see example 5 for cardio files).
-
-           Censoring due to motion has long been considered appropriate in
-           BOLD FMRI analysis, but is less common for those doing bandpass
-           filtering in RS FMRI because the FFT requires one to either break
-           the time axis (evil) or to replace the censored data with something
-           probably inappropriate.
-
-           Instead, it is slow (no FFT, but maybe SFT :) but effective to
-           regress frequencies within the regression model, where censoring
-           is simple.
-
-           inputs: anat, EPI
-           output: errts dataset (to be used for correlation)
-
-           special processing:
-              - despike, as another way to reduce motion effect
-                 (see block despike)
-              - censor motion TRs at the same time as bandpassing data
-                 (see -regress_censor_motion, -regress_bandpass)
-              - regress motion parameters AND derivatives
-                 (see -regress_apply_mot_types)
-
-           Note: for resting state data, a more strict threshold may be a good
-                 idea, since motion artifacts should play a bigger role than in
-                 a task-based analysis.
-
-                 So the typical suggestion of motion censoring at 0.3 for task
-                 based analysis has been changed to 0.2 for this resting state
-                 example, and censoring of outliers has also been added, at a
-                 value of 5% of the brain mask.
-
-                 Outliers are typically due to motion, and may capture motion
-                 in some cases where the motion parameters do not, because
-                 motion is not generally a whole-brain-between-TRs event.
-
-           Note: if regressing out regions of interest, either create the ROI
-                 time series before the blur step, or remove blur from the list
-                 of blocks (and apply any desired blur after the regression).
-
-           Note: it might be reasonable to estimate the blur using epits rather
-                 than errts in the case of bandpassing.  Both options are
-                 included here.
-
-           Note: scaling is optional here.  While scaling has no direct effect
-                 on voxel correlations, it does have an effect on ROI averages
-                 used for correlations.
-
-           Other options to consider: -tlrc_NL_warp, -anat_uniform_method
-
-                afni_proc.py -subj_id subj123                                \\
-                  -dsets epi_run1+orig.HEAD                                  \\
-                  -copy_anat anat+orig                                       \\
-                  -blocks despike tshift align tlrc volreg blur mask         \\
-                          scale regress                                      \\
-                  -tcat_remove_first_trs 3                                   \\
-                  -tlrc_base MNI152_T1_2009c+tlrc                            \\
-                  -tlrc_NL_warp                                              \\
-                  -volreg_align_e2a                                          \\
-                  -volreg_tlrc_warp                                          \\
-                  -mask_epi_anat yes                                         \\
-                  -blur_size 4                                               \\
-                  -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.05                              \\
-                  -regress_bandpass 0.01 0.1                                 \\
-                  -regress_apply_mot_types demean deriv                      \\
-                  -regress_est_blur_epits                                    \\
-                  -regress_est_blur_errts
-
-        Example 9b. Resting state analysis with ANATICOR. ~2~
-
-           Like example #9, but also regress out the signal from locally
-           averaged white matter.  The only change is adding the option
-           -regress_anaticor.
-
-           Note that -regress_anaticor implies options -mask_segment_anat and
-           -mask_segment_erode.
-
-                afni_proc.py -subj_id subj123                                \\
-                  -dsets epi_run1+orig.HEAD                                  \\
-                  -copy_anat anat+orig                                       \\
-                  -blocks despike tshift align tlrc volreg blur mask         \\
-                          scale regress                                      \\
-                  -tcat_remove_first_trs 3                                   \\
-                  -tlrc_base MNI152_T1_2009c+tlrc                            \\
-                  -tlrc_NL_warp                                              \\
-                  -volreg_align_e2a                                          \\
-                  -volreg_tlrc_warp                                          \\
-                  -mask_epi_anat yes                                         \\
-                  -blur_size 4                                               \\
-                  -regress_anaticor                                          \\
-                  -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.05                              \\
-                  -regress_bandpass 0.01 0.1                                 \\
-                  -regress_apply_mot_types demean deriv                      \\
-                  -regress_est_blur_epits                                    \\
-                  -regress_est_blur_errts
-
-        Example 10. Resting state analysis, with tissue-based regressors. ~2~
-
-           Like example #9, but also regress the eroded white matter averages.
-           The WMe mask come from the Classes dataset, created by 3dSeg via the
-           -mask_segment_anat and -mask_segment_erode options.
-
-        ** While -mask_segment_anat also creates a CSF mask, that mask is ALL
-           CSF, not just restricted to the ventricles, for example.  So it is
-           probably not appropriate for use in tissue-based regression.
-
-           CSFe was previously used as an example of what one could do, but as
-           it is not advised, it has been removed.
-
-           Also, align to minimum outlier volume, and align to the anatomy
-           using cost function lpc+ZZ.
-
-           Note: it might be reasonable to estimate the blur using epits rather
-                 than errts in the case of bandpassing.  Both options are
-                 included here.
-
-                afni_proc.py -subj_id subj123                                \\
-                  -dsets epi_run1+orig.HEAD                                  \\
-                  -copy_anat anat+orig                                       \\
-                  -blocks despike tshift align tlrc volreg blur mask         \\
-                          scale regress                                      \\
-                  -tcat_remove_first_trs 3                                   \\
-                  -align_opts_aea -cost lpc+ZZ                               \\
-                  -tlrc_base MNI152_T1_2009c+tlrc                            \\
-                  -tlrc_NL_warp                                              \\
-                  -volreg_align_to MIN_OUTLIER                               \\
-                  -volreg_align_e2a                                          \\
-                  -volreg_tlrc_warp                                          \\
-                  -blur_size 4                                               \\
-                  -mask_epi_anat yes                                         \\
-                  -mask_segment_anat yes                                     \\
-                  -mask_segment_erode yes                                    \\
-                  -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.05                              \\
-                  -regress_bandpass 0.01 0.1                                 \\
-                  -regress_apply_mot_types demean deriv                      \\
-                  -regress_ROI WMe                                           \\
-                  -regress_est_blur_epits                                    \\
-                  -regress_est_blur_errts
-
-        Example 10b. Resting state analysis, as 10a with 3dRSFC. ~2~
-
-            This is for band passing and computation of ALFF, etc.
-
-          * This will soon use a modified 3dRSFC.
-
-            Like example #10, but add -regress_RSFC to bandpass via 3dRSFC.
-            Skip censoring and regression band passing because of the bandpass
-            operation in 3dRSFC.
-
-            To correspond to common tractography, this example stays in orig
-            space (no 'tlrc' block, no -volreg_tlrc_warp option).  Of course,
-            going to standard space is an option.
-
-                afni_proc.py -subj_id subj123                                \\
-                  -dsets epi_run1+orig.HEAD                                  \\
-                  -copy_anat anat+orig                                       \\
-                  -blocks despike tshift align volreg blur mask scale regress \\
-                  -tcat_remove_first_trs 3                                   \\
-                  -volreg_align_e2a                                          \\
-                  -blur_size 6.0                                             \\
-                  -mask_apply epi                                            \\
-                  -mask_segment_anat yes                                     \\
-                  -mask_segment_erode yes                                    \\
-                  -regress_bandpass 0.01 0.1                                 \\
-                  -regress_apply_mot_types demean deriv                      \\
-                  -regress_ROI WMe                                           \\
-                  -regress_RSFC                                              \\
-                  -regress_run_clustsim no                                   \\
-                  -regress_est_blur_errts
-
-        Example 11. Resting state analysis (now even more modern :). ~2~
-
-         o Yes, censor (outliers and motion) and despike.
-         o Align the anatomy and EPI using the lpc+ZZ cost function, rather
-           than the default lpc one.  Apply -giant_move, in case the datasets
-           do not start off well-aligned.  Include -check_flip for good measure.
-         o Register EPI volumes to the one which has the minimum outlier
-              fraction (so hopefully the least motion).
-         o Use non-linear registration to MNI template (non-linear 2009c).
-           * This adds a lot of processing time.
-           * Let @SSwarper align to template MNI152_2009_template_SSW.nii.gz.
-             Then use the resulting datasets in the afni_proc.py command below
-             via -tlrc_NL_warped_dsets.
-                  @SSwarper -input FT_anat.nii         \\
-                            -subid FT                  \\
-                            -odir  FT_anat_warped      \\
-                            -base  MNI152_2009_template_SSW.nii.gz
-
-            - The SS (skull-stripped) can be given via -copy_anat, and the 
-              with-skull unifized anatU can be given as a follower.
-         o No bandpassing.
-         o Use fast ANATICOR method (slightly different from default ANATICOR).
-         o Use FreeSurfer segmentation for:
-             - regression of first 3 principal components of lateral ventricles
-             - ANATICOR white matter mask (for local white matter regression)
-           * For details on how these masks were created, see "FREESURFER NOTE"
-             in the help, as it refers to this "Example 11".
-         o Erode FS white matter and ventricle masks before application.
-         o Bring along FreeSurfer parcellation datasets:
-             - aaseg : NN interpolated onto the anatomical grid
-             - aeseg : NN interpolated onto the EPI        grid
-           * These 'aseg' follower datasets are just for visualization,
-             they are not actually required for the analysis.
-         o Compute average correlation volumes of the errts against the
-           the gray matter (aeseg) and ventricle (FSVent) masks.
-
-           Note: it might be reasonable to use either set of blur estimates
-                 here (from epits or errts).  The epits (uncleaned) dataset
-                 has all of the noise (though what should be considered noise
-                 in this context is not clear), while the errts is motion
-                 censored.  For consistency in resting state, it would be
-                 reasonable to stick with epits.  They will likely be almost
-                 identical.
-
-                afni_proc.py -subj_id FT.11.rest                             \\
-                  -blocks despike tshift align tlrc volreg blur mask         \\
-                          scale regress                                      \\
-                  -copy_anat anatSS.FT.nii                                   \\
-                  -anat_has_skull no                                         \\
-                  -anat_follower anat_w_skull anat anatU.FT.nii              \\
-                  -anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii        \\
-                  -anat_follower_ROI aeseg epi  aparc.a2009s+aseg.nii        \\
-                  -anat_follower_ROI FSvent epi fs_ap_latvent.nii.gz         \\
-                  -anat_follower_ROI FSWe epi fs_ap_wm.nii.gz                \\
-                  -anat_follower_erode FSvent FSWe                           \\
-                  -dsets FT_epi_r?+orig.HEAD                                 \\
-                  -tcat_remove_first_trs 2                                   \\
-                  -align_opts_aea -cost lpc+ZZ -giant_move -check_flip       \\
-                  -tlrc_base MNI152_2009_template_SSW.nii.gz                 \\
-                  -tlrc_NL_warp                                              \\
-                  -tlrc_NL_warped_dsets anatQQ.FT.nii                        \\
-                                        anatQQ.FT.aff12.1D                   \\
-                                        anatQQ.FT_WARP.nii                   \\
-                  -volreg_align_to MIN_OUTLIER                               \\
-                  -volreg_align_e2a                                          \\
-                  -volreg_tlrc_warp                                          \\
-                  -blur_size 4                                               \\
-                  -mask_epi_anat yes                                         \\
-                  -regress_motion_per_run                                    \\
-                  -regress_ROI_PC FSvent 3                                   \\
-                  -regress_ROI_PC_per_run FSvent                             \\
-                  -regress_make_corr_vols aeseg FSvent                       \\
-                  -regress_anaticor_fast                                     \\
-                  -regress_anaticor_label FSWe                               \\
-                  -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.05                              \\
-                  -regress_apply_mot_types demean deriv                      \\
-                  -regress_est_blur_epits                                    \\
-                  -regress_est_blur_errts                                    \\
-                  -html_review_style pythonic
-
-        Example 11b. Similar to 11, but without FreeSurfer. ~2~
-
-         AFNI currently does not have a good program to extract ventricles.
-         But it can make a CSF mask that includes them.  So without FreeSurfer,
-         one could import a ventricle mask from the template (e.g. for TT space,
-         using TT_desai_dd_mpm+tlrc).  For example, assuming Talairach space
-         (and a 2.5 mm^3 final voxel grid) for the analysis, one could create a
-         ventricle mask as follows:
-
-                3dcalc -a ~/abin/TT_desai_dd_mpm+tlrc                       \\
-                       -expr 'amongst(a,152,170)' -prefix template_ventricle
-                3dresample -dxyz 2.5 2.5 2.5 -inset template_ventricle+tlrc \\
-                       -prefix template_ventricle_2.5mm
-
-         o Be explicit with 2.5mm, using '-volreg_warp_dxyz 2.5'.
-         o Use template TT_N27+tlrc, to be aligned with the desai atlas.
-         o No -anat_follower options, but use -mask_import to import the
-           template_ventricle_2.5mm dataset (and call it Tvent).
-         o Use -mask_intersect to intersect ventricle mask with the subject's
-           CSFe mask, making a more reliable subject ventricle mask (Svent).
-         o Ventricle principle components are created as per-run regressors.
-         o Make WMe and Svent correlation volumes, which are just for
-           entertainment purposes anyway.
-         o Run the cluster simulation.
-
-                afni_proc.py -subj_id FT.11b.rest                            \\
-                  -blocks despike tshift align tlrc volreg blur mask         \\
-                          scale regress                                      \\
-                  -copy_anat FT_anat+orig                                    \\
-                  -dsets FT_epi_r?+orig.HEAD                                 \\
-                  -tcat_remove_first_trs 2                                   \\
-                  -align_opts_aea -cost lpc+ZZ                               \\
-                  -tlrc_base TT_N27+tlrc                                     \\
-                  -tlrc_NL_warp                                              \\
-                  -volreg_align_to MIN_OUTLIER                               \\
-                  -volreg_align_e2a                                          \\
-                  -volreg_tlrc_warp                                          \\
-                  -volreg_warp_dxyz 2.5                                      \\
-                  -blur_size 4                                               \\
-                  -mask_segment_anat yes                                     \\
-                  -mask_segment_erode yes                                    \\
-                  -mask_import Tvent template_ventricle_2.5mm+tlrc           \\
-                  -mask_intersect Svent CSFe Tvent                           \\
-                  -mask_epi_anat yes                                         \\
-                  -regress_motion_per_run                                    \\
-                  -regress_ROI_PC Svent 3                                    \\
-                  -regress_ROI_PC_per_run Svent                              \\
-                  -regress_make_corr_vols WMe Svent                          \\
-                  -regress_anaticor_fast                                     \\
-                  -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.05                              \\
-                  -regress_apply_mot_types demean deriv                      \\
-                  -regress_est_blur_epits                                    \\
-                  -regress_est_blur_errts                                    \\
-                  -regress_run_clustsim yes
-
-        Example 12 background: Multi-echo data processing. ~2~
-
-         Processing multi-echo data should be similar to single echo data,
-         except for perhaps:
-
-            combine         : the addition of a 'combine' block
-            -dsets_me_echo  : specify ME data, per echo
-            -dsets_me_run   : specify ME data, per run (alternative to _echo)
-            -echo_times     : specify echo times (if needed)
-            -combine_method : specify method to combine echoes (if any)
-
-         An afni_proc.py command might be updated to include something like:
-
-            afni_proc.py ...                                     \\
-                -blocks tshift align tlrc volreg mask combine    \\
-                        blur scale regress                       \\
-                -dsets_me_echo epi_run*_echo_01.nii              \\
-                -dsets_me_echo epi_run*_echo_02.nii              \\
-                -dsets_me_echo epi_run*_echo_03.nii              \\
-                -echo_times 15 30.5 41                           \\
-                ...                                              \\
-                -mask_epi_anat yes                               \\
-                -combine_method OC                               \\
-                ...                                              \\
-
-
-        Example 12a. Multi-echo data processing - very simple. ~2~
-
-         Keep it simple and just focus on the basic ME options, plus a few
-         for controlling registration.
-
-         o This example uses 3 echoes of data across just 1 run.
-            - so use a single -dsets_me_run option to input EPI datasets
-         o Echo 2 is used to drive registration for all echoes.
-            - That is the default, but it is good to be explicit.
-         o The echo times are not needed, as the echoes are never combined.
-         o The echo are never combined (in this example), so that there
-           are always 3 echoes, even until the end.
-            - Note that the 'regress' block is not valid for multiple echoes.
-
-                afni_proc.py -subj_id FT.12a.ME                 \\
-                  -blocks tshift align tlrc volreg mask blur    \\
-                  -copy_anat FT_anat+orig                       \\
-                  -dsets_me_run epi_run1_echo*.nii              \\
-                  -reg_echo 2                                   \\
-                  -tcat_remove_first_trs 2                      \\
-                  -volreg_align_to MIN_OUTLIER                  \\
-                  -volreg_align_e2a                             \\
-                  -volreg_tlrc_warp
-
-        Example 12b. Multi-echo data processing - OC resting state. ~2~
-
-         Still keep this simple, mostly focusing on ME options, plus standard
-         ones for resting state.
-
-         o This example uses 3 echoes of data across just 1 run.
-            - so use a single -dsets_me_run option to input EPI datasets
-         o Echo 2 is used to drive registration for all echoes.
-            - That is the default, but it is good to be explicit.
-         o The echoes are combined via the 'combine' block.
-         o So -echo_times is used to provided them.
-
-                afni_proc.py -subj_id FT.12a.ME                 \\
-                  -blocks tshift align tlrc volreg mask combine \\
-                          blur scale regress                    \\
-                  -copy_anat FT_anat+orig                       \\
-                  -dsets_me_run epi_run1_echo*.nii              \\
-                  -echo_times 15 30.5 41                        \\
-                  -reg_echo 2                                   \\
-                  -tcat_remove_first_trs 2                      \\
-                  -align_opts_aea -cost lpc+ZZ                  \\
-                  -tlrc_base MNI152_T1_2009c+tlrc               \\
-                  -tlrc_NL_warp                                 \\
-                  -volreg_align_to MIN_OUTLIER                  \\
-                  -volreg_align_e2a                             \\
-                  -volreg_tlrc_warp                             \\
-                  -mask_epi_anat yes                            \\
-                  -combine_method OC                            \\
-                  -blur_size 4                                  \\
-                  -regress_motion_per_run                       \\
-                  -regress_censor_motion 0.2                    \\
-                  -regress_censor_outliers 0.05                 \\
-                  -regress_apply_mot_types demean deriv         \\
-                  -regress_est_blur_epits
-
-        Example 12c. Multi-echo data processing - ME-ICA resting state. ~2~
-
-         As above, but run tedana.py for MEICA denoising.
-
-         o Since tedana.py will mask the data, it may be preferable to
-           blur only within that mask (-blur_in_mask yes).
-         o A task analysis using tedana might look much the same,
-           but with the extra -regress options for the tasks.
-
-                afni_proc.py -subj_id FT.12a.ME                 \\
-                  -blocks tshift align tlrc volreg mask combine \\
-                          blur scale regress                    \\
-                  -copy_anat FT_anat+orig                       \\
-                  -dsets_me_run epi_run1_echo*.nii              \\
-                  -echo_times 15 30.5 41                        \\
-                  -reg_echo 2                                   \\
-                  -tcat_remove_first_trs 2                      \\
-                  -align_opts_aea -cost lpc+ZZ                  \\
-                  -tlrc_base MNI152_T1_2009c+tlrc               \\
-                  -tlrc_NL_warp                                 \\
-                  -volreg_align_to MIN_OUTLIER                  \\
-                  -volreg_align_e2a                             \\
-                  -volreg_tlrc_warp                             \\
-                  -mask_epi_anat yes                            \\
-                  -combine_method tedana                        \\
-                  -blur_size 4                                  \\
-                  -blur_in_mask yes                             \\
-                  -regress_motion_per_run                       \\
-                  -regress_censor_motion 0.2                    \\
-                  -regress_censor_outliers 0.05                 \\
-                  -regress_apply_mot_types demean deriv         \\
-                  -regress_est_blur_epits
-
-         Consider an alternative combine method, 'tedana_OC_tedort'.
-
-        Example 13. Complicated ME, surface-based resting state example. ~2~
-
-         Key aspects of this example:
-
-            - multi-echo data, using "optimally combined" echoes
-            - resting state analysis (without band passing)
-            - surface analysis
-            - blip up/blip down distortion correction
-            - slice-wise regression of physiological parameters (RETROICOR)
-            - ventricle principal component regression (3 PCs)
-            - EPI volreg to per-run MIN_OUTLIER, with across-runs allineate
-            - QC: @radial_correlate on tcat and volreg block results
-            - QC: pythonic html report
-
-            * since this is a surface-based example, the are no tlrc options
-
-         Minor aspects:
-
-            - a FWHM=6mm blur is applied, since blur on surface is TO is size
-
-         Note: lacking good sample data for this example, it is simply faked
-               for demonstration (echoes are identical, fake ricor parameters
-               are not part of this data tree).
-
-              # use data_dir variable for tracking inputs
-              set data_dir = FT
-              afni_proc.py -subj_id FT.complicated                          \\
-                 # == include ricor, mask/combine, and surf blocks          \\
-                 -blocks despike ricor tshift align volreg                  \\
-                         mask combine surf blur scale regress               \\
-                 # == QC: radial_correlate_blocks                           \\
-                 -radial_correlate_blocks tcat volreg                       \\
-                 # == reverse blip distortion correction                    \\
-                 -blip_forward_dset $data_dir/FT_epi_r1+orig.HEAD'[0]'      \\
-                 -blip_reverse_dset $data_dir/FT_epi_r1+orig.HEAD'[0]'      \\
-                 # == anat and anat followers, vent PC regress              \\
-                 -copy_anat $data_dir/FT_anat+orig                          \\
-                 -anat_follower_ROI FSvent epi $data_dir/SUMA/FT_vent.nii   \\
-                 -anat_follower_erode FSvent                                \\
-                 -regress_ROI_PC FSvent 3                                   \\
-                 -regress_ROI_PC_per_run FSvent                             \\
-                 -regress_make_corr_vols FSvent                             \\
-                 # == multi-echo EPI, times, combine method                 \\
-                 -dsets_me_echo $data_dir/FT_epi_r?+orig.HEAD               \\
-                 -dsets_me_echo $data_dir/FT_epi_r?+orig.HEAD               \\
-                 -dsets_me_echo $data_dir/FT_epi_r?+orig.HEAD               \\
-                 -echo_times 11 22.72 34.44                                 \\
-                 -combine_method OC                                         \\
-                 -tcat_remove_first_trs 2                                   \\
-                 -tshift_interp -wsinc9                                     \\
-                 -mask_epi_anat yes                                         \\
-                 # == RETROICOR per run                                     \\
-                 -ricor_regs_nfirst 2                                       \\
-                 -ricor_regs $data_dir/fake.slibase.FT.r?.1D                \\
-                 -ricor_regress_method per-run                              \\
-                 # == alignment opts, and post volreg allineate             \\
-                 -align_opts_aea -cost lpc+ZZ -giant_move                   \\
-                 -volreg_align_to MIN_OUTLIER                               \\
-                 -volreg_align_e2a                                          \\
-                 -volreg_post_vr_allin yes                                  \\
-                 -volreg_pvra_base_index MIN_OUTLIER                        \\
-                 -volreg_warp_final_interp wsinc5                           \\
-                 # == surface analysis                                      \\
-                 -surf_anat $data_dir/SUMA/FT_SurfVol.nii                   \\
-                 -surf_spec $data_dir/SUMA/std.141.FT_?h.spec               \\
-                 # == blur size, censoring, other regression                \\
-                 -blur_size 6                                               \\
-                 -regress_censor_motion 0.2                                 \\
-                 -regress_censor_outliers 0.05                              \\
-                 -regress_motion_per_run                                    \\
-                 -regress_apply_mot_types demean deriv                      \\
-                 -html_review_style pythonic
-
-
-    --------------------------------------------------
-    -ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated ** ~2~
-
-        a1. Apply -ask_me in the most basic form, with no other options.
-
-                afni_proc.py -ask_me
-
-        a2. Supply input datasets.
-
-                afni_proc.py -ask_me -dsets ED/ED_r*.HEAD
-
-        a3. Same as a2, but supply the datasets in expanded form.
-            No suffix (.HEAD) is needed when wildcards are not used.
-
-                afni_proc.py -ask_me                          \\
-                     -dsets ED/ED_r01+orig ED/ED_r02+orig     \\
-                            ED/ED_r03+orig ED/ED_r04+orig     \\
-                            ED/ED_r05+orig ED/ED_r06+orig     \\
-                            ED/ED_r07+orig ED/ED_r08+orig     \\
-                            ED/ED_r09+orig ED/ED_r10+orig
-
-        a4. Supply datasets, stim_times files and labels.
-
-                afni_proc.py -ask_me                                    \\
-                        -dsets ED/ED_r*.HEAD                            \\
-                        -regress_stim_times misc_files/stim_times.*.1D  \\
-                        -regress_stim_labels ToolMovie HumanMovie       \\
-                                             ToolPoint HumanPoint
+==================================================
+EXAMPLES (options can be provided in any order): ~1~
+
+    Example 1. Minimum use. ~2~
+
+       Provide datasets and stim files (or stim_times files).  Note that a
+       dataset suffix (e.g. HEAD) must be used with wildcards, so that
+       datasets are not applied twice.  In this case, a stim_file with many
+       columns is given, where the script to changes it to stim_times files.
+
+            afni_proc.py -dsets epiRT*.HEAD              \\
+                         -regress_stim_files stims.1D
+
+       or without any wildcard, the .HEAD suffix is not needed:
+
+            afni_proc.py -dsets epiRT_r1+orig epiRT_r2+orig epiRT_r3+orig \\
+                         -regress_stim_files stims.1D
+
+ **************************************************************
+ *  New and improved!  Examples that apply to AFNI_data4.     *
+ *  (were quickly OLD and OBSOLETE, as we now use AFNI_data6) *
+ **************************************************************
+
+    The following examples can be run from the AFNI_data4 directory, and
+    are examples of how one might process the data for subject sb23.
+
+    Example 2. Very simple. ~2~
+
+       Use all defaults, except remove 3 TRs and use basis
+       function BLOCK(30,1).  The default basis function is GAM.
+
+            afni_proc.py -subj_id sb23.e2.simple                       \\
+                    -dsets sb23/epi_r??+orig.HEAD                      \\
+                    -tcat_remove_first_trs 3                           \\
+                    -regress_stim_times sb23/stim_files/blk_times.*.1D \\
+                    -regress_basis 'BLOCK(30,1)'
+
+    Example 3. (no longer) The current class example.  ~2~
+
+       Copy the anatomy into the results directory, register EPI data to
+       the last TR, specify stimulus labels, compute blur estimates, and
+       provide GLT options directly to 3dDeconvolve.  The GLTs will be
+       ignored after this, as they take up too many lines.
+
+            afni_proc.py -subj_id sb23.blk                             \\
+                    -dsets sb23/epi_r??+orig.HEAD                      \\
+                    -copy_anat sb23/sb23_mpra+orig                     \\
+                    -tcat_remove_first_trs 3                           \\
+                    -volreg_align_to last                              \\
+                    -regress_stim_times sb23/stim_files/blk_times.*.1D \\
+                    -regress_stim_labels tneg tpos tneu eneg epos      \\
+                                         eneu fneg fpos fneu           \\
+                    -regress_basis 'BLOCK(30,1)'                       \\
+                    -regress_opts_3dD                                  \\
+                        -gltsym 'SYM: +eneg -fneg'                     \\
+                        -glt_label 1 eneg_vs_fneg                      \\
+                        -gltsym 'SYM: 0.5*fneg 0.5*fpos -1.0*fneu'     \\
+                        -glt_label 2 face_contrast                     \\
+                        -gltsym 'SYM: tpos epos fpos -tneg -eneg -fneg'\\
+                        -glt_label 3 pos_vs_neg                        \\
+                    -regress_est_blur_epits                            \\
+                    -regress_est_blur_errts
+
+    Example 4. Similar to 3, but specify the processing blocks. ~2~
+
+       Adding despike and tlrc, and removing tshift.  Note that
+       the tlrc block is to run @auto_tlrc on the anat.  Ignore the GLTs.
+
+            afni_proc.py -subj_id sb23.e4.blocks                       \\
+                    -dsets sb23/epi_r??+orig.HEAD                      \\
+                    -blocks despike volreg blur mask scale regress tlrc\\
+                    -copy_anat sb23/sb23_mpra+orig                     \\
+                    -tcat_remove_first_trs 3                           \\
+                    -regress_stim_times sb23/stim_files/blk_times.*.1D \\
+                    -regress_stim_labels tneg tpos tneu eneg epos      \\
+                                         eneu fneg fpos fneu           \\
+                    -regress_basis 'BLOCK(30,1)'                       \\
+                    -regress_est_blur_epits                            \\
+                    -regress_est_blur_errts
+
+    Example 5a. RETROICOR, resting state data. ~2~
+
+       Assuming the class data is for resting-state and that we have the
+       appropriate slice-based regressors from RetroTS.py, apply the
+       despike and ricor processing blocks.  Note that '-do_block' is used
+       to add non-default blocks into their default positions.  Here the
+       'despike' and 'ricor' processing blocks would come before 'tshift'.
+
+       Remove 3 TRs from the ricor regressors to match the EPI data.  Also,
+       since degrees of freedom are not such a worry, regress the motion
+       parameters per-run (each run gets a separate set of 6 regressors).
+
+       The regression will use 81 basic regressors (all of "no interest"),
+       with 13 retroicor regressors being removed during pre-processing:
+
+             27 baseline  regressors ( 3 per run * 9 runs)
+             54 motion    regressors ( 6 per run * 9 runs)
+
+       To example #3, add -do_block, -ricor_* and -regress_motion_per_run.
+
+            afni_proc.py -subj_id sb23.e5a.ricor            \\
+                    -dsets sb23/epi_r??+orig.HEAD           \\
+                    -do_block despike ricor                 \\
+                    -tcat_remove_first_trs 3                \\
+                    -ricor_regs_nfirst 3                    \\
+                    -ricor_regs sb23/RICOR/r*.slibase.1D    \\
+                    -regress_motion_per_run
+
+       If tshift, blurring and masking are not desired, consider replacing
+       the -do_block option with an explicit list of blocks:
+
+            -blocks despike ricor volreg regress
+
+    Example 5b. RETROICOR, while running a normal regression. ~2~
+
+       Add the ricor regressors to a normal regression-based processing
+       stream.  Apply the RETROICOR regressors across runs (so using 13
+       concatenated regressors, not 13*9).  Note that concatenation is
+       normally done with the motion regressors too.
+
+       To example #3, add -do_block and three -ricor options.
+
+            afni_proc.py -subj_id sb23.e5b.ricor                       \\
+                    -dsets sb23/epi_r??+orig.HEAD                      \\
+                    -do_block despike ricor                            \\
+                    -copy_anat sb23/sb23_mpra+orig                     \\
+                    -tcat_remove_first_trs 3                           \\
+                    -ricor_regs_nfirst 3                               \\
+                    -ricor_regs sb23/RICOR/r*.slibase.1D               \\
+                    -ricor_regress_method 'across-runs'                \\
+                    -volreg_align_to last                              \\
+                    -regress_stim_times sb23/stim_files/blk_times.*.1D \\
+                    -regress_stim_labels tneg tpos tneu eneg epos      \\
+                                         eneu fneg fpos fneu           \\
+                    -regress_basis 'BLOCK(30,1)'                       \\
+                    -regress_est_blur_epits                            \\
+                    -regress_est_blur_errts
+
+       Also consider adding -regress_bandpass.
+
+    Example 5c. RETROICOR (modern): censor and band pass. ~2~
+
+       This is an example of how we might currently suggest analyzing
+       resting state data.  If no RICOR regressors exist, see example 9
+       (or just remove any ricor options).
+
+       Censoring due to motion has long been considered appropriate in
+       BOLD FMRI analysis, but is less common for those doing bandpass
+       filtering in RS FMRI because the FFT requires one to either break
+       the time axis (evil) or to replace the censored data with something
+       probably inappropriate.
+
+       Instead, it is slow (no FFT, but maybe SFT :) but effective to
+       regress frequencies within the regression model, where censoring
+       is simple.
+
+       Note: band passing in the face of RETROICOR is questionable.  It may
+             be questionable in general.  To skip bandpassing, remove the
+             -regress_bandpass option line.
+
+       Also, align EPI to anat and warp to standard space.
+
+            afni_proc.py -subj_id sb23.e5a.ricor            \\
+                    -dsets sb23/epi_r??+orig.HEAD           \\
+                    -blocks despike ricor tshift align tlrc \\
+                            volreg blur mask regress        \\
+                    -copy_anat sb23/sb23_mpra+orig          \\
+                    -tcat_remove_first_trs 3                \\
+                    -ricor_regs_nfirst 3                    \\
+                    -ricor_regs sb23/RICOR/r*.slibase.1D    \\
+                    -volreg_align_e2a                       \\
+                    -volreg_tlrc_warp                       \\
+                    -blur_size 6                            \\
+                    -regress_motion_per_run                 \\
+                    -regress_censor_motion 0.2              \\
+                    -regress_bandpass 0.01 0.1              \\
+                    -regress_apply_mot_types demean deriv   \\
+                    -regress_run_clustsim no                \\
+                    -regress_est_blur_epits                 \\
+                    -regress_est_blur_errts
+
+    Example 6. A simple task example, based on AFNI_data6. ~2~
+
+       This example has changed to more closely correspond with the
+       the class analysis example, AFNI_data6/FT_analysis/s05.ap.uber.
+
+       The tshift block will interpolate each voxel time series to adjust
+       for differing slice times, where the result is more as if each
+       entire volume were acquired at the beginning of the TR.
+
+       The 'align' block implies using align_epi_anat.py to align the
+       anatomy with the EPI.  Extra options specify using lpc+ZZ for the
+       cost function (probably more robust than lpc), and -giant_move (in
+       case the anat and EPI start a bit far apart).  This block computes
+       the anat to EPI transformation matrix, which will then be inverted
+       in the volreg block, based on -volreg_align_e2a.
+
+       Also, compute the transformation of the anatomy to MNI space, using
+       affine registration (for speed in this simple example) to align to
+       the MNI 2009 template.
+
+       In the volreg block, align the EPI to the MIN_OUTLIER volume (a
+       low-motion volume, determined from the data).  Then concatenate all
+       EPI transformations, warping the EPI to standard space in one step
+       (without multiple resampling operations), combining:
+
+          EPI  ->  EPI base  ->  anat  ->  MNI 2009 template
+
+       The standard space transformation is applied to the EPI due to
+       specifying -volreg_tlrc_warp.
+
+       A 4 mm blur is applied, to keep it very light (about 1.5 times the
+       voxel size).
+
+       The regression model is based on 2 conditions, each lasting 20 s
+       per event, modeled by convolving a 20 s boxcar function with the
+       BLOCK basis function, specified as BLOCK(20,1) to make the regressor
+       unit height (height 1).
+
+       One extra general linear test (GLT) is included, contrasting the
+       visual reliable condition (vis) with auditory reliable (aud).
+
+       Motion regression will be per run (using one set of 6 regressors for
+       each run, i.e. 18 regressors in this example).
+
+       The regression includes censoring of large motion (>= 0.3 ~mm
+       between successive time points, based on the motion parameters),
+       as well as censoring of outlier time points, where at least 5% of
+       the brain voxels are computed as outliers.
+
+       The regression model starts from the full time series, for time
+       continuity, before censored time points are removed.  The output
+       errts will be zero at censored time points (no error there), and so
+       the output fit times series (fitts) will match the original data.
+
+       The model fit time series (fitts) will be computed AFTER the linear
+       regression, to save RAM on class laptops.
+
+       Create sum_ideal.1D, as the sum of all non-baseline regressors, for
+       quality control.
+
+       Estimate the blur in the residual time series.  The resulting 3 ACF
+       parameters can be averaged across subjects for cluster correction at
+       the group level.
+
+       Skip running the Monte Carlo cluster simulation example (which would
+       specify minimum cluster sizes for cluster significance, based on the
+       ACF parameters and mask), for speed.
+
+       Once the proc script is created, execute it.
+
+          afni_proc.py                                                \\
+             -subj_id FT.e6                                           \\
+             -copy_anat FT/FT_anat+orig                               \\
+             -dsets FT/FT_epi_r?+orig.HEAD                            \\
+             -blocks tshift align tlrc volreg blur mask scale regress \\
+             -radial_correlate_blocks tcat volreg                     \\
+             -tcat_remove_first_trs 2                                 \\
+             -align_opts_aea -cost lpc+ZZ -giant_move                 \\
+             -tlrc_base MNI152_2009_template.nii.gz                   \\
+             -volreg_align_to MIN_OUTLIER                             \\
+             -volreg_align_e2a                                        \\
+             -volreg_tlrc_warp                                        \\
+             -blur_size 4.0                                           \\
+             -regress_stim_times FT/AV1_vis.txt FT/AV2_aud.txt        \\
+             -regress_stim_labels vis aud                             \\
+             -regress_basis 'BLOCK(20,1)'                             \\
+             -regress_opts_3dD -jobs 2 -gltsym 'SYM: vis -aud'        \\
+                 -glt_label 1 V-A                                     \\
+             -regress_motion_per_run                                  \\
+             -regress_censor_motion 0.3                               \\
+             -regress_censor_outliers 0.05                            \\
+             -regress_compute_fitts                                   \\
+             -regress_make_ideal_sum sum_ideal.1D                     \\
+             -regress_est_blur_epits                                  \\
+             -regress_est_blur_errts                                  \\
+             -regress_run_clustsim no                                 \\
+             -execute
+
+     * One could also use ANATICOR with task (e.g. -regress_anaticor_fast)
+       in the case of -regress_reml_exec.  3dREMLfit supports voxelwise
+       regression, but 3dDeconvolve does not.
+
+    Example 6b. A modern task example, with preferable options. ~2~
+
+       GOOD TO CONSIDER
+
+       This is based on Example 6, but is more complete.
+       Example 6 is meant to run quickly, as in an AFNI bootcamp setting.
+       Example 6b is meant to process more as we might suggest.
+
+          - apply -check_flip in align_epi_anat.py, to monitor consistency
+          - apply non-linear registration to MNI template, using output
+            from @SSwarper:
+              o apply skull-stripped anat in -copy_anat
+              o apply original anat as -anat_follower (QC, for comparison)
+              o pass warped anat and transforms via -tlrc_NL_warped_dsets,
+                to apply those already computed transformations
+          - use -mask_epi_anat to tighten the EPI mask (for QC),
+            intersecting it (full_mask) with the anat mask (mask_anat)
+          - use 3dREMLfit for the regression, to account for temporal
+            autocorrelation in the noise
+            (-regress_3dD_stop, -regress_reml_exec)
+          - generate the HTML QC report using the nicer pythonic functions
+            (requires matplotlib)
+       
+          afni_proc.py                                                \\
+             -subj_id FT.e6                                           \\
+             -copy_anat Qwarp/anat_warped/anatSS.FT.nii               \\
+             -anat_has_skull no                                       \\
+             -anat_follower anat_w_skull anat FT/FT_anat+orig         \\
+             -dsets FT/FT_epi_r?+orig.HEAD                            \\
+             -blocks tshift align tlrc volreg blur mask scale regress \\
+             -radial_correlate_blocks tcat volreg                     \\
+             -tcat_remove_first_trs 2                                 \\
+             -align_opts_aea -cost lpc+ZZ -giant_move -check_flip     \\
+             -tlrc_base MNI152_2009_template_SSW.nii.gz               \\
+             -tlrc_NL_warp                                            \\
+             -tlrc_NL_warped_dsets anatQQ.FT.nii                      \\
+                                   anatQQ.FT.aff12.1D                 \\
+                                   anatQQ.FT_WARP.nii                 \\
+             -volreg_align_to MIN_OUTLIER                             \\
+             -volreg_align_e2a                                        \\
+             -volreg_tlrc_warp                                        \\
+             -mask_epi_anat yes                                       \\
+             -blur_size 4.0                                           \\
+             -regress_stim_times FT/AV1_vis.txt FT/AV2_aud.txt        \\
+             -regress_stim_labels vis aud                             \\
+             -regress_basis 'BLOCK(20,1)'                             \\
+             -regress_opts_3dD -jobs 2 -gltsym 'SYM: vis -aud'        \\
+                 -glt_label 1 V-A                                     \\
+             -regress_motion_per_run                                  \\
+             -regress_censor_motion 0.3                               \\
+             -regress_censor_outliers 0.05                            \\
+             -regress_3dD_stop                                        \\
+             -regress_reml_exec                                       \\
+             -regress_compute_fitts                                   \\
+             -regress_make_ideal_sum sum_ideal.1D                     \\
+             -regress_est_blur_epits                                  \\
+             -regress_est_blur_errts                                  \\
+             -regress_run_clustsim no                                 \\
+             -html_review_style pythonic                              \\
+             -execute 
+
+       To compare one's own command against this one, consider adding
+            -compare_opts 'example 6b'
+       to the end of (or anywhere in) the current command, as in:
+
+            afni_proc.py ... my options ...   -compare_opts 'example 6b'
+
+    Example 7. Apply some esoteric options. ~2~
+
+       a. Blur only within the brain, as far as an automask can tell.  So
+          add -blur_in_automask to blur only within an automatic mask
+          created internally by 3dBlurInMask (akin to 3dAutomask).
+
+       b. Let the basis functions vary.  For some reason, we expect the
+          BOLD responses to the telephone classes to vary across the brain.
+          So we have decided to use TENT functions there.  Since the TR is
+          3.0s and we might expect up to a 45 second BOLD response curve,
+          use 'TENT(0,45,16)' for those first 3 out of 9 basis functions.
+
+          This means using -regress_basis_multi instead of -regress_basis,
+          and specifying all 9 basis functions appropriately.
+
+       c. Use amplitude modulation.
+
+          We expect responses to email stimuli to vary proportionally with
+          the number of punctuation characters used in the message (in
+          certain brain regions).  So we will use those values as auxiliary
+          parameters 3dDeconvolve by marrying the parameters to the stim
+          times (using 1dMarry).
+
+          Use -regress_stim_types to specify that the epos/eneg/eneu stim
+          classes should be passed to 3dDeconvolve using -stim_times_AM2.
+
+       d. Not only censor motion, but censor TRs when more than 10% of the
+          automasked brain are outliers.  So add -regress_censor_outliers.
+
+       e. Include both de-meaned and derivatives of motion parameters in
+          the regression.  So add '-regress_apply_mot_types demean deriv'.
+
+       f. Output baseline parameters so we can see the effect of motion.
+          So add -bout under option -regress_opts_3dD.
+
+       g. Save on RAM by computing the fitts only after 3dDeconvolve.
+          So add -regress_compute_fitts.
+
+       h. Speed things up.  Have 3dDeconvolve use 4 CPUs and skip the
+          single subject 3dClustSim execution.  So add '-jobs 4' to the
+          -regress_opts_3dD option and add '-regress_run_clustsim no'.
+
+            afni_proc.py -subj_id sb23.e7.esoteric                     \\
+                    -dsets sb23/epi_r??+orig.HEAD                      \\
+                    -blocks tshift align tlrc volreg blur mask         \\
+                            scale regress                              \\
+                    -copy_anat sb23/sb23_mpra+orig                     \\
+                    -tcat_remove_first_trs 3                           \\
+                    -align_opts_aea -cost lpc+ZZ                       \\
+                    -tlrc_base MNI152_2009_template.nii.gz             \\
+                    -tlrc_NL_warp                                      \\
+                    -volreg_align_to MIN_OUTLIER                       \\
+                    -volreg_align_e2a                                  \\
+                    -volreg_tlrc_warp                                  \\
+                    -mask_epi_anat yes                                 \\
+                    -blur_size 4                                       \\
+                    -blur_in_automask                                  \\
+                    -regress_stim_times sb23/stim_files/blk_times.*.1D \\
+                    -regress_stim_types times times times              \\
+                                        AM2   AM2   AM2                \\
+                                        times times times              \\
+                    -regress_stim_labels tneg tpos tneu                \\
+                                         eneg epos eneu                \\
+                                         fneg fpos fneu                \\
+                    -regress_basis_multi                               \\
+                       'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
+                       'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
+                       'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
+                    -regress_apply_mot_types demean deriv              \\
+                    -regress_motion_per_run                            \\
+                    -regress_censor_motion 0.3                         \\
+                    -regress_censor_outliers 0.1                       \\
+                    -regress_compute_fitts                             \\
+                    -regress_opts_3dD                                  \\
+                        -bout                                          \\
+                        -gltsym 'SYM: +eneg -fneg'                     \\
+                        -glt_label 1 eneg_vs_fneg                      \\
+                        -jobs 4                                        \\
+                    -regress_run_clustsim no                           \\
+                    -regress_est_blur_epits                            \\
+                    -regress_est_blur_errts
+
+    Example 8. Surface-based analysis. ~2~
+
+       This example is intended to be run from AFNI_data6/FT_analysis.
+       It is provided with the class data in file s03.ap.surface.
+
+       Add -surf_spec and -surf_anat to provide the required spec and
+       surface volume datasets.  The surface volume will be aligned to
+       the current anatomy in the processing script.  Two spec files
+       (lh and rh) are provided, one for each hemisphere (via wildcard).
+
+       Also, specify a (resulting) 6 mm FWHM blur via -blur_size.  This
+       does not add a blur, but specifies a resulting blur level.  So
+       6 mm can be given directly for correction for multiple comparisons
+       on the surface.
+
+       Censor per-TR motion above 0.3 mm.
+
+       Note that no -regress_est_blur_errts option is given, since that
+       applies to the volume only (and since the 6 mm blur is a resulting
+       blur level, so the estimates are not needed).
+
+       The -blocks option is provided, but it is the same as the default
+       for surface-based analysis, so is not really needed here.  Note that
+       the 'surf' block is added and the 'mask' block is removed from the
+       volume-based defaults.
+
+       important options:
+
+            -blocks         : includes surf, but no mask
+                              (default blocks for surf, so not needed)
+            -surf_anat      : volume aligned with surface
+            -surf_spec      : spec file(s) for surface
+
+       Note: one would probably want to use standard mesh surfaces here.
+             This example will be updated with them in the future.
+
+            afni_proc.py -subj_id FT.surf                            \\
+                -blocks tshift align volreg surf blur scale regress  \\
+                -copy_anat FT/FT_anat+orig                           \\
+                -dsets FT/FT_epi_r?+orig.HEAD                        \\
+                -surf_anat FT/SUMA/FTmb_SurfVol+orig                 \\
+                -surf_spec FT/SUMA/FTmb_?h.spec                      \\
+                -tcat_remove_first_trs 2                             \\
+                -align_opts_aea -cost lpc+ZZ                         \\
+                -volreg_align_to third                               \\
+                -volreg_align_e2a                                    \\
+                -blur_size 6                                         \\
+                -regress_stim_times FT/AV1_vis.txt FT/AV2_aud.txt    \\
+                -regress_stim_labels vis aud                         \\
+                -regress_basis 'BLOCK(20,1)'                         \\
+                -regress_motion_per_run                              \\
+                -regress_censor_motion 0.3                           \\
+                -regress_opts_3dD                                    \\
+                    -jobs 2                                          \\
+                    -gltsym 'SYM: vis -aud' -glt_label 1 V-A
+
+    Example 9. Resting state analysis (modern): ~2~
+
+       With censoring and bandpass filtering.
+
+       This is our suggested way to do pre-processing for resting state
+       analysis, under the assumption that no cardio/physio recordings
+       were made (see example 5 for cardio files).
+
+       Censoring due to motion has long been considered appropriate in
+       BOLD FMRI analysis, but is less common for those doing bandpass
+       filtering in RS FMRI because the FFT requires one to either break
+       the time axis (evil) or to replace the censored data with something
+       probably inappropriate.
+
+       Instead, it is slow (no FFT, but maybe SFT :) but effective to
+       regress frequencies within the regression model, where censoring
+       is simple.
+
+       inputs: anat, EPI
+       output: errts dataset (to be used for correlation)
+
+       special processing:
+          - despike, as another way to reduce motion effect
+             (see block despike)
+          - censor motion TRs at the same time as bandpassing data
+             (see -regress_censor_motion, -regress_bandpass)
+          - regress motion parameters AND derivatives
+             (see -regress_apply_mot_types)
+
+       Note: for resting state data, a more strict threshold may be a good
+             idea, since motion artifacts should play a bigger role than in
+             a task-based analysis.
+
+             So the typical suggestion of motion censoring at 0.3 for task
+             based analysis has been changed to 0.2 for this resting state
+             example, and censoring of outliers has also been added, at a
+             value of 5% of the brain mask.
+
+             Outliers are typically due to motion, and may capture motion
+             in some cases where the motion parameters do not, because
+             motion is not generally a whole-brain-between-TRs event.
+
+       Note: if regressing out regions of interest, either create the ROI
+             time series before the blur step, or remove blur from the list
+             of blocks (and apply any desired blur after the regression).
+
+       Note: it might be reasonable to estimate the blur using epits rather
+             than errts in the case of bandpassing.  Both options are
+             included here.
+
+       Note: scaling is optional here.  While scaling has no direct effect
+             on voxel correlations, it does have an effect on ROI averages
+             used for correlations.
+
+       Other options to consider: -tlrc_NL_warp, -anat_uniform_method
+
+            afni_proc.py -subj_id subj123                                \\
+              -dsets epi_run1+orig.HEAD                                  \\
+              -copy_anat anat+orig                                       \\
+              -blocks despike tshift align tlrc volreg blur mask         \\
+                      scale regress                                      \\
+              -tcat_remove_first_trs 3                                   \\
+              -tlrc_base MNI152_2009_template.nii.gz                     \\
+              -tlrc_NL_warp                                              \\
+              -volreg_align_e2a                                          \\
+              -volreg_tlrc_warp                                          \\
+              -mask_epi_anat yes                                         \\
+              -blur_size 4                                               \\
+              -regress_censor_motion 0.2                                 \\
+              -regress_censor_outliers 0.05                              \\
+              -regress_bandpass 0.01 0.1                                 \\
+              -regress_apply_mot_types demean deriv                      \\
+              -regress_est_blur_epits                                    \\
+              -regress_est_blur_errts
+
+    Example 9b. Resting state analysis with ANATICOR. ~2~
+
+       Like example #9, but also regress out the signal from locally
+       averaged white matter.  The only change is adding the option
+       -regress_anaticor.
+
+       Note that -regress_anaticor implies options -mask_segment_anat and
+       -mask_segment_erode.
+
+            afni_proc.py -subj_id subj123                                \\
+              -dsets epi_run1+orig.HEAD                                  \\
+              -copy_anat anat+orig                                       \\
+              -blocks despike tshift align tlrc volreg blur mask         \\
+                      scale regress                                      \\
+              -tcat_remove_first_trs 3                                   \\
+              -tlrc_base MNI152_2009_template.nii.gz                     \\
+              -tlrc_NL_warp                                              \\
+              -volreg_align_e2a                                          \\
+              -volreg_tlrc_warp                                          \\
+              -mask_epi_anat yes                                         \\
+              -blur_size 4                                               \\
+              -regress_anaticor                                          \\
+              -regress_censor_motion 0.2                                 \\
+              -regress_censor_outliers 0.05                              \\
+              -regress_bandpass 0.01 0.1                                 \\
+              -regress_apply_mot_types demean deriv                      \\
+              -regress_est_blur_epits                                    \\
+              -regress_est_blur_errts
+
+    Example 10. Resting state analysis, with tissue-based regressors. ~2~
+
+       Like example #9, but also regress the eroded white matter averages.
+       The WMe mask come from the Classes dataset, created by 3dSeg via the
+       -mask_segment_anat and -mask_segment_erode options.
+
+    ** While -mask_segment_anat also creates a CSF mask, that mask is ALL
+       CSF, not just restricted to the ventricles, for example.  So it is
+       probably not appropriate for use in tissue-based regression.
+
+       CSFe was previously used as an example of what one could do, but as
+       it is not advised, it has been removed.
+
+       Also, align to minimum outlier volume, and align to the anatomy
+       using cost function lpc+ZZ.
+
+       Note: it might be reasonable to estimate the blur using epits rather
+             than errts in the case of bandpassing.  Both options are
+             included here.
+
+            afni_proc.py -subj_id subj123                                \\
+              -dsets epi_run1+orig.HEAD                                  \\
+              -copy_anat anat+orig                                       \\
+              -blocks despike tshift align tlrc volreg blur mask         \\
+                      scale regress                                      \\
+              -tcat_remove_first_trs 3                                   \\
+              -align_opts_aea -cost lpc+ZZ                               \\
+              -tlrc_base MNI152_2009_template.nii.gz                     \\
+              -tlrc_NL_warp                                              \\
+              -volreg_align_to MIN_OUTLIER                               \\
+              -volreg_align_e2a                                          \\
+              -volreg_tlrc_warp                                          \\
+              -blur_size 4                                               \\
+              -mask_epi_anat yes                                         \\
+              -mask_segment_anat yes                                     \\
+              -mask_segment_erode yes                                    \\
+              -regress_censor_motion 0.2                                 \\
+              -regress_censor_outliers 0.05                              \\
+              -regress_bandpass 0.01 0.1                                 \\
+              -regress_apply_mot_types demean deriv                      \\
+              -regress_ROI WMe                                           \\
+              -regress_est_blur_epits                                    \\
+              -regress_est_blur_errts
+
+    Example 10b. Resting state analysis, as 10a with 3dRSFC. ~2~
+
+        This is for band passing and computation of ALFF, etc.
+
+      * This will soon use a modified 3dRSFC.
+
+        Like example #10, but add -regress_RSFC to bandpass via 3dRSFC.
+        Skip censoring and regression band passing because of the bandpass
+        operation in 3dRSFC.
+
+        To correspond to common tractography, this example stays in orig
+        space (no 'tlrc' block, no -volreg_tlrc_warp option).  Of course,
+        going to standard space is an option.
+
+            afni_proc.py -subj_id subj123                                \\
+              -dsets epi_run1+orig.HEAD                                  \\
+              -copy_anat anat+orig                                       \\
+              -blocks despike tshift align volreg blur mask scale regress \\
+              -tcat_remove_first_trs 3                                   \\
+              -volreg_align_e2a                                          \\
+              -blur_size 6.0                                             \\
+              -mask_apply epi                                            \\
+              -mask_segment_anat yes                                     \\
+              -mask_segment_erode yes                                    \\
+              -regress_bandpass 0.01 0.1                                 \\
+              -regress_apply_mot_types demean deriv                      \\
+              -regress_ROI WMe                                           \\
+              -regress_RSFC                                              \\
+              -regress_run_clustsim no                                   \\
+              -regress_est_blur_errts
+
+    Example 11. Resting state analysis (now even more modern :). ~2~
+
+     o Yes, censor (outliers and motion) and despike.
+     o Align the anatomy and EPI using the lpc+ZZ cost function, rather
+       than the default lpc one.  Apply -giant_move, in case the datasets
+       do not start off well-aligned.  Include -check_flip for good measure.
+     o Register EPI volumes to the one which has the minimum outlier
+          fraction (so hopefully the least motion).
+     o Use non-linear registration to MNI template (non-linear 2009_template).
+       * This adds a lot of processing time.
+       * Let @SSwarper align to template MNI152_2009_template_SSW.nii.gz.
+         Then use the resulting datasets in the afni_proc.py command below
+         via -tlrc_NL_warped_dsets.
+              @SSwarper -input FT_anat.nii         \\
+                        -subid FT                  \\
+                        -odir  FT_anat_warped      \\
+                        -base  MNI152_2009_template_SSW.nii.gz
+
+        - The SS (skull-stripped) can be given via -copy_anat, and the 
+          with-skull unifized anatU can be given as a follower.
+     o No bandpassing.
+     o Use fast ANATICOR method (slightly different from default ANATICOR).
+     o Use FreeSurfer segmentation for:
+         - regression of first 3 principal components of lateral ventricles
+         - ANATICOR white matter mask (for local white matter regression)
+       * For details on how these masks were created, see "FREESURFER NOTE"
+         in the help, as it refers to this "Example 11".
+     o Erode FS white matter and ventricle masks before application.
+     o Bring along FreeSurfer parcellation datasets:
+         - aaseg : NN interpolated onto the anatomical grid
+         - aeseg : NN interpolated onto the EPI        grid
+       * These 'aseg' follower datasets are just for visualization,
+         they are not actually required for the analysis.
+     o Compute average correlation volumes of the errts against the
+       the gray matter (aeseg) and ventricle (FSVent) masks.
+     o Run @radial_correlate at the ends of the tcat, volreg and regress
+       blocks.  If ANATICOR is being used to remove a scanner artifact, 
+       the errts radcor images might show the effect of this.
+
+       Note: it might be reasonable to use either set of blur estimates
+             here (from epits or errts).  The epits (uncleaned) dataset
+             has all of the noise (though what should be considered noise
+             in this context is not clear), while the errts is motion
+             censored.  For consistency in resting state, it would be
+             reasonable to stick with epits.  They will likely be almost
+             identical.
+
+        afni_proc.py -subj_id FT.11.rest                                 \\
+          -blocks despike tshift align tlrc volreg blur mask             \\
+                  scale regress                                          \\
+          -radial_correlate_blocks tcat volreg regress                   \\
+          -copy_anat anatSS.FT.nii                                       \\
+          -anat_has_skull no                                             \\
+          -anat_follower anat_w_skull anat anatU.FT.nii                  \\
+          -anat_follower_ROI aaseg anat aparc.a2009s+aseg_REN_all.nii.gz \\
+          -anat_follower_ROI aeseg epi  aparc.a2009s+aseg_REN_all.nii.gz \\
+          -anat_follower_ROI FSvent epi fs_ap_latvent.nii.gz             \\
+          -anat_follower_ROI FSWe epi fs_ap_wm.nii.gz                    \\
+          -anat_follower_erode FSvent FSWe                               \\
+          -dsets FT_epi_r?+orig.HEAD                                     \\
+          -tcat_remove_first_trs 2                                       \\
+          -align_opts_aea -cost lpc+ZZ -giant_move -check_flip           \\
+          -tlrc_base MNI152_2009_template_SSW.nii.gz                     \\
+          -tlrc_NL_warp                                                  \\
+          -tlrc_NL_warped_dsets anatQQ.FT.nii                            \\
+                                anatQQ.FT.aff12.1D                       \\
+                                anatQQ.FT_WARP.nii                       \\
+          -volreg_align_to MIN_OUTLIER                                   \\
+          -volreg_align_e2a                                              \\
+          -volreg_tlrc_warp                                              \\
+          -blur_size 4                                                   \\
+          -mask_epi_anat yes                                             \\
+          -regress_motion_per_run                                        \\
+          -regress_ROI_PC FSvent 3                                       \\
+          -regress_ROI_PC_per_run FSvent                                 \\
+          -regress_make_corr_vols aeseg FSvent                           \\
+          -regress_anaticor_fast                                         \\
+          -regress_anaticor_label FSWe                                   \\
+          -regress_censor_motion 0.2                                     \\
+          -regress_censor_outliers 0.05                                  \\
+          -regress_apply_mot_types demean deriv                          \\
+          -regress_est_blur_epits                                        \\
+          -regress_est_blur_errts                                        \\
+          -html_review_style pythonic
+
+    Example 11b. Similar to 11, but without FreeSurfer. ~2~
+
+     AFNI currently does not have a good program to extract ventricles.
+     But it can make a CSF mask that includes them.  So without FreeSurfer,
+     one could import a ventricle mask from the template (e.g. for TT space,
+     using TT_desai_dd_mpm+tlrc).  For example, assuming Talairach space
+     (and a 2.5 mm^3 final voxel grid) for the analysis, one could create a
+     ventricle mask as follows:
+
+            3dcalc -a ~/abin/TT_desai_dd_mpm+tlrc                       \\
+                   -expr 'amongst(a,152,170)' -prefix template_ventricle
+            3dresample -dxyz 2.5 2.5 2.5 -inset template_ventricle+tlrc \\
+                   -prefix template_ventricle_2.5mm
+
+     o Be explicit with 2.5mm, using '-volreg_warp_dxyz 2.5'.
+     o Use template TT_N27+tlrc, to be aligned with the desai atlas.
+     o No -anat_follower options, but use -mask_import to import the
+       template_ventricle_2.5mm dataset (and call it Tvent).
+     o Use -mask_intersect to intersect ventricle mask with the subject's
+       CSFe mask, making a more reliable subject ventricle mask (Svent).
+     o Ventricle principle components are created as per-run regressors.
+     o Make WMe and Svent correlation volumes, which are just for
+       entertainment purposes anyway.
+     o Run the cluster simulation.
+
+            afni_proc.py -subj_id FT.11b.rest                            \\
+              -blocks despike tshift align tlrc volreg blur mask         \\
+                      scale regress                                      \\
+              -copy_anat FT_anat+orig                                    \\
+              -dsets FT_epi_r?+orig.HEAD                                 \\
+              -tcat_remove_first_trs 2                                   \\
+              -align_opts_aea -cost lpc+ZZ                               \\
+              -tlrc_base TT_N27+tlrc                                     \\
+              -tlrc_NL_warp                                              \\
+              -volreg_align_to MIN_OUTLIER                               \\
+              -volreg_align_e2a                                          \\
+              -volreg_tlrc_warp                                          \\
+              -volreg_warp_dxyz 2.5                                      \\
+              -blur_size 4                                               \\
+              -mask_segment_anat yes                                     \\
+              -mask_segment_erode yes                                    \\
+              -mask_import Tvent template_ventricle_2.5mm+tlrc           \\
+              -mask_intersect Svent CSFe Tvent                           \\
+              -mask_epi_anat yes                                         \\
+              -regress_motion_per_run                                    \\
+              -regress_ROI_PC Svent 3                                    \\
+              -regress_ROI_PC_per_run Svent                              \\
+              -regress_make_corr_vols WMe Svent                          \\
+              -regress_anaticor_fast                                     \\
+              -regress_censor_motion 0.2                                 \\
+              -regress_censor_outliers 0.05                              \\
+              -regress_apply_mot_types demean deriv                      \\
+              -regress_est_blur_epits                                    \\
+              -regress_est_blur_errts                                    \\
+              -regress_run_clustsim yes
+
+    Example 12 background: Multi-echo data processing. ~2~
+
+     Processing multi-echo data should be similar to single echo data,
+     except for perhaps:
+
+        combine         : the addition of a 'combine' block
+        -dsets_me_echo  : specify ME data, per echo
+        -dsets_me_run   : specify ME data, per run (alternative to _echo)
+        -echo_times     : specify echo times (if needed)
+        -combine_method : specify method to combine echoes (if any)
+
+     An afni_proc.py command might be updated to include something like:
+
+        afni_proc.py ...                                     \\
+            -blocks tshift align tlrc volreg mask combine    \\
+                    blur scale regress                       \\
+            -dsets_me_echo epi_run*_echo_01.nii              \\
+            -dsets_me_echo epi_run*_echo_02.nii              \\
+            -dsets_me_echo epi_run*_echo_03.nii              \\
+            -echo_times 15 30.5 41                           \\
+            ...                                              \\
+            -mask_epi_anat yes                               \\
+            -combine_method OC                               \\
+            ...                                              \\
+
+
+    Example 12a. Multi-echo data processing - very simple. ~2~
+
+     Keep it simple and just focus on the basic ME options, plus a few
+     for controlling registration.
+
+     o This example uses 3 echoes of data across just 1 run.
+        - so use a single -dsets_me_run option to input EPI datasets
+     o Echo 2 is used to drive registration for all echoes.
+        - That is the default, but it is good to be explicit.
+     o The echo times are not needed, as the echoes are never combined.
+     o The echo are never combined (in this example), so that there
+       are always 3 echoes, even until the end.
+        - Note that the 'regress' block is not valid for multiple echoes.
+
+            afni_proc.py -subj_id FT.12a.ME                 \\
+              -blocks tshift align tlrc volreg mask blur    \\
+              -copy_anat FT_anat+orig                       \\
+              -dsets_me_run epi_run1_echo*.nii              \\
+              -reg_echo 2                                   \\
+              -tcat_remove_first_trs 2                      \\
+              -volreg_align_to MIN_OUTLIER                  \\
+              -volreg_align_e2a                             \\
+              -volreg_tlrc_warp
+
+    Example 12b. Multi-echo data processing - OC resting state. ~2~
+
+     Still keep this simple, mostly focusing on ME options, plus standard
+     ones for resting state.
+
+     o This example uses 3 echoes of data across just 1 run.
+        - so use a single -dsets_me_run option to input EPI datasets
+     o Echo 2 is used to drive registration for all echoes.
+        - That is the default, but it is good to be explicit.
+     o The echoes are combined via the 'combine' block.
+     o So -echo_times is used to provided them.
+
+            afni_proc.py -subj_id FT.12a.ME                 \\
+              -blocks tshift align tlrc volreg mask combine \\
+                      blur scale regress                    \\
+              -copy_anat FT_anat+orig                       \\
+              -dsets_me_run epi_run1_echo*.nii              \\
+              -echo_times 15 30.5 41                        \\
+              -reg_echo 2                                   \\
+              -tcat_remove_first_trs 2                      \\
+              -align_opts_aea -cost lpc+ZZ                  \\
+              -tlrc_base MNI152_2009_template.nii.gz        \\
+              -tlrc_NL_warp                                 \\
+              -volreg_align_to MIN_OUTLIER                  \\
+              -volreg_align_e2a                             \\
+              -volreg_tlrc_warp                             \\
+              -mask_epi_anat yes                            \\
+              -combine_method OC                            \\
+              -blur_size 4                                  \\
+              -regress_motion_per_run                       \\
+              -regress_censor_motion 0.2                    \\
+              -regress_censor_outliers 0.05                 \\
+              -regress_apply_mot_types demean deriv         \\
+              -regress_est_blur_epits
+
+    Example 12c. Multi-echo data processing - ME-ICA resting state. ~2~
+
+     As above, but run tedana.py for MEICA denoising.
+
+     o Since tedana.py will mask the data, it may be preferable to
+       blur only within that mask (-blur_in_mask yes).
+     o A task analysis using tedana might look much the same,
+       but with the extra -regress options for the tasks.
+
+            afni_proc.py -subj_id FT.12a.ME                 \\
+              -blocks tshift align tlrc volreg mask combine \\
+                      blur scale regress                    \\
+              -copy_anat FT_anat+orig                       \\
+              -dsets_me_run epi_run1_echo*.nii              \\
+              -echo_times 15 30.5 41                        \\
+              -reg_echo 2                                   \\
+              -tcat_remove_first_trs 2                      \\
+              -align_opts_aea -cost lpc+ZZ                  \\
+              -tlrc_base MNI152_2009_template.nii.gz        \\
+              -tlrc_NL_warp                                 \\
+              -volreg_align_to MIN_OUTLIER                  \\
+              -volreg_align_e2a                             \\
+              -volreg_tlrc_warp                             \\
+              -mask_epi_anat yes                            \\
+              -combine_method tedana                        \\
+              -blur_size 4                                  \\
+              -blur_in_mask yes                             \\
+              -regress_motion_per_run                       \\
+              -regress_censor_motion 0.2                    \\
+              -regress_censor_outliers 0.05                 \\
+              -regress_apply_mot_types demean deriv         \\
+              -regress_est_blur_epits
+
+     Consider an alternative combine method, 'tedana_OC_tedort'.
+
+    Example 13. Complicated ME, surface-based resting state example. ~2~
+
+     Key aspects of this example:
+
+        - multi-echo data, using "optimally combined" echoes
+        - resting state analysis (without band passing)
+        - surface analysis
+        - blip up/blip down distortion correction
+        - slice-wise regression of physiological parameters (RETROICOR)
+        - ventricle principal component regression (3 PCs)
+        - EPI volreg to per-run MIN_OUTLIER, with across-runs allineate
+        - QC: @radial_correlate on tcat and volreg block results
+        - QC: pythonic html report
+
+        * since this is a surface-based example, the are no tlrc options
+
+     Minor aspects:
+
+        - a FWHM=6mm blur is applied, since blur on surface is TO is size
+
+     Note: lacking good sample data for this example, it is simply faked
+           for demonstration (echoes are identical, fake ricor parameters
+           are not part of this data tree).
+
+          # use data_dir variable for tracking inputs
+          set data_dir = FT
+          afni_proc.py -subj_id FT.complicated                          \\
+             # == include ricor, mask/combine, and surf blocks          \\
+             -blocks despike ricor tshift align volreg                  \\
+                     mask combine surf blur scale regress               \\
+             # == QC: radial_correlate_blocks                           \\
+             -radial_correlate_blocks tcat volreg                       \\
+             # == reverse blip distortion correction                    \\
+             -blip_forward_dset $data_dir/FT_epi_r1+orig.HEAD'[0]'      \\
+             -blip_reverse_dset $data_dir/FT_epi_r1+orig.HEAD'[0]'      \\
+             # == anat and anat followers, vent PC regress              \\
+             -copy_anat $data_dir/FT_anat+orig                          \\
+             -anat_follower_ROI FSvent epi $data_dir/SUMA/FT_vent.nii   \\
+             -anat_follower_erode FSvent                                \\
+             -regress_ROI_PC FSvent 3                                   \\
+             -regress_ROI_PC_per_run FSvent                             \\
+             -regress_make_corr_vols FSvent                             \\
+             # == multi-echo EPI, times, combine method                 \\
+             -dsets_me_echo $data_dir/FT_epi_r?+orig.HEAD               \\
+             -dsets_me_echo $data_dir/FT_epi_r?+orig.HEAD               \\
+             -dsets_me_echo $data_dir/FT_epi_r?+orig.HEAD               \\
+             -echo_times 11 22.72 34.44                                 \\
+             -combine_method OC                                         \\
+             -tcat_remove_first_trs 2                                   \\
+             -tshift_interp -wsinc9                                     \\
+             -mask_epi_anat yes                                         \\
+             # == RETROICOR per run                                     \\
+             -ricor_regs_nfirst 2                                       \\
+             -ricor_regs $data_dir/fake.slibase.FT.r?.1D                \\
+             -ricor_regress_method per-run                              \\
+             # == alignment opts, and post volreg allineate             \\
+             -align_opts_aea -cost lpc+ZZ -giant_move                   \\
+             -volreg_align_to MIN_OUTLIER                               \\
+             -volreg_align_e2a                                          \\
+             -volreg_post_vr_allin yes                                  \\
+             -volreg_pvra_base_index MIN_OUTLIER                        \\
+             -volreg_warp_final_interp wsinc5                           \\
+             # == surface analysis                                      \\
+             -surf_anat $data_dir/SUMA/FT_SurfVol.nii                   \\
+             -surf_spec $data_dir/SUMA/std.141.FT_?h.spec               \\
+             # == blur size, censoring, other regression                \\
+             -blur_size 6                                               \\
+             -regress_censor_motion 0.2                                 \\
+             -regress_censor_outliers 0.05                              \\
+             -regress_motion_per_run                                    \\
+             -regress_apply_mot_types demean deriv                      \\
+             -html_review_style pythonic
+
+
+--------------------------------------------------
+-ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated ** ~2~
+
+    a1. Apply -ask_me in the most basic form, with no other options.
+
+            afni_proc.py -ask_me
+
+    a2. Supply input datasets.
+
+            afni_proc.py -ask_me -dsets ED/ED_r*.HEAD
+
+    a3. Same as a2, but supply the datasets in expanded form.
+        No suffix (.HEAD) is needed when wildcards are not used.
+
+            afni_proc.py -ask_me                          \\
+                 -dsets ED/ED_r01+orig ED/ED_r02+orig     \\
+                        ED/ED_r03+orig ED/ED_r04+orig     \\
+                        ED/ED_r05+orig ED/ED_r06+orig     \\
+                        ED/ED_r07+orig ED/ED_r08+orig     \\
+                        ED/ED_r09+orig ED/ED_r10+orig
+
+    a4. Supply datasets, stim_times files and labels.
+
+            afni_proc.py -ask_me                                    \\
+                    -dsets ED/ED_r*.HEAD                            \\
+                    -regress_stim_times misc_files/stim_times.*.1D  \\
+                    -regress_stim_labels ToolMovie HumanMovie       \\
+                                         ToolPoint HumanPoint
 
 """
 g_help_notes = """
-    ==================================================
-    Many NOTE sections: ~1~
-    ==================================================
-
-    --------------------------------------------------
-    GENERAL ANALYSIS NOTE: ~2~
+==================================================
+Many NOTE sections: ~1~
+==================================================
+
+--------------------------------------------------
+GENERAL ANALYSIS NOTE: ~2~
 
-    How might one run a full analysis?  Here are some details to consider.
+How might one run a full analysis?  Here are some details to consider.
 
-    0. Expect to re-run the full analysis.  This might be to fix a mistake, to
-       change applied options or to run with current software, to name a few
-       possibilities.  So...
+0. Expect to re-run the full analysis.  This might be to fix a mistake, to
+   change applied options or to run with current software, to name a few
+   possibilities.  So...
 
-         - keep permanently stored input data separate from computed results
-           (one should be able to easily delete the results to start over)
-         - keep scripts in yet another location
-         - use file naming that is consistent across subjects and groups,
-           making it easy to script with
-
-    1. Script everything.  One should be able to carry out the full analysis
-       just by running the main scripts.
-
-       Learning is best done by typing commands and looking at data, including
-       the input to and output from said commands.  But running an analysis for
-       publication should not rely on typing complicated commands or pressing
-       buttons in a GUI (graphical user interface).
-
-         - it is easy to apply to new subjects
-         - the steps can be clear and unambiguous (no magic or black boxes)
-         - some scripts can be included with publication
-           (e.g. an afni_proc.py command, with the AFNI version)
+     - keep permanently stored input data separate from computed results
+       (one should be able to easily delete the results to start over)
+     - keep scripts in yet another location
+     - use file naming that is consistent across subjects and groups,
+       making it easy to script with
+
+1. Script everything.  One should be able to carry out the full analysis
+   just by running the main scripts.
+
+   Learning is best done by typing commands and looking at data, including
+   the input to and output from said commands.  But running an analysis for
+   publication should not rely on typing complicated commands or pressing
+   buttons in a GUI (graphical user interface).
+
+     - it is easy to apply to new subjects
+     - the steps can be clear and unambiguous (no magic or black boxes)
+     - some scripts can be included with publication
+       (e.g. an afni_proc.py command, with the AFNI version)
 
-         - using a GUI relies on consistent button pressing, making it much
-           more difficult to *correctly* repeat, or even understand
-
-    2. Analyze and perform quality control on new subjects promptly.
-
-         - any problems with the acquisition would (hopefully) be caught early
-         - can compare basic quality control measures quickly
-
-    3. LOOK AT YOUR DATA.  Quality control is best done by researchers.
-       Software should not be simply trusted.
-
-         - afni_proc.py processing scripts write guiding @ss_review_driver
-           scripts for *minimal* per-subject quality control (i.e. at a
-           minimum, run that for every subject)
-         - initial subjects should be scrutinized (beyond @ss_review_driver)
-
-         - concatenate anat_final datasets to look for consistency
-         - concatenate final_epi datasets to look for consistency
-         - run gen_ss_review_table.py on the out.ss_review*.txt files
-           (making a spreadsheet to quickly scan for outlier subjects)
-
-         - many issues can be detected by software, buy those usually just come
-           as warnings to the researcher
-         - similarly, some issues will NOT be detected by the software
-         - for QC, software can assist the researcher, not replace them
-
-         NOTE: Data from external sites should be heavily scrutinized,
-               including any from well known public repositories.
-
-    4. Consider regular software updates, even as new subjects are acquired.
-       This ends up requiring a full re-analysis at the end.
-
-       If it will take a while (one year or more?) to collect data, update the
-       software regularly (weekly?  monthly?).  Otherwise, the analysis ends up
-       being done with old software.
-
-          - analysis is run with current, rather than old software
-          - will help detect changes in the software (good ones or bad ones)
-          - at a minimum, more quality control tools tend to show up
-          - keep a copy of the prior software version, in case comparisons are
-            desired (@update.afni.binaries does keep one prior version)
-          - the full analysis should be done with one software version, so once
-            all datasets are collected, back up the current analysis and re-run
-            the entire thing with the current software
-          - keep a snapshot of the software package used for the analysis
-          - report the software version in any publication
-
-    5. Here is a sample (tcsh) script that might run a basic analysis on
-       one or more subjects:
-
-       ======================================================================
-       sample analysis script ~3~
-       ======================================================================
-
-       #!/bin/tcsh
-
-       # --------------------------------------------------
-       # note fixed top-level directories
-       set data_root = /main/location/of/all/data
-
-       set input_root = $data_root/scanner_data
-       set output_root = $data_root/subject_analysis
-
-       # --------------------------------------------------
-       # get a list of subjects, or just use one (consider $argv)
-       cd $input root
-       set subjects = ( subj* )
-       cd -
-
-       # or perhaps just process one subject?
-       set subjects = ( subj_017 )
-
-
-       # --------------------------------------------------
-       # process all subjects
-       foreach subj_id ( $subjects )
-
-          # --------------------------------------------------
-          # note input and output directories
-          set subj_indir = $input_root/$subj_id
-          set subj_outdir = $output_root/$subj_id
-
-          # --------------------------------------------------
-          # if output dir exists, this subject has already been processed
-          if ( -d $subj_outdir ) then
-             echo "** results dir already exists, skipping subject $subj_id"
-             continue
-          endif
-
-          # --------------------------------------------------
-          # otherwise create the output directory, write an afni_proc.py
-          # command to it, and fire it up
-
-          mkdir -p $subj_outdir
-          cd $subj_outdir
-
-          # create a run.afni_proc script in this directory
-          cat > run.afni_proc << EOF
-
-          # notes:
-          #   - consider different named inputs (rather than OutBrick)
-          #   - verify how many time points to remove at start (using 5)
-          #   - note which template space is preferable (using MNI)
-          #   - consider non-linear alignment via -tlrc_NL_warp
-          #   - choose blur size (using FWHM = 4 mm)
-          #   - choose basis function (using BLOCK(2,1), for example)
-          #   - assuming 4 CPUs for linear regression
-          #   - afni_proc.py will actually run the proc script (-execute)
-
-
-          afni_proc.py -subj_id $subj_id                          \\
-              -blocks tshift align tlrc volreg blur mask regress  \\
-              -copy_anat $subj_indir/anat+orig                    \\
-              -dsets                                              \\
-                  $subj_indir/epi_r1+orig                         \\
-                  $subj_indir/epi_r2+orig                         \\
-                  $subj_indir/epi_r3+orig                         \\
-              -tcat_remove_first_trs 5                            \\
-              -align_opts_aea -cost lpc+ZZ                        \\
-              -tlrc_base MNI152_T1_2009c+tlrc                     \\
-              -tlrc_NL_warp                                       \\
-              -volreg_align_to MIN_OUTLIER                        \\
-              -volreg_align_e2a                                   \\
-              -volreg_tlrc_warp                                   \\
-              -blur_size 4.0                                      \\
-              -regress_motion_per_run                             \\
-              -regress_censor_motion 0.3                          \\
-              -regress_reml_exec -regress_3dD_stop                \\
-              -regress_stim_times                                 \\
-                  $stim_dir/houses.txt                            \\
-                  $stim_dir/faces.txt                             \\
-                  $stim_dir/doughnuts.txt                         \\
-                  $stim_dir/pizza.txt                             \\
-              -regress_stim_labels                                \\
-                  house face nuts za                              \\
-              -regress_basis 'BLOCK(2,1)'                         \\
-              -regress_opts_3dD                                   \\
-                  -jobs 4                                         \\
-                  -gltsym 'SYM: house -face' -glt_label 1 H-F     \\
-                  -gltsym 'SYM: nuts -za'    -glt_label 2 N-Z     \\
-              -regress_est_blur_errts                             \\
-              -execute
-
-       EOF
-       # EOF terminates the 'cat > run.afni_proc' command, above
-       # (it must not be indented in the script)
-
-          # now run the analysis (generate proc and execute)
-          tcsh run.afni_proc
-
-       # end loop over subjects
-       end
-
-       ======================================================================
-
-    --------------------------------------------------
-    DIRECTORY STRUCTURE NOTE: ~2~
-
-    We are working to have a somewhat BIDS-like directory structure.  If our
-    tools know where to be able to find processed data, many things beyond the
-    single subject level can be automated.
-    
-    Starting with a main STUDY (ds000210 in the example) tree, the directory
-    structure has individual subject input trees at the top level.  Each
-    subject directory (e.g. sub-001) would contain all of the original data for
-    that subject, possibly including multiple tasks or resting state data,
-    anatomical, DWI, etc.  The example includes 1 run of rest, 3 runs of the
-    cuedSGT task data, and corresponding cuedSGT timing files.
-
-    Processed data would then go under a 'derivatives' directory under STUDY
-    (ds000210), with each sub-directory being a single analysis.  The example
-    shows a preperatory analysis to do non-linear registration, plus a resting
-    state analysis and the cuedSGT analysis.
-
-    In our case, assuming one is using non-linear registration, the derivatives
-    directory might contain directories like:
-
-        AFNI_01_SSwarp      - single subject non-linear warp results
-                              (these would be used as input to afni_proc.py
-                              in any other analyses)
-
-        AFNI_02_task_XXXX   - some main analysis, including single subject
-                              (via afni_proc.py?) and possibly group results
-
-        AFNI_03_rest        - maybe a resting state analysis, for example
-
-
-    So a sample directory tree might look something like:
-
-    ds000210 (main study directory)
-    |        \\                \\
-    sub-001  sub-002           derivatives
-   /                           |            \\               \\
-  --anat                    AFNI_01_SSwarp  AFNI_02_rest    AFNI_03_cuedSGT
-       \\                    |               |        \\
-       sub-001_T1w.nii.gz   sub-001         sub-001   sub-002  ...
-                             |               |
-  --func                    WARP.nii        cmd.afni_proc
-       \\                                    proc.sub-001
-       sub-001_task-rest_run-01.nii.gz      output.proc.sub-001
-       sub-001_task-cuedSGT_run-01.nii.gz   sub-001.results
-       sub-001_task-cuedSGT_run-02.nii.gz   stim_timing
-       sub-001_task-cuedSGT_run-03.nii.gz
-       sub-001_task-cuedSGT_run-01_events.tsv
-       sub-001_task-cuedSGT_run-02_events.tsv
-       sub-001_task-cuedSGT_run-03_events.tsv
-
-    --------------------------------------------------
-    QUALITY CONTROL NOTE: ~2~
-
-    Look at the data.
-
-    Nothing replaces a living human performing quality control checks by
-    looking at the data.  And the more a person looks at the data, the better
-    they get at spotting anomalies.
-
-    There are 3 types of QC support generated by afni_proc.py, a static QC
-    HTML page, scripts to help someone review the data, and individual text
-    or image files.
-
-        ----------------------------------------------------------------------
-        QC_$subj/index.html     - auto-generated web page
+     - using a GUI relies on consistent button pressing, making it much
+       more difficult to *correctly* repeat, or even understand
+
+2. Analyze and perform quality control on new subjects promptly.
+
+     - any problems with the acquisition would (hopefully) be caught early
+     - can compare basic quality control measures quickly
+
+3. LOOK AT YOUR DATA.  Quality control is best done by researchers.
+   Software should not be simply trusted.
+
+     - afni_proc.py processing scripts write guiding @ss_review_driver
+       scripts for *minimal* per-subject quality control (i.e. at a
+       minimum, run that for every subject)
+     - initial subjects should be scrutinized (beyond @ss_review_driver)
+
+     - concatenate anat_final datasets to look for consistency
+     - concatenate final_epi datasets to look for consistency
+     - run gen_ss_review_table.py on the out.ss_review*.txt files
+       (making a spreadsheet to quickly scan for outlier subjects)
+
+     - many issues can be detected by software, buy those usually just come
+       as warnings to the researcher
+     - similarly, some issues will NOT be detected by the software
+     - for QC, software can assist the researcher, not replace them
+
+     NOTE: Data from external sites should be heavily scrutinized,
+           including any from well known public repositories.
+
+4. Consider regular software updates, even as new subjects are acquired.
+   This ends up requiring a full re-analysis at the end.
+
+   If it will take a while (one year or more?) to collect data, update the
+   software regularly (weekly?  monthly?).  Otherwise, the analysis ends up
+   being done with old software.
+
+      - analysis is run with current, rather than old software
+      - will help detect changes in the software (good ones or bad ones)
+      - at a minimum, more quality control tools tend to show up
+      - keep a copy of the prior software version, in case comparisons are
+        desired (@update.afni.binaries does keep one prior version)
+      - the full analysis should be done with one software version, so once
+        all datasets are collected, back up the current analysis and re-run
+        the entire thing with the current software
+      - keep a snapshot of the software package used for the analysis
+      - report the software version in any publication
+
+5. Here is a sample (tcsh) script that might run a basic analysis on
+   one or more subjects:
+
+   ======================================================================
+   sample analysis script ~3~
+   ======================================================================
+
+   #!/bin/tcsh
+
+   # --------------------------------------------------
+   # note fixed top-level directories
+   set data_root = /main/location/of/all/data
+
+   set input_root = $data_root/scanner_data
+   set output_root = $data_root/subject_analysis
+
+   # --------------------------------------------------
+   # get a list of subjects, or just use one (consider $argv)
+   cd $input root
+   set subjects = ( subj* )
+   cd -
+
+   # or perhaps just process one subject?
+   set subjects = ( subj_017 )
+
+
+   # --------------------------------------------------
+   # process all subjects
+   foreach subj_id ( $subjects )
+
+      # --------------------------------------------------
+      # note input and output directories
+      set subj_indir = $input_root/$subj_id
+      set subj_outdir = $output_root/$subj_id
+
+      # --------------------------------------------------
+      # if output dir exists, this subject has already been processed
+      if ( -d $subj_outdir ) then
+         echo "** results dir already exists, skipping subject $subj_id"
+         continue
+      endif
+
+      # --------------------------------------------------
+      # otherwise create the output directory, write an afni_proc.py
+      # command to it, and fire it up
+
+      mkdir -p $subj_outdir
+      cd $subj_outdir
+
+      # create a run.afni_proc script in this directory
+      cat > run.afni_proc << EOF
+
+      # notes:
+      #   - consider different named inputs (rather than OutBrick)
+      #   - verify how many time points to remove at start (using 5)
+      #   - note which template space is preferable (using MNI)
+      #   - consider non-linear alignment via -tlrc_NL_warp
+      #   - choose blur size (using FWHM = 4 mm)
+      #   - choose basis function (using BLOCK(2,1), for example)
+      #   - assuming 4 CPUs for linear regression
+      #   - afni_proc.py will actually run the proc script (-execute)
+
+
+      afni_proc.py -subj_id $subj_id                          \\
+          -blocks tshift align tlrc volreg blur mask regress  \\
+          -copy_anat $subj_indir/anat+orig                    \\
+          -dsets                                              \\
+              $subj_indir/epi_r1+orig                         \\
+              $subj_indir/epi_r2+orig                         \\
+              $subj_indir/epi_r3+orig                         \\
+          -tcat_remove_first_trs 5                            \\
+          -align_opts_aea -cost lpc+ZZ                        \\
+          -tlrc_base MNI152_2009_template.nii.gz              \\
+          -tlrc_NL_warp                                       \\
+          -volreg_align_to MIN_OUTLIER                        \\
+          -volreg_align_e2a                                   \\
+          -volreg_tlrc_warp                                   \\
+          -blur_size 4.0                                      \\
+          -regress_motion_per_run                             \\
+          -regress_censor_motion 0.3                          \\
+          -regress_reml_exec -regress_3dD_stop                \\
+          -regress_stim_times                                 \\
+              $stim_dir/houses.txt                            \\
+              $stim_dir/faces.txt                             \\
+              $stim_dir/doughnuts.txt                         \\
+              $stim_dir/pizza.txt                             \\
+          -regress_stim_labels                                \\
+              house face nuts za                              \\
+          -regress_basis 'BLOCK(2,1)'                         \\
+          -regress_opts_3dD                                   \\
+              -jobs 4                                         \\
+              -gltsym 'SYM: house -face' -glt_label 1 H-F     \\
+              -gltsym 'SYM: nuts -za'    -glt_label 2 N-Z     \\
+          -regress_est_blur_errts                             \\
+          -execute
+
+   EOF
+   # EOF terminates the 'cat > run.afni_proc' command, above
+   # (it must not be indented in the script)
+
+      # now run the analysis (generate proc and execute)
+      tcsh run.afni_proc
+
+   # end loop over subjects
+   end
+
+   ======================================================================
+
+--------------------------------------------------
+DIRECTORY STRUCTURE NOTE: ~2~
+
+We are working to have a somewhat BIDS-like directory structure.  If our
+tools know where to be able to find processed data, many things beyond the
+single subject level can be automated.
+
+Starting with a main STUDY (ds000210 in the example) tree, the directory
+structure has individual subject input trees at the top level.  Each
+subject directory (e.g. sub-001) would contain all of the original data for
+that subject, possibly including multiple tasks or resting state data,
+anatomical, DWI, etc.  The example includes 1 run of rest, 3 runs of the
+cuedSGT task data, and corresponding cuedSGT timing files.
+
+Processed data would then go under a 'derivatives' directory under STUDY
+(ds000210), with each sub-directory being a single analysis.  The example
+shows a preperatory analysis to do non-linear registration, plus a resting
+state analysis and the cuedSGT analysis.
+
+In our case, assuming one is using non-linear registration, the derivatives
+directory might contain directories like:
+
+    AFNI_01_SSwarp      - single subject non-linear warp results
+                          (these would be used as input to afni_proc.py
+                          in any other analyses)
+
+    AFNI_02_task_XXXX   - some main analysis, including single subject
+                          (via afni_proc.py?) and possibly group results
+
+    AFNI_03_rest        - maybe a resting state analysis, for example
+
+
+      So a sample directory tree might look something like:
+   
+      ds000210 (main study directory)
+      |        \\                \\
+      sub-001  sub-002           derivatives
+     /                           |            \\               \\
+    --anat                    AFNI_01_SSwarp  AFNI_02_rest    AFNI_03_cuedSGT
+         \\                    |               |        \\
+         sub-001_T1w.nii.gz   sub-001         sub-001   sub-002  ...
+                               |               |
+    --func                    WARP.nii        cmd.afni_proc
+         \\                                    proc.sub-001
+         sub-001_task-rest_run-01.nii.gz      output.proc.sub-001
+         sub-001_task-cuedSGT_run-01.nii.gz   sub-001.results
+         sub-001_task-cuedSGT_run-02.nii.gz   stim_timing
+         sub-001_task-cuedSGT_run-03.nii.gz
+         sub-001_task-cuedSGT_run-01_events.tsv
+         sub-001_task-cuedSGT_run-02_events.tsv
+         sub-001_task-cuedSGT_run-03_events.tsv
+
+--------------------------------------------------
+QUALITY CONTROL NOTE: ~2~
+
+Look at the data.
+
+Nothing replaces a living human performing quality control checks by
+looking at the data.  And the more a person looks at the data, the better
+they get at spotting anomalies.
+
+There are 3 types of QC support generated by afni_proc.py, a static QC
+HTML page, scripts to help someone review the data, and individual text
+or image files.
+
+    ----------------------------------------------------------------------
+    QC_$subj/index.html     - auto-generated web page
 
-           This web page and enclosing QC_$subj directory are automatically
-           generated by a sequence of programs:
+       This web page and enclosing QC_$subj directory are automatically
+       generated by a sequence of programs:
 
-                apqc_make_tcsh.py
-                @ss_review_html
-                apqc_make_html.py
-
-           This web page was made to encapsulate the @ss_review_driver results
-           in a static image, and will be enhanced separately.
+            apqc_make_tcsh.py
+            @ss_review_html
+            apqc_make_html.py
+
+       This web page was made to encapsulate the @ss_review_driver results
+       in a static image, and will be enhanced separately.
 
-        ----------------------------------------------------------------------
-        scripts (the user can run from the results directory):
+    ----------------------------------------------------------------------
+    scripts (the user can run from the results directory):
 
-           @epi_review.FT               - view original (post-SS) EPI data
-           @ss_review_basic             - show basic QC measures, in text
-                                          (automatically run)
-           @ss_review_driver            - minimum recommended QC review
-           @ss_review_driver_commands   - same, as pure commands
+       @epi_review.FT               - view original (post-SS) EPI data
+       @ss_review_basic             - show basic QC measures, in text
+                                      (automatically run)
+       @ss_review_driver            - minimum recommended QC review
+       @ss_review_driver_commands   - same, as pure commands
 
-           @ss_review_html              - generate HTML pages under QC_$subj
-                                          (automatically run)
+       @ss_review_html              - generate HTML pages under QC_$subj
+                                      (automatically run)
 
-           Notably, the @ss_review_driver script is recommended as the minimum
-           QC to perform on every subject.
+       Notably, the @ss_review_driver script is recommended as the minimum
+       QC to perform on every subject.
 
-        ----------------------------------------------------------------------
-        other files or datasets:   (* shown or reviewed by @ss_review_driver)
-
-        *  3dDeconvolve.err
+    ----------------------------------------------------------------------
+    other files or datasets:   (* shown or reviewed by @ss_review_driver)
+
+    *  3dDeconvolve.err
 
-              This contains any warnings (or errors) from 3dDeconvolve.  This
-              will be created even if 3dREMLfit is run.
+          This contains any warnings (or errors) from 3dDeconvolve.  This
+          will be created even if 3dREMLfit is run.
 
-        *  anat_final.$subj
-
-              This AFNI dataset should be registered with the final stats
-              (including final_epi_vr_base) and with any applied template.
-              There is also a version with the skull, anat_w_skull_warped.
-
-        *  blur_est.$subj.1D
+    *  anat_final.$subj
+
+          This AFNI dataset should be registered with the final stats
+          (including final_epi_vr_base) and with any applied template.
+          There is also a version with the skull, anat_w_skull_warped.
+
+    *  blur_est.$subj.1D
 
-              This (text) file has the mixed-model ACF (and possibly the FWHM)
-              parameter estimates of the blur.
+          This (text) file has the mixed-model ACF (and possibly the FWHM)
+          parameter estimates of the blur.
 
-           Classes
+       Classes
 
-              If 3dSeg is run for anatomical segmentation, this AFNI dataset
-              contains the results, a set of masks per tissue class.  The
-              white matter mask from this might be used for ANATICOR, for
-              example.
+          If 3dSeg is run for anatomical segmentation, this AFNI dataset
+          contains the results, a set of masks per tissue class.  The
+          white matter mask from this might be used for ANATICOR, for
+          example.
 
-           corr_brain
+       corr_brain
 
-              This AFNI dataset shows the correlation of every voxel with the
-              global signal (brain average time series).
+          This AFNI dataset shows the correlation of every voxel with the
+          global signal (average time series over brain mask).
 
-              One can request other corr_* datasets, based on any tissue or ROI
-              mask.  See -regress_make_corr_vols for details.
+          One can request other corr_* datasets, based on any tissue or ROI
+          mask.  See -regress_make_corr_vols for details.
 
-        *  dfile_rall.1D (and efile.r??.1D)
+    *  dfile_rall.1D (and efile.r??.1D)
 
-              This contains the 6 estimated motion parameters across all runs.
-              These parameters are generally used as regressors of no interest,
-              hopefully per run.  They are also used to generate the enorm time
-              series, which is then used for censoring.
+          This contains the 6 estimated motion parameters across all runs.
+          These parameters are generally used as regressors of no interest,
+          hopefully per run.  They are also used to generate the enorm time
+          series, which is then used for censoring.
 
-           files_ACF
+       files_ACF
 
-              This directory contains ACF values at different radii per run.
-              One can plot them using something like:
+          This directory contains ACF values at different radii per run.
+          One can plot them using something like:
 
-                set af = files_ACF/out.3dFWHMx.ACF.errts.r01.1D
-                1dplot -one -x $af'[0]' $af'[1,2,3]'
+            set af = files_ACF/out.3dFWHMx.ACF.errts.r01.1D
+            1dplot -one -x $af'[0]' $af'[1,2,3]'
 
-        *  final_epi_vr_base
+    *  final_epi_vr_base
 
-              This dataset is of the EPI volume registration base (used by
-              3dvolreg), warped to the final space.  It should be in alignment
-              with the anat_final dataset (and the template).
+          This dataset is of the EPI volume registration base (used by
+          3dvolreg), warped to the final space.  It should be in alignment
+          with the anat_final dataset (and the template).
 
-           fitts.$subj
+       fitts.$subj
 
-              This dataset contains the model fit to the time series data.
-              One can view these time series together in afni using the
-              Dataset #N plugin.
+          This dataset contains the model fit to the time series data.
+          One can view these time series together in afni using the
+          Dataset #N plugin.
 
-           full_mask.$subj
+       full_mask.$subj
 
-              This dataset is a brain mask based on the EPI data, generated
-              by 3dAutomask.  Though the default is to apply it as part of the
-              main regression, it is used for computations like ACF and TSNR.
+          This dataset is a brain mask based on the EPI data, generated
+          by 3dAutomask.  Though the default is to apply it as part of the
+          main regression, it is used for computations like ACF and TSNR.
 
-           ideal_*.1D
+       ideal_*.1D
 
-              These time series text files are the ideal regressors of
-              interest, if appropriate to calculate.
+          These time series text files are the ideal regressors of
+          interest, if appropriate to calculate.
 
-           mat.basewarp.aff12.1D
+       mat.basewarp.aff12.1D
 
-              This is used to create the final_epi_vr_base dataset.
+          This is used to create the final_epi_vr_base dataset.
 
-              Assuming no non-linear registration (including distortion
-              correction), then this matrix holds the combined affine
-              transformation of the EPI to anat and to standard space,
-              as applied to the volume registration base (it does not contain
-              motion correction transformations).
+          Assuming no non-linear registration (including distortion
+          correction), then this matrix holds the combined affine
+          transformation of the EPI to anat and to standard space,
+          as applied to the volume registration base (it does not contain
+          motion correction transformations).
 
-              Time series registration matrices that include motion correction
-              are in mat.r*.warp.aff12.1D (i.e. one file per run).
+          Time series registration matrices that include motion correction
+          are in mat.r*.warp.aff12.1D (i.e. one file per run).
 
-              In the case of non-linear registration, there is no single file
-              representing the combined transformation, as it is computed just
-              to apply the transformation by 3dNwarpApply.  This command can be
-              found in the proc script or as the last HISTORY entry seen from
-              the output of "3dinfo final_epi_vr_base".
+          In the case of non-linear registration, there is no single file
+          representing the combined transformation, as it is computed just
+          to apply the transformation by 3dNwarpApply.  This command can be
+          found in the proc script or as the last HISTORY entry seen from
+          the output of "3dinfo final_epi_vr_base".
 
-        *  motion_${subj}_enorm.1D
+    *  motion_${subj}_enorm.1D
 
-              This time series text file is the L2 (Euclidean) norm of the
-              first (backward) differences of the motion parameters.  The
-              values represent time point to time point estimated motion, and
-              they are used for censoring.  Values are zero at the beginning of
-              each run (motion is not computed across runs).
+          This time series text file is the L2 (Euclidean) norm of the
+          first (backward) differences of the motion parameters.  The
+          values represent time point to time point estimated motion, and
+          they are used for censoring.  Values are zero at the beginning of
+          each run (motion is not computed across runs).
 
-              A high average of these numbers, particularly after the numbers
-              themselves are censored, is justification for dropping a subject.
-              This average is reported by the @ss_review scripts.
+          A high average of these numbers, particularly after the numbers
+          themselves are censored, is justification for dropping a subject.
+          This average is reported by the @ss_review scripts.
 
-           motion_${subj}_censor.1D
+       motion_${subj}_censor.1D
 
-              This is a binary 0/1 time series (matching enorm, say), that
-              distinguishes time points which would be censored (0) from those
-              which would not (1).  It is based on the enorm time series and
-              the -regress_censor_motion limit, with a default to censor in
-              pairs of time points.  There may be a combined censor file, if
-              outlier censoring is done (or if a user censor file is input).
+          This is a binary 0/1 time series (matching enorm, say), that
+          distinguishes time points which would be censored (0) from those
+          which would not (1).  It is based on the enorm time series and
+          the -regress_censor_motion limit, with a default to censor in
+          pairs of time points.  There may be a combined censor file, if
+          outlier censoring is done (or if a user censor file is input).
 
-           motion_demean.1D
+       motion_demean.1D
 
-              This is the same as dfile_rall.1D, the motion parameters as
-              estimated by 3dvolreg, except the the mean per run has been
-              removed.
+          This is the same as dfile_rall.1D, the motion parameters as
+          estimated by 3dvolreg, except the the mean per run has been
+          removed.
 
-           motion_deriv.1D
+       motion_deriv.1D
 
-              This contains the first (backward) differences from either
-              motion_demean.1D or dfile_rall.1D.  Values are zero at the start
-              of each run.
+          This contains the first (backward) differences from either
+          motion_demean.1D or dfile_rall.1D.  Values are zero at the start
+          of each run.
 
-           out.allcostX.txt
+       out.allcostX.txt
 
-              This holds anat/EPI registration costs for all cost functions.
-              It might be informational to evaluate alignment across subjects
-              and cost functions.
+          This holds anat/EPI registration costs for all cost functions.
+          It might be informational to evaluate alignment across subjects
+          and cost functions.
 
-        *  out.cormat_warn.txt
+    *  out.cormat_warn.txt
 
-              This contains warnings about a high correlation between any pair
-              of regressors in the main regression matrix, including baseline
-              terms.
+          This contains warnings about a high correlation between any pair
+          of regressors in the main regression matrix, including baseline
+          terms.
 
-        *  out.gcor.1D
+    *  out.gcor.1D
 
-              This contains the global correlation, the average correlation
-              between every pair of voxels in the residual time series dataset.
-              This single value is reported by the @ss_review scripts.
+          This contains the global correlation, the average correlation
+          between every pair of voxels in the residual time series dataset.
+          This single value is reported by the @ss_review scripts.
 
-           out.mask_ae_dice.txt
+       out.mask_ae_dice.txt
 
-              This contains the Dice coefficient, evaluating the overlap
-              between the anatomical and EPI brain masks.
+          This contains the Dice coefficient, evaluating the overlap
+          between the anatomical and EPI brain masks.
 
-           out.mask_ae_overlap.txt
+       out.mask_ae_overlap.txt
 
-              This contains general output from 3dOverlap, for evaluating the
-              overlap between the anatomical and EPI brain masks.
+          This contains general output from 3dOverlap, for evaluating the
+          overlap between the anatomical and EPI brain masks.
 
-           out.mask_at_dice.txt
+       out.mask_at_dice.txt
 
-              This contains the Dice coefficient evaluating the overlap
-              between the anatomical and template brain masks.
+          This contains the Dice coefficient evaluating the overlap
+          between the anatomical and template brain masks.
 
-        *  out.pre_ss_warn.txt
+    *  out.pre_ss_warn.txt
 
-              This contains warnings about time point #0 in any run where it
-              might be a pre-steady state time point, based on outliers.
+          This contains warnings about time point #0 in any run where it
+          might be a pre-steady state time point, based on outliers.
 
-        *  out.ss_review.txt
+    *  out.ss_review.txt
 
-              This is the text output from @ss_review_basic.  Aside from being
-              shown by the @ss_review scripts, it is useful for being compiled
-              across subjects via gen_ss_review_table.py.
+          This is the text output from @ss_review_basic.  Aside from being
+          shown by the @ss_review scripts, it is useful for being compiled
+          across subjects via gen_ss_review_table.py.
 
-        *  outcount_rall.1D (and outcount.r??.1D)
+    *  outcount_rall.1D (and outcount.r??.1D)
 
-              This is a time series of the fraction of the brain that is an
-              outlier.  It can be used for censoring.
+          This is a time series of the fraction of the brain that is an
+          outlier.  It can be used for censoring.
 
-        *  sum_ideal.1D
+    *  sum_ideal.1D
 
-              As suggested, this time series is the sum of all non-baseline
-              regressors.  It is generated from X.nocensor.xmat.1D if censoring
-              is done, and from X.xmat.1D otherwise.  This might help one find
-              mistakes in stimulus timing, for example.
+          As suggested, this time series is the sum of all non-baseline
+          regressors.  It is generated from X.nocensor.xmat.1D if censoring
+          is done, and from X.xmat.1D otherwise.  This might help one find
+          mistakes in stimulus timing, for example.
 
-        *  TSNR_$subj
+    *  TSNR_$subj
 
-              This AFNI dataset contains the voxelwise TSNR after regression.
-              The brainwise average is shown in @ss_review_basic.
+          This AFNI dataset contains the voxelwise TSNR after regression.
+          The brainwise average is shown in @ss_review_basic.
 
-          X.xmat.1D
+      X.xmat.1D
 
-              This is the complete regression matrix, created by 3dDeconvolve.
-              One can view it using 1dplot.  It contains all regressors except
-              for any voxelwise ones (e.g. for ANATICOR).
+          This is the complete regression matrix, created by 3dDeconvolve.
+          One can view it using 1dplot.  It contains all regressors except
+          for any voxelwise ones (e.g. for ANATICOR).
 
-          X.nocensor.xmat.1D
+      X.nocensor.xmat.1D
 
-              This is the same as X.xmat.1D, except the nothing is censored,
-              so all time points are present.
+          This is the same as X.xmat.1D, except the nothing is censored,
+          so all time points are present.
 
-        * X.stim.xmat.1D
+    * X.stim.xmat.1D
 
-              This (text) file has the non-baseline regressors (so presumably
-              of interest), created by 3dDeconvolve.
+          This (text) file has the non-baseline regressors (so presumably
+          of interest), created by 3dDeconvolve.
 
-    --------------------------------------------------
-    RESTING STATE NOTE: ~2~
+--------------------------------------------------
+RESTING STATE NOTE: ~2~
 
-    It is preferable to process resting state data using physio recordings
-    (for typical single-echo EPI data).  Without such recordings, bandpassing
-    is currently considered as the standard in the field of FMRI (though that
-    is finally starting to change).  Multi-echo acquisitions offer other
-    possibilities.
+It is preferable to process resting state data using physio recordings
+(for typical single-echo EPI data).  Without such recordings, bandpassing
+is currently considered as the standard in the field of FMRI (though that
+is finally starting to change).  Multi-echo acquisitions offer other
+possibilities.
 
-    Comment on bandpassing:
+Comment on bandpassing:
 
-        Bandpassing does not seem like a great method.
+    Bandpassing does not seem like a great method.
 
-        Bandpassing is the norm right now.  However most TRs may be too long
-        for this process to be able to remove the desired components of no
-        interest.  On the flip side, if the TRs are short, the vast majority
-        of the degrees of freedom are sacrificed just to do it.  Perhaps
-        bandpassing will eventually go away, but it is the norm right now.
+    Bandpassing is the norm right now.  However most TRs may be too long
+    for this process to be able to remove the desired components of no
+    interest.  On the flip side, if the TRs are short, the vast majority
+    of the degrees of freedom are sacrificed just to do it.  Perhaps
+    bandpassing will eventually go away, but it is the norm right now.
 
-        Also, there is a danger with bandpassing and censoring in that subjects
-        with a lot of motion may run out of degrees of freedom (for baseline,
-        censoring, bandpassing and removal of other signals of no interest).
-        Many papers have been published where a lot of censoring was done,
-        many regressors of no interest were projected out, and there was a
-        separate bandpass operation.  It is likely that many subjects should
-        have ended up with negative degrees of freedom (were bandpassing
-        implemented correctly), making the resulting signals useless (or worse,
-        misleading garbage).  But without keeping track of it, researchers may
-        not even know.
+    Also, there is a danger with bandpassing and censoring in that subjects
+    with a lot of motion may run out of degrees of freedom (for baseline,
+    censoring, bandpassing and removal of other signals of no interest).
+    Many papers have been published where a lot of censoring was done,
+    many regressors of no interest were projected out, and there was a
+    separate bandpass operation.  It is likely that many subjects should
+    have ended up with negative degrees of freedom (were bandpassing
+    implemented correctly), making the resulting signals useless (or worse,
+    misleading garbage).  But without keeping track of it, researchers may
+    not even know.
 
-    Bandpassing and degrees of freedom:
+Bandpassing and degrees of freedom:
 
-        Bandpassing between 0.01 and 0.1 means, from just the lowpass side,
-        throwing away frequencies above 0.1.  So the higher the frequency of
-        collected data (i.e. the smaller the TR), the higher the fraction of
-        DoF will be thrown away.
+    Bandpassing between 0.01 and 0.1 means, from just the lowpass side,
+    throwing away frequencies above 0.1.  So the higher the frequency of
+    collected data (i.e. the smaller the TR), the higher the fraction of
+    DoF will be thrown away.
 
-        For example, if TR = 2s, then the Nyquist frequency (the highest
-        frequency detectable in the data) is 1/(2*2) = 0.25 Hz.  That is to
-        say, one could only detect something going up and down at a cycle rate
-        of once every 4 seconds (twice the TR).
+    For example, if TR = 2s, then the Nyquist frequency (the highest
+    frequency detectable in the data) is 1/(2*2) = 0.25 Hz.  That is to
+    say, one could only detect something going up and down at a cycle rate
+    of once every 4 seconds (twice the TR).
 
-        So for TR = 2s, approximately 40% of the DoF are kept (0.1/0.25) and
-        60% are lost (frequencies from 0.1 to 0.25) due to bandpassing.
+    So for TR = 2s, approximately 40% of the DoF are kept (0.1/0.25) and
+    60% are lost (frequencies from 0.1 to 0.25) due to bandpassing.
 
-        To generalize, Nyquist = 1/(2*TR), so the fraction of DoF kept is
+    To generalize, Nyquist = 1/(2*TR), so the fraction of DoF kept is
 
-            fraction kept = 0.1/Nyquist = 0.1/(1/(2*TR)) = 0.1*2*TR = 0.2*TR
+        fraction kept = 0.1/Nyquist = 0.1/(1/(2*TR)) = 0.1*2*TR = 0.2*TR
 
-        For example,
+    For example,
 
-            at TR = 2 s,   0.4  of DoF are kept (60% are lost)
-            at TR = 1 s,   0.2  of DoF are kept (80% are lost)
-            at TR = 0.5 s, 0.1  of DoF are kept (90% are lost)
-            at TR = 0.1 s, 0.02 of DoF are kept (98% are lost)
+        at TR = 2 s,   0.4  of DoF are kept (60% are lost)
+        at TR = 1 s,   0.2  of DoF are kept (80% are lost)
+        at TR = 0.5 s, 0.1  of DoF are kept (90% are lost)
+        at TR = 0.1 s, 0.02 of DoF are kept (98% are lost)
 
-        Consider also:
+    Consider also:
 
-            Shirer WR, Jiang H, Price CM, Ng B, Greicius MD
-            Optimization of rs-fMRI pre-processing for enhanced signal-noise
-                separation, test-retest reliability, and group discrimination
-            Neuroimage. 2015 Aug 15;117:67-79.
+        Shirer WR, Jiang H, Price CM, Ng B, Greicius MD
+        Optimization of rs-fMRI pre-processing for enhanced signal-noise
+            separation, test-retest reliability, and group discrimination
+        Neuroimage. 2015 Aug 15;117:67-79.
 
-            Gohel SR, Biswal BB
-            Functional integration between brain regions at rest occurs in
-                multiple-frequency bands
-            Brain connectivity. 2015 Feb 1;5(1):23-34.
+        Gohel SR, Biswal BB
+        Functional integration between brain regions at rest occurs in
+            multiple-frequency bands
+        Brain connectivity. 2015 Feb 1;5(1):23-34.
 
-            Caballero-Gaudes C, Reynolds RC
-            Methods for cleaning the BOLD fMRI signal
-            Neuroimage. 2017 Jul 1;154:128-49
+        Caballero-Gaudes C, Reynolds RC
+        Methods for cleaning the BOLD fMRI signal
+        Neuroimage. 2017 Jul 1;154:128-49
 
-    Application of bandpassing in afni_proc.py:
+Application of bandpassing in afni_proc.py:
 
-        In afni_proc.py, this is all done in a single regression model (removal
-        of noise and baseline signals, bandpassing and censoring).  If some
-        subject were to lose too many TRs due to censoring, this step would
-        fail, as it should.
+    In afni_proc.py, this is all done in a single regression model (removal
+    of noise and baseline signals, bandpassing and censoring).  If some
+    subject were to lose too many TRs due to censoring, this step would
+    fail, as it should.
 
-        There is an additional option of using simulated motion time series
-        in the regression model, which should be more effective than higher
-        order motion parameters, say.  This is done via @simulate_motion.
+    There is an additional option of using simulated motion time series
+    in the regression model, which should be more effective than higher
+    order motion parameters, say.  This is done via @simulate_motion.
 
-    There are 3 main steps (generate ricor regs, pre-process, group analysis):
+There are 3 main steps (generate ricor regs, pre-process, group analysis):
 
-        step 0: If physio recordings were made, generate slice-based regressors
-                using RetroTS.py.  Such regressors can be used by afni_proc.py
-                via the 'ricor' processing block.
+    step 0: If physio recordings were made, generate slice-based regressors
+            using RetroTS.py.  Such regressors can be used by afni_proc.py
+            via the 'ricor' processing block.
 
-                RetroTS.m is Ziad Saad's MATLAB routine to convert the 2 time
-                series into 13 slice-based regressors.  RetroTS.m requires the
-                signal processing toolkit for MATLAB.
+            RetroTS.m is Ziad Saad's MATLAB routine to convert the 2 time
+            series into 13 slice-based regressors.  RetroTS.m requires the
+            signal processing toolkit for MATLAB.
 
-              * RetroTS.py is a conversion of RetroTS.m to python by J Zosky.
-                It depends on scipy.  See "RetroTS.py -help" for details.
+          * RetroTS.py is a conversion of RetroTS.m to python by J Zosky.
+            It depends on scipy.  See "RetroTS.py -help" for details.
 
-        step 1: analyze with afni_proc.py
+    step 1: analyze with afni_proc.py
 
-                Consider these afni_proc.py -help examples:
-                   5b.  case of ricor and no bandpassing
-                   5c.  ricor and bandpassing and full registration
-                   9.   no ricor, but with bandpassing
-                   9b.  with WMeLocal (local white-matter, eroded) - ANATICOR
-                   10.  also with tissue-based regressors
-                   10b. apply bandpassing via 3dRSFC
-                   soon: extra motion regs via motion simulated time series
-                         (either locally or not)
-                   11.  censor, despike, non-linear registration,
-                        no bandpassing, fast ANATICOR regression,
-                        FreeSurfer masks for ventricle/WM regression
-                      * see "FREESURFER NOTE" for more details
+            Consider these afni_proc.py -help examples:
+               5b.  case of ricor and no bandpassing
+               5c.  ricor and bandpassing and full registration
+               9.   no ricor, but with bandpassing
+               9b.  with WMeLocal (local white-matter, eroded) - ANATICOR
+               10.  also with tissue-based regressors
+               10b. apply bandpassing via 3dRSFC
+               soon: extra motion regs via motion simulated time series
+                     (either locally or not)
+               11.  censor, despike, non-linear registration,
+                    no bandpassing, fast ANATICOR regression,
+                    FreeSurfer masks for ventricle/WM regression
+                  * see "FREESURFER NOTE" for more details
 
-            processing blocks:
+        processing blocks:
 
-                despike (shrink large spikes in time series)
-                ricor   (if applicable, remove the RetroTS regressors)
-                tshift  (correct for slice timing)
-                align   (figure out alignment between anat and EPI)
-                tlrc    (figure out alignment between anat and template)
-                volreg  (align anat and EPI together, and to standard template)
-                blur    (apply desired FWHM blur to EPI data)
-                scale   (optional, e.g. before seed averaging)
-                regress (polort, motion, mot deriv, bandpass, censor,
-                         ANATICOR/WMeLocal, tedana)
-                        (depending on chosen options)
-                        soon: extra motion regressors (via motion simulation)
+            despike (shrink large spikes in time series)
+            ricor   (if applicable, remove the RetroTS regressors)
+            tshift  (correct for slice timing)
+            align   (figure out alignment between anat and EPI)
+            tlrc    (figure out alignment between anat and template)
+            volreg  (align anat and EPI together, and to standard template)
+            blur    (apply desired FWHM blur to EPI data)
+            scale   (optional, e.g. before seed averaging)
+            regress (polort, motion, mot deriv, bandpass, censor,
+                     ANATICOR/WMeLocal, tedana)
+                    (depending on chosen options)
+                    soon: extra motion regressors (via motion simulation)
 
-                ==> "result" is errts dataset, "cleaned" of known noise sources
+            ==> "result" is errts dataset, "cleaned" of known noise sources
 
-        step 2: correlation analysis, perhaps with 3dGroupInCorr
+    step 2: correlation analysis, perhaps with 3dGroupInCorr
 
-            The inputs to this stage are the single subject errts datasets.
+        The inputs to this stage are the single subject errts datasets.
 
-            Ignoring 3dGroupInCorr, the basic steps in a correlation analysis
-            (and corresponding programs) are as follows.  This may be helpful
-            for understanding the process, even when using 3dGroupInCorr.
+        Ignoring 3dGroupInCorr, the basic steps in a correlation analysis
+        (and corresponding programs) are as follows.  This may be helpful
+        for understanding the process, even when using 3dGroupInCorr.
 
-                a. choose a seed voxel (or many) and maybe a seed radius
+            a. choose a seed voxel (or many) and maybe a seed radius
 
-                for each subject:
+            for each subject:
 
-                   b. compute time series from seed
-                      (3dmaskave or 3dROIstats)
-                   c. generate correlation map from seed TS
-                      (3dTcorr1D (or 3dDeconvolve or 3dfim+))
-                   d. normalize R->"Z-score" via Fisher's z-transform
-                      (3dcalc -expr atanh)
+               b. compute time series from seed
+                  (3dmaskave or 3dROIstats)
+               c. generate correlation map from seed TS
+                  (3dTcorr1D (or 3dDeconvolve or 3dfim+))
+               d. normalize R->"Z-score" via Fisher's z-transform
+                  (3dcalc -expr atanh)
 
-                e. perform group test, maybe with covariates
-                   (3dttest++: 1-sample, 2-sample or paired)
+            e. perform group test, maybe with covariates
+               (3dttest++: 1-sample, 2-sample or paired)
 
-            To play around with a single subject via InstaCorr:
+        To play around with a single subject via InstaCorr:
 
-                a. start afni (maybe show images of both anat and EPI)
-                b. start InstaCorr plugin from menu at top right of afni's
-                   Define Overlay panel
-                c. Setup Icorr:
-                    c1. choose errts dataset
-                       (no Start,End; no Blur (already done in pre-processing))
-                    c2. Automask -> No; choose mask dataset: full_mask
-                    c3. turn off Bandpassing (already done, if desired)
-                d. in image window, show correlations
-                    d1. go to seed location, right-click, InstaCorr Set
-                    OR
-                    d1. hold ctrl-shift, hold left mouse button, drag
-                e. have endless fun
+            a. start afni (maybe show images of both anat and EPI)
+            b. start InstaCorr plugin from menu at top right of afni's
+               Define Overlay panel
+            c. Setup Icorr:
+                c1. choose errts dataset
+                   (no Start,End; no Blur (already done in pre-processing))
+                c2. Automask -> No; choose mask dataset: full_mask
+                c3. turn off Bandpassing (already done, if desired)
+            d. in image window, show correlations
+                d1. go to seed location, right-click, InstaCorr Set
+                OR
+                d1. hold ctrl-shift, hold left mouse button, drag
+            e. have endless fun
 
-            To use 3dGroupInCorr:
+        To use 3dGroupInCorr:
 
-                a. run 3dSetupGroupIncorr with mask, labels, subject datasets
-                   (run once per group of subjects), e.g.
+            a. run 3dSetupGroupIncorr with mask, labels, subject datasets
+               (run once per group of subjects), e.g.
 
-                        3dSetupGroupInCorr                \\
-                            -labels subj.ID.list.txt      \\
-                            -prefix sic.GROUP             \\
-                            -mask EPI_mask+tlrc           \\
-                            errts_subj1+tlrc              \\
-                            errts_subj2+tlrc              \\
-                            errts_subj3+tlrc              \\
-                                ...                       \\
-                            errts_subjN+tlrc
+                    3dSetupGroupInCorr                \\
+                        -labels subj.ID.list.txt      \\
+                        -prefix sic.GROUP             \\
+                        -mask EPI_mask+tlrc           \\
+                        errts_subj1+tlrc              \\
+                        errts_subj2+tlrc              \\
+                        errts_subj3+tlrc              \\
+                            ...                       \\
+                        errts_subjN+tlrc
 
-                    ==> sic.GROUP.grpincorr.niml (and .grpincorr.data)
+                ==> sic.GROUP.grpincorr.niml (and .grpincorr.data)
 
-                b. run 3dGroupInCorr on 1 or 2 sic.GROUP datasets, e.g.
+            b. run 3dGroupInCorr on 1 or 2 sic.GROUP datasets, e.g.
 
-                   Here are steps for running 3dGroupInCorr via the afni GUI.
-                   To deal with computers that have multiple users, consider
-                   specifying some NIML port block that others are not using.
-                   Here we use port 2 (-npb 2), just to choose one.
+               Here are steps for running 3dGroupInCorr via the afni GUI.
+               To deal with computers that have multiple users, consider
+               specifying some NIML port block that others are not using.
+               Here we use port 2 (-npb 2), just to choose one.
 
-                   b1. start afni:
+               b1. start afni:
 
-                        afni -niml -npb 2
+                    afni -niml -npb 2
 
-                   b2. start 3dGroupInCorr
+               b2. start 3dGroupInCorr
 
-                        3dGroupInCorr -npb 2                    \\
-                            -setA sic.horses.grpincorr.niml     \\
-                            -setB sic.moths.grpincorr.niml      \\
-                            -labelA horses -labelB moths        \\
-                            -covaries my.covariates.txt         \\
-                            -center SAME -donocov -seedrad 5
+                    3dGroupInCorr -npb 2                    \\
+                        -setA sic.horses.grpincorr.niml     \\
+                        -setB sic.moths.grpincorr.niml      \\
+                        -labelA horses -labelB moths        \\
+                        -covaries my.covariates.txt         \\
+                        -center SAME -donocov -seedrad 5
 
-                   b3. play with right-click -> InstaCorr Set or
-                      hold ctrl-shift/hold left mouse and drag slowly
+               b3. play with right-click -> InstaCorr Set or
+                  hold ctrl-shift/hold left mouse and drag slowly
 
-                   b4. maybe save any useful dataset via
-                      Define Datamode -> SaveAs OLay (and give a useful name)
+               b4. maybe save any useful dataset via
+                  Define Datamode -> SaveAs OLay (and give a useful name)
 
-                b'. alternative, generate result dataset in batch mode, by
-                    adding -batch and some parameters to the 3dGIC command
+            b'. alternative, generate result dataset in batch mode, by
+                adding -batch and some parameters to the 3dGIC command
 
-                    e.g.  -batch XYZAVE GIC.HvsM.PFC 4 55 26
+                e.g.  -batch XYZAVE GIC.HvsM.PFC 4 55 26
 
-                    In such a case, afni is not needed at all.  The resulting
-                    GIC.HvsM.PFC+tlrc dataset would be written out without any
-                    need to start the afni GUI.  This works well since seed
-                    coordinates for group tests are generally known in advance.
+                In such a case, afni is not needed at all.  The resulting
+                GIC.HvsM.PFC+tlrc dataset would be written out without any
+                need to start the afni GUI.  This works well since seed
+                coordinates for group tests are generally known in advance.
 
-                    See the -batch option under "3dGroupInCorr -help" for many
-                    details and options.
+                See the -batch option under "3dGroupInCorr -help" for many
+                details and options.
 
-                c. threshold/clusterize resulting datasets, just as with a
-                   task analysis
+            c. threshold/clusterize resulting datasets, just as with a
+               task analysis
 
-                   (afni GUI, 3dClusterize)
+               (afni GUI, 3dClusterize)
 
-    --------------------------------------------------
-    FREESURFER NOTE: ~2~
+--------------------------------------------------
+FREESURFER NOTE: ~2~
 
-    FreeSurfer output can be used for a few things in afni_proc.py:
+FreeSurfer output can be used for a few things in afni_proc.py:
 
-        - simple skull stripping (i.e. instead of 3dSkullStrip)
-             *** we now prefer @SSwarper ***
-        - running a surface-based analysis
-        - using parcellation datasets for:
-           - tissue-based regression
-           - creating group probability maps
-           - creating group atlases (e.g. maximum probability maps)
+    - simple skull stripping (i.e. instead of 3dSkullStrip)
+         *** we now prefer @SSwarper ***
+    - running a surface-based analysis
+    - using parcellation datasets for:
+       - tissue-based regression
+       - creating group probability maps
+       - creating group atlases (e.g. maximum probability maps)
 
-    This NOTE mainly refers to using FreeSurfer parcellations for tissue-based
-    regression, as is done in Example 11.
+This NOTE mainly refers to using FreeSurfer parcellations for tissue-based
+regression, as is done in Example 11.
 
 
-   *First run FreeSurfer, then import to AFNI using @SUMA_Make_Spec_FS, then
-    make ventricle and white matter masks from the Desikan-Killiany atlas based
-    parcellation dataset, aparc+aseg.nii.
+First run FreeSurfer, then import to AFNI using @SUMA_Make_Spec_FS, then
+make ventricle and white matter masks from the Desikan-Killiany atlas based
+parcellation dataset, aparc+aseg.nii.
 
-    Note that the aparc.a2009s segmentations are based on the Destrieux atlas,
-    which might be nicer for probability maps, though the Desikan-Killiany
-    aparc+aseg segmentation is currently used for segmenting white matter and
-    ventricles.  I have not studied the differences.
+Note that the aparc.a2009s segmentations are based on the Destrieux atlas,
+which might be nicer for probability maps, though the Desikan-Killiany
+aparc+aseg segmentation is currently used for segmenting white matter and
+ventricles.  I have not studied the differences.
 
 
-    Example 11 brings the aparc.a2009s+aseg segmentation along (for viewing or
-    atlas purposes, aligned with the result), though the white matter and
-    ventricle masks are based instead on aparc+aseg.nii.
+Example 11 brings the aparc.a2009s+aseg segmentation along (for viewing or
+atlas purposes, aligned with the result), though the white matter and
+ventricle masks are based instead on aparc+aseg.nii.
 
-        # run ) FreeSurfer on FT_anat.nii (NIFTI version of FT_anat+orig)
-        3dcopy FT_anat+orig FT_anat.nii
-        recon-all -all -subject FT -i FT_anat.nii
+    # run ) FreeSurfer on FT_anat.nii (NIFTI version of FT_anat+orig)
+    3dcopy FT_anat+orig FT_anat.nii
+    recon-all -all -subject FT -i FT_anat.nii
 
-        # import to AFNI, in NIFTI format
-        @SUMA_Make_Spec_FS -sid FT -NIFTI
+    # import to AFNI, in NIFTI format
+    @SUMA_Make_Spec_FS -sid FT -NIFTI
 
 
-      * Note, @SUMA_Make_Spec_FS now (as of 14 Nov, 2019) outputs ventricle
-        and white matter masks, for possible use with afni_proc.py:
+  * Note, @SUMA_Make_Spec_FS now (as of 14 Nov, 2019) outputs ventricle
+    and white matter masks, for possible use with afni_proc.py:
 
-            SUMA/fs_ap_latvent.nii.gz
-            SUMA/fs_ap_wm.nii.gz
-    
-    Then FT_anat.nii (or FT_anat+orig), fs_ap_latvent.nii.gz and
-    fs_ap_wm.nii.gz (along with the basically unused aparc.a2009s+aseg.nii)
-    are passed to afni_proc.py.
+        SUMA/fs_ap_latvent.nii.gz
+        SUMA/fs_ap_wm.nii.gz
 
-    --------------------------------------------------
-    TIMING FILE NOTE: ~2~
+Then FT_anat.nii (or FT_anat+orig), fs_ap_latvent.nii.gz and
+fs_ap_wm.nii.gz (along with the basically unused
+aparc.a2009s+aseg_REN_all.nii.gz) are passed to afni_proc.py.
 
-    One issue that the user must be sure of is the timing of the stimulus
-    files (whether -regress_stim_files or -regress_stim_times is used).
+--------------------------------------------------
+TIMING FILE NOTE: ~2~
 
-    The 'tcat' step will remove the number of pre-steady-state TRs that the
-    user specifies (defaulting to 0).  The stimulus files, provided by the
-    user, must match datasets that have had such TRs removed (i.e. the stim
-    files should start _after_ steady state has been reached).
+One issue that the user must be sure of is the timing of the stimulus
+files (whether -regress_stim_files or -regress_stim_times is used).
 
-    --------------------------------------------------
-    MASKING NOTE: ~2~
+The 'tcat' step will remove the number of pre-steady-state TRs that the
+user specifies (defaulting to 0).  The stimulus files, provided by the
+user, must match datasets that have had such TRs removed (i.e. the stim
+files should start _after_ steady state has been reached).
 
-    The default operation of afni_proc.py has changed (as of 24 Mar, 2009).
-    Prior to that date, the default was to apply the 'epi' mask.  As of
-    17 Jun 2009, only the 'extents' mask is, if appropriate.
+--------------------------------------------------
+MASKING NOTE: ~2~
 
-    ---
+The default operation of afni_proc.py has changed (as of 24 Mar, 2009).
+Prior to that date, the default was to apply the 'epi' mask.  As of
+17 Jun 2009, only the 'extents' mask is, if appropriate.
 
-    There may be 4 masks created by default, 3 for user evaluation and all for
-    possible application to the EPI data (though it may not be recommended).
-    The 4th mask (extents) is a special one that will be applied at volreg when
-    appropriate, unless the user specifies otherwise.
+---
 
-    If the user chooses to apply one of the masks to the EPI regression (again,
-    not necessarily recommended), it is done via the option -mask_apply while
-    providing the given mask type (epi, anat, group or extents).
+There may be 4 masks created by default, 3 for user evaluation and all for
+possible application to the EPI data (though it may not be recommended).
+The 4th mask (extents) is a special one that will be applied at volreg when
+appropriate, unless the user specifies otherwise.
 
-    --> To apply a mask during regression, use -mask_apply.
+If the user chooses to apply one of the masks to the EPI regression (again,
+not necessarily recommended), it is done via the option -mask_apply while
+providing the given mask type (epi, anat, group or extents).
 
-    Mask descriptions (afni_proc.py name, dataset name, short description):
+--> To apply a mask during regression, use -mask_apply.
 
-    1. epi ("full_mask") : EPI Automask
+Mask descriptions (afni_proc.py name, dataset name, short description):
 
-       An EPI mask dataset will be created by running '3dAutomask -dilate 1'
-       on the EPI data after blurring.  The 3dAutomask command is executed per
-       run, after which the masks are combined via a union operation.
+1. epi ("full_mask") : EPI Automask
 
-    2. anat ("mask_anat.$subj") : anatomical skull-stripped mask
+   An EPI mask dataset will be created by running '3dAutomask -dilate 1'
+   on the EPI data after blurring.  The 3dAutomask command is executed per
+   run, after which the masks are combined via a union operation.
 
-       If possible, a subject anatomy mask will be created.  This anatomical
-       mask will be created from the appropriate skull-stripped anatomy,
-       resampled to match the EPI (that is output by 3dvolreg) and changed into
-       a binary mask.
+2. anat ("mask_anat.$subj") : anatomical skull-stripped mask
 
-       This requires either the 'align' block or a tlrc anatomy (from the
-       'tlrc' block, or just copied via '-copy_anat').  Basically, it requires
-       afni_proc.py to know of a skull-stripped anatomical dataset.
+   If possible, a subject anatomy mask will be created.  This anatomical
+   mask will be created from the appropriate skull-stripped anatomy,
+   resampled to match the EPI (that is output by 3dvolreg) and changed into
+   a binary mask.
 
-       By default, if both the anat and EPI masks exist, the overlap between
-       them will be computed for evaluation.
+   This requires either the 'align' block or a tlrc anatomy (from the
+   'tlrc' block, or just copied via '-copy_anat').  Basically, it requires
+   afni_proc.py to know of a skull-stripped anatomical dataset.
 
-    3. group ("mask_group") : skull-stripped @auto_tlrc base
+   By default, if both the anat and EPI masks exist, the overlap between
+   them will be computed for evaluation.
 
-       If possible, a group mask will be created.  This requires the 'tlrc'
-       block, from which the @auto_tlrc -base dataset is chosen as the group
-       anatomy.  It also requires '-volreg_warp_epi' so that the EPI is in
-       standard space.  The group anatomy is then resampled to match the EPI
-       and changed into a binary mask.
+3. group ("mask_group") : skull-stripped @auto_tlrc base
 
-    4. extents ("mask_extents") : mask based on warped EPI extents
+   If possible, a group mask will be created.  This requires the 'tlrc'
+   block, from which the @auto_tlrc -base dataset is chosen as the group
+   anatomy.  It also requires '-volreg_warp_epi' so that the EPI is in
+   standard space.  The group anatomy is then resampled to match the EPI
+   and changed into a binary mask.
 
-       In the case of transforming the EPI volumes to match the anatomical
-       volume (via either -volreg_align_e2a or -volreg_tlrc_warp), an extents
-       mask will be created.  This is to avoid a motion artifact that arises
-       when transforming from a smaller volume (EPI) to a larger one (anat).
+4. extents ("mask_extents") : mask based on warped EPI extents
 
-    ** Danger Will Robinson! **
+   In the case of transforming the EPI volumes to match the anatomical
+   volume (via either -volreg_align_e2a or -volreg_tlrc_warp), an extents
+   mask will be created.  This is to avoid a motion artifact that arises
+   when transforming from a smaller volume (EPI) to a larger one (anat).
 
-       This EPI extents mask is considered necessary because the align/warp
-       transformation that is applied on top of the volreg alignment transform
-       (applied at once), meaning the transformation from the EPI grid to the
-       anatomy grid will vary per TR.
+** Danger Will Robinson! **
 
-       The effect of this is seen at the edge voxels (extent edge), where a
-       time series could be zero for many of the TRs, but have valid data for
-       the rest of them.  If this timing just happens to correlate with any
-       regressor, the result could be a strong "activation" for that regressor,
-       but which would be just a motion based artifact.
+   This EPI extents mask is considered necessary because the align/warp
+   transformation that is applied on top of the volreg alignment transform
+   (applied at once), meaning the transformation from the EPI grid to the
+   anatomy grid will vary per TR.
 
-       What makes this particularly bad is that if it does happen, it tends to
-       happen for *a cluster* of many voxels at once, possibly an entire slice.
-       Such an effect is compounded by any additional blur.  The result can be
-       an entire cluster of false activation, large enough to survive multiple
-       comparison corrections.
+   The effect of this is seen at the edge voxels (extent edge), where a
+   time series could be zero for many of the TRs, but have valid data for
+   the rest of them.  If this timing just happens to correlate with any
+   regressor, the result could be a strong "activation" for that regressor,
+   but which would be just a motion based artifact.
 
-       Thanks to Laura Thomas and Brian Bones for finding this artifact.
+   What makes this particularly bad is that if it does happen, it tends to
+   happen for *a cluster* of many voxels at once, possibly an entire slice.
+   Such an effect is compounded by any additional blur.  The result can be
+   an entire cluster of false activation, large enough to survive multiple
+   comparison corrections.
 
-   --> To deal with this, a time series of all 1s is created on the original
-       EPI grid space.  Then for each run it is warped with to the same list of
-       transformations that is applied to the EPI data in the volreg step
-       (volreg xform and either alignment to anat or warp to standard space).
-       The result is a time series of extents of each original volume within
-       the new grid.
+   Thanks to Laura Thomas and Brian Bones for finding this artifact.
 
-       These volumes are then intersected over all TRs of all runs.  The final
-       mask is the set of voxels that have valid data at every TR of every run.
-       Yay.
+-> To deal with this, a time series of all 1s is created on the original
+   EPI grid space.  Then for each run it is warped with to the same list of
+   transformations that is applied to the EPI data in the volreg step
+   (volreg xform and either alignment to anat or warp to standard space).
+   The result is a time series of extents of each original volume within
+   the new grid.
 
-    5. Classes and Classes_resam: GM, WM, CSF class masks from 3dSeg
+   These volumes are then intersected over all TRs of all runs.  The final
+   mask is the set of voxels that have valid data at every TR of every run.
+   Yay.
 
-       By default, unless the user requests otherwise (-mask_segment_anat no),
-       and if anat_final is skull-stripped, then 3dSeg will be used to segment
-       the anatomy into gray matter, white matter and CSF classes.
+5. Classes and Classes_resam: GM, WM, CSF class masks from 3dSeg
 
-       A dataset named Classes is the result of running 3dSeg, which is then
-       resampled to match the EPI and named Classes_resam.
+   By default, unless the user requests otherwise (-mask_segment_anat no),
+   and if anat_final is skull-stripped, then 3dSeg will be used to segment
+   the anatomy into gray matter, white matter and CSF classes.
 
-       If the user wanted to, this dataset could be used for regression of
-       said tissue classes (or eroded versions).
+   A dataset named Classes is the result of running 3dSeg, which is then
+   resampled to match the EPI and named Classes_resam.
 
+   If the user wanted to, this dataset could be used for regression of
+   said tissue classes (or eroded versions).
 
-    --- masking, continued...
 
-    Note that it may still not be a good idea to apply any of the masks to the
-    regression, as it might then be necessary to intersect such masks across
-    all subjects, though applying the 'group' mask might be reasonable.
+--- masking, continued...
 
- ** Why has the default been changed?
+Note that it may still not be a good idea to apply any of the masks to the
+regression, as it might then be necessary to intersect such masks across
+all subjects, though applying the 'group' mask might be reasonable.
 
-    It seems much better not to mask the regression data in the single-subject
-    analysis at all, send _all_ of the results to group space, and apply an
-    anatomically-based mask there.  That could be computed from the @auto_tlrc
-    reference dataset or from the union of skull-stripped subject anatomies.
+Why has the default been changed?
 
-    Since subjects have varying degrees of signal dropout in valid brain areas
-    of the EPI data, the resulting EPI intersection mask that would be required
-    in group space may exclude edge regions that are otherwise desirable.
+It seems much better not to mask the regression data in the single-subject
+analysis at all, send _all_ of the results to group space, and apply an
+anatomically-based mask there.  That could be computed from the @auto_tlrc
+reference dataset or from the union of skull-stripped subject anatomies.
 
-    Also, it is helpful to see if much 'activation' appears outside the brain.
-    This could be due to scanner or interpolation artifacts, and is useful to
-    note, rather than to simply mask out and never see.
+Since subjects have varying degrees of signal dropout in valid brain areas
+of the EPI data, the resulting EPI intersection mask that would be required
+in group space may exclude edge regions that are otherwise desirable.
 
-    Rather than letting 3dAutomask decide which brain areas should not be
-    considered valid, create a mask based on the anatomy _after_ the results
-    have been warped to a standard group space.  Then perhaps dilate the mask
-    by one voxel.  Example #11 from '3dcalc -help' shows how one might dilate.
+Also, it is helpful to see if much 'activation' appears outside the brain.
+This could be due to scanner or interpolation artifacts, and is useful to
+note, rather than to simply mask out and never see.
 
- ** Note that the EPI data can now be warped to standard space at the volreg
-    step.  In that case, it might be appropriate to mask the EPI data based
-    on the Talairach template, such as what is used for -base in @auto_tlrc.
-    This can be done via '-mask_apply group'.
+Rather than letting 3dAutomask decide which brain areas should not be
+considered valid, create a mask based on the anatomy _after_ the results
+have been warped to a standard group space.  Then perhaps dilate the mask
+by one voxel.  Example #11 from '3dcalc -help' shows how one might dilate.
 
-    ---
+Note that the EPI data can now be warped to standard space at the volreg
+step.  In that case, it might be appropriate to mask the EPI data based
+on the Talairach template, such as what is used for -base in @auto_tlrc.
+This can be done via '-mask_apply group'.
 
- ** For those who have processed some of their data with the older method:
+---
 
-    Note that this change should not be harmful to those who have processed
-    data with older versions of afni_proc.py, as it only adds non-zero voxel
-    values to the output datasets.  If some subjects were analyzed with the
-    older version, the processing steps should not need to change.  It is still
-    necessary to apply an intersection mask across subjects in group space.
+For those who have processed some of their data with the older method:
 
-    It might be okay to create the intersection mask from only those subjects
-    which were masked in the regression, however one might say that biases the
-    voxel choices toward those subjects, though maybe that does not matter.
-    Any voxels used would still be across all subjects.
+Note that this change should not be harmful to those who have processed
+data with older versions of afni_proc.py, as it only adds non-zero voxel
+values to the output datasets.  If some subjects were analyzed with the
+older version, the processing steps should not need to change.  It is still
+necessary to apply an intersection mask across subjects in group space.
 
-    ---
+It might be okay to create the intersection mask from only those subjects
+which were masked in the regression, however one might say that biases the
+voxel choices toward those subjects, though maybe that does not matter.
+Any voxels used would still be across all subjects.
 
-    A mask dataset is necessary when computing blur estimates from the epi and
-    errts datasets.  Also, since it is nice to simply see what the mask looks
-    like, its creation has been left in by default.
+---
 
-    The '-regress_no_mask' option is now unnecessary.
+A mask dataset is necessary when computing blur estimates from the epi and
+errts datasets.  Also, since it is nice to simply see what the mask looks
+like, its creation has been left in by default.
 
-    ---
+The '-regress_no_mask' option is now unnecessary.
 
-    Note that if no mask were applied in the 'scaling' step, large percent
-    changes could result.  Because large values would be a detriment to the
-    numerical resolution of the scaled short data, the default is to truncate
-    scaled values at 200 (percent), which should not occur in the brain.
+---
 
-    --------------------------------------------------
-    BLIP NOTE: ~2~
+Note that if no mask were applied in the 'scaling' step, large percent
+changes could result.  Because large values would be a detriment to the
+numerical resolution of the scaled short data, the default is to truncate
+scaled values at 200 (percent), which should not occur in the brain.
 
-    application of reverse-blip (blip-up/blip-down) registration:
+--------------------------------------------------
+BLIP NOTE: ~2~
 
-       o compute the median of the forward and reverse-blip data
-       o align them using 3dQwarp -plusminus
-          -> the main output warp is the square root of the forward warp
-             to the reverse, i.e. it warps the forward data halfway
-          -> in theory, this warp should make the EPI anatomically accurate
+application of reverse-blip (blip-up/blip-down) registration:
 
-    order of operations:
+   o compute the median of the forward and reverse-blip data
+   o align them using 3dQwarp -plusminus
+      -> the main output warp is the square root of the forward warp
+         to the reverse, i.e. it warps the forward data halfway
+      -> in theory, this warp should make the EPI anatomically accurate
 
-       o the blip warp is computed after all initial temporal operations
-         (despike, ricor, tshift)
-       o and before all spatial operations (anat/EPI align, tlrc, volreg)
+order of operations:
 
-    notes:
+   o the blip warp is computed after all initial temporal operations
+     (despike, ricor, tshift)
+   o and before all spatial operations (anat/EPI align, tlrc, volreg)
 
-       o If no forward blip time series (volume?) is provided by the user,
-         the first time points from the first run will be used (using the
-         same number of time points as in the reverse blip time series).
-       o As usual, all registration transformations are combined.
+notes:
 
-    differences with unWarpEPI.py (R Cox, D Glen and V Roopchansingh):
+   o If no forward blip time series (volume?) is provided by the user,
+     the first time points from the first run will be used (using the
+     same number of time points as in the reverse blip time series).
+   o As usual, all registration transformations are combined.
 
-                        afni_proc.py            unWarpEPI.py
-                        --------------------    --------------------
-       tshift step:     before unwarp           after unwarp
-                        (option: after unwarp)
+differences with unWarpEPI.py (R Cox, D Glen and V Roopchansingh):
 
-       volreg program:  3dvolreg                3dAllineate
+                    afni_proc.py            unWarpEPI.py
+                    --------------------    --------------------
+   tshift step:     before unwarp           after unwarp
+                    (option: after unwarp)
 
-       volreg base:     as before               median warped dset
-                        (option: MEDIAN_BLIP)   (same as MEDIAN_BLIP)
+   volreg program:  3dvolreg                3dAllineate
 
-       unifize EPI?     no (option: yes)        yes
-       (align w/anat)
+   volreg base:     as before               median warped dset
+                    (option: MEDIAN_BLIP)   (same as MEDIAN_BLIP)
 
-    --------------------------------------------------
-    ANAT/EPI ALIGNMENT CASES NOTE: ~2~
+   unifize EPI?     no (option: yes)        yes
+   (align w/anat)
 
-    This outlines the effects of alignment options, to help decide what options
-    seem appropriate for various cases.
+--------------------------------------------------
+ANAT/EPI ALIGNMENT CASES NOTE: ~2~
 
-    1. EPI to EPI alignment (the volreg block)
+This outlines the effects of alignment options, to help decide what options
+seem appropriate for various cases.
 
-        Alignment of the EPI data to a single volume is based on the 3 options
-        -volreg_align_to, -volreg_base_dset and -volreg_base_ind, where the
-        first option is by far the most commonly used.
+1. EPI to EPI alignment (the volreg block)
 
-        Note that a good alternative is: '-volreg_align_to MIN_OUTLIER'.
+    Alignment of the EPI data to a single volume is based on the 3 options
+    -volreg_align_to, -volreg_base_dset and -volreg_base_ind, where the
+    first option is by far the most commonly used.
 
-        The logic of EPI alignment in afni_proc.py is:
+    Note that a good alternative is: '-volreg_align_to MIN_OUTLIER'.
 
-            a. if -volreg_base_dset is given, align to that
-               (this volume is copied locally as the dataset ext_align_epi)
-            b. otherwise, use the -volreg_align_to or -volreg_base_ind volume
+    The logic of EPI alignment in afni_proc.py is:
 
-        The typical case is to align the EPI to one of the volumes used in
-        pre-processing (where the dataset is provided by -dsets and where the
-        particular TR is not removed by -tcat_remove_first_trs).  If the base
-        volume is the first or third (TR 0 or 2) from the first run, or is the
-        last TR of the last run, then -volreg_align_to can be used.
+        a. if -volreg_base_dset is given, align to that
+           (this volume is copied locally as the dataset ext_align_epi)
+        b. otherwise, use the -volreg_align_to or -volreg_base_ind volume
 
-        To specify a TR that is not one of the 3 just stated (first, third or
-        last), -volreg_base_ind can be used.
+    The typical case is to align the EPI to one of the volumes used in
+    pre-processing (where the dataset is provided by -dsets and where the
+    particular TR is not removed by -tcat_remove_first_trs).  If the base
+    volume is the first or third (TR 0 or 2) from the first run, or is the
+    last TR of the last run, then -volreg_align_to can be used.
 
-        To specify a volume that is NOT one of those used in pre-processing
-        (such as the first pre-steady state volume, which would be excluded by
-        the option -tcat_remove_first_trs), use -volreg_base_dset.
+    To specify a TR that is not one of the 3 just stated (first, third or
+    last), -volreg_base_ind can be used.
 
-    2. anat to EPI alignment cases (the align block)
+    To specify a volume that is NOT one of those used in pre-processing
+    (such as the first pre-steady state volume, which would be excluded by
+    the option -tcat_remove_first_trs), use -volreg_base_dset.
 
-        This is specific to the 'align' processing block, where the anatomy is
-        aligned to the EPI.  The focus is on which EPI volume the anat gets
-        aligned to.  Whether this transformation is inverted in the volreg
-        block (to instead align the EPI to the anat via -volreg_align_e2a) is
-        an independent consideration.
+2. anat to EPI alignment cases (the align block)
 
-        The logic of which volume the anatomy gets aligned to is as follows:
-            a. if -align_epi_ext_dset is given, use that for anat alignment
-            b. otherwise, if -volreg_base_dset, use that
-            c. otherwise, use the EPI base from the EPI alignment choice
+    This is specific to the 'align' processing block, where the anatomy is
+    aligned to the EPI.  The focus is on which EPI volume the anat gets
+    aligned to.  Whether this transformation is inverted in the volreg
+    block (to instead align the EPI to the anat via -volreg_align_e2a) is
+    an independent consideration.
 
-        To restate this: the anatomy gets aligned to the same volume the EPI
-        gets aligned to *unless* -align_epi_ext_dset is given, in which case
-        that volume is used.
+    The logic of which volume the anatomy gets aligned to is as follows:
+        a. if -align_epi_ext_dset is given, use that for anat alignment
+        b. otherwise, if -volreg_base_dset, use that
+        c. otherwise, use the EPI base from the EPI alignment choice
 
-        The entire purpose of -align_epi_ext_dset is for the case where the
-        user might want to align the anat to a different volume than what is
-        used for the EPI (e.g. align anat to a pre-steady state TR but the EPI
-        to a steady state one).
+    To restate this: the anatomy gets aligned to the same volume the EPI
+    gets aligned to *unless* -align_epi_ext_dset is given, in which case
+    that volume is used.
 
-        Output:
+    The entire purpose of -align_epi_ext_dset is for the case where the
+    user might want to align the anat to a different volume than what is
+    used for the EPI (e.g. align anat to a pre-steady state TR but the EPI
+    to a steady state one).
 
-           The result of the align block is an 'anat_al' dataset.  This will be
-           in alignment with the EPI base (or -align_epi_ext_dset).
+    Output:
 
-           In the default case of anat -> EPI alignment, the aligned anatomy
-           is actually useful going forward, and is so named 'anat_al_keep'.
+       The result of the align block is an 'anat_al' dataset.  This will be
+       in alignment with the EPI base (or -align_epi_ext_dset).
 
-           Additionally, if the -volreg_align_e2a option is used (thus aligning
-           the EPI to the original anat), then the aligned anat dataset is no
-           longer very useful, and is so named 'anat_al_junk'.  However, unless
-           an anat+tlrc dataset was copied in for use in -volreg_tlrc_adwarp,
-           the skull-striped anat (anat_ss) becomes the current one going
-           forward.  That is identical to the original anat, except that it
-           went through the skull-stripping step in align_epi_anat.py.
+       In the default case of anat -> EPI alignment, the aligned anatomy
+       is actually useful going forward, and is so named 'anat_al_keep'.
 
-           At that point (e2a case) the pb*.volreg.* datasets are aligned with
-           the original anat or the skull-stripped original anat (and possibly
-           in Talairach space, if the -volreg_tlrc_warp or _adwarp option was
-           applied).
+       Additionally, if the -volreg_align_e2a option is used (thus aligning
+       the EPI to the original anat), then the aligned anat dataset is no
+       longer very useful, and is so named 'anat_al_junk'.  However, unless
+       an anat+tlrc dataset was copied in for use in -volreg_tlrc_adwarp,
+       the skull-striped anat (anat_ss) becomes the current one going
+       forward.  That is identical to the original anat, except that it
+       went through the skull-stripping step in align_epi_anat.py.
 
-         Checking the results:
+       At that point (e2a case) the pb*.volreg.* datasets are aligned with
+       the original anat or the skull-stripped original anat (and possibly
+       in Talairach space, if the -volreg_tlrc_warp or _adwarp option was
+       applied).
 
-           The pb*.volreg.* volumes should be aligned with the anat.  If
-           -volreg_align_e2a was used, it will be with the original anat.
-           If not, then it will be with anat_al_keep.
+     Checking the results:
 
-           Note that at the end of the regress block, whichever anatomical
-           dataset is deemed "in alignment" with the stats dataset will be
-           copied to anat_final.$subj.
+       The pb*.volreg.* volumes should be aligned with the anat.  If
+       -volreg_align_e2a was used, it will be with the original anat.
+       If not, then it will be with anat_al_keep.
 
-           So compare the volreg EPI with the final anatomical dataset.
+       Note that at the end of the regress block, whichever anatomical
+       dataset is deemed "in alignment" with the stats dataset will be
+       copied to anat_final.$subj.
 
-    --------------------------------------------------
-    ANAT/EPI ALIGNMENT CORRECTIONS NOTE: ~2~
+       So compare the volreg EPI with the final anatomical dataset.
 
-    Aligning the anatomy and EPI is sometimes difficult, particularly depending
-    on the contrast of the EPI data (between tissue types).  If the alignment
-    fails to do a good job, it may be necessary to run align_epi_anat.py in a
-    separate location, find options that help it to succeed, and then apply
-    those options to re-process the data with afni_proc.py.
+--------------------------------------------------
+ANAT/EPI ALIGNMENT CORRECTIONS NOTE: ~2~
 
-    1. If the anat and EPI base do not start off fairly close in alignment,
-       the -giant_move option may be needed for align_epi_anat.py.  Pass this
-       option to AEA.py via the afni_proc.py option -align_opts_aea:
+Aligning the anatomy and EPI is sometimes difficult, particularly depending
+on the contrast of the EPI data (between tissue types).  If the alignment
+fails to do a good job, it may be necessary to run align_epi_anat.py in a
+separate location, find options that help it to succeed, and then apply
+those options to re-process the data with afni_proc.py.
 
-            afni_proc.py ... -align_opts_aea -giant_move
+1. If the anat and EPI base do not start off fairly close in alignment,
+   the -giant_move option may be needed for align_epi_anat.py.  Pass this
+   option to AEA.py via the afni_proc.py option -align_opts_aea:
 
-    2. The default cost function used by align_epi_anat.py is lpc (local
-       Pearson correlation).  If this cost function does not work (probably due
-       to poor or unusual EPI contrast), then consider cost functions such as
-       lpa (absolute lpc), lpc+ (lpc plus fractions of other cost functions) or
-       lpc+ZZ (approximate with lpc+, but finish with pure lpc).
+        afni_proc.py ... -align_opts_aea -giant_move
 
-       The lpa and lpc+ZZ cost functions are common alternatives.  The
-       -giant_move option may be necessary independently.
+2. The default cost function used by align_epi_anat.py is lpc (local
+   Pearson correlation).  If this cost function does not work (probably due
+   to poor or unusual EPI contrast), then consider cost functions such as
+   lpa (absolute lpc), lpc+ (lpc plus fractions of other cost functions) or
+   lpc+ZZ (approximate with lpc+, but finish with pure lpc).
 
-       Examples of some helpful options:
+   The lpa and lpc+ZZ cost functions are common alternatives.  The
+   -giant_move option may be necessary independently.
 
-         -align_opts_aea -cost lpa
-         -align_opts_aea -giant_move
-         -align_opts_aea -cost lpc+ZZ -giant_move
-         -align_opts_aea -check_flip
-         -align_opts_aea -cost lpc+ZZ -giant_move -resample off
-         -align_opts_aea -skullstrip_opts -blur_fwhm 2
+   Examples of some helpful options:
 
-    3. Testing alignment with align_epi_anat.py directly.
+     -align_opts_aea -cost lpa
+     -align_opts_aea -giant_move
+     -align_opts_aea -cost lpc+ZZ -giant_move
+     -align_opts_aea -check_flip
+     -align_opts_aea -cost lpc+ZZ -giant_move -resample off
+     -align_opts_aea -skullstrip_opts -blur_fwhm 2
 
-       When having alignment problems, it may be more efficient to copy the
-       anat and EPI alignment base to a new directory, figure out a good cost
-       function or other options, and then apply them in a new afni_proc.py
-       command.
+3. Testing alignment with align_epi_anat.py directly.
 
-       For testing purposes, it helps to test many cost functions at once.
-       Besides the cost specified by -cost, other cost functions can be applied
-       via -multi_cost.  This is efficient, since all of the other processing
-       does not need to be repeated.  For example:
+   When having alignment problems, it may be more efficient to copy the
+   anat and EPI alignment base to a new directory, figure out a good cost
+   function or other options, and then apply them in a new afni_proc.py
+   command.
 
-         align_epi_anat.py -anat2epi                    \\
-                -anat subj99_anat+orig                  \\
-                -epi pb01.subj99.r01.tshift+orig        \\
-                -epi_base 0 -volreg off -tshift off     \\
-                -giant_move                             \\
-                -cost lpc -multi_cost lpa lpc+ZZ mi
+   For testing purposes, it helps to test many cost functions at once.
+   Besides the cost specified by -cost, other cost functions can be applied
+   via -multi_cost.  This is efficient, since all of the other processing
+   does not need to be repeated.  For example:
 
-       That adds -giant_move, and uses the basic lpc cost function along with
-       3 additional cost functions (lpa, lpc+ZZ, mi).  The result is 4 new
-       anatomies aligned to the EPI, 1 per cost function:
+     align_epi_anat.py -anat2epi                    \\
+            -anat subj99_anat+orig                  \\
+            -epi pb01.subj99.r01.tshift+orig        \\
+            -epi_base 0 -volreg off -tshift off     \\
+            -giant_move                             \\
+            -cost lpc -multi_cost lpa lpc+ZZ mi
 
-               subj99_anat_al+orig         - cost func lpc      (see -cost opt)
-               subj99_anat_al_lpa+orig     - cost func lpa         (additional)
-               subj99_anat_al_lpc+ZZ+orig  - cost func lpc+ZZ      (additional)
-               subj99_anat_al_mi+orig      - cost func mi          (additional)
+   That adds -giant_move, and uses the basic lpc cost function along with
+   3 additional cost functions (lpa, lpc+ZZ, mi).  The result is 4 new
+   anatomies aligned to the EPI, 1 per cost function:
 
-       Also, if part of the dataset gets clipped in the case of -giant_move,
-       consider the align_epi_anat.py option '-resample off'.
+           subj99_anat_al+orig         - cost func lpc      (see -cost opt)
+           subj99_anat_al_lpa+orig     - cost func lpa         (additional)
+           subj99_anat_al_lpc+ZZ+orig  - cost func lpc+ZZ      (additional)
+           subj99_anat_al_mi+orig      - cost func mi          (additional)
 
-    --------------------------------------------------
-    WARP TO TLRC NOTE: ~2~
+   Also, if part of the dataset gets clipped in the case of -giant_move,
+   consider the align_epi_anat.py option '-resample off'.
 
-    afni_proc.py can now apply a +tlrc transformation to the EPI data as part
-    of the volreg step via the option '-volreg_tlrc_warp'.  Note that it can
-    also align the EPI and anatomy at the volreg step via '-volreg_align_e2a'.
+--------------------------------------------------
+WARP TO TLRC NOTE: ~2~
 
-    Manual Talairach transformations can also be applied, but separately, after
-    volreg.  See '-volreg_tlrc_adwarp'.
+afni_proc.py can now apply a +tlrc transformation to the EPI data as part
+of the volreg step via the option '-volreg_tlrc_warp'.  Note that it can
+also align the EPI and anatomy at the volreg step via '-volreg_align_e2a'.
 
-    This tlrc transformation is recommended for many reasons, though some are
-    not yet implemented.  Advantages include:
+Manual Talairach transformations can also be applied, but separately, after
+volreg.  See '-volreg_tlrc_adwarp'.
 
-        - single interpolation of the EPI data
+This tlrc transformation is recommended for many reasons, though some are
+not yet implemented.  Advantages include:
 
-            Done separately, volume registration, EPI to anat alignment and/or
-            the +tlrc transformation interpolate the EPI data 2 or 3 times.  By
-            combining these transformations into a single one, there is no
-            resampling penalty for the alignment or the warp to standard space.
+    - single interpolation of the EPI data
 
-            Thanks to D Glen for the steps used in align_epi_anat.py.
+        Done separately, volume registration, EPI to anat alignment and/or
+        the +tlrc transformation interpolate the EPI data 2 or 3 times.  By
+        combining these transformations into a single one, there is no
+        resampling penalty for the alignment or the warp to standard space.
 
-        - EPI time series become directly comparable across subjects
+        Thanks to D Glen for the steps used in align_epi_anat.py.
 
-            Since the volreg output is now in standard space, there is already
-            voxel correspondence across subjects with the EPI data.
+    - EPI time series become directly comparable across subjects
 
-        - group masks and/or atlases can be applied to the EPI data without
-          additional warping
+        Since the volreg output is now in standard space, there is already
+        voxel correspondence across subjects with the EPI data.
 
-            It becomes trivial to extract average time series data over ROIs
-            from standard atlases, say.
+    - group masks and/or atlases can be applied to the EPI data without
+      additional warping
 
-            This could even be done automatically with afni_proc.py, as part
-            of the single-subject processing stream (not yet implemented).
-            One would have afni_proc.py extract average time series (or maybe
-            principal components) from all the ROIs in a dataset and apply
-            them as regressors of interest or of no interest.
+        It becomes trivial to extract average time series data over ROIs
+        from standard atlases, say.
 
-        - no interpolation of statistics
+        This could even be done automatically with afni_proc.py, as part
+        of the single-subject processing stream (not yet implemented).
+        One would have afni_proc.py extract average time series (or maybe
+        principal components) from all the ROIs in a dataset and apply
+        them as regressors of interest or of no interest.
 
-            If the user wishes to include statistics as part of the group
-            analysis (e.g. using 3dMEMA.R), this warping becomes more needed.
-            Warping to standard space *after* statistics are generated is not
-            terribly valid.
+    - no interpolation of statistics
 
-    --------------------------------------------------
-    RETROICOR NOTE: ~2~
+        If the user wishes to include statistics as part of the group
+        analysis (e.g. using 3dMEMA.R), this warping becomes more needed.
+        Warping to standard space *after* statistics are generated is not
+        terribly valid.
 
-    ** Cardiac and respiratory regressors must be created from an external
-       source, such as the RetroTS.py program written by Z Saad, and converted
-       to python by J Zosky.  The input to that should be the 2+ signals.  The
-       output should be a single file per run, containing 13 or more regressors
-       for each slice.  That set of output files would be applied here in
-       afni_proc.py.
+--------------------------------------------------
+RETROICOR NOTE: ~2~
 
-    Removal of cardiac and respiratory regressors can be done using the 'ricor'
-    processing block.  By default, this would be done after 'despike', but
-    before any other processing block.
+** Cardiac and respiratory regressors must be created from an external
+   source, such as the RetroTS.py program written by Z Saad, and converted
+   to python by J Zosky.  The input to that should be the 2+ signals.  The
+   output should be a single file per run, containing 13 or more regressors
+   for each slice.  That set of output files would be applied here in
+   afni_proc.py.
 
-    These card/resp signals would be regressed out of the MRI data in the
-    'ricor' block, after which processing would continue normally. In the final
-    'regress' block, regressors for slice 0 would be applied (to correctly
-    account for the degrees of freedom and also to remove residual effects).
-        --> This is now only true when using '-regress_apply_ricor yes'.
-            The default as of 30 Jan 2012 is to not include them in the final
-            regression (since degrees of freedom are really not important for a
-            subsequent correlation analysis).
+Removal of cardiac and respiratory regressors can be done using the 'ricor'
+processing block.  By default, this would be done after 'despike', but
+before any other processing block.
 
-    Users have the option of removing the signal "per-run" or "across-runs".
+These card/resp signals would be regressed out of the MRI data in the
+'ricor' block, after which processing would continue normally. In the final
+'regress' block, regressors for slice 0 would be applied (to correctly
+account for the degrees of freedom and also to remove residual effects).
+    --> This is now only true when using '-regress_apply_ricor yes'.
+        The default as of 30 Jan 2012 is to not include them in the final
+        regression (since degrees of freedom are really not important for a
+        subsequent correlation analysis).
 
-    Example R1: 7 runs of data, 13 card/resp regressors, process "per-run"
+Users have the option of removing the signal "per-run" or "across-runs".
 
-        Since the 13 regressors are processed per run, the regressors can have
-        different magnitudes each run.  So the 'regress' block will actually
-        get 91 extra regressors (13 regressors times 7 runs each).
+Example R1: 7 runs of data, 13 card/resp regressors, process "per-run"
 
-    Example R2: process "across-run"
+    Since the 13 regressors are processed per run, the regressors can have
+    different magnitudes each run.  So the 'regress' block will actually
+    get 91 extra regressors (13 regressors times 7 runs each).
 
-        In this case the regressors are catenated across runs when they are
-        removed from the data.  The major difference between this and "per-run"
-        is that now only 1 best fit magnitude is applied per regressor (not the
-        best for each run).  So there would be only the 13 catenated regressors
-        for slice 0 added to the 'regress' block.
+Example R2: process "across-run"
 
-    Those analyzing resting-state data might prefer the per-run method, as it
-    would remove more variance and degrees of freedom might not be as valuable.
+    In this case the regressors are catenated across runs when they are
+    removed from the data.  The major difference between this and "per-run"
+    is that now only 1 best fit magnitude is applied per regressor (not the
+    best for each run).  So there would be only the 13 catenated regressors
+    for slice 0 added to the 'regress' block.
 
-    Those analyzing a normal signal model might prefer doing it across-runs,
-    giving up only 13 degrees of freedom, and helping not to over-model the
-    data.
+Those analyzing resting-state data might prefer the per-run method, as it
+would remove more variance and degrees of freedom might not be as valuable.
 
-    ** The minimum options would be specifying the 'ricor' block (preferably
-       after despike), along with -ricor_regs and -ricor_regress_method.
+Those analyzing a normal signal model might prefer doing it across-runs,
+giving up only 13 degrees of freedom, and helping not to over-model the
+data.
 
-    Example R3: afni_proc.py option usage:
+** The minimum options would be specifying the 'ricor' block (preferably
+   after despike), along with -ricor_regs and -ricor_regress_method.
 
-        Provide additional options to afni_proc.py to apply the despike and
-        ricor blocks (which will be the first 2 blocks by default), with each
-        regressor named 'slibase*.1D' going across all runs, and where the
-        first 3 TRs are removed from each run (matching -tcat_remove_first_trs,
-        most likely).
+Example R3: afni_proc.py option usage:
 
-            -do_block despike ricor
-            -ricor_regs slibase*.1D
-            -ricor_regress_method across-runs
-            -ricor_regs_nfirst 3
+    Provide additional options to afni_proc.py to apply the despike and
+    ricor blocks (which will be the first 2 blocks by default), with each
+    regressor named 'slibase*.1D' going across all runs, and where the
+    first 3 TRs are removed from each run (matching -tcat_remove_first_trs,
+    most likely).
 
-    --------------------------------------------------
-    MULTI ECHO NOTE: ~2~
+        -do_block despike ricor
+        -ricor_regs slibase*.1D
+        -ricor_regress_method across-runs
+        -ricor_regs_nfirst 3
 
-        rcr - todo
+--------------------------------------------------
+MULTI ECHO NOTE: ~2~
 
-    In the case of multi-echo data, there are many things to consider.
-    -combine_method
-    -mask_epi_anat yes
-    -blocks ... mask combine ...
+    rcr - todo
 
-        see TEDANA NOTE
-    --------------------------------------------------
-    TEDANA NOTE: ~2~
+In the case of multi-echo data, there are many things to consider.
+-combine_method
+-mask_epi_anat yes
+-blocks ... mask combine ...
 
-    This deserves its own section.
-    -tshift_interp -wsinc9
-    -mask_epi_anat yes
-    -volreg_warp_final_interp wsinc5
+    see TEDANA NOTE
+--------------------------------------------------
+TEDANA NOTE: ~2~
 
-        see MULTI ECHO NOTE
-    --------------------------------------------------
-    RUNS OF DIFFERENT LENGTHS NOTE: ~2~
+This deserves its own section.
+-tshift_interp -wsinc9
+-mask_epi_anat yes
+-volreg_warp_final_interp wsinc5
 
-    In the case that the EPI datasets are not all of the same length, here
-    are some issues that may come up, listed by relevant option:
+    see MULTI ECHO NOTE
+--------------------------------------------------
+RUNS OF DIFFERENT LENGTHS NOTE: ~2~
 
-        -volreg_align_to        OK, as of version 1.49.
+In the case that the EPI datasets are not all of the same length, here
+are some issues that may come up, listed by relevant option:
 
-        -ricor_regress_method   OK, as of version 3.05.
+    -volreg_align_to        OK, as of version 1.49.
 
-        -regress_polort         Probably no big deal.
-                                If this option is not used, then the degree of
-                                polynomial used for the baseline will come from
-                                the first run.  Only 1 polort may be applied.
+    -ricor_regress_method   OK, as of version 3.05.
 
-        -regress_est_blur_epits OK, as of version 1.49.
+    -regress_polort         Probably no big deal.
+                            If this option is not used, then the degree of
+                            polynomial used for the baseline will come from
+                            the first run.  Only 1 polort may be applied.
 
-     *  -regress_use_stim_files This may fail, as make_stim_times.py is not
-                                currently prepared to handle runs of different
-                                lengths.
+    -regress_est_blur_epits OK, as of version 1.49.
 
-        -regress_censor_motion  OK, as of version 2.14
+ *  -regress_use_stim_files This may fail, as make_stim_times.py is not
+                            currently prepared to handle runs of different
+                            lengths.
 
-     * probably will be fixed (please let me know of interest)
+    -regress_censor_motion  OK, as of version 2.14
 
-    --------------------------------------------------
-    SCRIPT EXECUTION NOTE: ~2~
+ * probably will be fixed (please let me know of interest)
 
-    The suggested way to run the output processing SCRIPT is via...
+--------------------------------------------------
+SCRIPT EXECUTION NOTE: ~2~
 
-        a) if you use tcsh:    tcsh -xef SCRIPT |& tee output.SCRIPT
+The suggested way to run the output processing SCRIPT is via...
 
-        b) if you use bash:    tcsh -xef SCRIPT 2>&1 | tee output.SCRIPT
+    a) if you use tcsh:    tcsh -xef SCRIPT |& tee output.SCRIPT
 
-        c) if you use tcsh and the script is executable, maybe use one of:
+    b) if you use bash:    tcsh -xef SCRIPT 2>&1 | tee output.SCRIPT
 
-                            ./SCRIPT |& tee output.SCRIPT
-                            ./SCRIPT 2>&1 | tee output.SCRIPT
+    c) if you use tcsh and the script is executable, maybe use one of:
 
-    Consider usage 'a' for example:  tcsh -xef SCRIPT |& tee output.SCRIPT
+                        ./SCRIPT |& tee output.SCRIPT
+                        ./SCRIPT 2>&1 | tee output.SCRIPT
 
-    That command means to invoke a new tcsh with the -xef options (so that
-    commands echo to the screen before they are executed, exit the script
-    upon any error, do not process the ~/.cshrc file) and have it process the
-    SCRIPT file, piping all output to the 'tee' program, which will duplicate
-    output back to the screen, as well as to the given output file.
+Consider usage 'a' for example:  tcsh -xef SCRIPT |& tee output.SCRIPT
 
-    parsing the command: tcsh -xef SCRIPT |& tee output.SCRIPT
+That command means to invoke a new tcsh with the -xef options (so that
+commands echo to the screen before they are executed, exit the script
+upon any error, do not process the ~/.cshrc file) and have it process the
+SCRIPT file, piping all output to the 'tee' program, which will duplicate
+output back to the screen, as well as to the given output file.
 
-        a. tcsh
+parsing the command: tcsh -xef SCRIPT |& tee output.SCRIPT
 
-           The script itself is written in tcsh syntax and must be run that way.
-           It does not mean the user must use tcsh.  Note uses 'a' and 'b'.
-           There tcsh is specified by the user.  The usage in 'c' applies tcsh
-           implicitly, because the SCRIPT itself specifies tcsh at the top.
+    a. tcsh
 
-        b. tcsh -xef
+       The script itself is written in tcsh syntax and must be run that way.
+       It does not mean the user must use tcsh.  Note uses 'a' and 'b'.
+       There tcsh is specified by the user.  The usage in 'c' applies tcsh
+       implicitly, because the SCRIPT itself specifies tcsh at the top.
 
-           The -xef options are applied to tcsh and have the following effects:
+    b. tcsh -xef
 
-                x : echo commands to screen before executing them
-                e : exit (terminate) the processing on any errors
-                f : do not process user's ~/.cshrc file
+       The -xef options are applied to tcsh and have the following effects:
 
-           The -x option is very useful so one see not just output from the
-           programs, but the actual commands that produce the output.  It
-           makes following the output much easier.
+            x : echo commands to screen before executing them
+            e : exit (terminate) the processing on any errors
+            f : do not process user's ~/.cshrc file
 
-           The -e option tells the shell to terminate on any error.  This is
-           useful for multiple reasons.  First, it allows the user to easily
-           see the failing command and error message.  Second, it would be
-           confusing and useless to have the script try to continue, without
-           all of the needed data.
+       The -x option is very useful so one see not just output from the
+       programs, but the actual commands that produce the output.  It
+       makes following the output much easier.
 
-           The -f option tells the shell not to process the user's ~/.cshrc
-           (or ~/.tcshrc) file.  The main reason for including this is because
-           of the -x option.  If there were any errors in the user's ~/.cshrc
-           file and -x option were used, they would terminate the shell before
-           the script even started, probably leaving the user confused.
+       The -e option tells the shell to terminate on any error.  This is
+       useful for multiple reasons.  First, it allows the user to easily
+       see the failing command and error message.  Second, it would be
+       confusing and useless to have the script try to continue, without
+       all of the needed data.
 
-        c. tcsh -xef SCRIPT
+       The -f option tells the shell not to process the user's ~/.cshrc
+       (or ~/.tcshrc) file.  The main reason for including this is because
+       of the -x option.  If there were any errors in the user's ~/.cshrc
+       file and -x option were used, they would terminate the shell before
+       the script even started, probably leaving the user confused.
 
-           The T-shell is invoked as described above, executing the contents
-           of the specified text file (called 'SCRIPT', for example) as if the
-           user had typed the included commands in their terminal window.
+    c. tcsh -xef SCRIPT
 
-        d. |&
+       The T-shell is invoked as described above, executing the contents
+       of the specified text file (called 'SCRIPT', for example) as if the
+       user had typed the included commands in their terminal window.
 
-           These symbols are for piping the output of one program to the input
-           of another.  Many people know how to do 'afni_proc.py -help | less'
-           (or maybe '| more').  This script will output a lot of text, and we
-           want to get a copy of that into a text file (see below).
+    d. |&
 
-           Piping with '|' captures only stdout (standard output), and would
-           not capture errors and warnings that appear.  Piping with '|&'
-           captures both stdout and stderr (standard error).  The user may not
-           be able to tell any difference between those file streams on the
-           screen, but since programs write to both, we want to capture both.
+       These symbols are for piping the output of one program to the input
+       of another.  Many people know how to do 'afni_proc.py -help | less'
+       (or maybe '| more').  This script will output a lot of text, and we
+       want to get a copy of that into a text file (see below).
 
-        e. tee output.SCRIPT
+       Piping with '|' captures only stdout (standard output), and would
+       not capture errors and warnings that appear.  Piping with '|&'
+       captures both stdout and stderr (standard error).  The user may not
+       be able to tell any difference between those file streams on the
+       screen, but since programs write to both, we want to capture both.
 
-           Where do we want to send this captured stdout and stderr text?  Send
-           it to the 'tee' program.  Like a plumber's tee, the 'tee' program
-           splits the data (not water) stream off into 2 directions.
+    e. tee output.SCRIPT
 
-           Here, one direction that tee sends the output is back to the screen,
-           so the user can still see what is happening.
+       Where do we want to send this captured stdout and stderr text?  Send
+       it to the 'tee' program.  Like a plumber's tee, the 'tee' program
+       splits the data (not water) stream off into 2 directions.
 
-           The other direction is to the user-specified text file.  In this
-           example it would be 'output.SCRIPT'.  With this use of 'tee', all
-           screen output will be duplicated in that text file.
+       Here, one direction that tee sends the output is back to the screen,
+       so the user can still see what is happening.
+
+       The other direction is to the user-specified text file.  In this
+       example it would be 'output.SCRIPT'.  With this use of 'tee', all
+       screen output will be duplicated in that text file.
 
 """
 g_help_options = """
-    ==================================================
-    OPTIONS:  ~2~
+==================================================
+OPTIONS:  ~2~
 
-        Informational options, general options, and block options.
-        Block options are ordered by block.
+    Informational options, general options, and block options.
+    Block options are ordered by block.
 
-        -----------------------------------------------------------------
-        Informational/terminal options  ~3~
+    -----------------------------------------------------------------
+    Informational/terminal options  ~3~
 
-        -help                   : show the complete help
+    -help                   : show the complete help
 
-        -help_section SECTION   : show help for given SECTION
+    -help_section SECTION   : show help for given SECTION
 
-            The help is divided into sections, an any one of these can be
-            displayed individually by providing the given SECTION:
+        The help is divided into sections, an any one of these can be
+        displayed individually by providing the given SECTION:
 
-                  intro         - introduction
-                  examples      - afni_proc.py command examples
-                  notes         - NOTE_* entries
-                  options       - descriptions of options
-                  trailer       - final trailer
+              intro         - introduction
+              examples      - afni_proc.py command examples
+              notes         - NOTE_* entries
+              options       - descriptions of options
+              trailer       - final trailer
 
-        -help_tedana_files      : show tedana file names, compare orig vs bids
+    -help_tedana_files      : show tedana file names, compare orig vs bids
 
-           The file naming between older and newer tedana versions (or newer
-           using "tedana --convention orig") is shown with this option.  For
-           example, the denoised time series after being Optimially Combined
-           has possible names of:
+       The file naming between older and newer tedana versions (or newer
+       using "tedana --convention orig") is shown with this option.  For
+       example, the denoised time series after being Optimally Combined
+       has possible names of:
 
-               orig                 BIDS
-               ----                 ----
-               dn_ts_OC.nii.gz      desc-optcomDenoised_bold.nii.gz          
+           orig                 BIDS
+           ----                 ----
+           dn_ts_OC.nii.gz      desc-optcomDenoised_bold.nii.gz          
 
-            Please see 'tedana --help' for more information.
+        Please see 'tedana --help' for more information.
 
-        -hist                   : show the module history
+    -hist                   : show the module history
 
-        -requires_afni_version  : show AFNI date required by processing script
+    -hist_milestones        : show the history of interesting milestones
 
-            Many updates to afni_proc.py are accompanied by corresponding
-            updates to other AFNI programs.  So if the processing script is
-            created on one computer but executed on another (with an older
-            version of AFNI), confusing failures could result.
+    -requires_afni_version  : show AFNI date required by processing script
 
-            The required date is adjusted whenever updates are made that rely
-            on new features of some other program.  If the processing script
-            checks the AFNI version, the AFNI package must be as current as the
-            date output via this option.  Checks are controlled by the option
-            '-check_afni_version'.
+        Many updates to afni_proc.py are accompanied by corresponding
+        updates to other AFNI programs.  So if the processing script is
+        created on one computer but executed on another (with an older
+        version of AFNI), confusing failures could result.
 
-            The checking method compares the output of:
-                afni_proc.py -requires_afni_version
+        The required date is adjusted whenever updates are made that rely
+        on new features of some other program.  If the processing script
+        checks the AFNI version, the AFNI package must be as current as the
+        date output via this option.  Checks are controlled by the option
+        '-check_afni_version'.
 
-            against the most recent date in afni_history:
-                afni_history -past_entries 1
+        The checking method compares the output of:
+            afni_proc.py -requires_afni_version
 
-            See also '-requires_afni_hist'.
+        against the most recent date in afni_history:
+            afni_history -past_entries 1
 
-            See also '-check_afni_version'.
+        See also '-requires_afni_hist'.
 
-        -requires_afni_hist     : show history of -requires_afni_version
+        See also '-check_afni_version'.
 
-            List the history of '-requires_afni_version' dates and reasons.
+    -requires_afni_hist     : show history of -requires_afni_version
 
-        -show_valid_opts        : show all valid options (brief format)
+        List the history of '-requires_afni_version' dates and reasons.
 
-        -show_example NAME      : display the given example command
+    -show_valid_opts        : show all valid options (brief format)
 
-                e.g. afni_proc.py -show_example 'example 6b'
-                e.g. afni_proc.py -show_example 'example 6b' -verb 0
-                e.g. afni_proc.py -show_example 'example 6b' -verb 2
+    -show_example NAME      : display the given example command
 
-            Display the given afni_proc.py help example.  Details shown depend
-            on the verbose level, as specified with -verb:
+            e.g. afni_proc.py -show_example 'example 6b'
+            e.g. afni_proc.py -show_example 'example 6b' -verb 0
+            e.g. afni_proc.py -show_example 'example 6b' -verb 2
 
-                0: no formatting - command can be copied and applied elseshere
-                1: basic         - show header and formatted command
-                2: detailed      - include full description, as in -help output
+        Display the given afni_proc.py help example.  Details shown depend
+        on the verbose level, as specified with -verb:
 
-            To list examples that can be shown, use:
+            0: no formatting - command can be copied and applied elsewhere
+            1: basic         - show header and formatted command
+            2: detailed      - include full description, as in -help output
 
-                afni_proc.py -show_example_names
-
-            See also '-show_example_names'.
-
-        -show_example_names     : show names of all sample commands
-                                  (possibly for use with -compare options)
-
-                e.g. afni_proc.py -show_example_names
-
-            Use this command to list the current examples know by afni_proc.py.
-            The format of the output is affected by -verb, with -verb 2 format
-            being the default.
-
-        -ver                    : show the version number
-
-        -----------------------------------------------------------------
-        Terminal 'compare' options ~3~
-
-        These options are used to help compare one afni_proc.py command with a
-        different one.  One can compare a current command to a given example,
-        one example to another, or one command to another.
-
-        To see a list of examples one can compare against, consider:
+        To list examples that can be shown, use:
 
             afni_proc.py -show_example_names
 
-        -compare_example_pair EG1 EG2 : compare options for pair of examples
+        See also '-show_example_names'.
 
-                e.g. -compare_example_pair 'example 6' 'example 6b'
+    -show_example_names     : show names of all sample commands
+                              (possibly for use with -compare options)
 
-            more completely:
+            e.g. afni_proc.py -show_example_names
+            e.g. afni_proc.py -show_example_names -verb 3
 
-                afni_proc.py -compare_example_pair 'example 6' 'example 6b'
+        Use this command to list the current examples know by afni_proc.py.
+        The format of the output is affected by -verb, with -verb 2 format
+        being the default.
 
-            This option allows one to compare a pair of pre-defined examples
-            (from the list in 'afni_proc.py -show_example_names').  It is like
-            using -compare_opts, but for comparing example vs. example.
+        Adding -verb 3 will display the most recent modification date.
 
-        -compare_opts EXAMPLE   : compare current options against EXAMPLE
+    -show_example_keywords  : show keywords associated with all examples
 
-                e.g. -compare_opts 'example 6b'
+            e.g. afni_proc.py -show_example_keywords
+            e.g. afni_proc.py -show_example_keywords -verb 2
 
-            more completely:
+        Use this command to list the current examples know by afni_proc.py.
+        The format of the output is affected by -verb, with -verb 2 format
+        being the default.
 
-                afni_proc.py  ... my options ...  -compare_opts 'example 6b'
+    -show_pretty_command    : output the same command, but in a nice format
 
-            Adding this option (and parameter) to an existing afni_proc.py
-            command results in comparing the options applied in the current
-            command against those of the specified target example.
+            e.g. afni_proc.py -show_pretty_command
 
-            The afni_proc.py command terminates after showing the comparison
-            output.
+        Adding this option to an existing afni_proc.py command will result in
+        displaying the command itself in a nicely indented manner, using the
+        P Taylor special routines.
 
-            The output from this is controlled by the -verb LEVEL:
+    -show_pythonic_command  : output the same command, but as a python list
 
-                0       : show (python-style) lists of differing options
-                1 (def) : include parameter differences
-                          (except where expected, e.g. -copy_anat dset)
-                          (limit param lists to current text line)
-                2       : show complete parameter diffs
+            e.g. afni_proc.py -show_pythonic_command
 
-            Types of differences shown include:
+        Adding this option to an existing afni_proc.py command will result in
+        displaying the command itself, but in a python list format that is
+        helpful to me.
 
-                missing options         :
-                    where the current command is missing options that the
-                    specified target command includes
-                extra options           :
-                    where the current command has extra options that the
-                    specified target command is missing
-                differing options       :
-                    where the current command and target use the same option,
-                    but their parameters differ
-                fewer applied options   :
-                    where the current command and target use multiple copies of
-                    the same option, but the current command has fewer
-                    (what is beyond the matching/differing cases)
-                more applied options    :
-                    where the current command and target use multiple copies of
-                    the same option, but the current command has more
-                    (what is beyond the matching/differing cases)
+    -ver                    : show the version number
 
-            This option is the basis for all of the -compare* options.
+    -----------------------------------------------------------------
+    Terminal 'compare' options ~3~
 
-            See also -show_example_names.
+    These options are used to help compare one afni_proc.py command with a
+    different one.  One can compare a current command to a given example,
+    one example to another, or one command to another.
 
-        -compare_example_pair EG1 EG2 : compare options for pair of examples
+    To see a list of examples one can compare against, consider:
 
-                e.g. -compare_example_pair 'example 6' 'example 6b'
+        afni_proc.py -show_example_names
 
-            more completely:
+    -compare_example_pair EG1 EG2 : compare options for pair of examples
 
-                afni_proc.py -compare_example_pair 'example 6' 'example 6b'
+            e.g. -compare_example_pair 'example 6' 'example 6b'
 
-            Like -compare_opts, but rather than comparing the current command
-            against a known example, it compares 2 known examples.
+        more completely:
 
-            See also -show_example_names.
+            afni_proc.py -compare_example_pair 'example 6' 'example 6b'
 
-        -compare_opts_vs_opts opts... : compare 2 full commands
+        This option allows one to compare a pair of pre-defined examples
+        (from the list in 'afni_proc.py -show_example_names').  It is like
+        using -compare_opts, but for comparing example vs. example.
 
-            more completely:
+    -compare_opts EXAMPLE   : compare current options against EXAMPLE
 
-                afni_proc.py                            \\
-                    ... one full set of options ...     \\
-                    -compare_opts_vs_opts               \\
-                    ... another full set of options ...
+            e.g. -compare_opts 'example 6b'
 
-            Like other -compare_* options, but this compares 2 full commands,
-            separated by -compare_opts_vs_opts.  This is a comparison method
-            for comparing 2 local commands, rather than against any known
-            example.
+        more completely:
 
-        -----------------------------------------------------------------
-        General execution and setup options ~3~
+            afni_proc.py  ... my options ...  -compare_opts 'example 6b'
 
-        -anat_follower LABEL GRID DSET : specify anat follower dataset
+        Adding this option (and parameter) to an existing afni_proc.py
+        command results in comparing the options applied in the current
+        command against those of the specified target example.
 
-                e.g. -anat_follower GM anat FS_GM_MASK.nii
+        The afni_proc.py command terminates after showing the comparison
+        output.
 
-            Use this option to pass any anatomical follower dataset.  Such a
-            dataset is warped by any transformations that take the original
-            anat to anat_final.
+        The output from this is controlled by the -verb LEVEL:
 
-            Anatomical follower datasets are resampled using wsinc5.  The only
-            difference with -anat_follower_ROI is that such ROI datasets are
-            resampled using nearest neighbor interpolation.
+            0       : show (python-style) lists of differing options
+            1 (def) : include parameter differences
+                      (except where expected, e.g. -copy_anat dset)
+                      (limit param lists to current text line)
+            2       : show parameter diffs, but try to distinguish what might
+                      just be a difference in paths to a file
+            3       : show complete parameter diffs
 
-               LABEL    : to name and refer to this dataset
-               GRID     : which grid should this be sampled on, anat or epi?
-               DSET     : name of input dataset, changed to copy_af_LABEL
+        Types of differences shown include:
 
-            A default anatomical follower (in the case of skull stripping) is
-            the original anat.  That is to get a warped version that still has
-            a skull, for quality control.
+            missing options         :
+                where the current command is missing options that the
+                specified target command includes
+            extra options           :
+                where the current command has extra options that the
+                specified target command is missing
+            differing options       :
+                where the current command and target use the same option,
+                but their parameters differ (possibly just in a file path)
+            fewer applied options   :
+                where the current command and target use multiple copies of
+                the same option, but the current command has fewer
+                (what is beyond the matching/differing cases)
+            more applied options    :
+                where the current command and target use multiple copies of
+                the same option, but the current command has more
+                (what is beyond the matching/differing cases)
 
-            See also -anat_follower_ROI, anat_follower_erode.
+        This option is the basis for all of the -compare* options.
 
-        -anat_follower_erode LABEL LABEL ...: erode masks for given labels
+        * Note: options with the same option name are compared in order, so
+                a different order of such options will appear as differences.
+                For example, -ROI_import options all need to be in the same
+                relative order, or they will be seen as differing.
+                Such is life.  If this fact proves disastrous, let me know.
 
-                e.g. -anat_follower_erode WMe
+        See also -show_example_names.
 
-            Perform a single erosion step on the mask dataset for the given
-            label.  This is done on the input ROI (anatomical?) grid.
+    -compare_opts_vs_opts opts... : compare 2 full commands
 
-            The erosion step is applied before any transformation, and uses the
-            18-neighbor approach (6 face and 12 edge neighbors, not 8 corner
-            neighbors) in 3dmask_tool.
+        more completely:
 
-            See also -regress_ROI_PC, -regress_ROI.
-            Please see '3dmask_tool -help' for more information on eroding.
+            afni_proc.py                            \\
+                ... one full set of options ...     \\
+                -compare_opts_vs_opts               \\
+                ... another full set of options ...
 
-        -anat_follower_ROI LABEL GRID DSET : specify anat follower ROI dataset
+        Like other -compare_* options, but this compares 2 full commands,
+        separated by -compare_opts_vs_opts.  This is a comparison method
+        for comparing 2 local commands, rather than against any known
+        example.
 
-                e.g. -anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii
-                e.g. -anat_follower_ROI FSvent epi FreeSurfer_ventricles.nii
+    -----------------------------------------------------------------
+    General execution and setup options ~3~
 
-            Use this option to pass any anatomical follower dataset.  Such a
-            dataset is warped by any transformations that take the original
-            anat to anat_final.
+    -anat_follower LABEL GRID DSET : specify anat follower dataset
 
-            Similar to -anat_follower, except that these anatomical follower
-            datasets are resampled using nearest neighbor (NN) interpolation,
-            to preserve data values (as opposed to -anat_follower, which uses
-            wsinc5).  That is the only difference between these options.
+            e.g. -anat_follower GM anat FS_GM_MASK.nii
 
-               LABEL    : to name and refer to this dataset
-               GRID     : which grid should this be sampled on, anat or epi?
-               DSET     : name of input dataset, changed to copy_af_LABEL
+        Use this option to pass any anatomical follower dataset.  Such a
+        dataset is warped by any transformations that take the original
+        anat to anat_final.
 
-            Labels defined via this option may be used in -regress_ROI or _PC.
+        Anatomical follower datasets are resampled using wsinc5.  The only
+        difference with -anat_follower_ROI is that such ROI datasets are
+        resampled using nearest neighbor interpolation.
 
-            See also -anat_follower, anat_follower_erode, -regress_ROI
-            or -regress_ROI_PC.
+           LABEL    : to name and refer to this dataset
+           GRID     : which grid should this be sampled on, anat or epi?
+           DSET     : name of input dataset, changed to copy_af_LABEL
 
-        -anat_has_skull yes/no  : specify whether the anatomy has a skull
+        A default anatomical follower (in the case of skull stripping) is
+        the original anat.  That is to get a warped version that still has
+        a skull, for quality control.
 
-                e.g. -anat_has_skull no
+        See also -anat_follower_ROI, anat_follower_erode.
 
-            Use this option to block any skull-stripping operations, likely
-            either in the align or tlrc processing blocks.
+    -anat_follower_erode LABEL LABEL ...: erode masks for given labels
 
-        -anat_uniform_method METHOD : specify uniformity correction method
+            e.g. -anat_follower_erode WMe
 
-                e.g. -anat_uniform_method unifize
+        Perform a single erosion step on the mask dataset for the given
+        label.  This is done on the input ROI (anatomical?) grid.
 
-            Specify the method for anatomical intensity uniformity correction.
+        The erosion step is applied before any transformation, and uses the
+        18-neighbor approach (6 face and 12 edge neighbors, not 8 corner
+        neighbors) in 3dmask_tool.
 
-                none    : do not do uniformity correction at all
-                default : use 3dUnifize at whim of auto_warp.py
-                unifize : apply 3dUnifize early in processing stream
-                          (so it affects more than auto_warp.py)
+      * For more control on the erosion level, see -anat_follower_erode_level.
 
-            Please see '3dUnifize -help' for details.
-            See also -anat_opts_unif.
+        See also -anat_follower_erode_level, -regress_ROI_PC, -regress_ROI.
+        Please see '3dmask_tool -help' for more information on eroding.
 
-        -anat_opts_unif OPTS ... : specify extra options for unifize command
+    -anat_follower_erode_level LABEL LEVEL : erode a mask at a specific level
 
-                e.g. -anat_opts_unif -Urad 14
+            e.g. -anat_follower_erode_level WMe 2
 
-            Specify options to be applied to the command used for anatomical
-            intensity uniformity correction, such as 3dUnifize.
+        Use this option to specify an anatomical erosion level, in voxels.
 
-            Please see '3dUnifize -help' for details.
-            See also -anat_uniform_method.
+        The erosion step is applied before any transformation, and uses the
+        18-neighbor approach (6 face and 12 edge neighbors, not 8 corner
+        neighbors) in 3dmask_tool.
 
-        -anat_unif_GM yes/no    : also unifize gray matter (lower intensities)
-                                  the default is 'no'
+      * For more control on the erosion level, see -anat_follower_erode_level.
 
-                e.g. -anat_unif_GM yes
-                default: -anat_unif_GM no
+        See also -anat_follower_erode_level, -regress_ROI_PC, -regress_ROI.
+        Please see '3dmask_tool -help' for more information on eroding.
 
-            If this is set to yes, 3dUnifize will not only apply uniformity
-            correction across the brain volume, but also to voxels that look
-            like gray matter.  That is to say the option adds '-GM' to the
-            3dUnifize command.
+    -anat_follower_ROI LABEL GRID DSET : specify anat follower ROI dataset
 
-          * The default was changed from yes to no 2014, May 16.
+        e.g. -anat_follower_ROI aaseg anat aparc.a2009s+aseg_REN_all.nii.gz
+        e.g. -anat_follower_ROI FSvent epi fs_ap_latvent.nii.gz
 
-            Please see '3dUnifize -help' for details.
-            See also -anat_uniform_method, -anat_opts_unif.
+        Use this option to pass any anatomical follower dataset.  Such a
+        dataset is warped by any transformations that take the original
+        anat to anat_final.
 
-        -ask_me                 : ask the user about the basic options to apply
+        Similar to -anat_follower, except that these anatomical follower
+        datasets are resampled using nearest neighbor (NN) interpolation,
+        to preserve data values (as opposed to -anat_follower, which uses
+        wsinc5).  That is the only difference between these options.
 
-            When this option is used, the program will ask the user how they
-            wish to set the basic options.  The intention is to give the user
-            a feel for what options to apply (without using -ask_me).
+           LABEL    : to name and refer to this dataset
+           GRID     : which grid should this be sampled on, anat or epi?
+           DSET     : name of input dataset, changed to copy_af_LABEL
 
-        -bash                   : show example execution command in bash form
+        Labels defined via this option may be used in -regress_ROI or _PC.
 
-            After the script file is created, this program suggests how to run
-            it (piping stdout/stderr through 'tee').  If the user is running
-            the bash shell, this option will suggest the 'bash' form of a
-            command to execute the newly created script.
+        See also -anat_follower, anat_follower_erode, -regress_ROI
+        or -regress_ROI_PC.
 
-            example of tcsh form for execution:
+    -anat_has_skull yes/no  : specify whether the anatomy has a skull
 
-                tcsh -x proc.ED.8.glt |& tee output.proc.ED.8.glt
+            e.g. -anat_has_skull no
 
-            example of bash form for execution:
+        Use this option to block any skull-stripping operations, likely
+        either in the align or tlrc processing blocks.
 
-                tcsh -x proc.ED.8.glt 2>&1 | tee output.proc.ED.8.glt
+    -anat_uniform_method METHOD : specify uniformity correction method
 
-            Please see "man bash" or "man tee" for more information.
+            e.g. -anat_uniform_method unifize
 
-        -blocks BLOCK1 ...      : specify the processing blocks to apply
+        Specify the method for anatomical intensity uniformity correction.
 
-                e.g. -blocks volreg blur scale regress
-                e.g. -blocks despike tshift align volreg blur scale regress
-                default: tshift volreg blur mask scale regress
+            none    : do not do uniformity correction at all
+            default : use 3dUnifize at whim of auto_warp.py
+            unifize : apply 3dUnifize early in processing stream
+                      (so it affects more than auto_warp.py)
 
-            The user may apply this option to specify which processing blocks
-            are to be included in the output script.  The order of the blocks
-            may be varied, and blocks may be skipped.
+        Please see '3dUnifize -help' for details.
+        See also -anat_opts_unif.
 
-            See also '-do_block' (e.g. '-do_block despike').
+    -anat_opts_unif OPTS ... : specify extra options for unifize command
 
-        -check_afni_version yes/no : check that AFNI is current enough
+            e.g. -anat_opts_unif -Urad 14
 
-                e.g. -check_afni_version no
-                default: yes
+        Specify options to be applied to the command used for anatomical
+        intensity uniformity correction, such as 3dUnifize.
 
-            Check that the version of AFNI is recent enough for processing of
-            the afni_proc.py script.
+        Please see '3dUnifize -help' for details.
+        See also -anat_uniform_method.
 
-            For the version check, the output of:
-                afni_proc.py -requires_afni_version
+    -anat_unif_GM yes/no    : also unifize gray matter (lower intensities)
+                              the default is 'no'
 
-            is tested against the most recent date in afni_history:
-                afni_history -past_entries 1
+            e.g. -anat_unif_GM yes
+            default: -anat_unif_GM no
 
-            In the case that newer features in other programs might not be
-            needed by the given afni_proc.py script (depending on the options),
-            the user is left with this option to ignore the AFNI version check.
+        If this is set to yes, 3dUnifize will not only apply uniformity
+        correction across the brain volume, but also to voxels that look
+        like gray matter.  That is to say the option adds '-GM' to the
+        3dUnifize command.
 
-            Please see 'afni_history -help' or 'afni -ver' for more information.
-            See also '-requires_afni_version'.
+      * The default was changed from yes to no 2014, May 16.
 
-        -check_results_dir yes/no : check whether dir exists before proceeding
+        Please see '3dUnifize -help' for details.
+        See also -anat_uniform_method, -anat_opts_unif.
 
-                e.g. -check_results_dir no
-                default: yes
+    -ask_me                 : ask the user about the basic options to apply
 
-            By default, if the results directory already exists, the script
-            will terminate before doing any processing.  Set this option to
-            'no' to remove that check.
+        When this option is used, the program will ask the user how they
+        wish to set the basic options.  The intention is to give the user
+        a feel for what options to apply (without using -ask_me).
 
-        -check_setup_errors yes/no : terminate on setup errors
+    -bash                   : show example execution command in bash form
 
-                e.g. -check_setup_errors yes
-                default: no
+        After the script file is created, this program suggests how to run
+        it (piping stdout/stderr through 'tee').  If the user is running
+        the bash shell, this option will suggest the 'bash' form of a
+        command to execute the newly created script.
 
-            Have the script check $status after each command in the setup
-            processing block.  It is preferable to run the script using the
-            -e option to tcsh (as suggested), but maybe the user does not wish
-            to do so.
+        example of tcsh form for execution:
 
-        -command_comment_style STYLE: set style for final AP command comment
+            tcsh -x proc.ED.8.glt |& tee output.proc.ED.8.glt
 
-                e.g. -command_comment_style pretty
+        example of bash form for execution:
 
-            This controls the format for the trailing afni_proc.py commented
-            command at the end of the proc script.  STYLE can be:
+            tcsh -x proc.ED.8.glt 2>&1 | tee output.proc.ED.8.glt
 
-                none        - no trailing command will be included
-                compact     - the original compact form will be included
-                pretty      - the PT-special pretty form will be included
+        Please see "man bash" or "man tee" for more information.
 
-        -copy_anat ANAT         : copy the ANAT dataset to the results dir
+    -bids_deriv BDIR        : request BIDS derivative output
 
-                e.g. -copy_anat Elvis/mprage+orig
+            e.g. -bids_deriv yes
+            e.g. -bids_deriv /my/path/to/derivatives/TASK_PICKLES
+            default: -bids_deriv no
 
-            This will apply 3dcopy to copy the anatomical dataset(s) to the
-            results directory.  Note that if a +view is not given, 3dcopy will
-            attempt to copy +acpc and +tlrc datasets, also.
+        Use this option to request a copy of relevant output converted to BIDS
+        tree format.  BDIR can be one of:
 
-            See also '3dcopy -help'.
+            no      : (default) do not produce any BIDS tree
+            yes     : the BIDS tree will go under the subject results directory
+            BDIR    : a path to a derivative directory
+                      (must be absolute, i.e. staring with a /)
 
-        -copy_files file1 ...   : copy file1, etc. into the results directory
+        The resulting directory will include the directories:
 
-                e.g. -copy_files glt_AvsB.txt glt_BvsC.1D glt_eat_cheese.txt
-                e.g. -copy_files contrasts/glt_*.txt
+            anat        : anat and template
+            func        : EPI BOLD time series, mask, residuals...
+            func_stats  : statistical contrasts and stats datasets
+            logs        : any copied log files
 
-            This option allows the user to copy some list of files into the
-            results directory.  This would happen before the tcat block, so
-            such files may be used for other commands in the script (such as
-            contrast files in 3dDeconvolve, via -regress_opts_3dD).
+        Please see 'map_ap_to_deriv.py -help' for more information.  Note that
+        map_ap_to_deriv.py can easily be run separately.
 
-        -do_block BLOCK_NAME ...: add extra blocks in their default positions
+    -blocks BLOCK1 ...      : specify the processing blocks to apply
 
-                e.g. -do_block despike ricor
-                e.g. -do_block align
+            e.g. -blocks volreg blur scale regress
+            e.g. -blocks despike tshift align volreg blur scale regress
+            default: tshift volreg blur mask scale regress
 
-            With this option, any 'optional block' can be applied in its
-            default position.  This includes the following blocks, along with
-            their default positions:
+        The user may apply this option to specify which processing blocks
+        are to be included in the output script.  The order of the blocks
+        may be varied, and blocks may be skipped.
 
-                despike : first (between tcat and tshift)
-                ricor   : just after despike (else first)
-                align   : before tlrc, before volreg
-                tlrc    : after align, before volreg
-                empty   : NO DEFAULT, cannot be applied via -do_block
+        See also '-do_block' (e.g. '-do_block despike').
 
-            Any block not included in -blocks can be added via this option
-            (except for 'empty').
+    -check_afni_version yes/no : check that AFNI is current enough
 
-            See also '-blocks', as well as the "PROCESSING BLOCKS" section of
-            the -help output.
+            e.g. -check_afni_version no
+            default: yes
 
-        -dsets dset1 dset2 ...  : (REQUIRED) specify EPI run datasets
+        Check that the version of AFNI is recent enough for processing of
+        the afni_proc.py script.
 
-                e.g. -dsets Elvis_run1+orig Elvis_run2+orig Elvis_run3+orig
-                e.g. -dsets Elvis_run*.HEAD
+        For the version check, the output of:
+            afni_proc.py -requires_afni_version
 
-            The user must specify the list of EPI run datasets to analyze.
-            When the runs are processed, they will be written to start with
-            run 1, regardless of whether the input runs were just 6, 7 and 21.
+        is tested against the most recent date in afni_history:
+            afni_history -past_entries 1
 
-            Note that when using a wildcard it is essential for the EPI
-            datasets to be alphabetical, as that is how the shell will list
-            them on the command line.  For instance, epi_run1+orig through
-            epi_run11+orig is not alphabetical.  If they were specified via
-            wildcard their order would end up as run1 run10 run11 run2 ...
+        In the case that newer features in other programs might not be
+        needed by the given afni_proc.py script (depending on the options),
+        the user is left with this option to ignore the AFNI version check.
 
-            Note also that when using a wildcard it is essential to specify
-            the datasets suffix, so that the shell doesn't put both the .BRIK
-            and .HEAD filenames on the command line (which would make it twice
-            as many runs of data).
+        Please see 'afni_history -help' or 'afni -ver' for more information.
+        See also '-requires_afni_version'.
 
-        -dsets_me_echo dset1 dset2 ...  : specify ME datasets for one echo
-                                          (all runs with each option)
+    -check_results_dir yes/no : check whether dir exists before proceeding
 
-           These examples might correspond to 3 echoes across 4 runs.
+            e.g. -check_results_dir no
+            default: yes
 
-                e.g. -dsets_me_echo epi_run*.echo_1+orig.HEAD
-                     -dsets_me_echo epi_run*.echo_2+orig.HEAD
-                     -dsets_me_echo epi_run*.echo_3+orig.HEAD
+        By default, if the results directory already exists, the script
+        will terminate before doing any processing.  Set this option to
+        'no' to remove that check.
 
-                e.g. -dsets_me_echo r?.e1.nii
-                     -dsets_me_echo r?.e2.nii
-                     -dsets_me_echo r?.e3.nii
+    -check_setup_errors yes/no : terminate on setup errors
 
-                e.g. -dsets_me_echo r1.e1.nii r2.e1.nii r3.e1.nii r4.e1.nii
-                     -dsets_me_echo r1.e2.nii r2.e2.nii r3.e2.nii r4.e2.nii
-                     -dsets_me_echo r1.e3.nii r2.e3.nii r3.e3.nii r4.e3.nii
+            e.g. -check_setup_errors yes
+            default: no
 
-            This option is convenient when there are more runs than echoes.
+        Have the script check $status after each command in the setup
+        processing block.  It is preferable to run the script using the
+        -e option to tcsh (as suggested), but maybe the user does not wish
+        to do so.
 
-            When providing multi-echo data to afni_proc.py, doing all echoes
-            of all runs at once seems messy and error prone.  So one must
-            provide either one echo at a time (easier if there are more runs)
-            or one run at a time (easier if there are fewer runs).
+    -command_comment_style STYLE: set style for final AP command comment
 
-            With this option:
+            e.g. -command_comment_style pretty
 
-               - use one option per echo (as opposed to per run, below)
-               - each option use should list all run datasets for that echo
+        This controls the format for the trailing afni_proc.py commented
+        command at the end of the proc script.  STYLE can be:
 
-            For example, if there are 7 runs and 3 echoes, use 3 options, one
-            per echo, and pass the 7 runs of data for that echo in each.
+            none        - no trailing command will be included
+            compact     - the original compact form will be included
+            pretty      - the PT-special pretty form will be included
 
-            See also -dsets_me_run.
-            See also -echo_times and -reg_echo.
+    -copy_anat ANAT         : copy the ANAT dataset to the results dir
 
-        -dsets_me_run dset1 dset2 ...   : specify ME datasets for one run
-                                          (all echoes with each option)
+            e.g. -copy_anat Elvis/mprage+orig
 
-           These examples might correspond to 4 echoes across 2 runs.
+        This will apply 3dcopy to copy the anatomical dataset(s) to the
+        results directory.  Note that if a +view is not given, 3dcopy will
+        attempt to copy +acpc and +tlrc datasets, also.
 
-                e.g. -dsets_me_run epi_run1.echo_*+orig.HEAD
-                     -dsets_me_run epi_run2.echo_*+orig.HEAD
+        See also '3dcopy -help'.
 
-                e.g. -dsets_me_run r1.e*.nii
-                     -dsets_me_run r2.e*.nii
+    -copy_files file1 ...   : copy file1, etc. into the results directory
 
-                e.g. -dsets_me_run r1.e1.nii r1.e2.nii r1.e3.nii r1.e4.nii
-                     -dsets_me_run r2.e1.nii r2.e2.nii r2.e3.nii r2.e4.nii
+            e.g. -copy_files glt_AvsB.txt glt_BvsC.1D glt_eat_cheese.txt
+            e.g. -copy_files contrasts/glt_*.txt
 
-            This option is convenient when there are more echoes than runs.
+        This option allows the user to copy some list of files into the
+        results directory.  This would happen before the tcat block, so
+        such files may be used for other commands in the script (such as
+        contrast files in 3dDeconvolve, via -regress_opts_3dD).
 
-            When providing multi-echo data to afni_proc.py, doing all echoes
-            of all runs at once seems messy and error prone.  So one must
-            provide either one echo at a time (easier if there are more runs)
-            or one run at a time (easier if there are fewer runs).
+    -do_block BLOCK_NAME ...: add extra blocks in their default positions
 
-            With this option:
+            e.g. -do_block despike ricor
+            e.g. -do_block align
 
-               - use one option per run (as opposed to per echo, above)
-               - each option use should list all echo datasets for that run
+        With this option, any 'optional block' can be applied in its
+        default position.  This includes the following blocks, along with
+        their default positions:
 
-            For example, if there are 2 runs and 4 echoes, use 2 options, one
-            per run, and pass the 4 echoes of data for that run in each.
+            despike : first (between tcat and tshift)
+            ricor   : just after despike (else first)
+            align   : before tlrc, before volreg
+            tlrc    : after align, before volreg
+            empty   : NO DEFAULT, cannot be applied via -do_block
 
-            See also -dsets_me_echo.
-            See also -echo_times and -reg_echo.
+        Any block not included in -blocks can be added via this option
+        (except for 'empty').
 
-        -echo_times TE1 TE2 TE3 ... : specify echo-times for ME data processing
+        See also '-blocks', as well as the "PROCESSING BLOCKS" section of
+        the -help output.
 
-                e.g. -echo_times 20 30.5 41.2
+    -dsets dset1 dset2 ...  : (REQUIRED) specify EPI run datasets
 
-            Use this option to specify echo times, if they are needed for the
-            'combine' processing block (OC/ME-ICA/tedana).
+            e.g. -dsets Elvis_run1+orig Elvis_run2+orig Elvis_run3+orig
+            e.g. -dsets Elvis_run*.HEAD
 
-            See also -combine_method.
+        The user must specify the list of EPI run datasets to analyze.
+        When the runs are processed, they will be written to start with
+        run 1, regardless of whether the input runs were just 6, 7 and 21.
 
-        -execute                : execute the created processing script
+        Note that when using a wildcard it is essential for the EPI
+        datasets to be alphabetical, as that is how the shell will list
+        them on the command line.  For instance, epi_run1+orig through
+        epi_run11+orig is not alphabetical.  If they were specified via
+        wildcard their order would end up as run1 run10 run11 run2 ...
 
-            If this option is applied, not only will the processing script be
-            created, but it will then be executed in the "suggested" manner,
-            such as via:
+        Note also that when using a wildcard it is essential to specify
+        the datasets suffix, so that the shell doesn't put both the .BRIK
+        and .HEAD filenames on the command line (which would make it twice
+        as many runs of data).
 
-                tcsh -xef proc.sb23 |& tee output.proc.sb23
+    -dsets_me_echo dset1 dset2 ...  : specify ME datasets for one echo
+                                      (all runs with each option)
 
-            Note that it will actually use the bash format of the command,
-            since the system command (C and therefore python) uses /bin/sh.
+       These examples might correspond to 3 echoes across 4 runs.
 
-                tcsh -xef proc.sb23 2>&1 | tee output.proc.sb23
+            e.g. -dsets_me_echo epi_run*.echo_1+orig.HEAD
+                 -dsets_me_echo epi_run*.echo_2+orig.HEAD
+                 -dsets_me_echo epi_run*.echo_3+orig.HEAD
 
-        -exit_on_error yes/no   : set whether proc script should exit on error
+            e.g. -dsets_me_echo r?.e1.nii
+                 -dsets_me_echo r?.e2.nii
+                 -dsets_me_echo r?.e3.nii
 
-                e.g.     -exit_on_error no
-                default: -exit_on_error yes
+            e.g. -dsets_me_echo r1.e1.nii r2.e1.nii r3.e1.nii r4.e1.nii
+                 -dsets_me_echo r1.e2.nii r2.e2.nii r3.e2.nii r4.e2.nii
+                 -dsets_me_echo r1.e3.nii r2.e3.nii r3.e3.nii r4.e3.nii
 
-            This option affects how the program will suggest running any
-            created proc script, as well as how one would be run if -execute
-            is provided.
+        This option is convenient when there are more runs than echoes.
 
-            If the choice is 'yes' (the default), the help for how to run the
-            proc script (terminal and in script, itself) will show running it
-            via "tcsh -xef", where the 'e' parameter says to exit on error.
-            For example (using tcsh notation):
+        When providing multi-echo data to afni_proc.py, doing all echoes
+        of all runs at once seems messy and error prone.  So one must
+        provide either one echo at a time (easier if there are more runs)
+        or one run at a time (easier if there are fewer runs).
 
-                tcsh -xef proc.sb23 |& tee output.proc.sb23
+        With this option:
 
-            If the choice is 'no', then it will suggest using simply "tcsh -x".
-            For example (using tcsh notation):
+           - use one option per echo (as opposed to per run, below)
+           - each option use should list all run datasets for that echo
 
-                tcsh -x proc.sb23 |& tee output.proc.sb23
+        For example, if there are 7 runs and 3 echoes, use 3 options, one
+        per echo, and pass the 7 runs of data for that echo in each.
 
-            This is also applied when using -execute, where afni_proc.py itself 
-            runs the given system command.
+        See also -dsets_me_run.
+        See also -echo_times and -reg_echo.
 
-            See also -execute.
+    -dsets_me_run dset1 dset2 ...   : specify ME datasets for one run
+                                      (all echoes with each option)
 
-        -gen_epi_review SCRIPT_NAME : specify script for EPI review
+       These examples might correspond to 4 echoes across 2 runs.
 
-                e.g. -gen_epi_review review_orig_EPI.txt
+            e.g. -dsets_me_run epi_run1.echo_*+orig.HEAD
+                 -dsets_me_run epi_run2.echo_*+orig.HEAD
 
-            By default, the proc script calls gen_epi_review.py on the original
-            EPI data (from the tcat step, so only missing pre-SS TRs).  This
-            creates a "drive afni" script that the user can run to quickly scan
-            that EPI data for apparent issues.
+            e.g. -dsets_me_run r1.e*.nii
+                 -dsets_me_run r2.e*.nii
 
-            Without this option, the script will be called @epi_review.$subj,
-            where $subj is the subject ID.
+            e.g. -dsets_me_run r1.e1.nii r1.e2.nii r1.e3.nii r1.e4.nii
+                 -dsets_me_run r2.e1.nii r2.e2.nii r2.e3.nii r2.e4.nii
 
-            The script starts afni, loads the first EPI run and starts scanning
-            through time (effectively hitting 'v' in the graph window).  The
-            user can press <enter> in the prompting terminal window to go to
-            each successive run.
+        This option is convenient when there are more echoes than runs.
 
-            Note that the user has full control over afni, aside from a new run
-            being loaded whey they hit <enter>.  Recall that the <space> key
-            (applied in the graph window) can terminate the 'v' (video mode).
+        When providing multi-echo data to afni_proc.py, doing all echoes
+        of all runs at once seems messy and error prone.  So one must
+        provide either one echo at a time (easier if there are more runs)
+        or one run at a time (easier if there are fewer runs).
 
-            See 'gen_epi_review.py -help' for details.
-            See also 'no_epi_review', to disable this feature.
+        With this option:
 
-        -no_epi_review
+           - use one option per run (as opposed to per echo, above)
+           - each option use should list all echo datasets for that run
 
-            This option is used to prevent writing a gen_epi_review.py command
-            in the processing script (i.e. do not create a script to review the
-            EPI data).
+        For example, if there are 2 runs and 4 echoes, use 2 options, one
+        per run, and pass the 4 echoes of data for that run in each.
 
-            The only clear reason to want this option is if gen_epi_review.py
-            fails for some reason.  It should not hurt to create that little
-            text file (@epi_review.$subj, by default).
+        See also -dsets_me_echo.
+        See also -echo_times and -reg_echo.
 
-            See also '-gen_epi_review'.
+    -echo_times TE1 TE2 TE3 ... : specify echo-times for ME data processing
 
-        -html_review_opts  ...   : pass extra options to apqc_make_tcsh.py
+            e.g. -echo_times 20 30.5 41.2
 
-                e.g. -html_review_opts -mot_grayplot_off
+        Use this option to specify echo times, if they are needed for the
+        'combine' processing block (OC/ME-ICA/tedana).
 
-            Blindly pass the given options to apqc_make_tcsh.py.
+        See also -combine_method.
 
-        -html_review_style STYLE : specify generation method for HTML review
+    -execute                : execute the created processing script
 
-                e.g.     -html_review_style pythonic
-                default: -html_review_style basic
+        If this option is applied, not only will the processing script be
+        created, but it will then be executed in the "suggested" manner,
+        such as via:
 
-            At the end of processing, by default, the proc script will generate
-            quality control images and other information that is akin to 
-            running @ss_review_driver (the minimum QC suggested for every
-            subject).  This information will be stored in a static HTML page,
-            for an optional, quick review.
+            tcsh -xef proc.sb23 |& tee output.proc.sb23
 
-            Use this option to specify the STYLE of the pages:
+        Note that it will actually use the bash format of the command,
+        since the system command (C and therefore python) uses /bin/sh.
 
-                none     : no HTML review pages
-                basic    : static - time graph images generated by 1dplot
-                pythonic : static - time graph images generated in python
+            tcsh -xef proc.sb23 2>&1 | tee output.proc.sb23
 
-                more to come?  pester Paul...
-                STYLE omnicient : page will explain everything about the image
-                     (available by March 17, 3097, or your money back)
+    -exit_on_error yes/no   : set whether proc script should exit on error
 
-            The result of this will be a QC_$subj directory (e.g., QC_FT),
-            containing index.html, along with media_dat and media_img dirs.
-            One should be able to view the QC information by opening index.html
-            in a browser.
+            e.g.     -exit_on_error no
+            default: -exit_on_error yes
 
-            These methods have different software requirements, but 'basic'
-            was meant to have almost nothing, and should work on most systems.
-            If insufficient software is available, afni_proc.py will
-            (hopefully) not include this step.  Use 'none' to opt out.
+        This option affects how the program will suggest running any
+        created proc script, as well as how one would be run if -execute
+        is provided.
 
-        -keep_rm_files          : do not have script delete rm.* files at end
+        If the choice is 'yes' (the default), the help for how to run the
+        proc script (terminal and in script, itself) will show running it
+        via "tcsh -xef", where the 'e' parameter says to exit on error.
+        For example (using tcsh notation):
 
-                e.g. -keep_rm_files
+            tcsh -xef proc.sb23 |& tee output.proc.sb23
 
-            The output script may generate temporary files in a block, which
-            would be given names with prefix 'rm.'.  By default, those files
-            are deleted at the end of the script.  This option blocks that
-            deletion.
+        If the choice is 'no', then it will suggest using simply "tcsh -x".
+        For example (using tcsh notation):
 
-        -keep_script_on_err     : do not remove proc script if AP command fails
+            tcsh -x proc.sb23 |& tee output.proc.sb23
 
-            When there is a fatal error in the afni_proc.py command, it will
-            delete any incomplete proc script, unless this option is applied.
+        This is also applied when using -execute, where afni_proc.py itself 
+        runs the given system command.
 
-        -move_preproc_files     : move preprocessing files to preproc.data dir
+        See also -execute.
 
-            At the end of the output script, create a 'preproc.data' directory,
-            and move most of the files there (dfile, outcount, pb*, rm*).
+    -find_var_line_blocks B0 B1 ... : specify blocks for find_variance_lines
 
-            See also -remove_preproc_files.
+            default: -find_var_line_blocks tcat
+            e.g. -find_var_line_blocks tcat volreg
+            e.g. -find_var_line_blocks NONE
 
-        -no_proc_command        : do not print afni_proc.py command in script
+        With this option set, find_variance_lines.tcsh will be run at the end
+        of each listed block.  It looks for columns of high temporal variance 
+        (looking across slices) in the time series data.
 
-                e.g. -no_proc_command
+        Valid blocks include:
 
-            If this option is applied, the command used to generate the output
-            script will be stored at the end of the script.
+            tcat, tshift, volreg, blur, scale, NONE
 
-        -out_dir DIR            : specify the output directory for the script
+        Since 'tcat' is the default block used, this option is turned off by
+        using NONE as a block.
 
-                e.g. -out_dir ED_results
-                default: SUBJ.results
+        See 'find_variance_lines.tcsh -help' for details.
 
-            The AFNI processing script will create this directory and perform
-            all processing in it.
+    -gen_epi_review SCRIPT_NAME : specify script for EPI review
 
-        -outlier_count yes/no   : should we count outliers with 3dToutcount?
+            e.g. -gen_epi_review review_orig_EPI.txt
 
-                e.g. -outlier_count no
-                default: yes
+        By default, the proc script calls gen_epi_review.py on the original
+        EPI data (from the tcat step, so only missing pre-SS TRs).  This
+        creates a "drive afni" script that the user can run to quickly scan
+        that EPI data for apparent issues.
 
-            By default, outlier fractions are computed per TR with 3dToutcount.
-            To disable outlier counting, apply this option with parameter 'no'.
-            This is a yes/no option, meaning those are the only valid inputs.
+        Without this option, the script will be called @epi_review.$subj,
+        where $subj is the subject ID.
 
-            Note that -outlier_count must be 'yes' in order to censor outliers
-            with -regress_censor_outliers.
+        The script starts afni, loads the first EPI run and starts scanning
+        through time (effectively hitting 'v' in the graph window).  The
+        user can press <enter> in the prompting terminal window to go to
+        each successive run.
 
-            See "3dToutcount -help" for more details.
-            See also -regress_censor_outliers.
+        Note that the user has full control over afni, aside from a new run
+        being loaded whey they hit <enter>.  Recall that the <space> key
+        (applied in the graph window) can terminate the 'v' (video mode).
 
-        -outlier_legendre yes/no : use Legendre polynomials in 3dToutcount?
+        See 'gen_epi_review.py -help' for details.
+        See also 'no_epi_review', to disable this feature.
 
-                e.g. -outlier_legendre no
-                default: yes
+    -no_epi_review
 
-            By default the -legendre option is passed to 3dToutcount.  Along
-            with using better behaved polynomials, it also allows them to be
-            higher than 3rd order (if desired).
+        This option is used to prevent writing a gen_epi_review.py command
+        in the processing script (i.e. do not create a script to review the
+        EPI data).
 
-            See "3dToutcount -help" for more details.
+        The only clear reason to want this option is if gen_epi_review.py
+        fails for some reason.  It should not hurt to create that little
+        text file (@epi_review.$subj, by default).
 
-        -outlier_polort POLORT  : specify polynomial baseline for 3dToutcount
+        See also '-gen_epi_review'.
 
-                e.g. -outlier_polort 3
-                default: same degree that 3dDeconvolve would use:
-                         1 + floor(run_length/150)
+    -html_review_opts  ...   : pass extra options to apqc_make_tcsh.py
 
-            Outlier counts come after detrending the data, where the degree
-            of the polynomial trend defaults to the same that 3dDeconvolve
-            would use.  This option will override the default.
+            e.g. -html_review_opts -mot_grayplot_off
+            e.g. -html_review_opts -vstat_list vis aud V-A
 
-            See "3dToutcount -help" for more details.
-            See "3dDeconvolve -help" for more details.
-            See also '-regress_polort' and '-outlier_legendre'.
+        Blindly pass the given options to apqc_make_tcsh.py.
 
-        -radial_correlate yes/no : correlate each voxel with local radius
+    -html_review_style STYLE : specify generation method for HTML review
 
-                e.g. -radial_correlate yes
-                default: no
+            e.g.     -html_review_style pythonic
+            default: -html_review_style basic
 
-         ** Consider using -radial_correlate_blocks, instead.
+        At the end of processing, by default, the proc script will generate
+        quality control images and other information that is akin to 
+        running @ss_review_driver (the minimum QC suggested for every
+        subject).  This information will be stored in a static HTML page,
+        for an optional, quick review.
 
-            With this option set, @radial_correlate will be run on the
-            initial EPI time series datasets.  That creates a 'corr_test'
-            directory that one can review, plus potential warnings (in text)
-            if large clusters of high correlations are found.
+        Use this option to specify the STYLE of the pages:
 
-            (very abbreviated) method for @radial_correlate:
-                for each voxel
-                   compute average time series within 20 mm radius sphere
-                   correlate central voxel time series with spherical average
-                look for clusters of high correlations
+            none     : no HTML review pages
+            basic    : static - time graph images generated by 1dplot
+            pythonic : static - time graph images generated in python
 
-            This is a useful quality control (QC) dataset that helps one find
-            scanner artifacts, particularly including coils going bad.
+            more to come?  pester Paul...
+            STYLE omnicient : page will explain everything about the image
+                 (available by March 17, 3097, or your money back)
 
-            To visually check the results, the program text output suggests:
+        The result of this will be a QC_$subj directory (e.g., QC_FT),
+        containing index.html, along with media_dat and media_img dirs.
+        One should be able to view the QC information by opening index.html
+        in a browser.
 
-                run command: afni corr_test.results.postdata
-                then set:    Underlay  = epi.SOMETHING
-                             Overlay   = res.SOMETHING.corr
-                             maybe threshold = 0.9, maybe clusterize
+        These methods have different software requirements, but 'basic'
+        was meant to have almost nothing, and should work on most systems.
+        If insufficient software is available, afni_proc.py will
+        (hopefully) not include this step.  Use 'none' to opt out.
 
-            See also -radial_correlate_blocks.
-            See "@radial_correlate -help" for details and a list of options.
+    -keep_rm_files          : do not have script delete rm.* files at end
 
-        -radial_correlate_blocks B0 B1 ... : specify blocks for correlations
+            e.g. -keep_rm_files
 
-                e.g. -radial_correlate_blocks tcat volreg
+        The output script may generate temporary files in a block, which
+        would be given names with prefix 'rm.'.  By default, those files
+        are deleted at the end of the script.  This option blocks that
+        deletion.
 
-            With this option set, @radial_correlate will be run at the end of
-            each listed block.  It computes, for each voxel, the correlation
-            with a local spherical average (def = 20mm radius).  By default,
-            this uses a fast technique to compute an approximate average that
-            is slightly Gaussian weighted (relative weight 0.84 at the radius)
-            via 3dmerge, but far faster than a flat average via 3dLocalstat.
+    -keep_script_on_err     : do not remove proc script if AP command fails
 
-            Valid blocks include:
+        When there is a fatal error in the afni_proc.py command, it will
+        delete any incomplete proc script, unless this option is applied.
 
-                tcat, tshift, volreg, blur, scale
+    -move_preproc_files     : move preprocessing files to preproc.data dir
 
-            The @radial_correlate command will produce an output directory of
-            the form radcor.pbAA.BBBB, where 'AA' is the processing block index
-            (e.g. 02), and BBBB is the block label (e.g. volreg).
+        At the end of the output script, create a 'preproc.data' directory,
+        and move most of the files there (dfile, outcount, pb*, rm*).
 
-            Those 'radcor.*' directories will contain one epi.ulay.rRUN dataset
-            and a corresponding radcor.BLUR.rRUN.corr dataset for that run,
-            e.g.,
+        See also -remove_preproc_files.
 
-                radcor.pb02.volreg/epi.ulay.r01+tlrc.BRIK
-                                   epi.ulay.r01+tlrc.HEAD
-                                   radcor.20.r01.corr+tlrc.BRIK
-                                   radcor.20.r01.corr+tlrc.HEAD
+    -no_proc_command        : do not print afni_proc.py command in script
 
-            See also -radial_correlate_opts.
-            See '@radial_correlate -help' for more details.
+            e.g. -no_proc_command
 
-        -radial_correlate_opts OPTS...: specify options for @radial_correlate
+        If this option is applied, the command used to generate the output
+        script will be stored at the end of the script.
 
-                e.g. -radial_correlate_opts -corr_mask yes -merge_frad 0.25
+    -out_dir DIR            : specify the output directory for the script
 
-            Use this to pass additional options to all @radial_correlate
-            commands in the proc script.
+            e.g. -out_dir ED_results
+            default: SUBJ.results
 
-            See also -radial_correlate_blocks.
+        The AFNI processing script will create this directory and perform
+        all processing in it.
 
-        -reg_echo ECHO_NUM  : specify 1-based echo for registration
+    -outlier_count yes/no   : should we count outliers with 3dToutcount?
 
-                e.g. -reg_echo 3
-                default: 2
+            e.g. -outlier_count no
+            default: yes
 
-            Multi-echo data is registered based on a single echo, with the
-            resulting transformations being applied to all echoes.  Use this
-            option to specify the 1-based echo used to drive registration.
+        By default, outlier fractions are computed per TR with 3dToutcount.
+        To disable outlier counting, apply this option with parameter 'no'.
+        This is a yes/no option, meaning those are the only valid inputs.
 
-            Note that the echo used for driving registration should have
-            reasonable tissue contrast.
+        Note that -outlier_count must be 'yes' in order to censor outliers
+        with -regress_censor_outliers.
 
-        -remove_preproc_files   : delete pre-processed data
+        See "3dToutcount -help" for more details.
+        See also -regress_censor_outliers.
 
-            At the end of the output script, delete the intermediate data (to
-            save disk space).  Delete dfile*, outcount*, pb* and rm*.
+    -outlier_legendre yes/no : use Legendre polynomials in 3dToutcount?
 
-            See also -move_preproc_files.
+            e.g. -outlier_legendre no
+            default: yes
 
-        -script SCRIPT_NAME     : specify the name of the resulting script
+        By default the -legendre option is passed to 3dToutcount.  Along
+        with using better behaved polynomials, it also allows them to be
+        higher than 3rd order (if desired).
 
-                e.g. -script ED.process.script
-                default: proc_subj
+        See "3dToutcount -help" for more details.
 
-            The output of this program is a script file.  This option can be
-            used to specify the name of that file.
+    -outlier_polort POLORT  : specify polynomial baseline for 3dToutcount
 
-            See also -scr_overwrite, -subj_id.
+            e.g. -outlier_polort 3
+            default: same degree that 3dDeconvolve would use:
+                     1 + floor(run_length/150)
 
-        -scr_overwrite          : overwrite any existing script
+        Outlier counts come after detrending the data, where the degree
+        of the polynomial trend defaults to the same that 3dDeconvolve
+        would use.  This option will override the default.
 
-                e.g. -scr_overwrite
+        See "3dToutcount -help" for more details.
+        See "3dDeconvolve -help" for more details.
+        See also '-regress_polort' and '-outlier_legendre'.
 
-            If the output script file already exists, it will be overwritten
-            only if the user applies this option.
+    -radial_correlate yes/no : correlate each voxel with local radius
 
-            See also -script.
+            e.g. -radial_correlate yes
+            default: no
 
-        -sep_char CHAR          : apply as separation character in filenames
+     ** Consider using -radial_correlate_blocks, instead.
 
-                e.g. -sep_char _
-                default: .
+        With this option set, @radial_correlate will be run on the
+        initial EPI time series datasets.  That creates a 'corr_test'
+        directory that one can review, plus potential warnings (in text)
+        if large clusters of high correlations are found.
 
-            The separation character is used in many output filenames, such as
-            the default '.' in:
+        (very abbreviated) method for @radial_correlate:
+            for each voxel
+               compute average time series within 20 mm radius sphere
+               correlate central voxel time series with spherical average
+            look for clusters of high correlations
 
-                pb04.Nancy.r07.scale+orig.BRIK
+        This is a useful quality control (QC) dataset that helps one find
+        scanner artifacts, particularly including coils going bad.
 
-            If (for some crazy reason) an underscore (_) character would be
-            preferable, the result would be:
+        To visually check the results, the program text output suggests:
 
-                pb04_Nancy_r07_scale+orig.BRIK
+            run command: afni corr_test.results.postdata
+            then set:    Underlay  = epi.SOMETHING
+                         Overlay   = res.SOMETHING.corr
+                         maybe threshold = 0.9, maybe clusterize
 
-            If "-sep_char _" is applied, so is -subj_curly.
+        See also -radial_correlate_blocks.
+        See "@radial_correlate -help" for details and a list of options.
 
-            See also -subj_curly.
+    -radial_correlate_blocks B0 B1 ... : specify blocks for correlations
 
-        -subj_curly             : apply $subj as ${subj}
+            e.g.    -radial_correlate_blocks tcat volreg
+            e.g.    -radial_correlate_blocks tcat volreg regress
+            default -radial_correlate_blocks regress
+            e.g.    -radial_correlate_blocks NONE
 
-            The subject ID is used in dataset names is typically used without
-            curly brackets (i.e. $subj).  If something is done where this would
-            result in errors (e.g. "-sep_char _"), the curly brackets might be
-            useful to delimit the variable (i.e. ${subj}).
+        With this option set, @radial_correlate will be run at the end of
+        each listed block.  It computes, for each voxel, the correlation
+        with a local spherical average (def = 20mm radius).  By default,
+        this uses a fast technique to compute an approximate average that
+        is slightly Gaussian weighted (relative weight 0.84 at the radius)
+        via 3dmerge, but far faster than a flat average via 3dLocalstat.
 
-            Note that this option is automatically applied in the case of
-            "-sep_char _".
+        Valid blocks include:
 
-            See also -sep_char.
+            tcat, tshift, volreg, blur, scale, regress, NONE
 
-        -subj_id SUBJECT_ID     : specify the subject ID for the script
+      * The default is to apply "-radial_correlate_blocks regress".
+        To omit all blocks, use "-radial_correlate_blocks NONE".
 
-                e.g. -subj_id elvis
-                default: SUBJ
+        The @radial_correlate command will produce an output directory of
+        the form radcor.pbAA.BBBB, where 'AA' is the processing block index
+        (e.g. 02), and BBBB is the block label (e.g. volreg).
 
-            The subject ID is used in dataset names and in the output directory
-            name (unless -out_dir is used).  This option allows the user to
-            apply an appropriate naming convention.
+        Those 'radcor.*' directories will contain one epi.ulay.rRUN dataset
+        and a corresponding radcor.BLUR.rRUN.corr dataset for that run,
+        e.g.,
 
-        -test_for_dsets yes/no  : test for existence of input datasets
+            radcor.pb02.volreg/epi.ulay.r01+tlrc.BRIK
+                               epi.ulay.r01+tlrc.HEAD
+                               radcor.20.r01.corr+tlrc.BRIK
+                               radcor.20.r01.corr+tlrc.HEAD
 
-                e.g. -test_for_dsets no
-                default: yes
+        For the regress block, radcor results will be generated for the
+        all_runs and errts datasets.
 
-            This options controls whether afni_proc.py check for the existence
-            of input datasets.  In general, they must exist when afni_proc.py
-            is run, in order to get run information (TR, #TRs, #runs, etc).
+        See also -radial_correlate_opts.
+        See '@radial_correlate -help' for more details.
 
-        -test_stim_files yes/no : evaluate stim_files for appropriateness?
+    -radial_correlate_opts OPTS...: specify options for @radial_correlate
 
-                e.g. -test_stim_files no
-                default: yes
+            e.g. -radial_correlate_opts -corr_mask yes -merge_frad 0.25
 
-            This options controls whether afni_proc.py evaluates the stim_files
-            for validity.  By default, the program will do so.
+        Use this to pass additional options to all @radial_correlate
+        commands in the proc script.
 
-            Input files are one of local stim_times, global stim_times or 1D
-            formats.  Options -regress_stim_files and -regress_extra_stim_files
-            imply 1D format for input files.  Otherwise, -regress_stim_times is
-            assumed to imply local stim_times format (-regress_global_times
-            implies global stim_times format).
+        See also -radial_correlate_blocks.
 
-            Checks include:
+    -reg_echo ECHO_NUM  : specify 1-based echo for registration
 
-                1D              : # rows equals total reps
-                local times     : # rows equal # runs
-                                : times must be >= 0.0
-                                : times per run (per row) are unique
-                                : times cannot exceed run time
-                global times    : file must be either 1 row or 1 column
-                                : times must be >= 0.0
-                                : times must be unique
-                                : times cannot exceed total duration of all runs
+            e.g. -reg_echo 3
+            default: 2
 
-            This option provides the ability to disable this test.
+        Multi-echo data is registered based on a single echo, with the
+        resulting transformations being applied to all echoes.  Use this
+        option to specify the 1-based echo used to drive registration.
 
-            See "1d_tool.py -help" for details on '-look_like_*' options.
-            See also -regress_stim_files, -regress_extra_stim_files,
-            -regress_stim_times, -regress_local_times, -regress_global_times.
+        Note that the echo used for driving registration should have
+        reasonable tissue contrast.
 
-        -verb LEVEL             : specify the verbosity of this script
+    -remove_preproc_files   : delete pre-processed data
 
-                e.g. -verb 2
-                default: 1
+        At the end of the output script, delete the intermediate data (to
+        save disk space).  Delete dfile*, outcount*, pb* and rm*.
 
-            Print out extra information during execution.
+        See also -move_preproc_files.
 
-        -write_3dD_prefix PREFIX : specify prefix for outputs from 3dd_script
+    -script SCRIPT_NAME     : specify the name of the resulting script
 
-                e.g. -write_3dD_prefix basis.tent.
-                default: test.
+            e.g. -script ED.process.script
+            default: proc_subj
 
-            If a separate 3dDeconvolve command script is generated via the
-            option -write_3dD_script, then the given PREFIX will be used for
-            relevant output files. in the script.
+        The output of this program is a script file.  This option can be
+        used to specify the name of that file.
 
-            See also -write_3dD_script.
+        See also -scr_overwrite, -subj_id.
 
-        -write_3dD_script SCRIPT : specify SCRIPT only for 3dDeconvolve command
+    -scr_overwrite          : overwrite any existing script
 
-                e.g. -write_3dD_script run.3dd.tent
+            e.g. -scr_overwrite
 
-            This option is intended to be used with the EXACT same afni_proc.py
-            command (aside from any -write_3dD_* options).  The purpose is to
-            generate a corresponding 3dDeconvolve command script which could
-            be run in the same results directory.
+        If the output script file already exists, it will be overwritten
+        only if the user applies this option.
 
-            Alternatively, little things could be changed that would only
-            affect the 3dDeconvolve command in the new script, such as the
-            basis function(s).
+        See also -script.
 
-            The new script should include a prefix to distinguish output files
-            from those created by the original proc script.
+    -sep_char CHAR          : apply as separation character in filenames
 
-          * This option implies '-test_stim_files no'.
+            e.g. -sep_char _
+            default: .
 
-            See also -write_3dD_prefix, -test_stim_files.
+        The separation character is used in many output filenames, such as
+        the default '.' in:
 
-        -write_ppi_3dD_scripts  : flag: write 3dD scripts for PPI analysis
+            pb04.Nancy.r07.scale+orig.BRIK
 
-                e.g. -write_ppi_3dD_scripts                        \\
-                     -regress_ppi_stim_files PPI_*.1D some_seed.1D \\
-                     -regress_ppi_stim_labels PPI_A PPI_B PPI_C seed
+        If (for some crazy reason) an underscore (_) character would be
+        preferable, the result would be:
 
-            Request 3dDeconvolve scripts for pre-PPI filtering (do regression
-            without censoring) and post-PPI filtering (include PPI regressors
-            and seed).
+            pb04_Nancy_r07_scale+orig.BRIK
 
-            This is a convenience method for creating extra 3dDeconvolve
-            command scripts without having to run afni_proc.py multiple times
-            with different options.
+        If "-sep_char _" is applied, so is -subj_curly.
 
-            Using this option, afni_proc.py will create the main proc script,
-            plus :
+        See also -subj_curly.
 
-               A. (if censoring was done) an uncensored 3dDeconvolve command
-                  pre-PPI filter script, to create an uncensored errts time
-                  series.
+    -subj_curly             : apply $subj as ${subj}
 
-                  This script is akin to using -write_3dD_* to output a
-                  regression script, along with adding -regress_skip_censor.
-                  The regression command should be identical to the original
-                  one, except for inclusion of 3dDeconvolve's -censor option.
+        The subject ID is used in dataset names is typically used without
+        curly brackets (i.e. $subj).  If something is done where this would
+        result in errors (e.g. "-sep_char _"), the curly brackets might be
+        useful to delimit the variable (i.e. ${subj}).
 
-               B. a 3dDeconvolve post-PPI filter script to include the PPI
-                  and seed regressors.
+        Note that this option is automatically applied in the case of
+        "-sep_char _".
 
-                  This script is akin to using -write_3dD_* to output a
-                  regression script, along with passing the PPI and seed
-                  regressors via -regress_extra_stim_files and _labels.
+        See also -sep_char.
 
-            Use -regress_ppi_stim_files and -regress_ppi_stim_labels to
-            specify the PPI (and seed) regressors and their labels.  These
-            options are currently required.
+    -subj_id SUBJECT_ID     : specify the subject ID for the script
 
-            See also -regress_ppi_stim_files, -regress_ppi_stim_labels.
+            e.g. -subj_id elvis
+            default: SUBJ
 
-        -----------------------------------------------------------------
-        Block options (in default block order) ~3~
+        The subject ID is used in dataset names and in the output directory
+        name (unless -out_dir is used).  This option allows the user to
+        apply an appropriate naming convention.
 
-        These options pertain to individual processing blocks.  Each option
-        starts with the block name.
+    -test_for_dsets yes/no  : test for existence of input datasets
 
-        -tcat_preSS_warn_limit LIMIT : TR #0 outlier limit to warn of pre-SS
+            e.g. -test_for_dsets no
+            default: yes
 
-                e.g. -tcat_preSS_warn_limit 0.7
-                default: 0.4
+        This options controls whether afni_proc.py check for the existence
+        of input datasets.  In general, they must exist when afni_proc.py
+        is run, in order to get run information (TR, #TRs, #runs, etc).
 
-            Outlier fractions are computed across TRs in the tcat processing
-            block.  If TR #0 has a large fraction, it might suggest that pre-
-            steady state TRs have been included in the analysis.  If the
-            detected fraction exceeds this limit, a warning will be stored
-            (and output by the @ss_review_basic script).
+    -test_stim_files yes/no : evaluate stim_files for appropriateness?
 
-            The special case of limit = 0.0 implies no check will be done.
+            e.g. -test_stim_files no
+            default: yes
 
-        -tcat_remove_first_trs NUM : specify how many TRs to remove from runs
+        This options controls whether afni_proc.py evaluates the stim_files
+        for validity.  By default, the program will do so.
 
-                e.g. -tcat_remove_first_trs 3
-                e.g. -tcat_remove_first_trs 3 1 0 0 3
-                default: 0
+        Input files are one of local stim_times, global stim_times or 1D
+        formats.  Options -regress_stim_files and -regress_extra_stim_files
+        imply 1D format for input files.  Otherwise, -regress_stim_times is
+        assumed to imply local stim_times format (-regress_global_times
+        implies global stim_times format).
 
-            Since it takes several seconds for the magnetization to reach a
-            steady state (at the beginning of each run), the initial TRs of
-            each run may have values that are significantly greater than the
-            later ones.  This option is used to specify how many TRs to
-            remove from the beginning of every run.
+        Checks include:
 
-            If the number needs to vary across runs, then one number should
-            be specified per run.
+            1D              : # rows equals total reps
+            local times     : # rows equal # runs
+                            : times must be >= 0.0
+                            : times per run (per row) are unique
+                            : times cannot exceed run time
+            global times    : file must be either 1 row or 1 column
+                            : times must be >= 0.0
+                            : times must be unique
+                            : times cannot exceed total duration of all runs
 
-        -tcat_remove_last_trs NUM : specify TRs to remove from run ends
+        This option provides the ability to disable this test.
 
-                e.g. -tcat_remove_last_trs 10
-                default: 0
+        See "1d_tool.py -help" for details on '-look_like_*' options.
+        See also -regress_stim_files, -regress_extra_stim_files,
+        -regress_stim_times, -regress_local_times, -regress_global_times.
 
-            For when the user wants a simple way to shorten each run.
+    -uvar UVAR VAL VAL ..   : set a user variable and its values
 
-            See also -ricor_regs_rm_nlast.
+            e.g. -uvar taskname my.glorious.task
+                 -uvar ses ses-003
+                 -uvar somelistvar A B C
 
-        -despike_mask           : allow Automasking in 3dDespike
+        Use this option once per uvar.  Each such option will be passed along
+        as part of the user variable list, along to APQC, for example.
 
-            By default, -nomask is applied to 3dDespike.  Since anatomical
-            masks will probably not be contained within the Automask operation
-            of 3dDespike (which uses methods akin to '3dAutomask -dilate 4'),
-            it is left up to the user to speed up this operation via masking.
+        These variables will be initialized in out.ap_uvars.json .
 
-            Note that the only case in which this should be done is when
-            applying the EPI mask to the regression.
+    -verb LEVEL             : specify the verbosity of this script
 
-            Please see '3dDespike -help' and '3dAutomask -help' for more
-            information.
+            e.g. -verb 2
+            default: 1
 
-        -despike_new yes/no/... : set whether to use new version of 3dDespike
+        Print out extra information during execution.
 
-                e.g. -despike_new no
-                e.g. -despike_new -NEW25
-                default: yes
+    -write_3dD_prefix PREFIX : specify prefix for outputs from 3dd_script
 
-            Valid parameters: yes, no, -NEW, -NEW25
+            e.g. -write_3dD_prefix basis.tent.
+            default: test.
 
-            Use this option to control whether to use one of the new versions.
+        If a separate 3dDeconvolve command script is generated via the
+        option -write_3dD_script, then the given PREFIX will be used for
+        relevant output files. in the script.
 
-            There is a '-NEW' option/method in 3dDespike which runs a faster
-            method than the previous L1-norm method (Nov 2013).  The results
-            are similar but not identical (different fits).  The difference in
-            speed is more dramatic for long time series (> 500 time points).
+        See also -write_3dD_script.
 
-            The -NEW25 option is meant to be more aggressive in despiking.
+    -write_3dD_script SCRIPT : specify SCRIPT only for 3dDeconvolve command
 
-            Sep 2016: in 3dDespike, -NEW is now the default if the input is
-                      longer than 500 time points.
+            e.g. -write_3dD_script run.3dd.tent
 
-            See also env var AFNI_3dDespike_NEW and '3dDespike -help' for more
-            information.
+        This option is intended to be used with the EXACT same afni_proc.py
+        command (aside from any -write_3dD_* options).  The purpose is to
+        generate a corresponding 3dDeconvolve command script which could
+        be run in the same results directory.
 
-        -despike_opts_3dDes OPTS... : specify additional options for 3dDespike
+        Alternatively, little things could be changed that would only
+        affect the 3dDeconvolve command in the new script, such as the
+        basis function(s).
 
-                e.g. -despike_opts_3dDes -nomask -ignore 2
+        The new script should include a prefix to distinguish output files
+        from those created by the original proc script.
 
-            By default, 3dDespike is used with only -prefix and -nomask
-            (unless -despike_mask is applied).  Any other options must be
-            applied via -despike_opts_3dDes.
+      * This option implies '-test_stim_files no'.
 
-            Note that the despike block is not applied by default.  To apply
-            despike in the processing script, use either '-do_block despike'
-            or '-blocks ... despike ...'.
+        See also -write_3dD_prefix, -test_stim_files.
 
-            Please see '3dDespike -help' for more information.
-            See also '-do_blocks', '-blocks', '-despike_mask'.
+    -write_ppi_3dD_scripts  : flag: write 3dD scripts for PPI analysis
 
-        -ricor_datum DATUM      : specify output data type from ricor block
+            e.g. -write_ppi_3dD_scripts                        \\
+                 -regress_ppi_stim_files PPI_*.1D some_seed.1D \\
+                 -regress_ppi_stim_labels PPI_A PPI_B PPI_C seed
 
-                e.g. -ricor_datum float
+        Request 3dDeconvolve scripts for pre-PPI filtering (do regression
+        without censoring) and post-PPI filtering (include PPI regressors
+        and seed).
 
-            By default, if the input is unscaled shorts, the output will be
-            unscaled shorts.  Otherwise the output will be floats.
+        This is a convenience method for creating extra 3dDeconvolve
+        command scripts without having to run afni_proc.py multiple times
+        with different options.
 
-            The user may override this default with the -ricor_datum option.
-            Currently only 'short' and 'float' are valid parameters.
+        Using this option, afni_proc.py will create the main proc script,
+        plus :
 
-            Note that 3dREMLfit only outputs floats at the moment.  Recall
-            that the down-side of float data is that it takes twice the disk
-            space, compared with shorts (scaled or unscaled).
+           A. (if censoring was done) an uncensored 3dDeconvolve command
+              pre-PPI filter script, to create an uncensored errts time
+              series.
 
-            Please see '3dREMLfit -help' for more information.
+              This script is akin to using -write_3dD_* to output a
+              regression script, along with adding -regress_skip_censor.
+              The regression command should be identical to the original
+              one, except for inclusion of 3dDeconvolve's -censor option.
 
-        -ricor_polort POLORT    : set the polynomial degree for 3dREMLfit
+           B. a 3dDeconvolve post-PPI filter script to include the PPI
+              and seed regressors.
 
-                e.g. -ricor_polort 4
-                default: 1 + floor(run_length / 75.0)
+              This script is akin to using -write_3dD_* to output a
+              regression script, along with passing the PPI and seed
+              regressors via -regress_extra_stim_files and _labels.
 
-            The default polynomial degree to apply during the 'ricor' block is
-            similar to that of the 'regress' block, but is based on twice the
-            run length (and so should be almost twice as large).  This is to
-            account for motion, since volreg has typically not happened yet.
+        Use -regress_ppi_stim_files and -regress_ppi_stim_labels to
+        specify the PPI (and seed) regressors and their labels.  These
+        options are currently required.
 
-            Use -ricor_polort to override the default.
+        See also -regress_ppi_stim_files, -regress_ppi_stim_labels.
 
-        -ricor_regress_method METHOD    : process per-run or across-runs
+    -----------------------------------------------------------------
+    Block options (in default block order) ~3~
 
-                e.g. -ricor_regress_method across-runs
-                default: NONE: this option is required for a 'ricor' block
+    These options pertain to individual processing blocks.  Each option
+    starts with the block name.
 
-            * valid METHOD parameters: per-run, across-runs
+    -tcat_preSS_warn_limit LIMIT : TR #0 outlier limit to warn of pre-SS
 
-            The cardiac and respiratory signals can be regressed out of each
-            run separately, or out of all runs at once.  The user must choose
-            the method, there is no default.
+            e.g. -tcat_preSS_warn_limit 0.7
+            default: 0.4
 
-            See "RETROICOR NOTE" for more details about the methods.
+        Outlier fractions are computed across TRs in the tcat processing
+        block.  If TR #0 has a large fraction, it might suggest that pre-
+        steady state TRs have been included in the analysis.  If the
+        detected fraction exceeds this limit, a warning will be stored
+        (and output by the @ss_review_basic script).
 
-        -ricor_regress_solver METHOD    : regress using OLSQ or REML
+        The special case of limit = 0.0 implies no check will be done.
 
-                e.g. -ricor_regress_solver REML
-                default: OLSQ
+    -tcat_remove_first_trs NUM : specify how many TRs to remove from runs
 
-            * valid METHOD parameters: OLSQ, REML
+            e.g. -tcat_remove_first_trs 3
+            e.g. -tcat_remove_first_trs 3 1 0 0 3
+            default: 0
 
-            Use this option to specify the regression method for removing the
-            cardiac and respiratory signals.  The default method is ordinary
-            least squares, removing the "best fit" of the card/resp signals
-            from the data (also subject to the polort baseline).
+        Since it takes several seconds for the magnetization to reach a
+        steady state (at the beginning of each run), the initial TRs of
+        each run may have values that are significantly greater than the
+        later ones.  This option is used to specify how many TRs to
+        remove from the beginning of every run.
 
-            To apply the REML (REstricted Maximum Likelihood) method, use this
-            option.
+        If the number needs to vary across runs, then one number should
+        be specified per run.
 
-            Note that 3dREMLfit is used for the regression in either case,
-            particularly since the regressors are slice-based (they are
-            different for each slice).
+    -tcat_remove_last_trs NUM : specify TRs to remove from run ends
 
-            Please see '3dREMLfit -help' for more information.
+            e.g. -tcat_remove_last_trs 10
+            default: 0
 
-        -ricor_regs REG1 REG2 ...       : specify ricor regressors (1 per run)
+        For when the user wants a simple way to shorten each run.
 
-                e.g. -ricor_regs slibase*.1D
+        See also -ricor_regs_rm_nlast.
 
-            This option is required with a 'ricor' processing block.
+    -despike_mask           : allow Automasking in 3dDespike
 
-            The expected format of the regressor files for RETROICOR processing
-            is one file per run, where each file contains a set of regressors
-            per slice.  If there are 5 runs and 27 slices, and if there are 13
-            regressors per slice, then there should be 5 files input, each with
-            351 (=27*13) columns.
+        By default, -nomask is applied to 3dDespike.  Since anatomical
+        masks will probably not be contained within the Automask operation
+        of 3dDespike (which uses methods akin to '3dAutomask -dilate 4'),
+        it is left up to the user to speed up this operation via masking.
 
-            This format is based on the output of RetroTS.py, included in the
-            AFNI distribution.
+        Note that the only case in which this should be done is when
+        applying the EPI mask to the regression.
 
-        -ricor_regs_nfirst NFIRST       : ignore the first regressor timepoints
+        Please see '3dDespike -help' and '3dAutomask -help' for more
+        information.
 
-                e.g. -ricor_regs_nfirst 2
-                default: 0
+    -despike_new yes/no/... : set whether to use new version of 3dDespike
 
-            This option is similar to -tcat_remove_first_trs.  It is used to
-            remove the first few TRs from the -ricor_regs regressor files.
+            e.g. -despike_new no
+            e.g. -despike_new -NEW25
+            default: yes
 
-            Since it is likely that the number of TRs in the ricor regressor
-            files matches the number of TRs in the original input dataset (via
-            the -dsets option), it is likely that -ricor_regs_nfirst should
-            match -tcat_remove_first_trs.
+        Valid parameters: yes, no, -NEW, -NEW25
 
-            See also '-tcat_remove_first_trs', '-ricor_regs', '-dsets'.
+        Use this option to control whether to use one of the new versions.
 
-        -ricor_regs_rm_nlast NUM : remove the last NUM TRs from each regressor
+        There is a '-NEW' option/method in 3dDespike which runs a faster
+        method than the previous L1-norm method (Nov 2013).  The results
+        are similar but not identical (different fits).  The difference in
+        speed is more dramatic for long time series (> 500 time points).
 
-                e.g. -ricor_regs_rm_nlast 10
-                default: 0
+        The -NEW25 option is meant to be more aggressive in despiking.
 
-            For when the user wants a simple way to shorten each run.
+        Sep 2016: in 3dDespike, -NEW is now the default if the input is
+                  longer than 500 time points.
 
-            See also -tcat_remove_last_trs.
+        See also env var AFNI_3dDespike_NEW and '3dDespike -help' for more
+        information.
 
-        -tshift_align_to TSHIFT OP : specify 3dTshift alignment option
+    -despike_opts_3dDes OPTS... : specify additional options for 3dDespike
 
-                e.g. -tshift_align_to -slice 14
-                default: -tzero 0
+            e.g. -despike_opts_3dDes -nomask -ignore 2
 
-            By default, each time series is aligned to the beginning of the
-            TR.  This option allows the users to change the alignment, and
-            applies the option parameters directly to the 3dTshift command
-            in the output script.
+        By default, 3dDespike is used with only -prefix and -nomask
+        (unless -despike_mask is applied).  Any other options must be
+        applied via -despike_opts_3dDes.
 
-            It is likely that the user will use either '-slice SLICE_NUM' or
-            '-tzero ZERO_TIME'.
+        Note that the despike block is not applied by default.  To apply
+        despike in the processing script, use either '-do_block despike'
+        or '-blocks ... despike ...'.
 
-            Note that when aligning to an offset other than the beginning of
-            the TR, and when applying the -regress_stim_files option, then it
-            may be necessary to also apply -regress_stim_times_offset, to
-            offset timing for stimuli to later within each TR.
+        Please see '3dDespike -help' for more information.
+        See also '-do_blocks', '-blocks', '-despike_mask'.
 
-            Please see '3dTshift -help' for more information.
-            See also '-regress_stim_times_offset'.
+    -ricor_datum DATUM      : specify output data type from ricor block
 
-        -tshift_interp METHOD   : specify the interpolation method for tshift
+            e.g. -ricor_datum float
 
-                e.g. -tshift_interp -wsinc9
-                e.g. -tshift_interp -Fourier
-                e.g. -tshift_interp -cubic
-                default -quintic
+        By default, if the input is unscaled shorts, the output will be
+        unscaled shorts.  Otherwise the output will be floats.
 
-            Please see '3dTshift -help' for more information.
+        The user may override this default with the -ricor_datum option.
+        Currently only 'short' and 'float' are valid parameters.
 
-        -tshift_opts_ts OPTS ... : specify extra options for 3dTshift
+        Note that 3dREMLfit only outputs floats at the moment.  Recall
+        that the down-side of float data is that it takes twice the disk
+        space, compared with shorts (scaled or unscaled).
 
-                e.g. -tshift_opts_ts -tpattern alt+z
+        Please see '3dREMLfit -help' for more information.
 
-            This option allows the user to add extra options to the 3dTshift
-            command.  Note that only one -tshift_opts_ts should be applied,
-            which may be used for multiple 3dTshift options.
+    -ricor_polort POLORT    : set the polynomial degree for 3dREMLfit
 
-            Please see '3dTshift -help' for more information.
+            e.g. -ricor_polort 4
+            default: 1 + floor(run_length / 75.0)
 
-        -blip_forward_dset      : specify a forward blip dataset
+        The default polynomial degree to apply during the 'ricor' block is
+        similar to that of the 'regress' block, but is based on twice the
+        run length (and so should be almost twice as large).  This is to
+        account for motion, since volreg has typically not happened yet.
 
-                e.g. -blip_forward_dset epi_forward_blip+orig'[0..9]'
+        Use -ricor_polort to override the default.
 
-            Without this option, the first TRs of the first input EPI time
-            series would be used as the forward blip dataset.
+    -ricor_regress_method METHOD    : process per-run or across-runs
 
-            See also -blip_revers_dset.
+            e.g. -ricor_regress_method across-runs
+            default: NONE: this option is required for a 'ricor' block
 
-            Please see '3dQwarp -help' for more information, and the -plusminus
-            option in particular.
+        * valid METHOD parameters: per-run, across-runs
 
-        -blip_reverse_dset      : specify a reverse blip dataset
+        The cardiac and respiratory signals can be regressed out of each
+        run separately, or out of all runs at once.  The user must choose
+        the method, there is no default.
 
-                e.g. -blip_reverse_dset epi_reverse_blip+orig
-                e.g. -blip_reverse_dset epi_reverse_blip+orig'[0..9]'
+        See "RETROICOR NOTE" for more details about the methods.
 
-            EPI distortion correction can be applied via blip up/blip down
-            acquisitions.  Unless specified otherwise, the first TRs of the
-            first run of typical EPI data specified via -dsets is considered
-            to be the forward direction (blip up, say).  So only the reverse
-            direction data needs separate input.
+    -ricor_regress_solver METHOD    : regress using OLSQ or REML
 
-            Please see '3dQwarp -help' for more information, and the -plusminus
-            option in particular.
+            e.g. -ricor_regress_solver REML
+            default: OLSQ
 
-        -blip_opts_qw OPTS ...  : specify extra options for 3dQwarp
+        * valid METHOD parameters: OLSQ, REML
 
-                e.g. -blip_opts_qw -noXdis -noZdis
+        Use this option to specify the regression method for removing the
+        cardiac and respiratory signals.  The default method is ordinary
+        least squares, removing the "best fit" of the card/resp signals
+        from the data (also subject to the polort baseline).
 
-            This option allows the user to add extra options to the 3dQwarp
-            command specific to the 'blip' processing block.
+        To apply the REML (REstricted Maximum Likelihood) method, use this
+        option.
 
-            There are many options (e.g. for blurring) applied in the 3dQwarp
-            command by afni_proc.py by default, so review the resulting script.
+        Note that 3dREMLfit is used for the regression in either case,
+        particularly since the regressors are slice-based (they are
+        different for each slice).
 
-            Please see '3dQwarp -help' for more information.
+        Please see '3dREMLfit -help' for more information.
 
-        -tlrc_anat              : run @auto_tlrc on '-copy_anat' dataset
+    -ricor_regs REG1 REG2 ...       : specify ricor regressors (1 per run)
 
-                e.g. -tlrc_anat
+            e.g. -ricor_regs slibase*.1D
 
-            Run @auto_tlrc on the anatomical dataset provided by '-copy_anat'.
-            By default, warp the anat to align with TT_N27+tlrc, unless the
-            '-tlrc_base' option is given.
+        This option is required with a 'ricor' processing block.
 
-            The -copy_anat option specifies which anatomy to transform.
+        The expected format of the regressor files for RETROICOR processing
+        is one file per run, where each file contains a set of regressors
+        per slice.  If there are 5 runs and 27 slices, and if there are 13
+        regressors per slice, then there should be 5 files input, each with
+        351 (=27*13) columns.
 
-         ** Note, use of this option has the same effect as application of the
-            'tlrc' block.
+        This format is based on the output of RetroTS.py, included in the
+        AFNI distribution.
 
-            Please see '@auto_tlrc -help' for more information.
-            See also -copy_anat, -tlrc_base, -tlrc_no_ss and the 'tlrc' block.
+    -ricor_regs_nfirst NFIRST       : ignore the first regressor timepoints
 
-        -tlrc_base BASE_DSET    : run "@auto_tlrc -base BASE_DSET"
+            e.g. -ricor_regs_nfirst 2
+            default: 0
 
-                e.g. -tlrc_base TT_icbm452+tlrc
-                default: -tlrc_base TT_N27+tlrc
+        This option is similar to -tcat_remove_first_trs.  It is used to
+        remove the first few TRs from the -ricor_regs regressor files.
 
-            This option is used to supply an alternate -base dataset for
-            @auto_tlrc (or auto_warp.py).  Otherwise, TT_N27+tlrc will be used.
+        Since it is likely that the number of TRs in the ricor regressor
+        files matches the number of TRs in the original input dataset (via
+        the -dsets option), it is likely that -ricor_regs_nfirst should
+        match -tcat_remove_first_trs.
 
-            Note that the default operation of @auto_tlrc is to "skull strip"
-            the input dataset.  If this is not appropriate, consider also the
-            '-tlrc_no_ss' option.
+        See also '-tcat_remove_first_trs', '-ricor_regs', '-dsets'.
 
-            Please see '@auto_tlrc -help' for more information.
-            See also -tlrc_anat, -tlrc_no_ss.
+    -ricor_regs_rm_nlast NUM : remove the last NUM TRs from each regressor
 
-        -tlrc_copy_base yes/no  : copy base/template to results directory
+            e.g. -ricor_regs_rm_nlast 10
+            default: 0
 
-                e.g. -tlrc_copy_base no
-                default: -tlrc_copy_base yes
+        For when the user wants a simple way to shorten each run.
 
-            By default, the template dataset (-tlrc_base) will be copied
-            to the local results directory (for QC purposes).
-            Use this option to override the default behavior.
+        See also -tcat_remove_last_trs.
 
-            See also -tlrc_base.
+    -tshift_align_to TSHIFT OP : specify 3dTshift alignment option
 
-        -tlrc_NL_warp           : use non-linear for template alignment
+            e.g. -tshift_align_to -slice 14
+            default: -tzero 0
 
-                e.g. -tlrc_NL_warp
+        By default, each time series is aligned to the beginning of the
+        TR.  This option allows the users to change the alignment, and
+        applies the option parameters directly to the 3dTshift command
+        in the output script.
 
-            If this option is applied, then auto_warp.py is applied for the
-            transformation to standard space, rather than @auto_tlrc, which in
-            turn applies 3dQwarp (rather than 3dWarpDrive in @auto_tlrc).
+        It is likely that the user will use either '-slice SLICE_NUM' or
+        '-tzero ZERO_TIME'.
 
-            The output datasets from this operation are:
+        Note that when aligning to an offset other than the beginning of
+        the TR, and when applying the -regress_stim_files option, then it
+        may be necessary to also apply -regress_stim_times_offset, to
+        offset timing for stimuli to later within each TR.
 
-                INPUT_ANAT+tlrc         : standard space version of anat
-                anat.un.aff.Xat.1D      : affine xform to standard space
-                anat.un.aff.qw_WARP.nii : non-linear xform to standard space
-                                          (displacement vectors across volume)
+        Please see '3dTshift -help' for more information.
+        See also '-regress_stim_times_offset'.
 
-            The resulting ANAT dataset is copied out of the awpy directory
-            back into AFNI format, and with the original name but new view,
-            while the 2 transformation files (one text file of 12 numbers, one
-            3-volume dataset vectors) are moved out with the original names.
+    -tshift_interp METHOD   : specify the interpolation method for tshift
 
-            If -volreg_tlrc_warp is given, then the non-linear transformation
-            will also be applied to the EPI data, sending the 'volreg' output
-            directly to standard space.  As usual, all transformations are
-            combined so that the EPI is only resampled one time.
+            e.g. -tshift_interp -wsinc9
+            e.g. -tshift_interp -Fourier
+            e.g. -tshift_interp -cubic
+            default -quintic
 
-            Options can be added to auto_warp.py via -tlrc_opts_at.
+        Please see '3dTshift -help' for more information.
 
-            Consider use of -anat_uniform_method along with this option.
+    -tshift_opts_ts OPTS ... : specify extra options for 3dTshift
 
-            Please see 'auto_warp.py -help' for more information.
-            See also -tlrc_opts_at, -anat_uniform_method.
+            e.g. -tshift_opts_ts -tpattern alt+z
 
-        -tlrc_NL_warped_dsets ANAT WARP.1D NL_WARP: import auto_warp.py output
+        This option allows the user to add extra options to the 3dTshift
+        command.  Note that only one -tshift_opts_ts should be applied,
+        which may be used for multiple 3dTshift options.
 
-                e.g. -tlrc_NL_warped_dsets anat.nii           \\
-                                           anat.un.aff.Xat.1D \\
-                                           anat.un.aff.qw_WARP.nii
+        Please see '3dTshift -help' for more information.
 
-            If the user has already run auto_warp.py on the subject anatomy
-            to transform (non-linear) to standard space, those datasets can
-            be input to save re-processing time.
+    -blip_forward_dset      : specify a forward blip dataset
 
-            They are the same 3 files that would be otherwise created by
-            running auto_warp_py from the proc script.
+            e.g. -blip_forward_dset epi_forward_blip+orig'[0..9]'
 
-            When using this option, the 'tlrc' block will be empty of actions.
+        Without this option, the first TRs of the first input EPI time
+        series would be used as the forward blip dataset.
 
-        -tlrc_NL_force_view Y/N : force view when copying auto_warp.py result
+        See also -blip_revers_dset.
 
-                e.g.     -tlrc_NL_force_view no
-                default: -tlrc_NL_force_view yes
+        Please see '3dQwarp -help' for more information, and the -plusminus
+        option in particular.
 
-            The auto_warp.py program writes results using NIFTI format.  If the
-            alignment template is in a standard space that is not part of the
-            NIFTI standard (TLRC and MNI are okay), then currently the only
-            sform_code available is 2 ("aligned to something").  But that code
-            is ambiguous, so users often set it to mean orig view (by setting
-            AFNI_NIFTI_VIEW=orig).  This option (defaulting to yes) forces
-            sform_code=2 to mean standard space, using +tlrc view.
+    -blip_reverse_dset      : specify a reverse blip dataset
 
-        -tlrc_NL_awpy_rm Y/N    : specify whether to remove awpy directory
+            e.g. -blip_reverse_dset epi_reverse_blip+orig
+            e.g. -blip_reverse_dset epi_reverse_blip+orig'[0..9]'
 
-                e.g.     -tlrc_NL_awpy_rm no
-                default: -tlrc_NL_awpy_rm yes
+        EPI distortion correction can be applied via blip up/blip down
+        acquisitions.  Unless specified otherwise, the first TRs of the
+        first run of typical EPI data specified via -dsets is considered
+        to be the forward direction (blip up, say).  So only the reverse
+        direction data needs separate input.
 
-            The auto_warp.py program does all its work in an sub-directory
-            called 'awpy', which is removed by default.  Use this option with
-            'no' to save the awpy directory.
+        Please see '3dQwarp -help' for more information, and the -plusminus
+        option in particular.
 
-        -tlrc_no_ss             : add the -no_ss option to @auto_tlrc
+    -blip_opts_qw OPTS ...  : specify extra options for 3dQwarp
 
-                e.g. -tlrc_no_ss
+            e.g. -blip_opts_qw -noXdis -noZdis
 
-            This option is used to tell @auto_tlrc not to perform the skull
-            strip operation.
+        This option allows the user to add extra options to the 3dQwarp
+        command specific to the 'blip' processing block.
 
-            Please see '@auto_tlrc -help' for more information.
+        There are many options (e.g. for blurring) applied in the 3dQwarp
+        command by afni_proc.py by default, so review the resulting script.
 
-        -tlrc_opts_at OPTS ...   : add additional options to @auto_tlrc
+        Please see '3dQwarp -help' for more information.
 
-                e.g. -tlrc_opts_at -OK_maxite
+    -blip_warp_dset DSET    : specify extra options for 3dQwarp
 
-            This option is used to add user-specified options to @auto_tlrc,
-            specifically those afni_proc.py is not otherwise set to handle.
+            e.g. -blip_warp_dset epi_b0_WARP.nii.gz
 
-            In the case of -tlrc_NL_warp, the options will be passed to
-            auto_warp.py, instead.
+        This option allows the user to pass a pre-computed distortion warp
+        dataset, to replace the computation of a warp in the blip block.
+        The most likely use is to first run epi_b0_correct.py for a b0
+        distortion map computation, rather than the reverse phase encoding
+        method that would be computed with afni_proc.py.
 
-            Please see '@auto_tlrc -help' for more information.
-            Please see 'auto_warp.py -help' for more information.
+        When applying this option in afni_proc.py, instead of using options
+        like:
 
-        -tlrc_rmode RMODE       : apply RMODE resampling in @auto_tlrc
+            -blip_forward_dset DSET_FORWARD \\
+            -blip_reverse_dset DSET_REVERSE \\
+            -blip_opts_qw      OPTIONS ...  \\
 
-                e.g. -tlrc_rmode NN
+        use just this one option to pass the warp:
 
-            This option is used to apply '-rmode RMODE' in @auto_tlrc.
+            -blip_warp_dset epi_b0_WARP.nii.gz \\
 
-            Please see '@auto_tlrc -help' for more information.
+        Please see 'epi_b0_correct.py -help' for more information.
 
-        -tlrc_suffix SUFFIX     : apply SUFFIX to result of @auto_tlrc
+    -tlrc_anat              : run @auto_tlrc on '-copy_anat' dataset
 
-                e.g. -tlrc_suffix auto_tlrc
+            e.g. -tlrc_anat
 
-            This option is used to apply '-suffix SUFFIX' in @auto_tlrc.
+        Run @auto_tlrc on the anatomical dataset provided by '-copy_anat'.
+        By default, warp the anat to align with TT_N27+tlrc, unless the
+        '-tlrc_base' option is given.
 
-            Please see '@auto_tlrc -help' for more information.
+        The -copy_anat option specifies which anatomy to transform.
 
-        -align_epi_ext_dset DSET : specify dset/brick for align_epi_anat EPI
+     ** Note, use of this option has the same effect as application of the
+        'tlrc' block.
 
-                e.g. -align_epi_ext_dset subj10/epi_r01+orig'[0]'
+        Please see '@auto_tlrc -help' for more information.
+        See also -copy_anat, -tlrc_base, -tlrc_no_ss and the 'tlrc' block.
 
-            This option allows the user to specify an external volume for the
-            EPI base used in align_epi_anat.py in the align block.  The user
-            should apply sub-brick selection if the dataset has more than one
-            volume.  This volume would be used for both the -epi and the
-            -epi_base options in align_epi_anat.py.
+    -tlrc_base BASE_DSET    : run "@auto_tlrc -base BASE_DSET"
 
-            The user might want to align to an EPI volume that is not in the
-            processing stream in the case where there is not sufficient EPI
-            contrast left after the magnetization has reached a steady state.
-            Perhaps volume 0 has sufficient contrast for alignment, but is not
-            appropriate for analysis.  In such a case, the user may elect to
-            align to volume 0, while excluding it from the analysis as part of
-            the first volumes removed in -tcat_remove_first_trs.
+            e.g. -tlrc_base TT_icbm452+tlrc
+            default: -tlrc_base TT_N27+tlrc
 
-            e.g. -dsets subj10/epi_r*_orig.HEAD
-                 -tcat_remove_first_trs 3
-                 -align_epi_ext_dset subj10/epi_r01+orig'[0]'
-                 -volreg_align_to first
+        This option is used to supply an alternate -base dataset for
+        @auto_tlrc (or auto_warp.py).  Otherwise, TT_N27+tlrc will be used.
 
-            Note that even if the anatomy were acquired after the EPI, the user
-            might still want to align the anat to the beginning of some run,
-            and align all the EPIs to a time point close to that.  Since the
-            anat and EPI are being forcibly aligned, it does not make such a
-            big difference whether the EPI base is close in time to the anat
-            acquisition.
+        Note that the default operation of @auto_tlrc is to "skull strip"
+        the input dataset.  If this is not appropriate, consider also the
+        '-tlrc_no_ss' option.
 
-            Note that this option does not affect the EPI registration base.
+        Please see '@auto_tlrc -help' for more information.
+        See also -tlrc_anat, -tlrc_no_ss.
 
-            Note that without this option, the volreg base dataset (whether
-            one of the processed TRs or not) will be applied for anatomical
-            alignment, assuming the align block is applied.
+    -tlrc_copy_base yes/no  : copy base/template to results directory
 
-            See also -volreg_base_dset.
-            Please see "align_epi_anat.py -help" for more information.
+            e.g. -tlrc_copy_base no
+            default: -tlrc_copy_base yes
 
-        -align_opts_aea OPTS ... : specify extra options for align_epi_anat.py
+        By default, the template dataset (-tlrc_base) will be copied
+        to the local results directory (for QC purposes).
+        Use this option to override the default behavior.
 
-                e.g. -align_opts_aea -cost lpc+ZZ
-                e.g. -align_opts_aea -cost lpc+ZZ -check_flip
-                e.g. -align_opts_aea -Allineate_opts -source_automask+4
-                e.g. -align_opts_aea -giant_move -AddEdge
-                e.g. -align_opts_aea -skullstrip_opts -blur_fwhm 2
+        See also -tlrc_base.
 
-            This option allows the user to add extra options to the alignment
-            command, align_epi_anat.py.
+    -tlrc_NL_warp           : use non-linear for template alignment
 
-            Note that only one -align_opts_aea option should be given, with
-            possibly many parameters to be passed on to align_epi_anat.py.
+            e.g. -tlrc_NL_warp
 
-            Note the second example.  In order to pass '-source_automask+4' to
-            3dAllineate, one must pass '-Allineate_opts -source_automask+4' to
-            align_epi_anat.py.
+        If this option is applied, then auto_warp.py is applied for the
+        transformation to standard space, rather than @auto_tlrc, which in
+        turn applies 3dQwarp (rather than 3dWarpDrive in @auto_tlrc).
 
-            Similarly, the fourth example passes '-blur_fwhm 2' down through
-            align_epi_anat.py to 3dSkullStrip.
+        The output datasets from this operation are:
 
-          * The -check_flip option to align_epi_anat.py is good for evaluating
-            data from external sources.  Aside from performing the typical
-            registration, it will compare the final registration cost to that
-            of a left/right flipped version.  If the flipped version is lower,
-            one should investigate whether the axes are correctly labeled, or
-            even labeled at all.
+            INPUT_ANAT+tlrc         : standard space version of anat
+            anat.un.aff.Xat.1D      : affine xform to standard space
+            anat.un.aff.qw_WARP.nii : non-linear xform to standard space
+                                      (displacement vectors across volume)
 
-          * Please do not include -epi_strip with this -align_opts_aea option.
-            That option to align_epi_anat.py should be controlled by
-            -align_epi_strip_method.
+        The resulting ANAT dataset is copied out of the awpy directory
+        back into AFNI format, and with the original name but new view,
+        while the 2 transformation files (one text file of 12 numbers, one
+        3-volume dataset vectors) are moved out with the original names.
 
-            Please see "align_epi_anat.py -help" for more information.
-            Please see "3dAllineate -help" for more information.
+        If -volreg_tlrc_warp is given, then the non-linear transformation
+        will also be applied to the EPI data, sending the 'volreg' output
+        directly to standard space.  As usual, all transformations are
+        combined so that the EPI is only resampled one time.
 
-        -align_opts_eunif OPTS ... : add options to EPI uniformity command
+        Options can be added to auto_warp.py via -tlrc_opts_at.
 
-                e.g. -align_opts_eunif -wdir_name work.epi_unif -no_clean
+        Consider use of -anat_uniform_method along with this option.
 
-            This option allows the user to add extra options to the EPI
-            uniformity correction command, probably 3dLocalUnifize (possibly
-            3dUnifize).
+        Please see 'auto_warp.py -help' for more information.
+        See also -tlrc_opts_at, -anat_uniform_method.
 
-            Please see "3dLocalUnifize -help" for more information.
+    -tlrc_NL_warped_dsets ANAT WARP.1D NL_WARP: import auto_warp.py output
 
-        -align_epi_strip_method METHOD : specify EPI skull strip method in AEA
+            e.g. -tlrc_NL_warped_dsets anat.nii           \\
+                                       anat.un.aff.Xat.1D \\
+                                       anat.un.aff.qw_WARP.nii
 
-                e.g. -align_epi_strip_method 3dSkullStrip
-                default: 3dAutomask (changed from 3dSkullStrip, 20 Aug, 2013)
+        If the user has already run auto_warp.py on the subject anatomy
+        to transform (non-linear) to standard space, those datasets can
+        be input to save re-processing time.
 
-            When align_epi_anat.py is used to align the EPI and anatomy, it
-            uses 3dSkullStrip to remove non-brain tissue from the EPI dataset.
-            However afni_proc.py changes that to 3dAutomask by default (as of
-            August 20, 2013).  This option can be used to specify which method
-            to use, one of 3dSkullStrip, 3dAutomask or None.
+        They are the same 3 files that would be otherwise created by
+        running auto_warp_py from the proc script.
 
-            This option assumes the 'align' processing block is used.
+        When using this option, the 'tlrc' block will be empty of actions.
 
-            Please see "align_epi_anat.py -help" for more information.
-            Please see "3dSkullStrip -help" for more information.
-            Please see "3dAutomask -help" for more information.
+    -tlrc_NL_force_view Y/N : force view when copying auto_warp.py result
 
-        -align_unifize_epi METHOD: run uniformity correction on EPI base volume
+            e.g.     -tlrc_NL_force_view no
+            default: -tlrc_NL_force_view yes
 
-                e.g. -align_unifize_epi local
-                default: no
+        The auto_warp.py program writes results using NIFTI format.  If the
+        alignment template is in a standard space that is not part of the
+        NIFTI standard (TLRC and MNI are okay), then currently the only
+        sform_code available is 2 ("aligned to something").  But that code
+        is ambiguous, so users often set it to mean orig view (by setting
+        AFNI_NIFTI_VIEW=orig).  This option (defaulting to yes) forces
+        sform_code=2 to mean standard space, using +tlrc view.
 
-            Use this option to run uniformity correction on the vr_base dataset
-            for the purpose of alignment to the anat.
+    -tlrc_NL_awpy_rm Y/N    : specify whether to remove awpy directory
 
-            The older yes/no METHOD choices were based on 3dUnifize.  The
-            METHOD choices now include:
+            e.g.     -tlrc_NL_awpy_rm no
+            default: -tlrc_NL_awpy_rm yes
 
-                local   : use 3dLocalUnifize ... (aka the "P Taylor special")
-                unif    : use 3dUnifize -T2 ...
-                yes     : (old choice) equivalent to unif
-                no      : do not run EPI uniformity correction
+        The auto_warp.py program does all its work in an sub-directory
+        called 'awpy', which is removed by default.  Use this option with
+        'no' to save the awpy directory.
 
-            The uniformity corrected EPI volume is only used for anatomical
-            alignment, and possibly visual quality control.
+    -tlrc_no_ss             : add the -no_ss option to @auto_tlrc
 
-            One can use option -align_opts_eunif to pass extra options to
-            either case (3dLocalUnifize or 3dUnifize).
+            e.g. -tlrc_no_ss
 
-            Please see "3dLocalUnifize -help" for more information.
-            Please see "3dUnifize -help" for more information.
+        This option is used to tell @auto_tlrc not to perform the skull
+        strip operation.
 
-        -volreg_align_e2a       : align EPI to anatomy at volreg step
+        Please see '@auto_tlrc -help' for more information.
 
-            This option is used to align the EPI data to match the anatomy.
-            It is done by applying the inverse of the anatomy to EPI alignment
-            matrix to the EPI data at the volreg step.  The 'align' processing
-            block is required.
+    -tlrc_opts_at OPTS ...   : add additional options to @auto_tlrc
 
-            At the 'align' block, the anatomy is aligned to the EPI data.
-            When applying the '-volreg_align_e2a' option, the inverse of that
-            a2e transformation (so now e2a) is instead applied to the EPI data.
+            e.g. -tlrc_opts_at -OK_maxite
 
-            Note that this e2a transformation is catenated with the volume
-            registration transformations, so that the EPI data is still only
-            resampled the one time.  If the user requests -volreg_tlrc_warp,
-            the +tlrc transformation will also be applied at that step in a
-            single transformation.
+        This option is used to add user-specified options to @auto_tlrc,
+        specifically those afni_proc.py is not otherwise set to handle.
 
-            See also the 'align' block and '-volreg_tlrc_warp'.
+        In the case of -tlrc_NL_warp, the options will be passed to
+        auto_warp.py, instead.
 
-        -volreg_align_to POSN   : specify the base position for volume reg
+        Please see '@auto_tlrc -help' for more information.
+        Please see 'auto_warp.py -help' for more information.
 
-                e.g. -volreg_align_to last
-                e.g. -volreg_align_to MIN_OUTLIER
-                default: third
+    -tlrc_rmode RMODE       : apply RMODE resampling in @auto_tlrc
 
-            This option takes 'first', 'third', 'last' or 'MIN_OUTLIER' as a
-            parameter.  It specifies whether the EPI volumes are registered to
-            the first or third volume (of the first run), the last volume (of
-            the last run), or the volume that is consider a minimum outlier.
-            The choice of 'first' or 'third' might correspond with when the
-            anatomy was acquired before the EPI data.  The choice of 'last'
-            might correspond to when the anatomy was acquired after the EPI
-            data.
+            e.g. -tlrc_rmode NN
 
-            The default of 'third' was chosen to go a little farther into the
-            steady state data.
+        This option is used to apply '-rmode RMODE' in @auto_tlrc.
 
-            Note that this is done after removing any volumes in the initial
-            tcat operation.
+        Please see '@auto_tlrc -help' for more information.
 
-          * A special case is if POSN is the string MIN_OUTLIER, in which
-            case the volume with the minimum outlier fraction would be used.
+    -tlrc_suffix SUFFIX     : apply SUFFIX to result of @auto_tlrc
 
-            Since anat and EPI alignment tends to work very well, the choice
-            of alignment base could even be independent of when the anatomy
-            was acquired, making MIN_OUTLIER a good choice.
+            e.g. -tlrc_suffix auto_tlrc
 
-            Please see '3dvolreg -help' for more information.
-            See also -tcat_remove_first_trs, -volreg_base_ind and
-            -volreg_base_dset.
+        This option is used to apply '-suffix SUFFIX' in @auto_tlrc.
 
-        -volreg_allin_auto_stuff OPT ...  : specify 'auto' options for 3dAllin.
+        Please see '@auto_tlrc -help' for more information.
 
-                e.g. -volreg_allin_auto_stuff -autoweight -warp shift_rotate
+    -align_epi_ext_dset DSET : specify dset/brick for align_epi_anat EPI
 
-            When using 3dAllineate to do EPI motion correction, the default
-            'auto' options applied are:
+            e.g. -align_epi_ext_dset subj10/epi_r01+orig'[0]'
 
-                -automask -source_automask -autoweight
-            
-            Use this option to _replace_ them with whatever is preferable.
+        This option allows the user to specify an external volume for the
+        EPI base used in align_epi_anat.py in the align block.  The user
+        should apply sub-brick selection if the dataset has more than one
+        volume.  This volume would be used for both the -epi and the
+        -epi_base options in align_epi_anat.py.
 
-          * All 3 options will be replaced, so if -autoweight is still wanted,
-            for example, please include it with -volreg_allin_auto_stuff.
+        The user might want to align to an EPI volume that is not in the
+        processing stream in the case where there is not sufficient EPI
+        contrast left after the magnetization has reached a steady state.
+        Perhaps volume 0 has sufficient contrast for alignment, but is not
+        appropriate for analysis.  In such a case, the user may elect to
+        align to volume 0, while excluding it from the analysis as part of
+        the first volumes removed in -tcat_remove_first_trs.
 
-            Please see '3dAllineate -help' for more details.
+        e.g. -dsets subj10/epi_r*_orig.HEAD
+             -tcat_remove_first_trs 3
+             -align_epi_ext_dset subj10/epi_r01+orig'[0]'
+             -volreg_align_to first
 
-        -volreg_allin_cost COST : specify the cost function used in 3dAllineate
+        Note that even if the anatomy were acquired after the EPI, the user
+        might still want to align the anat to the beginning of some run,
+        and align all the EPIs to a time point close to that.  Since the
+        anat and EPI are being forcibly aligned, it does not make such a
+        big difference whether the EPI base is close in time to the anat
+        acquisition.
 
-                e.g. -volreg_allin_cost lpa+zz
+        Note that this option does not affect the EPI registration base.
 
-            When using 3dAllineate to do EPI motion correction, the default
-            cost function is lpa.  Use this option to specify another.
+        Note that without this option, the volreg base dataset (whether
+        one of the processed TRs or not) will be applied for anatomical
+        alignment, assuming the align block is applied.
 
-            Please see '3dAllineate -help' for more details, including a list
-            of cost functions.
+        See also -volreg_base_dset.
+        Please see "align_epi_anat.py -help" for more information.
 
-        -volreg_post_vr_allin yes/no : do cross-run alignment of reg bases
+    -align_opts_aea OPTS ... : specify extra options for align_epi_anat.py
 
-                e.g. -volreg_post_vr_allin yes
+            e.g. -align_opts_aea -cost lpc+ZZ
+            e.g. -align_opts_aea -cost lpc+ZZ -check_flip
+            e.g. -align_opts_aea -Allineate_opts -source_automask+4
+            e.g. -align_opts_aea -giant_move -AddEdge
+            e.g. -align_opts_aea -skullstrip_opts -blur_fwhm 2
 
-            Using this option, time series registration will be done per run,
-            with an additional cross-run registration of each within-run base
-            to what would otherwise be the overall EPI registration base.
+        This option allows the user to add extra options to the alignment
+        command, align_epi_anat.py.
 
-            3dAllineate is used for cross-run vr_base registration (to the
-            global vr_base, say, which may or may not be one of the per-run
-            vr_base datasets).
+        Note that only one -align_opts_aea option should be given, with
+        possibly many parameters to be passed on to align_epi_anat.py.
 
-          * Consider use of -volreg_warp_dxyz, for cases when the voxel size
-            might vary across runs.  It would ensure that the final grids are
-            the same.
+        Note the second example.  In order to pass '-source_automask+4' to
+        3dAllineate, one must pass '-Allineate_opts -source_automask+4' to
+        align_epi_anat.py.
 
-            See also -volreg_pvra_base_index, -volreg_warp_dxyz.
+        Similarly, the fourth example passes '-blur_fwhm 2' down through
+        align_epi_anat.py to 3dSkullStrip.
 
-        -volreg_pvra_base_index INDEX : specify per run INDEX for post_vr_allin
+      * The -check_flip option to align_epi_anat.py is good for evaluating
+        data from external sources.  Aside from performing the typical
+        registration, it will compare the final registration cost to that
+        of a left/right flipped version.  If the flipped version is lower,
+        one should investigate whether the axes are correctly labeled, or
+        even labeled at all.
 
-                e.g.     -volreg_pvra_base_index 3
-                e.g.     -volreg_pvra_base_index $
-                e.g.     -volreg_pvra_base_index MIN_OUTLIER
-                default: -volreg_pvra_base_index 0
+      * Please do not include -epi_strip with this -align_opts_aea option.
+        That option to align_epi_anat.py should be controlled by
+        -align_epi_strip_method.
 
-            Use this option to specify the within-run volreg base for use with
-            '-volreg_post_vr_allin yes'.  INDEX can be one of:
+        Please see "align_epi_anat.py -help" for more information.
+        Please see "3dAllineate -help" for more information.
 
-                0             : the default (the first time point per run)
-                VAL           : an integer index, between 0 and the last
-                $             : AFNI syntax to mean the last volume
-                MIN_OUTLIER   : compute the MIN_OUTLIER per run, and use it
+    -align_opts_eunif OPTS ... : add options to EPI uniformity command
 
-            See also -volreg_post_vr_allin.
+            e.g. -align_opts_eunif -wdir_name work.epi_unif -no_clean
 
-        -volreg_base_dset DSET  : specify dset/sub-brick for volreg base
+        This option allows the user to add extra options to the EPI
+        uniformity correction command, probably 3dLocalUnifize (possibly
+        3dUnifize).
 
-                e.g. -volreg_base_dset subj10/vreg_base+orig'[0]'
-                e.g. -volreg_base_dset MIN_OUTLIER
+        Please see "3dLocalUnifize -help" for more information.
 
-            This option allows the user to specify an external dataset for the
-            volreg base.  The user should apply sub-brick selection if the
-            dataset has more than one volume.
+    -align_epi_strip_method METHOD : specify EPI skull strip method in AEA
 
-            For example, one might align to a pre-magnetic steady state volume.
+            e.g. -align_epi_strip_method 3dSkullStrip
+            default: 3dAutomask (changed from 3dSkullStrip, 20 Aug, 2013)
 
-            Note that unless -align_epi_ext_dset is also applied, this volume
-            will be used for anatomical to EPI alignment (assuming that is
-            being done at all).
+        When align_epi_anat.py is used to align the EPI and anatomy, it
+        uses 3dSkullStrip to remove non-brain tissue from the EPI dataset.
+        However afni_proc.py changes that to 3dAutomask by default (as of
+        August 20, 2013).  This option can be used to specify which method
+        to use, one of 3dSkullStrip, 3dAutomask or None.
 
-          * A special case is if DSET is the string MIN_OUTLIER, in which
-            case the volume with the minimum outlier fraction would be used.
+        This option assumes the 'align' processing block is used.
 
-            See also -align_epi_ext_dset, -volreg_align_to and -volreg_base_ind.
+        Please see "align_epi_anat.py -help" for more information.
+        Please see "3dSkullStrip -help" for more information.
+        Please see "3dAutomask -help" for more information.
 
-        -volreg_base_ind RUN SUB : specify run/sub-brick indices for base
+    -align_unifize_epi METHOD: run uniformity correction on EPI base volume
 
-                e.g. -volreg_base_ind 10 123
-                default: 0 0
+            e.g. -align_unifize_epi local
+            default: no
 
-            This option allows the user to specify exactly which dataset and
-            sub-brick to use as the base registration image.  Note that the
-            SUB index applies AFTER the removal of pre-steady state images.
+        Use this option to run uniformity correction on the vr_base dataset
+        for the purpose of alignment to the anat.
 
-          * The RUN number is 1-based, matching the run list in the output
-            shell script.  The SUB index is 0-based, matching the sub-brick of
-            EPI time series #RUN.  Yes, one is 1-based, the other is 0-based.
-            Life is hard.
+        The older yes/no METHOD choices were based on 3dUnifize.  The
+        METHOD choices now include:
 
-            The user can apply only one of the -volreg_align_to and
-            -volreg_base_ind options.
+            local   : use 3dLocalUnifize ... (aka the "P Taylor special")
+            unif    : use 3dUnifize -T2 ...
+            yes     : (old choice) equivalent to unif
+            no      : do not run EPI uniformity correction
 
-            See also -volreg_align_to, -tcat_remove_first_trs and
-            -volreg_base_dset.
+        The uniformity corrected EPI volume is only used for anatomical
+        alignment, and possibly visual quality control.
 
-        -volreg_get_allcostX yes/no : compute all anat/EPI costs
+        One can use option -align_opts_eunif to pass extra options to
+        either case (3dLocalUnifize or 3dUnifize).
 
-                e.g. -volreg_get_allcostX no
-                default: yes
+        Please see "3dLocalUnifize -help" for more information.
+        Please see "3dUnifize -help" for more information.
 
-            By default, given the final anatomical dataset (anat_final) and
-            the the final EPI volreg base (final_epi), this option can be used
-            to compute alignment costs between the two volumes across all cost
-            functions from 3dAllineate.  Effectively, it will add the following
-            to the proc script:
+    -volreg_align_e2a       : align EPI to anatomy at volreg step
 
-                3dAllineate -base FINAL_EPI -input FINAL_ANAT -allcostX
+        This option is used to align the EPI data to match the anatomy.
+        It is done by applying the inverse of the anatomy to EPI alignment
+        matrix to the EPI data at the volreg step.  The 'align' processing
+        block is required.
 
-            The text output is stored in the file out.allcostX.txt.
+        At the 'align' block, the anatomy is aligned to the EPI data.
+        When applying the '-volreg_align_e2a' option, the inverse of that
+        a2e transformation (so now e2a) is instead applied to the EPI data.
 
-            This operation is informational only, to help evaluate alignment
-            costs across subjects.
+        Note that this e2a transformation is catenated with the volume
+        registration transformations, so that the EPI data is still only
+        resampled the one time.  If the user requests -volreg_tlrc_warp,
+        the +tlrc transformation will also be applied at that step in a
+        single transformation.
 
-            Please see '3dAllineate -help' for more details.
+        See also the 'align' block and '-volreg_tlrc_warp'.
 
-        -volreg_compute_tsnr yes/no : compute TSNR datasets from volreg output
+    -volreg_align_to POSN   : specify the base position for volume reg
 
-                e.g. -volreg_compute_tsnr yes
-                default: no
+            e.g. -volreg_align_to last
+            e.g. -volreg_align_to MIN_OUTLIER
+            default: third
 
-            Use this option to compute a temporal signal to noise (TSNR)
-            dataset at the end of the volreg block.  Both the signal and noise
-            datasets are from the run 1 output, where the "signal" is the mean
-            and the "noise" is the detrended time series.
+        This option takes 'first', 'third', 'last' or 'MIN_OUTLIER' as a
+        parameter.  It specifies whether the EPI volumes are registered to
+        the first or third volume (of the first run), the last volume (of
+        the last run), or the volume that is consider a minimum outlier.
+        The choice of 'first' or 'third' might correspond with when the
+        anatomy was acquired before the EPI data.  The choice of 'last'
+        might correspond to when the anatomy was acquired after the EPI
+        data.
 
-            TSNR = average(signal) / stdev(noise)
+        The default of 'third' was chosen to go a little farther into the
+        steady state data.
 
-            See also -regress_compute_tsnr.
+        Note that this is done after removing any volumes in the initial
+        tcat operation.
 
-        -volreg_interp METHOD   : specify the interpolation method for volreg
+      * A special case is if POSN is the string MIN_OUTLIER, in which
+        case the volume with the minimum outlier fraction would be used.
 
-                e.g. -volreg_interp -quintic
-                e.g. -volreg_interp -Fourier
-                default: -cubic
+        Since anat and EPI alignment tends to work very well, the choice
+        of alignment base could even be independent of when the anatomy
+        was acquired, making MIN_OUTLIER a good choice.
 
-            Please see '3dvolreg -help' for more information.
+        Please see '3dvolreg -help' for more information.
+        See also -tcat_remove_first_trs, -volreg_base_ind and
+        -volreg_base_dset.
 
-        -volreg_method METHOD   : specify method for EPI motion correction
+    -volreg_allin_auto_stuff OPT ...  : specify 'auto' options for 3dAllin.
 
-                e.g. -volreg_method 3dAllineate
-                default: 3dvolreg
+            e.g. -volreg_allin_auto_stuff -autoweight
 
-            Use this option to specify which program should be run to perform
-            EPI to EPI base motion correction over time.
+        When using 3dAllineate to do EPI motion correction, the default
+        'auto' options applied are:
 
-            Please see '3dvolreg -help' for more information.
+            -automask -source_automask -autoweight
+        
+        Use this option to _replace_ them with whatever is preferable.
 
-        -volreg_motsim          : generate motion simulated time series
+      * All 3 options will be replaced, so if -autoweight is still wanted,
+        for example, please include it with -volreg_allin_auto_stuff.
 
-            Use of this option will result in a 'motsim' (motion simulation)
-            time series dataset that is akin to an EPI dataset altered only
-            by motion and registration (no BOLD, no signal drift, etc).
+      * Do not pass -warp through here, but via -volreg_allin_warp.
 
-            This dataset can be used to generate regressors of no interest to
-            be used in the regression block.
+        Please see '3dAllineate -help' for more details.
 
-            rcr - note relevant options once they are in
+    -volreg_allin_warp WARP : specify -warp for 3dAllineate EPI volreg step
 
-            Please see '@simulate_motion -help' for more information.
+            e.g.    -volreg_allin_warp affine_general
+            default -volreg_allin_warp shift_rotate
 
-        -volreg_opts_ms OPTS ... : specify extra options for @simulate_motion
+        When using 3dAllineate to do EPI motion correction, the default -warp
+        type is shift_rotate (rigid body).  Use this option to specify another.
 
-                e.g. -volreg_opts_ms -save_workdir
+        The valid WARP options are:
 
-            This option can be used to pass extra options directly to the
-            @simulate_motion command.
+            shift_rotates       : 6-param rigid body
+            shift_rotate_scale  : 9-param with scaling
+            affine_general      : 12-param full affine
 
-            See also -volreg_motsim.
-            Please see '@simulate_motion -help' for more information.
+        While 3dAllinate allows shift_rotate, afni_proc.py does not, as it
+        would currently require an update to handle the restricted parameter
+        list.  Please let rickr know if this is wanted.
 
-        -volreg_opts_ewarp OPTS ... : specify extra options for EPI warp steps
+        Please see '-warp' from '3dAllineate -help' for more details.
 
-                e.g. -volreg_opts_ewarp -short
+    -volreg_allin_cost COST : specify the cost function used in 3dAllineate
 
-            This option allows the user to add extra options to the commands
-            used to apply combined transformations to EPI data, warping it to
-            its final grid space (currently via either 3dAllineate or 
-            3dNwarpApply).
+            e.g. -volreg_allin_cost lpa+zz
 
-            Please see '3dAllineate -help' for more information.
-            Please see '3dNwarpApply -help' for more information.
+        When using 3dAllineate to do EPI motion correction, the default
+        cost function is lpa.  Use this option to specify another.
 
-        -volreg_opts_vr OPTS ... : specify extra options for 3dvolreg
+        Please see '3dAllineate -help' for more details, including a list
+        of cost functions.
 
-                e.g. -volreg_opts_vr -twopass
-                e.g. -volreg_opts_vr -noclip -nomaxdisp
+    -volreg_post_vr_allin yes/no : do cross-run alignment of reg bases
 
-            This option allows the user to add extra options to the 3dvolreg
-            command.  Note that only one -volreg_opts_vr should be applied,
-            which may be used for multiple 3dvolreg options.
+            e.g. -volreg_post_vr_allin yes
 
-            Please see '3dvolreg -help' for more information.
+        Using this option, time series registration will be done per run,
+        with an additional cross-run registration of each within-run base
+        to what would otherwise be the overall EPI registration base.
 
-        -volreg_no_extent_mask  : do not create and apply extents mask
+        3dAllineate is used for cross-run vr_base registration (to the
+        global vr_base, say, which may or may not be one of the per-run
+        vr_base datasets).
 
-                default: apply extents mask
+      * Consider use of -volreg_warp_dxyz, for cases when the voxel size
+        might vary across runs.  It would ensure that the final grids are
+        the same.
 
-            This option says not to create or apply the extents mask.
+        See also -volreg_pvra_base_index, -volreg_warp_dxyz.
 
-            The extents mask:
+    -volreg_pvra_base_index INDEX : specify per run INDEX for post_vr_allin
 
-            When EPI data is transformed to the anatomical grid in either orig
-            or tlrc space (i.e. if -volreg_align_e2a or -volreg_tlrc_warp is
-            applied), then the complete EPI volume will only cover part of the
-            resulting volume space.  Worse than that, the coverage will vary
-            over time, as motion will alter the final transformation (remember
-            that volreg, EPI->anat and ->tlrc transformations are all combined,
-            to prevent multiple resampling steps).  The result is that edge
-            voxels will sometimes have valid data and sometimes not.
+            e.g.     -volreg_pvra_base_index 3
+            e.g.     -volreg_pvra_base_index $
+            e.g.     -volreg_pvra_base_index MIN_OUTLIER
+            default: -volreg_pvra_base_index 0
 
-            The extents mask is made from an all-1 dataset that is warped with
-            the same per-TR transformations as the EPI data.  The intersection
-            of the result is the extents mask, so that every voxel in the
-            extents mask has data at every time point.  Voxels that are not
-            are missing data from some or all TRs.
+        Use this option to specify the within-run volreg base for use with
+        '-volreg_post_vr_allin yes'.  INDEX can be one of:
 
-            It is called the extents mask because it defines the 'bounding box'
-            of valid EPI data.  It is not quite a tiled box though, as motion
-            changes the location slightly, per TR.
+            0             : the default (the first time point per run)
+            VAL           : an integer index, between 0 and the last
+            $             : AFNI syntax to mean the last volume
+            MIN_OUTLIER   : compute the MIN_OUTLIER per run, and use it
 
-            See also -volreg_align_e2a, -volreg_tlrc_warp.
-            See also the 'extents' mask, in the "MASKING NOTE" section above.
+        See also -volreg_post_vr_allin.
 
-        -volreg_regress_per_run : regress motion parameters from each run
+    -volreg_base_dset DSET  : specify dset/sub-brick for volreg base
 
-            === This option has been replaced by -regress_motion_per_run. ===
+            e.g. -volreg_base_dset subj10/vreg_base+orig'[0]'
+            e.g. -volreg_base_dset MIN_OUTLIER
 
-        -volreg_tlrc_adwarp     : warp EPI to +tlrc space at end of volreg step
+        This option allows the user to specify an external dataset for the
+        volreg base.  The user should apply sub-brick selection if the
+        dataset has more than one volume.
 
-                default: stay in +orig space
+        For example, one might align to a pre-magnetic steady state volume.
 
-            With this option, the EPI data will be warped to standard space
-            (via adwarp) at the end of the volreg processing block.  Further
-            processing through regression will be done in standard space.
+        Note that unless -align_epi_ext_dset is also applied, this volume
+        will be used for anatomical to EPI alignment (assuming that is
+        being done at all).
 
-            This option is useful for applying a manual Talairach transform,
-            which does not work with -volreg_tlrc_warp.  To apply one from
-            @auto_tlrc, -volreg_tlrc_warp is recommended.
+      * A special case is if DSET is the string MIN_OUTLIER, in which
+        case the volume with the minimum outlier fraction would be used.
 
-            The resulting voxel grid is the minimum dimension, truncated to 3
-            significant bits.  See -volreg_warp_dxyz for details.
+        See also -align_epi_ext_dset, -volreg_align_to and -volreg_base_ind.
 
-            Note: this step requires a transformed anatomy, which can come from
-            the -tlrc_anat option or from -copy_anat importing an existing one.
+    -volreg_base_ind RUN SUB : specify run/sub-brick indices for base
 
-            Please see 'WARP TO TLRC NOTE' above, for additional details.
-            See also -volreg_tlrc_warp, -volreg_warp_dxyz, -tlrc_anat,
-            -copy_anat.
+            e.g. -volreg_base_ind 10 123
+            default: 0 0
 
-        -volreg_tlrc_warp       : warp EPI to +tlrc space at volreg step
+        This option allows the user to specify exactly which dataset and
+        sub-brick to use as the base registration image.  Note that the
+        SUB index applies AFTER the removal of pre-steady state images.
 
-                default: stay in +orig space
+      * The RUN number is 1-based, matching the run list in the output
+        shell script.  The SUB index is 0-based, matching the sub-brick of
+        EPI time series #RUN.  Yes, one is 1-based, the other is 0-based.
+        Life is hard.
 
-            With this option, the EPI data will be warped to standard space
-            in the volreg processing block.  All further processing through
-            regression will be done in standard space.
+        The user can apply only one of the -volreg_align_to and
+        -volreg_base_ind options.
 
-            Warping is done with volreg to apply both the volreg and tlrc
-            transformations in a single step (so a single interpolation of the
-            EPI data).  The volreg transformations (for each volume) are stored
-            and multiplied by the +tlrc transformation, while the volume
-            registered EPI data is promptly ignored.
+        See also -volreg_align_to, -tcat_remove_first_trs and
+        -volreg_base_dset.
 
-            The volreg/tlrc (affine or non-linear) transformation is then
-            applied as a single concatenated warp to the unregistered data.
+    -volreg_get_allcostX yes/no : compute all anat/EPI costs
 
-            Note that the transformation concatenation is not possible when
-            using the 12-piece manual transformation (see -volreg_tlrc_adwarp
-            for details).
+            e.g. -volreg_get_allcostX no
+            default: yes
 
-            The resulting voxel grid is the minimum dimension, truncated to 3
-            significant bits.  See -volreg_warp_dxyz for details.
+        By default, given the final anatomical dataset (anat_final) and
+        the the final EPI volreg base (final_epi), this option can be used
+        to compute alignment costs between the two volumes across all cost
+        functions from 3dAllineate.  Effectively, it will add the following
+        to the proc script:
 
-            Note: this step requires a transformed anatomy, which can come from
-            the -tlrc_anat option or from -copy_anat importing an existing one.
+            3dAllineate -base FINAL_EPI -input FINAL_ANAT -allcostX
 
-            Please see 'WARP TO TLRC NOTE' above, for additional details.
-            See also -volreg_tlrc_adwarp, -volreg_warp_dxyz, -tlrc_anat,
-            -volreg_warp_master, -copy_anat.
+        The text output is stored in the file out.allcostX.txt.
 
-        -volreg_warp_dxyz DXYZ  : grid dimensions for _align_e2a or _tlrc_warp
+        This operation is informational only, to help evaluate alignment
+        costs across subjects.
 
-                e.g. -volreg_warp_dxyz 3.5
-                default: min dim truncated to 3 significant bits
-                         (see description, below)
+        Please see '3dAllineate -help' for more details.
 
-            This option allows the user to specify the grid size for output
-            datasets from the -volreg_tlrc_warp and -volreg_align_e2a options.
-            In either case, the output grid will be isotropic voxels (cubes).
+    -volreg_compute_tsnr yes/no : compute TSNR datasets from volreg output
 
-            By default, DXYZ is the minimum input dimension, truncated to
-            3 significant bits (for integers, starts affecting them at 9, as
-            9 requires 4 bits to represent).
+            e.g. -volreg_compute_tsnr yes
+            default: no
 
-            Some examples:
-                ----------------------------  (integer range, so >= 4)
-                8.00   ...  9.99   --> 8.0
-                ...
-                4.00   ...  4.99   --> 4.0
-                ----------------------------  (3 significant bits)
-                2.50   ...  2.99   --> 2.5
-                2.00   ...  2.49   --> 2.0
-                1.75   ...  1.99   --> 1.75
-                1.50   ...  1.74   --> 1.5
-                1.25   ...  1.49   --> 1.25
-                1.00   ...  1.24   --> 1.0
-                0.875  ...  0.99   --> 0.875
-                0.75   ...  0.874  --> 0.75
-                0.625  ...  0.74   --> 0.625
-                0.50   ...  0.624  --> 0.50
-                0.4375 ...  0.49   --> 0.4375
-                0.375  ...  0.4374 --> 0.375
-                ...
+        Use this option to compute a temporal signal to noise (TSNR)
+        dataset at the end of the volreg block.  Both the signal and noise
+        datasets are from the run 1 output, where the "signal" is the mean
+        and the "noise" is the detrended time series.
 
-            One can optionally supply -volreg_warp_master as well.
+        TSNR = average(signal) / stdev(noise)
 
-            See also -volreg_warp_master.
+        See also -regress_compute_tsnr.
 
-        -volreg_warp_final_interp METHOD : set final interpolation method
+    -volreg_interp METHOD   : specify the interpolation method for volreg
 
-                e.g. -volreg_warp_final_interp wsinc5
-                default: none (use defaults of called programs)
+            e.g. -volreg_interp -quintic
+            e.g. -volreg_interp -Fourier
+            default: -cubic
 
-            This option allows the user to specify the final interpolation
-            method used when warping data or concatenating warps.  This applies
-            to computation of a final/output volume, after any transformations
-            are already known.  Examples include:
+        Please see '3dvolreg -help' for more information.
 
-                - all combined non-NN warp cases, such as for the main EPI
-                  datasets from concatenated transformations
-                  (both affine and non-linear)
-                  (NN warps are where nearest neighbor is not automatic)
-                - final EPI (warped vr base)
-                - anatomical followers
+    -volreg_method METHOD   : specify method for EPI motion correction
 
-            These options are currently applied via:
+            e.g. -volreg_method 3dAllineate
+            default: 3dvolreg
 
-                3dAllineate -final
-                3dNwarpApply -ainterp
+        Use this option to specify which program should be run to perform
+        EPI to EPI base motion correction over time.
 
-            Common choices:
+        Please see '3dvolreg -help' for more information.
 
-                NN          : nearest neighbor
-                linear      : \\
-                cubic       : as stated, or "tri" versions, e.g. trilinear
-                              (these apply to 3dAllineate and 3dNwarpApply)
-                quintic     : /
-              * wsinc5      : nice interpolation, less blur, sharper edges
-                              ==> the likely use case
+    -volreg_motsim          : generate motion simulated time series
 
-            Please see '3dAllineate -help' for more details.
-            Please see '3dNwarpApply -help' for more details.
+        Use of this option will result in a 'motsim' (motion simulation)
+        time series dataset that is akin to an EPI dataset altered only
+        by motion and registration (no BOLD, no signal drift, etc).
 
-        -volreg_warp_master MASTER : master dataset for volreg warps
+        This dataset can be used to generate regressors of no interest to
+        be used in the regression block.
 
-                e.g. -volreg_warp_master my_fave_grid+orig
-                e.g. -volreg_warp_master my_fave_grid+tlrc
-                default: anatomical grid at truncated voxel size
-                         (if applicable)
+        rcr - note relevant options once they are in
 
-            This option allows the user to specify a dataset grid to warp
-            the registered EPI data onto.  The voxels need not be isotropic.
+        Please see '@simulate_motion -help' for more information.
 
-            One can apply -volreg_warp_dxyz in conjunction, to specify the
-            master box, along with an isotropic voxel size.
-            
-            It is up to the user to be sure the MASTER grid is in a suitable
-            location for the results.
+    -volreg_no_volreg       : omit 3dvolreg operation in the volreg block
 
-            See also -volreg_warp_dxyz.
+            e.g. -volreg_no_volreg
+                 -regress_motion_file motion_params.1D
 
-        -volreg_zpad N_SLICES   : specify number of slices for -zpad
+        For EPI data that is already aligned (registered at the scanner?), one
+        might still want to align to the anat, to a template, and possibly do
+        distortion correction, concatenating the transformations in the volreg
+        block.  So process the data as usual, except that the 3dvolreg xform
+        will be replaced by an identity xform.
 
-                e.g. -volreg_zpad 4
-                default: -volreg_zpad 1
+        One would typically also want to pass parameters from motion
+        registration to the regress block.  Adding these two options to an
+        otherwise typical command would generally be appropriate.
 
-            This option allows the user to specify the number of slices applied
-            via the -zpad option to 3dvolreg.
+        The B Feige option.
 
-        -surf_anat ANAT_DSET    : specify surface volume dataset
+        See also '-regress_motion_file'.
 
-                e.g. -surf_anat SUMA/sb23_surf_SurfVol+orig
+    -volreg_opts_ms OPTS ... : specify extra options for @simulate_motion
 
-            This option is required in order to do surface-based analysis.
+            e.g. -volreg_opts_ms -save_workdir
 
-            This volumetric dataset should be the one used for generation of
-            the surface (and therefore should be in perfect alignment).  It may
-            be output by the surface generation software.
+        This option can be used to pass extra options directly to the
+        @simulate_motion command.
 
-            Unless specified by the user, the processing script will register
-            this anatomy with the current anatomy.
+        See also -volreg_motsim.
+        Please see '@simulate_motion -help' for more information.
 
-            Use -surf_anat_aligned if the surf_anat is already aligned with the
-            current experiment.
+    -volreg_opts_ewarp OPTS ... : specify extra options for EPI warp steps
 
-            Use '-surf_anat_has_skull no' if the surf_anat has already been
-            skull stripped.
+            e.g. -volreg_opts_ewarp -short
 
-            Please see '@SUMA_AlignToExperiment -help' for more details.
-            See also -surf_anat_aligned, -surf_anat_has_skull.
-            See example #8 for typical usage.
+        This option allows the user to add extra options to the commands
+        used to apply combined transformations to EPI data, warping it to
+        its final grid space (currently via either 3dAllineate or 
+        3dNwarpApply).
 
-        -surf_spec spec1 [spec2]: specify surface specificatin file(s)
+        Please see '3dAllineate -help' for more information.
+        Please see '3dNwarpApply -help' for more information.
 
-                e.g. -surf_spec SUMA/sb23_?h_141_std.spec
+    -volreg_opts_vr OPTS ... : specify extra options for 3dvolreg
 
-            Use this option to provide either 1 or 2 spec files for surface
-            analysis.  Each file must have lh or rh in the name (to encode
-            the hemisphere), and that can be their only difference.  So if
-            the files do not have such a naming pattern, they should probably
-            be copied to new files that do.  For example, consider the spec
-            files included with the AFNI_data4 sample data:
+            e.g. -volreg_opts_vr -twopass
+            e.g. -volreg_opts_vr -noclip -nomaxdisp
 
-                SUMA/sb23_lh_141_std.spec
-                SUMA/sb23_rh_141_std.spec
+        This option allows the user to add extra options to the 3dvolreg
+        command.  Note that only one -volreg_opts_vr should be applied,
+        which may be used for multiple 3dvolreg options.
 
-        -surf_A surface_A       : specify first surface for mapping
+        Please see '3dvolreg -help' for more information.
 
-                e.g. -surf_A smoothwm
-                default: -surf_A smoothwm
+    -volreg_no_extent_mask  : do not create and apply extents mask
 
-            This option allows the user to specify the first (usually inner)
-            surface for use when mapping from the volume and for blurring.
-            If the option is not given, the smoothwm surface will be assumed.
+            default: apply extents mask
 
-        -surf_B surface_B       : specify second surface for mapping
+        This option says not to create or apply the extents mask.
 
-                e.g. -surf_B pial
-                default: -surf_B pial
+        The extents mask:
 
-            This option allows the user to specify the second (usually outer)
-            surface for use when mapping from the volume (not for blurring).
-            If the option is not given, the pial surface will be assumed.
+        When EPI data is transformed to the anatomical grid in either orig
+        or tlrc space (i.e. if -volreg_align_e2a or -volreg_tlrc_warp is
+        applied), then the complete EPI volume will only cover part of the
+        resulting volume space.  Worse than that, the coverage will vary
+        over time, as motion will alter the final transformation (remember
+        that volreg, EPI->anat and ->tlrc transformations are all combined,
+        to prevent multiple resampling steps).  The result is that edge
+        voxels will sometimes have valid data and sometimes not.
 
-        -surf_blur_fwhm FWHM    :  NO LONGER VALID
+        The extents mask is made from an all-1 dataset that is warped with
+        the same per-TR transformations as the EPI data.  The intersection
+        of the result is the extents mask, so that every voxel in the
+        extents mask has data at every time point.  Voxels that are not
+        are missing data from some or all TRs.
 
-            Please use -blur_size, instead.
+        It is called the extents mask because it defines the 'bounding box'
+        of valid EPI data.  It is not quite a tiled box though, as motion
+        changes the location slightly, per TR.
 
-        -blur_filter FILTER     : specify 3dmerge filter option
+        See also -volreg_align_e2a, -volreg_tlrc_warp.
+        See also the 'extents' mask, in the "MASKING NOTE" section above.
 
-                e.g. -blur_filter -1blur_rms
-                default: -1blur_fwhm
+    -volreg_regress_per_run : regress motion parameters from each run
 
-            This option allows the user to specify the filter option from
-            3dmerge.  Note that only the filter option is set here, not the
-            filter size.  The two parts were separated so that users might
-            generally worry only about the filter size.
+        === This option has been replaced by -regress_motion_per_run. ===
 
-            Please see '3dmerge -help' for more information.
-            See also -blur_size.
+    -volreg_tlrc_adwarp     : warp EPI to +tlrc space at end of volreg step
 
-        -blur_in_automask       : apply 3dBlurInMask -automask
+            default: stay in +orig space
 
-            This option forces use of 3dBlurInMask -automask, regardless of
-            whether other masks exist and are being applied.
+        With this option, the EPI data will be warped to standard space
+        (via adwarp) at the end of the volreg processing block.  Further
+        processing through regression will be done in standard space.
 
-            Note that one would not want to apply -automask via -blur_opts_BIM,
-            as that might result in failure because of multiple -mask options.
+        This option is useful for applying a manual Talairach transform,
+        which does not work with -volreg_tlrc_warp.  To apply one from
+        @auto_tlrc, -volreg_tlrc_warp is recommended.
 
-            Note that -blur_in_automask implies '-blur_in_mask yes'.
+        The resulting voxel grid is the minimum dimension, truncated to 3
+        significant bits.  See -volreg_warp_dxyz for details.
 
-            Please see '3dBlurInMask -help' for more information.
-            See also -blur_in_mask, -blur_opts_BIM.
+        Note: this step requires a transformed anatomy, which can come from
+        the -tlrc_anat option or from -copy_anat importing an existing one.
 
-        -blur_in_mask yes/no    : specify whether to restrict blur to a mask
+        Please see 'WARP TO TLRC NOTE' above, for additional details.
+        See also -volreg_tlrc_warp, -volreg_warp_dxyz, -tlrc_anat,
+        -copy_anat.
 
-                e.g. -blur_in_mask yes
-                default: no
+    -volreg_tlrc_warp       : warp EPI to +tlrc space at volreg step
 
-            This option allows the user to specify whether to use 3dBlurInMask
-            instead of 3dmerge for blurring.
+            default: stay in +orig space
 
-            Note that the algorithms are a little different, and 3dmerge comes
-            out a little more blurred.
+        With this option, the EPI data will be warped to standard space
+        in the volreg processing block.  All further processing through
+        regression will be done in standard space.
 
-            Note that 3dBlurInMask uses only FWHM kernel size units, so the
-            -blur_filter should be either -1blur_fwhm or -FWHM.
+        Warping is done with volreg to apply both the volreg and tlrc
+        transformations in a single step (so a single interpolation of the
+        EPI data).  The volreg transformations (for each volume) are stored
+        and multiplied by the +tlrc transformation, while the volume
+        registered EPI data is promptly ignored.
 
-            Please see '3dBlurInMask -help' for more information.
-            Please see '3dmerge -help' for more information.
-            See also -blur_filter.
+        The volreg/tlrc (affine or non-linear) transformation is then
+        applied as a single concatenated warp to the unregistered data.
 
-        -blur_opts_BIM OPTS ...  : specify extra options for 3dBlurInMask
+        Note that the transformation concatenation is not possible when
+        using the 12-piece manual transformation (see -volreg_tlrc_adwarp
+        for details).
 
-                e.g. -blur_opts_BIM -automask
+        The resulting voxel grid is the minimum dimension, truncated to 3
+        significant bits.  See -volreg_warp_dxyz for details.
 
-            This option allows the user to add extra options to the 3dBlurInMask
-            command.  Only one -blur_opts_BIM should be applied, which may be
-            used for multiple 3dBlurInMask options.
+        Note: this step requires a transformed anatomy, which can come from
+        the -tlrc_anat option or from -copy_anat importing an existing one.
 
-            This option is only useful when '-blur_in_mask yes' is applied.
+        Please see 'WARP TO TLRC NOTE' above, for additional details.
+        See also -volreg_tlrc_adwarp, -volreg_warp_dxyz, -tlrc_anat,
+        -volreg_warp_master, -copy_anat.
 
-            Please see '3dBlurInMask -help' for more information.
-            See also -blur_in_mask.
+    -volreg_warp_dxyz DXYZ  : grid dimensions for _align_e2a or _tlrc_warp
 
-        -blur_opts_merge OPTS ... : specify extra options for 3dmerge
+            e.g. -volreg_warp_dxyz 3.5
+            default: min dim truncated to 3 significant bits
+                     (see description, below)
 
-                e.g. -blur_opts_merge -2clip -20 50
+        This option allows the user to specify the grid size for output
+        datasets from the -volreg_tlrc_warp and -volreg_align_e2a options.
+        In either case, the output grid will be isotropic voxels (cubes).
 
-            This option allows the user to add extra options to the 3dmerge
-            command.  Note that only one -blur_opts_merge should be applied,
-            which may be used for multiple 3dmerge options.
+        By default, DXYZ is the minimum input dimension, truncated to
+        3 significant bits (for integers, starts affecting them at 9, as
+        9 requires 4 bits to represent).
 
-            Please see '3dmerge -help' for more information.
+        Some examples:
+            ----------------------------  (integer range, so >= 4)
+            8.00   ...  9.99   --> 8.0
+            ...
+            4.00   ...  4.99   --> 4.0
+            ----------------------------  (3 significant bits)
+            2.50   ...  2.99   --> 2.5
+            2.00   ...  2.49   --> 2.0
+            1.75   ...  1.99   --> 1.75
+            1.50   ...  1.74   --> 1.5
+            1.25   ...  1.49   --> 1.25
+            1.00   ...  1.24   --> 1.0
+            0.875  ...  0.99   --> 0.875
+            0.75   ...  0.874  --> 0.75
+            0.625  ...  0.74   --> 0.625
+            0.50   ...  0.624  --> 0.50
+            0.4375 ...  0.49   --> 0.4375
+            0.375  ...  0.4374 --> 0.375
+            ...
 
-        -blur_size SIZE_MM      : specify the size, in millimeters
+        Preferably, one can specify the new dimensions via -volreg_warp_master.
 
-                e.g. -blur_size 6.0
-                default: 4
+      * As of 2024.04.07: values just under a 3 bit limit will round up.
+        The minimum dimension will first be scaled up by a factor of 1.0001
+        before the truncation.  For example, 2.9998 will "round" up to 3.0,
+        while 2.9997 will truncate down to 2.5.
 
-            This option allows the user to specify the size of the blur used
-            by 3dmerge (or another applied smoothing program).  It is applied
-            as the 'bmm' parameter in the filter option (such as -1blur_fwhm)
-            in 3dmerge.
+        For a demonstration, try:
 
-            Note the relationship between blur sizes, as used in 3dmerge:
+            afni_python_wrapper.py -eval 'test_truncation()'
 
-                sigma = 0.57735027 * rms = 0.42466090 * fwhm
-                (implying fwhm = 1.359556 * rms)
+        See also -volreg_warp_master.
 
-            Programs 3dmerge and 3dBlurInMask apply -blur_size as an additional
-            gaussian blur.  Therefore smoothing estimates should be computed
-            per subject for the correction for multiple comparisons.
+    -volreg_warp_final_interp METHOD : set final interpolation method
 
-            Programs 3dBlurToFWHM and SurfSmooth apply -blur_size as the
-            resulting blur, and so do not requre blur estimation.
+            e.g. -volreg_warp_final_interp wsinc5
+            default: none (use defaults of called programs)
 
-            Please see '3dmerge -help'      for more information.
-            Please see '3dBlurInMask -help' for more information.
-            Please see '3dBlurToFWHM -help' for more information.
-            Please see 'SurfSmooth -help'   for more information.
-            See also -blur_filter.
+        This option allows the user to specify the final interpolation
+        method used when warping data or concatenating warps.  This applies
+        to computation of a final/output volume, after any transformations
+        are already known.  Examples include:
 
-        -blur_to_fwhm           : blur TO the blur size (not add a blur size)
+            - all combined non-NN warp cases, such as for the main EPI
+              datasets from concatenated transformations
+              (both affine and non-linear)
+              (NN warps are where nearest neighbor is not automatic)
+            - final EPI (warped vr base)
+            - anatomical followers
 
-            This option changes the program used to blur the data.  Instead of
-            using 3dmerge, this applies 3dBlurToFWHM.  So instead of adding a
-            blur of size -blur_size (with 3dmerge), the data is blurred TO the
-            FWHM of the -blur_size.
+        These options are currently applied via:
 
-            Note that 3dBlurToFWHM should be run with a mask.  So either:
-                o  put the 'mask' block before the 'blur' block, or
-                o  use -blur_in_automask
-            It is not appropriate to include non-brain in the blur estimate.
+            3dAllineate -final
+            3dNwarpApply -ainterp
 
-            Note that extra options can be added via -blur_opts_B2FW.
+        Common choices:
 
-            Please see '3dBlurToFWHM -help' for more information.
-            See also -blur_size, -blur_in_automask, -blur_opts_B2FW.
+            NN          : nearest neighbor
+            linear      : \\
+            cubic       : as stated, or "tri" versions, e.g. trilinear
+                          (these apply to 3dAllineate and 3dNwarpApply)
+            quintic     : /
+          * wsinc5      : nice interpolation, less blur, sharper edges
+                          ==> the likely use case
 
-        -blur_opts_B2FW OPTS ... : specify extra options for 3dBlurToFWHM
+        Please see '3dAllineate -help' for more details.
+        Please see '3dNwarpApply -help' for more details.
 
-                e.g. -blur_opts_B2FW -rate 0.2 -temper
+    -volreg_warp_master MASTER : master dataset for volreg warps
 
-            This allows the user to add extra options to the 3dBlurToFWHM
-            command.  Note that only one -blur_opts_B2FW should be applied,
-            which may be used for multiple 3dBlurToFWHM options.
+            e.g. -volreg_warp_master my_fave_grid+orig
+            e.g. -volreg_warp_master my_fave_grid+tlrc
+            default: anatomical grid at truncated voxel size
+                     (if applicable)
 
-            Please see '3dBlurToFWHM -help' for more information.
+        This option allows the user to specify a dataset grid to warp
+        the registered EPI data onto.  The voxels need not be isotropic.
 
-        -mask_apply TYPE        : specify which mask to apply in regression
+        One can apply -volreg_warp_dxyz in conjunction, to specify the
+        master box, along with an isotropic voxel size.
+        
+        It is up to the user to be sure the MASTER grid is in a suitable
+        location for the results.
 
-                e.g. -mask_apply group
+        See also -volreg_warp_dxyz.
 
-            If possible, masks will be made for the EPI data, the subject
-            anatomy, the group anatomy and EPI warp extents.  This option is
-            used to specify which of those masks to apply to the regression.
-            One can specify a pre-defined TYPE, or a user-specified one that
-            is defined via -anat_follower_ROI or -mask_import, for example.
+    -volreg_zpad N_SLICES   : specify number of slices for -zpad
 
-               Valid pre-defined choices:  epi, anat, group, extents.
-               Valid user-defined choices: mask LABELS specified elsewhere.
+            e.g. -volreg_zpad 4
+            default: -volreg_zpad 1
 
-            A subject 'anat' mask will be created if the EPI anat anatomy are
-            aligned, or if the EPI data is warped to standard space via the
-            anat transformation.  In any case, a skull-stripped anat will exist.
+        This option allows the user to specify the number of slices applied
+        via the -zpad option to 3dvolreg.
 
-            A 'group' anat mask will be created if the 'tlrc' block is used
-            (via the -blocks or -tlrc_anat options).  In such a case, the anat
-            template will be made into a binary mask.
+    -surf_anat ANAT_DSET    : specify surface volume dataset
 
-            This option makes -regress_apply_mask obsolete.
+            e.g. -surf_anat SUMA/sb23_surf_SurfVol+orig
 
-            See "MASKING NOTE" and "DEFAULTS" for details.
-            See also -blocks.
-            See also -mask_import.
+        This option is required in order to do surface-based analysis.
 
-        -mask_dilate NUM_VOXELS : specify the automask dilation
+        This volumetric dataset should be the one used for generation of
+        the surface (and therefore should be in perfect alignment).  It may
+        be output by the surface generation software.
 
-                e.g. -mask_dilate 3
-                default: 1
+        Unless specified by the user, the processing script will register
+        this anatomy with the current anatomy.
 
-            By default, the masks generated from the EPI data are dilated by
-            1 step (voxel), via the -dilate option in 3dAutomask.  With this
-            option, the user may specify the dilation.  Valid integers must
-            be at least zero.
+        Use -surf_anat_aligned if the surf_anat is already aligned with the
+        current experiment.
 
-            Note that 3dAutomask dilation is a little different from the
-            natural voxel-neighbor dilation.
+        Use '-surf_anat_has_skull no' if the surf_anat has already been
+        skull stripped.
 
-            Please see '3dAutomask -help' for more information.
-            See also -mask_type.
+        Please see '@SUMA_AlignToExperiment -help' for more details.
+        See also -surf_anat_aligned, -surf_anat_has_skull.
+        See example #8 for typical usage.
 
-        -mask_epi_anat yes/no : apply epi_anat mask in place of EPI mask
+    -surf_spec spec1 [spec2]: specify surface specification file(s)
 
-                e.g. -mask_epi_anat yes
+            e.g. -surf_spec SUMA/sb23_?h_141_std.spec
 
-            An EPI mask might be applied to the data either for simple
-            computations (e.g. global brain correlation, GCOR), or actually
-            applied to the EPI data.  The EPI mask $full_mask is used for most
-            such computations, by default.
+        Use this option to provide either 1 or 2 spec files for surface
+        analysis.  Each file must have lh or rh in the name (to encode
+        the hemisphere), and that can be their only difference.  So if
+        the files do not have such a naming pattern, they should probably
+        be copied to new files that do.  For example, consider the spec
+        files included with the AFNI_data4 sample data:
 
-            The mask_epi_anat dataset is an intersection of full_mask and
-            mask_anat, and might be better suited to such computations.
+            SUMA/sb23_lh_141_std.spec
+            SUMA/sb23_rh_141_std.spec
 
-            Use this option to apply mask_epi_anat in place of full_mask.
+    -surf_A surface_A       : specify first surface for mapping
 
-        -mask_import LABEL MSET : import a final grid mask with the given label
+            e.g. -surf_A smoothwm
+            default: -surf_A smoothwm
 
-                e.g. -mask_import Tvent template_ventricle_3mm+tlrc
+        This option allows the user to specify the first (usually inner)
+        surface for use when mapping from the volume and for blurring.
+        If the option is not given, the smoothwm surface will be assumed.
 
-            Use this option to import a mask that is aligned with the final
-            EPI data _and_ is on the final grid.
+    -surf_B surface_B       : specify second surface for mapping
 
-                o  this might be based on the group template
-                o  this should already be resampled appropriately
-                o  no warping or resampling will be done to this dataset
+            e.g. -surf_B pial
+            default: -surf_B pial
 
-            This mask can be applied via LABEL as other masks, using options
-            like: -regress_ROI, -regress_ROI_PC, -regress_make_corr_vols,
-                  -regress_anaticor_label, -mask_intersect, -mask_union.
+        This option allows the user to specify the second (usually outer)
+        surface for use when mapping from the volume (not for blurring).
+        If the option is not given, the pial surface will be assumed.
 
-            For example, one might import a ventricle mask from the template,
-            intersect it with the subject specific CSFe (eroded CSF) mask,
-            and possibly take the union with WMe (eroded white matter), before
-            using the result for principle component regression, as in:
+    -surf_blur_fwhm FWHM    :  NO LONGER VALID
 
-                -mask_import Tvent template_ventricle_3mm+tlrc \\
-                -mask_intersect Svent CSFe Tvent               \\
-                -mask_union WM_vent Svent WMe                  \\
-                -regress_ROI_PC WM_vent 3                      \\
+        Please use -blur_size, instead.
 
-            See also -regress_ROI, -regress_ROI_PC, -regress_make_corr_vols,
-                     -regress_anaticor_label, -mask_intersect, -mask_union.
+    -blur_filter FILTER     : specify 3dmerge filter option
 
-        -mask_intersect NEW_LABEL MASK_A MASK_B : intersect 2 masks
+            e.g. -blur_filter -1blur_rms
+            default: -1blur_fwhm
 
-                e.g. -mask_intersect Svent CSFe Tvent
+        This option allows the user to specify the filter option from
+        3dmerge.  Note that only the filter option is set here, not the
+        filter size.  The two parts were separated so that users might
+        generally worry only about the filter size.
 
-            Use this option to intersect 2 known masks to create a new mask.
-            NEW_LABEL will be the label of the result, while MASK_A and MASK_B
-            should be labels for existing masks.
+        Please see '3dmerge -help' for more information.
+        See also -blur_size.
 
-            One could use this to intersect a template ventricle mask with each
-            subject's specific CSFe (eroded CSF) mask from 3dSeg, for example.
+    -blur_in_automask       : apply 3dBlurInMask -automask
 
-            See -mask_import for more details.
+        This option forces use of 3dBlurInMask -automask, regardless of
+        whether other masks exist and are being applied.
 
-        -mask_union NEW_LABEL MASK_A MASK_B : take union of 2 masks
+        Note that one would not want to apply -automask via -blur_opts_BIM,
+        as that might result in failure because of multiple -mask options.
 
-                e.g. -mask_union WM_vent Svent WMe
+        Note that -blur_in_automask implies '-blur_in_mask yes'.
 
-            Use this option to take the union of 2 known masks to create a new
-            mask.  NEW_LABEL will be the label of the result, while MASK_A and
-            MASK_B should be labels for existing masks.
+        Please see '3dBlurInMask -help' for more information.
+        See also -blur_in_mask, -blur_opts_BIM.
 
-            One could use this to create union of CSFe and WMe for principle
-            component regression, for example.
+    -blur_in_mask yes/no    : specify whether to restrict blur to a mask
 
-            See -mask_import for more details.
+            e.g. -blur_in_mask yes
+            default: no
 
-        -mask_opts_automask ... : specify extra options for 3dAutomask
+        This option allows the user to specify whether to use 3dBlurInMask
+        instead of 3dmerge for blurring.
 
-                e.g. -mask_opts_automask -clfrac 0.2 -dilate 1
+        Note that the algorithms are a little different, and 3dmerge comes
+        out a little more blurred.
 
-            This allows one to add extra options to the 3dAutomask command used
-            to create a mask from the EPI data.
+        Note that 3dBlurInMask uses only FWHM kernel size units, so the
+        -blur_filter should be either -1blur_fwhm or -FWHM.
 
-            Please see '3dAutomask -help' for more information.
+        Please see '3dBlurInMask -help' for more information.
+        Please see '3dmerge -help' for more information.
+        See also -blur_filter.
 
-        -mask_rm_segsy Y/N  : choose whether to delete the Segsy directory
+    -blur_opts_BIM OPTS ...  : specify extra options for 3dBlurInMask
 
-                e.g. -mask_rm_segsy no
-                default: yes
+            e.g. -blur_opts_BIM -automask
 
-            This option is a companion to -mask_segment_anat.
+        This option allows the user to add extra options to the 3dBlurInMask
+        command.  Only one -blur_opts_BIM should be applied, which may be
+        used for multiple 3dBlurInMask options.
 
-            In the case of running 3dSeg to segment the anatomy, a resulting
-            Segsy directory is created.  Since the main result is a Classes
-            dataset, and to save disk space, the Segsy directory is removed
-            by default.  Use this option to preserve it.
+        This option is only useful when '-blur_in_mask yes' is applied.
 
-            See also -mask_segment_anat.
+        Please see '3dBlurInMask -help' for more information.
+        See also -blur_in_mask.
 
-        -mask_segment_anat Y/N  : choose whether to segment anatomy
+    -blur_opts_merge OPTS ... : specify extra options for 3dmerge
 
-                e.g. -mask_segment_anat yes
-                default: no (if anat_final is skull-stripped)
+            e.g. -blur_opts_merge -2clip -20 50
 
-            This option controls whether 3dSeg is run to segment the anatomical
-            dataset.  Such a segmentation would then be resampled to match the
-            grid of the EPI data.
+        This option allows the user to add extra options to the 3dmerge
+        command.  Note that only one -blur_opts_merge should be applied,
+        which may be used for multiple 3dmerge options.
 
-            When this is run, 3dSeg creates the Classes dataset, which is a
-            composition mask of the GM/WM/CSF (gray matter, white matter and
-            cerebral spinal fluid) regions.  Then 3dresample is used to create
-            Classes_resam, the same mask but at the resolution of the EPI.
+        Please see '3dmerge -help' for more information.
 
-            Such a dataset might have multiple uses, such as tissue-based
-            regression.  Note that for such a use, the ROI time series should
-            come from the volreg data, before any blur.
+    -blur_size SIZE_MM      : specify the size, in millimeters
 
-          * Mask labels created by -mask_segment_anat and -mask_segment_erode
-            can be applied with -regress_ROI and -regress_ROI_PC.
+            e.g. -blur_size 6.0
+            default: 4
 
-          * The CSF mask is of ALL CSF (not just in the ventricles), and is
-            therefore not very appropriate to use with tissue-based regression.
+        This option allows the user to specify the size of the blur used
+        by 3dmerge (or another applied smoothing program).  It is applied
+        as the 'bmm' parameter in the filter option (such as -1blur_fwhm)
+        in 3dmerge.
 
-            Consider use of -anat_uniform_method along with this option.
+        Note the relationship between blur sizes, as used in 3dmerge:
 
-            Please see '3dSeg -help' for more information.
-            Please see '3dUnifize -help' for more information.
-            See also -mask_rm_segsy, -anat_uniform_method -mask_segment_erode,
-             and -regress_ROI, -regress_ROI_PC.
+            sigma = 0.57735027 * rms = 0.42466090 * fwhm
+            (implying fwhm = 1.359556 * rms)
 
-        -mask_segment_erode Y/N
+        Programs 3dmerge and 3dBlurInMask apply -blur_size as an additional
+        gaussian blur.  Therefore smoothing estimates should be computed
+        per subject for the correction for multiple comparisons.
 
-                e.g. -mask_segment_erode Yes
-                default: yes (if -regress_ROI or -regress_anaticor)
+        Programs 3dBlurToFWHM and SurfSmooth apply -blur_size as the
+        resulting blur, and so do not require blur estimation.
 
-            This option is a companion to -mask_segment_anat.
+        Please see '3dmerge -help'      for more information.
+        Please see '3dBlurInMask -help' for more information.
+        Please see '3dBlurToFWHM -help' for more information.
+        Please see 'SurfSmooth -help'   for more information.
+        See also -blur_filter.
 
-            Anatomical segmentation is used to create GM (gray matter), WM
-            (white matter) and CSF masks.  When the _erode option is applied,
-            eroded versions of those masks are created via 3dmask_tool.
+    -blur_to_fwhm           : blur TO the blur size (not add a blur size)
 
-            See also -mask_segment_anat, -regress_anaticor.
-            Please see '3dmask_tool -help' for more information.
+        This option changes the program used to blur the data.  Instead of
+        using 3dmerge, this applies 3dBlurToFWHM.  So instead of adding a
+        blur of size -blur_size (with 3dmerge), the data is blurred TO the
+        FWHM of the -blur_size.
 
-        -mask_test_overlap Y/N  : choose whether to test anat/EPI mask overlap
+        Note that 3dBlurToFWHM should be run with a mask.  So either:
+            o  put the 'mask' block before the 'blur' block, or
+            o  use -blur_in_automask
+        It is not appropriate to include non-brain in the blur estimate.
 
-                e.g. -mask_test_overlap No
-                default: Yes
+        Note that extra options can be added via -blur_opts_B2FW.
 
-            If the subject anatomy and EPI masks are computed, then the default
-            operation is to run 3dABoverlap to evaluate the overlap between the
-            two masks.  Output is saved in a text file.
+        Please see '3dBlurToFWHM -help' for more information.
+        See also -blur_size, -blur_in_automask, -blur_opts_B2FW.
 
-            This option allows one to disable such functionality.
+    -blur_opts_B2FW OPTS ... : specify extra options for 3dBlurToFWHM
 
-            Please see '3dABoverlap -help' for more information.
+            e.g. -blur_opts_B2FW -rate 0.2 -temper
 
-        -mask_type TYPE         : specify 'union' or 'intersection' mask type
+        This allows the user to add extra options to the 3dBlurToFWHM
+        command.  Note that only one -blur_opts_B2FW should be applied,
+        which may be used for multiple 3dBlurToFWHM options.
 
-                e.g. -mask_type intersection
-                default: union
+        Please see '3dBlurToFWHM -help' for more information.
 
-            This option is used to specify whether the mask applied to the
-            analysis is the union of masks from each run, or the intersection.
-            The only valid values for TYPE are 'union' and 'intersection'.
+    -mask_apply TYPE        : specify which mask to apply in regression
 
-            This is not how to specify whether a mask is created, that is
-            done via the 'mask' block with the '-blocks' option.
+            e.g. -mask_apply group
 
-            Please see '3dAutomask -help', '3dMean -help' or '3dcalc -help'.
-            See also -mask_dilate, -blocks.
+        If possible, masks will be made for the EPI data, the subject
+        anatomy, the group anatomy and EPI warp extents.  This option is
+        used to specify which of those masks to apply to the regression.
+        One can specify a pre-defined TYPE, or a user-specified one that
+        is defined via -anat_follower_ROI or -mask_import, for example.
 
-        -combine_method METHOD  : specify method for combining echoes
+           Valid pre-defined choices:  epi, anat, group, extents.
+           Valid user-defined choices: mask LABELS specified elsewhere.
 
-                e.g. -combine_method OC
-                default: OC
+        A subject 'anat' mask will be created if the EPI anat anatomy are
+        aligned, or if the EPI data is warped to standard space via the
+        anat transformation.  In any case, a skull-stripped anat will exist.
 
-            When using the 'combine' block to combine echoes (for each run),
-            this option can be used to specify the method used.  There are:
+        A 'group' anat mask will be created if the 'tlrc' block is used
+        (via the -blocks or -tlrc_anat options).  In such a case, the anat
+        template will be made into a binary mask.
 
-                - basic methods
-                - methods using tedana.py (or similar) from Prantik
-                - methods using tedana from the MEICA group
+        This option makes -regress_apply_mask obsolete.
 
+        See "MASKING NOTE" and "DEFAULTS" for details.
+        See also -blocks.
+        See also -mask_import.
 
-            ---- basic combine methods (that do not use any tedana) ----
+    -mask_dilate NUM_VOXELS : specify the automask dilation
 
-                methods
-                -------
-                mean             : simple mean of echoes
-                OC               : optimally combined (via @compute_OC_weights)
-                                   (current default is OC_A)
-                OC_A             : original log(mean()) regression method
-                OC_B             : newer log() time series regression method
-                                   (there is little difference between OC_A
-                                   and OC_B)
+            e.g. -mask_dilate 3
+            default: 1
 
-            ---- combine methods that use Prantik's "original" tedana.py ----
+        By default, the masks generated from the EPI data are dilated by
+        1 step (voxel), via the -dilate option in 3dAutomask.  With this
+        option, the user may specify the dilation.  Valid integers must
+        be at least zero.
 
-               Prantik's tedana.py is run using the 'tedana*' combine methods.
+        Note that 3dAutomask dilation is a little different from the
+        natural voxel-neighbor dilation.
 
-                  Prantik's tedana.py requires python 2.7.
+        Please see '3dAutomask -help' for more information.
+        See also -mask_type.
 
-                  By default, tedana.py will be applied from the AFNI
-                  installation directory.
+    -mask_epi_anat yes/no : apply epi_anat mask in place of EPI mask
 
-                  Alternatively, one can specify the location of a different
-                  tedana.py using -combine_tedana_path.  And if it is 
-                  preferable to run it as an executable (as opposed to running
-                  it via 'python PATH/TO/tedana.py'), one can tell this to
-                  tedana_wrapper.py by applying:
-                         -combine_opts_tedwrap -tedana_is_exec
+            e.g. -mask_epi_anat yes
 
-                methods
-                -------
-                OC_tedort        : OC, and pass tedana orts to regression
-                tedana           : run tedana.py, using output dn_ts_OC.nii
-                tedana_OC        : run tedana.py, using output ts_OC.nii
-                                   (i.e. use tedana.py for optimally combined)
-                tedana_OC_tedort : tedana_OC, and include tedana orts
+        An EPI mask might be applied to the data either for simple
+        computations (e.g. global brain correlation, GCOR), or actually
+        applied to the EPI data.  The EPI mask $full_mask is used for most
+        such computations, by default.
 
+        The mask_epi_anat dataset is an intersection of full_mask and
+        mask_anat, and might be better suited to such computations.
 
-            ---- combine methods that use tedana from the MEICA group ----
+        Use this option to apply mask_epi_anat in place of full_mask.
 
-               The MEICA group tedana is specified with 'm_tedana*' methods.
+    -mask_import LABEL MSET : import a final grid mask with the given label
 
-                  This tedana requires python 3.6+.
+            e.g. -mask_import Tvent template_ventricle_3mm+tlrc
 
-                  AFNI does not distribute this version of tedana, so it must
-                  be in the PATH.  For installation details, please see:
+      * Note: -ROI_import basically makes -mask_import unnecessary.
 
-                     https://tedana.readthedocs.io/en/stable/installation.html
+        Use this option to import a mask that is aligned with the final
+        EPI data _and_ is on the final grid (with -ROI_import, the ROI will
+        be resampled onto the final grid).
 
-                methods
-                -------
-                m_tedana         : tedana from MEICA group (dn_ts_OC.nii.gz)
-                m_tedana_OC      : tedana OC from MEICA group (ts_OC.nii.gz)
-                m_tedana_m_tedort: tedana from MEICA group (dn_ts_OC.nii.gz)
-                                   "tedort" from MEICA group
-                                   (--tedort: "good" projected from "bad")
+            o  this might be based on the group template
+            o  this should already be resampled appropriately
+            o  no warping or resampling will be done to this dataset
 
+        This mask can be applied via LABEL as other masks, using options
+        like: -regress_ROI, -regress_ROI_PC, -regress_make_corr_vols,
+              -regress_anaticor_label, -mask_intersect, -mask_union.
 
-            The OC/OC_A combine method is from Posse et. al., 1999, and then
-            applied by Kundu et. al., 2011 and presented by Javier in a 2017
-            summer course.
+        For example, one might import a ventricle mask from the template,
+        intersect it with the subject specific CSFe (eroded CSF) mask,
+        and possibly take the union with WMe (eroded white matter), before
+        using the result for principle component regression, as in:
 
-            The 'tedort' methods for Prantik's tedana.py are applied using
-            @extract_meica_ortvec, which projects the 'good' MEICA components
-            out of the 'bad' ones, and saves those as regressors to be applied
-            later.  Otherwise, some of the 'good' components are removed with
-            the 'bad.  The tedort method can be applied with either AFNI OC or
-            tedana OC (meaning the respective OC method would be applied to
-            combine the echoes, and the tedort components will be passed on to
-            the regress block).
+            -mask_import Tvent template_ventricle_3mm+tlrc \\
+            -mask_intersect Svent CSFe Tvent               \\
+            -mask_union WM_vent Svent WMe                  \\
+            -regress_ROI_PC WM_vent 3                      \\
 
-            The 'm_tedanam_m_tedort' method for the MEICA group's passes
-            option --tedort to 'tedana', and tedana does the "good" from "bad"
-            projection before projecting the modified "bad" components from the
-            time series.
+        See also -ROI_import, -regress_ROI, -regress_ROI_PC,
+                 -regress_make_corr_vols, -regress_anaticor_label,
+                 -mask_intersect, -mask_union.
 
-            Please see '@compute_OC_weights -help' for more information.
-            Please see '@extract_meica_ortvec -help' for more information.
-            See also -combine_tedana_path.
+    -mask_intersect NEW_LABEL MASK_A MASK_B : intersect 2 masks
 
-        -combine_opts_tedana OPT OPT ... : specify extra options for tedana.py
+            e.g. -mask_intersect Svent CSFe Tvent
 
-                e.g. -combine_opts_tedana --sourceTEs=-1 --kdaw=10 --rdaw=1
+        Use this option to intersect 2 known masks to create a new mask.
+        NEW_LABEL will be the label of the result, while MASK_A and MASK_B
+        should be labels for existing masks.
 
-            Use this option to pass extra options through to tedana.py.
-            This applies to any tedana-based -combine_method.
+        One could use this to intersect a template ventricle mask with each
+        subject's specific CSFe (eroded CSF) mask from 3dSeg, for example.
 
-            See also -combine_method.
+        See -mask_import for more details.
 
-        -combine_opts_tedwrap OPT OPT ... : pass options to tedana_wrapper.py
+    -mask_union NEW_LABEL MASK_A MASK_B : take union of 2 masks
 
-                e.g. -combine_opts_tedwrap -tedana_is_exec
+            e.g. -mask_union WM_vent Svent WMe
 
-            Use this option to pass extra options to tedana_wrapper.py.
-            This applies to any tedana-based -combine_method.
+        Use this option to take the union of 2 known masks to create a new
+        mask.  NEW_LABEL will be the label of the result, while MASK_A and
+        MASK_B should be labels for existing masks.
 
-        -combine_tedana_path PATH : specify path to tedana.py
+        One could use this to create union of CSFe and WMe for principle
+        component regression, for example.
 
-                e.g. -combine_tedana_path ~/testbin/meica.libs/tedana.py
-                default: from under afni binaries directory
+        See -mask_import for more details.
 
-            If one wishes to use a version of tedana.py other than what comes
-            with AFNI, this option allows one to specify that file.
+    -mask_opts_automask ... : specify extra options for 3dAutomask
 
-            This applies to any tedana-based -combine_method.
+            e.g. -mask_opts_automask -clfrac 0.2 -dilate 1
 
-            See also -combine_method.
+        This allows one to add extra options to the 3dAutomask command used
+        to create a mask from the EPI data.
 
-        -combine_tedort_reject_midk yes/no : reject midk components
+        Please see '3dAutomask -help' for more information.
 
-                e.g. -combine_tedort_reject_midk no
-                default: yes (matching original method)
+    -mask_rm_segsy Y/N  : choose whether to delete the Segsy directory
 
-            Is may not be clear whether the midk (mid-Kappa) components are
-            good ones or bad.  If one is not so sure, it might make sense not
-            to project them out.  To refrain from projecting them out, use
-            this option with 'no' (the default is 'yes' to match the original
-            method).
+            e.g. -mask_rm_segsy no
+            default: yes
 
-        -combine_tedana_save_all yes/no : save all ted wrapper preproc files
+        This option is a companion to -mask_segment_anat.
 
-                e.g. -combine_tedana_save_all yes
-                default: no (save only 3dZcat stacked dataset)
+        In the case of running 3dSeg to segment the anatomy, a resulting
+        Segsy directory is created.  Since the main result is a Classes
+        dataset, and to save disk space, the Segsy directory is removed
+        by default.  Use this option to preserve it.
 
-            Use the option to save all of the preprocessing files created by
-            tedana_wrapper.py (when calling tedana.py).  The default is to save
-            only the 3dZcat stacked dataset, which is then passed to tedana.py.
+        See also -mask_segment_anat.
 
-            Please see 'tedana_wrapper.py -help' for details.
+    -mask_segment_anat Y/N  : choose whether to segment anatomy
 
-        -scale_max_val MAX      : specify the maximum value for scaled data
+            e.g. -mask_segment_anat yes
+            default: no (if anat_final is skull-stripped)
 
-                e.g. -scale_max_val 1000
-                default 200
+        This option controls whether 3dSeg is run to segment the anatomical
+        dataset.  Such a segmentation would then be resampled to match the
+        grid of the EPI data.
 
-            The scale step multiples the time series for each voxel by a
-            scalar so that the mean for that particular run is 100 (allowing
-            interpretation of EPI values as a percentage of the mean).
+        When this is run, 3dSeg creates the Classes dataset, which is a
+        composition mask of the GM/WM/CSF (gray matter, white matter and
+        cerebral spinal fluid) regions.  Then 3dresample is used to create
+        Classes_resam, the same mask but at the resolution of the EPI.
 
-            Values of 200 represent a 100% change above the mean, and so can
-            probably be considered garbage (or the voxel can be considered
-            non-brain).  The output values are limited so as not to sacrifice
-            the precision of the values of short datasets.  Note that in a
-            short (2-byte integer) dataset, a large range of values means
-            bits of accuracy are lost for the representation.
+        Such a dataset might have multiple uses, such as tissue-based
+        regression.  Note that for such a use, the ROI time series should
+        come from the volreg data, before any blur.
 
-            No max will be applied if MAX is <= 100.
+      * Mask labels created by -mask_segment_anat and -mask_segment_erode
+        can be applied with -regress_ROI and -regress_ROI_PC.
 
-            Please see 'DATASET TYPES' in the output of '3dcalc -help'.
-            See also -scale_no_max.
+      * The CSF mask is of ALL CSF (not just in the ventricles), and is
+        therefore not very appropriate to use with tissue-based regression.
 
-        -scale_no_max           : do not apply a limit to the scaled values
+        Consider use of -anat_uniform_method along with this option.
 
-            The default limit for scaled data is 200.  Use of this option will
-            remove any limit from being applied.
+        Please see '3dSeg -help' for more information.
+        Please see '3dUnifize -help' for more information.
+        See also -mask_rm_segsy, -anat_uniform_method -mask_segment_erode,
+         and -regress_ROI, -regress_ROI_PC.
 
-            A limit on the scaled data is highly encouraged when working with
-            'short' integer data, especially when not applying a mask.
+    -mask_segment_erode Y/N
 
-            See also -scale_max_val.
+            e.g. -mask_segment_erode Yes
+            default: yes (if -regress_ROI or -regress_anaticor)
 
-        -regress_3dD_stop       : 3dDeconvolve should stop after X-matrix gen
+        This option is a companion to -mask_segment_anat.
 
-            Use this option to tell 3dDeconvolve to stop after generating the
-            X-matrix (via -x1D_stop).  This is useful if the user only wishes
-            to run the regression through 3dREMLfit.
+        Anatomical segmentation is used to create GM (gray matter), WM
+        (white matter) and CSF masks.  When the _erode option is applied,
+        eroded versions of those masks are created via 3dmask_tool.
 
-            See also -regress_reml_exec.
+        See also -mask_segment_anat, -regress_anaticor.
+        Please see '3dmask_tool -help' for more information.
 
-        -regress_anaticor       : generate errts using ANATICOR method
+    -mask_test_overlap Y/N  : choose whether to test anat/EPI mask overlap
 
-            Apply the ANATICOR method of HJ Jo, regressing out the WMeLocal
-            time series, which varies across voxels.
+            e.g. -mask_test_overlap No
+            default: Yes
 
-            WMeLocal is the average time series from all voxels within 45 mm
-            which are in the eroded white matter mask.
+        If the subject anatomy and EPI masks are computed, then the default
+        operation is to run 3dABoverlap to evaluate the overlap between the
+        two masks.  Output is saved in a text file.
 
-            The script will run the standard regression via 3dDeconvolve (or
-            stop after setting up the X-matrix, if the user says to), and use
-            that X-matrix, possibly censored, in 3dTproject.  The WMeLocal time
-            series is applied along with the X-matrix to get the result.
+        This option allows one to disable such functionality.
 
-            Note that other 4-D time series might be regressed out via the
-            3dTproject step, as well.
+        Please see '3dABoverlap -help' for more information.
 
-            In the case of task-based ANATICOR, -regress_reml_exec is required,
-            which uses 3dREMLfit to regress the voxel-wise ANATICOR regressors.
+    -mask_type TYPE         : specify 'union' or 'intersection' mask type
 
-            This option implies -mask_segment_anat and -mask_segment_erode.
+            e.g. -mask_type intersection
+            default: union
 
-          * Consider use of -regress_anaticor_fast, instead.
+        This option is used to specify whether the mask applied to the
+        analysis is the union of masks from each run, or the intersection.
+        The only valid values for TYPE are 'union' and 'intersection'.
 
-            Please see "@ANATICOR -help" for more detail, including the paper
-            reference for the method.
-            See also -mask_segment_anat, -mask_segment_erode, -regress_3dD_stop.
-            See also -regress_reml_exec.
+        This is not how to specify whether a mask is created, that is
+        done via the 'mask' block with the '-blocks' option.
 
-        -regress_anaticor_label LABEL : specify LABEL for ANATICOR ROI
+        Please see '3dAutomask -help', '3dMean -help' or '3dcalc -help'.
+        See also -mask_dilate, -blocks.
 
-            To go with either -regress_anaticor or -regress_anaticor_fast,
-            this option is used the specifiy an alternate label of an ROI
-            mask to be used in the ANATICOR step.  The default LABEL is WMe
-            (eroded white matter from 3dSeg).
+    -combine_method METHOD  : specify method for combining echoes
 
-            When this option is included, it is up to the user to make sure
-            afni_proc.py has such a label, either by including options:
-                -mask_segment_anat (and possibly -mask_segment_erode),
-                -regress_ROI_PC, -regress_ROI, or -anat_follower_ROI.
+            e.g. -combine_method OC
+            default: OC
 
-            Any known label made via those options may be used.
+        When using the 'combine' block to combine echoes (for each run),
+        this option can be used to specify the method used.  There are:
 
-            See also -mask_segment_anat, -mask_segment_erode, -regress_ROI_PC,
-                -anat_follower_ROI.
+            - basic methods
+            - methods using tedana.py (or similar) from Prantik
+            - methods using tedana from the MEICA group
 
-        -regress_anaticor_radius RADIUS : specify RADIUS for local WM average
 
-            To go with -regress_anaticor or -regress_anaticor_fast, use this
-            option to specify the radius.  In the non-fast case that applies
-            to spheres within which local white matter is averaged.  In the
-            fast case, the radius is applied as the HWHM (half width at half
-            max).  A small radius means the white matter is more local.
+        ---- basic combine methods (that do not use any tedana) ----
 
-            If no white matter is found within the specified distance of some
-            voxel, the effect is that ANATICOR will simply not happen at that
-            voxel.  That is a reasonable "failure" case, in that it says there
-            is simply no white matter close enough to regress out (again, at
-            the given voxel).
+            methods
+            -------
+            mean             : simple mean of echoes
+            OC               : optimally combined (via @compute_OC_weights)
+                               (current default is OC_A)
+            OC_A             : original log(mean()) regression method
+            OC_B             : newer log() time series regression method
+                               (there is little difference between OC_A
+                               and OC_B)
 
-            See also -regress_anaticor or -regress_anaticor_fast.
+        ---- combine methods that use Prantik's "original" tedana.py ----
 
-        -regress_anaticor_fast  : generate errts using fast ANATICOR method
+           Prantik's tedana.py is run using the 'tedana*' combine methods.
 
-            This applies basically the same method as with -regress_anaticor,
-            above.  While -regress_anaticor creates WMeLocal dataset by
-            getting the average white matter voxel within a fixed radius, the
-            'fast' method computes it by instead integrating the white matter
-            over a gaussian curve.
+              Prantik's tedana.py requires python 2.7.
 
-            There some basic effects of using the 'fast' method:
+              By default, tedana.py will be applied from the AFNI
+              installation directory.
 
-                1. Using a Gaussian curve to compute each voxel-wise regressor
-                   gives more weight to the white matter that is closest to
-                   each given voxel.  The FWHM of this 3D kernel is specified
-                   by -regress_anaticor_fwhm, with a default of 30 mm.
+              Alternatively, one can specify the location of a different
+              tedana.py using -combine_tedana_path.  And if it is 
+              preferable to run it as an executable (as opposed to running
+              it via 'python PATH/TO/tedana.py'), one can tell this to
+              tedana_wrapper.py by applying:
+                     -combine_opts_tedwrap -tedana_is_exec
 
-                2. If there is no close white matter (e.g. due to a poor
-                   segmentation), the Gaussian curve will likely find white
-                   matter far away, instead of creating an empty regressor.
+            methods
+            -------
+            OC_tedort        : OC, and pass tedana orts to regression
+            tedana           : run tedana.py, using output dn_ts_OC.nii
+            tedana_OC        : run tedana.py, using output ts_OC.nii
+                               (i.e. use tedana.py for optimally combined)
+            tedana_OC_tedort : tedana_OC, and include tedana orts
 
-                3. This is quite a bit faster, because it is done by creating
-                   a time series of all desired white matter voxels, blurring
-                   it, and then just regressing out that dataset.  The blur
-                   operation is much faster than a localstat one.
 
-            Please see "@ANATICOR -help" for more detail, including the paper
-            reference for the method.
-            See also -regress_anaticor_fwhm/
-            See also -mask_segment_anat, -mask_segment_erode, -regress_3dD_stop.
-            See also -regress_anaticor.
+        ---- combine methods that use tedana from the MEICA group ----
 
-        -regress_anaticor_fwhm FWHM  : specify FWHM for 'fast' ANATICOR, in mm
+           The MEICA group tedana is specified with 'm_tedana*' methods.
 
-                e.g.     -regress_anaticor_fwhm 20
-                default: -regress_anaticor_fwhm 30
+              This tedana requires python 3.6+.
 
+              AFNI does not distribute this version of tedana, so it must
+              be in the PATH.  For installation details, please see:
 
-         ** This option is no longer preferable.  The newer application of
-            -regress_anaticor_fast "thinks" in terms of a radius, like HWHM.
-            So consider -regress_anaticor_radius for all cases.
+                 https://tedana.readthedocs.io/en/stable/installation.html
 
+            methods
+            -------
+            m_tedana         : tedana from MEICA group (dn_ts_OC.nii.gz)
+            m_tedana_OC      : tedana OC from MEICA group (ts_OC.nii.gz)
+            m_tedana_m_tedort: tedana from MEICA group (dn_ts_OC.nii.gz)
+                               "tedort" from MEICA group
+                               (--tedort: "good" projected from "bad")
 
-            This option applies to -regress_anaticor_fast.
 
-            The 'fast' ANATICOR method blurs the time series of desired white
-            matter voxels using a Gaussian kernel with the given FWHM (full
-            width at half maximum).
+        The OC/OC_A combine method is from Posse et. al., 1999, and then
+        applied by Kundu et. al., 2011 and presented by Javier in a 2017
+        summer course.
 
-            To understand the FWHM, note that it is essentially the diameter of
-            a sphere where the contribution from points at that distance
-            (FWHM/2) contribute half as much as the center point.  For example,
-            if FWHM=10mm, then any voxel at a distance of 5 mm would contribute
-            half as much as a voxel at the center of the kernel.
+        The 'tedort' methods for Prantik's tedana.py are applied using
+        @extract_meica_ortvec, which projects the 'good' MEICA components
+        out of the 'bad' ones, and saves those as regressors to be applied
+        later.  Otherwise, some of the 'good' components are removed with
+        the 'bad.  The tedort method can be applied with either AFNI OC or
+        tedana OC (meaning the respective OC method would be applied to
+        combine the echoes, and the tedort components will be passed on to
+        the regress block).
 
-            See also -regress_anaticor_fast.
+        The 'm_tedanam_m_tedort' method for the MEICA group's passes
+        option --tedort to 'tedana', and tedana does the "good" from "bad"
+        projection before projecting the modified "bad" components from the
+        time series.
 
-        -regress_anaticor_term_frac FRAC : specify termination fraction
+        Please see '@compute_OC_weights -help' for more information.
+        Please see '@extract_meica_ortvec -help' for more information.
+        See also -combine_tedana_path.
 
-                e.g.     -regress_anaticor_term_frac .25
-                default: -regress_anaticor_term_frac .5
+    -combine_opts_tedana OPT OPT ... : specify extra options for tedana.py
 
-            In the typical case of -regress_anaticor_fast, to make it behave
-            very similarly to -regress_anaticor, blurring is applied with a
-            Gaussian kernel out to the radius specified by the user, say 30 mm.
+            e.g. -combine_opts_tedana --sourceTEs=-1 --kdaw=10 --rdaw=1
 
-            To make this kernel more flat, it is terminated at a fraction of
-            the HWHM (half width at half max, say 0.5), while the blur radius
-            is extended by the reciprocal (to keep the overall distance fixed).
-            So that means blurring with a wider Gaussian kernel, but truncating
-            it to stay fixed at the given radius.
+        Use this option to pass extra options through to tedana.py.
+        This applies to any tedana-based -combine_method.
 
-            If the fraction were 1.0, the relative contribution at the radius
-            would be 0.5 of the central voxel (by definition of FWHM/HWHM).
-            At a fraction of 0.5 (default), the relative contribution is 0.84.
-            At a fraction of 0.25, the relative contribution is 0.958, seen by:
+        See also -combine_method.
 
-               afni_util.py -print 'gaussian_at_hwhm_frac(.25)'
+    -combine_opts_tedwrap OPT OPT ... : pass options to tedana_wrapper.py
 
-            Consider the default fraction of 0.5.  That means we want the
-            "radius" of the blur to terminate at 0.5 * HWHM, making it more
-            flat, such that the relative contribution at the edge is ~0.84.
-            If the specified blur radius is 30 mm, that mean the HWHM should
-            actually be 60 mm, and we stop computing at HWHM/2 = 30 mm.  Note
-            that the blur in 3dmerge is applied not as a radius (HWHM), but as
-            a diameter (FWHM), so these numbers are always then doubled.  In
-            this example, it would use FWHM = 120 mm, to achieve a flattened
-            30 mm radius Gaussian blur.
+            e.g. -combine_opts_tedwrap -tedana_is_exec
 
-            In general, the HWHM widening (by 1/FRAC) makes the inner part of
-            the kernel more flat, and then the truncation at FRAC*HWHM makes
-            the blur computations still stop at the radius.  Clearly one can
-            make a flatter curve with a smaller FRAC.
+        Use this option to pass extra options to tedana_wrapper.py.
+        This applies to any tedana-based -combine_method.
 
-            To make the curve a "pure Gaussian", with no truncation, consider
-            the option -regress_anaticor_full_gaussian.
+    -combine_tedana_path PATH : specify path to tedana.py
 
-            Please see "@radial_correlate -help" for more information.
-            Please also see:
-               afni_util.py -print 'gaussian_at_hwhm_frac.__doc__'
-            See also -regress_anaticor_fast, -regress_anaticor_radius,
-            -regress_anaticor_full_gaussian.
+            e.g. -combine_tedana_path ~/testbin/meica.libs/tedana.py
+            default: from under afni binaries directory
 
-        -regress_anaticor_full_gaussian yes/no: use full Gaussian blur
+        If one wishes to use a version of tedana.py other than what comes
+        with AFNI, this option allows one to specify that file.
 
-                e.g.     -regress_anaticor_full_gaussian yes
-                default: -regress_anaticor_full_gaussian no
+        This applies to any tedana-based -combine_method.
 
-            When using -regress_anaticor_fast to apply ANATICOR via a Gaussian
-            blur, the blur kernel is extended and truncated to stop at the
-            -regress_anaticor_radius HWHM of the Gaussian curve, allowing the
-            shape to be arbitrarily close to the flat curve applied in the
-            original ANATICOR method via -regress_anaticor.
+        See also -combine_method.
 
-            Use this option to prevent the truncation, so that a full Gaussian
-            blur is applied at the specified HWHM radius (FWHM = 2*HWHM).
+    -combine_tedort_reject_midk yes/no : reject midk components
 
-          * Note that prior to 22 May 2019, the full Gaussian was always
-            applied with -regress_anaticor_fast.  This marks an actual change
-            in processing.
+            e.g. -combine_tedort_reject_midk no
+            default: yes (matching original method)
 
-            See also -regress_anaticor_fast, -regress_anaticor_radius.
+        Is may not be clear whether the midk (mid-Kappa) components are
+        good ones or bad.  If one is not so sure, it might make sense not
+        to project them out.  To refrain from projecting them out, use
+        this option with 'no' (the default is 'yes' to match the original
+        method).
 
-        -regress_apply_mask     : apply the mask during scaling and regression
+    -combine_tedana_save_all yes/no : save all ted wrapper preproc files
 
-            By default, any created union mask is not applied to the analysis.
-            Use this option to apply it.
+            e.g. -combine_tedana_save_all yes
+            default: no (save only 3dZcat stacked dataset)
 
-         ** This option is essentially obsolete.  Please consider -mask_apply
-            as a preferable option to choose which mask to apply.
+        Use the option to save all of the preprocessing files created by
+        tedana_wrapper.py (when calling tedana.py).  The default is to save
+        only the 3dZcat stacked dataset, which is then passed to tedana.py.
 
-            See "MASKING NOTE" and "DEFAULTS" for details.
-            See also -blocks, -mask_apply.
+        Please see 'tedana_wrapper.py -help' for details.
 
-        -regress_apply_mot_types TYPE1 ... : specify motion regressors
+    -scale_max_val MAX      : specify the maximum value for scaled data
 
-                e.g. -regress_apply_mot_types basic
-                e.g. -regress_apply_mot_types deriv
-                e.g. -regress_apply_mot_types demean deriv
-                default: demean
+            e.g. -scale_max_val 1000
+            default 200
 
-            By default, the motion parameters from 3dvolreg are applied in the
-            regression, but after first removing the mean, per run.  This is
-            the application of the 'demean' regressors.
+        The scale step multiples the time series for each voxel by a
+        scalar so that the mean for that particular run is 100 (allowing
+        interpretation of EPI values as a percentage of the mean).
 
-            This option gives the ability to choose a combination of:
+        Values of 200 represent a 100% change above the mean, and so can
+        probably be considered garbage (or the voxel can be considered
+        non-brain).  The output values are limited so as not to sacrifice
+        the precision of the values of short datasets.  Note that in a
+        short (2-byte integer) dataset, a large range of values means
+        bits of accuracy are lost for the representation.
 
-                basic:  dfile_rall.1D - the parameters straight from 3dvolreg
-                        (or an external motion file, see -regress_motion_file)
-                demean: 'basic' params with the mean removed, per run
-                deriv:  per-run derivative of 'basic' params (de-meaned)
+        No max will be applied if MAX is <= 100.
 
-         ** Note that basic and demean cannot both be used, as they would cause
-            multi-collinearity with the constant drift parameters.
+        Please see 'DATASET TYPES' in the output of '3dcalc -help'.
+        See also -scale_no_max.
 
-         ** Note also that basic and demean will give the same results, except
-            for the betas of the constant drift parameters (and subject to
-            computational precision).
+    -scale_no_max           : do not apply a limit to the scaled values
 
-         ** A small side effect of de-meaning motion parameters is that the
-            constant drift terms should evaluate to the mean baseline.
+        The default limit for scaled data is 200.  Use of this option will
+        remove any limit from being applied.
 
-            See also -regress_motion_file, -regress_no_motion_demean,
-            -regress_no_motion_deriv, -regress_no_motion.
+        A limit on the scaled data is highly encouraged when working with
+        'short' integer data, especially when not applying a mask.
 
-        -regress_apply_ricor yes/no : apply ricor regs in final regression
+        See also -scale_max_val.
 
-                e.g.     -regress_apply_ricor yes
-                default: no
+    -regress_3dD_stop       : 3dDeconvolve should stop after X-matrix gen
 
-            This is from a change in the default behavior 30 Jan 2012.  Prior
-            to then, the 13 (?) ricor regressors from slice 0 would be applied
-            in the final regression (mostly accounting for degrees of freedom).
-            But since resting state analysis relies on a subsequent correlation
-            analysis, it seems cleaner not to regress them (a second time).
+        Use this option to tell 3dDeconvolve to stop after generating the
+        X-matrix (via -x1D_stop).  This is useful if the user only wishes
+        to run the regression through 3dREMLfit.
 
-        -regress_bandpass lowf highf : bandpass the frequency range
+        See also -regress_reml_exec.
 
-                e.g.  -regress_bandpass 0.01 0.1
+    -regress_anaticor       : generate errts using ANATICOR method
 
-            This option is intended for use in resting state analysis.
+        Apply the ANATICOR method of HJ Jo, regressing out the WMeLocal
+        time series, which varies across voxels.
 
-            Use this option to perform bandpass filtering during the linear
-            regression.  While such an operation is slow (much slower than the
-            FFT using 3dBandpass), doing it during the regression allows one to
-            perform (e.g. motion) censoring at the same time.
+        WMeLocal is the average time series from all voxels within 45 mm
+        which are in the eroded white matter mask.
 
-            This option has a similar effect to running 3dBandpass, e.g. the
-            example of '-regress_bandpass 0.01 0.1' is akin to running:
+        The script will run the standard regression via 3dDeconvolve (or
+        stop after setting up the X-matrix, if the user says to), and use
+        that X-matrix, possibly censored, in 3dTproject.  The WMeLocal time
+        series is applied along with the X-matrix to get the result.
 
-                3dBandpass -ort motion.1D -band 0.01 0.1
+        Note that other 4-D time series might be regressed out via the
+        3dTproject step, as well.
 
-            except that it is done in 3dDeconvolve using linear regression.
-            And censoring is easy in the context of regression.
+        In the case of task-based ANATICOR, -regress_reml_exec is required,
+        which uses 3dREMLfit to regress the voxel-wise ANATICOR regressors.
 
-            Note that the Nyquist frequency is 0.5/TR.  That means that if the
-            TR were >= 5 seconds, there would be no frequencies within the band
-            range of 0.01 to 0.1 to filter.  So there is no point to such an
-            operation.
+        This option implies -mask_segment_anat and -mask_segment_erode.
 
-            On the flip side, if the TR is 1.0 second or shorter, the range of
-            0.01 to 0.1 would remove about 80% of the degrees of freedom (since
-            everything above 0.1 is filtered/removed, up through 0.5).  This
-            might result in a model that is overfit, where there are almost as
-            many (or worse, more) regressors than time points to fit.
+      * Consider use of -regress_anaticor_fast, instead.
 
-            So a 0.01 to 0.1 bandpass filter might make the most sense for a
-            TR in [2.0, 3.0], or so.
+        Please see "@ANATICOR -help" for more detail, including the paper
+        reference for the method.
+        See also -mask_segment_anat, -mask_segment_erode, -regress_3dD_stop.
+        See also -regress_reml_exec.
 
-            A different filter range would affect this, of course.
+    -regress_anaticor_label LABEL : specify LABEL for ANATICOR ROI
+
+        To go with either -regress_anaticor or -regress_anaticor_fast,
+        this option is used the specify an alternate label of an ROI
+        mask to be used in the ANATICOR step.  The default LABEL is WMe
+        (eroded white matter from 3dSeg).
+
+        When this option is included, it is up to the user to make sure
+        afni_proc.py has such a label, either by including options:
+            -mask_segment_anat (and possibly -mask_segment_erode),
+            -regress_ROI_PC, -regress_ROI, or -anat_follower_ROI.
+
+        Any known label made via those options may be used.
+
+        See also -mask_segment_anat, -mask_segment_erode, -regress_ROI_PC,
+            -anat_follower_ROI, -ROI_import.
+
+    -regress_anaticor_radius RADIUS : specify RADIUS for local WM average
+
+        To go with -regress_anaticor or -regress_anaticor_fast, use this
+        option to specify the radius.  In the non-fast case that applies
+        to spheres within which local white matter is averaged.  In the
+        fast case, the radius is applied as the HWHM (half width at half
+        max).  A small radius means the white matter is more local.
+
+        If no white matter is found within the specified distance of some
+        voxel, the effect is that ANATICOR will simply not happen at that
+        voxel.  That is a reasonable "failure" case, in that it says there
+        is simply no white matter close enough to regress out (again, at
+        the given voxel).
+
+        See also -regress_anaticor or -regress_anaticor_fast.
+
+    -regress_anaticor_fast  : generate errts using fast ANATICOR method
+
+        This applies basically the same method as with -regress_anaticor,
+        above.  While -regress_anaticor creates WMeLocal dataset by
+        getting the average white matter voxel within a fixed radius, the
+        'fast' method computes it by instead integrating the white matter
+        over a gaussian curve.
+
+        There some basic effects of using the 'fast' method:
+
+            1. Using a Gaussian curve to compute each voxel-wise regressor
+               gives more weight to the white matter that is closest to
+               each given voxel.  The FWHM of this 3D kernel is specified
+               by -regress_anaticor_fwhm, with a default of 30 mm.
+
+            2. If there is no close white matter (e.g. due to a poor
+               segmentation), the Gaussian curve will likely find white
+               matter far away, instead of creating an empty regressor.
+
+            3. This is quite a bit faster, because it is done by creating
+               a time series of all desired white matter voxels, blurring
+               it, and then just regressing out that dataset.  The blur
+               operation is much faster than a localstat one.
+
+        Please see "@ANATICOR -help" for more detail, including the paper
+        reference for the method.
+        See also -regress_anaticor_fwhm/
+        See also -mask_segment_anat, -mask_segment_erode, -regress_3dD_stop.
+        See also -regress_anaticor.
+
+    -regress_anaticor_fwhm FWHM  : specify FWHM for 'fast' ANATICOR, in mm
+
+            e.g.     -regress_anaticor_fwhm 20
+            default: -regress_anaticor_fwhm 30
+
+
+     ** This option is no longer preferable.  The newer application of
+        -regress_anaticor_fast "thinks" in terms of a radius, like HWHM.
+        So consider -regress_anaticor_radius for all cases.
+
+
+        This option applies to -regress_anaticor_fast.
+
+        The 'fast' ANATICOR method blurs the time series of desired white
+        matter voxels using a Gaussian kernel with the given FWHM (full
+        width at half maximum).
+
+        To understand the FWHM, note that it is essentially the diameter of
+        a sphere where the contribution from points at that distance
+        (FWHM/2) contribute half as much as the center point.  For example,
+        if FWHM=10mm, then any voxel at a distance of 5 mm would contribute
+        half as much as a voxel at the center of the kernel.
+
+        See also -regress_anaticor_fast.
+
+    -regress_anaticor_term_frac FRAC : specify termination fraction
+
+            e.g.     -regress_anaticor_term_frac .25
+            default: -regress_anaticor_term_frac .5
+
+        In the typical case of -regress_anaticor_fast, to make it behave
+        very similarly to -regress_anaticor, blurring is applied with a
+        Gaussian kernel out to the radius specified by the user, say 30 mm.
+
+        To make this kernel more flat, it is terminated at a fraction of
+        the HWHM (half width at half max, say 0.5), while the blur radius
+        is extended by the reciprocal (to keep the overall distance fixed).
+        So that means blurring with a wider Gaussian kernel, but truncating
+        it to stay fixed at the given radius.
+
+        If the fraction were 1.0, the relative contribution at the radius
+        would be 0.5 of the central voxel (by definition of FWHM/HWHM).
+        At a fraction of 0.5 (default), the relative contribution is 0.84.
+        At a fraction of 0.25, the relative contribution is 0.958, seen by:
+
+           afni_util.py -print 'gaussian_at_hwhm_frac(.25)'
+
+        Consider the default fraction of 0.5.  That means we want the
+        "radius" of the blur to terminate at 0.5 * HWHM, making it more
+        flat, such that the relative contribution at the edge is ~0.84.
+        If the specified blur radius is 30 mm, that mean the HWHM should
+        actually be 60 mm, and we stop computing at HWHM/2 = 30 mm.  Note
+        that the blur in 3dmerge is applied not as a radius (HWHM), but as
+        a diameter (FWHM), so these numbers are always then doubled.  In
+        this example, it would use FWHM = 120 mm, to achieve a flattened
+        30 mm radius Gaussian blur.
+
+        In general, the HWHM widening (by 1/FRAC) makes the inner part of
+        the kernel more flat, and then the truncation at FRAC*HWHM makes
+        the blur computations still stop at the radius.  Clearly one can
+        make a flatter curve with a smaller FRAC.
+
+        To make the curve a "pure Gaussian", with no truncation, consider
+        the option -regress_anaticor_full_gaussian.
+
+        Please see "@radial_correlate -help" for more information.
+        Please also see:
+           afni_util.py -print 'gaussian_at_hwhm_frac.__doc__'
+        See also -regress_anaticor_fast, -regress_anaticor_radius,
+        -regress_anaticor_full_gaussian.
+
+    -regress_anaticor_full_gaussian yes/no: use full Gaussian blur
+
+            e.g.     -regress_anaticor_full_gaussian yes
+            default: -regress_anaticor_full_gaussian no
+
+        When using -regress_anaticor_fast to apply ANATICOR via a Gaussian
+        blur, the blur kernel is extended and truncated to stop at the
+        -regress_anaticor_radius HWHM of the Gaussian curve, allowing the
+        shape to be arbitrarily close to the flat curve applied in the
+        original ANATICOR method via -regress_anaticor.
+
+        Use this option to prevent the truncation, so that a full Gaussian
+        blur is applied at the specified HWHM radius (FWHM = 2*HWHM).
+
+      * Note that prior to 22 May 2019, the full Gaussian was always
+        applied with -regress_anaticor_fast.  This marks an actual change
+        in processing.
+
+        See also -regress_anaticor_fast, -regress_anaticor_radius.
+
+    -regress_apply_mask     : apply the mask during scaling and regression
+
+        By default, any created union mask is not applied to the analysis.
+        Use this option to apply it.
+
+     ** This option is essentially obsolete.  Please consider -mask_apply
+        as a preferable option to choose which mask to apply.
+
+        See "MASKING NOTE" and "DEFAULTS" for details.
+        See also -blocks, -mask_apply.
+
+    -regress_apply_mot_types TYPE1 ... : specify motion regressors
+
+            e.g. -regress_apply_mot_types basic
+            e.g. -regress_apply_mot_types deriv
+            e.g. -regress_apply_mot_types demean deriv
+            e.g. -regress_apply_mot_types none
+            default: demean
+
+        By default, the motion parameters from 3dvolreg are applied in the
+        regression, but after first removing the mean, per run.  This is
+        the application of the 'demean' regressors.
+
+        This option gives the ability to choose a combination of:
+
+            basic:  dfile_rall.1D - the parameters straight from 3dvolreg
+                    (or an external motion file, see -regress_motion_file)
+            demean: 'basic' params with the mean removed, per run
+            deriv:  per-run derivative of 'basic' params (de-meaned)
+            none:   do not regress any motion parameters
+                    (but one can still censor)
+
+     ** Note that basic and demean cannot both be used, as they would cause
+        multi-collinearity with the constant drift parameters.
+
+     ** Note also that basic and demean will give the same results, except
+        for the betas of the constant drift parameters (and subject to
+        computational precision).
+
+     ** A small side effect of de-meaning motion parameters is that the
+        constant drift terms should evaluate to the mean baseline.
+
+        See also -regress_motion_file, -regress_no_motion_demean,
+        -regress_no_motion_deriv, -regress_no_motion.
+
+    -regress_apply_ricor yes/no : apply ricor regs in final regression
+
+            e.g.     -regress_apply_ricor yes
+            default: no
+
+        This is from a change in the default behavior 30 Jan 2012.  Prior
+        to then, the 13 (?) ricor regressors from slice 0 would be applied
+        in the final regression (mostly accounting for degrees of freedom).
+        But since resting state analysis relies on a subsequent correlation
+        analysis, it seems cleaner not to regress them (a second time).
+
+    -regress_bandpass lowf highf : bandpass the frequency range
+
+            e.g.  -regress_bandpass 0.01 0.1
+
+        This option is intended for use in resting state analysis.
+
+        Use this option to perform bandpass filtering during the linear
+        regression.  While such an operation is slow (much slower than the
+        FFT using 3dBandpass), doing it during the regression allows one to
+        perform (e.g. motion) censoring at the same time.
+
+        This option has a similar effect to running 3dBandpass, e.g. the
+        example of '-regress_bandpass 0.01 0.1' is akin to running:
+
+            3dBandpass -ort motion.1D -band 0.01 0.1
+
+        except that it is done in 3dDeconvolve using linear regression.
+        And censoring is easy in the context of regression.
+
+        Note that the Nyquist frequency is 0.5/TR.  That means that if the
+        TR were >= 5 seconds, there would be no frequencies within the band
+        range of 0.01 to 0.1 to filter.  So there is no point to such an
+        operation.
+
+        On the flip side, if the TR is 1.0 second or shorter, the range of
+        0.01 to 0.1 would remove about 80% of the degrees of freedom (since
+        everything above 0.1 is filtered/removed, up through 0.5).  This
+        might result in a model that is overfit, where there are almost as
+        many (or worse, more) regressors than time points to fit.
+
+        So a 0.01 to 0.1 bandpass filter might make the most sense for a
+        TR in [2.0, 3.0], or so.
+
+        A different filter range would affect this, of course.
+
+        See also -regress_censor_motion.
+
+    -regress_basis BASIS    : specify the regression basis function
+
+            e.g. -regress_basis 'BLOCK(4,1)'
+            e.g. -regress_basis 'BLOCK(5)'
+            e.g. -regress_basis 'TENT(0,14,8)'
+            default: GAM
+
+        This option is used to set the basis function used by 3dDeconvolve
+        in the regression step.  This basis function will be applied to
+        all user-supplied regressors (please let me know if there is need
+        to apply different basis functions to different regressors).
+
+     ** Note that use of dmBLOCK requires -stim_times_AM1 (or AM2).  So
+        consider option -regress_stim_types.
+
+     ** If using -regress_stim_types 'file' for a particular regressor,
+        the basis function will be ignored.  In such a case, it is safest
+        to use 'NONE' for the corresponding basis function.
+
+        Please see '3dDeconvolve -help' for more information, or the link:
+            https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+        See also -regress_basis_normall, -regress_stim_times,
+                 -regress_stim_types, -regress_basis_multi.
+
+    -regress_basis_multi BASIS BASIS .. : specify multiple basis functions
+
+            e.g. -regress_basis_multi 'BLOCK(30,1)' 'TENT(0,45,16)' \\
+                                      'BLOCK(30,1)' dmUBLOCK
+
+        In the case that basis functions vary across stim classes, use
+        this option to list a basis function for each class.  The given
+        basis functions should correspond to the listed -regress_stim_times
+        files, just as the -regress_stim_labels entries do.
+
+        See also -regress_basis.
+
+    -regress_basis_normall NORM : specify the magnitude of basis functions
+
+            e.g. -regress_basis_normall 1.0
+
+        This option is used to set the '-basis_normall' parameter in
+        3dDeconvolve.  It specifies the height of each basis function.
+
+        For the example basis functions, -basis_normall is not recommended.
+
+        Please see '3dDeconvolve -help' for more information.
+        See also -regress_basis.
+
+    -regress_censor_extern CENSOR.1D : supply an external censor file
+
+            e.g. -regress_censor_extern censor_bad_trs.1D
+
+        This option is used to provide an initial censor file, if there
+        is some censoring that is desired beyond the automated motion and
+        outlier censoring.
+
+        Any additional censoring (motion or outliers) will be combined.
+
+         See also -regress_censor_motion, -regress_censor_outliers.
+
+    -regress_censor_motion LIMIT : censor TRs with excessive motion
+
+            e.g. -regress_censor_motion 0.3
+
+        This option is used to censor TRs where the subject moved too much.
+        "Too much" is decided by taking the derivative of the motion
+        parameters (ignoring shifts between runs) and the sqrt(sum squares)
+        per TR.  If this Euclidean Norm exceeds the given LIMIT, the TR
+        will be censored.
+
+        This option will result in the creation of 3 censor files:
+
+            motion_$subj_censor.1D
+            motion_$subj_CENSORTR.txt
+            motion_$subj_enorm.1D
+
+        motion_$subj_censor.1D is a 0/1 columnar file to be applied to
+        3dDeconvolve via -censor.  A row with a 1 means to include that TR,
+        while a 0 means to exclude (censor) it.
+
+        motion_$subj_CENSORTR.txt is a short text file listing censored
+        TRs, suitable for use with the -CENSORTR option in 3dDeconvolve.
+        The -censor option is the one applied however, so this file is not
+        used, but may be preferable for users to have a quick peek at.
+
+        motion_$subj_enorm.1D is the time series that the LIMIT is applied
+        to in deciding which TRs to censor.  It is the Euclidean norm of
+        the derivatives of the motion parameters.  Plotting this will give
+        users a visual indication of why TRs were censored.
+
+        By default, the TR prior to the large motion derivative will also
+        be censored.  To turn off that behavior, use -regress_censor_prev
+        with parameter 'no'.
+
+        If censoring the first few TRs from each run is also necessary,
+        use -regress_censor_first_trs.
+
+        Please see '1d_tool.py -help' for information on censoring motion.
+        See also -regress_censor_prev and -regress_censor_first_trs.
+
+    -regress_censor_first_trs N  : censor the first N TRs in each run
+
+            e.g.     -regress_censor_first_trs 3
+            default: N = 0
+
+        If, for example, censoring the first 3 TRs per run is desired, a
+        user might add "-CENSORTR '*:0-2'" to the -regress_opts_3dD option.
+        However, when using -regress_censor_motion, these censoring options
+        must be combined into one for 3dDeconvolve.
+
+        The -regress_censor_first_trs censors those TRs along with any with
+        large motion.
+
+        See '-censor_first_trs' under '1d_tool.py -help' for details.
+        See also '-regress_censor_motion'.
+
+    -regress_censor_prev yes/no  : censor TRs preceding large motion
+
+            default: -regress_censor_prev yes
+
+        Since motion spans two TRs, the derivative is not quite enough
+        information to decide whether it is more appropriate to censor
+        the earlier or later TR.  To error on the safe side, many users
+        choose to censor both.
+
+        Use this option to specify whether to include the previous TR
+        when censoring.
+
+        By default this option is applied as 'yes'.  Users may elect not
+        not to censor the previous TRs by setting this to 'no'.
+
+        See also -regress_censor_motion.
+
+    -regress_censor_outliers LIMIT : censor TRs with excessive outliers
+
+            e.g. -regress_censor_outliers 0.15
+
+        This option is used to censor TRs where too many voxels are flagged
+        as outliers by 3dToutcount.  LIMIT should be in [0.0, 1.0], as it
+        is a limit on the fraction of masked voxels.
+
+        '3dToutcount -automask -fraction' is used to output the fraction of
+        (auto)masked voxels that are considered outliers at each TR.  If
+        the fraction of outlier voxels is greater than LIMIT for some TR,
+        that TR is censored out.
+
+        Depending on the scanner settings, early TRs might have somewhat
+        higher intensities.  This could lead to the first few TRs of each
+        run being censored.  To avoid censoring the first few TRs of each
+        run, apply the -regress_skip_first_outliers option.
+
+        Note that if motion is also being censored, the multiple censor
+        files will be combined (multiplied) before 3dDeconvolve.
+
+        See '3dToutcount -help' for more details.
+        See also -regress_skip_first_outliers, -regress_censor_motion.
+
+    -regress_compute_gcor yes/no : compute GCOR from unit errts
+
+            e.g. -regress_compute_gcor no
+            default: yes
+
+        By default, the global correlation (GCOR) is computed from the
+        masked residual time series (errts).
+
+        GCOR can be thought of as the result of:
+            A1. compute the correlations of each voxel with every other
+                --> can be viewed as an NMASK x NMASK correlation matrix
+            A2. compute GCOR: the average of the NMASK^2 values
+
+        Since step A1 would take a lot of time and disk space, a more
+        efficient computation is desirable:
+            B0. compute USET: scale each voxel time series to unit length
+            B1. compute GMU: the global mean of this unit dataset
+            B2. compute a correlation volume (of each time series with GMU)
+            B3. compute the average of this volume
+
+        The actual computation is simplified even further, as steps B2 and
+        B3 combine as the L2 norm of GMU.  The result is:
+            B2'. length(GMU)^2  (or the sum of squares of GMU)
+
+        The steps B0, B1 and B2' are performed in the proc script.
+
+        Note: This measure of global correlation is a single number in the
+              range [0, 1] (not in [-1, 1] as some might expect).
+
+        Note: computation of GCOR requires a residual dataset, an EPI mask,
+              and a volume analysis (no surface at the moment).
+
+    -regress_compute_auto_tsnr_stats yes/no : compute auto TSNR stats
+
+            e.g. -regress_compute_auto_tsnr_stats no
+            default: yes
+
+        By default, -regress_compute_tsnr_stats is applied with the 'brain'
+        mask and the APQC_atlas dataset for the final space, if they exist
+        and are appropriate.
+
+        Use this option to prevent automatic computation of those TSNR stats.
+
+        See also -regress_compute_tsnr, -regress_compute_tsnr_stats.
+
+    -regress_compute_tsnr yes/no : compute TSNR dataset from errts
+
+            e.g. -regress_compute_tsnr no
+            default: yes
+
+        By default, a temporal signal to noise (TSNR) dataset is created at
+        the end of the regress block.  The "signal" is the all_runs dataset
+        (input to 3dDeconvolve), and the "noise" is the errts dataset (the
+        residuals from 3dDeconvolve).  TSNR is computed (per voxel) as the
+        mean signal divided by the standard deviation of the noise.
+
+           TSNR = average(signal) / stdev(noise)
+
+        The main difference between the TSNR datasets from the volreg and
+        regress blocks is that the data in the regress block has been
+        smoothed and "completely" detrended (detrended according to the
+        regression model: including polort, motion and stim responses).
+
+        Use this option to prevent the TSNR dataset computation in the
+        'regress' block.
+
+        One can also compute per-ROI statistics over the resulting TSNR
+        dataset via -regress_compute_tsnr_stats.
+
+        See also -volreg_compute_tsnr.
+        See also -regress_compute_tsnr_stats.
+
+    -regress_compute_tsnr_stats ROI_DSET_LABEL ROI_1 ROI_2 ...
+                              : compute TSNR statistics per ROI
+
+            e.g. -regress_compute_tsnr_stats Glasser 4 41 99 999
+
+            e.g. -anat_follower_ROI aeseg epi SUMA/aparc.a2009s+aseg.nii.gz \\
+                 -ROI_import Glasser MNI_Glasser_HCP_v1.0.nii.gz            \\
+                 -ROI_import faves my.favorite.ROIs.nii.gz                  \\
+                 -regress_compute_tsnr_stats aeseg   18 54 11120 12120 2 41 \\
+                 -regress_compute_tsnr_stats Glasser 4 41 99 999
+                 -regress_compute_tsnr_stats faves   ALL_LT
+
+            default: -regress_compute_tsnr_stats brain 1
+
+        Given:
+           - TSNR statistics are being computed in the regress block
+           - there is an EPI-grid ROI dataset with label ROI_DSET_LABEL
+
+        Then one can list ROI regions in each ROI dataset to compute TSNR
+        statistics over.  Details will be output for each ROI region, such as
+        quartiles of the TSNR values, and maximum depth coordinates.  If the
+        ROI dataset has a label table, one can use ALL_LT to use all of them.
+
+        This option results in a compute_ROI_stats.tcsh command being run for
+        the ROI and TSNR datasets, and the ROI indices of interest.
+
+        ROI datasets (and their respective labels) are made via options like
+        -anat_follower_ROI, -ROI_import or even -mask_segment_anat.
+
+      * Is it okay to specify ROI values that do not exist in the ROI dataset.
+        That is somewhat expected with subject specific datasets and resampling.
+
+      * This option is currently automatically applied with a 'brain' ROI and
+        the relevant APQC_atlas, if appropriate.  To override use of such an
+        atlas, specify '-regress_compute_auto_tsnr_stats no'.
+
+        See 'compute_ROI_stats.tcsh -help' for more details.
+        See also -anat_follower_ROI, -ROI_import, -regress_compute_tsnr.
+
+    -regress_mask_tsnr yes/no : apply mask to errts TSNR dataset
+
+            e.g. -regress_mask_tsnr yes
+            default: no
+
+        By default, a temporal signal to noise (TSNR) dataset is created at
+        the end of the regress block.  By default, this dataset is not
+        masked (to match what is done in the regression).
+
+        To mask, apply this option with 'yes'.
+
+      * This dataset was originally masked, with the default changing to
+        match the regression 22 Feb, 2021.
+
+        See also -regress_compute_tsnr.
+
+    -regress_fout yes/no         : output F-stat sub-bricks
+
+            e.g. -regress_fout no
+            default: yes
+
+        This option controls whether to apply -fout in 3dDeconvolve.  The
+        default is yes.
+
+    -regress_make_cbucket yes/no : add a -cbucket option to 3dDeconvolve
+
+            default: 'no'
+
+        Recall that the -bucket dataset (no 'c') contains beta weights and
+        various statistics, but generally not including baseline terms
+        (polort and motion).
+
+        The -cbucket dataset (with a 'c') is a little different in that it
+        contains:
+            - ONLY betas (no t-stats, no F-stats, no contrasts)
+            - ALL betas (including baseline terms)
+        So it has one volume (beta) per regressor in the X-matrix.
+
+        The use is generally for 3dSynthesize, to recreate time series
+        datasets akin to the fitts, but where the user can request any set
+        of parameters to be included (for example, the polort and the main
+        2 regressors of interest).
+
+        Setting this to 'yes' will result in the -cbucket option being
+        added to the 3dDeconvolve command.
+
+        Please see '3dDeconvolve -help' for more details.
+
+    -regress_make_corr_vols LABEL1 ... : create correlation volume dsets
+
+            e.g. -regress_make_corr_vols aeseg FSvent
+            default: one is made against full_mask
+
+        This option is used to specify extra correlation volumes to compute
+        based on the residuals (so generally for resting state analysis).
+
+        What is a such a correlation volume?
+
+           Given: errts     : the residuals from the linear regression
+                  a mask    : to correlate over, e.g. full_mask == 'brain'
+
+           Compute: for each voxel (in the errts, say), compute the correlation
+              against the average over all voxels within the given mask.
+
+         * This is a change (as of Jan, 2020).  This WAS a mean correlation
+           (across masked voxels), but now it is a correlation of the mean
+           (over masked voxels).
+
+        The labels specified can be from any ROI mask, such as those coming
+        via -ROI_import, -anat_follower_ROI, -regress_ROI_PC, or from the
+        automatic masks from -mask_segment_anat.
+
+        See also -ROI_import, -anat_follower_ROI, -regress_ROI_PC,
+                 -mask_segment_anat.
+
+    -regress_mot_as_ort yes/no : regress motion parameters using -ortvec
+
+            default: yes
+            [default changed from 'no' to 'yes' 16 Jan, 2019]
+
+        Applying this option with 'no', motion parameters would be passed
+        to 3dDeconvolve using -stim_file and -stim_base, instead of the
+        default -ortvec.
+
+        Using -ortvec (the default) produces a "cleaner" 3dDeconvolve
+        command, without the many extra -stim_file options.  Otherwise,
+        all results should be the same.
+
+    -regress_motion_per_run : regress motion parameters from each run
+
+            default: regress motion parameters catenated across runs
+
+        By default, motion parameters from the volreg block are catenated
+        across all runs, providing 6 (assuming 3dvolreg) regressors of no
+        interest in the regression block.
+
+        With -regress_motion_per_run, the motion parameters from each run
+        are used as separate regressors, providing a total of (6 * nruns)
+        regressors.
+
+        This allows for the magnitudes of the regressors to vary over each
+        run, rather than using a single (best) magnitude over all runs.
+        So more motion-correlated variance can be accounted for, at the
+        cost of the extra degrees of freedom (6*(nruns-1)).
+
+        This option will apply to all motion regressors, including
+        derivatives (if requested).
+
+        ** This option was previously called -volreg_regress_per_run. **
+
+    -regress_skip_first_outliers NSKIP : ignore the first NSKIP TRs
+
+            e.g. -regress_skip_first_outliers 4
+            default: 0
+
+        When using -regress_censor_outliers, any TR with too high of an
+        outlier fraction will be censored.  But depending on the scanner
+        settings, early TRs might have somewhat higher intensities, leading
+        to them possibly being inappropriately censored.
+
+        To avoid censoring any the first few TRs of each run, apply the
+        -regress_skip_first_outliers option.
+
+        See also -regress_censor_outliers.
+
+    -regress_compute_fitts       : compute fitts via 3dcalc, not 3dDecon
+
+        This option is to save memory during 3dDeconvolve, in the case
+        where the user has requested both the fitts and errts datasets.
+
+        Normally 3dDeconvolve is used to compute both the fitts and errts
+        time series.  But if memory gets tight, it is worth noting that
+        these datasets are redundant, one can be computed from the other
+        (given the all_runs dataset).
+
+            all_runs = fitts + errts
+
+        Using -regress_compute_fitts, -fitts is no longer applied in 3dD
+        (though -errts is).  Instead, note that an all_runs dataset is
+        created just after 3dDeconvolve.  After that step, the script will
+        create fitts as (all_runs-errts) using 3dcalc.
+
+        Note that computation of both errts and fitts datasets is required
+        for this option to be applied.
+
+        See also -regress_est_blur_errts, -regress_errts_prefix,
+        -regress_fitts_prefix and -regress_no_fitts.
+
+    -regress_cormat_warnings Y/N : specify whether to get cormat warnings
+
+            e.g. -mask_cormat_warnings no
+            default: yes
+
+        By default, '1d_tool.py -show_cormat_warnings' is run on the
+        regression matrix.  Any large, pairwise correlations are shown
+        in text output (which is also saved to a text file).
+
+        This option allows one to disable such functionality.
+
+        Please see '1d_tool.py -help' for more details.
+
+    -regress_est_blur_detrend yes/no : use -detrend in blur estimation
+
+            e.g. -regress_est_blur_detrend no
+            default: yes
+
+        This option specifies whether to apply the -detrend option when
+        running 3dFWHMx to estimate the blur (auto correlation function)
+        size/parameters.  It will apply to both epits and errts estimation.
+
+        See also -regress_est_blur_epits, -regress_est_blur_errts.
+        Please see '3dFWHMx -help' for more details.
+
+    -regress_est_blur_epits      : estimate the smoothness of the EPI data
+
+        This option specifies to run 3dFWHMx on each of the EPI datasets
+        used for regression, the results of which are averaged.  These blur
+        values are saved to the file blur_est.$subj.1D, along with any
+        similar output from errts.
+
+        These blur estimates may be input to 3dClustSim, for any multiple
+        testing correction done for this subject.  If 3dClustSim is run at
+        the group level, it is reasonable to average these estimates
+        across all subjects (assuming they were scanned with the same
+        protocol and at the same scanner).
+
+        The mask block is required for this operation (without which the
+        estimates are not reliable).
+
+        Please see '3dFWHMx -help' for more information.
+        See also -regress_est_blur_errts.
+
+    -regress_est_blur_errts      : estimate the smoothness of the errts
+
+        This option specifies to run 3dFWHMx on the errts dataset, output
+        from the regression (by 3dDeconvolve).
+
+        These blur estimates may be input to 3dClustSim, for any multiple
+        testing correction done for this subject.  If 3dClustSim is run at
+        the group level, it is reasonable to average these estimates
+        across all subjects (assuming they were scanned with the same
+        protocol and at the same scanner).
+
+        Note that the errts blur estimates should be not only slightly
+        more accurate than the epits blur estimates, but they should be
+        slightly smaller, too (which is beneficial).
+
+        The mask block is required for this operation (without which the
+        estimates are not reliable).
+
+        Please see '3dFWHMx -help' for more information.
+        See also -regress_est_blur_epits.
+
+    -regress_errts_prefix PREFIX : specify a prefix for the -errts option
+
+            e.g. -regress_fitts_prefix errts
+
+        This option is used to add a -errts option to 3dDeconvolve.  As
+        with -regress_fitts_prefix, only the PREFIX is specified, to which
+        the subject ID will be added.
+
+        Please see '3dDeconvolve -help' for more information.
+        See also -regress_fitts_prefix.
+
+    -regress_fitts_prefix PREFIX : specify a prefix for the -fitts option
+
+            e.g. -regress_fitts_prefix model_fit
+            default: fitts
+
+        By default, the 3dDeconvolve command in the script will be given
+        a '-fitts fitts' option.  This option allows the user to change
+        the prefix applied in the output script.
+
+        The -regress_no_fitts option can be used to eliminate use of -fitts.
+
+        Please see '3dDeconvolve -help' for more information.
+        See also -regress_no_fitts.
+
+    -regress_global_times        : specify -stim_times as global times
+
+            default: 3dDeconvolve figures it out, if it can
+
+        By default, the 3dDeconvolve determines whether -stim_times files
+        are local or global times by the first line of the file.  If it
+        contains at least 2 times (which include '*' characters), it is
+        considered as local_times, otherwise as global_times.
+
+        The -regress_global_times option is mostly added to be symmetric
+        with -regress_local_times, as the only case where it would be
+        needed is when there are other times in the first row, but the
+        should still be viewed as global.
+
+        See also -regress_local_times.
+
+    -regress_local_times         : specify -stim_times as local times
+
+            default: 3dDeconvolve figures it out, if it can
+
+        By default, the 3dDeconvolve determines whether -stim_times files
+        are local or global times by the first line of the file.  If it
+        contains at least 2 times (which include '*' characters), it is
+        considered as local_times, otherwise as global_times.
+
+        In the case where the first run has only 1 stimulus (maybe even
+        every run), the user would need to put an extra '*' after the
+        first stimulus time.  If the first run has no stimuli, then two
+        would be needed ('* *'), but only for the first run.
+
+        Since this may get confusing, being explicit by adding this option
+        is a reasonable thing to do.
+
+        See also -regress_global_times.
+
+    -regress_iresp_prefix PREFIX : specify a prefix for the -iresp option
+
+            e.g. -regress_iresp_prefix model_fit
+            default: iresp
+
+        This option allows the user to change the -iresp prefix applied in
+        the 3dDeconvolve command of the output script.
+
+        By default, the 3dDeconvolve command in the script will be given a
+        set of '-iresp iresp' options, one per stimulus type, unless the
+        regression basis function is GAM.  In the case of GAM, the response
+        form is assumed to be known, so there is no need for -iresp.
+
+        The stimulus label will be appended to this prefix so that a sample
+        3dDeconvolve option might look one of these 2 examples:
+
+            -iresp 7 iresp_stim07
+            -iresp 7 model_fit_donuts
+
+        The -regress_no_iresp option can be used to eliminate use of -iresp.
+
+        Please see '3dDeconvolve -help' for more information.
+        See also -regress_no_iresp, -regress_basis.
+
+    -regress_make_ideal_sum IDEAL.1D : create IDEAL.1D file from regressors
+
+            e.g. -regress_make_ideal_sum ideal_all.1D
+
+        By default, afni_proc.py will compute a 'sum_ideal.1D' file that
+        is the sum of non-polort and non-motion regressors from the
+        X-matrix.  This -regress_make_ideal_sum option is used to specify
+        the output file for that sum (if sum_idea.1D is not desired).
+
+        Note that if there is nothing in the X-matrix except for polort and
+        motion regressors, or if 1d_tool.py cannot tell what is in there
+        (if there is no header information), then all columns will be used.
+
+        Computing the sum means adding a 1d_tool.py command to figure out
+        which columns should be used in the sum (since mixing GAM, TENT,
+        etc., makes it harder to tell up front), and a 3dTstat command to
+        actually sum those columns of the 1D X-matrix (the X-matrix is
+        output by 3dDeconvolve).
+
+        Please see '3dDeconvolve -help', '1d_tool.py -help' and
+        '3dTstat -help'.
+        See also -regress_basis, -regress_no_ideal_sum.
+
+    -regress_motion_file FILE.1D  : use FILE.1D for motion parameters
+
+            e.g. -regress_motion_file motion.1D
+
+        Particularly if the user performs motion correction outside of
+        afni_proc.py, they may wish to specify a motion parameter file
+        other than dfile_rall.1D (the default generated in the volreg
+        block).
+
+        Note: such files no longer need to be copied via -copy_files.
+
+        If the motion file is in a remote directory, include the path,
+        e.g. -regress_motion_file ../subject17/data/motion.1D .
+
+    -regress_no_fitts       : do not supply -fitts to 3dDeconvolve
+
+            e.g. -regress_no_fitts
+
+        This option prevents the program from adding a -fitts option to
+        the 3dDeconvolve command in the output script.
+
+        See also -regress_fitts_prefix.
+
+    -regress_no_ideal_sum      : do not create sum_ideal.1D from regressors
+
+        By default, afni_proc.py will compute a 'sum_ideal.1D' file that
+        is the sum of non-polort and non-motion regressors from the
+        X-matrix.  This option prevents that step.
+
+        See also -regress_make_ideal_sum.
+
+    -regress_no_ideals      : do not generate ideal response curves
+
+            e.g. -regress_no_ideals
+
+        By default, if the GAM or BLOCK basis function is used, ideal
+        response curve files are generated for each stimulus type (from
+        the output X matrix using '3dDeconvolve -x1D').  The names of the
+        ideal response function files look like 'ideal_LABEL.1D', for each
+        stimulus label, LABEL.
+
+        This option is used to suppress generation of those files.
+
+        See also -regress_basis, -regress_stim_labels.
+
+    -regress_no_iresp       : do not supply -iresp to 3dDeconvolve
+
+            e.g. -regress_no_iresp
+
+        This option prevents the program from adding a set of -iresp
+        options to the 3dDeconvolve command in the output script.
+
+        By default -iresp will be used unless the basis function is GAM.
+
+        See also -regress_iresp_prefix, -regress_basis.
+
+    -regress_no_mask        : do not apply the mask in regression
+
+        ** This is now the default, making the option unnecessary.
+
+        This option prevents the program from applying the mask dataset
+        in the scaling or regression steps.
+
+        If the user does not want to apply a mask in the regression
+        analysis, but wants the full_mask dataset for other reasons
+        (such as computing blur estimates), this option can be used.
+
+        See also -regress_est_blur_epits, -regress_est_blur_errts.
+
+    -regress_no_motion      : do not apply motion params in 3dDeconvolve
+
+            e.g. -regress_no_motion
+
+        This option prevents the program from adding the registration
+        parameters (from volreg) to the 3dDeconvolve command, computing
+        the enorm or censoring.
+
+        ** To omit motion regression but to still compute the enorm and
+            possibly censor, use:
+
+                -regress_apply_mot_types none
+
+    -regress_no_motion_demean : do not compute de-meaned motion parameters
+
+            default: do compute them
+
+        Even if they are not applied in the regression, the default is to
+        compute de-meaned motion parameters.  These may give the user a
+        better idea of motion regressors, since their scale will not be
+        affected by jumps across run breaks or multi-run drift.
+
+        This option prevents the program from even computing such motion
+        parameters.  The only real reason to not do it is if there is some
+        problem with the command.
+
+    -regress_no_motion_deriv  : do not compute motion parameter derivatives
+
+            default: do compute them
+
+        Even if they are not applied in the regression, the default is to
+        compute motion parameter derivatives (and de-mean them).  These can
+        give the user a different idea about motion regressors, since the
+        derivatives are a better indication of per-TR motion.  Note that
+        the 'enorm' file that is created (and optionally used for motion
+        censoring) is basically made by collapsing (via the Euclidean Norm
+        - the square root of the sum of the squares) these 6 derivative
+        columns into one.
+
+        This option prevents the program from even computing such motion
+        parameters.  The only real reason to not do it is if there is some
+        problem with the command.
 
             See also -regress_censor_motion.
 
-        -regress_basis BASIS    : specify the regression basis function
+    -regress_no_stim_times  : do not use
 
-                e.g. -regress_basis 'BLOCK(4,1)'
-                e.g. -regress_basis 'BLOCK(5)'
-                e.g. -regress_basis 'TENT(0,14,8)'
-                default: GAM
+        OBSOLETE: please see -regress_use_stim_files
 
-            This option is used to set the basis function used by 3dDeconvolve
-            in the regression step.  This basis function will be applied to
-            all user-supplied regressors (please let me know if there is need
-            to apply different basis functions to different regressors).
+    -regress_opts_fwhmx OPTS ... : specify extra options for 3dFWHMx
 
-         ** Note that use of dmBLOCK requires -stim_times_AM1 (or AM2).  So
-            consider option -regress_stim_types.
+            e.g. -regress_opts_fwhmx -ShowMeClassicFWHM
 
-         ** If using -regress_stim_types 'file' for a particular regressor,
-            the basis function will be ignored.  In such a case, it is safest
-            to use 'NONE' for the corresponding basis function.
+        This option allows the user to add extra options to the 3dFWHMx
+        commands used to get blur estimates.  Note that only one
+        such option should be applied, though multiple parameters
+        (3dFWHMx options) can be passed.
 
-            Please see '3dDeconvolve -help' for more information, or the link:
-                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
-            See also -regress_basis_normall, -regress_stim_times,
-                     -regress_stim_types, -regress_basis_multi.
+        Please see '3dFWHMx -help' for more information.
 
-        -regress_basis_multi BASIS BASIS .. : specify multiple basis functions
+    -regress_opts_3dD OPTS ...   : specify extra options for 3dDeconvolve
 
-                e.g. -regress_basis_multi 'BLOCK(30,1)' 'TENT(0,45,16)' \\
-                                          'BLOCK(30,1)' dmUBLOCK
+            e.g. -regress_opts_3dD -gltsym ../contr/contrast1.txt  \\
+                                   -glt_label 1 FACEvsDONUT        \\
+                                   -jobs 6                         \\
+                                   -GOFORIT 8
 
-            In the case that basis functions vary across stim classes, use
-            this option to list a basis function for each class.  The given
-            basis functions should correspond to the listed -regress_stim_times
-            files, just as the -regress_stim_labels entries do.
+        This option allows the user to add extra options to the 3dDeconvolve
+        command.  Note that only one -regress_opts_3dD should be applied,
+        which may be used for multiple 3dDeconvolve options.
 
-            See also -regress_basis.
+        Please see '3dDeconvolve -help' for more information, or the link:
+            https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
 
-        -regress_basis_normall NORM : specify the magnitude of basis functions
+    -regress_opts_reml OPTS ...  : specify extra options for 3dREMLfit
 
-                e.g. -regress_basis_normall 1.0
+            e.g. -regress_opts_reml                                 \\
+                    -gltsym ../contr/contrast1.txt FACEvsDONUT      \\
+                    -MAXa 0.92
 
-            This option is used to set the '-basis_normall' parameter in
-            3dDeconvolve.  It specifies the height of each basis function.
+        This option allows the user to add extra options to the 3dREMLfit
+        command.  Note that only one -regress_opts_reml should be applied,
+        which may be used for multiple 3dREMLfit options.
 
-            For the example basis functions, -basis_normall is not recommended.
+        Please see '3dREMLfit -help' for more information.
 
-            Please see '3dDeconvolve -help' for more information.
-            See also -regress_basis.
+    -regress_ppi_stim_files FILE FILE ... : specify PPI (and seed) files
 
-        -regress_censor_extern CENSOR.1D : supply an external censor file
+            e.g. -regress_ppi_stim_files PPI.1.A.1D PPI.2.B.1D PPI.3.seed.1D
 
-                e.g. -regress_censor_extern censor_bad_trs.1D
+        Use this option to pass PPI stimulus files for inclusion in
+        3dDeconvolve command.  This list is essentially appended to
+        (and could be replaced by) -regress_extra_stim_files.
 
-            This option is used to provide an initial censor file, if there
-            is some censoring that is desired beyond the automated motion and
-            outlier censoring.
+      * These are not timing files, but direct regressors.
 
-            Any additional censoring (motion or outliers) will be combined.
+        Use -regress_ppi_stim_labels to specify the corresponding labels.
 
-             See also -regress_censor_motion, -regress_censor_outliers.
+        See also -write_ppi_3dD_scripts, -regress_ppi_stim_labels.
 
-        -regress_censor_motion LIMIT : censor TRs with excessive motion
+    -regress_ppi_stim_labels LAB1 LAB2 ... : specify PPI (and seed) labels
 
-                e.g. -regress_censor_motion 0.3
+            e.g. -regress_ppi_stim_files PPI.taskA PPI.taskB PPI.seed
 
-            This option is used to censor TRs where the subject moved too much.
-            "Too much" is decided by taking the derivative of the motion
-            parameters (ignoring shifts between runs) and the sqrt(sum squares)
-            per TR.  If this Euclidean Norm exceeds the given LIMIT, the TR
-            will be censored.
+        Use this option to specify labels for the PPI stimulus files
+        specified via -regress_ppi_stim_files.  This list is essentially
+        appended to (and could be replaced by) -regress_extra_stim_labels.
 
-            This option will result in the creation of 3 censor files:
+        Use -regress_ppi_stim_labels to specify the corresponding labels.
 
-                motion_$subj_censor.1D
-                motion_$subj_CENSORTR.txt
-                motion_$subj_enorm.1D
+        See also -write_ppi_3dD_scripts, -regress_ppi_stim_labels.
 
-            motion_$subj_censor.1D is a 0/1 columnar file to be applied to
-            3dDeconvolve via -censor.  A row with a 1 means to include that TR,
-            while a 0 means to exclude (censor) it.
+    -regress_polort DEGREE  : specify the polynomial degree of baseline
 
-            motion_$subj_CENSORTR.txt is a short text file listing censored
-            TRs, suitable for use with the -CENSORTR option in 3dDeconvolve.
-            The -censor option is the one applied however, so this file is not
-            used, but may be preferable for users to have a quick peek at.
+            e.g. -regress_polort 2
+            default: 1 + floor(run_length / 150.0)
 
-            motion_$subj_enorm.1D is the time series that the LIMIT is applied
-            to in deciding which TRs to censor.  It is the Euclidean norm of
-            the derivatives of the motion parameters.  Plotting this will give
-            users a visual indication of why TRs were censored.
+        3dDeconvolve models the baseline for each run separately, using
+        Legendre polynomials (by default).  This option specifies the
+        degree of polynomial.  Note that this will create DEGREE * NRUNS
+        regressors.
 
-            By default, the TR prior to the large motion derivative will also
-            be censored.  To turn off that behavior, use -regress_censor_prev
-            with parameter 'no'.
+        The default is computed from the length of a run, in seconds, as
+        shown above.  For example, if each run were 320 seconds, then the
+        default polort would be 3 (cubic).
 
-            If censoring the first few TRs from each run is also necessary,
-            use -regress_censor_first_trs.
+      * It is also possible to use a high-pass filter to model baseline
+        drift (using sinusoids).  Since sinusoids do not model quadratic
+        drift well, one could consider using both, as in:
 
-            Please see '1d_tool.py -help' for information on censoring motion.
-            See also -regress_censor_prev and -regress_censor_first_trs.
+            -regress_polort 2         \\
+            -regress_bandpass 0.01 1
 
-        -regress_censor_first_trs N  : censor the first N TRs in each run
+        Here, the sinusoids allow every frequency from 0.01 on up to pass
+        (assuming the Nyquist frequency is <= 1), modeling the lower
+        frequencies as regressors of no interest, along with 3 terms for
+        polort 2.
 
-                e.g.     -regress_censor_first_trs 3
-                default: N = 0
+        Please see '3dDeconvolve -help' for more information.
 
-            If, for example, censoring the first 3 TRs per run is desired, a
-            user might add "-CENSORTR '*:0-2'" to the -regress_opts_3dD option.
-            However, when using -regress_censor_motion, these censoring options
-            must be combined into one for 3dDeconvolve.
+    -regress_reml_exec      : execute 3dREMLfit, matching 3dDeconvolve cmd
 
-            The -regress_censor_first_trs censors those TRs along with any with
-            large motion.
+        3dDeconvolve automatically creates a 3dREMLfit command script to
+        match the regression model of 3dDeconvolve.  Via this option, the
+        user can have that command executed.
 
-            See '-censor_first_trs' under '1d_tool.py -help' for details.
-            See also '-regress_censor_motion'.
+        Note that the X-matrix used in 3dREMLfit is actually generated by
+        3dDeconvolve.  The 3dDeconvolve command generates both the X-matrix
+        and the 3dREMLfit command script, and so it must be run regardless
+        of whether it actually performs the regression.
+
+        To terminate 3dDeconvolve after creation of the X-matrix and
+        3dREMLfit command script, apply -regress_3dD_stop.
 
-        -regress_censor_prev yes/no  : censor TRs preceding large motion
+        See also -regress_3dD_stop.
+
+    -regress_ROI R1 R2 ... : specify a list of mask averages to regress out
 
-                default: -regress_censor_prev yes
+            e.g. -regress_ROI WMe
+            e.g. -regress_ROI brain WMe CSF
+            e.g. -regress_ROI FSvent FSwhite
 
-            Since motion spans two TRs, the derivative is not quite enough
-            information to decide whether it is more appropriate to censor
-            the earlier or later TR.  To error on the safe side, many users
-            choose to censor both.
+        Use this option to regress out one more more known ROI averages.
+        In this case, each ROI (dataset) will be used for a single regressor
+        (one volume cannot be used for multiple ROIs).
 
-            Use this option to specify whether to include the previous TR
-            when censoring.
+        ROIs that can be generated from -mask_segment_anat/_erode include:
 
-            By default this option is applied as 'yes'.  Users may elect not
-            not to censor the previous TRs by setting this to 'no'.
+            name    description     source dataset    creation program
+            -----   --------------  --------------    ----------------
+            brain   EPI brain mask  full_mask         3dAutomask
+                       or, if made: mask_epi_anat     3dAutomask/3dSkullStrip
+            CSF     CSF             mask_CSF_resam    3dSeg -> Classes
+            CSFe    CSF (eroded)    mask_CSFe_resam   3dSeg -> Classes
+            GM      gray matter     mask_GM_resam     3dSeg -> Classes
+            GMe     gray (eroded)   mask_GMe_resam    3dSeg -> Classes
+            WM      white matter    mask_WM_resam     3dSeg -> Classes
+            WMe     white (eroded)  mask_WMe_resam    3dSeg -> Classes
 
-            See also -regress_censor_motion.
+        Other ROI labels can come from -anat_follower_ROI or -ROI_import
+        options, i.e. imported masks.
 
-        -regress_censor_outliers LIMIT : censor TRs with excessive outliers
+      * Use of this option requires either -mask_segment_anat or labels
+        defined via -anat_follower_ROI or -ROI_import options.
 
-                e.g. -regress_censor_outliers 0.15
+        See also -mask_segment_anat/_erode, -anat_follower_ROI, -ROI_import.
+        Please see '3dSeg -help' for more information on the masks.
 
-            This option is used to censor TRs where too many voxels are flagged
-            as outliers by 3dToutcount.  LIMIT should be in [0.0, 1.0], as it
-            is a limit on the fraction of masked voxels.
+    -regress_ROI_PC LABEL NUM_PC    : regress out PCs within mask
 
-            '3dToutcount -automask -fraction' is used to output the fraction of
-            (auto)masked voxels that are considered outliers at each TR.  If
-            the fraction of outlier voxels is greater than LIMIT for some TR,
-            that TR is censored out.
+            e.g. -regress_ROI_PC vent 3
+                 -regress_ROI_PC WMe 3
 
-            Depending on the scanner settings, early TRs might have somewhat
-            higher intensities.  This could lead to the first few TRs of each
-            run being censored.  To avoid censoring the first few TRs of each
-            run, apply the -regress_skip_first_outliers option.
+        Add the top principal components (PCs) over an anatomical mask as
+        regressors of no interest.
 
-            Note that if motion is also being censored, the multiple censor
-            files will be combined (multiplied) before 3dDeconvolve.
+        As with -regress_ROI, each ROI volume is considered a single mask to
+        compute PCs over (for example, here the ventricle and white matter
+        masks are passed individually).
 
-            See '3dToutcount -help' for more details.
-            See also -regress_skip_first_outliers, -regress_censor_motion.
+          - LABEL   : the class label given to this set of regressors
+          - NUM_PC  : the number of principal components to include
 
-        -regress_compute_gcor yes/no : compute GCOR from unit errts
+        The LABEL can apply to something defined via -mask_segment_anat or
+        -anat_follower_ROI (assuming 'epi' grid), and possibly eroded via
+        -mask_segment_erode.  LABELs can also come from -ROI_import options,
+        or be simply 'brain' (defined as the final EPI mask).
+     
+        The -mask_segment* options define ROI labels implicitly (see above),
+        while the user defines ROI labels in any -anat_follower_ROI or
+        -ROI_import options.
 
-                e.g. -regress_compute_gcor no
-                default: yes
+        Method (mask alignment, including 'follower' steps):
 
-            By default, the global correlation (GCOR) is computed from the
-            masked residual time series (errts).
+          The follower steps apply to only -anat_follower* datasets, not to
+          -ROI_import, -mask_import or -mask_segment_anat.
 
-            GCOR can be thought of as the result of:
-                A1. compute the correlations of each voxel with every other
-                    --> can be viewed as an NMASK x NMASK correlation matrix
-                A2. compute GCOR: the average of the NMASK^2 values
+          If -ROI_import is used to define the label, then the follower steps
+          do not apply, the ROI is merely resampled onto the final EPI grid.
 
-            Since step A1 would take a lot of time and disk space, a more
-            efficient computation is desirable:
-                B0. compute USET: scale each voxel time series to unit length
-                B1. compute GMU: the global mean of this unit dataset
-                B2. compute a correlation volume (of each time series with GMU)
-                B3. compute the average of this volume
+          If ROIs are created 'automatically' via 3dSeg (-mask_segment_anat)
+          then the follower steps do not apply.
 
-            The actual computation is simplified even further, as steps B2 and
-            B3 combine as the L2 norm of GMU.  The result is:
-                B2'. length(GMU)^2  (or the sum of squares of GMU)
+          If -anat_follower_ROI is used to define the label, then the
+          follower ROI steps would first be applied to that dataset:
 
-            The steps B0, B1 and B2' are performed in the proc script.
+             F1. if requested (-anat_follower_erode) erode the ROI mask
+             F2. apply all anatomical transformations to the ROI mask
+                 a. catenate all anatomical transformations
+                    i.   anat to EPI?
+                    ii.  affine xform of anat to template?
+                    iii. subsequent non-linear xform of anat to template?
+                 b. sample the transformed mask on the EPI grid
+                 c. use nearest neighbor interpolation, NN
 
-            Note: This measure of global correlation is a single number in the
-                  range [0, 1] (not in [-1, 1] as some might expect).
+        Method (post-mask alignment):
 
-            Note: computation of GCOR requires a residual dataset, an EPI mask,
-                  and a volume analysis (no surface at the moment).
+          P1. extract the top NUM_PC principal components from the volume
+              registered EPI data, over the mask
+              a. detrend the volume registered EPI data at the polort level
+                 to be used in the regression, per run
+              b. catenate the detrended volreg data across runs
+              c. compute the top PCs from the (censored?) time series
+              d. if censoring, zero-fill the time series with volumes of
+                 zeros at the censored TRs, to maintain TR correspondence
+          P2. include those PCs as regressors of no interest
+              a. apply with: 3dDeconvolve -ortvec PCs LABEL
 
-        -regress_compute_tsnr yes/no : compute TSNR dataset from errts
+        Typical usage might start with the FreeSurfer parcellation of the
+        subject's anatomical dataset, followed by ROI extraction using
+        3dcalc (to make a new dataset of just the desired regions).  Then
+        choose the number of components to extract and a label.
 
-                e.g. -regress_compute_tsnr no
-                default: yes
+        That ROI dataset, PC count and label are then applied with this
+        option.
 
-            By default, a temporal signal to noise (TSNR) dataset is created at
-            the end of the regress block.  The "signal" is the all_runs dataset
-            (input to 3dDeconvolve), and the "noise" is the errts dataset (the
-            residuals from 3dDeconvolve).  TSNR is computed (per voxel) as the
-            mean signal divided by the standard deviation of the noise.
+      * The given MASK must be in register with the anatomical dataset,
+        though it does not necessarily need to be on the anatomical grid.
 
-               TSNR = average(signal) / stdev(noise)
+      * Multiple -regress_ROI_PC options can be used.
 
-            The main difference between the TSNR datasets from the volreg and
-            regress blocks is that the data in the regress block has been
-            smoothed and "completely" detrended (detrended according to the
-            regression model: including polort, motion and stim responses).
+        See also -anat_follower, -anat_follower_ROI, -regress_ROI_erode,
+        and -regress_ROI.
 
-            Use this option to prevent the TSNR dataset computation in the
-            'regress' block.
+    -regress_ROI_per_run LABEL ... : regress these ROIs per run
 
-            See also -volreg_compute_tsnr.
+            e.g. -regress_ROI_per_run vent
+            e.g. -regress_ROI_per_run vent WMe
 
-        -regress_mask_tsnr yes/no : apply mask to errts TSNR dataset
+        Use this option to create the given ROI regressors per run.
+        Instead of creating one regressor spanning all runs, this option
+        leads to creating one regressor per run, akin to splitting the
+        long regressor across runs, and zero-padding to be the same length.
 
-                e.g. -regress_mask_tsnr yes
-                default: no
+        See also -regress_ROI_PC, -regress_ROI_PC_per_run.
 
-            By default, a temporal signal to noise (TSNR) dataset is created at
-            the end of the regress block.  By default, this dataset is not
-            masked (to match what is done in the regression).
+    -regress_ROI_PC_per_run LABEL ... : regress these PCs per run
 
-            To mask, apply this option with 'yes'.
+            e.g. -regress_ROI_PC_per_run vent
+            e.g. -regress_ROI_PC_per_run vent WMe
 
-          * This dataset was originally masked, with the default changing to
-            match the regression 22 Feb, 2021.
+        Use this option to create the given PC regressors per run.  So
+        if there are 4 runs and 3 'vent' PCs were requested with the
+        option "-regress_ROI_PC vent 3", then applying this option with
+        the 'vent' label results in not 3 regressors (one per PC), but
+        12 regressors (one per PC per run).
 
-            See also -regress_compute_tsnr.
+        Note that unlike the -regress_ROI_per_run case, this is not merely
+        splitting one signal across runs.  In this case the principle
+        components are be computed per run, almost certainly resulting in
+        different components than those computed across all runs at once.
 
-        -regress_fout yes/no         : output F-stat sub-bricks
+        See also -regress_ROI_PC, -regress_ROI_per_run.
 
-                e.g. -regress_fout no
-                default: yes
+    -regress_RSFC           : perform bandpassing via 3dRSFC
 
-            This option controls whether to apply -fout in 3dDeconvolve.  The
-            default is yes.
+        Use this option flag to run 3dRSFC after the linear regression
+        step (presumably to clean resting state data).  Along with the
+        bandpassed data, 3dRSFC will produce connectivity parameters,
+        saved in the RSFC directory by the proc script.
 
-        -regress_make_cbucket yes/no : add a -cbucket option to 3dDeconvolve
+        The -regress_bandpass option is required, and those bands will be
+        passed directly to 3dRSFC.  Since bandpassing will be done only
+        after the linear regression, censoring is not advisable.
 
-                default: 'no'
+        See also -regress_bandpass, -regress_censor_motion.
+        Please see '3dRSFC -help' for more information.
 
-            Recall that the -bucket dataset (no 'c') contains beta weights and
-            various statistics, but generally not including baseline terms
-            (polort and motion).
+    -regress_RONI IND1 ...  : specify a list of regressors of no interest
 
-            The -cbucket dataset (with a 'c') is a little different in that it
-            contains:
-                - ONLY betas (no t-stats, no F-stats, no contrasts)
-                - ALL betas (including baseline terms)
-            So it has one volume (beta) per regressor in the X-matrix.
+            e.g. -regress_RONI 1 17 22
 
-            The use is generally for 3dSynthesize, to recreate time series
-            datasets akin to the fitts, but where the user can request any set
-            of parameters to be included (for example, the polort and the main
-            2 regressors of interest).
+        Use this option flag regressors as ones of no interest, meaning
+        they are applied to the baseline (for full-F) and the corresponding
+        beta weights are not output (by default at least).
 
-            Setting this to 'yes' will result in the -cbucket option being
-            added to the 3dDeconvolve command.
+        The indices in the list should match those given to 3dDeconvolve.
+        They start at 1 first with the main regressors, and then with any
+        extra regressors (given via -regress_extra_stim_files).  Note that
+        these do not apply to motion regressors.
 
-            Please see '3dDeconvolve -help' for more details.
+        The user is encouraged to check the 3dDeconvolve command in the
+        processing script, to be sure they are applied correctly.
 
-        -regress_make_corr_vols LABEL1 ... : create correlation volume dsets
+    -regress_show_df_info yes/no    : set whether to report DoF information
 
-                e.g. -regress_make_corr_vols aeseg FSvent
-                default: one is made against full_mask
+            e.g.     -regress_show_df_info no
+            default: -regress_show_df_info yes
 
-            This option is used to specify extra correlation volumes to compute
-            based on the residuals (so generally for resting state analysis).
+        This option is used to specify whether get QC information about
+        degrees of freedom using:
 
-            What is a such a correlation volume?
+            1d_tool.py -show_df_info
 
-               Given: errts     : the residuals from the linear regression
-                      a mask    : to correlate over, e.g. full_mask
+        By default, that will be run, saving output to out.df_info.txt.
 
-               Compute: for each voxel (in the errts, say), compute the average
-                  correlation over all voxels within the given mask.  In some
-                  sense, this is a measure of self correlation over a specified
-                  region.
+        Please see '1d_tool.py -help' for more information.
 
-               This is a mean correlation rather than a correlation with the
-               mean.
+    -regress_stim_labels LAB1 ...   : specify labels for stimulus classes
 
-            The labels specified can be from any ROI mask, such as those coming
-            via -anat_follower_ROI, -regress_ROI_PC, or from the automatic
-            masks from -mask_segment_anat.
+            e.g. -regress_stim_labels houses faces donuts
+            default: stim01 stim02 stim03 ...
 
-            See also -anat_follower_ROI, -regress_ROI_PC, -mask_segment_anat.
+        This option is used to apply a label to each stimulus type.  The
+        number of labels should equal the number of files used in the
+        -regress_stim_times option, or the total number of columns in the
+        files used in the -regress_stim_files option.
 
-        -regress_mot_as_ort yes/no : regress motion parameters using -ortvec
+        These labels will be applied as '-stim_label' in 3dDeconvolve.
 
-                default: yes
-                [default changed from 'no' to 'yes' 16 Jan, 2019]
+        Please see '3dDeconvolve -help' for more information.
+        See also -regress_stim_times, -regress_stim_labels.
 
-            Applying this option with 'no', motion parameters would be passed
-            to 3dDeconvolve using -stim_file and -stim_base, instead of the
-            default -ortvec.
+    -regress_stim_times FILE1 ... : specify files used for -stim_times
 
-            Using -ortvec (the default) produces a "cleaner" 3dDeconvolve
-            command, without the many extra -stim_file options.  Otherwise,
-            all results should be the same.
+            e.g. -regress_stim_times ED_stim_times*.1D
+            e.g. -regress_stim_times times_A.1D times_B.1D times_C.1D
 
-        -regress_motion_per_run : regress motion parameters from each run
+        3dDeconvolve will be run using '-stim_times'.  This option is
+        used to specify the stimulus timing files to be applied, one
+        file per stimulus type.  The order of the files given on the
+        command line will be the order given to 3dDeconvolve.  Each of
+        these timing files will be given along with the basis function
+        specified by '-regress_basis'.
 
-                default: regress motion parameters catenated across runs
+        The user must specify either -regress_stim_times or
+        -regress_stim_files if regression is performed, but not both.
+        Note the form of the files is one row per run.  If there is at
+        most one stimulus per run, please add a trailing '*'.
 
-            By default, motion parameters from the volreg block are catenated
-            across all runs, providing 6 (assuming 3dvolreg) regressors of no
-            interest in the regression block.
+        Labels may be specified using the -regress_stim_labels option.
 
-            With -regress_motion_per_run, the motion parameters from each run
-            are used as separate regressors, providing a total of (6 * nruns)
-            regressors.
+        These two examples of such files are for a 3-run experiment.  In
+        the second example, there is only 1 stimulus at all, occurring in
+        run #2.
 
-            This allows for the magnitudes of the regressors to vary over each
-            run, rather than using a single (best) magnitude over all runs.
-            So more motion-correlated variance can be accounted for, at the
-            cost of the extra degrees of freedom (6*(nruns-1)).
+            e.g.            0  12.4  27.3  29
+                            *
+                            30 40 50
 
-            This option will apply to all motion regressors, including
-            derivatives (if requested).
+            e.g.            *
+                            20 *
+                            *
 
-            ** This option was previously called -volreg_regress_per_run. **
+        Please see '3dDeconvolve -help' for more information, or the link:
+            https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+        See also -regress_stim_files, -regress_stim_labels, -regress_basis,
+                 -regress_basis_normall, -regress_polort.
 
-        -regress_skip_first_outliers NSKIP : ignore the first NSKIP TRs
+    -regress_stim_files FILE1 ... : specify TR-locked stim files
 
-                e.g. -regress_skip_first_outliers 4
-                default: 0
+            e.g. -regress_stim_files ED_stim_file*.1D
+            e.g. -regress_stim_files stim_A.1D stim_B.1D stim_C.1D
 
-            When using -regress_censor_outliers, any TR with too high of an
-            outlier fraction will be censored.  But depending on the scanner
-            settings, early TRs might have somewhat higher intensities, leading
-            to them possibly being inappropriately censored.
+        Without the -regress_use_stim_files option, 3dDeconvolve will be
+        run using '-stim_times', not '-stim_file'.  The user can still
+        specify the 3dDeconvolve -stim_file files here, but they would
+        then be converted to -stim_times files using the script,
+        make_stim_times.py .
 
-            To avoid censoring any the first few TRs of each run, apply the
-            -regress_skip_first_outliers option.
+        It might be more educational for the user to run make_stim_times.py
+        outside afni_proc.py (such as was done before example 2, above), or
+        to create the timing files directly.
 
-            See also -regress_censor_outliers.
+        Each given file can be for multiple stimulus classes, where one
+        column is for one stim class, and each row represents a TR.  So
+        each file should have NUM_RUNS * NUM_TRS rows.
 
-        -regress_compute_fitts       : compute fitts via 3dcalc, not 3dDecon
+        The stim_times files will be labeled stim_times.NN.1D, where NN
+        is the stimulus index.
 
-            This option is to save memory during 3dDeconvolve, in the case
-            where the user has requested both the fitts and errts datasets.
+        Note that if the stimuli were presented at a fixed time after
+        the beginning of a TR, the user should consider the option,
+        -regress_stim_times_offset, to apply that offset.
 
-            Normally 3dDeconvolve is used to compute both the fitts and errts
-            time series.  But if memory gets tight, it is worth noting that
-            these datasets are redundant, one can be computed from the other
-            (given the all_runs dataset).
+        ---
 
-                all_runs = fitts + errts
+        If the -regress_use_stim_files option is provided, 3dDeconvolve
+        will be run using each stim_file as a regressor.  The order of the
+        regressors should match the order of any labels, provided via the
+        -regress_stim_labels option.
 
-            Using -regress_compute_fitts, -fitts is no longer applied in 3dD
-            (though -errts is).  Instead, note that an all_runs dataset is
-            created just after 3dDeconvolve.  After that step, the script will
-            create fitts as (all_runs-errts) using 3dcalc.
+        Alternately, this can be done via -regress_stim_times, along
+        with -regress_stim_types 'file'.
 
-            Note that computation of both errts and fitts datasets is required
-            for this option to be applied.
+        Please see '3dDeconvolve -help' for more information, or the link:
+            https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+        See also -regress_stim_times, -regress_stim_labels, -regress_basis,
+                 -regress_basis_normall, -regress_polort,
+                 -regress_stim_times_offset, -regress_use_stim_files.
 
-            See also -regress_est_blur_errts, -regress_errts_prefix,
-            -regress_fitts_prefix and -regress_no_fitts.
+    -regress_extra_stim_files FILE1 ... : specify extra stim files
 
-        -regress_cormat_warnings Y/N : specify whether to get cormat warnings
+            e.g. -regress_extra_stim_files resp.1D cardiac.1D
+            e.g. -regress_extra_stim_files regs_of_no_int_*.1D
 
-                e.g. -mask_cormat_warnings no
-                default: yes
+        Use this option to specify extra files to be applied with the
+        -stim_file option in 3dDeconvolve (as opposed to the more usual
+        option, -stim_times).
 
-            By default, '1d_tool.py -show_cormat_warnings' is run on the
-            regression matrix.  Any large, pairwise correlations are shown
-            in text output (which is also saved to a text file).
+        These files will not be converted to stim_times format.
 
-            This option allows one to disable such functionality.
+        Corresponding labels can be given with -regress_extra_stim_labels.
 
-            Please see '1d_tool.py -help' for more details.
+        See also -regress_extra_stim_labels, -regress_ROI, -regress_RONI.
 
-        -regress_est_blur_detrend yes/no : use -detrend in blur estimation
+    -regress_extra_stim_labels LAB1 ... : specify extra stim file labels
 
-                e.g. -regress_est_blur_detrend no
-                default: yes
+            e.g. -regress_extra_stim_labels resp cardiac
 
-            This option specifies whether to apply the -detrend option when
-            running 3dFWHMx to estimate the blur (auto correlation function)
-            size/parameters.  It will apply to both epits and errts estimation.
+        If -regress_extra_stim_files is given, the user may want to specify
+        labels for those extra stimulus files.  This option provides that
+        mechanism.  If this option is not given, default labels will be
+        assigned (like stim17, for example).
 
-            See also -regress_est_blur_epits, -regress_est_blur_errts.
-            Please see '3dFWHMx -help' for more details.
+        Note that the number of entries in this list should match the
+        number of extra stim files.
 
-        -regress_est_blur_epits      : estimate the smoothness of the EPI data
+        See also -regress_extra_stim_files.
 
-            This option specifies to run 3dFWHMx on each of the EPI datasets
-            used for regression, the results of which are averaged.  These blur
-            values are saved to the file blur_est.$subj.1D, along with any
-            similar output from errts.
+    -regress_stim_times_offset OFFSET : add OFFSET to -stim_times files
 
-            These blur estimates may be input to 3dClustSim, for any multiple
-            testing correction done for this subject.  If 3dClustSim is run at
-            the group level, it is reasonable to average these estimates
-            across all subjects (assuming they were scanned with the same
-            protocol and at the same scanner).
+            e.g. -regress_stim_times_offset 1.25
+            e.g. -regress_stim_times_offset -9.2
+            default: 0
 
-            The mask block is required for this operation (without which the
-            estimates are not reliable).
+        With -regress_stim_times:
 
-            Please see '3dFWHMx -help' for more information.
-            See also -regress_est_blur_errts.
+           If the -regress_stim_times option is uses, and if ALL stim files
+           are timing files, then timing_tool.py will be used to add the
+           time offset to each -regress_stim_times file as it is copied into
+           the stimuli directory (near the beginning of the script).
 
-        -regress_est_blur_errts      : estimate the smoothness of the errts
+        With -regress_stim_files:
 
-            This option specifies to run 3dFWHMx on the errts dataset, output
-            from the regression (by 3dDeconvolve).
+           If the -regress_stim_files option is used (so the script would
+           convert -stim_files to -stim_times before 3dDeconvolve), the
+           user may want to add an offset to the times in the resulting
+           timing files.
 
-            These blur estimates may be input to 3dClustSim, for any multiple
-            testing correction done for this subject.  If 3dClustSim is run at
-            the group level, it is reasonable to average these estimates
-            across all subjects (assuming they were scanned with the same
-            protocol and at the same scanner).
+           For example, if -tshift_align_to is applied and the user chooses
+           to align volumes to the middle of the TR, it might be appropriate
+           to add TR/2 to the times of the stim_times files.
 
-            Note that the errts blur estimates should be not only slightly
-            more accurate than the epits blur estimates, but they should be
-            slightly smaller, too (which is beneficial).
+           This OFFSET will be applied to the make_stim_times.py command in
+           the output script.
 
-            The mask block is required for this operation (without which the
-            estimates are not reliable).
+        Please see 'make_stim_times.py -help' for more information.
+        See also -regress_stim_files, -regress_use_stim_files,
+                 -regress_stim_times and -tshift_align_to.
 
-            Please see '3dFWHMx -help' for more information.
-            See also -regress_est_blur_epits.
+    -regress_stim_types TYPE1 TYPE2 ... : specify list of stim types
 
-        -regress_errts_prefix PREFIX : specify a prefix for the -errts option
+            e.g. -regress_stim_types times times AM2 AM2 times AM1 file
+            e.g. -regress_stim_types AM2
+            default: times
 
-                e.g. -regress_fitts_prefix errts
+        If amplitude, duration or individual modulation is desired with
+        any of the stimulus timing files provided via -regress_stim_files,
+        then this option should be used to specify one (if all of the types
+        are the same) or a list of stimulus timing types.  One can also use
+        the type 'file' for the case of -stim_file, where the input is a 1D
+        regressor instead of stimulus times.
 
-            This option is used to add a -errts option to 3dDeconvolve.  As
-            with -regress_fitts_prefix, only the PREFIX is specified, to which
-            the subject ID will be added.
+        The types should be (possibly repeated) elements of the set:
+        {times, AM1, AM2, IM}, where they indicate:
 
-            Please see '3dDeconvolve -help' for more information.
-            See also -regress_fitts_prefix.
+            times:  a standard stimulus timing file (not married)
+                    ==> use -stim_times in 3dDeconvolve command
 
-        -regress_fitts_prefix PREFIX : specify a prefix for the -fitts option
+            AM1:    have one or more married parameters
+                    ==> use -stim_times_AM1 in 3dDeconvolve command
 
-                e.g. -regress_fitts_prefix model_fit
-                default: fitts
+            AM2:    have one or more married parameters
+                    ==> use -stim_times_AM2 in 3dDeconvolve command
 
-            By default, the 3dDeconvolve command in the script will be given
-            a '-fitts fitts' option.  This option allows the user to change
-            the prefix applied in the output script.
+            IM:     NO married parameters, but get beta for each stim
+                    ==> use -stim_times_IM in 3dDeconvolve command
 
-            The -regress_no_fitts option can be used to eliminate use of -fitts.
+            file:   a 1D regressor, not a stimulus timing file
+                    ==> use -stim_file in 3dDeconvolve command
 
-            Please see '3dDeconvolve -help' for more information.
-            See also -regress_no_fitts.
+        Please see '3dDeconvolve -help' for more information.
+        See also -regress_stim_times.
+        See also example 7 (esoteric options).
 
-        -regress_global_times        : specify -stim_times as global times
+    -regress_use_stim_files : use -stim_file in regression, not -stim_times
 
-                default: 3dDeconvolve figures it out, if it can
+        The default operation of afni_proc.py is to convert TR-locked files
+        for the 3dDeconvolve -stim_file option to timing files for the
+        3dDeconvolve -stim_times option.
 
-            By default, the 3dDeconvolve determines whether -stim_times files
-            are local or global times by the first line of the file.  If it
-            contains at least 2 times (which include '*' characters), it is
-            considered as local_times, otherwise as global_times.
+        If the -regress_use_stim_times option is provided, then no such
+        conversion will take place.  This assumes the -regress_stim_files
+        option is applied to provide such -stim_file files.
 
-            The -regress_global_times option is mostly added to be symmetric
-            with -regress_local_times, as the only case where it would be
-            needed is when there are other times in the first row, but the
-            should still be viewed as global.
+        This option has been renamed from '-regress_no_stim_times'.
 
-            See also -regress_local_times.
+        Please see '3dDeconvolve -help' for more information.
+        See also -regress_stim_files, -regress_stim_times,
+                 -regress_stim_labels.
 
-        -regress_local_times         : specify -stim_times as local times
+    -regress_extra_ortvec FILE1 ... : specify extra -ortvec files
 
-                default: 3dDeconvolve figures it out, if it can
+            e.g. -regress_extra_ortvec ort_resp.1D ort_cardio.1D
+            e.g. -regress_extra_ortvec lots_of_orts.1D
 
-            By default, the 3dDeconvolve determines whether -stim_times files
-            are local or global times by the first line of the file.  If it
-            contains at least 2 times (which include '*' characters), it is
-            considered as local_times, otherwise as global_times.
+        Use this option to specify extra files to be applied with the
+        -ortvec option in 3dDeconvolve.  These are applied as regressors
+        of no interest, going into the baseline model.
 
-            In the case where the first run has only 1 stimulus (maybe even
-            every run), the user would need to put an extra '*' after the
-            first stimulus time.  If the first run has no stimuli, then two
-            would be needed ('* *'), but only for the first run.
+        These files should be in 1D format, columns of regressors in text
+        files.  They are not modified by the program, and should match the
+        length of the final regression.
 
-            Since this may get confusing, being explicit by adding this option
-            is a reasonable thing to do.
+        Corresponding labels can be set with -regress_extra_ortvec_labels.
 
-            See also -regress_global_times.
+        See also -regress_extra_ortvec_labels.
 
-        -regress_iresp_prefix PREFIX : specify a prefix for the -iresp option
+    -regress_extra_ortvec_labels LAB1 ... : specify label for extra ortvecs
 
-                e.g. -regress_iresp_prefix model_fit
-                default: iresp
+            e.g. -regress_extra_ortvec_labels resp cardio
+            e.g. -regress_extra_ortvec_labels EXTERNAL_ORTs
 
-            This option allows the user to change the -iresp prefix applied in
-            the 3dDeconvolve command of the output script.
+        Use this option to specify labels to correspond with files given
+        by -regress_extra_ortvec.  There should be one label per file.
 
-            By default, the 3dDeconvolve command in the script will be given a
-            set of '-iresp iresp' options, one per stimulus type, unless the
-            regression basis function is GAM.  In the case of GAM, the response
-            form is assumed to be known, so there is no need for -iresp.
+        See also -regress_extra_ortvec.
 
-            The stimulus label will be appended to this prefix so that a sample
-            3dDeconvolve option might look one of these 2 examples:
+    -----------------------------------------------------------------
+    3dClustSim options ~3~
 
-                -iresp 7 iresp_stim07
-                -iresp 7 model_fit_donuts
+    -regress_run_clustsim yes/no : add 3dClustSim attrs to stats dset
 
-            The -regress_no_iresp option can be used to eliminate use of -iresp.
+            e.g. -regress_run_clustsim no
+            default: yes
 
-            Please see '3dDeconvolve -help' for more information.
-            See also -regress_no_iresp, -regress_basis.
+        This option controls whether 3dClustSim will be executed after the
+        regression analysis.  Since the default is 'yes', the effective use
+        of this option would be to turn off the operation.
 
-        -regress_make_ideal_sum IDEAL.1D : create IDEAL.1D file from regressors
+        3dClustSim generates a table of cluster sizes/alpha values that can
+        then be stored in the stats dataset for a simple multiple
+        comparison correction in the cluster interface of the afni GUI, or
+        which can be applied via a program like 3dClusterize.
 
-                e.g. -regress_make_ideal_sum ideal_all.1D
+        The blur estimates and mask dataset are required, and so the
+        option is only relevant in the context of blur estimation.
 
-            By default, afni_proc.py will compute a 'sum_ideal.1D' file that
-            is the sum of non-polort and non-motion regressors from the
-            X-matrix.  This -regress_make_ideal_sum option is used to specify
-            the output file for that sum (if sum_idea.1D is not desired).
+        Please see '3dClustSim -help' for more information.
+        See also -regress_est_blur_epits, -regress_est_blur_epits and
+                 -regress_opts_CS.
 
-            Note that if there is nothing in the X-matrix except for polort and
-            motion regressors, or if 1d_tool.py cannot tell what is in there
-            (if there is no header information), then all columns will be used.
+    -regress_CS_NN LEVELS   : specify NN levels for 3dClustSim command
 
-            Computing the sum means adding a 1d_tool.py command to figure out
-            which columns should be used in the sum (since mixing GAM, TENT,
-            etc., makes it harder to tell up front), and a 3dTstat command to
-            actually sum those columns of the 1D X-matrix (the X-matrix is
-            output by 3dDeconvolve).
+            e.g.     -regress_CS_NN 1
+            default: -regress_CS_NN 123
 
-            Please see '3dDeconvolve -help', '1d_tool.py -help' and
-            '3dTstat -help'.
-            See also -regress_basis, -regress_no_ideal_sum.
+        This option allows the user to specify which nearest neighbors to
+        consider when clustering.  Cluster results will be generated for
+        each included NN level.  Using multiple levels means being able to
+        choose between those same levels when looking at the statistical
+        results using the afni GUI.
 
-        -regress_motion_file FILE.1D  : use FILE.1D for motion parameters
+        The LEVELS should be chosen from the set {1,2,3}, where the
+        respective levels mean "shares a face", "shares an edge" and
+        "shares a corner", respectively.  Any non-empty subset can be used.
+        They should be specified as is with 3dClustSim.
 
-                e.g. -regress_motion_file motion.1D
+        So there are 7 valid subsets: 1, 2, 3, 12, 13, 23, and 123.
 
-            Particularly if the user performs motion correction outside of
-            afni_proc.py, they may wish to specify a motion parameter file
-            other than dfile_rall.1D (the default generated in the volreg
-            block).
+        Please see '3dClustSim -help' for details on its '-NN' option.
 
-            Note: such files no longer need to be copied via -copy_files.
+    -regress_opts_CS OPTS ...    : specify extra options for 3dClustSim
 
-            If the motion file is in a remote directory, include the path,
-            e.g. -regress_motion_file ../subject17/data/motion.1D .
+            e.g. -regress_opts_CS -athr 0.05 0.01 0.005 0.001
 
-        -regress_no_fitts       : do not supply -fitts to 3dDeconvolve
+        This option allows the user to add extra options to the 3dClustSim
+        command.  Only 1 such option should be applied, though multiple
+        options to 3dClustSim can be included.
 
-                e.g. -regress_no_fitts
+        Please see '3dClustSim -help' for more information.
+        See also -regress_run_clustsim.
 
-            This option prevents the program from adding a -fitts option to
-            the 3dDeconvolve command in the output script.
+    -ROI_import LABEL RSET       : import a final grid ROI with the given label
 
-            See also -regress_fitts_prefix.
+            e.g. -ROI_import Glasser MNI_Glasser_HCP_v1.0.nii.gz
+            e.g. -ROI_import Benny my_habenula_rois.nii.gz
+            e.g. -ROI_import Benny path/to/ROIs/my_habenula_rois.nii.gz
 
-        -regress_no_ideal_sum      : do not create sum_ideal.1D from regressors
+        Use this option to import an ROI dataset that is in the final space of
+        the EPI data.  It will merely be resampled onto the final EPI grid
+        (not transformed).
 
-            By default, afni_proc.py will compute a 'sum_ideal.1D' file that
-            is the sum of non-polort and non-motion regressors from the
-            X-matrix.  This option prevents that step.
+            o  this might be based on the group template
+            o  no warping will be done to this dataset
+            o  this dataset WILL be resampled to match the final EPI
 
-            See also -regress_make_ideal_sum.
+        This option was added to be applied with -regress_compute_tsnr_stats,
+        for example:
 
-        -regress_no_ideals      : do not generate ideal response curves
+            -ROI_import Glasser MNI_Glasser_HCP_v1.0.nii.gz  \\
+            -regress_compute_tsnr_stats Glasser 4 41 99 999  \\
 
-                e.g. -regress_no_ideals
-
-            By default, if the GAM or BLOCK basis function is used, ideal
-            response curve files are generated for each stimulus type (from
-            the output X matrix using '3dDeconvolve -x1D').  The names of the
-            ideal response function files look like 'ideal_LABEL.1D', for each
-            stimulus label, LABEL.
-
-            This option is used to suppress generation of those files.
-
-            See also -regress_basis, -regress_stim_labels.
-
-        -regress_no_iresp       : do not supply -iresp to 3dDeconvolve
-
-                e.g. -regress_no_iresp
-
-            This option prevents the program from adding a set of -iresp
-            options to the 3dDeconvolve command in the output script.
-
-            By default -iresp will be used unless the basis function is GAM.
-
-            See also -regress_iresp_prefix, -regress_basis.
-
-        -regress_no_mask        : do not apply the mask in regression
-
-            ** This is now the default, making the option unnecessary.
-
-            This option prevents the program from applying the mask dataset
-            in the scaling or regression steps.
-
-            If the user does not want to apply a mask in the regression
-            analysis, but wants the full_mask dataset for other reasons
-            (such as computing blur estimates), this option can be used.
-
-            See also -regress_est_blur_epits, -regress_est_blur_errts.
-
-        -regress_no_motion      : do not apply motion params in 3dDeconvolve
-
-                e.g. -regress_no_motion
-
-            This option prevents the program from adding the registration
-            parameters (from volreg) to the 3dDeconvolve command.
-
-        -regress_no_motion_demean : do not compute de-meaned motion parameters
-
-                default: do compute them
-
-            Even if they are not applied in the regression, the default is to
-            compute de-meaned motion parameters.  These may give the user a
-            better idea of motion regressors, since their scale will not be
-            affected by jumps across run breaks or multi-run drift.
-
-            This option prevents the program from even computing such motion
-            parameters.  The only real reason to not do it is if there is some
-            problem with the command.
-
-        -regress_no_motion_deriv  : do not compute motion parameter derivatives
-
-                default: do compute them
-
-            Even if they are not applied in the regression, the default is to
-            compute motion parameter derivatives (and de-mean them).  These can
-            give the user a different idea about motion regressors, since the
-            derivatives are a better indication of per-TR motion.  Note that
-            the 'enorm' file that is created (and optionally used for motion
-            censoring) is basically made by collapsing (via the Euclidean Norm
-            - the square root of the sum of the squares) these 6 derivative
-            columns into one.
-
-            This option prevents the program from even computing such motion
-            parameters.  The only real reason to not do it is if there is some
-            problem with the command.
-
-                See also -regress_censor_motion.
-
-        -regress_no_stim_times  : do not use
-
-            OBSOLETE: please see -regress_use_stim_files
-
-        -regress_opts_fwhmx OPTS ... : specify extra options for 3dFWHMx
-
-                e.g. -regress_opts_fwhmx -ShowMeClassicFWHM
-
-            This option allows the user to add extra options to the 3dFWHMx
-            commands used to get blur estimates.  Note that only one
-            such option should be applied, though multiple parameters
-            (3dFWHMx options) can be passed.
-
-            Please see '3dFWHMx -help' for more information.
-
-        -regress_opts_3dD OPTS ...   : specify extra options for 3dDeconvolve
-
-                e.g. -regress_opts_3dD -gltsym ../contr/contrast1.txt  \\
-                                       -glt_label 1 FACEvsDONUT        \\
-                                       -jobs 6                         \\
-                                       -GOFORIT 8
-
-            This option allows the user to add extra options to the 3dDeconvolve
-            command.  Note that only one -regress_opts_3dD should be applied,
-            which may be used for multiple 3dDeconvolve options.
-
-            Please see '3dDeconvolve -help' for more information, or the link:
-                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
-
-        -regress_opts_reml OPTS ...  : specify extra options for 3dREMLfit
-
-                e.g. -regress_opts_reml                                 \\
-                        -gltsym ../contr/contrast1.txt FACEvsDONUT      \\
-                        -MAXa 0.92
-
-            This option allows the user to add extra options to the 3dREMLfit
-            command.  Note that only one -regress_opts_reml should be applied,
-            which may be used for multiple 3dREMLfit options.
-
-            Please see '3dREMLfit -help' for more information.
-
-        -regress_ppi_stim_files FILE FILE ... : specify PPI (and seed) files
-
-                e.g. -regress_ppi_stim_files PPI.1.A.1D PPI.2.B.1D PPI.3.seed.1D
-
-            Use this option to pass PPI stimulus files for inclusion in
-            3dDeconvolve command.  This list is essentially appended to
-            (and could be replaced by) -regress_extra_stim_files.
-
-          * These are not timing files, but direct regressors.
-
-            Use -regress_ppi_stim_labels to specify the corresponding labels.
-
-            See also -write_ppi_3dD_scripts, -regress_ppi_stim_labels.
-
-        -regress_ppi_stim_labels LAB1 LAB2 ... : specify PPI (and seed) labels
-
-                e.g. -regress_ppi_stim_files PPI.taskA PPI.taskB PPI.seed
-
-            Use this option to specify labels for the PPI stimulus files
-            specified via -regress_ppi_stim_files.  This list is essentially
-            appended to (and could be replaced by) -regress_extra_stim_labels.
-
-            Use -regress_ppi_stim_labels to specify the corresponding labels.
-
-            See also -write_ppi_3dD_scripts, -regress_ppi_stim_labels.
-
-        -regress_polort DEGREE  : specify the polynomial degree of baseline
-
-                e.g. -regress_polort 2
-                default: 1 + floor(run_length / 150.0)
-
-            3dDeconvolve models the baseline for each run separately, using
-            Legendre polynomials (by default).  This option specifies the
-            degree of polynomial.  Note that this will create DEGREE * NRUNS
-            regressors.
-
-            The default is computed from the length of a run, in seconds, as
-            shown above.  For example, if each run were 320 seconds, then the
-            default polort would be 3 (cubic).
-
-          * It is also possible to use a high-pass filter to model baseline
-            drift (using sinusoids).  Since sinusoids do not model quadratic
-            drift well, one could consider using both, as in:
-
-                -regress_polort 2         \\
-                -regress_bandpass 0.01 1
-
-            Here, the sinusoids allow every frequency from 0.01 on up to pass
-            (assuming the Nyquist frequency is <= 1), modeling the lower
-            frequencies as regressors of no interest, along with 3 terms for
-            polort 2.
-
-            Please see '3dDeconvolve -help' for more information.
-
-        -regress_reml_exec      : execute 3dREMLfit, matching 3dDeconvolve cmd
-
-            3dDeconvolve automatically creates a 3dREMLfit command script to
-            match the regression model of 3dDeconvolve.  Via this option, the
-            user can have that command executed.
-
-            Note that the X-matrix used in 3dREMLfit is actually generated by
-            3dDeconvolve.  The 3dDeconvolve command generates both the X-matrix
-            and the 3dREMLfit command script, and so it must be run regardless
-            of whether it actually performs the regression.
-
-            To terminate 3dDeconvolve after creation of the X-matrix and
-            3dREMLfit command script, apply -regress_3dD_stop.
-
-            See also -regress_3dD_stop.
-
-        -regress_ROI R1 R2 ... : specify a list of mask averages to regress out
-
-                e.g. -regress_ROI WMe
-                e.g. -regress_ROI brain WMe CSF
-                e.g. -regress_ROI FSvent FSwhite
-
-            Use this option to regress out one more more known ROI averages.
-            ROIs that can be generated from -mask_segment_anat/_erode include:
-
-                name    description     source dataset    creation program
-                -----   --------------  --------------    ----------------
-                brain   EPI brain mask  full_mask         3dAutomask
-                CSF     CSF             mask_CSF_resam    3dSeg -> Classes
-                CSFe    CSF (eroded)    mask_CSFe_resam   3dSeg -> Classes
-                GM      gray matter     mask_GM_resam     3dSeg -> Classes
-                GMe     gray (eroded)   mask_GMe_resam    3dSeg -> Classes
-                WM      white matter    mask_WM_resam     3dSeg -> Classes
-                WMe     white (eroded)  mask_WMe_resam    3dSeg -> Classes
-
-            Other ROI labels can come from -anat_follower_ROI options, i.e.
-            imported masks.
-
-          * Use of this option requires either -mask_segment_anat or labels
-            defined via -anat_follower_ROI options.
-
-            See also -mask_segment_anat/_erode, -anat_follower_ROI.
-            Please see '3dSeg -help' for more information on the masks.
-
-        -regress_ROI_PC LABEL NUM_PC    : regress out PCs within mask
-
-                e.g. -regress_ROI_PC vent 3
-                     -regress_ROI_PC WMe 3
-
-            Add the top principal components (PCs) over an anatomical mask as
-            regressors of no interest.
-
-              - LABEL   : the class label given to this set of regressors
-              - NUM_PC  : the number of principal components to include
-
-            The LABEL can apply to something defined via -mask_segment_anat
-            maybe with -mask_segment_erode, or from -anat_follower_ROI
-            (assuming 'epi' grid), or 'brain' (full_mask).  The -mask_segment*
-            options define ROI labels implicitly (see above), while the user
-            defines ROI labels in any -anat_follower_ROI options.
-
-            Method (including 'follower' steps):
-
-              If -anat_follower_ROI is used to define the label, then the
-              follower ROI steps would first be applied to that dataset.
-
-              If ROIs are created 'automatically' via 3dSeg (-mask_segment_anat)
-              then the follower steps do not apply.
-
-              F1. if requested (-anat_follower_erode) erode the ROI mask
-              F2. apply all anatomical transformations to the ROI mask
-                  a. catenate all anatomical transformations
-                     i.   anat to EPI?
-                     ii.  affine xform of anat to template?
-                     iii. subsequent non-linear xform of anat to template?
-                  b. sample the transformed mask on the EPI grid
-                  c. use nearest neighbor interpolation, NN
-
-           Method (post-mask alignment):
-
-              P1. extract the top NUM_PC principal components from the volume
-                  registered EPI data, over the mask
-                  a. detrend the volume registered EPI data at the polort level
-                     to be used in the regression, per run
-                  b. catenate the detrended volreg data across runs
-                  c. compute the top PCs from the (censored?) time series
-                  d. if censoring, zero-fill the time series with volumes of
-                     zeros at the censored TRs, to maintain TR correspondence
-              P2. include those PCs as regressors of no interest
-                  a. apply with: 3dDeconvolve -ortvec PCs LABEL
-
-            Typical usage might start with the FreeSurfer parcellation of the
-            subject's anatomical dataset, followed by ROI extraction using
-            3dcalc (to make a new dataset of just the desired regions).  Then
-            choose the number of components to extract and a label.
-
-            That ROI dataset, PC count and label are then applied with this
-            option.
-
-          * The given MASK must be in register with the anatomical dataset,
-            though it does not necessarily need to be on the anatomical grid.
-
-          * Multiple -regress_ROI_PC options can be used.
-
-            See also -anat_follower, -anat_follower_ROI, -regress_ROI_erode,
-            and -regress_ROI.
-
-        -regress_ROI_per_run LABEL ... : regress these ROIs per run
-
-                e.g. -regress_ROI_per_run vent
-                e.g. -regress_ROI_per_run vent WMe
-
-            Use this option to create the given ROI regressors per run.
-            Instead of creating one regressor spanning all runs, this option
-            leads to creating one regressor per run, akin to splitting the
-            long regressor across runs, and zero-padding to be the same length.
-
-            See also -regress_ROI_PC, -regress_ROI_PC_per_run.
-
-        -regress_ROI_PC_per_run LABEL ... : regress these PCs per run
-
-                e.g. -regress_ROI_PC_per_run vent
-                e.g. -regress_ROI_PC_per_run vent WMe
-
-            Use this option to create the given PC regressors per run.  So
-            if there are 4 runs and 3 'vent' PCs were requested with the
-            option "-regress_ROI_PC vent 3", then applying this option with
-            the 'vent' label results in not 3 regressors (one per PC), but
-            12 regressors (one per PC per run).
-
-            Note that unlike the -regress_ROI_per_run case, this is not merely
-            splitting one signal across runs.  In this case the principle
-            components are be computed per run, almost certainly resulting in
-            different components than those computed across all runs at once.
-
-            See also -regress_ROI_PC, -regress_ROI_per_run.
-
-        -regress_RSFC           : perform bandpassing via 3dRSFC
-
-            Use this option flag to run 3dRSFC after the linear regression
-            step (presumably to clean resting state data).  Along with the
-            bandpassed data, 3dRSFC will produce connectivity parameters,
-            saved in the RSFC directory by the proc script.
-
-            The -regress_bandpass option is required, and those bands will be
-            passed directly to 3dRSFC.  Since bandpassing will be done only
-            after the linear regression, censoring is not advisable.
-
-            See also -regress_bandpass, -regress_censor_motion.
-            Please see '3dRSFC -help' for more information.
-
-        -regress_RONI IND1 ...  : specify a list of regressors of no interest
-
-                e.g. -regress_RONI 1 17 22
-
-            Use this option flag regressors as ones of no interest, meaning
-            they are applied to the baseline (for full-F) and the corresponding
-            beta weights are not output (by default at least).
-
-            The indices in the list should match those given to 3dDeconvolve.
-            They start at 1 first with the main regressors, and then with any
-            extra regressors (given via -regress_extra_stim_files).  Note that
-            these do not apply to motion regressors.
-
-            The user is encouraged to check the 3dDeconvolve command in the
-            processing script, to be sure they are applied correctly.
-
-        -regress_show_df_info yes/no    : set whether to report DoF information
-
-                e.g.     -regress_show_df_info no
-                default: -regress_show_df_info yes
-
-            This option is used to specify whether get QC information about
-            degrees of freedom using:
-
-                1d_tool.py -show_df_info
-
-            By default, that will be run, saving output to out.df_info.txt.
-
-            Please see '1d_tool.py -help' for more information.
-
-        -regress_stim_labels LAB1 ...   : specify labels for stimulus classes
-
-                e.g. -regress_stim_labels houses faces donuts
-                default: stim01 stim02 stim03 ...
-
-            This option is used to apply a label to each stimulus type.  The
-            number of labels should equal the number of files used in the
-            -regress_stim_times option, or the total number of columns in the
-            files used in the -regress_stim_files option.
-
-            These labels will be applied as '-stim_label' in 3dDeconvolve.
-
-            Please see '3dDeconvolve -help' for more information.
-            See also -regress_stim_times, -regress_stim_labels.
-
-        -regress_stim_times FILE1 ... : specify files used for -stim_times
-
-                e.g. -regress_stim_times ED_stim_times*.1D
-                e.g. -regress_stim_times times_A.1D times_B.1D times_C.1D
-
-            3dDeconvolve will be run using '-stim_times'.  This option is
-            used to specify the stimulus timing files to be applied, one
-            file per stimulus type.  The order of the files given on the
-            command line will be the order given to 3dDeconvolve.  Each of
-            these timing files will be given along with the basis function
-            specified by '-regress_basis'.
-
-            The user must specify either -regress_stim_times or
-            -regress_stim_files if regression is performed, but not both.
-            Note the form of the files is one row per run.  If there is at
-            most one stimulus per run, please add a trailing '*'.
-
-            Labels may be specified using the -regress_stim_labels option.
-
-            These two examples of such files are for a 3-run experiment.  In
-            the second example, there is only 1 stimulus at all, occurring in
-            run #2.
-
-                e.g.            0  12.4  27.3  29
-                                *
-                                30 40 50
-
-                e.g.            *
-                                20 *
-                                *
-
-            Please see '3dDeconvolve -help' for more information, or the link:
-                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
-            See also -regress_stim_files, -regress_stim_labels, -regress_basis,
-                     -regress_basis_normall, -regress_polort.
-
-        -regress_stim_files FILE1 ... : specify TR-locked stim files
-
-                e.g. -regress_stim_files ED_stim_file*.1D
-                e.g. -regress_stim_files stim_A.1D stim_B.1D stim_C.1D
-
-            Without the -regress_use_stim_files option, 3dDeconvolve will be
-            run using '-stim_times', not '-stim_file'.  The user can still
-            specify the 3dDeconvolve -stim_file files here, but they would
-            then be converted to -stim_times files using the script,
-            make_stim_times.py .
-
-            It might be more educational for the user to run make_stim_times.py
-            outside afni_proc.py (such as was done before example 2, above), or
-            to create the timing files directly.
-
-            Each given file can be for multiple stimulus classes, where one
-            column is for one stim class, and each row represents a TR.  So
-            each file should have NUM_RUNS * NUM_TRS rows.
-
-            The stim_times files will be labeled stim_times.NN.1D, where NN
-            is the stimulus index.
-
-            Note that if the stimuli were presented at a fixed time after
-            the beginning of a TR, the user should consider the option,
-            -regress_stim_times_offset, to apply that offset.
-
-            ---
-
-            If the -regress_use_stim_files option is provided, 3dDeconvolve
-            will be run using each stim_file as a regressor.  The order of the
-            regressors should match the order of any labels, provided via the
-            -regress_stim_labels option.
-
-            Alternately, this can be done via -regress_stim_times, along
-            with -regress_stim_types 'file'.
-
-            Please see '3dDeconvolve -help' for more information, or the link:
-                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
-            See also -regress_stim_times, -regress_stim_labels, -regress_basis,
-                     -regress_basis_normall, -regress_polort,
-                     -regress_stim_times_offset, -regress_use_stim_files.
-
-        -regress_extra_stim_files FILE1 ... : specify extra stim files
-
-                e.g. -regress_extra_stim_files resp.1D cardiac.1D
-                e.g. -regress_extra_stim_files regs_of_no_int_*.1D
-
-            Use this option to specify extra files to be applied with the
-            -stim_file option in 3dDeconvolve (as opposed to the more usual
-            option, -stim_times).
-
-            These files will not be converted to stim_times format.
-
-            Corresponding labels can be given with -regress_extra_stim_labels.
-
-            See also -regress_extra_stim_labels, -regress_ROI, -regress_RONI.
-
-        -regress_extra_stim_labels LAB1 ... : specify extra stim file labels
-
-                e.g. -regress_extra_stim_labels resp cardiac
-
-            If -regress_extra_stim_files is given, the user may want to specify
-            labels for those extra stimulus files.  This option provides that
-            mechanism.  If this option is not given, default labels will be
-            assigned (like stim17, for example).
-
-            Note that the number of entries in this list should match the
-            number of extra stim files.
-
-            See also -regress_extra_stim_files.
-
-        -regress_stim_times_offset OFFSET : add OFFSET to -stim_times files
-
-                e.g. -regress_stim_times_offset 1.25
-                e.g. -regress_stim_times_offset -9.2
-                default: 0
-
-            With -regress_stim_times:
-
-               If the -regress_stim_times option is uses, and if ALL stim files
-               are timing files, then timing_tool.py will be used to add the
-               time offset to each -regress_stim_times file as it is copied into
-               the stimuli directory (near the beginning of the script).
-
-            With -regress_stim_files:
-
-               If the -regress_stim_files option is used (so the script would
-               convert -stim_files to -stim_times before 3dDeconvolve), the
-               user may want to add an offset to the times in the resulting
-               timing files.
-
-               For example, if -tshift_align_to is applied and the user chooses
-               to align volumes to the middle of the TR, it might be appropriate
-               to add TR/2 to the times of the stim_times files.
-
-               This OFFSET will be applied to the make_stim_times.py command in
-               the output script.
-
-            Please see 'make_stim_times.py -help' for more information.
-            See also -regress_stim_files, -regress_use_stim_files,
-                     -regress_stim_times and -tshift_align_to.
-
-        -regress_stim_types TYPE1 TYPE2 ... : specify list of stim types
-
-                e.g. -regress_stim_types times times AM2 AM2 times AM1 file
-                e.g. -regress_stim_types AM2
-                default: times
-
-            If amplitude, duration or individual modulation is desired with
-            any of the stimulus timing files provided via -regress_stim_files,
-            then this option should be used to specify one (if all of the types
-            are the same) or a list of stimulus timing types.  One can also use
-            the type 'file' for the case of -stim_file, where the input is a 1D
-            regressor instead of stimulus times.
-
-            The types should be (possibly repeated) elements of the set:
-            {times, AM1, AM2, IM}, where they indicate:
-
-                times:  a standard stimulus timing file (not married)
-                        ==> use -stim_times in 3dDeconvolve command
-
-                AM1:    have one or more married parameters
-                        ==> use -stim_times_AM1 in 3dDeconvolve command
-
-                AM2:    have one or more married parameters
-                        ==> use -stim_times_AM2 in 3dDeconvolve command
-
-                IM:     NO married parameters, but get beta for each stim
-                        ==> use -stim_times_IM in 3dDeconvolve command
-
-                file:   a 1D regressor, not a stimulus timing file
-                        ==> use -stim_file in 3dDeconvolve command
-
-            Please see '3dDeconvolve -help' for more information.
-            See also -regress_stim_times.
-            See also example 7 (esoteric options).
-
-        -regress_use_stim_files : use -stim_file in regression, not -stim_times
-
-            The default operation of afni_proc.py is to convert TR-locked files
-            for the 3dDeconvolve -stim_file option to timing files for the
-            3dDeconvolve -stim_times option.
-
-            If the -regress_use_stim_times option is provided, then no such
-            conversion will take place.  This assumes the -regress_stim_files
-            option is applied to provide such -stim_file files.
-
-            This option has been renamed from '-regress_no_stim_times'.
-
-            Please see '3dDeconvolve -help' for more information.
-            See also -regress_stim_files, -regress_stim_times,
-                     -regress_stim_labels.
-
-        -regress_extra_ortvec FILE1 ... : specify extra -ortvec files
-
-                e.g. -regress_extra_ortvec ort_resp.1D ort_cardio.1D
-                e.g. -regress_extra_ortvec lots_of_orts.1D
-
-            Use this option to specify extra files to be applied with the
-            -ortvec option in 3dDeconvolve.  These are applied as regressors
-            of no interest, going into the baseline model.
-
-            These files should be in 1D format, columns of regressors in text
-            files.  They are not modified by the program, and should match the
-            length of the final regression.
-
-            Corresponding labels can be set with -regress_extra_ortvec_labels.
-
-            See also -regress_extra_ortvec_labels.
-
-        -regress_extra_ortvec_labels LAB1 ... : specify label for extra ortvecs
-
-                e.g. -regress_extra_ortvec_labels resp cardio
-                e.g. -regress_extra_ortvec_labels EXTERNAL_ORTs
-
-            Use this option to specify labels to correspond with files given
-            by -regress_extra_ortvec.  There should be one label per file.
-
-            See also -regress_extra_ortvec.
-
-        -----------------------------------------------------------------
-        3dClustSim options ~3~
-
-        -regress_run_clustsim yes/no : add 3dClustSim attrs to stats dset
-
-                e.g. -regress_run_clustsim no
-                default: yes
-
-            This option controls whether 3dClustSim will be executed after the
-            regression analysis.  Since the default is 'yes', the effective use
-            of this option would be to turn off the operation.
-
-            3dClustSim generates a table of cluster sizes/alpha values that can
-            then be stored in the stats dataset for a simple multiple
-            comparison correction in the cluster interface of the afni GUI, or
-            which can be applied via a program like 3dClusterize.
-
-            The blur estimates and mask dataset are required, and so the
-            option is only relevant in the context of blur estimation.
-
-            Please see '3dClustSim -help' for more information.
-            See also -regress_est_blur_epits, -regress_est_blur_epits and
-                     -regress_opts_CS.
-
-        -regress_CS_NN LEVELS   : specify NN levels for 3dClustSim command
-
-                e.g.     -regress_CS_NN 1
-                default: -regress_CS_NN 123
-
-            This option allows the user to specify which nearest neighbors to
-            consider when clustering.  Cluster results will be generated for
-            each included NN level.  Using multiple levels means being able to
-            choose between those same levels when looking at the statistical
-            results using the afni GUI.
-
-            The LEVELS should be chosen from the set {1,2,3}, where the
-            respective levels mean "shares a face", "shares an edge" and
-            "shares a corner", respectively.  Any non-empty subset can be used.
-            They should be specified as is with 3dClustSim.
-
-            So there are 7 valid subsets: 1, 2, 3, 12, 13, 23, and 123.
-
-            Please see '3dClustSim -help' for details on its '-NN' option.
-
-        -regress_opts_CS OPTS ...    : specify extra options for 3dClustSim
-
-                e.g. -regress_opts_CS -athr 0.05 0.01 0.005 0.001
-
-            This option allows the user to add extra options to the 3dClustSim
-            command.  Only 1 such option should be applied, though multiple
-            options to 3dClustSim can be included.
-
-            Please see '3dClustSim -help' for more information.
-            See also -regress_run_clustsim.
+        This mask can be applied via LABEL as other masks, using options
+        like: -regress_ROI, -regress_ROI_PC, -regress_make_corr_vols,
+              -regress_anaticor_label, -mask_intersect, -mask_union,
+              (and for the current purpose) -regress_compute_tsnr_stats.
 """
 g_help_trailer = """
-    - R Reynolds  Dec, 2006                             thanks to Z Saad
-    ===========================================================================
+- R Reynolds  Dec, 2006                             thanks to Z Saad
+===========================================================================
 """
 # end global help string
 # ----------------------------------------------------------------------

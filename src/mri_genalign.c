@@ -1723,10 +1723,10 @@ ENTRY("mri_genalign_scalar_ransetup") ;
      EXRETURN ;
    }
 
-   /* PRED01(x) is periodic reduction of x to inteval [0,1] */
+   /* PRED01(x) is periodic reduction of x to interval [0,1] */
    for( kk=0 ; kk < ngood ; kk++ ){  /* make sure are in 0..1 range */
      for( ii=0 ; ii < nfr ; ii++ ) kpar[kk][ii] = PRED01(kpar[kk][ii]) ;
-     idx[kk] = kk ;      /* index in inital search results [24 Jun 2021] */
+     idx[kk] = kk ;      /* index in initial search results [24 Jun 2021] */
    }
 
    if( mverb ){                    /* print table of results? */

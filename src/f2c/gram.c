@@ -1513,7 +1513,7 @@ case 34:
 break;
 case 35:
 #line 369 "gram.in"
-{ NO66("altenate return argument");
+{ NO66("alternate return argument");
 
 /* substars   means that '*'ed formal parameters should be replaced.
    This is used to specify alternate return labels; in theory, only

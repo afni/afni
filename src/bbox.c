@@ -1437,7 +1437,7 @@ ENTRY("refit_MCW_optmenu") ;
 
       xstr = XmStringCreateLtoR( blab , XmFONTLIST_DEFAULT_TAG ) ;
 
-      /** re-use old button if possible, otherwise add a new one **/
+      /** reuse old button if possible, otherwise add a new one **/
 
       if( ic < num_children ){
          XtPointer user_old=NULL ;

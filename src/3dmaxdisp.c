@@ -188,7 +188,7 @@ int main( int argc , char *argv[] )
    num_dispvec = qq ;
    if( verb ) ININFO_message("  %s edge voxels in automask",commaized_integer_string(num_dispvec)) ;
 
-   /*--------- Loop over matrix rows and compute displacments ----------*/
+   /*--------- Loop over matrix rows and compute displacements ----------*/
 
    for( qq=0 ; qq < matim_ny ; qq++ ){
      LOAD_MAT44_AR( qmat , matim_far+(12*qq) ) ;  /* get matrix */

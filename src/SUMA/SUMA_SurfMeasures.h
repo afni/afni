@@ -21,7 +21,7 @@
 #define ST_DEBUG_MAX_LEVEL      5
 #define ST_DEFAULT_FALLOC      10	/* init alloc for num functions  */
 
-#define ST_SINFO                1	/* infomation type */
+#define ST_SINFO                1	/* information type */
 #define ST_SMEASURE             2	/* measure type    */
 
 #define ST_PI			3.141592653589793
@@ -86,7 +86,7 @@ typedef struct
 
 typedef struct
 {
-    func_t   F;				/* funtion list struct         */
+    func_t   F;				/* function list struct        */
     char   * spec_file;			/* surface specification file  */
     char   * sv_file;			/* AFNI surface volume dataset */
     char   * out_1D_file;		/* surface output filename     */

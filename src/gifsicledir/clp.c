@@ -410,7 +410,7 @@ argcmp(const char *ref, const char *arg, int min_match)
      /* Returns 0 if ref and arg don't match.
 	Returns -1 if ref and arg match, but fewer than min_match characters.
 	Returns len if ref and arg match min_match or more characters;
-	len is the number of charcters that matched.
+	len is the number of characters that matched.
 	
 	Examples:
 	argcmp("x", "y", 1)	-->  0	/ just plain wrong

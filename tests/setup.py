@@ -10,7 +10,7 @@ from distutils.version import LooseVersion
 
 py_ver = ".".join(str(n) for n in sys.version_info[:3])
 if LooseVersion(py_ver) < LooseVersion("3.6"):
-    err = "The current interpretter {} ({}) is not supported.".format(
+    err = "The current interpreter {} ({}) is not supported.".format(
         sys.executable, py_ver
     )
     raise EnvironmentError(err)

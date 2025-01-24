@@ -1227,7 +1227,7 @@ Optional parameters:
                     O : overwrite previous result
                     S : skip this step (applying previous result)
                     Q : quit the script
-                    A : pause script and ask at each occurance
+                    A : pause script and ask at each occurrence
 
 
 NOTE: You must run the script from the directory where Experiment
@@ -1263,7 +1263,7 @@ Example 4: When -exp_anat and -surf_anat have very different
            (SV), AND volume centers were way off.  With the 'Nudge
            Dataset' plugin, it was determined that a 60deg.  rotation
            got SV oriented more like ExpAnat.  The plugin can be made
-           to spit out an the 3dRotate command to apply the roation:
+           to spit out an the 3dRotate command to apply the rotation:
                 3drotate                                        \
                     -quintic -clipit                            \
                     -rotate 0.00I 60.00R 0.00A                  \
@@ -1293,7 +1293,7 @@ Global Help Options:
    -hview: Same as -hview
    -all_opts: List all of the options for this script
    -h_find WORD: Search for lines containing WORD in -help
-                 output. Seach is approximate.
+                 output. Search is approximate.
 
 More help may be found at:
 https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm

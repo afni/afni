@@ -761,7 +761,7 @@ void check_for_valid_inputs
       NLfit_error ("Must have minimum constraints <= maximum constraints");
   for (ip = 0;  ip < p;  ip++)
     if (min_sconstr[ip] > max_sconstr[ip])
-      NLfit_error("Must have mininum constraints <= maximum constraints");
+      NLfit_error("Must have minimum constraints <= maximum constraints");
       
 
   /*----- check whether any of the output files already exist -----*/

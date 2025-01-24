@@ -3,6 +3,7 @@
 	-lf2c -lm   (in that order)
 */
 
+#include <math.h>
 #include "f2c.h"
 
 /* Subroutine */ int cdiv_(doublereal *ar, doublereal *ai, doublereal *br, 

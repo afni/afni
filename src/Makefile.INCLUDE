@@ -12,6 +12,9 @@ CPU_TYPE ?= x86_64
 # LLIBS_X11 can be complete; can remove X from LLIBS    31 Jan 2020 [rickr]
 LLIBS_X11 ?= $(LLIBS)
 
+# netpbm is stored in varying locations under homebrew, allow for that
+NETPBMDIR ?= /usr/include/netpbm
+
 LDFLAGS = $(LFLAGS)
 
 # for compiling with OpenMP, if available
@@ -112,7 +115,7 @@ EXTRAS   = cjpeg djpeg whirlgif myget rmz aiv mycat quotize $(EXPROGS)
 ## the program list is now split into 4 parts, to facilite the build process
 ## [RWC - Feb 2018]
 
-PROGS_1  = afni to3d from3d 3dclust nsize 3dinfo 3dmerge count                \
+PROGS_1  = afni to3d from3d 3dclust nsize 3dinfo 3dmerge count count_afni         \
            sfim tfim imrotate imreg imstat 3dnvals                            \
            fim2 imand immask imdump imaver 3dhistog 3daxialize                \
            cdf 2swap 4swap 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta              \
@@ -137,7 +140,7 @@ PROGS_2  = 3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot   \
 
 PROGS_3  = 3dAnhist 3dAFNIto3D 3dWarp nicat                                   \
            3dSpatNorm fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive      \
-           nifti_tool 3dAllineate whereami plugout_drive 3dLSS                \
+           nifti_tool 3dAllineate whereami whereami_afni plugout_drive 3dLSS  \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml        \
            3dedge3 DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth   \
            3dmaxima GLTsymtest 3dPval stimband 1dNLfit 1dApar2mat             \
@@ -163,7 +166,7 @@ PROGS_4  = 3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip       \
            3dExtractGroupInCorr dcm2niix_afni 3dTto1D 3dBrainSync 3dGrayplot  \
            1dsound afni_check_omp 3dPVmap 3dExchange 3dEdu_01_scale 3dDiff    \
            get_afni_model_PRF get_afni_model_PRF_6 get_afni_model_PRF_6_BAD   \
-           3dedgedog                                                          \
+           3dedgedog p2dsetstat dsetstat2p                                    \
            $(EXTRAS)
 
 progs_1:$(PROGS_1)
@@ -184,7 +187,8 @@ PROGRAMS_NOPLUG =                                                             \
         3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna imstack byteorder      \
         3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot 24swap 3dTsmooth RSFgen  \
         float_scan 1ddot 1dsvd 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat  \
-        3ddelay 3dDTeig 3dDWItoDT 1dtranspose whereami 3dAFNItoNIML 3dcopy    \
+        3ddelay 3dDTeig 3dDWItoDT 1dtranspose whereami whereami_afni 		   \
+		  3dAFNItoNIML 3dcopy    															   \
         imcat 3dDetrend 1dfft 3drename 1dnorm afni_vcheck 3ddot 3dBrickStat   \
         imcutup 3dMean 3dAttribute 3dZeropad 3dWinsor 3dmaskdump 3dfim+       \
         3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy         \
@@ -208,7 +212,8 @@ PROGRAMS_NOPLUG =                                                             \
         3dToyProg nifti1_tool gifti_tool cifti_tool images_equal uniq_images  \
         stimband 1dNLfit tokens 3dLocalACF 3dDegreeCentrality 3dECM 3dLFCD    \
         3dMSE 3dsvm_linpredict 3dTto1D 3dExchange 2dcat get_afni_model_PRF    \
-        get_afni_model_PRF_6 get_afni_model_PRF_6_BAD 3dEdu_01_scale    	   \
+        get_afni_model_PRF_6 get_afni_model_PRF_6_BAD 3dEdu_01_scale          \
+        p2dsetstat dsetstat2p count_afni                                          \
         $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -242,7 +247,7 @@ PROGRAMS_EXE =                                                                \
         niccc 3dXYZcat column_cat GLTsymtest nifti1_tool gifti_tool           \
         cifti_tool images_equal uniq_images stimband 1dNLfit 3dExchange       \
         3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict 2dcat          \
-        3dEdu_01_scale
+        3dEdu_01_scale p2dsetstat dsetstat2p count_afni
 
 
 # put all scripts to install here (no SCRIPTS variable)
@@ -267,7 +272,7 @@ SHINY_DIR = shiny
 
 DISCO_SCRIPTS = ClustExp_HistTable.py ClustExp_StatParse.py                    \
                 @ClustExp_CatLab @ClustExp_run_shiny FATCAT_matplot            \
-                3dMVM_validator
+                3dMVM_validator bayes_view
 
 LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h             \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h     \
@@ -285,15 +290,18 @@ LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h             \
 ### Make everything, install it too, and cleanup
 
 totality:clean all plugins install install_plugins install_lib cleann
+	echo "== compilation complete: totality, yay"
 
 ### Make everything, install it too, but don't cleanup
 
 vastness:all plugins install install_plugins install_lib
+	echo "== compilation complete: vastness, yay"
 
 ### Make many things
 
 all:$(LIBDL) $(LIBMRI_OBJ) libmrix.a libcoxplot.a libtracktools.a $(EXLIBS) \
-             R_io.so programs ptaylor_all AFNI_version
+             R_io.so programs ptaylor_all
+	echo "== make all, INSTALL_PREREQ =" $(INSTALL_PREREQ)
 
 ### Make afni binaries
 
@@ -304,6 +312,7 @@ afobjs: afobj
 ### Make a few more things
 
 itall:all plugins install install_plugins install_lib
+	echo "== compilation complete: itall, yay"
 
 $(INSTALLDIR):
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo Made directory $(INSTALLDIR); fi
@@ -956,9 +965,15 @@ hide:hide.o
 	$(RM) $@
 	$(CC) -o hide hide.o $(LFLAGS)
 
+# to be deprecated
 count:count.o
 	$(RM) $@
 	$(CC) -o count count.o $(LFLAGS) $(LLIBS)
+
+# a replacement name for 'count', since it clashes with other software
+count_afni:count_afni.o
+	$(RM) $@
+	$(CC) -o count_afni count_afni.o $(LFLAGS) $(LLIBS)
 
 nsize:nsize.o
 	$(RM) $@
@@ -1050,6 +1065,10 @@ mri_intedge.o:mri_intedge.c
 whereami:whereami.c
 	$(RM) $@
 	$(CC) -o whereami whereami.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(LLIBS)
+
+whereami_afni:whereami_afni.c
+	$(RM) $@
+	$(CC) -o whereami_afni whereami_afni.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 apsearch:apsearch.c
 	$(RM) $@
@@ -1413,7 +1432,6 @@ mri_nstats.o:mri_nstats.c
 	$(RM) $@
 	$(CC) -o 3dEdu_01_scale 3dEdu_01_scale.o $(LFLAGS) $(LLIBS)
 
-
 # --------------------------------------------------------------------------
 # this is the list of nonlinear warping program, and is here just for Zhark
 # --------------------------------------------------------------------------
@@ -1760,7 +1778,7 @@ sparse_array.o:sparse_array.c sparse_array.h
 	$(RM) $@
 	$(CCOMP) -o 3dMSE 3dMSE.o $(LFLAGS) $(LLIBS)
 
-# This one doens't need OpenMP, but goes with other RCC progs
+# This one doesn't need OpenMP, but goes with other RCC progs
 3dsvm_linpredict:3dsvm_linpredict.o
 	$(RM) $@
 	$(CC) -o 3dsvm_linpredict 3dsvm_linpredict.o $(LFLAGS) $(LLIBS)
@@ -2233,7 +2251,7 @@ afni_doc.tgz:
 
 install_devs: ptaylor_install pkundu_install jzosky_install
 
-install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
+install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs prog_list
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
@@ -2241,6 +2259,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	$(CP) -r $(SHINY_DIR) $(PY_LIB_DIR) $(INSTALLDIR)
 	$(CP) $(DISCO_DIR)/*/* $(INSTALLDIR)
 	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
+	$(CP) prog_list*.txt $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
 	if [ -f AFNI.afnirc        ]; then $(CP) AFNI.afnirc $(INSTALLDIR); fi;
 	if [ -f AFNI.sumarc        ]; then $(CP) AFNI.sumarc $(INSTALLDIR); fi;
@@ -2251,7 +2270,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	echo "===== AFNI install finished (fondly do we hope, fervently we do pray) ====="
 
 # no binaries
-install_text: $(INSTALLDIR) AFNI_version
+install_text: $(INSTALLDIR) AFNI_version.txt prog_list
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(CP) $(PY_SCRIPTS_DIR)/*.py  $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
@@ -2259,6 +2278,7 @@ install_text: $(INSTALLDIR) AFNI_version
 	$(CP) $(DISCO_DIR)/*/* $(INSTALLDIR)
 	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
 	$(CP) -p $(MISC) $(INSTALLDIR)
+	$(CP) prog_list*.txt $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
 	if [ -f AFNI_version.txt ]; then $(CP) AFNI_version.txt $(INSTALLDIR); fi;
 
@@ -3778,6 +3798,15 @@ libtracktools.a:
 	$(CP) libtracktools.a ../;	\
 	cd ../	;		)
 
+# ptaylor programs in src dir
+p2dsetstat: p2dsetstat.o statpval_opts.o $(LIBMRI_OBJ)
+	$(RM) $@
+	$(CC) -o p2dsetstat p2dsetstat.o statpval_opts.o $(LFLAGS) $(LLIBS)
+
+dsetstat2p: dsetstat2p.o statpval_opts.o $(LIBMRI_OBJ)
+	$(RM) $@
+	$(CC) -o dsetstat2p dsetstat2p.o statpval_opts.o $(LFLAGS) $(LLIBS)
+
 #############
 #PKUNDU directory
 
@@ -3819,6 +3848,7 @@ $(LIBSUMA_OBJ): $(LIBMRI_OBJ) libmrix.a libcoxplot.a $(LIBF2C_OBJ) libtracktools
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'RANLIB=$(RANLIB)' \
+        'NETPBMDIR=$(NETPBMDIR)'                                         \
 	'MAKE=$(MAKE)'     \
 	'MRI_SHARED=$(MRI_SHARED)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	\
@@ -3835,6 +3865,7 @@ libgts.a:
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME)          \
 	   'SUMA_LINK_PATH=$(SUMA_LINK_PATH)'     \
 	   'CPU_TYPE=$(CPU_TYPE)'                 \
+           'NETPBMDIR=$(NETPBMDIR)'               \
        libgts.a ;	                           \
 	cd ../	;	                              \
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	; \
@@ -3858,6 +3889,7 @@ libGLws.a:
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'RANLIB=$(RANLIB)' \
+        'NETPBMDIR=$(NETPBMDIR)'                                         \
         'MAKE=$(MAKE)'     \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
@@ -3897,6 +3929,7 @@ suma_exec:libGLws.a $(LIBSUMA_OBJ) libtracktools.a $(LIBMRI_OBJ) xutil.o \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)'                         \
 	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                               \
 	'RANLIB=$(RANLIB)'                                             \
+        'NETPBMDIR=$(NETPBMDIR)'                                       \
         'MAKE=$(MAKE)'                                             \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)' \
     'CPU_TYPE=$(CPU_TYPE)'                                         \
@@ -3916,6 +3949,7 @@ suma_gts_progs: libgts.a
             'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)'                           \
             'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                                 \
             'RANLIB=$(RANLIB)'                                               \
+            'NETPBMDIR=$(NETPBMDIR)'                                         \
             'MAKE=$(MAKE)'                                                   \
            	'CPU_TYPE=$(CPU_TYPE)'                                           \
             'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'   \
@@ -3935,6 +3969,7 @@ suma_all:$(LIBMRI_OBJ) libtracktools.a xutil.o LiteClue.o parser.o parser_int.o 
             'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)'                           \
             'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                                 \
             'RANLIB=$(RANLIB)'                                               \
+            'NETPBMDIR=$(NETPBMDIR)'                                         \
             'MAKE=$(MAKE)'                                                   \
             'MRI_SHARED=$(MRI_SHARED)'                                       \
             'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'   \
@@ -3955,6 +3990,7 @@ suma_anew:$(LIBMRI_OBJ) xutil.o LiteClue.o parser.o parser_int.o libmrix.a libco
             'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)'                           \
             'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                                 \
             'RANLIB=$(RANLIB)'                                               \
+            'NETPBMDIR=$(NETPBMDIR)'                                         \
             'MAKE=$(MAKE)'                                                   \
             'MRI_SHARED=$(MRI_SHARED)'                                       \
             'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'   \
@@ -4116,6 +4152,7 @@ suma_link:
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)'                                 \
 	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                                       \
 	'RANLIB=$(RANLIB)'                                                     \
+        'NETPBMDIR=$(NETPBMDIR)'                                               \
         'MAKE=$(MAKE)'                                                     \
 	'MRI_SHARED=$(MRI_SHARED)'                                             \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'         \
@@ -4206,10 +4243,10 @@ R_io.so: R_io.c $(LIBMRI_OBJ) $(R_MAKEVARS_DEP)
 # version system:
 #    AFNI_version_base.txt: updated by build scripts (dist_src)
 #    libmri.h depends on AFNI_version.h, which depends on AFNI_version_base.txt
+#                                        and on AFNI_version.txt
 #
-#    AFNI_version.txt: depends on AFNI_version_base.txt and programs
+#    AFNI_version.txt: also depends on AFNI_version_base.txt
 #             - this is just an install file
-#    all:     depends on AFNI_version.txt
 #    install: installs AFNI_version.txt
 
 mrilib.h: Startup_Commands AFNI_version.h
@@ -4222,7 +4259,7 @@ mrilib.h: Startup_Commands AFNI_version.h
 Startup_Commands:
 	$(STARTUP_COMMANDS)
 
-AFNI_version.h: AFNI_version_base.txt
+AFNI_version.h: AFNI_version.txt AFNI_version_base.txt
 	echo "#undef  AFNI_VERSION_LABEL" > AFNI_version.h ;                 \
 	echo '#define AFNI_VERSION_LABEL    "'`cat AFNI_version_base.txt`'"' \
              >> AFNI_version.h ;                                             \
@@ -4230,10 +4267,14 @@ AFNI_version.h: AFNI_version_base.txt
 	echo '#define AFNI_VERSION_PLATFORM "'$(SYSTEM_NAME)'"'              \
              >> AFNI_version.h ;
 
+# allow specifying who is doing the build
+AFNI_WHOMADEIT ?= local
+
 # no .txt in target, so that it always updates the file when invoked
-AFNI_version:
+AFNI_version.txt: AFNI_version_base.txt
 	( $(CP) AFNI_version_base.txt AFNI_version.txt ; \
 	echo $(SYSTEM_NAME) >> AFNI_version.txt ;        \
 	date +'%b %d %Y' >> AFNI_version.txt ;           \
+	echo $(AFNI_WHOMADEIT) >> AFNI_version.txt ;     \
 	)
 

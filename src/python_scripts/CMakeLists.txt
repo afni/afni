@@ -17,6 +17,8 @@
 # installation does not. pip is used unless the environment variable
 # DO_NOT_USE_PIP is set.
 
+#set(SCRIPT_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE WORLD_EXECUTE WORLD_READ)
+
 if(STANDARD_PYTHON_INSTALL)
   # A standard installation of the python code is required to run the tests as
   # part of the build system (using the pytest target). Using pip (or just
@@ -55,7 +57,7 @@ else()
   # are always available for use. The downside is that the installation
   # cannot be associated with a particular environment and so if the user
   # changes their python environment AFNI's python code may be available
-  # but the pytho:n dependencies may not be.
+  # but the python dependencies may not be.
   install(
     DIRECTORY ../python_scripts/scripts/
     COMPONENT python
@@ -63,7 +65,8 @@ else()
     PATTERN "__pycache__" EXCLUDE
     PATTERN "*.pyc" EXCLUDE
     PATTERN "__init__.py" EXCLUDE
-  )
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE WORLD_EXECUTE WORLD_READ
+    )
   install(
       DIRECTORY ../python_scripts/afnipy
       COMPONENT python

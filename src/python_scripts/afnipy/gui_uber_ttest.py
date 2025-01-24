@@ -957,15 +957,15 @@ class MainWindow(QtGui.QMainWindow):
       obj = self.sender()
       if   obj == self.gvars.act_browse_all_progs:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
-                            '/htmldoc/programs/main_toc.html')
+                            '/htmldoc/programs/alpha/main_toc.html')
       elif obj == self.gvars.act_browse_ttest_help:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
-                            '/htmldoc/programs/3dttest++_sphx.html')
+                            '/htmldoc/programs/alpha/3dttest++_sphx.html')
       elif obj == self.gvars.act_browse_mema_help:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
-                            '/htmldoc/programs/3dMEMA_sphx.html')
+                            '/htmldoc/programs/alpha/3dMEMA_sphx.html')
       elif obj == self.gvars.act_browse_MB:
-         self.open_web_site('https://afni.nimh.nih.gov/afni/community/board')
+         self.open_web_site('https://discuss.afni.nimh.nih.gov')
       else: print('** cb_help_browse: invalid sender')
 
    def update_uvars_from_gui(self, warn=0):
@@ -1318,7 +1318,7 @@ for the t-stat (if using 3dMEMA).
 
 4. If using 3dMEMA, assign a t-stat index or label
 
-   Specify the sub-brick of the t-statistic that corresonds to the
+   Specify the sub-brick of the t-statistic that corresponds to the
    data index, above (presumably the beta weight).  For example, use
    index '1' or label 'Vrel#0_Tstat' for the REML datasets under the
    AFNI_data6/group_results directory.

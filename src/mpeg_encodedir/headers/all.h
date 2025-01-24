@@ -48,7 +48,7 @@
  * added little_endian force for irizx
  *
  * Revision 1.8  1995/02/02  22:02:18  smoot
- * added ifdefs for compatability on stranger and stranger architectures...
+ * added ifdefs for compatibility on stranger and stranger architectures...
  *
  * Revision 1.7  1995/02/02  07:26:45  eyhung
  * added parens to all.h to remove compiler warning

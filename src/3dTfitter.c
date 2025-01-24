@@ -764,7 +764,7 @@ static void Tfitter_help(void)
       "       3dTfitter -RHS Rest+orig -LHS Art+orig -polort 2 -errsum Ebase\n"
       "\n"
       "(2) Run 3dTfitter again with the artifact PLUS the seed time series\n"
-      "    and get the error sum dataset and also the beta coefficents\n"
+      "    and get the error sum dataset and also the beta coefficients\n"
       "       3dTfitter -RHS Rest+orig -LHS Seed.1D Art+orig -polort 2 \\\n"
       "                 -errsum Eseed -prefix Bseed\n"
       "\n"

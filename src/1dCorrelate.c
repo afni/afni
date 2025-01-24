@@ -161,7 +161,7 @@ void usage_1dCorrelate( int detail ){
       "#!/bin/tcsh\n"
       "set npt = 20\n"
       "set alp = 2\n"
-      "foreach fred ( `count -dig 1 1 1000` )\n"
+      "foreach fred ( `count_afni -dig 1 1 1000` )\n"
       "  1dcat jrandom1D:${npt},2 > qqq.1D\n"
       "  set aabb = ( `1dCorrelate -spearman -alpha $alp qqq.1D  | grep qqq.1D | colrm 1 42` )\n"
       "  set ab = `ccalc -form rint \"1000 * $aabb[1] * $aabb[2]\"`\n"
@@ -371,7 +371,7 @@ int main( int argc , char *argv[] )
    else                /* Pearson */
      sprintf(fmt,"  %%-%ds  %%-%ds  %%+8.5f %%+8.5f %%+8.5f %%+8.5f %%+8.5f %%+8.5f\n",vlen,vlen) ;
 
-   /*--- Do some actual work for a suprising change ---*/
+   /*--- Do some actual work for a surprising change ---*/
 
    for( jj=0 ; jj < nvec ; jj++ ){       /* loops over column pairs */
      for( kk=jj+1 ; kk < nvec ; kk++ ){

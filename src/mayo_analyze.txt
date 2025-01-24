@@ -54,7 +54,7 @@ three substructures:
  *
  *
  *
- *  databse sub-definitions
+ *  database sub-definitions
  */
 
 struct header_key                       /* header key   */

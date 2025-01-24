@@ -134,7 +134,7 @@ HELP:
    echo "Installs and sets up an AFNI InstaCorr demo archive, based on 190"
    echo "Cambridge subjects from FCON_1000."
    echo ""
-   echo "The pupose of this is to demonstrate an expected false positive"
+   echo "The purpose of this is to demonstrate an expected false positive"
    echo "group result when comparing groups of big and small movers (based"
    echo "on the average motion, per TR), and then a way to account for it"
    echo "based on inclusion of the motion as a covariate."
