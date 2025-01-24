@@ -340,15 +340,22 @@ class afni_name(object):
             return 1
          else: return 0
    
-   def locate(self, oexec=""):
-      """Attempt to locate the file and if found, update its info"""
+   def locate(self, oexec="", verb=0):
+      """attempt to locate the file
+
+         First search using the input path.  If not found, drop that path
+         and search using @FindAfniDsetPath.  If then found, update the
+         path using the new information.
+
+         return 1 if found (exist() or via @Find)
+         (previously, this returned 0 even if @Find succeeded)
+      """
+      # drop the path for comments and searching
+      dname = self.pv()
+
       if (self.exist()):
+         if verb: print("-- locate: dset %s exists" % dname)
          return 1
-      else:
-         #could it be in abin, etc.
-         cmd = '@FindAfniDsetPath %s' % self.pv()
-         com=shell_com(cmd,oexec, capture=1)
-         com.run()
 
          if com.status or not com.so or len(com.so[0]) < 2:
            # call this a non-fatal error for now
@@ -808,7 +815,6 @@ class shell_com(object):
       # self.status, self.so, self.se = shell_exec2(self.trimcom, self.capture) 
       if self.save_log:
          self.add_to_log()
-
       self.exc = 1
       return self.status
       
@@ -895,14 +901,6 @@ class shell_com(object):
       else:
          # return self.so[i].decode()
          return self.so[i]
-
-   def __repr__(self):
-      return '<%s %s name=%r, eo=%r>' % (
-         self.__class__.__name__, hex(id(self)),self.com, self.eo)
-
-   def __str__(self):
-      return pformat(self.__dict__)
- 
 
 # return the attribute list for the given dataset and attribute
 def read_attribute(dset, atr, verb=1):
@@ -1302,7 +1300,6 @@ def shell_exec2(s, capture=0):
          so = []
          se = []
       else:
-         print("Probably here before sending shell command")
          pipe = SP.Popen(s,shell=True, stdout=SP.PIPE, stderr=SP.PIPE, close_fds=True)
          o,e = pipe.communicate()   #This won't return until command is over
          status = pipe.returncode   #NOw get returncode
@@ -1674,6 +1671,9 @@ def EP( S, indent=True, end_exit=True):
 
     if end_exit :
        sys.exit(1)
+
+def EP1( S, indent=True):
+    '''Error print string S, and return 1.
 
 def APRINT( S, ptype=None, indent=True):
     '''Print Error/Warn/Info for string S
