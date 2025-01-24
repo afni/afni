@@ -41,15 +41,53 @@ abc = np.array([200, 200, 200], dtype=np.uint8)  # light gray
 zer = np.array([0, 0, 0], dtype=np.uint8)       # black
 rez = np.array([255,255,255], dtype=np.uint8)   # white
 
+DO_AUTOROTATE = True
+
 # ============================================================================
 
+def autorotate_cbar(X, verb=1):
+    """Check if input array X should be rotated for processing.  Will
+likely be un-autorotated at the end.  Rotates clockwise by 90deg.
+
+Parameters
+----------
+X : np.array
+    a (width)x(length)x3 RGB array of colors. Each element is 
+    in the range [0, 255], and is of type np.uint8.
+
+Returns
+-------
+DID_ROTATE : bool
+    Did we rotate the array?  Recorded and reported here
+Y: np.array
+    Either a copy of X or a rotated version of it.
+"""
+
+    # default scenario
+    Y = copy.deepcopy(X)
+    DID_ROTATE = False
+
+    R, C, RGB = np.shape(X)
+    if R > C :
+        if verb :
+            ab.IP("Autorotating input colorbar for processing")
+        Y = np.rot90(X, k=-1)
+        DID_ROTATE = True
+
+    return DID_ROTATE, Y
+
 def read_cbar(fname):
+
     """Read in colorbar (JPG, PNG, etc.), via filename fname. 
 
 When read in, we assume that the dimensions translate to width x
 length x RGB. That seems to be the case with all AFNI-created
 colorbars. For future generalizations, we might need to add in a
 transpose opt, for example.
+
+We now check whether the RGB values are scaled between [0,1] or
+[0,255]. If the former, we will upscale them to the latter and type of
+np.uint8.
 
 Parameters
 ----------
@@ -68,6 +106,12 @@ arr : np.array
         ab.EP("Cannot find cbar file: {}".format(fname))
 
     arr = plt.imread(fname)
+
+    # check if the RGB values are actually in [0,1] scale format.
+    # if so, scale them up to [0,255] range, and fix type to uint8
+    if np.max(arr) <= 1 :
+        arr = (arr * 255 + 0.1).astype(np.uint8)
+
     return arr
 
 def read_json(fname):
@@ -431,6 +475,11 @@ Y : np.array
 
     # read in colorbar image to an array
     X = read_cbar(in_cbar_fname)
+
+    # do we need to rotate it? record status to unrotate at end, too
+    DID_ROTATE = False
+    if DO_AUTOROTATE :
+        DID_ROTATE, X = autorotate_cbar(X)
     
     # do we have cbar ranges, threshold and alpha from a JSON?
     if in_cbar_json :
@@ -457,6 +506,10 @@ Y : np.array
     if outline_wid :
         Y = add_cbar_outline(Y, outline_wid=outline_wid, 
                              outline_col=outline_col)
+
+    # was it autorotated above? then unrotate it back here
+    if DID_ROTATE :
+        Y = np.rot90(Y, k=1)
 
     # write the new cbar to disk
     if out_cbar_fname :
