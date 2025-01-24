@@ -1293,7 +1293,7 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    nl <- nlevels(lop$dataTable[[lop$EOIc[ii]]])  # number of levels: last level is the reference in deviation coding
    ps <- array(0, dim=c(nl, ns, nR)) # posterior samples
    for(jj in 1:(nl-1)) ps[jj,,] <- psROI(aa, bb, paste0(lop$EOIc[ii],jj))
-   ps[nl,,] <- psROI(aa, bb, 'Intercept') # Intercept: averge effect 
+   ps[nl,,] <- psROI(aa, bb, 'Intercept') # Intercept: average effect 
    psa <- array(0, dim=c(nl, ns, nR)) # posterior samples adjusted
    for(jj in 1:(nl-1)) {
       psa[jj,,] <- ps[nl,,]  + ps[jj,,]
@@ -1389,7 +1389,7 @@ if(is.na(lop$mean)) {
       #
       #ps <- array(0, dim=c(nl, ns, nR)) # posterior samples
       #for(jj in 1:(nl-1)) ps[jj,,] <- psROI(aa, bb, paste0(lop$EOIc[ii],jj))
-      #ps[nl,,] <- psROI(aa, bb, 'Intercept') # Intercept: averge effect 
+      #ps[nl,,] <- psROI(aa, bb, 'Intercept') # Intercept: average effect 
       #psa <- array(0, dim=c(nl, ns, nR)) # posterior samples adjusted
       #for(jj in 1:(nl-1)) {
       #   psa[jj,,] <- ps[nl,,]  + ps[jj,,]

@@ -4334,7 +4334,7 @@ class RandTiming:
        tot_mean = 0
        rtimes = [0] * ntypes
        for rind, rc in enumerate(rtypes):
-          # compute min total, store it and accumuate
+          # compute min total, store it and accumulate
           mt = rc.min_dur * rcounts[rind]
           rtimes[rind] = mt
           tot_min += mt

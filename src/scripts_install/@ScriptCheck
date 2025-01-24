@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set statu = 0
+set stat = 0
 
 if ("$1" == "-h" || "$1" == "-help") then 
    goto HELP
@@ -153,8 +153,8 @@ goto RETURN_PARSE
 
 BEND:
    echo "Terminating in error"
-   set statu = 1
+   set stat = 1
    goto END
    
 END:
-exit $statu
+exit $stat

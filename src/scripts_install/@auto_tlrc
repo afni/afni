@@ -627,7 +627,7 @@ PARSE:
             echo "++ anat already stripped, copying $anat_in as $ns_pref"
             3dcopy $anat_in $ns_pref 
          else
-            echo "++ anat already stripped, re-using"
+            echo "++ anat already stripped, reusing"
          endif
       endif
    else

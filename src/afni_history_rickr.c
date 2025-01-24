@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Jan, 2025, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "more checks for mac gcc, test rPkgsInstall",
+   NULL
+ } ,
+
  { 13, Jan, 2025, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "updates for OS version, gcc and CLT SDK",
    NULL

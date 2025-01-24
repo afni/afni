@@ -5287,7 +5287,7 @@ STATUS("zeropad weight dataset") ;
        int rr=kk ;
        if( rr >= apply_ny ){  /* 19 Jul 2007 */
          rr = apply_ny-1 ;
-         WARNING_message("Re-using final row of -1D*_apply '%s' for sub-brick #%d",
+         WARNING_message("Reusing final row of -1D*_apply '%s' for sub-brick #%d",
                          apply_1D , kk ) ;
        }
        stup.interp_code = final_interp ;  /* this IS the final operation */

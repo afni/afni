@@ -4677,7 +4677,7 @@ class AfniData(object):
 
          mdata.append(elist)
 
-      # if all amplitudes are constand 0 or 1, remove them
+      # if all amplitudes are constant 0 or 1, remove them
       if   UTIL.vals_are_constant(amp_all, cval=0): cval = 0
       elif UTIL.vals_are_constant(amp_all, cval=1): cval = 1
       else:                                         cval = 2
