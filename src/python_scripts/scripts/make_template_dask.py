@@ -119,7 +119,7 @@ if (daskmode != "None"):
         else:
             n_threads = 8
 
-        # user may specifiy queue/partition
+        # user may specify queue/partition
         if ps.cluster_queue:
             cluster_queue = ps.cluster_queue
         else:
