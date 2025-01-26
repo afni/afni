@@ -43,7 +43,6 @@ This program creates the following useful outputs:
   (name: OUT/dset_*.txt)
 
 
-ver  = ${version}
 auth = PA Taylor (SSCC, NIMH, NIH, USA), but no doubt also including 
        the valuable insights of RC Reynolds and DR Glen
 
