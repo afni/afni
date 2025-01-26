@@ -107,6 +107,30 @@ arr : np.array
 
     arr = plt.imread(fname)
 
+    # at present if input is RGBA, ignore A---might add in to deal
+    # with this later. This effectively means A=1 for all inputs.
+    try:
+        # we expect input to be have 3 dims
+        A,B,C = np.shape(arr)
+        if C == 3 :
+            pass
+        elif C == 4 :
+            ttt = "Input cbar appears to have RGBA info, not just RGB. \n"
+            ttt+= "Just note that we will ignore the 'A', effectively \n"
+            ttt+= "reading it in as A=1 throughout.\n"
+            ttt+= "-> Not sure these are always dealt with correctly!"
+            ab.WP(ttt)
+            arr = copy.deepcopy(arr[:,:,:3])
+        else:
+            ab.EP("""The third dimension of the input cbar is neither\n
+            3 (for RGB) or 4 (for RGBA). We don't know what to do with it.""")
+    except:
+        A = np.shape(arr)
+        LA = len(A)
+        ab.EP("""Input cbar should have 3 dims (height, width and color),
+        but this one has '{}'. Don't know what to do with that.
+        """.format(LA))
+        
     # check if the RGB values are actually in [0,1] scale format.
     # if so, scale them up to [0,255] range, and fix type to uint8
     if np.max(arr) <= 1 :
