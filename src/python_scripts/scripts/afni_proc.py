@@ -804,10 +804,11 @@ g_history = """
     7.81 Oct 23, 2024:
        - redo default surface blur
        - add -volreg_no_volreg, the B Feige option
-    7.82 Dec 6, 2024: subtract 1 from ricor QC vrat, for more a useful display
+    7.82 Dec  6, 2024: subtract 1 from ricor QC vrat, for more a useful display
+    7.83 Jan 27, 2025: fix -compare_opts display of fewer/more options applied
 """
 
-g_version = "version 7.82, December 6, 2024"
+g_version = "version 7.83, January 27, 2025"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

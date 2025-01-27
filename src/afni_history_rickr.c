@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Jan, 2025, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fix -compare_opts display of fewer/more options applied",
+   NULL
+ } ,
+
  { 27, Jan, 2025, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "w/DRG: invoke all tcsh scripts with env tcsh, rather than tcsh directly",
    "To allow for other tcsh versions in the PATH, remove the direct path to\n"
