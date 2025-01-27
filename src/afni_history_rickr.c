@@ -53,6 +53,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Jan, 2025, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "w/DRG: invoke all tcsh scripts with env tcsh, rather than tcsh directly",
+   "To allow for other tcsh versions in the PATH, remove the direct path to\n"
+   "tcsh in the top execution lines, using env tcsh instead.  This is mostly\n"
+   "to work around tcsh version 6.22.03 which breaks :h with an absolute\n"
+   "path.\n"
+   "This change applies to 180 files.  Most changes are just to the top\n"
+   "execution line, but any 'tcsh -e' usage means additional checking for\n"
+   "$status failures.\n"
+   "There might still be some script generation changes to make, such as\n"
+   "to afni_procp.py."
+ } ,
+
  { 23, Jan, 2025, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "more checks for mac gcc, test rPkgsInstall",
    NULL
