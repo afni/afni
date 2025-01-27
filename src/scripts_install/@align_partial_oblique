@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/usr/bin/env tcsh
 
 PARSE: 
    echo "Parsing ..."

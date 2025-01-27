@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 # @measure_erosion_thick
 # erode a dataset repeatedly to separate datasets until nothing left
 # add up all the erosions at the end to get erosion_levels depth dataset

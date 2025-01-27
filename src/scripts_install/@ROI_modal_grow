@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 # @ROI_modal_grow
 # dilate ROIs in volumetric dataset with non-zero modal smoothing
 

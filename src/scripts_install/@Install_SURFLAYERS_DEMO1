@@ -1,9 +1,11 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 set stat = 0
 set sdir = "$PWD"
 
 # [ST: Jun 14, 2021] modified @Install_MACAQUE_DEMO for SurfLayers
+# [RR: Jan 14, 2025] call tcsh via env
+
 # driver scripts
 set demo = SURFLAYERS_DEMO1
 
@@ -40,6 +42,14 @@ else
    curl -O https://afni.nimh.nih.gov/pub/dist/tgz/$demo.tgz
 endif
 tar xvzf $demo.tgz
+if ( $status ) then
+   echo ""
+   echo "** failure to download or extract $demo.tgz"
+   echo ""
+   set stat = 1
+   goto END
+endif
+
 cd $demo
 
 echo "Follow examples in ./${demo}/README.txt "
