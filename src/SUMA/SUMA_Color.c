@@ -3365,7 +3365,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
    }
 
-
    if (Opt->bind >= 0 &&
        (Opt->UseBrt || Sover->AlphaVal == SW_SurfCont_DsetAlphaVal_B)) {
       SUMA_LH("Brightness modulation needed");
@@ -4645,8 +4644,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-
+   
    if (!ColMap) {
       SUMA_SL_Err("NULL ColMap");
       SUMA_RETURN(NOPE);
@@ -4863,7 +4861,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    }
 
 
-   if (  Opt->interpmode != SUMA_DIRECT &&
+  if (  Opt->interpmode != SUMA_DIRECT &&
          Opt->interpmode != SUMA_NO_INTERP &&
          Opt->interpmode != SUMA_INTERP) {
       fprintf (SUMA_STDERR,
@@ -4924,12 +4922,18 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
                }
             }
          } else { /* interpolation mode */
-            SUMA_LHv("Interp Mode, Vmin %f, Vmax %f, Vrange %f\n",
+           SUMA_LHv("Interp Mode, Vmin %f, Vmax %f, Vrange %f\n",
                      Vmin, Vmax, Vrange);
             SV->N_VCont = 0;
             for (i=0; i < N_V; ++i) {
                i3 = 3*i;
                if (!SV->isMasked[i]) {
+         fprintf(stderr, "V=%p\n", V);
+         fprintf(stderr, "i=%d\n", i);
+         fprintf(stderr, "Vrange=%f\n", Vrange);
+         fprintf(stderr, "ColMap=%p\n", ColMap);
+         fprintf(stderr, "ColMap->N_M=%p\n", ColMap->N_M);
+
                   Vscl = (V[i] - Vmin) / Vrange * ColMap->N_M[0];
                      /* used mxColindex instead of N_M[0] (wrong!)
                         prior to Oct 22, 03 */
@@ -4947,6 +4951,16 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
                   if (SV->BiasCoordVec) {
                      SV->BiasCoordVec[i] = Vscl;
                   }
+         fprintf(stderr, "ColMap=%p\n", ColMap);
+         fprintf(stderr, "ColMap->M=%p\n", ColMap->M);
+         if (i0<0 || i0>=ColMap->N_M[0]){
+             fprintf (SUMA_STDOUT,
+                      "Error %s: Index %d, of ColMap->M, out or range",
+                      FuncName, i0);
+             SUMA_RETURN(NOPE);
+         }
+         fprintf(stderr, "i0=%d\n", i0);
+         fprintf(stderr, "ColMap->M[i0]=%p\n", ColMap->M[i0]);
                   if (ColMap->M[i0][0] >= 0) { /* good color */
                      if (FillVCont) {
                         /* fprintf(SUMA_STDERR,"i0=%d (on %s)\t",
@@ -8089,6 +8103,247 @@ SUMA_Boolean allBlack(float *vector, int numElements){
    SUMA_RETURN (YUP);   
 }
 
+SUMA_Boolean SUMA_MixOverlays2 (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
+                                 int *ShowOverlays, int NshowOverlays,
+                                 GLfloat *glcolar, int N_Node,
+                                 SUMA_Boolean *isColored, SUMA_Boolean FILL)
+{
+   static char FuncName[] = {"SUMA_MixOverlays"};
+   int i, j;
+   int *NodeEDef=NULL, N_NodeEDef = -1;
+   float *ColEVec=NULL, *LocalEOpacity=NULL;
+   SUMA_OVERLAYS *Over=NULL;
+   SUMA_Boolean Full, Fill, Locl, Glob;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   if (!Overlays) {
+      SUMA_SL_Err("Null Overlays!");
+      SUMA_RETURN(NOPE);
+   }
+   if (!glcolar) {
+      SUMA_SL_Err("Null glcolar!");
+      SUMA_DUMP_TRACE("Null glcolar!");
+      SUMA_RETURN(NOPE);
+   }
+   if (!isColored) {
+      fprintf (SUMA_STDERR, "Error %s: isColored is NULL.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   if (!ShowOverlays) { /* default is to show all, in the order of Overlays */
+      NshowOverlays = N_Overlays;
+   }
+   
+   if (!NshowOverlays) { /* nothing to see here */
+      if (FILL) {
+         SUMA_LH("Nothing to show, Filling with blank default color\n");
+         SUMA_FillBlanks_GLCOLAR4(isColored, N_Node, SUMA_GRAY_NODE_COLOR,
+                                  SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR,
+                                  glcolar);
+      } else {
+         SUMA_LH("Nothing to show, nothing filled.\n");
+      }
+      SUMA_RETURN (YUP);
+   }
+   
+   /* start building the node colors */
+   Full = YUP;
+   Glob = YUP;
+   Locl = YUP;
+   Fill = YUP;
+
+   for (j=0; j<NshowOverlays; ++j) {
+      Full = YUP;
+      Glob = YUP;
+      Locl = YUP;
+      Fill = YUP;
+
+      if (!ShowOverlays) i=j;
+      else i = ShowOverlays[j];
+
+      Over = Overlays[i];
+      if (!Over) {
+         fprintf(SUMA_STDERR,"Error %s:\nNULL ShowOverlays[%d]\n", FuncName, i);
+         SUMA_RETURN (NOPE);
+      }
+
+      /* is this a full listing */
+      SUMA_LHv("Full listing flag: %d\n", Over->FullList);
+      if (Over->FullList) {
+         Fill = NOPE;
+              /* Full list, no need to fill up unvisited nodes at the end */
+      } else {
+         Full = NOPE; /* Not a full list */
+      }
+// #if 0 
+      if (j > 0) { /* opacity plays a role when you are overlaying
+                      one plane on top of the other */
+         /* is this a Global Factor */
+         if (Over->GlobalOpacity < 0.0) {         Glob = NOPE;      }
+
+         /* is this a Local Factor */
+         if (!Over->LocalOpacity) {
+            SUMA_S_Errv("NULL Overlays[%d]->LocalOpacity\n", i);
+            SUMA_RETURN (NOPE);
+         }
+         if (Over->LocalOpacity[0] < 0) {         Locl = NOPE;      }
+      } else {
+         Glob = NOPE; Locl = NOPE;
+      }
+
+      /* Some datasets are defined over non-elementary data,
+      think over a whole tract, instead of each tract point,
+      this next call would make sure overlay is defined
+      over each elementary datum */
+      if (!SUMA_ElementarizeOverlay(Over, &ColEVec, &NodeEDef,
+                                     &N_NodeEDef,&LocalEOpacity)) {
+         SUMA_S_Err("Failed to elementarize overlay");
+         SUMA_RETURN (NOPE);
+      }
+
+      SUMA_LHv("Building color layer %d Overlay #%d: %s ...\n"
+               "Full=%d, Glob=%d (Globopacity %f), Locl=%d,Fill=%d\n",
+          j, i, Over->Name, (int)Full, (int)Glob,
+          Over->GlobalOpacity, (int)Locl, (int)Fill);
+
+
+      /* call the appropriate macro to add the overlay */
+      if (Full && Glob && Locl) {
+         if (SUMAg_CF->ColMixMode == SUMA_ORIG_MIX_MODE) {
+            SUMA_LH("Calling SUMA_RGBv_FGL_AR4op ...");
+            /* This macro used to be called:
+                        SUMA_RGBmat_FullGlobLoc2_GLCOLAR4_opacity
+            but name was too long for some compilers */
+            SUMA_RGBv_FGL_AR4op(ColEVec, glcolar, N_Node,
+               Over->GlobalOpacity, LocalEOpacity, isColored);
+         } else if (SUMAg_CF->ColMixMode == SUMA_4AML) {
+            SUMA_LH("Calling SUMA_RGBv_FGL_AR4op2 ...");
+            SUMA_RGBv_FGL_AR4op2(ColEVec, glcolar, N_Node,
+               Over->GlobalOpacity, LocalEOpacity, isColored);
+         }
+      }
+ 
+      if (!Full && Glob && Locl) {
+         if (SUMAg_CF->ColMixMode == SUMA_ORIG_MIX_MODE) {
+            SUMA_LH("Calling SUMA_RGBv_PGL_AR4op ...");
+            /* This macro used to be called:
+                  SUMA_RGBmat_PartGlobLoc2_GLCOLAR4_opacity */
+            SUMA_RGBv_PGL_AR4op(ColEVec, NodeEDef, glcolar,
+                                N_NodeEDef, isColored, Over->GlobalOpacity,
+                                LocalEOpacity,  N_Node);
+          } else if (SUMAg_CF->ColMixMode == SUMA_4AML) {
+            SUMA_LH("Calling SUMA_RGBv_PGL_AR4op2 ...");
+            SUMA_RGBv_PGL_AR4op2(ColEVec, NodeEDef, glcolar,
+                                N_NodeEDef, isColored, Over->GlobalOpacity,
+                                LocalEOpacity,  N_Node);
+         }
+      }
+
+      if (Full && !Glob && Locl) {
+         SUMA_LH("Calling  SUMA_RGBv_FnGL_AR4op...");
+         /* This macro used to be called:
+                     SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4_opacity */
+         SUMA_RGBv_FnGL_AR4op(ColEVec, glcolar, N_Node,
+                              LocalEOpacity, isColored);
+      }
+
+      if (!Full && !Glob && Locl) {
+         SUMA_LH("Calling SUMA_RGBv_PnGL_AR4op ...");
+         /* This macro used to be called:
+                     SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4_opacity*/
+         SUMA_RGBv_PnGL_AR4op( ColEVec, NodeEDef, glcolar, N_NodeEDef,
+                               isColored, LocalEOpacity, N_Node);
+      }
+
+      if (Full && !Glob && !Locl) {
+         SUMA_LH("Calling SUMA_RGBv_FnGnL_AR4op ...");
+         /* This macro used to be called:
+                      SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4_opacity*/
+         SUMA_RGBv_FnGnL_AR4op(ColEVec, glcolar, N_Node, isColored);
+      }
+
+     // This is the case when the sliding bar is adjusted
+      if (!Full && !Glob && !Locl) {
+         SUMA_LH("Calling SUMA_RGBv_PnGnL_AR4op ...");
+         /* This macro used to be called:
+                      SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4_opacity */
+        // NB: This sets the colors of the overlays.  When this is not called,
+        //  the overlays, of all objects, are gray
+
+         // ColEVec looks like an array of RGB values (no alpha) in floating point format
+         // NodeEDef is just a monotonically increasing, array of integers giving the indices
+         // of the nodes, typically 0,1,2,3,4,...,N_Node-1
+         // glcolar is an array of RGBA values (GLFloat). for the first four tetrads, A always 
+         //     seems to be zero.  Setting the A value to 1.0 seems to have no effect.  Whne the 
+         // color is gone, the RGB values are set to zero
+         // Before SUMA_RGBv_PnGnL_AR4op is called, glcolar is all zeros.  SUMA_RGBv_PnGnL_AR4op
+         // Assigns the RGB values, in ColEVec to the RGB values of glcolar.  The A values
+         // of glcolar remain zero.
+         // isColored may be 1 or 0.  If 1, the overlay is black if below the threshold.  If
+         //0, the overlay is invisible so the object is mid gray.
+         int m_I, m_I4 = 0, m_I3=0;
+         for (m_I=0; m_I < N_Node; ++m_I) {
+               // if (NodeId[m_I] < N_Node) {
+                  // m_I4 = 4*NodeEDef[m_I]; 
+                  m_I4 = 4*m_I; 
+                  m_I3 = 3*m_I;   
+                  glcolar[m_I4] = ColEVec[m_I3]; ++m_I4; ++m_I3;
+                  glcolar[m_I4] = ColEVec[m_I3]; ++m_I4; ++m_I3;
+                  glcolar[m_I4] = ColEVec[m_I3]; ++m_I4; ++m_I3;
+                  isColored[NodeEDef[m_I]] = YUP;
+               // }
+            }
+      }
+#if 0
+      if (Full && Glob && !Locl) {
+         if (SUMAg_CF->ColMixMode == SUMA_ORIG_MIX_MODE) {
+            SUMA_LH("Calling  SUMA_RGBv_FGnL_AR4op...");
+            /* This macro used to be called:
+                      SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4_opacity*/
+            SUMA_RGBv_FGnL_AR4op(ColEVec, glcolar, N_Node,
+                                 Over->GlobalOpacity, isColored);
+         } else if (SUMAg_CF->ColMixMode == SUMA_4AML){
+            SUMA_LH("Calling  SUMA_RGBv_FGnL_AR4op2...");
+            SUMA_RGBv_FGnL_AR4op2(ColEVec, glcolar, N_Node,
+                                  Over->GlobalOpacity, isColored);
+         }
+      }
+
+      if (!Full && Glob && !Locl) {
+         if (SUMAg_CF->ColMixMode == SUMA_ORIG_MIX_MODE) {
+            SUMA_LHv("Calling  SUMA_RGBv_PGnL_AR4op...\n"
+                     "    N_NodeEDef = %d, N_Node = %d\n",
+                     N_NodeEDef, N_Node);
+            /* This macro used to be called:
+                      SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4_opacity*/
+            SUMA_RGBv_PGnL_AR4op(ColEVec, NodeEDef, glcolar,
+                     N_NodeEDef, isColored, Over->GlobalOpacity, N_Node);
+         } else if (SUMAg_CF->ColMixMode == SUMA_4AML){
+            SUMA_LH("Calling  SUMA_RGBv_PGnL_AR4op2...");
+            SUMA_RGBv_PGnL_AR4op2(ColEVec, NodeEDef, glcolar,
+                  N_NodeEDef, isColored, Over->GlobalOpacity, N_Node);
+         }
+      }
+#endif
+      if (ColEVec != Over->ColVec) SUMA_ifree(ColEVec);
+      if (LocalEOpacity != Over->LocalOpacity) SUMA_ifree(LocalEOpacity);
+      if (NodeEDef != COLP_NODEDEF(Over)) SUMA_ifree(NodeEDef);
+
+   }
+#if 0
+   if (FILL && Fill) { /* nothing to see here */
+      SUMA_LH("Some nodes received no colors from any of the overplanes, \n"
+               "filling them with background color ...");
+      SUMA_FillBlanks_GLCOLAR4(isColored, N_Node, SUMA_GRAY_NODE_COLOR,
+                        SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, glcolar);
+      SUMA_RETURN (YUP);
+   }
+#endif
+
+   SUMA_RETURN (YUP);
+}
+
 /*!
 
    function to turn color overlay planes into GL color array
@@ -8162,7 +8417,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    static SUMA_Boolean rangeChanged, cmapChanged;
    static SUMA_Boolean ISubbrickChanged, TSubbrickChanged, BSubbrickChanged;
    static double IntRange[2];
-   
+
    SUMA_ENTRY;
       
    if (!cmapName && !(cmapName=(char *)malloc(128))){
@@ -8171,10 +8426,10 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    }
 
    // Check whether threshold range changed
-   fprintf(stderr, "currentOverlay->OptScl->IntRange[0] = %f\n", currentOverlay->OptScl->IntRange[0]);
-   fprintf(stderr, "currentOverlay->OptScl->IntRange[1] = %f\n", currentOverlay->OptScl->IntRange[1]);
    if (rangeChanged = (IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
             IntRange[1] != currentOverlay->OptScl->IntRange[1])) {
+        fprintf(stderr, "IntRange = (%d, %d)", IntRange[0], IntRange[1]);
+        fprintf(stderr, "currentOverlay->OptScl->IntRange = (%d, %d)", currentOverlay->OptScl->IntRange[0], currentOverlay->OptScl->IntRange[1]);
         IntRange[0] = currentOverlay->OptScl->IntRange[0];
         IntRange[1] = currentOverlay->OptScl->IntRange[1];
    }
@@ -8435,20 +8690,28 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
       NshowOverlays = 0;
    }
    
-    if (!(currentOverlay->originalColVec) || currentOverlay->OptScl->ThreshRange[0] == 0 /* || rangeChanged || ISubbrickChanged || 
+    if (!(currentOverlay->originalColVec) || currentOverlay->OptScl->ThreshRange[0] == 0 ||
+     rangeChanged /* || ISubbrickChanged || 
         TSubbrickChanged || BSubbrickChanged */){
         currentOverlay->originalColVec = (GLfloat *)calloc(3*N_Node,sizeof(GLfloat));
 
         SUMA_THRESH_MODE oldfThrMode = currentOverlay->OptScl->ThrMode;
         currentOverlay->OptScl->ThrMode = SUMA_NO_THRESH;
         currentOverlay->OptScl->ApplyMask = 0;
+        if (currentOverlay->OptScl->ThreshRange[0] > 0) 
+            currentThreshold = currentOverlay->OptScl->ThreshRange[0];
+        if (rangeChanged){
+            free(origignal4color);
+            origignal4color = NULL;
+            // currentOverlay->OptScl->ThreshRange[0] = 0.0f;
+        }
         if (!origignal4color) origignal4color = (GLfloat *)calloc(4*N_Node,sizeof(GLfloat));
         isColored_alpha = (SUMA_Boolean *)
                          SUMA_calloc (N_Node, sizeof(SUMA_Boolean));
         
         for (int i=0; i<N_Node; ++i) isColored_alpha[i] = 1;
                          
-        if (!SUMA_MixOverlays ( Overlays, N_Overlays, ShowOverLays_sort,
+        if (!SUMA_MixOverlays2 ( Overlays, SO->N_Overlays, ShowOverLays_sort,
                                 NshowOverlays, origignal4color, N_Node,
                                 isColored_alpha, 0)) {
            fprintf (SUMA_STDERR,
@@ -8466,9 +8729,12 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
             currentOverlay->originalColVec[i3++] = origignal4color[i4++];
             currentOverlay->originalColVec[i3++] = origignal4color[i4++];
        }
-        
+
         currentOverlay->OptScl->ThrMode = oldfThrMode;
     }
+    if (!rangeChanged) currentOverlay->OptScl->ThreshRange[0] = currentThreshold;
+        fprintf(stderr, "currentOverlay->OptScl->ThreshRange[0] = %f\n", currentOverlay->OptScl->ThreshRange[0]);
+        fprintf(stderr, "currentThreshold = %f\n", currentThreshold);
     
     if (SO->SurfCont->AlphaOpacityFalloff){        
         // Do not allow variable thresholding if origignal4color all black
@@ -9055,6 +9321,7 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
    if (!ShowOverlays) { /* default is to show all, in the order of Overlays */
       NshowOverlays = N_Overlays;
    }
+   
    if (!NshowOverlays) { /* nothing to see here */
       if (FILL) {
          SUMA_LH("Nothing to show, Filling with blank default color\n");
@@ -9066,7 +9333,7 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
       }
       SUMA_RETURN (YUP);
    }
-
+   
    /* start building the node colors */
    Full = YUP;
    Glob = YUP;
@@ -9096,7 +9363,7 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
       } else {
          Full = NOPE; /* Not a full list */
       }
-
+ 
       if (j > 0) { /* opacity plays a role when you are overlaying
                       one plane on top of the other */
          /* is this a Global Factor */
@@ -9143,7 +9410,7 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
                Over->GlobalOpacity, LocalEOpacity, isColored);
          }
       }
-
+ 
       if (!Full && Glob && Locl) {
          if (SUMAg_CF->ColMixMode == SUMA_ORIG_MIX_MODE) {
             SUMA_LH("Calling SUMA_RGBv_PGL_AR4op ...");
@@ -9202,7 +9469,6 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
          // of glcolar remain zero.
          // isColored may be 1 or 0.  If 1, the overlay is black if below the threshold.  If
          //0, the overlay is invisible so the object is mid gray.
-                               
          SUMA_RGBv_PnGnL_AR4op(ColEVec, NodeEDef, glcolar,
                                N_NodeEDef, isColored, N_Node);
       }
