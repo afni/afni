@@ -9081,6 +9081,15 @@ def tlrc_cmd_affwarp_priors(proc, block):
 
     if len(proc.nlw_priors) != 2: return ''
 
+    # this case requires -volreg_align_e2a for the xform to apply
+    vblk = proc.find_block('volreg')
+    if vblk is not None:
+       if vblk.opts.find_opt('-volreg_tlrc_warp') \
+          and not vblk.opts.find_opt('-volreg_align_e2a'):
+          print("** -tlrc_affine_warped_dsets requires -volreg_align_e2a")
+          print("   (else EPI -> stdandard space will not be correct)")
+          return None
+
     print('-- importing affine warp datasets')
 
     p0 = proc.nlw_priors[0]
