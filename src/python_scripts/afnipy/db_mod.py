@@ -3030,7 +3030,7 @@ def db_cmd_volreg(proc, block):
         # - these should take EPI data from orig space to final space
 
         # first outer is any NL std space warp
-        if dowarp and proc.nlw_aff_mat != '':
+        if dowarp and proc.nlw_aff_mat != '' and proc.nlw_type == 'NL':
            epi_warps.append(warp_item('NL std space', 'NL', proc.nlw_NL_mat))
 
         # next is a combined warp of volreg->std space
@@ -8691,6 +8691,9 @@ def mod_check_tlrc_NL_warp_dsets(proc, block):
        print('** error: %s requires 3 elements, have %d' % (oname, len(dslist)))
        return 1
 
+    if proc.verb > 1:
+       print("-- processing pre-warp NL dsets: %s" % dslist)
+
     # get and check anat, 1D warp, NL warp
     aname = gen_afni_name(dslist[0])
     if aname.view == '' and aname.type == 'BRIK': aname.new_view('+tlrc')
@@ -8736,6 +8739,9 @@ def mod_check_tlrc_affine_warp_dsets(proc, block):
     if len(dslist) != 2:
        print('** error: %s requires 2 elements, have %d' % (oname, len(dslist)))
        return 1
+
+    if proc.verb > 1:
+       print("-- processing pre-warp NL dsets: %s" % dslist)
 
     # get and check anat
     aname = gen_afni_name(dslist[0])
@@ -13731,6 +13737,7 @@ OPTIONS:  ~2~
         running auto_warp_py from the proc script.
 
         When using this option, the 'tlrc' block will be empty of actions.
+        See also -tlrc_affine_warped_dsets.
 
     -tlrc_NL_force_view Y/N : force view when copying auto_warp.py result
 
