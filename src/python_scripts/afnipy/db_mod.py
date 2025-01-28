@@ -8654,6 +8654,7 @@ def db_mod_tlrc(block, proc, user_opts):
 
     apply_uopt_to_block('-tlrc_opts_at', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_warp', user_opts, block)
+    apply_uopt_to_block('-tlrc_affine_warped_dsets', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_warped_dsets', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_force_view', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_awpy_rm', user_opts, block)
@@ -8661,13 +8662,25 @@ def db_mod_tlrc(block, proc, user_opts):
     apply_uopt_to_block('-tlrc_rmode', user_opts, block)
     apply_uopt_to_block('-tlrc_suffix', user_opts, block)
 
-    if block.opts.find_opt('-tlrc_NL_warped_dsets'):
+    # check for external warp datasets and initialize
+    nlw = block.opts.find_opt('-tlrc_NL_warped_dsets') is not None
+    afw = block.opts.find_opt('-tlrc_affine_warped_dsets') is not None
+    if nlw and afw:
+       print("** cannot use both -tlrc_affine_warped_dsets " \
+             "and -tlrc_NL_warped_dsets")
+       return
+    if afw:
+       if mod_check_tlrc_affine_warp_dsets(proc, block): return
+    if nlw:
        if mod_check_tlrc_NL_warp_dsets(proc, block): return
 
     block.valid = 1
 
 def mod_check_tlrc_NL_warp_dsets(proc, block):
-    """if we are given NL-warped datasets, fill nlw_priors"""
+    """if we are given NL-warped datasets, fill nlw_priors
+            warped anat aname, affine warp aname, NL warp aname
+       note the warp type in nlw_type
+    """
 
     oname = '-tlrc_NL_warped_dsets'
     dslist, rv = block.opts.get_string_list(oname)
@@ -8705,6 +8718,43 @@ def mod_check_tlrc_NL_warp_dsets(proc, block):
 
     # store the afni_names and bolt
     proc.nlw_priors = [aname, axname, nlname]
+
+    return 0
+
+def mod_check_tlrc_affine_warp_dsets(proc, block):
+    """if we are given affine-warped datasets, fill nlw_priors
+       (sister function to mod_check_tlrc_NL_warp_dsets)
+            warped anat aname, affine warp aname, NL warp aname
+       note the warp type in nlw_type
+    """
+
+    oname = '-tlrc_affine_warped_dsets'
+    dslist, rv = block.opts.get_string_list(oname)
+    if not dslist:
+       print('** error: failed parsing option %s' % oname)
+       return 1
+    if len(dslist) != 2:
+       print('** error: %s requires 2 elements, have %d' % (oname, len(dslist)))
+       return 1
+
+    # get and check anat
+    aname = gen_afni_name(dslist[0])
+    if aname.view == '' and aname.type == 'BRIK': aname.new_view('+tlrc')
+    dims = aname.dims()
+    if dims[3] != 1:
+       print('** error in %s p1: tlrc anat should be 1 volume,' % oname)
+       print('   but dataset %s shows %d' % (aname.shortinput(), dims[3]))
+       return 1
+
+    # get and check affine warp
+    axname = gen_afni_name(dslist[1])
+    if axname.type != '1D':
+       print('** error in %s p2: affine xform %s should be 1D' \
+             % (oname, axname.shortinput()))
+       return 1
+
+    # store the afni_names and bolt
+    proc.nlw_priors = [aname, axname]
 
     return 0
 
@@ -8765,6 +8815,8 @@ def db_cmd_tlrc(proc, block):
     # if we are given NL-warped datasets, just apply them
     if block.opts.find_opt('-tlrc_NL_warped_dsets'):
        return tlrc_cmd_nlwarp_priors(proc, block)
+    elif block.opts.find_opt('-tlrc_affine_warped_dsets'):
+       return tlrc_cmd_affwarp_priors(proc, block)
 
     # add any user-specified options
     opt = block.opts.find_opt('-tlrc_opts_at')
@@ -8894,6 +8946,7 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
     # if no unifize, xmat strings will not have .un
     proc.nlw_aff_mat = 'anat.%saff.Xat.1D' % uxstr
     proc.nlw_NL_mat = 'anat.%saff.qw_WARP.nii' % uxstr
+    proc.nlw_type = 'NL'
 
     proc.anat_warps.append(proc.nlw_aff_mat)
     proc.anat_warps.append(proc.nlw_NL_mat)
@@ -8925,8 +8978,8 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
     return cmd + pstr
 
 def tlrc_cmd_nlwarp_priors(proc, block):
-    """NL warping has already been done,
-       just note datasets as if there were made here
+    """NL warp datasets were passed to afni_proc.py,
+       just note datasets as if they were made here
 
        set tlrcanat, nlw_aff_mat, nlw_NL_mat
        append the warps
@@ -8952,6 +9005,7 @@ def tlrc_cmd_nlwarp_priors(proc, block):
 
     proc.nlw_aff_mat = p1.shortinput()
     proc.nlw_NL_mat  = p2.shortinput()
+    proc.nlw_type = 'NL'
 
     proc.anat_warps.append(proc.nlw_aff_mat)
     proc.anat_warps.append(proc.nlw_NL_mat)
@@ -8969,7 +9023,7 @@ def tlrc_cmd_warp(proc, aset, base, strip=1, rmode='', suffix='', exopts=[]):
        exopts   : extra options         [list of strings]
     """
 
-    prog = 'auto_warp.py'
+    prog = '@auto_tlrc'
 
     if strip: sstr = ''
     else:     sstr = ' -no_ss'
@@ -9010,6 +9064,37 @@ def tlrc_cmd_warp(proc, aset, base, strip=1, rmode='', suffix='', exopts=[]):
     cmd += '# store forward transformation matrix in a text file\n' \
            'cat_matvec %s::WARP_DATA -I > %s\n\n' % (proc.tlrcanat.pv(),wfile)
     proc.anat_warps.append(wfile)
+    proc.nlw_type = 'affine'
+
+    return cmd
+
+def tlrc_cmd_affwarp_priors(proc, block):
+    """return block string for case of affine standard space warp,
+       but when datasets were passed to afni_proc.py
+
+       set tlrcanat, nlw_aff_mat
+       - based on tlrc_cmd_nlwarp_priors()
+    """
+
+    if len(proc.nlw_priors) != 2: return ''
+
+    print('-- importing affine warp datasets')
+
+    p0 = proc.nlw_priors[0]
+    p1 = proc.nlw_priors[1]              
+
+    cmd = "# %s\n" % block_header('tlrc')
+    cmd += '\n'                                                           \
+           '# nothing to do: have external -tlrc_affine_warped_dsets\n\n' \
+           '# warped anat     : %s\n'                                     \
+           '# affine xform    : %s\n\n'                                   \
+           % (p0.shortinput(), p1.shortinput())
+
+    proc.tlrcanat = p0
+    proc.nlw_aff_mat = p1.shortinput()
+    proc.nlw_type = 'affine'
+
+    proc.anat_warps.append(proc.nlw_aff_mat)
 
     return cmd
 

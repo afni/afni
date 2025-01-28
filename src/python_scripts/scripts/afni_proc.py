@@ -1173,9 +1173,10 @@ class SubjProcSream:
         self.anat_unifized = 0          # has the anat been unifized
         self.anat_final = None          # anat assumed aligned with stats
         self.anat_warps = []            # array of anat warp matrices
-        self.nlw_aff_mat= ''
-        self.nlw_NL_mat = ''
-        self.nlw_priors = []            # afni_name list of 3 warped_dsets
+        self.nlw_aff_mat= ''            # imported affine or NL warp info
+        self.nlw_NL_mat = ''            # (priors: warp, warped anat)
+        self.nlw_priors = []            # afni_name list of 2,3 warp files
+        self.nlw_type   = ''            # if set, affine or NL
         self.tlrcanat   = None          # expected name of tlrc dataset
         self.tlrc_base  = None          # afni_name dataset used in -tlrc_base
         self.tlrc_nlw   = 0             # are we using non-linear registration
