@@ -4928,12 +4928,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
             for (i=0; i < N_V; ++i) {
                i3 = 3*i;
                if (!SV->isMasked[i]) {
-         fprintf(stderr, "V=%p\n", V);
-         fprintf(stderr, "i=%d\n", i);
-         fprintf(stderr, "Vrange=%f\n", Vrange);
-         fprintf(stderr, "ColMap=%p\n", ColMap);
-         fprintf(stderr, "ColMap->N_M=%p\n", ColMap->N_M);
-
+ 
                   Vscl = (V[i] - Vmin) / Vrange * ColMap->N_M[0];
                      /* used mxColindex instead of N_M[0] (wrong!)
                         prior to Oct 22, 03 */
@@ -4951,16 +4946,12 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
                   if (SV->BiasCoordVec) {
                      SV->BiasCoordVec[i] = Vscl;
                   }
-         fprintf(stderr, "ColMap=%p\n", ColMap);
-         fprintf(stderr, "ColMap->M=%p\n", ColMap->M);
-         if (i0<0 || i0>=ColMap->N_M[0]){
-             fprintf (SUMA_STDOUT,
-                      "Error %s: Index %d, of ColMap->M, out or range",
-                      FuncName, i0);
-             SUMA_RETURN(NOPE);
-         }
-         fprintf(stderr, "i0=%d\n", i0);
-         fprintf(stderr, "ColMap->M[i0]=%p\n", ColMap->M[i0]);
+                  if (i0<0 || i0>=ColMap->N_M[0]){
+                     fprintf (SUMA_STDOUT,
+                              "Error %s: Index %d, of ColMap->M, out or range",
+                              FuncName, i0);
+                     SUMA_RETURN(NOPE);
+                  }
                   if (ColMap->M[i0][0] >= 0) { /* good color */
                      if (FillVCont) {
                         /* fprintf(SUMA_STDERR,"i0=%d (on %s)\t",
@@ -8432,6 +8423,9 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
         fprintf(stderr, "currentOverlay->OptScl->IntRange = (%d, %d)", currentOverlay->OptScl->IntRange[0], currentOverlay->OptScl->IntRange[1]);
         IntRange[0] = currentOverlay->OptScl->IntRange[0];
         IntRange[1] = currentOverlay->OptScl->IntRange[1];
+        if (currentOverlay->OptScl->ThreshRange[0] > 0) 
+            currentThreshold = currentOverlay->OptScl->ThreshRange[0];
+        currentOverlay->OptScl->ThreshRange[0] = 0.0f;
    }
    fprintf(stderr, "rangeChanged = %d\n", rangeChanged);
    
@@ -8690,7 +8684,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
       NshowOverlays = 0;
    }
    
-    if (!(currentOverlay->originalColVec) || currentOverlay->OptScl->ThreshRange[0] == 0 ||
+    if (!(currentOverlay->originalColVec) || currentOverlay->OptScl->ThreshRange[0] == 0 /*||
      rangeChanged /* || ISubbrickChanged || 
         TSubbrickChanged || BSubbrickChanged */){
         currentOverlay->originalColVec = (GLfloat *)calloc(3*N_Node,sizeof(GLfloat));
@@ -8698,8 +8692,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
         SUMA_THRESH_MODE oldfThrMode = currentOverlay->OptScl->ThrMode;
         currentOverlay->OptScl->ThrMode = SUMA_NO_THRESH;
         currentOverlay->OptScl->ApplyMask = 0;
-        if (currentOverlay->OptScl->ThreshRange[0] > 0) 
-            currentThreshold = currentOverlay->OptScl->ThreshRange[0];
         if (rangeChanged){
             free(origignal4color);
             origignal4color = NULL;
@@ -8732,7 +8724,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
 
         currentOverlay->OptScl->ThrMode = oldfThrMode;
     }
-    if (!rangeChanged) currentOverlay->OptScl->ThreshRange[0] = currentThreshold;
+    currentOverlay->OptScl->ThreshRange[0] = currentThreshold;
         fprintf(stderr, "currentOverlay->OptScl->ThreshRange[0] = %f\n", currentOverlay->OptScl->ThreshRange[0]);
         fprintf(stderr, "currentThreshold = %f\n", currentThreshold);
     
