@@ -13691,6 +13691,23 @@ OPTIONS:  ~2~
 
         See also -tlrc_base.
 
+    -tlrc_affine_warped_dsets ANAT WARP.1D : import affine warp results
+
+            e.g. -tlrc_affine_warped_dsets anat.nii anat.un.aff.Xat.1D
+
+        If the user has already run an affine of the subject anatomy
+        to transform to standard space, those datasets can be input to
+        save re-processing time, or if the transformations are preferable
+        to what would be computed by @auto_tlrc.
+
+        The warp should be the forward transformation, akin to what would
+        be in warp.anat.Xat.1D after running:
+
+            cat_matvec FT_anat_ns+tlrc::WARP_DATA -I > warp.anat.Xat.1D
+
+        When using this option, the 'tlrc' block will be empty of actions.
+        See also -tlrc_NL_warped_dsets.
+
     -tlrc_NL_warp           : use non-linear for template alignment
 
             e.g. -tlrc_NL_warp
