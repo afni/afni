@@ -35,15 +35,209 @@ list_alpha_str  = ', '.join(list_alpha)
 
 # Alpha blend color: what do we blend with when Alpha is on?
 #abc = np.array([255, 255, 255], dtype=np.uint8)   # white
-abc = np.array([200, 200, 200], dtype=np.uint8)  # light gray
+abc = np.array([200, 200, 200], dtype=np.uint8)   # light gray
 
 # the color(s) of tickmarks and the threshold line
-zer = np.array([0, 0, 0], dtype=np.uint8)       # black
-rez = np.array([255,255,255], dtype=np.uint8)   # white
+zer = np.array([0, 0, 0], dtype=np.uint8)         # black
+rez = np.array([255, 255, 255], dtype=np.uint8)   # white
 
 DO_AUTOROTATE = True
 
+# dict of default cbar props to check for; most/all keys match names
+# of some of the keys within the pbar JSON output by @chauffeur_afni
+cbar_props = {
+    'pbar_bot'   = None,
+    'pbar_top'   = None,
+    'vthr'       = None,
+    'olay_alpha' = 'No',
+    }
+
+# default values for the main PbarCbar obj
+DOPTS = {
+    'user_opts'     = [],         # command the user ran
+    'in_cbar'       = '',
+    'prefix'        = '',
+    'pbar_min'      = None,
+    'pbar_max'      = None,
+    'alpha'         = 'No',
+    'thr_do'        = True
+    'thr_val'       = None,
+    'thr_width'     = 4,
+    'thr_num_osc'   = 4,
+    'thr_colors'    = [zer, rez],
+    'tick_num_int'  = 10,
+    'tick_frac'     = 0.07,
+    'tick_color'    = zer,
+    'orth_do'       = False
+    'orth_frac'     = 1.0,
+    'outline_width' = 0,
+    'outline_color' = zer,
+    'verb'          = 1,
+}
+
+
 # ============================================================================
+
+class CbarPbar:
+    """Object for storing information about a cbar/pbar, and for
+controlling behavior of editing it with various thresholding,
+outlines, and more.
+
+Parameters
+----------
+inobj : InOpts object 
+    object constructed from running cbar_pbar.py on the command line. At 
+    present, the only way to really provide inputs here.
+
+    """
+
+    def __init__(self, user_inobj=None):
+        # main variables
+        self.status          = 0                       # exit value
+        self.user_opts       = DOPTS['user_opts']      # command the user ran
+        self.user_inobj      = user_inobj
+
+        # main data variables
+        self.in_cbar         = DOPTS['in_cbar']
+        self.prefix          = DOPTS['prefix']
+
+        # pbar properties from @chauffeur_afni pbar JSON
+        self.pbar_min        = DOPTS['pbar_min']
+        self.pbar_max        = DOPTS['pbar_max']
+        self.thr_val         = DOPTS['thr_val']
+        self.alpha           = DOPTS['alpha']
+
+        # threshold line
+        self.thr_do          = DOPTS['thr_do']
+        self.thr_width       = DOPTS['thr_width']
+        self.thr_num_osc     = DOPTS['thr_num_osc']
+        self.thr_colors      = DOPTS['thr_colors']
+
+        # tick properties
+        self.tick_num_int    = DOPTS['tick_num_int']
+        self.tick_frac       = DOPTS['tick_frac']
+        self.tick_color      = DOPTS['tick_color']
+
+        # control orthogonality (e.g., when olay and thr are diff dsets)
+        self.orth_do         = DOPTS['orth_do']
+        self.orth_frac       = DOPTS['orth_frac']
+
+        # outline properties
+        self.outline_width   = DOPTS['outline_width']
+        self.outline_color   = DOPTS['outline_color']
+
+        # general variables
+        self.verb            = DOPTS['verb']
+
+        # ----- do methods
+
+        tmp1 = self.load_from_inopts()
+        tmp2 = self.check_necessary_items()
+        tmp3 = self.check_files_exist()
+
+    # ----------------------------
+
+    def check_necessary_items(self):
+        """Make sure that a necessary minimum set of items has been
+        provided."""
+      
+        if self.in_cbar == None :
+            ttt = "User is missing input pbar name: see '-in_cbar ..', "
+            ttt+= "and please try again."
+            BASE.EP(ttt)
+
+        if self.prefix == None :
+            ttt = "User is missing output pbar name: see '-prefix ..', "
+            ttt+= "and please try again."
+            BASE.EP(ttt)
+
+        if self.pbar_min == None :
+            ttt = "User is missing min pbar value: see '-pbar_min ..' "
+            ttt+= "or '-in_json ..', and please try again."
+            BASE.EP(ttt)
+
+        if self.pbar_max == None :
+            ttt = "User is missing max pbar value: see '-pbar_min ..' "
+            ttt+= "or '-in_json ..', and please try again."
+            BASE.EP(ttt)
+
+        return 0
+
+    def check_files_exist(self):
+        """For any file that might be input, check that it exists."""
+      
+        all_fname = [self.in_cbar]
+
+        for fname in all_fname :
+            if not(os.path.isfile(fname)) :
+                ttt = "User input file {} does not exist. ".format(fname)
+                ttt+= "Please check path and try again."
+                BASE.EP(ttt)
+
+        return 0
+
+    def load_from_inopts(self):
+        """Populate the input values using the command line interface
+        input. The user information is provided as the self.user_inobj
+        object, which gets parsed and redistributed here.
+        """
+        
+        if not(self.user_inobj) :
+            ab.WP("No user_inobj? Nothing to do.")
+            return 0
+
+        # shorter name to use, and less confusing with 'self' usage
+        io = self.user_inboj
+
+        if io.user_opts != None :
+            self.user_opts = io.user_opts
+        if io.in_cbar != None :
+            self.in_cbar = io.in_cbar
+        if io.prefix != None :
+            self.prefix = io.prefix
+
+        if io.pbar_min != None :
+            self.pbar_min = io.pbar_min
+        if io.pbar_max != None :
+            self.pbar_max = io.pbar_max
+
+        if io.alpha != None :
+            self.alpha = io.alpha
+
+        if io.thr_val != None :
+            self.thr_val = io.thr_val
+        if io.thr_do != None :
+            self.thr_do = io.thr_do
+        if io.thr_width != None :
+            self.thr_width = io.thr_width
+        if io.thr_num_osc != None :
+            self.thr_num_osc = io.thr_num_osc
+        if len(io.thr_colors) :
+            self.thr_colors = io.thr_colors
+
+        if io.tick_num_int != None :
+            self.tick_num_int = io.tick_num_int
+        if io.tick_frac != None :
+            self.tick_frac = io.tick_frac
+        if io.tick_color != None :
+            self.tick_color = io.tick_color
+
+        if io.orth_do != None :
+            self.orth_do = io.orth_do
+        if io.orth_frac != None :
+            self.orth_frac = io.orth_frac
+
+        if io.outline_width != None :
+            self.outline_width = io.outline_width
+        if io.outline_color != None :
+            self.outline_color = io.outline_color
+
+        if io.verb != None :
+            self.verb = io.verb
+
+        return 0
+
+# -----------------------------------------------------------------------
 
 def autorotate_cbar(X, verb=1):
     """Check if input array X should be rotated for processing.  Will

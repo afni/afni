@@ -79,17 +79,25 @@ Examples ~1~
 """
 
 g_history = """
-   gtkyd_check.py history:
+  gtkyd_check.py history:
 
-   0.1  Jan 26, 2025    - started this command line interface for lib_cbar_pbar
+  0.1   Jan 26, 2025 :: started this command line interface for lib_cbar_pbar
 """
 
-g_version = "cbar_pbar.py version 0.1  Jan 26, 2025"
+g_ver     = g_history.split("\n")[-2].split("::")[0].strip()
+g_version = "cbar_pbar.py version " + g_ver
 
+class InOpts:
+   """Object for storing any/all command line inputs, and just checking
+that any input files do, in fact, exist.  Option parsing and other
+checks happen in a subsequent object.
 
-class MyInterface:
-   """interface class for MyLibrary"""
-   def __init__(self, verb=1):
+See lcp.CbarPbar() for the set of things that are populated for the actual
+   cbar editing.
+
+   """
+
+   def __init__(self):
       # main variables
       self.status          = 0                       # exit value
       self.valid_opts      = None
@@ -99,29 +107,42 @@ class MyInterface:
       self.in_cbar         = None
       self.prefix          = None
 
+      # the JSON from @chauffeur_afni, or all the keys that can be in it;
+      # see method combine_chauffeur_json_opts()
       self.in_json         = None
+      self.pbar_min        = None
+      self.pbar_max        = None
+      self.thr_val         = None
       self.alpha           = None
 
+      # threshold line
       self.thr_do          = True
       self.thr_width       = None
       self.thr_num_osc     = None
-      self.thr_colors      = None
+      self.thr_colors      = []
 
+      # tick properties
       self.tick_num_int    = None
       self.tick_frac       = None
       self.tick_color      = None
 
-      self.orth_do         = True
+      # control orthogonality (e.g., when olay and thr are diff dsets)
+      self.orth_do         = False
       self.orth_frac       = None
 
+      # outline properties
       self.outline_width   = None
       self.outline_color   = None
 
       # general variables
-      self.verb            = verb
+      self.verb            = None
 
       # initialize valid_opts
-      self.init_options()
+      tmp1 = self.init_options()
+      # merge opt values that can come through different avenues
+      tmp2 = self.combine_chauffeur_json_opts()
+
+   # ----------------------------
 
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
@@ -146,6 +167,15 @@ class MyInterface:
       # optional parameters
       self.valid_opts.add_opt('-in_json', 1, [], 
                       helpstr='name of JSON file for cbar file')
+
+      self.valid_opts.add_opt('-pbar_min', 1, [], 
+                      helpstr='pbar: minimum value in palette bar')
+
+      self.valid_opts.add_opt('-pbar_max', 1, [], 
+                      helpstr='pbar: maximum value in palette bar')
+
+      self.valid_opts.add_opt('-thr_val', 1, [], 
+                      helpstr="threshold line: absolute value for threshold")
 
       self.valid_opts.add_opt('-alpha', 1, [], 
                       helpstr="setting for transparent thresholding")
@@ -245,13 +275,13 @@ class MyInterface:
          if opt.name == '-in_cbar':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err:
-                BASE.EP(err_base + opt.name)
+                BASE.EP1(err_base + opt.name)
             self.in_cbar = val
 
          elif opt.name == '-prefix':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err:
-                BASE.EP(err_base + opt.name)
+                BASE.EP1(err_base + opt.name)
             self.prefix = val
 
          # general options
@@ -259,31 +289,49 @@ class MyInterface:
          elif opt.name == '-in_json':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err:
-                BASE.EP(err_base + opt.name)
+                BASE.EP1(err_base + opt.name)
             self.in_json = val
+
+         elif opt.name == '-pbar_min':
+            val, err = uopts.get_type_opt(float, '', opt=opt)
+            if val is None or err: 
+                BASE.EP1(err_base + opt.name)
+            self.pbar_min = val
+
+         elif opt.name == '-pbar_max':
+            val, err = uopts.get_type_opt(float, '', opt=opt)
+            if val is None or err: 
+                BASE.EP1(err_base + opt.name)
+            self.pbar_max = val
+
+         elif opt.name == '-thr_val':
+            val, err = uopts.get_type_opt(float, '', opt=opt)
+            if val is None or err: 
+                BASE.EP1(err_base + opt.name)
+            self.thr_val = val
 
          elif opt.name == '-alpha':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err: 
-                BASE.EP(err_base + opt.name)
+                BASE.EP1(err_base + opt.name)
             self.alpha = val
 
          elif opt.name == '-thr_width':
             val, err = uopts.get_type_opt(int, '', opt=opt)
             if val is None or err: 
-                BASE.EP(err_base + opt.name)
+                BASE.EP1(err_base + opt.name)
             self.thr_width = val
 
          elif opt.name == '-thr_num_osc':
             val, err = uopts.get_type_opt(int, '', opt=opt)
             if val is None or err:
-                BASE.EP(err_base + opt.name)
+                BASE.EP1(err_base + opt.name)
             self.thr_num_osc = val
 
          elif opt.name == '-thr_colors':
             val, err = uopts.get_string_list('', opt=opt)
             if is None or err:
-                BASE.EP(err_base + opt.name)
+                BASE.EP1(err_base + opt.name)
             self.thr_colors = val
 
          elif opt.name == '-thr_off':
@@ -292,19 +340,19 @@ class MyInterface:
          elif opt.name == '-tick_num_int':
             val, err = uopts.get_type_opt(int, '', opt=opt)
             if val is None or err: 
-                BASE.EP(err_base + opt.name)
+                BASE.EP1(err_base + opt.name)
             self.tick_num_int = val
 
          elif opt.name == '-tick_frac':
             val, err = uopts.get_type_opt(float, '', opt=opt)
             if val is None or err: 
-                BASE.EP(err_base + opt.name)
+                BASE.EP1(err_base + opt.name)
             self.tick_frac = val
 
          elif opt.name == '-tick_color':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err: 
-                BASE.EP(err_base + opt.name)
+                BASE.EP1(err_base + opt.name)
             self.tick_color = val
 
          elif opt.name == '-orth_on':
@@ -313,25 +361,73 @@ class MyInterface:
          elif opt.name == '-orth_frac':
             val, err = uopts.get_type_opt(float, '', opt=opt)
             if val is None or err: 
-                BASE.EP(err_base + opt.name)
+                BASE.EP1(err_base + opt.name)
             self.orth_frac = val
 
          elif opt.name == '-outline_width':
             val, err = uopts.get_type_opt(int, '', opt=opt)
             if val is None or err: 
-                BASE.EP(err_base + opt.name)
+                BASE.EP1(err_base + opt.name)
             self.outline_width = val
 
          elif opt.name == '-outline_color':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err: 
-                BASE.EP(err_base + opt.name)
+                BASE.EP1(err_base + opt.name)
             self.outline_color = val
 
          elif opt.name == '-overwrite':
             self.do_ow = True
 
       return 0
+
+   def combine_chauffeur_json_opts(self):
+       """Some values can come from the command line individually, or from an
+       @chauffeur_afni-created JSON, or both. This method checks and merges
+       them, giving overwrite priority to the command line entered ones
+       (i.e., it assumes the user wants to be editing). The opts processed
+       here might likely get updated over time"""
+
+       # nothing to do here, if JSON not provided
+       if not(self.in_json) :
+           return 0
+
+       # go through and use JSON values if there isn't a value there
+       # already; note that some of the dictionary keys and object
+       # attributes have similar but distinct names
+
+       D     = lcp.read_json(self.in_json)
+       dkeys = D.keys()
+
+       if 'pbar_bot' in dkeys :
+           if self.pbar_min == None :
+               self.pbar_min = float(D['pbar_bot'])
+           elif self.verb :
+               ab.WP("Using user-specified value of '{}', rather than JSON's "
+                     "'{}'".format('pbar_min', 'pbar_bot'))
+
+       if 'pbar_top' in dkeys :
+           if self.pbar_top == None :
+               self.pbar_max = float(D['pbar_top'])
+           elif self.verb :
+               ab.WP("Using user-specified value of '{}', rather than JSON's "
+                     "'{}'".format('pbar_max', 'pbar_top'))
+
+       if 'vthr' in dkeys :
+           if self.thr_val == None :
+               self.thr_val = float(D['vthr'])
+           elif self.verb :
+               ab.WP("Using user-specified value of '{}', rather than JSON's "
+                     "'{}'".format('thr_val', 'vthr'))
+
+       if 'olay_alpha' in dkeys :
+           if self.alpha == None :
+               self.alpha   = D['olay_alpha']
+           elif self.verb :
+               ab.WP("Using user-specified value of '{}', rather than JSON's "
+                     "'{}'".format('thr_val', 'vthr'))
+
+       return 0
 
    def execute(self):
 
@@ -340,18 +436,14 @@ class MyInterface:
       if self.verb > 1:
          BASE.IP("Begin processing options")
 
-      # all work and writing is basically done here.
-      gtkyd_obj = lgtk.GtkydInfo( self.infiles,
-                                  outdir = self.outdir,
-                                  do_minmax = self.do_minmax,
-                                  id_keeps_dirs = self.id_keeps_dirs,
-                                  do_ow = self.do_ow,
-                                  verb=self.verb )
+      # all work and writing is basically done here
+      # ... in other objects, but not here
 
       return 0
 
    def ready_for_action(self):
-      """perform any final tests before execution"""
+
+       """perform any final tests before execution"""
 
       # require -input
       if self.infiles is None:
@@ -382,21 +474,27 @@ class MyInterface:
       return None
 
 def main():
-   me = MyInterface()
-   if not me: return 1
 
-   rv = me.process_options()
+   # init option-reading obj
+   inobj = InOpts()
+   if not inobj :  return 1
+
+   # ... and read opts in
+   rv = inobj.process_options()
    if rv > 0: return 0  # exit with success (e.g. -help)
    if rv < 0:           # exit with error status
       print('** failed to process options...')
       return 1
 
-   # else: rv==0, continue with main processing ...
+   # create actual cbar object to use
+   cbarobj = lcp.CbarPbar()
+   if not cbarobj :  return 1
 
-   rv = me.execute()
+   # ... and populate it from the InOpts obj
+   rv = cbarobj.load_from_inopts(inobj)
    if rv > 0: return 1
 
-   return me.status
+   return 0
 
 if __name__ == '__main__':
    sys.exit(main())
