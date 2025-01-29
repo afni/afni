@@ -806,9 +806,10 @@ g_history = """
        - add -volreg_no_volreg, the B Feige option
     7.82 Dec  6, 2024: subtract 1 from ricor QC vrat, for more a useful display
     7.83 Jan 27, 2025: fix -compare_opts display of fewer/more options applied
+    7.84 Jan 28, 2025: add option -tlrc_affine_warped_dsets
 """
 
-g_version = "version 7.83, January 27, 2025"
+g_version = "version 7.84, January 28, 2025"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1173,9 +1174,10 @@ class SubjProcSream:
         self.anat_unifized = 0          # has the anat been unifized
         self.anat_final = None          # anat assumed aligned with stats
         self.anat_warps = []            # array of anat warp matrices
-        self.nlw_aff_mat= ''
-        self.nlw_NL_mat = ''
-        self.nlw_priors = []            # afni_name list of 3 warped_dsets
+        self.nlw_aff_mat= ''            # imported affine or NL warp info
+        self.nlw_NL_mat = ''            # (priors: warp, warped anat)
+        self.nlw_priors = []            # afni_name list of 2,3 warp files
+        self.nlw_type   = ''            # if set, affine or NL
         self.tlrcanat   = None          # expected name of tlrc dataset
         self.tlrc_base  = None          # afni_name dataset used in -tlrc_base
         self.tlrc_nlw   = 0             # are we using non-linear registration
@@ -1580,6 +1582,8 @@ class SubjProcSream:
                         helpstr='make a local copy of the template')
         self.valid_opts.add_opt('-tlrc_opts_at', -1, [],
                         helpstr='additional options supplied to @auto_tlrc')
+        self.valid_opts.add_opt('-tlrc_affine_warped_dsets', 2, [],
+                        helpstr='pass dsets that have already been aff_warped')
         self.valid_opts.add_opt('-tlrc_NL_awpy_rm', 1, [],
                         acplist=['yes','no'],
                         helpstr='remove work dir from auto_warp.py')
@@ -3468,6 +3472,7 @@ class SubjProcSream:
         if tstr:
            self.write_text(add_line_wrappers(tstr+'\n'))
 
+        # ------------------------------------------------------------------
         # copy any -tlrc_NL_warped_dsets files (self.nlw_priors dsets)
         if len(self.nlw_priors) == 3:
            tstr = '# copy external -tlrc_NL_warped_dsets datasets\n'
@@ -3500,6 +3505,35 @@ class SubjProcSream:
                    (an.nice_input(), self.od_var, an.out_prefix())
            self.tlist.add(an.nice_input(), an.shortinput(),'NL_warp',
                           ftype='dset', view='+tlrc')
+
+           self.write_text(add_line_wrappers(tstr))
+           self.write_text("%s\n" % stat_inc)
+
+        # ------------------------------------------------------------------
+        # copy any -tlrc_affine_warped_dsets files (self.nlw_priors dsets)
+        if len(self.nlw_priors) == 2:
+           tstr = '# copy external -tlrc_affine_warped_dsets datasets\n'
+
+           # copy anat, setting its file type to AFNI
+           an = self.nlw_priors[0]
+           tstr += '3dcopy %s %s/%s\n'%(an.nice_input(), self.od_var, an.prefix)
+           anorig = an.nice_input()
+
+           # if priors[0].type == NIFTI, convert to AFNI   9 Apr 2015
+           # (priors[0] is anat in standard space)
+           if self.nlw_priors[0].type == 'NIFTI':
+              an = self.nlw_priors[0]
+              an = gen_afni_name('%s+tlrc' % an.prefix)
+              self.nlw_priors[0] = an
+
+           self.tlist.add(anorig, an.shortinput(), 'aff_warp', ftype='dset')
+
+           # get aff12.1D file
+           an = self.nlw_priors[1]
+           tstr += '3dcopy %s %s/%s\n' % \
+                   (an.nice_input(), self.od_var, an.out_prefix())
+           self.tlist.add(an.nice_input(), an.shortinput(), 'aff_warp',
+                          ftype='1D')
 
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
