@@ -7512,13 +7512,10 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
         for (j=0; j<overlay->N_V; ++j){
             // alphaOpacityPtr[j] = denom? MIN(1.0f, (fabs(overlay->V[j] - MinVal))/denom) : 1.0f;
             alphaOpacityPtr[j] = denom? MIN(1.0f, (fabs(overlay->V[j]))/denom) : 1.0f;
-            if (i<10) fprintf(stderr, "%s: opacityModel = %d\n", FuncName, opacityModel);
             if (opacityModel == FRACTIONAL) {
-                if (i<10) fprintf(stderr, "%s: opacityModel = FRACTIONAL\n", FuncName);
                 alphaOpacityPtr[j] *= sqrt(alphaOpacityPtr[j]);
             }
             else if (opacityModel == QUADRATIC){
-                if (i<10) fprintf(stderr, "%s: opacityModel = QUADRATIC\n", FuncName);
                 alphaOpacityPtr[j] *= alphaOpacityPtr[j];
             }
         }
@@ -7709,36 +7706,7 @@ float *applyColorMapToOriginalColorvec(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ov
         maxDiff = offset * 2;
    }
 
-    fprintf(stderr, "%s: overlay->OptScl->BrightRange[0] = %f\n", FuncName, overlay->OptScl->BrightRange[0]);
-    fprintf(stderr, "%s: overlay->OptScl->BrightRange[1] = %f\n", FuncName, overlay->OptScl->BrightRange[1]);
-    fprintf(stderr, "%s: overlay->OptScl->BrightMap[0] = %f\n", FuncName, overlay->OptScl->BrightMap[0]);
-    fprintf(stderr, "%s: overlay->OptScl->BrightMap[1] = %f\n", FuncName, overlay->OptScl->BrightMap[1]);
-    fprintf(stderr, "%s: overlay->OptScl->ThreshRange[0] = %f\n", FuncName, overlay->OptScl->ThreshRange[0]);
-    fprintf(stderr, "%s: overlay->OptScl->ThreshRange[1] = %f\n", FuncName, overlay->OptScl->ThreshRange[1]);
-    fprintf(stderr, "%s: overlay->OptScl->ThreshStats[0] = %f\n", FuncName, overlay->OptScl->ThreshStats[0]);
-    fprintf(stderr, "%s: overlay->OptScl->ThreshStats[1] = %f\n", FuncName, overlay->OptScl->ThreshStats[1]);
-    fprintf(stderr, "%s: overlay->OptScl->IntRange[0] = %f\n", FuncName, overlay->OptScl->IntRange[0]);
-    fprintf(stderr, "%s: overlay->OptScl->IntRange[1] = %f\n", FuncName, overlay->OptScl->IntRange[1]);
-    fprintf(stderr, "%s: overlay->OptScl->CoordBiasRange[0] = %f\n", FuncName, overlay->OptScl->CoordBiasRange[0]);
-    fprintf(stderr, "%s: overlay->OptScl->CoordBiasRange[1] = %f\n", FuncName, overlay->OptScl->CoordBiasRange[1]);
-    fprintf(stderr, "%s: overlay->OptScl->MaskRange[0] = %f\n", FuncName, overlay->OptScl->MaskRange[0]);
-    fprintf(stderr, "%s: overlay->OptScl->MaskRange[1] = %f\n", FuncName, overlay->OptScl->MaskRange[1]);
-    fprintf(stderr, "%s: overlay->ForceIntRange[0] = %f\n", FuncName, overlay->ForceIntRange[0]);
-    fprintf(stderr, "%s: overlay->ForceIntRange[1] = %f\n", FuncName, overlay->ForceIntRange[1]);
-    fprintf(stderr, "%s: overlay->OptScl->tind = %d\n", FuncName, overlay->OptScl->tind);
-    fprintf(stderr, "%s: overlay->OptScl->find = %d\n", FuncName, overlay->OptScl->find);
-    fprintf(stderr, "%s: overlay->OptScl->BrightFact = %f\n", FuncName, overlay->OptScl->BrightFact);
-    fprintf(stderr, "%s: colormap->N_M[0] = %f\n", FuncName, colormap->N_M[0]);
-    fprintf(stderr, "%s: colormap->N_M[1] = %f\n", FuncName, colormap->N_M[1]);
-   
-    fprintf(stderr, "%s: fMin = %f\n", FuncName, fMin);
-    fprintf(stderr, "%s: fMax = %f\n", FuncName, fMax);
     maxIndex = colormap->N_M[0] - 1;
-    fprintf(stderr, "%s: maxDiff = %f\n", FuncName, maxDiff);
-    fprintf(stderr, "%s: indexStep = %f\n", FuncName, indexStep);
-    fprintf(stderr, "%s: maxIndex = %d", FuncName, maxIndex);
-    fprintf(stderr, "%s: offset = %d", FuncName, offset);
-    fprintf(stderr, "%s: indexStep = %f", FuncName, indexStep);
 
     if (!(buffer=calloc(bytes2CopyToColVec, 1))){
         SUMA_SL_Err("Failed to allocate memory to colormap!");
@@ -8087,7 +8055,6 @@ SUMA_Boolean allBlack(float *vector, int numElements){
    for (i=0; i<numElements; ++i)
     if (vector[i] > 0.00001f /* && vector[i] <= 1.0f */) 
     {
-        fprintf(stderr, "allBlack: vector[%d] = %f\n", i, vector[i]);
         SUMA_RETURN (NOPE);   
     }
 
@@ -8419,15 +8386,12 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    // Check whether threshold range changed
    if (rangeChanged = (IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
             IntRange[1] != currentOverlay->OptScl->IntRange[1])) {
-        fprintf(stderr, "IntRange = (%d, %d)", IntRange[0], IntRange[1]);
-        fprintf(stderr, "currentOverlay->OptScl->IntRange = (%d, %d)", currentOverlay->OptScl->IntRange[0], currentOverlay->OptScl->IntRange[1]);
         IntRange[0] = currentOverlay->OptScl->IntRange[0];
         IntRange[1] = currentOverlay->OptScl->IntRange[1];
         if (currentOverlay->OptScl->ThreshRange[0] > 0) 
             currentThreshold = currentOverlay->OptScl->ThreshRange[0];
         currentOverlay->OptScl->ThreshRange[0] = 0.0f;
    }
-   fprintf(stderr, "rangeChanged = %d\n", rangeChanged);
    
    // Color map changed
    if (cmapChanged = (strcmp(cmapName, currentOverlay->cmapname))){
@@ -8725,8 +8689,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
         currentOverlay->OptScl->ThrMode = oldfThrMode;
     }
     currentOverlay->OptScl->ThreshRange[0] = currentThreshold;
-        fprintf(stderr, "currentOverlay->OptScl->ThreshRange[0] = %f\n", currentOverlay->OptScl->ThreshRange[0]);
-        fprintf(stderr, "currentThreshold = %f\n", currentThreshold);
     
     if (SO->SurfCont->AlphaOpacityFalloff){        
         // Do not allow variable thresholding if origignal4color all black
@@ -8956,8 +8918,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          for (i=0; i < N_Node; ++i) {
             i4 = 4 * i;
             
-            // fprintf(stderr, "i = %d of %d\r", i, N_Node);
-            
             // float opacity = alphaOpacitiesForOverlay(SO, currentOverlay)[i];
             float opacity = opacities[i];
 
@@ -9017,9 +8977,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          }
 
    }
-   fprintf(stderr, "\n");
-   
-   // return 1; // DEBUG
 
    if (!(ShowBackground) && !ShowForeground) {
       for (i=0; i < N_Node; ++i) {
