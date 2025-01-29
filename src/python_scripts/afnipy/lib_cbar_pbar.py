@@ -59,7 +59,7 @@ DOPTS = {
     'pbar_min'      : None,
     'pbar_max'      : None,
     'alpha'         : 'No',
-    'thr_do'        : True,
+    'thr_on'        : True,
     'thr_val'       : None,
     'thr_width'     : 4,
     'thr_num_osc'   : 4,
@@ -112,7 +112,7 @@ inobj : InOpts object
         self.alpha           = DOPTS['alpha']
 
         # threshold line
-        self.thr_do          = DOPTS['thr_do']
+        self.thr_on          = DOPTS['thr_on']
         self.thr_width       = DOPTS['thr_width']
         self.thr_num_osc     = DOPTS['thr_num_osc']
         self.thr_colors      = DOPTS['thr_colors']
@@ -172,7 +172,7 @@ inobj : InOpts object
             tmp1 = self.blend_cbar_along()
 
         # add ticks, possibly
-        if self.tick_nint :
+        if self.tick_num_int :
             tmp2 = self.add_ticks_to_cbar()
 
         # add threshold line
@@ -222,55 +222,50 @@ inobj : InOpts object
         X = copy.deepcopy(self.cbar_arr)
         W, N, rgb = np.shape(X)             # cbar dimensions
 
-        # ----- init output RGB cbar array
-        Y   = np.zeros((W, N, rgb), dtype=np.uint8)
         # actual vals at each cbar loc
         allv = np.linspace(self.pbar_min, self.pbar_max, N)
 
         # width of the dashes
-        wdash = W // (2*self.thr_nosc) 
+        wdash = W // (2*self.thr_num_osc) 
 
         diffs = np.sign(np.abs(allv) - self.thr_val)
         i = 1
         while i < N :
             if diffs[i]*diffs[i-1] < 0 :
-                bmin = i - (self.thr_wid // 2)
-                bmax = bmin + self.thr_wid
-                Y[:, bmin:bmax, :] = self.thr_colors[0]
+                bmin = i - (self.thr_width // 2)
+                bmax = bmin + self.thr_width
+                X[:, bmin:bmax, :] = self.thr_colors[0]
                 for j in range(W):
                     if np.floor(j/wdash) % 2 :
-                        Y[j, bmin:bmax, :] = self.thr_colors[1]
+                        X[j, bmin:bmax, :] = self.thr_colors[1]
                 i = bmax+1
             else:
                 i+= 1
 
-        self.cbar_arr = copy.deepcopy(Y)
+        self.cbar_arr = copy.deepcopy(X)
         return 0
 
     def add_ticks_to_cbar(self):
         """if number of ticks is nonzero, add them"""
 
         # nothing to do
-        if not(self.tick_nint) :
+        if not(self.tick_num_int) :
             return 0
 
         X = copy.deepcopy(self.cbar_arr)
         W, N, rgb = np.shape(X)             # cbar dimensions
 
-        # ----- init output RGB cbar array
-        Y   = np.zeros((W, N, rgb), dtype=np.uint8)
-
         # tick properties
-        nmark = N // self.tick_nint         # interval of each tick
+        nmark = N // self.tick_num_int      # interval of each tick
         wmark = int(W * self.tick_frac)     # width of each tick
 
         # add ticks
         for i in range(N):
             if i % nmark == 0 and i and i < (N-0.5*nmark) :
-                Y[:wmark, i, :]   = self.tick_color
-                Y[W-wmark:, i, :] = self.tick_color
+                X[:wmark, i, :]   = self.tick_color
+                X[W-wmark:, i, :] = self.tick_color
 
-        self.cbar_arr = copy.deepcopy(Y)
+        self.cbar_arr = copy.deepcopy(X)
         return 0
 
     def blend_cbar_along(self):
@@ -279,8 +274,8 @@ inobj : InOpts object
 
         # make sure 
         if not(self.alpha in [None, 'No']) and \
-           self.pbar_min == None and self.pbar_max == None and \
-           self.thr_val == None :
+           self.pbar_min is None and self.pbar_max is None and \
+           self.thr_val is None :
             ab.EP("""You said you wanted Alpha on, but didn't provide enough 
             info for it: need pbar_min, pbar_max and thr_val""")
 
@@ -298,16 +293,16 @@ inobj : InOpts object
         # make weight (wtN, vals in [0, 1]) so fading will be along grad
         for i in range(N):
             rat = np.abs(allv[i] / self.thr_val)
-            if self.alpha == None :
+            if self.alpha is None :
                 # no threshold: wtN[i] remains 1
                 continue
-            elif alpha == 'No' :
+            elif self.alpha == 'No' :
                 # opaque threshold: wtN[i] is 1 or 0
                 wtN[i] = min(max(int(rat), 0.0), 1.0)
             else:
                 # transparent thresholding cases (linear or quad fading)
                 wtN[i] = min(max(rat, 0.0), 1.0)
-                if alpha == 'Yes' or alpha == 'Quadratic' :
+                if self.alpha == 'Yes' or self.alpha == 'Quadratic' :
                     # quadratic Alpha situation
                     wtN[i]**= 2
 
@@ -391,11 +386,11 @@ inobj : InOpts object
                 self.thr_colors.append(self.thr_colors[0])
 
         # tick color
-        if self.tick_color != None :
+        if self.tick_color is not None :
             self.tick_color = set_color_to_rgb(self.tick_color)
 
         # outline color
-        if self.outline_color != None :
+        if self.outline_color is not None :
             self.outline_color = set_color_to_rgb(self.outline_color)
 
         # outline width must be an integer
@@ -416,22 +411,22 @@ inobj : InOpts object
         """Make sure that a necessary minimum set of items has been
         provided."""
       
-        if self.in_cbar == None :
+        if self.in_cbar is None :
             ttt = "User is missing input pbar name: see '-in_cbar ..', "
             ttt+= "and please try again."
             BASE.EP(ttt)
 
-        if self.prefix == None :
+        if self.prefix is None :
             ttt = "User is missing output pbar name: see '-prefix ..', "
             ttt+= "and please try again."
             BASE.EP(ttt)
 
-        if self.pbar_min == None :
+        if self.pbar_min is None :
             ttt = "User is missing min pbar value: see '-pbar_min ..' "
             ttt+= "or '-in_json ..', and please try again."
             BASE.EP(ttt)
 
-        if self.pbar_max == None :
+        if self.pbar_max is None :
             ttt = "User is missing max pbar value: see '-pbar_min ..' "
             ttt+= "or '-in_json ..', and please try again."
             BASE.EP(ttt)
@@ -462,52 +457,52 @@ inobj : InOpts object
             return 0
 
         # shorter name to use, and less confusing with 'self' usage
-        io = self.user_inboj
+        io = self.user_inobj
 
-        if io.user_opts != None :
+        if io.user_opts is not None :
             self.user_opts = io.user_opts
-        if io.in_cbar != None :
+        if io.in_cbar is not None :
             self.in_cbar = io.in_cbar
-        if io.prefix != None :
+        if io.prefix is not None :
             self.prefix = io.prefix
 
-        if io.pbar_min != None :
+        if io.pbar_min is not None :
             self.pbar_min = io.pbar_min
-        if io.pbar_max != None :
+        if io.pbar_max is not None :
             self.pbar_max = io.pbar_max
 
-        if io.alpha != None :
+        if io.alpha is not None :
             self.alpha = io.alpha
 
-        if io.thr_val != None :
+        if io.thr_val is not None :
             self.thr_val = io.thr_val
-        if io.thr_do != None :
-            self.thr_do = io.thr_do
-        if io.thr_width != None :
+        if io.thr_on is not None :
+            self.thr_on = io.thr_on
+        if io.thr_width is not None :
             self.thr_width = io.thr_width
-        if io.thr_num_osc != None :
+        if io.thr_num_osc is not None :
             self.thr_num_osc = io.thr_num_osc
         if len(io.thr_colors) :
             self.thr_colors = io.thr_colors
 
-        if io.tick_num_int != None :
+        if io.tick_num_int is not None :
             self.tick_num_int = io.tick_num_int
-        if io.tick_frac != None :
+        if io.tick_frac is not None :
             self.tick_frac = io.tick_frac
-        if io.tick_color != None :
+        if io.tick_color is not None :
             self.tick_color = io.tick_color
 
-        if io.orth_on != None :
+        if io.orth_on is not None :
             self.orth_on = io.orth_on
-        if io.orth_frac != None :
+        if io.orth_frac is not None :
             self.orth_frac = io.orth_frac
 
-        if io.outline_width != None :
+        if io.outline_width is not None :
             self.outline_width = io.outline_width
-        if io.outline_color != None :
+        if io.outline_color is not None :
             self.outline_color = io.outline_color
 
-        if io.verb != None :
+        if io.verb is not None :
             self.verb = io.verb
 
         return 0
@@ -757,7 +752,7 @@ Y : np.array
         It must be one of: {}""".format(alpha, list_alpha_str))
 
     # ----- set colors: defaults
-    if tick_col == None :
+    if tick_col is None :
         tick_col_rgb = zer
     else:
         tick_col_rgb = set_color_to_rgb(tick_col)
@@ -799,7 +794,7 @@ Y : np.array
     # can we do quantitative stuff here? NB: if thr_val is None or 0, 
     # treat equivalently (no thr line, and no possible Alpha fade)
     HAVE_ALL_VALS = False
-    if min_val != None and max_val != None and thr_val :
+    if min_val is not None and max_val is not None and thr_val :
         HAVE_ALL_VALS = True
         # actual vals at each cbar loc
         allv = np.linspace(min_val, max_val, N)
@@ -820,7 +815,7 @@ Y : np.array
         # make weight (wtN, vals in [0, 1]) so fading will be along grad
         for i in range(N):
             rat   = np.abs(allv[i]/thr_val)
-            if alpha == None :
+            if alpha is None :
                 # no threshold: wtN[i] remains 1
                 continue
             elif alpha == 'No' :
@@ -984,7 +979,7 @@ Y : np.array
         # no, so use default/off values
         min_val, max_val, thr_val = None, None, None
         # a synonym for alpha being None
-        if alpha == None :   alpha = 'No'
+        if alpha is None :   alpha = 'No'
 
     # create new cbar [PT: now using more opts via kwargs from the top-level]
     Y   =  blend_cbar(X, min_val=min_val, max_val=max_val,
@@ -1041,7 +1036,7 @@ Y : np.array
         return X
 
     # ----- set color of outline
-    if outline_col == None :
+    if outline_col is None :
         outline_col_rgb = zer
     else:
         outline_col_rgb = set_color_to_rgb(outline_col)

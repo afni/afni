@@ -116,7 +116,7 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
       self.alpha           = None
 
       # threshold line
-      self.thr_do          = True
+      self.thr_on          = True
       self.thr_width       = None
       self.thr_num_osc     = None
       self.thr_colors      = []
@@ -335,7 +335,7 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
             self.thr_colors = val
 
          elif opt.name == '-thr_off':
-            self.thr_do = False
+            self.thr_on = False
 
          elif opt.name == '-tick_num_int':
             val, err = uopts.get_type_opt(int, '', opt=opt)
@@ -497,7 +497,7 @@ def main():
    ###rv = cbarobj.load_from_inopts(user_inobj=inobj)
    ###if rv > 0: return 1
 
-   return 0, charobj
+   return 0, cbarobj
 
 if __name__ == '__main__':
 
