@@ -3710,11 +3710,20 @@ def db_mod_combine(block, proc, user_opts):
    apply_uopt_to_block('-combine_tedana_path', user_opts, block)
    apply_uopt_to_block('-combine_tedort_reject_midk', user_opts, block)
 
-   # if using tedana for data and later blurring, suggest -blur_in_mask
    ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
    if rv:
       return
 
+   # verify that there are enough echoes, and that the method seems appropriate
+   if proc.num_echo <= 1 and ocmeth != 'mean':
+      print("** at least 2 -echo_times are required for non-mean combining")
+      return 1
+   if proc.num_echo == 2 and ocmeth in ['OC', 'OC_A']:
+      print("** cannot use combine method %s with only 2 echoes" % ocmeth)
+      print("   (consider method OC_B)")
+      return 1
+
+   # if using tedana for data and later blurring, suggest -blur_in_mask
    if ocmeth[0:6] == 'tedana' and \
          proc.find_block_order('combine', 'blur') == -1 :
       if not proc.user_opts.have_yes_opt('-blur_in_mask'):

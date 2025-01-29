@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Jan, 2025, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "suggest -combine_method OC_B over OC[_A] if only 2 echoes",
+   NULL
+ } ,
+
  { 29, Jan, 2025, RCR, "@extract_meica_ortvec", MINOR, TYPE_BUG_FIX,
    "allow for empty accept or reject lists",
    "Thanks to Avi (e0026902 on MB) for noting the problem."

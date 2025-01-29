@@ -807,9 +807,10 @@ g_history = """
     7.82 Dec  6, 2024: subtract 1 from ricor QC vrat, for more a useful display
     7.83 Jan 27, 2025: fix -compare_opts display of fewer/more options applied
     7.84 Jan 28, 2025: add option -tlrc_affine_warped_dsets
+    7.85 Jan 29, 2025: suggest OC_B if only 2 echoes
 """
 
-g_version = "version 7.84, January 28, 2025"
+g_version = "version 7.85, January 29, 2025"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
