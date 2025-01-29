@@ -127,7 +127,7 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
       self.tick_color      = None
 
       # control orthogonality (e.g., when olay and thr are diff dsets)
-      self.orth_do         = False
+      self.orth_on         = False
       self.orth_frac       = None
 
       # outline properties
@@ -330,7 +330,7 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
 
          elif opt.name == '-thr_colors':
             val, err = uopts.get_string_list('', opt=opt)
-            if is None or err:
+            if val is None or err:
                 BASE.EP1(err_base + opt.name)
             self.thr_colors = val
 
@@ -356,7 +356,7 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
             self.tick_color = val
 
          elif opt.name == '-orth_on':
-            self.orth_do = True
+            self.orth_on = True
 
          elif opt.name == '-orth_frac':
             val, err = uopts.get_type_opt(float, '', opt=opt)
@@ -445,18 +445,18 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
 
        """perform any final tests before execution"""
 
-      # require -input
-      if self.infiles is None:
-         print("** missing -infiles option")
-         return 0
+       # require -input
+       if self.infiles is None :
+           print("** missing -infiles option")
+           return 0
 
-      if self.outdir is None:
-         print("** missing -outdir option")
-         return 0
+       if self.outdir is None:
+           print("** missing -outdir option")
+           return 0
 
-      ready = 1
+       ready = 1
 
-      return ready
+       return ready
 
    def test(self, verb=3):
       """one might want to be able to run internal tests,
@@ -477,26 +477,31 @@ def main():
 
    # init option-reading obj
    inobj = InOpts()
-   if not inobj :  return 1
+   if not inobj :  return 1, None
 
    # ... and read opts in
    rv = inobj.process_options()
-   if rv > 0: return 0  # exit with success (e.g. -help)
-   if rv < 0:           # exit with error status
-      print('** failed to process options...')
-      return 1
+   if rv > 0: 
+       # exit with success (e.g. -help)
+       return 0, None
+   if rv < 0:
+       # exit with error status
+       print('** failed to process options...')
+       return 1, None
 
    # create actual cbar object to use
-   cbarobj = lcp.CbarPbar()
+   cbarobj = lcp.CbarPbar(user_inobj=inobj)
    if not cbarobj :  return 1
 
-   # ... and populate it from the InOpts obj
-   rv = cbarobj.load_from_inopts(inobj)
-   if rv > 0: return 1
+   ### ... and populate+run it from the InOpts obj
+   ###rv = cbarobj.load_from_inopts(user_inobj=inobj)
+   ###if rv > 0: return 1
 
-   return 0
+   return 0, charobj
 
 if __name__ == '__main__':
-   sys.exit(main())
+
+    stat, cbarobj = main()
+    sys.exit(stat)
 
 

@@ -34,7 +34,6 @@ list_alpha      = ['No', 'Yes', 'Quadratic', 'Linear']
 list_alpha_str  = ', '.join(list_alpha)
 
 # Alpha blend color: what do we blend with when Alpha is on?
-#abc = np.array([255, 255, 255], dtype=np.uint8)   # white
 abc = np.array([200, 200, 200], dtype=np.uint8)   # light gray
 
 # the color(s) of tickmarks and the threshold line
@@ -45,34 +44,35 @@ DO_AUTOROTATE = True
 
 # dict of default cbar props to check for; most/all keys match names
 # of some of the keys within the pbar JSON output by @chauffeur_afni
-cbar_props = {
-    'pbar_bot'   = None,
-    'pbar_top'   = None,
-    'vthr'       = None,
-    'olay_alpha' = 'No',
+cbar_props = { 
+    'pbar_bot'   : None,
+    'pbar_top'   : None,
+    'vthr'       : None,
+    'olay_alpha' : 'No',
     }
 
 # default values for the main PbarCbar obj
 DOPTS = {
-    'user_opts'     = [],         # command the user ran
-    'in_cbar'       = '',
-    'prefix'        = '',
-    'pbar_min'      = None,
-    'pbar_max'      = None,
-    'alpha'         = 'No',
-    'thr_do'        = True
-    'thr_val'       = None,
-    'thr_width'     = 4,
-    'thr_num_osc'   = 4,
-    'thr_colors'    = [zer, rez],
-    'tick_num_int'  = 10,
-    'tick_frac'     = 0.07,
-    'tick_color'    = zer,
-    'orth_do'       = False
-    'orth_frac'     = 1.0,
-    'outline_width' = 0,
-    'outline_color' = zer,
-    'verb'          = 1,
+    'user_opts'     : [],         # command the user ran
+    'in_cbar'       : '',
+    'prefix'        : '',
+    'pbar_min'      : None,
+    'pbar_max'      : None,
+    'alpha'         : 'No',
+    'thr_do'        : True,
+    'thr_val'       : None,
+    'thr_width'     : 4,
+    'thr_num_osc'   : 4,
+    'thr_colors'    : [zer, rez],
+    'tick_num_int'  : 10,
+    'tick_frac'     : 0.07,
+    'tick_color'    : zer,
+    'orth_on'       : False,
+    'orth_frac'     : 1.0,
+    'outline_width' : 0,
+    'outline_color' : zer,
+    'do_autorotate' : True,
+    'verb'          : 1,
 }
 
 
@@ -92,8 +92,12 @@ inobj : InOpts object
     """
 
     def __init__(self, user_inobj=None):
-        # main variables
-        self.status          = 0                       # exit value
+
+        # main quantities to be populated
+        self.cbar_arr        = []
+
+        # main input variables
+        self.status          = 0                       # not used
         self.user_opts       = DOPTS['user_opts']      # command the user ran
         self.user_inobj      = user_inobj
 
@@ -119,25 +123,296 @@ inobj : InOpts object
         self.tick_color      = DOPTS['tick_color']
 
         # control orthogonality (e.g., when olay and thr are diff dsets)
-        self.orth_do         = DOPTS['orth_do']
+        self.orth_on         = DOPTS['orth_on']
         self.orth_frac       = DOPTS['orth_frac']
 
         # outline properties
         self.outline_width   = DOPTS['outline_width']
         self.outline_color   = DOPTS['outline_color']
 
+        # control functionality
+        self.do_autorotate   = DOPTS['do_autorotate']
+        self.DID_autorotate  = False
+
         # general variables
         self.verb            = DOPTS['verb']
 
         # ----- do methods
-
-        tmp1 = self.load_from_inopts()
-        tmp2 = self.check_necessary_items()
-        tmp3 = self.check_files_exist()
+        
+        # run through all actions, if user_inobj has been provided as input
+        if user_inobj :
+            tmp1 = self.load_from_inopts()
+            tmp2 = self.check_required_inputs()
+            tmp2 = self.check_valid_opts()
+            tmp3 = self.check_files_exist()
+            tmp4 = self.read_cbar_file()
+            tmp5 = self.proc_cbar()
+            tmp6 = self.write_cbar()
 
     # ----------------------------
 
-    def check_necessary_items(self):
+    def write_cbar(self):
+        """not worrying about overwriting yet"""
+
+        # write the new cbar to disk
+        if self.prefix :
+            plt.imsave(self.prefix, self.cbar_arr)
+
+        return 0
+
+    def proc_cbar(self):
+        """Do the main work of thresholding and/or blending the cbar, either
+        along the color gradient or orthogonally. Also add any ticks
+        or threshold lines."""
+
+        # do blending with cbar background
+        if self.orth_on :
+            tmp1 = self.blend_cbar_orth()
+        else:
+            tmp1 = self.blend_cbar_along()
+
+        # add ticks, possibly
+        if self.tick_nint :
+            tmp2 = self.add_ticks_to_cbar()
+
+        # add threshold line
+        if self.thr_on :
+            tmp3 = self.add_thr_to_cbar()
+
+        # add outline
+        if self.outline_width :
+            tmp4 = self.add_outline_to_cbar()
+
+        # was it autorotated earlier? then unrotate it back here
+        if self.DID_autorotate :
+            self.cbar_arr = np.rot90(self.cbar_arr, k=1)
+
+        return 0
+
+    def add_outline_to_cbar(self):
+        """add outline to cbar, if asked"""
+
+        X = copy.deepcopy(self.cbar_arr)
+        W, N, rgb = np.shape(X)             # cbar dimensions
+
+        outwid = self.outline_width
+
+        # ----- init output RGB cbar array
+        Y   = np.zeros((W, N, rgb), dtype=np.uint8)
+
+        # ----- init output RGB cbar array
+        W2 = W + 2*outwid
+        N2 = N + 2*outwid
+        Y  = np.zeros((W2, N2, rgb), dtype=np.uint8)
+        # ... and initialize the color to be the outline col
+        Y[:,:,:] = self.outline_color
+
+        # copy the values of X into the middle in one, Pythonic jump
+        Y[outwid:outwid+W,outwid:outwid+N,:] = X
+
+        self.cbar_arr = copy.deepcopy(Y)
+        return 0
+
+    def add_thr_to_cbar(self):
+        """add threshold lines to the cbar, if present"""
+
+        if not(self.thr_on) :
+            return 0
+
+        X = copy.deepcopy(self.cbar_arr)
+        W, N, rgb = np.shape(X)             # cbar dimensions
+
+        # ----- init output RGB cbar array
+        Y   = np.zeros((W, N, rgb), dtype=np.uint8)
+        # actual vals at each cbar loc
+        allv = np.linspace(self.pbar_min, self.pbar_max, N)
+
+        # width of the dashes
+        wdash = W // (2*self.thr_nosc) 
+
+        diffs = np.sign(np.abs(allv) - self.thr_val)
+        i = 1
+        while i < N :
+            if diffs[i]*diffs[i-1] < 0 :
+                bmin = i - (self.thr_wid // 2)
+                bmax = bmin + self.thr_wid
+                Y[:, bmin:bmax, :] = self.thr_colors[0]
+                for j in range(W):
+                    if np.floor(j/wdash) % 2 :
+                        Y[j, bmin:bmax, :] = self.thr_colors[1]
+                i = bmax+1
+            else:
+                i+= 1
+
+        self.cbar_arr = copy.deepcopy(Y)
+        return 0
+
+    def add_ticks_to_cbar(self):
+        """if number of ticks is nonzero, add them"""
+
+        # nothing to do
+        if not(self.tick_nint) :
+            return 0
+
+        X = copy.deepcopy(self.cbar_arr)
+        W, N, rgb = np.shape(X)             # cbar dimensions
+
+        # ----- init output RGB cbar array
+        Y   = np.zeros((W, N, rgb), dtype=np.uint8)
+
+        # tick properties
+        nmark = N // self.tick_nint         # interval of each tick
+        wmark = int(W * self.tick_frac)     # width of each tick
+
+        # add ticks
+        for i in range(N):
+            if i % nmark == 0 and i and i < (N-0.5*nmark) :
+                Y[:wmark, i, :]   = self.tick_color
+                Y[W-wmark:, i, :] = self.tick_color
+
+        self.cbar_arr = copy.deepcopy(Y)
+        return 0
+
+    def blend_cbar_along(self):
+        """Blending of cbar color, along the color grad. This will often
+        be used when the olay and thr volumes differ, for example."""
+
+        # make sure 
+        if not(self.alpha in [None, 'No']) and \
+           self.pbar_min == None and self.pbar_max == None and \
+           self.thr_val == None :
+            ab.EP("""You said you wanted Alpha on, but didn't provide enough 
+            info for it: need pbar_min, pbar_max and thr_val""")
+
+        X = copy.deepcopy(self.cbar_arr)
+        W, N, rgb = np.shape(X)             # cbar dimensions
+
+        # ----- init output RGB cbar array
+        Y = np.zeros((W, N, rgb), dtype=np.uint8)
+
+        # init weight array along dim of length N: no alpha
+        wtN = np.ones(N, dtype=float)
+        # actual vals at each cbar loc
+        allv = np.linspace(self.pbar_min, self.pbar_max, N)
+
+        # make weight (wtN, vals in [0, 1]) so fading will be along grad
+        for i in range(N):
+            rat = np.abs(allv[i] / self.thr_val)
+            if self.alpha == None :
+                # no threshold: wtN[i] remains 1
+                continue
+            elif alpha == 'No' :
+                # opaque threshold: wtN[i] is 1 or 0
+                wtN[i] = min(max(int(rat), 0.0), 1.0)
+            else:
+                # transparent thresholding cases (linear or quad fading)
+                wtN[i] = min(max(rat, 0.0), 1.0)
+                if alpha == 'Yes' or alpha == 'Quadratic' :
+                    # quadratic Alpha situation
+                    wtN[i]**= 2
+
+        # apply fading is parallel to cbar gradient
+        for i in range(N):
+            if wtN[i] < 1.0 :
+                new_rgb = wtN[i]*X[W//2, i, :] + (1.0-wtN[i])*abc
+            else:
+                new_rgb = X[W//2, i, :]
+            for j in range(W):
+                Y[j, i, :] = new_rgb.astype(np.uint8)
+
+        self.cbar_arr = copy.deepcopy(Y)
+        return 0
+
+    def blend_cbar_orth(self):
+        """Blending of cbar color, orthogonal to color grad. This will often
+        be used when the olay and thr volumes differ, for example."""
+
+        X = copy.deepcopy(self.cbar_arr)
+        W, N, rgb = np.shape(X)             # cbar dimensions
+
+        # ----- init output RGB cbar array
+        Y = np.zeros((W, N, rgb), dtype=np.uint8)
+
+        # init weight array along dim of length W: no alpha
+        wtW = np.ones(W, dtype=float)
+        # make weight (wtW, vals in [0, 1]) so fading will be orth to grad
+        allvW = np.linspace(1.0, 0.0, W)
+
+        # calculate color-blend weight (wt), restricted to [0,1]
+        for j in range(W):
+            rat    = np.abs(allvW[j] / self.orth_frac)
+            wtW[j] = min(max(rat, 0.0), 1.0)
+            if self.alpha == 'Yes' or self.alpha == 'Quadratic' :
+                # quadratic Alpha situation
+                wtW[j]**= 2
+
+        # when fading is orthogonal to cbar gradient
+        for i in range(N):
+            # get base color from middle/spine of cbar
+            base_rgb = X[W//2, i, :]
+            for j in range(W):
+                if wtW[j] < 1.0 :
+                    new_rgb = wtW[j]*base_rgb + (1.0-wtW[j])*abc
+                else:
+                    new_rgb = base_rgb
+                Y[j, i, :] = new_rgb.astype(np.uint8)
+
+        self.cbar_arr = copy.deepcopy(Y)
+        return 0
+
+    def read_cbar_file(self):
+        """Read in the cbar from a file to an array of uint8 RGB values."""
+
+        self.cbar_arr = read_cbar(self.in_cbar)
+
+        # do we need to rotate it? record status to unrotate at end, too
+        if self.do_autorotate :
+            self.DID_autorotate, self.cbar_arr = \
+                autorotate_cbar(self.cbar_arr)
+
+        return 0
+
+    def check_valid_opts(self):
+        """Check a bunch of inputs/attributes for having appropriate values."""
+
+        # alpha value must be known keyword
+        if not(self.alpha in list_alpha) :
+            ttt = "The input alpha value is not recognized: {}. "
+            ttt+= "It must be one of: {}".format(self.alpha, list_alpha_str)
+            ab.EP(ttt)
+
+        # colors must be in appropriate format
+
+        # threshold color list
+        if len(self.thr_colors) :
+            self.thr_colors = [set_color_to_rgb(x) for x in self.thr_colors]
+            if len(self.thr_colors) == 1 :
+                # internally, always want this to have 2 colors
+                self.thr_colors.append(self.thr_colors[0])
+
+        # tick color
+        if self.tick_color != None :
+            self.tick_color = set_color_to_rgb(self.tick_color)
+
+        # outline color
+        if self.outline_color != None :
+            self.outline_color = set_color_to_rgb(self.outline_color)
+
+        # outline width must be an integer
+        if self.outline_width :
+            width = max(int(self.outline_width), 0)
+            if not(width) :
+                ttt = "A nonzero width '{}' was ".format(self.outline_width)
+                ttt+= "entered, but the positive-int part of that is 0. "
+                ttt+= "So, we won't add any outline to the pbar."
+                ab.WP(ttt)
+            self.outline_width = width
+
+        # *** add more over time ***
+
+        return 0
+
+    def check_required_inputs(self):
         """Make sure that a necessary minimum set of items has been
         provided."""
       
@@ -222,8 +497,8 @@ inobj : InOpts object
         if io.tick_color != None :
             self.tick_color = io.tick_color
 
-        if io.orth_do != None :
-            self.orth_do = io.orth_do
+        if io.orth_on != None :
+            self.orth_on = io.orth_on
         if io.orth_frac != None :
             self.orth_frac = io.orth_frac
 
@@ -504,7 +779,7 @@ Y : np.array
         thr_col_rgb = [set_color_to_rgb(x) for x in thr_col]
     if len(thr_col_rgb) == 1 :
         # internally, always want this to have 2 colors
-        thr_col_rgb.append(thr_col_rgb[1])
+        thr_col_rgb.append(thr_col_rgb[0])
 
 
     # ----- get parameters
