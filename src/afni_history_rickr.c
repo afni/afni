@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Jan, 2025, RCR, "@extract_meica_ortvec", MINOR, TYPE_BUG_FIX,
+   "allow for empty accept or reject lists",
+   "Thanks to Avi (e0026902 on MB) for noting the problem."
+ } ,
+
  { 28, Jan, 2025, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -tlrc_affine_warped_dsets : a pre-computed affine std space xform",
    "Done for D Handwerker."
