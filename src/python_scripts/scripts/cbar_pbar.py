@@ -234,7 +234,7 @@ pbar (e.g., pbar_min, pbar_max, thr_val and alpha state).
         -outline_width  6                                          
 
     4) Implement fading, and adjust the threshold line properties, 
-       tick properies and min/max; NB: options directly entered on
+       tick properties and min/max; NB: options directly entered on
        the command line have precedence over JSON values:
 
     cbar_pbar.py                                                 \\
