@@ -414,22 +414,22 @@ inobj : InOpts object
         if self.in_pbar is None :
             ttt = "User is missing input pbar name: see '-in_pbar ..', "
             ttt+= "and please try again."
-            BASE.EP(ttt)
+            ab.EP(ttt)
 
         if self.prefix is None :
             ttt = "User is missing output pbar name: see '-prefix ..', "
             ttt+= "and please try again."
-            BASE.EP(ttt)
+            ab.EP(ttt)
 
         if self.pbar_min is None :
             ttt = "User is missing min pbar value: see '-pbar_min ..' "
             ttt+= "or '-in_json ..', and please try again."
-            BASE.EP(ttt)
+            ab.EP(ttt)
 
         if self.pbar_max is None :
             ttt = "User is missing max pbar value: see '-pbar_min ..' "
             ttt+= "or '-in_json ..', and please try again."
-            BASE.EP(ttt)
+            ab.EP(ttt)
 
         return 0
 
@@ -442,7 +442,7 @@ inobj : InOpts object
             if not(os.path.isfile(fname)) :
                 ttt = "User input file {} does not exist. ".format(fname)
                 ttt+= "Please check path and try again."
-                BASE.EP(ttt)
+                ab.EP(ttt)
 
         return 0
 

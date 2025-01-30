@@ -160,7 +160,7 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
       self.user_opts       = None
 
       # main data variables
-      self.in_cbar         = None
+      self.in_pbar         = None
       self.prefix          = None
 
       # the JSON from @chauffeur_afni, or all the keys that can be in it;
@@ -332,7 +332,7 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err:
                 BASE.EP1(err_base + opt.name)
-            self.in_cbar = val
+            self.in_pbar = val
 
          elif opt.name == '-prefix':
             val, err = uopts.get_string_opt('', opt=opt)
