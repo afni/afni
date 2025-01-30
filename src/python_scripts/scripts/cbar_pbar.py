@@ -51,17 +51,70 @@ Overview ~1~
 ------------------------------------------------------------------------
 Usage ~1~
 
--infile FILE   :(req) name of the cbar file, which can be in one of the
-                following formats: JPG, PNG, TIF.
+-in_pbar PBAR  :(req) name of the pbar file, which can be in one of the
+                following formats: JPG, PNG, TIF
 
--prefix PREFIX :(req) name of output file.
+-prefix PREFIX :(req) name of output file, including file extension
 
-*** add more ***
+-in_json  JSON :name of a JSON file with known keys that describe relevant
+                pbar values; in particular, JSONs output by @chauffeur_afni
+                are good to use here. An efficient way to provide pbar_min,
+                pbar_max, alpha, thr_val (and perhaps more over time)
+
+-pbar_min MIN  :lower/minimum/bottom value of pbar
+
+-pbar_max MAX  :upper/maximum/top value of pbar
+
+-alpha  ALPHA  :keyword setting for specifying alpha transparency for
+                thresholding.  Must be one of the following values:
+                  {all_alpha}
+
+-thr_val TVAL  :threshold value, applied as an absolute value
+
+-thr_width TWID :when displaying the threshold line in the output pbar,
+                this controls the width, as an integer number of pixels
+                (def: {thr_wid})
+
+-thr_num_osc TNO :by default, the threshold line oscillates between two
+                colors for increased visibility. This integer specifies  
+                the number of oscillations (def: {thr_no})
+
+-thr_colors TCOL1 [TCOL2]
+               :by default, the threshold line oscillates between two
+                colors for increased visibility. Users can put 1 color
+                name here, for a solid line, or two of their own color
+                choices (def: 'black' 'white')
+
+-thr_off       :turn off displaying the threshold line, even if
+                thresholding is being applied
+
+-tick_num_int TNI :add tick lines, where TNI is the integer number of 
+                intervals to use; specifying 0 turns of tick display
+                (def: {tick_ni})
+
+-tick_frac TF  :when tick lines are used, how far should they extend, as 
+                a fraction of the pbar width (def: {tick_frac})
+
+-tick_color TCOL :specify the color of the tick lines (def: 'black')
+
+-orth_on       :by default, the alpha fading is applied _along_ the 
+                pbar gradient. Using this flag means it will be applied
+                orthogonally/perpendicularly to that gradient. This is 
+                most useful in cases when the overlay and threshold 
+                data differ
+
+-orth_frac OF  :specify at what fraction of the pbar width the fading
+                should start (def: {orth_frac})
+
+-outline_width OUTWID
+               :add an outline to the output pbar, whose width is
+                an integer OUTWID number of pixels at each edge
+                (def: {outwid})
+
+-outline_color OUTCOL
+               :choose the color of any added outline (def: 'black')
 
 -help, -h      :display program help file
-
--echo          :run very verbosely, by echoing each part of script  
-                before executing it
 
 -hist          :display program history
 
@@ -76,7 +129,10 @@ Examples ~1~
 
 
 
-"""
+""".format(all_alpha=lcp.list_alpha_str, thr_wid=lcp.DOPTS['thr_width'],
+           thr_no=lcp.DOPTS['thr_num_osc'], tick_ni=lcp.DOPTS['tick_num_int'],
+           tick_frac=lcp.DOPTS['tick_frac'], orth_frac=lcp.DOPTS['orth_frac'],
+           outwid=lcp.DOPTS['outline_width'])
 
 g_history = """
   gtkyd_check.py history:
@@ -158,7 +214,7 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
                       helpstr='display the current version number')
 
       # required parameters
-      self.valid_opts.add_opt('-in_cbar', 1, [], 
+      self.valid_opts.add_opt('-in_pbar', 1, [], 
                       helpstr='name of input cbar file')
 
       self.valid_opts.add_opt('-prefix', 1, [], 
@@ -272,7 +328,7 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
       for opt in uopts.olist:
 
          # main options
-         if opt.name == '-in_cbar':
+         if opt.name == '-in_pbar':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err:
                 BASE.EP1(err_base + opt.name)

@@ -54,7 +54,7 @@ cbar_props = {
 # default values for the main PbarCbar obj
 DOPTS = {
     'user_opts'     : [],         # command the user ran
-    'in_cbar'       : '',
+    'in_pbar'       : '',
     'prefix'        : '',
     'pbar_min'      : None,
     'pbar_max'      : None,
@@ -102,7 +102,7 @@ inobj : InOpts object
         self.user_inobj      = user_inobj
 
         # main data variables
-        self.in_cbar         = DOPTS['in_cbar']
+        self.in_pbar         = DOPTS['in_pbar']
         self.prefix          = DOPTS['prefix']
 
         # pbar properties from @chauffeur_afni pbar JSON
@@ -358,7 +358,7 @@ inobj : InOpts object
     def read_cbar_file(self):
         """Read in the cbar from a file to an array of uint8 RGB values."""
 
-        self.cbar_arr = read_cbar(self.in_cbar)
+        self.cbar_arr = read_cbar(self.in_pbar)
 
         # do we need to rotate it? record status to unrotate at end, too
         if self.do_autorotate :
@@ -411,8 +411,8 @@ inobj : InOpts object
         """Make sure that a necessary minimum set of items has been
         provided."""
       
-        if self.in_cbar is None :
-            ttt = "User is missing input pbar name: see '-in_cbar ..', "
+        if self.in_pbar is None :
+            ttt = "User is missing input pbar name: see '-in_pbar ..', "
             ttt+= "and please try again."
             BASE.EP(ttt)
 
@@ -436,7 +436,7 @@ inobj : InOpts object
     def check_files_exist(self):
         """For any file that might be input, check that it exists."""
       
-        all_fname = [self.in_cbar]
+        all_fname = [self.in_pbar]
 
         for fname in all_fname :
             if not(os.path.isfile(fname)) :
@@ -461,8 +461,8 @@ inobj : InOpts object
 
         if io.user_opts is not None :
             self.user_opts = io.user_opts
-        if io.in_cbar is not None :
-            self.in_cbar = io.in_cbar
+        if io.in_pbar is not None :
+            self.in_pbar = io.in_pbar
         if io.prefix is not None :
             self.prefix = io.prefix
 
