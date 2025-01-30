@@ -26,18 +26,28 @@ ones.
 
 In AFNI, the colorbar goes with the overlay dataset, which may or may
 not be the same as the threshold dataset. 
+
 + In cases where they *are* the same, this program can be used to:
+
   - add in (striped) threshold boundary lines
+
   - replace subthreshold regions with a dull/null gray color
+
   - put in alpha-based fading (either Linear or Quadratic)
+
   - use values from a JSON file output by @chauffeur_afni to efficiently
     gain useful knowledge about relevant cbar info, like min/max, threshold
     values, ON/OFFness of alpha fading, etc.
+
 + In cases where they differ, this program might be useful for:
+
   - representing alpha-fading as an orthogonal (=perpendicular to the
     the color gradient) melding of the colorbar with a null/dull gray
+
 + In all cases, this program can:
+
   - add a boundary of chosen thickness and color.
+
 More functionality will likely be added over time.
 
 Notation note:  For simplicity, we mostly just refer to the colorbar or
@@ -114,6 +124,9 @@ Usage ~1~
 -outline_color OUTCOL
                :choose the color of any added outline (def: 'black')
 
+-bkgd_color BC :background color that appears when thresholding is
+                applied (def: '{bkgd_color}')
+
 -help, -h      :display program help file
 
 -hist          :display program history
@@ -132,7 +145,8 @@ Examples ~1~
 """.format(all_alpha=lcp.list_alpha_str, thr_wid=lcp.DOPTS['thr_width'],
            thr_no=lcp.DOPTS['thr_num_osc'], tick_ni=lcp.DOPTS['tick_num_int'],
            tick_frac=lcp.DOPTS['tick_frac'], orth_frac=lcp.DOPTS['orth_frac'],
-           outwid=lcp.DOPTS['outline_width'])
+           outwid=lcp.DOPTS['outline_width'], 
+           bkgd_color=lcp.DOPTS['bkgd_color'])
 
 g_history = """
   gtkyd_check.py history:
@@ -189,6 +203,9 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
       # outline properties
       self.outline_width   = None
       self.outline_color   = None
+
+      # background properties
+      self.bkgd_color      = None
 
       # general variables
       self.verb            = None
@@ -266,6 +283,9 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
 
       self.valid_opts.add_opt('-outline_color', 1, [], 
                       helpstr="outline: specify color")
+
+      self.valid_opts.add_opt('-bkgd_color', 1, [], 
+                      helpstr="background: specify color")
 
       self.valid_opts.add_opt('-overwrite', 0, [], 
                       helpstr='overwrite preexisting outputs')
@@ -429,6 +449,12 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
             if val is None or err: 
                 BASE.EP1(err_base + opt.name)
             self.outline_color = val
+
+         elif opt.name == '-bkgd_color':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val is None or err: 
+                BASE.EP1(err_base + opt.name)
+            self.bkgd_color = val
 
          elif opt.name == '-overwrite':
             self.do_ow = True

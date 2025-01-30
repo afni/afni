@@ -34,7 +34,7 @@ list_alpha      = ['No', 'Yes', 'Quadratic', 'Linear']
 list_alpha_str  = ', '.join(list_alpha)
 
 # Alpha blend color: what do we blend with when Alpha is on?
-abc = np.array([200, 200, 200], dtype=np.uint8)   # light gray
+abc = '#c8c8c8'  ### np.array([200, 200, 200], dtype=np.uint8)   # light gray
 
 # the color(s) of tickmarks and the threshold line
 zer = np.array([0, 0, 0], dtype=np.uint8)         # black
@@ -71,6 +71,7 @@ DOPTS = {
     'orth_frac'     : 1.0,
     'outline_width' : 0,
     'outline_color' : zer,
+    'bkgd_color'    : abc,
     'do_autorotate' : True,
     'verb'          : 1,
 }
@@ -129,6 +130,9 @@ inobj : InOpts object
         # outline properties
         self.outline_width   = DOPTS['outline_width']
         self.outline_color   = DOPTS['outline_color']
+
+        # background properties
+        self.bkgd_color      = DOPTS['bkgd_color']
 
         # control functionality
         self.do_autorotate   = DOPTS['do_autorotate']
@@ -309,7 +313,7 @@ inobj : InOpts object
         # apply fading is parallel to cbar gradient
         for i in range(N):
             if wtN[i] < 1.0 :
-                new_rgb = wtN[i]*X[W//2, i, :] + (1.0-wtN[i])*abc
+                new_rgb = wtN[i]*X[W//2, i, :] + (1.0-wtN[i])*self.bkgd_color
             else:
                 new_rgb = X[W//2, i, :]
             for j in range(W):
@@ -347,7 +351,7 @@ inobj : InOpts object
             base_rgb = X[W//2, i, :]
             for j in range(W):
                 if wtW[j] < 1.0 :
-                    new_rgb = wtW[j]*base_rgb + (1.0-wtW[j])*abc
+                    new_rgb = wtW[j]*base_rgb + (1.0-wtW[j])*self.bkgd_color
                 else:
                     new_rgb = base_rgb
                 Y[j, i, :] = new_rgb.astype(np.uint8)
@@ -368,7 +372,9 @@ inobj : InOpts object
         return 0
 
     def check_valid_opts(self):
-        """Check a bunch of inputs/attributes for having appropriate values."""
+        """Check a bunch of inputs/attributes for having appropriate values.
+        For example, pretty much every *_color attribute should be
+        passed through here."""
 
         # alpha value must be known keyword
         if not(self.alpha in list_alpha) :
@@ -402,6 +408,14 @@ inobj : InOpts object
                 ttt+= "So, we won't add any outline to the pbar."
                 ab.WP(ttt)
             self.outline_width = width
+
+        # background color
+        if self.bkgd_color is not None :
+            self.bkgd_color = set_color_to_rgb(self.bkgd_color)
+
+        # when the fading is orthogonal, turn threshold off
+        if self.orth_on :
+            self.thr_on = False
 
         # *** add more over time ***
 
@@ -501,6 +515,9 @@ inobj : InOpts object
             self.outline_width = io.outline_width
         if io.outline_color is not None :
             self.outline_color = io.outline_color
+
+        if io.bkgd_color is not None :
+            self.bkgd_color = io.bkgd_color
 
         if io.verb is not None :
             self.verb = io.verb
@@ -839,7 +856,7 @@ Y : np.array
             base_rgb = X[W//2, i, :]
             for j in range(W):
                 if wtW[j] < 1.0 :
-                    new_rgb = wtW[j]*base_rgb + (1.0-wtW[j])*abc
+                    new_rgb = wtW[j]*base_rgb + (1.0-wtW[j])*self.bkgd_color
                 else:
                     new_rgb = base_rgb
                 Y[j, i, :] = new_rgb.astype(np.uint8)
@@ -847,7 +864,7 @@ Y : np.array
         # when fading is parallel to cbar gradient
         for i in range(N):
             if wtN[i] < 1.0 :
-                new_rgb = wtN[i]*X[W//2, i, :] + (1.0-wtN[i])*abc
+                new_rgb = wtN[i]*X[W//2, i, :] + (1.0-wtN[i])*self.bkgd_color
             else:
                 new_rgb = X[W//2, i, :]
             for j in range(W):
