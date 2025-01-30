@@ -174,6 +174,28 @@ rbgyr20_01, etc.), or hex-defined colors (likely putting these in some
 quotes), or Matplotlib-recognized colors (e.g., see:
 https://matplotlib.org/stable/gallery/color/named_colors.html).
 
+Importance
+The alpha fading is appropriate when transparent thresholding has been 
+used in the related data.  To see more about why this is relevant and
+*very* important in results reporting, please see:
+
+  + Taylor PA, Reynolds RC, Calhoun V, Gonzalez-Castillo J, Handwerker
+    DA, Bandettini PA, Mejia AF, Chen G (2023). 
+    Highlight Results, Don’t Hide Them: Enhance interpretation, reduce
+    biases and improve reproducibility. Neuroimage 274:120138.
+    https://pubmed.ncbi.nlm.nih.gov/37116766/
+
+  + Chen G, Taylor PA, Stoddard J, Cox RW, Bandettini PA, Pessoa L (2022). 
+    Sources of information waste in neuroimaging: mishandling
+    structures, thinking dichotomously, and over-reducing
+    data. Aperture Neuro. 2.
+    https://doi.org/10.52294/ApertureNeuro.2022.2.ZRJI8542
+
+  + Allen EA, Erhardt EB, Calhoun VD (2012). 
+    Data Visualization in the Neurosciences: overcoming the Curse of
+    Dimensionality. Neuron 74:603-608.
+    https://pubmed.ncbi.nlm.nih.gov/22632718/
+
 ------------------------------------------------------------------------
 
 Examples ~1~
