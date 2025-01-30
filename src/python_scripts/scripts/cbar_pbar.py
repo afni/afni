@@ -195,8 +195,6 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
 
       # initialize valid_opts
       tmp1 = self.init_options()
-      # merge opt values that can come through different avenues
-      tmp2 = self.combine_chauffeur_json_opts()
 
    # ----------------------------
 
@@ -435,6 +433,11 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
          elif opt.name == '-overwrite':
             self.do_ow = True
 
+         # might have to merge some options
+         tmp1 = self.combine_chauffeur_json_opts()
+         if tmp1 :
+            return -1
+
       return 0
 
    def combine_chauffeur_json_opts(self):
@@ -463,7 +466,7 @@ See lcp.CbarPbar() for the set of things that are populated for the actual
                      "'{}'".format('pbar_min', 'pbar_bot'))
 
        if 'pbar_top' in dkeys :
-           if self.pbar_top == None :
+           if self.pbar_max == None :
                self.pbar_max = float(D['pbar_top'])
            elif self.verb :
                ab.WP("Using user-specified value of '{}', rather than JSON's "
