@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 # written by Ben Jung (June 30, 2020)
 # additional contact people about NMT issues:
@@ -51,6 +51,14 @@ else
 endif
 
 \tar -xvzf $template.tgz
+if ( $status ) then
+   echo ""
+   echo "** failure to download or extract $template.tgz"
+   echo ""
+   set stat = 1
+   goto END
+endif
+
 \rm $template.tgz
 
 cd $template

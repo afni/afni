@@ -3030,7 +3030,7 @@ def db_cmd_volreg(proc, block):
         # - these should take EPI data from orig space to final space
 
         # first outer is any NL std space warp
-        if dowarp and proc.nlw_aff_mat != '':
+        if dowarp and proc.nlw_aff_mat != '' and proc.nlw_type == 'NL':
            epi_warps.append(warp_item('NL std space', 'NL', proc.nlw_NL_mat))
 
         # next is a combined warp of volreg->std space
@@ -3051,9 +3051,6 @@ def db_cmd_volreg(proc, block):
 
         indent = '    '
         wcmd = '\n%s# apply catenated xform: %s\n' % (indent, cstr)
-        # rcr - remove?
-        if dowarp and proc.nlw_aff_mat:
-           wcmd += '%s# then apply non-linear standard-space warp\n' % indent
 
         # if ME, warp per echo
         ime = ''
@@ -3713,11 +3710,20 @@ def db_mod_combine(block, proc, user_opts):
    apply_uopt_to_block('-combine_tedana_path', user_opts, block)
    apply_uopt_to_block('-combine_tedort_reject_midk', user_opts, block)
 
-   # if using tedana for data and later blurring, suggest -blur_in_mask
    ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
    if rv:
       return
 
+   # verify that there are enough echoes, and that the method seems appropriate
+   if proc.num_echo <= 1 and ocmeth != 'mean':
+      print("** at least 2 -echo_times are required for non-mean combining")
+      return 1
+   if proc.num_echo == 2 and ocmeth in ['OC', 'OC_A']:
+      print("** cannot use combine method %s with only 2 echoes" % ocmeth)
+      print("   (consider method OC_B)")
+      return 1
+
+   # if using tedana for data and later blurring, suggest -blur_in_mask
    if ocmeth[0:6] == 'tedana' and \
          proc.find_block_order('combine', 'blur') == -1 :
       if not proc.user_opts.have_yes_opt('-blur_in_mask'):
@@ -8654,6 +8660,7 @@ def db_mod_tlrc(block, proc, user_opts):
 
     apply_uopt_to_block('-tlrc_opts_at', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_warp', user_opts, block)
+    apply_uopt_to_block('-tlrc_affine_warped_dsets', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_warped_dsets', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_force_view', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_awpy_rm', user_opts, block)
@@ -8661,13 +8668,25 @@ def db_mod_tlrc(block, proc, user_opts):
     apply_uopt_to_block('-tlrc_rmode', user_opts, block)
     apply_uopt_to_block('-tlrc_suffix', user_opts, block)
 
-    if block.opts.find_opt('-tlrc_NL_warped_dsets'):
+    # check for external warp datasets and initialize
+    nlw = block.opts.find_opt('-tlrc_NL_warped_dsets') is not None
+    afw = block.opts.find_opt('-tlrc_affine_warped_dsets') is not None
+    if nlw and afw:
+       print("** cannot use both -tlrc_affine_warped_dsets " \
+             "and -tlrc_NL_warped_dsets")
+       return
+    if afw:
+       if mod_check_tlrc_affine_warp_dsets(proc, block): return
+    if nlw:
        if mod_check_tlrc_NL_warp_dsets(proc, block): return
 
     block.valid = 1
 
 def mod_check_tlrc_NL_warp_dsets(proc, block):
-    """if we are given NL-warped datasets, fill nlw_priors"""
+    """if we are given NL-warped datasets, fill nlw_priors
+            warped anat aname, affine warp aname, NL warp aname
+       note the warp type in nlw_type
+    """
 
     oname = '-tlrc_NL_warped_dsets'
     dslist, rv = block.opts.get_string_list(oname)
@@ -8677,6 +8696,9 @@ def mod_check_tlrc_NL_warp_dsets(proc, block):
     if len(dslist) != 3:
        print('** error: %s requires 3 elements, have %d' % (oname, len(dslist)))
        return 1
+
+    if proc.verb > 1:
+       print("-- processing pre-warp NL dsets: %s" % dslist)
 
     # get and check anat, 1D warp, NL warp
     aname = gen_afni_name(dslist[0])
@@ -8705,6 +8727,46 @@ def mod_check_tlrc_NL_warp_dsets(proc, block):
 
     # store the afni_names and bolt
     proc.nlw_priors = [aname, axname, nlname]
+
+    return 0
+
+def mod_check_tlrc_affine_warp_dsets(proc, block):
+    """if we are given affine-warped datasets, fill nlw_priors
+       (sister function to mod_check_tlrc_NL_warp_dsets)
+            warped anat aname, affine warp aname, NL warp aname
+       note the warp type in nlw_type
+    """
+
+    oname = '-tlrc_affine_warped_dsets'
+    dslist, rv = block.opts.get_string_list(oname)
+    if not dslist:
+       print('** error: failed parsing option %s' % oname)
+       return 1
+    if len(dslist) != 2:
+       print('** error: %s requires 2 elements, have %d' % (oname, len(dslist)))
+       return 1
+
+    if proc.verb > 1:
+       print("-- processing pre-warp NL dsets: %s" % dslist)
+
+    # get and check anat
+    aname = gen_afni_name(dslist[0])
+    if aname.view == '' and aname.type == 'BRIK': aname.new_view('+tlrc')
+    dims = aname.dims()
+    if dims[3] != 1:
+       print('** error in %s p1: tlrc anat should be 1 volume,' % oname)
+       print('   but dataset %s shows %d' % (aname.shortinput(), dims[3]))
+       return 1
+
+    # get and check affine warp
+    axname = gen_afni_name(dslist[1])
+    if axname.type != '1D':
+       print('** error in %s p2: affine xform %s should be 1D' \
+             % (oname, axname.shortinput()))
+       return 1
+
+    # store the afni_names and bolt
+    proc.nlw_priors = [aname, axname]
 
     return 0
 
@@ -8765,6 +8827,8 @@ def db_cmd_tlrc(proc, block):
     # if we are given NL-warped datasets, just apply them
     if block.opts.find_opt('-tlrc_NL_warped_dsets'):
        return tlrc_cmd_nlwarp_priors(proc, block)
+    elif block.opts.find_opt('-tlrc_affine_warped_dsets'):
+       return tlrc_cmd_affwarp_priors(proc, block)
 
     # add any user-specified options
     opt = block.opts.find_opt('-tlrc_opts_at')
@@ -8894,6 +8958,7 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
     # if no unifize, xmat strings will not have .un
     proc.nlw_aff_mat = 'anat.%saff.Xat.1D' % uxstr
     proc.nlw_NL_mat = 'anat.%saff.qw_WARP.nii' % uxstr
+    proc.nlw_type = 'NL'
 
     proc.anat_warps.append(proc.nlw_aff_mat)
     proc.anat_warps.append(proc.nlw_NL_mat)
@@ -8925,8 +8990,8 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
     return cmd + pstr
 
 def tlrc_cmd_nlwarp_priors(proc, block):
-    """NL warping has already been done,
-       just note datasets as if there were made here
+    """NL warp datasets were passed to afni_proc.py,
+       just note datasets as if they were made here
 
        set tlrcanat, nlw_aff_mat, nlw_NL_mat
        append the warps
@@ -8952,6 +9017,7 @@ def tlrc_cmd_nlwarp_priors(proc, block):
 
     proc.nlw_aff_mat = p1.shortinput()
     proc.nlw_NL_mat  = p2.shortinput()
+    proc.nlw_type = 'NL'
 
     proc.anat_warps.append(proc.nlw_aff_mat)
     proc.anat_warps.append(proc.nlw_NL_mat)
@@ -8969,7 +9035,7 @@ def tlrc_cmd_warp(proc, aset, base, strip=1, rmode='', suffix='', exopts=[]):
        exopts   : extra options         [list of strings]
     """
 
-    prog = 'auto_warp.py'
+    prog = '@auto_tlrc'
 
     if strip: sstr = ''
     else:     sstr = ' -no_ss'
@@ -9010,6 +9076,46 @@ def tlrc_cmd_warp(proc, aset, base, strip=1, rmode='', suffix='', exopts=[]):
     cmd += '# store forward transformation matrix in a text file\n' \
            'cat_matvec %s::WARP_DATA -I > %s\n\n' % (proc.tlrcanat.pv(),wfile)
     proc.anat_warps.append(wfile)
+    proc.nlw_type = 'affine'
+
+    return cmd
+
+def tlrc_cmd_affwarp_priors(proc, block):
+    """return block string for case of affine standard space warp,
+       but when datasets were passed to afni_proc.py
+
+       set tlrcanat, nlw_aff_mat
+       - based on tlrc_cmd_nlwarp_priors()
+    """
+
+    if len(proc.nlw_priors) != 2: return ''
+
+    # this case requires -volreg_align_e2a for the xform to apply
+    vblk = proc.find_block('volreg')
+    if vblk is not None:
+       if vblk.opts.find_opt('-volreg_tlrc_warp') \
+          and not vblk.opts.find_opt('-volreg_align_e2a'):
+          print("** -tlrc_affine_warped_dsets requires -volreg_align_e2a")
+          print("   (else EPI -> stdandard space will not be correct)")
+          return None
+
+    print('-- importing affine warp datasets')
+
+    p0 = proc.nlw_priors[0]
+    p1 = proc.nlw_priors[1]              
+
+    cmd = "# %s\n" % block_header('tlrc')
+    cmd += '\n'                                                           \
+           '# nothing to do: have external -tlrc_affine_warped_dsets\n\n' \
+           '# warped anat     : %s\n'                                     \
+           '# affine xform    : %s\n\n'                                   \
+           % (p0.shortinput(), p1.shortinput())
+
+    proc.tlrcanat = p0
+    proc.nlw_aff_mat = p1.shortinput()
+    proc.nlw_type = 'affine'
+
+    proc.anat_warps.append(proc.nlw_aff_mat)
 
     return cmd
 
@@ -13600,6 +13706,23 @@ OPTIONS:  ~2~
 
         See also -tlrc_base.
 
+    -tlrc_affine_warped_dsets ANAT WARP.1D : import affine warp results
+
+            e.g. -tlrc_affine_warped_dsets anat.nii anat.un.aff.Xat.1D
+
+        If the user has already run an affine of the subject anatomy
+        to transform to standard space, those datasets can be input to
+        save re-processing time, or if the transformations are preferable
+        to what would be computed by @auto_tlrc.
+
+        The warp should be the forward transformation, akin to what would
+        be in warp.anat.Xat.1D after running:
+
+            cat_matvec FT_anat_ns+tlrc::WARP_DATA -I > warp.anat.Xat.1D
+
+        When using this option, the 'tlrc' block will be empty of actions.
+        See also -tlrc_NL_warped_dsets.
+
     -tlrc_NL_warp           : use non-linear for template alignment
 
             e.g. -tlrc_NL_warp
@@ -13646,6 +13769,7 @@ OPTIONS:  ~2~
         running auto_warp_py from the proc script.
 
         When using this option, the 'tlrc' block will be empty of actions.
+        See also -tlrc_affine_warped_dsets.
 
     -tlrc_NL_force_view Y/N : force view when copying auto_warp.py result
 

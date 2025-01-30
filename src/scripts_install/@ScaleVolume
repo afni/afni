@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -150,14 +150,14 @@ endif
 if ($invol == "") then
    echo "Error: No input volume"
    echo ""
-   goto END
+   goto BEND
 endif
 
 if (`3dnvals $invol` > 1 && "$scale" == 'range') then
    echo "Error `basename $0`"
    echo "Script operates on datasets with one input only"
    echo ""
-   goto END
+   goto BEND
 endif
 
 if ($scale == 'range') then
@@ -198,6 +198,10 @@ DOIT:
                      ($v1-$v0)*($max-$min)+$min \
                    )    "
 
+   if ( $status ) then
+      goto BEND
+   endif
+
    goto END
 
    #Two steps would be
@@ -230,6 +234,9 @@ DOIT_FEAT_NORM:
                -prefix ${nid}.${op}
    end
    3dTcat -prefix $opref ${nid}.???+????.HEAD
+   if ( $status ) then
+      goto BEND
+   endif
    \rm -f ${nid}.???+????.*
    3drefit -sublabel_prefix $ss $opref$vvv
    3dNotes -h "`basename $0` $*" $opref$vvv
@@ -251,6 +258,9 @@ DOIT_FEAT_ZNORM:
                -prefix ${nid}.${op}
    end
    3dTcat -prefix $opref ${nid}.???+????.HEAD
+   if ( $status ) then
+      goto BEND
+   endif
    \rm -f ${nid}.???+????.*
    3drefit -sublabel_prefix $ss $opref$vvv
    3dNotes -h "`basename $0` $*" $opref$vvv
@@ -346,5 +356,9 @@ echo "-feat_norm: For each sub-brick B, Bnorm= (B-min(B))/(max(B)-min(B))*99+1"
    echo ""
    @global_parse -gopts_help
    goto END
-         
+
+BEND:
+exit 1
+
 END:
+exit 0

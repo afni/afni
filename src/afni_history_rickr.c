@@ -53,6 +53,39 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Jan, 2025, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "suggest -combine_method OC_B over OC[_A] if only 2 echoes",
+   NULL
+ } ,
+
+ { 29, Jan, 2025, RCR, "@extract_meica_ortvec", MINOR, TYPE_BUG_FIX,
+   "allow for empty accept or reject lists",
+   "Thanks to Avi (e0026902 on MB) for noting the problem."
+ } ,
+
+ { 28, Jan, 2025, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -tlrc_affine_warped_dsets : a pre-computed affine std space xform",
+   "Done for D Handwerker."
+ } ,
+
+ { 27, Jan, 2025, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fix -compare_opts display of fewer/more options applied",
+   NULL
+ } ,
+
+ { 27, Jan, 2025, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "w/DRG: invoke all tcsh scripts with env tcsh, rather than tcsh directly",
+   "To allow for other tcsh versions in the PATH, remove the direct path to\n"
+   "tcsh in the top execution lines, using env tcsh instead.  This is mostly\n"
+   "to work around tcsh version 6.22.03 which breaks :h with an absolute\n"
+   "path.\n"
+   "This change applies to 180 files.  Most changes are just to the top\n"
+   "execution line, but any 'tcsh -e' usage means additional checking for\n"
+   "$status failures.\n"
+   "There might still be some script generation changes to make, such as\n"
+   "to afni_procp.py."
+ } ,
+
  { 23, Jan, 2025, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "more checks for mac gcc, test rPkgsInstall",
    NULL

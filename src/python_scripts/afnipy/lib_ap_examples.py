@@ -169,6 +169,7 @@ class APExample:
       #       to be equal, we could try to remove the requirement...
 
       for key in uniq_target_keys:
+
          if key not in source.keys: continue
 
          ksource = [ind for ind, e in enumerate(source.olist) if e[0]==key]
@@ -180,9 +181,11 @@ class APExample:
 
          # get any efewer or emore entries
          if nsource < ntarget:
-            efewer.extend([target.olist[ind] for ind in range(nsource,ntarget)])
+            efewer.extend([target.olist[ktarget[ind]] \
+                          for ind in range(nsource,ntarget)])
          elif ntarget < nsource:
-            eextra.extend([source.olist[ind] for ind in range(ntarget,nsource)])
+            emore.extend([source.olist[ksource[ind]] \
+                         for ind in range(ntarget,nsource)])
 
          # get matching e[0]'s where e[1]'s differ
          ncomp = min(nsource, ntarget)

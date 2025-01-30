@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 set stat = 0
 set sdir = "$PWD"
@@ -19,7 +19,7 @@ echo ""
 echo "Otherwise to run demos, see content of ./$demo/README.txt"
 echo ""
 goto END
-   endif
+endif
 
 if ($use_curl == -1) then
    which curl
@@ -36,6 +36,14 @@ else
    curl -O https://afni.nimh.nih.gov/pub/dist/data/$demo.tgz
 endif
 tar xvzf $demo.tgz
+if ( $status ) then
+   echo ""
+   echo "** failure to download or extract $demo.tgz"
+   echo ""
+   set stat = 1
+   goto END
+endif
+
 cd $demo
    echo "********************************************************"
    echo "Follow examples in ./$demo/README.txt "

@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 # from MEICA results dir (TED.*), partition meica_mix.1D into
 # good and bad terms, then project good from bad to create
@@ -18,6 +18,8 @@ modification history for $prog :
              rejected/midk-rejected or accepted/ignored
            - Thanks to L Dowdle for noting the problem.
    0.4   8 Apr 2019 : add -reject_midk and -reject_ignored
+   0.5  29 Jan 2025 : combined column selectors must not start with comma
+           - Thanks to Avi (e0026902 on MB) for noting the problem.
 
 EOF
 exit
@@ -25,7 +27,7 @@ POSTHIST:
 
 # ----------------------------------------------------------------------
 # init vars
-set VERSION = "0.4  April 8, 2019"
+set VERSION = "0.5  January 29, 2025"
 set prog = `basename $0`
 
 # ----------------------------------------------------------------------
@@ -149,11 +151,17 @@ set param_rej = `cat $mfin_reject`
 set param_mid = `cat $mfin_midrej`
 set param_ign = `grep IGN $mfin_ignore | awk '{print $2}'`
 
+# count params to prevent bad combining later
+set nacc = `echo $param_acc | tr , ' ' | wc -w`
+set nrej = `echo $param_rej | tr , ' ' | wc -w`
+set nmid = `echo $param_mid | tr , ' ' | wc -w`
+set nign = `echo $param_ign | tr , ' ' | wc -w`
+
 if ( $verb > 0 ) then
-   echo ++ have `echo $param_acc | tr , ' ' | wc -w` accept terms, $param_acc
-   echo ++ have `echo $param_rej | tr , ' ' | wc -w` reject terms, $param_rej
-   echo ++ have `echo $param_mid | tr , ' ' | wc -w` midrej terms, $param_mid
-   echo ++ have `echo $param_ign | tr , ' ' | wc -w` ignore terms, $param_ign
+   echo ++ have $nacc accept terms, $param_acc
+   echo ++ have $nrej reject terms, $param_rej
+   echo ++ have $nmid midrej terms, $param_mid
+   echo ++ have $nign ignore terms, $param_ign
    echo ""
 endif
 
@@ -165,13 +173,24 @@ set pall_good = "$param_acc"
 set pall_bad = "$param_rej"
 
 # add midk reject to one of the lists
+# selectors cannot start with ','   [29 Jan 2025 rickr]
 if ( "$param_mid" != "" ) then
    if ( $rej_mid ) then
       if ( $verb ) echo "++ adding 'midk reject' to bad list"
-      set pall_bad = "$pall_bad,$param_mid"
+      if ( $nrej > 0 ) then
+         set pall_bad = "$pall_bad,$param_mid"
+      else
+         echo "** warning: no reject terms, only midrej ones"
+         set pall_bad = "$param_mid"
+      endif
    else
       if ( $verb ) echo "++ adding 'midk reject' to good list"
-      set pall_good = "$pall_good,$param_mid"
+      if ( $nacc > 0 ) then
+         set pall_good = "$pall_good,$param_mid"
+      else
+         echo "** warning: no accept terms, only midrej ones"
+         set pall_good = "$param_mid"
+      endif
    endif
 endif
 
@@ -179,10 +198,20 @@ endif
 if ( "$param_ign" != "" ) then
    if ( $rej_ign ) then
       if ( $verb ) echo "++ adding 'ignore' to bad list"
-      set pall_bad = "$pall_bad,$param_ign"
+      if ( $nrej > 0 ) then
+         set pall_bad = "$pall_bad,$param_ign"
+      else
+         echo "** warning: no reject terms, only ignore ones"
+         set pall_bad = "$param_ign"
+      endif
    else
       if ( $verb ) echo "++ adding 'ignore' to good list"
-      set pall_good = "$pall_good,$param_ign"
+      if ( $nacc > 0 ) then
+         set pall_good = "$pall_good,$param_ign"
+      else
+         echo "** warning: no reject terms, only ignore ones"
+         set pall_good = "$param_ign"
+      endif
    endif
 endif
 

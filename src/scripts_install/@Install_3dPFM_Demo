@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 set stat = 0
 set sdir = "$PWD"
@@ -27,6 +27,14 @@ else
    curl -O https://afni.nimh.nih.gov/pub/dist/data/${dname}.tgz
 endif
 tar xvzf ${dname}.tgz
+if ($status) then
+   echo ""
+   echo "** failure to download or extract ${dname}.tgz"
+   echo ""
+   set stat = 1
+   goto END
+endif
+
 cd ${dname}
    echo "********************************************************"
    echo "Follow examples in ./${dname}/README.txt "
