@@ -138,8 +138,158 @@ Usage ~1~
 -show_valid_opts :show valid options for this program
 
 ------------------------------------------------------------------------
+
+Notes ~1~
+
+These are some notes about using this program.
+
+Orientation
+Input colorbars can be either vertically oriented (assumes pbar_max is
+at the top) or horizontally oriented (assumes pbar_max is to the
+right).
+
+File formats
+Input formats that are known to be valid include *.jpg, *.tiff and
+*.png.  Valid output formats include those, as well as *.svg and
+likely any other that Python's Matplotlib module can write.
+
+JSONs
+This program is meant to work smoothly with *.json files exported via
+'@chauffeur_afni -pbar_saveim ..'.  That is, this program only looks
+for certain keys there (pbar_bot, pbar_top, thr_val and olay_alpha).
+JSON files from other sources can work, but these would have to use
+those same key names.
+
+Precedence
+When both JSON files and command line options are used, the latter
+will take precedence if there is any overlap/conflict. This makes it
+easier to tweak values. NB: they JSON keys and command line options
+are often not the exact same name, but something similar (see previous
+note on JSONs).
+
+Colors
+As with many AFNI programs, the color values that are recognized can
+be any of those in the GUI menu (yellow, yell-oran, oran-yell,
+rbgyr20_01, etc.), or hex-defined colors (likely putting these in some
+quotes), or Matplotlib-recognized colors (e.g., see:
+https://matplotlib.org/stable/gallery/color/named_colors.html).
+
+------------------------------------------------------------------------
+
 Examples ~1~
 
+The following examples make reference to the AFNI Bootcamp data, and
+can be run directly with copy+paste in the following directory:
+    ~/AFNI_data6/FT_analysis/FT.results/QC_FT/media
+
+The following two palettes/colorbars star in the examples:
+  + qc_06_vstat_Full_Fstat.pbar.jpg, which is 'unidirectional', likely
+    going from pbar_min = 0 to some positive pbar_max
+  + qc_07_vstat_vis_0_Coef.pbar.jpg, which is 'bidirectional', likely
+    going from some pbar_min = -VAL to pbar_max = VAL
+Each *.jpg has an associated *.json file, which was created by
+@chauffeur_afni and contains useful parameters associated with the
+pbar (e.g., pbar_min, pbar_max, thr_val and alpha state).
+
+    1) Use the JSON information to place threshold and set fading:
+
+    cbar_pbar.py                                                 \\
+        -in_pbar  qc_06_vstat_Full_Fstat.pbar.jpg                \\
+        -in_json  qc_06_vstat_Full_Fstat.pbar.json               \\
+        -prefix   qc_06_vstat_Full_Fstat.pbar_FADE1.jpg            
+
+    cbar_pbar.py                                                 \\
+        -in_pbar  qc_07_vstat_vis_0_Coef.pbar.jpg                \\
+        -in_json  qc_07_vstat_vis_0_Coef.pbar.json               \\
+        -prefix   qc_07_vstat_vis_0_Coef.pbar_FADE1.jpg            
+
+    2) Use orthogonal fading (no min/max/etc. info needed):
+
+    cbar_pbar.py                                                 \\
+        -in_pbar  qc_06_vstat_Full_Fstat.pbar.jpg                \\
+        -prefix   qc_06_vstat_Full_Fstat.pbar_FADE2.jpg          \\
+        -alpha    Yes                                            \\
+        -orth_on                                                   
+
+    cbar_pbar.py                                                 \\
+        -in_pbar  qc_07_vstat_vis_0_Coef.pbar.jpg                \\
+        -prefix   qc_07_vstat_vis_0_Coef.pbar_FADE2.jpg          \\
+        -alpha    Yes                                            \\
+        -orth_on                                                   
+
+    3) Implement fading, and add an outline
+
+    cbar_pbar.py                                                 \\
+        -in_pbar        qc_06_vstat_Full_Fstat.pbar.jpg          \\
+        -in_json        qc_06_vstat_Full_Fstat.pbar.json         \\
+        -prefix         qc_06_vstat_Full_Fstat.pbar_FADE3.jpg    \\
+        -outline_color  green                                    \\
+        -outline_width  4                                          
+
+    cbar_pbar.py                                                 \\
+        -in_pbar        qc_07_vstat_vis_0_Coef.pbar.jpg          \\
+        -in_json        qc_07_vstat_vis_0_Coef.pbar.json         \\
+        -prefix         qc_07_vstat_vis_0_Coef.pbar_FADE3.jpg    \\
+        -outline_color  darkmagenta                              \\
+        -outline_width  6                                          
+
+    4) Implement fading, and adjust the threshold line properties, 
+       tick properies and min/max; NB: options directly entered on
+       the command line have precedence over JSON values:
+
+    cbar_pbar.py                                                 \\
+        -in_pbar      qc_06_vstat_Full_Fstat.pbar.jpg            \\
+        -in_json      qc_06_vstat_Full_Fstat.pbar.json           \\
+        -prefix       qc_06_vstat_Full_Fstat.pbar_FADE4.jpg      \\
+        -thr_colors   '#f5b041' 'tab:brown'                      \\
+        -thr_num_osc  2                                          \\
+        -thr_width    8                                            
+
+    cbar_pbar.py                                                 \\
+        -in_pbar       qc_07_vstat_vis_0_Coef.pbar.jpg           \\
+        -in_json       qc_07_vstat_vis_0_Coef.pbar.json          \\
+        -prefix        qc_07_vstat_vis_0_Coef.pbar_FADE4.jpg     \\
+        -pbar_max      10                                        \\
+        -pbar_min      -10                                       \\
+        -tick_num_int  4                                         \\
+        -tick_color    antiquewhite
+
+    5) Implement linear fading, for various min/max/thr values:
+
+    cbar_pbar.py                                                 \\
+        -in_pbar   qc_06_vstat_Full_Fstat.pbar.jpg               \\
+        -prefix    qc_06_vstat_Full_Fstat.pbar_FADE5.jpg         \\
+        -pbar_min  0                                             \\
+        -pbar_max  10                                            \\
+        -thr_val   7                                             \\
+        -alpha     Linear                                             
+
+    cbar_pbar.py                                                 \\
+        -in_pbar   qc_07_vstat_vis_0_Coef.pbar.jpg               \\
+        -prefix    qc_07_vstat_vis_0_Coef.pbar_FADE5.jpg         \\
+        -pbar_min  -5                                            \\
+        -pbar_max  5                                             \\
+        -thr_val   3                                             \\
+        -alpha     Linear                                          
+
+    6) Same examples as #5 above, but with simple thresholding (i.e.,
+       fading turned off)
+
+    cbar_pbar.py                                                 \\
+        -in_pbar   qc_06_vstat_Full_Fstat.pbar.jpg               \\
+        -prefix    qc_06_vstat_Full_Fstat.pbar_FADE6.jpg         \\
+        -pbar_min  0                                             \\
+        -pbar_max  10                                            \\
+        -thr_val   7                                             \\
+        -alpha     No                                             
+
+    cbar_pbar.py                                                 \\
+        -in_pbar   qc_07_vstat_vis_0_Coef.pbar.jpg               \\
+        -prefix    qc_07_vstat_vis_0_Coef.pbar_FADE6.jpg         \\
+        -pbar_min  -5                                            \\
+        -pbar_max  5                                             \\
+        -thr_val   3                                             \\
+        -alpha     No                                          
 
 
 """.format(all_alpha=lcp.list_alpha_str, thr_wid=lcp.DOPTS['thr_width'],
@@ -152,6 +302,7 @@ g_history = """
   gtkyd_check.py history:
 
   0.1   Jan 26, 2025 :: started this command line interface for lib_cbar_pbar
+  0.2   Jan 30, 2025 :: beta version complete (with options)
 """
 
 g_ver     = g_history.split("\n")[-2].split("::")[0].strip()

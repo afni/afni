@@ -326,6 +326,10 @@ inobj : InOpts object
         """Blending of cbar color, orthogonal to color grad. This will often
         be used when the olay and thr volumes differ, for example."""
 
+        # nothing to do here, if no alpha is used
+        if self.alpha == 'No' :
+            return 0
+
         X = copy.deepcopy(self.cbar_arr)
         W, N, rgb = np.shape(X)             # cbar dimensions
 
@@ -435,12 +439,12 @@ inobj : InOpts object
             ttt+= "and please try again."
             ab.EP(ttt)
 
-        if self.pbar_min is None :
+        if self.pbar_min is None and not(self.orth_on) :
             ttt = "User is missing min pbar value: see '-pbar_min ..' "
             ttt+= "or '-in_json ..', and please try again."
             ab.EP(ttt)
 
-        if self.pbar_max is None :
+        if self.pbar_max is None  and not(self.orth_on):
             ttt = "User is missing max pbar value: see '-pbar_min ..' "
             ttt+= "or '-in_json ..', and please try again."
             ab.EP(ttt)
