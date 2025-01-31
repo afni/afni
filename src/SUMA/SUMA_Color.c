@@ -7563,7 +7563,7 @@ void applyColorMapToOriginal4Colorvec(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ove
         
         maxDiff = overlay->OptScl->IntRange[1]/overlay->OptScl->BrightMap[0];
         indexStep = (maxDiff*3)/overlay->OptScl->BrightRange[1];
-/*        
+/**/        
         if (overlay->OptScl->find == 1) indexStep *= 10;
         if (overlay->OptScl->find == 2) {
             offset *= 0.8;
@@ -7587,7 +7587,7 @@ void applyColorMapToOriginal4Colorvec(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ove
         if (overlay->OptScl->find == 9) {
             indexStep /= 8;
         }
-        */
+        /**/
    } else {
         offset = 0;
         maxDiff = offset * 2;

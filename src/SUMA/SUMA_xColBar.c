@@ -2149,7 +2149,7 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "+++++ %s\n", FuncName);
+   fprintf(stderr, "+++++++++++++++ %s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -2163,7 +2163,12 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
 
+   float val = 0.0f, oldVal = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
+   if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &val)))
+        { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
+
    curColPlane->SymIrange = !curColPlane->SymIrange;
+   // curColPlane->SymIrange = XmToggleButtonGetState (SurfCont->SymIrange_tb);
 
    if (curColPlane->SymIrange) {
       /* manual setting of range.
@@ -2523,7 +2528,6 @@ void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
            thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
 
            // Set up outlines for thresholded regions
-           fprintf(stderr, "+++++ %s: Set up outlines for thresholded regions\n", FuncName);
            setBoxOutlineForThresh(SO, over2, thresholdChanged);   
            
            break;
@@ -6935,6 +6939,10 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
             SUMA_RestoreThresholdContours(clientData, YUP);
        }
    }  
+
+   float val = 0.0f, oldVal = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
+   if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &val)))
+        { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
    
    SUMA_RETURN(1);
 }
@@ -7058,12 +7066,15 @@ void SUMA_cb_SetRangeValue (void *data)
         }
     }
     */
+    fprintf(stderr, "\n\n\n++++++++++++++++++++++++++++++++++Setting threshold to zero\n\n\n");
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    float val = 0.0f, oldVal = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
    if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &val)))
         { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
+        /*
    if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &oldVal)))
         { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
+        */
    
    SUMA_RETURNe;
 }
@@ -9616,6 +9627,12 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_ALL_DO *ado, int what)
          SUMA_RETURN(NOPE);
       }
    }
+
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   float val = 0.0f, oldVal = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
+   if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &val)))
+        { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
+
    SUMA_RETURN(YUP);
 }
 

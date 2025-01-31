@@ -4001,6 +4001,20 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_LHv("Have range of %f, %f\n", dv15[0], dv15[1]);
                      SurfCont->curColPlane->OptScl->IntRange[0] = dv15[0];
                      SurfCont->curColPlane->OptScl->IntRange[1] = dv15[1];
+                     
+                     // Ensure symmetric I range compatible with input I range values
+                     if (SurfCont->curColPlane->OptScl->IntRange[1] != 
+                        -SurfCont->curColPlane->OptScl->IntRange[0])
+                        SurfCont->curColPlane->SymIrange = 0;
+                        
+                     // Toggle symmetric I range button which also sets 
+                     // the threshold (temporarily) to zero
+                     XmToggleButtonSetState (SurfCont->SymIrange_tb, 
+                        SurfCont->curColPlane->SymIrange, 1);
+                        /*
+                     XmToggleButtonSetState (SurfCont->SymIrange_tb, 
+                        SurfCont->curColPlane->SymIrange, 1); */
+                        
                      SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 1,
                                  SurfCont->curColPlane->OptScl->IntRange[0]);
                      SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 2,
