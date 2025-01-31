@@ -68,7 +68,7 @@ DOPTS = {
     'tick_frac'     : 0.07,
     'tick_color'    : zer,
     'orth_on'       : False,
-    'orth_frac'     : 1.0,
+    'orth_frac'     : 0.67,
     'outline_width' : 0,
     'outline_color' : zer,
     'bkgd_color'    : abc,
