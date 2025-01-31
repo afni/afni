@@ -623,6 +623,19 @@ examples (very basic for now): ~1~
             1d_tool.py -infile slice_times.1D \\
                        -show_slice_timing_gentle -verb 3
 
+       ---
+
+       d. Related, show slice timing resolution, the accuracy of the slice
+          times, assuming they should be multiples of a constant
+          (the slice duration).
+
+            1d_tool.py -infile slice_times.1D -show_slice_timing_resolution
+
+       e. or as a filter
+
+            3dinfo -slice_timing -sb_delim ' ' FT_epi_r1+orig \\
+                   | 1d_tool.py -show_slice_timing_resolution -infile -
+
    Example 32. Display slice timing ~2~
 
        Display slice timing given a to3d timing pattern, the number of
@@ -1093,6 +1106,29 @@ general options: ~2~
         See also -slice_pattern_to_times.
         See example 31 and example 32
 
+   -show_slice_timing_resolution   : display the to3d tpattern for the data
+
+        e.g. -show_slice_timing_resolution -infile slice_times.txt
+
+        Display the apparent resolution of values expected to be on a grid,
+        where zero is good.
+
+        The slice times are supposed to be multiples of some constant C, such
+        that the sorted list of unique values should be:
+               {0*C, 1*C, 2*C, ..., (N-1)*C}.
+        In such a case, the first diffs would all be C, and the second diffs
+        would be zero.  The displayed resolution would be zero.
+
+        If the first diffs are not all exactly some constant C, the largest
+        difference between those diffs should implicate the numerical
+        resolution, like a truncation error.  So display the largest first diff
+        minus the smallest first diff.
+
+        For Siemens data, this might be 0.025 (2.5 ms), as reported by D Glen.
+
+        See also -show_slice_timing_pattern.
+        See example 31.
+
    -show_tr_run_counts STYLE    : display TR counts per run, according to STYLE
                                   STYLE can be one of:
                                      trs        : TR counts
@@ -1214,7 +1250,7 @@ general options: ~2~
         means the output is order index of each slice.
 
         This operation is the reverse of -show_slice_timing_pattern.
-        See also -show_slice_timing_pattern.
+        See also -show_slice_timing_pattern, -show_slice_timing_resolution.
         See example 32.
 
    -sort                        : sort data over time (smallest to largest)
@@ -1424,9 +1460,10 @@ g_history = """
         - rewrote -show_slice_timing_pattern to be more forgiving
    2.18 Sep  1, 2023 - added -show_slice_timing_gentle
    2.19 Sep 13, 2023 - have -write_xstim create an empty file if need be
+   2.20 Jan 31, 2025 - add -show_slice_timing_resolution
 """
 
-g_version = "1d_tool.py version 2.19, September 13, 2023"
+g_version = "1d_tool.py version 2.20, January 31, 2025"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
@@ -1508,6 +1545,7 @@ class A1DInterface:
       self.show_regs       = ''         # see g_show_regs_list
       self.show_regs_style = 'label'    # see g_show_regs_style_list
       self.show_tpattern   = 0          # show the slice timing pattern (0,1,2)
+      self.show_tresolution= 0          # show the timing resolution
       self.show_tr_run_counts = ''      # style variable can be in:
                                         #   trs, trs_cen, trs_no_cen, frac_cen
       self.show_trs_censored = ''       # style variable can be in:
@@ -1831,6 +1869,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_slice_timing_pattern', 0, [], 
                       helpstr='display nbands and the to3d-style tpattern')
+
+      self.valid_opts.add_opt('-show_slice_timing_resolution', 0, [],
+                      helpstr='display max diff of first diffs')
 
       self.valid_opts.add_opt('-show_tr_run_counts', 1, [], 
                    acplist=['trs', 'trs_cen', 'trs_no_cen', 'frac_cen'],
@@ -2313,6 +2354,9 @@ class A1DInterface:
          elif opt.name == '-show_slice_timing_pattern':
             self.show_tpattern = 1
 
+         elif opt.name == '-show_slice_timing_resolution':
+            self.show_tresolution = 1
+
          elif opt.name == '-show_num_runs':
             self.show_num_runs = 1
 
@@ -2663,6 +2707,9 @@ class A1DInterface:
          if self.show_tpattern == 2: rdigits = 0
          else:                       rdigits = 1
          self.adata.show_tpattern(rdigits=rdigits, verb=self.verb)
+
+      if self.show_tresolution:
+         self.adata.show_tresolution()
 
       if self.show_tr_run_counts  != '': self.show_TR_run_counts()
 

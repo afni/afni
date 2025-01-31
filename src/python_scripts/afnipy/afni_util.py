@@ -1806,7 +1806,7 @@ def numerical_resolution(vals):
 
       If the first diffs are not all exactly some constant C, the largest
       difference between those diffs should implicate the numerical resolution,
-      like a truncation error.  So return the larget first diff minus the
+      like a truncation error.  So return the largest first diff minus the
       smallest first diff.
 
       ** importantly: returns closer to zero are "better"

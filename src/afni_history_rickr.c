@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, Jan, 2025, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_slice_timing_resolution",
+   "This is to help evaluate Siemens 2.5 ms slice time resolution.\n"
+   "The 2.5 ms resolution was reported by D Glen."
+ } ,
+
  { 29, Jan, 2025, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "suggest -combine_method OC_B over OC[_A] if only 2 echoes",
    NULL
