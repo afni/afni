@@ -1782,12 +1782,54 @@ def __mean_slice_diff(vals, verb=1):
 
    if verb > 1:
       print("-- MSD: slice diffs: %s" % gen_float_list_string(diffs))
+      print("      : min diff %g, max diff %g, diffdiff %g" \
+            % (diffs[0], diffs[-1], diffs[-1]-diffs[0]))
 
    # return mean
    avediff = mean(diffs)
    del(diffs)
 
    return avediff
+
+def numerical_resolution(vals):
+   """return the apparent resolution of values expected to be on a grid
+      (zero is good)
+
+      input:  a list of real numbers
+      output: the data resolution, largest minus smallest first diff
+
+      The input vals are supposed to be multiples of some constant C, such
+      that the sorted list of unique values should be:
+             {0*C, 1*C, 2*C, ..., (N-1)*C}.
+      In such a case, the first diffs would all be C, and the second diffs
+      would be zero.  The returned resolution would be zero.
+
+      If the first diffs are not all exactly some constant C, the largest
+      difference between those diffs should implicate the numerical resolution,
+      like a truncation error.  So return the larget first diff minus the
+      smallest first diff.
+
+      ** importantly: returns closer to zero are "better"
+
+      - get unique, sorted sublist
+      - take diffs
+      - get unique, sorted sublist (of the diffs)
+      - return last-first (so largest diff minus smallest)
+   """
+   unique = get_unique_sublist(vals)
+   nunique = len(unique)
+   # quick return - when there are no diffs
+   if nunique < 2:
+      return 0.0
+
+   # sort unique sublist
+   unique.sort()
+
+   # get first diffs
+   diffs = [unique[i+1]-unique[i] for i in range(nunique-1)]
+   diffs.sort()
+
+   return diffs[-1]-diffs[0]
 
 def timing_to_slice_pattern(timing, rdigits=1, verb=1):
    """given an array of slice times, try to return multiband level and
@@ -1839,7 +1881,7 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
    mblevel = int(round(ntimes/nunique))
 
    if verb > 2:
-      print("-- TR %g, MB %g, rdig %d, nunique %g, med slice diff: %g" \
+      print("-- TR +~ %g, MB %g, rdig %d, nunique %g, med slice diff: %g" \
             % (TR, mblevel, rdigits, nunique, tgrid))
 
    # if TR is not valid, we are out of here

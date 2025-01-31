@@ -2600,11 +2600,33 @@ class Afni1D:
       else:
          timing = [v[0] for v in self.mat]
 
-      nb, tpat = UTIL.timing_to_slice_pattern(timing, rdigits=rdigits, verb=verb)
+      nb, tpat = UTIL.timing_to_slice_pattern(timing, rdigits=rdigits,verb=verb)
       if nb < 0:
          tpat = 'INVALID'
       if verb > 0: print('nbands : %d, tpattern : %s' % (nb, tpat))
       else:        print('%d %s' % (nb, tpat))
+
+   def show_tresolution(self, mesg='', rdigits=-1, verb=1):
+      """display the apparent numerical resolution (error) in the data
+
+         mesg    : ['']  : print before output
+         rdigits : [-1]  : number of digtits used for printing (-1 means %g)
+      """
+
+      if mesg:     print('%s' % mesg, end='')
+
+      # allow timing to be either vertical or horizontal
+      if self.nvec == 1:
+         timing = self.mat[0]
+      else:
+         timing = [v[0] for v in self.mat]
+
+      res = UTIL.numerical_resolution(timing)
+
+      if rdigits < 0:
+         print("%g" % res)
+      else:
+         print("%.*f" % (rdigits, res))
 
    def get_tr_counts(self):
       """return status, self.run_len, self.run_len_nc
