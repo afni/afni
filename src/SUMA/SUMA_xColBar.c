@@ -2167,8 +2167,8 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &val)))
         { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
 
-   curColPlane->SymIrange = !curColPlane->SymIrange;
-   // curColPlane->SymIrange = XmToggleButtonGetState (SurfCont->SymIrange_tb);
+   // curColPlane->SymIrange = !curColPlane->SymIrange;
+   curColPlane->SymIrange = XmToggleButtonGetState (SurfCont->SymIrange_tb);
 
    if (curColPlane->SymIrange) {
       /* manual setting of range.
