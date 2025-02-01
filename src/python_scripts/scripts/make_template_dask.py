@@ -23,7 +23,7 @@ import os, sys
 if 'PYTHONPATH' in os.environ.keys() :
     ttt = sys.path[0] + os.pathsep + os.environ['PYTHONPATH']
     os.environ['PYTHONPATH'] = ttt
-else
+else :
     os.environ['PYTHONPATH'] = sys.path[0]
 
 from time import sleep
