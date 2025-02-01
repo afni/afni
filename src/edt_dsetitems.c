@@ -893,13 +893,8 @@ fprintf(stderr,"stataux_one:  iv=%d bso[0]=%g bso[1]=%g bso[2]=%g\n",
          taxis->ntt     = ntt ;
       }
 
-      if( new_ntt     ) taxis->ntt     = ntt ;
-      if( new_ttorg   ) taxis->ttorg   = ttorg ;
-      if( new_ttdel   ) taxis->ttdel   = ttdel ;
-      if( new_ttdur   ) taxis->ttdur   = ttdur ;
-      if( new_zorg_sl ) taxis->zorg_sl = zorg_sl ;
-      if( new_dz_sl   ) taxis->dz_sl   = dz_sl ;
-
+      /* init slice times first, to init zorg,dz from daxes, before */
+      /* possible overwrite                     [31 Jan 2025 rickr] */
       if( new_nsl ){
          taxis->nsl = nsl ;
          if( nsl > 0 )
@@ -909,8 +904,23 @@ fprintf(stderr,"stataux_one:  iv=%d bso[0]=%g bso[1]=%g bso[2]=%g\n",
             myRwcFree(taxis->toff_sl) ;
       }
 
-      if( new_toff_sl )
+      if( new_toff_sl ) {
          for( ii=0 ; ii < taxis->nsl ; ii++ ) taxis->toff_sl[ii] = toff_sl[ii] ;
+
+         /* if new times, init zorg_sl and dz_sl, needed for */
+         /* afni GUI display of times    [31 Jan 2025 rickr] */
+         if( new_nsl && nsl > 0 && taxis->dz_sl == 0.0 ) {
+            taxis->zorg_sl = dset->daxes->zzorg ;
+            taxis->dz_sl   = dset->daxes->zzdel ;
+         }
+      }
+
+      if( new_ntt     ) taxis->ntt     = ntt ;
+      if( new_ttorg   ) taxis->ttorg   = ttorg ;
+      if( new_ttdel   ) taxis->ttdel   = ttdel ;
+      if( new_ttdur   ) taxis->ttdur   = ttdur ;
+      if( new_zorg_sl ) taxis->zorg_sl = zorg_sl ;
+      if( new_dz_sl   ) taxis->dz_sl   = dz_sl ;
    }
 
    if( new_tunits ){
