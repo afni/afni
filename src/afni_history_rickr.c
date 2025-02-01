@@ -53,6 +53,22 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, Jan, 2025, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "when setting slice times in edt_dsetitems.c, prevent dz_sl == 0",
+   "This is required for (useful) display of timing in the afni GUI.\n"
+   "Thanks to @martinsingua (AFNI MB) for noting the issue."
+ } ,
+
+ { 31, Jan, 2025, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "when writing NIFTI, allow for Siemens 2.5 ms timing resolution",
+   "The 2.5 ms resolution as reported by the revered D Glen."
+ } ,
+
+ { 31, Jan, 2025, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_slice_timing_resolution",
+   "This is to help evaluate Siemens 2.5 ms slice time resolution."
+ } ,
+
  { 29, Jan, 2025, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "suggest -combine_method OC_B over OC[_A] if only 2 echoes",
    NULL
