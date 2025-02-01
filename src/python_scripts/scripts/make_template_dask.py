@@ -17,7 +17,15 @@ daskmode = "None"  # by default, don't use dask. Just use single computer linear
 # debugging = False # does not use dask
 # debugging_localcluster = False # does not use cluster
 
-import os
+import os, sys
+
+# Add python PWD to PYTHONPATH for propagating to subshells.
+if 'PYTHONPATH' in os.environ.keys() :
+    ttt = sys.path[0] + os.pathsep + os.environ['PYTHONPATH']
+    os.environ['PYTHONPATH'] = ttt
+else
+    os.environ['PYTHONPATH'] = sys.path[0]
+
 from time import sleep
 from afnipy import pipeline_utils as pu
 #TemplateConfig
@@ -149,9 +157,12 @@ if (daskmode != "None"):
             memory =  cluster_memory,
             processes=1,
             cores = n_threads,
-            job_extra = [cluster_constraint, cluster_walltime],
-            extra = ['--resources big_jobs=2'],
-            env_extra=['export OMP_NUM_THREADS="%s"'% omp_count] 
+            # dask renamed - job_extra->job_extra_directives
+            job_extra_directives = [cluster_constraint, cluster_walltime],
+            # dask renamed - extra->worker_extra_args
+            worker_extra_args = ['--resources big_jobs=2'],
+            # dask renamed - env_extra->job_script_prologue
+            job_script_prologue=['export OMP_NUM_THREADS="%s"'% omp_count] 
             )
 
         print("starting %d workers!" % n_workers)
