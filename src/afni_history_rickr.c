@@ -59,10 +59,14 @@ afni_history_struct rickr_history[] = {
    "Thanks to @martinsingua (AFNI MB) for noting the issue."
  } ,
 
+ { 31, Jan, 2025, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "when writing NIFTI, allow for Siemens 2.5 ms timing resolution",
+   "The 2.5 ms resolution as reported by the revered D Glen."
+ } ,
+
  { 31, Jan, 2025, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add -show_slice_timing_resolution",
-   "This is to help evaluate Siemens 2.5 ms slice time resolution.\n"
-   "The 2.5 ms resolution was reported by D Glen."
+   "This is to help evaluate Siemens 2.5 ms slice time resolution."
  } ,
 
  { 29, Jan, 2025, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
