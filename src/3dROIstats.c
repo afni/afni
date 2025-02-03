@@ -45,10 +45,11 @@ static char * pstr_sep    = "\t";
  * - if tposn > 0, print tab second (else none)
  *   (so users can override tabs with their own format)
  */
-#define RS_DISP_FLOAT(tposn, val) do {          \
-    if( tposn < 0 ) fprintf(stdout, pstr_sep); \
-    fprintf(stdout, pstr_apply, (val));         \
-    if( tposn > 0 ) fprintf(stdout, pstr_sep); \
+#define RS_DISP_SEP do { fprintf(stdout, pstr_sep); } while(0)
+#define RS_DISP_FLOAT(tposn, val) do {    \
+    if( tposn < 0 ) RS_DISP_SEP;          \
+    fprintf(stdout, pstr_apply, (val));   \
+    if( tposn > 0 ) RS_DISP_SEP;          \
    } while(0)
    
 
@@ -1199,11 +1200,21 @@ int main(int argc, char *argv[])
                      RS_DISP_FLOAT(-1, modes[i] );
                   }
                   if (pcxyz || nzpcxyz) {
-                     fprintf(stdout, "\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t\t%f\t%f\t%f",
-                           pvec[9*i  ], pvec[9*i+1], pvec[9*i+2],
-                           pvec[9*i+3], pvec[9*i+4], pvec[9*i+5],
-                           pvec[9*i+6], pvec[9*i+7], pvec[9*i+8],
-                           eigv[3*i  ], eigv[3*i+1], eigv[3*i+2]);
+
+                     RS_DISP_FLOAT(-1, pvec[9*i  ]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+1]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+2]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+3]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+4]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+5]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+6]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+7]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+8]);
+                     RS_DISP_SEP;
+                     RS_DISP_FLOAT(-1, eigv[3*i  ]);
+                     RS_DISP_FLOAT(-1, eigv[3*i+1]);
+                     RS_DISP_FLOAT(-1, eigv[3*i+2]);
+
                      if (pcxyz == 2 || nzpcxyz == 2) {
                         double md, fa, cl, cp, cs;
                         /* FA and Cl, Cp, Cs */
@@ -1218,8 +1229,11 @@ int main(int argc, char *argv[])
                         cp = (eigv[3*i+1]-eigv[3*i+2])/(3.0*md)*2.0;
                         cs = eigv[3*i+2]/md;
 
-                        fprintf(stdout, "\t%f\t%f\t%f\t%f\t%f",
-                              fa, md, cl, cp, cs );
+                        RS_DISP_FLOAT(-1, fa);
+                        RS_DISP_FLOAT(-1, md);
+                        RS_DISP_FLOAT(-1, cl);
+                        RS_DISP_FLOAT(-1, cp);
+                        RS_DISP_FLOAT(-1, cs);
                      }
                   }
                   if (key) {
@@ -1296,7 +1310,7 @@ int main(int argc, char *argv[])
             fprintf(stdout, "%ld\t", nzmean ? nzvoxels[i] : voxels[i]);
          fprintf(stdout, "\nValue\t");
          for (i = 0; i < num_ROI; i++)
-            fprintf(stdout, "%f\t", (sumallbriks[i] / (double) DSET_NVALS(input_dset)));
+            RS_DISP_FLOAT(1, (sumallbriks[i]/(double) DSET_NVALS(input_dset)));
          fprintf(stdout, "\n");
       }
       DSET_unload(input_dset);
