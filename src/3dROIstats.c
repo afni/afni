@@ -38,6 +38,7 @@ static char * pstr_pretty = "%g";
 static char * pstr_sci    = "%e";  /* scientific */
 
 static char * pstr_apply  = "%f";  /* set this to whichever is wanted */
+static char * pstr_sep    = "\t";
 
 /* print a float using the the given format (tposn first for visual clarity)
  * - if tposn < 0, print tab char first
@@ -45,9 +46,9 @@ static char * pstr_apply  = "%f";  /* set this to whichever is wanted */
  *   (so users can override tabs with their own format)
  */
 #define RS_DISP_FLOAT(tposn, val) do {          \
-    if( tposn < 0 ) fputc('\t', stdout);        \
+    if( tposn < 0 ) fprintf(stdout, pstr_sep); \
     fprintf(stdout, pstr_apply, (val));         \
-    if( tposn > 0 ) fputc('\t', stdout);        \
+    if( tposn > 0 ) fprintf(stdout, pstr_sep); \
    } while(0)
    
 
@@ -256,6 +257,16 @@ int main(int argc, char *argv[])
             exit(1);
          }
 
+         narg++;
+         continue;
+      }
+
+      if (strcmp(argv[narg], "-float_format_sep") == 0) {
+         narg++;
+         if (narg >= argc)
+            Error_Exit("-float_format_sep option requires an argument");
+
+         pstr_sep = argv[narg];
          narg++;
          continue;
       }
