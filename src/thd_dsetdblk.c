@@ -54,7 +54,7 @@ THD_3dim_dataset * THD_3dim_from_block( THD_datablock *blk )
 
    ATR_int    *atr_int ;
    ATR_string *atr_str ;
-   ATR_float  *atr_flo ;
+   ATR_float  *atr_flo, *atr_flo2 ;
 
 #if 0
    int new_idcode = 0 ;   /* no longer needed */
@@ -570,10 +570,11 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
    /*--- read time-dependent information, if any ---*/
 
+   /* save atr_flo2 for possible dz_sl correction, below */
    atr_int = THD_find_int_atr  ( blk , ATRNAME_TAXIS_NUMS ) ;
-   atr_flo = THD_find_float_atr( blk , ATRNAME_TAXIS_FLOATS ) ;
+   atr_flo2 = THD_find_float_atr( blk , ATRNAME_TAXIS_FLOATS ) ;
 
-   if( atr_int != NULL && atr_flo != NULL ){
+   if( atr_int != NULL && atr_flo2 != NULL ){
      int isfunc , nvals ;
 
      dset->taxis = myRwcNew( THD_timeaxis ) ;
@@ -582,11 +583,11 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
      dset->taxis->type    = TIMEAXIS_TYPE ;
      dset->taxis->ntt     = atr_int->in[0] ;
      dset->taxis->nsl     = atr_int->in[1] ;
-     dset->taxis->ttorg   = atr_flo->fl[0] ;
-     dset->taxis->ttdel   = atr_flo->fl[1] ;
-     dset->taxis->ttdur   = atr_flo->fl[2] ;
-     dset->taxis->zorg_sl = atr_flo->fl[3] ;
-     dset->taxis->dz_sl   = atr_flo->fl[4] ;
+     dset->taxis->ttorg   = atr_flo2->fl[0] ;
+     dset->taxis->ttdel   = atr_flo2->fl[1] ;
+     dset->taxis->ttdur   = atr_flo2->fl[2] ;
+     dset->taxis->zorg_sl = atr_flo2->fl[3] ;
+     dset->taxis->dz_sl   = atr_flo2->fl[4] ;
 
      dset->taxis->units_type = atr_int->in[2] ;    /* 21 Oct 1996 */
      if( dset->taxis->units_type < 0 )             /* assign units */
@@ -605,6 +606,18 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
          ADDTO_KILL(dset->kl,dset->taxis->toff_sl) ;
          for( ii=0 ; ii < dset->taxis->nsl ; ii++ )
            dset->taxis->toff_sl[ii] = atr_flo->fl[ii] ;
+
+         /* if we are inserting times, be sure of zorg_sl and dz_sl,
+          * since I let them get through 3drefit  [2 Feb 2025 rickr] */
+         if( dset->taxis->zorg_sl == 0.0 && dset->taxis->dz_sl == 0.0 &&
+             dset->daxes->zzdel   != 0.0 ) {
+            dset->taxis->zorg_sl = dset->daxes->zzorg;
+            dset->taxis->dz_sl   = dset->daxes->zzdel;
+
+            /* and correct the actual attribute, so it isn't undone below */
+            atr_flo2->fl[3] = dset->taxis->zorg_sl;
+            atr_flo2->fl[4] = dset->taxis->dz_sl;
+         }
        }
      } else {
        dset->taxis->nsl     = 0 ;

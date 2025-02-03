@@ -53,6 +53,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Feb, 2025, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix partial TAXIS_FLOATS attributes, created by 3drefit -Tslices",
+   "Fill in missing zorg_sl, dz_sl, if they are zero and there are times.\n"
+   "Fix in thd_dsetdblk.c for AFNI attributes in AFNI dsets.\n"
+   "Fix in thd_initdblk.c for AFNI attributes in NIFTI dsets, though this\n"
+   "change could have accomplished AFNI dsets, too."
+ } ,
+
  { 31, Jan, 2025, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "when setting slice times in edt_dsetitems.c, prevent dz_sl == 0",
    "This is required for (useful) display of timing in the afni GUI.\n"

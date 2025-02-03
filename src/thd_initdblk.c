@@ -726,7 +726,7 @@ void THD_datablock_apply_atr( THD_3dim_dataset *dset )
    THD_diskptr       *dkptr ;
    THD_dataxes       *daxes ;
    ATR_int           *atr_int = NULL ;
-   ATR_float         *atr_flt = NULL;
+   ATR_float         *atr_flt = NULL, *atr_flt2 = NULL;
    ATR_string        *atr_str = NULL ;
    int ii , view_type , func_type , dset_type , nx,ny,nz,nvox , nvals , ibr,typ ;
    RwcBoolean ok ;
@@ -1119,8 +1119,9 @@ ENTRY("THD_datablock_apply_atr") ;
 
    /* update attributes for time axes - copied from thd_dsetdblk.c */
    /*--- read time-dependent information, if any ---*/
+   /* (save atr_flt2 for possible correction, below) */
    atr_int = THD_find_int_atr  ( blk , ATRNAME_TAXIS_NUMS ) ;
-   atr_flt = THD_find_float_atr( blk , ATRNAME_TAXIS_FLOATS ) ;
+   atr_flt2 = THD_find_float_atr( blk , ATRNAME_TAXIS_FLOATS ) ;
    if( atr_int != NULL && atr_flt != NULL ){
      int isfunc , nvals ;
 
@@ -1129,11 +1130,11 @@ ENTRY("THD_datablock_apply_atr") ;
      dset->taxis->type    = TIMEAXIS_TYPE ;
      dset->taxis->ntt     = atr_int->in[0] ;
      dset->taxis->nsl     = atr_int->in[1] ;
-     dset->taxis->ttorg   = atr_flt->fl[0] ;
-     dset->taxis->ttdel   = atr_flt->fl[1] ;
-     dset->taxis->ttdur   = atr_flt->fl[2] ;
-     dset->taxis->zorg_sl = atr_flt->fl[3] ;
-     dset->taxis->dz_sl   = atr_flt->fl[4] ;
+     dset->taxis->ttorg   = atr_flt2->fl[0] ;
+     dset->taxis->ttdel   = atr_flt2->fl[1] ;
+     dset->taxis->ttdur   = atr_flt2->fl[2] ;
+     dset->taxis->zorg_sl = atr_flt2->fl[3] ;
+     dset->taxis->dz_sl   = atr_flt2->fl[4] ;
 
      dset->taxis->units_type = atr_int->in[2] ;    /* 21 Oct 1996 */
      if( dset->taxis->units_type < 0 )             /* assign units */
@@ -1151,6 +1152,18 @@ ENTRY("THD_datablock_apply_atr") ;
          dset->taxis->toff_sl = (float *) RwcMalloc(sizeof(float)*dset->taxis->nsl) ;
          for( ii=0 ; ii < dset->taxis->nsl ; ii++ )
            dset->taxis->toff_sl[ii] = atr_flt->fl[ii] ;
+
+         /* also correct partial TAXIS_FLOATS here, in case of NIFTI ext
+          * (for 3drefit -Tslices of NIFTI)           [3 Feb 2025 rickr] */
+         if( dset->taxis->zorg_sl == 0.0 && dset->taxis->dz_sl == 0.0 &&
+             dset->daxes->zzdel   != 0.0 ) {
+            dset->taxis->zorg_sl = dset->daxes->zzorg;
+            dset->taxis->dz_sl   = dset->daxes->zzdel;
+
+            /* and correct the actual attribute, saved above */
+            atr_flt2->fl[3] = dset->taxis->zorg_sl;
+            atr_flt2->fl[4] = dset->taxis->dz_sl;
+         }
        }
      } else {
        dset->taxis->nsl     = 0 ;
