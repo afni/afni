@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Feb, 2025, RCR, "3dROIstats", MINOR, TYPE_NEW_OPT,
+   "add -float_format and -float_format_str, for floating point formatting",
+   "Requested by P Molfese."
+ } ,
+
  {  3, Feb, 2025, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "fix partial TAXIS_FLOATS attributes, created by 3drefit -Tslices",
    "Fill in missing zorg_sl, dz_sl, if they are zero and there are times.\n"
