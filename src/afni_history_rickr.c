@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Feb, 2025, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "allow direct updating of anyos_text* packages",
+   NULL
+ } ,
+
  {  4, Feb, 2025, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "add build_afni.py to the list of AFNI programs to check",
    NULL

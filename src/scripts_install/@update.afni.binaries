@@ -17,6 +17,7 @@ set hostname = afni.nimh.nih.gov
 set hostproto = https://
 set hostsite = $hostproto$hostname
 set distdir = pub/dist
+set test_prog = afni # might change, use with 'which' to set abin
 
 set sysname = `uname -s`
 if ( $status ) then
@@ -93,6 +94,7 @@ history for $prog :
   3.26 19 Sep 2024 : allow use of build_afni.py to compile a new package
                    - add -build_afni (only to override current source)
                    - add -build_root and -built_opts for build_afni.py
+  3.27  4 Feb 2025 : allow use in updating just anyos_text* packages
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -100,7 +102,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.26, September 19, 2024"
+set aub_version = "3.27, February 4, 2025"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -742,13 +744,22 @@ endif
 
 echo "-- running $prog version $aub_version"
 
-# note any current AFNI location
-which afni >& /dev/null
-if ( $status ) then
+# note any current AFNI location (try afni then build_afni.py)
+# (allows use with anyos_text* packages)
+set test_prog = afni
+which $test_prog >& /dev/null
+set stat = $status
+if ( $stat ) then
+   set test_prog = build_afni.py
+   which $test_prog >& /dev/null
+   set stat = $status
+endif
+
+if ( $stat ) then
    echo "-- no current AFNI package found in path..."
    set cur_afni = ""
 else
-   set cur_afni = `which afni`
+   set cur_afni = `which $test_prog`
    set cur_afni = $cur_afni:h
    echo "-- have AFNI binaries under $cur_afni"
 endif
@@ -833,8 +844,8 @@ if ( $package == "" ) then
           set vfile = AFNI_version.txt
           echo "** failed setting package from 'afni -ver'"
           echo "   checking $vfile instead..."
-          set package = `column_cat -line 2 $cur_afni/$vfile`
-          if ( $status || ! -f $vfile || "$package" == "" ) then
+          set package = `awk '{if(NR==2) print}' $cur_afni/$vfile`
+          if ( $status || ! -f $cur_afni/$vfile || "$package" == "" ) then
              echo "** failed setting package from '$vfile', failing"
              exit 1
           endif
@@ -1572,7 +1583,7 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
       if ( $cur_afni != $abin ) then
          set path = ( $abin $path )
          rehash
-         set cur_afni = `which afni`
+         set cur_afni = `which $test_prog`
          if ( ! $status ) then
             set cur_afni = $cur_afni:h
          else
