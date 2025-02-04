@@ -30,6 +30,29 @@
 #include <ctype.h>
 #include <math.h>
 
+/* global formatting strings
+ * - allow the user to choose the format for float output
+ */
+static char * pstr_float  = "%f";  /* default format */
+static char * pstr_pretty = "%g";
+static char * pstr_sci    = "%e";  /* scientific */
+
+static char * pstr_apply  = "%f";  /* set this to whichever is wanted */
+static char * pstr_sep    = "\t";
+
+/* print a float using the the given format (tposn first for visual clarity)
+ * - if tposn < 0, print tab char first
+ * - if tposn > 0, print tab second (else none)
+ *   (so users can override tabs with their own format)
+ */
+#define RS_DISP_SEP do { fprintf(stdout, pstr_sep); } while(0)
+#define RS_DISP_FLOAT(tposn, val) do {    \
+    if( tposn < 0 ) RS_DISP_SEP;          \
+    fprintf(stdout, pstr_apply, (val));   \
+    if( tposn > 0 ) RS_DISP_SEP;          \
+   } while(0)
+   
+
 #define IMAX 65536
 short non_zero[IMAX];      /* Ugly; depends upon sizeof(short)=2 */
 
@@ -113,8 +136,21 @@ void usage_3dROIstats(int detail) {
          "  -1Dformat     Output results in a 1D format that includes \n"
          "                commented labels\n"
          "  -1DRformat    Output results in a 1D format that includes \n"
-         "                uncommented labels. This format does not work well with \n"
-         "                typical 1D programs, but it is useful for R functions.\n"
+         "                uncommented labels. This format does not work well\n"
+         "                with typical 1D programs, but it is useful for R\n"
+         "                functions.\n"
+         "\n"
+         "  -float_format FORM      output floats using an alternate format:\n"
+         "\n"
+         "                 float    : the default, (%%f)\n"
+         "                 pretty   : prettier format, (%%g)\n"
+         "                 sci      : scientific notation (%%e)\n"
+         "\n"
+         "                 OTHER    : C-style format string, as with ccalc\n"
+         "                          : e.g. '%%7.3f'\n"
+         "\n"
+         "  -float_format_sep SEP   specify alternate float separator string:\n"
+         "                 The default is '\\t'.  Consider ', ' for CSV.\n"
          "\n"
          "The following options specify what stats are computed.  By default\n"
          "the mean is always computed.\n"
@@ -218,6 +254,36 @@ int main(int argc, char *argv[])
          exit(0);
       }
 
+
+      if (strcmp(argv[narg], "-float_format") == 0) {
+         narg++;
+         if (narg >= argc)
+            Error_Exit("-float_format option requires an argument");
+
+         /* let the user specify a known format, else let them specify */
+         if      ( !strcmp(argv[narg], "float") )  pstr_apply = pstr_float;
+         else if ( !strcmp(argv[narg], "pretty") ) pstr_apply = pstr_pretty;
+         else if ( !strcmp(argv[narg], "sci") )    pstr_apply = pstr_sci;
+         else if (  strchr(argv[narg], '%') )      pstr_apply = argv[narg];
+         else {
+            ERROR_message("unknown -float_format '%s', and has no '%'\n",
+                          argv[narg]);
+            exit(1);
+         }
+
+         narg++;
+         continue;
+      }
+
+      if (strcmp(argv[narg], "-float_format_sep") == 0) {
+         narg++;
+         if (narg >= argc)
+            Error_Exit("-float_format_sep option requires an argument");
+
+         pstr_sep = argv[narg];
+         narg++;
+         continue;
+      }
 
       if (strncmp(argv[narg], "-mask_f2short", 9) == 0) {
          mask_f2s = 1;   /* convert float mask to short */
@@ -1099,13 +1165,13 @@ int main(int argc, char *argv[])
          if (!summary) {
             for (i = 0; i < num_ROI; i++) {
                if (voxels[i]) { /* possible if the numROI option is used - 5/00 */
-                  if (mean) fprintf(stdout, "\t%f", (sum[i] / (double) voxels[i]));
+                  if (mean) RS_DISP_FLOAT(-1, sum[i] / (double) voxels[i]);
                   if (nzmean)
-                     fprintf(stdout, "\t%f", nzvoxels[i] ? (nzsum[i] / (double) nzvoxels[i]) : 0.0);
+                     RS_DISP_FLOAT(-1, nzvoxels[i] ? (nzsum[i] / (double) nzvoxels[i]) : 0.0);
                   if (nzcount)
-                     fprintf(stdout, "\t%ld", nzvoxels[i]);
+                     RS_DISP_FLOAT(-1, nzvoxels[i]);
                   if (nzvolume)
-                     fprintf(stdout, "\t%f", (float) (DSET_VOXVOL(input_dset)*nzvoxels[i]));
+                     RS_DISP_FLOAT(-1, (float) (DSET_VOXVOL(input_dset)*nzvoxels[i]));
                   if (sigma) {
                      double mean = sum[i] / (double) voxels[i];
                      sumsq[i] /= (double) voxels[i];
@@ -1113,7 +1179,7 @@ int main(int argc, char *argv[])
                         sig = 1e30; /* a really big number */
                      else
                         sig = sqrt((voxels[i] / (voxels[i] - 1)) * (sumsq[i] - mean * mean));
-                     fprintf(stdout, "\t%f", sig);
+                     RS_DISP_FLOAT(-1, sig);
                   }
                   if (nzsigma) {
                      double mean = 0.0;
@@ -1127,31 +1193,41 @@ int main(int argc, char *argv[])
                            sig = sqrt( (nzvoxels[i] / (nzvoxels[i] - 1)) *
                                  (nzsumsq[i] - mean * mean) );
                      }
-                     fprintf(stdout, "\t%f", sig);
+                     RS_DISP_FLOAT(-1, sig);
                   }
                   if (minmax) {
-                     fprintf(stdout, "\t%f", min[i] );
-                     fprintf(stdout, "\t%f", max[i] );
+                     RS_DISP_FLOAT(-1, min[i] );
+                     RS_DISP_FLOAT(-1, max[i] );
                   }
                   if (nzminmax) {
-                     fprintf(stdout, "\t%f", nzmin[i] );
-                     fprintf(stdout, "\t%f", nzmax[i] );
+                     RS_DISP_FLOAT(-1, nzmin[i] );
+                     RS_DISP_FLOAT(-1, nzmax[i] );
                   }
                   if (perc || nzperc) {
-                     fprintf(stdout, "\t%f", percentile[i] );
+                     RS_DISP_FLOAT(-1, percentile[i] );
                   }
                   if (donzsum) {
-                     fprintf(stdout, "\t%f", nzsum[i]);
+                     RS_DISP_FLOAT(-1, nzsum[i]);
                   }
                   if (mode || nzmode) {
-                     fprintf(stdout, "\t%d", modes[i] );
+                     RS_DISP_FLOAT(-1, modes[i] );
                   }
                   if (pcxyz || nzpcxyz) {
-                     fprintf(stdout, "\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t\t%f\t%f\t%f",
-                           pvec[9*i  ], pvec[9*i+1], pvec[9*i+2],
-                           pvec[9*i+3], pvec[9*i+4], pvec[9*i+5],
-                           pvec[9*i+6], pvec[9*i+7], pvec[9*i+8],
-                           eigv[3*i  ], eigv[3*i+1], eigv[3*i+2]);
+
+                     RS_DISP_FLOAT(-1, pvec[9*i  ]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+1]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+2]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+3]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+4]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+5]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+6]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+7]);
+                     RS_DISP_FLOAT(-1, pvec[9*i+8]);
+                     RS_DISP_SEP;
+                     RS_DISP_FLOAT(-1, eigv[3*i  ]);
+                     RS_DISP_FLOAT(-1, eigv[3*i+1]);
+                     RS_DISP_FLOAT(-1, eigv[3*i+2]);
+
                      if (pcxyz == 2 || nzpcxyz == 2) {
                         double md, fa, cl, cp, cs;
                         /* FA and Cl, Cp, Cs */
@@ -1166,8 +1242,11 @@ int main(int argc, char *argv[])
                         cp = (eigv[3*i+1]-eigv[3*i+2])/(3.0*md)*2.0;
                         cs = eigv[3*i+2]/md;
 
-                        fprintf(stdout, "\t%f\t%f\t%f\t%f\t%f",
-                              fa, md, cl, cp, cs );
+                        RS_DISP_FLOAT(-1, fa);
+                        RS_DISP_FLOAT(-1, md);
+                        RS_DISP_FLOAT(-1, cl);
+                        RS_DISP_FLOAT(-1, cp);
+                        RS_DISP_FLOAT(-1, cs);
                      }
                   }
                   if (key) {
@@ -1244,7 +1323,7 @@ int main(int argc, char *argv[])
             fprintf(stdout, "%ld\t", nzmean ? nzvoxels[i] : voxels[i]);
          fprintf(stdout, "\nValue\t");
          for (i = 0; i < num_ROI; i++)
-            fprintf(stdout, "%f\t", (sumallbriks[i] / (double) DSET_NVALS(input_dset)));
+            RS_DISP_FLOAT(1, (sumallbriks[i]/(double) DSET_NVALS(input_dset)));
          fprintf(stdout, "\n");
       }
       DSET_unload(input_dset);
