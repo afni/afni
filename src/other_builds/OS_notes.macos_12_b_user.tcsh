@@ -110,7 +110,7 @@ else
    echo "-- already have R_LIBS=$R_LIBS"
 endif
 
-if ( ! -d $R_LIBS ) then
+if ( ! -d $R_LIBS/data.table ) then
    echo "++ building R libraries: rPkgsInstall -pkgs ALL"
    mkdir -p $R_LIBS
    rPkgsInstall -pkgs ALL |& tee out.rPkgsInstall.txt
