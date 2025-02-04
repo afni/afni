@@ -1671,7 +1671,8 @@ class SysInfo:
       plist_bin = ['afni', 'suma', '3dSkullStrip', '3dAllineate', '3dRSFC',
                    'SurfMesh', '3dClustSim']
       # progs: scripts
-      plist_script = ['uber_subject.py', '3dMVM', 'rPkgsInstall']
+      plist_script = ['build_afni.py', 'uber_subject.py', '3dMVM',
+                      'rPkgsInstall']
 
       nprogs = len(plist_bin) + len(plist_script)
 

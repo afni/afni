@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Feb, 2025, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "add build_afni.py to the list of AFNI programs to check",
+   NULL
+ } ,
+
  {  3, Feb, 2025, RCR, "3dROIstats", MINOR, TYPE_NEW_OPT,
    "add -float_format and -float_format_str, for floating point formatting",
    "Requested by P Molfese."
