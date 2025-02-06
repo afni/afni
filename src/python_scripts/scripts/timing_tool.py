@@ -2716,8 +2716,8 @@ class ATInterface:
             self.test_local_timing()
 
          elif opt.name == '-timing_to_1D':
-            if not self.timing:
-               print("** '%s' requires -timing" % opt.name)
+            if not self.timing and len(self.m_timing) == 0:
+               print("** '%s' requires -timing or -multi_timing" % opt.name)
                return 1
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return 1
@@ -3355,7 +3355,7 @@ class ATInterface:
    def write_timing_as_1D(self, fname):
       """convert stim_times to 0/1 format"""
 
-      if not self.timing:
+      if not self.timing and len(self.m_timing) == 0:
          print('** no timing, cannot convert to 1D')
          return 1
 
@@ -3375,10 +3375,43 @@ class ATInterface:
          print('** error: -min_frac must be in (0.0, 1.0]')
          return 1
 
-      errstr, result = self.timing.timing_to_1D(self.run_len, self.tr,
+      # process each timing element (whether single or multi)
+      # and take the union of results
+      if len(self.m_timing) > 0:
+         if self.per_run:
+            print('** cannot use multi timing_to_1D per run')
+            return 1
+         tlist = self.m_timing
+      else:
+         tlist = [self.timing]
+
+      # start with first timing element
+      errstr, result = tlist[0].timing_to_1D(self.run_len, self.tr,
                             self.min_frac, self.per_run,
                             allow_warns=self.t21D_warn_ok,
                             write_mods=self.t21D_mods)
+
+      # now process all of the rest
+      tind = 1
+      while errstr == '' and tind < len(tlist):
+          errstr, res = tlist[tind].timing_to_1D(self.run_len, self.tr,
+                            self.min_frac, self.per_run,
+                            allow_warns=self.t21D_warn_ok,
+                            write_mods=self.t21D_mods)
+          if errstr: break
+          if len(res) != len(result):
+             print("** write_timing_as_1D: result length diff")
+             print("   len %d=%d, len %d=%d" \
+                   % (0, len(result), tind, len(res)))
+             return 1
+
+          # merge res into result
+          for vind, val in enumerate(res):
+             if val: result[vind] |= val
+          del(res)
+
+          tind += 1
+
       if errstr:
          print(errstr)
          return 1
