@@ -177,6 +177,15 @@ examples: ~1~
                          -tr 0.5 -stim_dur 2.5 -min_frac 0.3            \\
                          -run_len 360 360 400 -per_run_file
 
+   Example 6e. use multiple timing files, add combine using 'sum' ~2~
+
+       Apply with -multi_timing and add -timing_to_1D_method.
+       Assume the stimulus durations are encoded in the timing files.
+
+          timing_tool.py -multi_timing stim*.txt -timing_to_1D sum.1D   \\
+                         -timing_to_1D_method sum                       \\
+                         -tr 0.5 -min_frac 0.3 -run_len 400
+
    Example 7a.  truncate stimulus times to the beginning of respective TRs ~2~
 
       Given a TR of 2.5 seconds and random stimulus times, truncate those times
@@ -974,6 +983,9 @@ action options (apply to single timing element, only): ~1~
         This action is used to convert stimulus times to set (i.e. 1) values
         in a 1D stim_file.
 
+        The input timing can come from -timing or will be combined when it
+        comes from -multi_timing.
+
         Besides an input -timing file, -tr is needed to specify the timing grid
         of the output 1D file, -stim_dur is needed to specify the duration of
         each stimulus (which might cross many output TRs), and -run_len is
@@ -1003,10 +1015,24 @@ action options (apply to single timing element, only): ~1~
         time series (maybe on a fine grid) with 1D files that are 1 when the
         given stimulus is on and 0 otherwise.
 
+        Another use is to apply this for all timing files at once, to verify
+        if and how they overlap.
+
             Consider -timing_to_1D_warn_ok.
             Consider -tr, -stim_dur, -min_frac, -run_len, -per_run_file.
+            Consider timing_to_1D_method.
 
-            Consider example 6a or 6c.
+            Consider example 6a, 6c or 6e.
+
+   -timing_to_1D_method METHOD  : set how to combine multi-timing to 1D ~2~
+
+        Specify a METHOD for combining 1D files when using -multi_timing.
+
+            bool    : simply flag a TR if any timing covers is
+            sum     : sum up the timing that covers each TR
+                      (this shows how any stimuli might overlap)
+
+        This only applies to -timing_to_1D with -multi_timing.
 
    -timing_to_1D_mods           : write amp modulators to 1D, not binary ~2~
 
@@ -1710,9 +1736,11 @@ g_history = """
    3.21 Dec  4, 2023 - allow n/a in more tsv fields
    3.22 Nov 10, 2024 - add -show_tr_offset_stats, and consider -verb 0
    3.23 Dec 10, 2024 - add -show_modulator_stats
+   3.24 Feb  6, 2025 - allow -multi_timing with -timing_to_1D
+                     - add -timing_to_1D_method
 """
 
-g_version = "timing_tool.py version 3.23, December 10, 2024"
+g_version = "timing_tool.py version 3.24, February 6, 2025"
 
 
 
@@ -1737,6 +1765,7 @@ class ATInterface:
       self.part_init       = 'INIT'     # default for -part_init
       self.t21D_warn_ok    = 0          # some timing_to_1D issues are non-fatal
       self.t21D_mods       = 0          # write modulators, rather than binary
+      self.t21D_method     = 'bool'     # bool or sum when combining methods
       self.write_married   = 0          # for -write_as_married
 
       # user options - single var
@@ -2182,6 +2211,10 @@ class ATInterface:
       self.valid_opts.add_opt('-timing_to_1D', 1, [],
                          helpstr='convert stim_times to 0/1 stim_file')
 
+      self.valid_opts.add_opt('-timing_to_1D_method', 1, [],
+                         acplist=['bool', 'sum'],
+                         helpstr='how to combine timing: sum, bool')
+
       self.valid_opts.add_opt('-timing_to_1D_mods', 0, [],
                          helpstr='write amplitude modulators, not binary')
 
@@ -2409,6 +2442,12 @@ class ATInterface:
          val, err = uopts.get_type_list(float, '-run_len')
          if type(val) == type([]) and not err:
             self.run_len = val
+         uopts.olist.pop(oind)
+
+      oind = uopts.find_opt_index('-timing_to_1D_method')
+      if oind >= 0:
+         val, err = uopts.get_string_opt('-timing_to_1D_method')
+         if not err: self.t21D_method = val
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-timing_to_1D_mods')
@@ -3405,9 +3444,15 @@ class ATInterface:
                    % (0, len(result), tind, len(res)))
              return 1
 
-          # merge res into result
-          for vind, val in enumerate(res):
-             if val: result[vind] |= val
+          # merge res into result (keep 'method' out of loop?)
+          if self.t21D_method == 'sum':
+             for vind, val in enumerate(res):
+                if val:
+                    result[vind] += val
+          else: # default of 'bool'
+             for vind, val in enumerate(res):
+                if val:
+                    result[vind] += val
           del(res)
 
           tind += 1

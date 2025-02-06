@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Feb, 2025, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "allow -timing_to_1D with -multi_timing; add -timing_to_1D_method",
+   NULL
+ } ,
+
  {  4, Feb, 2025, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
    "allow direct updating of anyos_text* packages",
    NULL
