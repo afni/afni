@@ -1279,6 +1279,11 @@ ap_ssdict : dict
     ldep      = ['template']
     ldep_alt1 = ['final_anat']
     ldep_alt2 = ['vr_base_dset']
+    # ... now including these nonideal fallbacks; likely to occur when
+    # AP has not been used for full processing, and some basic uvars
+    # are not present
+    ldep_alt3 = ['copy_anat']
+    ldep_alt4 = ['tcat_dset']
 
     if check_dep(ap_ssdict, ldep) :         # --------- check for template
         # pre-check, output might be used in a couple ways
@@ -1321,8 +1326,18 @@ ap_ssdict : dict
         HAVE_MAIN = 1
         ap_ssdict['main_dset'] = ap_ssdict['vr_base_dset']
 
+    elif check_dep(ap_ssdict, ldep_alt3) :     # --------- check for copy_anat
+        HAVE_MAIN = 1
+        ap_ssdict['main_dset'] = ap_ssdict['copy_anat']
+
+    elif check_dep(ap_ssdict, ldep_alt4) :     # --------- check for tcat_dset
+        HAVE_MAIN = 1
+        ap_ssdict['main_dset'] = ap_ssdict['tcat_dset']
+
     else:
-        print("+* WARN: no main dset (not template, anat_final nor vr_base)")
+        ttt = "+* WARN: no main dset (not template, anat_final, vr_base, \n"
+        ttt+= "   copy_anat nor tcat_dset")
+        print(ttt)
 
     # also add main_dset space info
     if HAVE_MAIN :
