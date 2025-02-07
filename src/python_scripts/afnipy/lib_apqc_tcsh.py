@@ -1336,7 +1336,7 @@ ap_ssdict : dict
 
     else:
         ttt = "+* WARN: no main dset (not template, anat_final, vr_base, \n"
-        ttt+= "   copy_anat nor tcat_dset")
+        ttt+= "   copy_anat nor tcat_dset"
         print(ttt)
 
     # also add main_dset space info
