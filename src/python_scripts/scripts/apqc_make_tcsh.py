@@ -244,10 +244,14 @@ auth = 'PA Taylor'
 #      that would appear in the vstat section (default is still to have
 #      5 chosen by the program)
 #
-ver = '5.0' ; date = 'Mar 05, 2023'
+#ver = '5.0' ; date = 'Mar 05, 2023'
 # [PT] move toward Python-only implementation, rather than generating
 #      a script intermediately, to simplify flexibility, additions and
 #      apqc2/NiiVue functionality
+#
+ver = '6.0' ; date = 'Feb 7, 2025'
+# [PT] simpler use cases with main_dset, more flexible if the full
+#      analysis was not run in AP
 #
 #########################################################################
 
@@ -453,10 +457,16 @@ if __name__ == "__main__":
     # item    : EPI in orig
 
     ldep  = ['vr_base_dset']
+    ldep2 = ['tcat_dset']
     if lat.check_dep(ap_ssdict, ldep) :
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_vorig_all( ap_ssdict, obase, "vorig", "EPI", 
                                        ulay=ap_ssdict[ldep[0]] )
+        idx     += 1
+    elif lat.check_dep(ap_ssdict, ldep2) :
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_vorig_all( ap_ssdict, obase, "vorig", "EPI-tcat", 
+                                       ulay=ap_ssdict[ldep2[0]] )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -575,8 +585,7 @@ if __name__ == "__main__":
     # item    : stats in vol (task FMRI): F-stat (def) and other stim/contrasts
     DO_VSTAT_TASK   = 0
 
-    ldep     = ['stats_dset', 'final_anat']
-    ldep2    = ['template']                                # 2ary consid
+    ldep     = ['stats_dset', 'main_dset']
     alt_ldep = ['stats_dset', 'vr_base_dset']              # elif to ldep
     ldep3    = ['user_stats']                              # 3ary consid
     ldep4    = ['mask_dset']                               # 4ary consid
@@ -620,8 +629,8 @@ if __name__ == "__main__":
         # mirror same logic as task (above) for deciding ulay/olay
         DO_VSTAT_SEED_REST = 0
 
-        ldep     = ['errts_dset', 'final_anat']
-        ldep2    = ['template']                                # 2ary consid
+        ldep     = ['errts_dset', 'main_dset']
+        ldep2    = ['main_dset']  #['template']                # 2ary consid
         alt_ldep = ['errts_dset', 'vr_base_dset']              # elif to ldep
         ldep3    = ['user_stats']                              # 3ary consid
         ldep4    = ['mask_dset']                               # 4ary consid
@@ -643,7 +652,7 @@ if __name__ == "__main__":
                 print("This branch will be for a user-entered file. Someday.")
             elif os.path.isfile(SEED_FILE) :
                 if lat.check_dep(ap_ssdict, ldep2) :
-                    tspace    = lat.get_space_from_dset(ap_ssdict['template'])
+                    tspace    = lat.get_space_from_dset(ap_ssdict['main_dset'])
                     seed_list = UTIL.read_afni_seed_file(SEED_FILE, 
                                                          only_from_space=tspace)
                     Nseed = len(seed_list)

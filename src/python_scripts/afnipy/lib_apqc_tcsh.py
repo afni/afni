@@ -248,13 +248,16 @@ auth = 'PA Taylor'
 # [PT] fix Py2-Py3 compatibility: open(...) function stuff, for utf-8 enc
 #    + a bit more with print functions, too
 #
-ver = '5.3' ; date = 'Aug 31, 2023'
+#ver = '5.3' ; date = 'Aug 31, 2023'
 # [PT] fix initialization of some 1dplot/1dplot.py variables, for full
 #      use cases (namely when censoring levels are *not* set
 #    + thanks for pointing these out, C Rorden!
 #
-ver = '6.0' ; date = 'Mar 19, 2024'
+#ver = '6.0' ; date = 'Mar 19, 2024'
 # [PT] use new chauffeur functionality where run_* scripts have 1x1 mont
+#
+ver = '6.1' ; date = 'Feb 7, 2025'
+# [PT] expand functionality when part of analysis has not been done in AP
 #
 #########################################################################
 
@@ -1279,6 +1282,11 @@ ap_ssdict : dict
     ldep      = ['template']
     ldep_alt1 = ['final_anat']
     ldep_alt2 = ['vr_base_dset']
+    # ... now including these nonideal fallbacks; likely to occur when
+    # AP has not been used for full processing, and some basic uvars
+    # are not present
+    ldep_alt3 = ['copy_anat']
+    ldep_alt4 = ['tcat_dset']
 
     if check_dep(ap_ssdict, ldep) :         # --------- check for template
         # pre-check, output might be used in a couple ways
@@ -1321,8 +1329,18 @@ ap_ssdict : dict
         HAVE_MAIN = 1
         ap_ssdict['main_dset'] = ap_ssdict['vr_base_dset']
 
+    elif check_dep(ap_ssdict, ldep_alt3) :     # --------- check for copy_anat
+        HAVE_MAIN = 1
+        ap_ssdict['main_dset'] = ap_ssdict['copy_anat']
+
+    elif check_dep(ap_ssdict, ldep_alt4) :     # --------- check for tcat_dset
+        HAVE_MAIN = 1
+        ap_ssdict['main_dset'] = ap_ssdict['tcat_dset']
+
     else:
-        print("+* WARN: no main dset (not template, anat_final nor vr_base)")
+        ttt = "+* WARN: no main dset (not template, anat_final, vr_base, \n"
+        ttt+= "   copy_anat nor tcat_dset"
+        print(ttt)
 
     # also add main_dset space info
     if HAVE_MAIN :
@@ -2200,8 +2218,8 @@ num : int
     ulay_obl  = float(lll[1])
 
     # get ulay min/max (for text info) and perc olay (for cbar)
-    cmd    = '3dBrickStat -slow -perclist 3 0 100 {} {}'.format(perc_olay_top,
-                                                                ulay)
+    cmd    = '3dBrickStat -slow -perclist 3 0 100 {} {}[0]'.format(
+             perc_olay_top, ulay)
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
     lll    = com.so[0].split()
