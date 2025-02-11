@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Feb, 2025, RCR, "3dROIstats", MINOR, TYPE_BUG_FIX,
+   "fix nzvoxels and mode - had incorrectly applied float formatting",
+   NULL
+ } ,
+
  {  6, Feb, 2025, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "allow -timing_to_1D with -multi_timing; add -timing_to_1D_method",
    NULL
