@@ -19,8 +19,10 @@
  * Code for -mask_f2short              R Reynolds  2/05 *
  *------------------------------------------------------*
  * More info in -help w/examples       R Reynolds 11/05 *
- *-------------------------------------------------------*
+ *------------------------------------------------------*
  * Code for -longnames                 P Molfese   6/19 *
+ *------------------------------------------------------*
+ * Code for -float_format              R Reynolds  2/25 *
  *------------------------------------------------------*
  ********************************************************/
 
@@ -1169,7 +1171,7 @@ int main(int argc, char *argv[])
                   if (nzmean)
                      RS_DISP_FLOAT(-1, nzvoxels[i] ? (nzsum[i] / (double) nzvoxels[i]) : 0.0);
                   if (nzcount)
-                     RS_DISP_FLOAT(-1, nzvoxels[i]);
+                     fprintf(stdout, "\t%ld", nzvoxels[i]);
                   if (nzvolume)
                      RS_DISP_FLOAT(-1, (float) (DSET_VOXVOL(input_dset)*nzvoxels[i]));
                   if (sigma) {
@@ -1210,7 +1212,7 @@ int main(int argc, char *argv[])
                      RS_DISP_FLOAT(-1, nzsum[i]);
                   }
                   if (mode || nzmode) {
-                     RS_DISP_FLOAT(-1, modes[i] );
+                     fprintf(stdout, "\t%d", modes[i] );
                   }
                   if (pcxyz || nzpcxyz) {
 
