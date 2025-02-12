@@ -137,12 +137,22 @@ def write_regressor_file_sli(retobj):
     nslice = retobj.n_slice_times             # how many slices
     nreg   = 0                                # num of regressors per slice
 
+    # make the filename
+    fname = 'slibase.1D'
+    if prefix  :  fname = prefix + '_' + fname
+    if odir :     fname = odir + '/' + fname
+
     # build up count of number of regressors
     for label in lpf.PO_all_label :
         if retobj.have_label(label) :
             phobj = retobj.data[label]        # simplify coding below
             nreg+= phobj.n_regress_phys
             
+    # check if we have a regressor to output
+    if nreg == 0 :
+        print("+* NO slicewise regressor to output: ", fname)
+        return 0
+
     ntype = nreg * nslice                     # ni_type quantity, ncol data
 
     # to avoid possibly making label/regressors inconsistent later, we
@@ -152,11 +162,6 @@ def write_regressor_file_sli(retobj):
     data_shape = (nvol, ntype)
     data_arr   = np.zeros(data_shape, dtype=float)
     data_lab   = ['LABEL'] * ntype
-
-    # make the filename
-    fname = 'slibase.1D'
-    if prefix  :  fname = prefix + '_' + fname
-    if odir :     fname = odir + '/' + fname
 
     # the order of columns will be:
     # + for each slice in MRI volume
@@ -212,6 +217,111 @@ def write_regressor_file_sli(retobj):
     # le fin: close and finish
     fff.close()
 
-    print("++ Wrote regressor file: {}".format(fname))
+    print("++ Wrote slicewise regressor file  : {}".format(fname))
+
+    return 0
+
+# ----------------------------------------------------------------------------
+
+def write_regressor_file_vol(retobj):
+    """Write out all the volumetric regressors to a single text
+    file. Right now, this would *not* include the RETROICOR
+    regressors, but all things like RVT, RVTRRF, etc.
+
+    The writing style of this relates to its origins as a creator of
+    slicewise regressors; basically, we just have nslice=1.
+
+    """
+
+    # copy names for some convenience (do NOT alter!)
+    verb   = retobj.verb
+    prefix = retobj.prefix
+    odir   = retobj.out_dir
+    nvol   = retobj.vol_nv                    # ni_dimen, nrow data
+    nslice = 1                                # by definition, for vol regr 
+    nreg   = 0                                # num of regressors per slice
+
+    # make the filename
+    fname = 'volbase.1D'
+    if prefix  :  fname = prefix + '_' + fname
+    if odir :     fname = odir + '/' + fname
+
+    # build up count of number of regressors
+    for label in lpf.PO_all_label :
+        if retobj.have_label(label) :
+            phobj = retobj.data[label]        # simplify coding below
+            nreg+= phobj.n_regress_rvt
+            # *** add more types here, as we are able to include them
+
+    # check if we have a regressor to output
+    if nreg == 0 :
+        print("+* NO volumetric regressor to output: ", fname)
+        return 0
+
+    ntype = nreg * nslice                     # ni_type quantity, ncol data
+
+    # to avoid possibly making label/regressors inconsistent later, we
+    # will add all numbers to one big array to output, and one big
+    # header list. That should still be fine, memory-wise, for foreseeable
+    # applications at present
+    data_shape = (nvol, ntype)
+    data_arr   = np.zeros(data_shape, dtype=float)
+    data_lab   = ['LABEL'] * ntype
+
+    # the order of columns will be:
+    # + for each slice in MRI volume
+    #   + for each label list in PO_all_label (in order)
+    #     - check for all RVT
+    #     - check for all *** other stuff ***
+
+    # build set of regressors, slice by slice
+    for ss in range(nslice):
+        slab = 's{:03d}'.format(ss)   # *** Change this label? not needed
+
+        # count number of regressors per slice, as added
+        rcount = 0 
+ 
+        # RVT regressors: add label+data
+        for label in lpf.PO_all_label :
+            if retobj.have_label(label) :
+                phobj = retobj.data[label]        # simplify coding below
+                # process any/all RVT regressors
+                for ii in range(phobj.n_regress_rvt):
+                    key = phobj.regress_rvt_keys[ii]
+                    title = slab + '.' + key      # column header title
+
+                    # go to column, and add info (RVT = const across slice)
+                    cc = ss*nreg + rcount
+                    data_lab[cc] = title
+                    data_arr[:,cc] = phobj.regress_dict_rvt[key]
+                    rcount+= 1
+
+
+    # --------------------- write -------------------------------
+
+    # open the file and write the header/start
+    fff = open(fname, 'w')
+    fff.write('# RetroTSout\n') # [PT] **** what to name this???
+    fff.write('# ni_type = "{}*double"\n'.format(ntype))
+    fff.write('# ni_dimen = "{}"\n'.format(nvol))
+    fff.write('# ColumnLabels = " ')
+
+    # write labels
+    fff.write(' ; '.join(data_lab)+' "\n')
+    fff.write('# >\n')
+
+    # write data
+    for ii in range(data_shape[0]):
+        for jj in range(data_shape[1]):
+            fff.write(" {:>7.4f} ".format(data_arr[ii,jj]))
+        fff.write('\n')
+
+    # close out the NIML
+    fff.write('# </RetroTSout>\n') # [PT] **** what to name this???
+
+    # le fin: close and finish
+    fff.close()
+
+    print("++ Wrote volumetric regressor file : {}".format(fname))
 
     return 0

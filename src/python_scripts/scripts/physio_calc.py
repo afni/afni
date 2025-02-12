@@ -185,6 +185,7 @@ if __name__ == "__main__":
 
     lpreg.write_regressor_file(retobj)
     lpreg.write_regressor_file_sli(retobj)
+    lpreg.write_regressor_file_vol(retobj)
 
     # -------------------- log some of the results --------------------------
 
