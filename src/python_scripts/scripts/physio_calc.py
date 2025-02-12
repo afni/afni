@@ -184,6 +184,7 @@ if __name__ == "__main__":
     # ------------- Write out regressors ------------------
 
     lpreg.write_regressor_file(retobj)
+    lpreg.write_regressor_file_sli(retobj)
 
     # -------------------- log some of the results --------------------------
 

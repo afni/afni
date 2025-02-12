@@ -294,8 +294,8 @@ derived data.
         return len(self.regress_dict_rvt)
 
     @property
-    def regress_rvt_phys(self):
-        """The keys of the physio regressors."""
+    def regress_phys_keys(self):
+        """The keys of the physio regressors (like c1, s1, c2, s2, ...)."""
         return list(self.regress_dict_phys.keys())
 
     @property
