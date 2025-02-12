@@ -105,6 +105,24 @@ float mri_nstat( int code , int npt , float *far , float voxval, MCW_cluster *nb
        qmedmad_float( npt , far , &val , NULL ) ; outval = val ;
      break ;
 
+     case NSTAT_OSFILT:
+       /* [PT: 12 Feb 2025] order statistics filter, the same recipe
+          used in AFNI GUI Image -> Disp -> Project, which is defined
+          by osfilt_proj() in afni_transforms.c */
+       {
+          register float v, d; register int ii, n2 ;
+          v = 0.0; d = 0.0;
+          qsort_float(npt, far);
+          n2 = npt/2 ;
+          for( ii=0 ; ii < n2 ; ii++ ){
+             v += (ii+1.0f)*(far[ii]+far[npt-1-ii]) ;
+             d += 2.0f*(ii+1.0f) ;
+          }
+          v += (n2+1.0f)*far[n2] ; d += (n2+1.0f) ;
+          outval = (v/d) ;
+       }
+     break ;
+
      case NSTAT_MAD:
        qmedmad_float( npt , far , NULL , &val ) ; outval = val ;
      break ;
