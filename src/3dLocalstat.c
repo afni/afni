@@ -124,6 +124,8 @@ void usage_3dLocalstat(int detail)
 "               * var    = variance (stdev*stdev)\n"
 "               * cvar   = coefficient of variation = stdev/fabs(mean)\n"
 "               * median = median of the values\n"
+"               * osfilt = order statistics filter; similar to mean or median\n"
+"                          (also in AFNI GUI Image window -> Disp -> Project)\n"
 "               * MAD    = median absolute deviation\n"
 "               * min    = minimum\n"
 "               * max    = maximum\n"
@@ -272,7 +274,7 @@ void usage_3dLocalstat(int detail)
 
 int main( int argc , char *argv[] )
 {
-   char allstats[] = { "mean; stdev; var; cvar; median; MAD; P2skew;"
+   char allstats[] = { "mean; stdev; var; cvar; median; osfilt; MAD; P2skew;"
                        "kurt; min; max; absmax; mconex; num; nznum; fnznum;"
                        "sum; rank; frank; fwhm; diffs; adiffs; mMP2s;"
                        "mmMP2s; list; hist; perc; fwhmbar; fwhmbar12;"
@@ -385,7 +387,9 @@ int main( int argc , char *argv[] )
        mset = THD_open_dataset( argv[iarg] ) ;
        CHECK_OPEN_ERROR(mset,argv[iarg]) ;
        DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
-       mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
+       mask_nx = DSET_NX(mset); 
+       mask_ny = DSET_NY(mset); 
+       mask_nz = DSET_NZ(mset);
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
        if( mask == NULL )
          ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
@@ -557,7 +561,8 @@ int main( int argc , char *argv[] )
 
    if( ntype <= 0 ){         /* default neighborhood */
      ntype = NTYPE_SPHERE ; na = -1.01f ;
-     if( verb ) INFO_message("Using default neighborhood = self + 6 neighbors") ;
+     if( verb ) 
+        INFO_message("Using default neighborhood = self + 6 neighbors") ;
    }
    
    if (mxvx) {
@@ -650,6 +655,7 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(cpt,"var")   == 0 ) code[ncode++] = NSTAT_VAR   ;
        else if( strcasecmp(cpt,"cvar")  == 0 ) code[ncode++] = NSTAT_CVAR  ;
        else if( strcasecmp(cpt,"median")== 0 ) code[ncode++] = NSTAT_MEDIAN;
+       else if( strcasecmp(cpt,"osfilt")== 0 ) code[ncode++] = NSTAT_OSFILT;
        else if( strcasecmp(cpt,"MAD")   == 0 ) code[ncode++] = NSTAT_MAD   ;
        else if( strcasecmp(cpt,"mode")  == 0 ) code[ncode++] = NSTAT_MODE  ;
        else if( strcasecmp(cpt,"nzmode") == 0) code[ncode++] = NSTAT_NZMODE  ;
@@ -714,7 +720,7 @@ int main( int argc , char *argv[] )
          }
          /*
          fprintf(stderr,
-          "codeparams[%d][..]=[npar=%d min=%f max=%f N=%d ignore_outliers=%d]\n",
+         "codeparams[%d][..]=[npar=%d min=%f max=%f N=%d ignore_outliers=%d]\n",
                   ncode, (int)codeparams[ncode][0],      codeparams[ncode][1], 
                               codeparams[ncode][2], (int)codeparams[ncode][3],
                          (int)codeparams[ncode][4]); */
@@ -755,7 +761,8 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(cpt,"ALL")   == 0 ){
          code[ncode++] = NSTAT_MEAN  ; code[ncode++] = NSTAT_SIGMA ;
          code[ncode++] = NSTAT_VAR   ; code[ncode++] = NSTAT_CVAR  ;
-         code[ncode++] = NSTAT_MEDIAN; code[ncode++] = NSTAT_MAD   ;
+         code[ncode++] = NSTAT_MEDIAN; code[ncode++] = NSTAT_OSFILT;
+         code[ncode++] = NSTAT_MAD   ;
          code[ncode++] = NSTAT_MIN   ; code[ncode++] = NSTAT_MAX   ;
          code[ncode++] = NSTAT_ABSMAX; code[ncode++] = NSTAT_MCONEX;
          code[ncode++] = NSTAT_NUM   ;
@@ -799,6 +806,7 @@ int main( int argc , char *argv[] )
      double W=0.0;
      lcode[NSTAT_MEAN]    = "MEAN" ;   lcode[NSTAT_SIGMA]      = "SIGMA"  ;
      lcode[NSTAT_CVAR]    = "CVAR" ;   lcode[NSTAT_MEDIAN]     = "MEDIAN" ;
+     lcode[NSTAT_OSFILT]  = "OSFILT" ;
      lcode[NSTAT_MAD]     = "MAD"  ;   lcode[NSTAT_MAX]        = "MAX"    ;
      lcode[NSTAT_MIN]     = "MIN"  ;   lcode[NSTAT_ABSMAX]     = "ABSMAX" ;
      lcode[NSTAT_MCONEX]  = "MCONEX" ;

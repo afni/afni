@@ -812,11 +812,12 @@ extern void binarize_mask( int , byte * ) ;
 #define NSTAT_SIGMA       2
 #define NSTAT_CVAR        3
 #define NSTAT_MEDIAN      4
-#define NSTAT_MAD         5
-#define NSTAT_MAX         6
-#define NSTAT_MIN         7
-#define NSTAT_MODE        8       /* DRG 05/21/2015 */
-#define NSTAT_NZMODE      9       /* DRG 05/21/2015 */
+#define NSTAT_OSFILT      5
+#define NSTAT_MAD         6
+#define NSTAT_MAX         7
+#define NSTAT_MIN         8
+#define NSTAT_MODE        9       /* DRG 05/21/2015 */
+#define NSTAT_NZMODE      10      /* DRG 05/21/2015 */
 #define NSTAT_ABSMAX      13
 #define NSTAT_MCONEX      14      /* PT: Feb 7, 2022 */
 #define NSTAT_VAR         17
