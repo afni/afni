@@ -274,7 +274,7 @@ void usage_3dLocalstat(int detail)
 
 int main( int argc , char *argv[] )
 {
-   char allstats[] = { "mean; stdev; var; cvar; median; MAD; P2skew;"
+   char allstats[] = { "mean; stdev; var; cvar; median; osfilt; MAD; P2skew;"
                        "kurt; min; max; absmax; mconex; num; nznum; fnznum;"
                        "sum; rank; frank; fwhm; diffs; adiffs; mMP2s;"
                        "mmMP2s; list; hist; perc; fwhmbar; fwhmbar12;"
@@ -655,6 +655,7 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(cpt,"var")   == 0 ) code[ncode++] = NSTAT_VAR   ;
        else if( strcasecmp(cpt,"cvar")  == 0 ) code[ncode++] = NSTAT_CVAR  ;
        else if( strcasecmp(cpt,"median")== 0 ) code[ncode++] = NSTAT_MEDIAN;
+       else if( strcasecmp(cpt,"osfilt")== 0 ) code[ncode++] = NSTAT_OSFILT;
        else if( strcasecmp(cpt,"MAD")   == 0 ) code[ncode++] = NSTAT_MAD   ;
        else if( strcasecmp(cpt,"mode")  == 0 ) code[ncode++] = NSTAT_MODE  ;
        else if( strcasecmp(cpt,"nzmode") == 0) code[ncode++] = NSTAT_NZMODE  ;
@@ -760,7 +761,8 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(cpt,"ALL")   == 0 ){
          code[ncode++] = NSTAT_MEAN  ; code[ncode++] = NSTAT_SIGMA ;
          code[ncode++] = NSTAT_VAR   ; code[ncode++] = NSTAT_CVAR  ;
-         code[ncode++] = NSTAT_MEDIAN; code[ncode++] = NSTAT_MAD   ;
+         code[ncode++] = NSTAT_MEDIAN; code[ncode++] = NSTAT_OSFILT;
+         code[ncode++] = NSTAT_MAD   ;
          code[ncode++] = NSTAT_MIN   ; code[ncode++] = NSTAT_MAX   ;
          code[ncode++] = NSTAT_ABSMAX; code[ncode++] = NSTAT_MCONEX;
          code[ncode++] = NSTAT_NUM   ;
