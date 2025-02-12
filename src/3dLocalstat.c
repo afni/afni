@@ -806,7 +806,7 @@ int main( int argc , char *argv[] )
      double W=0.0;
      lcode[NSTAT_MEAN]    = "MEAN" ;   lcode[NSTAT_SIGMA]      = "SIGMA"  ;
      lcode[NSTAT_CVAR]    = "CVAR" ;   lcode[NSTAT_MEDIAN]     = "MEDIAN" ;
-     lcode[NSTAT_CVAR]    = "OSFILT" ;
+     lcode[NSTAT_OSFILT]  = "OSFILT" ;
      lcode[NSTAT_MAD]     = "MAD"  ;   lcode[NSTAT_MAX]        = "MAX"    ;
      lcode[NSTAT_MIN]     = "MIN"  ;   lcode[NSTAT_ABSMAX]     = "ABSMAX" ;
      lcode[NSTAT_MCONEX]  = "MCONEX" ;
