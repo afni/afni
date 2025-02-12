@@ -1973,11 +1973,13 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
                                    XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_SymIrange_tb_toggled"};
-   SUMA_ALL_DO *ado = NULL;
-   SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_ALL_DO *ado = NULL, *otherAdo=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL, *otherSurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *otherCurColPlane = NULL;
    SUMA_TABLE_FIELD *TF=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   SUMA_SurfaceObject * otherSO, *SO;
 
    SUMA_ENTRY;
 
@@ -1992,7 +1994,8 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
 
-   curColPlane->SymIrange = !curColPlane->SymIrange;
+   curColPlane->SymIrange = XmToggleButtonGetState (SurfCont->SymIrange_tb);
+   // curColPlane->SymIrange = !curColPlane->SymIrange;
 
    if (curColPlane->SymIrange) {
       /* manual setting of range.
@@ -2031,7 +2034,41 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
 
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
+   
+   // Set sym range for other surfaces
+   SO = (SUMA_SurfaceObject *)ado;
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   for (j=0; j<N_adolist; ++j){
+        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if (otherAdo != ado && otherAdo->do_type == SO_type){
+            // Set I Range chacke box
+            XmToggleButtonSetState(((SUMA_SurfaceObject *)otherAdo)->SurfCont->SymIrange_tb,
+                              curColPlane->SymIrange, YUP);
+                              
+          otherCurColPlane = SUMA_ADO_CurColPlane(otherAdo);
+          otherCurColPlane->OptScl->IntRange[0] = 0;
 
+          otherSO = (SUMA_SurfaceObject *)otherAdo;
+           if (otherSO->SurfCont->SymIrange_tb){
+              otherCurColPlane->OptScl->IntRange[0] =
+                 -otherCurColPlane->OptScl->IntRange[1];
+           }
+           SUMA_INSERT_CELL_VALUE(otherSO->SurfCont->SetRangeTable, 1, 1, 
+                otherCurColPlane->OptScl->IntRange[0]);
+           SUMA_INSERT_CELL_VALUE(otherSO->SurfCont->SetRangeTable, 1, 2, 
+                otherCurColPlane->OptScl->IntRange[1]);
+
+
+           if (!SUMA_ColorizePlane (otherCurColPlane)) {
+                 SUMA_SLP_Err("Failed to colorize plane.\n");
+                 SUMA_RETURNe;
+           }
+           // Refresh display
+           SUMA_Remixedisplay(otherAdo);
+           SUMA_UpdateNodeLblField(otherAdo);
+        }
+   }
 
    SUMA_RETURNe;
 }

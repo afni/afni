@@ -11797,9 +11797,15 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
    SUMA_LHv("Force setting %d surfconts to page %d, max %d\n",
                N_adolist, i, imax);
 
-   /* Limit number of iterations to prevent menu lengthening */
+   // This fixes the artifactual elongation of the surface control menu
+   // (mentioned below for the loop).
+   // Further testing is required, with mulitpl surfaces,  to ensure it 
+   // does not create problems
    N_adolist = imax;
 
+    // NBB: This loop artifactually lengthens the surface control menu
+    //  but is not necessary to switching surfaces.  May be necessary for 
+    //  something else.
    for (k=0; k<N_adolist; ++k) {
       /* Note that many objects in this list maybe intimately
          related (they share the same parent graph link). So
@@ -11820,6 +11826,9 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
                SUMA_ADO_CropLabel((SUMA_ALL_DO *)SUMAg_DOv[adolist[k]].OP,
                                   SUMA_SURF_CONT_SWITCH_LABEL_LENGTH),
                      XmSTRING_DEFAULT_CHARSET);
+
+        // This call is responsible for the artifactual lengthening of the 
+        //  surface control menu when it happens.
          XtVaSetValues( SurfCont->SurfContPage_label,
                         XmNlabelString, string, NULL);
          XmStringFree (string);
