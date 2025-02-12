@@ -1914,11 +1914,12 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
                                   XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_ShowZero_tb_toggled"};
-   SUMA_ALL_DO *ado = NULL;
+   SUMA_ALL_DO *ado = NULL, *otherAdo = NULL;
    SUMA_TABLE_FIELD *TF=NULL;
-   SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL,  *otherSurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *otherCurColPlane = NULL;
    SUMA_Boolean LocalHead = NOPE;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
 
    SUMA_ENTRY;
 
@@ -1934,8 +1935,11 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
 
+   curColPlane->OptScl->MaskZero = !XmToggleButtonGetState (SurfCont->ShowZero_tb);
+   /*
    curColPlane->OptScl->MaskZero =
       !curColPlane->OptScl->MaskZero;
+      */
 
    /* seems the '!' were remnants -                                 */
    /* revert to original logic, but avoid warnings
@@ -1964,6 +1968,30 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    SUMA_Remixedisplay(ado);
 
    SUMA_UpdateNodeLblField(ado);
+   
+   // Set show zero for other surfaces
+   // SO = (SUMA_SurfaceObject *)ado;
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   for (j=0; j<N_adolist; ++j){
+        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
+            // Set I Range chacke box
+            otherSurfCont=SUMA_ADO_Cont(otherAdo);
+            XmToggleButtonSetState(otherSurfCont->ShowZero_tb, !curColPlane->OptScl->MaskZero, YUP);
+                              
+           SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+
+           otherCurColPlane = SUMA_ADO_CurColPlane(otherAdo);
+           if (!SUMA_ColorizePlane (otherCurColPlane)) {
+                 SUMA_SLP_Err("Failed to colorize plane.\n");
+                 SUMA_RETURNe;
+           }
+           
+           // Refresh display
+           SUMA_Remixedisplay(otherAdo);
+           SUMA_UpdateNodeLblField(otherAdo);
+        }
+   }
 
    SUMA_RETURNe;
 }
