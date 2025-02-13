@@ -410,6 +410,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
             'card' : True,             # bool, flag to proc card if present
             'resp' : True,             # bool, flag to proc resp if present
         }
+        self.do_out_slibase  = False   # bool, flag to write (older) slibase file
         self.save_proc_peaks = False   # bool, flag to write proc peaks to file
         self.save_proc_troughs = False # bool, flag to write proc trou to file
         self.load_proc = {
@@ -671,6 +672,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_out_rvt       = not(AD['rvt_off'])
         self.do_out_phys['card'] = not(AD['no_card_out'])
         self.do_out_phys['resp'] = not(AD['no_resp_out'])
+        self.do_out_slibase   = AD['do_slibase_out']
         self.save_proc_peaks  = AD['save_proc_peaks']
         self.save_proc_troughs = AD['save_proc_troughs']
         

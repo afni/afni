@@ -116,6 +116,7 @@ DEF = {
     'remove_val_list'   : [],        # (list) purge some values from ts
     'no_card_out'       : False,     # (bool) do not output card info
     'no_resp_out'       : False,     # (bool) do not output resp info
+    'do_slibase_out'    : False,     # (bool) do not output slibase file
     'min_bpm_resp'      : DEF_min_bpm_resp, # (float) min breaths per min
     'min_bpm_card'      : DEF_min_bpm_card, # (float) min beats per min
     'max_bpm_resp'      : DEF_max_bpm_resp, # (float) max breaths per min
@@ -1402,6 +1403,17 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
 
 opt = '''no_resp_out'''
 hlp = '''Turn off output of respiratory regressors'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
+
+opt = '''do_slibase_out'''
+hlp = '''Turn on output of the (older) *slibase.1D regressor file. This file
+contains all estimated regressors as being slicewise, even though the
+RVT/etc. ones need not be. More modern output creates a separate pair
+of *physreg_sli.1D and *physreg_vol.1D files, which are respectively
+slice-wise and volumetric, for improved processing. This option exists
+mainly for testing comparisons, and likely won't be used often.'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")

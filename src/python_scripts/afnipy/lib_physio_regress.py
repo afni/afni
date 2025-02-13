@@ -116,7 +116,7 @@ def write_regressor_file(retobj):
     # le fin: close and finish
     fff.close()
 
-    print("++ Wrote regressor file: {}".format(fname))
+    print("++ Wrote (old format) slibase regressor file: {}".format(fname))
 
     return 0
 

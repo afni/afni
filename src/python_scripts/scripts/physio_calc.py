@@ -183,7 +183,11 @@ if __name__ == "__main__":
 
     # ------------- Write out regressors ------------------
 
-    lpreg.write_regressor_file(retobj)
+    # older style of output: everything is slicewise (not done by default)
+    if retobj.do_out_slibase :
+        lpreg.write_regressor_file(retobj)
+
+    # newer, preferred style: separate slicewise and volumetric regressors
     lpreg.write_regressor_file_sli(retobj)
     lpreg.write_regressor_file_vol(retobj)
 
