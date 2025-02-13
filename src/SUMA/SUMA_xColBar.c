@@ -1970,12 +1970,11 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    SUMA_UpdateNodeLblField(ado);
    
    // Set show zero for other surfaces
-   // SO = (SUMA_SurfaceObject *)ado;
    N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    for (j=0; j<N_adolist; ++j){
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
-            // Set I Range chacke box
+            // Set I Range check box
             otherSurfCont=SUMA_ADO_Cont(otherAdo);
             XmToggleButtonSetState(otherSurfCont->ShowZero_tb, !curColPlane->OptScl->MaskZero, YUP);
                               
@@ -2183,12 +2182,14 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
                                    XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_AbsThresh_tb_toggled"};
-   SUMA_ALL_DO *ado = NULL;
-   SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_ALL_DO *ado = NULL, *otherAdo = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL,  *otherSurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *otherCurColPlane = NULL;
    char slabel[100];
    double range[2]; int loc[2];
    SUMA_Boolean LocalHead = NOPE;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   int AbsThresh;
 
    SUMA_ENTRY;
 
@@ -2202,6 +2203,9 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
    if ( !curColPlane )  {
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
+   
+   // Get state of |T| check box
+   AbsThresh = XmToggleButtonGetState (SurfCont->AbsThresh_tb);
 
    if (curColPlane->OptScl->ThrMode == SUMA_LESS_THAN) {
       curColPlane->OptScl->ThrMode = SUMA_ABS_LESS_THAN;
@@ -2272,6 +2276,94 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
    SUMA_Remixedisplay(ado);
 
    SUMA_UpdateNodeLblField(ado);
+   
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   for (j=0; j<N_adolist; ++j){
+        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
+
+       if (!otherAdo || !(SurfCont=SUMA_ADO_Cont(otherAdo))) {
+          SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+       otherCurColPlane = SUMA_ADO_CurColPlane(otherAdo);
+       if ( !otherCurColPlane )  {
+          SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+       }
+
+        // Set I Range check box
+        otherSurfCont=SUMA_ADO_Cont(otherAdo);
+        XmToggleButtonSetState(otherSurfCont->AbsThresh_tb, AbsThresh, YUP);                          
+
+       if (otherCurColPlane->OptScl->ThrMode == SUMA_LESS_THAN) {
+          otherCurColPlane->OptScl->ThrMode = SUMA_ABS_LESS_THAN;
+       } else if (otherCurColPlane->OptScl->ThrMode == SUMA_ABS_LESS_THAN){
+          otherCurColPlane->OptScl->ThrMode = SUMA_LESS_THAN;
+       } else if (otherCurColPlane->OptScl->ThrMode == SUMA_THRESH_OUTSIDE_RANGE){
+          otherCurColPlane->OptScl->ThrMode = SUMA_THRESH_INSIDE_RANGE;
+       } else if (otherCurColPlane->OptScl->ThrMode == SUMA_THRESH_INSIDE_RANGE){
+          otherCurColPlane->OptScl->ThrMode = SUMA_THRESH_OUTSIDE_RANGE;
+       } else {
+          SUMA_S_Err("Not ready for this situation %d...",
+                     otherCurColPlane->OptScl->ThrMode);
+       }
+       switch (otherCurColPlane->OptScl->ThrMode) {
+          case SUMA_LESS_THAN:
+             sprintf(slabel, "%5s",
+                MV_format_fval(otherCurColPlane->OptScl->ThreshRange[0]));
+             break;
+          case SUMA_ABS_LESS_THAN:
+             /* used to use this:
+             sprintf(slabel, "|%5s|", ....
+             but that does not work in the editable field ... */
+             sprintf(slabel, "%5s",
+                   MV_format_fval(fabs(otherCurColPlane->OptScl->ThreshRange[0])));
+             break;
+          case SUMA_THRESH_INSIDE_RANGE:
+             /* This is just a place holder for now */
+             sprintf(slabel, "<%5s..%5s>",
+                           MV_format_fval(otherCurColPlane->OptScl->ThreshRange[0]),
+                           MV_format_fval(otherCurColPlane->OptScl->ThreshRange[1]));
+             break;
+          case SUMA_THRESH_OUTSIDE_RANGE:
+             /* This is just a place holder for now */
+             sprintf(slabel, ">%5s..%5s<",
+                           MV_format_fval(otherCurColPlane->OptScl->ThreshRange[0]),
+                           MV_format_fval(otherCurColPlane->OptScl->ThreshRange[1]));
+             break;
+          case SUMA_NO_THRESH:
+             break;
+          default:
+             /* This is just a place holder for now */
+             sprintf(slabel, "?%5s??%5s?<",
+                           MV_format_fval(otherCurColPlane->OptScl->ThreshRange[0]),
+                           MV_format_fval(otherCurColPlane->OptScl->ThreshRange[1]));
+             break;
+       }
+
+       /* SUMA_SET_LABEL(SurfCont->thr_lb,  slabel); */
+       SUMA_INSERT_CELL_STRING(SurfCont->SetThrScaleTable, 0,0,slabel);
+       if (SUMA_GetDsetColRange(otherCurColPlane->dset_link,
+                         otherCurColPlane->OptScl->tind, range, loc)) {
+          SUMA_SetScaleRange(otherAdo, range );
+       }else {
+          SUMA_SLP_Err("Failed to get range");
+          SUMA_RETURNe;
+       }
+
+       if (!otherCurColPlane->OptScl->UseThr) { SUMA_RETURNe; }
+                                                    /* nothing else to do */
+
+       SUMA_ADO_Flush_Pick_Buffer(otherAdo, NULL);
+
+       if (!SUMA_ColorizePlane (otherCurColPlane)) {
+             SUMA_SLP_Err("Failed to colorize plane.\n");
+             SUMA_RETURNe;
+       }
+           
+           // Refresh display
+           SUMA_Remixedisplay(otherAdo);
+           SUMA_UpdateNodeLblField(otherAdo);
+        }
+   }
 
    SUMA_RETURNe;
 }
