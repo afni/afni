@@ -86,7 +86,7 @@ derived data.
         self.rvt_ts    = np.zeros(0, dtype=float) # arr, 'raw' rvt time series
 
         # regressor stuff: lists of labels and the actual values
-        # NB: at present, rvt likely only for rest (but doesn't matter deeply)
+        # NB: at present, rvt likely only for resp (but doesn't matter deeply)
         self.regress_dict_phys = {}      # dict of list, (lab, value)
         self.regress_dict_rvt  = {}      # dict of list, (lab, value)
 

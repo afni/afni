@@ -118,9 +118,9 @@ if __name__ == "__main__":
         if retobj.data[label] :
             lpf.calc_timing_selection_phys( retobj, label=label, verb=verb )
 
-    # Set up timing for RVT time series
+    # Set up timing for RVT time series (user can turn off, if desired)
     label = 'resp'
-    if retobj.data[label] :
+    if retobj.data[label] and retobj.do_out_rvt :
         lpf.calc_timing_selection_rvt( retobj, label=label, verb=verb )
 
     # ------------- Process any card/resp/etc. time series ------------------
