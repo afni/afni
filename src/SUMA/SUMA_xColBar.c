@@ -1910,274 +1910,6 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
    SUMA_RETURNe;
 }
 
-void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
-                                  XtPointer client_data)
-{
-   static char FuncName[]={"SUMA_cb_ShowZero_tb_toggled"};
-   SUMA_ALL_DO *ado = NULL, *otherAdo = NULL;
-   SUMA_TABLE_FIELD *TF=NULL;
-   SUMA_X_SurfCont *SurfCont=NULL,  *otherSurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL, *otherCurColPlane = NULL;
-   SUMA_Boolean LocalHead = NOPE;
-   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
-
-   SUMA_ENTRY;
-
-   SUMA_LH("Called");
-
-   ado = (SUMA_ALL_DO *)data;
-
-   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
-      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
-   curColPlane = SUMA_ADO_CurColPlane(ado);
-   if (  !curColPlane ||
-         !curColPlane->OptScl )  {
-      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
-   }
-
-   curColPlane->OptScl->MaskZero = !XmToggleButtonGetState (SurfCont->ShowZero_tb);
-   /*
-   curColPlane->OptScl->MaskZero =
-      !curColPlane->OptScl->MaskZero;
-      */
-
-   /* seems the '!' were remnants -                                 */
-   /* revert to original logic, but avoid warnings
-    * (to later evaluate changes) todo: apply ShowMode
-    *   original     : if (!curColPlane->ShowMode < 0)
-    *   fix??        : if (curColPlane->ShowMode < 0)
-    *   temp.as.orig : if ( 0 )
-    *
-    *   comments     : orig/temp would never show
-    *                : we probably want to RETURN if not showing ( < 0 )
-    *                : so '!' was just a remnant typo
-    *                : might be unclear when == 0
-    *                                           19 Feb 2021 [rickr] */
-   if ( 0 ) {
-      /* nothing else to do */
-      SUMA_RETURNe;
-   }
-
-   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
-
-   if (!SUMA_ColorizePlane (curColPlane)) {
-         SUMA_SLP_Err("Failed to colorize plane.\n");
-         SUMA_RETURNe;
-   }
-
-   SUMA_Remixedisplay(ado);
-
-   SUMA_UpdateNodeLblField(ado);
-   
-   // Set show zero for other surfaces
-   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   for (j=0; j<N_adolist; ++j){
-        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
-            // Set I Range check box
-            otherSurfCont=SUMA_ADO_Cont(otherAdo);
-            XmToggleButtonSetState(otherSurfCont->ShowZero_tb, !curColPlane->OptScl->MaskZero, YUP);
-                              
-           SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
-
-           otherCurColPlane = SUMA_ADO_CurColPlane(otherAdo);
-           if (!SUMA_ColorizePlane (otherCurColPlane)) {
-                 SUMA_SLP_Err("Failed to colorize plane.\n");
-                 SUMA_RETURNe;
-           }
-           
-           // Refresh display
-           SUMA_Remixedisplay(otherAdo);
-           SUMA_UpdateNodeLblField(otherAdo);
-        }
-   }
-
-   SUMA_RETURNe;
-}
-
-
-void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
-                                   XtPointer client_data)
-{
-   static char FuncName[]={"SUMA_cb_SymIrange_tb_toggled"};
-   SUMA_ALL_DO *ado = NULL, *otherAdo=NULL;
-   SUMA_X_SurfCont *SurfCont=NULL, *otherSurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL, *otherCurColPlane = NULL;
-   SUMA_TABLE_FIELD *TF=NULL;
-   SUMA_Boolean LocalHead = NOPE;
-   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
-   SUMA_SurfaceObject * otherSO, *SO;
-
-   SUMA_ENTRY;
-
-   SUMA_LH("Called");
-
-   ado = (SUMA_ALL_DO *)data;
-
-   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
-      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
-   curColPlane = SUMA_ADO_CurColPlane(ado);
-   if ( !curColPlane )  {
-      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
-   }
-
-   curColPlane->SymIrange = XmToggleButtonGetState (SurfCont->SymIrange_tb);
-   // curColPlane->SymIrange = !curColPlane->SymIrange;
-
-   if (curColPlane->SymIrange) {
-      /* manual setting of range.
-         DO NOT Call SUMA_InitRangeTable because it will
-         automatically update the I range under certain conditions*/
-      TF = SurfCont->SetRangeTable;
-      curColPlane->OptScl->IntRange[1] =
-         SUMA_LARG_ABS(curColPlane->OptScl->IntRange[0],
-         curColPlane->OptScl->IntRange[1]);
-      curColPlane->OptScl->IntRange[0] =
-         -curColPlane->OptScl->IntRange[1];
-      SUMA_INSERT_CELL_VALUE(TF, 1, 1,
-                  curColPlane->OptScl->IntRange[0]);
-      SUMA_INSERT_CELL_VALUE(TF, 1, 2,
-                  curColPlane->OptScl->IntRange[1]);
-   }
-
-   /* seems the '!' were remnants -                                 */
-   /* revert to original logic, but avoid warnings
-    * (to later evaluate changes) todo: apply ShowMode
-    *   original     : if (!curColPlane->ShowMode < 0)
-    *   fix??        : if (curColPlane->ShowMode < 0)
-    *   temp.as.orig : if ( 0 )
-    *
-    *   comments     : orig/temp would never RETURN
-    *                : seems we should return if < 0
-    *                                           19 Feb 2021 [rickr] */
-   if ( 0 ) { SUMA_RETURNe; }
-
-   if (!SUMA_ColorizePlane (curColPlane)) {
-         SUMA_SLP_Err("Failed to colorize plane.\n");
-         SUMA_RETURNe;
-   }
-
-   SUMA_Remixedisplay(ado);
-
-   SUMA_UpdateNodeValField(ado);
-   SUMA_UpdateNodeLblField(ado);
-   
-   // Set sym range for other surfaces
-   SO = (SUMA_SurfaceObject *)ado;
-   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   for (j=0; j<N_adolist; ++j){
-        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        if (otherAdo != ado && otherAdo->do_type == SO_type){
-            // Set I Range chacke box
-            XmToggleButtonSetState(((SUMA_SurfaceObject *)otherAdo)->SurfCont->SymIrange_tb,
-                              curColPlane->SymIrange, YUP);
-                              
-          otherCurColPlane = SUMA_ADO_CurColPlane(otherAdo);
-          otherCurColPlane->OptScl->IntRange[0] = 0;
-
-          otherSO = (SUMA_SurfaceObject *)otherAdo;
-           if (otherSO->SurfCont->SymIrange_tb){
-              otherCurColPlane->OptScl->IntRange[0] =
-                 -otherCurColPlane->OptScl->IntRange[1];
-           }
-           SUMA_INSERT_CELL_VALUE(otherSO->SurfCont->SetRangeTable, 1, 1, 
-                otherCurColPlane->OptScl->IntRange[0]);
-           SUMA_INSERT_CELL_VALUE(otherSO->SurfCont->SetRangeTable, 1, 2, 
-                otherCurColPlane->OptScl->IntRange[1]);
-
-
-           if (!SUMA_ColorizePlane (otherCurColPlane)) {
-                 SUMA_SLP_Err("Failed to colorize plane.\n");
-                 SUMA_RETURNe;
-           }
-           // Refresh display
-           SUMA_Remixedisplay(otherAdo);
-           SUMA_UpdateNodeLblField(otherAdo);
-        }
-   }
-
-   SUMA_RETURNe;
-}
-
-void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
-                                   XtPointer client_data)
-{
-   static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
-   SUMA_ALL_DO *ado=NULL;
-   SUMA_X_SurfCont *SurfCont=NULL;
-   static int AlphaOpacityFalloff = 0;
-
-   SUMA_ENTRY;
-   
-   ado = (SUMA_ALL_DO *)data;
-   if (!ado) SUMA_RETURNe;
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   if (!(SO->SurfCont=SUMA_ADO_Cont(ado))
-            || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
-   
-   if (AlphaOpacityFalloff==0){
-    SO->SurfCont->AlphaOpacityFalloff = 0;
-    AlphaOpacityFalloff = 1;
-   }
-   
-   // AlphaOpacityFalloff = !AlphaOpacityFalloff;
-   SO->SurfCont->AlphaOpacityFalloff = !(SO->SurfCont->AlphaOpacityFalloff);
-   
-   // SO->SurfCont->AlphaThresh is common across period key
-   // SO->SurfCont->AlphaOpacityFalloff = /* SurfCont->AlphaOpacityFalloff = */ AlphaOpacityFalloff;
-
-   if (!(SO->Overlays)){
-    if (SO->SurfCont->AlphaOpacityFalloff){
-        fprintf (SUMA_STDERR,
-            "ERROR %s: Cannot make overlay variably opqaue.  There is no overlay.\n", 
-            FuncName);
-        // No variable opacity since there is no overlay
-        SO->SurfCont->AlphaOpacityFalloff = 0;
-        
-        // Uncheck "A" check-box
-        // SurfCont->AlphaOpacityFalloff = 0;
-        XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
-                              SO->SurfCont->AlphaOpacityFalloff, YUP);    
-        }
-    SUMA_RETURNe;
-   }
-
-   // Default opacity model
-   if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
-   
-   // Refresh display
-   SUMA_Remixedisplay(ado);
-   SUMA_UpdateNodeLblField(ado);
-
-   SUMA_RETURNe;
-}
-
-void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
-                                   XtPointer client_data)
-{
-   static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
-   SUMA_ALL_DO *ado=NULL;
-   SUMA_X_SurfCont *SurfCont=NULL;
-   static int BoxOutlineThresh = 0;
-
-   SUMA_ENTRY;
-
-   ado = (SUMA_ALL_DO *)data;
-   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
-            || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   
-   BoxOutlineThresh = !BoxOutlineThresh;
-   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-   
-   // Refresh display
-   SUMA_Remixedisplay(ado);
-   SUMA_UpdateNodeLblField(ado);
-
-   SUMA_RETURNe;
-}
-
 void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
                                    XtPointer client_data)
 {
@@ -2364,6 +2096,273 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
            SUMA_UpdateNodeLblField(otherAdo);
         }
    }
+
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
+                                   XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_SymIrange_tb_toggled"};
+   SUMA_ALL_DO *ado = NULL, *otherAdo=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL, *otherSurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *otherCurColPlane = NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   SUMA_SurfaceObject * otherSO, *SO;
+
+   SUMA_ENTRY;
+
+   SUMA_LH("Called");
+
+   ado = (SUMA_ALL_DO *)data;
+
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if ( !curColPlane )  {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+   }
+
+   curColPlane->SymIrange = XmToggleButtonGetState (SurfCont->SymIrange_tb);
+   // curColPlane->SymIrange = !curColPlane->SymIrange;
+
+   if (curColPlane->SymIrange) {
+      /* manual setting of range.
+         DO NOT Call SUMA_InitRangeTable because it will
+         automatically update the I range under certain conditions*/
+      TF = SurfCont->SetRangeTable;
+      curColPlane->OptScl->IntRange[1] =
+         SUMA_LARG_ABS(curColPlane->OptScl->IntRange[0],
+         curColPlane->OptScl->IntRange[1]);
+      curColPlane->OptScl->IntRange[0] =
+         -curColPlane->OptScl->IntRange[1];
+      SUMA_INSERT_CELL_VALUE(TF, 1, 1,
+                  curColPlane->OptScl->IntRange[0]);
+      SUMA_INSERT_CELL_VALUE(TF, 1, 2,
+                  curColPlane->OptScl->IntRange[1]);
+   }
+
+   /* seems the '!' were remnants -                                 */
+   /* revert to original logic, but avoid warnings
+    * (to later evaluate changes) todo: apply ShowMode
+    *   original     : if (!curColPlane->ShowMode < 0)
+    *   fix??        : if (curColPlane->ShowMode < 0)
+    *   temp.as.orig : if ( 0 )
+    *
+    *   comments     : orig/temp would never RETURN
+    *                : seems we should return if < 0
+    *                                           19 Feb 2021 [rickr] */
+   if ( 0 ) { SUMA_RETURNe; }
+
+   if (!SUMA_ColorizePlane (curColPlane)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURNe;
+   }
+
+   SUMA_Remixedisplay(ado);
+
+   SUMA_UpdateNodeValField(ado);
+   SUMA_UpdateNodeLblField(ado);
+   
+   // Set sym range for other surfaces
+   SO = (SUMA_SurfaceObject *)ado;
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   for (j=0; j<N_adolist; ++j){
+        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if (otherAdo != ado && otherAdo->do_type == SO_type){
+            // Set I Range chacke box
+            XmToggleButtonSetState(((SUMA_SurfaceObject *)otherAdo)->SurfCont->SymIrange_tb,
+                              curColPlane->SymIrange, YUP);
+                              
+          otherCurColPlane = SUMA_ADO_CurColPlane(otherAdo);
+          otherCurColPlane->OptScl->IntRange[0] = 0;
+
+          otherSO = (SUMA_SurfaceObject *)otherAdo;
+           if (otherSO->SurfCont->SymIrange_tb){
+              otherCurColPlane->OptScl->IntRange[0] =
+                 -otherCurColPlane->OptScl->IntRange[1];
+           }
+           SUMA_INSERT_CELL_VALUE(otherSO->SurfCont->SetRangeTable, 1, 1, 
+                otherCurColPlane->OptScl->IntRange[0]);
+           SUMA_INSERT_CELL_VALUE(otherSO->SurfCont->SetRangeTable, 1, 2, 
+                otherCurColPlane->OptScl->IntRange[1]);
+
+
+           if (!SUMA_ColorizePlane (otherCurColPlane)) {
+                 SUMA_SLP_Err("Failed to colorize plane.\n");
+                 SUMA_RETURNe;
+           }
+           // Refresh display
+           SUMA_Remixedisplay(otherAdo);
+           SUMA_UpdateNodeLblField(otherAdo);
+        }
+   }
+
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
+                                  XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_ShowZero_tb_toggled"};
+   SUMA_ALL_DO *ado = NULL, *otherAdo = NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL,  *otherSurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *otherCurColPlane = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+
+   SUMA_ENTRY;
+
+   SUMA_LH("Called");
+
+   ado = (SUMA_ALL_DO *)data;
+
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (  !curColPlane ||
+         !curColPlane->OptScl )  {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+   }
+
+   curColPlane->OptScl->MaskZero = !XmToggleButtonGetState (SurfCont->ShowZero_tb);
+   /*
+   curColPlane->OptScl->MaskZero =
+      !curColPlane->OptScl->MaskZero;
+      */
+
+   /* seems the '!' were remnants -                                 */
+   /* revert to original logic, but avoid warnings
+    * (to later evaluate changes) todo: apply ShowMode
+    *   original     : if (!curColPlane->ShowMode < 0)
+    *   fix??        : if (curColPlane->ShowMode < 0)
+    *   temp.as.orig : if ( 0 )
+    *
+    *   comments     : orig/temp would never show
+    *                : we probably want to RETURN if not showing ( < 0 )
+    *                : so '!' was just a remnant typo
+    *                : might be unclear when == 0
+    *                                           19 Feb 2021 [rickr] */
+   if ( 0 ) {
+      /* nothing else to do */
+      SUMA_RETURNe;
+   }
+
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+
+   if (!SUMA_ColorizePlane (curColPlane)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURNe;
+   }
+
+   SUMA_Remixedisplay(ado);
+
+   SUMA_UpdateNodeLblField(ado);
+   
+   // Set show zero for other surfaces
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   for (j=0; j<N_adolist; ++j){
+        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
+            // Set I Range check box
+            otherSurfCont=SUMA_ADO_Cont(otherAdo);
+            XmToggleButtonSetState(otherSurfCont->ShowZero_tb, !curColPlane->OptScl->MaskZero, YUP);
+                              
+           SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+
+           otherCurColPlane = SUMA_ADO_CurColPlane(otherAdo);
+           if (!SUMA_ColorizePlane (otherCurColPlane)) {
+                 SUMA_SLP_Err("Failed to colorize plane.\n");
+                 SUMA_RETURNe;
+           }
+           
+           // Refresh display
+           SUMA_Remixedisplay(otherAdo);
+           SUMA_UpdateNodeLblField(otherAdo);
+        }
+   }
+
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
+                                   XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   static int AlphaOpacityFalloff = 0;
+
+   SUMA_ENTRY;
+   
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado) SUMA_RETURNe;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (!(SO->SurfCont=SUMA_ADO_Cont(ado))
+            || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
+   
+   if (AlphaOpacityFalloff==0){
+    SO->SurfCont->AlphaOpacityFalloff = 0;
+    AlphaOpacityFalloff = 1;
+   }
+   
+   // AlphaOpacityFalloff = !AlphaOpacityFalloff;
+   SO->SurfCont->AlphaOpacityFalloff = !(SO->SurfCont->AlphaOpacityFalloff);
+   
+   // SO->SurfCont->AlphaThresh is common across period key
+   // SO->SurfCont->AlphaOpacityFalloff = /* SurfCont->AlphaOpacityFalloff = */ AlphaOpacityFalloff;
+
+   if (!(SO->Overlays)){
+    if (SO->SurfCont->AlphaOpacityFalloff){
+        fprintf (SUMA_STDERR,
+            "ERROR %s: Cannot make overlay variably opqaue.  There is no overlay.\n", 
+            FuncName);
+        // No variable opacity since there is no overlay
+        SO->SurfCont->AlphaOpacityFalloff = 0;
+        
+        // Uncheck "A" check-box
+        // SurfCont->AlphaOpacityFalloff = 0;
+        XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
+                              SO->SurfCont->AlphaOpacityFalloff, YUP);    
+        }
+    SUMA_RETURNe;
+   }
+
+   // Default opacity model
+   if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
+   
+   // Refresh display
+   SUMA_Remixedisplay(ado);
+   SUMA_UpdateNodeLblField(ado);
+
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
+                                   XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   static int BoxOutlineThresh = 0;
+
+   SUMA_ENTRY;
+
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
+            || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   
+   BoxOutlineThresh = !BoxOutlineThresh;
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   
+   // Refresh display
+   SUMA_Remixedisplay(ado);
+   SUMA_UpdateNodeLblField(ado);
 
    SUMA_RETURNe;
 }
