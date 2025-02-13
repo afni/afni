@@ -138,7 +138,7 @@ def write_regressor_file_sli(retobj):
     nreg   = 0                                # num of regressors per slice
 
     # make the filename
-    fname = '_physreg_sli.1D'
+    fname = 'physreg_sli.1D'
     if prefix  :  fname = prefix + '_' + fname
     if odir :     fname = odir + '/' + fname
 
@@ -242,7 +242,7 @@ def write_regressor_file_vol(retobj):
     nreg   = 0                                # num of regressors per slice
 
     # make the filename
-    fname = '_physreg_vol.1D'
+    fname = 'physreg_vol.1D'
     if prefix  :  fname = prefix + '_' + fname
     if odir :     fname = odir + '/' + fname
 
