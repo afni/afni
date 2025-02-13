@@ -42,7 +42,7 @@ def write_regressor_file(retobj):
     data_lab   = ['LABEL'] * ntype
 
     # make the filename
-    fname = 'slibase_OLD.1D'
+    fname = 'slibase.1D'
     if prefix  :  fname = prefix + '_' + fname
     if odir :     fname = odir + '/' + fname
 
@@ -138,7 +138,7 @@ def write_regressor_file_sli(retobj):
     nreg   = 0                                # num of regressors per slice
 
     # make the filename
-    fname = 'slibase.1D'
+    fname = '_physreg_sli.1D'
     if prefix  :  fname = prefix + '_' + fname
     if odir :     fname = odir + '/' + fname
 
@@ -196,7 +196,7 @@ def write_regressor_file_sli(retobj):
 
     # open the file and write the header/start
     fff = open(fname, 'w')
-    fff.write('# RetroTSout\n')  # [PT] can we change this to "physio_calc_out"?
+    fff.write('# physio_calc_sli\n')
     fff.write('# ni_type = "{}*double"\n'.format(ntype))
     fff.write('# ni_dimen = "{}"\n'.format(nvol))
     fff.write('# ColumnLabels = " ')
@@ -212,7 +212,7 @@ def write_regressor_file_sli(retobj):
         fff.write('\n')
 
     # close out the NIML
-    fff.write('# </RetroTSout>\n')# [PT] ... and similarly "physio_calc_out"?
+    fff.write('# </physio_calc_sli>\n')
 
     # le fin: close and finish
     fff.close()
@@ -242,7 +242,7 @@ def write_regressor_file_vol(retobj):
     nreg   = 0                                # num of regressors per slice
 
     # make the filename
-    fname = 'volbase.1D'
+    fname = '_physreg_vol.1D'
     if prefix  :  fname = prefix + '_' + fname
     if odir :     fname = odir + '/' + fname
 
@@ -276,7 +276,6 @@ def write_regressor_file_vol(retobj):
 
     # build set of regressors, slice by slice
     for ss in range(nslice):
-        slab = 's{:03d}'.format(ss)   # *** Change this label? not needed
 
         # count number of regressors per slice, as added
         rcount = 0 
@@ -288,7 +287,7 @@ def write_regressor_file_vol(retobj):
                 # process any/all RVT regressors
                 for ii in range(phobj.n_regress_rvt):
                     key = phobj.regress_rvt_keys[ii]
-                    title = slab + '.' + key      # column header title
+                    title = 'vol.' + key      # column header title
 
                     # go to column, and add info (RVT = const across slice)
                     cc = ss*nreg + rcount
@@ -301,7 +300,7 @@ def write_regressor_file_vol(retobj):
 
     # open the file and write the header/start
     fff = open(fname, 'w')
-    fff.write('# RetroTSout\n') # [PT] **** what to name this???
+    fff.write('# physio_calc_vol\n')
     fff.write('# ni_type = "{}*double"\n'.format(ntype))
     fff.write('# ni_dimen = "{}"\n'.format(nvol))
     fff.write('# ColumnLabels = " ')
@@ -317,7 +316,7 @@ def write_regressor_file_vol(retobj):
         fff.write('\n')
 
     # close out the NIML
-    fff.write('# </RetroTSout>\n') # [PT] **** what to name this???
+    fff.write('# </physio_calc_vol>\n') 
 
     # le fin: close and finish
     fff.close()
