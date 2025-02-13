@@ -1002,9 +1002,22 @@ physio and RVT regressors), and some are helpful QC images.  The
 input, and similarly for *card* files with cardiac input.  At present,
 RVT is only calculated from resp input.
 
-  PREFIX_slibase.1D         : slice-based regressor file, which can include
-                              card, resp and RVT regressors, and provided 
-                              to afni_proc.py for inclusion in FMRI processing
+  PREFIX_physreg_sli.1D     : slice-based regressor file, which can include
+                              card and resp regressors from RETROICOR; this can
+                              be provided to an FMRI processing program like
+                              afni_proc.py
+
+  PREFIX_physreg_vol.1D     : volumetric-based regressor file, which can include
+                              RVT, RVTRRF and other related regressors; this can
+                              be provided to an FMRI processing program like
+                              afni_proc.py
+
+  PREFIX_slibase.1D         : older, omnibus slice-based regressor file, which 
+                              can include card, resp and RVT regressors; this is
+                              no longer output by default, since the separate
+                              *physreg*.1D files are preferred; though this can
+                              be created via '-do_slibase_out' and provided to 
+                              an FMRI processing program like afni_proc.py
 
   PREFIX_regressors_phys.svg: QC image of all physio regressors (including
                               card and/or resp), corresponding to slice=0
@@ -1111,6 +1124,47 @@ might reflect natural variability of the physio time series, or possibly
 draw attention to a QC issue like an out-of-place or missing extremum 
 (which could be edited in "interactive mode").
 
+{ddashline}
+
+Using output regressor files in afni_proc.py (AP) ~1~
+
+This program is typically used to take input physiological measures
+and output regressors for FMRI processing.  The primary regressor
+files are currently the '*physreg_sli.1D' and '*physreg_vol.1D'
+files---these contain all the estimated slicewise and volumetric
+regressors, respectively.  The slicewise ones tend to come from
+RETROICOR, and the volumetric ones from RVT, RVTRRF, and similar
+variations.
+
+To include one or both of these files in afni_proc.py, you can use the
+following options (and please see further examples and details in the
+AP help, itself):
+
+  For *.physreg_sli.1D (slicewise regressor file):
+    + include 'ricor' in your list of processing blocks, at the very
+      beginning or just after 'despike'
+    + provide the path+name of the file with: 
+      -ricor_regs THE_PATH/PREFIX_physreg_sli.1D
+
+  For *.physreg_vol.1D (volumetric regressor file):
+    + include 'regress' in your list of processing blocks, at the very
+      end
+    + provide the path+name of the file with: 
+      -regress_extra_stim_files THE_PATH/PREFIX_physreg_vol.1D
+    + optionally, you can also provide a label for this extra regressor
+      with: 
+      -regress_extra_stim_labels THE_LABEL
+
+Note that the main output file _used_ to be '*slibase.1D', which
+contained all regressors in slicewise format, even if they didn't need
+to be (like the RVT ones). This file is no longer output by default,
+as the separate slicewise and volumetric pairing is preferred.  If you
+want to use the *slibase.1D file instead of the other *physreg*.1D
+pair for some reason, you can add '-do_slibase_out' to your
+physio_calc.py run; then, in afni_proc.py you could include the
+*slibase.1D in the same manner you would include the *.physreg_sli.1D
+file, shown above.  If you do so, you would likely *not* want to use
+either *physreg*.1D file in the same AP command.
 
 
 {ddashline}
