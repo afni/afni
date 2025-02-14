@@ -2171,9 +2171,12 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    SUMA_UpdateNodeLblField(ado);
    
    // Set sym range for other surfaces
-   SO = (SUMA_SurfaceObject *)ado;
+   // SO = (SUMA_SurfaceObject *)ado;
+   // Process other surface objects
+   int numSurfaceObjects;
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   for (j=0; j<N_adolist; ++j){
+   for (j=0; j<numSurfaceObjects; ++j){
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if (otherAdo != ado && otherAdo->do_type == SO_type){
             // Set I Range chacke box
