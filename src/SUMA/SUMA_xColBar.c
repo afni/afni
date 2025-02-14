@@ -2210,6 +2210,56 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
+int SUMA_cb_ShowZero_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, Boolean notify)
+{
+   static char FuncName[]={"SUMA_cb_ShowZero_tb_toggledForSurfaceObject"};
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+
+   SUMA_ENTRY;
+
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (  !curColPlane ||
+         !curColPlane->OptScl )  {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURN(0);
+   }
+   
+    // Set I Range check box
+    SurfCont=SUMA_ADO_Cont(ado);
+    if (  !SurfCont ||
+         !SurfCont->ShowZero_tb )  {
+      SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
+    }
+    if (notify) XmToggleButtonSetState(SurfCont->ShowZero_tb, state, notify);
+
+   /* seems the '!' were remnants -                                 */
+   /* revert to original logic, but avoid warnings
+    * (to later evaluate changes) todo: apply ShowMode
+    *   original     : if (!curColPlane->ShowMode < 0)
+    *   fix??        : if (curColPlane->ShowMode < 0)
+    *   temp.as.orig : if ( 0 )
+    *
+    *   comments     : orig/temp would never show
+    *                : we probably want to RETURN if not showing ( < 0 )
+    *                : so '!' was just a remnant typo
+    *                : might be unclear when == 0
+    *                                           19 Feb 2021 [rickr] */
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+
+   // Create colorized plane
+   if (!SUMA_ColorizePlane (curColPlane)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURN(0);
+   }
+
+   // REFRESH DISPLAY
+   SUMA_Remixedisplay(ado);
+   SUMA_UpdateNodeLblField(ado);
+   
+   SUMA_RETURN(1);
+}
+
 void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
                                   XtPointer client_data)
 {
@@ -2229,6 +2279,7 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (  !curColPlane ||
          !curColPlane->OptScl )  {
@@ -2236,29 +2287,11 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    }
 
    curColPlane->OptScl->MaskZero = !XmToggleButtonGetState (SurfCont->ShowZero_tb);
-
-   /* seems the '!' were remnants -                                 */
-   /* revert to original logic, but avoid warnings
-    * (to later evaluate changes) todo: apply ShowMode
-    *   original     : if (!curColPlane->ShowMode < 0)
-    *   fix??        : if (curColPlane->ShowMode < 0)
-    *   temp.as.orig : if ( 0 )
-    *
-    *   comments     : orig/temp would never show
-    *                : we probably want to RETURN if not showing ( < 0 )
-    *                : so '!' was just a remnant typo
-    *                : might be unclear when == 0
-    *                                           19 Feb 2021 [rickr] */
-   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
-
-   if (!SUMA_ColorizePlane (curColPlane)) {
-         SUMA_SLP_Err("Failed to colorize plane.\n");
-         SUMA_RETURNe;
+   
+   if (!SUMA_cb_ShowZero_tb_toggledForSurfaceObject(ado, curColPlane->OptScl->MaskZero, NOPE)){
+    SUMA_S_Warn("Error toggling show zero for current surface"); SUMA_RETURNe;
+    SUMA_RETURNe;
    }
-
-   SUMA_Remixedisplay(ado);
-
-   SUMA_UpdateNodeLblField(ado);
    
    // Set show zero for other surfaces
    int numSurfaceObjects;
@@ -2267,21 +2300,11 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    for (j=0; j<numSurfaceObjects; ++j){
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
-            // Set I Range check box
-            otherSurfCont=SUMA_ADO_Cont(otherAdo);
-            XmToggleButtonSetState(otherSurfCont->ShowZero_tb, !curColPlane->OptScl->MaskZero, YUP);
-                              
-           SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
-
-           otherCurColPlane = SUMA_ADO_CurColPlane(otherAdo);
-           if (!SUMA_ColorizePlane (otherCurColPlane)) {
-                 SUMA_SLP_Err("Failed to colorize plane.\n");
-                 SUMA_RETURNe;
+   
+           if (!SUMA_cb_ShowZero_tb_toggledForSurfaceObject(otherAdo, !curColPlane->OptScl->MaskZero, YUP)){
+            SUMA_S_Warn("Error toggling show zero for current surface"); SUMA_RETURNe;
+            SUMA_RETURNe;
            }
-           
-           // Refresh display
-           SUMA_Remixedisplay(otherAdo);
-           SUMA_UpdateNodeLblField(otherAdo);
         }
    }
 
