@@ -2261,8 +2261,10 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    SUMA_UpdateNodeLblField(ado);
    
    // Set show zero for other surfaces
+   int numSurfaceObjects;
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   for (j=0; j<N_adolist; ++j){
+   for (j=0; j<numSurfaceObjects; ++j){
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
             // Set I Range check box
