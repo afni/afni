@@ -23,79 +23,91 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.7, Sept 24, 2023
+Version 1.0.8, Feb 14, 2025
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Introduction
 ------
- 
- Intersubject correlation (ISC) measures the extent of BOLD response similarity
- or synchronization between two subjects who are scanned under the same
- experience such as movie watching, music learning, etc. The program performs
- voxelwise analysis with linear mixed-effects modeling that is laid out in the
- following paper:
 
- Chen, G., Taylor, P.A., Shin, Y.W., Reynolds, R.C., Cox, R.W., 2017. Untangling
- the Relatedness among Correlations, Part II: Inter-Subject Correlation Group
- Analysis through Linear Mixed-Effects Modeling. Neuroimage 147:825-840.
+ Intersubject correlation (ISC) quantifies the similarity or synchronization of 
+ BOLD responses between two subjects experiencing the same stimulus, such as 
+ watching a movie or listening to music. The analysis is performed voxelwise 
+ using linear mixed-effects modeling, as detailed in the following paper:  
 
- Input files for 3dISC are voxelwise correlation values from all subject pairs.
- If they are not Fisher-transformed, use option -r2z in 3dISC to transform the
- data. If there are two or more groups of subjects, ISCs across groups are also
- required as input unless the data are analyzed for each group separately. 
- Input files can be in AFNI, NIfTI or surface (niml.dset) format. In other words,
- with totally n subjects, you should provide n(n-1)/2 input files (no duplicates
- allowed). Currently 3dISC provides in the output the effect estimate (e.g., ISC
- value) and the corresponding t-statistic at each voxel.
+ Chen, G., Taylor, P.A., Shin, Y.W., Reynolds, R.C., Cox, R.W., 2017. *Untangling 
+ the Relatedness among Correlations, Part II: Inter-Subject Correlation Group 
+ Analysis through Linear Mixed-Effects Modeling.* NeuroImage, 147, 825-840.  
 
- For data preprocessing, you may consider the steps discussed in Appendix B of
- the above paper. 3dTcorrelate in AFNI can be utilized to compute the voxelwise
- ISC of time series between any two subjects.
+ **Input Requirements:**  
+ The input files for 3dISC consist of voxelwise correlation values from all 
+ subject pairs. If these correlations have not been Fisher-transformed, the 
+ `-r2z` option in 3dISC should be used to apply the transformation. When 
+ analyzing multiple groups, ISC values across groups must also be provided 
+ unless the groups are analyzed separately. Input files can be in AFNI, NIfTI, 
+ or surface (niml.dset) format. For *n* subjects, a total of *n(n-1)/2* input 
+ files should be supplied, ensuring no duplicate pairs.  
 
- The LME platform allows for the incorporation of various types of explanatory
- variables including categorical (between- and within-subject factors) and
- quantitative variables (e.g., age, behavioral data). The burden of properly
- specifying the weights for each effect (e.g., contrast) is unfortunately 
- placed on the user\'s shoulder, and sorting out the number and order of 
- predictors (regressors) can be overwhelming especially when there are more 
- than two factor levels or when an interaction effect is involved. So, 
- familiarize yourself with the details of the two popular factor coding 
- strategies (dummy and deviation coding):
+ **Output:**  
+ 3dISC generates voxelwise effect estimates (e.g., ISC values) along with the 
+ corresponding t-statistics.  
+
+ **Preprocessing Recommendations:**  
+ For data preprocessing guidelines, refer to Appendix B of the above paper. To 
+ compute voxelwise ISC of time series between any two subjects, AFNI’s 
+ `3dTcorrelate` can be used.
+
+ The LME platform supports a wide range of explanatory variables, including 
+ categorical variables (both between- and within-subject factors) and 
+ quantitative variables (e.g., age, behavioral data). However, the responsibility 
+ of correctly specifying the weights for each effect (e.g., contrasts) falls on 
+ the user. Determining the appropriate number and order of predictors can be 
+ particularly challenging, especially when dealing with more than two factor 
+ levels or interaction effects.  
+
+ To navigate this complexity, it is essential to understand two common factor 
+ coding strategies: **dummy coding** and **deviation coding**. A helpful 
+ resource on these coding systems can be found here:  
  https://stats.idre.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables/
 
- The four exemplifying scripts below are good demonstrations.More examples will
- be added in the future if I could crowdsource more scenarios from the users
- (including you the reader). In case you find one or two of them that
- are similar to your data structure, use the example(s) as a template and then
- build up your own script.
- 
- In addition to R installation, the following R packages need to be installed
- first before running 3dISC: "lme4" and "snow". To install these packages, 
- run the following command at the terminal:
+ ### Example Scripts  
+ The four example scripts provided below demonstrate various modeling scenarios. 
+ If any of them resemble your data structure, you can use them as templates to 
+ build your own script. More examples may be added in the future, and user-
+ contributed scenarios (including yours) are welcome.  
 
+ ### Required R Packages  
+ Before running 3dISC, ensure that the following R packages are installed:  
+
+ To install via the AFNI command line:  
  rPkgsInstall -pkgs "lme4,snow"
 
- Alternatively you may install them in R:
- 
+ Alternatively, you can install them directly in R:  
  install.packages("lme4")
- install.packages("snow") 
+ install.packages("snow")
 
- Once the 3dISC command script is constructed, it can be run by copying and
- pasting to the terminal. Alternatively (and probably better) you save the 
- script as a text file, for example, called ISC.txt, and execute it with the 
- following (assuming on tc shell),
- 
+ Once the 3dISC command script is prepared, you can run it by copying and 
+ pasting it into the terminal. However, a more practical approach is to 
+ save the script as a text file (e.g., `ISC.txt`) and execute it using the 
+ following command (assuming you are using the **tcsh** shell):
+
  nohup tcsh -x ISC.txt &
- 
- or,
- 
+
+ Alternatively, to capture the output for later review, use one of the following
+ commands:
+
  nohup tcsh -x ISC.txt > diary.txt &
+
+ or
+
  nohup tcsh -x ISC.txt |& tee diary.txt &
 
- The advantage of the latter commands is that the progression is saved into
- the text file diary.txt and, if anything goes awry, can be examined later.\n'
+ or,
+ 
+ The advantage of these latter commands is that they log the execution 
+ progress into diary.txt, allowing you to review the output and 
+ troubleshoot any issues if something goes wrong.\n'
 
    ex1 <-  
 "Example 1 --- Simplest case: ISC analysis for one group of subjects without
@@ -1045,9 +1057,9 @@ if(any(!is.na(lop$vVars))) {
 rg <- range(inData)
 cat(paste0('\nRange of input data: [', sprintf(rg[1], fmt = '%#.3f'), ', ', sprintf(rg[2], fmt = '%#.3f'), ']\n\n'))
 
-cat('If the program hangs here for more than, for example, half an hour,\n')
-cat('kill the process because the model specification or something else\n')
-cat('is likely inappropriate.\n\n')
+cat('If the program hangs for an extended period (e.g., more than 5\n')
+cat('minutes), terminate the process as it likely indicates an issue with\n')
+cat('the model specification or other factors.\n\n')
 
 # pick up a test voxel
 if(!is.na(lop$maskFN)) {
@@ -1084,6 +1096,8 @@ while(is.null(fm)) {
    
    try(fm <- lmer(lop$model, data=DM), silent=TRUE)
    if(!is.null(fm))  {
+      if(intercept==0) if(nrow(coef(summary(fm))) != ncol(lop$gltM))
+	 errex.AFNI("Specification error: the number of weights in -gltCode does not match the number of model parameters.")
       print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
    } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
