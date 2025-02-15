@@ -23,7 +23,7 @@ help.GLMM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dGLMM ==================
           Program for Voxelwise Generalized Linear Mixed-Models (GLMMs) 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Nov 27, 2024
+Version 0.0.2, Fen 14, 2025
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -172,8 +172,10 @@ Introduction
   The following four reserved keywords should not be used in custom
   specifications for post-hoc estimations:  
   
-  - **LAB**:   Used to define a label for the estimate.  
-  - **CAT**:   Specifies a categorical variable.  
+  - **LAB**:   Used to define a label for the estimated effect.  
+  - **CAT**:   Specifies a categorical variable for which effects are estimated
+               each level, and all possiblec pairwise comparisons. Use *1* for
+               the intercept or overall mean of the model.  
   - **FIX**:   Indicates variables fixed at specific levels or values.  
   - **QUANT**: Specifies the estimation of a slope for a quantitative variable.  
   
@@ -187,10 +189,12 @@ Introduction
   
   2. **`-level LAB pos.slp2 CAT 1 FIX task=pos,age=2`**  
      - Estimates the effect of the *pos* task at *age = 2* (relative to the
-       centered value of age).  
+       centered value of age). The number *1* represents the intercept or grand
+       mean of the model.  
   
   3. **`-slope LAB pos.age CAT 1 FIX task=pos QUANT age`**  
-     - Estimates the slope effect of *age* for the *pos* task.  
+     - Estimates the slope effect of *age* for the *pos* task. The number *1* 
+       represents the intercept or grand mean of the model.
   
   4. **`-slope LAB task.by.age CAT task QUANT age`**  
      - Estimates the slope effect of *age* for both *pos* and *neg* tasks and
@@ -1031,7 +1035,7 @@ cat('the model specification or other factors.\n\n')
 
 
 # wrapper function glmmTMB_t() for modeling through a t-distribuion with 
-# currently with 3 start DFs (currently 9, 30, 50). Often DF of 9 works
+# currenlty with 3 start DFs (currently 9, 30, 50). Often DF of 9 works
 # as a start value leads to convergence, but it may occasionally fail.
 # Possible convergence indicators: 
 # 1) error message: even though various estimates are provided; 
