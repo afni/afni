@@ -28,7 +28,7 @@ typedef struct
       char outfile[500];
       int pause;
       int M_time_steps;    /* Number of internal time steps used in optimization.  M total steps used in Bob's equations. */
-      int sin_kern;        /* Option for turning on the sine kernal.  Using sin(theta)/theta as part of the expansion factor. */
+      int sin_kern;        /* Option for turning on the sine kernel.  Using sin(theta)/theta as part of the expansion factor. */
       double Zero;
       char read_path[500];     /* read results of a path optimization with prefix read_path (only for the intrepid)*/
       

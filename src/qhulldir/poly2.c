@@ -552,7 +552,7 @@ void qh_checkconvex(facetT *facetlist, int fault) {
     if non-simplicial, at least as many ridges as neighbors
     neighbors are not duplicated
     ridges are not duplicated
-    in 3-d, ridges=verticies
+    in 3-d, ridges=vertices
     (qh.hull_dim-1) ridge vertices
     neighbors are reciprocated
     ridge neighbors are facet neighbors and a ridge for every neighbor
@@ -1612,7 +1612,7 @@ void qh_infiniteloop(facetT *facet) {
 
   returns:
     qh_facetlist with initial hull
-    points partioned into outside sets, coplanar sets, or inside
+    points partitioned into outside sets, coplanar sets, or inside
     initializes qh.GOODpointp, qh.GOODvertexp,
 
   design:
@@ -2407,7 +2407,7 @@ void qh_point_add(setT *set, pointT *point, void *elem) {
     qh_fprintf(qh ferr, 7067, "qhull internal warning (point_add): unknown point %p id %d\n",
       point, id);
   else if (id >= size) {
-    qh_fprintf(qh ferr, 6160, "qhull internal errror(point_add): point p%d is out of bounds(%d)\n",
+    qh_fprintf(qh ferr, 6160, "qhull internal error(point_add): point p%d is out of bounds(%d)\n",
              id, size);
     qh_errexit(qh_ERRqhull, NULL, NULL);
   }else
@@ -3098,7 +3098,7 @@ void qh_vertexneighbors(void /*qh facet_list*/) {
 
   if (qh VERTEXneighbors)
     return;
-  trace1((qh ferr, 1035, "qh_vertexneighbors: determing neighboring facets for each vertex\n"));
+  trace1((qh ferr, 1035, "qh_vertexneighbors: determine neighboring facets for each vertex\n"));
   qh vertex_visit++;
   FORALLfacets {
     if (facet->visible)

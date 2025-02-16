@@ -64,7 +64,7 @@ int main( int argc, char *argv[] )
   THD_3dim_dataset*
     dsetModel     = NULL;       /* pointer for model dataset */
   DatasetType**
-    dsetModelArray = NULL;      /* pointer for model dataset arrray */
+    dsetModelArray = NULL;      /* pointer for model dataset array */
 
   long nt_model    = 0;         /* actual number of timepoints in model
     determined by DSET_NUM_TIMES. If the mask was written as a sub-brick into
@@ -89,7 +89,7 @@ int main( int argc, char *argv[] )
   /* JL June 2011: Modified error handling. Passing errorString as argument
    * to most functions and calling ERROR_exit() only from main. This gives us the 
    * flexibility to employ the same functions for plugin and command-line usage.  
-   * For plugin calls, the error message is diplayed to the user 
+   * For plugin calls, the error message is displayed to the user 
    * as a pop-up, memory is freed properly and the afni controller stays operational!. 
    */
 

@@ -301,7 +301,7 @@ def unique_gui_port():
             PORT_NUM += 1
             gui_port_lock_path = PORT_LOCKS_DIR / f"gui_port_{PORT_NUM}.lock"
             GUI_PORT_LOCK = filelock.FileLock(gui_port_lock_path)
-            GUI_PORT_LOCK.acquire(timeout=1, poll_intervall=0.5)
+            GUI_PORT_LOCK.acquire(timeout=1, poll_interval=0.5)
             return PORT_NUM
         except filelock.Timeout:
             continue

@@ -121,7 +121,7 @@ char *p;
  TheEnd();
 }
 
-Usage()
+void Usage()
 {
   fprintf(stderr,"\nUsage: whirlgif [-o outfile] [-loop [count]] [-time #delay]\n");
   fprintf(stderr,"\t[ -i listfile] file1 [ -time #delay] file2 ...\n");
@@ -129,7 +129,7 @@ Usage()
   exit(0);
 }
 
-main(argc,argv)
+int main(argc,argv)
 int argc;
 char *argv[];
 {
@@ -261,6 +261,8 @@ char *argv[];
 
  fclose(fout);
  fprintf(stderr,"Processed %d files.\n",count);
+
+ return(0);
 }
 
 
@@ -435,7 +437,7 @@ register int index;
   }
  } while(index>=0);
 
- /* now invert that string since we retreived it backwards */
+ /* now invert that string since we retrieved it backwards */
  i--;
  for(j=i;j>=0;j--)
  {

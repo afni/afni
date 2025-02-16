@@ -122,7 +122,7 @@ void SUMA_MakeColorMap_usage ()
  "   The command to create a SUMA formatted colormap would be:\n"
  "       MakeColorMap -usercolutfile colut.txt -suma_cmap toylut \n"
  "\n"
- "   You can attach the colormap to a surface-based datatset with \n"
+ "   You can attach the colormap to a surface-based dataset with \n"
  "   ConvertDset's -labelize option, or you can also do it here in one\n"
  "   pass with:\n"
  "       MakeColorMap -usercolutfile colut.txt -suma_cmap toylut \\\n"
@@ -198,7 +198,7 @@ int main (int argc,char *argv[])
    idISi=0;
    iform = SUMA_NO_DSET_FORMAT;
    sdset_prefix=NULL;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command line options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
          SUMA_MakeColorMap_usage();
          exit (0);
@@ -436,7 +436,7 @@ int main (int argc,char *argv[])
          kar ++;
       }
       
-   }/* loop accross command ine options */
+   }/* loop across command line options */
    
    /* check input */
    if (  (Usage1 && (Usage2 || Usage3 || Usage4)) || 

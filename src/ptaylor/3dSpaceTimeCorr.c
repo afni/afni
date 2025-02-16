@@ -70,7 +70,7 @@ void usage_SpaceTimeCorr(int detail)
 "    where:\n"
 "\n"
 "  -insetA FILEA  :one 4D data set.\n"
-"  -insetB FILEB  :another 4D data set; must have same spatial dimesions as\n"
+"  -insetB FILEB  :another 4D data set; must have same spatial dimensions as\n"
 "                  FILEA, as well as same number of time points.\n"
 "\n"
 "  -mask MASK     :optional mask.  Highly recommended to use for speed of\n"

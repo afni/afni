@@ -34,7 +34,7 @@ FuncName = 'ContrastTest';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 %Create a matrix so that 3dDeconvolve uses for regressor test.
@@ -46,7 +46,7 @@ for (iT = 1:1:N_tasks),
 	end	
 end
 
-%mtrx = zeros(N_contr, (polort+1)*N_runs+N_basis*N_tasks);  %for each run, there are (polort+1) paramters in the baseline model
+%mtrx = zeros(N_contr, (polort+1)*N_runs+N_basis*N_tasks);  %for each run, there are (polort+1) parameters in the baseline model
 
 mtrx = zeros(N_contr, length);
 fprintf(1, '\n\nYour contrast vectors for -glt options are:\n');

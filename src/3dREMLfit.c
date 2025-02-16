@@ -1352,7 +1352,7 @@ int main( int argc , char *argv[] )
       "    REML function is instead simply optimized over a finite grid of\n"
       "    the correlation matrix parameters a and b. The matrices for each\n"
       "    (a,b) pair are pre-calculated in the setup phase, and then are\n"
-      "    re-used in the voxel loop. The purpose of this grid-based method\n"
+      "    reused in the voxel loop. The purpose of this grid-based method\n"
       "    is speed -- optimizing iteratively to a highly accurate (a,b)\n"
       "    estimation for each voxel would be very time consuming, and pretty\n"
       "    pointless. If you are concerned about the sensitivity of the\n"
@@ -1432,7 +1432,7 @@ int main( int argc , char *argv[] )
       "    the function that is minimized in each voxel (over the discrete a,b grid) is\n"
       "      L(a,b) =  log(det(R(a,b))) + log(det(X' inv(R(a,b)) X))\n"
       "              + (n-m)log(y'P(a,b)y)   - log(det(X'X'))\n"
-      "    where R(a,b) = ARMA(1,1) correlation matrix (symetric n X n)\n"
+      "    where R(a,b) = ARMA(1,1) correlation matrix (symmetric n X n)\n"
       "          n      = dimension of data vector = number of rows in X\n"
       "          m      = number of columns in X = number of regressors\n"
       "          y      = data vector for a given voxel\n"
@@ -1769,7 +1769,7 @@ int main( int argc , char *argv[] )
              ERROR_exit("Label ordering of -slibase dataset is slice-major,\n"
                  "   for which -slibase_sm is more appropriate. If this is\n"
                  "   not clear, search for it on the AFNI Message Board:\n"
-                 "        https://afni.nimh.nih.gov/afni/community/board");
+                 "        https://discuss.afni.nimh.nih.gov");
            } else { /* order is unknown */
              WARNING_message("Unknown regressor ordering. If the regressors\n"
                  "   were made via 'RetroTS', perhaps -slibase_sm is more\n"
@@ -1805,14 +1805,14 @@ int main( int argc , char *argv[] )
              ERROR_exit("Label order of -slibase_sm dataset is slice-minor,\n"
                  "   for which -slibase is more appropriate. If this is\n"
                  "   not clear, search for it on the AFNI Message Board:\n"
-                 "        https://afni.nimh.nih.gov/afni/community/board");
+                 "        https://discuss.afni.nimh.nih.gov");
            } else { /* order is unknown */
              WARNING_message("Unknown regressor ordering. If the regressors\n"
                  "   were made via 'RetroTS' you are probably okay.");
            }
          } /* end label_order check */
          if( imar_slibase == NULL ) INIT_IMARR(imar_slibase) ;
-         /* conver the slice-major column order to slice-minor */
+         /* convert the slice-major column order to slice-minor */
          if( (newim = mri_interleave_columns(im, nz) ) == NULL ) exit(1) ;
          mri_free(im) ; im = newim ;
          mri_add_name( THD_trailname(argv[iarg],0) , im ) ;
@@ -4411,7 +4411,7 @@ set LAM = 0.5
 # create the voxel time series = simulated data
 
 1deval -num $D -expr "${B}*sin(PI*t/${P})^2"  > signal.1D
-foreach ii ( `count -dig 4 1 $numvox` )
+foreach ii ( `count_afni -dig 4 1 $numvox` )
   1dgenARMA11 -num $D -a $AA -lam $LAM               > noise.1D
   1deval      -a noise.1D -b signal.1D -expr 'a+b'   > data${ii}.1D
 end
@@ -4443,7 +4443,7 @@ end
 @ ns1 = $nstim - 1
 if( -f test.Rbeta.all.1D ) \rm test.Rbeta.all.1D
 if( -f test.Obeta.all.1D ) \rm test.Obeta.all.1D
-foreach ii ( `count -dig 1 0 $ns1` )
+foreach ii ( `count_afni -dig 1 0 $ns1` )
   1dcat test.Rbeta.1D"[$ii]" >> test.Rbeta.all.1D
   1dcat test.Obeta.1D"[$ii]" >> test.Obeta.all.1D
 end

@@ -646,7 +646,7 @@ void AFNI_syntax(void)
      "                  Has the same effect as choosing 'All_Datasets' in the GUI.\n"
      "                  Example: afni -all_dsets dir1 dir2 dir3\n"
      "                  Can be set to default in .afnirc with ALL_DSETS_STARTUP = YES.\n"
-     "                  Overidden silently by AFNI_ALL_DATASETS = NO.\n"
+     "                  Overridden silently by AFNI_ALL_DATASETS = NO.\n"
      "\n"
 #if MMAP_THRESHOLD > 0
      "   -purge       Conserve memory by purging unused datasets from memory.\n"
@@ -952,7 +952,9 @@ void AFNI_syntax(void)
      "\n"
      "   -no_detach   Do not detach from the terminal.\n"
      "\n"
-     "   -get_processed_env   Show applied AFNI/NIFTI environment varables.\n"
+     "   -no_frivolities  Turn of all frivolities/fun stuff.\n"
+     "\n"
+     "   -get_processed_env   Show applied AFNI/NIFTI environment variables.\n"
      "\n"
      "   -global_opts Show options that are global to all AFNI programs.\n"
      "\n"
@@ -1130,7 +1132,7 @@ void AFNI_syntax(void)
      "\n"
     "* For indvidualized help with AFNI problems, and to keep up with AFNI news, please\n"
     "   use the AFNI Message Board:\n"
-    " https://afni.nimh.nih.gov/afni/community/board/\n"
+    " https://discuss.afni.nimh.nih.gov\n"
      "\n"
     "* If an AFNI program crashes, please include the EXACT error messages it outputs\n"
     "   in your message board posting, as well as any other information needed to\n"
@@ -1964,7 +1966,7 @@ ENTRY("AFNI_parse_args") ;
       /*----- all data sets 04/06/2020 discoraj -----*/
       if( strcmp(argv[narg],"-all_dsets") == 0 ){
 
-          // check for env variable that overides -all_dsets
+          // check for env variable that overrides -all_dsets
           if( AFNI_noenv("AFNI_ALL_DATASETS") ){
               fprintf(stderr,
                   "\n\n** WARNING: option -all_dsets is ignored silently.") ;
@@ -3477,7 +3479,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    /*--- test geometry of main window [08 Aug 2016]
          if it is negative territory, move it back to positive land;
-         this is to (hopefull) fix a peculiarity in XQuartz on El Capitan ---*/
+         this is to (hopefully) fix a peculiarity in XQuartz on El Capitan ---*/
 
    { Position xroot,yroot ;
      WAIT_for_window( MAIN_im3d->vwid->top_shell ) ;
@@ -3792,7 +3794,7 @@ FD_brick *Get_FD_Brick_As_Selected(FD_brick *br, int type, int *rival)
    }
 
    if( br->deltival != 0 && DSET_NVALS(brr->dset) > 1 ){  /* 23 Feb 2011 */
-            /*    This is for allowing montage to cycle trough sub-bricks */
+            /*    This is for allowing montage to cycle through sub-bricks */
       ival += br->deltival ;
       ININFO_message("afni: deltival changes ival to %d",ival) ;
       if( ival < 0 || ival >= DSET_NVALS(brr->dset) ) RETURN( NULL ) ;
@@ -5322,7 +5324,7 @@ STATUS("read next file") ;
    dset->daxes->nxx   = nx ;
    dset->daxes->nyy   = ny ;
    dset->daxes->nzz   = nzz ;        /* modified 19 Oct 1999 */
-   dset->daxes->xxdel = 1.0 ;        /* arbitary units */
+   dset->daxes->xxdel = 1.0 ;        /* arbitrary units */
    dset->daxes->yydel = GLOBAL_argopt.dy ;  /* these allow user to alter */
    dset->daxes->zzdel = GLOBAL_argopt.dz ;  /* the images' aspect ratio */
    dset->daxes->xxorg = dset->daxes->yyorg = dset->daxes->zzorg = 0.0 ;
@@ -10220,7 +10222,7 @@ STATUS("deciding whether to use function WOD") ;
 
       /*- 27 Aug 2002: see if there is a self_warp from
                        fim_now back to anat_now; if so, install it;
-                       this is a coordinate-to-coordinate tranformation,
+                       this is a coordinate-to-coordinate transformation,
                        and requires warp-on-demand viewing              -*/
 
       { THD_warp *swarp = AFNI_find_warp( im3d->anat_now , im3d->fim_now ) ;
@@ -11506,7 +11508,8 @@ ENTRY("AFNI_imag_pop_CB") ;
           "9 different structures are found, or a 7.5 mm radius is reached,\n"
           "whichever occurs first. (Distances are rounded to nearest 1 mm,\n"
           "by default.) The defaults can be adjusted with AFNI environment\n"
-          "Please see whereami help, README.environment for more details.\n"
+          "Please see whereami_afni -help, README.environment for more\n"
+          "details.\n"
           "\n"
           "In the database, voxels may have multiple labels for a particular\n"
           "atlas. For example, the voxels may a larger scale 'gyral' name\n"
@@ -11515,7 +11518,8 @@ ENTRY("AFNI_imag_pop_CB") ;
           "    Within 2 mm: Right Precuneus -AND- Right Brodmann area 31\n"
           "A list of all the labels for the principal default atlas is\n"
           "presented by the 'Go to atlas location' control or from the\n"
-          "command line program, 'whereami -show_atlas_code', for any atlas.\n"
+          "command line program, 'whereami_afni -show_atlas_code', for any\n"
+          "atlas.\n"
           "Note Very Well:\n"
           "* The Atlas is only useful as a ROUGH guide to determining where\n"
           "    you are in any individual brain.  Do not rely exclusively on\n"
@@ -11708,7 +11712,7 @@ void AFNI_pop_whereami_kill( Three_D_View *im3d )
 
 
 /*-------------------------------------------------------------------------
-   A newer output form for whereami
+   A newer output form for whereami_afni
 ---------------------------------------------------------------------------*/
 static int htmlwami_open        = 0 ;
 
@@ -11761,7 +11765,8 @@ void AFNI_alter_wami_text(Three_D_View *im3d, char *utlab)
 
    if (!im3d || !im3d->vwid || !im3d->vwid->imag) EXRETURN;
 
-   if (!utlab) tlab = "\n** Can not use whereami functionality with this dataset**<br>\n"
+   if (!utlab) tlab =
+   "\n** Can not use whereami_afni functionality with this dataset**<br>\n"
    "Please set AFNI_ATLAS_LIST and AFNI_TEMPLATE_SPACE_LIST appropriately<br>\n"
    "Also set the space of the dataset to a corresponding space<br>\n" ;
    else tlab = utlab;
@@ -12291,7 +12296,7 @@ ENTRY("AFNI_marks_transform_CB") ;
 /*   GLOBAL_library.sslist->ssar[sss]->dsset_xform_table[aaa][vnew] = new_dset ;*/
 
    /* reload active datasets, to allow for destruction that may
-      have occured (this code is copied from AFNI_initialize_view) */
+      have occurred (this code is copied from AFNI_initialize_view) */
 
    for( id=0 ; id <= LAST_VIEW_TYPE ; id++ ){
       im3d->anat_dset[id] = GET_SESSION_DSET(GLOBAL_library.sslist->ssar[sss], aaa, id) ;

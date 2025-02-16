@@ -34,7 +34,7 @@ static THD_string_array *session_atlas_name_list=NULL; /* a set of atlases found
 
 char *old_space_list[] = {"TLRC","MNI","MNI_ANAT"};
 
-/* determine if any whereami requests found anything in an atlas */
+/* determine if any whereami_afni requests found anything in an atlas */
 static int wami_web_found = 0;
 static int wami_web_reqtype = 0;
 static char wami_url[MAX_URL];
@@ -61,15 +61,14 @@ THD_string_array *recreate_working_atlas_name_list(void) {
    return(get_working_atlas_name_list());
 }
 
-/* moved TT_Daemon down the road to the end and switched
- *  some Eickhoff-Zilles atlases to the MNI version instead of MNI_ANAT */
+/* almost complete change of default list*/
 THD_string_array *get_working_atlas_name_list(void) {
    char *min_atlas_list[] = {
-	  "MNI_Glasser_HCP_v1.0","Brainnetome_1.0",
-	  "CA_ML_18_MNI", "CA_MPM_22_MNI",
-      "DD_Desai_MPM", "DKD_Desai_MPM",
-      "CA_GW_18_MNIA", "CA_N27_LR",
-      "TT_Daemon", NULL};
+	  "Brodmann_Pijn_AFNI","MNI_Glasser_HCP_v1.0",
+      "FS.afni.MNI2009c_asym","FS.afni.TTN27",
+      "Julich_MNI2009c","Julich_MNI_N27",
+      "Brainnetome_1.0",
+	  "CA_ML_18_MNI", NULL};
    int i;
 
    if (!working_atlas_name_list || working_atlas_name_list->num==0) {
@@ -213,11 +212,11 @@ static int TT_whereami_mode = 1;
 static char lsep = '\n';
 
 /*! These atlas lists, used to be in afni.h and only included if
-Main is defined. That was nice and dandy when only afni and whereami
+Main is defined. That was nice and dandy when only afni and whereami_afni
 used them. Now, every main has a use for them since input datasets
 can be a string referring to a particular atlas zone. So they were
 added to libmri.a and accessible without restrictions. libmri.a and other
-binaries are fatter as a result. But you dont' get nothin for nothin.
+binaries are fatter as a result. But you don't get nothing for nothing.
 ZSS Feb. 2006 with a nod of approval by RickR */
 /* TTatlas by Jack Lancaster and Peter Fox */
 #define TTO_COUNT_HARD 241
@@ -820,7 +819,7 @@ void TT_purge_atlas_big_old(void)
        encoding in the atlas or by coordinate.
 
    At the moment, I'm opting for 5. One problem that we have now is the use
-   of a specific atlas on the whereami command line. The LR atlas is not
+   of a specific atlas on the whereami_afni command line. The LR atlas is not
    in the atlas list in that case. Note the MNI_Anatomical_Side is now
    only used for MNI_ANAT coordinates.
 
@@ -832,15 +831,25 @@ void TT_purge_atlas_big_old(void)
 /*! are we on the left or right of Colin? */
 char MNI_Anatomical_Side(ATLAS_COORD ac, ATLAS_LIST *atlas_list)
 {
+#if 0
    THD_ivec3 ijk ;
    THD_fvec3 mmxyz ;
    int  ix,jy,kz , nx,ny,nxy, ii=0, kk=0;
    byte *ba=NULL;
    static int n_warn = 0, lr_notfound = 0;
    ATLAS *atlas=NULL;
-
+#endif
    ENTRY("MNI_Anatomical_Side");
 
+// abandoning N27_LR mask method- no need for LR atlas in list
+// coordinates themselves determine left and right of brain
+      if (ac.x<0.0) {
+         RETURN('r');
+      } else {
+         RETURN('l');
+      }
+
+#if 0
    if(lr_notfound)
       RETURN('u');   /* tried to find LR atlas before but failed */
 
@@ -896,6 +905,7 @@ char MNI_Anatomical_Side(ATLAS_COORD ac, ATLAS_LIST *atlas_list)
 
    /* should not get here */
    RETURN('u');
+#endif
 }
 
 /*! What side are we on ?*/
@@ -1028,7 +1038,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    }
 
    if(wami_verb()) {
-      INFO_message("whereami in web output mode");
+      INFO_message("whereami_afni in web output mode");
       INFO_message("start characters %s to %s", histart, hiend);
    };
    /* get output spaces from an env variable*/
@@ -1038,7 +1048,8 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       /* the classic three. */
       out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "TLRC");
       out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "MNI");
-      out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "MNI_ANAT");
+// no need for MNI_ANAT if none of the atlases are in that space
+//      out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "MNI_ANAT");
    }
 
    out_spaces = add_to_names_list(out_spaces, &N_out_spaces, ac.space_name);
@@ -1080,16 +1091,17 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       sprintf(y_fstr, "%s", format_value_4print(-acl[i].y, CCALC_CUSTOM, pf));
       sprintf(z_fstr, "%s", format_value_4print(acl[i].z, CCALC_CUSTOM, pf));
 
+    /* abandoning LR determination based on LR mask atlas - just using coords */
       /* the current rendition of this determines L/R from the CA_N27_LR
          brain in TLRC space based on the mask dataset with values of 0,1,2 */
       /* drg - see notes on MNI_Anatomical_Side at function for discussion */
 
-      if(strcmp(acl[i].space_name,"MNI_ANAT") || (it<0)) {
+//      if(strcmp(acl[i].space_name,"MNI_ANAT") || (it<0)) {
          sprintf(xlab[i],"%s mm [%c]", x_fstr, (acl[i].x<0.0)?'R':'L') ;
-      } else {
-         sprintf(xlab[i], "%s mm [%c]", x_fstr,
-           TO_UPPER(MNI_Anatomical_Side(acl[it], atlas_list))) ;
-      }
+//      } else {
+//         sprintf(xlab[i], "%s mm [%c]", x_fstr,
+//           TO_UPPER(MNI_Anatomical_Side(acl[it], atlas_list))) ;
+//      }
 
       sprintf(ylab[i],"%s mm [%c]",y_fstr,(acl[i].y<0.0)?'A':'P') ;
       sprintf(zlab[i],"%s mm [%c]",z_fstr,(acl[i].z<0.0)?'I':'S') ;
@@ -1404,14 +1416,14 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       /*- HTML -*/
       char *hhh = biggg ? "h1" : "h3" ;
       rbuf =  THD_zzprintf(rbuf,"<head>\n"
-               "<center><title><%s>AFNI whereami</%s></title></center>\n"
+               "<center><title><%s>AFNI whereami_afni</%s></title></center>\n"
                "</head>\n"
                "<body>\n"
                "<hr><p>\n" , hhh,hhh
                );
 #if 0
                "<a name=\"top\"></a>\n"
-               "<center><%s>whereami report\n"
+               "<center><%s>whereami_afni report\n"
                " </%s></center>\n"
                "<hr><p>\n"
                "\n"       , hhh,hhh );
@@ -1812,12 +1824,12 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
       already in TLRC space. This LR volume had been converted from MNI_Anat space.
       The L/R volume is from a particular subject, and it is not completely aligned along
       any zero line separating left from right */
-      if(i!=MNI_ANAT_SPC)
+//      if(i!=MNI_ANAT_SPC)
          sprintf(xlab[i-1],"%4.0f mm [%c]",-acv[i].x,(acv[i].x<0.0)?'R':'L') ;
-      else
-         sprintf(xlab[i-1], "%4.0f mm [%c]",
-                   -acv[i].x, TO_UPPER(MNI_Anatomical_Side(acv[AFNI_TLRC_SPC],
-                               atlas_list))) ;
+//      else
+//         sprintf(xlab[i-1], "%4.0f mm [%c]",
+//                  -acv[i].x, TO_UPPER(MNI_Anatomical_Side(acv[AFNI_TLRC_SPC],
+//                               atlas_list))) ;
       sprintf(ylab[i-1],"%4.0f mm [%c]",-acv[i].y,(acv[i].y<0.0)?'A':'P') ;
       sprintf(zlab[i-1],"%4.0f mm [%c]", acv[i].z,(acv[i].z<0.0)?'I':'S') ;
       sprintf(clab[i-1],"{%s}", Space_Code_to_Space_Name(i));
@@ -2102,7 +2114,7 @@ int XYZ_to_AtlasCoord(float x, float y, float z, char *orcode,
    if (spacename && spacename[0] != '\0') {
       set_Coord_Space_Name(ac, spacename);
    } else {
-      set_Coord_Space_Name(ac, "TT_Daemon");
+      set_Coord_Space_Name(ac, Current_Atlas_Default_Name());
    }
 
    return(1);
@@ -2824,7 +2836,12 @@ char Is_Side_Label(char *str, char *opt)
 {
    int k, nc;
    char *strd=NULL;
-   ENTRY("atlas_label_side");
+   ENTRY("Is_Side_Label");
+
+   /* return without doing anything because left and right
+       can be determined just from region labels without
+       this fanciness / shenanigans */
+   RETURN('u');
 
    if (!str) RETURN('u');
 
@@ -3484,7 +3501,11 @@ not sure why it was there in the first place!
          if (LocalHead) fprintf(stderr,"Have chunk %s, will eat...\n", lachunk);
          sd = '\0';
          if (aar->N_chnks == 0) { /* check on side */
-            sd = Is_Side_Label(lachunk, NULL);
+            /* side checking doesn't work generically across atlases -
+               needs specific left-right masks or x=0 separation, 
+               neither mandatory */
+            // removing side checking drg 2024 Is_Side_Label(lachunk, NULL);
+            sd = 'u'; 
             if (LocalHead)
                fprintf(stderr,"Side check on %s returned %c\n", lachunk, sd);
             if (sd == 'l' || sd == 'r' || sd == 'b') {
@@ -3515,7 +3536,7 @@ not sure why it was there in the first place!
       /* first check on side */
       sd = '\0';
       if (aar->N_chnks == 0) { /* check on side */
-         sd = Is_Side_Label(lachunk, NULL);
+         sd = 'u';    // removing side checking drg 2024 Is_Side_Label(lachunk, NULL);
          if (LocalHead)
             fprintf(stderr,"Side check on %s returned %c\n", lachunk, sd);
          if (sd == 'l' || sd == 'r' || sd == 'b') {
@@ -3557,7 +3578,7 @@ AFNI_ATLAS *Build_Atlas (char *aname, ATLAS_LIST *atlas_list)
       ERROR_message("Failed to get %s", aname);
       RETURN(NULL);
    }
-   /* Call this function just to force TT_Daemon to end up in BIG format*/
+   /* Call this function just to force default to end up in BIG format*/
    TT_retrieve_atlas_dset(aname, 1);
 
    if (LocalHead) fprintf(stderr,"%s loaded\n", aname);
@@ -3958,7 +3979,7 @@ APPROX_STR_DIFF LevenshteinStringDistance(char *s1, char *s2, byte ci)
          ss = s1; sl = s2;
          ns = ns1; /* nl = ns2;*/
       }
-      /* Don't accpet this search if the smallest word is too small.
+      /* Don't accept this search if the smallest word is too small.
       For example Saad and S will get a super high match (0), but
       Saad and Sad will get a 9, given the weight I usually give
       to partial matches, this would hurt a lot with this constraint */
@@ -4206,7 +4227,7 @@ int *sort_str_diffs (APPROX_STR_DIFF **Di, int N_words,
 
    if (!Dw) Dw = init_str_diff_weights(Dw);
 
-   /* combine all distance dimentions, no fancy options yet*/
+   /* combine all distance dimensions, no fancy options yet*/
    d = (float *)calloc(N_words, sizeof(float));
    for (i=0; i<N_words; ++i) {
       d[i] = magnitude_str_diff(D+i, Dw);
@@ -5469,7 +5490,7 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_REGION *aar,
 
    if ur->id > 0 && ur->N_chnks == 0 : An exact search is done based on ur->id
 
-   Returned struct must be freed by the user (Free_Atlas_Search), but can be re-used by
+   Returned struct must be freed by the user (Free_Atlas_Search), but can be reused by
    passing it as the last parameter.
 */
 ATLAS_SEARCH * Find_Atlas_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur , ATLAS_SEARCH *reusethis )
@@ -5899,7 +5920,7 @@ char *Atlas_Name(ATLAS *atl)
        atl->name[0] != '\0') RETURN(atl->name);
 
    /* nothing to do now but go via old route */
-   WARNING_message("Reverting to old name nonesense."
+   WARNING_message("Reverting to old name nonsense."
                    " This option should be turned off. Use atlas_name directly");
    strncpy( aname[icall],
             Atlas_Code_to_Atlas_Name(
@@ -6332,7 +6353,8 @@ static char *VersionMessage(void)
    sprintf( verr, "Mismatch of Anatomy Toolbox Versions.\n"
                   "Version in AFNI is %s and appears\n"
                   "different from version string in atlas' notes.\n"
-                  "See whereami -help for more info.\n", CA_EZ_VERSION_STR_HARD);
+                  "See whereami_afni -help for more info.\n",
+            CA_EZ_VERSION_STR_HARD);
    RETURN(verr);
 }
 
@@ -6601,7 +6623,7 @@ char *AddLeftRight(char *name, char lr)
    RETURN(namesave);
 }
 
-/* removes one occurence of left or right in name , search is case insensitive*/
+/* removes one occurrence of left or right in name , search is case insensitive*/
 char *NoLeftRight (char *name)
 {
    char *nolr0=NULL, namesave[500];
@@ -6692,7 +6714,11 @@ char *Atlas_name_choice(ATLAS_POINT *atp)
       /* combination - both name and long name with brackets around long name*/
       case 2:
           if (strlen(atp->longname) && strcmp(atp->longname, atp->name))
-             sprintf(tmps, "%s\n[%s]", atp->name, atp->longname);
+             /* this had \n between name and longname, causing problems with 
+                vertical tabs on Macs. Took that out for now. 
+                CR might be useful in Slice viewer, but otherwise
+                causes trouble*/
+             sprintf(tmps, "%s [%s]", atp->name, atp->longname);
           else
              sprintf(tmps, "%s", atp->name);
           break;
@@ -6706,7 +6732,7 @@ char *Atlas_name_choice(ATLAS_POINT *atp)
 }
 
 /* See also atlas_key_label */
-/* this function used only by whereami overlap mask computation for now */
+/* this function used only by whereami_afni overlap mask computation for now */
 const char *Atlas_Val_Key_to_Val_Name(ATLAS *atlas, int tdval)
 {
    int ii, cmax = 600;
@@ -6727,7 +6753,7 @@ const char *Atlas_Val_Key_to_Val_Name(ATLAS *atlas, int tdval)
    }
 
    if (!atlas->adh->duplicateLRentries) {
-      /* quicky */
+      /* quickly */
       if (tdval < MAX_ELM(atlas->adh->apl2)) {
          if (atlas->adh->apl2->at_point[tdval].tdval == tdval){
                aptr = &atlas->adh->apl2->at_point[tdval];
@@ -6735,7 +6761,7 @@ const char *Atlas_Val_Key_to_Val_Name(ATLAS *atlas, int tdval)
 /*               RETURN(Clean_Atlas_Label(atlas->adh->apl2->at_point[tdval].name));*/
          }
       }
-      /* longy */
+      /* longly */
       for( ii=0 ; ii < MAX_ELM(atlas->adh->apl2) ; ii++ ) {
          if (atlas->adh->apl2->at_point[ii].tdval == tdval) {
                aptr = &atlas->adh->apl2->at_point[ii];
@@ -6951,8 +6977,8 @@ ATLAS_LIST *Atlas_Names_to_List(char **atnames, int natlases)
 
    if(!reduced_n) {
       ERROR_message("No atlases given were found in global atlas list\n"
-        "Please see whereami help and AFNI_atlas_spaces.niml for information\n"
-        "on how to add atlases to AFNI");
+        "Please see whereami_afni help and AFNI_atlas_spaces.niml for\n"
+        "information on how to add atlases to AFNI");
       RETURN(NULL);
    }
    /* initialize the reduced list - may be only one atlas in list */
@@ -7074,8 +7100,8 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
          if (wami_verb()) {
              if (!n_warn || wami_verb()>1) {
                WARNING_message(  "Could not read atlas dset: %s \n"
-                      "See whereami -help for help on installing atlases. ",
-                      ATL_NAME_S(atlas),
+                   "See whereami_afni -help for help on installing atlases. ",
+                   ATL_NAME_S(atlas),
           (wami_verb() > 1) ? "":"\nOther similar warnings are now muted\n" );
             ++(n_warn);
             }
@@ -7113,9 +7139,9 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
                              "Getting hard-coded segmentation\n");
 
          if(set_adh_old_way(atlas->adh, Atlas_Name(atlas)))
-            WARNING_message(  "Could not read atlas dset4 %s \n"
-                               "See whereami -help for help on installing "
-                               "atlases.\n", atlas->dset_name );
+            WARNING_message( "Could not read atlas dset4 %s \n"
+                             "See whereami_afni -help for help on installing "
+                             "atlases.\n", atlas->dset_name );
       } else {
          if (LocalHead) fprintf(stderr,"NIML attributes being used.\n");
 
@@ -7144,6 +7170,9 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
       /* check to see if dataset has to be distinguished
          left-right based on LR atlas */
       if (atlas->adh->build_lr && LoadLRMask) {
+         // abandoning LR mask determination for L/R coords 
+         lr_notfound = 1;
+#if 0
             /* DO NOT ask Atlas_With_Trimming to load LRMask in next call !! */
          atlas_lr = NULL;
          if(lr_notfound==0)
@@ -7162,6 +7191,8 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
                              "Proceeding without LR mask");
             }
          }
+#endif
+
       }
 
       atlas->adh->params_set = 1;   /* mark as initialized */
@@ -7193,8 +7224,8 @@ int genx_load_atlas_dset(ATLAS *atlas)
       if (ATL_DSET(atlas) == NULL) {
          if (LocalHead) {
             WARNING_message("Could not read atlas dataset: %s \n"
-                         "See whereami -help for help on installing atlases.\n",
-                          atlas->dset_name);
+                  "See whereami_afni -help for help on installing atlases.\n",
+                  atlas->dset_name);
          }
          /* For the moment, cleanup and return. */
          atlas->adh = Free_Atlas_Dset_Holder(atlas->adh);
@@ -7510,7 +7541,7 @@ Get_PMap_Factor()
 }
 
 /*!
-   \brief Returns a whereami query from just one atlas
+   \brief Returns a whereami_afni query from just one atlas
    \param atlas ATLAS *
    \param Xrai (float[3]) x,y,z in RAI
    \param wami append results to this wami
@@ -7656,7 +7687,7 @@ int whereami_in_atlas(  char *aname,
       "Set the environment variable AFNI_WHEREAMI_MAX_FIND to higher\n"
       "than %d if you desire a larger report.\n"
       "It behooves you to also checkout AFNI_WHEREAMI_MAX_SEARCH_RAD\n"
-      "and AFNI_WHEREAMI_NO_WARN. See whereami -help for detail.\n",
+      "and AFNI_WHEREAMI_NO_WARN. See whereami_afni -help for detail.\n",
                               MAX_FIND, MAX_FIND);
            find_warn = 1;
            }
@@ -7715,7 +7746,7 @@ int whereami_in_atlas(  char *aname,
          "Set the environment variable AFNI_WHEREAMI_MAX_FIND to higher\n"
          "than %d if you desire a larger report.\n"
          "It behooves you to also checkout AFNI_WHEREAMI_MAX_SEARCH_RAD\n"
-         "and AFNI_WHEREAMI_NO_WARN. See whereami -help for detail.\n",
+         "and AFNI_WHEREAMI_NO_WARN. See whereami_afni -help for detail.\n",
                                  MAX_FIND, MAX_FIND);
               find_warn = 1;
               }
@@ -7959,17 +7990,18 @@ int whereami_3rdBase( ATLAS_COORD aci, ATLAS_QUERY **wamip,
 
       /* for web atlases, open up separate query */
       /* do specific web request here for non-struct type
-         and skip regular whereami call */
+         and skip regular whereami_afni call */
       if(ATL_WEB_TYPE(atlas) && (get_wami_web_reqtype() != WAMI_WEB_STRUCT)){
          if (wami_verb() > 1)
             INFO_message("trying to access web-based atlas");
-         elsevier_query_request(xout, yout, zout, atlas, get_wami_web_reqtype());
+//         elsevier_query_request(xout, yout, zout, atlas, get_wami_web_reqtype());
       }
       else{  /* regular (non-web) atlas request for local dataset */
          XYZ_to_AtlasCoord(xout, yout, zout, "RAI", atlas->space, &ac);
          if (!whereami_in_atlas(Atlas_Name(atlas), ac , &wami)) {
                if (LocalHead)
-                  INFO_message("Failed at whereami for %s", Atlas_Name(atlas));
+                  INFO_message("Failed at whereami_afni for %s",
+                               Atlas_Name(atlas));
             }
       }
    }
@@ -8089,11 +8121,11 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
       if (!atlas) {
          if (wami_verb()) {
             if (!iwarn || wami_verb() > 1) {
-               INFO_message("No atlas dataset %s found for whereami location"
-                            "%s",
+               INFO_message("No atlas dataset %s found for whereami_afni"
+                       " location %s",
                        atlas_alist->atlas[iatlas].name,
-                        wami_verb() < 2 ?
-                           "\nWarnings for other atlases will be muted.":"");
+                       wami_verb() < 2 ?
+                          "\nWarnings for other atlases will be muted.":"");
                ++iwarn;
             }
          }
@@ -8232,7 +8264,7 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
             "Set the environment variable AFNI_WHEREAMI_MAX_FIND to higher\n"
             "than %d if you desire a larger report.\n"
             "It behooves you to also checkout AFNI_WHEREAMI_MAX_SEARCH_RAD\n"
-            "and AFNI_WHEREAMI_NO_WARN. See whereami -help for detail.\n",
+            "and AFNI_WHEREAMI_NO_WARN. See whereami_afni -help for detail.\n",
                                     MAX_FIND, MAX_FIND);
                  }
                  break ;  /* don't find TOO much */
@@ -8412,7 +8444,7 @@ THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar, ATLAS_LIST *atlas_list)
 
    if (!shar) RETURN(maskset);
    if (strlen(shar) < 3) RETURN(maskset);
-   Set_ROI_String_Decode_Verbosity(0); /* must be discreet here */
+   Set_ROI_String_Decode_Verbosity(0); /* must be discrete here */
 
    if (!(aar = ROI_String_Decode(shar, atlas_list))) {
       if (LocalHead) ERROR_message("ROI string decoding failed.");
@@ -9075,7 +9107,8 @@ char *Current_Atlas_Default_Name()
    if(ept != NULL) return(search_quotes(ept)); /* remove any extra quotes*/
    if( ept != NULL ) return( ept ) ;
 
-   return("TT_Daemon");
+   return("Brodmann_Pijn_AFNI"); // was TT_daemon - maybe set to Brodmann_Pijn_AFNI 
+
 }
 
 
@@ -9098,11 +9131,11 @@ char **Atlas_Names_List(ATLAS_LIST *atl)
 
 /*
    Put the label associated with value val in string str
-      (64 chars are copied into str)
+      (allow atlas max (TTO_LMAX) chars are copied into str)
 */
 int AFNI_get_dset_val_label_maybeCR(THD_3dim_dataset *dset, double val, char *str)
 {
-   char *str_lab1=NULL, *str_lab2=NULL, sval[128]={""};
+   char *str_lab1=NULL, *str_lab2=NULL, sval[TTO_LMAX]={""};
    ATLAS_LIST *atlas_alist=NULL;
    ATLAS *atlas=NULL;
 
@@ -9138,19 +9171,19 @@ int AFNI_get_dset_val_label_maybeCR(THD_3dim_dataset *dset, double val, char *st
       char *eee = getenv("AFNI_LABEL_PRIORITY");
       if(eee){
          if(strcasecmp(eee,"BOTH")==0) /* put pipe between labels - old default */
-            snprintf(str,64, "%s|%s",str_lab1,str_lab2);
+            snprintf(str,128, "%s|%s",str_lab1,str_lab2);
          else if (strcasecmp(eee,"LABEL")==0) {   /* labeltable label */
             snprintf(str,64, "%s",str_lab1);
          }
          else if (strcasecmp(eee,"ATLAS")==0) {   /* atlas points label */
-            snprintf(str,64, "%s",str_lab2);
+            snprintf(str,ATLAS_CMAX, "%s",str_lab2);
          }
       }
-      else snprintf(str,64,"%s",str_lab2);  /* atlas label is the default for now */
+      else snprintf(str,TTO_LMAX,"%s",str_lab2);  /* atlas label is the default for now */
    } else if (str_lab1) {  /* if only one take that label */
-      snprintf(str,64, "%s",str_lab1);  /* labeltable */
+      snprintf(str,TTO_LMAX, "%s",str_lab1);  /* labeltable */
    } else if (str_lab2) {
-      snprintf(str,64, "%s",str_lab2);  /* atlas points label */
+      snprintf(str,TTO_LMAX, "%s",str_lab2);  /* atlas points label */
    }
 
    RETURN(0);
@@ -9231,7 +9264,6 @@ int AFNI_get_dset_label_ival(THD_3dim_dataset *dset, int *val, char *str)
 {
    ATR_string * atr=NULL;
    char       * str_lab=NULL;
-   int          found;
 
    ENTRY("AFNI_get_dset_label_ival") ;
 
@@ -9241,7 +9273,6 @@ int AFNI_get_dset_label_ival(THD_3dim_dataset *dset, int *val, char *str)
    }
 
    *val = 0;
-   found = 0;
 
    /* initialize hash table */
    if (!dset->Label_Dtable &&
@@ -9341,6 +9372,7 @@ int known_atlas_label_to_int_list(int_list * ilist, char * str)
 }
 
 
+#if 0
 /* open Elsevier's BrainNavigator in webpage */
 /* xyz input should be in RAI in the same space as atlas,
    but BrainNavigator takes "RSA" as xyz order, so coords need
@@ -9353,7 +9385,7 @@ elsevier_query(float xx, float yy, float zz, ATLAS *atlas)
 {
     size_t nread;
     char wamiqurl[512], *page=NULL;
-/*     char upath[]={"http://mrqlan.dyndns.org/bnapi/models/whereami.xml?"};*/
+/*     char upath[]={"http://mrqlan.dyndns.org/bnapi/models/whereami_afni.xml?"};*/
     THD_coorder CL_cord ;
     if(wami_verb()>2)
        fprintf(stdout,"Trying to get to Elsevier for coords %f %f %f\n", xx, yy,zz);
@@ -9361,7 +9393,7 @@ elsevier_query(float xx, float yy, float zz, ATLAS *atlas)
     THD_coorder_fill(atlas->orient , &CL_cord ) ; /* fill structure from atlas string */
     THD_dicom_to_coorder(&CL_cord , &xx , &yy , &zz);  /* put the coords in Elseviers order */
 
-    /* Get Elsevier XML whereami short response */
+    /* Get Elsevier XML whereami_afni short response */
     /* Elsevier's short response includes structure information in the following format
        that includes a link for the BrainNavigator webpage in the bn_uri field of the XML
        code */
@@ -9475,9 +9507,13 @@ elsevier_query_request(float xx, float yy, float zz, ATLAS *atlas, int el_req_ty
 
    RETURN(sss);
 }
+#endif
 
-
-/* query Elsevier for whereami at select locations */
+/* query Elsevier for whereami_afni at select locations
+ * NOTE Elsevier does not provide this functionality
+*  so this code only provides a placeholder for similar web-based
+*  atlases, i.e. web servers that given an x y z location and an atlas
+*  name can provide an ROI label */
 void
 wami_query_web(ATLAS *atlas, ATLAS_COORD ac, ATLAS_QUERY *wami)
 {
@@ -9490,7 +9526,9 @@ wami_query_web(ATLAS *atlas, ATLAS_COORD ac, ATLAS_QUERY *wami)
       WAMIRAD = Init_Whereami_Max_Rad();
    }
 
-   blab = elsevier_query_request(ac.x, ac.y, ac.z, atlas, WAMI_WEB_STRUCT);
+// removing actual call to send request to defunct server
+//   blab = elsevier_query_request(ac.x, ac.y, ac.z, atlas, WAMI_WEB_STRUCT);
+   blab = NULL;
    if(blab == NULL)
        EXRETURN;
 
@@ -9515,7 +9553,7 @@ wami_query_web(ATLAS *atlas, ATLAS_COORD ac, ATLAS_QUERY *wami)
       At the moment, we're not using it because we'd become
       dependent on libcurl .
       To toy with curl, replace the call to read_URL_http with
-      CURL_read_URL_http and just add -libcurl to whereami's compile
+      CURL_read_URL_http and just add -libcurl to whereami_afni's compile
       command */
    #include <curl/curl.h>
 
@@ -9809,7 +9847,7 @@ int get_wami_web_reqtype()
    return(wami_web_reqtype);
 }
 
-/* set current webpage for whereami web request if needed */
+/* set current webpage for whereami_afni web request if needed */
 void set_wami_webpage(char *url)
 {
 /*   char *tempurl;*/
@@ -9853,14 +9891,14 @@ int AFNI_wami_output_mode(void)
    }
 
    /* changed default of AFNI_WEBBY_WAMI to be YES */
-   /* now show whereami html GUI by default  - drg 01/23/2015 */
+   /* now show whereami_afni html GUI by default  - drg 01/23/2015 */
    if ( AFNI_noenv("AFNI_WEBBY_WAMI") ) { return (0); }
    else {   return(1);  }
 
    return(1);
 }
 
-/* set output of AFNI whereami to be in AFNI's HTML browser */
+/* set output of AFNI whereami_afni to be in AFNI's HTML browser */
 void set_AFNI_wami_output_mode(int webflag)
 {
    if(webflag)
@@ -9930,7 +9968,7 @@ char * atlas_suppinfo_longname(ATLAS *atlas, char *blab)
     return (longname);
 }
 
-/* set minimum probabilty to use in probabilistic atlases */
+/* set minimum probability to use in probabilistic atlases */
 void set_wami_minprob(float val)
 {
    if((val>0) && (val<=1.0))

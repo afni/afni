@@ -225,7 +225,7 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
 "moveable mask in mesh mode (see help in SUMA, (:ref:`ctrl+h<LC_Ctrl+h>`),"
 " section :ref:`Button 3-DoubleClick<Button_3-DoubleClick>` for details.)."
 " Selecting a location on the tracts, the slices, or surfaces, will make the"
-" mask jump to that location. The mask should also be visibile in AFNI (if "
+" mask jump to that location. The mask should also be visible in AFNI (if "
 "SUMA is launched with -dev option), and clicking in AFNI will make the mask "
 "move in SUMA also.\n\n"
 "To turn off 'Mask Manipulation Mode' right-double click in open air, or on the"
@@ -2692,7 +2692,7 @@ void SUMA_cb_Mask_Delete(Widget wcall, XtPointer cd1, XtPointer cbs)
             /* unregister do from all viewers */
             SUMA_UnRegisterDO_idcode(ado_id,NULL);
       
-            /* delelte the current mask from DOv */
+            /* delete the current mask from DOv */
             if (!SUMA_RemoveDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)ado, 1)){
                SUMA_S_Err("Failed to dump DO");
                SUMA_RETURNe;
@@ -2830,7 +2830,7 @@ SUMA_Boolean SUMA_DeleteMask(char *ado_id)
    /* unregister do from all viewers */
    SUMA_UnRegisterDO_idcode(ado_id,NULL);
 
-   /* delelte the current mask from DOv */
+   /* delete the current mask from DOv */
    if (!SUMA_RemoveDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)ado, 1)){
       SUMA_S_Err("Failed to dump DO");
       SUMA_RETURN(NOPE);
@@ -3948,7 +3948,7 @@ void SUMA_cb_Masks_Save (Widget w, XtPointer data, XtPointer client_data)
 /*!
    \brief Loads masks into SUMA land
    
-   \param dlg (SUMA_SELECTION_DIALOG_STRUCT *) struture from selection dialogue
+   \param dlg (SUMA_SELECTION_DIALOG_STRUCT *) structure from selection dialogue
 */
 void SUMA_LoadMultiMasks (char *filename, void *data)
 {
@@ -4127,7 +4127,7 @@ SUMA_Boolean SUMA_LoadMultiMasks_eng (char *filename,
 /*!
    \brief Loads masks into SUMA land
    
-   \param dlg (SUMA_SELECTION_DIALOG_STRUCT *) struture from selection dialogue
+   \param dlg (SUMA_SELECTION_DIALOG_STRUCT *) structure from selection dialogue
 */
 void SUMA_SaveMultiMasks (char *filename, void *data)
 {

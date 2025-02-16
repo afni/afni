@@ -74,7 +74,7 @@ int main( int argc , char *argv[] )
       " -neg            = Same as '-signed -'\n"
       " -prefix  ppp    = prefix for output dataset\n"
       "                  ++ Can be 'NULL' to get no output dataset\n"
-      " -maskonly       = Instead of outputing a thresholded version\n"
+      " -maskonly       = Instead of outputting a thresholded version\n"
       "                   of the input dataset, just output a 0/1 mask\n"
       "                   dataset of voxels that survive the process.\n"
       " -allmask qqq    = Write out a multi-volume dataset with prefix 'qqq'\n"

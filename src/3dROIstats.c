@@ -467,7 +467,7 @@ int main(int argc, char *argv[])
    if (!mean && summary) {
       Error_Exit("Cannot use -nomeanout with -summary");
    }
-   /* Remaining arguements are files */
+   /* Remaining arguments are files */
 
    if (narg >= argc)
       Error_Exit("No input datasets!?\n");

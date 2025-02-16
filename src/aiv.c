@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------*/
-/*--- AFNI Image Viewer - quicky adaptation from afni_plugin.c stuff. ----*/
+/*---- AFNI Image Viewer - quick adaptation from afni_plugin.c stuff. ----*/
 /*------------------------------------------------------------------------*/
 
 #include "mrilib.h"

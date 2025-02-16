@@ -85,7 +85,8 @@ def read_data_file(filename, nlines=-1, marry_ok=0, verb=1):
 
     data, clines, alist = read_married_file(filename, nlines=nlines, verb=verb)
     if data == None:
-       if verb > 0: print('** failed to read text data file %s' % filename)
+       # errors should already be printed
+       if verb > 1: print('** failed to read text data file %s' % filename)
        return None, None
 
     if married_type(data) and not marry_ok:
@@ -225,7 +226,7 @@ def process_one_data_line(line, verb=1):
 
       If any tokens are married, they should all have the same format.
 
-      return result, [time tokens] [acounts] (result = 0 if OK, 1 on error)
+      return result, [time tokens] [acount's] (result = 0 if OK, 1 on error)
    """
 
    if not line:

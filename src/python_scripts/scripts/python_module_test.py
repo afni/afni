@@ -13,7 +13,7 @@ g_help_string = """
 python_module_test.py   - test the loading of python modules
 
    The default behavior of this program is to verify whether a 'standard'
-   list of python modules can be loaded.  The 'standard' list amounds to
+   list of python modules can be loaded.  The 'standard' list amounts to
    what is needed for the python programs in AFNI.
 
    The user may specify a list of python modules to test.
@@ -227,7 +227,7 @@ class ModuleTest:
       if self.show_modtest:
          nfail = module_test_lib.num_import_failures(self.modlist,
                                      details=1,verb=self.verb)
-         print("\nnumber of python import failures = %d\n" % nfail)
+         print("\n" + "number of python import failures = %d\n" % nfail)
 
       return None
 
@@ -239,7 +239,7 @@ def process():
    if len(sys.argv) <= 1:       # default behavior, run general test
       print("")
       nfail = module_test_lib.num_import_failures(verb=2)
-      print("\nnumber of python import failures = %d\n" % nfail)
+      print("\n" + "number of python import failures = %d\n" % nfail)
       return nfail
 
    # create elemnnt and initialize options

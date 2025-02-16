@@ -2802,7 +2802,7 @@ The number of clusters to be formed.
 clusterid      (output) int[nelements]
 The number of the cluster to which each element was assigned. Space for this
 array should be allocated before calling the cuttree routine. If a memory
-error occured, all elements in clusterid are set to -1.
+error occurred, all elements in clusterid are set to -1.
 
 ========================================================================
 */
@@ -3848,7 +3848,7 @@ dist=='k': Kendall's tau
 For other values of dist, the default (Euclidean distance) is used.
 
 celldata (output) double[nxgrid][nygrid][ncolumns] if transpose==0;
-                  double[nxgrid][nygrid][nrows]    if tranpose==1
+                  double[nxgrid][nygrid][nrows]    if transpose==1
 The gene expression data for each node (cell) in the 2D grid. This can be
 interpreted as the centroid for the cluster corresponding to that cell. If
 celldata is NULL, then the centroids are not returned. If celldata is not

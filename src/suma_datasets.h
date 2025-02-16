@@ -587,7 +587,7 @@ typedef struct {
    NI_group *ngr; /*!< This is now April 06 05, the container of the dataset, 
                        as opposed to the olde days where nel
                        contained everything. The reason that was done is to 
-                       accomodate large sized attibutes that
+                       accommodate large sized attributes that
                        do not fit nicely in ASCII forms tucked inside the header.
                        What used to be called nel, is now called dnel (for
                        data-part nel) and is nothing but a copy
@@ -1251,7 +1251,7 @@ If ind is NULL, then the index will be the line number.
    macros for writing a NI element in  NI_TEXT_MODE, NI_BINARY_MODE  or
                                        NI_TEXT_MODE | NI_HEADERSHARP_FLAG which is a la 1D
    nel is the NI element
-   frm is someting like:  "file:Test_write_asc_1D" (for a file output)
+   frm is something like:  "file:Test_write_asc_1D" (for a file output)
                            "fd:1" (for stdout) 
                            or "stderr:" or "stdout:"
    suc is a flag for success (1), failure (0)
@@ -1285,7 +1285,7 @@ If ind is NULL, then the index will be the line number.
    suc = 1; \
    m_allnum = SUMA_is_AllNumeric_dset(dset);   \
    if (!m_allnum) { \
-      SUMA_SL_Err ("Element cannont be written to 1D format");    \
+      SUMA_SL_Err ("Element cannot be written to 1D format");    \
       suc = 0; \
    } else {   \
       m_ns = NI_stream_open( frm , "w" ) ;   \
@@ -1315,7 +1315,7 @@ If ind is NULL, then the index will be the line number.
    suc = 1; \
    m_allnum = SUMA_is_AllNumeric_dset(dset);   \
    if (!m_allnum) { \
-      SUMA_SL_Err ("Element cannont be written to 1D format");    \
+      SUMA_SL_Err ("Element cannot be written to 1D format");    \
       suc = 0; \
    } else {   \
       if (!strcmp(frm,"stdout")) m_fid = stdout;   \
@@ -1357,7 +1357,7 @@ If ind is NULL, then the index will be the line number.
    suc = 1; \
    m_allnum = SUMA_is_AllNumeric_dset(dset);   \
    if (!m_allnum) { \
-      SUMA_SL_Err ("Element cannont be written to 1D format");    \
+      SUMA_SL_Err ("Element cannot be written to 1D format");    \
       suc = 0; \
    } else {   \
       if (!strcmp(frm,"stdout")) m_fid = stdout;   \
@@ -1403,7 +1403,7 @@ If ind is NULL, then the index will be the line number.
       SUMA_SL_Err ("Group, use DSET_WRITE_1D_PURE"); }/* USE DSET_WRITE_1D */   \
    else m_allnum = SUMA_is_AllNumeric_nel(nel);   \
    if (!m_allnum) { \
-      SUMA_SL_Err ("Element cannont be written to 1D format");    \
+      SUMA_SL_Err ("Element cannot be written to 1D format");    \
       suc = 0; \
    } else {   \
       m_ns = NI_stream_open( frm , "w" ) ;   \
@@ -1437,7 +1437,7 @@ If ind is NULL, then the index will be the line number.
       SUMA_SL_Err ("Group, use DSET_WRITE_1D_PURE"); } /* USE DSET_WRITE_1D */  \
    else m_allnum = SUMA_is_AllNumeric_nel(nel);   \
    if (!m_allnum) { \
-      SUMA_SL_Err ("Element cannont be written to 1D format");    \
+      SUMA_SL_Err ("Element cannot be written to 1D format");    \
       suc = 0; \
    } else {   \
       m_fid = fopen(frm,"w"); \

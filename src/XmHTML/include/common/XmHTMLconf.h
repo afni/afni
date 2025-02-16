@@ -45,7 +45,7 @@
 /*****
 * This file contains a number of default values that can only be set at
 * compile-time. These values modify the default behaviour of the XmHTML
-* widget, so be carefull when modifying these values.
+* widget, so be careful when modifying these values.
 *****/
 
 #ifndef _XmHTMLconf_h_

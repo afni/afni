@@ -5,7 +5,7 @@
 ******************************************************************************/
    
 /*
-  Routine to initilize and calculate the diffusion model, fitting
+  Routine to initialize and calculate the diffusion model, fitting
   for So and D, where S is acquired as a function of b:
   S(b)  = So exp(-b/D) where b is given in mm^2/sec
 

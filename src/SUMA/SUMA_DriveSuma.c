@@ -74,7 +74,7 @@ int main (int argc,char *argv[])
          SO->idcode_str = NULL; SUMA_NEW_ID(SO->idcode_str, SO->Label); 
       }
       SO->normdir = 1;
-      if (ps->cs->talk_suma) {   /* strcutre setup during program default options parsing */
+      if (ps->cs->talk_suma) {   /* structure setup during program default options parsing */
             SUMA_LH("Sending Ico"); /* send the surface */
             SUMA_SendSumaNewSurface(SO, ps->cs);
       }

@@ -337,7 +337,7 @@ def proc_mats(uopts):
                 # print '=== have stim in run, row = %s' % row[rindex:rindex+nt]
                 time = 0        # in this run
                 nstim = 0       # be sure we have more than 1 somewhere
-                first = 1       # first occurance if no consec
+                first = 1       # first occurrence if no consec
                 for lcol in range(run_trs[run]):
                     if row[rindex+lcol]:
                        # note whether anything has been blocked
@@ -347,7 +347,7 @@ def proc_mats(uopts):
                                    % (newp, run, lcol))
                           blocked_consec = 1
 
-                       # if consec is bad, only write on first occurance
+                       # if consec is bad, only write on first occurrence
                        if first or consec_ok:
                          nstim += 1
                          tstr = '%s' % str(time+offset)
@@ -358,7 +358,7 @@ def proc_mats(uopts):
 
                          fp.write('%s%s ' % (tstr, astr))
 
-                       first = 0 # not first occurance
+                       first = 0 # not first occurrence
                     else: first = 1
 
                     time += tr

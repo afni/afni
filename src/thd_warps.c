@@ -214,7 +214,7 @@ void AFNI_concatenate_warp( THD_warp * warp_in , THD_warp * warp_prior )
       }
       break ;
 
-      /*--- Talairach preceeded by affine ==> new Talairach --*/
+      /*--- Talairach preceded by affine ==> new Talairach --*/
 
       case WARP_TALAIRACH_12_TYPE + 100*WARP_AFFINE_TYPE:{
          int iw ;
@@ -230,7 +230,7 @@ void AFNI_concatenate_warp( THD_warp * warp_in , THD_warp * warp_prior )
       }
       break ;
 
-      /*-- affine preceeded by Talairach ==> new Talairach
+      /*-- affine preceded by Talairach ==> new Talairach
            [this case is not currently used, since there are no warps
             AFTER a Talairach warp, but it may be useful in the future]
                                         -- RWCox, November 1994 A.D. --*/

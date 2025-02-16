@@ -28,7 +28,7 @@
 #
 #set version   = "1.7";    set rev_dat   = "March 10, 2017"
 #   + fix when res struct and dwi don't have same origin to start
-#   + add QC snapshot of b0 edges overlayed on orig anat
+#   + add QC snapshot of b0 edges overlaid on orig anat
 #
 #set version   = "1.8";    set rev_dat   = "Apr 13, 2017"
 #   + alter I/O to be consistent across progs

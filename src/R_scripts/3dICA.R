@@ -7,7 +7,7 @@
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #-----------------------------------------------------------
 
-# Commannd line to run this script: 3dIVA.R Output (Output is a file
+# Command line to run this script: 3dIVA.R Output (Output is a file
 # in which the running progress including error message will be stored)
 
 #Clean up

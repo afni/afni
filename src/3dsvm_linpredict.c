@@ -205,7 +205,7 @@ int main( int argc , char * argv[] )
     xar   = DSET_ARRAY(xset,ivx); 
     if( xar == NULL )
     { 
-        fprintf(stderr,"Could not access brick %d in first datset\n", ivx);
+        fprintf(stderr,"Could not access brick %d in first dataset\n", ivx);
         exit(1);
     }
     if( itypx == MRI_float )
@@ -234,7 +234,7 @@ int main( int argc , char * argv[] )
         yar   = DSET_ARRAY(yset,ivy); 
         if( yar == NULL )
         { 
-            fprintf(stderr,"Could not access brick %d in second datset\n", ivy);
+            fprintf(stderr,"Could not access brick %d in second dataset\n", ivy);
             if( fxar_new == 1 )
                 free(fxar);
             fxar=NULL;

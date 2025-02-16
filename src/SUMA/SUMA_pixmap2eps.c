@@ -13,7 +13,7 @@
 #include <math.h>       /* for cos(), sin(), and sqrt() */
 #include <GL/glx.h>     /* this includes X and gl.h headers */
 #include <GL/glu.h>     /* gluPerspective(), gluLookAt(), GLU
-                           polygon * tesselator */
+                           polygon * tessellator */
 
 typedef enum {
   RESERVED, BODY_SIDE, BODY_EDGE, BODY_WHOLE, ARM_SIDE, ARM_EDGE, ARM_WHOLE,
@@ -65,9 +65,9 @@ extrudeSolidFromPolygon(GLfloat data[][2], unsigned int dataSize,
 
   if (tobj == NULL) {
     tobj = gluNewTess();  /* create and initialize a GLU
-                             polygon * tesselation object */
-    gluTessCallback(tobj, GLU_BEGIN, CAST_GLU_FUNCPTR glBegin);
-    gluTessCallback(tobj, GLU_VERTEX, CAST_GLU_FUNCPTR glVertex2fv);
+                             polygon * tessellation object */
+    gluTessCallback(tobj, GLU_BEGIN, (void *) glBegin);
+    gluTessCallback(tobj, GLU_VERTEX, (void *) glVertex2fv);
                                                             /* semi-tricky */
     gluTessCallback(tobj, GLU_END, CAST_GLU_FUNCPTR glEnd);
   }
@@ -152,7 +152,7 @@ void
 contextInit(void)
 {
   glClearColor(0.0, 0.0, 0.0, 1.0);
-  glEnable(GL_CULL_FACE);  /* ~50% better perfomance than no
+  glEnable(GL_CULL_FACE);  /* ~50% better performance than no
                               back-face * culling on Entry
                               Indigo */
   glEnable(GL_DEPTH_TEST);  /* enable depth buffering */

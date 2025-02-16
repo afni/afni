@@ -71,12 +71,12 @@ static rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
    for( ii=1 ; ii < nt ; ii++ ){
      itt  = TAU(ii) ;                            /* 'time' of the i'th index */
      jbot = ii-bmax ; if( jbot < 0 ) jbot = 0 ;      /* earliest allow index */
-     for( jj=jbot ; jj < ii ; jj++ ){               /* scan to find bandwith */
+     for( jj=jbot ; jj < ii ; jj++ ){              /* scan to find bandwidth */
        jtt = itt - TAU(jj) ;                     /* 'time' difference i-to-j */
        if( jtt <= bmax ) break ;                /* if in OK region, stop now */
      }
      jbot = jj ;      /* this is the earliest index to be correlated with #i */
-     if( jbot == ii ){       /* a purely diagonal row/colum (inter-run gap?) */
+     if( jbot == ii ){      /* a purely diagonal row/column (inter-run gap?) */
        len[ii] = 1 ; rc[ii] = malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
        continue ;
      }

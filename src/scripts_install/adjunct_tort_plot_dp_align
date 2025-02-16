@@ -226,7 +226,7 @@ program displays the rigid-body alignment parameters (3 rotations and
 data, more than just subject motion is likely shown via these params.)
 
 This (AFNI) program has been tested on TORTOISE versions 3.1* - 3.2.
-We hope to keep it uptodate on future versions, as well.
+We hope to keep it up-to-date on future versions, as well.
 
 auth = PA Taylor (NIMH, NIH, USA)
 
@@ -271,7 +271,7 @@ This program outputs multiple files with the user's specified PREFIX:
                     line plots.
                     Some aspects of the enorm plot (e.g., y-axis range
                     and an extra horizontal line for visualization
-                    fun) can be controleld for this image.
+                    fun) can be controlled for this image.
 
 USAGE ~1~
 

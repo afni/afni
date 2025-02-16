@@ -615,7 +615,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
   /*
    * last slice 
    * 
-   * Components and moduls of the gradient are 
+   * Components and modulus of the gradient are 
    * already computed.
    *
    * - 2D suppression of the non maxima
@@ -653,7 +653,7 @@ void Remove_Gradient_NonMaxima_Slice_2D( float *maxima,
   /* 
    * the buffer norme[0] contains the gradient modulus of the 
    * previous slice, the buffer norme[1] the ones of the
-   * slice under study, while norme[2] containes the ones
+   * slice under study, while norme[2] contains the ones
    * of the next slice.
    */
   /*
@@ -912,7 +912,7 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
   /* 
    * the buffer norme[0] contains the gradient modulus of the 
    * previous slice, the buffer norme[1] the ones of the
-   * slice under study, while norme[2] containes the ones
+   * slice under study, while norme[2] contains the ones
    * of the next slice.
    */
   /*

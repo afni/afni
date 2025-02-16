@@ -559,8 +559,20 @@ ENTRY("mri_warp3D_align_setup") ;
    { byte *mmm = (byte *)malloc( sizeof(byte)*nxyz ) ;
      for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] > 0.0f) ;
      THD_mask_clust( nx,ny,nz, mmm ) ;
-     THD_mask_erode( nx,ny,nz, mmm, 1, 2 ) ;  /* cf. thd_automask.c */
-     THD_mask_clust( nx,ny,nz, mmm ) ;
+
+     /* [PT: Jul 17, 2024] Original behavior here was to erode+dilate
+        the masks from weight dsets. But for 2D (slice) inputs, which
+        occur for SLOMOCO applications, for example, this created
+        empty masks and errors. So, now only erode+dilate for 3D dsets */
+     if ( nx==1 || ny==1 || nz==1 ) {
+        /* 2D dset: don't erode+dilate */
+        if( bas->verb ) 
+           INFO_message("Weight dset has >=1 dim of len=1; don't erode");
+     } else {
+        /* 3D dset: erode+dilate */
+        THD_mask_erode( nx,ny,nz, mmm, 1, 2 ) ;  /* cf. thd_automask.c */
+        THD_mask_clust( nx,ny,nz, mmm ) ;
+     }
      for( ii=0 ; ii < nxyz ; ii++ ) if( !mmm[ii] ) wf[ii] = 0.0f ;
      free((void *)mmm) ;
    }

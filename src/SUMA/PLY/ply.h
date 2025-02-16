@@ -134,7 +134,7 @@ typedef struct PlyFile {        /* description of PLY file */
 #define myalloc(mem_size) my_alloc((mem_size), __LINE__, __FILE__)
 
 
-/*** delcaration of routines ***/
+/*** declaration of routines ***/
 
 extern PlyFile *ply_write(FILE *, int, char **, int);
 extern PlyFile *ply_open_for_writing(char *, int, char **, int, float *);

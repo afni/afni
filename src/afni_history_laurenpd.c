@@ -54,6 +54,10 @@
 afni_history_struct laurenpd_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 24, May, 2024, PDL, "suma", MAJOR, TYPE_NEW_OPT,
+   "add alpha thresholding",
+   NULL
+ } ,
 
  { 99,99,99, NULL,NULL, 99,99, NULL,NULL}  /** the end (do not delete) **/
 } ;

@@ -517,7 +517,7 @@ ENTRY("THD_add_sparse_bricks") ;
      float *xdd , *ydd , *zdd ;
      THD_fvec3 xyz ; THD_ivec3 ijk ;
 
-     nd  = 3 ; /* indicating we use the first 3 columns for index compuation */
+     nd  = 3 ; /* indicating we use the first 3 columns for index computation */
      id  = (int *)malloc(sizeof(int)*vlen) ;       /* indexes computed below */
      xdd = (float *)nel->vec[0] ;                       /* DICOM coordinates */
      ydd = (float *)nel->vec[1] ;

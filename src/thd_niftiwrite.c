@@ -15,7 +15,9 @@ static int needs_conversion_to_float(THD_3dim_dataset *dset, int warn);
      - dset  = AFNI dataset
      - options = structure with options to control the output
 
-   Return value is 1 if went OK, 0 if not.
+   Return value is 0 if it went OK, 1 if not.
+   * reversed ret vals, merely out of preference  [1 Sep 2022 rickr]
+     (not called in many places, so no big deal)
 -------------------------------------------------------------------*/
 
 // [PT,DRG: Mar 8, 2019] Updated to include [qs]form_code = 5 
@@ -39,10 +41,10 @@ ENTRY("THD_write_nifti") ;
   if( !THD_filename_ok(fname) || fname[0] == '-' ){
     ERROR_message("Illegal filename for NIfTI output: %s\n",
                   (fname != NULL) ? fname : "(null)" ) ;
-    RETURN(0) ;
+    RETURN(1) ;
   }
 
-  /* if we need a float dataset, make one (insted of failing)
+  /* if we need a float dataset, make one (instead of failing)
    * (wasteful, but simple and effective)  6 Sep 2012 [rickr] */
   if( needs_conversion_to_float(din, 1) ) {
      dset = EDIT_full_copy(din, NULL);
@@ -51,13 +53,13 @@ ENTRY("THD_write_nifti") ;
 
      if( ! ISVALID_DSET(dset) ) {
        ERROR_message("failed to copy dset for NIfTI write\n");
-       RETURN(0);
+       RETURN(1);
      }
   } else dset = din;
 
   if( !ISVALID_DSET(dset) ){
     ERROR_message("Illegal input dataset for NIfTI output: %s\n", fname) ;
-    RETURN(0) ;
+    RETURN(1) ;
   }
 
   /*-- load dataset from disk, if need be --*/
@@ -66,11 +68,11 @@ ENTRY("THD_write_nifti") ;
   if( !DSET_LOADED(dset) ){
     ERROR_message(
             "Can't write NIfTI file since dataset isn't loaded: %s\n", fname) ;
-    RETURN(0) ;
+    RETURN(1) ;
   }
 
   nim = populate_nifti_image(dset,options) ;
-  if( !nim ) RETURN(0) ;   /* catch failure    6 Apr 2006 [rickr] */
+  if( !nim ) RETURN(1) ;   /* catch failure    6 Apr 2006 [rickr] */
 
   /*-- construct filename --*/
 
@@ -112,14 +114,16 @@ ENTRY("THD_write_nifti") ;
 
   nifti_set_afni_extension( dset , nim ) ;  /* 09 May 2005 - RWCox */
 
-  nifti_image_write_bricks (nim, &nbl ) ;
+  /* we have a status Huston, use it  [2 Sep 2022 rickr] */
+  if( nifti_image_write_bricks_status(nim, &nbl ) )
+     RETURN(1);
 
   /* if we made a float copy, nuke it */
   if( dset != din ) THD_delete_3dim_dataset(dset, True) ;
 
   free(fname); /* free copied name */
 
-  RETURN(1) ;
+  RETURN(0) ;
 }
 
 /* if the dataset has inconsistent types or scale factors, then it needs
@@ -163,7 +167,7 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
   int nparam, type0 , ii , jj;
   int nif_x_axnum=0, nif_y_axnum=0, nif_z_axnum=0;
   int slast, sfirst ;
-  int pattern, tlen ;
+  int pattern, tlen, use_nifti2 ;
   nifti_image *nim ;
   char axcode[3], axsign[3] ;
   float axstep[3] , axstart[3] ;
@@ -464,8 +468,31 @@ ENTRY("populate_nifti_image") ;
   nim->dim[6] = nim->nv;
   nim->dim[7] = nim->nw;
 
-  nim->nvox = nim->nx * nim->ny * nim->nz * nim->nt
-                                * nim->nu * nim->nv * nim->nw ;
+  nim->nvox = (int64_t)nim->nx * nim->ny * nim->nz * nim->nt
+                               * nim->nu * nim->nv * nim->nw ;
+
+  /* determine whether NIFTI-2 is required */
+  /* (signed dim greater than signed 16-bit int or nvox > 32-bit) */
+  use_nifti2 = 0;
+  for( ii = 0; ii < 7; ii++ ) {
+     if( nim->dim[ii] > INT16_MAX ) {
+        use_nifti2 = 1;
+        break;
+     }
+  }
+
+  /* allow user to control use_nifti2   [21 Dec 2023 rickr] */
+;  { int anwt = AFNI_numenv("AFNI_NIFTI_WRITE_TYPE");
+
+    /* warn if user requests 1 but 2 seems needed */
+    if ( anwt == 1 && use_nifti2 == 1 )
+       WARNING_message("will try to write as NIFTI-1,"
+                       " though NIFTI-2 seems necessary");
+
+    if      ( anwt == 2 ) use_nifti2 = 1;
+    else if ( anwt == 1 ) use_nifti2 = 0;
+    /* else leave set from prior logic */
+  }
 
   /*-- slice timing --*/
 
@@ -547,7 +574,7 @@ ENTRY("populate_nifti_image") ;
                nifti_slice_string(pattern), sfirst, slast, nim->slice_duration);
       }
 
-      /* if toffset is 0 and the timing patter is known and the minimum
+      /* if toffset is 0 and the timing pattern is known and the minimum
        * slice offset is positive, the toffset to that minimum
        *                                        12 Oct 2007 [rickr] */
       if( nim->toffset == 0.0 && nim->slice_code != NIFTI_SLICE_UNKNOWN ){
@@ -589,11 +616,22 @@ ENTRY("populate_nifti_image") ;
 
   /*-- odds and ends that are constant for AFNI files --*/
   nim->cal_min = nim->cal_max = 0 ;
-  nim->nifti_type = 1 ;
   nim->xyz_units = NIFTI_UNITS_MM ;
   nim->num_ext = 0;
   nim->ext_list = NULL ;
-  nim->iname_offset = 352 ; /* until extensions are added */
+
+  /* init type and offset per NIFTI type            [26 Jun 2023 rickr] */
+  if( use_nifti2 ) {
+     /* need NIFTI-2 */
+     if( options.debug_level > 1)
+        fprintf(stderr,"-- dimensions require writing as NIFTI-2\n");
+     nim->nifti_type = NIFTI_FTYPE_NIFTI2_1 ;
+     nim->iname_offset = sizeof(nifti_2_header) ; /* without extensions */
+  } else {
+     /* NIFTI-1 is default */
+     nim->nifti_type = NIFTI_FTYPE_NIFTI1_1 ;
+     nim->iname_offset = sizeof(nifti_1_header) ; /* without extensions */
+  }
   nim->data = NULL ;
 
   RETURN(nim) ;

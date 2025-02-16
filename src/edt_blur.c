@@ -32,7 +32,7 @@ void EDIT_blur_allow_fir( int i ){ allow_fir = i; }
 
 /* mirror blur array at ends, all the way        */
 /* (as macro for speed)                          */
-/* pad for full lenghth m     [9 Feb 2022 rickr] */
+/* pad for full length m     [9 Feb 2022 rickr] */
 /*    RRR      - probably 'r' array              */
 /*    MMM      - padding length (on each side)   */
 /*    NDIM     - unnpadded length, NX, NY or NZ  */

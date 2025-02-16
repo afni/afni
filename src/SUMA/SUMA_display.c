@@ -516,7 +516,7 @@ void SUMA_CullOption(SUMA_SurfaceViewer *sv, const char *action)
 }
 /*!
 
-Only w is used consistently, the other input varaibles may be null at times
+Only w is used consistently, the other input variables may be null at times
 always send GLXAREA widget in w otherwise you won't know what pointer to use with
 SUMA_remove_workproc2's data
 \sa SUMA_remove_workproc2
@@ -834,7 +834,7 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist,
 
 
    if (SDO || SPDO || SEDO) {
-      /* redisplay curent only*/
+      /* redisplay current only*/
       sv->ResetGLStateVariables = YUP;
       SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
    }
@@ -918,7 +918,7 @@ void SUMA_LoadMaskDO (char *s, void *csvp )
    }
 
    SUMA_LH("Outa here");
-   /* redisplay curent only*/
+   /* redisplay current only*/
    if (sv) {
       sv->ResetGLStateVariables = YUP;
       SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
@@ -1165,7 +1165,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    }
 
    SUMA_LH("Outa here");
-   /* redisplay curent only*/
+   /* redisplay current only*/
    if (sv) {
       sv->ResetGLStateVariables = YUP;
       SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
@@ -1457,7 +1457,6 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
       if (!feyl) {
         clippingPlaneFile = (char *)calloc(strlen(strbuf)+8, sizeof(char));
         sprintf(clippingPlaneFile, "%s", strbuf);
-        fprintf(stderr, "Clipping file name = %s\n", clippingPlaneFile);
       } else clippingPlaneFile = NULL;
    SUMA_S2FV_ATTR(nel, "clippingPlaneMode", floatBuf, 1, feyl);
       if (!feyl) {
@@ -1541,7 +1540,6 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
             }
          } else ContY[0] = -1.0;
 
-         fprintf(stderr, "%s\n", FuncName);
          if (ContX[0] >= 0 && ContY[0] >= 0 &&
              (SurfCont = SUMA_ADO_Cont(ado))&&
              SUMA_viewSurfaceCont(NULL, ado, csv)) {
@@ -2152,7 +2150,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
          #else
             ISQ_snapshot ( csv->X->GLXAREA );
          #endif
-         } else { /* better approach after fixing buffer swaping bug Feb 2012*/
+         } else { /* better approach after fixing buffer swapping bug Feb 2012*/
             GLvoid *pixels=NULL;
             pixels = SUMA_grabRenderedPixels(csv, 3,
                                           csv->X->aWIDTH, csv->X->aHEIGHT, 0);
@@ -2364,7 +2362,7 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case ANY_DSET_type:
             case MD_DSET_type:
             case GDSET_type: /* Should not be in DO list */
-               SUMA_S_Warn("Should not have such objects as registrered DOs");
+               SUMA_S_Warn("Should not have such objects as registered DOs");
                break;
             case CDOM_type:
                SUMA_S_Err("Needs implementation");
@@ -4437,7 +4435,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          *
          * If glwDrawingAreaWidgetClass was declared without extern, we might
          * be seeing a local version of it (with a NULL value), rather than a
-         * reference to the existing library verison (if the library is loaded
+         * reference to the existing library version (if the library is loaded
          * dynamically, the variable might not be seen at compile time).
          *
          * see https://www.cygwin.com/ml/cygwin-xfree/2014-10/msg00040.html
@@ -4486,13 +4484,13 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       XtRealizeWidget(SUMAg_SVv[ic].X->TOPLEVEL);
 
       /* I will need a Graphics Context variable to draw into the window */
-      SUMA_LH("Getting a grahics context");
+      SUMA_LH("Getting a graphics context");
       if (0){ /* This has caused me lots of grief with XQuartz, on 10.8 systems
                  and possibly before. If this block is executed, I get undefined
                  buffer errors (right before glClear) and failures to set
                  the current graphic context with glXCreateContext().
                  The problems are intermittent however and at times tricky to
-                 reproduce and they only occur whenver a new controller
+                 reproduce and they only occur whenever a new controller
                  is opened with 'ctrl+n' the first time. You have better odds
                  of causing the problem if you resize the very first window
                  right before opening the new controller.
@@ -4992,7 +4990,7 @@ void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont
       closing the reviewer as requested by the user but that did not help.
       It turns out that the problem does not occur if the prompt window does not
       appear on top of the viewer to be closed. More precisely, if the pointer ends
-      up on top of the viewer just after the prompt window disapears SUMA crashes with the
+      up on top of the viewer just after the prompt window disappears SUMA crashes with the
       message: X Error of failed request: BadMatch (invalid parameter attributes) ...
       The solution is simple, on DARWIN, make sure prompt window appears to the right
       of the viewer. If the user moves it back over the viewer AND then presses YES to close
@@ -5782,7 +5780,7 @@ SUMA_Boolean SUMA_World2ScreenCoordsF (
    Depth sorting of locations in NodeList
 
    All viewing matrices should be applied before this function is called
-   Retruns sorting map, isrt (int *), such that NodeList[3*isrt[0]] is
+   Returns sorting map, isrt (int *), such that NodeList[3*isrt[0]] is
    the location farthest from the eyeball.
 
    if (xform_NodeList) then NodeList's content is replaced with the
@@ -5874,7 +5872,7 @@ int * SUMA_DepthSort(float *NodeList, int N_Node, char **names,
    SUMA_RETURN(isrt);
 }
 
-/* Take normalized x,y screen corrdinates and turn them to world coordinates
+/* Take normalized x,y screen coordinates and turn them to world coordinates
 Based on code from SUMA_GetSelectionLine.
 If you need to set GL_MODELVIEW_MATRIX set ApplyXform to 1 and make sure
 sv is not NULL (otherwise sv is not needed.) See SUMA_World2ScreenCoords()
@@ -6296,7 +6294,7 @@ void SUMA_cb_helpMessageLog (Widget w, XtPointer data, XtPointer callData)
 
 /*!
    \brief A call back to open the viewer Info window
-   Exepcts the index of the viewer in SUMAg_SVv in data->ContID
+   Expects the index of the viewer in SUMAg_SVv in data->ContID
 */
 void SUMA_cb_helpViewerStruct (Widget w, XtPointer data, XtPointer callData)
 {
@@ -6324,7 +6322,7 @@ void SUMA_cb_helpViewerStruct (Widget w, XtPointer data, XtPointer callData)
 
 /*!
    \brief A call back to open the surface Info window
-   Exepcts the index of the viewer in SUMAg_SVv in data->ContID
+   Expects the index of the viewer in SUMAg_SVv in data->ContID
 */
 void SUMA_cb_helpSurfaceStruct (Widget w, XtPointer data, XtPointer callData)
 {
@@ -6609,7 +6607,6 @@ int SUMA_OpenSurfCont_if_other(Widget w,
       SUMA_LHv("Window map_state: %d\n", winattr.map_state);
    }
 
-   fprintf(stderr, "%s\n", FuncName);
    if (!SUMA_viewSurfaceCont(w, ado, sv)) {
       SUMA_S_Err("Failed to view surface cont");
       SUMA_RETURN(0);
@@ -6636,7 +6633,6 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
 
    if (w) {
       SUMA_LH("nism");
-      fprintf(stderr, "%s\n", FuncName);
       SUMA_cb_createSurfaceCont( w, (XtPointer)ado, NULL);
    } else {
       if (!sv) {
@@ -6648,10 +6644,8 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
       }
       if (!SUMA_isADO_Cont_Created(ado)) {
         SUMA_LH("Creationism");
-        fprintf(stderr, "%s\n", FuncName);
         SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)ado, NULL);
       } else {
-        fprintf(stderr, "%s\n", FuncName);
         /* must have been closed, open it */
         if (!SUMA_viewSurfaceCont( sv->X->TOPLEVEL, ado, sv)) {
            SUMA_S_Err("Failed to open surf cont anew");
@@ -6913,7 +6907,6 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
 
       if (LocalHead)
          SUMA_LH("Calling SUMA_cb_createSurfaceCont.");
-         fprintf(stderr, "%s\n", FuncName);
       if (w) SUMA_cb_createSurfaceCont( w, (XtPointer)ado, NULL);
       else SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)ado, NULL);
    } else {
@@ -7037,14 +7030,11 @@ void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                 SUMA_RETURNe;
                 }
         }
-        fprintf(stderr, "Surface = %s\n",
-            ((SUMA_SurfaceObject *)(ado))->Label);
    }else {
       fprintf (SUMA_STDERR,"%s: No displayable objects in focus.\n", FuncName);
       SUMA_RETURNe;
    }
 
-   fprintf(stderr, "%s\n", FuncName);
    if (!SUMA_viewSurfaceCont(w, ado, sv)) {
       SUMA_S_Err("Failed in SUMA_viewSurfaceCont ADO %s", ADO_LABEL(ado));
       SUMA_RETURNe;
@@ -7375,7 +7365,7 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
                NULL);
 
 
-      /* put a button for swiching groups */
+      /* put a button for switching groups */
       snprintf(slabel, 40*sizeof(char), "[%c] Switch Group", 65 + isv);
       sv->X->ViewCont->SwitchGrouplst =
             SUMA_AllocateScrolledList (slabel, SUMA_LSP_SINGLE,
@@ -7397,7 +7387,7 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
                            "Switch Group", "Switch Group");
       XtManageChild (pb);
 
-      /* put a button for swiching states */
+      /* put a button for switching states */
       pb = XtVaCreateWidget ("State",
          xmPushButtonWidgetClass, rc,
          NULL);
@@ -7686,7 +7676,6 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_LH("Creating controller for %s", ADO_LABEL(ado));
    switch (ado->do_type) {
       case SO_type:
-        fprintf(stderr, "%s\n", FuncName);
          SUMA_cb_createSurfaceCont_SO(w, data, callData);
          break;
       case CDOM_type:
@@ -7702,19 +7691,15 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          break;
       case GRAPH_LINK_type: {
          SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
-         fprintf(stderr, "%s\n", FuncName);
          SUMA_cb_createSurfaceCont_GLDO(w, (XtPointer)ado,  callData);
          break; }
       case TRACT_type: {
-         fprintf(stderr, "%s\n", FuncName);
          SUMA_cb_createSurfaceCont_TDO(w, (XtPointer)ado,  callData);
          break; }
       case MASK_type: {
-         fprintf(stderr, "%s\n", FuncName);
          SUMA_cb_createSurfaceCont_MDO(w, (XtPointer)ado,  callData);
          break; }
       case VO_type: {
-         fprintf(stderr, "%s\n", FuncName);
          SUMA_cb_createSurfaceCont_VO(w, (XtPointer)ado,  callData);
          break; }
       default:
@@ -7914,7 +7899,6 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
       sss = "font8";
    }
 
-   // fprintf(stderr, "slabel = %s\n", slabel);
    SUMA_LH("Creating dialog shell.");
    if (!SUMAg_CF->X->UseSameSurfCont ||
        !SUMAg_CF->X->CommonSurfContTLW) { /* need a new one */
@@ -7955,7 +7939,6 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
       if (SUMAg_CF->X->UseSameSurfCont) {
          Widget scroller;
          SUMAg_CF->X->CommonSurfContTLW = tls;
-         fprintf(stderr, "%s\n", FuncName);
          SUMAg_CF->X->SC_Notebook =
             XtVaCreateWidget("ControllerBook", xmNotebookWidgetClass,
                              SUMAg_CF->X->CommonSurfContTLW,
@@ -8818,7 +8801,6 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
       if (SUMAg_CF->X->UseSameSurfCont) {
          Widget scroller;
          SUMAg_CF->X->CommonSurfContTLW = tls;
-         fprintf(stderr, "%s\n", FuncName);
          SUMAg_CF->X->SC_Notebook =
             XtVaCreateWidget("ControllerBook", xmNotebookWidgetClass,
                              SUMAg_CF->X->CommonSurfContTLW,
@@ -9768,7 +9750,6 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
       if (SUMAg_CF->X->UseSameSurfCont) {
          Widget scroller;
          SUMAg_CF->X->CommonSurfContTLW = tls;
-         fprintf(stderr, "%s\n", FuncName);
          SUMAg_CF->X->SC_Notebook =
             XtVaCreateWidget("ControllerBook", xmNotebookWidgetClass,
                              SUMAg_CF->X->CommonSurfContTLW,
@@ -10601,7 +10582,6 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
       if (SUMAg_CF->X->UseSameSurfCont) {
          Widget scroller;
          SUMAg_CF->X->CommonSurfContTLW = tls;
-         fprintf(stderr, "%s\n", FuncName);
          SUMAg_CF->X->SC_Notebook =
             XtVaCreateWidget("ControllerBook", xmNotebookWidgetClass,
                              SUMAg_CF->X->CommonSurfContTLW,
@@ -11509,6 +11489,8 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_ALL_DO *ado)
    SUMA_ENTRY;
 
    if (!ado) SUMA_RETURN(NOPE);
+   
+   // SUMA_RETURN(NOPE);   
 
    switch (ado->do_type) {
       case SO_type:
@@ -11651,7 +11633,7 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_SO(SUMA_SurfaceObject *SO)
             break;
       }
       /* look for name of widget with imenu for call data.
-         This is overkill but its fun */
+         This is overkill but it's fun */
       i = 0;
       Name = NULL;
       while (&(RenderMode_Menu[i])) {
@@ -11814,6 +11796,7 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
    N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    SUMA_LHv("Force setting %d surfconts to page %d, max %d\n",
                N_adolist, i, imax);
+
    for (k=0; k<N_adolist; ++k) {
       /* Note that many objects in this list maybe intimately
          related (they share the same parent graph link). So
@@ -12114,7 +12097,7 @@ SUMA_Boolean SUMA_InitializeDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI)
 }
 
 /*!
-   \brief Initializes the widgets in the color plane shell window based on the SUMA_OVERLAYS structue
+   \brief Initializes the widgets in the color plane shell window based on the SUMA_OVERLAYS structure
 */
 SUMA_Boolean SUMA_InitializeColPlaneShell(
                   SUMA_ALL_DO *ado,
@@ -12141,7 +12124,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(
                               (SUMA_SurfaceObject *)ado, colPlane));
          break;
       case GDSET_type:
-         SUMA_S_Err("No init for a DO that cannot be dispalyed\n"
+         SUMA_S_Err("No init for a DO that cannot be displayed\n"
                     "without variant");
          SUMA_RETURN(NOPE);
          break;
@@ -13344,7 +13327,7 @@ SUMA_Register_Widget_Help( SUMAg_CF->X->DrawROI->AppShell , 0,
    /* a separator */
    XtVaCreateManagedWidget ("sep", xmSeparatorWidgetClass, rcv, NULL);
 
-   /* add rc for savin */
+   /* add rc for saving */
    rc_save = XtVaCreateWidget ("rowcolumn",
       xmRowColumnWidgetClass, rcv,
       XmNpacking, XmPACK_TIGHT,
@@ -13469,7 +13452,7 @@ SUMA_Register_Widget_Help( SUMAg_CF->X->DrawROI->AppShell , 0,
    \param ShowSorted (SUMA_Boolean) YUP: Sort list entries
    \param PosRef (Widget) Widget to position list relative to
    \param Pos (SUMA_WINDOW_POSITION) position of list relative to PosRef
-   \param Default_cb pointer to default selection callack function
+   \param Default_cb pointer to default selection callback function
    \param Default_Data (void *) pointer to default callback data, If you specify NULL then
          the SUMA_LIST_WIDGET * is sent in data.
    \param Select_cb pointer to selection callback function. That
@@ -14210,7 +14193,7 @@ void SUMA_CreateTextField ( Widget pw, char *label,
 
    SUMA_ENTRY;
 
-   /* techincally, one should have a structure that
+   /* technically, one should have a structure that
       is only for text but that is not necessary, I think */
 
    AF->up = AF->down = NULL;
@@ -14742,16 +14725,25 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
    curColPlane = SUMA_ADO_CurColPlane(ado);
 
    SUMA_LHv("About to change page to %d\n", (int)SurfCont->SurfContPage->value);
+   
+   // This if function causes the surface control menu to expand downwards.
    if (!(SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook,
                                     SurfCont->SurfContPage->value))) {
       /* revert to good value */
       SurfCont->SurfContPage->value =
                SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook, SurfCont->Page);
+
       sprintf(sbuf,"%d",(int)SurfCont->SurfContPage->value);
       SUMA_SET_TEXT_FIELD(SurfCont->SurfContPage->textfield, sbuf);
       SUMA_LHv("Problem, reverting to %d\n",
                (int)SurfCont->SurfContPage->value);
    }
+
+   // Set "A" check-box to reflect whether there should be variable overlay 
+   //   opacity for this object
+   if (SurfCont && SurfCont->AlphaOpacityFalloff_tb)
+       XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+                      SurfCont->alphaOpacityModel, YUP);
 
    SUMA_RETURNe;
 }
@@ -15815,7 +15807,7 @@ int SUMA_GDSET_ShowUncon ( SUMA_ALL_DO *ado,
 }
 
 /*!
- \brief Function based on arrow_time.c program from Motif Programing Manual
+ \brief Function based on arrow_time.c program from Motif Programming Manual
 
  change_value is called each time the timer expires.  This function
  * is also used to initiate the timer.  The "id" represents that timer
@@ -15934,7 +15926,7 @@ void SUMA_ATF_SetValue (SUMA_ARROW_TEXT_FIELD * AF)
       copy of the string in the widget!
       Later in time:
       Hmmmm, maybe you do, maybe you do. Must abide by
-      upper case message. Must have crashed somwhere */
+      upper case message. Must have crashed somewhere */
 
    SUMA_LHv("Read %s\n", (char *)n);
 
@@ -16497,7 +16489,7 @@ void SUMA_cb_CloseSwitchGroup(Widget w, XtPointer data, XtPointer call_data)
 /*!
    \brief default selection action, handles single selection mode
 
-   -code snipets from Motif Programming Manual
+   -code snippets from Motif Programming Manual
 */
 void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data)
 {
@@ -16948,7 +16940,7 @@ void SUMA_cb_createSumaCont(Widget ww, XtPointer ddata, XtPointer ccallData)
 
    XtManageChild (SUMAg_CF->X->SumaCont->AppFrame);
 
-   /* manage the remaing widgets */
+   /* manage the remaining widgets */
    XtManageChild (SUMAg_CF->X->SumaCont->form);
 
    /* realize the widget */
@@ -18150,7 +18142,7 @@ void SUMA_cb_search_text(Widget widget,
       for (i=0; i < len; ++i) search_pat[i] = tolower(search_pat[i]);
    }
    /* start searching at current cursor position + 1 to find
-   * the -next- occurrance of string.  we may be sitting on it.
+   * the -next- occurrence of string.  we may be sitting on it.
    */
    SUMA_LH("Looking down");
    pos = XmTextGetCursorPosition (TextShell->text_w);
@@ -20940,7 +20932,7 @@ void SUMA_PositionWindowRelative (  Widget New, Widget Ref,
    \param daddy (Widget) the parent widget of the dialog
    \param preserve (SUMA_Boolean) if YUP then do not destroy widget and structure after use
    \param Return_button (SUMA_PROMPT_BUTTONS) make return (enter) in the text field
-      mimick button Return_button (usually SUMA_OK_BUTTON OR SUMA_APPLY_BUTTON)
+      mimic button Return_button (usually SUMA_OK_BUTTON OR SUMA_APPLY_BUTTON)
    \param SelectCallback
    \param SelectData
    \param CancelCallback
@@ -20948,7 +20940,7 @@ void SUMA_PositionWindowRelative (  Widget New, Widget Ref,
    \param HelpCallback
    \param HelpData
    \param oprmpt (SUMA_PROMPT_DIALOG_STRUCT *) the structure to reuse.
-                  Use in conjuction with preserve=YUP
+                  Use in conjunction with preserve=YUP
 
    \sa warnings in SUMA_CreateFileSelectionDialogStruct
 */
@@ -21439,7 +21431,6 @@ void SUMA_PromptApply_cb (Widget w, XtPointer data, XtPointer calldata)
    SUMA_LH("Read %s\n", prmpt->selection);
 
    /* verify the input */
-   // fprintf(stderr, "prmpt->selection = %s\n", prmpt->selection);
    if (prmpt->VerifyFunction) {
       if (!prmpt->VerifyFunction(prmpt->selection, prmpt->VerifyData)) {
          SUMA_SLP_Err("Gibberish! try again.\n"
@@ -21619,7 +21610,7 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (
    if (FilePattern) {
       /* new one specified, destroy the old one */
       if (dlg->FilePattern) {
-         SUMA_LHv("Reseting dlg->FilePattern to %s\n", FilePattern);
+         SUMA_LHv("Resetting dlg->FilePattern to %s\n", FilePattern);
          SUMA_free(dlg->FilePattern);
       }
       dlg->FilePattern = SUMA_copy_string (FilePattern);

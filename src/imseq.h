@@ -1014,7 +1014,7 @@ extern void ISQ_cropper( MCW_imseq *, XButtonEvent *) ; /* 17 Jun 2002 */
 
 #define MINCROP 9  /* moved here 03 May 2007 */
 
-/* Stuff for makeing snapshots of Widgets, etc.
+/* Stuff for making snapshots of Widgets, etc.
    Also see functions in xim.c for snapshots directly to disk files. */
 
 extern void ISQ_snapshot( Widget w ) ;                 /* 18 Jun 2003 */

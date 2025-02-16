@@ -240,7 +240,7 @@ int apsearch_usage(TFORM targ, int detail)
 "  -max_hits MH: Return best MH hits only. Default MH = 3.\n"
 "                Use -1 to get all results back.\n"
 "  -m MH: Abbreviated version of -max_hits MH.\n"
-"  -min_different_hits mDH: Keep outputing hits until you have dDH\n"
+"  -min_different_hits mDH: Keep outputting hits until you have dDH\n"
 "                           dissimilar matches. \n"
 "                           Default is -1 (no minimum).\n"
 "  -unique_hits_only: Restrict output to novel hits only.\n"
@@ -288,14 +288,14 @@ int apsearch_usage(TFORM targ, int detail)
 "                      is set to YES.\n"
 "  -view_prog_help PROG: Open the help file for PROG in a GUI editor.\n"
 "                        This is like the option -hview in C programs.\n"
-"  -web_prog_help PROG: Open the help file for PROG in a web brower.\n"
+"  -web_prog_help PROG: Open the help file for PROG in a web browser.\n"
 "                       This is like the option -hweb in C programs.\n"
 "              Use ALL to view the page containing help for all programs.\n"
 "  -web_class_docs: Open the webpage with latest class pdfs.\n"
 "\n"
 "  NOTE: The maximum number of results depends on the combination of\n"
 "        -max_hits, -min_different_hits, and -unique_hits_only. \n"
-"        Withoug -unique_hits_only, the output will continue \n"
+"        Without -unique_hits_only, the output will continue \n"
 "        while neither -max_hits or -min_different_hits conditions \n"
 "        are met.\n"
 "\n"
@@ -318,7 +318,7 @@ int apsearch_usage(TFORM targ, int detail)
 "-wild_files_noAext_noAview: After compiling list, remove all known AFNI\n"
 "                    extensions and any view such as +tlrc, +orig, +acpc, \n"
 "                    and preserve unique set of resultant names\n"
-"-wild_files_orig_name: Output unique list using orignal (full) filename, \n"
+"-wild_files_orig_name: Output unique list using original (full) filename, \n"
 "                       rather than the names after extensions or views were\n"
 "                       removed. This option makes a difference when using\n"
 "                       one of -wild_files_noAext* options.\n"
@@ -343,10 +343,10 @@ int apsearch_usage(TFORM targ, int detail)
 "\n"
 "Examples:\n"
 "=========\n"
-" 1- Search help output of program whereami for the word '-atlas'\n"
-"        apsearch -ci -phelp whereami -word -atlas\n"
+" 1- Search help output of program whereami_afni for the word '-atlas'\n"
+"        apsearch -ci -phelp whereami_afni -word -atlas\n"
 " 2- Search all atlas area names for some name (mistakes on purpose)\n"
-"        whereami -show_atlas_code > all_atlas_area_names.txt\n"
+"        whereami_afni -show_atlas_code > all_atlas_area_names.txt\n"
 "        apsearch -file all_atlas_area_names.txt -word hepp\n"
 "        apsearch -file all_atlas_area_names.txt -word zipp \\\n"
 "                  -min_different_hits 5 -unique_hits_only \n"
@@ -367,11 +367,11 @@ int apsearch_usage(TFORM targ, int detail)
 "        apsearch -all_popts 3dSkullStrip\n"
 "    (*) see -all_popts in help section\n"
 " 7- Look for some area named something or other in some atlas:\n"
-"        whereami -show_atlas_code -atlas DKD_Desai_MPM |\\\n"
+"        whereami_afni -show_atlas_code -atlas DKD_Desai_MPM |\\\n"
 "                                apsearch -stdin -word insola\n"
 "    If you really screw up the spelling, you should help the search\n"
 "    program a little as in:\n"
-"        whereami -show_atlas_code -atlas DKD_Desai_MPM |\\\n"
+"        whereami_afni -show_atlas_code -atlas DKD_Desai_MPM |\\\n"
 "                                sed 's/[-_]/ /g' |\\\n"
 "                                apsearch -stdin -word insolent\n"
 " 8- Find 10 afni programs with something like 'Surface' in their names:\n"
@@ -559,7 +559,7 @@ int main(int argc, char **argv)
    mainENTRY("apsearch main"); machdep() ; 
    
    /* Check for race conditions, but do allow this program to call itself once
-   to accomodate the automatic handling of -h_apsx in mainENTRY(). */
+   to accommodate the automatic handling of -h_apsx in mainENTRY(). */
    if ((nproc = count_procs("apsearch")) > 2) {
       ERROR_message("Race condition detected. I'm out");
       exit(1);

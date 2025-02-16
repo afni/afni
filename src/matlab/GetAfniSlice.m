@@ -59,7 +59,7 @@ if (ndims(Brik) < 3),
 						BrikInfo.DATASET_DIMENSIONS(3), BrikInfo.DATASET_RANK(2));
 end
 
-%initailize return variables
+%initialize return variables
 err = 1;
 	switch Opt.plane,
 		case 'Ax',

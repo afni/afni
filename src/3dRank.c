@@ -28,7 +28,7 @@ void Rank_help(void) {
 "  -input DATASET1 [DATASET2 ...]: Input datasets.\n"
 "                                  Acceptable data types are:\n"
 "                                  byte, short, and floats.\n"
-"  -prefix PREFIX: Ouput prefix.\n"
+"  -prefix PREFIX: Output prefix.\n"
 "                  If you have multiple datasets on input\n"
 "                  the prefix is preceded by r00., r01., etc.\n"
 "                  If no prefix is given, the default is \n"

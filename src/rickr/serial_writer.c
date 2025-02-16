@@ -40,7 +40,7 @@ typedef struct{
     int     block_len;      /* length of writing block */
     int     nblocks;        /* number of blocks to write (0 for inf) */
     int     swap;           /* swap 'n' bytes (0 to do no swap) */
-    int     ms_sleep;       /* sleep this number of ms betweeen blocks */
+    int     ms_sleep;       /* sleep this number of ms between blocks */
     int     debug;
 } opts_t;
 
@@ -367,7 +367,7 @@ int usage( char * prog, int level )
             "\n"
             "    -ms_sleep MS_TO_SLEEP : sleep between blocks\n"
             "\n"
-            "        Sleep for this number of miliseconds between each\n"
+            "        Sleep for this number of milliseconds between each\n"
             "        block of data.\n"
             "\n"
             "    -swap NUM_BYTES       : specify the number of bytes to swap\n"

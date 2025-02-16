@@ -271,7 +271,7 @@ class MainFrame(wx.Frame):
          else:
             print("** unknown -gui option '%s'" % opt.name)
 
-      # in case either has previousely been set...
+      # in case either has previously been set...
       self.update_textlist_from_xmat()
       self.update_textlist_from_1D()
       self.check_plot_as_one.Check(self.plot_as_one)

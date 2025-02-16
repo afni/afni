@@ -30,6 +30,11 @@ g_site_install_mac  = '%s/steps_mac.html' % g_site_install_root
 g_fs_space_checked  = []
 g_fs_space_whine    = 1         # do we whine about fs space? (only once)
 
+# indentation
+g_indent            = '%8s' % ' '
+                      # libraries to possibly show __version__ on
+g_python_vtest_libs = ['matplotlib', 'flask', 'flask_cors']
+
 # ------------------------------ main class  ------------------------------
 
 class SysInfo:
@@ -37,16 +42,25 @@ class SysInfo:
 
    def __init__(self, data_root='', verb=1):
 
-      self.system          = platform.system()
-      self.home_dir        = os.environ['HOME']
-      self.data_root       = data_root
-      self.verb            = verb
+      self.verb            = verb   # set before calling any local functions
 
+      self.cpu             = self.get_cpu_type()
+      self.data_root       = data_root
+      self.home_dir        = os.environ['HOME']
+      self.system          = platform.system()
+      self.user            = "NONE"
+
+      # info to fill and track
       self.afni_ver        = ''
       self.afni_label      = ''
       self.afni_dir        = ''
       self.python_prog     = '' # path to program
       self.os_dist         = ''
+
+      # initialize a dict based on AFNI_version.txt : ver, sys, date, who
+      self.vinfo           = '' # raw AFNI_version.txt contents
+      self.afni_vinfo      = {'ver':'', 'sys':'', 'date':'', 'who':''}
+
       self.comments        = [] # comments to print at the end
       self.afni_fails      = 0
 
@@ -55,34 +69,59 @@ class SysInfo:
       self.login_shell     = ''
       self.rc_file         = ''
 
+      # misc control
+      self.test_pyqt4      = 0  # should we even test for PyQt4
+
       self.repo_prog       = '' # e.g. yum or brew
       self.have_matplotlib = 0
       self.have_pyqt4      = 0
+      self.need_flat       = 0  # only need if using macos_10.12_local
       self.warn_pyqt       = 0  # should we add PyQt(4?) message to 'comments'
       self.ok_openmp       = 0  # does 3dAllineate work, for example?
 
-   def get_afni_dir(self):
-      s, so, se = BASE.simple_shell_exec('which afni', capture=1)
-      if s: return ''
-      adir = so.strip()
-      if adir[-5:] == '/afni': return adir[0:-5]
-      else:                    return ''
+      self.libs_missing    = [] # missing shared libraries
+
+   def get_cpu_type(self):
+      """return CPU type
+
+         This should be the output of uname -m, or else fall back to
+         platform.processor(), which might use the more confusing uname -p.
+      """
+      try:
+         cpup = os.uname().machine
+      except:
+         cpup = platform.processor()
+      status, cout = UTIL.exec_tcsh_command('uname -m', lines=1)
+      if status == 0 and len(cout) > 0:
+         cpu = cout[0]
+      else:
+         print("-- failed to exec 'uname -m'")
+         cpu = cpup
+
+      if self.verb > 1:
+         print("++ have cpu = %s, cpup = %s" % (cpu, cpup))
+
+      return cpu
 
    def show_general_sys_info(self, header=1):
       if header: print(UTIL.section_divider('general', hchar='-'))
 
       print('architecture:         %s' % tup_str(platform.architecture()))
+      print('cpu type:             %s' % self.cpu)
       print('system:               %s' % platform.system())
       print('release:              %s' % platform.release())
       print('version:              %s' % platform.version())
 
       # check distributions by type - now all over the place
-      self.os_dist = distribution_string() # save for later
+      self.os_dist = distribution_string(self.verb) # save for later
       print('distribution:         %s' % self.os_dist)
          
       print('number of CPUs:       %s' % self.get_cpu_count())
 
-      # note shell, and if we are not in login shell
+      # note user and shell, and if we are not in login shell
+      self.user            = self.get_user()
+      print('user:                 %s' % self.user)
+
       logshell = UTIL.get_login_shell()
       curshell = UTIL.get_current_shell()
       if logshell == curshell: note = ''
@@ -102,6 +141,28 @@ class SysInfo:
       else:                                   fstr = 'does not exist'
       print('shell RC file:        %s (%s)' % (self.rc_file, fstr))
       print('')
+
+   def get_user(self):
+      """get user ID, hopefully by USER env var, else possibly whoami
+      """
+      fail = 1
+      user = 'FAILURE'
+
+      try:
+         user = os.environ['USER']
+         fail = 0
+      except:
+         if self.verb > 1:
+            print("-- no USER environment variable")
+
+      if fail:
+         try:
+            status, cout = UTIL.exec_tcsh_command('whoami', lines=1)
+            user = cout[0].strip()
+         except:
+            pass
+
+      return user
 
    def set_shell_rc_file(self, slist):
       """and many any useful comments"""
@@ -159,7 +220,7 @@ class SysInfo:
          gfound = 0
          if f1found and f2found:
             # does f1name reference f2name?
-            st, so, se = UTIL.limited_shell_exec("\grep %s $HOME/%s" \
+            st, so, se = UTIL.limited_shell_exec("\\grep %s $HOME/%s" \
                                                  % (f2name, f1name))
             if not st: gfound = 1
 
@@ -195,7 +256,7 @@ class SysInfo:
          print("-- found both %s and %s" % (cfile,tfile))
 
       found = 0
-      st, so, se = UTIL.limited_shell_exec("\grep %s $HOME/%s" % (cfile,tfile))
+      st, so, se = UTIL.limited_shell_exec("\\grep %s $HOME/%s" % (cfile,tfile))
       # if we find something, test to see if it is valid
       if st == 0:
          for line in so:
@@ -467,6 +528,7 @@ class SysInfo:
 
       # check for repositories
       self.check_for_progs(['dnf', 'yum', 'apt-get'], repos=1)
+      self.check_for_progs(['git', 'gcc'])
 
       if self.os_dist.find('buntu') >= 0:
          print('have Ubuntu system: %s' % self.os_dist)
@@ -492,7 +554,8 @@ class SysInfo:
             self.comments.append('consider installing PyQt4')
 
    def show_spec_macos(self):
-      """look for fink, macports, homebrew, PyQt4"""
+      """look for fink, macports, homebrew, PyQt4
+      """
 
       # first check on XQuartz (and Xcode?)
       self.check_for_progs(['XQuartz'], show_missing=1)
@@ -504,11 +567,18 @@ class SysInfo:
          # self.comments.append('consider installing fink')
          print('** no package manager found (okay for bootcamp)')
       self.hunt_for_homebrew()
-      if self.get_macos_ver() < 7:
+      maj, vmin = self.get_macos_ver()
+      if maj < 10 or (maj == 10 and vmin < 7):
          self.comments.append('OS X version might be old')
 
+      if self.verb > 1:
+         print("-- have mac version (major, minor) = %s, %s" % (maj, vmin))
+
+      self.check_for_progs(['git', 'gcc'])
+      self.show_brew_gcc()
+
       # add PyQt4 comment, if missing (check for brew and fink packages)
-      if not self.have_pyqt4:
+      if self.warn_pyqt and not self.have_pyqt4:
          glist = glob.glob('/usr/local/lib/python2*/site-packages/PyQt4')
          if len(glist) == 0:
             glist = glob.glob('/sw/lib/qt4*/lib/python2*/site-packages/PyQt4')
@@ -558,15 +628,69 @@ class SysInfo:
       self.check_for_pre_11_dylib()
 
       # in 10.11, check for gcc under homebrew
+      # (this are useless in modern macos)
       self.check_for_10_11_lib('libgomp.1.dylib', wpath='gcc/*/lib/gcc/*')
       self.check_for_10_11_lib('libglib-2.0.dylib', wpath='glib/*/lib')
-      self.check_for_flat_namespace()
+
+      if self.need_flat:
+         self.check_for_flat_namespace()
 
       self.check_for_macos_R_in_path()
 
       # forget this function - I forgot that the problem was a non-flat version
       #                        of libXt6, not a 6 vs 7 issue...
       # self.check_for_libXt7()
+
+   def show_brew_gcc(self):
+      """report all files of the form $HOMEBREW_PREFIX/bin/gcc-??
+
+         return 1 on an error
+      """
+
+      bdirs = [] # bin parent directories to search
+
+      # start with brew's "current" location, and store edir
+      bpre = '$HOMEBREW_PREFIX'
+      ebin = ''
+      if bpre in os.environ:
+         ebin = '%s/bin' % os.environ[bpre]
+         if os.path.isdir(ebin):
+            bdirs.append(ebin)
+
+      # if intel, start with /usr/local, else start with /opt/homebrew
+      if self.cpu.startswith('x86'):
+         btest = ['/usr/local/bin', '/opt/homebrew/bin']
+      else:
+         btest = ['/opt/homebrew/bin', '/usr/local/bin']
+
+      # put either or both into the list
+      for tdir in btest:
+         if os.path.isdir(tdir) and tdir not in bdirs:
+            bdirs.append(tdir)
+
+      # set these info bits early, to be used more than once
+      spaces = ' '*23
+      jstr = '\n%s' % spaces
+
+      if self.verb > 2:
+         print("-- have brew bin(s)  : %s" % jstr.join(bdirs))
+
+      if len(bdirs) == 0:
+         return 0
+
+      # finally, look for gcc in the first brew directory
+      bdir = bdirs[0]
+      gfiles = glob.glob('%s/gcc-[0-9][0-9]' % bdir)
+
+      print("brew gcc(s)          : %s" % jstr.join(gfiles))
+
+      # and show the current CommandLineTools SDK
+      sdklink = '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk'
+      sfile = os.path.realpath(sdklink)
+      sfile = sfile.split('/')[-1]
+      print("CommandLineTools SDK : %s" % sfile)
+
+      return 0
 
    def hunt_for_homebrew(self):
       """assuming it was not found, just look for the file"""
@@ -595,8 +719,8 @@ class SysInfo:
       if self.afni_fails < 2: return
             
       # this check only applis to OS X 10.7 through 10.10 (and if that)
-      osver = self.get_macos_ver()
-      if osver < 7 or osver > 10:
+      maj, vmin = self.get_macos_ver()
+      if maj != 10 or vmin < 7 or vmin > 10:
          return
 
       # count AFNI dylib files
@@ -659,7 +783,9 @@ class SysInfo:
          self.comments.append(" add dir: %s" % rbin_cur)
 
    def check_for_10_11_lib(self, libname, wpath='gcc/*/lib/gcc/*'):
-      """in 10.11, check for library under homebrew
+      """in 10.11 or 10.12, check for library under homebrew
+
+         ** homebrew does support 10.x, so maybe this is mute
 
          wpath = wildcard path to library name
 
@@ -669,8 +795,11 @@ class SysInfo:
       if self.repo_prog != 'brew':
          return 0
 
-      # require 10.11, unless being verbose
-      if self.get_macos_ver() < 11 and self.verb <= 1:
+      # require 10 and 10.11, unless being verbose
+      maj, vmin = self.get_macos_ver()
+      if maj != 10:
+         return 0
+      if vmin < 11 and self.verb <= 1:
          return 0
 
       sname   = wpath.split('/')[0]    # short name, e.g. gcc
@@ -684,7 +813,7 @@ class SysInfo:
       if len(clibs) == 0:
          if self.afni_fails > 0:
              self.comments.append('consider installing %s under homebrew'%sname)
-         else:
+         elif self.verb > 1:
              print('-- consider installing %s under homebrew' % sname)
          return 1
 
@@ -704,7 +833,8 @@ class SysInfo:
          mesg = 'consider linking %s under %s' % (clibs[0],libdir)
          if self.afni_fails > 0:
             self.comments.append(mesg)
-         print("** %s" % mesg)
+         if self.verb > 1 or self.afni_fails > 0:
+            print("** %s" % mesg)
          return 1
 
       # huston, we have a bad link, say something useful
@@ -768,7 +898,8 @@ class SysInfo:
          print('   (so afni and suma might fail)')
          self.comments.append('consider appending %s with %s' % (edir,flatdir))
       else:
-         if self.get_macos_ver() >= 11:
+         maj, minor = self.get_macos_ver()
+         if maj > 10 or minor >= 11:
             self.check_evar_path_for_val(edir, flatdir)
             if self.cur_shell.find('csh') < 0:
                self.check_evar_path_for_val(edir, flatdir, shell='tcsh')
@@ -864,22 +995,25 @@ class SysInfo:
       return s, so
 
    def get_macos_ver(self):
-      if self.system != "Darwin": return 0
+      """return major and minor version number (was just minor)"""
+
+      if self.system != "Darwin": return 0, 0
       verlist = self.os_dist.split()
-      if len(verlist) < 1: return 0
+      if len(verlist) < 1: return 0, 0
       verlist = verlist[0].split('.')
-      if len(verlist) < 2: return 0
-      if verlist[0] != '10': return 0
+      if len(verlist) < 2: return 0, 0
+      # if verlist[0] != '10': return 0, 0
 
       # get version
       try:
-         vint = int(verlist[1])
+         vmaj = int(verlist[0])
+         vmin = int(verlist[1])
       except:
          print("** OSX ver: have Darwin, but dist = %s" % self.os_dist)
          return 0
 
       # have something useful
-      return vint
+      return vmaj, vmin
 
    def check_for_progs(self, plist, repos=0, show_missing=0):
       """see whether the programs seem to be found, and show version
@@ -890,18 +1024,27 @@ class SysInfo:
       # check for programs
       nfound = 0
       for prog in plist:
+         # show_comment: if show_missing, we might not want a comment
+         show_comment = 1
+
          # the version file is treated specially here
          if prog == 'AFNI_version.txt':
-            vinfo = UTIL.read_AFNI_version_file()
-            if vinfo != '':
-               nfound += 1
-            else:
+            show_comment = 0 # no comments.append()
+            # populate version info dict
+            self.set_afni_vinfo()
+            vsys = self.afni_vinfo['sys']
+            if vsys == '':
                self.comments.append('missing %s, maybe package is old'%prog)
-            print('%-20s : %s' % (prog, vinfo))
+            else:
+               nfound += 1
+               if vsys == 'macos_10.12_local' or vsys == 'macosx_10.7_local':
+                  self.need_flat = 1
+            print('%-20s : %s' % (prog, self.vinfo))
             continue
 
          # as is afni
          elif prog == 'afni label':
+            show_comment = 0 # no comments.append()
             nfound += 1   # do not call this an error yet
             s, v = self.get_prog_version('afni')
             print('%-20s : %s' % ('', self.afni_label))
@@ -913,16 +1056,44 @@ class SysInfo:
             print('%-20s : %s' % ('%s version'%prog, v))
             continue
 
-         # and python - add a comment if they are using a version < 2.7
+         # Xvfb
+         elif prog == 'Xvfb':
+            cmd = 'which %s' % prog
+            s, so, se = BASE.simple_shell_exec(cmd, capture=1)
+            if not s: # found one
+               print('%-20s : %s' % (cmd, so.strip()))
+            elif show_missing:
+               print('%-20s :' % cmd)
+               xpath = '/opt/X11/bin'
+               if os.path.exists('%s/Xvfb' % xpath):
+                  self.comments.append("have %s/Xvfb, but not in PATH" % xpath)
+                  self.comments.append(" (please add %s to PATH)" % xpath)
+               else:
+                  self.comments.append("please install %s" % prog)
+            continue
+
+         # test python - just add a comment if they are using a version < 2.7
+         # (the version is printed later, do not print it here)
          elif prog == 'python':
             s, vstr = self.get_prog_version(prog)
-            vf = self.get_python_ver_float()
             mesg = ''
             # (removed old warning for 3.0+)
-            if vf < 2.7:
+            if BASE.compare_py_ver_to_given('2.7') < 0:
                mesg = 'have python version %s, consider using 2.7+' % vstr
             if mesg != '':
                self.comments.append(mesg)
+
+         # test tcsh - just add a comment if they are using 6.22.03
+         # (the version is printed later, do not print it here)
+         elif prog == 'tcsh':
+            s, vstr = self.get_prog_version(prog)
+            mesg = ''
+            # (removed old warning for 3.0+)
+            badver = '6.22.03'
+            if BASE.compare_dot_ver_strings(vstr, badver) == 0:
+               mesg = "have bad tcsh version %s, has '$var:t' bug" % vstr
+               self.comments.append(mesg)
+               self.comments.append(' (please install 6.22.04)')
 
          # now run the normal test
 
@@ -943,11 +1114,41 @@ class SysInfo:
                
             nfound += 1
          elif show_missing:
-            print('%-20s : %s' % (cmd, se))
+            self.comments.append("missing program: %s" % prog)
+            print('%-20s :' % cmd)
+            if self.verb > 2:
+               print('%-20s : %s' % (cmd, se))
 
       print('')
 
       return nfound
+
+   def set_afni_vinfo(self):
+      """populate the afni_vinfo dict {'ver':'', 'sys':'', 'date','', 'who':''}
+      """
+      self.vinfo = UTIL.read_AFNI_version_file()
+      vlist = [v.strip() for v in self.vinfo.split(',')]
+      vlen  = len(vlist)
+
+      if vlen > 0:
+         self.afni_vinfo['ver'] = vlist[0]
+      if vlen > 1:
+         self.afni_vinfo['sys'] = vlist[1]
+      if vlen > 2:
+         self.afni_vinfo['date'] = vlist[2]
+      if vlen > 3:
+         self.afni_vinfo['who'] = vlist[3]
+
+      if self.verb > 1:
+         print("++ afni_vinfo: %s" % self.afni_vinfo)
+
+      if self.cpu == 'arm64' and self.afni_vinfo['sys'] == 'macos_10.12_local':
+         wstr = "have ARM cpu, but Intel AFNI binaries"
+         bstr = "build_afni.py -build_root ~/afni_build -package macos_13_ARM"
+         self.comments.append(wstr)
+         self.comments.append(" - consider online install instructions" \
+                              " for local build, or more directly:")
+         self.comments.append("   %s" % bstr)
 
    def test_python_lib_matplotlib(self, verb=2):
       """check for existence of matplotlib.pyplot and min matplotlib version
@@ -957,7 +1158,7 @@ class SysInfo:
       """
       # actual lib test
       plib = 'matplotlib.pyplot'
-      rv = self.test_python_lib(plib, mesg='required', verb=verb)
+      rv = self.test_python_lib(plib, fmesg='required', verb=verb)
 
       # if missing, we are done
       if rv:
@@ -985,7 +1186,21 @@ class SysInfo:
       if warn:
          wstr = 'need maptplotlib version 2.2+ for APQC'
          print("** %s\n" % wstr)
-         self.comments.append('check for partial install of PyQt4')
+         self.comments.append(wstr)
+      # warn about 3.1.2 explicitly
+      elif mver == '3.1.2':
+         wstr = 'matplotlib version %s cannot write jpeg images' % mver
+         print("** %s\n" % wstr)
+         self.comments.append(wstr)
+
+   def get_ver_afni(self):
+      """return the contents of AFNI_version.txt, else "None"
+      """
+      vinfo = UTIL.read_AFNI_version_file()
+      if vinfo == '':
+         return 'None'
+
+      return vinfo
 
    def get_ver_matplotlib(self):
       """simply return a matplotlib version string, and "None" on failure.
@@ -998,7 +1213,109 @@ class SysInfo:
 
       return ver
 
+   def get_R_ver_for_lib(self, droot):
+      """return the version of R used to build libraries under 'droot'
+
+         droot should be a directory
+
+         RDS = find the first package.rds file under droot
+         run 'R -e 'd <-readRDS("RDS") ; d$Built$R'
+         use subprocess directly
+
+         any of these steps might fail, so we show what we can
+
+         return a version string on success, '' on failure
+      """
+      pname = 'package.rds'
+      ftxt = 'R_ver_for_lib'
+
+      # allow an rds file as input
+      if os.path.isfile(droot):
+         if not droot.endswith(pname):
+            print('** failed %s:' % ftxt)
+            pirnt('   not a dir or %s: %s' % (pname, ftxt))
+            return ''
+         # use droot as testpack
+         testpack = droot
+
+      # else if not a directory, fail
+      elif not os.path.isdir(droot):
+         print('** failed %s: not a directory: %s' % (ftxt, droot))
+         print('   (consider passing $R_LIBS)')
+         return ''
+
+      # else we have a directory, use globbing to get a file
+      else:
+         # try a few ways, from the closest on up
+         flist = glob.glob('%s/package.rds' % droot)
+         if len(flist) == 0:
+            flist = glob.glob('%s/**/package.rds' % droot)
+         if len(flist) == 0:
+            flist = glob.glob('%s/**/*/package.rds' % droot)
+
+         if len(flist) == 0:
+            print('** failed %s: no package.rds under %s' % (ftxt, droot))
+            return ''
+
+         testpack = flist[0]
+
+      # --- we have a test package, now want to run the R command
+
+      rcmd = 'd <-readRDS("%s") ; d$Built$R' % testpack
+      Rargs = ['R', '-e', rcmd]
+      Rfull = "R -e '%s'" % rcmd
+
+      if self.verb > 1:
+         print('++ running: %s' % Rfull)
+
+      try:
+         import subprocess as SP
+         spout = SP.run(Rargs, capture_output=True)
+      except:
+         print("** failed to exec R command")
+         return ''
+
+      if spout.returncode:
+         print("** failed to run: %s" % Rfull)
+         return ''
+
+      outtext = spout.stdout.decode()
+      outlist = outtext.split()
+      if len(outlist) == 0:
+         print('** failed %s: no R -e output' % ftxt)
+         return ''
+
+      if self.verb > 2:
+         print("-- R output:\n%s\n" % outtext)
+
+      # we have a list of output tokens, we might want something like:
+      # "'4.3.1'" - watch for the extra quotes
+
+      for ind in range(len(outlist)-1, -1, -1):
+         vstr = outlist[ind].strip("'")
+         slist = vstr.split('.')
+         ilist = []
+         try:
+            # look for all ints
+            ilist = [int(val) for val in slist]
+         except:
+            pass
+         if len(ilist) in [2,3]:
+            # SUCCESS!  wait, what were we here for again??? oh, vstr
+            if self.verb > 2: print("++ success: have ver %s" % vstr)
+            return vstr
+
+      if self.verb > 2: print("** %s failure" % ftxt)
+
+      return ''
+
    def test_python_lib_pyqt4(self, verb=2):
+      # do we even care to be here?
+      if not self.test_pyqt4:
+         # pretend that all is well
+         self.have_pyqt4 = 1
+         return 0
+
       # actual lib test
       libname = 'PyQt4'
       rv = MT.simple_import_test(libname, verb=verb)
@@ -1029,28 +1346,65 @@ class SysInfo:
 
       return 0
 
-   def test_python_lib(self, pylib, mesg='', verb=2):
+   def test_python_lib(self, pylib, fmesg='', showver=0, verb=2):
+      """try to import the given pylib library
+
+         pylib      : (string) library name
+         fmesg      : failure message
+         showver    : display __version__
+         verb       : verbosity level
+      """
       # actual lib test
       rv = MT.simple_import_test(pylib, verb=verb)
 
-      if mesg : pmesg = mesg
-      else:     pmesg = 'not required, but is desirable'
+      if fmesg : pmesg = fmesg
+      else:      pmesg = 'not required, but is desirable'
 
       # if failure, no biggie, but warn
       if rv:
          print('-- %s is %s' % (pylib, pmesg))
          return 1
 
+      if showver:
+         vstr = MT.get_version(pylib)
+         # on success, show the version info
+         if vstr != '':
+            print("   %s version : %s" % (pylib, vstr))
+
       if pylib.startswith('matplotlib'):
          self.have_matplotlib = 1
 
       return 0
 
+   def show_python_lib_versions(self, tlibs=g_python_vtest_libs, verb=0):
+      """show any __version__ attribute
+
+         tlibs  : provide a list of libraries to get the version of
+                  if 'ALL' is in the list, replace it with g_python_vtest_libs
+      """
+
+      # if ALL is in the list, replace it with global defaults
+      # (and remove dupes)
+      testlibs = tlibs[:]
+      if 'ALL' in tlibs:
+         testlibs.remove('ALL')
+         testlibs.extend(g_python_vtest_libs)
+         testlibs = UTIL.get_unique_sublist(testlibs)
+
+      # and print the versions
+      for tlib in testlibs:
+         vstr = MT.get_version(tlib,verb=verb)
+         print("   %-12s version : %s" % (tlib, vstr))
+         if verb: print("")
+      print("")
+
+      del(testlibs)
+
    def show_python_lib_info(self, header=1):
 
-      # any extra libs to test beyone main ones
+      # any extra libs to test beyond main ones
       # (empty for now, since matplotlib got its own function)
-      extralibs = []
+      extralibs = ['flask', 'flask_cors']
       verb = 3
 
       if header: print(UTIL.section_divider('python libs', hchar='-'))
@@ -1065,7 +1419,7 @@ class SysInfo:
 
       # then go after any others
       for plib in extralibs:
-         self.test_python_lib(plib, verb=verb)
+         self.test_python_lib(plib, showver=1, verb=verb)
          print('')
 
       for rootdir in ['/sw/bin', '/usr/local/bin']:
@@ -1086,13 +1440,20 @@ class SysInfo:
 
    def show_env_vars(self, header=1):
       print(UTIL.section_divider('env vars', hchar='-'))
-      for evar in ['PATH', 'PYTHONPATH', 'R_LIBS',
-                   'LD_LIBRARY_PATH',
-                   'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']:
+      maj, vmin = self.get_macos_ver()
+      elist = ['PATH', 'PYTHONPATH', 'R_LIBS',
+               'LD_LIBRARY_PATH',
+               'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH',
+               'CONDA_SHLVL', 'CONDA_DEFAULT_ENV', 'CC']
+      maxlen = max(len(e) for e in elist)
+
+      for evar in elist:
          if evar in os.environ:
             if self.verb > 2: print("-- SEV: getting var from current env ...")
-            print("%s = %s\n" % (evar, os.environ[evar]))
-         elif evar.startswith('DY') and self.get_macos_ver() >= 11:
+            envval = os.environ[evar]
+            print("%-*s = %s" % (maxlen, evar, envval))
+            if len(envval) > 60: print("")
+         elif evar.startswith('DY') and maj > 10 or (maj == 10 and vmin >= 11):
             if self.verb > 2:
                print("-- SEV: get DY var from macos child env (cur shell)...")
             s, so = self.get_shell_value(self.cur_shell, evar)
@@ -1100,10 +1461,81 @@ class SysInfo:
          else:
             if self.verb > 2:
                print("-- SEV: env var not set ...")
-            print("%s = " % evar)
+            print("%-*s = " % (maxlen, evar))
       print('')
 
       self.check_for_bash_complete_under_zsh()
+
+   def show_dot_file_check(self, header=1):
+      """run init_user_dotfiles.py for shells implied by setup"""
+
+      print(UTIL.section_divider('eval dot files', hchar='-'))
+
+      print()
+      print(UTIL.section_divider('AFNI $HOME files', maxlen=40, hchar='-'))
+      self.check_home_afni_files()
+
+      print(UTIL.section_divider('shell startup files', maxlen=40, hchar='-'))
+      # start with a minimum list, then append for current and login shells
+      # (is bash needed?)
+      shell_list = ['tcsh']
+
+      if self.cur_shell not in shell_list:
+         shell_list.append(self.cur_shell)
+      if self.login_shell not in shell_list:
+         shell_list.append(self.login_shell)
+      cmd = 'init_user_dotfiles.py -test -shell_list %s' % ' '.join(shell_list)
+      # if we do not need flat_namespace, prevent IUD.py from checking it
+      if not self.need_flat:
+         cmd += ' -do_updates path apsearch'
+      if self.verb > 2:
+         print("-- running command: %s" % cmd)
+      status, cout = UTIL.exec_tcsh_command(cmd, lines=1)
+
+      # report failure or else extract the number of mods needed
+      # need the word ('no' or integer) before 'modifications'
+
+      # first find nmods str
+      mod_search_str = 'modifications'
+      omesg = ''
+      oword = ''
+      for oline in cout:
+        if oline.find(mod_search_str) >= 0:
+           # and get word before search_str
+           wlist = oline.split(' ')
+           for wind, word in enumerate(wlist):
+              # found, save the needed items
+              if wind > 0 and word == mod_search_str:
+                 omesg = oline
+                 oword = wlist[wind-1]
+                 break
+           break
+
+      # then use count to generate any 'fix' message
+      fmesg = ''
+      if omesg == '':
+         fmesg = 'failure running init_user_dotfiles.py -test'
+      else:
+         if oword == 'no':
+            nmods = 0
+         else:
+            try:
+               nmods = int(oword)
+            except:
+               # failure to parse, so report regardless
+               print("** failure to parse %s line" % mod_search_str)
+               nmods = 1
+         # if we have mods to make, report omesg as a fix string
+         if nmods > 0:
+            fmesg = omesg
+
+      # if there is something to fix, report it
+      if fmesg != '':
+         self.comments.append(fmesg)
+
+      # indent the output (good or bad) by a few chars
+      indent = '\n   '
+      print('%s%s' % (indent, indent.join(cout)))
 
    def check_for_bash_complete_under_zsh(self):
       """check for source of all_progs.COMP.bash in .zshrc and similar files
@@ -1164,11 +1596,23 @@ class SysInfo:
       return evalue.split(sep)
 
    def show_general_afni_info(self, header=1):
-      print(UTIL.section_divider('AFNI and related program tests', hchar='-'))
+      if header:
+         print(UTIL.section_divider('AFNI and related program tests',hchar='-'))
 
-      self.afni_dir = self.get_afni_dir()
-      check_list = ['afni', 'afni label', 'AFNI_version.txt',
-                    'python', 'R', 'tcsh']
+      self.show_main_progs_and_paths()
+      self.check_select_AFNI_progs()
+
+   def check_dependent_progs(self, header=1):
+      if header:
+         print(UTIL.section_divider('dependent program tests',hchar='-'))
+
+      self.check_other_dep_progs()
+      self.check_R_libs()
+
+   def show_main_progs_and_paths(self):
+
+      self.afni_dir = get_prog_dir('afni_system_check.py')
+      check_list = ['afni', 'afni label', 'AFNI_version.txt', 'python', 'R']
       nfound = self.check_for_progs(check_list, show_missing=1)
       if nfound < len(check_list):
          self.comments.append('failure under initial ' \
@@ -1192,25 +1636,173 @@ class SysInfo:
                if len(files) > 0:
                   if os.stat(files[0]).st_uid == 0:
                      self.comments.append("'afni' executable is owned by root")
+            elif prog == 'Xvfb' :
+               if not(len(files)) :
+                  self.comments.append("missing 'Xvfb', please install")
 
       print('')
 
+      # time to do away with the py2 vs py3 comment, per PT  [24 Oct 2024]
       # explicit python2 vs python3 check    7 Dec 2016
-      n2 = UTIL.num_found_in_path('python2', mtype=1)
-      n3 = UTIL.num_found_in_path('python3', mtype=1)
-      if n3 > 0 and n2 <= 0:
-         print("** have python3 but not python2")
-      print('')
+      # was: n2 = UTIL.num_found_in_path('python2', mtype=1)
 
+   def check_select_AFNI_progs(self):
       # try select AFNI programs
       print('testing ability to start various programs...')
-      ind = '%8s' % ' '
-      indn = '\n%8s' % ' '
-      proglist = ['afni', 'suma', '3dSkullStrip', 'uber_subject.py',
-                   '3dAllineate', '3dRSFC', 'SurfMesh', '3dClustSim', '3dMVM']
-      fcount = 0
+
+      # progs: binary only (need libraries)
+      plist_bin = ['afni', 'suma', '3dSkullStrip', '3dAllineate', '3dRSFC',
+                   'SurfMesh', '3dClustSim']
+      # progs: scripts
+      plist_script = ['uber_subject.py', '3dMVM']
+
+      nprogs = len(plist_bin) + len(plist_script)
+
+      # try separately, to track library dependency issues with binaries
+      bfailures = self.check_running_AFNI_progs(plist_bin)
+      sfailures = self.check_running_AFNI_progs(plist_script)
+      fcount = len(bfailures) + len(sfailures)
+      if fcount > 0:
+         self.afni_fails = fcount
+         self.comments.append('AFNI programs show FAILURE')
+      print()
+
+      # if ANY programs failed and we are not running from `where afni` dir,
+      # try with the directory implied by this program
+      ascdir = UTIL.executable_dir()
+      if fcount > 0 and self.afni_dir != ascdir:
+         print('have failures, testing programs under implied %s...' % ascdir)
+         bfailures = self.check_running_AFNI_progs(plist_bin, execdir=ascdir)
+         sfailures = self.check_running_AFNI_progs(plist_script, execdir=ascdir)
+         fcount = len(bfailures) + len(sfailures)
+         if fcount < nprogs:
+            self.comments.append('consider adding %s to your PATH' % ascdir)
+         print()
+
+      # if we have binary failures, check for existence but lib failures
+      # (report in self.comments)
+      self.check_binary_libs(bfailures, ascdir)
+
+      # automatically check R_io.so
+      self.check_binary_libs(['R_io.so'], ascdir)
+
+      # if afni_dir is not set, use ascdir
+      if self.afni_dir == '': self.afni_dir = ascdir
+
+      # report cumulative set of unique missing libraries
+      for lib in self.libs_missing:
+         self.comments.append("missing binary library: %s" % lib)
+
+      if len(self.libs_missing) > 0:
+         print()
+
+   def check_binary_libs(self, proglist, execdir=None):
+      """try to find all missing shared libs from proglist
+         - report them in self.comments
+
+         return 1 if something was missing
+      """
+
+      if len(proglist) == 0:
+         return 0
+
+      libs_missing = []     # list of all missing libraries
+      libs_programs = []    # list of programs with missing libraries
       for prog in proglist:
-         st, so, se = BASE.shell_exec2('%s -help'%prog, capture=1)
+         # note directory of choice
+         if execdir: pdir = execdir
+         else:       pdir = get_prog_dir(prog)
+
+         # if none, skip
+         if not pdir:
+            continue
+
+         # does it (exist and) have missing libs?
+         missing = self.missing_libs('%s/%s' % (pdir, prog))
+
+         if len(missing) == 0:
+            continue
+
+         libs_missing.extend(missing)
+         libs_programs.append(prog)
+
+      # if nothing was found, we are done
+      if len(libs_missing) == 0:
+         return 0
+
+      libs_missing = UTIL.get_unique_sublist(libs_missing)
+
+      # report the failure
+      if len(libs_missing) == 1:
+         mlstr = "binary library '%s'" % libs_missing[0]
+      else:
+         mlstr = "%d binary libraries" % len(libs_missing)
+
+      if len(libs_programs) <= 1:
+         mpstr = "in program %s" % libs_programs[0]
+      else:
+         mpstr = "across %d programs" % len(libs_programs)
+
+      # report in terminal
+      print("** missing %s %s" % (mlstr, mpstr))
+
+      # and adjust self.libs_missing (to expand across calls)
+      libs_missing.extend(self.libs_missing)
+      self.libs_missing = UTIL.get_unique_sublist(libs_missing)
+
+      return 1
+
+   def missing_libs(self, fname):
+      """for given file, return a list of missing libraries
+
+         if linux, use ldd and search for 'not found'
+         if mac, well, I am not yet sure (otool -L does not show it)
+      """
+      if not os.path.isfile(fname):
+         if self.verb > 1:
+            print("-- ** cannot check for libs on missing file %s" % fname)
+         return []
+
+      # handle only known linux for now
+      if self.system != 'Linux':
+         return []
+
+      search_str = 'not found'
+
+      status, lines = UTIL.exec_tcsh_command("ldd %s"%fname, lines=1)
+      if self.verb > 2:
+         print("-- check for libs in %s\n"      \
+               "         status %s, nlines %d"  \
+               % (fname, status, len(lines)))
+
+      missing = []
+      for line in lines:
+         if line.find(search_str) > 0:
+            lname = line.split()[0]
+            missing.append(lname)
+            if self.verb > 2:
+               print("   missing: %s" % lname)
+
+      return missing
+
+   def check_running_AFNI_progs(self, proglist, execdir=None):
+      """for each prog in proglist, run "prog -help"
+         - if set, use execdir/prog
+         - side effect: possibly set self.ok_openmp
+
+         return list of failed progs
+      """
+
+      indn = '\n' + g_indent
+      failures = []
+      for prog in proglist:
+         # possibly add a path to prog
+         if execdir is not None:
+            fullprog = '%s/%s' % (execdir, prog)
+         else:
+            fullprog = prog
+
+         st, so, se = BASE.shell_exec2('%s -help'%fullprog, capture=1)
          # if 3dMVM, status will be 0 on failed library load (fix that, too)
          if prog == '3dMVM' and not st:
             mesg = ''.join(se)
@@ -1218,38 +1810,29 @@ class SysInfo:
                st = 1
          if st:
             print('    %-20s : FAILURE' % prog)
-            print(ind + indn.join(se))
-            fcount += 1
+            print(g_indent + indn.join(se))
+            failures.append(prog)
          else:
             print('    %-20s : success' % prog)
 
-            # no OpenMP problem
+            # check for OpenMP success
             if prog == '3dAllineate': self.ok_openmp = 1
-      print('')
-      pfailure = fcount == len(proglist)
-      if fcount > 0:
-         self.afni_fails = fcount
-         self.comments.append('AFNI programs show FAILURE')
 
-      # if complete failure, retry from exec dir
-      ascdir = UTIL.executable_dir()
-      if pfailure and self.afni_dir != ascdir:
-         fcount = 0
-         print('none working, testing programs under implied %s...' % ascdir)
-         for prog in proglist:
-            st, so, se = BASE.shell_exec2('%s/%s -help'%(ascdir,prog),capture=1)
-            if st:
-               print('    %-20s : FAILURE' % prog)
-               print(ind + indn.join(se))
-               fcount += 1
-            else: print('    %-20s : success' % prog)
-         print('')
-         if fcount < len(proglist):
-            self.comments.append('consider adding %s to your PATH' % ascdir)
-      # if afni_dir is not set, use ascdir
-      if self.afni_dir == '': self.afni_dir = ascdir
+      return failures
 
+   def check_other_dep_progs(self):
+      print('checking for dependent programs...\n')
+
+      check_list = ['tcsh', 'Xvfb']
+      nfound = self.check_for_progs(check_list, show_missing=1)
+
+   def check_R_libs(self):
       print('checking for R packages...')
+
+      # strings that imply library failure or possibly bad version
+      badstr = ['not installed', 'segfault', 'Traceback']
+
+      indn = '\n' + g_indent
       cmd = 'rPkgsInstall -pkgs ALL -check'
       st, so, se = BASE.shell_exec2(cmd, capture=1)
       if st or len(se) < 2: okay = 0
@@ -1259,14 +1842,19 @@ class SysInfo:
          # do not require "verified", but fail on "not installed"
          # (to avoid failing on 'unknown timezone' warnings)
          for estr in se:
-            if estr != '' and estr.find('not installed') >= 0:
-               okay = 0   # any failure is terminal
-               break
+            if estr == '':
+               continue
+
+            for bstr in badstr:
+               if estr.find(bstr) >= 0:
+                  okay = 0   # any failure is terminal
+                  break
+
       if okay:
          print('    %-20s : success' % cmd)
       else:
          print('    %-20s : FAILURE' % cmd)
-         print(ind + indn.join(se))
+         print(g_indent + indn.join(se))
          self.comments.append('missing R packages (see rPkgsInstall)')
       print('')
 
@@ -1274,55 +1862,46 @@ class SysInfo:
       print('R RHOME : %s' % cout.strip())
       print('')
 
-      print('checking for $HOME files...')
-      flist = ['.afnirc', '.sumarc', '.afni/help/all_progs.COMP']
-      for ff in flist:
-         if os.path.isfile('%s/%s'%(self.home_dir, ff)): fstr = 'found'
-         else:                                           fstr = 'missing'
-         print('    %-25s : %s' % (ff, fstr))
+   def check_home_afni_files(self):
+      print()
 
-      # add to comments
+      # prep file/comment list, starting with .afnirc, which depends on abin
       if self.afni_dir:
          ccc = 'run: cp %s/AFNI.afnirc ~/.afnirc' % self.afni_dir
       else:
          ccc = 'copy AFNI.afnirc to ~/.afnirc'
-      self.add_file_comment(None, '.afnirc', 'please %s' % ccc)
 
-      self.add_file_comment(None, '.sumarc',
-                            'please run: "suma -update_env" for .sumarc')
-      self.add_file_comment(None, '.afni/help/all_progs.COMP',
-                            'please run: apsearch -update_all_afni_help')
+      fclist = [ [ '.afnirc', 'please %s' % ccc ],
+                 [ '.sumarc', 'please run: "suma -update_env" for .sumarc' ],
+                 [ '.afni/help/all_progs.COMP',
+                              'please run: apsearch -update_all_afni_help'],
+               ]
+
+      # for each file and comment, report on existence
+      for fc in fclist:
+         ff = fc[0] # file name
+         cc = fc[1] # comment
+
+         isfile = self.add_isfile_comment(None, ff, cc)
+         if isfile: fstr = 'found'
+         else:      fstr = 'missing'
+
+         print('    %-25s : %s' % (ff, fstr))
 
       print('')
 
-   def add_file_comment(self, fdir, fname, comment):
+   def add_isfile_comment(self, fdir, fname, comment):
       """if fname is not found in 'pre' dir, add comment
+         return isfile()
       """
       if   fdir == None: pre = '%s/' % self.home_dir
       elif fdir:         pre = '%s/' % fdir
       else:              pre = ''
 
-      if not os.path.isfile('%s%s' % (pre, fname)):
+      isfile = os.path.isfile('%s%s' % (pre, fname))
+      if not isfile:
          self.comments.append(comment)
-
-   def get_python_ver_float(self):
-      """just return the python version in A.B format
-         (ignore lower order terms)
-         return 0.0 on error
-      """
-      vstr = platform.python_version()
-      try:
-         posn = vstr.find('.')
-         if posn > 0:
-            posn = vstr.find('.', posn+1)
-            pvs = vstr[0:posn]
-         else:
-            pvs = vstr
-         vf = float(pvs)
-      except:
-         vf = 0.0
-
-      return vf
+      return isfile
 
    def get_prog_version(self, prog):
       """return a simple string with program version
@@ -1359,7 +1938,20 @@ class SysInfo:
       elif prog == 'python':
          return 1, platform.python_version()
 
-      elif prog == 'tcsh':      # no version
+      elif prog == 'tcsh':      # version has lots on command line
+         cmd = '%s --version' % prog
+         s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
+         if s: return 1, se[0]
+
+         # e.g.: tcsh 6.22.04 (Astron) 2021-04-26 (x86_64-unknown-linux) ...
+         # so return second element of so[0]
+         ss = so[0].split()
+         # make sure it has 2+ elements, starting with 'tcsh'
+         if len(ss) < 2  : return 1, ''
+         if ss[0] != prog: return 1, ''
+         return 1, ss[1]
+
+      elif prog == 'Xvfb':      # no version
          return 0, ''
 
       elif prog == 'port':      # no dashes for version
@@ -1387,14 +1979,21 @@ class SysInfo:
             # clear on failure
             if vstr == '': dstr = ''
 
-         # some vesions are not considered good
+         # some versions are not considered good
          if self.check_xquartz_version(vstr, warn=1): 
             print("  ** for macos install instructions, see:\n\n    %s\n" \
                   % g_site_install_mac)
 
          return 1, (dstr+vstr)
 
-      elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink', 'R']:
+      # for R, try to return the version and platform
+      elif prog == 'R':
+         s, vstr = make_R_version_string()
+         # either way, use what is returned
+         return 1, vstr
+
+      elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink',
+                    'git', 'gcc' ]:
          cmd = '%s --version' % prog
          s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
          if s: return 1, se[0]
@@ -1629,71 +2228,158 @@ class SysInfo:
 
       self.show_general_sys_info()
       self.show_general_afni_info()
+      self.check_dependent_progs()
       self.show_python_lib_info()
       self.show_env_vars()
+      self.show_dot_file_check()
       self.show_data_info()
       self.show_os_specific()
 
       self.show_comments()
 
+# ----------------------------------------------------------------------
 # non-class functions
 
+def get_prog_dir(prog):
+   """return path to prog from 'which prog'"""
+
+   s, so, se = BASE.simple_shell_exec('which %s' % prog, capture=1)
+   if s: return ''
+   adir = so.strip()
+   tail = '/%s' % prog
+   tlen = len(tail)
+   if adir[-tlen:] == tail: return adir[0:-tlen]
+   else:                    return ''
+
+def make_R_version_string():
+   """try to collapse the R --version string into VERSION (PLATFORM)
+
+      return status and string
+   """
+   cmd = 'R --version'
+   s, so, se = UTIL.limited_shell_exec(cmd)
+
+   # if failure or empty so list, return se
+   if s or len(so) == 0:
+      if len(se) > 0: rs = se[0]
+      else:           rs = "** failed '%s'" % cmd
+      return 1, rs
+
+   # hoping for (DATE), if not, bail
+   posn = so[0].find('(')
+   if posn < 5:
+      return 0, so[0]
+   # get first part
+   v0 = so[0][0:posn-1]
+
+   v1 = ''
+   for line in so:
+      if line.startswith('Platform:'):
+         try:
+            v1 = line.split()[1]
+         except:
+            pass
+         break
+
+   # if success, use v0+v1, else stick with so[0]
+   if v1 != '':
+      return 0, '%s (%s)' % (v0, v1)
+   else:
+      return 0, so[0]
+         
 def tup_str(some_tuple):
    """just listify some string tuple"""
    return ' '.join(list(some_tuple))
 
-def distribution_string():
+def distribution_string(verb=1):
    """check distributions by type - now a bit messy"""
    import platform
    sysname = platform.system()
-   checkdist = 0        # set in any failure case
    dstr = 'bad pizza'
    dtest = 'NOT SET'
 
+   fail = 1  # track failure state, flatten try/except cases
+   label = 'NONE' # label for verbosity
+
    if sysname == 'Linux':
       # through python 3.7 (if they still use mac_ver, why not linux?)
-      try: dstr = tup_str(platform.linux_distribution())
+      try:
+         dstr = tup_str(platform.linux_distribution())
+         fail = 0
+         label = 'L0 p.ld'
       except: 
+         pass
+
+      if fail:
          try:
             # python 3.4+
             import distro
             dtest = distro.linux_distribution(full_distribution_name=False)
             dstr = tup_str(dtest)
+            fail = 0
+            label = 'L1 d.ld'
          except:
-            # deprecated since 2.6, but why not give it a try?
-            try:
-               dtest = platform.dist()
-               dstr = tup_str(dtest)
-            except:
-               checkdist = 1
-      # backup plan for linux checkdist
-      if checkdist:
+            pass
+
+      if fail:
+         # deprecated since 2.6, but why not give it a try?
+         try:
+            dtest = platform.dist()
+            dstr = tup_str(dtest)
+            fail = 0
+            label = 'L2 p.d'
+         except:
+            pass
+
+      # backup plan for linux
+      if fail:
          dstr = linux_dist_from_os_release()
          if dstr != '':
-            checkdist = 0
+            fail = 0
+         label = 'L3 ldfor'
+
    elif sysname == 'Darwin':
       try:
          dtest = platform.mac_ver()
          dstr = tup_str(dtest)
+         fail = 0
+         label = 'M0 p.mac_ver'
       except:
+         pass
+
+      if fail:
          try:
             dtest = list(platform.mac_ver())
             dstr = dtest[0]
-            if type(dstr) != str:
-               checkdist = 1
-            elif dstr == '':
-               checkdist = 1
+            if type(dstr) == str:
+              if dstr != '':
+                 fail = 0
+            label = 'M1 p.mac_ver'
          except:
-            checkdist = 1
+            pass
+
+      # shell out to test against 'sw_vers'
+      status, cout = UTIL.exec_tcsh_command('sw_vers --productVersion', lines=0)
+      if not status:
+         cout = cout.strip()
+         if dstr != cout:
+            dstr = '%s (sw_vers %s)' % (dstr, cout)
+
    else:
       try:
          dtest = platform.dist()
          dstr = tup_str(dtest)
-      except: checkdist = 1
+         label = 'other p.dist'
+      except:
+         fail = 1
 
    # backup plan
-   if checkdist:
+   if fail:
       dstr = 'unknown %s (%s)' % (sysname, dtest)
+      label = 'unknown'
+
+   if verb > 1:
+      print("-- dist_str : %s, %s, %s, %s" % (sysname, label, dstr, fail))
 
    return dstr
 

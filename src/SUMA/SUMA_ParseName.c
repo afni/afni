@@ -41,7 +41,7 @@ printf (
    "     quotes with something like:\n"
    "        -out 'HeadName RelPath'\n"
    "\n"
-   "  -outsep SEP: When outputing multiple components, use SEP as a separator\n"
+   "  -outsep SEP: When outputting multiple components, use SEP as a separator\n"
    "               between them. Default is ' ', one space character\n"
    "\n"
    "Tests:\n"
@@ -86,7 +86,7 @@ int main (int argc,char *argv[])
    val = NULL;
    sep = " "; /* separator for multiple outs */
    brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command line options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           usageParseName_Main ();
@@ -105,7 +105,7 @@ int main (int argc,char *argv[])
          
          cwd = argv[++kar];
          if (cwd[0] != '/') {
-            SUMA_S_Errv("-cwd must specify an abosulte directory path\n"
+            SUMA_S_Errv("-cwd must specify an absolute directory path\n"
                         "Have %s on command line.\n", cwd);
             exit(1);
          }

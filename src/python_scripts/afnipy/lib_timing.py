@@ -49,7 +49,7 @@ class AfniTiming(LD.AfniData):
       if self.verb > 1: print('++ Timing: adding %d rows' % newdata.nrows)
 
       if self.mtype != newdata.mtype:
-         print('** add rows: mis-match mtypes (%d vs. %d)' \
+         print('** add rows: mismatch mtypes (%d vs. %d)' \
                % (self.mtype, newdata.mtype))
 
       # get data and mdata
@@ -420,7 +420,7 @@ class AfniTiming(LD.AfniData):
             tind = row[ind][0]/tr
             # note that rf = 0 now means floor and 1 means ceil
 
-            # add/subract a tiny fraction even for truncation
+            # add/subtract a tiny fraction even for truncation
             if rf == 1.0   :
                if tind == 0: val = 0.0  # to avoid tiny negatives
                else:         val = math.ceil(tind-tiny) * tr
@@ -493,6 +493,8 @@ class AfniTiming(LD.AfniData):
       if force_married:
          self.write_dm = 1
          simple = 0
+         if self.verb > 2:
+            print("-- forcing write timing as married")
       self.write_as_timing(fname, nplaces=nplaces, mplaces=mplaces,
                                   check_simple=simple)
 
@@ -571,7 +573,7 @@ class AfniTiming(LD.AfniData):
                 min_tr_frac     : minimum fraction of a TR required to set it
                                   (must be in (0.0, 1.0])
          Note that if they are not TR-locked and min_tr_frac <= 0.5, then
-         one stimulus lasting one TR but occuring on the half TR can result
+         one stimulus lasting one TR but occurring on the half TR can result
          in a pair of consecutive 1s.
          ** end save
 
@@ -656,12 +658,15 @@ class AfniTiming(LD.AfniData):
             data[tind][1] = round(data[tind][1]/float(tr),3)
 
             if tind > 0 and data[tind][0] < data[tind-1][1]:
+               estr = '(event times %g and %g)' \
+                      % (tr*data[tind-1][0], tr*data[tind][0])
+               emesg = '** run %d, index %d %s, stimulus overlap' \
+                         % (rind+1, tind, estr)
                if allow_warns:
-                  print('** run %d, index %d, stimulus overlap with next' \
-                         % (rind, tind))
+                  print(emesg)
+                       
                else:
-                  return '** run %d, index %d, stimulus overlap with next' \
-                         % (rind, tind), [], []
+                  return emesg, [], []
 
          if self.verb > 4:
             print('++ stimulus on/off TR times, run %d :' % (rind+1))
@@ -1143,7 +1148,328 @@ class AfniTiming(LD.AfniData):
       del(off_means); del(off_stdev)
 
       return rv, rstr
+
+   def modulator_stats_str(self, perrun=1):
+      """return a string to display detailed statistics regarding
+                amplitude modulators within a stimulus file
+
+            perrun      : if more than 1 run, also include per-run results
+
+         return status, stats string
+
+                status > 0 : success, warnings were issued
+                       = 0 : success, no warnings
+                       < 0 : errors
+      """
+      if not self.ready:
+         return 1, '** Timing: nothing to compute ISI stats from'
       
+      num_am = self.num_amplitudes()
+      if num_am == 0:
+         return 1, '** no amplitude modulators for file %s' % self.name
+
+      rv = 0
+
+      # print out offset info
+      if self.nrows > 1: rstr = '%d runs' % self.nrows
+      else:              rstr = '1 run'
+      rstr = '\namplitude modulator statistics (%s - %s):\n\n' \
+             % (self.fname, rstr)
+
+      # ------------------------------------------------------------
+      # if more than one run, display per run stats
+      if self.nrows > 1 and perrun:
+
+         # for each modulator (index)
+         for amindex in range(num_am):
+            # mmms values across runs : [ [m,m,m,s], [m,m,m,s], ... ]
+            rlist = []
+            for rindex in range(self.nrows):
+               amlist = self.get_am_list(amindex, rindex)
+               rlist.append(list(UTIL.min_mean_max_stdev(amlist)))
+
+            pstr = 'mod_%d' % amindex
+            rstr += self._mms_per_run_str(rlist, pmesg=pstr, mtype='')
+
+      # ------------------------------------------------------------
+      # either way (1 run or more), display similar overall stats
+
+      # for each modulator, per run lists of min, mean, max, stdev
+      # [ MOD_0, MOD_1, ...], MOD_0 = [ [m,m,m,s], [m,m,m,s] ... runs ]
+      mmms_lists = []
+      lablist = []
+      for amindex in range(num_am):
+         amlist = self.get_am_list(amindex, 0)
+         mmms = list(UTIL.min_mean_max_stdev(amlist))
+         # each as a 1-run list of mmms values
+         mmms_lists.append([mmms])
+         lablist.append("mod_%d" % amindex)
+
+      rstr += self._mms_overall_str(mmms_lists, lablist)
+
+      return rv, rstr
+
+   def detailed_TR_offset_stats_str(self, tr, perrun=1):
+      """return a string to display detailed statistics regarding within-TR
+                offsets of stimuli
+
+            tr          : show mean/stdev for stimuli within TRs
+                          (so 0 <= mean < tr)
+            perrun      : if more than 1 run, also include per-run results
+
+         This is like detailed_TR_offset_stats_str, but is more detailed.
+
+         return status, stats string
+
+                status > 0 : success, warnings were issued
+                       = 0 : success, no warnings
+                       < 0 : errors
+      """
+      if not self.ready:
+         return 1, '** Timing: nothing to compute ISI stats from'
+      
+      if self.nrows != len(self.data):
+         return 1, '** bad Timing, nrows=%d, datalen=%d, failing...' % \
+                   (self.nrows, len(self.data))
+
+      if tr < 0.0:
+         return 1, '** show_TR_offset_stats: invalid TR %s' % tr
+
+      rv = 0
+
+      # print out offset info
+      rstr = '\nwithin-TR stimulus offset statistics (%s):\n\n' % self.fname
+
+      # ------------------------------------------------------------
+      # if more than one run, display per run stats
+      if self.nrows > 1 and perrun:
+
+         # per run lists of min, mean, max, stdev
+         # off_mmms : mmms for offsets, in seconds
+         # fr_mmms  : mmms for TR fractional offsets, in [0,1.0)
+         # frd_mmms : mmms for diffs of fr offsets, in [0,1]
+         # fru_mmms : mmms for diffs of unique fr offsets, in [0,1]
+         off_mmms, fr_mmms, frd_mmms, fru_mmms \
+            = self.get_offset_mmms_lists(self.data, tr)
+
+         # if no events are found, we're outta here
+         if len(off_mmms) == 0:
+            print('file %s: no events?' % self.name)
+            return 0, ''
+
+         rstr += self._mms_per_run_str(off_mmms, 'in seconds')
+         rstr += self._mms_per_run_str(fr_mmms,  'in TR fractions', c=1)
+         rstr += self._mms_per_run_str(frd_mmms, 'diffs of frac onsets')
+         rstr += self._mms_per_run_str(fru_mmms, 'diffs of unique fracs')
+
+      # ------------------------------------------------------------
+      # either way (1 run or more), display similar overall stats
+
+      allruns = []
+      for drun in self.data:
+         allruns.extend(drun)
+
+      off_mmms, fr_mmms, frd_mmms, fru_mmms \
+         = self.get_offset_mmms_lists([allruns], tr)
+
+      # if no events ere found, we're outta here
+      if len(off_mmms) == 0:
+         print('file %s: no events?' % self.name)
+         return 0, ''
+
+      rstr += self._mms_overall_str([off_mmms, fr_mmms, frd_mmms, fru_mmms],
+                                    ['offsets', 'frac', 'diffs', 'unique'])
+
+      # comments are now in the overall str
+
+      # clean up, just to be kind
+      del(off_mmms); del(fr_mmms); del(frd_mmms); del(fru_mmms)
+
+      return rv, rstr
+
+   def _mms_overall_str(self, mmms_list, name_list, mtype='global',
+                        ndec=3, do_c=1):
+      """
+            mmms_list : array of (single element array) mmms lists
+                      : [ [[m,m,m,s]], [[m,m,m,s]], ... ]
+                      : (where each mmms_list *could* have had multiple runs)
+            name_list : names for each mmms list
+            mtype     : type of mmms values to show, max 10 chars
+            ndec      : number of decimal places to print
+            do_c      : flag: do we show comment strings
+      """
+
+      lmin  = [m[0][0] for m in mmms_list]
+      lmean = [m[0][1] for m in mmms_list]
+      lmax  = [m[0][2] for m in mmms_list]
+      lstd  = [m[0][3] for m in mmms_list]
+
+      # make a single formatted string from the names
+      nlist = ['%8s' % n for n in name_list]
+      nstr  = ' '.join(nlist)
+
+      # header:      each of the names in name_list
+      # global vals: the mmms values for each of the mmms lists
+      # print using 7.3 + 2 char spacing
+      tstr = '%10s' % mtype
+      mstr = '\n'                                                       \
+             '                   %s\n'                                  \
+             '                    ----------------------------------\n' \
+             '%s min      %s\n'                                         \
+             '%s mean     %s\n'                                         \
+             '%s max      %s\n'                                         \
+             '%s stdev    %s\n\n'                                       \
+             % (nstr,
+                tstr, float_list_string(lmin  ,ndec=ndec),
+                tstr, float_list_string(lmean ,ndec=ndec),
+                tstr, float_list_string(lmax  ,ndec=ndec),
+                tstr, float_list_string(lstd  ,ndec=ndec))
+
+      # generate any comment string, if there is something to say
+      # this might grow : e.g. pass 'frac' and maybe 'unique' to get comment
+      if do_c:
+         cstr = ''
+         if 'frac' in name_list:
+            ind = name_list.index('frac')
+            mmms = mmms_list[ind][0]
+
+            c = self._mmms_comment(mmms)
+            if c != '':
+               mstr += '           comment: %s\n\n' % c
+
+      return mstr
+
+   def _mms_per_run_str(self, mmms, pmesg='', mtype='offset', ndec=3, c=0):
+      """
+            mmms    : array of mmms values, one set per run
+                      [min, mean, max, stdev], [min, mean, max, stdev], ... ]
+            pmesg   : parenthetical message to print
+            mtype   : type of mms values to show, max 10 chars
+            ndec    : number of decimal places to print
+            c       : flag: do we show comment strings
+      """
+
+      lmin  = [m[0] for m in mmms]
+      lmean = [m[1] for m in mmms]
+      lmax  = [m[2] for m in mmms]
+      lstd  = [m[3] for m in mmms]
+
+      # generate and comment string, if there is something to say
+      cstr = ''
+      if c:
+         cl = [self._mmms_comment(m) for m in mmms]
+         ml = max([len(cc) for cc in cl])
+         if ml > 0:
+            # if we have something, pad it out
+            cl = ['%7s' % cc for cc in cl]
+            cstr = '    any comments...   %s\n' % '  '.join(cl)
+
+      if pmesg != '':
+         pstr = ' (%s)' % pmesg
+      else:
+         pstr = pmesg
+
+      # print using 7.3 + 2 char spacing
+      mstr = '                    per run%s\n'                      \
+             '                    ------------------------------\n' \
+             '%10s min      %s\n'                                   \
+             '%10s mean     %s\n'                                   \
+             '%10s max      %s\n'                                   \
+             '%10s stdev    %s\n'                                   \
+             '%s\n'                                                 \
+             % (pstr,
+                mtype, float_list_string(lmin  ,ndec=ndec),
+                mtype, float_list_string(lmean ,ndec=ndec),
+                mtype, float_list_string(lmax  ,ndec=ndec),
+                mtype, float_list_string(lstd  ,ndec=ndec),
+                cstr)
+
+      return mstr
+
+   def _mmms_comment(self, mmms):
+      """return any apparent comment about the values
+         - if stdev == 0, either tr-locked or constant
+         - if min and max are close to but not 0 or 1,
+           we may be 'almost' tr-locked
+      """
+      if mmms[0] == 0 and mmms[3] == 0:
+         return 'tr-lock'
+      # check close to lock before const
+      if mmms[0] > 0 and mmms[2] < 0.1:
+         return '~lock'
+      if mmms[0] > 0.9:
+         return '~lock'
+      if mmms[0] > 0 and mmms[3] == 0:
+         return 'const'
+      return ''
+
+   def get_offset_mmms_lists(self, etimes, tr):
+      """given a list (stimulus, presumably) event onset times per run and
+         a TR, return four lists of : min, mean, max, stdev of
+
+         offset: for any event time, this is the time *within* a TR
+                 - like (etime modulo TR)
+                   e.g. etime 73.4, TR 1 -> offset 1.4
+                 - an offset will real and in [0, tr)
+
+         per-run mmms lists to return:
+
+            raw   : raw within-TR offset times
+            fr    : TR fractional offsets (so val/TR for each val in 'raw')
+            frd   : from the diffs of sorted 'fr' values, including 0.0 and 1.0
+                    e.g. fr [0.2, 0.3, 0.4] does not just give [0.1, 0.1],
+                         but [0.2, 0.1, 0.1, 0.6] to include TR boundaries
+            fru   : same as frd, but where 'fr' values are unique
+      """
+
+      # per run lists of [min, mean, max, stdev]
+      raw_mmms = []     # mmms: for raw times
+      fr_mmms  = []     # mmms: for TR fractional offsets, in [0,1.0)
+      frd_mmms = []     # mmms: for diffs of fr offsets, in [0,1]
+      fru_mmms = []     # mmms: for diffs of unique fr offsets
+
+      # for each run of etimes
+      for ron in etimes:
+         # skip any empty run
+         if len(ron) == 0: continue
+
+         # raw offsets
+         roffsets = UTIL.interval_offsets([val for val in ron], tr)
+         # self._add_to_mmms_list(roffsets, raw_mmms)
+         raw_mmms.append(list(UTIL.min_mean_max_stdev(roffsets)))
+
+         # fractional offsets
+         foffsets = [v/tr for v in roffsets]
+         fr_mmms.append(list(UTIL.min_mean_max_stdev(foffsets)))
+         # self._add_to_mmms_list(foffsets, fr_mmms)
+
+         # diffs of fractional timing offsets
+         # for diffs, require foffsets to include 0 and 1 (1, if not locked)
+         foffsets.sort()
+         if 0.0 not in foffsets: foffsets.insert(0,0.0)
+         if (1.0 not in foffsets) and max(foffsets) > 0: foffsets.append(1.0)
+         # and get diffs of these
+         doffsets = [foffsets[i+1]-foffsets[i] for i in range(len(foffsets)-1)]
+         frd_mmms.append(list(UTIL.min_mean_max_stdev(doffsets)))
+         # self._add_to_mmms_list(doffsets, frd_mmms)
+
+         # same, but restricted to a list of unique foffsets
+         uoffsets = UTIL.get_unique_sublist(foffsets)
+         doffsets = [uoffsets[i+1]-uoffsets[i] for i in range(len(uoffsets)-1)]
+         fru_mmms.append(list(UTIL.min_mean_max_stdev(doffsets)))
+         # self._add_to_mmms_list(doffsets, fru_mmms)
+
+      return raw_mmms, fr_mmms, frd_mmms, fru_mmms
+
+   def _add_to_mmms_list(self, vals, mmms):
+      """for the given vals, append mmms results to the 4 mmms lists
+
+         vals  : array of real values
+         mmms  : list of 4 lists, for min, mean, max, stdev results
+      """
+      m0, m1, m2, ss = UTIL.min_mean_max_stdev(vals)
+      mmms.append(list(UTIL.min_mean_max_stdev(vals)))
+
 def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
    str = ''
    for val in vals: str += '%*.*f%*s' % (nchar, ndec, val, nspaces, '')
@@ -1208,11 +1534,25 @@ def read_multi_ncol_tsv(flist, hlabels=None, def_dur_lab=None,
       skeys.sort()
       for cname in skeys:
          # there might be an amplitude
-         if nvals > 3:
-             cevents = [[e[0], e[3], e[1]] for e in elist if e[2] == cname]
-         else:
-             cevents = [[e[0], [], e[1]] for e in elist if e[2] == cname]
+         # if nvals > 3:
+         cevents = [e for e in elist if e[2] == cname]
+         # check for consisency:
+         #   note whether AMs exist, and that use is constant
+         numam = 0
+         if len(cevents) > 0:
+            le = len(cevents[0])
+            numam = len(cevents[0][3])
+            for e in cevents:
+               if len(e) != le:
+                  print("** inconsistent modulators for condition %s" % cname)
+                  return 1, tlist
+               if numam != len(e[3]):
+                  print("** inconsistent num mods for condition %s" % cname)
+                  return 1, tlist
+
+         cevents = [[e[0], e[3], e[1]] for e in cevents]
          cdict[cname].append(cevents)
+
          if verb > 4:
             print('++ RM3CT: append cdict[%s] with %s' % (cname, cevents))
 
@@ -1225,7 +1565,7 @@ def read_multi_ncol_tsv(flist, hlabels=None, def_dur_lab=None,
    skeys.sort()
    for cname in skeys:
       mdata = cdict[cname]
-      timing = AfniTiming(mdata=cdict[cname])
+      timing = AfniTiming(mdata=cdict[cname], verb=verb)
       # init name and fname based on label, consider ability to change
       timing.name = cname
       timing.fname = 'times.%s.txt' % cname
@@ -1305,7 +1645,7 @@ def parse_Ncol_tsv(fname, hlabels=None,
       return -1, [], []
 
    # ----------------------------------------
-   # decide on column extration indices, based on hlabels and lines[0:2]
+   # decide on column extraction indices, based on hlabels and lines[0:2]
 
    # if nothing passed, set to defaults
    # - let tsv_hlabels_to_col_list append any mod_*
@@ -1345,13 +1685,13 @@ def parse_Ncol_tsv(fname, hlabels=None,
       col_dur_alt = cols_alt[1]
 
    # perhaps we want to write out cols of interest
-   if not tsv_int is None:
-      # first merge col_inds nand cols_alt, then write
+   if tsv_int is not None:
+      # first be sure any col_dur_alt is in col_inds, then write
       if verb > 1:
          print("== writing to tsv %s" % tsv_int)
       csub = col_inds[:]
-      csub.extend(cols_alt)
-      csub = UTIL.get_unique_sublist(csub)
+      if col_dur_alt >= 0 and col_dur_alt not in csub:
+         csub.append(col_dur_alt)
       write_tsv_cols(lines, csub, ofile=tsv_int)
 
    # if show_only, we are done
@@ -1397,8 +1737,6 @@ def parse_Ncol_tsv(fname, hlabels=None,
          onset = float(line[oind])
          dur = float(dur_txt)
          lab = line[lind].replace(' ', '_')   # convert spaces to underscores
-         if len(ainds) > 0:
-             amps = [float(line[aind]) for aind in ainds]
       except:
          if verb:
             print('** bad line Ncol tsv file %s:\n   %s' \
@@ -1406,17 +1744,43 @@ def parse_Ncol_tsv(fname, hlabels=None,
             print("   dur_txt = '%s'" % dur_txt)
          return -1, [], []
 
+      # in modulators, check for na
+      amps = []
+      if len(ainds) > 0:
+         # if any na exists, ignore mods
+         avals = [line[aind] for aind in ainds]
+         if not has_na(avals):
+             amps = [float(v) for v in avals]
+         elif verb > 3:
+             print("-- ignoring mods due to n/a")
+
       # append new event, possibly with a 'MISSED' label
       if missing_event:
          use_lab = 'MISSED_%s' % lab
       else:
          use_lab = lab
-      if len(ainds) > 0: slist.append([onset, dur, use_lab, amps])
-      else:              slist.append([onset, dur, use_lab])
+
+      slist.append([onset, dur, use_lab, amps])
 
    nuse = len(col_inds)
 
    return nuse, header, slist
+
+def has_na(vals):
+   """return 1 if there are any na-type vals in the list"""
+   if len(vals) < 1:
+      return 0
+   for val in ['na', 'NA', 'n/a', 'N/A']:
+      if val in vals:
+         return 1
+   return 0
+
+def tofloat(val,verb=1):
+   """convert to float, but allow na, NA, n/a, N/A"""
+   if val in ['na', 'NA', 'n/a', 'N/A']:
+      if verb > 3: print("-- converting %s to 0.0" % val)
+      return 0.0
+   return float(val)
 
 def write_tsv_cols(table, cols, ofile='stdout'):
 
@@ -1498,7 +1862,7 @@ def tsv_hlabels_to_col_list(hlabs, linelists,
    nfloat = ntext = 0
    for entry in line0:
       try:
-         fval = float(entry)
+         fval = tofloat(entry, verb=verb)
          nfloat += 1
       except:
          ntext += 1

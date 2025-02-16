@@ -60,7 +60,7 @@ afnipy package is installed into your current interpreter.
 In order to facilitate the iterative process of changing code and running
 tests you can run the tests directly on the executables/scripts in the
 build/source trees. When you run the following it will initially take a long
-time because it needs to build the full suite of AFNI tools. Subsquently,
+time because it needs to build the full suite of AFNI tools. Subsequently,
 minimal rebuilds occur: i.e. any changes in the source tree will trigger a
 rebuild only of binaries that are affected by the change (or at least that is
 the hope).

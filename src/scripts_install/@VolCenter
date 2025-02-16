@@ -66,7 +66,7 @@ DEED:
    set v1_Nd = ( $resp[3] $resp[4] $resp[5] )
    #echo "N Experiment Talairach: $v1_Nd : $v1_orient"
    
-   #calclulate the center of the brain
+   #calculate the center of the brain
    set v1_center = ( `ccalc -eval "$v1_origin[1] + ($v1_delta[1] * ($v1_Nd[1] -1))/2"`\
                         `ccalc -eval "$v1_origin[2] + ($v1_delta[2] * ($v1_Nd[2] -1))/2"`\
                         `ccalc -eval "$v1_origin[3] + ($v1_delta[3] * ($v1_Nd[3] -1))/2"` )

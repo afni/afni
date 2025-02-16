@@ -52,7 +52,7 @@ history for $prog :
   2.1  16 Feb 2016 : added -ver and initial statement of version
   2.2  19 Feb 2016 : minor text changes (note get_prog and appease dglen)
   2.3  29 Mar 2016 : added -no_cert_verify to omit certificate verification
-  2.4  30 Mar 2016 : possibly udpate .bashrc after .cshrc
+  2.4  30 Mar 2016 : possibly update .bashrc after .cshrc
   2.5  07 Apr 2016 : added -proto and -test_protos options
   2.6  08 Apr 2016 : save -test_protos results
   2.7  28 Apr 2016 : added -local_package option
@@ -86,7 +86,13 @@ history for $prog :
   3.19 11 Jan 2022 : if not found, init .afnirc/.sumarc
   3.20  3 May 2022 : for anyos packages, test update with AFNI_version.txt
   3.21 22 Jul 2022 : add linux_fedora_28_shared to obsolete_list
-
+  3.22  5 May 2023 : fix setting cur_afni
+  3.23 27 Nov 2023 : add some comments about build_afni.py
+  3.24  7 Dec 2023 : add -overwrite_build (required for that operation)
+  3.25 30 Aug 2024 : now obsolete: linux_xorg7, linux_xorg7_64
+  3.26 19 Sep 2024 : allow use of build_afni.py to compile a new package
+                   - add -build_afni (only to override current source)
+                   - add -build_root and -built_opts for build_afni.py
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -94,16 +100,17 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.21, July 22, 2022"
+set aub_version = "3.26, September 19, 2024"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
 set obsolete_list = (                                           \
-        linux_gcc32 linux_gcc33_64 linux_glibc22                \
         NIH.openSUSE.11.4_64                                    \
+        solaris29_suncc            solaris29_suncc_64           \
+        linux_gcc32 linux_gcc33_64 linux_glibc22                \
+        linux_xorg7                linux_xorg7_64               \
         linux_fedora_21_64         linux_fedora_25_64           \
         linux_fedora_28_shared                                  \
-        solaris29_suncc            solaris29_suncc_64           \
         macosx_10.5_Intel_64       macosx_10.6_Intel_64         \
         macosx_10.7_Intel_64       macosx_10.7_local            \
         macosx_10.8_gcc            macosx_10.8_icc              \
@@ -112,14 +119,15 @@ set obsolete_list = (                                           \
 # ----------------------------------------------------------------------
 # apply any options
 
-# initialize options to 'unset'
+# ----------------------------------------------------------------------
+# option-controlled variables (initialize to 'unset')
 set abin = ""
 set flatdir = /opt/X11/lib/flat_namespace
 set package = ""
 set local_package = ""          # existing .tgz package to use (no download)
+set overwrite_build = 0         # do we allow overwriting build_afni.py
 set prog_list = ()              # update programs or entire package
 set tmp_dir = ".tmp.install"    # should start with '.'
-set make_backup = 0             # backup previous binaries
 
 set sys_ok = 0                  # OK to update having system programs
 
@@ -127,10 +135,6 @@ set sys_ok = 0                  # OK to update having system programs
     # should not go through this script
 set system_progs = ( apt-get at cc cpp cmp diff du gcc less man md5sum od \
                      passwd perl python scp srm sudo vi vim wc xterm yum )
-set show_system_progs = 0
-
-set show_obsoletes = 0
-set show_obsoletes_grep = 0     # greppable
 
 if ( $#argv == 0 ) then
     set help = 1
@@ -138,17 +142,36 @@ else
     set help = 0
 endif
 
-set testing     = 0
-set test_protos = 0     # test download protocols
-set use_curl    = 0
-set do_extras   = 0     # possibly include apearch and dotfiles
+# ----------------------------------------------------------------------
+# other option-controlled variables
+set build_afni  = 0     # whether to use build_afni.py
+set build_opts = ( )    # if build_afni, include extra options
+set build_root = ~/afni_build # if build_afni, where to do it
+
+set cert_verify = 1     # whether to verify CA certificate via SSL/TLS
 set do_apsearch = 0     # run apserach -update_all_afni_help
 set do_dotfiles = 0     # if needed, initialize dotfiles
+set do_extras   = 0     # possibly include apearch and dotfiles
 set do_recur    = 1     # download a new version of @uab, first
+set make_backup = 0     # backup previous binaries
 set quick       = 0     # no fancies (recur, apsearch)
 set revert      = 0     # revert binaries to those in backup directory
-set cert_verify = 1     # whether to verify CA certificate via SSL/TLS
-set use_curl    = 0
+set testing     = 0
+set test_protos = 0     # test download protocols
+
+set show_system_progs   = 0     # as it says
+set show_obsoletes      = 0     # as it says
+set show_obsoletes_grep = 0     # include greppable text
+
+set use_curl    = 0     # use curl or wget
+
+# ----------------------------------------------------------------------
+# other non-option globals (non-locally used) variables
+# 
+# backup_dir            # directory to run backup under
+# build_label           # AFNI_WHOMADEIT: line 4 of AFNI_version.txt
+# cur_afni              # path to current set of binaries
+# date                  # the current date
 
 set bad_opt     = ''    # if bad_opt and do_recur, see if we continue
 
@@ -173,6 +196,23 @@ while ( $ac <= $#argv )
             exit 1
         endif
         set abin = $argv[$ac]
+    else if ( "$argv[$ac]" == "-build_afni" ) then
+        set build_afni = 1
+    else if ( "$argv[$ac]" == "-build_opts" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-build_opts'"
+            exit 1
+        endif
+        # should be a list contained in quotes
+        set build_opts = ( $argv[$ac] )
+    else if ( "$argv[$ac]" == "-build_root" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-build_root'"
+            exit 1
+        endif
+        set build_root = $argv[$ac]
     else if ( "$argv[$ac]" == "-curl" ) then
         set use_curl = 1
     else if ( "$argv[$ac]" == "-d" || "$argv[$ac]" == "-defaults" ) then
@@ -241,6 +281,8 @@ while ( $ac <= $#argv )
         else
            set make_backup = 1
         endif
+    else if ( "$argv[$ac]" == "-overwrite_build" ) then
+        set overwrite_build = 1
     else if ( "$argv[$ac]" == "-package" ) then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -343,48 +385,134 @@ endif
 if ( $help ) then
 cat << EOF
 ------------------------------------------------------------
-$prog   - upgrade AFNI binaries ~1~
+$prog   - update or install AFNI binaries ~1~
 
-Install or update the AFNI binaries, either via '-defaults' or by the
-'-bindir' and/or '-package' options.
+This program can be used to (at least):
+  
+   - perform an initial install of precompiled binaries
+     - as an admin or a non-admin user
+   - update the current precompiled binaries
+   - update locally compiled binaries, created using build_afni.py
+     (but it seems like a better idea to use build_afni.py directly)
 
-examples:
+   Note: one can use build_afni.py to compile locally.
 
-    individual user: initial install or udpate
+examples: ~1~
 
-       The default package is linux_openmp_64 (Linux) or macos_10.12_local
-       (OS X).  The default binary directory is ~/abin.
+ 1. individual user: initial install ~2~
 
-       @update.afni.binaries -defaults
+    1a. When doing initial install, always specify a package.
 
+        @update.afni.binaries -package linux_ubuntu_24_64 -bindir ~/abin
 
-    root user: initial install or udpate
+    1b. Also initialize the dotfiles (.cshrc, .bashrc, etc).
 
-       @update.afni.binaries -package linux_openmp_64 \\
-                             -bindir /usr/local/AFNIbin
-       @update.afni.binaries -local_package linux_openmp_64.tgz \\
-                             -bindir /usr/local/AFNIbin
+        @update.afni.binaries -package linux_ubuntu_24_64 -bindir ~/abin \\
+                              -do_dotfiles
 
+    1c. And possibly include extras like dotfile and apsearch initialization.
 
-    other examples:
+        @update.afni.binaries -package linux_ubuntu_24_64 -bindir ~/abin \\
+                              -do_extras
 
-       @update.afni.binaries -defaults
+    1d. Possibly just install a the non-binary text package with atlases,
+        into the \$HOME/abin directory.
+
+        @update.afni.binaries -package anyos_text_atlas -bindir ~/abin
+
+ 2. root user: initial install ~2~
+
+    2a. Install a specific package into a system directory.
+        Such a command would apply to either an initial install or an update.
+
+        @update.afni.binaries -package linux_ubuntu_24_64 \\
+                              -bindir /usr/local/AFNIbin
+
+    2b. Similar to 2a, but one can specify a path to a previously downloaded
+        .tgz package file, so such a download would not need to be repeated.
+        Use -local_package to specify the path to the tgz file.
+
+        @update.afni.binaries -local_package linux_ubuntu_24_64.tgz \\
+                              -bindir /usr/local/AFNIbin
+
+ 3. individual user: basic updates ~2~
+
+    3a. Basic: update the binaries and the apsearch setup (tab completion).
+      * Note that with an update, the package is already known.
+      * Note also that this would be appropriate for a locally compiled
+        package as well, which would run build_afni.py.
+
+        @update.afni.binaries -apsearch yes
+
+    3b. Basic: also make a backup of the current binaries.
+
+        @update.afni.binaries -apsearch yes -make_backup yes
+
+    3c. Basic: -defaults would do the same, but also try to update the dotfiles.
+        Since that step should already be done, this should be the same as 3b.
+
+        @update.afni.binaries -defaults
+        @update.afni.binaries -d
+
+    3d. Quick update, do nothing but update the current package.
+
+        @update.afni.binaries -quick
+
+    3e. Update only a specific list of programs (e.g. suma and 3dRSFC).
+
+        @update.afni.binaries -package linux_openmp_64 -programs suma 3dRSFC
+
+ 4. other examples ~2~
+
+    4a. install the small, text-only package in the directory of that same name
+
+        @update.afni.binaries -package anyos_text -bindir anyos_text
+
+    4b. include atlases, and install in a system directory
+
+        @update.afni.binaries -package anyos_text_atlas \\
+                              -bindir /usr/local/AFNI/anyos_text_atlas
+
+    4c. test running build_afni.py, but do not install it
+        (-build_afni is only needed if the current package was not made by it)
+
+        @update.afni.binaries -build_afni -build_root ~/afni_build \\
+                              -build_opts "-do_install no"
+
+    4d. use build_afni.py to replace the current "official" package
+
+        @update.afni.binaries -build_afni -build_root ~/afni_build
+
+    4e. update the current package if it was made using build_afni.py,
+        and run the apserach updates, for tab completion
+        (this is the same command that works for the official package)
+
+        @update.afni.binaries -apsearch yes
+
+    4f. update the current package if it was made using build_afni.py,
+        but do nothing else (just update the current package)
+        (this is the same command that works for the official package)
+
+        @update.afni.binaries -quick
+
+    4g. a quick build_afni.py update can be done in either of these ways
+        (these commands should effectively both run the latter)
+
+        @update.afni.binaries -quick
+
+        build_afni.py -build_root ~/afni_build
+
+ 5. other "random" examples: ~2~
+
+       @update.afni.binaries -apsearch yes
+       @update.afni.binaries -d
        @update.afni.binaries -defaults -package macos_10.12_local
-       @update.afni.binaries -package linux_openmp_64
        @update.afni.binaries -package linux_openmp_64 -bindir ~/abin
-       @update.afni.binaries -package linux_openmp_64 -programs suma 3dRSFC
        @update.afni.binaries -package linux_openmp_64 \\
                              -programs file_tool python_scripts/*.py
        @update.afni.binaries -show_obsoletes
-
        @update.afni.binaries -local_package macos_10.12_local.tgz
 
-
-    examples to install packages without compiled binaries:
-
-       @update.afni.binaries -no_recur -package anyos_text -bindir anyos_text
-       @update.afni.binaries -no_recur -package anyos_text_atlas \\
-                             -bindir anyos_text_atlas
 
 ------------------------------------------------------------
 options: ~1~
@@ -392,10 +520,41 @@ options: ~1~
     -help                 : show this help
     -help_sys_progs       : list system programs that block update
 
-       See -sys_ok for details.
+        See -sys_ok for details.
 
     -apsearch yes/no      : specify getting apsearch updates
     -bindir ABIN          : set AFNI binary directory to ABIN
+
+    -build_afni           : specify to use build_afni.py, regardless
+
+        This option will for the installation process to use build_afni.py.
+        That is to say, rather than downloading and installing a previously
+        compiled binary package from the AFNI website (an "official" release),
+        use build_afni.py to compile an AFNI package locally.
+
+        If the currently installed AFNI package was made using build_afni.py,
+        then this option is not necessary.
+
+        See also -build_root and -build_opts.
+
+    -build_opts "OPT LIST" : specify a list of options to pass to build_afni.py
+
+        e.g. -build_opts "-do_install no"
+
+        If build_afni.py will be used for compiling new binaries, include the
+        given options in the command.  To make programming easier in this
+        shell script, this list of options should be contained in quotes, so
+        that this program sees it as a single argument.
+
+    -build_root DIR       : specify a directory for build_afni.py to work under
+
+        default -build_root ~/afni_build
+        e.g.    -build_root some/other/dir
+
+        If build_afni.py will be used for compiling new binaries, ~/afni_build
+        will be used for such work by default.  Use this option to specify an
+        alternate location.
+
     -curl                 : default to curl instead of wget
 
     -defaults             : install current package into abin
@@ -573,8 +732,7 @@ options: ~1~
         There should be only 1 backup to revert to.  One cannot
         revert back 2 levels, say.
 
-Note that the user must have write permissions in the ABIN
-directory.
+Note that the user must have write permissions in the ABIN directory.
 
 EOF
 
@@ -593,6 +751,31 @@ else
    set cur_afni = `which afni`
    set cur_afni = $cur_afni:h
    echo "-- have AFNI binaries under $cur_afni"
+endif
+
+# if cur_afni, note the build label: NONE, official, build, ...
+# (see AFNI_WHOMADEIT)
+set build_label = NONE
+set vfile = $cur_afni/AFNI_version.txt
+if ( $cur_afni != "" && -f $vfile ) then
+   set blab = `awk '{ if(NR == 4) print $1 }' $vfile`
+   set rv = $status
+   if ( ! $rv && blab != "" ) then
+      set build_label = $blab
+      echo "-- have current build label $build_label"
+   endif
+endif
+
+# warn if the current package was made by build_afni.py
+if ( $build_label == build ) then
+   if ( $overwrite_build ) then
+      echo "-- will overwrite local build_afni.py package at user's request"
+   else
+      # plan to run build_afni.py
+      echo "++ the current package was made by build_afni.py,"
+      echo "   will use build_afni.py to update..."
+      set build_afni = 1
+   endif
 endif
 
 # possibly apply default binary directory
@@ -714,7 +897,7 @@ if ( $use_curl || $missing_wget ) then
     set get_prog = ( curl -O -f )
 endif
 
-# do we verify certificates via CA list?  if not, speicify
+# do we verify certificates via CA list?  if not, specify
 if ( ! $cert_verify ) then
    if ( $get_prog[1] == "wget" ) then
       set get_prog = ( $get_prog --no-check-certificate )
@@ -734,7 +917,7 @@ if ( $package =~ *.tgz ) then
     set package = $package:r
 endif
 
-# rcr - entire package or just prog_list (though prog_list requires package)
+# entire package or just prog_list (though prog_list requires package)
 echo "-- attempting to install package $package under"
 if ( $#prog_list > 0 ) echo "   (including only $#prog_list programs)"
 echo "   install dir: $abin..."
@@ -759,6 +942,7 @@ else
 endif
 
 # note appropriate backup directory
+# (unless build_afni)
 set date = `date +%Y_%m_%d`
 set backup_dir = auto_backup.$package
 
@@ -961,9 +1145,9 @@ if ( $show_obsoletes ) then
        set space_str = "    "
    endif
    
-   # This \n does not work on macs, so be slow for now...
-   # echo -n "$space_str"
-   # echo $obsolete_list | sed "s/ /\n$space_str/g"
+   # This \n does not work on macs, so be slow for now.  Was:
+   #    echo -n "$space_str"
+   #    echo $obsolete_list | sed "s/ /\n$space_str/g"
    foreach oname ( $obsolete_list )
       echo "$space_str$oname"
    end
@@ -1040,8 +1224,14 @@ if ( $test_protos ) then
 endif
 
 # ----------------------------------------------------------------------
-# revert to previous version, if requrested
+# revert to previous version, if requested
 if ( $revert ) then
+   # not ready for build_afni.py
+   if ( $build_afni ) then
+      echo "** not ready to apply -revert to -build_afni, sorry"
+      exit 1
+   endif
+
    # revert to backup
    if ( ! -d ../$backup_dir ) then
       echo "** failed to find backup directory ../$backup_dir"
@@ -1060,10 +1250,22 @@ if ( $revert ) then
    exit 0
 endif
 
+# ======================================================================
+# if we will run build_afni.py, skip many "official package" blocks:
+#    - skip download binary comparison
+#    - skip full download of binaries or prog_list
+#    - skip package extraction
+#    - skip backup of current binaries
+#    - skip installation of official binaries
+if ( $build_afni ) then
+   goto DO_BUILD_AFNI
+endif
+
 # ----------------------------------------------------------------------
 # just download single afni binary and compare
 # (if prog_list, use first prog in list)
-if ( $local_package == "" ) then
+# (skip if $build_afni)
+if ( ! $build_afni && $local_package == "" ) then
    if ( $#prog_list > 0 ) then
      set pp = $prog_list[1]:t
      # directories are not allowed (harder to download)
@@ -1083,9 +1285,34 @@ if ( $local_package == "" ) then
    echo "++ downloading test file: $get_prog $package/$pp ..."
 
    $get_prog $get_package
+   # if downloading fails, ...
    if ( $status ) then
       echo "** failed to download test file"
       echo "   (maybe package $package is not available)"
+
+      # provide extra comment(s) based on the build label
+      if ( $build_label == "official" ) then
+         echo "   (but package is official, how strange...)"
+      # warn if user should probably be using build_afni.py
+      else if ( $build_label == "build" ) then
+         echo ""
+         if ( -d ~/afni_build ) then
+            echo "note: current package was built by build_afni.py, consider:"
+            echo ""
+            echo '      build_afni.py -build_root ~/afni_build'
+         else
+            echo "note: current package was built by build_afni.py, but it is"
+            echo "      not clear what -build_root should be, consider:"
+            echo ""
+            echo '      build_afni.py -build_root SOME_DIRECTORY'
+         endif
+      else
+         echo "   (package is not official, so it is either old" \
+              "or from an unknown source)" 
+      endif
+
+      echo ""
+
       exit 1
    endif
 
@@ -1234,7 +1461,7 @@ endif
 
 # actually install the new binaries
 if ( $use_rsync ) then
-   echo "++ synching new binaries..."
+   echo "++ syncing new binaries..."
    # either sync package or files
    if ( $#prog_list > 0 ) then
       rsync -av * ..
@@ -1261,6 +1488,25 @@ else
        exit
    endif
 endif
+
+# ======================================================================
+# possibly run build_afni.py
+
+DO_BUILD_AFNI:
+if ( $build_afni ) then
+    set build_cmd = ( build_afni.py -build_root $build_root -package $package \
+                      $build_opts )
+    echo "++ running: $build_cmd"
+    echo ""
+
+    $build_cmd
+    if ( $status ) then
+       exit 1
+    endif
+endif
+
+# ======================================================================
+# possibly update dotfiles
 
 # if this is a new install and we are not root, update .cshrc
 set rcfile = ~/.cshrc
@@ -1327,7 +1573,12 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          set path = ( $abin $path )
          rehash
          set cur_afni = `which afni`
-         set cur_afni = $cur_afni:h
+         if ( ! $status ) then
+            set cur_afni = $cur_afni:h
+         else
+            # no afni found
+            set cur_afni = ""
+         endif
       endif
 
       # ---------------------------
@@ -1492,7 +1743,7 @@ EOF
 
    endif
 
-   # udpates for zsh
+   # updates for zsh
    set brcfile = ~/.zshrc
    \grep all_progs.COMP.zsh $brcfile >& /dev/null
    set pstatus = $status

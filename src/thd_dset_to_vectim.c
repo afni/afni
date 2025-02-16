@@ -834,7 +834,7 @@ void THD_vectim_quantile( MRI_vectim *mrv , float *vec , float *dp )
 /*---------------------------------------------------------------------*/
 /* 04 May 2012: Distances. */
 /* Special parameters:
-   abs: 0 --> Euclidian distance
+   abs: 0 --> Euclidean distance
         1 --> City Block distance
    xform: String flags for transforming distance.
             If string contains "n_scale", scale distance by number
@@ -1067,10 +1067,10 @@ int bsearch_int( int tt , int nar , int *ar )
 
    targ = tt ; ii = 0 ; jj = nar-1 ;      /* setup */
 
-        if( targ <  ar[0]  ) return -1 ;  /* not found */
+   if     ( targ <  ar[0]  ) return -1 ;  /* not found */
    else if( targ == ar[0]  ) return  0 ;  /* at start! */
 
-        if( targ >  ar[jj] ) return -1 ;  /* not found */
+   if     ( targ >  ar[jj] ) return -1 ;  /* not found */
    else if( targ == ar[jj] ) return jj ;  /* at end!   */
 
    /* at the start of this loop, we've already checked
@@ -1129,6 +1129,7 @@ ENTRY("THD_vectim_to_dset") ;
        THD_insert_series( mrv->ivec[kk] , dset ,
                           nvals , MRI_float , var , 0 ) ;
      }
+     free(var) ; /* oops [12 Jul 2024] */
    }
 
    EXRETURN ;

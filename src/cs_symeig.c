@@ -919,7 +919,7 @@ void svd_double_ata( int m, int n, double *a, double *s, double *u, double *v )
 /*!
    Calculate the covariance matrix of data_mat based on code in 3dpc
 
-   data_mat: Data matrix containg num_cols vectors that have num_rows elements.
+   data_mat: Data matrix with num_cols vectors that have num_rows elements.
    cov_mat:  On output, cov_mat will contain the covariance matrix. Caller must
              allocate num_cols x num_cols elements for it.
    Both matrices are stored in column major order. M(i,j) = Mv(i+j*num_rows);

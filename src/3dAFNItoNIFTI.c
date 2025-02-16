@@ -184,5 +184,6 @@ int main( int argc , char *argv[] )
 
    if( denote ) THD_anonymize_write(1) ; /* sets a flag for attribute output */
    ii = THD_write_nifti( dset , options ) ; /* actually write the darn thing */
-   exit(0) ;
+   /* (now) ii==0 on success */
+   exit(ii) ;
 }

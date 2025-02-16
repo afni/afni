@@ -20,7 +20,7 @@ MRI_IMAGE *mri_multiply_complex( int mode , MRI_IMAGE *f , MRI_IMAGE* g )
    complex *nar , *gar , *far ;
 
    if( f->nvox != g->nvox ){
-      fprintf( stderr , "mri_multiply_complex shapes imcompatible!\n" ) ;
+      fprintf( stderr , "mri_multiply_complex shapes incompatible!\n" ) ;
       MRI_FATAL_ERROR ;
    }
 

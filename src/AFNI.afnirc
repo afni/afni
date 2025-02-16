@@ -76,8 +76,8 @@
 
    AFNI_SESSTRAIL           = 1    // # of directory levels to show in filenames
    AFNI_HINTS               = YES  // YES==turns on popup hints
-// AFNI_COMPRESSOR          = GZIP // force all .BRIK output to be compressed
-   AFNI_AUTOGZIP            = YES  // gzip .BRIK files if it's a good idea
+   AFNI_COMPRESSOR          = GZIP // force all .BRIK output to be compressed
+// AFNI_AUTOGZIP            = YES  // gzip .BRIK files if it's a good idea
 // AFNI_NOMMAP              = YES  // to disable use of mmap() file I/O
    AFNI_LEFT_IS_LEFT        = YES  // YES==show human left on screen left
 // AFNI_ENFORCE_ASPECT      = YES  // AFNI to enforce image aspect ratio
@@ -202,7 +202,8 @@
 
 // AFNI_STARTUP_SCRIPT    = /home/rwcox/.afni_script // script run at AFNI start
 
-AFNI_ONE_OBLIQUE_WARNING      = YES // In afni GUI, just one oblique warning
+// AFNI_ONE_OBLIQUE_WARNING   = YES // In afni GUI, just one oblique warning
+AFNI_NO_OBLIQUE_WARNING       = YES // Turn off obliquity warnings completely
 
 AFNI_GRAPH_FORCE_AUTO_SCALE   = YES // Autoscale graphs each time redrawn
 AFNI_AUTORANGE_PERC           = 95  // autorange for non-ROI olays, from data

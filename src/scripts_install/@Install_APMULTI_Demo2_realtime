@@ -104,7 +104,7 @@ Overview ~1~
 This script fetches the demo data+scripts corresponding to AFNI's Demo #2
 for experimenting with AFNI's real-time system, possibly in the context of
 multi-echo data.  This demonstrates commands one can use to run a real-time
-system, mimicing what happens at a scanner.
+system, mimicking what happens at a scanner.
 
 The applied programs are:
 

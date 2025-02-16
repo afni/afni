@@ -187,7 +187,7 @@ ENTRY("THD_find_regular_file") ;
    Do not free returned pointer
    Empty string means nothing was found
    if altpath is not NULL, and nimlname does not
-   have an absolute path, altpath is considere before diving into the
+   have an absolute path, altpath is considered before diving into the
    default locations
 */
 char *find_afni_file(char * nimlname, int niname, char *altpath)
@@ -463,7 +463,7 @@ THD_string_array * THD_get_all_afni_executables(void )
    
    if (!(elist = get_elist()) ||
        !(af = THD_abindir(1)) ) {
-      ERROR_message("Could not find afni, we're doomed daddy!");
+      ERROR_message("Could not find afni executables, we're doomed daddy!");
       RETURN(outar);
    }
    
@@ -540,7 +540,7 @@ THD_string_array * THD_get_all_afni_readmes(void )
    
    if (!(elist = get_elist()) ||
        !(af = THD_abindir(1))) {
-      ERROR_message("Could not find afni, we're doomed daddy!");
+      ERROR_message("Could not find afni readmes, we're doomed daddy!");
       RETURN(outar);
    }
    
@@ -585,7 +585,7 @@ THD_string_array * THD_get_all_afni_dsets(void )
    
    if (!(elist = get_elist()) ||
        !(af = THD_abindir(1))) {
-      ERROR_message("Could not find afni, we're doomed daddy!");
+      ERROR_message("Could not find afni dsets, we're doomed daddy!");
       RETURN(outar);
    }
    
@@ -1047,7 +1047,7 @@ int check_for_opt_in_prog_opts(char *prog, char *opt)
 
 /* 
    Return 1 if program uprog has option option opt
-          0 otherwsise
+          0 otherwise
    
    The function first checks if the program has an
    entry in array poptslist from file prog_opts.c included above.
@@ -1138,7 +1138,7 @@ int program_supports(char *uprog, char *opt, char *oval, int verb)
             #endif
             break;
           case -2:
-            ERROR_message("Nonesense here?");
+            ERROR_message("Nonsense here?");
             break;
       }
    
@@ -1392,7 +1392,7 @@ char *web_prog_help_link(char *prog, int style)
    static int n;
    /* point to the new AFNI program help page     16 Mar 2020 [rickr] */
    const char * sphinx_help =
-      "https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs";
+      "https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/alpha";
    const char * old_help =
       "https://afni.nimh.nih.gov/pub/dist/doc/program_help";
    

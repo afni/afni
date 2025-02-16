@@ -204,7 +204,7 @@ L20:
 	    frame_();
 	}
 
-/* SET UP MAPING FROM FLOATING POINT 3-SPACE TO CRT SPACE. */
+/* SET UP MAPPING FROM FLOATING POINT 3-SPACE TO CRT SPACE. */
 
 	sign1 = (real) ((ipic << 1) - 3);
 	pwrz1s_1.eyex = s[1] + sign1 * dx;
@@ -794,7 +794,7 @@ L570:
     /* Function Body */
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
-/* CLSET PUTS THE VALUS OF THE CONTOUR LEVELS IN CL */
+/* CLSET PUTS THE VALUES OF THE CONTOUR LEVELS IN CL */
 
     *icnst = 0;
     glo = *clo;
@@ -955,7 +955,7 @@ L10:
     i__1 = srfblk_1.ncl;
     for (k = 1; k <= i__1; ++k) {
 
-/* FOR EACH CONTOUR LEVEL, DESIDE WHICH OF THE 16 BASIC SIT- */
+/* FOR EACH CONTOUR LEVEL, DECIDE WHICH OF THE 16 BASIC SIT- */
 /* UATIONS EXISTS, THEN INTERPOLATE IN TWO-SPACE TO FIND THE */
 /* END POINTS OF THE CONTOUR LINE SEGMENT WITHIN THIS CELL. */
 

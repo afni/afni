@@ -88,7 +88,7 @@ ENTRY("mean_vector") ;
 
 /*----------------------------------------------------------------------------*/
 /* If you can't figure out what this does without help, please
-   back away slowly from the code and take up competive toenail clipping.
+   back away slowly from the code and take up competitive toenail clipping.
 *//*--------------------------------------------------------------------------*/
 
 static int is_allzero( int nf , float *ff )
@@ -108,7 +108,7 @@ static int is_allzero( int nf , float *ff )
       ((float **)xp)[j][i]
    * If ws is not NULL, then workspace will be allocated and discarded
      internally. The point of ws is that it can be pre-allocated by
-     pv_get_workspace() and then re-used, avoiding the overhead of
+     pv_get_workspace() and then reused, avoiding the overhead of
      many malloc/free cycles in 3dLocalPV (e.g.).
    * The singular value is returned, and the vector is stored into uvec[].
    * tvec is a vector so that the sign of uvec dot tvec will be non-negative.

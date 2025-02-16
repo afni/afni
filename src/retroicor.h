@@ -61,7 +61,7 @@ MRI_IMAGE * RIC_ToCardiacPhase(MRI_IMAGE * card, float threshold);
                    sum(H(b), b = 1 .. 100) * sgn(dR/dt)
 
    where R(t) is the resp signal amplitude normalized to (0, R_max),
-         H(b) is the number of occurances in bin b of histogram H
+         H(b) is the number of occurrences in bin b of histogram H
               which divides (0, R_max) into 100 bins, each centred at
 	      b * R_max / 100
      and dR/dt is computed by convolving with a 39-point kernel (quadratic)

@@ -11,7 +11,7 @@ source(first.in.path('AFNIio.R'))
 ExecName <- '3dLME'
 
 # Global variables
-tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
+tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avoiding analyzing data with most 0's
 
 #################################################################################
 ##################### Begin 3dLME Input functions ################################
@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.0.11, July 6, 2022
+Version 2.1.5, March 15, 2024
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -38,7 +38,7 @@ Usage:
  is that each subject has to have two or more measurements at each spatial 
  location (except for a small portion of subjects with missing data). In other
  words, at least one within-subject (or repeated-measures) factor serves as
- explanatory variable.
+ explanatory variable. For complex random-effects structures, use 3dLMEr.
  
  F-statistics for main effects and interactions are automatically included in 
  the output for all variables. In addition, Student t-tests for quantitative 
@@ -60,7 +60,7 @@ Usage:
 
  rPkgsInstall -pkgs ALL
 
- Alternatively you may install them in R:
+ Alternatively, you may install them in R:
  
  install.packages("nlme")
  install.packages("lme4")
@@ -73,7 +73,7 @@ Usage:
  Once the 3dLME command script is constructed, it can be run by copying and
  pasting to the terminal. Alternatively (and probably better) you save the 
  script as a text file, for example, called LME.txt, and execute it with the 
- following (assuming on tc shell),
+ following (assuming on tcsh shell),
  
  tcsh -x LME.txt &
  
@@ -194,7 +194,7 @@ a random intercept is considered.
    ex4 <-   
 "Example 4 --- Computing ICC values for two within-subject factor (Cond:
 positive, negative, and neutral; Scanner: one, and two) plus subjects (factor
-Subj).
+Subj). 
 -------------------------------------------------------------------------
    3dLME -prefix Example4 -jobs 12                                      \\
          -mask myMask+tlrc                                              \\
@@ -288,7 +288,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
 
       '-ranEff' = apl(n=c(1,100), d=NA, h = paste(
    "-ranEff FORMULA: Specify the random effects. The simplest and most common",
-   "         one is random intercept, \"~1\", meaning each subject deviates some",
+   "         one is random intercept, \"~1\", meaning that each subject deviates some",
    "         amount (called random effect) from the group average. \"~RT\" or \"~1+RT\"",
    "         means that each subject has a unique intercept as well as a slope,",
    "         and the correlation between the two random effects are estimated, not",
@@ -329,7 +329,8 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         the user: the lower bound (lb) and the upper bound (ub). The input data will",
    "         be confined within [lb, ub]: any values in the input data that are beyond",
    "         the bounds will be removed and treated as missing. Make sure the first number",
-   "         less than the second. You do not have to use this option to censor your data!\n", sep='\n')),
+   "         is less than the second. The default (the absence of this option) is no",
+   "         outlier removal.\n", sep='\n')),
        
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
@@ -392,7 +393,13 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
      '-ICC' = apl(n=0, d=3, h = paste(
    "-ICC: This option allows 3dLME to compute voxel-wise intra-class correlation",
    "         for the variables specified through option -ranEff. See Example 4 in",
-   "         in the help. Consider using a more flexible program 3dICC.\n ",
+   "         in the help. Consider using a more flexible program 3dICC. If trial-",
+   "         level data are available, a more accurate approach is to use the",
+   "         program TRR at the region level or use the program 3dLMEr at the",
+   "         level. Refer to the following paper for more detail:",
+   "         Chen, G., Pine, D.S., Brotman, M.A., Smith, A.R., Cox, R.W., Haller,",
+   "         S.P., 2021. Trial and error: A hierarchical modeling approach to ",
+   "         test-retest reliability. NeuroImage 245, 118647. \n ",
              sep = '\n'
                      ) ),
 
@@ -492,7 +499,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         weighted combination among factor levels. The symbolic coding has",
    "         to be within (single or double) quotes. For example, the coding",
    "         'Condition : 1*A -1*B & 1*A -1*C Emotion : 1*pos' tests the main",
-   "         effect of Condition at the positive Emotion. Similarly the coding",
+   "         effect of Condition at the positive Emotion. Similarly, the coding",
    "         'Condition : 1*A -1*B & 1*A -1*C Emotion : 1*pos -1*neg' shows",
    "         the interaction between the three levels of Condition and the two.",
    "         levels of Emotion.\n",
@@ -908,7 +915,7 @@ process.LME.opts <- function (lop, verb = 0) {
    #   }
    #}
    
-   # constrcuct pairwise comparisons for function contrast
+   # construct pairwise comparisons for function contrast
    # now assume quantitative variables are always set to 0 for contrast testing
    # may change to any value later
    #if (lop$num_glt > 0) {
@@ -976,7 +983,8 @@ process.LME.opts <- function (lop, verb = 0) {
          return(NULL)
       }
       #lop$maskData <- mm$brk[,,,1]
-      lop$maskData <- mm$brk
+      #lop$maskData <- mm$brk
+      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeros
       if(verb) cat("Done read ", lop$maskFN,'\n')
       if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!") 
    }
@@ -1005,7 +1013,7 @@ runLME <- function(inData, dataframe, ModelForm) {
    if(any(!is.na(lop$vQV))) {  # voxel-wise centering for voxel-wise covariate
       dataframe <- assVV2(dataframe, lop$vQV, inData[(length(inData)/2+1):length(inData)], all(is.na(lop$vVarCenters)))
    }
-   if (!all(abs(inData) < 10e-8)) {        
+   if (!all(abs(na.omit(inData)) < 1e-8)) {        
       dataframe$Beta<-inData[1:nrow(dataframe)]
       fm <- NULL
       if(lop$ML) {
@@ -1044,7 +1052,8 @@ runLME <- function(inData, dataframe, ModelForm) {
             #try(con <- contrast(fm, lop$gltList[[n]][[1]], lop$gltList[[n]][[2]], type="average"),silent=TRUE) 
 	    #if(!is.null(con)) Stat[(lop$nF+2*n-1):(lop$nF+2*n)] <- c(con$Contrast, con$testStat)
             glt <- NULL
-            if(is.na(lop$gltList[[ii]])) glt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]], 
+            #if(is.na(lop$gltList[[ii]])) glt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]], 
+	    if(identical(lop$gltList[[ii]], NA)) glt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]], # 01/19/2023: fix the problem w/ length of lop$gltList > 1
                covariates=lop$covValList[[ii]], adjustment="none"), error=function(e) NULL) else
             glt <- tryCatch(testInteractions(fm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
                covariates=lop$covValList[[ii]], adjustment="none"), error=function(e) NULL)
@@ -1052,7 +1061,7 @@ runLME <- function(inData, dataframe, ModelForm) {
             #glt <- testInteractions(fm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], adjustment="none")
             if(!is.null(glt)) {
                Stat[lop$nF[1]+2*lop$nBasis+2*ii-1] <- glt[1,1]
-	       Stat[lop$nF[1]+2*lop$nBasis+2*ii]   <- sign(glt[1,1])*qnorm(glt[1,4]/2, lower.tail = F)  # convert chisq to Z
+	       Stat[lop$nF[1]+2*lop$nBasis+2*ii]   <- sign(glt[1,1])*qnorm(glt[1,'Pr(>Chisq)']/2, lower.tail = F)  # convert chisq to Z
             }
          }
          # GLF part below
@@ -1093,7 +1102,7 @@ runLME <- function(inData, dataframe, ModelForm) {
 runREML <- function(myData, ModelForm, dataframe, nBrk, tag) {
    #browser()
    myStat<-vector(mode="numeric", length= nBrk)
-   if(!all(myData == 0)) {     
+   if(!all(na.omit(myData) == 0)) {     
       dataframe$Beta<-myData
       try(fmAOV<-lmer(ModelForm, data=dataframe), tag<-1)
       if(tag != 1) {    
@@ -1109,7 +1118,7 @@ runREML <- function(myData, ModelForm, dataframe, nBrk, tag) {
 runREMLb <- function(myData, ModelForm, dataframe, nBrk, tag) {
    #browser()
    myStat<-vector(mode="numeric", length= nBrk)
-   if(!all(myData == 0)) {     
+   if(!all(na.omit(myData) == 0)) {     
       dataframe$Beta<-myData
       #try(fmAOV<-blmer(ModelForm, data=dataframe, cov.prior=gamma), tag<-1)
       try(fmAOV<-blmer(ModelForm, data=dataframe, cov.prior=gamma(shape = 2, rate = 0.5, posterior.scale = 'sd')), tag<-1)  
@@ -1150,7 +1159,7 @@ assVV2 <- function(DF, vQV, value, c) {
 
 runGLM <- function(inData, dataframe, ModelForm) {  
    Stat   <- rep(0, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1))
-   if (!all(abs(inData) < 1e-8)) {
+   if (!all(abs(na.omit(inData)) < 1e-8)) {
       dataframe$Beta<-inData[1:lop$nVVars]
       if(any(!is.na(lop$vQV))) {
          dataframe <- assVV(dataframe, lop$vQV, inData, all(is.na(lop$vVarCenters)))
@@ -1185,7 +1194,7 @@ runGLM <- function(inData, dataframe, ModelForm) {
 
 runGLM2 <- function(inData, dataframe, ModelForm, nBoot) {  
    Stat   <- rep(0, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1))
-   if (!all(abs(inData) < 1e-8)) {
+   if (!all(abs(na.omit(inData)) < 1e-8)) {
       dataframe$Beta<-inData[1:lop$nVVars]
       if(any(!is.na(lop$vQV))) {
          dataframe <- assVV(dataframe, lop$vQV, inData, all(is.na(lop$vVarCenters)))
@@ -1237,7 +1246,7 @@ runGLM2 <- function(inData, dataframe, ModelForm, nBoot) {
 
 runGLM0 <- function(inData, dataframe, ModelForm, nBoot) {  
    Stat   <- rep(0, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1))
-   if (!all(abs(inData) < 1e-8)) {
+   if (!all(abs(na.omit(inData)) < 1e-8)) {
       dataframe$Beta<-inData[1:lop$nVVars]
       if(any(!is.na(lop$vQV))) {
          dataframe <- assVV(dataframe, lop$vQV, inData, all(is.na(lop$vVarCenters)))
@@ -1693,11 +1702,12 @@ if(lop$ICC) {  # ICC part
       if(!is.null(fm)) if (lop$num_glt > 0) {
          n <- 1
          while(!is.null(fm) & (n <= lop$num_glt)) {
-            if(is.na(lop$gltList[[n]])) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,
-               covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA) else
+            #if(is.na(lop$gltList[[n]])) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,
+	    if(identical(lop$gltList[[n]], NA)) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,  # 01/19/2023: fix the problem w/ length of lop$gltList > 1
+               covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NULL) else
             gltRes[[n]] <- tryCatch(testInteractions(fm, custom=lop$gltList[[n]],
-               covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA)
-            if(is.na(gltRes[[n]])) fm <- NULL
+               covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NULL)
+            if(is.null(gltRes[[n]])) fm <- NULL
             n <- n+1
          }
       }
@@ -1854,7 +1864,7 @@ if(lop$ICC) {  # ICC part
       nSeg <- 20
       # drop the dimensions with a length of 1
       inData <- inData[, , ,]
-      # break into 20 segments, leading to 5% increamental in parallel computing
+      # break into 20 segments, leading to 5% incremental in parallel computing
       dimx_n <- dimx%/%nSeg + 1
       # number of datasets need to be filled
       fill <- nSeg-dimx%%nSeg

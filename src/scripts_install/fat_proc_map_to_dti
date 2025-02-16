@@ -40,7 +40,7 @@
 #   + work with new @chauffeur*, -prefix only
 #
 #set version   = "1.9";  set rev_dat   = "Sep 22, 2017"
-#   + for Mac compatability, apparently I need to wrap around 
+#   + for Mac compatibility, apparently I need to wrap around 
 #     some for loops if a particular type of dset weren't input
 #     --> Thanks, Jiajia, for finding+noting.
 #   + also, movie $imtrx loop above, don't need to Unifize

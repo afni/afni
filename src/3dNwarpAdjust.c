@@ -61,7 +61,7 @@ int main( int argc , char *argv[] )
       "     B(Wbin(x)) = average of Di(Wi(Wbin(x)))\n"
       "   which is where the 'adjusted warp' Ai(x) = Wi(Wbin(x)) comes from.\n"
       "\n"
-      "All these calculcations could be done with other programs and a script,\n"
+      "All these calculations could be done with other programs and a script,\n"
       "but the goal of this program is to make them faster and simpler to combine.\n"
       "It is intended to be used in an incremental template-building script, and\n"
       "probably has no other utility (cf. the script @toMNI_Qwarpar).\n"

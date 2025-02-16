@@ -287,7 +287,7 @@ int main( int argc , char * argv[] )
          nz   = DSET_NZ(inset) ; nxyz= nx*ny*nz;
          nval = DSET_NVALS(inset) ;
 
-         /* check that weightset seems acceptible so far */
+         /* check that weightset seems acceptable so far */
          if( weightset ) {
             if( DSET_NX(weightset) != nx ||
                 DSET_NY(weightset) != ny ||

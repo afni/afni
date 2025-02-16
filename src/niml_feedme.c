@@ -65,7 +65,7 @@ int main( int argc , char *argv[] )
         "* You must run AFNI with the command 'afni -niml' so that the program\n"
         "  will be listening for the socket connection.\n"
         "* Inside AFNI, the transmitted dataset will be named 'niml_feedme'.\n"
-        "* For another way to send image data to AFNI, see progam rtfeedme.\n"
+        "* For another way to send image data to AFNI, see program rtfeedme.\n"
         "* At present, there is no way to attach statistical parameters to\n"
         "  a transmitted volume.\n"
         "* This program sends all volumes in float format, simply because\n"

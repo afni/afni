@@ -699,7 +699,7 @@ _XmHTMLTagCheck(char *attributes, char *tag)
 
 	if((chPtr = strstr(attributes, tag)) != NULL)
 	{
-		/* see if this is a valid tag: it must be preceeded with whitespace. */
+		/* see if this is a valid tag: it must be preceded with whitespace. */
 		while(*(chPtr-1) && !isspace(*(chPtr-1)))
 		{
 			start = chPtr+strlen(tag); /* start right after this element */

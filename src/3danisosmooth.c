@@ -1758,7 +1758,7 @@ Fix_mask(byte *maskptr, THD_3dim_dataset *dset, int flag2D3D)
 		    if((jj>0) && (jj<(ny-1)) && (ii>0) && (ii<nx-1)) {
            /* check all neighboring voxels to see if all surrounding voxels are also included */
         	       if(Check_Neighbors_2D(mptr,nx)) {
-		         *mptr = 1;  /* replace with value of 1 if all neigbors are 1 also*/	
+		         *mptr = 1;  /* replace with value of 1 if all neighbors are 1 also*/	
 			  nxyz1++;
 			 }
         	       else {
@@ -1802,7 +1802,7 @@ Fix_mask(byte *maskptr, THD_3dim_dataset *dset, int flag2D3D)
 }
 
 
-/*! for 2D check 3x3 neighborhood to see if any voxels in neighborhod are not in mask */
+/*! for 2D check 3x3 neighborhood to see if any voxels in neighborhood are not in mask */
 /* if any neighbors are not in mask, return 0 */
 static int Check_Neighbors_2D(byte *mptr, int nx)
 {
@@ -1829,7 +1829,7 @@ static int Check_Neighbors_2D(byte *mptr, int nx)
    return(flag);
 } 
 
-/*! for 3D check 3x3x3 neighborhood to see if any voxels in neighborhod are not in mask */
+/*! for 3D check 3x3x3 neighborhood to see if any voxels in neighborhood are not in mask */
 /* if any neighbors are not in mask, return 0 */
 static int Check_Neighbors_3D(byte *mptr, int nx, int nxy)
 {

@@ -15,7 +15,7 @@ function [err,maplocation, mapsign, Mtrans] = AFNI_CoordChange (Orig, Trans, Mor
 %Output Parameters:
 %   err : 0 No Problem
 %       : 1 Mucho Problems
-%   maplocation: 1x3 vector containig the map from the old coordinate to the new coordinate system
+%   maplocation: 1x3 vector containing the map from the old coordinate to the new coordinate system
 %         This specifies where each dimension in Mtrans is located in Morig
 %   mapsign: 1x3 vector (of 1 or -1) containing the sign of the map from the old coordinate system to the new one
 %        This specifies if the dimension has a negative direction (see more Info for an example)
@@ -56,7 +56,7 @@ if (~isempty(Morig) && size(Morig,2) ~= 3),
 end
 
 
-%initailize return variables
+%initialize return variables
 err = 1;
 Mtrans= [];
 maplocation = [0 0 0];

@@ -550,7 +550,7 @@ int main( int argc , char *argv[] )
          INFO_message("Filter #%d = despike:%d",nffunc,nHH_despike) ;
 
        } else {
-         ERROR_exit("Unkown filter type '%s'",argv[nopt]) ;
+         ERROR_exit("Unknown filter type '%s'",argv[nopt]) ;
        }
        nopt++ ; continue ;
      }

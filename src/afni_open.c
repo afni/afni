@@ -407,7 +407,7 @@ void afni_open_usage(int detail)
 "  -r: Same as -w readme\n"
 "  -aw: Same as -w afniweb\n"
 "\n"
-"     If no method is specifed, the program tries to guess\n"
+"     If no method is specified, the program tries to guess\n"
 "     from the filename.\n"
 "\n"
 "  -global_help: Show help for global options.\n"
@@ -595,7 +595,7 @@ int main(int argc, char **argv)
          FN->StorageMode (or FN->StorageModeNm)
          FN->TypeExt
          Also, what should be done might be dictated by the size of the file at
-         hand, and wheter or not it is in binary versus ascii mode. Those fields
+         hand, and whether or not it is in binary versus ascii mode. Those fields
          are not a part of SUMA_PARSED_NAME, but we can easily add them.
          We still need things like: 
          is_url, is_pdf, is_script, is_..., is_surface_dset, 

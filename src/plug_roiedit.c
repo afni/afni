@@ -138,7 +138,7 @@ static int undo_bufuse = 0 ;     /* number of entries in undo buffer */
 static void * undo_buf = NULL ;  /* stores data to be copied back to dataset */
 static int  * undo_xyz = NULL ;  /* stores voxel indices for copying */
 
-static THD_dataxes dax_save ;    /* save this for later referenc */
+static THD_dataxes dax_save ;    /* save this for later reference */
 
 char * DRAW_main( PLUGIN_interface * plint )
 {
@@ -5669,7 +5669,7 @@ static void DRAW_into_dataset( int np , int * xd , int * yd , int * zd , void * 
      ny = 2nd dimension
      ix = start point
      jy = end point
-     ar = array, with 0's everwhere except 1's as barriers to flooding
+     ar = array, with 0's everywhere except 1's as barriers to flooding
 
    All filled points (starting with ix,jy) will get the value 2.
 -----------------------------------------------------------------------------*/

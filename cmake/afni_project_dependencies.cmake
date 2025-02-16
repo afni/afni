@@ -58,9 +58,9 @@ endif()
 # software isolation then python is only searched for in this environment.
 # For more details see:
 # https://cmake.org/cmake/help/git-stage/module/FindPython.html
-set(CMAKE_FIND_FRAMEWORK LAST)
-set(Python_FIND_VIRTUALENV ONLY)
-set(Python_FIND_STRATEGY LOCATION)
+set_if_not_defined(CMAKE_FIND_FRAMEWORK LAST)
+set_if_not_defined(Python_FIND_VIRTUALENV ONLY)
+set_if_not_defined(Python_FIND_STRATEGY LOCATION)
 
 # python >=3.6 supported
 find_package(Python 3.6 REQUIRED COMPONENTS Interpreter)
@@ -185,7 +185,8 @@ else()
 FetchContent_Declare(
   nifti_clib   
   GIT_REPOSITORY https://github.com/NIFTI-Imaging/nifti_clib.git 
-  GIT_TAG 65f801b9c2f1f15f4de4a19d45e6595c25765632
+  # use most recent commit to master
+  # GIT_TAG 65f801b9c2f1f15f4de4a19d45e6595c25765632
   )
 FetchContent_MakeAvailable(nifti_clib)
 endif()
@@ -196,7 +197,8 @@ else()
 FetchContent_Declare(
   gifti_clib   
   GIT_REPOSITORY https://github.com/NIFTI-Imaging/gifti_clib.git 
-  GIT_TAG 5eae81ba1e87ef3553df3b6ba585f12dc81a0030
+  # use most recent commit to master
+  # GIT_TAG 5eae81ba1e87ef3553df3b6ba585f12dc81a0030
   )
 FetchContent_MakeAvailable(gifti_clib)
 endif()

@@ -60,7 +60,7 @@
  *
  *  Revision 1.21  1995/06/21 22:23:16  smoot
  *  fixed specifics file bug
- *  generalized timeing stuff
+ *  generalized timing stuff
  *  binary writes
  *  TUNEing stuff
  *
@@ -77,7 +77,7 @@
  * fixed bug in "MMB Type "pattern" and Rate control
  *
  * Revision 1.15  1995/01/19  23:49:28  smoot
- * moved rev_dct, make pattern changable by ComputeDiffDCTs
+ * moved rev_dct, make pattern changeable by ComputeDiffDCTs
  *
  * Revision 1.14  1995/01/19  23:09:07  eyhung
  * Changed copyrights
@@ -92,7 +92,7 @@
  * added realQuiet
  *
  * Revision 1.10  1994/12/07  00:40:36  smoot
- * Added seperate P and B search ranges
+ * Added separate P and B search ranges
  *
  * Revision 1.9  1994/11/14  22:38:18  smoot
  * merged specifics and rate control

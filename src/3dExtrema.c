@@ -74,7 +74,7 @@ static int EX_nx, EX_ny, EX_nz,           /* dataset dimensions in voxels */
 static int        EX_quiet      = 0;      /* flag for suppress screen output */
 static int        EX_relation   = 1;      /* flag for binary relation */
 static int        EX_maxima     = 1;      /* flag for maxima or minima */
-static int        EX_strict     = 1;      /* flag for strict or parial ineq. */
+static int        EX_strict     = 1;      /* flag for strict or partial ineq. */
 static int        EX_interior   = 1;      /* flag for interior or closure */
 static int        EX_slice      = 1;      /* flag for slice or volume */
 static int        EX_sort       = 1;      /* flag for sort extrema */
@@ -1256,7 +1256,8 @@ int EX_read_opts( int argc , char * argv[] )
 
 void initialize_program (int argc, char * argv[], int * nopt)
 {
-  const int MIN_NTHR = 10;    /* minimum number of voxels above threshold */
+  /* [PT: Oct 11, 2024] minimum vox num reduced from 10 */
+  const int MIN_NTHR = 1;    /* minimum number of voxels above threshold */
 
   int iv;                  /* index number of sub-brick */
   void * vfim = NULL;      /* sub-brick data pointer */

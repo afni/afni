@@ -510,7 +510,7 @@ static PROG_OPTS poptslist[] = {
 { "uber_subject.py", "-align_cost; -align_giant_move; -align_opts_aea; -anal_domain; -anal_type; -anat; -blocks; -blur_size; -compute_fitts; -cvar; -epi; -epi_wildcard; -exec_ap_command; -exec_proc_script; -get_tlrc; -gid; -gltsym; -gltsym_label; -help; -help_gui; -help_howto_program; -help_install; -help_install_nokia; -hist; -motion_limit; -no_gui; -outlier_limit; -print_ap_command; -qt_opts; -regress_GOFORIT; -regress_bandpass; -regress_jobs; -regress_mot_deriv; -regress_opts_3dD; -reml_exec; -run_clustsim; -save_ap_command; -show_default_vars; -show_svar_dict; -show_valid_opts; -sid; -stim; -stim_basis; -stim_label; -stim_type; -stim_wildcard; -svar; -tcat_nfirst; -tlrc_base; -tlrc_ok_maxite; -tlrc_opts_at; -tlrc_ss; -ver; -verb; -volreg_base; ", 55},
 { "uber_ttest.py", "", 0},
 { "waver", "-EXPR; -FILE; -GAM; -TR; -WAV; -delaytime; -dt; -falltime; -gamb; -gamc; -gamd; -inline; -input; -numout; -peak; -restoretime; -risetime; -tstim; -undershoot; -ver; -when; -xyout; ", 22},
-{ "whereami", "", 0},
+{ "whereami_afni", "", 0},
 { "whirlgif", "-i; -loop; -o; -time; -trans; -v; ", 6},
 { "xmat_tool.py", "-choose_cols; -chrono; -cormat_cutoff; -cosmat_cutoff; -cosmat_motion; -gui_plot_xmat_as_one; -help; -help_gui; -hist; -load_1D; -load_xmat; -no_gui; -show_1D; -show_col_types; -show_conds; -show_cormat; -show_cormat_warnings; -show_cosmat; -show_cosmat_warnings; -show_fit_betas; -show_fit_ts; -show_valid_opts; -show_xmat; -test; -test_libs; -ver; -verb; ", 27},
    {  NULL, NULL, 0  }

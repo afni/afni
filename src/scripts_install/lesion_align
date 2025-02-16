@@ -36,7 +36,7 @@ set progname = lesion_align
 # [pt] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes down one level
 set version = 1.10
 # [pt] $lesion_outs text file made with just "-help", populated with 
-#      non-useful info.  Also, immediately would overwrite itself...
+#      useless info.  Also, immediately would overwrite itself...
 #      moved creation of ${lesion_outs} further down in code to prevent this
 #    + ** guessing it should also create this text file wherever the actual
 #      output will go
@@ -165,7 +165,7 @@ if ($base == "") then
 endif
 
 # put output in user specified name or default output directory
-#  relative to current directoy
+#  relative to current directory
 if ($outdir == "") then
    set outdir = "./lesion_align"
 endif
@@ -636,7 +636,7 @@ if ( ($ok_to_exist == "1") && \
      (-f  ${origdsetprefix}_basefill.nii.gz) ) then
    echo "reusing template filled subject dataset"
 else 
-   # fill in original whereever zero with template scaled by ratio of medians
+   # fill in original wherever zero with template scaled by ratio of medians
    3dcalc -a $unif_dset -b ${templatename}_in_${origdsetprefix}.nii.gz \
    -expr "a+b*not(a)*${om}/${tm}" -prefix ${origdsetprefix}_basefill.nii.gz -overwrite
    echo "template-filled subject in subject space : ${origdsetprefix}_basefill.nii.gz"  \

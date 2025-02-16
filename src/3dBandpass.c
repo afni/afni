@@ -129,7 +129,7 @@ int main( int argc , char * argv[] )
        "                    width (FWHM) of 'fff' millimeters.\n"
        " -localPV rrr    = Replace each vector by the local Principal Vector\n"
        "                    (AKA first singular vector) from a neighborhood\n"
-       "                    of radius 'rrr' millimiters.\n"
+       "                    of radius 'rrr' millimeters.\n"
        "                   ++ Note that the PV time series is L2 normalized.\n"
        "                   ++ This option is mostly for Bob Cox to have fun with.\n"
        "\n"

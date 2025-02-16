@@ -718,7 +718,7 @@ L_HELP_END:
 	 echo "       Otherwise the script cannot detect them. You will need to decide which"
 	 echo "       surface is the most recent (the best) and the script helps you by listing"
 	 echo "       the available surfaces with the most recent one first."
-	 echo "       This sorting ususally works except when the time stamps on the surface files"
+	 echo "       This sorting usually works except when the time stamps on the surface files"
 	 echo "       are messed up. In such a case you just need to know which one to use."
 	 echo "       Once the fiducial surface is chosen, it's complimentary surfaces are selected"
 	 echo "       using the node number in the file name."

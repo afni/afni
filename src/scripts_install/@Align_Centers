@@ -495,7 +495,7 @@ Usage: `basename $0` <-base BASE> <-dset DSET> [-no_cp]
    -prefix PREFIX:  Result will be named using PREFIX, instead of the
                     current prefix with _shft appended.
                   * Does not work with -child or -no_cp.
-   -1Dmat_only: Only output the transfrom needed to align
+   -1Dmat_only: Only output the transform needed to align
                 the centers. Do not shift any child volumes.
                 The transform is named DSET_shft.1D
    -1Dmat_only_nodset: Like above, but no dsets at all

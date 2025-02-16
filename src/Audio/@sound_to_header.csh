@@ -78,7 +78,7 @@ endif
 @ nsss = $ny * 10
 
 # convert output shorts to a text file  (1dcat)
-# tranpose that file                    (1dtranspose)
+# transpose that file                    (1dtranspose)
 # remove unneeded blanks and add commas (sed)
 
 1dcat 3D:${nskip}:0:10:${ny}:1:$infile.raw     \

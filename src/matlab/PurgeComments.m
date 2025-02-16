@@ -3,7 +3,7 @@ function [CnoCom, Com] = PurgeComments (C, ch)
 %   [CnoCom, Com] = PurgeComments (C, [ch])
 %
 %Purpose:
-%   purges all matlab coments from character array
+%   purges all matlab comments from character array
 %
 %
 %Input Parameters:
@@ -13,7 +13,7 @@ function [CnoCom, Com] = PurgeComments (C, ch)
 %Output Parameters:
 %   err : 0 No Problem
 %       : 1 Mucho Problems
-%   CnoCom : comment purged caharacter array
+%   CnoCom : comment purged character array
 %   Com : Comment array
 %
 %More Info :
@@ -39,7 +39,7 @@ if (nargin == 1), ch = '%'; end
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 CnoCom = [];
 Com = '';

@@ -17,6 +17,8 @@
 #include <math.h>
 #include <string.h>
 #include "MarchingCubes.h"
+#include "mc_ziad.h"
+
 
 static char Obj_Types[][10] = { {"Cushin"}, {"Sphere"}, {"Plane"}, {"Cassini"}, {"Blooby"}, {"Chair"}, {"Cyclide"}, {"2 Torus"}, {"mc case"}, {"Drip"} };
 void mc_help(void)

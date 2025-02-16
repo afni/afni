@@ -3,6 +3,7 @@ project(SUMA)
 add_afni_library(
   SUMA
   MarchingCubes/MarchingCubes.c
+  MarchingCubes/mc_ziad.c
   PLY/obj_io.c
   PLY/plyfile.c
   SUMA_BrainWrap.c
