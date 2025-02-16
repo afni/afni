@@ -1337,7 +1337,7 @@ def plot_regressors_phys(retobj, ext='svg'):
         phobj = retobj.data[label]        # simplify coding below
         # process any/all phys regressors
         for ii in range(phobj.n_regress_phys):
-            keyA = phobj.regress_rvt_phys[ii]
+            keyA = phobj.regress_phys_keys[ii]
             keyB = phobj.regress_dict_phys[keyA][idx_sli][0]
             data_lab[cc]   = keyB.split('.')[-1] + '\\n' + keyA
             data_arr[:,cc] = phobj.regress_dict_phys[keyA][idx_sli][1]
