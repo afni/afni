@@ -144,6 +144,15 @@ ENTRY("EDIT_blur_volume_3d") ;
      kk = (int) ceil( sfac * sigmaz / dz ) ;
      if( ii <= FIR_MAX && jj <= FIR_MAX && kk <= FIR_MAX ) all_fir = 1 ;
 
+     { /* print some details, once per execution   [14 Feb 2025 rickr] */
+       static int bcomment = 0;
+       if( ! bcomment ) {
+         INFO_message("edt_blur: sigx %g, dx %g, fwhm %g, sfac %g, firx %d\n",
+                      sigmax, dx, sigmax/0.4246609, sfac, ii);
+         bcomment = 1;
+       }
+     }
+
      /* try to process most data using Finite Impule Response, not with Fourier
         interpolation (leads to ringing problems both inside and outside a mask)
         - set AFNI_BLUR_INTS_AS_OLD=YES to use old method    15 Jun 2009 [rickr] */
