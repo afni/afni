@@ -1242,7 +1242,7 @@ class PipelineConfig:
 class TemplateConfig(PipelineConfig):
     def __init__(self, label):
         # software version (update for changes)
-        self.make_template_version = "0.05"
+        self.make_template_version = "0.06"
         self.daskmode = "None"  # which kind of Dask parallelization, none by default
         self.data_format = "NIFTI" # output in NIFTI format
 
