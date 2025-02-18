@@ -297,9 +297,8 @@ read.GLMM.opts.batch <- function (args=NULL, verb = 0) {
    "         is less than the second. The default (the absence of this option) is no",
    "         outlier removal. ",
    "         **NOTE**: Using the -bounds option to remove outliers should be approached",
-   "         with extreme caution due to (1) its arbitrariness and (2) its disregard for",
-   "         underlying mechanisms. A more principled alternative is to use the -family",
-   "         option with a Student's t-distribution.\n", sep='\n')),
+   "         with caution due to its arbitrariness. A more principled alternative is to",
+   "         use the -family option with a Student's t-distribution.\n", sep='\n')),
 
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
