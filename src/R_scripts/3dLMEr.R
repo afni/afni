@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.0, Feb 17, 2025
+Version 1.1.1, Feb 18, 2025
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -31,18 +31,19 @@ SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 Introduction
 ------
 
-### Overview of 3dLMEr  
+ ### Overview of 3dLMEr  
 
- Linear Mixed-Effects (LME) analysis follows a traditional framework that distinguishes
- between two types of effects:  
+ Linear Mixed-Effects (LME) analysis follows a traditional framework that
+ distinguishes between two types of effects:  
  - Fixed effects capture population-level components.  
- - Random effects account for lower-level variability, such as subjects, families, or scanning sites.  
+ - Random effects account for lower-level variability, such as subjects, families,
+   or scanning sites.  
  
  3dLMEr is an advanced and more flexible successor to 3dLME. It enhances model
  specification, particularly in handling random-effects components. While 3dLME was
  built on the nlme R package, 3dLMEr leverages lme4, allowing for greater flexibility.
- Additionally, statistical values for main effects and interactions are approximated using
- Satterthwaite’s method.  
+ Additionally, statistical values for main effects and interactions are approximated
+ using Satterthwaite’s method.  
  
  ### Key Differences Between 3dLMEr and 3dLME  
  
@@ -156,7 +157,12 @@ Introduction
   missing data occurred. The LME model is typically formulated with a random
   intercept in this case. With the option -bounds, values beyond [-2, 2] will
   be treated as outliers and considered as missing. If you want to set a range, 
-  choose the bounds that make sense with your input data. 
+  choose the bounds that make sense with your input data.
+
+  **NOTE**: Using the -bounds option to remove outliers should be approached
+    with extreme caution due to (1) its arbitrariness and (2) its disregard for
+    underlying mechanisms. A more principled alternative is to use 3dGLMM with
+    a Student's t-distribution.
 
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                                          \\
@@ -202,6 +208,11 @@ Introduction
   quantitative variable: you have to decide which makes more sense - global
   centering or within-condition (or within-group) centering?
 
+  **NOTE**: Using the -bounds option to remove outliers should be approached 
+    with extreme caution due to (1) its arbitrariness and (2) its disregard for 
+    underlying mechanisms. A more principled alternative is to use 3dGLMM with 
+    a Student's t-distribution.
+
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                   \\
           -mask myMask+tlrc                       \\
@@ -241,6 +252,11 @@ Introduction
   model with a crossed random-effects structure, one for cross-subjects and one
   for cross-sites variability.
 
+  **NOTE**: Using the -bounds option to remove outliers should be approached 
+    with extreme caution due to (1) its arbitrariness and (2) its disregard for 
+    underlying mechanisms. A more principled alternative is to use 3dGLMM with 
+    a Student's t-distribution.
+
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                       \\
           -mask myMask+tlrc                           \\
@@ -274,6 +290,11 @@ Introduction
 "Example 4 --- LME analysis with a between-subject factor (group: two groups of
   subjects -- control, patient), two within-subject factros (emotion: 3 levels 
   -- pos, neg, neu; type: 2 levels -- face, word), one quantitative variable (age).
+
+  **NOTE**: Using the -bounds option to remove outliers should be approached 
+    with extreme caution due to (1) its arbitrariness and (2) its disregard for 
+    underlying mechanisms. A more principled alternative is to use 3dGLMM with 
+    a Student's t-distribution.
 
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                                                           \\
@@ -313,6 +334,11 @@ Introduction
   two conditions. The failures manifest with a large portion of 0, 1 and -1
   values in the output. In that case, use the program TRR to conduct 
   region-level test-retest reliability analysis.
+
+  **NOTE**: Using the -bounds option to remove outliers should be approached 
+    with extreme caution due to (1) its arbitrariness and (2) its disregard for 
+    underlying mechanisms. A more principled alternative is to use 3dGLMM with 
+    a Student's t-distribution.
 
 -------------------------------------------------------------------------
      3dLMEr -prefix output -TRR -jobs 16 \
@@ -452,7 +478,11 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         be confined within [lb, ub]: any values in the input data that are beyond",
    "         the bounds will be removed and treated as missing. Make sure the first number",
    "         is less than the second. The default (the absence of this option) is no",
-   "         outlier removal. \n", sep='\n')),
+   "         outlier removal.",
+   "         **NOTE**: Using the -bounds option to remove outliers should be approached",
+   "           with extreme caution due to (1) its arbitrariness and (2) its disregard for",
+   "           underlying mechanisms. A more principled alternative is to use 3dGLMM with",
+   "           a Student's t-distribution.\n", sep='\n')),
 
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
