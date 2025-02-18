@@ -361,6 +361,7 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
                        -prefix sphere.mean.$rad.$ichr$ind02 $eset$view
             endif
          else
+            echo "++ Locastat blur: SPHERE rad $rad"
             3dLocalstat -quiet -nbhd "SPHERE($rad)" -mask $mset \
                -stat mean -prefix sphere.mean.$rad.$ichr$ind02 $eset$view
          endif
@@ -377,6 +378,7 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
          # 3dcalc -a tt.scale1$view -b tt.sos$view -c $mset   \
          #         -expr 'c*a/sqrt(b)' -prefix $sset
 
+         echo "++ Locastat blur: SPHERE rad $rad"
          3dmaskave -quiet -mask $mset $eset$view > $prefix.mean_signal.1D
 
          3dTcorr1D -mask $mset -pearson -prefix $cset \
@@ -397,7 +399,7 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
       # (to easily delete the rest)
       if ( $do_clean == yes ) then
           \mv $ulay* $clean_dir
-          \cp $cset$view* $clean_dir
+          \cp -p $cset$view* $clean_dir
       endif
    endif
 
