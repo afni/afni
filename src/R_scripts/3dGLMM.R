@@ -23,7 +23,7 @@ help.GLMM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dGLMM ==================
           Program for Voxelwise Generalized Linear Mixed-Models (GLMMs) 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.2, Fen 14, 2025
+Version 0.0.3, Feb 18, 2025
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -295,7 +295,11 @@ read.GLMM.opts.batch <- function (args=NULL, verb = 0) {
    "         be confined within [lb, ub]: any values in the input data that are beyond",
    "         the bounds will be removed and treated as missing. Make sure the first number",
    "         is less than the second. The default (the absence of this option) is no",
-   "         outlier removal. \n", sep='\n')),
+   "         outlier removal. ",
+   "         **NOTE**: Using the -bounds option to remove outliers should be approached",
+   "         with extreme caution due to (1) its arbitrariness and (2) its disregard for",
+   "         underlying mechanisms. A more principled alternative is to use the -family",
+   "         option with a Student's t-distribution.\n", sep='\n')),
 
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
