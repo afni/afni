@@ -1916,7 +1916,6 @@ int SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
    static char FuncName[]={"SUMA_cb_SymIrange_tb_toggledForSurfaceObject"};
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_TABLE_FIELD *TF=NULL;
    char slabel[100];
    double range[2]; 
    int loc[2];
@@ -2008,10 +2007,8 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
 {
    static char FuncName[]={"SUMA_cb_AbsThresh_tb_toggled"};
    SUMA_ALL_DO *ado = NULL, *otherAdo = NULL;
-   SUMA_X_SurfCont *SurfCont=NULL,  *otherSurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL, *otherCurColPlane = NULL;
-   char slabel[100];
-   double range[2]; int loc[2];
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
    int AbsThresh;
