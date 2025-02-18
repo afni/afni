@@ -318,7 +318,7 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
    # possibly detrend (after any automask)
    if ( $polort >= 0 ) then
       set detset = det.$ichr$ind02
-      echo "-- detrend -polort $polort, new eset = $detset"
+      echo "-- radcor: detrend -polort $polort, new eset = $detset"
       3dTproject -quiet -polort $polort -prefix $detset -input $eset$view
       set eset = $detset
    endif
@@ -330,7 +330,7 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
 
    if ( $do_corr == 'yes' ) then
       echo ""
-      echo "-- running correlation on dataset $dset_list[$index] ..."
+      echo "-- radcor: running correlation on dataset $dset_list[$index] ..."
       echo ""
 
       if ( $sphere_rad != 0 ) then
@@ -349,19 +349,19 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
                set rad2 = `ccalc -n "2*$sphere_rad/$merge_frad"`
                # FIRFAC = 1.17741 when nhwhm=1, so scale
                set firfac = `ccalc "1.17741*$merge_frad"`
-               echo "++ merge blur: rad $sphere_rad, rad2 $rad2, firfac $firfac"
+               echo "++ radcor: merge blur: rad $sphere_rad, rad2 $rad2, firfac $firfac"
 
                3dmerge -DAFNI_BLUR_FIRFAC=$firfac -1blur_fwhm $rad2 -doall \
                        -prefix sphere.mean.$rad.$ichr$ind02 $eset$view
             else
                # just convert to FWHM
                set rad2 = `ccalc -n "2*$sphere_rad"`
-               echo "++ merge blur: rad $sphere_rad, FWHM $rad2"
+               echo "++ radcor: merge blur: rad $sphere_rad, FWHM $rad2"
                3dmerge -1blur_fwhm $rad2 -doall                         \
                        -prefix sphere.mean.$rad.$ichr$ind02 $eset$view
             endif
          else
-            echo "++ Locastat blur: SPHERE rad $rad"
+            echo "++ radcor: Locastat blur: SPHERE rad $rad"
             3dLocalstat -quiet -nbhd "SPHERE($rad)" -mask $mset \
                -stat mean -prefix sphere.mean.$rad.$ichr$ind02 $eset$view
          endif
@@ -378,7 +378,7 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
          # 3dcalc -a tt.scale1$view -b tt.sos$view -c $mset   \
          #         -expr 'c*a/sqrt(b)' -prefix $sset
 
-         echo "++ Locastat blur: SPHERE rad $rad"
+         echo "++ radcor: Locastat blur: SPHERE rad $rad"
          3dmaskave -quiet -mask $mset $eset$view > $prefix.mean_signal.1D
 
          3dTcorr1D -mask $mset -pearson -prefix $cset \
@@ -405,7 +405,7 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
 
    # if we are not clustering, continue on to next dataset
    if ( $do_clust != 'yes' ) then
-      echo "---- done\n"
+      echo "---- radcor: done\n"
       continue
    endif
 
@@ -430,7 +430,7 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
                   | grep -v 'NO CLUSTERS' | awk '{print $1}'`
 
    if ( $maxsize == "" ) then
-      echo "-- max clust @ thresh $thr in $cset$view : no clusters"
+      echo "-- radcor: max clust @ thresh $thr in $cset$view : no clusters"
       set res_list = ( $res_list 0 )
       set frac_list = ( $frac_list 0 )
       continue
