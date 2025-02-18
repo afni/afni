@@ -2204,40 +2204,14 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    for (j=0; j<numSurfaceObjects; ++j){
-        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        if (otherAdo != ado && otherAdo->do_type == SO_type){
-   
-        if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(otherAdo, 
-            curColPlane->SymIrange, YUP)){
-        SUMA_S_Warn("Error toggling sym I for current surface"); SUMA_RETURNe;
-        }
-/*
-            // Set I Range chacke box
-            XmToggleButtonSetState(((SUMA_SurfaceObject *)otherAdo)->SurfCont->SymIrange_tb,
-                              curColPlane->SymIrange, YUP);
-                              
-          otherCurColPlane = SUMA_ADO_CurColPlane(otherAdo);
-          otherCurColPlane->OptScl->IntRange[0] = 0;
-
-          otherSO = (SUMA_SurfaceObject *)otherAdo;
-           if (otherSO->SurfCont->SymIrange_tb){
-              otherCurColPlane->OptScl->IntRange[0] =
-                 -otherCurColPlane->OptScl->IntRange[1];
-           }
-           SUMA_INSERT_CELL_VALUE(otherSO->SurfCont->SetRangeTable, 1, 1, 
-                otherCurColPlane->OptScl->IntRange[0]);
-           SUMA_INSERT_CELL_VALUE(otherSO->SurfCont->SetRangeTable, 1, 2, 
-                otherCurColPlane->OptScl->IntRange[1]);
-
-
-           if (!SUMA_ColorizePlane (otherCurColPlane)) {
-                 SUMA_SLP_Err("Failed to colorize plane.\n");
-                 SUMA_RETURNe;
-           }
-           // Refresh display
-           SUMA_Remixedisplay(otherAdo);
-           SUMA_UpdateNodeLblField(otherAdo);
-           */
+            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+            if (otherAdo != ado && otherAdo->do_type == SO_type){
+       
+            if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(otherAdo, 
+                curColPlane->SymIrange, YUP)){
+                    SUMA_S_Warn("Error toggling sym I for current surface"); 
+                    SUMA_RETURNe;
+            }
         }
    }
 
