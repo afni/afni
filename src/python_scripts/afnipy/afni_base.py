@@ -573,8 +573,12 @@ class afni_name(object):
    def to_NIFTI(self, ext='.nii.gz'):  
       """modify to be NIFTI type, possibly with gz compression"""
 
-      # already NIFTI
-      if self.type == 'NIFTI': return
+      # already NIFTI - returning early is problematic
+      # because it preserves file extension - nii or nii.gz
+      # nii by itself ignores provided or default .gz compressed output
+      # this can get confusing especially because of AFNI_AUTOGZIP (grrrr)
+      # which compresses *sometimes* if the algorithm predicts a smaller file
+      # if self.type == 'NIFTI': return
 
       self.type = 'NIFTI'
       self.view = ''
