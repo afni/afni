@@ -1923,10 +1923,10 @@ int SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
    SUMA_ENTRY;
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
-      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+      SUMA_S_Warn("NULL input"); SUMA_RETURN(0); }
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if ( !curColPlane )  {
-      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURN(0);
    }
    if (notify) XmToggleButtonSetState(SurfCont->AbsThresh_tb, state, notify);
 
@@ -1983,10 +1983,10 @@ int SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
       SUMA_SetScaleRange(ado, range );
    }else {
       SUMA_SLP_Err("Failed to get range");
-      SUMA_RETURNe;
+      SUMA_RETURN(0);
    }
 
-   if (!curColPlane->OptScl->UseThr) { SUMA_RETURNe; }
+   if (!curColPlane->OptScl->UseThr) { SUMA_RETURN(0); }
  
    SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
  
