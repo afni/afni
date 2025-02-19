@@ -40,7 +40,7 @@ function [err,Word] = GetWord (S,n,D)
 %Define the function name for easy referencing
 FuncName = 'GetWord';
 
-%initailize return variables
+%initialize return variables
 err = 1;
 Word = '';
 

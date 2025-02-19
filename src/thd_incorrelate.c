@@ -1547,7 +1547,7 @@ void INCOR_addto_incomplete_pearclp_SS( int n, float *x, float *y,
 }
 
 /*----------------------------------------------------------------------------*/
-#else /*--- Parallel-ized verison of the above ----------------------*/
+#else /*--- Parallel-ized version of the above ----------------------*/
 
 void INCOR_addto_incomplete_pearclp_PP( int n, float *x, float *y,
                                         float *w, INCOR_pearclp *inpear )
@@ -1906,7 +1906,7 @@ ENTRY("INCOR_destroy") ;
 
 /*----------------------------------------------------------------------------*/
 /* Copy the internal data of an INCOR struct 'vin' over that of 'vout'.
-   This is used for adding data to vin while keeping vout pristine for re-use.
+   This is used for adding data to vin while keeping vout pristine for reuse.
    If vin is NULL, then vout is cleared to the empty INCOR struct.
 *//*--------------------------------------------------------------------------*/
 

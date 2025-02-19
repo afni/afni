@@ -12,7 +12,7 @@
     dd = sqrt( ss / #voxels )  i.e., the RMS difference.
 
     That is, we least squares fit image nim to bim by a scale factor,
-    and the residual determins the difference.  The minimizing value of
+    and the residual determines the difference.  The minimizing value of
     'a' is given by
 
     a = BN / NN  where BN = sum [ bim[i]*nim[i] ]

@@ -13,6 +13,75 @@
 
 /****************************************************************/
 
+
+/*---------------------------------------------------------------------------
+ * This function is akin AFNI_set_pval(), but is meant to simply return
+ * the threshold that corresponds to the input p-value, based on the dataset
+ * sub-brick statistic type and DF.                     
+ *
+ * If as_1_sided and is a 2-sided (non-F) test, double p.
+ *
+ * Return -1.0 on an error.
+ *                                                        [30 Oct 2023 rickr]
+ */
+float THD_volume_pval_to_thresh(THD_3dim_dataset * dset, int tindex,
+                                float pval, int as_1_sided)
+{
+   float thresh;
+   int   sid2, scode;
+
+   if ( ! ISVALID_DSET(dset) )                   return -1.0;
+   if ( pval <= 0.0 || pval >= 1.0 )             return -1.0;
+   if ( DSET_BRICK_STATCODE(dset, tindex) <= 0 ) return -1.0;
+
+   /* get stat code and whether it is 2-sided */
+   scode = DSET_BRICK_STATCODE(dset, tindex);
+   sid2  = THD_stat_is_2sided(scode , 0);
+
+   /* If we want as_1_sided and it is a 2-sided test, double the p-value
+    * (unless the stat is F, for which we never alter p).
+    * */
+   if ( as_1_sided && sid2 && (scode != FUNC_FT_TYPE) )
+      pval *= 2.0f;
+
+   thresh = THD_pval_to_stat( pval, scode, DSET_BRICK_STATAUX(dset, tindex));
+
+   if ( thresh < 0.0 ) return -1.0;
+   else                return thresh;
+}
+
+
+/*---------------------------------------------------------------------------
+ * THD_volume_thresh_to_pval: the inverse of THD_volume_pval_to_thresh().
+ */
+float THD_volume_thresh_to_pval(THD_3dim_dataset * dset, int tindex,
+                                float thresh, int as_1_sided)
+{
+   float pval;
+   int   sid2, scode;
+
+   if ( ! ISVALID_DSET(dset) )                   return -1.0;
+   if ( DSET_BRICK_STATCODE(dset, tindex) <= 0 ) return -1.0;
+
+   /* get stat code and whether it is 2-sided */
+   scode = DSET_BRICK_STATCODE(dset, tindex);
+   sid2  = THD_stat_is_2sided(scode , 0);
+
+   pval = THD_stat_to_pval( thresh, scode, DSET_BRICK_STATAUX(dset, tindex));
+
+   /* immediately fail on an error */
+   if ( pval < 0.0 ) return pval;
+
+   /* If we want as_1_sided and it is a 2-sided test, halve the p-value
+    * (unless the stat is F, for which we never alter p).
+    * */
+   if ( as_1_sided && sid2 && (scode != FUNC_FT_TYPE) )
+      pval /= 2.0f;
+
+   return pval;
+}
+
+
 float THD_stat_to_pval( float thr , int statcode , float *stataux )
 {
    float pval = -1.0 ;   /* error flag */

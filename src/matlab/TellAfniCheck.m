@@ -33,7 +33,7 @@ FuncName = 'TellAfniCheck';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 g = 0;
 b = 0;

@@ -1,7 +1,7 @@
 function ni_def = afni_ni_defs()
     persistent cached_ni_def
 
-    % for efficency reasons generate the definitions only once;
+    % for efficiency reasons generate the definitions only once;
     % upon each subsequent call the cached data is used
     if ~isstruct(cached_ni_def)
         cached_ni_def=generate_ni_def();

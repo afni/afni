@@ -580,7 +580,7 @@ int get_siemens_extra_info(char *str, Siemens_extra_info *mi, char ** epos)
      if( cpt-dpt > 16 ) break ;                 /* too much space */
      if( strncmp(cpt,"sSliceArray.asSlice[",20) != 0 ) break ;  /* bad line */
      /* 04 Mar 2003 moved around to allow for locating "fake matches"  *
-      * of the target text in some mosaic files' binary sections       */
+      * of the target text in the binary sections of some mosaic files   */
 
      /* interpret next string into
          snum = slice subscript (0,1,...)

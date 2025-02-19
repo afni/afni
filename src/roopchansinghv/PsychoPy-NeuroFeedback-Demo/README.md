@@ -5,5 +5,5 @@
 
 Development has moved to [this](https://github.com/roopchansinghv/afni-real-time-interface-in-python) repository.
 
-This code and its accompany capabilities are also avaialble at [PyPI](https://pypi.org/project/afniRTI/), allowing installation via 'pip'.
+This code and its accompany capabilities are also available at [PyPI](https://pypi.org/project/afniRTI/), allowing installation via 'pip'.
 

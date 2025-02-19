@@ -340,7 +340,7 @@ void SUMA_NI_set_double(NI_element *nel, char *attrname, double n)
 }
 
 /*! 
-   \brief A function to calulate shortest distance on a graph,
+   \brief A function to calculate shortest distance on a graph,
    and return the path corresponding to the short distance without
    relying on the SurfaceObject structure.
    
@@ -368,7 +368,7 @@ void SUMA_NI_set_double(NI_element *nel, char *attrname, double n)
                      n. Then n1 = FirstNeighb[n][1] and the distance between 
                      n and n1 is d1 = FirstNeighbDist[n][1]. 
                      If FirstNeighbDist is NULL, the d1 is calculated based on
-                     the Euclidian distance between the XYZ triplets starting at
+                     the Euclidean distance between the XYZ triplets starting at
                      NodeList[3*n] and NodeList[3*n1].
                      Naturally, you'll need to pass one of NodeList 
                      or FirstNeighbDist. If both are not NULL, then 
@@ -547,7 +547,7 @@ int * SUMA_Dijkstra_generic (int N_Node,
                            le = sqrt ( le );
                         } else {
                            fprintf (SUMA_STDERR, 
-                                 "ERROR %s: Only Euclidian distance supported\n"
+                                 "ERROR %s: Only Euclidean distance supported\n"
                                  , FuncName);
                            goto CLEANUP; 
                         }
@@ -680,7 +680,7 @@ int * SUMA_Dijkstra_generic (int N_Node,
                            le = sqrt ( le );
                         } else {
                            fprintf (SUMA_STDERR, 
-                                 "ERROR %s: Only Euclidian distance supported\n"
+                                 "ERROR %s: Only Euclidean distance supported\n"
                                  , FuncName);
                            goto CLEANUP; 
                         }

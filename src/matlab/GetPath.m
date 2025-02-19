@@ -39,7 +39,7 @@ if (nargin == 1),
    allmc = 0;
 end
 
-%initailize return variables
+%initialize return variables
 err = 1;
 p = '.';
 f = '';

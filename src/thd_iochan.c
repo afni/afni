@@ -112,7 +112,7 @@ static int nosigpipe = 0 ;  /* 20 Apr 1997: turn off SIGPIPE signals */
      < 0  ==> wait until something happens
 
    Return values are
-     -1 = some error occured (socket closed at other end?)
+     -1 = some error occurred (socket closed at other end?)
       0 = socket is not ready to read
       1 = socket has data
 ---------------------------------------------------------------------*/
@@ -230,7 +230,7 @@ int tcp_alivecheck( int sd )
 
 /*------------------------------------------------------------------------
    Open a socket to the given host, to the given TCP port.
-   Returns socket id; if -1, some error occured (e.g., nobody listening).
+   Returns socket id; if -1, some error occurred (e.g., nobody listening).
 --------------------------------------------------------------------------*/
 
 int tcp_connect( char * host , int port )
@@ -358,7 +358,7 @@ int tcp_listen( int port )
 /*--------------------------------------------------------------------------
    Accept incoming connection on a socket.  Return value is the attached
    socket (which is not the original socket!).  If -1 is returned, some
-   error occured.  If the accept works, then the original socket is
+   error occurred.  If the accept works, then the original socket is
    still open and listening for further attachments.
 
    If hostname is not NULL, then the char * it points to will be filled

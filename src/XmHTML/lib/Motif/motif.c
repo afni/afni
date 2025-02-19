@@ -281,7 +281,7 @@ DestroyImage(XImage *image)
 }
 
 static unsigned long
-GetPixelWrapper(XImage *ximage, Dimension x, Dimension y)
+GetPixelWrapper(XImage *ximage, _XtDimension  x, _XtDimension  y)
 {
 	return(XGetPixel(ximage, x, y));
 }

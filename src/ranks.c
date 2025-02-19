@@ -21,7 +21,7 @@
 typedef struct node
 {
   float fval;             /* floating point value */
-  int d;                  /* count of number of occurances of this value */
+  int d;                  /* count of number of occurrences of this value */
   struct node * next;     /* link to next node */
 } node;
 

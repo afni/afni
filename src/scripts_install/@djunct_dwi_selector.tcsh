@@ -87,7 +87,7 @@ while ( 1 )
     ## (will be created in you current folder)
     if ( "$check_out" == "1" ) then
 
-        ## write out the coodinates
+        ## write out the coordinates
         plugout_drive -com 'QUIET_PLUGOUTS' \
                       -com "SET_OUTPLUG ${tmp_coors}" \
                       -com 'GET_DICOM_XYZ' -quit
@@ -123,7 +123,7 @@ while ( 1 )
 
     else if ( "$check_out" == "2" ) then
 
-        ## write out the coodinates
+        ## write out the coordinates
         plugout_drive -com 'QUIET_PLUGOUTS' \
                       -com "SET_OUTPLUG ${tmp_coors}" \
                       -com 'GET_DICOM_XYZ' -quit

@@ -1,0 +1,58 @@
+
+${base_dset}  : reference/base dset; defines "base" space
+TLRC
+
+${src_dset0}  : source/input; defines "src" space
+ORIG
+
+======================================================================================
+srcsh_prefix  : ${src_abbrev}_pshft
+srcsh2_prefix : ${src_abbrev}_shft
+======================================================================================
+
+
+${src_dset}           : output of ${src_dset0} being resampled to RAI (so shift 
+ORIG                    and concat are easier later); still in "src" space
+
+${imed}/{srcsh_dset}         : output of ${src_dset} being shifted to ${base_dset} with 
+= ${src_abbrev}_pshft.nii.gz   @Align_Centers; defines "srcsh" space.
+ORIG                           NB: this may *not* have good CM overlap with ${base_dset}
+                               if the method for aligning centers is '-grid' and the 
+                               ${src_dset} is not well centered in grid, for example
+
+${imed}/${srcsh_shft}     : the shift from src->srcsh
+${imed}/${srcsh_shft_inv} : the shift from srcsh->src
+
+${imed}/${srcsh_prefix}_al2std.nii.gz : output of ${srcsh_dset} aligned
+TLRC                                    to ${base_dset} with align_epi_anat.py;
+                                        sits in "base" space
+
+${imed}/${srcsh_prefix}_al2std_mat.aff12.1D        : the aff Xform from srcsh->base
+${imed}/${srcsh_prefix}_al2std_mat_TR.aff12.1D     : translation part from srcsh->base
+${imed}/${srcsh_prefix}_al2std_mat_TR_INV.aff12.1D : translation part from base->srcsh;
+                                                     used to shift origin of dset(?)
+
+${imed}/${srcsh2_shft}   : concat of ${imed}/${srcsh_shft} + ${imed}/${srcsh_prefix}_al2std_mat_TR.aff12.1D;
+= ${src_abbrev}_shft.1D    the shift from src->base ("full shift"); defines 
+                           "srchsh2" space, which should effectively be "base"
+
+
+${imed}/${srcsh2_shft_inv}  : shift from base->src
+= ${src_abbrev}_shft_inv.1D
+
+
+${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D : NON-translation aff Xform from srcsh->base;
+                                               that is, ${imed}/${srcsh_prefix}_al2std_mat_TR.aff12.1D
+                                               with the translation extracted (hopefully)
+
+${imed}/{srcsh2_dset}        : output of ${srcsh_dset} shifted with 3drefit using 
+= ${src_abbrev}_shft.nii.gz    translation part of ${imed}/${srcsh_prefix}_al2std_mat_TR_INV.aff12.1D;
+  ORIG                         should have good CM overlap with ${base_dset}, though
+                               not necessarily be rotated well/etc.
+
+${affmat}: either ${srcsh2_prefix}_al2std_mat.aff12.1D (above) directly, or the rigid-equiv of it,
+           called ${srcsh2_prefix}_al2std_mat_rigid.aff12.1D
+
+${imed}/${srcsh2_prefix}_aff.nii.gz : output of applying ${affmat} to ${imed}/${srcsh2_dset}, 
+TLRC                                  and should be well aligned to ${base_dset};
+                                      should match ${imed}/${srcsh_prefix}_al2std.nii.gz

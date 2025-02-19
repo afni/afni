@@ -384,7 +384,7 @@ foreach rrr ( $other_for_root )
 
 #-- The order of warps is in order from final space to original space,
 #-- since they are applied to the final space x-coordinates in the
-#-- order given. In this case, the data are registered after bein
+#-- order given. In this case, the data are registered after being
 #-- unwarped, so the transformation back from output space to input
 #-- space is un-register first, then un-unwarp.
 #-- No '-master' option is given here, since the source 3D grid is

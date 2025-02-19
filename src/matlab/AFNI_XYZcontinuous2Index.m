@@ -80,7 +80,7 @@ if (nargin >= 4), %NNO was '=='
 end
 
 
-%initailize return variables
+%initialize return variables
 err = 1;
 Indx = [];
 

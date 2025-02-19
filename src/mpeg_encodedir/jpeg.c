@@ -128,7 +128,7 @@ int end;                /* last frame to be extracted */
   char ofname[256];		/* output filename string */
   int Temp = 0, temp = 0;	/* dummy variables */
   int image_offset = 0;		/* counting variable */
-  /* J_Movie header infomation */
+  /* J_Movie header information */
   int ver_no;			/* version number - expected to be 2 */
   int fps;			/* frame rate - frames per second */
   int no_frames;		/* total number of frames in jmovie */
@@ -250,7 +250,7 @@ int end;                /* last frame to be extracted */
   fd = fileno(inFile);
     
   /* The following lines parse the jpeg_movie header and recover the */
-  /* relavant information */
+  /* relevant information */
 
   fseek (inFile, (8*sizeof(char)),0);
     
@@ -558,7 +558,7 @@ ReadJPEG(mf, fp)
     (void) jpeg_read_raw_data(&cinfo, scanarray, buffer_height);
 #endif
 
-/* alter subsample ratio's if neccessary */
+/* alter subsample ratio's if necessary */
     if((h_samp[0]==2)&&(h_samp[1]==1)&&(h_samp[2]==1)&&
        (v_samp[0]==2)&&(v_samp[1]==1)&&(v_samp[2]==1)){
       /* we are 4:1:1 as expected by the encoder*/

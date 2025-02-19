@@ -407,7 +407,7 @@ void wavelet_analysis
   float * rfull,            /* full model R^2 stats. */
 
   float * coefts,           /* filtered FWT coefficients */
-  float * fitts,            /* filterd time series */
+  float * fitts,            /* filtered time series */
   float * sgnlts,           /* signal model fitted time series */
   float * errts             /* residual error time series */
 )

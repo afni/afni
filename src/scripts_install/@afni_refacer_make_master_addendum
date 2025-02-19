@@ -218,7 +218,7 @@ echo "\n++ work on defacing part\n"
     -prefix __deface_00_bool.nii                \
     -nscale
 
-### [PT: Jan 24, 2020] this step later deemed unnecesary.  Don't need
+### [PT: Jan 24, 2020] this step later deemed unnecessary.  Don't need
 ### to shrink defacing volume
 #3dmask_tool                                     \
 #    -dilate_inputs -6                           \

@@ -58,7 +58,7 @@ static char g_help[] =
     "    press 'Set+Keep'.  Part of the text output to the _terminal window_\n"
     "    will be '+d valid surface indices and labels: ...'.\n"
     " \n"
-    " ** For detailed infomation, please try the command: '3dVol2Surf -help'.\n"
+    " ** For detailed information, please try : '3dVol2Surf -help'.\n"
     " \n"
     " ----------------------------- options --------------------------------\n"
     " function:\n"
@@ -339,7 +339,7 @@ ENTRY("vol2surf: PLUGIN_init");
     PLUTO_add_number( plint, "level", 0, 5, 0, globs.vpo->sopt.debug, 1 );
     PLUTO_add_hint  ( plint, "debug level - how much to print to terminal" );
     PLUTO_add_number( plint, "node", 0, 0, 0, -1, 1 );
-    PLUTO_add_hint  ( plint, "particular node to print debug infomation for" );
+    PLUTO_add_hint  ( plint, "particular node to print debug information for" );
 
     RETURN(plint);
 }
@@ -701,7 +701,7 @@ ENTRY("PV2S_process_args");
     else
         lvpo.label[2] = lvpo.label[3] = gv2s_no_label;    /* no labels */
 
-    /* if the user wan't normals, they can only supply one surface per pair */
+    /* if the user wants normals, they can only supply one surface per pair */
     if ( sopt->use_norms && ((lvpo.use0 && lvpo.s0B >= 0) ||
                              (lvpo.use1 && lvpo.s1B >= 0)) )
     {

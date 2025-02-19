@@ -15,7 +15,7 @@ function [err, slc] = GetAfniSliceTriplet (Brik, BrikInfo, DM, Opt)
 %
 %   Opt is a an options structure with the following fields
 %    .iSlc is an 1x3 vector with the Axial, Sagittal and Coronal slice indices to show (a la AFNI, first slice is indexed 0)
-%        for examle [45 12 3] retrieves Axial slice 45, Sagittal slice 12 and Coronal slice 3.
+%        for example [45 12 3] retrieves Axial slice 45, Sagittal slice 12 and Coronal slice 3.
 %        if you need just one slice, then pass -1 where you do not need any slices
 %        for example [45 -1 3] retrieves the axial and coronal slices only
 %   .index is the sub-brick index, default is 0
@@ -48,7 +48,7 @@ FuncName = 'GetAfniSliceTriplet';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 %turn Brick into a matrix if it isn't already

@@ -38,7 +38,7 @@ int main( int argc , char *argv[] )
        "for a bandpass filter; results are written to stdout in an\n"
        "unadorned (no header) column of numbers.\n"
        "Inputs are\n"
-       "  fbot = lowest freqency in the pass band.\n"
+       "  fbot = lowest frequency in the pass band.\n"
        "  ftop = highest frequency in the pass band.\n"
        "        * 0 <= fbot < ftop <= 0.5/TR\n"
        "        * Unless the '-TR' option is given, TR=1.\n"

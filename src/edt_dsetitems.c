@@ -518,6 +518,9 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
       if( smode != STORAGE_UNDEFINED )
          dset->dblk->diskptr->storage_mode = smode;
 
+      /* if changing the dataset name, get a new idcode  [22 Dec 2023 rickr] */
+      dset->idcode = MCW_new_idcode() ;
+
       if( DSET_IS_1D(dset) || DSET_IS_3D(dset) ){         /* 21 Mar 2003 */
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;

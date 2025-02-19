@@ -106,7 +106,7 @@ typedef struct learn_parm {
   long   xa_depth;             /* parameter in xi/alpha-estimates upper
 				  bounding the number of SV the current
 				  alpha_t is distributed over */
-  char predfile[200];          /* file for predicitions on unlabeled examples
+  char predfile[200];          /* file for predictions on unlabeled examples
 				  in transduction */
   char alphafile[200];         /* file to store optimal alphas in. use  
 				  empty string if alphas should not be 
@@ -169,7 +169,7 @@ typedef struct quadratic_program {
 } QP;
 
 typedef struct kernel_cache {
-  long   *index;  /* cache some kernel evalutations */
+  long   *index;  /* cache some kernel evaluations */
   CFLOAT *buffer; /* to improve speed */
   long   *invindex;
   long   *active2totdoc;

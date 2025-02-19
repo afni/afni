@@ -156,7 +156,7 @@ SUMA_SurfaceObject* GtsToSuma( GtsSurface *gs)
 		make hash key=pvertex value=integer
 		make NodeList from integer and xyz
 	foreach face
-		get 3 vertexes
+		get 3 vertices
 		find their integers from hash
 		make FaceSetList from integers
 	*/

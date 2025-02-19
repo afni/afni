@@ -16,7 +16,7 @@ donewrec(Void)
 #ifdef KR_headers
 t_putc(c)
 #else
-t_putc(int c)
+int t_putc(int c)
 #endif
 {
 	f__recpos++;
@@ -242,7 +242,7 @@ lwrt_C(double a, double b)
 #ifdef KR_headers
 l_write(number,ptr,len,type) ftnint *number,type; char *ptr; ftnlen len;
 #else
-l_write(ftnint *number, char *ptr, ftnlen len, ftnint type)
+int l_write(ftnint *number, char *ptr, ftnlen len, ftnint type)
 #endif
 {
 #define Ptr ((flex *)ptr)

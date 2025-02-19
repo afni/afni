@@ -3,7 +3,7 @@ function [err, Cnext, cend] = NextString (C, Delim, cpos, Opt)
 %   [err,Cnext, cend] = NextString (C, Delim, cpos, Opt)
 % or [Cnext, cend] = NextString (C, Delim, cpos, Opt)
 %Purpose:
-%   gets the next string in charachter array C that is delimited by Delim
+%   gets the next string in character array C that is delimited by Delim
 %
 %
 %Input Parameters:
@@ -60,7 +60,7 @@ end
 
 if (~isfield(Opt,'Deblank') | isempty(Opt.Deblank)), Opt.Deblank = 0; end
 
-%initailize return variables
+%initialize return variables
 err = 1;
 Cnext = '';
 

@@ -1962,7 +1962,7 @@ STATUS("create PLUGIN_DATASET_TYPE") ;
             }
             break ;
 
-            /** single timeseries type (similiar to dataset above) **/
+            /** single timeseries type (similar to dataset above) **/
 
             case PLUGIN_TIMESERIES_TYPE:{
                PLUGIN_tsval * av = myXtNew(PLUGIN_tsval) ;
@@ -2027,7 +2027,7 @@ STATUS("create PLUGIN_TIMESERIES_TYPE") ;
             }
             break ;
 
-            /** single tcsv type (similiar to timeseries above) **/
+            /** single tcsv type (similar to timeseries above) **/
 
             case PLUGIN_TCSV_TYPE:{
                PLUGIN_tcsvval * av = myXtNew(PLUGIN_tcsvval) ;
@@ -2650,7 +2650,7 @@ ENTRY("get_optiontag_from_PLUGIN_interface") ;
 }
 
 /*-----------------------------------------------------------------------
-   Return a string encaspulating information about how the plugin
+   Return a string encapsulating information about how the plugin
    was called.  This string is created with malloc() and should be
    free()-ed when it is used up.  If NULL is returned, an error
    occurred (and you should be ashamed of yourself).

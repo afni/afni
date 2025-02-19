@@ -33,7 +33,7 @@ Speeds: (last checked in version 0.7)
 ----------------------------------------------------------------------
 
 todo:
-  - on alloc failure, propogate error up and return NULL
+  - on alloc failure, propagate error up and return NULL
   - accessor functions
   - indexed reading
   - test doxygen comments

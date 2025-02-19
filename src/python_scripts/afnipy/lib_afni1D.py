@@ -104,7 +104,7 @@ class Afni1D:
       if self.verb > 2: self.show()
 
    def reduce_by_tlist(self, tlist):
-      """reduce by time list, similiar to afni's {} selector
+      """reduce by time list, similar to afni's {} selector
          this affects run_len and runs, so try to fix those
 
          return 0 on success"""
@@ -257,6 +257,22 @@ class Afni1D:
       cols = self.ordered_cols_by_group_list(gnew)
       if self.verb > 1: print('-- red. by glist: cols %s' % cols)
       return self.reduce_by_vec_list(cols)
+
+   def list_allzero_cols(self):
+      """return an array of indices where the matrix column is all-zero
+      """
+
+      if not self.ready:
+         print('** list_allzero_cols: Afni1D is not ready')
+         return 1
+
+      zlist = []
+
+      for vind, vec in enumerate(self.mat):
+         if UTIL.vals_are_constant(vec, cval=0):
+            zlist.append(vind)
+
+      return zlist
 
    def show_header(self):
       print('\n'.join(self.header))
@@ -1615,6 +1631,8 @@ class Afni1D:
                           pretty    - space columns to align
                           tsv       - apply sep as '\t'
 
+         if empty, create empty file
+
          return status"""
 
       if self.verb > 2: print('-- Afni1D write to %s, o=%s, h=%s, s=%s' \
@@ -1626,10 +1644,6 @@ class Afni1D:
       if not fname:
          print("** missing filename for write")
          return 1
-
-      # bail if empty
-      if self.nt == 0:
-         return 0
 
       if fname == '-' or fname == 'stdout': fp = sys.stdout
       else:
@@ -1646,6 +1660,13 @@ class Afni1D:
       if with_header:
          hstr = self.make_xmat_header_string()
          if hstr != '': fp.write(hstr+'\n#\n')
+
+      # and bail if empty
+      if self.nt == 0:
+         if self.verb > 0:
+            print('** warning: writing empty file %s' % fname)
+         fp.close()
+         return 0
 
       # convert to strings initially, in case of pretty output
       smat = []
@@ -2071,7 +2092,7 @@ class Afni1D:
       """print a distance matrix, to the given number of places
 
          Treating the input as lines of vectors (coordinates), print out an
-         nrows x nrows distance matrix, the Euclidian distance between the
+         nrows x nrows distance matrix, the Euclidean distance between the
          pairs of coordinates.
 
          verb: integral verbosity level (None : use self.verb)
@@ -2125,7 +2146,7 @@ class Afni1D:
 
    def make_cormat_warnings_string(self, cutoff=0.4, name='',
                                    skip_expected=1):
-      """make a string for any entires at or above cutoffs:
+      """make a string for any entries at or above cutoffs:
             cut0=1.0, cut1=(1.0+cutoff)/2.0, cut2=cutoff
 
             cut0, cut1, cut2 are cutoff levels (cut0=highest)
@@ -2564,6 +2585,27 @@ class Afni1D:
       if verb > 0: print('rows = %d, cols = %d' % (self.nt, self.nvec))
       else:        print('%d %d' % (self.nt, self.nvec))
 
+   def show_tpattern(self, mesg='', rdigits=1, verb=1):
+      """display the multiband level and to3d-style tpattern
+
+         mesg    : ['']  : print before output
+         rdigits : [1]   : number of digtits used for rounding in pattern detection
+         verb    : [1]   : verbosity level (0 = quiet)"""
+
+      if mesg:     print('%s' % mesg, end='')
+
+      # allow timing to be either vertical or horizontal
+      if self.nvec == 1:
+         timing = self.mat[0]
+      else:
+         timing = [v[0] for v in self.mat]
+
+      nb, tpat = UTIL.timing_to_slice_pattern(timing, rdigits=rdigits, verb=verb)
+      if nb < 0:
+         tpat = 'INVALID'
+      if verb > 0: print('nbands : %d, tpattern : %s' % (nb, tpat))
+      else:        print('%d %s' % (nb, tpat))
+
    def get_tr_counts(self):
       """return status, self.run_len, self.run_len_nc
 
@@ -2707,6 +2749,7 @@ class Afni1D:
 
             compute max pairwise displacement among the coordinate pairs
                using L1 norm (sum of abs(diffs))
+            this might be akin to FD vs enorm, though FD is adjacent diffs
             
           cset is an optional censor dataset (1=keep, 0=censor)
       """
@@ -2886,7 +2929,7 @@ class Afni1D:
             IM:     -stim_times_IM
 
       """
-      # make a list of acceptible options
+      # make a list of acceptable options
       if 'ALL' in stypes:
          optlist = ['-stim_times', '-stim_times_AM1', '-stim_times_AM2',
                     '-stim_times_IM']
@@ -3029,17 +3072,19 @@ class Afni1D:
             1: baseline (group  -1)
             2: motion   (group   0)
             4: interest (group > 0)
+            8: allzero
 
-         Do not return an empty list.  If the groups do not exist or are
-         not found, return '0..$'."""
+         Do not return an empty list, unless allzero is given.
+         If the groups do not exist or are not found, return '0..$'."""
 
       default = '0..$'
 
       if self.verb > 1: print('-- show indices, types = %d, groups = %s' \
                               % (ind_types, self.groups))
 
-      bmask = ind_types & 7
+      bmask = ind_types & 15
       if not self.ready:           return default
+      # treat no groups and all groups the same
       if bmask == 0 or bmask == 7: return default
       if len(self.groups) < 1:     return default
 
@@ -3051,10 +3096,13 @@ class Afni1D:
          ilist += [ind for ind in allind if self.groups[ind] == 0]
       if ind_types & 4:
          ilist += [ind for ind in allind if self.groups[ind] > 0]
+      # all-zero is more work
+      if ind_types & 8:
+         ilist += self.list_allzero_cols()
       ilist.sort()
 
       elist = UTIL.encode_1D_ints(ilist)
-      if elist == '':
+      if elist == '' and not (ind_types & 8):
          if self.verb > 1: print('-- replacing empty encode list with full')
          elist = default
       return elist
@@ -3273,10 +3321,11 @@ class Afni1D:
       if self.verb > 3: print("-- Afni1D: init_from_1D '%s'" % fname)
 
       tmat, clines = TD.read_data_file(fname, verb=self.verb)
+      if tmat is None:
+         return 1
       if not TD.data_is_rect(tmat):
          print("** data is not rectangular in %s" % fname)
          return 1
-      # if not tmat: return 1
 
       # treat columns as across time
       mat = UTIL.transpose(tmat)
@@ -3763,6 +3812,39 @@ class AfniData(object):
          return len(row[0][1])  # have amplitudes, return the length
       return 0 # no valid rows found
 
+   def get_am_list(self, aindex, run=0):
+      """return the list of amplitude modulators for the given index
+
+            aindex  : which amplitude modulators to return (0-based)
+                      (0 <= aindex < num_amplitudes)
+
+            run     : run index (0-based)
+                      (use -1 for all runs together)
+      """
+      numa = self.num_amplitudes()
+
+      if numa < 1: return []
+      if run > self.nrows: return []
+
+      if self.verb > 2:
+         print("-- get_am_list: numa %d, rows %d, run %d, aindex %d" \
+               % (numa, self.nrows, run, aindex))
+
+      try:
+         if run >= 0:
+            row = self.mdata[run]
+            amlist = [row[i][1][aindex] for i in range(len(row))]
+         else:
+            # return a composite list across all runs
+            amlist = []
+            for row in self.mdata:
+               amlist.extend([row[i][1][aindex] for i in range(len(row))])
+      except:
+         amlist = []
+         print("** get_am_list: severe failure")
+
+      return amlist
+
    def ave_dur_modulation(self):
       if not self.mtype & MTYPE_DUR: return 0
       if not self.mdata: return 0
@@ -3809,7 +3891,7 @@ class AfniData(object):
       return 0
 
    def transpose(self):
-      """the tranpose operation requires rectangular data"""
+      """the transpose operation requires rectangular data"""
       if not self.ready: return 1
 
       # allow transpose if max row length is 1
@@ -4126,7 +4208,7 @@ class AfniData(object):
                 - maximum should be less than current run_length
          if tr is passed, scale the run lengths
 
-         return -1 on fatal erros
+         return -1 on fatal errors
                  0 on OK
                  1 on non-fatal errors
       """
@@ -4369,7 +4451,7 @@ class AfniData(object):
          return 1
 
    def file_type_errors_global(self, run_lens=[], tr=0.0, verb=1):
-      """ return -1 on fatal erros
+      """ return -1 on fatal errors
                   0 on OK
                   1 on non-fatal errors
       """
@@ -4627,6 +4709,8 @@ class AfniData(object):
       if self.mtype & MTYPE_DUR:
          isconst, dlen = self.check_constant_duration()
          if isconst:
+            if self.verb > 2:
+               print('-- omitting constant married duration %g' % dlen)
             self.write_dm = 0
             self.dur_len = dlen
          else:
@@ -4753,7 +4837,7 @@ class AfniData(object):
       # self.mdata
       lorig = self.mdata
       if lorig != None:
-         # if length mis-match, skip (probably empty)
+         # if length mismatch, skip (probably empty)
          if len(lorig) == nold:
             if self.verb > 3: print("++ padding mdata")
             d = []
@@ -4768,7 +4852,7 @@ class AfniData(object):
       # self.alist
       lorig = self.alist
       if lorig != None:
-         # if length mis-match, skip (probably empty)
+         # if length mismatch, skip (probably empty)
          if len(lorig) == nold:
             if self.verb > 3: print("++ padding alist")
             d = []
@@ -4783,7 +4867,7 @@ class AfniData(object):
       # self.run_lens
       lorig = self.run_lens
       if lorig != None:
-         # if length mis-match, skip (probably empty)
+         # if length mismatch, skip (probably empty)
          if len(lorig) == nold:
             if self.verb > 3: print("++ padding run_lens")
             d = []

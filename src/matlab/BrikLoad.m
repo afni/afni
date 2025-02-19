@@ -117,7 +117,7 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %   BrikName can be a cell of filenames, or a string containing wildcard
 %   patterns ('?' for any character, or '*' for any string). This is useful
 %   for reading time series data from multiple Briks, as for example in
-%   BrikLoad('s01.results/pb04.s01.r??.scale+orig.HEAD'). Use of wilcard
+%   BrikLoad('s01.results/pb04.s01.r??.scale+orig.HEAD'). Use of wildcard
 %   patterns requires use the full file name with .HEAD extension.
 %   Use of .Voxels, .Frames, .PixX and .PixY, or .OutPrecision and .Scale
 %   options may be necessary for large datasets for memory reasons.
@@ -169,7 +169,7 @@ FuncName = mfilename();
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 V = [];
 Info = [];

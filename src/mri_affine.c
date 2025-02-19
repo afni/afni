@@ -344,7 +344,7 @@ void ft_shift2( int n, int nup, float af, float * f, float ag, float * g )
    }
    cf[nby2].i = 0.0 ; cg[nby2].i = 0.0 ;
 
-   /* retangle the coefficients from 2 rows */
+   /* re-tangle the coefficients from 2 rows */
 
    row[0].r = cf[0].r ; row[0].i = cg[0].r ;
    for( ii=1 ; ii < nby2 ; ii++ ){

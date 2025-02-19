@@ -41,7 +41,7 @@ FuncName = 'CheckPrefix';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 ans = 0;
 
 %make sure you have no HEAD or BRIK as an extension

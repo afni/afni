@@ -70,7 +70,7 @@ void THD_bstrap_set_bca_alphas( float al1 , float al2 )
 }
 
 /*----------------------------------------------------------------------------*/
-/* Bias-Corrected accelerated (BCa) boostrap estimation of correlation
+/* Bias-Corrected accelerated (BCa) bootstrap estimation of correlation
    and confidence intervals: M Mudelsee, Mathematical Geology 35:651-665.
 *//*--------------------------------------------------------------------------*/
 

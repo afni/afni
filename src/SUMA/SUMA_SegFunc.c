@@ -450,7 +450,7 @@ SUMA_FEAT_DISTS *SUMA_get_all_dists(char *where)
             FD = SUMA_hist_To_dist(&hh,NULL);
             FDV = SUMA_add_feature_dist(FDV, &FD, 0);
          } else {
-            SUMA_LHv("Unknow extension for %s, ignoring it.\n",
+            SUMA_LHv("Unknown extension for %s, ignoring it.\n",
                   flist[i]);
          }
       }
@@ -1959,7 +1959,7 @@ int SUMA_Split_Classes(char **Glbls, int N_Glbls, int *Gkeys, int *Split,
       }
 
       if (LocalHead) {
-         SUMA_Seg_Write_Dset(Opt->proot, "Splitted", 
+         SUMA_Seg_Write_Dset(Opt->proot, "Split", 
                           Scset, -1, Opt->hist);
       }
    }
@@ -8202,7 +8202,7 @@ double SUMA_CompareBiasDsets(THD_3dim_dataset *gold_bias, THD_3dim_dataset *bias
 
 /*!
    Compute the Dice coefficient between base and segmentation volumes
-   \param base: Gold std segmentaion
+   \param base: Gold std segmentation
    \param seg: segmentation
    \param cmask: Restrict all to cmask 
    \param mask_by_base: If (1) then exclude locations where base == 0,
@@ -10173,7 +10173,7 @@ SUMA_SurfaceObject *SUMA_ExtractHead(THD_3dim_dataset *iset,
 }
 
 /*!
-   A head extration tool using the radial stats function.
+   A head extraction tool using the radial stats function.
    iset is the T1 volume
    urset is a pointer to the radial stats volume, should you
          want it back

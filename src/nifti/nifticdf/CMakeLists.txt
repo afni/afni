@@ -8,7 +8,7 @@ set_target_properties(
     "${CMAKE_CURRENT_LIST_DIR}/nifticdf.h"
   )
 target_compile_options(${NIFTI_CDFLIB_NAME} PRIVATE "-D__COMPILE_UNUSED_FUNCTIONS__")
-target_link_libraries(${NIFTI_CDFLIB_NAME} PUBLIC ${NIFTI_PACKAGE_PREFIX}niftiio)
+target_link_libraries(${NIFTI_CDFLIB_NAME} PRIVATE ${NIFTI_PACKAGE_PREFIX}niftiio)
 get_lib_version_vars("nifticdf_version.h" NIFTICDF_VERSION NIFTICDF_MAJOR_VERSION)
 if(BUILD_SHARED_LIBS)
     set_target_properties(${NIFTI_CDFLIB_NAME}

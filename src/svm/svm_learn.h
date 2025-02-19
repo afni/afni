@@ -85,7 +85,7 @@ void   reactivate_inactive_examples(long *, long *, double *, SHRINK_STATE *,
 				    KERNEL_CACHE *, MODEL *, CFLOAT *, 
 				    double *, double *);
 
-/* cache kernel evalutations to improve speed */
+/* cache kernel evaluations to improve speed */
 void   get_kernel_row(KERNEL_CACHE *,DOC *, long, long, long *, CFLOAT *, 
 		      KERNEL_PARM *);
 void   cache_kernel_row(KERNEL_CACHE *,DOC *, long, KERNEL_PARM *);

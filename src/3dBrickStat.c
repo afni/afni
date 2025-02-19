@@ -701,8 +701,10 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
 
    ENTRY("Max_func");
 
-   /* maybe the mask came up empty    [11 Jun 2019 rickr] */
-   if( mmvox > 0 ) {
+   /* maybe the mask came up empty    [11 Jun 2019 rickr] 
+      and check whether a mask was used at all [PT: Sep 1, 2022]
+    */
+   if( (mmm && mmvox > 0) || !mmm ) { 
       overallmin = 1E10;
       overallmax = -1E10;
    } else {

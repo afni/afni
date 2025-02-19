@@ -1384,7 +1384,7 @@ void AFNI_make_descendants( THD_sessionlist *ssl )
    return ;
 }
 
-/** In this routine, each occurence of vbase was originally VIEW_ORIGINAL_TYPE **/
+/** In this routine, each occurrence of vbase was originally VIEW_ORIGINAL_TYPE **/
 
 void AFNI_make_descendants_old( THD_sessionlist *ssl , int vbase )
 {
@@ -2829,7 +2829,7 @@ ENTRY("AFNI_ttatlas_overlay") ;
    nov = 0;
    for( at_sbi=0; at_sbi < at_nsb; at_sbi++) { /* loop over bricks */
 
-      /* extract atlas slice from volumne #at_sbi */
+      /* extract atlas slice from volume #at_sbi */
       b1im = AFNI_slice_flip( n,at_sbi,RESAM_NN_TYPE,ax_1,ax_2,ax_3,
                               atlas_ovdset);
       if( b1im == NULL ) continue ; /* this is bad */
@@ -5903,7 +5903,7 @@ ENTRY("AFNI_write_dataset_CB") ;
                  "**        Original View.                          **\n"
                  "**   -- It isn't allowed to overwrite data that   **\n"
                  "**        is not warped from some other dataset.  **\n"
-                 "**   -- An internal program error has occured!    **\n"
+                 "**   -- An internal program error has occurred!   **\n"
                  "****************************************************"  ,
               MCW_USER_KILL | MCW_TIMER_KILL ) ;
 
@@ -6568,19 +6568,23 @@ ENTRY("AFNI_autorange_label") ;
 /* ININFO_message("  old style rrr = %g",rrr) ; */
 
    /* Get the autorange as a percentage point of the nonzero values */
-
-   if( im3d->fim_now->int_cmap == CONT_CMAP && AUTORANGE_PERC > 1 && AUTORANGE_PERC < 100 ){
+   /* (if we have a functional dataset)         [11 Jan 2024 rickr] */
+   if( ISVALID_3DIM_DATASET(im3d->fim_now)
+        && im3d->fim_now->int_cmap == CONT_CMAP 
+        && AUTORANGE_PERC > 1 && AUTORANGE_PERC < 100 ){
      MRI_IMAGE *qim=NULL ; float qval ;
-     if( !DSET_LOADED(im3d->fim_now) && DSET_TOTALBYTES(im3d->fim_now) < 66666666 )
+     if( !DSET_LOADED(im3d->fim_now) && DSET_TOTALBYTES(im3d->fim_now)
+                                                        < 66666666 )
        DSET_load(im3d->fim_now) ;
      if( DSET_LOADED(im3d->fim_now) ){
        qim = THD_extract_float_brick(im3d->vinfo->fim_index,im3d->fim_now) ;
      } else if( im3d->fim_now->warp_parent != NULL &&
                 DSET_LOADED(im3d->fim_now->warp_parent) ){
-       qim = THD_extract_float_brick(im3d->vinfo->fim_index,im3d->fim_now->warp_parent) ;
+       qim = THD_extract_float_brick(im3d->vinfo->fim_index,
+                                     im3d->fim_now->warp_parent) ;
      }
      if( qim != NULL ){
-       qval = percentile_nzabs( qim->nvox, MRI_FLOAT_PTR(qim), AUTORANGE_PERC ) ;
+       qval = percentile_nzabs( qim->nvox, MRI_FLOAT_PTR(qim), AUTORANGE_PERC);
        mri_free(qim) ;
        if( qval > 0.0f ) rrr = qval ;
      }
@@ -7124,7 +7128,7 @@ void AFNI_news_CB( Widget w , XtPointer cd , XtPointer cbd )
 
 #undef  FORUM_LINK
 #define FORUM_LINK \
- "https://afni.nimh.nih.gov/afni/community/board/"
+ "https://discuss.afni.nimh.nih.gov"
 
 void AFNI_forum_CB( Widget w , XtPointer cd , XtPointer cbd )
 {
@@ -7293,7 +7297,7 @@ ENTRY("AFNI_misc_CB") ;
    else if( w == im3d->vwid->dmode->misc_anat_info_pb ){
       char *inf ;
 STATUS("getting anat info") ;
-      inf = THD_dataset_info( im3d->anat_now , 0 ) ;
+      inf = THD_dataset_info( im3d->anat_now , 0 , 1 ) ;
       if( inf != NULL ){
          if( DSET_ARRAY(im3d->anat_now,0) == NULL ){
             inf = THD_zzprintf( inf , "\n*** Not loaded into memory.\n") ;
@@ -7320,7 +7324,7 @@ STATUS("getting anat info") ;
    else if( w == im3d->vwid->dmode->misc_func_info_pb ){
       char *inf ;
 STATUS("getting func info") ;
-      inf = THD_dataset_info( im3d->fim_now , 0 ) ;
+      inf = THD_dataset_info( im3d->fim_now , 0 , 1 ) ;
 STATUS("got func info") ;
       if( inf != NULL ){
          if( DSET_ARRAY(im3d->fim_now,0) == NULL ){

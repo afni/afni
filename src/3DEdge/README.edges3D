@@ -38,7 +38,7 @@ src/: source and header files
                     connected components. Design of other tools
                     (as components containing seeds, or holes filling)
                     should be really easy.
-     typedefs.h: some common defintions
+     typedefs.h: some common definitions
      iopnm.[c.h]: home made I/O routines for PBM/PGM/PPM raw images
      test-edges.c: a test program to show how to use the main functions
      test-edges-pnm.c: a test program to extract edges in PBM/PGM/PPM raw images

@@ -58,7 +58,8 @@ shinyServer(function(input,output,session) {
   ##########################
   ## extract the data
   observeEvent(input$extract_data,{
-    if(!is.na(coord.mat)){
+    
+    if(!anyNA(coord.mat)){
       removeNotification(id="coordDone")
       removeNotification(id="maskDone")
 
@@ -164,9 +165,11 @@ shinyServer(function(input,output,session) {
       model.static <<- "Enter a valid model."
       return(cat("Enter a valid model."))
     }
+    
     ## make sure they finished typing something
     last.chr <- substr(as.character(input$model_in),nchar(input$model_in),
                        nchar(input$model_in))
+
     if(last.chr %in% c("*","+","-","/")){
       aov.obj <<- c()
       model.static <<- "Enter a valid model."
@@ -221,25 +224,23 @@ shinyServer(function(input,output,session) {
     cat(paste("RAI =",coord.mat[1,1],coord.mat[1,2],coord.mat[1,3],'\n'))
     if(input$qnt_vars_in != ""){ cat(qVar.cnt.str) }
     cat(paste0('Full Model: ',model.sel,'\n\n'))
-
+    
     ## run and return stat
     anova.aov <- tryCatch(
       aov_car(as.formula(model.sel),vox.df,factorize=FALSE,
-              type=input$SS_type),error=function(e) NA)
+              type=input$SS_type),error=function(e) return(NULL))
 
-    if(!is.na(anova.aov)){
-      aov.obj <<- anova.aov ## update global vars
-      model.static <<- model.sel
-      return(anova(anova.aov))
-    } else {
-      model.static <<- "Model Fail! Try again..."
-      return(cat("Model Fail! Try again..."))
-    }
-
+      if(!is.null(anova.aov)){
+        aov.obj <<- anova.aov ## update global vars
+        model.static <<- model.sel
+        return(anova(anova.aov))
+      } else {
+        model.static <<- "Model Fail! Try again..."
+        return(cat("Model Fail! Try again..."))
+      }
   })   ## end calc model
 
-  ############################################
-  ## mvm script output
+  ## mvm script output ##########################################
   mvmScript <- reactive({
 
     ## line by line the script
@@ -340,9 +341,7 @@ shinyServer(function(input,output,session) {
     paste0('tcsh ',input$script_name)
   })
 
-  ############################################
-  ## GLTs
-
+  ## GLTs ##########################################
   ## get the variables from the model
   glt_get_vars <- observeEvent(
     c(input$ws_vars_in,input$qnt_vars_in,
@@ -369,7 +368,7 @@ shinyServer(function(input,output,session) {
         all.terms <- unique(all.terms)
 
         ## update list
-        updateSelectInput(session,'glt_vars',choices=all.terms)
+        # updateSelectInput(session,'glt_vars',choices=all.terms)
       }
     })   ## end get glt vars
 
@@ -439,6 +438,7 @@ shinyServer(function(input,output,session) {
     output$glt_test_out <- renderTable("",colnames=FALSE)
     bad.out <- gltCheckFun(input$glt_label,input$glt_lvl,input$glt_weights,
                            input$glt_list)
+     
     if(length(bad.out) > 0){
       output$glt_test_out <- renderTable({"Model Fail! Try again..."},
                                          colnames=FALSE)
@@ -488,7 +488,7 @@ shinyServer(function(input,output,session) {
 
     ## return a list of the glt's and/or slopes
     glt.terms <- gltConstr(code.list[[1]],vox.df)
-
+    
     ## check to see if the glt code is valid
     if(is.null(glt.terms)){
       output$glt_test_out <- renderTable({"Model Fail! Try again..."},
@@ -618,7 +618,7 @@ shinyServer(function(input,output,session) {
   ## many outputs
   output$mvm_table <- renderDataTable({data_load()},options=dataTableOptions)
   output$bad_vars  <- renderTable({badVars()},colnames=FALSE)
-  output$model_summary <- reactivePrint(function(){calcModel()})
+  output$model_summary <- renderPrint({ calcModel() })
   output$mvm_script <- renderText({ mvmScript() })
   output$glt_cur_mod <- renderText({
     junk <- calcModel()   ## update the model.static global (bad disco)

@@ -242,7 +242,7 @@ void SUMA_DotXform_SetPending (NI_element *dotopts, int pending, char *id)
                strcat(stmp, cs);
                strcat(stmp, id);
                NI_set_attribute(dotopts, "pending", stmp);
-            } else {/* alread pending */
+            } else {/* already pending */
             }
          } else { /* nothing pending, add it */
             sprintf(stmp, "%s;", id);

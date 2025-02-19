@@ -224,7 +224,7 @@ struct _list_node
 
 /* freeing all of the allocated mem on an error can get a little messy. instead
    we can use this macro to check what has been allocated and kill it. this of 
-   course requires strict discipline for initiazing all pointers to NULL and 
+   course requires strict discipline for initializing all pointers to NULL and 
    resetting them to NULL when free'd. i should be able to handle that */
 #define CHECK_AND_FREE_ALL_ALLOCATED_MEM \
 { \
@@ -451,12 +451,12 @@ int main( int argc , char *argv[] )
 "  LFCD is a localized variant of binarized degree centrality,\n"
 "  the weighted alternative is calculated by changing step 4\n"
 "  above to calculate the sum of the correlation coefficients\n"
-"  between the seed region and the neigbors. 3dLFCD outputs\n"
-"  both of these values (in seperate briks), since they are\n"
+"  between the seed region and the neighbors. 3dLFCD outputs\n"
+"  both of these values (in separate briks), since they are\n"
 "  so easy to calculate in tandem.\n\n"
 "  You might prefer to calculate this on your data after\n"
 "  spatial normalization, so that the range of values are\n"
-"  consistent between datatsets. Similarly the same brain mask\n"
+"  consistent between datasets. Similarly the same brain mask\n"
 "  should be used for all datasets that will be directly compared.\n\n"
 "  The original paper used a correlation threshold = 0.6 and \n"
 "  excluded all voxels with tSNR < 50. 3dLFCD does not discard\n"
@@ -497,7 +497,7 @@ int main( int argc , char *argv[] )
 "               the number of voxels included in the calculation will\n"
 "               significantly speedup the calculation. Consider using\n"
 "               a mask to constrain the calculations to the grey matter\n"
-"               rather than the whole brain. This is also preferrable\n"
+"               rather than the whole brain. This is also preferable\n"
 "               to using -autoclip or -automask.\n"
 "\n"
 "  -prefix p = Save output into dataset with prefix 'p', this file will\n"

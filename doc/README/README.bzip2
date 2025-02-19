@@ -35,7 +35,7 @@ HOW TO BUILD
 
         To install bzip2 properly:
 
-           -- Copy the binary "bzip2" to a publically visible place,
+           -- Copy the binary "bzip2" to a publicly visible place,
               possibly /usr/bin, /usr/common/bin or /usr/local/bin.
 
            -- In that directory, make "bunzip2" be a symbolic link
@@ -191,7 +191,7 @@ VALIDATION
    include test decompressions of pre-supplied compressed files, so
    they not only test that bzip works correctly on the machine it was
    built on, but can also decompress files compressed on a different
-   machine.  This guards against unforseen interoperability problems.
+   machine.  This guards against unforeseen interoperability problems.
 
 
 Please read and be aware of the following:
@@ -428,7 +428,7 @@ OPTIONS
 
        -f --compress
               The  complement  to -d: forces compression, regard-
-              less of the invokation name.
+              less of the invocation name.
 
        -t --test
               Check integrity of the specified file(s), but don't

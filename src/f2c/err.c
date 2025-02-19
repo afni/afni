@@ -83,7 +83,7 @@ char *F_err[] =
 #ifdef KR_headers
 f__canseek(f) FILE *f; /*SYSDEP*/
 #else
-f__canseek(FILE *f) /*SYSDEP*/
+int f__canseek(FILE *f) /*SYSDEP*/
 #endif
 {
 #ifdef NON_UNIX_STDIO
@@ -192,7 +192,7 @@ f_init(Void)
 #ifdef KR_headers
 f__nowreading(x) unit *x;
 #else
-f__nowreading(unit *x)
+int f__nowreading(unit *x)
 #endif
 {
 	long loc;
@@ -215,7 +215,7 @@ f__nowreading(unit *x)
 #ifdef KR_headers
 f__nowwriting(x) unit *x;
 #else
-f__nowwriting(unit *x)
+int f__nowwriting(unit *x)
 #endif
 {
 	long loc;

@@ -36,7 +36,7 @@ FuncName = 'BrikInfo_SectionValue';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 N_BRIKinfo = length(BRIKinfo);
@@ -49,7 +49,7 @@ if isempty(htmp) | length(htmp) > 1, v = []; return; end
 itmp = findstr(BRIKinfo(htmp:N_BRIKinfo),sSection)+htmp-1;
 if isempty(itmp), v = []; return; end
 
-%findout where this section ends
+%find out where this section ends
 inxt = strfind(BRIKinfo(itmp:N_BRIKinfo),'type');
 inxt = setdiff(inxt, strfind(BRIKinfo(itmp:N_BRIKinfo),'_type')+1); %JM added to avoid getting stuck on data_type
 if isempty(inxt), inxt = N_BRIKinfo; else inxt = inxt(1) + itmp -2; end

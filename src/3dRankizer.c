@@ -121,23 +121,33 @@ int main( int argc , char * argv[] )
      mmm = THD_makemask( mask_dset , 0 , 1.0f,-1.0f ) ;
      mcount = THD_countmask( nvox , mmm ) ;
      INFO_message("%d voxels in the mask",mcount) ;
-     if( mcount <= 5 ) ERROR_exit("Mask is too small!") ;
+     if( mcount <= 5    ) ERROR_exit("Mask is too small!") ;
+     if( mcount == nvox ) ININFO_message("Mask includes all voxels") ;
      DSET_delete(mask_dset) ;
    }
 
-   if( mmm == NULL ){
+   if( mmm == NULL || mcount == nvox ){  /* no mask */
+
      mcount = nvox;
      rank_order_float( nvox , far ) ;
      for( ii=0 ; ii < nvox ; ii++ ) far[ii] += brank ;
-   } else {
-     float fmin=far[0] ;
-     for( ii=1 ; ii < nvox ; ii++ ) if( far[ii] < fmin ) fmin = far[ii] ;
-          if( fmin >  0.0f ) fmin = 0.0f ;
-     else if( fmin == 0.0f ) fmin = -1.0f ;
-     else                    fmin = -2.0f*fmin-1.0f ;
+
+   } else {  /* yes mask :( all this had to be fixed [09 Sep 2024 - RWC] */
+     float fmin ;
+
+     /* find the smallest input value (including non-mask voxels) */
+     for( fmin=far[0], ii=1 ; ii < nvox ; ii++ ) if( far[ii] < fmin ) fmin = far[ii] ;
+
+     /* replace all values outside the mask with a value smaller than fmin */
+          if( fmin >  0.0f ) fmin = 0.0f  ;          /* 0  < all pos values */
+     else if( fmin == 0.0f ) fmin = -1.0f ;          /* -1 < all non-neg values */
+     else                    fmin = 2.0f*fmin-1.0f ; /*    < all neg values */
      for( ii=0 ; ii < nvox ; ii++ ) if( !mmm[ii] ) far[ii] = fmin ;
+
+     /* NOW convert to ranks -- all non-mask voxels will be at lowest rank */
+
      rank_order_float( nvox , far ) ;
-     fmin = (nvox-mcount) - brank ;
+     fmin = (nvox-mcount) - brank ;  /* subtract off to get rank inside mask */
      for( ii=0 ; ii < nvox ; ii++ ){
        if( mmm[ii] ) far[ii] = far[ii] - fmin ;
        else          far[ii] = 0.0f ;
@@ -146,7 +156,7 @@ int main( int argc , char * argv[] )
 
    if (percentize) {
       float fac=1.0;
-      if (percentize == 1) fac = 100.0/nvox;
+      if      (percentize == 1) fac = 100.0/nvox;
       else if (percentize == 2) fac = 100.0/mcount;
       for( ii=0 ; ii < nvox ; ii++ ) far[ii] *= fac;
    }

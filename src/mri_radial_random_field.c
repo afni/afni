@@ -178,7 +178,7 @@ static int_triple get_random_field_size( int   nx, int   ny, int   nz,
 /* Create the kernel smoothing function, then FFT it, and clip/shrink it
    as far as reasonable.  The basic method for simulating the noise random
    field is then
-     (1) create an iid N(0,1) Gausian random field in FFT space
+     (1) create an iid N(0,1) Gaussian random field in FFT space
      (2) multiply this field by the radial weight function from here
      (3) FFT to real space
      (4) [in 3dClustSim] truncate back to desired 3D grid and normalize

@@ -1577,6 +1577,14 @@ ENTRY("THD_autobbox") ;
 static int bbox_clust=1 ;
 void MRI_autobbox_clust( int c ){ bbox_clust = c; }
 
+
+/*---------------------------------------------------------------------*/
+/*! For each plane direction, return the first and last index that have
+ *  nonzero voxels in that plane.
+ *
+ *  If an early error, the last positions will be -1.
+ *  If the box is empty, the last positions will be -1.
+-----------------------------------------------------------------------*/
 void MRI_autobbox( MRI_IMAGE *qim ,
                    int *xm, int *xp , int *ym, int *yp , int *zm, int *zp )
 {

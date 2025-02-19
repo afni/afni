@@ -12,8 +12,8 @@ if __name__ == '__main__':
 
 
 # atomic (type within nested list) and simple types for VarsObject
-g_valid_atomic_types = [int, float, str, list]
-g_simple_types = [int, float, str]
+g_valid_atomic_types = [int, float, str, list, bool]
+g_simple_types = [int, float, str, bool]
 g_sort_keys = []
 
 class VarsObject(object):
@@ -217,7 +217,7 @@ class VarsObject(object):
       else:    return 0
 
    def set_var_with_defs(self, vname, vlist, defs, as_type=0, oname='',
-                        verb=1, spec=None, csort=1):
+                         spec=None, csort=1, verb=1):
       """try to set vname = value based on vlist
            (if as_type, convert to type, else leave as string)
          if vname is not known by the defaults, return failure
@@ -228,7 +228,7 @@ class VarsObject(object):
          or in the user interface itself.  Since we are setting variables as
          strings.
 
-            requred params:
+            required params:
 
                 vname           : name of variable
                 vlist           : value list (set from vlist[0] or vlist)

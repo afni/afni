@@ -42,6 +42,8 @@
 # [May 12, 2021] PT : remove old NIFTI message about needing even matrix
 #      dimensions for anatomical input to recon-all.  Yikes, that wasn't
 #      need, just the way we were viewing it...
+# [Jul 16, 2024] DRG : before adding all possible surface
+#      attributes to a spec file, check which are actually available 
 
 set ver = 2.2.4
 
@@ -117,7 +119,9 @@ L_INIT_VARS:
     #set fsdsets = (thickness curv sulc $fsdsets_extra ) 
     set inflates = ()
     
-    set surf_attribs = (            \
+    # list of possible surface attributes that could be added to spec
+    # file
+    set poss_surf_attribs = (       \
             smoothwm                \
             pial                    \
             inflated                \
@@ -137,6 +141,9 @@ L_INIT_VARS:
             lh.sphere.reg           \
             pial-outer-smoothed     \
             )
+    # initialize empty list of attributes to be added to spec file;
+    # gets populated based on what dsets are actually available (below)
+    set surf_attribs = ( )
 
 goto L_INIT_VARS_DONE
 
@@ -329,7 +336,7 @@ L_PARSE_COMMAND:
             breaksw
 
             # ----------------------------------------------------------
-            # [PT: Nov 14, 2019] the *rank* dsets have been superceded
+            # [PT: Nov 14, 2019] the *rank* dsets have been superseded
             # by the safer/more uniform *REN* ones;  now only make the former
             # if users explicitly ask for it
             # usage : -make_rank_dsets 
@@ -816,12 +823,20 @@ L_LOOK_FOR_SURF:
     set list_lh = "X"   # init to something useless - allows nice empty check
     set list_rh = "X"
 
-    foreach attrib ( $surf_attribs )
+    # check for possible attributes, and keep list of ones that are
+    # present (to add to spec file later)
+    foreach attrib ( $poss_surf_attribs )
+        set found_attrib = 0
         if ( -f lh.$attrib ) then
             set list_lh = ( $list_lh lh.$attrib )
+            set found_attrib = 1
         endif
         if ( -f rh.$attrib ) then
             set list_rh = ( $list_rh rh.$attrib )
+            set found_attrib = 1
+        endif
+        if ( $found_attrib == 1 ) then
+            set surf_attribs = ( $surf_attribs $attrib )
         endif
     end
 
@@ -1416,6 +1431,8 @@ L_CREATE_BRICK:
         mv \
             $start_dir/$suma_dir/${orig_mgz:t:r}".nii"  \
             $start_dir/$suma_dir/$afni_dataset.nii
+        # need an AFNI ID code for afni/suma communication [12 Apr 2024 rickr]
+        3drefit -newid $start_dir/$suma_dir/$afni_dataset.nii
         echo "++ created AFNI file '$suma_dir/$afni_dataset.nii'"
     else
         mv $afni_dataset.HEAD $afni_dataset.BRIK* $start_dir/$suma_dir
@@ -1834,7 +1851,7 @@ OPTIONS ~1~
           each would be), we don't recommend using these; the *REN*
           dsets are renumbered in a consistent, mapped way, and so
           those are more useful.  The present option is purely for
-          backward compatability, for Zome Special Scientists out
+          backward compatibility, for Zome Special Scientists out
           there who might still use these dsets.
 
     -use_mgz        : use MGZ volumes even if COR volumes are there

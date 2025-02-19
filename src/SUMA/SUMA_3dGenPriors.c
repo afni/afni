@@ -91,7 +91,7 @@ int GenPriors(SEG_OPTS *Opt)
 static char shelp_GenPriors[] = {
 "3dGenPriors produces classification priors based on voxel signatures.\n"
 "At this stage, its main purpose is to speed up the performance of\n"
-"3dSignatures when using the probablilistic method as opposed to SVM.\n"
+"3dSignatures when using the probabilistic method as opposed to SVM.\n"
 "\n"
 "Example:\n"
 "3dGenPriors      -sig sigs+orig \\\n"
@@ -188,7 +188,7 @@ static char shelp_GenPriors[] = {
 "                            want exact feature name matching, use\n"
 "                            option -strict_feature_match\n"
 "  -strict_feature_match: Use strict feature name matching when resolving \n"
-"                         which feature to keep from the traning set.\n" 
+"                         which feature to keep from the training set.\n" 
 "  -featgroups 'G1 G2 G3 ...': TO BE WRITTEN\n"
 "                            Example: -featgroups 'MEDI MAD. P2S'\n"
 "  -ShowThisDist DIST: Show information obtained from the training data about\n"
@@ -317,7 +317,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
    
    brk = 0;
    kar = 1;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command line options */
 		SUMA_LH("Parsing command line at %s...\n", argv[kar] );
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 Opt->helpfunc(0);
@@ -1639,7 +1639,7 @@ int main(int argc, char **argv)
                Opt->VoxDbg, Opt->VoxDbg3[0], Opt->VoxDbg3[1], Opt->VoxDbg3[2]);
    }
 
-   /* An inportant sanity check */
+   /* An important sanity check */
    if (Opt->pset && Opt->clss->num != DSET_NVALS(Opt->pset)) {
       ERROR_exit( "Number of classes %d does not "
                   "match number of pset subricks %d\n",

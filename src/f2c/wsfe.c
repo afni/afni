@@ -7,7 +7,7 @@ extern int f__hiwater;
 #ifdef KR_headers
 x_putc(c)
 #else
-x_putc(int c)
+int x_putc(int c)
 #endif
 {
 	/* this uses \n as an indicator of record-end */
@@ -27,7 +27,7 @@ x_putc(int c)
 #endif
 	return putc(c,f__cf);
 }
-x_wSL(Void)
+int x_wSL(Void)
 {
 	(*f__putn)('\n');
 	f__recpos=0;
@@ -35,14 +35,14 @@ x_wSL(Void)
 	f__hiwater = 0;
 	return(1);
 }
-xw_end(Void)
+int xw_end(Void)
 {
 	if(f__nonl == 0)
 		(*f__putn)('\n');
 	f__hiwater = f__recpos = f__cursor = 0;
 	return(0);
 }
-xw_rev(Void)
+int xw_rev(Void)
 {
 	if(f__workdone) (*f__putn)('\n');
 	f__hiwater = f__recpos = f__cursor = 0;

@@ -1124,7 +1124,7 @@ static gboolean list_array_are_identical (GSList * list,
 }
 
 #ifndef NEW
-gboolean gts_split_is_collapsable (GtsSplit * vs)
+gboolean gts_split_is_collapsible (GtsSplit * vs)
 {
   guint i;
   GtsSplitCFace * cf;

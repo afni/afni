@@ -2,7 +2,7 @@
 static char rcsId[]="$Header$";
 #endif
 /*****
-* readGIF.c : XmHTML gif routines. Also containes a GIF to GZF converter.
+* readGIF.c : XmHTML gif routines. Also contains a GIF to GZF converter.
 *
 * This file Version	$Revision$
 *

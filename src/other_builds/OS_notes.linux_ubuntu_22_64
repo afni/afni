@@ -4,9 +4,10 @@
 sudo apt-get update
 sudo apt-get install -y tcsh xfonts-base libssl-dev       \
                         python3-matplotlib python3-numpy  \
-                        gsl-bin netpbm                    \
+                        python3-flask python3-flask-cors  \
+                        gsl-bin netpbm git                \
                         libjpeg62 xvfb xterm vim curl     \
-                        gedit evince eog                  \
+                        gedit evince eog bc               \
                         libglu1-mesa-dev libglw1-mesa     \
                         libxm4 build-essential            \
                         libcurl4-openssl-dev libxml2-dev  \

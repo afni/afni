@@ -78,7 +78,7 @@ def test_afni_gui_basic(data, unique_gui_port):
 def test_afni_gui_plugin_search(data, monkeypatch, unique_gui_port):
     with monkeypatch.context() as m:
         m.setattr(os, "environ", os.environ.copy())
-        # clear pluging path vars
+        # clear plugin path vars
         for k in "AFNI_PLUGINPATH AFNI_PLUGIN_PATH".split():
             if k in os.environ:
                 del os.environ[k]

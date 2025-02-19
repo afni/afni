@@ -32,7 +32,7 @@ static char helpstring[] =
    " 1D Save: Name      = If all input sub-bricks are used (i.e., setting\n"
    "                      'Source Sub-brick' = -1 above), then this option\n"
    "                      lets you save the resulting average time series\n"
-   "                      into the interal list of timeseries available via\n"
+   "                      into the internal list of timeseries available via\n"
    "                      the 'Choose Timeseries', 'Pick Ideal', ... buttons.\n"
    "          To Disk?  = If 'YES' is chosen, then will also write the\n"
    "                      timeseries to disk in the *.1D format.\n\n"

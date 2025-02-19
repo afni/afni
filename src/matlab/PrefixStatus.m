@@ -41,7 +41,7 @@ FuncName = 'PrefixStatus';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 Status = 0;
 View = '';
 

@@ -15,7 +15,7 @@ if ($al < 2 ) then
    echo ""
    echo  "***********************************************"
    echo  "give me clustered file xxx.kgg and dumped file "
-   echo  "with ijk coordinats that you used for fitting"
+   echo  "with ijk coordinates that you used for fitting"
    echo "************************************************"
    echo ""
    goto END

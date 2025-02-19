@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/bin/tcsh -f
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -388,7 +388,7 @@ PARSE:
 HELP:
 echo ""
 echo "Script to turn a volumetric dataset into an AFNI atlas. "
-echo "To make an atlas available for 'whereami' queries, AFNI needs both "
+echo "To make an atlas available for 'whereami_afni' queries, AFNI needs both "
 echo "an atlas dataset and an entry for that atlas in an atlas file."
 echo "This script will tag the dataset as an atlas by adding the necessary "
 echo "header information to the dataset and create an entry in the atlas file."
@@ -457,7 +457,7 @@ echo "      2   Hippo"
 echo "      5   Cerebellum"
 echo "      ...."
 echo "    You can turn DSET into an atlas which gets handled in a special"
-echo "    manner in AFNI's interactive GUI and in whereami."
+echo "    manner in AFNI's interactive GUI and in whereami_afni."
 echo ""
 echo "    There are two classes of atlases:"
 echo "    Single-subject atlases are ROIs dsets or parcellations like those"
@@ -477,7 +477,7 @@ echo "    and set Labels menu) Whereami queries will also return results from"
 echo "    the new atlas."
 echo ""
 echo "      Case 1.1, dset is already an atlas but it is not in an atlas file"
-echo "                and therefore is not visible from whereami."
+echo "                and therefore is not visible from whereami_afni."
 echo "             @Atlasize -dset atlas_for_joe.nii"
 echo ""
 echo "    Note: For NIFTI volumes, all changes are made in the header  "

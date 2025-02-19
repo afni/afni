@@ -1,5 +1,5 @@
 function Change1D2Carray(f1d, decplaces, fc)
-% take a 1D file and write it out as a C arrary
+% take a 1D file and write it out as a C array
 %  f1d : 1D file name
 %  decplaces: -1 use all precision
 %             0  ints

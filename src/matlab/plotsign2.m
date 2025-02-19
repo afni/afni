@@ -21,7 +21,7 @@ function ht = plotsign2 (h,s,Opt);
 %       			L or C or R (Left or Center or Right)
 %      text alignment is done automatically, unless you specify a .Align option.
 %     The default is 'FBR'
-%  .Pos (2x1 or 3x1 vector) pins the X Y postion (relative the X Y axis) of the plot
+%  .Pos (2x1 or 3x1 vector) pins the X Y position (relative the X Y axis) of the plot
 %    .Pos overrides .Place.
 %   NOTE : The units of .Pos are relative to the plot
 %  .Font is the fontsize to use (a number or string). (like 8, or 10 or 12 etc).

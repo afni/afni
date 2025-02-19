@@ -236,7 +236,7 @@ int main( int argc , char *argv[] )
 "                  the mask with ALL 1000 voxels in the dataset (rather\n"
 "                  than with just the 50 voxels in the mask).\n"
 "\n"
-"  -mask_source sss = Provide ouput for voxels only in mask sss\n"
+"  -mask_source sss = Provide output for voxels only in mask sss\n"
 "               ** For each seed in mask mm, compute correlations only with \n"
 "                   non-zero voxels in sss. If you have 250 non-zero voxels \n"
 "                   in sss, then the output will still have 50 sub-bricks, but\n"

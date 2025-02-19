@@ -605,7 +605,7 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(RwcWidget w, int type, char *nam
                              if (hintout), *hintout must be NULL at  
                              function call. You must also free *hintout 
                              when done with it.
-   \param whelp_off (int ): If non-zero, number of blank charcters by which
+   \param whelp_off (int ): If non-zero, number of blank characters by which
                             to offset the lines of a widget's help string 
    \return gwh (GUI_WIDGET_HELP *)  A pointer to the structure containing 
                                     the widget help. 

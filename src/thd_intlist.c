@@ -36,15 +36,25 @@ int * get_count_intlist_eng ( char *str, int *nret, int maxval, int ok_neg )
    char *cpt ;
 
    *nret = -1;
-   if (!str || !strstr(str,"count ") || strlen (str) < 8) {
-      fprintf(stderr, "NULL input or string does not have 'count '"
-                      " or at least 2 values are not present after 'count '\n");
+   /* include count_afni   [27 Nov 2023 rickr] */
+   if (!str || (!strstr(str,"count ") && !strstr(str,"count_afni ")) 
+            || strlen (str) < 9) {
+      fprintf(stderr, "NULL input or string does not have 'count_afni '"
+              " or at least 2 values are not present after 'count_afni '\n");
       return (NULL);
    }
 
-   /* move past count */
+   if (strstr(str,"count_afni ") && strlen (str) < 14) {
+      fprintf(stderr, "need at least 2 values after 'count_afni '\n");
+      return (NULL);
+   }
+
+   /* move past count (or count_afni) */
    slen = strlen(str) ;
-   ipos = strlen("count ");
+   if( strstr(str, "count_afni ") )
+      ipos = strlen("count_afni ");
+   else
+      ipos = strlen("count ");
 
    /* see if you have seed */
    if (strstr(str, "-seed ")) {
@@ -579,7 +589,8 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
       return(get_1dcat_intlist ( str, &ii, nvals-1 ));
    }
    /* do we have a count string in there ZSS ? */
-   if (strstr(str,"count ")) {
+   /* (include count_afni) */
+   if (strstr(str,"count ") || strstr(str,"count_afni ")) {
       free(subv) ;
       return(get_count_intlist ( str, &ii, nvals-1 ));
    }
@@ -940,7 +951,7 @@ int thd_get_labeltable_intlist(THD_3dim_dataset * dset, char *str)
       tmplist = get_1dcat_intlist_eng(str, &nvals, 0, 1);
       if( ! tmplist || nvals < 1 ) RETURN(1);
    }
-   if (strstr(str,"count ")) {
+   if (strstr(str,"count ") || strstr(str,"count_afni ")) {
       tmplist = get_count_intlist_eng(str, &nvals, 0, 1);
       if( ! tmplist || nvals < 1 ) RETURN(1);
    }

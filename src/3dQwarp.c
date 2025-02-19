@@ -162,7 +162,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
 
    /*-- blur a little: median then Gaussian;
           the idea is that the median filter smashes localized spikes,
-          then the Gaussian filter does a litte extra general smoothing. --*/
+          then the Gaussian filter does a little extra general smoothing. --*/
 
    mmm = (byte *)malloc( sizeof(byte)*nxyz ) ;         /* make a mask */
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] > 0.0f) ;
@@ -634,7 +634,7 @@ void Qhelp(void)
     "                 with 3dNwarpApply and 3dNwarpCat, for example.\n"
     "                 * To be clear, this is the warp from source dataset\n"
     "                   coordinates to base dataset coordinates, where the\n"
-    "                   values at each base grid point are the xyz displacments\n"
+    "                   values at each base grid point are the xyz displacements\n"
     "                   needed to move that grid point's xyz values to the\n"
     "                   corresponding xyz values in the source dataset:\n"
     "                     base( (x,y,z) + WARP(x,y,z) ) matches source(x,y,z)\n"
@@ -685,8 +685,8 @@ void Qhelp(void)
     "                 to the warp dataset's prefix, as in 'Fred_AWARP_index.nii'.\n"
     "               * This extra dataset contains the 'index warp', which is the\n"
     "                 internal form of the warp.\n"
-    "               * Instead of displacments between (x,y,z) coordinates, an\n"
-    "                 index warp stores displacments between (i,j,k) 3D indexes.\n"
+    "               * Instead of displacements between (x,y,z) coordinates, an\n"
+    "                 index warp stores displacements between (i,j,k) 3D indexes.\n"
     "               * An index warp dataset has no function outside of being\n"
     "                 something to look at when trying to figure out what the hell\n"
     "                 the program did.\n"
@@ -874,11 +874,11 @@ void Qhelp(void)
     " -warpscale f = This option allows you to downsize the scale of the warp\n"
     "                displacements for smaller patch sizes. In some applications,\n"
     "                the amount of displacement allowed is overly aggressive at\n"
-    "                small patch sizes, but larger displacments at large patch\n"
+    "                small patch sizes, but larger displacements at large patch\n"
     "                sizes are needed to get the overall shapes of the base and\n"
     "                template to match. The factor 'f' should be a number between\n"
     "                0.1 and 1.0 (inclusive), and indicates the amount the max\n"
-    "                displacment should shrink when the patch size shrinks by\n"
+    "                displacement should shrink when the patch size shrinks by\n"
     "                a factor of 10. I suggest '-warpscale 0.5' as a starting\n"
     "                point for experimentation.\n"
     "              * This option is currently [Feb 2020] for experimenting\n"
@@ -1051,7 +1051,7 @@ void Qhelp(void)
     "               * If this option is not used, the initial warp is the identity.\n"
     "               * You can specify a catenation of warps (in quotes) here, as in\n"
     "                 program 3dNwarpApply.\n"
-    "               * You can scale a 3D warp's displacments by prefixing the dataset\n"
+    "               * You can scale a 3D warp's displacements by prefixing the dataset\n"
     "                 name by 'FAC:a,b,c:Warpdatasetname' where a b c are numbers\n"
     "                 by which to scale the x- y- z-displacments.\n"
     "               * As a special case, if you just input an affine matrix in a .1D\n"
@@ -1435,7 +1435,7 @@ void Qhelp(void)
     "               * Sneaky aside: if you want potentially larger displacements\n"
     "                 than 'normal' 3dQwarp, use '-plusminus', since the meet-in-the-\n"
     "                 middle approach will allow the full-size displacements in EACH\n"
-    "                 of the half-warps, so that the overall displacment between\n"
+    "                 of the half-warps, so that the overall displacement between\n"
     "                 base and source can be larger. The use of '-pmBASE' will let\n"
     "                 you get the source-transformed-to-base result at the end.\n"
     "                 If you don't want the plusminus 'in-the-middle' outputs,\n"
@@ -1579,7 +1579,7 @@ void Qhelp(void)
     "overlapping patches at increasing 'levels': the patches shrink by a factor\n"
     "of 0.75 at each level. Patches at levels 1 and higher have a 50%% overlap.\n"
     "\n"
-    "NOTE: Internally, warps are stored as 'index warps', which are displacments\n"
+    "NOTE: Internally, warps are stored as 'index warps', which are displacements\n"
     "      between 3D (i,j,k) grid indexes rather than between (x,y,z) coordinates.\n"
     "      The reason for this approach is that indexes are what is needed to\n"
     "      find the location in a dataset that a warp maps to. On output and on\n"
@@ -1607,7 +1607,7 @@ void Qhelp(void)
     "\n"
     "For this procedure to work, the source and base datasets need to be reasonably\n"
     "well aligned already (e.g., via 3dAllineate, if necessary), as the nonlinear\n"
-    "optimization can only deal with relatively small displacments -- fractions of\n"
+    "optimization can only deal with relatively small displacements -- fractions of\n"
     "a patch size.. Multiple warps can later be composed and applied via program\n"
     "3dNwarpApply and/or 3dNwarpCat.\n"
     "\n"
@@ -3513,7 +3513,7 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
 
        /*-- replace base image --*/
 
-       nxold=bim->nx ; nyold=bim->ny ; nzold=bim->nz ;  /* orginal dimensions */
+       nxold=bim->nx ; nyold=bim->ny ; nzold=bim->nz ;  /* original dimensions */
 
        qim = mri_zeropad_3D( pad_xm,pad_xp , pad_ym,pad_yp ,
                                              pad_zm,pad_zp , bim ) ;

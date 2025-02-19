@@ -9,7 +9,7 @@ function Decis = ErrEval (FuncName, ErrCode);
 %
 %ErrCode is a string made out of two parts
 %  The first part is a 4 letter string containing
-%   Err_ or Wrn_  depending on wether it's an error or
+%   Err_ or Wrn_  depending on whether it's an error or
 %   a warning.
 %  The second part is a string that indicates the type of
 %   error encountered.

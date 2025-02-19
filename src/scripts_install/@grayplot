@@ -20,7 +20,7 @@ if ( $do_help ) then
   echo "and produce a grayplot from the errts dataset(s), combined with"
   echo "a motion magnitude indicator graph."
   echo
-  echo "* NOTE: This script requires various programs from the NETPBM packege"
+  echo "* NOTE: This script requires various programs from the NETPBM package"
   echo "        to run. If those programs are not found, this script will fail."
   echo
   echo "Will produce a plot for each dataset whose name fits the wildcard"
@@ -30,7 +30,7 @@ if ( $do_help ) then
   echo "will also be plotted, if option"
   echo "  '-regress_opts_reml -Rwherr errts.SUBJECT_REMLwh'"
   echo "was given to afni_proc.py -- this is the 'pre-whitened' residuals"
-  echo "dataset, which is the noise examplar from which the 3dREMLfit"
+  echo "dataset, which is the noise exemplar from which the 3dREMLfit"
   echo "statistics are computed."
   echo "* NOTE: dataset all_runs.*+tlrc.HEAD will also be"
   echo "        grayplotted if it is found in the results directory."
@@ -304,7 +304,7 @@ endif
 
 set elist = ( *errts.*+${spac}.HEAD )
 
-foreach iii ( `count -dig 1 1 $num_order` )
+foreach iii ( `count_afni -dig 1 1 $num_order` )
   set order = $order_list[$iii]
   set osuff = $osuff_list[$iii]
 
@@ -336,7 +336,7 @@ end
 
 @ port = 3 * $nrun
 
-foreach iii ( `count -dig 1 1 $num_order` )
+foreach iii ( `count_afni -dig 1 1 $num_order` )
   set order = $order_list[$iii]
   set osuff = $osuff_list[$iii]
 

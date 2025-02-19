@@ -42,7 +42,7 @@ FuncName = 'ss.m';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 dfboth = dfbothSS;
@@ -237,7 +237,7 @@ switch NF
       case 3,
 	      msdenom = [msterm(3), msterm(3), mse];
 	      dfdenom = [dfterm(3), dfterm(3), dfe];				
-   end   % Close swtich dsgn
+   end   % Close switch dsgn
 		
    case 3,
    switch dsgn
@@ -254,7 +254,7 @@ switch NF
          msterm_new = [msterm(1:4), msterm(6)];   % Throw out those four which do not exist for nesting: AC and ABC.
 	      intensity_new = [intensity(1:4), intensity(6)];    % Throw out those four which do not exist for nesting.
 	      dfterm_new = [dfterm(1:4)', dfterm(6)'];
-	      tnames_new = [tnames(1:4); tnames(6)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
+	      tnames_new = [tnames(1:4); tnames(6)];     % Only preserve those valid for nesting. Semicolon for column catenation	
          msdenom = [msterm(3), msterm(6), mse, msterm(6), mse,0,0];  % pad 2 extra 0's for potential complaints
 	      dfdenom = [dfterm(3), dfterm(6), dfe, dfterm(6), dfe,0,0];
 				
@@ -262,7 +262,7 @@ switch NF
          msterm_new = [msterm(1:4), msterm(6)];   % Throw out those four which do not exist for nesting: AC and ABC.
 	      intensity_new = [intensity(1:4), intensity(6)];    % Throw out those four which do not exist for nesting.
 	      dfterm_new = [dfterm(1:4)', dfterm(6)'];
-	      tnames_new = [tnames(1:4); tnames(6)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
+	      tnames_new = [tnames(1:4); tnames(6)];     % Only preserve those valid for nesting. Semicolon for column catenation	
          msdenom = [msterm(4), mse, msterm(6), mse, mse,0,0];  % 2 extra 0's are for error-prone problem down below for contrasts
 	      dfdenom = [dfterm(4), dfe, dfterm(6), dfe, dfe,0,0];	
    end			
@@ -282,21 +282,21 @@ switch NF
          msterm_new = [msterm(1:6), msterm(8:11), msterm(14)];   % Throw out those four which do not exist for nesting: AD, ABD, ACD, and ABCD.
 	      intensity_new = [intensity(1:6), intensity(8:11), intensity(14)];    % Throw out those four which do not exist for nesting.
 	      dfterm_new = [dfterm(1:6)', dfterm(8:11)', dfterm(14)'];
-	      tnames_new = [tnames(1:6); tnames(8:11); tnames(14)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
+	      tnames_new = [tnames(1:6); tnames(8:11); tnames(14)];     % Only preserve those valid for nesting. Semicolon for column catenation	
          msdenom = [msterm(4), msterm(9), msterm(10), mse, msterm(9), msterm(10), msterm(14), mse, mse, msterm(14), mse];
 	      dfdenom = [dfterm(4), dfterm(9), dfterm(10), dfe, dfterm(9), dfterm(10), dfterm(14), dfe, dfe, dfterm(14), dfe];
 	   case 4,
 	      msterm_new = [msterm(1:6), msterm(8:11), msterm(14)];   % Throw out those four which do not exist for nesting: AD, ABD, ACD, and ABCD.
 	      intensity_new = [intensity(1:6), intensity(8:11), intensity(14)];    % Throw out those four which do not exist for nesting.
 	      dfterm_new = [dfterm(1:6)', dfterm(8:11)', dfterm(14)'];
-	      tnames_new = [tnames(1:6); tnames(8:11); tnames(14)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
+	      tnames_new = [tnames(1:6); tnames(8:11); tnames(14)];     % Only preserve those valid for nesting. Semicolon for column catenation	
 	      msdenom = [msterm(6), msterm(8), mse, msterm(10), msterm(11), mse, mse, msterm(14), mse, mse, mse];  % denominator MS
    	   dfdenom = [dfterm(6), dfterm(8), dfe, dfterm(10), dfterm(11), dfe, dfe, dfterm(14), dfe, dfe, dfe];  % denominator DF
 	   case 5, % only 9 terms in nesting case without AD, BD, ABD, ACD, BCD and ABCD: 1 (A); 2 (B); 3 (C); 4 (D); 5 (AB); 6 (AC); 7 (BC); 8 (CD); 9 (ABC)
 	      msterm_new = [msterm(1:6), msterm(8), msterm(10:11)];   % Throw out those four which do not exist for nesting: AD, BD, ABD, ACD, BCD and ABCD.
 	      intensity_new = [intensity(1:6), intensity(8), intensity(10:11)];    % Throw out those 6 which do not exist for nesting.
 	      dfterm_new = [dfterm(1:6)', dfterm(8), dfterm(10:11)'];
-	      tnames_new = [tnames(1:6); tnames(8); tnames(10:11)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
+	      tnames_new = [tnames(1:6); tnames(8); tnames(10:11)];     % Only preserve those valid for nesting. Semicolon for column catenation	
 	      msdenom = [msterm(4), msterm(4), msterm(10), mse, msterm(4), msterm(10), msterm(10), mse, msterm(10),0,0,0,0,0,0];
 	    % denominator MS: 6 extra 0's are for error-prone problem down below for contrasts
    	   dfdenom = [dfterm(4), dfterm(4), dfterm(10), dfe, dfterm(4), dfterm(10), dfterm(10), dfe, dfterm(10),0,0,0,0,0,0];  % denominator DF				
@@ -339,7 +339,7 @@ switch NF
 		
 		end
 	
-end  % Close swtich NF
+end  % Close switch NF
 
 
 % Compute an F statistic for each term
@@ -360,7 +360,7 @@ if (NF == 1),
 % dmat(:, num_col0+1:num_col1+num_col0) is the matrix for 1st order contrasts
    if (Contr.ord1.tot > 0),
       for (i = 1:1:Contr.ord1.tot),
-         LC.t1(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0			
+         LC.t1(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0			
          LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
          tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
          if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
@@ -374,7 +374,7 @@ if (NF == 2),
 % dmat(:, num_col0+1:num_col1+num_col0) is the matrix for 1st order contrasts
    if (Contr.ord1.tot > 0),
       for (i = 1:1:Contr.ord1.tot),
-         LC.t1(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0			
+         LC.t1(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0			
 	      LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
 	      tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
 	      if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
@@ -383,7 +383,7 @@ if (NF == 2),
 	
 	if (Contr.ord2.tot > 0),    % 7 terms: 1 (A); 2 (B); 3 (AB)
       for (i = 1:1:Contr.ord2.tot),
-         LC.t2(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t2(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 	      LC.t2(i).value = Contr.ord2.cnt(i).vec * y0;   % intensity for this 2nd order contrast
 	      tmp = msdenom(Contr.ord2.cnt(i).idx2)*Contr.ord2.cnt(i).scalar;
 	      if (tmp > 0), LC.t2(i).t = LC.t2(i).value/sqrt(tmp); end
@@ -398,7 +398,7 @@ if (NF == 3),
 % dmat(:, num_col0+1:num_col1+num_col0) is the matrix for 1st order contrasts
    if (Contr.ord1.tot > 0),
       for (i = 1:1:Contr.ord1.tot),
-         LC.t1(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0			
+         LC.t1(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0			
 	      LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
 	      tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
 	      if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
@@ -410,7 +410,7 @@ if (NF == 3),
 % dmat(:, num_col0+num_col1+1:num_col1+num_col0+num_col2) is the matrix for 2nd order contrasts
    if (Contr.ord2.tot > 0),    % 7 terms: 1 (A); 2 (B); 3 (C); 4 (AB), 5 (AC), 6 BC, 7 ABC
       for (i = 1:1:Contr.ord2.tot),
-         LC.t2(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t2(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 	      switch Contr.ord2.cnt(i).idx1
 	         case 1,
 	            switch Contr.ord2.cnt(i).idx2
@@ -432,7 +432,7 @@ if (NF == 3),
 % dmat(:, num_col0+num_col1+1:num_col1+num_col0+num_col2) is the matrix for 2nd order contrasts
    if (Contr.ord3.tot > 0),
       for (i = 1:1:Contr.ord3.tot),
-         LC.t3(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t3(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 	 switch Contr.ord3.cnt(i).idx1
 	    case 1,
 	       switch Contr.ord3.cnt(i).idx2
@@ -459,7 +459,7 @@ if (NF == 4),
 % dmat(:, num_col0+1:num_col1+num_col0) is the matrix for 1st order contrasts
    if (Contr.ord1.tot > 0),
       for (i = 1:1:Contr.ord1.tot),
-         LC.t1(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0			
+         LC.t1(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0			
 	      LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
 	      tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
 	      if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
@@ -470,7 +470,7 @@ if (NF == 4),
 % dmat(:, num_col0+num_col1+1:num_col1+num_col0+num_col2) is the matrix for 2nd order contrasts
    if (Contr.ord2.tot > 0),
       for (i = 1:1:Contr.ord2.tot),
-         LC.t2(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t2(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 %		switch dsgn
          switch Contr.ord2.cnt(i).idx1
 	         case 1,
@@ -505,7 +505,7 @@ if (NF == 4),
    % dmat(:, num_col0+num_col1+1:num_col1+num_col0+num_col2) is the matrix for 2nd order contrasts
    if (Contr.ord3.tot > 0),
       for (i = 1:1:Contr.ord3.tot),
-         LC.t3(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t3(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 %		if (dsgn == 3),
 	      switch Contr.ord3.cnt(i).idx1
 	
@@ -555,7 +555,7 @@ if (NF == 5),
 % dmat(:, num_col0+1:num_col1+num_col0) is the matrix for 1st order contrasts
    if (Contr.ord1.tot > 0),
       for (i = 1:1:Contr.ord1.tot),
-         LC.t1(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0			
+         LC.t1(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0			
 	      LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
 	      tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
 	      if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
@@ -570,7 +570,7 @@ if (NF == 5),
 
    if (Contr.ord2.tot > 0),
       for (i = 1:1:Contr.ord2.tot),
-         LC.t2(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t2(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 %		switch dsgn
          switch Contr.ord2.cnt(i).idx1
 	         case 1,
@@ -613,7 +613,7 @@ if (NF == 5),
    % dmat(:, num_col0+num_col1+1:num_col1+num_col0+num_col2) is the matrix for 2nd order contrasts
    if (Contr.ord3.tot > 0),
       for (i = 1:1:Contr.ord3.tot),
-         LC.t3(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t3(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 %		if (dsgn == 3),
 	      switch Contr.ord3.cnt(i).idx1
 	
@@ -681,7 +681,7 @@ if (NF == 5),
 
    if (Contr.ord4.tot > 0),
       for (i = 1:1:Contr.ord4.tot),
-         LC.t4(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+         LC.t4(i).t = 0;  % initialization in case it is assigned later on due to denominator of 0
 	      switch Contr.ord4.cnt(i).idx1
 	
 				case 1,

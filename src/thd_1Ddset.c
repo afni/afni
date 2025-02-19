@@ -58,7 +58,7 @@ ENTRY("THD_open_1D") ;
    lpn = strlen(pathname) ; pn = strdup(pathname) ;
 
 #if 0
-   flip = (pn[lpn-1] == '\'') ;     /* 12 Jul 2005: allow for tranposing input */
+   flip = (pn[lpn-1] == '\'') ;     /* 12 Jul 2005: allow for transposing input */
    if( flip ) pn[lpn-1] = '\0' ;
 #endif
 
@@ -161,7 +161,7 @@ ENTRY("THD_load_1D") ;
    if( nxyz*nv > 1000000 ) fprintf(stderr,"++ Reading %s\n",dkptr->brick_name) ;
 
    pn = strdup(dkptr->brick_name) ; lpn = strlen(pn) ;
-   flip = (pn[lpn-1] == '\'') ;     /* 12 Jul 2005: allow for tranposing input */
+   flip = (pn[lpn-1] == '\'') ;     /* 12 Jul 2005: allow for transposing input */
    if( flip ) pn[lpn-1] = '\0' ;
 
    flim = mri_read_1D(pn) ; free(pn) ;

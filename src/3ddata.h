@@ -154,7 +154,7 @@ extern "C" {
 #undef  isnumeric
 #define isnumeric(c) (isdigit(c) || (c) == '-' || (c) == '+' || (c) == '.')
 
-/* define what angular difference constitues a "real" difference
+/* define what angular difference constitutes a "real" difference
  * (allow for truncation artifacts)          22 May 2015 [rickr] */
 #undef OBLIQ_ANGLE_THRESH
 #define OBLIQ_ANGLE_THRESH 0.01
@@ -446,7 +446,7 @@ typedef struct {
 
 #define INC_VLIST 64
 
-/*! Initialize a dynamic array of xyz points, attached to datset ddd. */
+/*! Initialize a dynamic array of xyz points, attached to dataset ddd. */
 
 #define INIT_VLIST(name,ddd) \
    ( (name) = RwcNew(THD_vector_list) ,  \
@@ -2249,7 +2249,7 @@ static char * UNITS_TYPE_labelstring[] = { "ms" , "s" , "Hz" } ;
                                  "none" : \
                                  UNITS_TYPE_labelstring[(uu)-UNITS_MSEC_TYPE] )
 
-/*! Struct to hold information about the time axis of a 3D+time datset.
+/*! Struct to hold information about the time axis of a 3D+time dataset.
 
     For 3D+t datasets, there are ntt 3D times; the i-th one is centered
     at ttorg + ttdel*ii seconds, for ii=0..ntt-1.
@@ -4519,7 +4519,7 @@ extern int THD_copy_labeltable_atr( THD_datablock *d1,  THD_datablock *d2);
 
 extern void THD_store_dataset_keywords ( THD_3dim_dataset * , char * ) ;
 extern void THD_append_dataset_keywords( THD_3dim_dataset * , char * ) ;
-extern char * THD_dataset_info( THD_3dim_dataset * , int ) ;
+extern char * THD_dataset_info( THD_3dim_dataset * , int , int ) ;
 extern char * THD_dset_subbrick_info( THD_3dim_dataset * , int );
 
 extern int THD_subbrick_minmax( THD_3dim_dataset *dset, int isb, int scl,
@@ -4837,7 +4837,7 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
    "each row are separated by tab characters -- spaces are NOT separators.\n"    \
    "Each element is string, some of which are numeric (e.g. 3.1416).\n"          \
    "The first row of a .tsv file is a set of strings which are column\n"         \
-   "desciptors (separated by tabs, of course). For the most part, the\n"         \
+   "descriptors (separated by tabs, of course). For the most part, the\n"         \
    "following data in each column are exclusively numeric or exclusively\n"      \
    "strings. Strings can contain blanks/spaces since only tabs are used\n"       \
    "to separate values.\n"                                                       \
@@ -4923,7 +4923,8 @@ extern void    THD_load_ctfmri ( THD_datablock * ) ;         /* 04 Dec 2002 */
 extern void    THD_load_ctfsam ( THD_datablock * ) ;         /* 04 Dec 2002 */
 extern void    THD_load_1D     ( THD_datablock * ) ;         /* 04 Mar 2003 */
 extern void    THD_load_3D     ( THD_datablock * ) ;         /* 21 Mar 2003 */
-extern void    THD_load_nifti  ( THD_datablock * ) ;         /* 28 Aug 2003 */
+/* THD_load_nifti: void -> int [2 Sep 2022 rickr] */
+extern int     THD_load_nifti  ( THD_datablock * ) ;         /* 28 Aug 2003 */
 extern void    THD_load_mpeg   ( THD_datablock * ) ;         /* 03 Dec 2003 */
 extern void    THD_load_tcat   ( THD_datablock * ) ;         /* 04 Aug 2004 */
 extern int     THD_load_niml   ( THD_datablock * ) ;         /* 12 Jun 2006 */
@@ -5116,6 +5117,8 @@ extern void THD_extract_many_arrays( int ns , int *ind ,
                                      THD_3dim_dataset *dset , float *dsar ) ;
 
 /*---------------------------------------------------------------------------*/
+/* vectim stuff (vector image)
+   time first, space second -- unlike datasets, which are space first */
 
 typedef struct {
   int    nvec , nvals , ignore ;
@@ -5221,6 +5224,8 @@ extern MRI_IMAGE * THD_temp_subim_from_vectim( MRI_vectim *vim ,
 #define VECTIM_TEMP_IMAGE(vvv) THD_temp_subim_from_vectim( (vvv) , 0 , 0 )
 
 
+/*-------- instacorr stuff (uses vectim liberally) --------*/
+
 #define ICOR_MAX_FTOP 99999  /* 26 Feb 2010 */
 
 typedef struct {
@@ -5232,12 +5237,14 @@ typedef struct {
   float fbot , ftop , blur , sblur ;
   int polort , cmeth , despike , change ;
   MRI_vectim *mv ;
-  char *prefix ; int ndet ;
+  char *prefix ;
+  char *prefix_ts ; int do_ts, mv_is_new ;  /* 12 Jul 2024 */
+  int ndet ;
   float *tseed ;
   int   iter_count ;  /* 05 Feb 2015 */
   float iter_thresh ;
 
-  THD_3dim_dataset *eset ; MRI_vectim *ev ;
+  THD_3dim_dataset *eset ; MRI_vectim *ev ; int ev_is_new ;
 } ICOR_setup ;
 
 #undef  INIT_ICOR_setup
@@ -5247,15 +5254,16 @@ typedef struct {
 #define ISVALID_ICOR_setup(is) ( (is) != NULL && (is)->mv != NULL )
 
 #undef  DESTROY_ICOR_setup
-#define DESTROY_ICOR_setup(is)                               \
- do{ if( (is) != NULL ){                                     \
-       if( (is)->mmm    != NULL ) free((is)->mmm) ;          \
-       if( (is)->gortim != NULL ) mri_free((is)->gortim) ;   \
-       if( (is)->mv     != NULL ) VECTIM_destroy((is)->mv) ; \
-       if( (is)->ev     != NULL ) VECTIM_destroy((is)->ev) ; \
-       if( (is)->prefix != NULL ) free((is)->prefix) ;       \
-       if( (is)->tseed  != NULL ) free((is)->tseed) ;        \
-       free((is)) ; (is) = NULL ;                            \
+#define DESTROY_ICOR_setup(is)                                  \
+ do{ if( (is) != NULL ){                                        \
+       if( (is)->mmm       != NULL ) free((is)->mmm) ;          \
+       if( (is)->gortim    != NULL ) mri_free((is)->gortim) ;   \
+       if( (is)->mv        != NULL ) VECTIM_destroy((is)->mv) ; \
+       if( (is)->ev        != NULL ) VECTIM_destroy((is)->ev) ; \
+       if( (is)->prefix    != NULL ) free((is)->prefix) ;       \
+       if( (is)->prefix_ts != NULL ) free((is)->prefix_ts) ;    \
+       if( (is)->tseed     != NULL ) free((is)->tseed) ;        \
+       free((is)) ; (is) = NULL ;                               \
  }} while(0)
 
 extern int         THD_instacorr_prepare( ICOR_setup *iset ) ;
@@ -5826,6 +5834,11 @@ extern THD_3dim_dataset * THD_dummy_RWCOX(void) ;  /* 12 Feb 2010 */
 extern float THD_thresh_to_pval( float thr , THD_3dim_dataset * dset ) ;
 #endif
 
+extern float THD_volume_pval_to_thresh(THD_3dim_dataset * dset, int tindex,
+                        float pval, int as_1_sided);    /* 30 Oct 2023 rickr */
+extern float THD_volume_thresh_to_pval(THD_3dim_dataset * dset, int tindex,
+                        float thresh, int as_1_sided);  /* 30 Oct 2023 rickr */
+
 extern float THD_stat_to_pval  ( float thr , int statcode , float * stataux ) ;
 extern float THD_pval_to_stat  ( float pval, int statcode , float * stataux ) ;
 extern float THD_stat_to_zscore( float thr , int statcode , float * stataux ) ;
@@ -5958,7 +5971,7 @@ extern char * tross_breakup_string( char *, int , int ) ;
 
 void tross_multi_Append_History( THD_3dim_dataset * , ... ) ;
 
-#define ATLAS_CMAX    64   /* If you change this parameter,edit constant in
+#define ATLAS_CMAX    112   /* If you change this parameter,edit constant in
                               CA_EZ_Prep.m (MaxLbl* checks), thd_ttatlas_query.h TTO_FORMAT */
 
 typedef enum { UNKNOWN_SPC=0, /*!< Dunno */
@@ -5973,7 +5986,7 @@ typedef enum { UNKNOWN_SPC=0, /*!< Dunno */
 typedef struct {
    /* tdval and tdlev stand for "Talairach Daemon" value and level */
    /* these are kept for historical purposes  */
-   /* perhaps one day making an unusally boring PBS special */
+   /* perhaps one day making an unusually boring PBS special */
    short tdval;         /* Leave this one to be the very first element */
    char name[ATLAS_CMAX] ;  /* Leave this one to be the second element */
    float xx,yy,zz;     /* xx,yy,zz - RAI position of region  - now in float */
@@ -6042,7 +6055,7 @@ extern float quantile_prepare( int n , float *a ) ;
 extern float THD_tictactoe_corr( int,float *,float *) ;  /* 19 Jul 2011 */
 
 extern float THD_pearson_corr_wt(int,float *,float *,float *); /* 13 Sep 2006 */
-
+extern double THD_pearson_corrd_wt( int n, double *x , double *y , float *wt );
 extern void THD_pearson_corr_boot( int n, float *x, float *y,
                             float_triple *rrr ,
                             float_triple *aaa ,

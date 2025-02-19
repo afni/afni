@@ -68,7 +68,7 @@ extern int ungetc(int, FILE*);	/* for systems with a buggy stdio.h */
 #endif
 #endif
 
-t_getc(Void)
+int t_getc(Void)
 {	int ch;
 	if(f__curunit->uend) return(EOF);
 	if((ch=getc(f__cf))!=EOF) return(ch);
@@ -100,7 +100,7 @@ double f__lx,f__ly;
 #ifdef KR_headers
 l_R(poststar) int poststar;
 #else
-l_R(int poststar)
+int l_R(int poststar)
 #endif
 {
 	char s[FMAX+EXPMAXDIGS+4];
@@ -255,7 +255,7 @@ rd_count(register int ch)
 	return f__lcount <= 0;
 	}
 
-l_C(Void)
+int l_C(Void)
 {	int ch, nml_save;
 	double lz;
 	if(f__lcount>0) return(0);
@@ -317,7 +317,7 @@ l_C(Void)
 	nml_read = nml_save;
 	return(0);
 }
-l_L(Void)
+int l_L(Void)
 {
 	int ch;
 	if(f__lcount>0) return(0);
@@ -363,7 +363,7 @@ l_L(Void)
 	return(0);
 }
 #define BUFSIZE	128
-l_CHAR(Void)
+int l_CHAR(Void)
 {	int ch,size,i;
 	static char rafail[] = "realloc failure";
 	char quote,*p;
@@ -487,7 +487,7 @@ l_CHAR(Void)
 #ifdef KR_headers
 c_le(a) cilist *a;
 #else
-c_le(cilist *a)
+int c_le(cilist *a)
 #endif
 {
 	if(!f__init)
@@ -507,7 +507,7 @@ c_le(cilist *a)
 #ifdef KR_headers
 l_read(number,ptr,len,type) ftnint *number,type; char *ptr; ftnlen len;
 #else
-l_read(ftnint *number, char *ptr, ftnlen len, ftnint type)
+int l_read(ftnint *number, char *ptr, ftnlen len, ftnint type)
 #endif
 {
 #define Ptr ((flex *)ptr)

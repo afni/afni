@@ -51,7 +51,7 @@
  *  Cadd
  *
  *  Revision 1.15  1995/08/07 21:45:19  smoot
- *  check for illegal MVs (shouldnt ever be called, but....)
+ *  check for illegal MVs (shouldn't ever be called, but....)
  *  fix bug which made us not weite Iframe Qscale changes
  *  warns if writing a size=0 mpeg
  *

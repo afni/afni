@@ -11,7 +11,7 @@
 #   -epi2anat -ex_mode dry_run -epi_base 6 -child_epi epi_r??+orig.HEAD \
 #   -anat2epi -epi2anat -tlrc_apar sb23_mpra_at+tlrc -suffix _alx2
 
-import sys
+import sys, os
 import copy
 from time import asctime
 
@@ -605,7 +605,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.62" # software version (update for changes)
+      self.align_version = "1.63" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1615,7 +1615,13 @@ class RegWrap:
       #get pre-transformation matrix
       opt = self.user_opts.find_opt('-pre_matrix')
       if opt != None: 
-         ps.pre_matrix = opt.parlist[0]
+         # [PT: Dec 1, 2022] get abs path version of each path
+         # (expanduser deals with '~'); needed if using output_dir
+         abs_path = os.path.abspath(os.path.expanduser(opt.parlist[0]))
+         if not(os.path.isfile(abs_path)) :
+            self.error_msg("pre_matrix filename '{}' does not exist here: {}"
+            "".format(opt.parlist[0], abs_path))
+         ps.pre_matrix = abs_path
       else :
          ps.pre_matrix = ""
 
@@ -1860,7 +1866,7 @@ class RegWrap:
             ps.erodelevel = opt.parlist[0]
             
          # the cost function is not as important here because the preprocessing
-         # steps accomodate for dataset differences - least squares,
+         # steps accommodate for dataset differences - least squares,
          # mutual information or local pearson correlation are all good choices
          opt = self.user_opts.find_opt('-cost') 
          if opt == None: self.cost = 'lpa'  # local Pearson absolute correlation
@@ -1962,10 +1968,10 @@ class RegWrap:
        else: status = 0
        return (status)
      
-   # determine if dataset is oblique
+   # determine if dataset is oblique:
    def oblique_dset( self, dset=None) :
       com = shell_com(  \
-        "3dinfo %s | \grep 'Data Axes Tilt:'|\grep 'Oblique'" % dset.input(),\
+        "3dinfo %s | \\grep 'Data Axes Tilt:'| \\grep 'Oblique'" %dset.input(),\
           ps.oexec,capture=1)
       com.run()
       if  ps.dry_run():
@@ -2198,9 +2204,11 @@ class RegWrap:
                 f.write("flip_cost_orig : %f\n" % noflipcost)
                 f.write("flip_cost_flipped : %f\n" % flipcost)
                 f.write("flip_cost_func : %s\n" % costfunction)
-                f.write("flip_base: %s\n" %  e.pv())
-                f.write("flip_dset_orig : %s\n" % o.pv())
-                f.write("flip_dset_flipped : %s\n" % of.pv())
+                # [PT: Jun 4, 2023] provide full prefix name (with
+                # '.HEAD'), for possible file loading in NiiVue later
+                f.write("flip_base: %s\n" %  e.shortinput(head=1))
+                f.write("flip_dset_orig : %s\n" % o.shortinput(head=1))
+                f.write("flip_dset_flipped : %s\n" % of.shortinput(head=1))
                 if(flipcost < noflipcost):
                    print("WARNING: ************ flipped data aligns better than original data\n" \
                          "Check for left - right flipping in the GUI ************************")
@@ -2768,7 +2776,7 @@ class RegWrap:
                        (ps.dset1_generic_name, ps.dset2_generic_name ))
 
             warp_str = "3dWarp -verb -card2oblique %s -prefix %s%s %s %s %s " \
-                     "  | \grep  -A 4 '# mat44 Obliquity Transformation ::'"  \
+                     "  | \\grep  -A 4 '# mat44 Obliquity Transformation ::'" \
                      "  > %s"                                                 \
                     % (e.input(), o.p(), o.out_prefix(),                      \
                      self.master_anat_option, oblique_opt,                    \
@@ -2951,11 +2959,12 @@ class RegWrap:
    def resample_epi(  self, e=None, resample_opt="", prefix="temp_rs", \
         subbrick=""):
       o = afni_name(prefix)
+      o.view = ps.anat_ns.view
+
       if (not o.exist() or ps.rewrite or ps.dry_run()):
          o.delete(ps.oexec)
          self.info_msg( "resampling %s to match %s data" % \
            (ps.dset2_generic_name, ps.dset1_generic_name ))
-
          if (subbrick == ""):
              sb = ""
          else:
@@ -2982,6 +2991,7 @@ class RegWrap:
       self.info_msg( "removing skull or area outside brain")
       if (use_ss == '3dSkullStrip'):     #skullstrip epi
          n = afni_name(prefix)
+         n.view = e.view
          if (not n.exist() or ps.rewrite or ps.dry_run()):
             n.delete(ps.oexec)
             com = shell_com(  \
@@ -2995,7 +3005,9 @@ class RegWrap:
             self.exists_msg(n.input())
       elif use_ss == '3dAutomask': #Automask epi
          n = afni_name(prefix)
+         n.view = e.view
          j = afni_name("%s__tt_am_%s" % (n.p(),n.pve()))
+
          if (not n.exist() or ps.rewrite or ps.dry_run()):
             n.delete(ps.oexec)
             com = shell_com(  \
@@ -3020,7 +3032,7 @@ class RegWrap:
    # box, bin and fat mask are not used
       a = ps.anat_ns
       
-      o = afni_name("%s%s%s%s" % (ps.output_dir,e.out_prefix(), suf,e.view))            
+      o = afni_name("%s%s%s%s" % (ps.output_dir,e.out_prefix(), suf,e.view))
       if perci < 0:
          perci = 90.0;
       self.info_msg( "Computing weight mask")

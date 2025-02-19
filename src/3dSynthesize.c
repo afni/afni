@@ -150,7 +150,7 @@ int main( int argc , char * argv[] )
        "   numeric '-select' options (or 'all').\n"
        "-- When using a 'raw' matrix, you'll probably also want the '-TR' option.\n"
        "-- When putting more than one string after '-select', do NOT combine\n"
-       "   these separate strings togther in quotes.  If you do, they will be\n"
+       "   these separate strings together in quotes.  If you do, they will be\n"
        "   seen as a single string, which almost surely won't match anything.\n"
        "-- Author: RWCox -- March 2007\n"
       ) ;

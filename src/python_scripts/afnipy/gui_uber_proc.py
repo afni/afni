@@ -26,7 +26,7 @@ class MainWindow(QtGui.QMainWindow):
    """the main points of this class are to 
         - start up other GUIs to process data
         - keep track of data necessary for analyzing multiple subjects
-          and runnning group analyses"""
+          and running group analyses"""
 
    def __init__(self, parent=None):
       super(MainWindow, self).__init__(parent)

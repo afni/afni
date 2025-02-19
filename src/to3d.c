@@ -380,7 +380,7 @@ DUMP_MAT44("MRILIB_dicom_matrix",MRILIB_dicom_matrix) ;
       int iii =  (user_inputs.xincode > 0)
                + (user_inputs.yincode > 0)
                + (user_inputs.zincode > 0) ;
-      /* so if somthing is specified, each must be, or be of length 1 */
+      /* so if something is specified, each must be, or be of length 1 */
       /*                                          23 Apr 2020 [rickr] */
       if ( iii > 0 )
           iii =  (user_inputs.xincode > 0 || user_inputs.nx == 1 )
@@ -3107,15 +3107,15 @@ void Syntax()
     "Usage: to3d [options] image_files ...\n"
     "       Creates 3D datasets for use with AFNI from 2D image files\n"
     "\n"
-    "****** PLEASE NOTE ******************************************************\n"
-    "****** If you are convering DICOM files to AFNI or NIfTI datasets, ******\n"
-    "****** you will likely be happier using the Dimon program, which   ******\n"
-    "****** can properly organize the Dicom files for you (knock wood). ******\n"
-    "****** Example:                                                    ******\n"
-    "******   Dimon -infile_prefix im. -dicom_org -gert_create_dataset  ******\n"
-    "****** See the output of                                           ******\n"
-    "******   Dimon -help                                               ******\n"
-    "****** for more examples and the complete instructions for use.    ******\n"
+    "****** PLEASE NOTE *******************************************************\n"
+    "****** If you are converting DICOM files to AFNI or NIfTI datasets, ******\n"
+    "****** you will likely be happier using the Dimon program, which    ******\n"
+    "****** can properly organize the Dicom files for you (knock wood).  ******\n"
+    "****** Example:                                                     ******\n"
+    "******   Dimon -infile_prefix im. -dicom_org -gert_create_dataset   ******\n"
+    "****** See the output of                                            ******\n"
+    "******   Dimon -help                                                ******\n"
+    "****** for more examples and the complete instructions for use.     ******\n"
     "\n"
     "The available options are\n"
     "  -help   show this message\n"
@@ -3373,6 +3373,32 @@ void Syntax()
     "      means that any input file of size 16384 bytes will be read\n"
     "      as a 64x64 image of floats.\n"
     "\n"
+    "  Example: create a 4D dataset from AFNI_data6/EPI_run1\n"
+    "           (first with Dimon, then with to3d ... 3D...)\n"
+    "\n"
+    "     One could initially convert the EPI_run1 DICOM images into a\n"
+    "     dataset using Dimon, as in:\n"
+    "          Dimon -infile_prefix EPI_run1/8 -gert_create_dataset\n"
+    "     That would create OutBrick_run_003+orig (.BRIK and .HEAD).\n"
+    "\n"
+    "     To create a similar dataset using to3d directly on the binary\n"
+    "     data file OutBrick_run_003+orig.BRIK (to practice 3D*:... usage),\n"
+    "     one could do:\n"
+    "\n"
+    "          to3d -prefix to3d_direct          \\\n"
+    "               -time:zt 34 67 3.0s alt+z    \\\n"
+    "               -orient RAI                  \\\n"
+    "               -xSLAB 121.404R-114.846L     \\\n"
+    "               -ySLAB 132.526A-103.724P     \\\n"
+    "               -zSLAB 43.9268I-71.5732S     \\\n"
+    "               3D:0:0:64:64:2278:OutBrick_run_003+orig.BRIK\n"
+    "\n"
+    "     Then one could compare the location of the data in space:\n"
+    "          3dinfo -same_all_grid -prefix Out*HEAD to3d_direct*HEAD\n"
+    "     as well as verifying that the raw data BRIKs are identical:\n"
+    "          diff Out*BRIK to3d_direct*BRIK\n"
+    "\n"
+    "\n"
     "The 'raw pgm' image format is also supported; it reads data into 'byte' images.\n"
     "\n"
     "* ANALYZE (TM) .hdr/.img files can now be read - give the .hdr filename on\n"
@@ -3420,7 +3446,7 @@ void Syntax()
     "      if you use the 3Di:, 3Df:, or 3Dc: input methods and store the\n"
     "      data as shorts, I suggest you supply a global scaling factor.\n"
     "      Similar remarks apply to '-datum byte' scaling, with even more force.\n"
-    "  * To3d now incoporates POSIX filename 'globbing', which means that\n"
+    "  * To3d now incorporates POSIX filename 'globbing', which means that\n"
     "      you can input filenames using 'escaped wildcards', and then to3d\n"
     "      will internally do the expansion to the list of files.  This is\n"
     "      only desirable because some systems limit the number of command-line\n"
@@ -3604,7 +3630,7 @@ void Syntax()
     "    reverse the input file list.\n"
     "    Convenience for Siemens non-mosaic flipped datasets\n\n"
     "  -use_last_elem\n"
-    "    If present, search DICOM images for the last occurance of each\n"
+    "    If present, search DICOM images for the last occurrence of each\n"
     "    element, not the first.\n"
     "  -use_old_mosaic_code\n"
     "    If present, do not use the Dec 2010 updates to siemens mosaic code.\n"
@@ -4043,7 +4069,7 @@ void T3D_type_av_CB( MCW_arrowval * av , XtPointer cd )
    if( user_inputs.ntt > 0 && nvals_new != 1 ){
       T3D_poperr("***** DATA TYPE WARNING *****\n",
                  "New data type is not allowed\n"
-                 "with time-dependent datatset!" ,1) ;
+                 "with time-dependent dataset!" ,1) ;
       return ;
    }
 

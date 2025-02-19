@@ -332,7 +332,7 @@ int main (int argc,char *argv[])
 
       #ifdef SUMA_COMPILED
       /* Now create a new dataset nel 
-      no need to worry about loosing previous dset because it is in 
+      no need to worry about losing previous dset because it is in 
       SUMAg_CF->DsetList*/
       #else
       /* free dset by hand */
@@ -564,7 +564,7 @@ int main (int argc,char *argv[])
       /* How about loading some data */
       #ifdef SUMA_COMPILED
       /* Now create a new dataset nel 
-      no need to worry about loosing previous dset because it is in 
+      no need to worry about losing previous dset because it is in 
       SUMAg_CF->DsetList*/
       #else
       /* free dset by hand */

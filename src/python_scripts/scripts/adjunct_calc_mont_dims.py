@@ -12,7 +12,7 @@
 # + fixed upper limit to allow square values to be found.
 #
 ### [PT: Dec 5, 2018] 
-# + reduce depencies:  no scipy or numpy needed anymore
+# + reduce dependencies:  no scipy or numpy needed anymore
 #
 # --------------------------------------------------------------------
 

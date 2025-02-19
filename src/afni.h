@@ -344,7 +344,7 @@ typedef struct {
 
       float *th_sort;  /* sorted values of overlay threshold */
       int N_th_sort; /* number of values stored in th_sort */
-      char  th_sortid[256]; /* indentifier of provenance of th_sort */
+      char  th_sortid[256]; /* identifier of provenance of th_sort */
 
       int clusterize_nnlev , clusterize_size , clusterize_bisid ;
 } AFNI_view_info ;

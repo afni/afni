@@ -132,7 +132,7 @@ char * AHIST_main( PLUGIN_interface * plint )
      return NULL ;
    }
 
-   im3d = plint->im3d ;  /* save for local re-use */
+   im3d = plint->im3d ;  /* save for local reuse */
 
    /*-- create widgets, first time through --*/
 

@@ -175,7 +175,7 @@ void display_help_menu()
       "-prefix ppp = Set the prefix for the output dataset to 'ppp'.\n"
       "                The default is the prefix of 'dset'.\n"
       "\n"
-      "-dxyz ddd   = Set the grid spacing in the output datset to\n"
+      "-dxyz ddd   = Set the grid spacing in the output dataset to\n"
       "                'ddd' mm.  The default is 1 mm.\n"
       "\n"
       "-verbose    = Print out progress reports.\n"

@@ -1,4 +1,5 @@
-#
+#!/usr/bin/env python
+
 # ver : 1.2 || date: Oct 17, 2018 || auth: PA Taylor
 # + separate title and text strings
 # + new warn type
@@ -35,10 +36,47 @@
 # + tweak some text
 # + add embedded URLs, where appropriate
 #
-ver = '2.61' ; date = 'Mar 10, 2022' 
+#ver = '2.61' ; date = 'Mar 10, 2022' 
 # [PT] bug fix in m_tedana button creation
 # + fix oversight in wrap_button(), where different buttons pointed to
 #   only one tedana directory.  Thanks, Dan H for noting this!
+#
+#ver = '3.0' ; date = 'June 18, 2022' 
+# [Taylor Hanayik] add in updates for QC button functionality
+# + specifically, to accommodate local flask server (open_apqc.py)
+#
+#ver = '3.01' ; date = 'June 28, 2022' 
+# [PT] have the A+, A-, A? and clr buttons *also* update apqc_*.json
+#
+#ver = '3.02' ; date = 'Aug 2, 2022' 
+# [PT] 'SAVE' button to 'SAVING', now reflects whether server is active
+# + also updated the help file a lot
+#
+#ver = '3.03' ; date = 'Aug 2, 2022' 
+# [PT] forgot some pieces in last update; adding now
+# + also rename 'srvr' to 'saving'
+#
+#ver = '3.04' ; date = 'Aug 2, 2022' 
+# [PT] the QC rating information now gets saved whenever the text dialogue
+#      box gets closed.
+#
+#ver = '3.05' ; date = 'Aug 4, 2022' 
+# [PT] add link to AFNI MB in APQC help file
+#
+#ver = '3.06' ; date = 'Sep 2, 2022' 
+# [TH, PT] update what is posted, so the saving happens better across
+# multiple open APQC pages
+#
+#ver = '3.07' ; date = 'Sep 2, 2022' 
+# [PT] update allYourBaseAreBelongToUs() to save with single click when
+#      serving
+#
+#ver = '3.08' ; date = 'Sep 4, 2022' 
+# [PT] create+use subj ID info now
+#
+ver = '3.09' ; date = 'Sep 6, 2022' 
+# [PT] make URL more flexible by reading in origin---don't assume it is 
+# just 5000
 #
 #########################################################################
 
@@ -78,7 +116,7 @@ dir_img    = 'media'
 # it easier to see what is connected to what, even if they change.)
 
 qc_title           = coll.OrderedDict()
-qc_title["Top"]    = [ "Top of page for:&#10  ${subj}", 
+qc_title["HOME"]   = [ "Top of page for subj:&#10  ", # and append subj here!
                        "afni_proc.py single subject report" ]
 
 qc_blocks          = coll.OrderedDict()
@@ -121,8 +159,6 @@ qc_link_final       = [ "FINAL",
 qcb_helps           = coll.OrderedDict()
 qcb_helps["vorig"]  = '''
 Volumetric mages of data (EPI and anat) in original/native space.
-
-(EPI should now be shown;  anat vol will be along shortly.)
 '''
 
 qcb_helps["ve2a" ]  = '''
@@ -139,16 +175,24 @@ volumes.
 
 qcb_helps["vstat"]  = '''
 Volumetric images of statistics results (and, where available, effect
-estimates).  These images are only created for task data sets, i.e.,
-where GLTs or stimuli are specified (so not for resting state data).
+estimates).  
 
-By default, the (full) F-stat of an overall regression model is shown.
-Additionally, one can specify labels of stimuli or GLTs used in the
-afni_proc.py command, and statistical results will be shown.  For
-stimuli with effect estimates, the 'Coef' vales will be displayed as
-the olay colors (preferably with the 'scale' block having been used in
+For task-based datasets (where stimulus timing was used in AP), the
+(full) F-stat of an overall regression model is shown.  Additionally,
+one can specify labels of stimuli or GLTs used in the afni_proc.py
+command, and statistical results will be shown.  For stimuli with
+effect estimates, the 'Coef' vales will be displayed as the olay
+colors (preferably with the 'scale' block having been used in
 afni_proc.py, producing meaningful units of BOLD % signal change in
 the 'Coef' volumes).
+
+For resting-state and naturalistic scans, seedbased correlation maps are
+displayed. For several recognized template spaces, there are stored seed
+locations corresponding to major networks. In other cases (when the final
+space is ORIG or a standard space without pre-chosen seeds), then two
+seed locations in roughly the center of each left- and right-half-brain
+will be chosen, with additional constraint from the mask_dset if it 
+exists.
 
 Colorbar ranges and thresholds are chosen from either percentile
 values within the data set (preferably from within a WB mask,
@@ -183,7 +227,6 @@ with the grayplot series.
 '''
 
 qcb_helps["mecho"]  = '''
-
 There are many ways to process multi-echo (ME) EPI data.  Fortunately,
 afni_proc.py provides the ability to include most of them in your FMRI
 processing.  Please see the afni_proc.py help for the full argument
@@ -228,6 +271,29 @@ defined by the 5-95%ile range of TSNR in the mask.  The 1-5%ile values
 within the mask are shown in light blue, and the lower values are
 shown in dark blue.  In the absence of a mask, then the colorbar goes
 from 0 to the 98%ile value within the whole dset.
+
+The "ROI shape and TSNR stats" table shows local shape and TSNR
+(~signal strength) properties in regions of interest.  QC questions
+are often closely linked to locations of interest in the brain. This
+table contains information about the suitability of signal strength
+and/or ROI properties for a given set of ROIs (default set for
+recognized spaces, or user-provided). Warning levels increase as shape
+properties become potentially more problematic, such as: containing a
+large number of empty voxels; becoming thinner and more unstable to
+alignment imperfections and partial voluming; having strong
+gradients/variability in TSNR; having low overall TSNR. The table
+contains the following information, with warning coloration applied to
+highlight potential issues within each ROI:
+  ROI  : the integer value in the input atlas/map region
+  Nvox : total number of voxels (warnings if quite small)
+  Nzer : number of zero-valued voxels (warnings as Nzer/Nvox increases)
+  Dvox : maximum depth, counted in number of voxels (warnings as Dvox 
+         decreases)
+  Tmin, T25%, Tmed, T75%, Tmax 
+       : min, max and quartile values of TSNR (warnings as T75% decreases;
+         and as the slope of values (T75% -T25%)/Tmed increases)
+  X, Y, Z : coordinates of max-depth location, in RAI-DICOM notation
+  ROI  : name/label of ROI
 '''
 
 qcb_helps["radcor"] = '''
@@ -269,10 +335,12 @@ for x in qcb_helps.keys():
 
 apqc_help = [ 
 ['HELP FILE FOR APQC', 
- '''      *** afni_proc.py's single subject QC report form ***
+ '''*** APQC HTML: afni_proc.py's QC report for single subject analysis ***
 
-For questions about afni_proc.py (AP), please see the program or
-<urlin><a href="https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/afni_proc.py_sphx.html" target="_blank">webpage help</a></urlin>.
+Some useful links:
++ The APQC HTML's <urlin><a href="https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/apqc_html/main_toc.html" target="_blank">online tutorial</a></urlin>
++ The afni_proc.py (AP) program's <urlin><a href="https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/alpha/afni_proc.py_sphx.html" target="_blank">online help file</a></urlin>
++ The AFNI Message Board <urlin><a href="https://discuss.afni.nimh.nih.gov" target="_blank">homepage</a></urlin>
 '''], 
 ['OVERVIEW', 
 '''QC organization
@@ -298,17 +366,27 @@ Commenting
     was good or bad, or what question they have led them to rate it as
     'other'.
 
-Saving
-    Clicking SAVE will let the user save the QC ratings+comments on
-    their computer for later use, such as inclusion/exclusion criteria
-    for the subject in group analysis.  (NB: This action is treated
-    the same as downloading a file from online, and is subject to
-    standard limitations on simplicity due to browser security
-    settings.)
+Saving info
+    If you have a local server running, then as you click and type
+    the rating/QC buttons the information will be saved automatically
+    in the QC directory.  The 'SAVE:' button in the upper-left corner
+    shows whether the server is running:  
+    + if the letters are green and visible, then the server is running
+      (and your QC info is being saved).
+    + if the letters are gray with a red line through them, then the
+      server is not running (and your QC info is not being saved).
+ 
+    It is useful to start the server and save QC/rating info for
+    sharing and/or later using inclusion/exclusion criteria for the
+    subject in group analysis.
 
-See also
-    There is an online <urlin><a href="https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/apqc_html/main_toc.html" target="_blank">web tutorial</a></urlin>. It's more verbose and pictorial, 
-    if that's useful.
+    The ratings and comments are both saved in 'apqc_*.json'.
+    The ratings are also saved in 'extra_info/out.ss_review.*.json', 
+    which is a file that can be used as an input file to 
+    gen_ss_review_table.py, combining the qualitative evaluations of
+    the APQC HTML with the quantitative ones gathered by afni_proc.py,
+    for systematic evaluation and QC of subject data.
+
 '''
 ],
 ['''DEFINITIONS''', 
@@ -318,7 +396,7 @@ See also
     ve2a, etc.)-- click on the label to jump to that block. Click on
     the button below the label to provide a rating for that block.
 
-QC button
+QC buttons
     Below each QC block label in the navigation bar is a button
     (initially empty after running afni_proc.py). The user can click
     on it to toggle its state to one of three ratings (good, +; bad,
@@ -330,19 +408,20 @@ QC button
     evaluation of the subject's data and processing. (Clicking on this
     label does nothing.)
 
-filler button 
-    |A+|, |Ax|, |A?|-- located in the upper right corner of the
+filler buttons
+    |A+|, |Ax|, |A?|: these are located in the upper right corner of the
     navigation menu.  These can be used to provide uniform ratings
     across the QC buttons (click to fill empty buttons, double-click
     to fill *all* buttons, regardless of state).  
     |clr|-- double-clicking on this will empty all ratings+comments
     from the QC buttons.
 
-'SAVE'
-    Write the ratings+comments to disk.  This action is done through
-    the browser, and is subject to the browser settings; probably
-    users should not have the browser set to automatically download
-    all files to the same location, for example.
+'SAVING'
+    Denoting whether the local server is running or not.  Python's Flask
+    module is used to start a local server, so QC ratings and comments 
+    can be saved as they are made.  
+    This mode is ON when the SAVING button text is green and unobscured, 
+    and it is OFF when the text is gray and covered by a red line.
 
 'HELP'
     Button : well, how did you get here??
@@ -373,9 +452,10 @@ Double-click |clr| to clear all rating and comment values.
 Pro-tip: if data are mostly all in a single state like good or bad,
 just use filler buttons to save yourself click time, and then just
 click any individual buttons that are different.  '''],
-['''COMMENT''',
+['''COMMENTING''',
 '''
-Use ctrl+click on a QC button to open (or close) a comment window.  
+Use ctrl+click (or cmd+click, on Macs) on a QC button to toggle a comment
+window open/closed.
 
 Save a comment with the green (left) button, or hit Enter at any point.
 Remove a comment with the pink (right) button, or hit Esc at any point.
@@ -385,12 +465,67 @@ Comments are independent of rating, but adding a comment to an empty
 button changes its rating to ''?'' (which can be altered further from
 there).
 '''],
-['''SAVE FORM''',
-'''Click on the 'SAVE' button.  
+['''SAVE INFO''',
+'''Have the local server running (check the 'SAVING' button in the 
+upper-right corner).  
 
-Unfortunately, the file will not be directly saved by this, due to
-security settings on most web-browsers, and the user will be prompted
-to save the file as if downloading from the Web.'''
+When the local server is running, the QC and rating information is saved
+every time a button is updated.'''
+],
+['''INTERACTIVE VIEW BUTTONS''',
+'''When the local server is running, you can use the buttons above
+each of the images to interactively view the data. The following
+buttons are currently present:
+
+  AV : open the data in the AFNI Viewer (opening a new GUI instance).
+
+  NV : open the data in an NiiVue instance, embedded in the browser;
+       clicking NV toggles the viewer on/off;
+       the (x,y,z) location of the crosshairs is shown, as well as the
+       "UOT" trio, which stands for Underlay, Overlay and Threshold
+       values in the current viewer;
+       users can hover over the rendering at the right and hit 'c' one
+       or more times to initiate a clipping plane that can be moved
+       using mouse scrolling.
+
+  IC : run AFNI's InstaCorr on the given data (settings are pre-loaded);
+       popup text describes what to do, but basically hold down
+       Ctrl+Shift, and click around the brain to see instantly updated
+       correlation patterns from a seed at the clicked location.
+
+  GV : open the data with a Graph Viewer in the AFNI GUI.
+
+Additionally, each of the gold-colored text labels throughout the HTML
+are actually buttons you can double-click, to bring *all* HTML pages
+that were opened with that current open_apqc.py command to the same
+location. This is extremely useful for checking the same QC item across
+all subjects. Like, really useful.
+'''
+],
+['''CROSS-PAGE SYNC'ING''',
+'''When the local server is running, you can bring all the APQC HTML
+instances that were opened with a single open_apqc.py execution to the
+exact same location.  This is extremely useful for checking the same
+QC item across all subjects. Like, really useful.
+
+Users can do this by double-clicking any of the gold-colored text
+labels throughout the HTML. The current page will smoothly scroll,
+placing the given QC item at the top of the page, and all other
+related pages will jump to the same location.
+
+Users can efficiently navigate between several tabs with the standard
+browser keyboard shortcuts:
+   Ctrl+Tab : cycle "forward" through the tabs in the window.
+   Ctrl+Shift+Tab : cycle "backward" through the tabs in the window.
+
+When opening the HTML pages, users can also add the `-jump_to ..` option
+the command, so that all the pages will open up at the same location
+(def behavior is to open at the top of the page).  Users can specify
+any of the QC block labels (vorig, ve2a, etc.), and the full list of
+jumpable locations for a set of pages can be displayed in the terminal 
+by running:
+   open_apqc.py -disp_jump_ids -infiles <list of one or more HTML files>
+'''
 ],
 ['''KEYBOARD NAVIGATION''',
 '''
@@ -413,25 +548,26 @@ qcbh ]
 
 # ---------------------------------------------------------------------
 
-brate_hover = '''QC BUTTON FORM
+bhelp_hover = '''Click (or hit Enter) to open new help page.
+
+             -- Quick help on QC buttons --
 
 NAVIGATE
-Click a label ('Top', etc.) to jump to a section.
+Scroll, or click a label ('vorig', 've2a', etc.) to jump to a section.
 
 RATE + COMMENT
-Click the QC button below it to record your rating, toggling through:
+Click the QC button below each label to rate it, toggling through:
+    +  :  good.
     X  :  bad,
     ?  :  other/revisit,
-    +  :  good.
-Use ctrl+click on a QC button to provide a comment.  Close the comment 
-panel with ctrl+click or its buttons.
+Use ctrl+click (or cmd+click, on Macs) on a QC button to toggle a comment
+window open/closed. Comments also have save/clear buttons.
 
 SPEEDIFY
 There are 'filler buttons' for each rating: |A+|, |Ax|, |A?|.
 Click once to fill all *empty* buttons with that rating, or
-double click to fill *all* buttons with that rating.
-
---- click 'HELP' at the right for more details and features ---'''
+double click to fill *all* buttons (will overwrite) with that rating.
+'''
 
 # ---------------------------------------------------------------------
 
@@ -456,13 +592,19 @@ Double-click (or ctrl+Enter) to clear *all* QC buttons.
 
 # ---------------------------------------------------------------------
 
-bsave_hover = '''Save ratings+comments.
-Click once (or Enter) to write QC form to disk.
+bsaving_hover = '''Display if QC/rating info is being saved.
+
+Automatic saving is:
++ ON, if the text is green
++ OFF, if the text is gray with red strikethrough
 '''
 
-bhelp_hover = '''Open help page.
-Click once (or Enter) to open new help page.
-'''
+bsaving  = 'RATE:'
+bhelp  = 'HELP'
+
+#bhelp_hover = '''Open help page.
+#Click once (or Enter) to open new help page.
+#'''
 
 
 
@@ -470,26 +612,30 @@ def write_help_html_file( ofile, ocss ):
 
     # -------------- start ---------------------
 
-    ht  = '''
-    <html>
-    '''
+    ht  = '''<html>\n'''
 
     # -------------- head ---------------------
 
     # use same style sheet as main pages
     ht+= '''
-    <head>
-    <link rel="stylesheet" type="text/css" href="{}" />
-    '''.format( ocss )
+<head>
+    <title>APQC help</title>
+    <link rel="stylesheet" type="text/css" href="{ocss}" />
+    <link rel="icon" type="icon.svg" href="extra_info/apqc_logo_help.svg"> 
+</head>\n'''.format( ocss=ocss )
 
     ht+= '''
-    </head>
-    '''
+<!-- set background color of page -->
+<style>
+  body {
+    background-color: #333333; /* dark grey */
+  }
+</style>
+\n\n'''
 
     # -------------- body ---------------------
 
-    ht+= '''
-    <body>
+    ht+= '''<body>
     '''
 
     Nsec = len(apqc_help)
@@ -500,10 +646,11 @@ def write_help_html_file( ofile, ocss ):
         ht+= wrap_block_title( x[0],
                                vpad=1,
                                addclass=" class='padtop' ",
-                               blockid='' )
+                               blockid='',
+                               do_close_prev_div=bool(ii))
 
         ht+= wrap_block_text( x[1],
-                              addclass=" class='container' " )
+                              addclass="class='container' " )
 
 
 
@@ -614,6 +761,12 @@ class apqc_item_info:
     title       = ""
     text        = ""
     subtext     = ""
+    nv_html     = ""
+    av_file     = ""
+    ic_file     = ""
+    ic_args     = ""
+    gv_file     = ""
+    gv_args     = ""
     itemtype    = ""
     itemid      = ""
     blockid     = ""
@@ -643,6 +796,30 @@ class apqc_item_info:
     def set_warn_level(self, DICT):
         if 'warn_level' in DICT :
             self.warn_level = DICT['warn_level']
+
+    def set_nv_html(self, DICT):
+        if 'nv_html' in DICT :
+            self.nv_html = DICT['nv_html']
+
+    def set_av_file(self, DICT):
+        if 'av_file' in DICT :
+            self.av_file = DICT['av_file']
+
+    def set_ic_file(self, DICT):
+        if 'ic_file' in DICT :
+            self.ic_file = DICT['ic_file']
+
+    def set_ic_args(self, DICT):
+        if 'ic_args' in DICT :
+            self.ic_args = DICT['ic_args']
+
+    def set_gv_file(self, DICT):
+        if 'gv_file' in DICT :
+            self.gv_file = DICT['gv_file']
+
+    def set_gv_args(self, DICT):
+        if 'gv_args' in DICT :
+            self.gv_args = DICT['gv_args']
 
     # [PT: May 16, 2019] updated to deal with parsing of PBAR stuff here
     def add_text(self, DICT):
@@ -675,6 +852,12 @@ class apqc_item_info:
         self.set_blockid(DICT)
         self.set_blockid_hov(DICT)
         self.add_text(DICT)
+        self.set_nv_html(DICT)
+        self.set_av_file(DICT)
+        self.set_ic_file(DICT)
+        self.set_ic_args(DICT)
+        self.set_gv_file(DICT)
+        self.set_gv_args(DICT)
         self.add_subtext(DICT)
         self.set_warn_level(DICT)
 
@@ -741,17 +924,31 @@ def write_json_file( ll, fname ):
     olist.append( json_cols )
 
     # skip the first element here because it came from the title, and
-    # that doesn't have a QC button with it (it's just the 'Top' of
+    # that doesn't have a QC button with it (it's just the Top/Home of
     # the page).
     for i in range(1,len(ll)):
         x = ll[i]
-        olist.append( [x[0], "", ""] )
+        olist.append( [x[0], "null", ""] )
     
     # output with indentation
     ojson = json.dumps( olist, indent=4 )
     fff = open( fname, "w" )
     fff.write( ojson )
     fff.close()
+
+# --------------------------------------------------------------------
+
+def write_list_ids_file(oids, list_ids):
+    otxt = ''
+    N = len(list_ids)
+    for ii in range(N):
+        otxt+= ' ' * (list_ids[ii][0] == 'itemid') * 4
+        otxt+= list_ids[ii][1] + '\n'
+    
+    fff = open( oids, "w" )
+    fff.write( otxt )
+    fff.close()
+
 
 # --------------------------------------------------------------------
 
@@ -765,7 +962,7 @@ def write_json_file( ll, fname ):
 
 # -------------------------------------------------------------------
 
-def make_nav_table(llinks, max_wlevel=''):
+def make_nav_table(llinks, subj='', max_wlevel=''):
     # table form, not ul 
     N = len(llinks)
     idx = 0
@@ -774,38 +971,40 @@ def make_nav_table(llinks, max_wlevel=''):
     # dummy, background nav
 
     y = '''
-    <div class="navbar">
-      <table style="width: 100%">
+<!-- make dummy navbar, which sits in the background -->
+<div class="navbar">
+  <table style="width: 100%">
 
-        <tr>
-          <td style="width: 100%">
-            <a style="text-align: left"> {0} </a>
-          </td>
-        </tr>
+    <tr>
+      <td style="width: 100%">
+        <a style="text-align: left"> {0} </a>
+      </td>
+    </tr>
 
-        <tr>
-          <td style="width: 100%">
-            <button class="button-generic button-LHS btn0" onclick="">
-            {0} </button>
-          </td>
-        </tr>
+    <tr>
+      <td style="width: 100%">
+        <button class="button-generic button-LHS btn0" 
+                onclick="">
+        {0} </button>
+      </td>
+    </tr>
 
-      </table>
-    </div>
-    '''.format( NULL_BTN0 ) 
+  </table>
+</div> <!-- end of dummy navbar -->
+'''.format( NULL_BTN0 ) 
 
     # =======================================================================
     # real, foreground nav
+    # + use z-index to keep it always on top
 
-    y+= '''\n<div class="navbar">\n'''
+    y+= '''
+<!-- start of real/foreground navbar (uses z-index to keep on top) -->
+<div class="navbar" style="z-index: 10;">
+'''
 
     # -----------------------------------------------------
     # L-floating part: section anchors and rating buttons
     # NB: these are fixed width
-
-    ## note about keycodes on internet explorer, might have to do
-    ## something like this for each one:
-    # https://stackoverflow.com/questions/1750223/javascript-keycode-values-are-undefined-in-internet-explorer-8
 
     for i in range(0, N):
         ll, hov = llinks[i][0], llinks[i][1]
@@ -813,163 +1012,250 @@ def make_nav_table(llinks, max_wlevel=''):
 
         color_change = ''
         
-        # Put lines around "FINAL" element
-        if i<N-1 : 
-            finaltab = ''
-            if ll == 'warns' and max_wlevel :
-                wcol = lahc.wlevel_colors[max_wlevel]
-                if lahc.wlevel_ranks[max_wlevel] > lahc.wlevel_ranks['mild'] :
-                    finaltab = '''style="color: {}; '''.format("#000") 
-                    finaltab+= '''background-color: {};" '''.format(wcol)
-                else:
-                    finaltab = '''style="color: {};" '''.format(wcol) 
-
+        # add colors to warning button (and nothing else)
+        if ll == 'warns' and max_wlevel :
+            wcol = lahc.wlevel_colors[max_wlevel]
+            if lahc.wlevel_ranks[max_wlevel] > lahc.wlevel_ranks['mild'] :
+                finaltab = '''style="color: {}; '''.format("#000") 
+                finaltab+= '''background-color: {};" '''.format(wcol)
+            else:
+                finaltab = '''style="color: {};" '''.format(wcol) 
         else:
-            finaltab = '''style="background-color: #ccc; color: #000;" '''
+            finaltab = ''
 
         # new table
-        y+= '''<table style="float: left">\n'''
+        y+= '''
+  <!-- start QC button table for block={ll} -->
+  <table style="float: left">
+'''.format( ll=ll )
 
         # TOP ROW (blockid)
-        y+= '''
-        <tr>
-          <td class="td1" id=td1_{0}>
-            <button class="button-generic button-LHS btn5" id="btn5_{0}" 
-            onmousedown="moveToDiv(hr_{0})" title="{1}" {2} 
-            onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{0}); }}">
-            {0}</button>
-          </td>
-        </tr>
-        '''.format( ll, hov, finaltab ) 
+        if i :
+            y+= '''
+    <!-- top button for block={ll} -->
+    <tr>
+      <td class="td1" id=td1_{ll}>
+        <button class="button-generic button-LHS btn5" id="btn5_{ll}" 
+        onmousedown="moveToDiv(hr_{ll})" 
+        title="{hov}" 
+        {finaltab} 
+        onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{ll}); }}">
+        {ll}</button>
+      </td>
+    </tr>
+'''.format( ll=ll, hov=hov, finaltab=finaltab ) 
+        else:
+            # this is specifically for the HOME/jump button
+            # &#8679TOP&#8679
+            # ACME&#8679
+            y+= '''
+    <!-- top button for block={ll} -->
+    <tr>
+      <td class="td1" id=td1_{ll}>
+        <button class="button-generic button-LHS btn0" id="btn5_{ll}" 
+        onmousedown="moveToDiv(hr_{ll})" 
+        title="{hov}" 
+        {finaltab} 
+        onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{ll}); }}">
+        TOP&#8679</button>
+      </td>
+    </tr>
+'''.format( ll=ll, hov=hov, finaltab=finaltab ) 
 
         # BOT ROW (QC button)
-        y+= '''<td >''' # set boundary between QC buttons here
         if i :
             # NB: with button clicks, if using onkeypress with
             # onclick, the former *also* drives the latter a second
             # time, so get annoying behavior; hence, distinguish those
             y+= '''
-              <button class="button-generic button-LHS btn1" id="btn1_{0}" data-txtcomm="" 
-              onmousedown="btn1Clicked(event, this)" 
-              onkeypress="if ( event.keyCode == 13 ) {{ btn1Clicked(event, this); }}" 
-              {1}</button>
-            </td>
-            '''.format( ll, NULL_BTN1 )
+    <!-- bot button for block={ll} -->
+    <tr>
+      <td>
+        <button class="button-generic button-LHS btn1" 
+                id="btn1_{ll}" data-txtcomm="" 
+                onmousedown="btn1Clicked(event, this)" 
+        onkeypress="if ( event.keyCode == 13 ) {{ btn1Clicked(event, this); }}" 
+        {txt}</button>
+      </td>
+    </tr>
+'''.format( ll=ll, txt=NULL_BTN1 )
         else:
+            bhelp  = 'HELP'
             y+= '''
-              <button class="button-generic button-LHS btn0" id="btn0_{0}" 
-              onclick="" 
-              title="{1}">
-              {2}</button></td>
-            '''.format( ll, brate_hover, "FORM:" ) 
-        y+= '''</tr>\n'''
-        y+= '''</table>'''
+     <!-- bot button for block={lab} -->
+    <tr>
+      <td>
+        <button class="button-generic button-RHS btn3saving" id=td3_{lab}
+                title="{hov}"   
+              onclick="colorizeSavingButton(is_served)">
+        {txt}</button>
+      </td>
+    </tr>
+'''.format( lab=bsaving, hov=bsaving_hover, txt=bsaving )
+
+
 
         if i :
             # ~dropdown form button
-            ## NB: the onkeydown stuff makes it that hitting "Enter"
-            ## (event.keyCode == 10 || event.keyCode == 13) inside the
-            ## text field is like submitting the text (and the
-            ## .preventDefault() means that it does NOT input a
-            ## newline):
-            ## https://stackoverflow.com/questions/155188/trigger-a-button-click-with-javascript-on-the-enter-key-in-a-text-box
-            ## https://stackoverflow.com/questions/26975349/textarea-wont-stop-making-new-line-when-enter-is-pressed
-            ## ... and hitting "Esc" (event.keyCode == 27) is like
-            ## canceling.
+            # NB: the onkeydown stuff makes it that hitting "Enter"
+            # (event.keyCode == 10 || event.keyCode == 13) inside the
+            # text field is like submitting the text (and the
+            # .preventDefault() means that it does NOT input a
+            # newline):
+            # https://stackoverflow.com/questions/155188/trigger-a-button-click-with-javascript-on-the-enter-key-in-a-text-box
+            # https://stackoverflow.com/questions/26975349/textarea-wont-stop-making-new-line-when-enter-is-pressed
+            # ... and hitting "Esc" (event.keyCode == 27) is like
+            # canceling.
+            # ... and hitting "Ctrl+Esc" is clear text+comm
             y+= '''
-            <div class="form-popup" id="cform_{0}" > 
-                <form class="form-container" onsubmit="return false;"> 
-                <textarea type="text" placeholder="Enter comment" 
-                rows="4" cols="40" id="comm_{0}" 
-                onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
-                   event.preventDefault(); keepFromCommentForm(comm_{0}.id, cform_{0}.id);}} 
-                   else if (event.keyCode == 27) {{ 
-                       clearCommentForm(comm_{0}.id, cform_{0}.id); }}">
-                </textarea>  
-                <button type="button" class="btn" 
-                onclick="keepFromCommentForm(comm_{0}.id, cform_{0}.id)">keep+close</button> 
-                <button type="button" class="btn cancel" 
-                onclick="clearCommentForm(comm_{0}.id, cform_{0}.id)">clear+close</button> 
-                </form> 
-            </div> 
-            '''.format( ll )
+</table>
+<!-- top of QC button comment form for block={ll} -->
+<div class="form-popup" id="cform_{ll}" > 
+    <form class="form-container" onsubmit="return false;"> 
+    <textarea type="text" placeholder="Enter comment" 
+    rows="4" cols="40" id="comm_{ll}" 
+    onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
+       event.preventDefault(); 
+       keepFromCommentForm(comm_{ll}.id, cform_{ll}.id);}} 
+       else if (event.ctrlKey && event.keyCode == 27) {{ 
+           clearCommentFormAndRating(comm_{ll}.id, cform_{ll}.id); }}
+       else if (event.keyCode == 27) {{ 
+           clearCommentForm(comm_{ll}.id, cform_{ll}.id); }}">
+    </textarea>  
+    <button type="button" class="btn" 
+    onclick="keepFromCommentForm(comm_{ll}.id, cform_{ll}.id)">
+    keep</button> 
+    <button type="button" class="btn cancel" 
+    onclick="clearCommentForm(comm_{ll}.id, cform_{ll}.id)">
+    clear text</button> 
+    <button type="button" class="btn clearall" 
+    onclick="clearCommentFormAndRating(comm_{ll}.id, cform_{ll}.id)">
+    clear all</button> 
+    </form> 
+</div> <!-- bot of QC button comment form -->
+'''.format( ll=ll )
+
+    y+= '''
+<!-- END of QC block buttons -->
+'''
+
+    # add in subj ID
+    y+= '''
+<!-- show subj ID in navbar -->
+<table style="float: left">
+  <tr>
+    <td style="width: fit-content;">
+    <p class="subj_text">{subj}</p>
+    </td>
+  </tr>
+</table>
+'''.format(subj=subj)
+
+
 
     # ------------------------------------------------------ 
     # R-floating part: subj ID and SAVE button 
     # NB: this is flexible width
-    bsave  = 'SAVE'
-    bhelp  = 'HELP'
     bgood  = 'A+'  ; bgood_ind  =  1 
     bbad   = 'Ax'  ; bbad_ind   =  2 
     bother = 'A?'  ; bother_ind =  0 
     bclear = 'clr' ; bclear_ind = -1
 
     # Start right-side table
-    y+= '''<table style="float: right; margin-right: 2px">\n'''
+    y+= '''
+<!-- START of (right-floating) quick buttons -->
+<table style="float: right; margin-right: 2px">'''
 
     # ROW: "all fill" buttons-- click (or Enter) fills empty QC buttons,
     # dblclick (or ctrl+Enter) fills ALL QC buttons
-    y+= '''<tr>\n'''
-    y+= '''<td style="width: 180px; white-space:nowrap;">\n'''
+    ### NTS: could add more <td>s here, but doesn't appear necessary
+    y+= '''
+  <tr>
+    <td style="width: 140px; white-space:nowrap;">
+'''
 
     y+= '''
-<button class="button-generic button-RHS button-RHS-little btn2{0}" title="{1}" 
-onmousedown="allYourBaseAreBelongToUs({2})" 
-onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ if (event.ctrlKey) {{
-reallyAllYourBaseAreBelongToUs({2}); }} else {{ allYourBaseAreBelongToUs({2}); }} }} " 
-ondblclick="reallyAllYourBaseAreBelongToUs({2})"> 
-{3}</button>
-    '''.format( 'good', bgood_hover, bgood_ind, bgood )
+      <button class="button-generic button-RHS button-RHS-little btn2{lab}" 
+      title="{hov}" 
+      onmousedown="allYourBaseAreBelongToUs({ind})" 
+      onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
+        if (event.ctrlKey) {{
+          reallyAllYourBaseAreBelongToUs({ind}); 
+        }} else {{ 
+          allYourBaseAreBelongToUs({ind}); 
+        }}
+      }} " 
+      ondblclick="reallyAllYourBaseAreBelongToUs({ind})"> 
+      {txt}</button>
+'''.format( lab='good', hov=bgood_hover, ind=bgood_ind, txt=bgood )
 
     y+= '''
-<button class="button-generic button-RHS button-RHS-little btn2{0}" title="{1}" 
-onmousedown="allYourBaseAreBelongToUs({2})" 
-onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ if (event.ctrlKey) {{ 
-reallyAllYourBaseAreBelongToUs({2}); }} else {{ allYourBaseAreBelongToUs({2}); }} }} " 
-ondblclick="reallyAllYourBaseAreBelongToUs({2})"> 
-{3}</button>
-    '''.format( 'bad', bbad_hover, bbad_ind, bbad )
+      <button class="button-generic button-RHS button-RHS-little btn2{lab}" 
+      title="{hov}" 
+      onmousedown="allYourBaseAreBelongToUs({ind})" 
+      onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
+        if (event.ctrlKey) {{ 
+          reallyAllYourBaseAreBelongToUs({ind});
+        }} else {{
+          allYourBaseAreBelongToUs({ind});
+        }}
+      }} " 
+      ondblclick="reallyAllYourBaseAreBelongToUs({ind})"> 
+      {txt}</button>
+'''.format( lab='bad', hov=bbad_hover, ind=bbad_ind, txt=bbad )
 
     y+= '''
-<button class="button-generic button-RHS button-RHS-little btn2{0}" title="{1}" 
-onmousedown="allYourBaseAreBelongToUs({2})" 
-onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ if (event.ctrlKey) {{ 
-reallyAllYourBaseAreBelongToUs({2}); }} else {{ allYourBaseAreBelongToUs({2}); }} }} " 
-ondblclick="reallyAllYourBaseAreBelongToUs({2})"> 
-{3}</button>
-    '''.format( 'other', bother_hover, bother_ind, bother )
+      <button class="button-generic button-RHS button-RHS-little btn2{lab}" 
+      title="{hov}" 
+      onmousedown="allYourBaseAreBelongToUs({ind})" 
+      onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
+        if (event.ctrlKey) {{ 
+          reallyAllYourBaseAreBelongToUs({ind});
+        }} else {{ 
+          allYourBaseAreBelongToUs({ind}); 
+        }}
+      }} " 
+      ondblclick="reallyAllYourBaseAreBelongToUs({ind})"> 
+      {txt}</button>
+'''.format( lab='other', hov=bother_hover, ind=bother_ind, txt=bother )
 
     y+= '''
-<button class="button-generic button-RHS button-RHS-little btn2{0}" title="{1}" 
-onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ if (event.ctrlKey) {{ 
-reallyAllYourBaseAreBelongToUs({2}); }} }} " 
-ondblclick="reallyAllYourBaseAreBelongToUs({2})"> 
-{3}</button>
-    '''.format( 'clear', bclear_hover, bclear_ind, bclear )
+    </td>
+  </tr>
+'''
 
-    y+= '''</td>\n'''
-    y+= '''</tr>\n'''
+    # ROW:  hyperlinks (anchors) within the page; could add more <td>
+    y+= '''
+  <!-- bot row: clear and help buttons -->
+  <tr>
+    <td style="width: 140px; white-space:nowrap;" id=td3_TOBEDETERMINED>
+'''
 
-    # ROW:  hyperlinks (anchors) within the page
-    y+= '''<tr>\n'''
-    y+= '''<td style="width: 180px; white-space:nowrap;" id=td3_{}>'''.format( bsave )
+    y+= '''
+      <button class="button-generic button-RHS button-RHS-little btn2{lab}" 
+      title="{hov}" 
+      onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
+        if (event.ctrlKey) {{ 
+          reallyAllYourBaseAreBelongToUs({ind}); 
+        }} 
+      }} " 
+      ondblclick="reallyAllYourBaseAreBelongToUs({ind})"> 
+      {txt}</button>
+'''.format( lab='clear', hov=bclear_hover, ind=bclear_ind, txt=bclear )
 
-    y+= '''<button class="button-generic button-RHS btn3save" title="{}" '''.format( bsave_hover ) 
-    y+= '''onclick="doSaveAllInfo()">'''
-    y+= '''{}</button>\n'''.format( bsave )
+    y+= '''
+    <button class="button-generic button-RHS btn3{lab}"
+            title="{hov}" 
+            onclick="doShowHelp()">
+    {txt}</button>
+'''.format( lab='help', hov=bhelp_hover, txt=bhelp )
 
-    y+= '''<button class="button-generic button-RHS btn3help" title="{}" '''.format( bhelp_hover ) 
-    y+= '''onclick="doShowHelp()">'''
-#    y+= '''href="help.html" target="_blank">'''
-#    y+= '''onclick="location.href='help.html';">'''
-    y+= '''{}</button>\n'''.format( bhelp )
-
-    y+= '''</td>\n'''
-    y+= '''</tr>\n'''
-
-    # End right-side table
-    y+= '''</table>'''
-    y+= '''</div>'''
+    y+= '''
+    </td>
+  </tr>
+</table> <!-- end of right-side table of buttons -->
+</div> <!-- end of real/foreground navbar -->
+'''
 
     return y
 
@@ -983,15 +1269,18 @@ def make_javascript_btn_func(subj ):
 
     y = ''
 
-    y+= '''<script type="text/javascript">\n'''
+    y+= '''<script type="text/javascript">
+'''
 
     y+= '''
-
 // global vars
-var allBtn1, allTd1, allhr_sec;  // selection/location IDs
+var allBtn1, allTd1;             // selection/location IDs
+var allhr_sec = "";              // more IDs
 var topi, previ;                 // keeps our current/last location
-var jsonfile = "apqc_{0}.json";  // json file: apqc_SUBJ.json
-var qcjson;                      // I/O json of QC button responses
+//var subj_id  = "{subj}";            // subject's ID
+var jsonfile = "apqc_{subj}.json";  // json file: apqc_SUBJ.json
+var json_ssrev = "extra_info/out.ss_review.{subj}.json"; // ss_review JSON
+var qcjson = {{}};                 // I/O json of QC button responses
 var nb_offset = 66-1;            // navbar height: needed for scroll/jump
 
 // properties of QC buttons that get toggled through
@@ -999,49 +1288,270 @@ const bkgds   = [ "#fff" , "#67a9cf", "#d7191c"  ];
 const valeurs = [ "?"    , "+"      , "X"        ];
 const tcols   = [ "#777" , "#FFF"   , "#000"     ];
 
-'''.format( subj )
+// check where server is running (to alert users before filling in buttons)
+let url       = window.location.href
+let origin    = window.location.origin
+let is_served = url.startsWith('file:') ? false : true
+
+console.log('URL', url)
+console.log('is_served', is_served)
+'''.format( subj=subj )
+
+    y+= '''
+/* For using is_served to set saving button color:
+    First, get the root element, which has color
+    defined
+*/
+var r = document.querySelector(':root');
+
+/* ... then, this function will help set colors
+*/
+function colorizeSavingButton(val) {
+  if (val) {
+    r.style.setProperty('--SavingTextCol', '#009933');
+    r.style.setProperty('--SavingBkgdCol', '#000'); //'#fff');
+    r.style.setProperty('--SavingTextDec', 'none');
+
+    r.style.setProperty('--SavingTextColB6', '#000');
+    r.style.setProperty('--SavingBkgdColB6', '#029a64');
+  } else {
+    r.style.setProperty('--SavingTextCol', '#9f9f9f');
+    r.style.setProperty('--SavingBkgdCol', '#000'); //'#fff');
+    r.style.setProperty('--SavingTextDec', 'line-through');
+
+    r.style.setProperty('--SavingTextColB6', '#016843');
+    r.style.setProperty('--SavingBkgdColB6', '#016843');
+  }
+}
+
+/* ... finally, use and colorize */
+colorizeSavingButton(is_served);
+'''
+
+    y+= '''
+
+/* 
+   function for scrolling/jumping all APQC HTML instances that were
+   opened at the same time: jump to same location.
+   This puts the new value into localStorage...
+*/
+function jumpAllOpenApqcToID(id) {
+  const jumpID = id;
+
+  /* move within this page */
+  let el = document.getElementById(id);
+  el.scrollIntoView({ behavior: 'smooth' }); 
+  /*el.scrollIntoView({ behavior: 'instant' })*/
+
+  /* and update local storage so other pages move */
+  localStorage.setItem('jumpID', id);
+}
+
+/* 
+   ... and this listens to changes in local storage (coming from
+   other pages), to react and jump to the appropriate location
+*/
+window.addEventListener('storage', (event) => {
+  /* if jumpID has changed, then jump to that new location */
+  if (event.key === 'jumpID') {
+    let el = document.getElementById(event.newValue);
+    el.scrollIntoView({ behavior: 'instant' });
+  }
+});
+
+
+/*
+   Do both checking of server status and resetting of the is_served
+   var if it is no longer running.  Also, ensure button colors are 
+   up-to-date.
+*/
+function checkServerStatus() {
+  return fetch(url, { method: 'GET' })
+    .then(response => {
+      if (is_served && response.ok) { 
+        // Server is alive
+        return true;
+      } else {
+        // Server is not alive
+        return false;
+      }
+    })
+    .catch(error => {
+      // Server is not alive or there was an error
+      console.log('+* Warning: the server is not serving: ' + error);
+      return false;
+    });
+}
+
+async function updateServerStatus() {
+  let isAlive = await checkServerStatus()
+      if (isAlive) {
+        console.log("Server is up");
+      } else {
+        is_served = false;
+        colorizeSavingButton(is_served);
+      }
+   console.log("Report on update. Server status is: "+is_served);
+}
+
+/* Different than checking server status; this returns OK if: 1) the
+   page was started with a server running and the server is still
+   running now; 2) the page was started without a server at all. 
+   
+   This is useful for the help button to work, for example.
+*/
+function checkPageStatus() {
+  return fetch(url, { method: 'GET' })
+    .then(response => {
+      if (response.ok) { 
+        // started as non-server, or started with server AND still okay
+        return true;
+      } else {
+        // started with server AND server not okay
+        return false;
+      }
+    })
+    .catch(error => {
+      // Server is not alive or there was an error
+      console.log('+* Warning: the page has some issue: ' + error);
+      return false;
+    });
+}
+
+/* for the NV button, toggle NiiVue instance on/off by id */
+async function toggle_niivue(is_served, id) {
+  await updateServerStatus();
+  if ( is_served ) {
+    let element = document.getElementById(id);
+    let current_disp = element.style.display; // current disp value
+    // toggle between 'block' and 'none'
+    element.style.display = current_disp === '' ? 'block' : '';
+    if (element.style.display == ''){
+      // remove all children from the element
+      while (element.firstChild) {
+          element.removeChild(element.firstChild);
+      }
+    } else {
+      // add an iframe to the element. The iframe will load its 
+      // own niivue js and images
+      let html_name = './' + id + '.html';
+      let nv_iframe = document.createElement('iframe');
+      nv_iframe.src = html_name;
+      nv_iframe.frameBorder = '0';
+      nv_iframe.style.display = 'block';
+      nv_iframe.style.width = '100%';
+      nv_iframe.style.height = 'auto';
+      nv_iframe.style.aspectRatio = '4.5/1'; // accommodate hide olay btn
+      element.appendChild(nv_iframe);
+    }
+  }
+}
+
+
+/* show/hide olay in NV (for align checks)
+    obj : NV object ID
+    bid : button ID in that object's NV canvas
+*/
+function niivue_ShowHideOlay(obj, bid) {
+  let element = document.getElementById(bid);
+  if (obj.volumes[1].opacity) {
+    obj.setOpacity(1, 0);
+    element.innerText = "View Olay";
+  } else {
+    obj.setOpacity(1, 1);
+    element.innerText = "Hide Olay";
+  }
+}
+
+'''
+
 
     # --------------- load/reload initialize -----------------
 
     # gets run at loadtime
     y+= '''
 //window.onload = function() {
-function RunAtStart() {
+async function RunAtStart() {
+  // initialize arrays and location
+  initializeParams();
 
-    // initialize arrays and location
-    initializeParams();
-
-    // read in JSON
-    loadJSON(jsonfile, function(unparsed_json) {
-      // give the global variable values
-      window.qcjson = JSON.parse(unparsed_json);
-    });
-
+  // read in JSON, if we have server running
+  if ( is_served ) {
+    qcjson = await loadJSON(jsonfile)
+    console.log(qcjson)
     CheckJsonfileMatchesQcbuttons();
-
     ApplyJsonfileToQcbuttons();
+  }
 };
 
 '''
 
-    # OFF AT HTE MOMENT, but a guard for reloading page
     y+= '''
-    window.onbeforeunload = function(event)
-    {
-        return confirm();
-    };
+// used for string formatting numbers (C Rorden), below
+function flt2str0(flt, ndec = 0) {
+    //retain trailing zero
+    return flt.toFixed(ndec); //return string
+}
+
+/* more string formatting numbers, below ... WITH directionality here,
+   assuming the coords are what AFNI calls LPI (and what some other
+   software call RAS); basically, L/P/I are neg coords, and R/A/S are
+   positive.  
+*/
+function flt2str0_dir(flt, ndec = 0, dir = '' ) {
+    //retain trailing zero
+    if ( dir == '' ) {
+      return flt.toFixed(ndec); //return string
+    } else if ( dir == 'RL' ) {
+      let aflt = Math.abs(flt);
+      let lab  = (flt < 0 ) ? 'L' : 'R';
+      return aflt.toFixed(ndec) + lab;
+    } else if ( dir == 'AP' ) {
+      let aflt = Math.abs(flt);
+      let lab  = (flt < 0 ) ? 'P' : 'A';
+      return aflt.toFixed(ndec) + lab;
+    } else if ( dir == 'IS' ) {
+      let aflt = Math.abs(flt);
+      let lab  = (flt < 0 ) ? 'I' : 'S';
+      return aflt.toFixed(ndec) + lab;
+    } else {
+      return ''; 
+    }
+}
+
 '''
 
     y+= '''
-// This function gets run when page loads ("onload").
+/*
+  OFF AT THE MOMENT, but a guard for reloading page
+*/
+window.onbeforeunload = function(event)
+{
+  doQuit()
+  let seriouslyQuit = confirm()
+  if (seriouslyQuit) {
+    doQuit()
+  }
+  return seriouslyQuit;
+};
+'''
+
+    y+= '''
+/* This function gets run when page loads ("onload").
+   The classes matter for identifying properties that certain buttons
+   or other objects have:
+     btn1   : QC rating buttons
+     td1    : QC comment buttons
+     hr_sec : locations for where to jump for each QC block ID
+*/
 function initializeParams() {
     allBtn1   = document.getElementsByClassName("btn1");   // btn1_vepi, btn1_*
     allTd1    = document.getElementsByClassName("td1");    // td1_vepi,  td1_*
     allhr_sec = document.getElementsByClassName("hr_sec"); // hr_vepi,   hr_*
 
-    topi      = findTopSectionIdx()       // idx of current loc
+    topi      = findTopSectionIdx();      // idx of current loc
     previ     = topi;                     // init "previous" idx
-    setTd1Border(topi, "#ffea00"); //"yellow"); // show location
+    setTd1Border(topi, "#ffea00");        // show location
 }
 '''
 
@@ -1052,21 +1562,91 @@ function initializeParams() {
     # set to read synchronously, which is necessary for the JSON to
     # load fully before use-- slower, but this is a small file
     y+= '''
-function loadJSON(ifile, callback) {   
-  var xobj = new XMLHttpRequest();
-  xobj.overrideMimeType("application/json");
-  xobj.open('GET', ifile, false);  // need 'false' for synchrony!
-  xobj.onreadystatechange = function () {
-    if (xobj.readyState == 4 && xobj.status == "200") { !!!!
-      callback(xobj.responseText);
+/*
+  Read in JSON file.  Importantly, the xobjs.open(...) func NEEDS to
+  have the 'false' set to read synchronously, which is necessary for
+  the JSON to load fully before use---slower, but this is a small file.
+*/
+async function loadJSON(ifile) {
+    let json = await fetch(ifile)
+    .then(response => response.json())
+    return json
+}
+
+async function postJSON(data = {}, quit=false) {
+    let route = ''
+    if (quit){
+      route = 'quit'
+    } else {
+      route = 'save'
     }
-  };
-  xobj.send(null);  
+    let url = origin + '/' + route
+
+    // Default options are marked with *
+    const response = await fetch(url, {
+        
+    /* from: *GET, POST, PUT, DELETE, etc. */
+    method: quit ? 'GET' : 'POST',
+
+    /* from: *default, no-cache, reload, force-cache,
+    only-if-cached */
+    cache: 'no-cache', 
+
+    headers: {
+      'Content-Type': 'application/json'
+    },
+
+    /* from: no-referrer, *no-referrer-when-downgrade, origin,
+    origin-when-cross-origin, same-origin, strict-origin,
+    strict-origin-when-cross-origin, unsafe-url */
+    referrerPolicy: 'no-referrer', 
+
+    /* body data type must match "Content-Type" header */
+    body: quit ? null : JSON.stringify(data) 
+  });
+
+  // parse JSON response into native JavaScript objects
+  qcjson = await response.json()
+  console.log(qcjson)
+  return qcjson; 
+}
+
+/* used to be able to run pre-built scripts in the AP results 
+   directory.  These are fired up when the AV button by an image
+   is clicked, via doRunAV(...).
+*/
+async function postJSON_AV(data = {}) {
+    let url = origin + '/' + 'run_av'
+
+    // Default options are marked with *
+    const response = await fetch(url, {
+        
+    /* from: *GET, POST, PUT, DELETE, etc. */
+    method: 'POST',
+
+    /* from: *default, no-cache, reload, force-cache,
+    only-if-cached */
+    cache: 'no-cache', 
+
+    headers: {
+      'Content-Type': 'application/json'
+    },
+
+    /* from: no-referrer, *no-referrer-when-downgrade, origin,
+    origin-when-cross-origin, same-origin, strict-origin,
+    strict-origin-when-cross-origin, unsafe-url */
+    referrerPolicy: 'no-referrer', 
+
+    /* body data type must match "Content-Type" header */
+    body: JSON.stringify(data) 
+  });
 }
 '''
 
-    # Both the QC element names AND their order need to match
     y+= '''
+/*
+  Both the QC element names AND their order need to match
+*/
 function CheckJsonfileMatchesQcbuttons() {
     var Nele = qcjson.length;
 
@@ -1085,15 +1665,16 @@ function CheckJsonfileMatchesQcbuttons() {
 }
 '''
 
-    # Because order matches (offset by 1), we can just apply directly
-    # with the counting index, based on the allBtn1 list.
     y+= '''
-// This function gets run when page loads ("onload").
+/* This function gets run when page loads ("onload").
+
+   Because order matches (offset by 1), we can just apply directly
+   with the counting index, based on the allBtn1 list.
+*/
 function ApplyJsonfileToQcbuttons() {
     var Nele = qcjson.length;
 
     for( var i=1; i<Nele; i++ ) {
-
         var jj = i - 1;  // offset because of col heading in JSON
         var bid = new String(allBtn1[jj].id);
 
@@ -1102,15 +1683,15 @@ function ApplyJsonfileToQcbuttons() {
         sendCommentToButtonAndForm(qcjson[i][2], bid);
         sendRatingToButton(qcjson[i][1], bid);
     }
-
 }
 '''
 
-    # This function gets run when page loads ("onload").  'ss' is the
-    # JSON rating, and 'bid' is the button ID in AllBtn1.
     y+= '''
+/*    
+   This function gets run when page loads ("onload").  'ss' is the
+   JSON rating, and 'bid' is the button ID in AllBtn1.
+*/
 function sendRatingToButton(ss, bid) {
-
     if ( ss == "good" ) {
        setThisButtonRating(bid, 1);
     } else if ( ss == "bad" ) {
@@ -1126,14 +1707,17 @@ function sendRatingToButton(ss, bid) {
 }
 '''
 
-    # When the JSON is read in, get comments and give any text to both
-    # the btn1 and associated comment form textarea
     y+= '''
+/*
+   When the JSON is read in, get comments and give any text to both
+   the btn1 and associated comment form textarea
+*/
 function sendCommentToButtonAndForm(comm, bid) {
     thisButtonGetsAComment(bid, comm);
 
     var bname = new String(bid); // basename
-    var cid   = 'comm_' + bname.slice(5);  // skip the 'btn1_' part of button ID
+    // skip the 'btn1_' part of button ID
+    var cid   = 'comm_' + bname.slice(5);
 
     // because of how "null" is read in; this just matters in form
     if ( comm == "null" ) {
@@ -1145,24 +1729,32 @@ function sendCommentToButtonAndForm(comm, bid) {
 
     # --------------- scroll location in page stuff -----------------
 
-    # Checks/rechecks whenever change in page location occurs.
     y+= '''
+/*
+  Checks/rechecks whenever change in page location occurs.
+  [PT: Mar 11, 2024] check allhr_sec, for when using '-jump_to' opt in 
+                     open_apqc.py
+*/
 window.addEventListener("scroll", function(event) {
-
+    if (allhr_sec == "") {
+       initializeParams();
+    }
     var newi = findTopSectionIdx();
 
     if ( newi != topi ) {
-        setTd1Border(newi, "#ffea00"); /* "yellow ");*/
-        setTd1Border(topi,  "inherit");    /*  ; //"#FFF", "#444"); */
+        setTd1Border(newi, "#ffea00"); 
+        setTd1Border(topi, "inherit");
         previ = topi;
         topi  = newi;
     }
 }, false);
 '''
 
-   # Just go through (short) list from top, and first one that has pos
-   # coor, is the one at top
     y+= '''
+/*
+  Go through (short) list from top, and first one that has pos
+  coor, is the one at top
+*/
 function findTopSectionIdx() {
     for( var i=0; i<allhr_sec.length; i++ ) {
         var bid = allhr_sec[i].id; 
@@ -1184,17 +1776,25 @@ function setTd1Border(ii, bkgdcol) {
 
     # --------------- QC button: toggle indiv or fill group -------------
     
-    # click on the QC buttons will scroll through the color values
-    ## ctrl+click on the QC buttons will toggle between the comment
-    ## form being open or closed (saving what is in form when closing).
     y+= '''
-function btn1Clicked(event, button) {
-    if (event.ctrlKey) {
+/*
+  A click on the QC buttons will scroll through the color values;
+  ctrl+click on the QC buttons will toggle between the comment
+  form being open or closed (saving what is in form when closing).
+  [PT: July 2, 2023] also recognize meta+click (= command+click on Mac)
+  like a ctrl+click, because of Mac webpage behavior---thanks, DRG.
+*/
+async function btn1Clicked(event, button) {
+  await updateServerStatus();
+  if ( is_served ) {  
+    if (event.metaKey) {
+       btn1ClickedWithCtrl(event, button);
+    }  else if (event.ctrlKey) {
        btn1ClickedWithCtrl(event, button);
     }  else {
        changeColor(button); //alert("The CTRL key was NOT pressed!");
     }
-
+  }
 }
 '''
 
@@ -1220,21 +1820,24 @@ function btn1ClickedWithCtrl(event, button) {
     ## hovering after changing DOM properties.
     ## https://stackoverflow.com/questions/46553405/css-hover-not-working-after-javascript-dom
     y+= '''
+/*
+  Toggle individual button colors/etc.
+*/
 function changeColor(button) {
-  newidx = Number(button.dataset.idx || 0);    // idx=0 on first click
-  newidx = (newidx + 1) % bkgds.length;        // calc new idx, mod Ncol
+  newidx = Number(button.dataset.idx || 0);     // idx=0 on first click
+  newidx = (newidx + 1) % bkgds.length;         // calc new idx, mod Ncol
   button.dataset.idx       = newidx;            // store new idx in ele
   button.style.color       = tcols[newidx];     // set color
   button.style.background  = bkgds[newidx];     // set bkgd
   button.style.borderColor = bkgds[newidx];     // set bkgd
   button.textContent       = valeurs[newidx];
-  checkIfButtonCommented( button );            // set text
+  checkIfButtonCommented( button );             // set text
+  doSaveAllInfo();
 }
 '''
 
     y+= '''
 function checkIfButtonCommented( button ) {
-
     var value = button.textContent;
     var bcomm = button.dataset.txtcomm;
     var VAL_HAS_QUOTE = value.includes(`"`);
@@ -1257,23 +1860,28 @@ function checkIfButtonCommented( button ) {
     # AllBt1n, and the 'idx' which picks out valeurs[idx]
     # etc. properties.
     y+= '''
+/*
+  two arguments: 
+  + the button ID 'bid' from an element of AllBt1n, 
+  + the 'idx' which picks out valeurs[idx] etc. properties.
+*/
 function setThisButtonRating(bid, idx) {{
     // normal values
     if ( idx >= 0 ) {{
-      document.getElementById(bid).textContent      = valeurs[idx];
-      document.getElementById(bid).style.background = bkgds[idx];
+      document.getElementById(bid).textContent       = valeurs[idx];
+      document.getElementById(bid).style.background  = bkgds[idx];
       document.getElementById(bid).style.borderColor = bkgds[idx];
-      document.getElementById(bid).style.color      = tcols[idx];
-      document.getElementById(bid).dataset.idx      = idx;
+      document.getElementById(bid).style.color       = tcols[idx];
+      document.getElementById(bid).dataset.idx       = idx;
       checkIfButtonCommented( document.getElementById(bid) );
     
     }} else {{
-    // the reset, for "null" JSON
-      document.getElementById(bid).textContent      = "{}";
-      document.getElementById(bid).style.background = ''; // reset to CSS
-      document.getElementById(bid).style.borderColor = ''; // reset to CSS
-      document.getElementById(bid).style.color      = ''; // reset to CSS
-      document.getElementById(bid).dataset.idx      = 0; //null;
+      // the reset, for "null" JSON
+      document.getElementById(bid).textContent       = "{}";
+      document.getElementById(bid).style.background  = '';  // reset to CSS
+      document.getElementById(bid).style.borderColor = '';  // reset to CSS
+      document.getElementById(bid).style.color       = '';  // reset to CSS
+      document.getElementById(bid).dataset.idx       = 0;   // null
     }}
 }}
 '''.format ( NULL_BTN1 )
@@ -1289,17 +1897,21 @@ function isBtn1InNullState( bid ) {{
 }}
 '''.format ( NULL_BTN1 )
 
-    # two arguments: the button ID 'bid' from an element of AllBt1n,
-    # and the 'comment' that gets added/overwritten (in the newly
-    # created element, txtcomm).  Basically used to put the form
-    # comments into the button fields, and then later into jsons.
     y+= '''
+/*
+  two arguments: 
+  + the button ID 'bid' from an element of AllBt1n,
+  + the 'comment' that gets added/overwritten (in the newly created
+  element, txtcomm).  
+  Basically used to put the form comments into the button fields, and
+  then later into jsons.
+*/
 function thisButtonGetsAComment(bid, comm) {
     document.getElementById(bid).dataset.txtcomm = comm;
 
     // and don't allow a null state anymore if it has a comment:
     // update it to "other"/"?"
-    if ( comm == "" || comm == "null" ) {
+    if ( comm == "" || comm == "null" || comm === null ) {
     } else {
        if ( isBtn1InNullState(bid) ) {
            setThisButtonRating(bid, 0);
@@ -1312,50 +1924,65 @@ function thisButtonGetsAComment(bid, comm) {
 }
 '''
 
-    # "ALL OTHER" fill button, here to set every btn1-button value to
-    # "+" or "x", depending on input arg 'ii' (index in list)
     y+= '''
-function allYourBaseAreBelongToUs(ii) {{ 
-   for( var i=0; i<allBtn1.length; i++ ) {{ 
-     var bid = allBtn1[i].id; 
-     var ival = document.getElementById(bid).textContent; 
-     if ( ival == "{}" ) {{ 
-       setThisButtonRating(bid, ii); 
-     }}
-   }} 
+/*
+  "ALL OTHER" fill button, here to set every btn1-button value to
+  "+" or "x", depending on input arg 'ii' (index in list)
+*/
+async function allYourBaseAreBelongToUs(ii) {{ 
+  await updateServerStatus();
+  if ( is_served ) {{
+    for( var i=0; i<allBtn1.length; i++ ) {{ 
+      var bid = allBtn1[i].id; 
+      var ival = document.getElementById(bid).textContent; 
+      if ( ival == "{}" ) {{ 
+        setThisButtonRating(bid, ii); 
+      }}
+    }} 
+    doSaveAllInfo();
+  }}
 }}
 '''.format( NULL_BTN1 )
 
-    # "ALL-ALL" fill button: regardless of initial state set every
-    # btn1-button value to "+" or "x", depending on input arg 'ii'
-    # (index in list); that is, this overruns earlier button values
     y+= '''
-function reallyAllYourBaseAreBelongToUs(ii) { 
-   for( var i=0; i<allBtn1.length; i++ ) { 
-     var bid = allBtn1[i].id; 
-     var ival = document.getElementById(bid).textContent; 
-     setThisButtonRating(bid, ii);
-     if ( ii < 0 ) {
-        sendCommentToButtonAndForm("", bid);
-     }
-   } 
+/*
+  "ALL-ALL" fill button: regardless of initial state set every
+  btn1-button value to "+" or "x", depending on input arg 'ii'
+  (index in list); that is, this overruns earlier button values
+*/
+async function reallyAllYourBaseAreBelongToUs(ii) { 
+  await updateServerStatus();
+  if ( is_served ) {
+    for( var i=0; i<allBtn1.length; i++ ) { 
+      var bid = allBtn1[i].id; 
+      var ival = document.getElementById(bid).textContent; 
+      setThisButtonRating(bid, ii);
+      if ( ii < 0 ) {
+         sendCommentToButtonAndForm("", bid);
+      }
+    }
+    doSaveAllInfo();
+  }
 } 
 '''
 
     # ------------------- commentize form ------------------------
     
-    # Get position coordinates of an object, knowing its ID
     y+= '''
+/*
+  Get position coordinates of an object, knowing its ID
+*/
 function getBoundingRect(iid) {
     var bbox = document.getElementById(iid).getBoundingClientRect();
     return bbox;
 }
 '''
 
-    # Use this to place the thing: the height comes from the height of
-    # the menu bar, and the L-R positioning comes from the QC button
-    # itself.
     y+= '''
+/*
+  Use this to place the thing: the height comes from the height of the
+  menu bar, and the L-R positioning comes from the QC button itself.
+*/
 function openCommentForm(cfID, bid) {
     document.getElementById(cfID).style.display = "block";
     var bbox = getBoundingRect(bid);
@@ -1363,40 +1990,68 @@ function openCommentForm(cfID, bid) {
 }
 '''
 
-    # just close the form button when done (mainly for ctrl+click)
     y+= '''
+/*
+  Just close the form button when done (mainly for ctrl+click)
+*/
 function closeCommentForm(cfID) {
     document.getElementById(cfID).style.display = "none";
 }
 '''
 
-    # close *and* remove value (esc key, or clear+close button)
     y+= '''
+/*
+  Close *and* remove value (esc key, or clear+close button)
+*/
 function clearCommentForm(cid, cfID) {
     document.getElementById(cid).value = "";
 
     // get the btn1 ID from comm ID
     var bname = new String(cid); // basename
-    var bid   = "btn1_" + bname.slice(5);  // skip the 'comm_' part of button ID
+    // skip the 'comm_' part of button ID
+    var bid   = "btn1_" + bname.slice(5);
 
     thisButtonGetsAComment(bid, null);
 
     closeCommentForm(cfID);
+    doSaveAllInfo();
 }
+/*
+  ... do the above *and* clear rating
+*/
+function clearCommentFormAndRating(cid, cfID) {
+    document.getElementById(cid).value = "";
+
+    // get the btn1 ID from comm ID
+    var bname = new String(cid); // basename
+    // skip the 'comm_' part of button ID
+    var bid   = "btn1_" + bname.slice(5);
+
+    thisButtonGetsAComment(bid, null);
+    setThisButtonRating(bid, -1);
+
+    closeCommentForm(cfID);
+    doSaveAllInfo();
+}
+
 '''
 
-    # needed for when JSON file is read in, to give values from that
-    # to the text area field (as well as bt1n)
     y+= '''
+/*
+   needed for when JSON file is read in, to give values from that to
+   the text area field (as well as bt1n)
+*/
 function thisFormTextAreaGetsAComment(cid, comm) {
     document.getElementById(cid).value = comm;
 }
 '''
 
-    # "Saving" here means taking the comment (cid) and associating it
-    # with a button (bid), while also closing the comment form (cfID).
-    # (enter key, or keep+close button)
     y+= '''
+/*
+  "Saving" here means taking the comment (cid) and associating it with
+  a button (bid), while also closing the comment form (cfID).  (enter
+  key, or keep+close button)
+*/
 function keepFromCommentForm(cid, cfID) {
 
     // user's text
@@ -1404,35 +2059,43 @@ function keepFromCommentForm(cid, cfID) {
 
     // get the btn1 ID from comm ID
     var bname = new String(cid); // basename
-    var bid   = "btn1_" + bname.slice(5);  // skip the 'comm_' part of button ID
+    // skip the 'comm_' part of button ID
+    var bid   = "btn1_" + bname.slice(5);
 
     thisButtonGetsAComment(bid, commtext);
     closeCommentForm(cfID);
+    doSaveAllInfo();
 }
 '''
 
-    # Same as keepFromCommentForm(...), but used when user is
-    # ctrl+clicking on btn1 to close comment
     y+= '''
+/*
+  Same as keepFromCommentForm(...), but used when user is
+  ctrl+clicking on btn1 to close comment.
+*/
 function keepFromCommentFormViaBtn1(bid, cfID) {
 
     // get the btn1 ID from comm ID
     var bname = new String(bid); // basename
-    var cid   = 'comm_' + bname.slice(5);  // skip the 'comm_' part of button ID
+    // skip the 'comm_' part of button ID
+    var cid   = 'comm_' + bname.slice(5);
 
     // user's text
     var commtext = document.getElementById(cid).value;
 
     thisButtonGetsAComment(bid, commtext);
     closeCommentForm(cfID);
+    doSaveAllInfo();
 }
 '''
 
     # ------------------- page scrolling ------------------------------
 
-    # THIS is now how we move on the page, so that there is no need to
-    # jump into the page, and hence tabbing through buttons is allowed.
     y+= '''
+/*
+  THIS is now how we move on the page, so that there is no need to
+  jump into the page, and hence tabbing through buttons is allowed.
+*/
 function moveToDiv( hr_sec ) {
     var sid = new String(hr_sec.id)
     var rect = getBoundingRect(sid);
@@ -1448,10 +2111,11 @@ function moveToDiv( hr_sec ) {
 
     # ------------------- saving into JSON obj ------------------------
 
-    # submit values by element and col names
     y+= '''
+/*
+  Submit values by element and col names
+*/
 function saveJsonValuesByNames(elename, colname, VAL) {
-
     cc = findCol(colname);
     rr = findQceleRow(elename);
 
@@ -1459,8 +2123,10 @@ function saveJsonValuesByNames(elename, colname, VAL) {
 }
 '''
 
-    # submit values by row and col nums
     y+= '''
+/* 
+  Submit values by row and col nums
+*/
 function saveJsonValuesByNums(rr, cc, VAL) {
     Ncol = qcjson[0].length;
     if ( cc >= Ncol ) {
@@ -1478,8 +2144,8 @@ function saveJsonValuesByNums(rr, cc, VAL) {
 }
 '''
 
-    # find row index of QC element in JSON table
     y+= '''
+// find row index of QC element in JSON table
 function findQceleRow(elename) {
     var Nrow = qcjson.length;
     for( var i=1 ; i<Nrow ; i++ ) {
@@ -1497,8 +2163,8 @@ function findQceleRow(elename) {
 }
 '''
 
-    # find col index of item in JSON table
     y+= '''
+// find col index of item in JSON table
 function findCol(colname) {
     Ncol = qcjson[0].length;
     for( var cc=1 ; cc<Ncol ; cc++ ) {
@@ -1546,24 +2212,83 @@ function findCol(colname) {
 
     # The Saver
     y+= '''
+// the function that saves QC button ratings and comments to the *.json
 function doSaveAllInfo() {
     updateLocalJson();
 
-    var text     = JSON.stringify(qcjson);
-    //var filename = "apqc.json";
-    saveDownloadJsonfile(text, jsonfile);
+    // prepare to output all info needed for server
+    pathParts = window.location.pathname.split('/')
+    qcPath = pathParts.slice(1,-1)
+    // rem is 'remainder', because this is the (full) remainder
+    // of the path to the APQC JSON file from the end of the 
+    // common abs path used to start the server
+    remJsonFilename = qcPath.join('/') + '/' + jsonfile
+    remJson_ssrev   = qcPath.join('/') + '/' + json_ssrev
 
+    dataToPost = {
+        'remJson_ssrev': remJson_ssrev,
+        'remJsonFilename': remJsonFilename,
+        'JsonFileContents': qcjson,
+    }
+
+    postJSON(dataToPost);
 } 
+
+/* Function that is called by AV button to run AFNI script
+   the script should be the name of the script. It basically 
+   provides the script name and the 'remainder' (or 'tail') part
+   of a filepath that is used in open_apqc.py to run the script.
+*/
+async function doRunAV(script) {
+  await updateServerStatus();
+  if ( is_served ) {  
+    // prepare to output all info needed for server
+    pathParts = window.location.pathname.split('/')
+    qcPath = pathParts.slice(1,-1)
+
+    // rem is 'remainder', because this is the (full) remainder
+    // of the path to the APQC JSON file from the end of the 
+    // common abs path used to start the server
+    remJsonFilename = qcPath.join('/') + '/' + jsonfile
+
+    dataToPost = {
+        'remJsonFilename': remJsonFilename,
+        'script': script,
+    }
+
+    postJSON_AV(dataToPost);
+  }
+} 
+
 '''
-    # The Helper
-    y+= '''
-function doShowHelp() {
-    window.open('help.html', '_blank');
 
+    y+= '''
+// The Quitter
+function doQuit() {
+    updateLocalJson();
+}
+
+'''
+
+    y+= '''
+// The Helper
+async function doShowHelp() {
+  let is_ok = await checkPageStatus();
+  if ( is_ok ) {
+    window.open('help.html', '_blank');
+  } else {
+    await updateServerStatus();
+  }
 } 
 
-function doShowMtedana(link) {
+// Link to mtedana QC page, if present
+async function doShowMtedana(link) {
+  let is_ok = await checkPageStatus();
+  if ( is_ok ) {
     window.open(link, '_blank');
+  } else {
+    await updateServerStatus();
+  }
 } 
 
 
@@ -1587,12 +2312,12 @@ function updateLocalJson() {
         var commtext = document.getElementById(bid).dataset.txtcomm;
         saveJsonValuesByNames(qcele, "comment", commtext); 
     }
-    // window.alert("SAVING JSON: " + qcjson);
 }
 '''
 
+    ### This is NO LONGER used, so not including at the moment
     # Step 2 of saving the dataset: write to file
-    y+= '''
+    '''
 function saveDownloadJsonfile(text, filename){
     var a = document.createElement('a');
     a.setAttribute('href', 'data:text/plain;charset=utf-u,'+encodeURIComponent(text));
@@ -1633,37 +2358,43 @@ function translateBtn1TextToJsonRating( tt ) {
 # -------------------------------------------------------------------
 # -------------------------------------------------------------------
 
-def wrap_page_title( xtitle, xstudy, xsubj, 
+def wrap_page_title( xtitle, xsubj, xstudy='',
                      vpad=0, addclass="", blockid='', padmarg=0 ):
 
+
+    txt_study = ''
+    if xstudy :
+        txt_study+= '<pre><h3>task: {study}</h3></pre>'.format( study=xstudy )
+
     # start the first div on the page
-    y = '''<div class="div_pad_class">'''
+    y = '''<!-- start of title block div -->
+<div class="div_pad_class">'''
 
     # the boundary line: location+ID necessary for highlighting page
     # location
-    y+= '''\n\n<hr class="hr_sec" id="hr_{}"/>'''.format(blockid)
-
-    # the title
-    y+= '''<div id="{}" '''.format(blockid)
+    y+= '''
+  <hr class="hr_sec" id="hr_{blockid}"/>
+  <div id="{blockid}" '''.format(blockid=blockid)
 
     # this line offsets the anchor location for the navigation bar to
     # head to: the values here should be equal to the height of the
     # navigation bar (plus the line beneath it).
-    y+= ''' style="padding-top: {0}px; margin-top: -{0}px;">'''.format(padmarg)
+    y+= ''' 
+       style="padding-top: {0}px; margin-top: -{0}px;">'''.format(padmarg)
 
     y+= '''
-    <h1><center> {} <center></h1></div>
+    <h1><center> {title} <center></h1>
+  </div>
 
-<div style="text-align: center;">
+  <!-- top of subj/title info -->
+  <div style="text-align: center;">
     <div style="display: inline-block; text-align: left;">
-    <pre><h2>subj: {}</h2></pre>
-    <pre><h3>task: {}</h3></pre>
-
+      <pre><h2>subj: {subj}</h2></pre>
+      {txt_study}
     </div>
-</div>
-'''.format( xtitle, xsubj, xstudy )
-
-
+  </div> <!-- bot of subj/title info -->
+</div> <!-- end of title block div -->
+'''.format( title=xtitle, subj=xsubj, txt_study=txt_study )
 
     if vpad:
         y = """\n"""+y
@@ -1674,75 +2405,190 @@ def wrap_page_title( xtitle, xstudy, xsubj,
 
 # -------------------------------------------------------------------
 
-def wrap_block_title(x, vpad=0, addclass="", blockid='', padmarg=0):
+def wrap_block_title(x, vpad=0, addclass="", blockid='', padmarg=0,
+                     do_close_prev_div=True, do_jump_btn=True):
 
-    # close the previous section div (at least the title will have one)
-    y = '''</div>\n\n'''
+    y = ''
+    if do_close_prev_div :
+        # close the previous section div (at least the title will have one)
+        y+= '''</div> <!-- end of block div -->
+'''
 
     # start the new section div
-    y+= '''<div class="div_pad_class">'''
+    y+= '''
+<!-- start of div for QC block: '{blockid}' -->
+<div class="div_pad_class">
+'''.format(blockid=blockid)
 
     # the boundary line: location+ID necessary for highlighting page
     # location
-    y+= '''\n\n<hr class="hr_sec" ''' 
+    y+= '''
+<hr class="hr_sec" ''' 
     if blockid :
         y+= ''' id="hr_{}" '''.format(blockid)
     y+= '''/>\n''' 
 
-    # the title
+    # the title.  NB: the spacing in this section *matters*, so don't
+    # worry about trying to make it readable within 80 chars.
     y+= '''<div '''
     if blockid :
         y+= ''' id="{}" '''.format(blockid)
     # this line offsets the anchor location for the navigation bar to
     # head to: the values here should be equal to the height of the
     # navigation bar (plus the line beneath it).
-    y+= ''' style="padding-top: {0}px; margin-top: -{0}px;"'''.format(padmarg)
-    y+= """><pre """
-    y+= ''' {} '''.format(addclass)
-    y+= """><center>["""+blockid+"""]<b> """
-    y+= """<u>"""+x+"""</u>"""
+    y+= ''' style="padding-top: {0}px; margin-top: -{0}px;">
+'''.format(padmarg)
+    y+= '''  <center>'''
+
+    if do_jump_btn :
+        y+= '''<button style="all: unset" class="btn_title active" 
+        ondblclick="jumpAllOpenApqcToID('{blockid}')" 
+        title="jump in all tabs">'''.format(blockid=blockid)
+
+    y+= '''<pre {}>'''.format(addclass)
+    y+= '''[''' + blockid + ''']<b>'''
+    y+= ''' <u>'''+x+'''</u>'''
     y+= ' '*(len(blockid)+3)       # balance blockid text
-    y+= """</b></center></pre></div>"""
+    y+= '''</b></pre>'''
+
+    if do_jump_btn :
+        y+= '''</button>'''
+    y+= '''</center>'''
+
+    y+= '''
+</div>'''
+
     if vpad:
-        y= """\n"""+y
-        y+="""\n"""
+        y = """\n"""+y
+        y+= """\n"""
     return y
 
 # -------------------------------------------------------------------
 
 def wrap_block_text( x, vpad=0, addclass="", dobold=True, itemid='',
-                     padmarg=0 ):
+                     padmarg=0, do_jump_btn=True ):
     addid = ''
     if itemid :
-        addid = ''' id="{}" '''.format( itemid )
+        addid = '''id="{}"'''.format( itemid )
 
-    y = """<div {0}""".format( addid )
-    y+= ''' style="padding-top: {0}px; margin-top: -{0}px;"'''.format(padmarg)
-    y+= ''' {} >'''.format(addclass)
-    if dobold :
-        y+= """<pre><b>"""+x+"""</b></pre></div>"""
-    else:
-        y+= """<pre>"""+x+"""</pre></div>"""
+    y = '''<!-- top of text {addid} -->
+<div {addid} 
+     style="padding-top: {padmarg}px; margin-top: -{padmarg}px;"
+     {addclass}>
+'''.format( addid=addid, padmarg=padmarg, addclass=addclass )
+    y+= '''  '''
+
+    if do_jump_btn :
+        y+= '''<button style="all: unset" class="btn_title active" 
+        ondblclick="jumpAllOpenApqcToID('{itemid}')" 
+        title="jump in all tabs">'''.format(itemid=itemid)
+
+    y+= '''<pre>'''+x+'''</pre>
+</div> <!-- bot of text -->'''
+
+    if do_jump_btn :
+        y+= '''</button>'''
+
     if vpad:
-        y= """\n"""+y
-        y+="""\n"""
+        y = '''\n'''+y
+        y+= '''\n'''
     return y
 
 # -------------------------------------------------------------------
 
-def wrap_img(x, wid=500, vpad=0, addclass=""):
+def wrap_img(x, wid=500, itemid='', vpad=0, addclass="", 
+             add_nvbtn=False,
+             av_file='', ic_file='', ic_args='', gv_file='', gv_args='' ):
     # [PT: Nov 20, 2018] needed this next line to center the text, and
     # needed "display: inline-block" in the img {} def to not have
     # whole line be a link.
+    # [PT: Mar 15, 2023] add in items for NiiVue button
+    # [PT: June 5, 2023] add in items for InstaCorr (IC) button, which only
+    #                    exists in add_nvbtn is True; ic_args are optional
+    #                    seed location coords (3 numbers)
+    # [PT: June 24, 2023] add in items for GraphView (GV) buttons, which are
+    #                    used whenever IC ones are
 
     y = ''
     y+= vpad*'\n'
 
-    y+= '''<div style="text-align: center">
-    <a href="{0}"><img src="{0}" alt="{0}" {1} 
-    style="display: inline-block; text-align: center;"></a> 
-    </div>'''.format( x, addclass)
+    y+= '''<!-- top of image: {itemid} ({img}) -->
+<div style="text-align: center; position: relative;">
+    <a href="{img}">
+    <img src="{img}" 
+         alt="{img}" {addclass} 
+         style="display: inline-block; text-align: center;">
+    </a>'''.format( img=x, addclass=addclass, itemid=itemid )
+    
+    if add_nvbtn :
+        y+= '''
+    <!-- top AFNI-view and NiiVue buttons -->
+    <div class="container_avnv">
+      <td style="white-space:nowrap;" id=td6_NV_{itemid}>
+      <button class="button-generic button-RHS btn6"
+              title="Run NiiVue" 
+            onclick="toggle_niivue(is_served,'nvcan_{itemid}_container')">NV</button>
+      </td>
+      <td style="white-space:nowrap;" id=td6_AV_{itemid}>
+      <button class="button-generic button-RHS btn6"
+              title="Run AFNI-view" 
+              onclick="doRunAV('{av_file}')">AV</button>
+      </td>
+    </div> <!-- bot AV/NV buttons -->'''.format( itemid=itemid, 
+                                                 av_file=av_file )
+
+    if ic_file or gv_file :
+        y+= '''
+    <!-- top InstaCorr and Graph-View buttons (IC/GV) -->
+    <div class="container_icgv">'''
+
+        if ic_file :
+            y+= '''
+      <td style="white-space:nowrap;" id=td6_IC_{itemid}>
+      <button class="button-generic button-RHS btn6b"
+              title="Run InstaCorr" 
+              onclick="doRunAV('{ic_file} {ic_args}')">IC</button>
+      </td>'''.format( itemid=itemid, ic_file=ic_file, ic_args=ic_args )
+
+        if gv_file :
+            y+= '''
+      <td style="white-space:nowrap;" id=td6_GV_{itemid}>
+      <button class="button-generic button-RHS btn6b"
+              title="Run AFNI graph-view" 
+              onclick="doRunAV('{gv_file} {gv_args}')">GV</button>
+      </td>'''.format( itemid=itemid, gv_file=gv_file, gv_args=gv_args )
+
+        y+= '''
+    </div> <!-- bot IC/GV buttons -->'''
+
+    y+= '''
+</div> <!-- bottom of image -->
+'''
     y+= vpad*'\n'
+
+    return y
+
+# -------------------------------------------------------------------
+
+def wrap_nv_html(fname):
+    """Basically just echo the contents of the HTML file in 
+
+"""
+    
+    y = '''
+'''
+
+    if not(os.path.isfile(fname)) :
+        print("+* WARN: cannot open file", fname)
+    else:
+        fff = open(fname, 'r')
+        X = fff.readlines()
+        fff.close()
+
+        y+= ''.join(X)
+
+        y+= '''
+'''
 
     return y
 
@@ -1769,8 +2615,11 @@ def wrap_dat(x, wid=500, vpad=0, addclass="", warn_level = "",
     
     y = ''
     y+= vpad*'\n'
+#    y+= '''<div> 
+#    <pre {} ><left><b>{}{}</b></left></pre>
+#</div>'''.format(addclass, top_line, newx)
     y+= '''<div> 
-    <pre {} ><left><b>{}{}</b></left></pre>
+    <pre {} ><left>{}{}</left></pre>
 </div>'''.format(addclass, top_line, newx)
     y+= vpad*'\n'
 

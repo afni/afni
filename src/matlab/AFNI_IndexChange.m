@@ -11,7 +11,7 @@ function [err, Itrans] = AFNI_IndexChange (Info, Iorig, Direction, DispOrient)
 %   Iorig : anNx3 matrix containing the Ix Iy Iz indices of N points
 %   Direction : A string : either 'A2D' or 'D2A' meaning Afni to Display or vice versa
 %   DispOrient : The orientation string (or vector) for AFNI's display. This parameter is optional
-%    and the defualt is 'RAI", it could be 'LAI' if AFNI's using Left is Left option.
+%    and the default is 'RAI", it could be 'LAI' if AFNI's using Left is Left option.
 %
 %Output Parameters:
 %   err : 0 No Problem
@@ -39,7 +39,7 @@ FuncName = 'AFNI_IndexChange';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 Itrans= [];
 maplocation = [0 0 0];

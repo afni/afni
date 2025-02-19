@@ -814,7 +814,7 @@ static THD_dvecmat tempA_dvm33 ;
                          tempA_dvm33.vv = DMATVEC(tempA_dvm33.mm,(A).vv) ,  \
                          NEGATE_DFVEC3(tempA_dvm33.vv) , tempA_dvm33       )
 
-    /* same for single precision stuctures */
+    /* same for single precision structures */
 
 static THD_vecmat  tempA_vm33 ;
 

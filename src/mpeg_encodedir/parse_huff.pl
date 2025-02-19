@@ -63,7 +63,7 @@
 #    composed of 1, 0, space, and 's'.  Spaces are ignored, and
 #    s corresponds to the sign bit.  In the output of this program,
 #    We'll completely right-shift the data, with a 0 for the sign
-#    bit.  The encoder will make appropriate changes before outputing.
+#    bit.  The encoder will make appropriate changes before outputting.
 
 
 open(HUFFC, "> huff.c") || die "Can't write huff.c: $!\n";

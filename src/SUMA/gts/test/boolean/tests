@@ -29,7 +29,7 @@ cube cube5
 # touching corner
 t29 t30
 
-# cube and sligthly rotated cube
+# cube and slightly rotated cube
 cube cube8
 
 # cubes just touching through one edge (like t29 t30)
@@ -56,7 +56,7 @@ sponge cutter
 # cylinders (by Darie Aron)
 1.gts 2.gts
 
-# horse and sligthly rotated horse
+# horse and slightly rotated horse
 horse5.gts horse6.gts
 
 # simplified horse

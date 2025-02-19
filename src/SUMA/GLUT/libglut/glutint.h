@@ -114,7 +114,7 @@ typedef void (*GLUTentryCB) (int);
 typedef void (*GLUTvisibilityCB) (int);
 typedef void (*GLUTidleCB) (void);
 typedef void (*GLUTtimerCB) (int);
-typedef void (*GLUTmenuStateCB) (int);  /* DEPRICATED. */
+typedef void (*GLUTmenuStateCB) (int);  /* DEPRECATED. */
 typedef void (*GLUTmenuStatusCB) (int, int, int);
 typedef void (*GLUTselectCB) (int);
 typedef void (*GLUTspecialCB) (int, int, int);
@@ -137,7 +137,7 @@ typedef void (*GLUTentryFCB) (int *);
 typedef void (*GLUTvisibilityFCB) (int *);
 typedef void (*GLUTidleFCB) (void);
 typedef void (*GLUTtimerFCB) (int *);
-typedef void (*GLUTmenuStateFCB) (int *);  /* DEPRICATED. */
+typedef void (*GLUTmenuStateFCB) (int *);  /* DEPRECATED. */
 typedef void (*GLUTmenuStatusFCB) (int *, int *, int *);
 typedef void (*GLUTselectFCB) (int *);
 typedef void (*GLUTspecialFCB) (int *, int *, int *);
@@ -189,7 +189,7 @@ struct _GLUTwindow {
   int damaged;          /* is layer damaged by expose? */
 #define GLUT_MAX_MENUS              3
 
-  int menu[GLUT_MAX_MENUS];  /* attatched menu nums */
+  int menu[GLUT_MAX_MENUS];  /* attached menu nums */
   /* Window relationship state. */
   GLUTwindow *parent;   /* parent window */
   GLUTwindow *children; /* list of children */

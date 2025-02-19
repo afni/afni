@@ -18,7 +18,20 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-xdist
+  - cloud_sptheme                    # start of elements for doc building...
+  - pandoc
+  - pbr
+  - pip
+  - "python=3.11"
+  - pandas
+  - scipy
+  - sphinx
+  - sphinx-argparse
+  - sphinxcontrib-fulltoc
+  - sphinx-copybutton
+  - tcsh                             # .. end of elements for doc building
   - pip:
+    - sphinxcontrib-programoutput    # also for doc building
     - darker
     - git+https://github.com/leej3/xvfbwrapper.git@add_support_for_xquartz_and_multi_threading
     - pdbpp

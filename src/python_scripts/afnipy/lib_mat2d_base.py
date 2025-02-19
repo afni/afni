@@ -523,7 +523,7 @@ class file_grid_netcc:
 
         """
 
-        # make sure these are uptodate
+        # make sure these are up-to-date
         self.make_header_GoN()
         self.make_table_mat_GoN()
 
