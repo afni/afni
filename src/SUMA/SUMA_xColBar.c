@@ -2059,102 +2059,17 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
    SUMA_RETURNe;
 }
 
-void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
-                                  XtPointer client_data)
+int SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
+        Boolean notify)
 {
-   // Called when "shw 0" checkbox toggled.
-   static char FuncName[]={"SUMA_cb_ShowZero_tb_toggled"};
-   SUMA_ALL_DO *ado = NULL;
-   SUMA_TABLE_FIELD *TF=NULL;
-   SUMA_X_SurfCont *SurfCont=NULL;
+   static char FuncName[]={"SUMA_cb_SymIrange_tb_toggledForSurfaceObject"};
    SUMA_OVERLAYS *curColPlane=NULL;
-   SUMA_Boolean LocalHead = NOPE;
-   SUMA_SurfaceObject *SO=NULL;
-   static int BoxOutlineThresh;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   char slabel[100];
+   double range[2]; 
+   int loc[2];
 
    SUMA_ENTRY;
-
-   SUMA_LH("Called");
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
-   ado = (SUMA_ALL_DO *)data;
-
-   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
-      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
-   curColPlane = SUMA_ADO_CurColPlane(ado);
-   if (  !curColPlane ||
-         !curColPlane->OptScl )  {
-      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
-   }
-   
-   // Save box threshold outline status
-   SO=(SUMA_SurfaceObject *)ado;
-   if (SO->SurfCont){
-    BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
-   }
-
-   curColPlane->OptScl->MaskZero =
-      !curColPlane->OptScl->MaskZero;
-
-   /* seems the '!' were remnants -                                 */
-   /* revert to original logic, but avoid warnings
-    * (to later evaluate changes) todo: apply ShowMode
-    *   original     : if (!curColPlane->ShowMode < 0)
-    *   fix??        : if (curColPlane->ShowMode < 0)
-    *   temp.as.orig : if ( 0 )
-    *
-    *   comments     : orig/temp would never show
-    *                : we probably want to RETURN if not showing ( < 0 )
-    *                : so '!' was just a remnant typo
-    *                : might be unclear when == 0
-    *                                           19 Feb 2021 [rickr] */
-   if ( 0 ) {
-      /* nothing else to do */
-      SUMA_RETURNe;
-   }
-
-   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
-
-   if (!SUMA_ColorizePlane (curColPlane)) {
-         SUMA_SLP_Err("Failed to colorize plane.\n");
-         SUMA_RETURNe;
-   }
-
-   SUMA_Remixedisplay(ado);
-
-   SUMA_UpdateNodeLblField(ado);
-   
-   // Restore proper threshold contours after "shw 0" toggled
-   if (SO->SurfCont){
-       SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-       restoreProperThresholdCcontours(ado);
-   }
-
-   SUMA_RETURNe;
-}
-
-
-void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
-                                   XtPointer client_data)
-{
-   // Called when "Sym I" checkbox toggled
-   static char FuncName[]={"SUMA_cb_SymIrange_tb_toggled"};
-   SUMA_ALL_DO *ado = NULL;
-   SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL;
-   SUMA_TABLE_FIELD *TF=NULL;
-   SUMA_Boolean LocalHead = NOPE;
-   SUMA_SurfaceObject *SO = NULL;
-
-   SUMA_ENTRY;
-   
-   fprintf(stderr, "+++++++++++++++ %s\n", FuncName);
-
-   SUMA_LH("Called");
-
-   ado = (SUMA_ALL_DO *)data;
-   if  (ado->do_type == SO_type) SO = (SUMA_SurfaceObject *)ado;
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
@@ -2162,14 +2077,158 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    if ( !curColPlane )  {
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
+   if (notify) XmToggleButtonSetState(SurfCont->AbsThresh_tb, state, notify);
 
-   float val = 0.0f, oldVal = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
-   if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &val)))
-        { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
+   if (curColPlane->OptScl->ThrMode == SUMA_LESS_THAN) {
+      curColPlane->OptScl->ThrMode = SUMA_ABS_LESS_THAN;
+   } else if (curColPlane->OptScl->ThrMode == SUMA_ABS_LESS_THAN){
+      curColPlane->OptScl->ThrMode = SUMA_LESS_THAN;
+   } else if (curColPlane->OptScl->ThrMode == SUMA_THRESH_OUTSIDE_RANGE){
+      curColPlane->OptScl->ThrMode = SUMA_THRESH_INSIDE_RANGE;
+   } else if (curColPlane->OptScl->ThrMode == SUMA_THRESH_INSIDE_RANGE){
+      curColPlane->OptScl->ThrMode = SUMA_THRESH_OUTSIDE_RANGE;
+   } else {
+      SUMA_S_Err("Not ready for this situation %d...",
+                 curColPlane->OptScl->ThrMode);
+   }
+   switch (curColPlane->OptScl->ThrMode) {
+      case SUMA_LESS_THAN:
+         sprintf(slabel, "%5s",
+            MV_format_fval(curColPlane->OptScl->ThreshRange[0]));
+         break;
+      case SUMA_ABS_LESS_THAN:
+         /* used to use this:
+         sprintf(slabel, "|%5s|", ....
+         but that does not work in the editable field ... */
+         sprintf(slabel, "%5s",
+               MV_format_fval(fabs(curColPlane->OptScl->ThreshRange[0])));
+         break;
+      case SUMA_THRESH_INSIDE_RANGE:
+         /* This is just a place holder for now */
+         sprintf(slabel, "<%5s..%5s>",
+                       MV_format_fval(curColPlane->OptScl->ThreshRange[0]),
+                       MV_format_fval(curColPlane->OptScl->ThreshRange[1]));
+         break;
+      case SUMA_THRESH_OUTSIDE_RANGE:
+         /* This is just a place holder for now */
+         sprintf(slabel, ">%5s..%5s<",
+                       MV_format_fval(curColPlane->OptScl->ThreshRange[0]),
+                       MV_format_fval(curColPlane->OptScl->ThreshRange[1]));
+         break;
+      case SUMA_NO_THRESH:
+         break;
+      default:
+         /* This is just a place holder for now */
+         sprintf(slabel, "?%5s??%5s?<",
+                       MV_format_fval(curColPlane->OptScl->ThreshRange[0]),
+                       MV_format_fval(curColPlane->OptScl->ThreshRange[1]));
+         break;
+   }
 
-   // curColPlane->SymIrange = !curColPlane->SymIrange;
-   curColPlane->SymIrange = XmToggleButtonGetState (SurfCont->SymIrange_tb);
+   /* SUMA_SET_LABEL(SurfCont->thr_lb,  slabel); */
+   SUMA_INSERT_CELL_STRING(SurfCont->SetThrScaleTable, 0,0,slabel);
+   if (SUMA_GetDsetColRange(curColPlane->dset_link,
+                     curColPlane->OptScl->tind, range, loc)) {
+      SUMA_SetScaleRange(ado, range );
+   }else {
+      SUMA_SLP_Err("Failed to get range");
+      SUMA_RETURNe;
+   }
 
+   if (!curColPlane->OptScl->UseThr) { SUMA_RETURNe; }
+ 
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+ 
+   if (!SUMA_ColorizePlane (curColPlane)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURN(0);}
+   
+   SUMA_Remixedisplay(ado);
+   
+   SUMA_UpdateNodeValField(ado);
+   SUMA_UpdateNodeLblField(ado);
+
+   SUMA_RETURN(1);
+}
+
+void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
+                                   XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_AbsThresh_tb_toggled"};
+   SUMA_ALL_DO *ado = NULL, *otherAdo = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   int AbsThresh;
+
+   SUMA_ENTRY;
+
+   SUMA_LH("Called");
+
+   ado = (SUMA_ALL_DO *)data;
+
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if ( !curColPlane )  {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+   }
+   
+   // Get state of |T| check box
+   AbsThresh = XmToggleButtonGetState (SurfCont->AbsThresh_tb);
+   
+   if (!SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(ado, 
+        AbsThresh, NOPE)){
+    SUMA_S_Warn("Error toggling |T| for current surface"); SUMA_RETURNe;
+   }
+                                                /* nothing else to do */
+   // Process other surface objects
+   int numSurfaceObjects;
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   for (j=0; j<numSurfaceObjects; ++j){
+        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
+
+            if (!otherAdo || !(SurfCont=SUMA_ADO_Cont(otherAdo))) {
+              SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+              
+            if (!SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(otherAdo, 
+                AbsThresh, YUP)){
+                    SUMA_S_Warn("Error toggling |T| for current surface"); 
+                    SUMA_RETURNe;
+            }
+        }
+   }
+
+   SUMA_RETURNe;
+}
+
+int SUMA_cb_SymIrange_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
+        Boolean notify)
+{
+   static char FuncName[]={"SUMA_cb_SymIrange_tb_toggledForSurfaceObject"};
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+
+   SUMA_ENTRY;
+   
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (  !curColPlane ||
+         !curColPlane->OptScl )  {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURN(0);
+   }
+   
+    // Set I Range check box
+    SurfCont=SUMA_ADO_Cont(ado);
+    if (  !SurfCont ||
+         !SurfCont->ShowZero_tb )  {
+      SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
+    }
+    if (notify) XmToggleButtonSetState(SurfCont->SymIrange_tb, state, notify);
+   
    if (curColPlane->SymIrange) {
       /* manual setting of range.
          DO NOT Call SUMA_InitRangeTable because it will
@@ -2185,7 +2244,7 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
       SUMA_INSERT_CELL_VALUE(TF, 1, 2,
                   curColPlane->OptScl->IntRange[1]);
    }
-
+   
    /* seems the '!' were remnants -                                 */
    /* revert to original logic, but avoid warnings
     * (to later evaluate changes) todo: apply ShowMode
@@ -2196,24 +2255,163 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
     *   comments     : orig/temp would never RETURN
     *                : seems we should return if < 0
     *                                           19 Feb 2021 [rickr] */
-   if ( 0 ) { SUMA_RETURNe; }
 
    if (!SUMA_ColorizePlane (curColPlane)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
-         SUMA_RETURNe;
-   }
-
-   if (SO && SO->SurfCont && !(SO->SurfCont->BoxOutlineThresh )){
-    SUMA_Remixedisplay(ado);
-   }
-
+         SUMA_RETURN(0);}
+   
+   SUMA_Remixedisplay(ado);
+   
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
 
-   // Restore threshold boundary if necessary when "Sym I" checkbox toggled
-   if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh ){
-        XtPointer clientData = (XtPointer)ado;
-        SUMA_RestoreThresholdContours(clientData, NOPE);
+   SUMA_RETURN(1);
+}
+
+void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
+                                   XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_SymIrange_tb_toggled"};
+   SUMA_ALL_DO *ado = NULL, *otherAdo=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+
+   SUMA_ENTRY;
+
+   SUMA_LH("Called");
+
+   ado = (SUMA_ALL_DO *)data;
+
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if ( !curColPlane )  {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+   }
+
+   curColPlane->SymIrange = XmToggleButtonGetState (SurfCont->SymIrange_tb);
+   
+   if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
+        curColPlane->SymIrange, NOPE)){
+    SUMA_S_Warn("Error toggling sym I for current surface"); SUMA_RETURNe;
+   }
+
+   // Set sym range for other surfaces
+   int numSurfaceObjects;
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   for (j=0; j<numSurfaceObjects; ++j){
+            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+            if (otherAdo != ado && otherAdo->do_type == SO_type){
+       
+            if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(otherAdo, 
+                curColPlane->SymIrange, YUP)){
+                    SUMA_S_Warn("Error toggling sym I for current surface"); 
+                    SUMA_RETURNe;
+            }
+        }
+   }
+
+   SUMA_RETURNe;
+}
+
+int SUMA_cb_ShowZero_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
+        Boolean notify)
+{
+   static char FuncName[]={"SUMA_cb_ShowZero_tb_toggledForSurfaceObject"};
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+
+   SUMA_ENTRY;
+
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (  !curColPlane ||
+         !curColPlane->OptScl )  {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURN(0);
+   }
+   
+    // Set I Range check box
+    SurfCont=SUMA_ADO_Cont(ado);
+    if (  !SurfCont ||
+         !SurfCont->ShowZero_tb )  {
+      SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
+    }
+    if (notify) XmToggleButtonSetState(SurfCont->ShowZero_tb, state, notify);
+
+   /* seems the '!' were remnants -                                 */
+   /* revert to original logic, but avoid warnings
+    * (to later evaluate changes) todo: apply ShowMode
+    *   original     : if (!curColPlane->ShowMode < 0)
+    *   fix??        : if (curColPlane->ShowMode < 0)
+    *   temp.as.orig : if ( 0 )
+    *
+    *   comments     : orig/temp would never show
+    *                : we probably want to RETURN if not showing ( < 0 )
+    *                : so '!' was just a remnant typo
+    *                : might be unclear when == 0
+    *                                           19 Feb 2021 [rickr] */
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+
+   // Create colorized plane
+   if (!SUMA_ColorizePlane (curColPlane)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURN(0);
+   }
+
+   // REFRESH DISPLAY
+   SUMA_Remixedisplay(ado);
+   SUMA_UpdateNodeLblField(ado);
+   
+   SUMA_RETURN(1);
+}
+
+void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
+                                  XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_ShowZero_tb_toggled"};
+   SUMA_ALL_DO *ado = NULL, *otherAdo = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+
+   SUMA_ENTRY;
+
+   SUMA_LH("Called");
+
+   ado = (SUMA_ALL_DO *)data;
+
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (  !curColPlane ||
+         !curColPlane->OptScl )  {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+   }
+
+   curColPlane->OptScl->MaskZero = !XmToggleButtonGetState (SurfCont->ShowZero_tb);
+   
+   if (!SUMA_cb_ShowZero_tb_toggledForSurfaceObject(ado, 
+        curColPlane->OptScl->MaskZero, NOPE)){
+    SUMA_S_Warn("Error toggling show zero for current surface"); SUMA_RETURNe;
+   }
+   
+   // Set show zero for other surfaces
+   int numSurfaceObjects;
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   for (j=0; j<numSurfaceObjects; ++j){
+        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
+   
+           if (!SUMA_cb_ShowZero_tb_toggledForSurfaceObject(otherAdo, !curColPlane->OptScl->MaskZero, YUP)){
+            SUMA_S_Warn("Error toggling show zero for current surface"); SUMA_RETURNe;
+            SUMA_RETURNe;
+           }
+        }
    }
 
    SUMA_RETURNe;
@@ -2588,112 +2786,6 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
    
-   SUMA_RETURNe;
-}
-
-void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
-                                   XtPointer client_data)
-{
-   // Called when |T| check box toggled
-   static char FuncName[]={"SUMA_cb_AbsThresh_tb_toggled"};
-   SUMA_ALL_DO *ado = NULL;
-   SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL;
-   char slabel[100];
-   double range[2]; int loc[2];
-   SUMA_Boolean LocalHead = NOPE;
-
-   SUMA_ENTRY;
-
-   SUMA_LH("Called");
-
-   ado = (SUMA_ALL_DO *)data;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
-   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
-      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
-   curColPlane = SUMA_ADO_CurColPlane(ado);
-   if ( !curColPlane )  {
-      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
-   }
-
-   if (curColPlane->OptScl->ThrMode == SUMA_LESS_THAN) {
-      curColPlane->OptScl->ThrMode = SUMA_ABS_LESS_THAN;
-   } else if (curColPlane->OptScl->ThrMode == SUMA_ABS_LESS_THAN){
-      curColPlane->OptScl->ThrMode = SUMA_LESS_THAN;
-   } else if (curColPlane->OptScl->ThrMode == SUMA_THRESH_OUTSIDE_RANGE){
-      curColPlane->OptScl->ThrMode = SUMA_THRESH_INSIDE_RANGE;
-   } else if (curColPlane->OptScl->ThrMode == SUMA_THRESH_INSIDE_RANGE){
-      curColPlane->OptScl->ThrMode = SUMA_THRESH_OUTSIDE_RANGE;
-   } else {
-      SUMA_S_Err("Not ready for this situation %d...",
-                 curColPlane->OptScl->ThrMode);
-   }
-   switch (curColPlane->OptScl->ThrMode) {
-      case SUMA_LESS_THAN:
-         sprintf(slabel, "%5s",
-            MV_format_fval(curColPlane->OptScl->ThreshRange[0]));
-         break;
-      case SUMA_ABS_LESS_THAN:
-         /* used to use this:
-         sprintf(slabel, "|%5s|", ....
-         but that does not work in the editable field ... */
-         sprintf(slabel, "%5s",
-               MV_format_fval(fabs(curColPlane->OptScl->ThreshRange[0])));
-         break;
-      case SUMA_THRESH_INSIDE_RANGE:
-         /* This is just a place holder for now */
-         sprintf(slabel, "<%5s..%5s>",
-                       MV_format_fval(curColPlane->OptScl->ThreshRange[0]),
-                       MV_format_fval(curColPlane->OptScl->ThreshRange[1]));
-         break;
-      case SUMA_THRESH_OUTSIDE_RANGE:
-         /* This is just a place holder for now */
-         sprintf(slabel, ">%5s..%5s<",
-                       MV_format_fval(curColPlane->OptScl->ThreshRange[0]),
-                       MV_format_fval(curColPlane->OptScl->ThreshRange[1]));
-         break;
-      case SUMA_NO_THRESH:
-         break;
-      default:
-         /* This is just a place holder for now */
-         sprintf(slabel, "?%5s??%5s?<",
-                       MV_format_fval(curColPlane->OptScl->ThreshRange[0]),
-                       MV_format_fval(curColPlane->OptScl->ThreshRange[1]));
-         break;
-   }
-
-   /* SUMA_SET_LABEL(SurfCont->thr_lb,  slabel); */
-   SUMA_INSERT_CELL_STRING(SurfCont->SetThrScaleTable, 0,0,slabel);
-   if (SUMA_GetDsetColRange(curColPlane->dset_link,
-                     curColPlane->OptScl->tind, range, loc)) {
-      SUMA_SetScaleRange(ado, range );
-   }else {
-      SUMA_SLP_Err("Failed to get range");
-      SUMA_RETURNe;
-   }
-
-   if (!curColPlane->OptScl->UseThr) { SUMA_RETURNe; }
-                                                /* nothing else to do */
-
-   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
-
-   if (!SUMA_ColorizePlane (curColPlane)) {
-         SUMA_SLP_Err("Failed to colorize plane.\n");
-         SUMA_RETURNe;
-   }
-   
-   // Restore proper threshold contours after |T| toggled
-   if (ado->do_type == SO_type){
-       SurfCont->BoxOutlineThresh = XmToggleButtonGetState (SurfCont->BoxOutlineThresh_tb);
-       restoreProperThresholdCcontours(ado);
-   }
-
-   // Refresh display
-   SUMA_Remixedisplay(ado);
-   SUMA_UpdateNodeLblField(ado);
-
    SUMA_RETURNe;
 }
 

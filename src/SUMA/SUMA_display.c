@@ -11853,7 +11853,8 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
                                   SUMA_SURF_CONT_SWITCH_LABEL_LENGTH),
                      XmSTRING_DEFAULT_CHARSET);
 
-        // This call is responsible for the artifactual lengthening of the surface control menu when it happens.
+        // This call is responsible for the artifactual lengthening of the 
+        //  surface control menu when it happens.
          XtVaSetValues( SurfCont->SurfContPage_label,
                         XmNlabelString, string, NULL);
          XmStringFree (string);
