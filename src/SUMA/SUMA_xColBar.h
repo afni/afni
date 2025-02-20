@@ -450,10 +450,16 @@ SUMA_Boolean SUMA_GetNodeValsAtSelection(SUMA_ALL_DO *ado,
 SUMA_Boolean SUMA_UpdateNodeValField(SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_ALL_DO *ado);
+int SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
+        Boolean notify);
 void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, 
                                     XtPointer client_data);
+int SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
+        Boolean notify);
 void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, 
                                     XtPointer client_data);
+int SUMA_cb_ShowZero_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
+        Boolean notify);
 void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data, 
                                     XtPointer client_data);
 void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data, 
