@@ -5855,6 +5855,42 @@ int SUMA_Selectable_ADOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    SUMA_RETURN (k);
 }
 
+int SUMA_ADOs_WithUniqueSurfCont (SUMA_DO *dov, int N_dov, int *dov_IDs)
+{
+   static char FuncName[]={"SUMA_ADOs_WithSurfCont"};
+   SUMA_SurfaceObject *SO=NULL;
+   int i, j, k = 0, surfContPtrCnt=0, unique;
+   int  ;
+   SUMA_NIDO *SDO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_X_SurfCont *SurfConts[SUMA_MAX_DISPLAYABLE_OBJECTS], *SurfCont;
+
+   SUMA_ENTRY;
+   
+   // Fill list of surface contour pointers
+   for (i=0; i< N_dov; ++i) {
+        if (SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO*)SUMAg_DOv[i].OP)) {
+            SurfConts[surfContPtrCnt++] = SurfCont;
+        }
+   }
+
+   for (i=0; i< N_dov; ++i) {
+      if (SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO*)SUMAg_DOv[i].OP)) {
+        unique = 1;
+        for (j=0; j<k; ++j) if (SurfCont==SurfConts[j]){
+             unique = 0;
+             break;
+        } 
+        if (unique){
+            dov_IDs[k] = i;
+            ++k;
+        }
+      }
+   }
+
+   SUMA_RETURN (k);
+}
+
 int SUMA_ADOs_WithSurfCont (SUMA_DO *dov, int N_dov, int *dov_IDs)
 {
    static char FuncName[]={"SUMA_ADOs_WithSurfCont"};

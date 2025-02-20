@@ -2037,8 +2037,13 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
    // Process other surface objects
    int numSurfaceObjects;
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   for (j=0; j<numSurfaceObjects; ++j){
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist)
+   {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        SUMA_RETURNe;
+   }
+   for (j=0; j<N_adolist; ++j){
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
 
@@ -2152,8 +2157,13 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    // Set sym range for other surfaces
    int numSurfaceObjects;
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   for (j=0; j<numSurfaceObjects; ++j){
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist)
+   {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        SUMA_RETURNe;
+   }
+   for (j=0; j<N_adolist; ++j){
             otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
             if (otherAdo != ado && otherAdo->do_type == SO_type){
        
@@ -2253,14 +2263,20 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    // Set show zero for other surfaces
    int numSurfaceObjects;
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   for (j=0; j<numSurfaceObjects; ++j){
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist)
+   {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        SUMA_RETURNe;
+   }
+   for (j=0; j<N_adolist; ++j){
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
    
-           if (!SUMA_cb_ShowZero_tb_toggledForSurfaceObject(otherAdo, !curColPlane->OptScl->MaskZero, YUP)){
-            SUMA_S_Warn("Error toggling show zero for current surface"); SUMA_RETURNe;
-            SUMA_RETURNe;
+           if (!SUMA_cb_ShowZero_tb_toggledForSurfaceObject(otherAdo, 
+                !curColPlane->OptScl->MaskZero, YUP)){
+                    SUMA_S_Warn("Error toggling show zero for current surface"); 
+                    SUMA_RETURNe;
            }
         }
    }
