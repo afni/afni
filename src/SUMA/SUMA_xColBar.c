@@ -1142,10 +1142,10 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
          /* Need a new clusterizing effort*/
          colp->OptScl->RecomputeClust = 1;
       }
-          SUMA_ColorizePlane(colp);
-          SUMA_Remixedisplay(ado);
+      SUMA_ColorizePlane(colp);
+      SUMA_Remixedisplay(ado);
    }
-        
+
    /* call this one since it is not being called as the slider is dragged. */
    if (!(SUMA_set_threshold_label(ado, val, 0.0))) 
       { SUMA_SL_Err("Error setting threshold label"); SUMA_RETURN(0); }
@@ -1244,7 +1244,7 @@ int SUMA_SwitchColPlaneIntensity(
    double range[2];
    int loc[2];
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
 
    fprintf(stderr, "+++++ %s\n", FuncName);
@@ -1253,7 +1253,7 @@ int SUMA_SwitchColPlaneIntensity(
       SUMA_S_Err("Failed in _one");
       SUMA_RETURN(0);
    }
-   
+
    if (ado->do_type == SO_type) {
       SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
       SUMA_OVERLAYS *colpC=NULL;
@@ -1510,6 +1510,9 @@ int SUMA_SwitchColPlaneIntensity_one (
          SUMA_SLP_Err("Failed to colorize plane.\n");
          SUMA_RETURN(0);
    }
+
+
+   SUMA_Remixedisplay(ado);
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
@@ -2049,7 +2052,7 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
    datap = (SUMA_MenuCallBackData *)client_data;
    ado = (SUMA_ALL_DO *)datap->ContID;
    CM = (SUMA_COLOR_MAP *)datap->callback_data;
-   
+
    SUMA_SwitchCmap(ado, CM, 0);
 
    // Restore proper threshold contours when colormap chosen from
@@ -2072,12 +2075,14 @@ int SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
    SUMA_ENTRY;
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
-      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+      SUMA_S_Warn("NULL input"); SUMA_RETURN(0); }
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if ( !curColPlane )  {
-      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURN(0);
    }
    if (notify) XmToggleButtonSetState(SurfCont->AbsThresh_tb, state, notify);
+   
+   fprintf(stderr, "curColPlane->OptScl->ThreshRange[0] = %f\n", curColPlane->OptScl->ThreshRange[0]);
 
    if (curColPlane->OptScl->ThrMode == SUMA_LESS_THAN) {
       curColPlane->OptScl->ThrMode = SUMA_ABS_LESS_THAN;
@@ -2132,10 +2137,10 @@ int SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
       SUMA_SetScaleRange(ado, range );
    }else {
       SUMA_SLP_Err("Failed to get range");
-      SUMA_RETURNe;
+      SUMA_RETURN(0);
    }
 
-   if (!curColPlane->OptScl->UseThr) { SUMA_RETURNe; }
+   if (!curColPlane->OptScl->UseThr) { SUMA_RETURN(0); }
  
    SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
  
@@ -2147,6 +2152,8 @@ int SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
    
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
+   
+   fprintf(stderr, "curColPlane->OptScl->ThreshRange[0] = %f\n", curColPlane->OptScl->ThreshRange[0]);
 
    SUMA_RETURN(1);
 }
@@ -2186,8 +2193,13 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
    // Process other surface objects
    int numSurfaceObjects;
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   for (j=0; j<numSurfaceObjects; ++j){
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist)
+   {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        SUMA_RETURNe;
+   }
+   for (j=0; j<N_adolist; ++j){
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
 
@@ -2301,8 +2313,15 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    // Set sym range for other surfaces
    int numSurfaceObjects;
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   for (j=0; j<numSurfaceObjects; ++j){
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   fprintf(stderr, "N_adolist = %d\n", N_adolist);
+   fprintf(stderr, "numSurfaceObjects = %d\n", numSurfaceObjects);
+   if (numSurfaceObjects != N_adolist)
+   {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        SUMA_RETURNe;
+   }
+   for (j=0; j<N_adolist; ++j){
             otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
             if (otherAdo != ado && otherAdo->do_type == SO_type){
        
@@ -2402,8 +2421,13 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    // Set show zero for other surfaces
    int numSurfaceObjects;
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   for (j=0; j<numSurfaceObjects; ++j){
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist)
+   {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        SUMA_RETURNe;
+   }
+   for (j=0; j<N_adolist; ++j){
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
    
@@ -2510,8 +2534,14 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    }
    
    // Process all surface objects
-   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist); 
-   fprintf(stderr, "+++++ %s: N_adolist = %d\n", FuncName, N_adolist);   
+   int numSurfaceObjects;
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist)
+   {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        SUMA_RETURNe;
+   }
    for (j=0; j<N_adolist; ++j){
         ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if (ado->do_type == SO_type){
@@ -2660,7 +2690,14 @@ void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay)
    BoxOutlineThresh = XmToggleButtonGetState(SurfCont->BoxOutlineThresh_tb); 
    
     // Process all surface objects
-   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);   
+   int numSurfaceObjects;
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist)
+   {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        SUMA_RETURNe;
+   }
    for (j=0; j<N_adolist; ++j){
         ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if (ado->do_type == SO_type){
@@ -2775,7 +2812,14 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    BoxOutlineThresh = XmToggleButtonGetState(w); 
    
    // Process all surface objects
-   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);   
+   int numSurfaceObjects;
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist)
+   {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        SUMA_RETURNe;
+   }
    for (j=0; j<N_adolist; ++j){
         ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if (ado->do_type == SO_type){
@@ -7090,7 +7134,7 @@ void SUMA_cb_SetRangeValue (void *data)
     // Set threshold range values
    static char FuncName[]={"SUMA_cb_SetRangeValue"};
    SUMA_SRV_DATA srvdC, *srvd=NULL;
-   SUMA_ALL_DO *ado=NULL;
+   SUMA_ALL_DO *ado=NULL, *otherAdo=NULL;
    SUMA_OVERLAYS *colp=NULL;
    int n=-1,row=-1,col=-1, an=0;
    float reset = 0.0;
@@ -7099,6 +7143,7 @@ void SUMA_cb_SetRangeValue (void *data)
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
 
    SUMA_ENTRY;
 
@@ -7141,32 +7186,66 @@ void SUMA_cb_SetRangeValue (void *data)
          SUMA_S_Err("Erriosity");
       }
    }
-   
-   // Ensure alpha colormap changes accordingly
-   /*
-   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
-   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist); 
-   for (j=0; j<N_adolist; ++j){
-        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        if (ado->do_type == SO_type){
-            SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-           float val = 0.0f, oldVal = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
-           if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &val)))
-                { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
-           if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &oldVal)))
-                { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
-        }
-    }
-    */
-    fprintf(stderr, "\n\n\n++++++++++++++++++++++++++++++++++Setting threshold to zero\n\n\n");
+
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    float val = 0.0f, oldVal = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
    if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &val)))
         { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
-        /*
-   if (!(SUMA_set_threshold(ado, SO->SurfCont->curColPlane, &oldVal)))
-        { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
-        */
+/*
+   // Process other surface objects
+   int numSurfaceObjects;
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   for (j=0; j<numSurfaceObjects; ++j){
+        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
+
+            if (!otherAdo || !(SurfCont=SUMA_ADO_Cont(otherAdo))) {
+              SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+         
+           SurfCont = SUMA_ADO_Cont(otherAdo);
+           curColPlane = SUMA_ADO_CurColPlane(otherAdo);
+
+           if (!colp) colp = curColPlane;
+
+           TF = SurfCont->SetRangeTable;
+           if (TF->cell_modified<0) SUMA_RETURNe;
+           n = TF->cell_modified;
+           row = n % TF->Ni;
+           col = n / TF->Ni;
+           XtVaGetValues(TF->cells[n], XmNvalue, &cv, NULL);
+           if (LocalHead) {
+              fprintf(SUMA_STDERR,"%s:\nTable cell[%d, %d]=%s\n",
+                                   FuncName, row, col, (char *)cv);
+           }
+
+           an = SUMA_SetRangeValueNew(otherAdo, colp, row, col,
+                                  TF->num_value[n], 0.0,
+                                  0, 1, &reset, TF->num_units);
+           if (an < 0) {
+              if (an == -1 || an == -2) {
+                 SUMA_BEEP;
+                 TF->num_value[n] = reset;
+                 SUMA_TableF_SetString(TF);
+                 if (an == -1) { SUMA_SLP_Err("Lower bound > Upper bound!"); }
+                 else { SUMA_SLP_Err("Upper bound < Lower bound!"); }
+              } else {
+                 SUMA_S_Err("Erriosity");
+              }
+           }
+
+           SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)otherAdo;
+           float val = 0.0f, oldVal = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
+           if (!(SUMA_set_threshold(otherAdo, SO->SurfCont->curColPlane, &val)))
+                { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
+         
+         
+         
+         
+         
+         }
+    }
+*/
    
    SUMA_RETURNe;
 }
