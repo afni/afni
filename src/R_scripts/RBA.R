@@ -1289,8 +1289,9 @@ if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
 
 # for factor
 if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
-   lvl <- levels(lop$dataTable[[lop$EOIc[ii]]])  # levels
-   nl <- nlevels(lop$dataTable[[lop$EOIc[ii]]])  # number of levels: last level is the reference in deviation coding
+   lvl <- levels(as.factor(lop$dataTable[[lop$EOIc[ii]]]))  # levels
+   nl <- nlevels(as.factor(lop$dataTable[[lop$EOIc[ii]]]))  # number of levels: last level is the reference in deviation coding
+   nR <- nlevels(as.factor(lop$dataTable[[lop$ROI]])) # number of ROIs
    ps <- array(0, dim=c(nl, ns, nR)) # posterior samples
    for(jj in 1:(nl-1)) ps[jj,,] <- psROI(aa, bb, paste0(lop$EOIc[ii],jj))
    ps[nl,,] <- psROI(aa, bb, 'Intercept') # Intercept: average effect 
