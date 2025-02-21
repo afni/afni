@@ -473,6 +473,13 @@ deal with more files than you have swap space on your computer (since
 .BRIK files are mmap-ed in readonly mode, so they don't take up swap
 space, which is for saving modified memory pages).
 
+A potential penalty for using mmap is when reading is not linear, such as
+when reading over the time dimension.  There have been reported filesystem
+bottlenecks resulting from too much disk access, leading to processing times
+being 50-300 times as long as without mmap, akin to thrashing when one runs
+out of RAM.  This is highly dependent on FS caching and other configuration
+choices.
+
 The moral of the story: buy more memory, it's cheap. At the time
 I write this line [Aug 1998], I have a PC with 384 MB of RAM, and
 it is great to use with AFNI.

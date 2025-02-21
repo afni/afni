@@ -113,6 +113,11 @@ void EDIT_blur_volume_3d( int   nx, int   ny, int   nz,
    /* with a min contribution of ~0.84, rather than 0.5, yet limiting    */
    /* the output to the same HWHM radius (e.g. FWHM=80mm with sfac=0.589 */
    /* results in a fairly flat blur out to a radius of ~20 mm).          */
+   /*                                                                    */
+   /* By default, sfac = 2.5 leads to FWHM ~= sfac*sigma.  Since FIR     */
+   /* length is a radius, FIR length ends twice as far out as HWHM.      */
+   /* So if e^(-x^2) = 0.5, e^(-(2x)^2) = (e^(-x^2))^4 = 0.5^4 = 0.0625, */
+   /* which is the fractional limit of the FIR.                          */
    if( sfac <= 0.0 ) sfac = 2.5 ;
 
    /***---------- initialize ----------***/
@@ -143,6 +148,15 @@ ENTRY("EDIT_blur_volume_3d") ;
      jj = (int) ceil( sfac * sigmay / dy ) ;
      kk = (int) ceil( sfac * sigmaz / dz ) ;
      if( ii <= FIR_MAX && jj <= FIR_MAX && kk <= FIR_MAX ) all_fir = 1 ;
+
+     { /* print some details, once per execution   [14 Feb 2025 rickr] */
+       static int bcomment = 0;
+       if( ! bcomment ) {
+         INFO_message("edt_blur: sigx %g, dx %g, fwhm %g, sfac %g, firx %d\n",
+                      sigmax, dx, sigmax/0.4246609, sfac, ii);
+         bcomment = 1;
+       }
+     }
 
      /* try to process most data using Finite Impule Response, not with Fourier
         interpolation (leads to ringing problems both inside and outside a mask)
