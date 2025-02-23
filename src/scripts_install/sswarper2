@@ -168,6 +168,7 @@ set version   = "2.8"; set rev_dat   = "Sep 26, 2024"
 
 # some AFNI environment variables
 
+setenv AFNI_ENVIRON_WARNINGS NO             # turn off env var discussions
 setenv AFNI_DONT_LOGFILE  YES
 setenv AFNI_COMPRESSOR    NONE
 
