@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Feb, 2025, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
+   "no masking for max F on surface",
+   NULL
+ } ,
+
  { 24, Feb, 2025, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "avoid potential sub prefix when getting spec files",
    "Thanks to jmj0309 on MB for noting the issue."
