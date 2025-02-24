@@ -4099,9 +4099,11 @@ def okay_as_lr_spec_names(fnames, verb=0):
       if verb: print("** spec file '%s' missing 'lh' or 'rh'" % fnames[0])
       return 0
 
-   # so we have 2 files
+   # so we have 2 files, get the varying part
 
-   hlist = list_minus_glob_form(fnames, tpad=1)  # go after following 'h'
+   # - tpad=1 to include following 'h'
+   # - do not return dir entry prefix (e.g. avoid sub-*)
+   hlist = list_minus_glob_form(fnames, tpad=1, keep_dent_pre=0)
 
    for h in hlist:
       if h != 'rh' and h != 'lh':
