@@ -3930,7 +3930,7 @@ def glob_form_matches_list(slist, ordered=1):
    return 1
    
 
-def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=2, strip=''):
+def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
    """given a list of strings, return the inner part of the list that varies
       (i.e. remove the consistent head and tail elements)
 
@@ -4392,7 +4392,7 @@ def get_ids_from_dsets(dsets, prefix='', suffix='', hpad=0, tpad=0, verb=1):
    # if nothing to come from file prefixes, try the complete path names
    if vals_are_constant(dlist): dlist = dsets
 
-   slist = list_minus_glob_form(dlist, hpad, tpad)
+   slist = list_minus_glob_form(dlist, hpad, tpad, keep_dent_pre=2)
 
    # do some error checking
    for val in slist:

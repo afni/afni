@@ -860,7 +860,8 @@ class MyInterface:
       if rv < 0: return
       if rv > 0:
          if self.verb > 1: print('++ trying to get SID from glob form')
-         slist = UTIL.list_minus_glob_form(self.infiles, strip='dir')
+         slist = UTIL.list_minus_glob_form(self.infiles, strip='dir',
+                                           keep_dent_pre=2)
       else:
          if self.verb > 1: print("++ have SIDs from 'out.ss_review' form")
 
