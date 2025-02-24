@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Feb, 2025, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "avoid potential sub prefix when getting spec files",
+   "Thanks to jmj0309 on MB for noting the issue."
+ } ,
+
  { 11, Feb, 2025, RCR, "3dROIstats", MINOR, TYPE_BUG_FIX,
    "fix nzvoxels and mode - had incorrectly applied float formatting",
    NULL
