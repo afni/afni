@@ -2759,8 +2759,8 @@ class MyInterface:
       if self.uvars.is_not_empty('mask_anat_templ_corr_dset'):
          self.text_basic += g_basic_anat_templ_dice_str
 
-      # maybe use mask for max F-stat
-      if self.uvars.is_not_empty('mask_dset'):
+      # maybe use mask for max F-stat if not on surface
+      if self.uvars.is_not_empty('mask_dset') and self.uvars.is_empty('surf_vol'):
          self.text_basic += g_basic_fstat_mask_str
       else:
          self.text_basic += g_basic_fstat_str
