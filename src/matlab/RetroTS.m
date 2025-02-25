@@ -25,7 +25,7 @@ function [Opt, R, E] = RetroTS(SN)
 %     ResamKernel: Resampling kernel.
 %                 (default is 'linear', see help interp1 for more options)
 %     FIROrder: Order of FIR filter. (default is 40)
-%     Quiet: [1]/0  flag. (defaut is 1) Show talkative progress as the program runs
+%     Quiet: [1]/0  flag. (default is 1) Show talkative progress as the program runs
 %     Demo: [1]/0 flag. (default is 0)
 %     RVT_out: [1]/0 flag for writing RVT regressors
 %     Card_out: [1]/0 flag for writing Card regressors

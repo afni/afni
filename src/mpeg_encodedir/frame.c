@@ -471,7 +471,7 @@ Frame_Exit()
  *
  * Frame_Free
  *
- *	frees the given frame -- allows it to be re-used
+ *	frees the given frame -- allows it to be reused
  *
  * RETURNS:	nothing
  *

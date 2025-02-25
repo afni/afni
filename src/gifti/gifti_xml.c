@@ -1309,12 +1309,15 @@ static int pop_darray(gxml_data * xd)
 /* make space for a new CS structure in the current DataArray */
 static int push_cstm(gxml_data * xd)
 {
+    static int     warn=1;      /* warn once for bad intent */
     giiDataArray * da = xd->gim->darray[xd->gim->numDA-1]; /* current DA */
 
-    if( da->intent != NIFTI_INTENT_POINTSET && xd->verb > 0 )
+    if( da->intent != NIFTI_INTENT_POINTSET && xd->verb > 0 && warn ){
         fprintf(stderr,"** DA[%d] has coordsys with intent %s (should be %s)\n",
                 xd->gim->numDA-1, gifti_intent_to_string(da->intent),
                 gifti_intent_to_string(NIFTI_INTENT_POINTSET));
+        warn = 0;
+    }
 
     if( gifti_add_empty_CS(da) ) return 1;
 

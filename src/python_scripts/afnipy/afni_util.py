@@ -11,9 +11,10 @@
 import sys, os, math, copy
 from afnipy import afni_base as BASE
 from afnipy import lib_textdata as TD
+from afnipy import lib_format_cmd_str as lfcs
 import glob
-import pdb
 import re
+from   datetime   import datetime
 
 # global lists for basis functions
 basis_known_resp_l = ['GAM', 'BLOCK', 'dmBLOCK', 'dmUBLOCK', 'SPMG1',
@@ -30,6 +31,7 @@ g_valid_slice_patterns = [ # synonymous pairs      # z2-types
                            'alt+z', 'altplus',     'alt+z2',    
                            'alt-z', 'altminus',    'alt-z2',    
                          ]
+g_tpattern_irreg = 'irregular'
 
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
@@ -57,14 +59,16 @@ def change_path_basename(orig, prefix='', suffix='', append=0):
     return "%s/%s" % (head, tail)
 
 # write text to a file
-def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
+def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0,
+                       method='rr'):
     """write the given text (tdata) to the given file
           fname   : file name to write (or append) to
           dtata   : text to write
           mode    : optional write mode 'w' or 'a' [default='w']
-          wrap    : optional wrap flag [default=0]
+          wrap    : optional wrap flag
           wrapstr : optional wrap string: if wrap, apply this string
           exe     : whether to make file executable
+          method  : either 'rr' or 'pt'
 
        return 0 on success, 1 on error
     """
@@ -73,7 +77,8 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
         print("** WTTF: missing text or filename")
         return 1
 
-    if wrap: tdata = add_line_wrappers(tdata, wrapstr)
+    if wrap:
+       tdata = add_line_wrappers(tdata, wrapstr, method=method, verb=1)
     
     if fname == 'stdout' or fname == '-':
        fp = sys.stdout
@@ -100,7 +105,7 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
 
     return 0
 
-def wrap_file_text(infile='stdin', outfile='stdout'):
+def wrap_file_text(infile='stdin', outfile='stdout', method='pt'):
    """make a new file with line wrappers                14 Mar 2014
 
       The default parameters makes it easy to process as a stream:
@@ -115,12 +120,17 @@ def wrap_file_text(infile='stdin', outfile='stdout'):
    """
 
    tdata = read_text_file(fname=infile, lines=0, strip=0)
-   if tdata != '': write_text_to_file(outfile, tdata, wrap=1)
+   if tdata != '': write_text_to_file(outfile, tdata, wrap=1, method=method)
    
 
-def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):
+def read_text_file(fname='stdin', lines=1, strip=1, nonl=0, noblank=0, verb=1):
    """return the text text from the given file as either one string
-      or as an array of lines"""
+      or as an array of lines
+
+        strip:   remove all surrounding whitespace from each line
+        nonl:    remove only trailing '\n' characters (useless with strip)
+        noblank: remove all completely blank lines
+   """
 
    if fname == 'stdin' or fname == '-': fp = sys.stdin
    else:
@@ -133,6 +143,7 @@ def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):
    if lines:
       tdata = fp.readlines()
       if strip: tdata = [td.strip() for td in tdata]
+      if nonl:  tdata = [td.replace('\n','') for td in tdata]
       if noblank: tdata = [td for td in tdata if td != '']
    else:
       tdata = fp.read()
@@ -141,6 +152,93 @@ def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):
    fp.close()
 
    return tdata
+
+def read_tsv_file(fname='stdin', strip=0, verb=1):
+   """read a TSV file, and return a 2-D matrix of strings in row-major order
+      (it must be rectangular)
+
+      allow tab separators, else comma, else space
+      if only 1 column, hard to guess
+   """
+
+   # get lines of text, omitting blank ones, and not including newlines
+   tdata = read_text_file(fname, strip=strip, nonl=1, noblank=1, verb=verb)
+   nlines = len(tdata)
+   if verb > 1: print("-- TSV '%s' has %d lines" % (fname, nlines))
+   if nlines == 0:
+      return []
+
+   # test for separators, require rectangular input
+   nt = tdata[0].count('\t')
+   nc = tdata[0].count(',')
+   ns = tdata[0].count(' ')
+
+   # try to find a good separator
+   sep = ''
+
+   # test for tabs first
+   if nt > 0:
+     c = '\t'
+     matches = 1
+     for tline in tdata:
+       nn = tline.count(c)
+       if nn != nt:
+          matches = 0
+          break
+     if matches:
+        # declare a winner
+        sep = c
+
+   # test for commas (change nt and c)
+   if sep == '' and nc > 0:
+     c = ','
+     matches = 1
+     for tline in tdata:
+       nn = tline.count(c)
+       if nn != nc:
+          matches = 0
+          break
+     if matches:
+        # declare a winner
+        sep = c
+
+   # test for spaces (change nt and c)
+   if sep == '' and ns > 0:
+     c = ' '
+     matches = 1
+     for tline in tdata:
+       nn = tline.count(c)
+       if nn != ns:
+          matches = 0
+          break
+     if matches:
+        # declare a winner
+        sep = c
+
+   if verb > 1:
+      print("-- read_tsv_file: have sep '%s'" % sep)
+
+   # if nothing found, assume one column, but each column must be a list
+   if sep == '':
+      table = [[tline] for tline in tdata]
+   # otherwise, partition the table based on sep
+   else:
+      table = [tline.split(sep) for tline in tdata]
+
+   # and make sure it is rectangular
+   if len(table) == 0:
+      return table
+
+   ncols = len(table[0])
+   for rind, row in enumerate(table):
+      if len(row) != ncols:
+         print("** table %s is not rectangular at line %d" % (fname, rind))
+         return []
+
+   if verb > 2:
+      print("-- have %d x %d TSV data from %s" % (len(table), ncols, fname))
+
+   return table
 
 def read_top_lines(fname='stdin', nlines=1, strip=0, verb=1):
    """use read_text_file, but return only the first 'nlines' lines"""
@@ -560,9 +658,112 @@ def write_afni_com_history(fname, length=0, wrap=1):
       if length > 0: limit to that number of entries
    """
    com = BASE.shell_com('hi there')
-   hist = com.shell_history()
+   hist = com.shell_history(nhist=length)
    script = '\n'.join(hist)+'\n'
    write_text_to_file(fname, script, wrap=wrap)
+
+def write_afni_com_log(fname=None, length=0, wrap=1):
+   """write the afni_com log to the given file
+
+      if length > 0: limit to that number of entries
+
+      if no fname is given, simply print the log
+   """
+   com = BASE.shell_com('hi there')
+   log = com.shell_log(nlog=length)
+   
+   # wrapping will occur *here*, if used
+   log2   = proc_log(log, wrap=wrap)
+   script = '\n'.join(log2)+'\n'
+
+   if fname is None :
+      print(script)
+   else:
+      # wrapping will have already occurred, above
+      write_text_to_file(fname, script, wrap=0)
+
+def proc_log(log, wid=78, wrap=1):
+    """Process the log, which is a list of dictionaries (each of cmd,
+status, so and se objects), and prepare it for string output.  The
+output is a list of strings to be concatenated.
+
+    """
+
+    N = len(log)
+    if not(N) :    return ''
+
+    log2 = []
+    for ii in range(N):
+        D = log[ii]
+        topline = not(ii)
+        log2.extend( format_log_dict(D, wid=wid, wrap=wrap,
+                                     topline=topline) )
+    return log2
+
+def format_log_dict(D, wid=78, wrap=1, topline=True):
+    """Each dictionary contains the following keys: cmd, status, so, se.
+Turn these into a list of strings, to be joined when displaying the log.
+
+    """
+
+    L = []
+    if topline :
+        L.append("="*wid)
+
+    # cmd
+    cmd = D['cmd'].strip()
+    if cmd[0] == '#' :
+       # comment dumping, essentially
+       if wrap :
+          cmd = add_line_wrappers(cmd, wrapstr='\\\n#')
+    elif not(len(cmd.split()) > 3 and len(cmd) > 40) :
+       # short commands
+       if wrap :
+          cmd = add_line_wrappers(cmd)
+    else:
+       # long/general commands
+       ok, cmd = lfcs.afni_niceify_cmd_str(cmd)
+    nline = cmd.count('\n') + 1
+    L.append('cmd: ' + str(nline))
+    L.append(cmd)
+    L.append("-"*wid)
+
+    # status
+    L.append('stat: ' + str(D['status']))
+    L.append("-"*wid)
+
+    # so
+    ooo = some_types_to_str(D['so'])
+    if ooo :
+       if wrap :
+          ooo = add_line_wrappers(ooo, wrapstr='\\\n')
+       nline = ooo.count('\n') + 1
+       L.append('so: ' + str(nline))
+       L.append(ooo)
+    else:
+       L.append('so: 0')
+    L.append("-"*wid)
+
+    # se
+    eee = some_types_to_str(D['se'])
+    if eee :
+       if wrap :
+          eee = add_line_wrappers(eee, wrapstr='\\\n')
+       nline = eee.count('\n') + 1
+       L.append('se: ' + str(nline))
+       L.append(eee)
+    else:
+       L.append('se: 0')
+    L.append("="*wid)
+
+    return L
+
+def some_types_to_str(x):
+    """return a string form of a list, str or 'other' type,
+    ... now implementing Reynoldsian Recursion!"""
+    if type(x) == str :     return x
+    elif type(x) == list :  return '\n'.join([some_types_to_str(v) for v in x])
+    else:                   return str(x)
 
 def get_process_depth(pid=-1, prog=None, fast=1):
    """print stack of processes up to init"""
@@ -683,7 +884,8 @@ def get_process_stack_slow(pid=-1, verb=1):
    if rv: return []
 
    stack = [entries] # entries is valid, so init stack
-   while mypid > 1:
+   # now some parents to straight to 0 without 1  [28 Feb 2024]
+   while mypid > 1 and ppid > 0:
       cmd = '%s %s' % (base_cmd, ppid)
       rv, entries = get_cmd_entries(cmd)
       if rv: return []
@@ -1136,7 +1338,7 @@ def find_afni_history_version(av_str):
       return the status and [AFNI_A.B.C, PACKAGE] pair as a list
       return 1, [] on error
    """
-   re_format = '{(AFNI_\d+\.\d+\.\d+):(.*)}'
+   re_format = r'{(AFNI_\d+\.\d+\.\d+):(.*)}'
 
    try:    match = re.search(re_format, av_str)
    except: return 1, []
@@ -1155,7 +1357,7 @@ def parse_afni_version(av_str):
    """given 'AFNI_18.2.10', return status 0 and the int list [18,2,10]
       return 1, [] on error
    """
-   re_format = 'AFNI_(\d+)\.(\d+)\.(\d+)'
+   re_format = r'AFNI_(\d+)\.(\d+)\.(\d+)'
 
    try:    match = re.search(re_format, av_str)
    except: return 1, []
@@ -1180,7 +1382,7 @@ def get_3dinfo(dname, lines=0, verb=0):
    vstr = ' '
    if verb == 1: vstr = ' -verb'
    elif verb > 1: vstr = ' -VERB'
-   command = '3dinfo%s %s' % (vstr, dname)
+   command = '3dinfo%s "%s"' % (vstr, dname)
    status, output = exec_tcsh_command(command, lines=lines, noblank=1)
    if status: return None
 
@@ -1191,7 +1393,7 @@ def get_3dinfo_nt(dname, verb=1):
 
       return 0 on failure (>= 0 on success)
    """
-   command = '3dinfo -nt %s' % dname
+   command = '3dinfo -nt "%s"' % dname
    status, output, se = limited_shell_exec(command, nlines=1)
    if status or len(output) == 0:
       if verb: print('** 3dinfo -nt failure: message is:\n%s%s\n' % (se,output))
@@ -1216,7 +1418,7 @@ def get_3dinfo_val(dname, val, vtype, verb=1):
 
       return vtype(0) on failure
    """
-   command = '3dinfo -%s %s' % (val, dname)
+   command = '3dinfo -%s "%s"' % (val, dname)
    status, output, se = limited_shell_exec(command, nlines=1)
    if status or len(output) == 0:
       if verb:
@@ -1357,10 +1559,14 @@ def find_opt_and_params(text, opt, nopt=0):
 
    return tlist[tind:tind+1+nopt]
 
-def get_truncated_grid_dim(dset, verb=1):
+def get_truncated_grid_dim(dset, scale=1, verb=1):
     """return a new (isotropic) grid dimension based on the current grid
        - given md = min(DELTAS), return md truncated to 3 significant bits
-                    (first integer this affects is 9->8, then 11->10, etc.)
+
+            scale : scale dims by value so we do not miss something like 2.999
+                  - this should likely be just greater than 1.0
+                    (scale to make it independent of values)
+
        - return <= 0 on failure
     """
     err, dims = get_typed_dset_attr_list(dset, 'DELTA', float)
@@ -1375,9 +1581,9 @@ def get_truncated_grid_dim(dset, verb=1):
         print('** failed to get truncated grid dim from %s' % dims)
         return 0
 
-    return truncate_to_N_bits(md, 3, verb=verb, method='r_then_t')
+    return truncate_to_N_bits(md, 3, method='r_then_t', scale=scale, verb=verb)
 
-def truncate_to_N_bits(val, bits, verb=1, method='trunc'):
+def truncate_to_N_bits(val, bits, method='trunc', scale=1, verb=1):
     """truncate the real value to most significant N bits
        allow for any real val and positive integer bits
 
@@ -1391,17 +1597,23 @@ def truncate_to_N_bits(val, bits, verb=1, method='trunc'):
     if val < 0.0: sign, fval = -1, -float(val)
     else:         sign, fval =  1,  float(val)
 
-    if verb > 2: print('T2NB: applying sign=%d, fval=%g' % (sign,fval))
+    if verb > 2:
+       print('T2NB: applying sign=%d, fval=%g, scale=%g' % (sign,fval,scale))
 
     # if r_then_t, start by rounding to 2*bits, then continue to truncate
     meth = method
     if method == 'r_then_t':
-        fval = truncate_to_N_bits(val,2*bits,verb,'round')
+        fval = truncate_to_N_bits(val, 2*bits, method='round', scale=scale,
+                                  verb=verb)
         meth = 'trunc'
 
     if bits <= 0 or type(bits) != type(1):
         print("** truncate to N bits: bad bits = ", bits)
         return 0.0
+
+    # possibly scale to just greater than 1
+    if scale > 0:
+        fval *= scale
 
     # find integer m s.t.  2^(bits-1) <= 2^m * fval < 2^bits
     log2 = math.log(2.0)
@@ -1420,17 +1632,49 @@ def truncate_to_N_bits(val, bits, verb=1, method='trunc'):
 
     return retval
 
-def test_truncation(top=10.0, bot=0.1, bits=3, e=0.0000001):
+def test_truncation(top=10.0, bot=0.1, bits=3, e=0.0001):
     """starting at top, repeatedly truncate to bits bits, and subtract e,
        while result is greater than bot"""
 
     print('-- truncating from %g down to %g with %d bits' % (top,bot,bits))
     val = top
     while val > bot:
-        trunc = truncate_to_N_bits(val,bits)
+        trunc = truncate_to_N_bits(val, bits, scale=1.0001)
         print(val, ' -> ', trunc)
-        val = trunc - e
-    
+        val = min(trunc-e, val-e)
+
+def round_int_or_nsig(x, nsig=None, stringify=False):
+    """if int(x) has at least nsig significant digits, then return
+    round(x); otherwise, round and keep nsig significant digits at a
+    minimum. If stringify=True, return as a string (since this
+    function is often for preparing string output to report).
+
+    if nsig=None, then just return the round(x)
+
+    """
+
+    # simple case: round to int
+    if nsig is None :
+       y = round(x)
+       if stringify :  return "{:d}".format(y)
+       else:           return y
+
+    # some work: in sci notation, what is the exponent?
+    nleft  = int(("{:e}".format(x)).split('e')[-1]) + 1
+    nright = nsig - nleft
+ 
+    # case: number of ints is >= num of sig figs, so round to int
+    if nright <= 0 :
+       y = round(x)
+       if stringify :  return "{:d}".format(y)
+       else:           return y
+
+    # more work: round to appropriate number of decimals
+    y = round(x, nright)
+
+    if stringify : return "{:.{:d}f}".format(y, nright)
+    else:          return y
+
 def get_dset_reps_tr(dset, notr=0, verb=1):
     """given an AFNI dataset, return err, reps, tr
 
@@ -1491,49 +1735,306 @@ def attr_equals_val(object, attr, val):
 
     return rv
 
-
-def slice_pattern_to_timing(pattern, nslices, TR):
-   """return a list of slice_times
-
-        pattern : slice pattern (based on to3d - e.g. alt+z, simult)
-        nslices : number of slices to apply the pattern to
-        TR      : theoretical time given for all slices
-
-      Given nslices and TR, compute an array of slice times equal to
-      slice_index/nslices * TR, where slice_index goes from 0 to nslices-1.
-      Then the question is simply how to order those times, according to the
-      pattern.
-
-      The only special case is really 'simult', in which case:
-         return [0]*nslices .
-
-      return None on error
+def median(vals):
+   """return the median of a list of values
+      (dupe to sort without modifying input)
    """
-   if pattern not in g_valid_slice_patterns:
-      print("** slice_pattern_to_timing, invalid pattern", pattern)
-      return None
+   nvals = len(vals)
 
-   if nslices < 1:
-      return []
+   # trivial cases
+   if nvals == 0:
+      return 0
+   if nvals == 1:
+      return vals[0]
 
-   # if there is no time to partition or slices are simulaneous, return zeros
-   if TR <= 0 or pattern in ['zero', 'simult']:
-      return [0] * nslices
+   svals = sorted(vals)
 
-   # now we should have useful, non-trival pattern
-   # get order then permute a sequential scaling pattern
+   # truncate nvals/2, both as a test and as an index
+   nby2 = int(nvals/2)
 
-   # first get the slice order
-   order = slice_pattern_to_order(pattern, nslices)
-   if order is None:
-      return order
+   # set based on parity of nvals
+   # even: if nvals == 20, want ave(index 9 + index 10)
+   if nby2 == nvals/2:
+      med = (svals[nby2-1]+svals[nby2]) / 2.0
+   # odd:  if nvals == 21, want index 10
+   else:
+      med = float(svals[nby2])
 
-   # then fill timing in the slice order as TR*index/nslices
-   timing = [0]*nslices
-   for ind in range(nslices):
-      timing[order[ind]] = 1.0 * TR * ind / nslices
+   del(svals)
+   return med
 
-   return timing
+def __mean_slice_diff(vals, verb=1):
+   """return what seems to be the slice diff
+      - get unique, sorted sublist, then diffs, then mean
+   """
+   unique = get_unique_sublist(vals)
+   nunique = len(unique)
+   # quick return - when there are no diffs
+   if nunique < 2:
+      return 0.0
+
+   # sort unique sublist
+   unique.sort()
+
+   # get first diffs
+   diffs = [unique[i+1]-unique[i] for i in range(nunique-1)]
+   diffs.sort()
+
+   if verb > 1:
+      print("-- MSD: slice diffs: %s" % gen_float_list_string(diffs))
+
+   # return mean
+   avediff = mean(diffs)
+   del(diffs)
+
+   return avediff
+
+def timing_to_slice_pattern(timing, rdigits=1, verb=1):
+   """given an array of slice times, try to return multiband level and
+      a pattern in g_valid_slice_patterns
+
+      inputs:
+         timing     : <float list> : slice times
+         rdigits    : [1] <int>    : number of digits to round to for required test
+         verb       : [1] <int>    : verbosity level
+
+      method:
+         - detect timing grid (TR = tgrid*nslice_times (unique))
+         - multiband = number of repeated time sets (ntimes/nunique)
+         - round timing/tgrid
+            - test as ints in {0..nunique-1}
+            - detect timing pattern in this int list
+            - check for multiband # of repeats
+
+      return status (int), tpattern (string):
+        status     -1   invalid timing
+                    0   invalid multiband (not even 1)
+                 >= 1   multiband level of timing (usually 1)
+        tpattern        val in g_valid_slice_patterns or 'irregular'
+   """
+
+   # ----------------------------------------------------------------------
+   # prep: get basic data
+   #    slice diff (tgrid), TR, mblevel
+   #    unique sublist (tunique), timing and unique lengths
+
+   # default pattern and bad ones (to avoid random typos)
+   defpat = 'simult'
+
+   # first, estimate the slice diff (prefer mean over median for weak timing)
+   tunique = get_unique_sublist(timing)
+   tgrid = __mean_slice_diff(timing, verb=verb)
+
+   ntimes = len(timing)
+   nunique = len(tunique)
+
+   # be sure there is something to work with
+   if nunique <= 1:
+      return 1, defpat
+
+   # TR is slice time * num_slices_times
+   TR = tgrid*nunique
+
+   # note multiband level (number of repeated times)
+   mblevel = int(round(ntimes/nunique))
+
+   if verb > 2:
+      print("-- TR %g, MB %g, rdig %d, nunique %g, med slice diff: %g" \
+            % (TR, mblevel, rdigits, nunique, tgrid))
+
+   # if TR is not valid, we are out of here
+   if TR < 0.0:
+      return -1, defpat
+   if TR == 0.0:
+      return 1, defpat
+
+   # ----------------------------------------------------------------------
+   # scale timing: divide by tgrid to put in {0, 1, ..., nunique-1}
+   scalar = 1.0/tgrid
+   tscale = [t*scalar for t in timing]
+
+   # get rounded unique sublist and sort, to compare against ints
+   tround = get_unique_sublist([int(round(t,ndigits=rdigits)) for t in tscale])
+   tround.sort()
+
+   # chat
+   if verb > 1:
+      # print("++ t2sp: TR %s, min %s, max %s" % (TR, nzmin, nzmax))
+      if verb > 2: print("-- times : %s" % timing)
+      if verb > 3:
+         print("== (sorted) tscale should be close to ints, tround must be ints")
+         print("-- tscale: %s" % gen_float_list_string(sorted(tscale)))
+         print("-- tround: %s" % gen_float_list_string(tround))
+
+   # ----------------------------------------------------------------------
+   # tests:
+
+   # tround MUST be consecutive ints
+   # (test that they round well, and are consecutive and complete)
+   for ind in range(len(tround)):
+      if ind != tround[ind]:
+         if verb > 1:
+            print("** timing is not multiples of expected %s" % tgrid)
+         return 1, defpat
+
+   # and tround must be the same length as nunique
+   if len(tround) != nunique:
+      if verb > 1:
+         print("** have %d unique times, but %d unique scaled and rounded times" \
+               % (nunique, len(tround)))
+      return 1, defpat
+
+   del(tround) # finished with this
+
+   # does mblevel partition ntimes?
+   if ntimes != mblevel * round(ntimes/mblevel,ndigits=(rdigits+1)):
+      if verb > 1:
+         print("** mblevel %d does not divide ntimes %d" % (mblevel, ntimes))
+      return 1, defpat
+
+   # check tscale timing, warn when not close enough to an int
+   warnvec = []
+   for ind in range(ntimes):
+      tsval = tscale[ind]
+      if round(tsval) != round(tsval, ndigits=2):
+         warnvec.append(ind)
+
+   # actually warn if we found anything
+   badmults = 0
+   if verb > 0 and len(warnvec) > 0:
+      badmults = 1
+      print("** warning: %d/%d slice times are only approx multiples of %g" \
+            % (len(warnvec), ntimes, tgrid))
+      if verb > 1:
+         # make this pretty?
+         ratios = [t/tgrid for t in timing]
+         maxlen, strtimes = floats_to_strings(timing)
+         maxlen, strratio = floats_to_strings(ratios)
+         for ind in range(ntimes):
+            print(" bad time[%2d] : %s  /  %g  =  %s" \
+                  % (ind, strtimes[ind], tgrid, strratio[ind]))
+
+   if verb > 1 or badmults:
+      print("-- timing: max ind,diff = %s" % list(__max_int_diff(tscale)))
+
+   # ----------------------------------------------------------------------
+   # at this point, the sorted list has a regular (multiband?) pattern
+   # so now we :
+   #   - choose a pattern based on the first nunique entries
+   #   - verify that the pattern repeats mblevel times
+
+   # variables of importance: timing, tgrid, nunique, mblevel, tscale
+   #   - convert timing to ints in range(nunique) (first nunique of tscale)
+   #   - and then we can ignore tpattern and tgrid
+   # then new vars of importance: tings, nunique, mblevel
+
+   # round scaled times to be ints in {1..nunique-1} (but full length)
+   tints = [int(round(t)) for t in tscale]
+   ti0   = tints[0:nunique]
+
+   # finally, the real step: try to detect a pattern in the first nunique
+   tpat = _uniq_ints_to_tpattern(ti0)
+   if verb > 1:
+      if tpat == g_tpattern_irreg:
+         print("** failed to detect known slice pattern from order:\n" \
+               "   %s" % ti0)
+      else:
+         print("++ detected pattern %s in first slice set" % tpat)
+
+   # pattern must match for each other mblevel's
+   for bandind in range(1, mblevel):
+      offset = bandind * nunique
+      if not lists_are_same(ti0, tints[offset:offset+nunique]):
+         # failure, not a repeated list
+         return 0, g_tpattern_irreg
+
+   return mblevel, tpat
+
+def floats_to_strings(fvals):
+    """return a corresponding list of floats converted to strings, such that:
+          - they should align (all have same length)
+          - the decimals are all in the same position (might have space pad)
+          - using %g to convert
+
+       return the new lengths (all the same) and the strign list
+    """
+    if len(fvals) == 0:
+       return 0, []
+
+    slist = ["%g" % v for v in fvals]
+    for ind in range(len(slist)):
+       if slist[ind].find('.') < 0:
+          slist[ind] += '.'
+
+    # now get max digits before and after decimal
+    maxb = 0
+    maxa = 0
+    for ind in range(len(slist)):
+       fs = slist[ind]
+
+       # num before and after 
+       numb = fs.find('.')
+       numa = len(fs) - numb - 1
+       if numb > maxb:
+          maxb = numb
+       if numa > maxa:
+          maxa = numa
+
+    # now modify slist by padding with needed spaces
+    for ind in range(len(slist)):
+       fs = slist[ind]
+
+       # same num before and after, but subtracted from maxes
+       numb = fs.find('.')
+       newb = maxb - numb
+       newa = maxa - (len(fs) - numb - 1)
+
+       slist[ind] = ' '*newb + slist[ind] + ' '*newa
+
+    return len(slist[0]), slist
+
+def __max_int_diff(vals):
+    """return the (index and) maximum difference from an int (max is 0.5)
+       if all the same, return 0, diff[0]
+    """
+    nvals = len(vals)
+    if nvals == 0: return 0, 0
+  
+    diff = abs(vals[0]-round(vals[0]))
+    mdiff = diff
+    mind = 0
+    for ind in range(nvals):
+       diff = abs(vals[ind]-round(vals[ind]))
+       if diff > mdiff:
+          mind = ind
+          mdiff = diff
+
+    return mind, mdiff
+
+def _uniq_ints_to_tpattern(tints):
+   """given a list of (unique) ints 0..N-1, try to match a timing pattern
+        since uniq, do not test 'simult'
+        test for : 'seq+z', 'seq-z', 'alt+z', 'alt-z', 'alt+z2', 'alt-z2'
+        - for each test pattern:
+            - compare with slice_pattern_to_timing()
+        if no match, return 'irregular'
+
+      return something in g_valid_slice_patterns or 'irregular'
+   """
+   nslices = len(tints)
+
+   for tpat in ['seq+z', 'seq-z', 'alt+z', 'alt-z', 'alt+z2', 'alt-z2']:
+      # get the expected list, compare and clean up
+      ttimes = slice_pattern_to_timing(tpat, len(tints))
+      rv = lists_are_same(tints, ttimes)
+      del(ttimes)
+
+      # did it match?
+      if rv:
+         return tpat
+
+   # failure
+   return g_tpattern_irreg
 
 def slice_pattern_to_order(pattern, nslices):
    """return a list of slice order indices
@@ -1593,6 +2094,86 @@ def slice_pattern_to_order(pattern, nslices):
 
    return order
 
+def slice_pattern_to_timing(pattern, nslices, TR=0, mblevel=1, verb=1):
+   """given tpattern, nslices, TR, and multiband level,
+         return a list of slice times
+
+      parameters:
+         pattern    : (string) one of g_valid_slice_patterns :
+                                  'zero',  'simult',
+                                  'seq+z', 'seqplus',
+                                  'seq-z', 'seqminus',
+                                  'alt+z', 'altplus',     'alt+z2',    
+                                  'alt-z', 'altminus',    'alt-z2',    
+         nslices    : (int)    total number of output slice times
+         TR         : (float)  total time to acquire all slices
+         mblevel    : (int)    multiband level (number of repeated time sets)
+         verb       : (int)    verbosity level
+
+      special case: if TR == 0 (or unspecified)
+         - do not scale (so output is int list, as if TR==nslices/mblevel)
+
+      method:
+         - verify that nslices is a multiple of mblevel
+         - get result for ntimes = nslices/mblevel
+            - get slice_pattern_to_order()
+              - this is a list of slice indexes in the order acquired
+            - attach the consecutive index list, range(nslices)
+              - i.e, make list of [ [slice_index, acquisition_index] ]
+            - sort() - i.e. by slice_index
+              - so element [0] values will be the sorted list of slices
+            - grab element [1] from each
+              - this is the order the given slice was acquired in
+            - scale all by TR/nslices
+         - duplicate the result across other levels
+
+      return a list of slice times, or an empty list on error
+   """
+   # ---------- sanity checks  ----------
+
+   if nslices <= 0 or TR < 0.0 or mblevel <= 0:
+      return []
+   if nslices == 1:
+      return [0]
+
+   if pattern not in g_valid_slice_patterns:
+      print("** slice_pattern_to_timing, invalid pattern", pattern)
+      return []
+
+   # if there is no time to partition or slices are simulaneous, return zeros
+   if pattern in ['zero', 'simult']:
+      return [0] * nslices
+
+   # ---------- check for multiband  ----------
+
+   ntimes = int(nslices/mblevel)
+   if mblevel > 1:
+      if nslices != ntimes*mblevel:
+         print("** error: nslices (%d) not multiple of mblevel (%d)" \
+               % (nslices, mblevel))
+         return []
+
+   # ---------- get result for ntimes ----------
+
+   # first get the slice order
+   order = slice_pattern_to_order(pattern, ntimes)
+   if order is None:
+      return []
+
+   # attach index and sort
+   slice_ordering = [ [order[ind], ind] for ind in range(ntimes)]
+   slice_ordering.sort()
+
+   # grab each element [1] and scale by TR/ntimes
+   # (if TR == 0, do not scale)
+   if TR == 0:
+      stimes = [so[1]           for so in slice_ordering]
+   else:
+      stimes = [so[1]*TR/ntimes for so in slice_ordering]
+
+   # ---------- duplicate results to mblevel ----------
+
+   return stimes*mblevel
 
 # ----------------------------------------------------------------------
 # begin matrix functions
@@ -1935,7 +2516,7 @@ def make_CENSORTR_string(data, nruns=0, rlens=[], invert=0, asopt=0, verb=1):
       # make a ',' and '..' string listing TR indices
       estr = encode_1D_ints([i for i in range(rlen) if rvals[i]])
 
-      # every ',' separated piece needs to be preceeded by RUN:
+      # every ',' separated piece needs to be preceded by RUN:
       rstr += "%d:%s " % (run+1, estr.replace(',', ',%d:'%(run+1)))
 
    if asopt and rstr != '': rstr = "-CENSORTR %s" % rstr
@@ -1967,7 +2548,7 @@ def check_list_2dmat_and_mask(L, mask=None):
 
     # need a [N, nrow, ncol] here
     if len(Ldims) != 3 :   
-        BASE.EP("Matrix fails test for being a list of 2D matrices;\m"
+        BASE.EP("Matrix fails test for being a list of 2D matrices;\n"
                 "instead of having 3 dims, it has {}".format(len(Ldims)))
 
     if mask != None :
@@ -2311,7 +2892,7 @@ def extract_subbrick_selection(sstring):
         just let '*' refer to anything but another '['
    """
    import re
-   res = re.search('\[\d+[^\[]*]', sstring)
+   res = re.search(r'\[\d+[^\[]*]', sstring)
    if res == None: return ''
    return res.group(0)
 
@@ -2343,7 +2924,7 @@ def replace_n_squeeze(instr, oldstr, newstr):
    """like string.replace(), but remove all spaces around oldstr
       (so probably want some space in newstr)"""
    # while oldstr is found
-   #   find last preceeding keep posn (before oldstr and spaces)
+   #   find last preceding keep posn (before oldstr and spaces)
    #   find next following keep posn (after oldstr and spaces)
    #   set result = result[0:first] + newstr + result[last:]
    newlen = len(newstr)
@@ -2371,7 +2952,7 @@ def list_to_wrapped_command(cname, llist, nindent=10, nextra=3, maxlen=76):
     """return a string that is a 'cname' command, indented by
          nindent, with nextra indentation for option continuation
 
-       This function taks a command and a list of options with parameters,
+       This function takes a command and a list of options with parameters,
        and furnishes a wrapped command, where each option entry is on its
        own line, and any option entry line wraps includes nextra indentation.
 
@@ -2397,9 +2978,13 @@ def list_to_wrapped_command(cname, llist, nindent=10, nextra=3, maxlen=76):
 
 
 # MAIN wrapper: add line wrappers ('\'), and align them all
-def add_line_wrappers(commands, wrapstr='\\\n', maxlen=78, verb=1):
+def add_line_wrappers(commands, wrapstr='\\\n', maxlen=78, verb=1,
+                      method='rr'):
     """wrap long lines with 'wrapstr' (probably '\\\n' or just '\n')
-       if '\\\n', align all wrapstr strings"""
+       if '\\\n', align all wrapstr strings
+
+       method can be rr or pt
+    """
     new_cmd = ''
     posn = 0
 
@@ -2413,17 +2998,20 @@ def add_line_wrappers(commands, wrapstr='\\\n', maxlen=78, verb=1):
             posn = end+1
             continue
 
-        # command needs wrapping
-        new_cmd += insert_wrappers(commands, posn, end, wstring=wrapstr,
-                                   maxlen=maxlen, verb=verb)
+        new_line = insert_wrappers(commands, posn, end, wstring=wrapstr,
+                                   maxlen=maxlen, method=method, verb=verb)
 
+        new_cmd += new_line
+            
         posn = end + 1     # else, update posn and continue
 
     result = new_cmd + commands[posn:]
 
-    # wrappers are in, now align them
-    if wrapstr == '\\\n': return align_wrappers(result)
-    else:                 return result
+    # wrappers are in, now align them (unless method == 'pt')
+    if wrapstr == '\\\n' and method != 'pt':
+       return align_wrappers(result)
+    else:
+       return result
 
 def align_wrappers(command):
     """align all '\\\n' strings to be the largest offset
@@ -2464,11 +3052,13 @@ def align_wrappers(command):
     return new_cmd
 
 def insert_wrappers(command, start=0, end=-1, wstring='\\\n',
-                    maxlen=78, verb=1):
+                    maxlen=78, method='rr', verb=1):
     """insert any '\\' chars for the given command
          - insert between start and end positions
          - apply specified wrap string wstring
-       return a new string, in any case"""
+
+       return a new string, in any case
+    """
 
     global wrap_verb
 
@@ -2484,13 +3074,21 @@ def insert_wrappers(command, start=0, end=-1, wstring='\\\n',
     if verb > 1: print("+d insert wrappers: nfirst=%d, prefix='%s', plen=%d" \
                        % (nfirst, prefix, plen))
 
-    #pdb.set_trace()
+    # if P Taylor special, short circuit the rest
+    if method == 'pt':
+        cline = command[start:end+1]
+        clist = cline.replace('\\\n', ' ').split()
+        cline = ' '.join(clist)
+        short_pre = prefix[:-4]
+        rv, cline = lfcs.afni_niceify_cmd_str(cline, comment_start=short_pre)
+        return cline + '\n'
 
     # rewrite: create new command strings after each wrap     29 May 2009
-    while needs_wrapper(command,maxlen,cur,end):
+    # (only care where new wrappers are needed)
+    while needs_new_wrapper(command,maxlen,cur,end):
         endposn = command.find('\n',cur)
-        if needs_wrapper(command,maxlen,cur,endposn):  # no change on this line
 
+        if needs_new_wrapper(command,maxlen,cur,endposn):
             lposn = find_last_space(command, cur+sskip, endposn, maxlen-sskip)
 
             # if the last space is farther in than next indent, wrap
@@ -2520,7 +3118,7 @@ def get_next_indentation(command,start=0,end=-1):
 
     spaces = num_leading_line_spaces(command,start,1)
     prefix = command[start:start+spaces]+'    ' # grab those spaces, plus 4
-    # now check for an indention prefix
+    # now check for an indentation prefix
     posn = command.find('\\\n', start)
     pn = command.find('\n', start)      # but don't continue past current line
     if posn >= 0 and posn < pn:
@@ -2539,10 +3137,43 @@ def needs_wrapper(command, maxlen=78, start=0, end=-1):
     if end < 0: end_posn = len(command) - 1
     else:       end_posn = end
 
+    # cur_posn should always point to the beginning of a line
     cur_posn = start
     remain = end_posn - cur_posn
+
+    # find end of current line (\\\n does not count)
+    # (newend will point to '\n', if it exists)
+    while cur_posn < end_posn:
+        newend = find_command_end(command, cur_posn, check_cmnt=0)
+        # print("\n== new length %d, command:\n%s\n===\n\n" \
+        #       % (newend-cur_posn,command[cur_posn:newend+1]))
+        # if it is long, we want to wrap
+        if newend - cur_posn >= maxlen:
+           return 1
+        # otherwise, see if we are done
+        if newend >= end_posn:
+           return 0
+
+        # we are not done, adjust cur_posn and continue
+        cur_posn = newend+1
+
+    return 0
+
+def needs_new_wrapper(command, maxlen=78, start=0, end=-1):
+    """does the current string need NEW line wrappers
+       (different to needing ANY)
+
+       a string needs wrapping if there are more than 78 characters between
+       any previous newline, and the next newline, wrap, or end"""
+
+    if end < 0: end_posn = len(command) - 1
+    else:       end_posn = end
+
+    # cur_posn should always point to the beginning of a line
+    cur_posn = start
+    remain = end_posn - cur_posn
+
     while remain > maxlen:
-        
         # find next '\\\n'
         posn = command.find('\\\n', cur_posn)
         if 0 <= posn-cur_posn <= maxlen: # adjust and continue
@@ -2563,22 +3194,23 @@ def needs_wrapper(command, maxlen=78, start=0, end=-1):
 
     return 0        # if we get here, line wrapping is not needed
 
-def find_command_end(command, start=0):
-    """find the next '\n' that is not preceeded by '\\', or return the
+def find_command_end(command, start=0, check_cmnt=1):
+    """find the next '\n' that is not preceded by '\\', or return the
        last valid position (length-1)"""
 
     length = len(command)
-    end = start-1
+    end = start-1   # just to re-init start
     while 1:
         start = end + 1
         end = command.find('\n',start)
 
         if end < 0: return length-1   # not in command
         elif end > start and command[end-1] == '\\':
-            if length > end+1 and command[start] == '#'   \
-                              and command[end+1] != '#':
-                return end      # since comments cannot wrap
-            else: continue 
+            if check_cmnt:
+                if length > end+1 and command[start] == '#'   \
+                                  and command[end+1] != '#':
+                    return end      # since comments cannot wrap
+            continue 
         return end              # found
 
 def num_leading_line_spaces(istr,start,pound=0):
@@ -2600,7 +3232,7 @@ def num_leading_line_spaces(istr,start,pound=0):
 
 def find_next_space(istr,start,skip_prefix=0):
     """find (index of) first space after start that isn't a newline
-       (skip any leading indendation if skip_prefix is set)
+       (skip any leading indentation if skip_prefix is set)
        return -1 if none are found"""
 
     length = len(istr)
@@ -2874,23 +3506,27 @@ def string_to_type_list(sdata, dtype=float):
 
    return dlist
 
-def float_list_string(vals, nchar=7, ndec=3, nspaces=2, mesg='', left=0):
+def float_list_string(vals, mesg='', nchar=7, ndec=3, nspaces=2, left=0, sep=' '):
    """return a string to display the floats:
         vals    : the list of float values
+        mesg    : []  message to precede values
         nchar   : [7] number of characters to display per float
         ndec    : [3] number of decimal places to print to
         nspaces : [2] number of spaces between each float
+
+        left    : [0] whether to left justify values
+        sep     : [ ] separator for converted strings
    """
 
    if left: form = '%-*.*f%*s'
    else:    form = '%*.*f%*s'
 
-   istr = mesg
-   for val in vals: istr += form % (nchar, ndec, val, nspaces, '')
+   svals = [form % (nchar, ndec, val, nspaces, '') for val in vals]
+   istr = mesg + sep.join(svals)
 
    return istr
 
-def gen_float_list_string(vals, mesg='', nchar=0, left=0):
+def gen_float_list_string(vals, mesg='', nchar=0, left=0, sep=' '):
    """mesg is printed first, if nchar>0, it is min char width"""
 
    istr = mesg
@@ -2899,11 +3535,13 @@ def gen_float_list_string(vals, mesg='', nchar=0, left=0):
    else:    form = '%'
 
    if nchar > 0:
-      form += '*g '
-      for val in vals: istr += form % (nchar, val)
+      form += '*g'
+      svals = [form % (nchar, val) for val in vals]
    else:
-      form += 'g '
-      for val in vals: istr += form % val
+      form += 'g'
+      svals = [form % val for val in vals]
+
+   istr = mesg + sep.join(svals)
 
    return istr
 
@@ -2999,7 +3637,7 @@ def get_command_str(args=[], preamble=1, comment=1, quotize=1, wrap=1):
     """return a script generation command
 
         args:           arguments to apply
-        preample:       start with "script generated by..."
+        preamble:       start with "script generated by..."
         comment:        have text '#' commented out
         quotize:        try to quotize any arguments that need it
         wrap:           add line wrappers
@@ -3063,7 +3701,7 @@ def get_rank(data, style='dense', reverse=0, uniq=0):
    dd = [[dd[ind], ind] for ind in range(dlen)]
    dd.sort()
 
-   # invert postion list by repeating above, but with index list as data
+   # invert position list by repeating above, but with index list as data
    # (bring original data along for non-uniq case)
    dd = [[dd[ind][1], ind, dd[ind][0]] for ind in range(dlen)]
 
@@ -3250,7 +3888,7 @@ def glob_form_matches_list(slist, ordered=1):
    return 1
    
 
-def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
+def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=2, strip=''):
    """given a list of strings, return the inner part of the list that varies
       (i.e. remove the consistent head and tail elements)
 
@@ -3259,7 +3897,10 @@ def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
 
       hpad NPAD         : number of characters to pad at prefix
       tpad NPAD         : number of characters to pad at suffix
-      keep_dent_pre Y/N : (flag) keep entire prefix from directory entry
+      keep_dent_pre     : possibly keep directory entry prefix
+                          0 : never
+                          1 : keep entire prefix from directory entry
+                          2 : do it if dir ent starts with sub
       strip             : one of ['', 'dir', 'file', 'ext', 'fext']
 
       If hpad > 0, then pad with that many characters back into the head
@@ -3270,7 +3911,7 @@ def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
              return [ 'subjA1.', 'subjB4.', 'subjA2.' ]
 
       If keep_dent_pre is set, then (if '/' is found) decrement hlen until 
-      that '/'.
+      that '/'.  If '/' is not found, start from the beginning.
 
         e.g. given ['dir/subjA1.txt', 'dir/subjB4.txt', 'dir/subjA2.txt' ]
                 -> return = [ 'A1.', 'B4.', 'A2.' ]
@@ -3333,8 +3974,12 @@ def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
       posn = s.rfind('/', 0, hlen)
       # if found, start at position to right of it
       # otherwise, use entire prefix
-      if posn >= 0: hlen = posn + 1
-      else:         hlen = 0
+      if posn >= 0: htmp = posn + 1
+      else:         htmp = 0
+
+      # apply unless KDP == 2 and not 'subj'
+      if keep_dent_pre != 2 or s[htmp:htmp+3] == 'sub':
+         hlen = htmp
 
    # and return the list of center strings
    if tlen == 0: return [ s[hlen:]      for s in slist ]
@@ -3712,7 +4357,7 @@ def get_ids_from_dsets(dsets, prefix='', suffix='', hpad=0, tpad=0, verb=1):
          return None
 
    if len(slist) != len(dsets): # appropriate number of entries
-      if verb > 0: print('** GIFD: length mis-match getting IDs')
+      if verb > 0: print('** GIFD: length mismatch getting IDs')
       return None
 
    if not vals_are_unique(slist):
@@ -3940,8 +4585,7 @@ def mean(vec, ibot=-1, itop=-1):
     if itop > vlen-1: itop = vlen-1
 
     tot = 0.0
-    for ind in range(ibot,itop+1):
-       tot += vec[ind]
+    tot = loc_sum(vec[ibot:itop+1])
 
     return tot/(itop-ibot+1)
 
@@ -4013,7 +4657,7 @@ def demean(vec, ibot=-1, itop=-1):
        tot += vec[ind]
     mm = tot/(itop-ibot+1)
 
-    # now subract it
+    # now subtract it
     for ind in range(ibot,itop+1):
        vec[ind] -= mm
 
@@ -4155,43 +4799,31 @@ def stdev_ub(data):
               stdev_ub = sqrt( (sumsq - N*mean^2)/(N-1) )
     """
 
-    length = len(data)
-    if length <  2: return 0.0
-
-    meanval = loc_sum(data)/float(length)
-    # compute standard deviation
-    ssq = 0.0
-    for val in data: ssq += val*val
-    val = (ssq - length*meanval*meanval)/(length-1.0)
-
-    # watch for truncation artifact
-    if val < 0.0 : return 0.0
-    return math.sqrt(val)
+    return math.sqrt(variance_ub(data))
 
 def stdev(data):
-    """(biased) standard deviation (divide by len, not len-1)"""
+    """(biased) standard deviation (divide by len, not len-1)
+       standard deviation = sqrt(variance)
+    """
 
-    length = len(data)
-    if length <  2: return 0.0
-
-    meanval = loc_sum(data)/float(length)
-    # compute standard deviation
-    ssq = 0.0
-    for val in data: ssq += val*val
-    val = (ssq - length*meanval*meanval)/length
-
-    # watch for truncation artifact
-    if val < 0.0 : return 0.0
-    return math.sqrt(val)
+    return math.sqrt(variance(data))
 
 def variance_ub(data):
-    """unbiased variance (divide by len-1, not just len)"""
+    """unbiased variance (divide by len-1, not just len)
+
+       variance = mean squared difference from the mean
+                = sum(x-mean)^2 / N
+
+     * unbiased variance
+                = sum(x-mean)^2 / (N-1)
+                = (sumsq - N*mean^2)/(N-1)
+    """
 
     length = len(data)
     if length <  2: return 0.0
 
     meanval = loc_sum(data)/float(length)
-    # compute standard deviation
+    # compute variance
     ssq = 0.0
     for val in data: ssq += val*val
     val = (ssq - length*meanval*meanval)/(length-1.0)
@@ -4201,13 +4833,18 @@ def variance_ub(data):
     return val
 
 def variance(data):
-    """(biased) variance (divide by len, not len-1)"""
+    """(biased) variance (divide by len, not len-1)
+
+       variance = mean squared difference from the mean
+                = sum(x-mean)^2 / N
+                = (sumsq - N*mean^2)/N
+    """
 
     length = len(data)
     if length <  2: return 0.0
 
     meanval = loc_sum(data)/float(length)
-    # compute standard deviation
+    # compute variance
     ssq = 0.0
     for val in data: ssq += val*val
     val = (ssq - length*meanval*meanval)/length
@@ -4579,6 +5216,34 @@ def gaussian_at_fwhm(x, fwhm):
 
    return gaussian_at_hwhm_frac(2.0*x/fwhm)
 
+def convolve(data, kernel, length=0):
+   """simple convolution of data with a kernel
+
+      data      : array of values to convolve with kernel
+      kernel    : convolution kernel (usually shorter)
+      length    : if > 0: defines output length (else len(data))
+
+      return convolved array
+   """
+   klen = len(kernel)
+   if length == 0: rlen = len(data)
+   else:           rlen = length
+
+   if len(data) == 0 or klen == 0:
+      return []
+
+   res = [0]*rlen
+   for dind, dval in enumerate(data):
+      if dind >= rlen:
+         break
+
+      for kind, kval in enumerate(kernel):
+         if dind+kind >= rlen:
+            break
+         res[dind+kind] += dval * kval
+
+   return res
+
 # ----------------------------------------------------------------------
 # random list routines: shuffle, merge, swap, extreme checking
 # ----------------------------------------------------------------------
@@ -4617,7 +5282,6 @@ def shuffle(vlist, start=0, end=-1):
     for index in range(nvals-1):
         rind = int((nvals-index)*random.random())
         swap_2(vlist, start+index, start+index+rind)
-        continue
 
     # return list reference, though usually ignored
     return vlist
@@ -5118,6 +5782,147 @@ def read_afni_seed_file(fname, only_from_space=None):
                     dat.append( seed_obj )
 
     return dat
+
+# [PT: June 5, 2023] For APQC HTML generation, and likely other
+# things.
+def rename_label_safely(x, only_hash=False):
+    """Make safe string labels that can be used in filenames (so no '#')
+and NiiVue object names (so no '-', '+', etc.; sigh).  
+
+For example, 'vstat_V-A_GLT#0_Coef' -> 'vstat_V__A_GLT_0_Coef'.
+
+The mapping rules are in the text of this function.  This function
+might (likely) update over time.
+
+Parameters
+----------
+x : str
+    a name
+only_hash : bool
+    simpler renaming, only replacing the hash symbol (that appears
+    in stat outputs)
+
+Returns
+-------
+y : str
+    a name that has (hopefully) been made safe by various letter 
+    substitutions.
+
+    """
+
+    y = x.replace('#', '_')
+
+    if only_hash :
+        return y
+
+    y = y.replace('-', '__')
+    y = y.replace('+', '___')
+    y = y.replace('.', '____')
+
+    return y
+
+# ----------------------------------------------------------------------
+# [PT: 2024-05-08] when output is a new dir, this is useful to control
+# behavior (happens in APQC generation, and now more)
+
+# control overwriting/backing up any existing dirs
+dict_ow_modes = {
+    'simple_ok'   : 'make new dir, ok if pre-exist (mkdir -p ..)',
+    'shy'         : 'make new dir only if one does not exist',
+    'overwrite'   : 'purge old dir and make new dir in its vacant place',
+    'backup'      : 'move existing dir to dir_<time>; then make new dir',
+}
+
+list_ow_modes = list(dict_ow_modes.keys())
+list_ow_modes.sort()
+str_ow_modes  = ', '.join([x for x in list_ow_modes])
+hstr_ow_modes = '\n'.join(['{:12s} -> {}'.format(x, dict_ow_modes[x]) \
+                           for x in list_ow_modes])
+
+def is_valid_ow_mode(ow_mode):
+    """Simple check about whether input ow_mode is a valid one. Return
+True if valid, and False otherwise."""
+
+    is_valid = ow_mode in list_ow_modes
+
+    return is_valid
+
+def make_new_odir(new_dir, ow_mode='backup', bup_dir=''):
+    """When outputting to a new directory new_dir, just create it if it
+doesn't exist already; but if a dir *does* pre-exist there, then do
+one of the following behaviors, based on keyword values of ow_mode
+(and with consideration of bup_dir value):
+  'simple_ok'   : make new dir, ok if pre-exist (mkdir -p ..)
+  'overwrite'   : remove pre-existing new_dir and create empty one in
+                  its place
+  'backup' and bup_dir != '' : move that pre-existing dir to bup_dir
+  'backup' and bup_dir == '' : move that pre-existing dir to new_dir_<TIMESTAMP>
+  'shy'         : make new_dir only if one does not pre-exist.
+
+Parameters
+----------
+new_dir : str
+    name of new dir to make
+ow_mode : str
+    label for the overwrite mode behavior of replacing or backing up
+    an existing new_dir (or a file with the same name as the dir)
+bup_dir : str
+    possible name for backup directory    
+
+Returns
+----------
+num : int
+    return 0 up on success, or a different int if failure
+
+    """
+
+    do_cap = True
+
+    # valid ow_mode?
+    if not( is_valid_ow_mode(ow_mode) ) :
+        print("** ERROR: illegal ow_mode '{}', not in the list:\n"
+              "   {}".format(ow_mode, str_ow_modes))
+        sys.exit(11)
+
+    # check if the main QC dir exists already
+    DIR_EXISTS = os.path.exists(new_dir)
+
+    if DIR_EXISTS :
+        if ow_mode=='shy' or ow_mode==None :
+            print("** ERROR: output dir exists already: {}\n"
+                  "   Exiting.".format(new_dir))
+            print("   Check out '-ow_mode ..' for overwrite/backup opts.")
+            sys.exit(10)
+        
+        elif ow_mode=='backup' :
+            if not(bup_dir) :
+                # make our own backup dir with timestamp
+                now     = datetime.now()          # current date and time
+                bup_dir = now.strftime( new_dir + "_%Y-%m-%d-%H-%M-%S")
+
+            print("+* WARN: output dir exists already: {}\n"
+                  "   -> backing it up to: {}".format(new_dir, bup_dir))
+            cmd  = '''\\mv {} {}'''.format(new_dir, bup_dir)
+            com  = BASE.shell_com(cmd, capture=do_cap)
+            stat = com.run()
+
+        elif ow_mode=='overwrite' :
+            print("+* WARN: output dir exists already: {}\n"
+                  "   -> overwriting it".format(new_dir))
+            cmd    = '''\\rm -rf {}'''.format(new_dir)
+            com    = BASE.shell_com(cmd, capture=do_cap)
+            stat   = com.run()
+
+        elif ow_mode=='simple_ok' :
+            # just leads to essentially doing 'mkdir -p ..' with the new_dir
+            print("++ OK, output dir exists already: {}".format(new_dir))
+
+    # Now make the new output dir
+    cmd    = '''\\mkdir -p {}'''.format(new_dir)
+    com    = BASE.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+
+    return 0
 
 # ----------------------------------------------------------------------
 

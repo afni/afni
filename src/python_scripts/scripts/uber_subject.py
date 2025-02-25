@@ -152,7 +152,7 @@ def process_options(valid_opts, argv):
    """return status and VarsObject structs of subject and control variables
 
         - given list of valid options, read and process the user options
-        - if terminal option or -no_gui, return 0 (succesful quit)
+        - if terminal option or -no_gui, return 0 (successful quit)
 
       return  1 : on success and terminate
               0 : on success and continue with GUI

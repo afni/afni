@@ -55,7 +55,7 @@ xmat_tool.py    - a tool for evaluating an AFNI X-matrix
                 -show_cormat_warnings -show_cosmat_warnings
 
       3. Load an X-matrix and a 1D time series.  Display beta weights for
-         the best fit to all regressors (specifed as columns 0 to the last).
+         the best fit to all regressors (specified as columns 0 to the last).
 
             xmat_tool.py -no_gui -load_xmat X.xmat.1D -load_1D norm.ts.1D \\
                 -choose_cols '0..$' -show_fit_betas
@@ -99,6 +99,19 @@ xmat_tool.py    - a tool for evaluating an AFNI X-matrix
                 -choose_cols '0..$'                                     \\
                 -show_fit_betas
 
+      7. remove non-zero columns from chosen regressors
+
+         Many condition numbers are reported.  To remove any all-zero
+         regressors from the non-baseline terms, add '-choose_nonzero_cols.
+
+            xmat_tool.py -no_gui -show_conds                        \\
+                -choose_nonzero_cols -load_xmat X.xmat.1D
+                
+         Or treat all regressors as non-baseline (so choose all initially).
+
+            xmat_tool.py -no_gui -show_conds -choose_cols '0..$'    \\
+                -choose_nonzero_cols -load_xmat X.xmat.1D
+                
    --------------------------------------------------------------------------
    basic informational options:
 
@@ -131,6 +144,11 @@ xmat_tool.py    - a tool for evaluating an AFNI X-matrix
               3,7,11          : 3,7,11
               20..$(4)        : 20,24,28,32 (assuming 33 columns, say)
 
+      -choose_nonzero_cols            : select only non-zero columns
+
+          This option will be applied a -choose_cols is applied, excluding any
+          all-zero columns.  This option should be applied after -choose_cols.
+
       -chrono                         : apply options chronologically
 
           By default, the general options are applied before the show
@@ -151,7 +169,7 @@ xmat_tool.py    - a tool for evaluating an AFNI X-matrix
 
           By default, any value in the correlation matrix that is greater
           than or equal to 0.4 generates a warning.  This option can be used
-          to override that minumum cutoff.
+          to override that minimum cutoff.
 
       -cosmat_cutoff CUTOFF           : set min cutoff for cosmat warnings
 
@@ -159,7 +177,7 @@ xmat_tool.py    - a tool for evaluating an AFNI X-matrix
 
           By default, any value in the cosine matrix that is greater than or
           equal to 0.3827 generates a warning.  This option can be used to
-          override that minumum cutoff.
+          override that minimum cutoff.
 
           Note a few cosine values, relative to 90 degrees (PI/2):
 
@@ -480,9 +498,10 @@ g_history = """
    1.1  Dec 08 2008: allow -test_libs to proceed without numpy
    1.2  Jun 12 2009: used some wx IDs
    1.3  May  4 2020: basic updates for python3 (not complete)
+   1.4  Feb 17 2023: add option -choose_nonzero_cols
 """
 
-g_version = "xmat_tool.py version 1.3, May 4, 2020"
+g_version = "xmat_tool.py version 1.4, February 17, 2023"
 
 g_cormat_cut = 0.4
 g_cosmat_cut = 0.3827
@@ -549,7 +568,7 @@ class XmatInterface:
       self.valid_opts.add_opt('-test', 0, [],           \
                          helpstr='run a basic test with known files')
       self.valid_opts.add_opt('-test_libs', 0, [],           \
-                         helpstr='test for existence of neede python libraries')
+                         helpstr='test for existence of needed python libs')
       self.valid_opts.add_opt('-ver', 0, [],            \
                          helpstr='display the current version number')
 
@@ -561,6 +580,8 @@ class XmatInterface:
 
       self.valid_opts.add_opt('-choose_cols', 1, [], 
                          helpstr='choose X-matrix columns')
+      self.valid_opts.add_opt('-choose_nonzero_cols', 0, [], 
+                         helpstr='exclude any all-zero X-matrix columns')
 
       self.valid_opts.add_opt('-show_col_types', 0, [], 
                          helpstr='show the types of columns in the X-matrix')
@@ -695,6 +716,11 @@ class XmatInterface:
                print("** failed to apply '-choose_cols':\n%s" % rstr)
                return 1
 
+         if uopts.find_opt('-choose_nonzero_cols'):
+            if self.choose_nonzero_cols():
+               print("** failed to apply '-choose_nonzero_cols'")
+               return 1
+
       # ------------------------------------------------------------
       # selection and process options:
       #    process sequentially, to make them like a script
@@ -711,6 +737,10 @@ class XmatInterface:
                rstr = self.set_cols_from_string(opt.parlist[0])
                if rstr:
                   print("** failed to apply '-choose_cols':\n%s" % rstr)
+                  return 1
+            elif opt.name == '-choose_nonzero_cols':
+               if self.choose_nonzero_cols():
+                  print("** failed to apply '-choose_nonzero_cols'")
                   return 1
 
             # general options
@@ -798,6 +828,38 @@ class XmatInterface:
 
       self.col_list = clist
 
+      return None       # be explicit
+
+   def choose_nonzero_cols(self):
+      """exclude all-zero columns from col_list
+         return None on success"""
+
+      if not self.matX: return "please load an X matrix, first"
+
+      ncols = self.matX.ncols
+      if len(self.col_list) == 0:
+         col_list = list(range(self.ncols))
+      else:
+         col_list = self.col_list
+
+      # mat.mat is in time-major order, so want transpose
+      czero = []
+      xtr = self.matX.mat.copy().transpose()
+      for col in self.col_list:
+         if UTIL.vals_are_constant(xtr[col], cval=0):
+            czero.append(col)
+      del(xtr)
+
+      # update col_list if any all-zero columns were found
+      if len(czero) > 0:
+         cl = [c for c in self.col_list if c not in czero]
+         self.col_list = cl
+         col_list = cl # update for verb
+
+      if self.verb > 1:
+         print("++ choose non-zero columns: exclude %d, keep %d" \
+               % (len(czero), len(col_list)))
+         
       return None       # be explicit
 
    def fit_xmat_to_1D(self, cols=[]):
@@ -949,7 +1011,7 @@ class XmatInterface:
       return 0, mstr
 
    def make_cormat_warnings_string(self):
-      """make a string for any entires at or above cutoffs:
+      """make a string for any entries at or above cutoffs:
             cut0=1.0, cut1=(1.0+cormat_cut)/2.0, cut2=cormat_cut
 
             cut0, cut1, cut2 are cutoff levels (cut0=highest)
@@ -1028,7 +1090,7 @@ class XmatInterface:
       return 0, mstr
 
    def make_cosmat_warnings_string(self):
-      """make a string for any entires at or above self.cosmat_cut
+      """make a string for any entries at or above self.cosmat_cut
          if self.cosmat_motion is set, check motion against mot/base
 
          note that cos(.50 *PI/2) = .707

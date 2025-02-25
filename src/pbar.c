@@ -372,6 +372,9 @@ STATUS("init pval_save") ;
 #ifdef plasma_num
    PBAR_define_bigmap_float( plasma_num , plasma_data , plasma_name  ) ;
 #endif
+#ifdef cet_l17_num
+   PBAR_define_bigmap_float( cet_l17_num, cet_l17_data, cet_l17_name ) ;
+#endif
 #ifdef googleturbo_num
    PBAR_define_bigmap_float( googleturbo_num , googleturbo_data , googleturbo_name  ) ;
 #endif
@@ -469,7 +472,7 @@ void PBAR_fill_bigmap( int neq, float *val, rgbyte *col, rgbyte *map, int npan )
 
 ENTRY("PBAR_fill_bigmap") ;
 
-   /* bubble sort val,col pairs so largest is firstest */
+   /* bubble sort val,col pairs so largest is first */
 
    do{
     for( jj=ii=0 ; ii < neq-1 ; ii++ ){
@@ -1719,7 +1722,7 @@ STATUS("reset pval_save") ;
 }
 
 /*-------------------------------------------------------------------------
-  user want to programatically alter the pbar:
+  user want to programmatically alter the pbar:
     number of panes, and/or new array of values
 ---------------------------------------------------------------------------*/
 
@@ -1768,7 +1771,7 @@ STATUS("setup done") ;
    /*-- get new value array --*/
 
    if( new_pval == NULL ){
-STATUS("re-use pval_save") ;
+STATUS("reuse pval_save") ;
      for( i=0 ; i <= npane ; i++ ) pval[i] = pbar->pval_save[npane][i][jm] ;
    } else {
 STATUS("use new_pval") ;

@@ -227,7 +227,7 @@ int zz_uncompress_some( int nsrc, char *src, int ndest, char *dest )
      strm.next_in  = src ;
      ret = inflateInit( &strm ) ;
      if( ret != Z_OK ){
-       ERROR_message("zz_uncompress_some: can't initalize inflation!") ;
+       ERROR_message("zz_uncompress_some: can't initialize inflation!") ;
        return -1 ;
      }
      busy = 1 ;

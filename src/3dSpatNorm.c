@@ -230,7 +230,7 @@ int main( int argc , char *argv[] )
    }
    
    if (OrigSpace) {
-      if( verb ) fprintf(stderr,"++3dSpatNorm: Output in Orignal space\n") ;
+      if( verb ) fprintf(stderr,"++3dSpatNorm: Output in Original space\n") ;
       mri_free( imout ) ;
       imout = imout_orig; 
       imout->xo = originRAIfv.xyz[0]; 

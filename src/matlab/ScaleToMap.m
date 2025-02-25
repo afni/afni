@@ -4,7 +4,7 @@ function [err,ITout,ColMapout] = ScaleToMap (ITvect,ColMap,Opt)
 %
 %Purpose:
 %   This function scales a matrix (or vector) to make it fit a
-%   colormap. It was originally deisgned to represent functional
+%   colormap. It was originally designed to represent functional
 %   data onto 3D and 2D meshes, but it works for a lot of other apps.
 %
 %
@@ -91,7 +91,7 @@ function [err,ITout,ColMapout] = ScaleToMap (ITvect,ColMap,Opt)
 %Define the function name for easy referencing
 FuncName = 'ScaleToMap';
 
-%initailize return variables
+%initialize return variables
 err = 1;
 ITout = [];
 
@@ -103,7 +103,7 @@ if (nargin == 2),
 end
 
 if (size(ColMap,2) ~= 3),
-	err = ErrEval(FuncName,'Err_Color Map  must have a Nx3 dimention.');	return;
+	err = ErrEval(FuncName,'Err_Color Map  must have a Nx3 dimension.');	return;
 end
 
 tmp = find(ColMap < 0 | ColMap >1);
@@ -123,7 +123,7 @@ elseif (~isfield(Opt,'MaskColor') | isempty(Opt.MaskColor)),
 end
 
 if (size(Opt.MaskColor,2) ~= 3),
-	err = ErrEval(FuncName,'Err_Opt.MaskColor  must have a 1x3 dimention.');	return;
+	err = ErrEval(FuncName,'Err_Opt.MaskColor  must have a 1x3 dimension.');	return;
 end
 
 if (~isfield(Opt,'Format') | isempty(Opt.Format)),

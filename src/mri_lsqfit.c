@@ -149,7 +149,7 @@ ENTRY("mri_lsqfit") ;
  error.  The array is allocated by malloc and so should be freed
  when the caller is finished with it.
 
- Input and output vectors are floats.  Internal calculuations
+ Input and output vectors are floats.  Internal calculations
  are done with doubles.
 ------------------------------------------------------------------*/
 
@@ -276,7 +276,7 @@ float * lsqfit( int veclen ,
    to delayed_lsqfit.  If wt != NULL, then ref[ii][jj] is
    scaled by wt[jj] as well.
 
-   If NULL is returned, an error occured.
+   If NULL is returned, an error occurred.
 ------------------------------------------------------------------*/
 
 double * startup_lsqfit( int veclen ,

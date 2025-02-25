@@ -169,7 +169,7 @@ void display_help_menu()
     "%12s       Quadrant correlation coefficient                   \n"
     "                                                                       \n"
     "            Note:  Multiple '-out' commands may be used.               \n"
-    "            Note:  If a parameter name contains imbedded spaces, the   \n"
+    "            Note:  If a parameter name contains embedded spaces, the   \n"
     "                   entire parameter name must be enclosed by quotes,   \n"
     "                   e.g.,  -out '%8s'                                   \n"
     "                                                                       \n"
@@ -1604,7 +1604,7 @@ void output_results
   int num_idealts;           /* number of ideal time series */
   int ib;                   /* sub-brick index */
   int is;                   /* ideal index */
-  int ts_length;            /* length of impulse reponse function */
+  int ts_length;            /* length of impulse response function */
   int N;                    /* number of usable data points */
 
 

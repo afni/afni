@@ -42,7 +42,7 @@ FuncName = 'NewCs';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 cs.err = 1;
 cs.c = '';
 cs.v = '';
@@ -66,7 +66,7 @@ else
 end
 
 if (length(win) ~= 1 | win < 'A' | win > 'J'),
-   fprintf(2,'Bad window specifer %s\n', win);
+   fprintf(2,'Bad window specifier %s\n', win);
    return;
 end
 

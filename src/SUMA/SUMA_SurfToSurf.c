@@ -31,7 +31,7 @@ void usage_SurfToSurf (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 " If such a triangle t is found, the nodes (of S2) forming it are \n"
 " considered to be the neighbors of nj.\n" 
 " Values (arbitrary data, or coordinates) at these neighboring nodes\n"
-" are then transfered to nj using barycentric interpolation or \n"
+" are then transferred to nj using barycentric interpolation or \n"
 " nearest-node interpolation.\n"
 " Nodes whose projections fail to intersect triangles in S2 are given\n"
 " nonsensical values of -1 and 0.0 in the output.\n" 
@@ -156,7 +156,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(
    Opt->iopt = 0;
    Opt->oform = SUMA_NO_DSET_FORMAT;
    accepting_out = NOPE;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       
       if (!brk && accepting_out) { 

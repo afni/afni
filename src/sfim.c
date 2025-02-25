@@ -334,7 +334,7 @@ void SFIM_syntax( char * str )
     "\n"
     "  -prefix pname:  'pname' is the prefix for output image filenames for\n"
     "                  all states:  the i'th interval with task state name\n"
-    "                  'fred' will be writen to file 'pname.fred.i'.\n"
+    "                  'fred' will be written to file 'pname.fred.i'.\n"
     "              *** the default 'pname' is 'sfim'\n"
     "\n"
     "  Output files are the base-mean-removed averages for each non-base\n"

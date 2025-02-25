@@ -833,11 +833,11 @@ void DRAW_make_widgets(void)
      rad_av = new_MCW_arrowval( rc             ,    /* parent */
                                 "R"            ,    /* label */
                                 MCW_AV_downup  ,    /* arrow directions */
-                                1              ,    /* min value (0.1 mm from decim) */
-                                999            ,    /* max value (99.9 mm) */
-                                40             ,    /* init value */
+                                1              ,    /* min value (0.01 mm from decim) */
+                                9999            ,   /* max value (99.99 mm) */
+                                400             ,   /* init value */
                                 MCW_AV_editext ,    /* input/output text display */
-                                1              ,    /* decimal shift */
+                                2              ,    /* decimal shift */
                                 NULL           ,    /* routine to call when button */
                                 NULL           ,    /* is pressed, and its data */
                                 NULL,NULL           /* no special display */
@@ -2906,7 +2906,7 @@ static void DRAW_undo_butlab( Widget w , int n )
      ny = 2nd dimension
      ix = start point
      jy = end point
-     ar = array, with 0's everwhere except 1's as barriers to flooding
+     ar = array, with 0's everywhere except 1's as barriers to flooding
 
    All filled points (starting with ix,jy) will get the value 2.
 -----------------------------------------------------------------------------*/

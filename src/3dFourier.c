@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 
    machdep(); PRINT_VERSION("3dFourier"); AFNI_logger("3dFourier",argc,argv);
 
-	/* Loop over arguements and pull out what we need */
+	/* Loop over arguments and pull out what we need */
 	while( narg < argc && argv[narg][0] == '-' ){
 
 		if( strncmp(argv[narg],"-prefix",5) == 0 ) {
@@ -137,9 +137,9 @@ int main(int argc, char *argv[])
 		}
 
 
-		Error_Exit("Illegal or unrecoginized option");
+		Error_Exit("Illegal or unrecognized option");
 
-	} /* end of while over arguements */
+	} /* end of while over arguments */
 
 #if 1
    if( low_fc > 0.0f && high_fc > 0.0f && low_fc <= high_fc )

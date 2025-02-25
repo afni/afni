@@ -212,7 +212,7 @@
 #   + [PT] also, control pbar image output file name: jpg by default
 # 
 #set version   = "5.52"; set rev_dat   = "July 1, 2019"
-#   + [PT] miniscule new option, '-pbar_for ..'
+#   + [PT] minuscule new option, '-pbar_for ..'
 # 
 #set version   = "5.6"; set rev_dat   = "July 8, 2019"
 #   + [PT] make DO CLEAN the default (and add opt/switch -no_clean)
@@ -334,8 +334,34 @@
 #    + [PT] add 'button_press .." opt, for the Colr/Swap/Norm "butpress"
 #      driving functionality
 #
-set version   = "6.43";   set rev_dat   = "Aug 12, 2022"
+#set version   = "6.43";   set rev_dat   = "Aug 12, 2022"
 #    + [PT] fix spelling of button_press.  Sigh
+#
+#set version   = "6.5";   set rev_dat   = "Sept 22, 2022"
+#    + [PT] new opt: clusterize_wami
+#
+#set version   = "6.51";   set rev_dat   = "Sept 22, 2022"
+#    + [PT] cleaner clust output, sep cmd
+#
+#set version   = "6.52";   set rev_dat   = "Jan 11, 2023"
+#    + [PT] check '-left_is_* ..' opt args more carefully, exit if 
+#      correct key word is not used
+#
+#set version   = "6.6";   set rev_dat   = "Mar 28, 2023"
+#    + [PT] add more fields to output pbar info, for APQC/NiiVue
+#
+#set version   = "6.61";   set rev_dat   = "Mar 30, 2023"
+#    + [PT] add more fields to output pbar info, for APQC/NiiVue
+#         + left/left and left/post info
+#
+#set version   = "6.7";   set rev_dat   = "Mar 19, 2024"
+#    + [PT] new opt c2s_mont_1x1 so script has 1x1 montages
+#
+#set version   = "6.8";   set rev_dat   = "Aug 26, 2024"
+#    + [PT] add subbrick selection to AMASK_FOCUS_ULAY functionality
+#
+set version   = "6.9";   set rev_dat   = "Jan 6, 2025"
+#    + [PT] add -olay_boxed_color opt
 #
 # =====================================================================
 
@@ -360,6 +386,16 @@ setenv AFNI_NEVER_SAY_GOODBYE    YES     # [PT: Mar 06, 2021]
 setenv AFNI_STARTUP_WARNINGS     NO
 setenv AFNI_MOTD_CHECK           NO
 setenv AFNI_NIFTI_TYPE_WARN      NO
+setenv AFNI_MESSAGE_COLORIZE     NO      # [PT: Jul 06, 2023]
+setenv AFNI_SKIP_DYLD_WARNING    YES     # [PT: Jul 01, 2024]
+
+# NB: this env var is interesting. if "black" is the value, then it
+# behaves like "none". In the source code, the default RGB value is
+# (0.005, 0.005, 0.005). So, "black" is not really RGB=(0,0,0), but
+# ~1/255 for each value.  That is OK, and we follow suit here and
+# below where the value is set. That is, a user entry of "black" is
+# recoded to this.
+setenv AFNI_FUNC_BOXED_COLOR     "#010101"   # [PT: Jan 06, 2025]
 
 # -------------------------------------------------------------------
 
@@ -486,7 +522,17 @@ set DO_AXI    = 1                # [PT: Sep 21, 2021] can control output slices
 set DO_SAG    = 1
 set DO_COR    = 1
 
-set clust_cmd = ""               # [PT: Sep 22, 2021] clusterize with A/B
+set clust_cmd  = ""               # [PT: Sep 22, 2021] clusterize with A/B
+set clust_wami = ""               # [PT: Sep 22, 2022] whereami_afni on clusts
+
+set oechocmd  = ""               # [PT: May 17, 2023] output driving cmd
+set DO_echo4apqc = 1             # [PT: May 17, 2023] do things for APQC
+set txt_oechocmd = ""
+set txt_oechocmd2 = ""
+set c2s_mont_1x1 = 0             # [PT: 24-03-19] for APQC, script mont is 1x1
+set use_ad = ""                  # use all dsets? (def: no)
+
+set DO_DRY_RUN = 0               # [PT: Jun 3, 2023] to run and just get text
 
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
@@ -614,6 +660,11 @@ while ( $ac <= $#argv )
         @ ac += 1
         set clust_cmd = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-clusterize_wami" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set clust_wami = "$argv[$ac]"
+
     else if ( "$argv[$ac]" == "-thr_olay" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -658,9 +709,9 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set func_resam = "$argv[$ac]"
-        if ( ( "$func_resam" != "NN" ) || \
-             ( "$func_resam" != "Li" ) || \
-             ( "$func_resam" != "Cu" ) || \
+        if ( ( "$func_resam" != "NN" ) && \
+             ( "$func_resam" != "Li" ) && \
+             ( "$func_resam" != "Cu" ) && \
              ( "$func_resam" != "Bk" ) ) then
             echo "** ERROR: '-func_resam ...' input"
             echo "   needs to be one of {NN|Li|Cu|Bk}."
@@ -849,6 +900,16 @@ while ( $ac <= $#argv )
         @ ac += 1
         set olay_boxed = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-olay_boxed_color" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        # "black" is the default, but it has to be specified in a
+        # special way, which is described in the note for the
+        # initialization of this env var, above
+        if ( "$argv[$ac]" != "black" ) then
+            setenv AFNI_FUNC_BOXED_COLOR "$argv[$ac]"
+        endif
+
     else if ( "$argv[$ac]" == "-image_zoom_nn_no" ) then
         setenv AFNI_IMAGE_ZOOM_NN NO
         
@@ -860,11 +921,25 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-left_is_left" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
+        if ( ! ( "$argv[$ac]" == "YES" || \
+                 "$argv[$ac]" == "NO") ) then
+            echo "** ERROR: '-left_is_left' must be followed by one of:"
+            echo "          YES, NO"
+            echo "   ... and not '$argv[$ac]'"
+            goto BAD_EXIT
+        endif
         setenv AFNI_LEFT_IS_LEFT "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-left_is_posterior" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
+        if ( ! ( "$argv[$ac]" == "YES" || \
+                 "$argv[$ac]" == "NO") ) then
+            echo "** ERROR: '-left_is_posterior' must be followed by one of:"
+            echo "          YES, NO"
+            echo "   ... and not '$argv[$ac]'"
+            goto BAD_EXIT
+        endif
         setenv AFNI_LEFT_IS_POSTERIOR "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-zerocolor" ) then
@@ -1059,6 +1134,24 @@ while ( $ac <= $#argv )
         @ ac += 1
         set obl_resam_refbox = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-cmd2script" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set oechocmd = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-c2s_mont_1x1" ) then
+        set c2s_mont_1x1 = 1
+
+    else if ( "$argv[$ac]" == "-c2s_text" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set txt_oechocmd = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-c2s_text2" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set txt_oechocmd2 = "${argv[$ac]:q}"
+
     else if ( "$argv[$ac]" == "-do_clean" ) then
         set DO_CLEAN = 1
         set my_clean = "-pass" # for @djunct_4d_slices*
@@ -1072,6 +1165,9 @@ while ( $ac <= $#argv )
     # they might contain subbrickselectors
     else if ( "$argv[$ac]" == "-pass" ) then
         echo ""
+
+    else if ( "$argv[$ac]" == "-dry_run" ) then
+        set DO_DRY_RUN = 1
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -1090,6 +1186,19 @@ if ( $USER_ULAY_RANGE != 1 ) then
     set umax = "98%"
     set ulay_nz = ""
     set USER_ULAY_RANGE = 1
+endif
+
+# -------------------------------------------------------------------
+# query/store L/R and A/P info in images
+
+set is_left_left = `afni -no_detach -q -VAFNI_LEFT_IS_LEFT=`
+if ( "${is_left_left}" == "" ) then
+    set is_left_left = YES                  # mirror default behavior
+endif
+
+set is_left_post = `afni -no_detach -q -VAFNI_LEFT_IS_POSTERIOR=`
+if ( "${is_left_post}" == "" ) then
+    set is_left_post = NO                   # mirror default behavior
 endif
 
 # -------------------------------------------------------------------
@@ -1213,6 +1322,12 @@ endif
 # should have no affect-- fine
 # ---> will have to be updated if applying obliquity
 set ulay_refbox = "${ulay}"
+# [PT: Aug 26, 2024] if using a 4D ulay (like SSW dset), might want
+# just the single, specified volume for automasking, which the next IF
+# condition does.
+if ( "${subbb[1]}" != "-1" ) then
+    set ulay_refbox = "${ulay}[${subbb[1]}]"
+endif
 
 # check blowup factor
 set check_list = ( `seq 1 1 8` )
@@ -1586,18 +1701,69 @@ if ( "${clust_cmd}" != "" ) then
         goto BAD_EXIT
     endif
 
-    3dClusterize -echo_edu                        \
+# store the command (don't indent)
+cat <<EOF > "${odir}/${impref}_clust_cmd.txt"
+3dClusterize                                  \
+    ${clust_cmd}                              \
+    -idat ${subbb[2]}                         \
+    -ithr ${subbb[3]}                         \
+    ${clust_thr_args}                         \
+    -pref_map ${read_dir}/olay_clust.nii      \
+    -inset  ${olay}
+EOF
+
+    3dClusterize                                  \
         ${clust_cmd}                              \
         -idat ${subbb[2]}                         \
         -ithr ${subbb[3]}                         \
         ${clust_thr_args}                         \
-        -pref_map ${read_dir}/olay_clust.nii      \
-        -inset  ${olay}                           \
-        > ${odir}/${impref}_clust_rep.txt
+        -pref_map "${read_dir}/olay_clust.nii"    \
+        -inset  "${olay}"                         \
+        > "${odir}/${impref}_clust_rep.txt"
 
     if ( $status ) then
         echo "** ERROR: 3dClusterize failed for some reason (see above)."
         goto BAD_EXIT
+    endif
+
+    # count num lines in cluster rep to see if there are any clusters
+    set nline = `cat "${odir}/${impref}_clust_rep.txt" | wc -l`
+    if ( `echo "${nline} < 2" | bc` ) then
+        # no clusters found, make empty dset of 0s; olay might have '[' char
+        if ( `echo "${olay}" | grep -c "\["` ) then
+            # copy as 0s and then get 0th vol
+            3dcalc                                     \
+                -a       "${olay}"                     \
+                -expr    '0*a'                         \
+                -prefix  "${read_dir}/__tmp.nii"       \
+                -datum   byte
+            3dcalc                                     \
+                -a       "${read_dir}/__tmp.nii[0]"    \
+                -expr    'a'                           \
+                -prefix  "${read_dir}/olay_clust.nii"
+        else
+            # only single vol as 0s
+            3dcalc                                     \
+                -a       "${olay}"                     \
+                -expr    '0*a'                         \
+                -prefix  "${read_dir}/olay_clust.nii"  \
+                -datum   byte
+        endif
+    endif
+
+    # [PT: Sept 22, 2022] use basic reporting on clusters
+    if ( "${clust_wami}" != "" ) then
+        echo "++ Run whereami_afni on the cluster output, for atlas: ${clust_wami}"
+        whereami_afni                                                        \
+            -omask       ${read_dir}/olay_clust.nii                          \
+            -atlas       "${clust_wami}"                                     \
+            > "${odir}/${impref}_clust_whereami.txt"
+
+        if ( $status ) then
+            echo "** WARNING: bad whereami_afni; check atlas: ${clust_wami}"
+            echo "** WARNING: bad whereami_afni; check atlas: ${clust_wami}" \
+                >> "${odir}/${impref}_clust_whereami.txt"
+        endif
     endif
 
     # this value is 99% of actual threshold value
@@ -1693,14 +1859,14 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
     if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
         || ( $urange == "YES" ) ) then
 
-        if ( $USER_ULAY_RANGE ) then
+        if ( $USER_ULAY_RANGE ) then  ### start USER ULAY RAN
             echo "++ Copy ulay to visualize (volumetric) within user's range:"
 
             # will be 0 if no percent; otherwise, >0 if percent
             set is_umin_perc = `echo ${umin} | awk '{print index ( $0,"%" ) }'`
             set is_umax_perc = `echo ${umax} | awk '{print index ( $0,"%" ) }'`
 
-            if ( ($is_umin_perc > 0) && ($is_umax_perc > 0) ) then
+            if ( ($is_umin_perc > 0) && ($is_umax_perc > 0) ) then ### start PERC COND
                 # percentages
 
                 set pmin  = "$umin"
@@ -1810,13 +1976,13 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
             else
                 echo "++ Ulay to be visualized within user range:"
                 echo "   [${umin}, ${umax}]"
-            endif
+            endif  ### end PERC COND
 
             # need to unset this variable for this drive command to be
             # effective
             unsetenv AFNI_IMAGE_GLOBALRANGE 
             set com_ulay_str = "SET_ULAY_RANGE A.all $umin $umax"  
-        endif
+        endif ### end USER ULAY RAN
 
         # Special behavior if ulay max %ile is > 100; copy over
         # *ceilinged* version to temporary read dir
@@ -1854,7 +2020,7 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
                 -expr "a"                                 \
                 -prefix $read_dir/$read_ulay
         endif
-    else 
+    else ### [PT] Can this ever be reached, bc of preceding 'else' in parallel?
         echo "** ERROR: Var 'urange' not set somehow-- bad."
         goto BAD_EXIT
     endif
@@ -1869,7 +2035,7 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
         set olay = ""
         # don't need to copy anything, just set this for scripty purposes,
         # doesn't affect visualization.
-        set read_olay = $read_ulay
+        set read_olay = "$read_ulay"
         set Dim  = `3dinfo -n4 "$ulay"`
     else
         set read_olay = tmp_olay.nii
@@ -1952,31 +2118,6 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
     set ori2 = `echo $ori | awk '{print substr($0,3,1)}'`
     set all_ori = ( $ori0 $ori1 $ori2 )
 
-    #### [PT: Oct 18, 2018] this stuff now moved to separate prog
-    #### "@djunct_template_focuser" because it will be needed more
-    #### than once.
-
-    #set order  = ()
-    #foreach oo ( $all_ori )
-    #    foreach i ( `seq 1 1 ${#listori}` )
-    #        if ( $oo == "$listori[${i}]" ) then
-    #            set order  = ( $order ${listind[$i]} )
-    #            break
-    #        endif
-    #    end
-    #end
-    #echo "++ Cryptic info: $ori -> $all_ori -> $order"
-    #
-    #echo "++ Dimensions (xyzt): $Dim"
-    #
-    #foreach i ( `seq 1 1 3` )
-    #    if ( $gapord[$order[$i]] <= 0 ) then
-    #        @ gapord[$order[$i]] = $Dim[$i] / ( $Nwin )
-    #        if ( $gapord[$order[$i]] <= 0 ) then
-    #            @ gapord[$order[$i]] = 1
-    #        endif
-    #    endif
-    #end
     ## -----------------------------------------------------------------
 
     # [PT: Nov 6, 2018] we only want this set here for 3D; for 4D,
@@ -2099,7 +2240,12 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
         ## [PT: May 8, 2019] older pbar info format, byeeeeeee.
         #echo "$bot_frange    $frange    $thrnew" > "${opbar_file}"
 
+        # make this str bc we will use ',,' as a minor delimiter
+        set subbb_str = "${subbb[1]} ,, ${subbb[2]} ,, ${subbb[3]}"
+        set coors_str = "${coors[1]} ,, ${coors[2]} ,, ${coors[3]}"
+
 # [PT: May 8, 2019] newer pbar info format, more info [will add ulay/gen info]
+# [PT: Mar 28, 2023] add more info, for APQC outputs
 cat << EOF >! "${opbar_file}"
 itemtype     :: CBAR
 cbar         :: "${my_cbar}"
@@ -2107,6 +2253,16 @@ pbar_fname   :: "${pbar_fname:t}"
 pbar_bot     :: "${bot_frange}"
 pbar_top     :: "${frange}"
 pbar_comm    :: "${pbar_comm}"
+pbar_sign    :: "${pbar_sign}"
+olay_alpha   :: "${olay_alpha}"
+olay_boxed   :: "${olay_boxed}"
+olay_opacity :: "${opac}"
+see_olay     :: "${see_olay}"
+subbb        :: ${subbb_str}
+coor_type    :: "${coor_type}"
+coors        :: ${coors_str}
+is_left_left :: "${is_left_left}"
+is_left_post :: "${is_left_post}"
 vthr         :: "${thrnew}"
 vthr_comm    :: "${vthr_comm}"
 gen_comm     :: "${gen_comm}"
@@ -2138,14 +2294,14 @@ EOF
     endif
 
     if ( $rrr == 1 ) then ### only need to start once, i.e., if in MODE_4D
-        set ranval = `count -dig 1 1 999999 R1`
+        set ranval = `count_afni -dig 1 1 999999 R1`
 
         if ( $?xdisplay == 0 ) then
           set killX     = 1
           set ntry      = 1
           set Xnotfound = 1
           while( $Xnotfound )
-            set xdisplay = `count -dig 1 3 999 R1`
+            set xdisplay = `count_afni -dig 1 3 999 R1`
             if ( -e /tmp/.X${xdisplay}-lock ) continue
             echo " -- trying to start Xvfb :${xdisplay} $opts_xvfb"
             Xvfb :${xdisplay} $opts_xvfb -screen 0 1024x768x24 &
@@ -2171,7 +2327,7 @@ EOF
     # -------------------------------------------------------------------
     # ---------------- The actual, driven command ----------------------
 
-    if ( $MODE_4D ) then
+    if ( $MODE_4D ) then # start of 4D MODE COND
 
 # commenting out for now
 if ( 0 ) then
@@ -2280,7 +2436,7 @@ endif
                     blowup=${bufac}"                                        \
              -com "${do_quit}"                                              \
              "${read_dir}"
-    else
+    else   ### branch for being NOT 4D MODE
 
     # [PT: Sep 21, 2021] By default, view all planes, but user can turn
     # some off, too.  This will be useful for the APQC, to populate fewer
@@ -2296,133 +2452,224 @@ endif
         set view_planes = ( ${view_planes:q} -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor blowup=${bufac}" )
     endif
 
-# commenting out for now
-if ( 0 ) then
-set oechocmd = chauffeur_echo.tcsh
-echo '#\!/bin/tcsh\n' > $oechocmd
 
-echo "# define all variables used in AFNI drive command" >> $oechocmd
+    if ( "${oechocmd}" != "" ) then  # start of OECHOCMD
 
-echo "set read_ulay    = "\""${read_ulay}"\"""  >> $oechocmd
-echo "set read_olay    = "\""${read_olay}"\"""  >> $oechocmd
-echo "set see_olay     = "\""${see_olay}"\"""  >> $oechocmd
-echo "set pbar_sign    = "\""${pbar_sign}"\"""  >> $oechocmd
-echo "set ncolors      = "\""${ncolors}"\"""  >> $oechocmd
-echo "set topval       = "\""${topval}"\"""  >> $oechocmd
-echo "set my_cbar      = "\""${my_cbar}"\"""  >> $oechocmd
-echo "set XXX_NPANE    = "\""${XXX_NPANE}"\"""  >> $oechocmd
-echo "set com_pbar_str = "\""${com_pbar_str}"\"""  >> $oechocmd
-echo "set subbb        = ( ${subbb} )"  >> $oechocmd
-echo "set com_ulay_str = "\""${com_ulay_str}"\"""  >> $oechocmd
-echo "set frange       = "\""${frange}"\"""  >> $oechocmd
-echo "set thrnew       = "\""${thrnew}"\"""  >> $oechocmd
-echo "set thrflag      = "\""${thrflag}"\"""  >> $oechocmd
-echo "set olay_alpha   = "\""${olay_alpha}"\"""  >> $oechocmd
-echo "set olay_boxed   = "\""${olay_boxed}"\"""  >> $oechocmd
-echo "set func_resam   = "\""${func_resam}"\"""  >> $oechocmd
-echo "set crossh       = "\""${crossh}"\"""  >> $oechocmd
-echo "set xh_gap       = "\""${xh_gap}"\"""  >> $oechocmd
-echo "set OW           = "\""${OW}"\"""  >> $oechocmd
-echo "set opac         = "\""${opac}"\"""  >> $oechocmd
-echo "set butpress     = "\""${butpress}"\"""  >> $oechocmd
-echo "set mx           = "\""${mx}"\"""  >> $oechocmd
-echo "set my           = "\""${my}"\"""  >> $oechocmd
-echo "set mgap         = "\""${mgap}"\"""  >> $oechocmd
-echo "set mcolor       = "\""${mcolor}"\"""  >> $oechocmd
-echo "set gapord       = ( ${gapord} )"  >> $oechocmd
-echo "set scropx       = ( ${scropx} )"  >> $oechocmd
-echo "set scropy       = ( ${scropy} )"  >> $oechocmd
-echo "set ccropx       = ( ${ccropx} )"  >> $oechocmd
-echo "set ccropy       = ( ${ccropy} )"  >> $oechocmd
-echo "set acropx       = ( ${acropx} )"  >> $oechocmd
-echo "set acropy       = ( ${acropy} )"  >> $oechocmd
-echo "set coor_type    = "\""${coor_type}"\"""  >> $oechocmd
-echo "set coors        = ( ${coors} )"  >> $oechocmd
-echo "set ftype        = "\""${ftype}"\"""  >> $oechocmd
-echo "set odir         = "\""${odir}"\"""  >> $oechocmd
-echo "set impref       = "\""${impref}"\"""  >> $oechocmd
-echo "set bufac        = "\""${bufac}"\"""  >> $oechocmd
-echo "set do_quit      = "\""${do_quit}"\"""  >> $oechocmd
-echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
+        # Change some things, specifically for APQC from AP; mainly
+        # avoiding use of tmpdir. NB: each 'real' var below to which these
+        # are assigned must be preceded by a backslash
+        if ( ${DO_echo4apqc} ) then
+            set e_ulay = `basename "${ulay}"` # list dirnames, below
+            if ( "${olay}" != "" ) then
+                set e_olay = `basename "${olay}"`
+            else
+                # it won't be seen, so for script, just load this
+                set e_olay = `basename "${ulay}"`
+            endif
+            set e_crossh   = "SINGLE"
+            set use_ad = "-all_dsets"
+            
+            # might need additional read_dir, based on dsets
+            set e_read_dir = ( "." )
+            foreach dset ( "${ulay}" "${olay}" )
+                set e_read_dir = ( ${e_read_dir} `dirname "${dset}"` )
+            end
+            set e_read_dir = ( `echo ${e_read_dir} | fmt -1 | sort | uniq` )
 
-cat <<EOF >> $oechocmd
+        else
+            set e_ulay = "${read_ulay}"  
+            if ( "${read_olay}" != "" ) then
+                set e_olay = "${read_olay}"
+            else
+                # it won't be seen, so for script, just load this
+                set e_olay = "${read_ulay}"
+            endif
+            set e_olay = "${read_olay}"  
+            set e_read_dir = "${read_dir}"  
+            set e_crossh   = "${crossh}"  
+            set use_ad = ""
+        endif
+
+        if ( ${c2s_mont_1x1} ) then
+            # user wants basic views for output script
+            set c2s_montx = 1
+            set c2s_monty = 1
+        else
+            # output script matches image mont shape
+            set c2s_montx = ${mx}
+            set c2s_monty = ${my}
+        endif
+
+        cat <<EOF >! "${oechocmd}"
+#!/bin/tcsh 
+
+# setup the environment a bit (more speed, fewer warnings)
+setenv AFNI_IMSAVE_WARNINGS    NO
+setenv AFNI_THRESH_INIT_EXPON  0
+setenv AFNI_NOSPLASH           YES
+setenv AFNI_SPLASH_MELT        NO
+setenv AFNI_STARTUP_WARNINGS   NO
+setenv AFNI_NIFTI_TYPE_WARN    NO
+setenv AFNI_NO_OBLIQUE_WARNING YES
+#setenv AFNI_IMAGE_GLOBALRANGE  VOLUME
+setenv AFNI_IMAGE_LABEL_IJK    NO 
+setenv AFNI_IMAGE_ZOOM_NN      YES
+setenv AFNI_NEVER_SAY_GOODBYE  YES
+setenv AFNI_MOTD_CHECK         NO
+setenv AFNI_NIFTI_TYPE_WARN    NO
+
+
+# define all variables used in AFNI drive command
+set read_ulay    = "${e_ulay}"  
+set read_olay    = "${e_olay}"  
+set read_dir     = "${e_read_dir}"  
+set use_ad       = "${use_ad}" 
+set crossh       = "${e_crossh}"  
+set see_olay     = "${see_olay}"  
+set pbar_sign    = "${pbar_sign}"  
+set ncolors      = "${ncolors}"  
+set topval       = "${topval}"  
+set my_cbar      = "${my_cbar}"  
+set XXX_NPANE    = "${XXX_NPANE}"  
+set com_pbar_str = "${com_pbar_str}"  
+set subbb        = ( ${subbb} )
+set com_ulay_str = "${com_ulay_str}"  
+set frange       = "${frange}"  
+set thrnew       = "${thrnew}"  
+set thrflag      = "${thrflag}"  
+set olay_alpha   = "${olay_alpha}"  
+set olay_boxed   = "${olay_boxed}"  
+set func_resam   = "${func_resam}"  
+set xh_gap       = "${xh_gap}"  
+set OW           = "${OW}"  
+set opac         = "${opac}"  
+set butpress     = "${butpress}"  
+set mx           = "${c2s_montx}"  
+set my           = "${c2s_monty}"  
+set mgap         = "${mgap}"  
+set mcolor       = "${mcolor}"  
+set gapord       = ( ${gapord} )
+set scropx       = ( ${scropx} )  
+set scropy       = ( ${scropy} )  
+set ccropx       = ( ${ccropx} ) 
+set ccropy       = ( ${ccropy} )  
+set acropx       = ( ${acropx} )  
+set acropy       = ( ${acropy} )  
+set coor_type    = "${coor_type}"
+set coors        = ( ${coors} )  
+set ftype        = "${ftype}"  
+set odir         = "${odir}"  
+set impref       = "${impref}"  
+set bufac        = "${bufac}"  
+set do_quit      = "${do_quit}"  
 
 set view_planes = ( )
-if ( ${DO_AXI} ) then
+if ( ${DO_AXI} && "${DO_echo4apqc}" != "1" ) then
     set view_planes = ( \${view_planes:q} -com "SAVE_\${ftype} axialimage    \${odir}/\${impref}.axi blowup=\${bufac}" )
 endif
-if ( ${DO_SAG} ) then
+if ( ${DO_SAG} && "${DO_echo4apqc}" != "1" ) then
     set view_planes = ( \${view_planes:q} -com "SAVE_\${ftype} sagittalimage \${odir}/\${impref}.sag blowup=\${bufac}" )
 endif
-if ( ${DO_COR} ) then
+if ( ${DO_COR} && "${DO_echo4apqc}" != "1" ) then
     set view_planes = ( \${view_planes:q} -com "SAVE_\${ftype} coronalimage  \${odir}/\${impref}.cor blowup=\${bufac}" )
 endif
 
-EOF
+# port communication
+set portnum = `afni -available_npb_quiet`
+
+# the drive command itself (without quitting)
+afni -q -no1D \${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
+    -npb \${portnum}  \${use_ad}                                      \
+    -com "SWITCH_UNDERLAY \${read_ulay}"                              \
+    -com "SWITCH_OVERLAY  \${read_olay}"                              \
+    -com "SEE_OVERLAY     \${see_olay}"                               \
+    -com "\$OW sagittalimage opacity=\${opac} \${butpress}              \
+           mont=\${mx}x\${my}:\${gapord[1]}:\${mgap}:\${mcolor}           \
+           crop=\${scropx[1]}:\${scropx[2]},\${scropy[1]}:\${scropy[2]}" \
+    -com "\$OW coronalimage  opacity=\${opac} \${butpress}              \
+           mont=\${mx}x\${my}:\${gapord[2]}:\${mgap}:\${mcolor}           \
+           crop=\${ccropx[1]}:\${ccropx[2]},\${ccropy[1]}:\${ccropy[2]}" \
+    -com "\$OW axialimage    opacity=\${opac} \${butpress}              \
+           mont=\${mx}x\${my}:\${gapord[3]}:\${mgap}:\${mcolor}           \
+           crop=\${acropx[1]}:\${acropx[2]},\${acropy[1]}:\${acropy[2]}" \
+    -com "SET_PBAR_ALL    \${pbar_sign}\${ncolors} \$topval \$my_cbar"   \
+    -com "\$com_pbar_str"  \
+    -com "SET_SUBBRICKS   \${subbb}"                                  \
+    -com "\$com_ulay_str"                                             \
+    -com "SET_FUNC_RANGE  \${frange}"                                 \
+    -com "SET_THRESHNEW   \$thrnew $thrflag"                          \
+    -com "SET_FUNC_ALPHA  \$olay_alpha"                               \
+    -com "SET_FUNC_BOXED  \$olay_boxed"                               \
+    -com "SET_FUNC_RESAM  \${func_resam}.\${func_resam}"               \
+    -com "SET_XHAIRS      \${crossh}"                                 \
+    -com "SET_XHAIR_GAP   \${xh_gap}"                                 \
+    -com "\$coor_type \$coors"                                         \
+    \${view_planes:q}                                                 \
+    \${read_dir} &
+
+set l = \`prompt_popup -message \
+"${txt_oechocmd}\n\n\
+${txt_oechocmd2:q}\n\n\
+Initial ulay dataset : \${read_ulay}\n\
+Initial olay dataset : \${read_olay} (\${see_olay})\n\
+\n" \
+-b '          Done - Close AFNI GUI          '\`
 
 
-# [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
-# before values are calc'ed for ranges---thanks, RWC
-echo '# the afni drive command itself' >> $oechocmd
-echo '\
-afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \\\
-    -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
-    -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
-    -com "SEE_OVERLAY     ${see_olay}"                               \\\
-    -com "$OW sagittalimage opacity=${opac} ${butpress}              \\\
-           mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor}           \\\
-           crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \\\
-    -com "$OW coronalimage  opacity=${opac} ${butpress}              \\\
-           mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor}           \\\
-           crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \\\
-    -com "$OW axialimage    opacity=${opac} ${butpress}              \\\
-           mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
-           crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
-    -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \\\
-    -com "$com_pbar_str"                                             \\\
-    -com "SET_SUBBRICKS   ${subbb}"                                  \\\
-    -com "$com_ulay_str"                                             \\\
-    -com "SET_FUNC_RANGE  ${frange}"                                 \\\
-    -com "SET_THRESHNEW   $thrnew $thrflag"                          \\\
-    -com "SET_FUNC_ALPHA  $olay_alpha"                               \\\
-    -com "SET_FUNC_BOXED  $olay_boxed"                               \\\
-    -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \\\
-    -com "SET_XHAIRS      ${crossh}"                                 \\\
-    -com "SET_XHAIR_GAP   ${xh_gap}"                                 \\\
-    -com "$coor_type $coors"                                         \\\
-    ${view_planes:q}                                                 \\\
-    -com "${do_quit}"                                                \\\
-    "${read_dir}"' >> $oechocmd
+if ("\$l" != "1") then
+    echo "+* Warn: AFNI driving guidance message failed to open"
 endif
 
-# the command run with xvfb; same as above but different spacing; at
-# some point just run via the command script with xvfb
-# [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
-# before values are calc'ed for ranges---thanks, RWC
-afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
-    -com "SWITCH_UNDERLAY ${read_ulay}"                              \
-    -com "SWITCH_OVERLAY  ${read_olay}"                              \
-    -com "SEE_OVERLAY     ${see_olay}"                               \
+echo "++ Quiet talkers"
+@Quiet_Talkers -quiet -npb_val \${portnum}
+
+echo "================================================="
+echo "++ Goodbye, and thank you for checking your data."
+
+EOF
+
+    chmod 755 "${oechocmd}"
+
+    endif # end of OECHOCMD
+
+    if ( ${DO_DRY_RUN} ) then
+        # skip actually *running* the command---can just get intermed
+        # files and text
+        goto END_DRY_RUN
+    endif
+
+
+
+    # the command run with xvfb; same as above but different spacing;
+    # at some point just run via the command script with xvfb
+    # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing
+    # done, before values are calc'ed for ranges---thanks, RWC
+    afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu \
+    -com "SWITCH_UNDERLAY ${read_ulay}" \
+    -com "SWITCH_OVERLAY  ${read_olay}" \
+    -com "SEE_OVERLAY     ${see_olay}" \
     -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]} ${butpress}" \
     -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]} ${butpress}" \
     -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]} ${butpress}" \
-    -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \
-    -com "$com_pbar_str"                                             \
-    -com "SET_SUBBRICKS   ${subbb}"                                  \
-    -com "$com_ulay_str"                                             \
-    -com "SET_FUNC_RANGE  ${frange}"                                 \
-    -com "SET_THRESHNEW   $thrnew $thrflag"                          \
-    -com "SET_FUNC_ALPHA  $olay_alpha"                               \
-    -com "SET_FUNC_BOXED  $olay_boxed"                               \
-    -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \
-    -com "SET_XHAIRS      ${crossh}"                                 \
-    -com "SET_XHAIR_GAP   ${xh_gap}"                                 \
-    -com "$coor_type $coors"                                         \
-    ${view_planes:q}                                                 \
-    -com "${do_quit}"                                                \
+    -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
+    -com "$com_pbar_str" \
+    -com "SET_SUBBRICKS   ${subbb}" \
+    -com "$com_ulay_str" \
+    -com "SET_FUNC_RANGE  ${frange}" \
+    -com "SET_THRESHNEW   $thrnew $thrflag" \
+    -com "SET_FUNC_ALPHA  $olay_alpha" \
+    -com "SET_FUNC_BOXED  $olay_boxed" \
+    -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}" \
+    -com "SET_XHAIRS      ${crossh}" \
+    -com "SET_XHAIR_GAP   ${xh_gap}" \
+    -com "$coor_type $coors" \
+    ${view_planes:q} \
+    -com "${do_quit}" \
     "${read_dir}"
 
-    endif
+    endif ### end of NOT 4D MODE
+
+END_DRY_RUN:
 
 end ### ... of BIG loop
 
@@ -2432,7 +2679,7 @@ if ( $?killX ) kill %1
 if ( $DO_CLEAN ) then
     echo "\n+* Removing temporary image directory '$odir/$tmp_dir'.\n"
     # AKA $read_dir, at present
-    \rm -rf $odir/$tmp_dir
+    \rm -rf "$odir/$tmp_dir"
 else
     echo "\n++ NOT removing temporary directory '$odir/$tmp_dir'.\n"
 endif
@@ -2486,7 +2733,7 @@ refer to the variables in the "AFNI Driver" doc:
 https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.driver.html
 or variables in the "AFNI Environment" doc:
 https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html
-References to these are sometimes noted explicitely with "see DR" or
+References to these are sometimes noted explicitly with "see DR" or
 "see ENV", respectively, and potentially with the particular variable.
 For example, "(see ENV: SAVE_AGIF)".
 
@@ -2517,7 +2764,7 @@ COMMAND OPTIONS ~1~
                     A montage of those slices is made for any ulay UUU
                     and olay OOO selected.  Note that with this
                     option:
-                    + the user cannot thresold by statistic with the 
+                    + the user cannot threshold by statistic with the 
                       "-thr_olay_p2stat .." opt (-> because different
                       stats in a volume might have different conversions)
                     + when using this opt, at least on of UUU and OOO 
@@ -2682,7 +2929,8 @@ COMMAND OPTIONS ~1~
                         1sided
 
 -cbar    CCC       :specify a new colorbar, where CCC can be any of the
-                    cbars in the standard AFNI list (def: $my_cbar).
+                    cbars in the standard AFNI list, Matplotlib colornames,
+                    or hex values (def: $my_cbar).
 
 -colorscale_idx_file CI CF 
                    :another way to specify a colorbar, in this case
@@ -2801,7 +3049,10 @@ COMMAND OPTIONS ~1~
                     in the output by a factor of BB (see DR; def: 2).
 
 -set_xhairs XX     :specify type and/or existence of crosshairs in the
-                    image (see DR: SET_XHAIRS).
+                    image.  At the time of writing, the available keywords
+                    to use are:
+                      OFF, SINGLE, MULTI, LR_AP, LR_IS, AP_IS, LR, AP, IS
+                    (see DR: SET_XHAIRS).
 
 -set_xhair_gap GG  :specify gap in the crosshairs to the specified number
                     of pixels GG (see DR: SET_XHAIR_GAP).
@@ -2885,6 +3136,13 @@ COMMAND OPTIONS ~1~
                     what options go where when clusterizing.  Examples
                     are also included below.
 
+-clusterize_wami CW :if using '-clusterize ..', then this option can be used
+                    to run AFNI's whereami_afni program on the results.
+                    The user provides the name of an allowed atlas for
+                    reference (see the top of whereami_afni's help), and a text
+                    file reporting the relative overlap of each ROI will be 
+                    produced in the outputs.  
+
 -montx  MX         :in creating a montage, the number of image panels in
                     a row, i.e., the number of columns (def: 3); the
                     total number of panels per axis is: MX*MY (see
@@ -2945,6 +3203,14 @@ COMMAND OPTIONS ~1~
                     voxels/clusters. Default value is "No".  (see DR:
                     SET_FUNC_BOXED)
 
+-olay_boxed_color OBC :set the color of the box lines that are put around
+                    the suprathreshold content. Color values can be the 
+                    usual known names in AFNI or matplotlib, or a hex
+                    specification. Default value is "black".
+                    NB: RBG=(0,0,0) gets mapped to "none" here, so black
+                    is actually RGB=(0.005, 0.005, 0.005) or hex="#010101".
+                    (see ENV: AFNI_FUNC_BOXED_COLOR)
+
 -image_zoom_nn_no  :the default zoom is set to NN mode, so no smoothing
                     occurs (see ENV: AFNI_IMAGE_ZOOM_NN).  This option
                     changes behavior internally to set this variable
@@ -3004,6 +3270,27 @@ COMMAND OPTIONS ~1~
 
 -pass              :does nothing (no, really).
 
+-cmd2script C2S    :output a script that can drive AFNI to make
+                    (essentially) the same image being output here.
+
+-c2s_text   C2ST   :when using '-cmd2script ..', then this option can
+                    be used to add text in the (top of the) script's 
+                    pop-up message.
+
+-c2s_text2  C2ST   :when using '-cmd2script ..', then this option can
+                    be used to add a second line of text in the script's 
+                    pop-up message.
+
+-c2s_mont_1x1      :when using '-cmd2script ..', use this flag so that 
+                    the output script just has a 1x1 "montage" size, 
+                    regardless of the actual image montage size. Sometimes
+                    large montages are useful in images, but not in the 
+                    interactive GUI session.
+
+-dry_run           :run all the parts of the chauffeur *except* making 
+                    the images; this is useful if we just want the
+                    '-cmd2script ..' script, for example.
+
 -no_clean          :by default, the temporary directory of copying
                     files and such is now (as of July 8, 2018)
                     removed; using this option means that that working
@@ -3012,7 +3299,7 @@ COMMAND OPTIONS ~1~
 -do_clean          :Use this option to remove the temporary directory
                     of copied/intermediate files. (As of July 8, 2019,
                     this is the new default behavior.  Thus, this opt
-                    is only here for backwards compatability).
+                    is only here for backwards compatibility).
 
 -echo              :run script verbosely (with 'set echo' executed)
 
@@ -3103,6 +3390,11 @@ this:
     + The Clusterize report is output in the same place as the final
       images, as PREFIX_clust_rep.txt.
 
+The ability to run 'whereami_afni' on the output clusters is also now
+included, via the '-clusterize_wami ..' option.  This leads to a
+report of the overlap of each cluster in the cluster map with the
+specified atlas.  The output text file of information is then:
+PREFIX_clust_whereami.txt.
 
 There are a couple examples of using this functionality, below, in
 EXAMPLES.
@@ -3150,7 +3442,7 @@ EXAMPLES ~1~
         -do_clean  
 
 
- B) Make a 3x5 montage of an overlayed data set that has an ROI
+ B) Make a 3x5 montage of an overlaid data set that has an ROI
     map, so we want it to be colored-by-integer.  Put the images
     into a pre-existing directory, SUBDIR/.
 
@@ -3168,10 +3460,10 @@ EXAMPLES ~1~
         -do_clean 
 
 
- C) Make a 3x5 montage of an overlayed data set that shows the
+ C) Make a 3x5 montage of an overlaid data set that shows the
     beta coefficients stored in brick [1] while thresholding the
     associated statistic stored in brick [2] at voxelwise p=0.001, 
-    overlayed on the anatomical volume.
+    overlaid on the anatomical volume.
 
     @chauffeur_afni                       \
         -ulay  anat.nii.gz                \
@@ -3232,7 +3524,7 @@ EXAMPLES ~1~
         -no_clean
 
   F) Included Clusterizing, with Alpha+Boxed on, similar to above, but
-     1sided example.
+     1sided example, and using 'whereami_afni' functionality:
 
     @chauffeur_afni                                                 \
         -pbar_posonly                                               \
@@ -3240,6 +3532,7 @@ EXAMPLES ~1~
         -olay               stats.nii.gz                            \
         -cbar               "Spectrum:yellow_to_red"                \
         -clusterize         "-NN 1 -clust_nvox 157"                 \
+        -clusterize_wami    "MNI_Glasser_HCP_v1.0"                  \
         -func_range 3                                               \
         -set_subbricks      -1 1 2                                  \
         -thr_olay           3.314300                                \

@@ -4,10 +4,10 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
    
-/* Functional image is made by correlating refernce function from an ASCII
+/* Functional image is made by correlating reference function from an ASCII
    file with the series of images.  All orthogonal ~ to a + b*x.
-   All is scaled accodingly to number of time points an independent
-   of referece function amplitude. Abs % change added.
+   All is scaled accordingly to number of time points an independent
+   of reference function amplitude. Abs % change added.
    Andre Jesmanowicz, MCW Milwaukee, 12.15.1992 */
 
 #ifdef SPARKY
@@ -128,7 +128,7 @@ int             n_ess = 0;
    }
 
 /* once othogonalized to const make orthogonalization to -ort files */
-/* Temporarly single ort file case. AJ */
+/* Temporary single ort file case. AJ */
    for (m=0; m < n_ort; m++) {
       isq = 0;                                   /* set integral to zero */
       idot = 0;
@@ -193,7 +193,7 @@ int             n_ess = 0;
             dt[j] = 0.;
       }
    /* once data othogonalized to const make orthogonalization to ref files */
-   /* Temporarly single ort file case. AJ */
+   /* Temporary single ort file case. AJ */
       for (m=0; m < n_ort; m++) {
          fdot = 0;
          for (j=0; j < N_im; j++)
@@ -410,7 +410,7 @@ int             n_ess = 0;
    }
    nopt++;
 
-   SQ_name = argv[nopt];                   /* reference seqence file name */
+   SQ_name = argv[nopt];                   /* reference sequence file name */
 
    if ((fp = fopen(SQ_name, "r")) == 0) {
       fprintf(stderr,"\n !!! Problem opening sequence file: %s !!!\n", SQ_name);
@@ -477,7 +477,7 @@ int             n_ess = 0;
          fprintf (stderr, "\n Problem with file: %s\n", f_name[i]);
          Syntax(); exit(2);
       }
-      if ( isize != fsize) {  /* check lengthes of other files */
+      if ( isize != fsize) {  /* check lengths of other files */
          fprintf (stderr, "\n\n !!! File %s has different format !!!\n",
                   f_name[i]);
          Syntax(); exit(2);
@@ -584,13 +584,13 @@ int             n_ess = 0;
 /* ------------------- */
 {
    fprintf (stderr, "\n\n %s makes functional image from time series of images and", ProgName);
-   fprintf (stderr, "\n reference (formated) functional-sequence file.");
+   fprintf (stderr, "\n reference (formatted) functional-sequence file.");
    fprintf (stderr, "\n Reference function is normalized before any correlation is done, so");
    fprintf (stderr, "\n the results are proportional to the amplitude of functional changes.");
    fprintf (stderr, "\n Additionally, output values are scaled to be independent of the number of");
    fprintf (stderr, "\n used points in the reference functional-sequence file. Output data can");
    fprintf (stderr, "\n be orthogonalized to additional external function using option -ort.");
-   fprintf (stderr, "\n Maximum number of external functios: %d", EXT_FILES);
+   fprintf (stderr, "\n Maximum number of external functions: %d", EXT_FILES);
    fprintf (stderr, "\n Image resolusion: up to 256x256\n");
    fprintf (stderr, "\n Usage: %s  [options] func_seq_file  file_1  [file_2 ... file_n]  out_file\n", ProgName);
   fprintf (stderr, "\n Where options are:\n");
@@ -608,7 +608,7 @@ int             n_ess = 0;
   fprintf (stderr, "\n                       Maximum number of options -ort: %d .", EXT_FILES);
   fprintf (stderr, "\n    -corr            - make image of correlation coefficients. Range -1 to 1");
   fprintf (stderr, "\n                       is scaled to -/+ %d. The program will create second", SCALE);
-  fprintf (stderr, "\n                       output file with extention %s .", CORR);
+  fprintf (stderr, "\n                       output file with extension %s .", CORR);
   fprintf (stderr, "\n    -list min_value  - make report for pixels brighter than min_value.");
   fprintf (stderr, "\n                       Default min_value: %g", NOISE_THR);
    fprintf (stderr, "\n\n Reference functional-sequence file can contain zero in each line for image");

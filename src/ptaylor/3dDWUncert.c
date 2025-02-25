@@ -374,7 +374,7 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-		if( strcmp(argv[iarg],"-input") == 0 ){ // initial results of 3dDWItoDTI
+		if( strcmp(argv[iarg],"-input") == 0 ){ // initial results of 3dDWItoDT
 			if( ++iarg >= argc ) 
             ERROR_exit("Need argument after '-input'");
 

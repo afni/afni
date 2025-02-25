@@ -1,7 +1,7 @@
 #include "mrilib.h"
 
 /*------------------------------------------------------------------------*/
-/*! Computes various metrics betweeen the histograms (joint and marginal)
+/*! Computes various metrics between the histograms (joint and marginal)
     of two images.  At this stage, experimental -- RWCox - 25 Apr 2006.
 --------------------------------------------------------------------------*/
 

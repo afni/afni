@@ -1,7 +1,11 @@
-#define _NIFTI1_IO_C_
+#define NIFTI1_IO_C
 
+#include <assert.h>
 #include "nifti1_io.h"   /* typedefs, prototypes, macros, etc. */
 #include "nifti1_io_version.h"
+
+#include <errno.h>
+#include <limits.h>
 
 /*****===================================================================*****/
 /*****     Sample functions to deal with NIFTI-1 and ANALYZE files       *****/
@@ -193,7 +197,7 @@ static char const * const gni_history[] =
   "\n",
   "1.3  09 Feb 2005 [rickr]\n"
   "   - nifti1.h: added doxygen comments for extension structs\n"
-  "   - nifti1_io.h: put most #defines in #ifdef _NIFTI1_IO_C_ block\n"
+  "   - nifti1_io.h: put most #defines in #ifdef NIFTI1_IO_C block\n"
   "   - added a doxygen-style description to every exported function\n"
   "   - added doxygen-style comments within some functions\n"
   "   - re-exported many znzFile functions that I had made static\n"
@@ -472,7 +476,7 @@ void nifti_disp_lib_hist( void )
 *//*--------------------------------------------------------------------*/
 void nifti_disp_lib_version( void )
 {
-   printf("%s, compiled %s\n", gni_version, __DATE__);
+   printf("%s\n", gni_version);
 }
 
 
@@ -2104,6 +2108,7 @@ void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
      case -2: i = NIFTI_A2P ; break ;
      case  3: i = NIFTI_I2S ; break ;
      case -3: i = NIFTI_S2I ; break ;
+     default: assert(0) ; break ;
    }
 
    switch( jbest*qbest ){
@@ -2113,6 +2118,7 @@ void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
      case -2: j = NIFTI_A2P ; break ;
      case  3: j = NIFTI_I2S ; break ;
      case -3: j = NIFTI_S2I ; break ;
+     default: assert(0) ; break ;
    }
 
    switch( kbest*rbest ){
@@ -2122,6 +2128,7 @@ void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
      case -2: k = NIFTI_A2P ; break ;
      case  3: k = NIFTI_I2S ; break ;
      case -3: k = NIFTI_S2I ; break ;
+     default: assert(0) ; break ;
    }
 
    *icod = i ; *jcod = j ; *kcod = k ;
@@ -2657,8 +2664,7 @@ int nifti_is_gzfile(const char* fname)
   if (fname == NULL) { return 0; }
 #ifdef HAVE_ZLIB
   { /* just so len doesn't generate compile warning */
-     int len;
-     len = (int)strlen(fname);
+     size_t len = strlen(fname);
      if (len < 3) return 0;  /* so we don't search before the name */
      if (fileext_compare(fname + strlen(fname) - 3,".gz")==0) { return 1; }
   }
@@ -4390,7 +4396,8 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
    nifti1_extender    extdr;      /* defines extension existence  */
    nifti1_extension   extn;       /* single extension to process  */
    nifti1_extension * Elist;      /* list of processed extensions */
-   int                posn, count;
+   znz_off_t          posn;
+   int                count;
 
    if( !nim || znz_isnull(fp) ) {
       if( g_opts.debug > 0 )
@@ -4403,12 +4410,13 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
 
    if( (posn != sizeof(nifti_1_header)) &&
        (nim->nifti_type != NIFTI_FTYPE_ASCII) )
-      fprintf(stderr,"** WARNING: posn not header size (%d, %d)\n",
-              posn, (int)sizeof(nifti_1_header));
+      fprintf(stderr,"** WARNING: posn not header size (%lld, %lu)\n",
+              (long long)posn, sizeof(nifti_1_header));
 
    if( g_opts.debug > 2 )
-      fprintf(stderr,"-d nre: posn = %d, offset = %d, type = %d, remain = %d\n",
-              posn, nim->iname_offset, nim->nifti_type, remain);
+      fprintf(stderr,"-d nre: posn = %lld, offset = %d, type = %d,"
+                     " remain = %d\n",
+              (long long)posn, nim->iname_offset, nim->nifti_type, remain);
 
    if( remain < 16 ){
       if( g_opts.debug > 2 ){
@@ -5608,7 +5616,7 @@ int nifti_copy_extensions(nifti_image * nim_dest, const nifti_image * nim_src)
     and the bytes used for the data.  Each esize also needs to be a
     multiple of 16, so it may be greater than the sum of its 3 parts.
 *//*--------------------------------------------------------------------*/
-int nifti_extension_size(nifti_image *nim)
+static int nifti_extension_size(nifti_image *nim)
 {
    int c, size = 0;
 
@@ -6969,7 +6977,7 @@ int nifti_read_subregion_image( nifti_image * nim,
   znzFile fp;                   /* file to read */
   int i,j,k,l,m,n;              /* indices for dims */
   long int bytes = 0;           /* total # bytes read */
-  int total_alloc_size;         /* size of buffer allocation */
+  size_t total_alloc_size;      /* size of buffer allocation */
   char *readptr;                /* where in *data to read next */
   int strides[7];               /* strides between dimensions */
   int collapsed_dims[8];        /* for read_collapsed_image */
@@ -7040,6 +7048,13 @@ int nifti_read_subregion_image( nifti_image * nim,
 
   /* get the file open */
   fp = nifti_image_load_prep( nim );
+  if(znz_isnull(fp))
+    {
+    if(g_opts.debug > 0)
+      fprintf(stderr,"** nifti_read_subregion_image, failed load_prep\n");
+    return -1;
+    }
+
   /* the current offset is just past the nifti header, save
    * location so that SEEK_SET can be used below
    */
@@ -7064,9 +7079,10 @@ int nifti_read_subregion_image( nifti_image * nim,
     {
     if(g_opts.debug > 1)
       {
-      fprintf(stderr,"allocation of %d bytes failed\n",total_alloc_size);
-      return -1;
+      fprintf(stderr,"allocation of %zu bytes failed\n",total_alloc_size);
       }
+    znzclose(fp);
+    return -1;
     }
 
   /* point to start of data buffer as char * */
@@ -7113,11 +7129,12 @@ int nifti_read_subregion_image( nifti_image * nim,
               nread = (int)nifti_read_buffer(fp, readptr, read_amount, nim);
               if(nread != read_amount)
                 {
-                if(g_opts.debug > 1)
+                if(g_opts.debug > 0)
                   {
                   fprintf(stderr,"read of %d bytes failed\n",read_amount);
-                  return -1;
                   }
+                znzclose(fp);
+                return -1;
                 }
               bytes += nread;
               readptr += read_amount;
@@ -7128,6 +7145,7 @@ int nifti_read_subregion_image( nifti_image * nim,
       }
     }
   }
+  znzclose(fp);
   return bytes;
 }
 
@@ -7327,10 +7345,11 @@ static int make_pivot_list(nifti_image * nim, const int dims[], int pivots[],
 *//*-------------------------------------------------------------------*/
 int * nifti_get_intlist( int nvals , const char * str )
 {
-   int *subv = NULL ;
-   int *subv_realloc = NULL;
-   int ii , ipos , nout , slen ;
-   int ibot,itop,istep , nused ;
+   int  *subv = NULL ;
+   int  *subv_realloc = NULL;
+   int   ii , ipos , nout , slen ;
+   int   ibot,itop,istep ;
+   long  nused, temp ;
    char *cpt ;
 
    /* Meaningless input? */
@@ -7366,14 +7385,20 @@ int * nifti_get_intlist( int nvals , const char * str )
       if( str[ipos] == '$' ){  /* special case */
          ibot = nvals-1 ; ipos++ ;
       } else {                 /* decode an integer */
-         ibot = strtol( str+ipos , &cpt , 10 ) ;
+         errno = 0;
+         temp = strtol( str+ipos , &cpt , 10 ) ;
+         if( (temp == 0 && errno != 0) || temp <= INT_MIN || temp >= INT_MAX){
+            fprintf(stderr,"** ERROR: list index does not fit in int\n") ;
+            free(subv) ; return NULL ;
+         }
+         ibot = (int)temp;
          if( ibot < 0 ){
-           fprintf(stderr,"** ERROR: list index %d is out of range 0..%d\n",
+            fprintf(stderr,"** ERROR: list index %d is out of range 0..%d\n",
                    ibot,nvals-1) ;
            free(subv) ; return NULL ;
          }
          if( ibot >= nvals ){
-           fprintf(stderr,"** ERROR: list index %d is out of range 0..%d\n",
+            fprintf(stderr,"** ERROR: list index %d is out of range 0..%d\n",
                    ibot,nvals-1) ;
            free(subv) ; return NULL ;
          }
@@ -7423,7 +7448,13 @@ int * nifti_get_intlist( int nvals , const char * str )
       if( str[ipos] == '$' ){  /* special case */
          itop = nvals-1 ; ipos++ ;
       } else {                 /* decode an integer */
-         itop = strtol( str+ipos , &cpt , 10 ) ;
+         errno = 0;
+         temp = strtol( str+ipos , &cpt , 10 ) ;
+         if( (temp == 0 && errno != 0) || temp <= INT_MIN || temp >= INT_MAX){
+            fprintf(stderr,"** ERROR: list index does not fit in int\n") ;
+            free(subv) ; return NULL ;
+         }
+         itop = (int)temp;
          if( itop < 0 ){
            fprintf(stderr,"** ERROR: index %d is out of range 0..%d\n",
                    itop,nvals-1) ;
@@ -7452,7 +7483,13 @@ int * nifti_get_intlist( int nvals , const char * str )
 
       if( str[ipos] == '(' ){  /* decode an integer */
          ipos++ ;
-         istep = strtol( str+ipos , &cpt , 10 ) ;
+         errno = 0;
+         temp = strtol( str+ipos , &cpt , 10 ) ;
+         if( (temp == 0 && errno != 0) || temp <= INT_MIN || temp >= INT_MAX){
+            fprintf(stderr,"** ERROR: list index does not fit in int\n") ;
+            free(subv) ; return NULL ;
+         }
+         istep = (int)temp;
          if( istep == 0 ){
            fprintf(stderr,"** ERROR: index loop step is 0!\n") ;
            free(subv) ; return NULL ;

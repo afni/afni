@@ -317,7 +317,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # add analysis type
       label = QLIB.make_label("type",
-                tip='analysis type to perfom: task or resting state')
+                tip='analysis type to perform: task or resting state')
       pbut = QLIB.create_menu_button(bwidget, self.svars.anal_type,
                 USUBJ.g_def_anal_types, call_back=self.CB_gbox_PushB)
       self.gvars.PushB_anal_type = pbut
@@ -549,7 +549,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # --------------------------------------------------
       # align_cost, with chooser
       label = QtGui.QLabel("align: cost function")
-      label.setStatusTip("cost funtion for aligning EPI to anat")
+      label.setStatusTip("cost function for aligning EPI to anat")
       LE = QtGui.QLineEdit()
       # choose button
       blist = ['cost: %s' % cost for cost in USUBJ.g_align_cost_list]
@@ -863,7 +863,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       """create a group box with a VBox layout:
                 HBox:  QPushB(browse anat)  QPushB(clear anat)
                 LineEdit(anatomical dataset)
-                QCheckBox (inlude tlrc)
+                QCheckBox (include tlrc)
 
          for controlling sujbect vars: anat, get_tlrc
       """
@@ -2330,10 +2330,10 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       obj = self.sender()
       if   obj == self.gvars.act_browse_all_progs:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
-                            '/htmldoc/programs/main_toc.html')
+                            '/htmldoc/programs/alpha/main_toc.html')
       elif obj == self.gvars.act_browse_AP_help:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
-                            '/htmldoc/programs/afni_proc.py_sphx.html')
+                            '/htmldoc/programs/alpha/afni_proc.py_sphx.html')
       elif obj == self.gvars.act_browse_SS_tutor:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/edu/data' \
                             '/CD.expanded/AFNI_data6/FT_analysis/tutorial')
@@ -2341,7 +2341,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/edu' \
                             '/latest/afni_handouts')
       elif obj == self.gvars.act_browse_MB:
-         self.open_web_site('https://afni.nimh.nih.gov/afni/community/board')
+         self.open_web_site('https://discuss.afni.nimh.nih.gov')
       elif obj == self.gvars.act_browse_D2004_glt:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
                             '/misc/Decon/DeconSummer2004.html')
@@ -3153,7 +3153,7 @@ Specifying the stimulus timing files:
       They can all be set at once via 'init basis funcs', or they can be
       modified individually in the table.
 
-      A stimulus type will applied to each file.  They can be initialzed at
+      A stimulus type will applied to each file.  They can be initialized at
       once via 'init file types', or they can be modified individually in the
       table.  The stimulus file types are shown in the 'choose' menu and
       correspond to those in afni_proc.py.

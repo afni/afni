@@ -79,7 +79,7 @@ Details ~1~
     the input data and relevant variables (with at least 3 columns: subject
     labels, ROI labels, response variable values).
 
-    The -dataTable should be formated as follows:
+    The -dataTable should be formatted as follows:
 
         Subj  ROI   some_y  some_x other_x
         S001  roi1  0.12    0.056  0.356

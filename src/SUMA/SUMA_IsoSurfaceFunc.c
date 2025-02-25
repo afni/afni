@@ -10,6 +10,7 @@ http://www-sop.inria.fr/prisme/personnel/Thomas.Lewiner/JGT.pdf
 
 #include "SUMA_suma.h"
 #include "MarchingCubes/MarchingCubes.h"
+#include "MarchingCubes/mc_ziad.h"
 
 /*! a macro version of MarchingCubes' set_data */
 #define SUMA_SET_MC_DATA(mcb, val, i, j, k) {  \

@@ -224,7 +224,7 @@ default_decompress_parms (j_decompress_ptr cinfo)
  * jpeg_destroy to release any temporary space.)
  * If an abbreviated (tables only) datastream is presented, the routine will
  * return JPEG_HEADER_TABLES_ONLY upon reaching EOI.  The application may then
- * re-use the JPEG object to read the abbreviated image datastream(s).
+ * reuse the JPEG object to read the abbreviated image datastream(s).
  * It is unnecessary (but OK) to call jpeg_abort in this case.
  * The JPEG_SUSPENDED return code only occurs if the data source module
  * requests suspension of the decompressor.  In this case the application

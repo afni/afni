@@ -54,13 +54,13 @@
  *  (B frames which are backward P's at the start of a sequence)
  *
  *  Revision 1.8  1995/03/27 19:17:43  smoot
- *  killed useless type error messge (int32 defiend as int)
+ *  killed useless type error message (int32 defined as int)
  *
  * Revision 1.7  1995/01/19  23:07:20  eyhung
  * Changed copyrights
  *
  * Revision 1.6  1994/12/07  00:40:36  smoot
- * Added seperate P and B search ranges
+ * Added separate P and B search ranges
  *
  * Revision 1.5  1994/03/15  00:27:11  keving
  * nothing
@@ -217,7 +217,7 @@ BSearchName()
  *
  * PRECONDITIONS:	The relevant block in 'current' is valid (it has not
  *			been dct'd).  Thus, the data in 'current' can be
- *			accesed through y_blocks, cr_blocks, and cb_blocks.
+ *			accessed through y_blocks, cr_blocks, and cb_blocks.
  *			This is not the case for the blocks in 'prev' and
  *			'next.'  Therefore, references into 'prev' and 'next'
  *			should be done

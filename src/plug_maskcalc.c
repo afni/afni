@@ -985,7 +985,7 @@ open_file(
 **      Check for existence of output file.
 **
 **      If suffix is NULL, only consider filename.
-**      If filename already ends in the suffix, only consider filname.
+**      If filename already ends in the suffix, only consider filename.
 **      If the filename ends in a period, only add the suffix.
 **      Otherwise add a period and the suffix before checking its existence.
 **

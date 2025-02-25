@@ -98,7 +98,7 @@ int main (int argc,char *argv[])
    fprintf(stderr,"Hit enter to proceed\n");
    free(pp); pp=NULL;
    /* Here is should test calling R functions from some functions
-   that we create. I will need to sort out how packges are formed
+   that we create. I will need to sort out how packages are formed
    for R and how R can find them on any machine etc. Nuts and bolts...
    A simple exercise here would be to learn how to construct our R library
    and call its functions from here ... */

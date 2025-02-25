@@ -181,7 +181,7 @@ WARNING_message("Do not use this program (3dstrip)! It is old and unmaintained."
                        ADN_ntt       , 0 ,
                     ADN_none ) ;
 
-   /* copy dar to qar, omiting values <= base */
+   /* copy dar to qar, omitting values <= base */
 
    qar = (short *) malloc( sizeof(short) * nxyz ) ; /* another array */
    if( qar == NULL ){fprintf(stderr,"** Can't malloc workspace!\n");exit(1);}
@@ -658,7 +658,7 @@ void xyz_to_ijk( THD_3dim_dataset * ds , float x , float y , float z ,
      ny = 2nd dimension
      ix = start point
      jy = end point
-     ar = array, with 0's everwhere except 1's as barriers to flooding
+     ar = array, with 0's everywhere except 1's as barriers to flooding
 
    All filled points (starting with ix,jy) will get the value 2.
 -----------------------------------------------------------------------------*/

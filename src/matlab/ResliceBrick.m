@@ -31,7 +31,7 @@ function [err, ErrMessage, Info, V] = ResliceBrick (BrickName, NewCode, Opt)
 %
 %   example: The images making up data set AMzsspgrco+orig were acquired coronally.
 %         In certain instances (especially those involving 3dvolreg), you need to have
-%         the images making up the different volumes to be in aqcuired in the same plane
+%         the images making up the different volumes to be in acquired in the same plane
 %         and orientation. In this example, we reslice AMzsspgrco+orig to look like its images
 %         were acquired just like those making up AHzsspgrax+orig (axial, LAI)
 %
@@ -48,7 +48,7 @@ function [err, ErrMessage, Info, V] = ResliceBrick (BrickName, NewCode, Opt)
 %Debug Flag
 	DBG = 1;
 
-%initailize return variables
+%initialize return variables
 	err = 1;
 	ErrMessage = '';
 

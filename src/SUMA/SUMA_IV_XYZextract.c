@@ -28,11 +28,11 @@ Purpose :
  	If the starting or ending sequences are not found
  	If the number of points read is not a multiple of three
  	If the first number of the first XYZ triplet and the last character in the starting sequence 
- 		are not spearated by a space (or tab). You can fix this by manually adding a space.
+ 		are not separated by a space (or tab). You can fix this by manually adding a space.
  	 
  	
  
-Input paramters : 
+Input parameters : 
  
  	IV_filename (char *) a string specifying the name of the inventor file
  	N_NodeList (int *) will give the number of nodes in NodeList / 3 or /4
@@ -82,7 +82,7 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
    
    cnt3.quot = cnt3.rem = 0;
    
-	/* intialize the number of points read to 0 */
+	/* initialize the number of points read to 0 */
 	*N_NodeList = 0;
 	
 	linv = (float *)SUMA_malloc (MaxAlloc*sizeof(float));
@@ -321,7 +321,7 @@ void usage ()
 		printf ("\t If the starting or ending sequences are not found\n");
 		printf ("\t If the number of points read is not a multiple of three\n");
 		printf ("\t If the first number of the first XYZ triplet and the last character in the starting sequence \n");
-		printf ("\t 	are not spearated by a space (or tab). You can fix this by manually adding a space.\n");
+		printf ("\t 	are not separated by a space (or tab). You can fix this by manually adding a space.\n");
 		printf ("\t \n");
 		printf ("\t IV_filename : Filename of the ascii inventor file \n");
 		printf ("\t [-o output-filename] : output file name containing the : NodeNumber X Y Z  \n");
@@ -395,7 +395,7 @@ else
 NodeList = SUMA_IV_XYZextract (argv[1], &N_NodeList, IncludeIndex)	;
 
 if (CountOnly)
-	printf ("%d Nodes XYZ corrdinates read\n",N_NodeList);
+	printf ("%d Nodes XYZ coordinates read\n",N_NodeList);
 
 if (writeout == 1) {
 	FILE *outfid; 

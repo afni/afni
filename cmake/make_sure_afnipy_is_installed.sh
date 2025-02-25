@@ -2,7 +2,7 @@
 # This script used as part of AFNI's cmake build is executed from within the
 # root directory of AFNI's python package
 
-#  Get python interpretter
+#  Get python interpreter
 if [ $# -lt 1 ]
  then
      export py_interp=$(which python)
@@ -31,9 +31,9 @@ then
   # check if DO_NOT_USE_PIP is set:
   if [ -z ${DO_NOT_USE_PIP+x} ]
   then
-   # variable not set 
+   # variable not set
     eval "$py_interp -m pip install -e ."
-  else 
+  else
     eval "$py_interp setup.py develop"
   fi
 fi

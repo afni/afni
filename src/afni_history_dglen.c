@@ -53,6 +53,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 14, FEB, 2024, DRG, "whereami",
+     MICRO, TYPE_NEW_OPT,
+    "whereami -index_to_label to show label for an index",
+    "Labels can be from ordinary labeltabled ROI datasets\n"
+    "or from atlas datasets"
+},
 { 12, FEB, 2022, DRG, "3dMean",
      MINOR, TYPE_NEW_OPT,
     "3dMean can compute max, min, absmax, signed_absmax",
@@ -1112,7 +1118,7 @@ afni_history_struct dglen_history[] = {
 
 { 15 , MAR, 2011 , DRG , "lpc_align.py" , 
     MICRO , TYPE_GENERAL, 
-    "lpc_align.py is superceded by align_epi_anat.py",
+    "lpc_align.py is superseded by align_epi_anat.py",
     "Program now exits with short message to use align_epi_anat.py"
 } ,
 

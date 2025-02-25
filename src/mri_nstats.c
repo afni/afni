@@ -350,7 +350,7 @@ void mri_nstat_fwhmxyz_usevar( int i ){ fwhm_use_variance = i; }
 #define INMASK(i) (mask==NULL || mask[i])
 
 /*--------------------------------------------------------------------------*/
-/*! FWHM parameters in a neigbhorhood of a point. */
+/*! FWHM parameters in a neighborhood of a point. */
 
 THD_fvec3 mri_nstat_fwhmxyz( int xx, int yy, int zz,
                              MRI_IMAGE *im, byte *mask, MCW_cluster *nbhd )
@@ -475,7 +475,7 @@ float mri_nstat_fwhmbar( int xx, int yy, int zz,
 }
 
 /*--------------------------------------------------------------------------*/
-/*! FWHM parameters in a neigbhorhood of a point -- another way. */
+/*! FWHM parameters in a neighborhood of a point -- another way. */
 
 THD_fvec3 mri_nstat_fwhmxyz_12dif( int xx, int yy, int zz,
                                    MRI_IMAGE *im, byte *mask, MCW_cluster *nbhd,
@@ -791,6 +791,8 @@ ENTRY("THD_localstat") ;
    nvout = nvin * ncode ;
    EDIT_dset_items( oset ,
                       ADN_nvals     , nvout       ,
+                      /* make output bucket only  [8 Aug 2023 rickr] */
+                      ADN_ntt       , 0           ,
                       ADN_datum_all , MRI_float   ,
                       ADN_nsl       , 0           ,
                       ADN_brick_fac , NULL        ,

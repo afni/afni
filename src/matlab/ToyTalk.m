@@ -50,7 +50,7 @@ function [nel, comm] = ToyTalk()
 %  to press 't' in the still running SUMA twice.
 %
 %  I am hoping the code is sufficient to show you how this is done
-%  I tried to hide all unecessary detail for you. It bugs me that
+%  I tried to hide all unnecessary detail for you. It bugs me that
 %  there is no way to start a workprocess on command line, so that
 %  one's code does not have to handle repeated polling for new data
 %  but oh well. If you know of new matlab developments on that front,
@@ -62,7 +62,7 @@ function [nel, comm] = ToyTalk()
 %running AFNI with -niml (listening mode) if you want matlab to be listening too.
 %This limitation will soon be removed.
 %2- Matlab does not talk 'directly' to SUMA the way afni does. While this is a
-%possiblity, I need concrete examples of where that is useful. I would be more
+%possibility, I need concrete examples of where that is useful. I would be more
 %inclined to create a 'TellSuma.m' which parallels 'TellAfni.m' to communicate
 %with SUMA from matlab. Let me know what you think
 %

@@ -765,7 +765,7 @@ def test_handling_of_binary_locations_and_afnipy_when_cmake_build_is_used(
     """
     Testing situation 1. of modify_path_and_env_if_not_using_cmake: the cmake
     manages the details and masks any system state. afnipy should already be
-    installed into the python interpretter when executing tests in this mode.
+    installed into the python interpreter when executing tests in this mode.
     All scripts/binaries are prepended to the path on the fly.
 
     Might want to consider having  a text file during installation that points
@@ -1485,7 +1485,7 @@ def test_wrong_build_dir_raise_file_not_found(monkeypatch):
     )
 
     # this should fail, as /opt/build/afni is mocked to not exist, simulating
-    # a local execution for which /opt/afni/build is specificed as the build
+    # a local execution for which /opt/afni/build is specified as the build
     # dir
     with pytest.raises(NotADirectoryError):
         afni_test_utils.minimal_funcs_for_run_tests_cli.check_if_cmake_configure_required(

@@ -832,7 +832,7 @@ static char * ISQ_arrow_label[NARROW] = { "c" , "b" , "r" , "g" , "i" } ;
 #define NARR_FRAC    4
 
 static char * ISQ_arrow_help[NARROW] = {
-   "Change constrast\nin colormap" ,
+   "Change contrast\nin colormap" ,
    "Change brightness\nin colormap" ,
    "Rotate\ncolormap" ,
    "Alter\ndisplay\ngamma" ,
@@ -1033,7 +1033,7 @@ if( PRINT_TRACING ){
    newseq->saver_blowup = 1 ;              /* image save blowup factor */
 
    newseq->given_xim = newseq->sized_xim   /* XImages for actual drawing */
-                     = newseq->given_xbar  /* saved for re-use when possible */
+                     = newseq->given_xbar  /* saved for reuse when possible */
                      = newseq->sized_xbar = NULL ;
 
    /* Feb 1998: button2 drawing stuff [enabled/used by Draw Dataset plugin] */
@@ -4931,7 +4931,7 @@ ENTRY("ISQ_saver_CB") ;
                pattrn=getenv("AFNI_MPEG_PATTERN")  ;
                if( pattrn == NULL ){                  /* 07 Apr 2009 */
                  /* by default use only I-frames */
-                 if( adup <= 1 ) pattrn="-intra";
+                 if( adup <= 1 ) pattrn="-g 1";   /* -intra deprecated 2024*/
                  /* otherwise go with ffmpegs default */
                  else pattrn="";
                }
@@ -11106,7 +11106,7 @@ ENTRY("ISQ_graymap_draw") ;
    seq->need_orim |= GRAYMAP_MASK ;
 
    /* make float arrays with grayscales and data range */
-   /* Modifed 12 Jan 2004 to plot in histogram style. */
+   /* Modified 12 Jan 2004 to plot in histogram style. */
 
    nx     = seq->dc->ncol_im ;
    nxx    = 2*nx+2 ;
@@ -12809,7 +12809,7 @@ ENTRY("ISQ_cropper") ;
    if( imx1 > imx2 ){ tt = imx1; imx1 = imx2; imx2 = tt; }
    if( imy1 > imy2 ){ tt = imy1; imy1 = imy2; imy2 = tt; }
 
-   /*** if dragging occured across sub-images in a montage,
+   /*** if dragging occurred across sub-images in a montage,
         or if rectangle edge is in a Montage's inter-image border */
 
    if( nim1 != nim2 || imx1 < 0 || imy1 < 0 ){
@@ -14485,7 +14485,7 @@ ENTRY("ISQ_save_anim") ;
         pattrn=getenv("AFNI_MPEG_PATTERN")  ;
         if( pattrn == NULL ){
             /* by default use only I-frames */
-            if( adup <= 1 ) pattrn="-intra";
+            if( adup <= 1 ) pattrn="-g 1";   /* -intra deprecated 2024*/
             /* otherwise go with ffmpegs default */
             else pattrn="";
         }

@@ -51,7 +51,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfInfo_ParseInput(char *argv[], int arg
    Opt->in_1D=" ; ";
    kar = 1;
    brk = NOPE;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           usage_SurfInfo(ps);

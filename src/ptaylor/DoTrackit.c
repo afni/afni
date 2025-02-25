@@ -1080,7 +1080,7 @@ int Setup_Labels_Indices_Unc_M_both(int *Dim, int ***mskd, int ***INDEX,
                }
                
 					for( m=0 ; m<N_nets ; m++ ) {
-						// allow indentification by index --
+						// allow identification by index --
 						// now, since we allow non-consecutive ROI labels,
 						// just use the compacted list numbers via INV_LABELS
 						if( THD_get_voxel(mset1, idw, m)>0.5 )

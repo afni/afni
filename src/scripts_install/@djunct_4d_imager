@@ -49,12 +49,17 @@ set this_prog = "@djunct_4d_imager"
 #set version   = "2.31";  set rev_dat   = "Mar 16, 2021"
 # [PT] AFNI_COMPRESSOR -> NONE
 #
-set version   = "2.32";   set rev_dat   = "Sep 27, 2021"
+#set version   = "2.32";   set rev_dat   = "Sep 27, 2021"
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
 #
+set version   = "2.4";   set rev_dat   = "Aug 22, 2024"
+#     + [PT] new opts to turn off sepscl or onescl images
+#          - also, can turn off various slice views
+#
 # ----------------- find AFNI and set viewer ---------------------
-setenv AFNI_COMPRESSOR NONE
+setenv AFNI_ENVIRON_WARNINGS NO
+setenv AFNI_COMPRESSOR       NONE
 
 # find AFNI binaries directory and viewer location
 set adir      = ""
@@ -81,13 +86,20 @@ set odir   = ""
 
 set opref  = "FOURD_IMAGES"
 set mfile0 = "tmp4d.nii"  
-set svals  = ( )
+set svals  = ( "-" "-" "-" )          # init, bc we can turn off slices
 
 # final order?
 set imgview = ( "axi" "cor" "sag" )
 set mview = ( "axial" "coronal" "sagittal" )
 
 set movie = ""                        # not on by default, at the moment
+
+# default to make all styles and slice views, but can turn off
+set DO_ONESCL = 1                     
+set DO_SEPSCL = 1
+set DO_AXI = 1
+set DO_COR = 1
+set DO_SAG = 1
 
 # ------------------- process options, a la rr ----------------------
 
@@ -130,6 +142,21 @@ while ( $ac <= $#argv )
             goto BAD_EXIT
         endif
 
+    else if ( "$argv[$ac]" == "-no_sepscl" ) then
+        set DO_SEPSCL = 0
+
+    else if ( "$argv[$ac]" == "-no_onescl" ) then
+        set DO_ONESCL = 0
+
+    else if ( "$argv[$ac]" == "-no_axi" ) then
+        set DO_AXI = 0
+
+    else if ( "$argv[$ac]" == "-no_cor" ) then
+        set DO_COR = 0
+
+    else if ( "$argv[$ac]" == "-no_sag" ) then
+        set DO_SAG = 0
+
     #else if ( "$argv[$ac]" == "-no_clean" ) then
     #    set DO_CLEAN = 0
 
@@ -167,6 +194,36 @@ else
     echo "++ Found inset file:   $iset"
 endif
 
+# For the main loop below over all_ii, we always have the following
+# relations bc of the resampling above:
+#   1 -> axi
+#   2 -> cor
+#   3 -> sag
+# Therefore, instead of always looping ii over (1 2 3), we can pick
+# and choose, based on what the users want; they might want to turn
+# off some slice planes, for speed
+set all_ii = ()
+if ( ${DO_AXI} ) then
+    set all_ii = ( ${all_ii} 1 )
+endif
+if ( ${DO_COR} ) then
+    set all_ii = ( ${all_ii} 2 )
+endif
+if ( ${DO_SAG} ) then
+    set all_ii = ( ${all_ii} 3 )
+endif
+# ... and then make sure we still have work to do
+if ( ${#all_ii} == 0 ) then
+    echo "+* WARNING: user deselected all slice views, no images to make"
+    goto GOOD_EXIT
+endif
+
+# Also verify that we haven't turned off all images
+if ( ${DO_ONESCL} == 0 && ${DO_SEPSCL} == 0 ) then
+    echo "+* WARNING: user turned off onescl and sepscl, no images to make"
+    goto GOOD_EXIT
+endif
+
 # ===================== output dir + wdir =======================
  
 # check output directory, use input one if nothing given
@@ -178,7 +235,7 @@ if ( "$odir" == "" ) then
     # because a file is in it
 
     set odir = `dirname "$iset"`
-    echo "\n++ No output directory specificied by the user."
+    echo "\n++ No output directory specified by the user."
     echo "++ Using the input file's directory by default:"
     echo "\t$odir"
 else
@@ -221,7 +278,8 @@ set ori2 = `echo $ori | awk '{print substr($0,3,1)}'`
 set all_ori = ( $ori0 $ori1 $ori2 )
 set dim0 = `3dinfo -n4 "$mfile0"`
 
-foreach ii ( `seq 1 1 3` ) 
+# **see note above about creating all_ii array
+foreach ii ( ${all_ii} ) 
 
     if ( $ii == 1 ) then
         echo "++ Iteration #$ii"
@@ -268,8 +326,8 @@ foreach ii ( `seq 1 1 3` )
     set mdtype  = `3dinfo -datum "$mfile""[0]"` 
     set mdim    = `3dinfo -n4 "$mfile"`
 
-    @ slnum     = ( $mdim[3] / 2 ) + 3
-    set svals   = ( $svals $slnum )
+    @ slnum        = ( $mdim[3] / 2 ) + 3
+    set svals[$ii] = $slnum
     echo "++ Going to view slice [${slnum}]"
 
     # ----------------- set type of number ---------------
@@ -338,30 +396,34 @@ foreach ii ( `seq 1 1 3` )
     if ( "$movie" != "" ) then
         echo "++ Making '${mview[$ii]}' movie"
         # movie of the unpadded file: each view is pretending to be axial
-        $my_viewer                         \
-            -ulay "$ovol"                  \
-            -prefix "${opref}_qc_onescl_$ii"  \
-            -olay_off                      \
-            -save_ftype "$movie"           \
-            -montx 1                       \
-            -monty 1                       \
-            -set_ijk 0 0 0                 \
-            -ulay_range 1% 99.5%           \
-            -label_mode 1 -label_size 4    \
-            -image_label_ijk
+        if ( ${DO_ONESCL} ) then
+            $my_viewer                         \
+                -ulay "$ovol"                  \
+                -prefix "${opref}_qc_onescl_$ii"  \
+                -olay_off                      \
+                -save_ftype "$movie"           \
+                -montx 1                       \
+                -monty 1                       \
+                -set_ijk 0 0 0                 \
+                -ulay_range 1% 99.5%           \
+                -label_mode 1 -label_size 4    \
+                -image_label_ijk
+        endif
 
-        $my_viewer                         \
-            -ulay "$ovol"                  \
-            -prefix "${opref}_qc_sepscl_$ii"  \
-            -olay_off                      \
-            -save_ftype "$movie"           \
-            -montx 1                       \
-            -monty 1                       \
-            -set_ijk 0 0 0                 \
-            -globalrange "SLICE"           \
-            -ulay_range 1% 99%             \
-            -label_mode 1 -label_size 4    \
-            -image_label_ijk
+        if ( ${DO_SEPSCL} ) then
+            $my_viewer                         \
+                -ulay "$ovol"                  \
+                -prefix "${opref}_qc_sepscl_$ii"  \
+                -olay_off                      \
+                -save_ftype "$movie"           \
+                -montx 1                       \
+                -monty 1                       \
+                -set_ijk 0 0 0                 \
+                -globalrange "SLICE"           \
+                -ulay_range 1% 99%             \
+                -label_mode 1 -label_size 4    \
+                -image_label_ijk
+        endif
     endif
 
     if ( $Npad > 0 ) then
@@ -378,29 +440,33 @@ foreach ii ( `seq 1 1 3` )
     # ------------------ snapshot(s) -----------------------
 
     # global range, almost all
-    $my_viewer                         \
-        -ulay "$ovol"                  \
-        -prefix "${opref}_qc_onescl_$ii"  \
-        -olay_off                      \
-        -montx $Ncol                   \
-        -monty $Nrow                   \
-        -ulay_range 1% 99.5%           \
-        -label_mode 1 -label_size 4    \
-        -image_label_ijk
+    if ( ${DO_ONESCL} ) then
+        $my_viewer                         \
+            -ulay "$ovol"                  \
+            -prefix "${opref}_qc_onescl_$ii"  \
+            -olay_off                      \
+            -montx $Ncol                   \
+            -monty $Nrow                   \
+            -ulay_range 1% 99.5%           \
+            -label_mode 1 -label_size 4    \
+            -image_label_ijk
+    endif
 
     # slicewise ranges
-    $my_viewer                         \
-        -ulay "$ovol"                  \
-        -prefix "${opref}_qc_sepscl_$ii"  \
-        -olay_off                      \
-        -montx $Ncol                   \
-        -monty $Nrow                   \
-        -globalrange "SLICE"           \
-        -ulay_range 1% 99%             \
-        -label_mode 1 -label_size 4    \
-        -image_label_ijk
+    if ( ${DO_SEPSCL} ) then
+        $my_viewer                         \
+            -ulay "$ovol"                  \
+            -prefix "${opref}_qc_sepscl_$ii"  \
+            -olay_off                      \
+            -montx $Ncol                   \
+            -monty $Nrow                   \
+            -globalrange "SLICE"           \
+            -ulay_range 1% 99%             \
+            -label_mode 1 -label_size 4    \
+            -image_label_ijk
+    endif
 
-    # some images are unuseful, so, bye bye; rename useful one
+    # some images are not useful, so, bye bye; rename useful one
     # correctly, and put into odir (out of wdir)
     if ( 1 ) then
         \rm ${opref}_*_${ii}.sag.*
@@ -446,8 +512,15 @@ if ( $DO_CLEAN == 1 ) then
     \rm -rf $wdir
 endif
 
-@ vvx = $dim0[1] - ${svals[3]}
-@ vvy = $dim0[2] - ${svals[2]}
+# prepare for final output reporting for slices that were processed
+set vvx = "-"
+set vvy = "-"
+if ( "${svals[3]}" != "-" ) then
+    @ vvx = $dim0[1] - ${svals[3]}
+endif
+if ( "${svals[2]}" != "-" ) then
+    @ vvy = $dim0[2] - ${svals[2]}
+endif
 
 # have to put slice values in (i,j,k) order.
 echo ""
@@ -518,6 +591,18 @@ written by PA Taylor (NIMH, NIH, USA).
                       MPEG   AGIF
                     This is optional; by default, a montage of PNG images
                     is created: the same slice across the 4D set.
+
+-no_sepscl         :do not create *sepscl* montage (or movie, if using
+                    -do_movie)
+
+-no_onescl         :do not create *onescl* montage (or movie, if using
+                    -do_movie)
+
+-no_axi            :do not create axial slice views 
+
+-no_cor            :do not create coronal slice views 
+
+-no_sag            :do not create sagittal slice views 
 
 -no_clean          :by default, the temporary directory made by this
                     program is deleted when finishing.  Use this option

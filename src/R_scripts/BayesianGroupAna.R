@@ -138,7 +138,7 @@ for(x in x_var){
     box.border <- rep(1,length(row.names(out.tab)))
     axis.sig <- axis.may <- axis.not <-  c()
     
-    ## get sigificance colors
+    ## get significance colors
     for(i in 1:length(row.names(out.tab))){
       if(out.tab[i,3] > 0 & out.tab[i,7] > 0){
         box.color[i] <- sig.bg

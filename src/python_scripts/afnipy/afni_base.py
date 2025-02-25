@@ -9,9 +9,11 @@ from pathlib import Path
 valid_afni_views = ['+orig', '+acpc', '+tlrc']
 valid_new_views  = ['+orig', '+acpc', '+tlrc', '']
 
-# limits for shell_com history
+# limits for shell_com history and log
 SAVE_SHELL_HISTORY = 400
 MAX_SHELL_HISTORY  = 600
+SAVE_SHELL_LOG = 400
+MAX_SHELL_LOG  = 600
 
 
 
@@ -143,7 +145,7 @@ class afni_name(object):
          this is identically ppve(sel=1), but maybe without quotes
       """
       
-      # if no selectors, do not incude quotes    7 Apr 2015 [rickr]
+      # if no selectors, do not include quotes    7 Apr 2015 [rickr]
 
       # if no quotes, clear and reset internal selqute
       if not quotes:
@@ -338,15 +340,22 @@ class afni_name(object):
             return 1
          else: return 0
    
-   def locate(self, oexec=""):
-      """Attempt to locate the file and if found, update its info"""
+   def locate(self, oexec="", verb=0):
+      """attempt to locate the file
+
+         First search using the input path.  If not found, drop that path
+         and search using @FindAfniDsetPath.  If then found, update the
+         path using the new information.
+
+         return 1 if found (exist() or via @Find)
+         (previously, this returned 0 even if @Find succeeded)
+      """
+      # drop the path for comments and searching
+      dname = self.pv()
+
       if (self.exist()):
+         if verb: print("-- locate: dset %s exists" % dname)
          return 1
-      else:
-         #could it be in abin, etc.
-         cmd = '@FindAfniDsetPath %s' % self.pv()
-         com=shell_com(cmd,oexec, capture=1)
-         com.run()
 
          if com.status or not com.so or len(com.so[0]) < 2:
            # call this a non-fatal error for now
@@ -356,12 +365,49 @@ class afni_name(object):
               print('   stderr = %s' % com.se)
            return 0
 
+         # added in make_template_dask_dev branch?
          # self.path = com.so[0].decode()
          self.path = com.so[0]
          # nuke any newline character
          newline = self.path.find('\n')
          if newline > 1: self.path = self.path[0:newline]
-      return 0
+
+      # not found with input path, so drop path and search in abin, etc.
+      # (might be nicer with afni_util, but that would be new dep)
+      cmd = '@FindAfniDsetPath %s' % dname
+      com=shell_com(cmd, oexec, capture=1)
+      com.run()
+
+      # this fails on no output (thanks, Rasmus)
+      if len(com.so) > 0:
+          path = com.so[0]
+      else:
+          path = ''
+
+      if com.status or not path or len(path) < 1:
+        # call this a non-fatal error for now
+        if verb: print("-- locate: @Find did not find dset %s" % dname)
+        if 0:
+           print('   status = %s' % com.status)
+           print('   stdout = %s' % com.so)
+           print('   stderr = %s' % com.se)
+        return 0
+
+      # found, so update with new path to dataset
+
+      # remove any newline character
+      newline = path.find('\n')
+      if newline > 1: path = path[0:newline]
+
+      # require it to end in a '/'
+      if not path.endswith('/'): path += '/'
+
+      # and finally, assign
+      self.path = path
+
+      if verb: print("-- locate: @Find found dset %s @ %s" % (dname,self.path))
+
+      return 1
       
    def delete(self, oexec=""): #delete files on disk!
       """delete the files via a shell command"""
@@ -524,6 +570,21 @@ class afni_name(object):
       self.extension = ''  # clear 
       return
 
+   def to_NIFTI(self, ext='.nii.gz'):  
+      """modify to be NIFTI type, possibly with gz compression"""
+
+      # already NIFTI - returning early is problematic
+      # because it preserves file extension - nii or nii.gz
+      # nii by itself ignores provided or default .gz compressed output
+      # this can get confusing especially because of AFNI_AUTOGZIP (grrrr)
+      # which compresses *sometimes* if the algorithm predicts a smaller file
+      # if self.type == 'NIFTI': return
+
+      self.type = 'NIFTI'
+      self.view = ''
+      self.extension = ext
+      return
+
    @property
    def bn(self):
       "Returns 'basename' regardless of file format: no view or extension." 
@@ -659,16 +720,19 @@ class comopt(object):
       return 1
 
 class shell_com(object):
-   history = []         # shell_com history
+   history   = []       # shell_com history
    save_hist = 1        # whether to record as we go
+   log       = []       # shell_com log (like history, but with so,se,status)
+   save_log  = 1        # whether to record as we go
 
-   def __init__(self, com, eo="", capture=0, save_hist=1):
+   def __init__(self, com, eo="", capture=0, save_hist=1, save_log=1):
       """create instance of shell command class
 
             com         command to execute (or echo, etc)
             eo          echo mode string: echo/dry_run/script/""
             capture     flag: store output from command?
             save_hist   flag: store history of commands across class instances?
+            save_log    flag: store log of commands across class instances?
       """
 
       self.com = com    # command string to be executed
@@ -678,10 +742,11 @@ class shell_com(object):
       self.exc = 0      #command not executed yet
       self.so = ''
       self.se = ''
+      self.status = -10
       if (self.eo == "quiet"):
          self.capture = 1
       else:
-         self.capture = capture; #Want stdout and stderr captured?
+         self.capture = capture; # Want stdout and stderr captured?
       self.save_hist = save_hist
 
       # check if user has requested an overwrite of trimming behavior. If the
@@ -689,12 +754,12 @@ class shell_com(object):
       # behavior is not performed.
       false_vals = ['no','n','f','false',"0"]
       mod_request = os.environ.get("NO_CMD_MOD")
-      no_cmd_modiifcation_requested = bool(
+      no_cmd_modification_requested = bool(
          mod_request and mod_request.lower() not in false_vals
       )
       #If command line is long, trim it, if possible
       l1 = len(self.com)
-      if no_cmd_modiifcation_requested:
+      if no_cmd_modification_requested:
          # does not modify command to help provide more predictable output
          self.trimcom = self.com
       elif (l1 > 80):
@@ -743,12 +808,17 @@ class shell_com(object):
          self.status = 0
          self.exc = 1
          return 0
+      # DASK specific? 
       # added ability to force change directory in same command (for Dask parallelization)
       if chdir != "" :
          self.trimcom = ("cd %s; %s" % (chdir, self.trimcom))
          self.com = ("cd %s; %s" % (chdir, self.com))
          print("command to be executed is %s\n  " % self.com)
       self.status, self.so, self.se = shell_exec2(self.com, self.capture) 
+      # use full command here for DASK?
+      # self.status, self.so, self.se = shell_exec2(self.trimcom, self.capture) 
+      if self.save_log:
+         self.add_to_log()
       self.exc = 1
       return self.status
       
@@ -764,9 +834,28 @@ class shell_com(object):
          self.history = self.history[-SAVE_SHELL_HISTORY:]
       self.history.append(self.trimcom)
 
+   def add_to_log(self):
+      """append the current command (trimcom) to the log, *along with so, se
+         and status*, truncating if it is too long"""
+      if not self.save_log: return
+      if len(self.log) >= MAX_SHELL_LOG:
+         self.log = self.log[-SAVE_SHELL_LOG:]
+
+      # Store things about this command
+      D           = {}
+      D['cmd']    = self.trimcom
+      D['status'] = self.status
+      D['so']     = self.so
+      D['se']     = self.se
+      self.log.append(D)
+
    def shell_history(self, nhist=0):
       if nhist == 0 or nhist > len(self.history): return self.history
-      else:                                  return self.history[-nhist]
+      else:                                  return self.history[-nhist:]
+
+   def shell_log(self, nlog=0):
+      if nlog == 0 or nlog > len(self.log): return self.log
+      else:                                 return self.log[-nlog:]
 
    def stdout(self):
       if (len(self.so)):
@@ -816,14 +905,6 @@ class shell_com(object):
       else:
          # return self.so[i].decode()
          return self.so[i]
-
-   def __repr__(self):
-      return '<%s %s name=%r, eo=%r>' % (
-         self.__class__.__name__, hex(id(self)),self.com, self.eo)
-
-   def __str__(self):
-      return pformat(self.__dict__)
- 
 
 # return the attribute list for the given dataset and attribute
 def read_attribute(dset, atr, verb=1):
@@ -1177,8 +1258,7 @@ def shell_exec(s,opt="",capture=1):
    
 def shell_exec2(s, capture=0):
 
-   # moved to python_ver_float()   16 May 2011 [rickr]
-   if (python_ver_float() < 2.5): #Use old version and pray
+   if compare_py_ver_to_given('2.5') < 0: #Use old version and pray
       #if there is no capture in option: run os.system
       if(not capture):
          os.system("%s"%s)
@@ -1230,7 +1310,7 @@ def shell_exec2(s, capture=0):
 
          # for python3, convert bytes to unicode (note type is bytes, but
          # that matches str in p2), just use stupid python version
-         if python_ver_float() >= 3.0:
+         if compare_py_ver_to_given('3.0') >= 0:
             o = o.decode()
             e = e.decode()
 
@@ -1247,7 +1327,7 @@ def shell_exec2(s, capture=0):
 def simple_shell_exec(command, capture=0):
    """return status, so, se  (without any splitlines)"""
 
-   if (python_ver_float() < 2.5):
+   if compare_py_ver_to_given('2.5') < 0:
       # abuse old version, re-join split lines
       status, so, se = shell_exec2(command, capture=capture)
       return status, '\n'.join(so), '\n'.join(se)
@@ -1261,7 +1341,7 @@ def simple_shell_exec(command, capture=0):
       status = pipe.returncode
 
       # for python3, convert bytes to unicode (cannot use type(so) == bytes)
-      if python_ver_float() >= 3.0:
+      if compare_py_ver_to_given('3.0') >= 0:
          so = so.decode()
          se = se.decode()
 
@@ -1275,6 +1355,9 @@ def simple_shell_exec(command, capture=0):
    return status, so, se
 
 # we may want this in more than one location            16 May 2011 [rickr]
+# 
+# NOTE: this function is insufficient for double digits
+#       ===> replace with compare_py_ver_to_given(), which compares int by int
 def python_ver_float():
    """return the python version, as a float"""
    vs = sys.version.split()[0]
@@ -1285,6 +1368,50 @@ def python_ver_float():
       vs = vlist[0]
 
    return float(vs)
+
+# python_ver_float() is insufficient, once anything hits double digts,
+# so compare int by int
+def compare_py_ver_to_given(vstr):
+   """return -1, 0, 1 comparing the current version to input vstr
+   """
+   return compare_dot_ver_strings(sys.version.split()[0], vstr)
+
+def compare_dot_ver_strings(v0, v1):
+   """return -1, 0, 1 comparing the current 2 version strings
+
+             -1 : v0 <  v1
+              0 : v0 == v1
+              1 : v0 >  v1
+
+      The strings v0 and v1 are assumed to be in the form 'a.b.c', where
+      the number of '.' separators can vary.  Once a difference is found,
+      return an integer-evaluated comparison.
+   """
+   # get current and input version lists, as ints
+   
+   try:
+      iv0 = [int(v) for v in v0.split('.')]
+      iv1 = [int(v) for v in v1.split('.')]
+   except:
+      print("** cannot convert version strings to int lists")
+      return 0
+
+   len0 = len(iv0)
+   len1 = len(iv1)
+   
+   dmin = min(len0,len1)
+
+   # return first diff out of min found integers
+   for dind in range(dmin):
+      if iv0[dind] < iv1[dind]: return -1
+      if iv0[dind] > iv1[dind]: return  1
+
+   # if still equal, return greater for the longer list
+   if len0 < len1: return -1
+   if len0 > len1: return  1
+
+   # else equal
+   return 0
 
 #generic unique function, from:
 #  http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/52560/index_txt
@@ -1548,6 +1675,15 @@ def EP( S, indent=True, end_exit=True):
 
     if end_exit :
        sys.exit(1)
+
+def EP1( S, indent=True):
+    '''Error print string S, and return 1.
+
+    Basically, compact form of EP(...)
+    '''
+    APRINT(S, ptype='ERROR', indent=indent)
+
+    return 1
 
 def APRINT( S, ptype=None, indent=True):
     '''Print Error/Warn/Info for string S

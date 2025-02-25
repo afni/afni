@@ -1,5 +1,5 @@
-#ifndef _NIFTI_TOOL_H_
-#define _NIFTI_TOOL_H_
+#ifndef NIFTI2_TOOL_H
+#define NIFTI2_TOOL_H
 
 #define NT_CMD_LEN 2048
 
@@ -332,4 +332,4 @@ static double mat44_max_fabs(mat44 m);
 
 
 
-#endif  /* _NIFTI_TOOL_H_ */
+#endif  /* NIFTI2_TOOL_H */

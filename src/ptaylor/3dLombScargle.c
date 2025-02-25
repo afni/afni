@@ -205,7 +205,7 @@ void usage_LombScargle(int detail)
 "                     f_N = 0.5*(number of samples)/(total time interval)\n"
 "                    By default, the maximum frequency will be what\n"
 "                    f_N *would* have been if no censoring of points had\n"
-"                    occured. (This makes it easier to compare L-S spectra\n"
+"                    occurred. (This makes it easier to compare L-S spectra\n"
 "                    across a group with the same scan protocol, even if\n"
 "                    there are slight differences in censoring, per subject.)\n"
 "                    Acceptable values are >0. (For those reading the \n"

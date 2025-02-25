@@ -560,7 +560,7 @@ while ($cnt <= $Narg)
       set fatScale = $argv[$cnt]
          #Sanity check, scale limits can be increased if needed
       if ($fatScale > 110 || $fatScale < 5) then
-         echo "Looks like you -FATscl paramater 1 is bad."
+         echo "Looks like you -FATscl parameter 1 is bad."
          echo "Acceptable values should be <110 or >5, have $fatScale"
          goto END
       endif
@@ -568,7 +568,7 @@ while ($cnt <= $Narg)
       set fatPerc = $argv[$cnt]
          #Sanity check, scale limits can be increased if needed
       if ($fatPerc > 100 || $fatPerc < 5) then
-         echo "Looks like you -FATscl paramater 2 is bad."
+         echo "Looks like you -FATscl parameter 2 is bad."
          echo "Acceptable values should be <110 or >5, have $fatPerc "
          goto END
       endif
@@ -828,7 +828,7 @@ HELP:
    echo "       Scale the MAD stats by the last mean feature. (scale 7)"
    echo "   -Mscl: Like spnorm2, BUT the mean is not removed from median stats"
    echo "       before scaling, AND mean stats are also subject to MAD scaling."
-   echo "   -FATscl S P: Scale by P percentil value in sphere of radius S"
+   echo "   -FATscl S P: Scale by P percentile value in sphere of radius S"
    echo "                Crude recommendation is 25 75"
    echo "                For now, P must be one of: 70, 75, 80, 85, 90, or 95"  
    echo "   -TT_Xform XMAT.1D: You can also create X Y Z coordinate features"

@@ -31,7 +31,7 @@ typedef struct {
          M2Nne_M1n[j] is the number of nodes on M2 that neighbor node nj on M1 */
   int **M2ne_M1n; /*!< (M1_N_NodeIndex x 1) vectors of node indices 
                 M2ne_M1n[j][k] is the kth node neighbor on M2 of node nj on M1 
-      The 1st node M2ne_M1n[j][0] is the closest neigbor and the other two, 
+      The 1st node M2ne_M1n[j][0] is the closest neighbor and the other two, 
       if specified form the triangle on M2 hosting that node.
                 k goes from 0 to M2Nne_M1n[j]*/
   double **M2we_M1n; /*!< (M1_N_NodeIndex x 1) vectors of weights.

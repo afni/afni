@@ -71,7 +71,7 @@ if ( $dohelp ) then
   echo "   the output dataset afni_refacer_shell.nii.gz"
   echo "* Modifying this script, and the other @afni_refacer_XXX scripts, to"
   echo "   use a different template will require replacing the two datasets"
-  echo "   listed above appopriately."
+  echo "   listed above appropriately."
   echo "* And possibly modifying the 3dcalc command 'extend it downwards',"
   echo "   below."
   echo

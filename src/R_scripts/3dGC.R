@@ -65,7 +65,7 @@ sNum <- 10e-9
 anotherAna <- 1
 while (anotherAna==1) {
 
-# Set most paratmers here
+# Set most parameters here
 maxLags <- 8
 
 

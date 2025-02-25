@@ -33,7 +33,7 @@
 # + [PT] 1dplot.py can output PDF files now, too
 #
 #ver = '1.61' ; date = 'July 26, 2019' 
-# + [PT] Fix py2 incompatability
+# + [PT] Fix py2 incompatibility
 #
 #ver = '1.7' ; date = 'Jan 29, 2020' 
 # + [PT] Fix input with '-xfile ..' opt
@@ -81,8 +81,21 @@
 # [PT] AP can now pass opts here via '-html_review_opts ..'
 # - first one is '-mot_grayplot_off', for S Torrisi.
 #
-ver = '1.96' ; date = 'Feb 10, 2022' 
+#ver = '1.96' ; date = 'Feb 10, 2022' 
 # [PT] matplotlib ver check to be >= 2.2, not just >2.2
+#
+#ver = '2.00' ; date = 'Jan 6, 2023' 
+# [PT] apqc_make_tcsh.py updates:
+#      + add -vstat_list opt
+#      + improve opt parsing/error checking
+#
+#ver = '2.01' ; date = 'Apr 6, 2023' 
+# [PT] 1dplot.py: add keywords for labeling 3dAllineate params:
+#      + ALLINPAR6, ALLINPAR9, ALLINPAR12, 
+#
+ver = '2.10' ; date = 'June 5, 2023' 
+# [PT] default APQC revstyle is now 'pythonic'
+#      + will downgrade to 'basic' if needed, with warning
 #
 #########################################################################
 
@@ -94,18 +107,33 @@ from   afnipy import afni_util  as au
 from   afnipy import afni_base  as ab
 from   afnipy import module_test_lib
 
+# put this import in try/except bc of 'basic' style of QC import
+try:
+    import matplotlib.colors        as mcol
+except:
+    pass
+
 # -------------------------------------------------------------------
 
 MAXLEN = 10**7     # can adjust if that is ever necessary!
 
 lvolreg        = [ 'roll\n(deg)', 'pitch\n(deg)', 'yaw\n(deg)', 
                    'dS\n(mm)',  'dL\n(mm)',  'dP\n(mm)' ]
+lallinpar6     = [ 'x-shift\n(mm)',  'y-shift\n(mm)',  'z-shift\n(mm)',
+                   'z-angle\n(deg)', 'x-angle\n(deg)', 'y-angle\n(deg)' ]
+lallinpar9     = copy.deepcopy(lallinpar6)
+lallinpar9.extend([ 'x-scale', 'y-scale', 'z-scale' ])
+lallinpar12    = copy.deepcopy(lallinpar9)
+lallinpar12.extend([ 'y/x-shear', 'z/x-shear', 'z/y-shear' ])
+
 ok_ftypes      = [ '.jpg', '.png', '.tif', '.pdf', '.svg' ]
 ok_ftypes_str  = ', '.join(ok_ftypes)
 
 # these exact names are used in the functions in lib_apqc_tcsh.py to
 # determine what kind of images get made
-ok_review_styles = ["none", "basic", "pythonic"]
+list_apqc_review_styles = ["none", "basic", "pythonic"]
+list_apqc_review_styles.sort()
+str_apqc_review_styles  = ', '.join([x for x in list_apqc_review_styles])
 
 DEF_dpi           = 150
 DEF_prefix        = "PREFIX"
@@ -114,7 +142,7 @@ DEF_fontsize      = 10
 DEF_fontfamily    = "monospace"
 DEF_fontstyles    = [] # empty by default, so comp would go through list
 DEF_layout        = "tight"  # good for single plots; 'nospace' for multiplot
-DEF_censor_RGB    = [1, 0.7, 0.7] #'red' #'green'
+DEF_censor_RGB    = '1 0.7 0.7' #[1, 0.7, 0.7] #'red' #'green'
 DEF_censor_hline_RGB = 'cyan'
 DEF_patch_alt_RGB = '0.95'
 DEF_bkgd_color    = '0.9'
@@ -138,6 +166,23 @@ DEF_color_table = [
     [0.737, 0.741, 0.133, 1.0]] # dark yellow
 
 # -------------------------------------------------------------------
+# for tcsh parsing, below
+
+# control overwriting/backing up any existing QC dirs
+dict_apqc_ow_modes = {
+    'shy'         : '(def) make new QC dir only if one does not exist',
+    'overwrite'   : 'purge old QC dir and make new QC/',
+    'backup'      : 'move old QC dir to QC_<time>; make new QC dir',
+}
+
+list_apqc_ow_modes = list(dict_apqc_ow_modes.keys())
+list_apqc_ow_modes.sort()
+str_apqc_ow_modes = ', '.join([x for x in list_apqc_ow_modes])
+
+hstr_apqc_ow_modes = \
+    '\n'.join(['{:12s} -> {}'.format(x, dict_apqc_ow_modes[x]) \
+               for x in list_apqc_ow_modes])
+
 # -------------------------------------------------------------------
 
 # helpfile for the plotting prog
@@ -242,6 +287,21 @@ COMMAND OPTIONS ~1~
                       max value. When using this, a visually
                       pleasing yaxis range might be 0:1.1.
 
+-yfiles_pm YP :one or more file names of text files. Each column in
+               this file will be treated as a separate time series for
+               plotting a plus/minus colorized range for an associated
+               yfile/infile line. The number of files input with YP
+               must exactly match that of either '-infiles ..' or
+               '-yfiles ..'. The color will match the line color, but at
+               greatly reduced opacity.
+
+-ylim_use_pm  :by default, if not '-yaxis ..' opt is used, the ylim
+               range each subplot comes from (slightly expanded)
+               bounds of the min and max yvalue in each. But if
+               '-yfiles_pm ..' is used, you can use this option to expand
+               those limits by the min and max of the extra error-bounded
+               space.
+
 -xfile   XX   :one way to input x-values explicitly: as a "1D" file XX, a
                containing a single file of numbers.  If no xfile is 
                entered, then a list of integers is created, 0..N-1, based
@@ -269,13 +329,21 @@ COMMAND OPTIONS ~1~
 -ylabels YL1 YL2 YL3 ...
               :optional text labels for each "infile" column; the
                final number of ylabels *must* match the total number
-               of columns of data from infiles.  For 1D files output
-               by 3dvolreg, one can automatically provide the 6
-               associated ylabels by providing the keyword 'VOLREG'
-               (and this counts as 6 labels).  The order of ylabels
-               should match the order of infiles.
-               These labels are plotted vertically along the y-axis of the
-               plot.
+               of columns of data from infiles.  The order of ylabels
+               should match the order of infiles.  These labels are
+               plotted vertically along the y-axis of the plot.
+               * For 1D files output by 3dvolreg, one can
+               automatically provide the 6 associated ylabels by
+               providing the keyword 'VOLREG' (and this counts as 6
+               labels).  
+               * For 1D files output by '3dAllineate -1Dparam_save ..',
+               if you are using just the 6 rigid body parameters, you
+               can automatically provide the 6 associated ylabels by
+               providing the keyword 'ALLINPAR6' (and this counts as
+               6 labels).  If using the 6 rigid body parameters and 3 
+               scaling, you can use the keyword 'ALLINPAR9' (which counts
+               as 9 labels). If using all 12 affine parameters, you can use 
+               the keyword 'ALLINPAR12' (which counts as 9 labels). 
 
 -ylabels_maxlen MM
               :y-axis labels can get long; this opt allows you to have
@@ -382,7 +450,7 @@ COMMAND OPTIONS ~1~
                 the first RL value).
 
 -censor_trs CS1 CS2 CS3 ...
-               :specify time points where censoring has occured (e.g.,
+               :specify time points where censoring has occurred (e.g.,
                 due to a motion or outlier criterion).  With this
                 option, the values are entered using AFNI index
                 notation, such as '0..3,8,25,99..$'.  Note that if you
@@ -395,7 +463,7 @@ COMMAND OPTIONS ~1~
                 background color will be added to all plots of width 1.
 
 -censor_files CF1 CF2 CF3 ...
-               :specify time points where censoring has occured (e.g.,
+               :specify time points where censoring has occurred (e.g.,
                 due to a motion or outlier criterion).  With this
                 option, the values are entered as 1D files, columns
                 where 0 indicates censoring at that [i]th time point,
@@ -421,8 +489,14 @@ COMMAND OPTIONS ~1~
                 in a list, when some subplots have censor_hline values
                 and others don't.
 
--censor_RGB COL :choose the color of the censoring background; default
-                is: {def_cen_RGB}.
+-censor_RGB COL :choose the color of the censoring background; from the 
+                command line, users enter a string, which could be:
+                + 3 space-separated floats in range [0, 1], of RGB values
+                + 4 space-separated floats in range [0, 1], of RGBA values
+                + 1 string of a valid matplotlib color
+                + 1 string of a valid matplotlib color and 1 floats in 
+                  range [0, 1], which is an alpha opacity value.
+                (default is: '{def_cen_RGB}').
 
 -bkgd_color BC :change the background color outside of the plot
                 windows.  Default is the Python color: {def_col_bkdg}.
@@ -509,6 +583,61 @@ def ARG_missing_arg(arg):
     print("** ERROR: missing argument after option flag: {}".format(arg))
     sys.exit(1)
 
+# ------------------------------------------------------------------------
+
+def interpret_censor_RGB(c):
+    '''Take in a string c to be interpreted as either just a color or a
+color plus alpha opacity value. c can take many forms (space separated):
+    - a list of 3 numbers, each between [0,1], like RGB
+    - a string of 3 numbers, each between [0,1], like RGB
+    - a string of 4 numbers, each between [0,1], like RGBA
+    - a string of 1 item, to be interpreted as a color via mcol.to_rgb()
+    - a string of 2 items: the first to be interpreted as a color via 
+      mcol.to_rgb(), and the second to be an alpha opacity
+
+Parameters
+----------
+c : str (or list)
+    str or list to be interpreted as a color, as above
+
+Returns
+-------
+rgb : list
+    a list of 3 or 4 floats, each in [0,1], that is either RGB or RGBA,
+    respectively
+
+    '''
+
+    if type(c) != str :
+        return c
+
+    # ... from here, assume we are interpreting a string of 1,2,3 or 4 items
+    l = c.split()
+    n = len(l)
+
+    if n == 1 :
+        # assume this is a colorname to parse
+        try:
+            rgb = list(mcol.to_rgb(l[0]))
+        except:
+            sys.exit("** ERROR: could not interpret censor_RGB "
+                     "color '{}'".format(c))
+
+    elif n == 2 :
+        # assume this is a colorname + alpha value to parse
+        try:
+            rgb = list(mcol.to_rgb(l[0]))
+            rgb.append(float(l[1]))
+        except:
+            sys.exit("** ERROR: could not interpret censor_RGB "
+                     "color '{}'".format(c))
+
+    elif n == 3 or n == 4 :
+        # assume RGB or RGBA
+        rgb = [float(x) for x in l]
+
+    return rgb
+
 # ========================================================================
 # ======================== for 1dplotting pythonly =======================
 
@@ -529,7 +658,7 @@ class figplobj:
         self.layout       = DEF_layout
         self.see_xax      = True
         self.color_table  = []
-        self.censor_RGB   = DEF_censor_RGB
+        self.censor_RGB   = interpret_censor_RGB(DEF_censor_RGB)
         self.censor_width = 0
         self.censor_arr   = []              # NB: really stays a list
         self.censor_on    = DEF_censor_on
@@ -543,10 +672,14 @@ class figplobj:
         self.bplot_view   = ''
         self.boxplot_ycen = DEF_boxplot_ycen
         self.legend_on    = False
+        self.ylim_use_pm  = False
         self.ylabels_maxlen = None
 
+
+    # ----------------------------
+
     def set_censor_RGB(self, c):
-        self.censor_RGB = c
+        self.censor_RGB = interpret_censor_RGB(c)
 
     def set_censor_on(self, c):
         self.censor_on = c
@@ -709,11 +842,15 @@ class subplobj:
         self.legloc = None
         self.xlim   = []
         self.ylim   = []
+        self.ylim_use_pm = False
         self.npts   = -1
         self.color  = ""
         self.ymin   = 0.
         self.ymax   = 0.
         self.censor_hline  = [] # will be list of number(s) and/or 'NONE'
+
+        self.yrantop = []
+        self.yranbot = []
 
     def set_x(self, x):
         self.x = x
@@ -727,12 +864,19 @@ class subplobj:
         self.ymax = ymax
         self.npts = len(y)
 
+    def set_yran(self, bot, top):
+        #ymin, ymean, ymax, ystdev = au.min_mean_max_stdev(y)
+        self.yranbot = bot
+        self.yrantop = top
+
+        if self.ylim_use_pm :
+            self.ymin = min(bot)
+            self.ymax = max(top)
+
     # [PT: Jan 15, 2019] put these properties for each single subj now
     def set_ycen(self, y):
         ymin, ymean, ymax, ystdev = au.min_mean_max_stdev(y)
         self.ycen = y
-        #self.ymin = np.min(self.y)
-        #self.ymax = np.max(self.y)
         self.ycenmin = ymin
         self.ycenmax = ymax
         self.ycennpts = len(y)
@@ -742,6 +886,9 @@ class subplobj:
 
     def set_ylabel(self, ylabel):
         self.ylabel = ylabel
+
+    def set_ylim_use_pm(self, x):
+        self.ylim_use_pm = x
 
     def set_leglabel(self, sss):
         self.leglabel = sss
@@ -804,6 +951,12 @@ class apqc_1dplot_opts:
         self.prefix   = DEF_prefix
         self.ninfiles = 0
 
+        self.yfile_pm     = []
+        self.n_yfile_pm   = 0
+        self.yfile_rantop = []
+        self.yfile_ranbot = []
+        self.ylim_use_pm  = False
+
         self.legend_on  = False 
         self.leglabels  = []    # can have legend, def. labels are -yfiles arg
         self.nleglabels = 0
@@ -849,7 +1002,7 @@ class apqc_1dplot_opts:
         self.censor_arr   = []     # the final list; this is used
         self.ncensor      = 0
         self.censor_width = 0
-        self.censor_RGB   = DEF_censor_RGB
+        self.censor_RGB   = interpret_censor_RGB(DEF_censor_RGB)
         self.censor_hline = []
 
         self.scale        = []  # [PT: June 28, 2019] vertical, y-scale possible
@@ -870,6 +1023,10 @@ class apqc_1dplot_opts:
     def add_infile(self, fff):
         self.infiles.append(fff)
         self.ninfiles+= 1
+
+    def add_yfile_pm(self, fff):
+        self.yfile_pm.append(fff)
+        self.n_yfile_pm+= 1
 
     # !!!! also check to put a file extension on end -- jpg by default?
     def set_prefix(self, prefix):
@@ -929,7 +1086,7 @@ class apqc_1dplot_opts:
         self.censor_on = True
 
     def set_censor_RGB(self, c):
-        self.censor_RGB = c
+        self.censor_RGB = interpret_censor_RGB(c)
 
     def set_ylabels_maxlen(self, ml):
         self.ylabels_maxlen = int(ml)
@@ -1090,7 +1247,7 @@ class apqc_1dplot_opts:
         self.censor_width = self.all_x[1] - self.all_x[0]
 
         # add to this in different forms, where True values mean
-        # censoring is flagged to have occured
+        # censoring is flagged to have occurred
         cen_arr = [False] * self.npts
 
         # combine all strings of censor lists:
@@ -1273,6 +1430,71 @@ class apqc_1dplot_opts:
 
         return 0
 
+    def create_all_yran(self):
+        '''Populate ordinate/y-range values from one or more filenames of
+    -yfile_pm values.
+
+        '''
+
+        ypm = []
+        for fff in self.yfile_pm:
+            x = LAD.Afni1D(fff)
+            print("++ FOR: {}: {} arrays with {} pts".format(fff, 
+                                                             x.nvec, 
+                                                             x.nt))
+            # this is done a bit clunkily here at the mo b/c; used to
+            # read in as AfniData, which was relatively backwards; can
+            # simplify later...
+            for i in range(x.nvec):
+                p = []
+                for j in range(x.nt):
+                    # take absolute value of each number
+                    p.append(abs(x.mat[i][j]))
+                ypm.append(p)
+
+        # need to have matching lengths of inputs, if ypm has been input
+        lypm = len(ypm)
+        ly   = len(self.all_y)
+        if not( lypm ) :
+            self.all_yrantop = []
+            self.all_yranbot = []
+        else:
+            if lypm != ly :
+                print("** num of yfiles_pm ({}) != num of yfiles ({})"
+                      "".format(lypm, ly))
+                sys.exit(3)
+
+            Nypm = len(ypm[0])
+            Ny   = len(self.all_y[0])
+            if Nypm != Ny :
+                print("** length of yfiles_pm ({}) != len of yfiles ({})"
+                      "".format(Nypm, Ny))
+                sys.exit(4)
+
+            self.all_yranbot = [[self.all_y[j][i] - ypm[j][i] \
+                                 for i in range(len(ypm[j]))] \
+                                for j in range(ly)]
+            self.all_yrantop = [[self.all_y[j][i] + ypm[j][i] \
+                                 for i in range(len(ypm[j]))] \
+                                for j in range(ly)]
+        #self.set_npts()
+        #self.set_ndsets()
+        if self.ylim_use_pm :
+            self.set_yran_minmax()
+
+    def set_yran_minmax(self):
+        # this would be run after set_y_minmax(), and hence re-set it
+        gmin = 10**100
+        gmax = -gmin
+        for i in range(self.ndsets):
+            lmin = min(self.all_yranbot[i])
+            lmax = max(self.all_yrantop[i])
+            if lmin < gmin :
+                gmin = lmin
+            if lmax > gmax :
+                gmax = lmax
+        self.all_ymin = gmin
+        self.all_ymax = gmax
 
     def create_all_x(self):
         '''Populate abscissa/x-values depending on what the user entered,
@@ -1438,6 +1660,26 @@ def parse_1dplot_args(full_argv):
 
         # ---------- opt ---------------
 
+        # can have multiple yfiles_pm; must all have same len
+        elif argv[i] == "-yfiles_pm":
+            count = 0
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            while i < Narg:
+                if not(all_opts.__contains__(argv[i])): 
+                    iopts.add_yfile_pm(argv[i])
+                    count+=1
+                    i+=1
+                else:
+                    i-=1
+                    break
+            if not(count):
+                ARG_missing_arg(argv[i])
+
+        elif argv[i] == "-ylim_use_pm":
+            iopts.ylim_use_pm = True
+
         elif argv[i] == "-ylabels":
             count = 0
             if i >= Narg:
@@ -1448,6 +1690,15 @@ def parse_1dplot_args(full_argv):
                 if not(all_opts.__contains__(argv[i])): #aaa != "-":
                     if argv[i] == "VOLREG" :
                         for name in lvolreg:
+                            iopts.add_ylabel(name)
+                    elif argv[i] == "ALLINPAR6" :
+                        for name in lallinpar6:
+                            iopts.add_ylabel(name)
+                    elif argv[i] == "ALLINPAR9" :
+                        for name in lallinpar9:
+                            iopts.add_ylabel(name)
+                    elif argv[i] == "ALLINPAR12" :
+                        for name in lallinpar12:
                             iopts.add_ylabel(name)
                     else:
                         iopts.add_ylabel(argv[i])
@@ -1779,20 +2030,51 @@ Options:
                    a huuuge dataset and the grayplot took annoyingly long
                    to estimate.  Not recommended to use, generally. 
 
-'''.format( ", ".join(ok_review_styles) )
+-vstat_list A B C ...
+                  :(opt, only applicable if stim timing is used in
+                   processing) provide a list of label items to specify
+                   which volumes's images should appear in the vstat
+                   QC block.  Each item should correspond to subbrick
+                   label basename (so not including '_GLT', "#N",
+                   'Tstat', 'Fstat', 'Coef', etc.) in the stats_dset.
+                   'Full_Fstat' is always added/included, even if not
+                   provided in this list. If not used, the program
+                   uses default logic to pick up to 5 items to show.
+
+-ow_mode  OM      :(opt) set overwrite mode; choices are
+                   {}
+                   See also '-bup_dir ..' for additional backup dir 
+                   naming.
+
+-bup_dir  BD      :(opt) if using the '-ow_mode backup' option, then 
+                   you can use this opt to provide the desired name of
+                   the backup QC directory (def: use QC_<time>).
+
+-do_log           :(opt) flag to turn on making a text log of all the 
+                   shell commands that are run when apqc_make_tcsh.py
+                   is executed; mainly for debugging purposes, if 
+                   necessary.
+
+'''.format( str_apqc_review_styles,
+            hstr_apqc_ow_modes.replace('\n', '\n'+ ' '*19 ))
 
 # -------------------------------------------------------------------
 
 class apqc_tcsh_opts:
 
     def __init__(self):
-        # Each of these is required.  Might have other optional
-        # options in the future
-        self.json     = ""
-        self.subjdir  = ""
-        self.revstyle = "basic"
-        self.pythonic2basic = 0
-        self.do_mot_grayplot = True
+        self.json             = ""
+        self.subjdir          = ""
+        self.revstyle         = "pythonic"
+        self.pythonic2basic   = 0
+
+        self.ow_mode          = 'backup'   # overwrite mode 
+        self.bup_dir          = None
+        self.do_mot_grayplot  = True
+        self.vstat_label_list = []
+        self.do_log           = False      # don't log by default
+
+    # -------------------------
 
     def set_json(self, json):
         self.json = json
@@ -1800,14 +2082,34 @@ class apqc_tcsh_opts:
     def set_subjdir(self, subjdir):
         self.subjdir = subjdir
 
+    def set_bup_dir(self, bup_dir):
+        self.bup_dir = bup_dir
+
+    def set_ow_mode(self, ow_mode):
+        if not(ow_mode in list_apqc_ow_modes) :
+            print("** ERROR: illegal ow_mode '{}', not in the list:\n"
+                  "   {}".format(ow_mode, str_apqc_ow_modes))
+            sys.exit(11)
+        self.ow_mode = ow_mode
+
     def set_revstyle(self, revstyle):
         self.revstyle = revstyle
 
     def set_mot_grayplot(self, tf):
-        if tf:
-            self.do_mot_grayplot = True
+        if tf :   self.do_mot_grayplot = True
+        else:     self.do_mot_grayplot = False
+
+    def set_log(self, tf):
+        if tf :   self.do_log = True
+        else:     self.do_log = False
+
+    def add_vstat_label(self, label):
+        # keep list unique; checking if label is valid in the
+        # stats_dset only comes later, when actually applied
+        if label in self.vstat_label_list :
+            print("+* WARNING: label {} already in vstat list".format(label))
         else:
-            self.do_mot_grayplot = False
+            self.vstat_label_list.append(label)
 
     # check requirements
     def check_req(self):
@@ -1821,7 +2123,7 @@ class apqc_tcsh_opts:
         if self.revstyle == "":
             print("missing: revstyle")
             MISS+=1
-        elif not(ok_review_styles.__contains__(self.revstyle)) :
+        elif not(self.revstyle in list_apqc_review_styles) :
             print("revstyle '{}' not in allowed list".format(self.revstyle))
             MISS+=1
         elif self.revstyle == 'pythonic' :
@@ -1835,6 +2137,20 @@ class apqc_tcsh_opts:
         return MISS
 
 # -------------------------------------------------------------------
+
+### Keep this list up-to-date as new options get added, for parsing 
+list_apqc_tcsh_opts = ['-help', '-h',
+                       '-ver',
+                       '-uvar_json',
+                       '-subj_dir',
+                       '-review_style',
+                       '-mot_grayplot_off',
+                       '-vstat_list',
+                       '-ow_mode',
+                       '-bup_dir',
+                       '-do_log',
+                       ]
+
 
 def parse_tcsh_args(argv):
     '''Parse arguments for tcsh scripter.
@@ -1850,7 +2166,8 @@ def parse_tcsh_args(argv):
         self-"check_req()" method, as well.
     '''
 
-    Narg = len(argv)
+    Narg   = len(argv)
+    Nargm1 = Narg - 1     # to check if opt is missing par(s)
 
     if not(Narg):
         print(help_string_apqc_make_tcsh)
@@ -1859,7 +2176,8 @@ def parse_tcsh_args(argv):
     # initialize argument array
     iopts = apqc_tcsh_opts()
 
-    # check through inputs
+    # check through inputs: 
+    # **NB: make sure each opt is in list_apqc_tcsh_opts, above**
     i = 0
     while i < Narg:
         if argv[i] == "-ver":
@@ -1873,27 +2191,54 @@ def parse_tcsh_args(argv):
         # ---------- req ---------------
 
         elif argv[i] == "-uvar_json":
-            if i >= Narg:
+            if i >= Nargm1 :
                 ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_json(argv[i])
 
         elif argv[i] == "-subj_dir":
-            if i >= Narg:
+            if i >= Nargm1 :
                 ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_subjdir(argv[i])
 
         elif argv[i] == "-review_style":
-            if i >= Narg:
+            if i >= Nargm1 :
                 ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_revstyle(argv[i])
+
+        elif argv[i] == "-ow_mode":
+            if i >= Nargm1 :
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_ow_mode(argv[i])
+
+        elif argv[i] == "-bup_dir":
+            if i >= Nargm1 :
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_bup_dir(argv[i])
 
         # --- apres moi, le deluge ---
         ### AP can now pass opts here via '-html_review_opts ..'
         elif argv[i] == "-mot_grayplot_off":
             iopts.set_mot_grayplot(False)
+
+        elif argv[i] == "-do_log":
+            iopts.set_log(True)
+
+        # get a list of labels 
+        elif argv[i] == "-vstat_list":
+            if i >= Nargm1 :
+                ARG_missing_arg(argv[i])
+            while i+1 < Narg :
+                # NB: this requires keeping the list of options up-to-date!
+                if argv[i+1] in list_apqc_tcsh_opts :
+                    break
+                else:
+                    i+= 1
+                    iopts.add_vstat_label(argv[i])
 
         else:
             print("** ERROR: unknown opt: '{}'".format(argv[i]))

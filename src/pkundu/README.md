@@ -31,7 +31,7 @@ Here's an example use:
 This means:
 
     -e 15,30,45   are the echo times in milliseconds
-    -d rest_e1.nii.gz,rest_e2...   are the 4-D time series datasets (comma separated list of dataset of each TE) from a multi-echo fMRI acqusition
+    -d rest_e1.nii.gz,rest_e2...   are the 4-D time series datasets (comma separated list of dataset of each TE) from a multi-echo fMRI acquisition
     -a ...   is a "raw" mprage with a skull
     -b   15 means drop first 15 seconds of data for equilibration
     --MNI   warp anatomical to MNI space using a built-in high-resolution MNI template. 

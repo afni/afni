@@ -13,7 +13,7 @@ __version__="v2.5 beta6"
 #
 # meica.py version 2.5 (c) 2014 Prantik Kundu
 # PROCEDURE 1c : Preprocess multi-echo datasets and apply multi-echo ICA based on spatial concatenation
-# -Calcluation of functional-anatomical coregistration using EPI gray matter + local Pearson correlation method
+# -Calculation of functional-anatomical coregistration using EPI gray matter + local Pearson correlation method
 #
 #alignp_mepi_anat.py V.1.0 
 #Compute warp parameters for co-registration from anatomical (skullstripped) to S0 and T2* volume (not skullstripped)

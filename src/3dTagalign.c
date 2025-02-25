@@ -236,7 +236,7 @@ int main( int argc , char * argv[] )
          wtim = mri_read_1D( argv[iarg] ) ;
 
          if( wtim == NULL )                    ERREX("Can't read -wtim file") ;
-         if( wtim->ny > 1 )                    ERREX("-wtim file has more than one columm") ;
+         if( wtim->ny > 1 )                    ERREX("-wtim file has more than one column") ;
 
          wtar = MRI_FLOAT_PTR(wtim) ;
          ww   = (double *) malloc(sizeof(double)*wtim->nx) ; nww = wtim->nx ;

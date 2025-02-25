@@ -506,7 +506,7 @@ char * MD5_B64_file(char * filename)
   string of length <= 31 (plus the NUL byte; the whole thing will fit
   into a char[32] array).  The output does not contain any '/'s, so
   it could be used as a temporary filename.
-  Method: generate a string from the system identfier information and
+  Method: generate a string from the system identifier information and
           the current time of day; MD5 hash this to a 128 byte code;
           Base64 encode this to a 22 byte string; replace '/' with '-'
           and '+' with '_'; add 4 character prefix (1st 3 characters

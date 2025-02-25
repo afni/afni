@@ -35,7 +35,7 @@ echo "$ff has improperly terminated lines, non-printable characters, or DOS type
             set isexec = 1
          endif
          if ( -f ${ff}${suffix} ) then
-            echo "${ff}${suffix} alredy exists. Will not clobber"
+            echo "${ff}${suffix} already exists. Will not clobber"
             goto BEND
          endif
          cp -p ${ff} ${ff}${suffix}

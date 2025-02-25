@@ -206,7 +206,7 @@ ENTRY("AFNI_cluster_choose_CB") ;
    im3d->vwid->func->clu_nnlev = (int)(-rmm) ;
 
    im3d->vinfo->clusterize_nnlev  = -rmm ;  /* 02 Nov 2018 */
-   im3d->vinfo->clusterize_size   = vmul ;  /* save for re-use */
+   im3d->vinfo->clusterize_size   = vmul ;  /* save for reuse */
    im3d->vinfo->clusterize_bisid  = bsid ;
 
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
@@ -798,7 +798,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    }
 
    VLINE(rc) ;
-   wherprog = THD_find_executable("whereami") ;
+   wherprog = THD_find_executable("whereami_afni") ;
    if( show_linkrbrain_link() && wherprog != NULL ){
      int  showlinkr; static char *lbhelp=NULL ;
      xstr = XmStringCreateLtoR( "linkRbrain" , XmFONTLIST_DEFAULT_TAG ) ;
@@ -810,7 +810,7 @@ ENTRY("AFNI_clus_make_widgets") ;
      XmStringFree(xstr) ;
      XtAddCallback( cwid->linkrbrain_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
      MCW_register_hint( cwid->linkrbrain_pb ,
-                         "Write cluster table, then run 'whereami -linkrbrain'") ;
+                "Write cluster table, then run 'whereami_afni -linkrbrain'") ;
      if( lbhelp == NULL ){
        lbhelp = (char *)malloc(sizeof(char)*2048) ;
        sprintf(lbhelp,
@@ -849,7 +849,7 @@ ENTRY("AFNI_clus_make_widgets") ;
        AV_SENSITIZE(cwid->linkrbrain_av, (showlinkr));
      }
    } else {
-/* WARNING_message("No whereami program in Unix path ==> no linkrbrain button in Clusterize!") ;*/
+/* WARNING_message("No whereami_afni program in Unix path ==> no linkrbrain button in Clusterize!") ;*/
      cwid->linkrbrain_pb = cwid->savemask_pb ;
    }
    cwid->linkrbrain_nclu = 0 ; /* 09 Sep 2015 */
@@ -1015,7 +1015,7 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    /* row #1: Where button [04 Aug 2010] */
 
-   wherprog = THD_find_executable("whereami") ;
+   wherprog = THD_find_executable("whereami_afni") ;
    if( wherprog != NULL ){
      xstr = XmStringCreateLtoR( "WamI" , XmFONTLIST_DEFAULT_TAG ) ;
      cwid->whermask_pb = XtVaCreateManagedWidget(
@@ -1025,15 +1025,16 @@ ENTRY("AFNI_clus_make_widgets") ;
            NULL ) ;
      XmStringFree(xstr) ;
      XtAddCallback( cwid->whermask_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
-     MCW_register_hint( cwid->whermask_pb , "SaveMsk, then 'whereami -omask'") ;
+     MCW_register_hint( cwid->whermask_pb ,
+                        "SaveMsk, then 'whereami_afni -omask'") ;
      MCW_register_help( cwid->whermask_pb ,
                          "Write the set of clusters to\n"
                          "a 3D dataset, then run program\n"
-                         "              whereami -omask\n"
+                         "              whereami_afni -omask\n"
                          "to get a report of atlas locations\n"
                          "that overlap each cluster.\n"
                          "* At most the first 20 clusters\n"
-                         "   will be passed to whereami.\n"
+                         "   will be passed to whereami_afni.\n"
                          "* To change this upper limit, set\n"
                          "   AFNI_CLUSTER_WAMIMAX to a\n"
                          "   value between 1 and 99.\n"
@@ -1043,7 +1044,7 @@ ENTRY("AFNI_clus_make_widgets") ;
                (im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) ) ;
 
    } else {
-     WARNING_message("No whereami program in Unix path ==> no WamI button in Clusterize!") ;
+     WARNING_message("No whereami_afni program in Unix path ==> no WamI button in Clusterize!") ;
      cwid->whermask_pb = cwid->savemask_pb ;
    }
 
@@ -2002,8 +2003,9 @@ ENTRY("AFNI_clus_action_CB") ;
        ININFO_message("%s",wout) ;
        fp = popen( wout , "r" ) ;
        if( fp == NULL ){
-         (void)MCW_popup_message(w," \n*** Can't run whereami command? ***\n ",
-                                 MCW_USER_KILL) ;
+         (void)MCW_popup_message(w,
+               " \n*** Can't run whereami_afni command? ***\n ",
+               MCW_USER_KILL) ;
        } else {
          wout[0] = '\0' ;
          while( afni_fgets(wout+strlen(wout),WSIZ-2,fp) != NULL ){
@@ -2136,8 +2138,9 @@ printf("wrote cluster table to %s\n", lb_fnam);
      ININFO_message("%s",wout) ;
      fp = popen( wout , "r" ) ;
      if( fp == NULL ){
-       (void)MCW_popup_message(w," \n*** Can't run whereami command? ***\n ",
-                               MCW_USER_KILL) ;
+       (void)MCW_popup_message(w,
+                  " \n*** Can't run whereami_afni command? ***\n ",
+                  MCW_USER_KILL) ;
      } else {
        wout[0] = '\0' ;
        while( afni_fgets(wout+strlen(wout),WSIZ-2,fp) != NULL ){

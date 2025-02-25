@@ -48,7 +48,7 @@ function [err,Info, BRIKinfo] = BrikInfo (BrickName)
 %      .BRICK_TYPES : types of values in .BRIK 
 %      .BRICK_FLOAT_FACS : float factors to apply to bricks for recovering original values
 %      .BRICK_LABS : The Sub-brick labels (~delimited)
-%      .BRICK_STATAUX : Auxilliary Statistical Information
+%      .BRICK_STATAUX : Auxiliary Statistical Information
 %      .STAT_AUX
 %      .HISTORY_NOTE
 %      .NOTES_COUNT
@@ -115,7 +115,7 @@ FuncName = 'BrikInfo';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 Info = [];
 

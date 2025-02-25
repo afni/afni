@@ -69,7 +69,7 @@ a fixed resolution. The formula and the resolution are hard coded,
 but they are easily accessible through the 'main.cpp' file.
 
   The mcGL program offers different kinds of input, and visualizes
-or save the outpu triangulated surface. The input can be an implicit
+or save the output triangulated surface. The input can be an implicit
 function given by its formula or preselected. It can also be a
 trilinear function given by its coordinates at the cube vertices, in
 order to simulate compare the ideal surface with its triangulation

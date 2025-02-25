@@ -15,7 +15,7 @@ int SYM_expand_errcount(void){ return nerr; }  /* 03 May 2007 */
 #define NLAST_TEST 999999
 
 /*----------------------------------------------------------------------------*/
-/* This funcion is for testing a gltsym string for basic validity.
+/* This function is for testing a gltsym string for basic validity.
    It returns a string that contains the messages generated during the tests.
     * varlist = space (or comma or semicolon) delimited list of variable names
     * gltsym  = expression for GLT

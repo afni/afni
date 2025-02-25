@@ -37,7 +37,7 @@ function [err, ErrMessage, Rules] = HEAD_Rules (FieldNames)
 %Debug Flag
     DBG = 1;
 
-%initailize return variables
+%initialize return variables
     err = 1;
     ErrMessage = [];
     Rules = [];

@@ -90,7 +90,7 @@ int main (int argc,char *argv[])
   SurfIn = NOPE;
   FullOnly = YUP;
   while (kar < argc) {
-    /* loop accross command line options */
+    /* loop across command line options */
     if ((strcmp(argv[kar], "-h") == 0) || (strcmp(argv[kar], "-help") == 0)) {
       cmp_surf_usage ();
       exit (1);

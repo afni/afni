@@ -34,7 +34,7 @@ FuncName = 'ShowRegressors';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 figure(1); clf

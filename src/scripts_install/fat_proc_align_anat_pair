@@ -34,7 +34,7 @@
 #   just that, still
 #
 #set version   = "1.7";    set rev_dat   = "Aug 11, 2017"
-#   + switch a ">>" to ">" for general system compatability
+#   + switch a ">>" to ">" for general system compatibility
 #
 #set version   = "1.8";    set rev_dat   = "Sep 04, 2017"
 #   + update to work with newer @chauffeur*, -prefix only

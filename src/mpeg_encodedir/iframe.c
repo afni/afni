@@ -68,7 +68,7 @@
  *
  * Revision 1.21  1995/06/21  22:24:25  smoot
  * added CalcDistortion (TUNEing)
- * fixed timeing stuff for ANSI
+ * fixed timing stuff for ANSI
  * fixed specifics bug
  *
  * Revision 1.20  1995/05/02  21:59:43  smoot
@@ -99,7 +99,7 @@
  * Added realQuiet
  *
  * Revision 1.11  1994/12/07  00:40:36  smoot
- * Added seperate P and B search ranges
+ * Added separate P and B search ranges
  *
  * Revision 1.10  1994/11/14  22:30:30  smoot
  * Merged specifics and rate control

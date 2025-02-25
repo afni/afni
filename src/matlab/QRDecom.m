@@ -34,7 +34,7 @@ FuncName = 'QRDecom.m';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 % Tolerance for computing rank from diag(R) after QR decomposition

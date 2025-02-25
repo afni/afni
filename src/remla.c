@@ -716,7 +716,7 @@ rcmat * rcmat_arma11( int nt, int *tau, double rho, double lam )
    for( ii=1 ; ii < nt ; ii++ ){
      itt  = TAU(ii) ;                            /* 'time' of the i'th index */
      jbot = ii-bmax ; if( jbot < 0 ) jbot = 0 ;      /* earliest allow index */
-     for( jj=jbot ; jj < ii ; jj++ ){               /* scan to find bandwith */
+     for( jj=jbot ; jj < ii ; jj++ ){               /* scan to find bandwidth */
        jtt = itt - TAU(jj) ;                     /* 'time' difference i-to-j */
        if( jtt <= bmax ) break ;                /* if in OK region, stop now */
      }
@@ -1740,7 +1740,7 @@ ENTRY("REML_compute_gltstat") ;
 
 /*---------------------------------------------------------------------------*/
 
-#define NSCUT 5  /* finsih when get this many 'small' correlations in a row */
+#define NSCUT 5  /* finish when get this many 'small' correlations in a row */
 
 /*---------------------------------------------------------------------------*/
 /*  Compute correlations for AR(3) model with one real root [aa] and two
@@ -2050,7 +2050,7 @@ rcmat * rcmat_arma31( int nt, int *tau,
    for( ii=1 ; ii < nt ; ii++ ){
      itt  = TAU(ii) ;                            /* 'time' of the i'th index */
      jbot = ii-bmax ; if( jbot < 0 ) jbot = 0 ;      /* earliest allow index */
-     for( jj=jbot ; jj < ii ; jj++ ){               /* scan to find bandwith */
+     for( jj=jbot ; jj < ii ; jj++ ){               /* scan to find bandwidth */
        jtt = itt - TAU(jj) ;                     /* 'time' difference i-to-j */
        if( jtt <= bmax ) break ;                /* if in OK region, stop now */
      }

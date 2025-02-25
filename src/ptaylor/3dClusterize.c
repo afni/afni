@@ -50,6 +50,10 @@
                    |Mean|, unless '-noabs' opt was used.  Now, default
                    will actually be Mean, unless '-abs_table_data' is used
 
+   2024 05 05: + [PT] fix special case of 1-sided stat thresholding
+                 p=... syntax is used.  Thanks to AFNI user A Lynn
+                 ("andrewlynnphd") for raising this question on the MB.
+
 */
 
 
@@ -62,6 +66,7 @@
 #include "3ddata.h"
 #include "DoTrackit.h"
 #include "basic_boring.h"
+#include "statpval_opts.h"
 
 #define BIIIIG_NUM 1.e9
 
@@ -140,6 +145,10 @@ void usage_Clusterize(int detail)
 " \n"
 "   Explanation of 3dClusterize text report: ~2~\n"
 " \n"
+"     The following columns of cluster summary information are output\n"
+"     for quick reference (and please see the asterisked notes below\n"
+"     for some important details on the quantities displayed):\n"
+" \n"
 "     Nvoxel       : Number of voxels in the cluster\n"
 " \n"
 "     CM RL        : Center of mass (CM) for the cluster in the Right-Left\n"
@@ -174,6 +183,11 @@ void usage_Clusterize(int detail)
 " \n"
 "     MI IS        : Coordinate of the Maximum Intensity value in the\n"
 "                    Inferior-Superior direction of the volume cluster\n"
+" \n"
+"     * The CM, Mean, SEM, Max Int and MI values are all calculated using\n"
+"       using the '-idat ..' subvolume/dataset. In general, those peaks\n"
+"       and weighted centers of mass will be different than those of the\n"
+"       '-ithr ..' dset (if those are different subvolumes).\n"
 " \n"
 "     * CM values use the absolute value of the voxel values as weights.\n"
 " \n"
@@ -290,9 +304,9 @@ void usage_Clusterize(int detail)
 " \n"
 " -1Dformat      :Write output in 1D format (now default). You can\n"
 "                 redirect the output to a .1D file and use the file\n"
-"                 as input to whereami for obtaining Atlas-based\n"
+"                 as input to whereami_afni for obtaining Atlas-based\n"
 "                 information on cluster locations.\n"
-"                 See whereami -help for more info.\n"
+"                 See whereami_afni -help for more info.\n"
 " \n"
 " -no_1Dformat   :Do not write output in 1D format.\n"
 " \n"
@@ -467,10 +481,13 @@ int main(int argc, char *argv[]) {
    THD_3dim_dataset *insetA = NULL;
    THD_3dim_dataset *INMASK=NULL;
    char *prefix=NULL;
+   PARAMS_statpval InOpts; // object to hold info when 'p=...' is used
 
    int STATINPUT  = 1; // flag for whether user input stat (1) or pval (0)
    int STATINPUT2 = 1;
+   int STATINPUT3 = 1;
    char chtmp[200]; //=NULL;
+   char chtmp2[200]; //=NULL;
    float tmpb, tmpt;
 
    char blab1[100]="", blab2[100]="", blab3[100]="NN";
@@ -562,6 +579,9 @@ int main(int argc, char *argv[]) {
    int HAVE_USER_ORIENT = 0;
 
    mainENTRY("3dClusterize"); machdep();
+
+   // fill option struct with defaults, in case of using 'p=...' syntax
+   InOpts = set_p2dsetstat_defaults();
 
    // ****************************************************************
    // ****************************************************************
@@ -687,6 +707,11 @@ int main(int argc, char *argv[]) {
          // possible p-value conversion
 
          STATINPUT = CheckStringStart(argv[iarg],"p=", chtmp);
+         if ( !STATINPUT ) {
+            InOpts.pval = atof(chtmp);
+            InOpts.sidedness  = strdup("1sided");
+            InOpts.as_1_sided = 1;
+         }
          thr_1sid = atof(chtmp); // atof(argv[iarg]);
          if( !STATINPUT )
             if( IsNotValidP(thr_1sid, 1) )
@@ -732,6 +757,13 @@ int main(int argc, char *argv[]) {
             ERROR_exit("Problem keeping track of input arguments for test");
 
          STATINPUT = CheckStringStart(argv[iarg],"p=", chtmp);
+         if ( !STATINPUT ) {
+            InOpts.pval = atof(chtmp);
+            InOpts.as_1_sided = 0;
+            // record the option from the string above, w/o the initial '-'
+            STATINPUT3 = CheckStringStart(argv[iarg-1],"-", chtmp2);
+            InOpts.sidedness = strdup(chtmp2);
+         }
          tht = atof(chtmp); // for top of L tail
 
          if( !STATINPUT ) {
@@ -963,9 +995,9 @@ int main(int argc, char *argv[]) {
    if ( !STAT_nsides )
       INFO_message("Looks like clustering is *not* being performed "
                    "on a stat value; won't worry about sidedness, then.");
-   else if ( (STAT_nsides < 2) && ( abs(thr_type) >=2 ) )
-      ERROR_exit("You are asking for multisided clustering on a "
-                 "single-sided stat!");
+   //else if ( (STAT_nsides < 2) && ( abs(thr_type) >=2 ) )
+   //   ERROR_exit("You are asking for multisided clustering on a "
+   //              "single-sided stat!");
    else if( (STAT_nsides < 2) && (thr_type == -1) )
       ERROR_exit("The Glen Rule applies here: \n\t"
                  "Can't run a left-sided test on this stat, as "
@@ -982,6 +1014,9 @@ int main(int argc, char *argv[]) {
 
    // ----------- convert p to dset stat, if necessary ------------
 
+   // in this section, thb and tht are truly sorted out when p=... is
+   // used, with InOpts now providing the clean bit of information
+
    // ALL THIS JUST TO MAKE J. RAJENDRA HAPPY!!!
    if( !STATINPUT ) {
       // Now check here if a non-stat was used for thresholding
@@ -989,31 +1024,33 @@ int main(int argc, char *argv[]) {
          ERROR_exit("Thresholding volume does *not* appear to be a stat "
                     "so you can't use the 'p=..' internal conversion to stat");
 
+      // [PT: 2024-04-05] this value is generally/always the correct
+      // stat value for a given p-value, regardless of the combination
+      // of sidedness of stat and the (separate consideration)
+      // sidedness of the stat.  This is the correct way to do this,
+      // no trying to deal with 'extra' factors of 2.
+      InOpts.statval = THD_volume_pval_to_thresh(insetA, ithr,
+                                                 InOpts.pval, 
+                                                 InOpts.as_1_sided);
+      //INFO_message("InOpts: p=%f -> thr=%f", InOpts.pval, InOpts.statval);
+
       tmpb = thb;
       tmpt = tht;
 
       if( thr_type == -1 ) {// 1sided, left; factor of 2 for 1sided conv
-         tht = - THD_pval_to_stat( 2*tht,
-                                   DSET_BRICK_STATCODE(insetA, ithr),
-                                   DSET_BRICK_STATAUX(insetA, ithr));
+         tht = - InOpts.statval;
          INFO_message("Converted left-tail p=%f -> thr=%f", tmpt, tht);
          sprintf(repstr, "left-tail p=%f -> thr=%f", tmpt, tht);
    
       }
       else if( thr_type == 1 ) {// 1sided, right; factor of 2 for 1sided conv
-         thb = THD_pval_to_stat( 2*thb,
-                                 DSET_BRICK_STATCODE(insetA, ithr),
-                                 DSET_BRICK_STATAUX(insetA, ithr));
+         thb = InOpts.statval;
          INFO_message("Converted right-tail p=%f -> thr=%f", tmpb, thb);
          sprintf(repstr, "right-tail p=%f -> thr=%f", tmpb, thb);
       }
       else {// adjust all of bisided, 2sided, and within range
-         thb = THD_pval_to_stat( thb,
-                                 DSET_BRICK_STATCODE(insetA, ithr),
-                                 DSET_BRICK_STATAUX(insetA, ithr));
-         tht = - THD_pval_to_stat( tht,
-                                   DSET_BRICK_STATCODE(insetA, ithr),
-                                   DSET_BRICK_STATAUX(insetA, ithr));
+         thb = InOpts.statval;
+         tht = - InOpts.statval;
          INFO_message("Converted left-tail p=%f -> thr=%f", tmpt, tht);
          INFO_message("Converted right-tail p=%f -> thr=%f", tmpb, thb);
          sprintf(repstr, "left-tail p=%f -> thr=%f;  "

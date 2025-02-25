@@ -42,8 +42,7 @@ s,*/
 n.*/
 /*     There can be some freedom in the interpolation conditions, which is
  */
-/*    taken up by minimizing the Frobenius norm of the change to the secon
-d*/
+/*    taken up by minimizing the Frobenius norm of the change to the second */
 /*    derivative of the quadratic model, beginning with a zero matrix. The
 */
 /*     arguments of the subroutine are as follows. */
@@ -90,8 +89,8 @@ X(N).*/
 
 /*    Partition the working space array, so that different parts of it can
  be*/
-/*    treated separately by the subroutine that performs the main calculat
-ion.*/
+/*    treated separately by the subroutine that performs the main
+ calculation.*/
 
     /* Parameter adjustments */
     --w;
@@ -228,8 +227,8 @@ e*/
 /*       the elements of DZ are plus or minus one, as specified by IDZ. */
 /*     NDIM is the first dimension of BMAT and has the value NPT+N. */
 /*     D is reserved for trial steps from XOPT. */
-/*    VLAG will contain the values of the Lagrange functions at a new poin
-t X.*/
+/*    VLAG will contain the values of the Lagrange functions at a new */
+/*    point X.*/
 /*      They are part of a product that requires VLAG to be of length NDIM
 .*/
 /*    The array W will be used for working space. Its length must be at le
@@ -915,7 +914,7 @@ L410:
 	xpt[knew + i__ * xpt_dim1] = xnew[i__];
     }
 
-/*    If a trust region step makes a small change to the objective functio
+/*    If a trust region step makes a small change to the objective function
 n,*/
 /*    then calculate the gradient of the least Frobenius norm interpolant
 at*/
@@ -1921,7 +1920,7 @@ L70:
 	wvec[ip + wvec_dim1 * 5] = zero;
     }
 
-/*     Put the coefficents of THETA*Wcheck in PROD. */
+/*     Put the coefficients of THETA*Wcheck in PROD. */
 
     for (jc = 1; jc <= 5; ++jc) {
 	nw = *npt;

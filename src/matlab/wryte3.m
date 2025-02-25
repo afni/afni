@@ -43,7 +43,7 @@ function [err,Fname] = wryte3 (M,Fname,Opt)
 %Define the function name for easy referencing
 FuncName = 'wryte3';
 
-%initailize return variables
+%initialize return variables
 err = 1;
 UsedName = '';
 

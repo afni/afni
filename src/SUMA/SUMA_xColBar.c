@@ -941,10 +941,13 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
    SUMA_LH("called");
 
    if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURN(0); }
+   if (!(SurfCont = SUMA_ADO_Cont(ado))) { 
+    SUMA_SL_Err("NULL SurfCont"); SUMA_RETURN(0); }
 
-   SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
-
+   if (curColPlane->OptScl<0x20)
+      { SUMA_SL_Err("Invalid curColPlane->OptScl"); SUMA_RETURN(0); }
+   
    switch (curColPlane->OptScl->ThrMode) {
       case SUMA_LESS_THAN:
          sprintf(slabel, "%5s", MV_format_fval(val));
@@ -973,6 +976,10 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
                        MV_format_fval(val), MV_format_fval(val2));
          break;
    }
+   if (!(SurfCont->Thr_tb)){
+        fprintf( SUMA_STDERR, "%s:\nNo thresholding available for this data\n", FuncName);
+        SUMA_RETURN(0);
+     }
    /* SUMA_SET_LABEL(SurfCont->thr_lb,  slabel);*/
       SUMA_INSERT_CELL_STRING(SurfCont->SetThrScaleTable, 0,0,slabel);
 
@@ -1110,7 +1117,8 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    }
 
    /* call this one since it is not being called as the slider is dragged. */
-   SUMA_set_threshold_label(ado, val, 0.0);
+   if (!(SUMA_set_threshold_label(ado, val, 0.0))) 
+      { SUMA_SL_Err("Error setting threshold label"); SUMA_RETURN(0); }
 
    /* sad as it is */
    SUMA_FORCE_SCALE_HEIGHT(SUMA_ADO_Cont(ado));
@@ -1315,7 +1323,10 @@ int SUMA_SwitchColPlaneIntensity_one (
                            /* This function will cause undue redisplays, but
                            keeps code clean */
                            if ( pp != 0.0) {
-                              SUMA_set_threshold_one(ado, colp, &pp);
+                              if (!(SUMA_set_threshold_one(ado, colp, &pp))) {
+                                 SUMA_SL_Err("Error in SUMA_set_threshold_one");
+                                 SUMA_RETURN(0);
+                              }
                            }
                         }
                      }
@@ -1348,7 +1359,8 @@ int SUMA_SwitchColPlaneIntensity_one (
                /* This function will cause undue redisplays, but
                keeps code clean */
                if ( pp != 0.0) {
-                  SUMA_set_threshold_one(ado, colp, &pp);
+                  if (!(SUMA_set_threshold_one(ado, colp, &pp)))
+                    { SUMA_SL_Err("Error in SUMA_set_threshold_one"); SUMA_RETURN(0); }
                }
             }
          }
@@ -1375,7 +1387,8 @@ int SUMA_SwitchColPlaneIntensity_one (
                /* This function will cause undue redisplays, but
                keeps code clean */
                if ( pp != 0.0) {
-                  SUMA_set_threshold_one(ado, colp, &pp);
+                  if (!(SUMA_set_threshold_one(ado, colp, &pp))) 
+                    { SUMA_SL_Err("Error in SUMA_set_threshold_one"); SUMA_RETURN(0); }
                }
             }
          }
@@ -1567,7 +1580,8 @@ int SUMA_SwitchColPlaneThreshold_one(
       pp = (float)SUMA_Pval2ThreshVal (ado, (double)pp);
       /* This function will cause undue redisplays, but keeps code clean */
       if ( pp != 0.0) {
-         SUMA_set_threshold_one(ado, colp, &pp);
+         if (!(SUMA_set_threshold_one(ado, colp, &pp)))
+            { SUMA_SL_Err("Error in SUMA_set_threshold_one"); SUMA_RETURN(0); }
       }
    }
 
@@ -2022,6 +2036,84 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
+void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
+                                   XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   static int AlphaOpacityFalloff = 0;
+
+   SUMA_ENTRY;
+   
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado) SUMA_RETURNe;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (!(SO->SurfCont=SUMA_ADO_Cont(ado))
+            || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
+   
+   if (AlphaOpacityFalloff==0){
+    SO->SurfCont->AlphaOpacityFalloff = 0;
+    AlphaOpacityFalloff = 1;
+   }
+   
+   // AlphaOpacityFalloff = !AlphaOpacityFalloff;
+   SO->SurfCont->AlphaOpacityFalloff = !(SO->SurfCont->AlphaOpacityFalloff);
+   
+   // SO->SurfCont->AlphaThresh is common across period key
+   // SO->SurfCont->AlphaOpacityFalloff = /* SurfCont->AlphaOpacityFalloff = */ AlphaOpacityFalloff;
+
+   if (!(SO->Overlays)){
+    if (SO->SurfCont->AlphaOpacityFalloff){
+        fprintf (SUMA_STDERR,
+            "ERROR %s: Cannot make overlay variably opqaue.  There is no overlay.\n", 
+            FuncName);
+        // No variable opacity since there is no overlay
+        SO->SurfCont->AlphaOpacityFalloff = 0;
+        
+        // Uncheck "A" check-box
+        // SurfCont->AlphaOpacityFalloff = 0;
+        XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
+                              SO->SurfCont->AlphaOpacityFalloff, YUP);    
+        }
+    SUMA_RETURNe;
+   }
+
+   // Default opacity model
+   if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
+   
+   // Refresh display
+   SUMA_Remixedisplay(ado);
+   SUMA_UpdateNodeLblField(ado);
+
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
+                                   XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   static int BoxOutlineThresh = 0;
+
+   SUMA_ENTRY;
+
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
+            || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   
+   BoxOutlineThresh = !BoxOutlineThresh;
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   
+   // Refresh display
+   SUMA_Remixedisplay(ado);
+   SUMA_UpdateNodeLblField(ado);
+
+   SUMA_RETURNe;
+}
+
 void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
                                    XtPointer client_data)
 {
@@ -2317,7 +2409,29 @@ SUMA_MenuItem LinkMode_Menu[] = {
 
    {NULL},
 };
+/**/
+SUMA_MenuItem AlphaMode_Menu[] = {
+/*
+   {  "Threshol", &xmPushButtonWidgetClass,
+      '\0', NULL, NULL,
+      SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_None, NULL},
 
+   {  "Box", &xmPushButtonWidgetClass,
+      '\0', NULL, NULL,
+      SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_Pls1, NULL},
+
+   {  "Neither", &xmPushButtonWidgetClass,
+      '\0', NULL, NULL,
+      SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_Same, NULL},
+
+   {  "Both", &xmPushButtonWidgetClass,
+      '\0', NULL, NULL,
+      SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_Stat, NULL},
+
+   {NULL},
+*/
+};
+/**/
 
 /*!
    \brief sets the colormap interpolation mode
@@ -6518,7 +6632,7 @@ void SUMA_TableF_cb_label_Modify (Widget w, XtPointer client_data,
    }
    if (TF->cell_modified != -1) {
       /* make sure it is the last one you'd been working on
-      This check fails when I am dealing with mutliple tables
+      This check fails when I am dealing with multiple tables
       If you need it, store a value for each cell and
       check them individually*/
       if (0 && CurrentCell >= 0  && TF->cell_modified != CurrentCell) {
@@ -6566,7 +6680,7 @@ void SUMA_set_cmap_options(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
          SUMA_RETURNe;
          break;
       case GDSET_type:
-         SUMA_S_Err("No init for a DO that cannot be dispalyed\n"
+         SUMA_S_Err("No init for a DO that cannot be displayed\n"
                     "without variant");
          SUMA_RETURNe;
       case CDOM_type:
@@ -6769,9 +6883,11 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                SUMA_Alloc_Menu_Widget(N_items+1);
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
-                           "B", '\0', YUP, SwitchBrt_Menu,
+// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "B", '\0', YUP, SwitchBrt_Menu,
+                           "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
                            (void *)ado,
-                           "SurfCont->Dset_Mapping->B",
+// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "SurfCont->Dset_Mapping->B",
+                           "SurfCont->Dset_Mapping->_",  // TEMPORARY FOR MERGE WITH MASTER
                "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
                            SUMA_SurfContHelp_SelBrt,
                            SurfCont->SwitchBrtMenu );
@@ -7025,6 +7141,7 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                XmNmarginHeight, 0 ,
                XmNmarginWidth , 0 ,
                NULL);
+               
          /* create the absolute threshold toggle button */
          SurfCont->AbsThresh_tb = XtVaCreateManagedWidget("|T|",
                xmToggleButtonWidgetClass, rc,
@@ -7428,7 +7545,8 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                SUMA_Alloc_Menu_Widget(N_items+1);
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
-                           "B", '\0', YUP, SwitchBrt_Menu,
+// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "B", '\0', YUP, SwitchBrt_Menu,
+                           "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
                            (void *)ado,
                            "VolCont->Dset_Mapping->B",
                "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
@@ -8059,9 +8177,11 @@ void SUMA_set_cmap_options_GLDO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                SUMA_Alloc_Menu_Widget(N_items+1);
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
-                           "B", '\0', YUP, SwitchBrt_Menu,
+// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "B", '\0', YUP, SwitchBrt_Menu,
+                           "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
                            (void *)ado,
-                           "GraphCont->GDset_Mapping->B",
+// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "GraphCont->GDset_Mapping->B",
+                           "GraphCont->GDset_Mapping->_",  // TEMPORARY FOR MERGE WITH MASTER
                "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
                            SUMA_SurfContHelp_SelBrt,
                            SurfCont->SwitchBrtMenu );
@@ -9415,7 +9535,7 @@ SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_ALL_DO *ado, char *str)
 }
 
 /*!
-   This function will fail if the strings have been trunctated
+   This function will fail if the strings have been truncated
    Consider writing SetMenuChoiceUserData
 */
 SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_ALL_DO *ado, char *str)
@@ -9467,7 +9587,7 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_ALL_DO *ado, char *str)
    for (i=0; i< SurfCont->SwitchCmapMenu->N_mw; ++i) {
       if (LocalHead)
          fprintf (SUMA_STDERR,"I have %s, want %s\n", XtName(w[i]), str);
-      if (nstr > strlen(XtName(w[i]))) { /* name in list got trunctated ...*/
+      if (nstr > strlen(XtName(w[i]))) { /* name in list got truncated ...*/
          nf = strncmp(str, XtName(w[i]), strlen(XtName(w[i])));
       } else {
          nf = strcmp(str, XtName(w[i]));
@@ -10649,6 +10769,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
       XmNpacking, XmPACK_TIGHT,
       XmNleftAttachment,XmATTACH_FORM ,
       XmNorientation , XmHORIZONTAL ,
+      XmNresizeHeight, True,
       XmNmarginHeight , 0 ,
       XmNmarginWidth  , 0 ,
       NULL);
@@ -10658,6 +10779,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
       rct = XtVaCreateWidget ("rowcolumn",
          xmRowColumnWidgetClass, SurfCont->opts_rc,
          XmNpacking, XmPACK_TIGHT,
+         // XmNresizeHeight, True,
          XmNresizeHeight, False, /* important that this rc is not to be resized
                                     automatically,
                                     otherwise, the fix SUMA_FORCE_SCALE_HEIGHT
@@ -10670,6 +10792,51 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
          XmNmarginHeight , 0 ,
          XmNmarginWidth  , 0 ,
          NULL);
+      
+        // Place "A" and "B" checkboxes just above sliding bar
+        {
+            // Create widget within which to place "A" and "B" checkboxes
+            Widget ABCheckBoxContainer = NULL; // one pass through this block ONLY 
+            ABCheckBoxContainer = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rct,
+            XmNpacking, XmPACK_TIGHT,
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+
+            // create the "A" toggle checkbox 
+            SurfCont->AlphaOpacityFalloff_tb = XtVaCreateManagedWidget("A",
+            xmToggleButtonWidgetClass, ABCheckBoxContainer,
+            NULL);
+            // Make hover help, and BHelp, for "A" checkbox
+            XtAddCallback (SurfCont->AlphaOpacityFalloff_tb,
+                XmNvalueChangedCallback, SUMA_cb_AlphaOpacityFalloff_tb_toggled, ado);
+            SUMA_Register_Widget_Help(SurfCont->AlphaOpacityFalloff_tb , 1,
+                                   "SurfCont->AlphaOpacityFalloff_tb",
+                                   "Alpha: use transparent threshold",
+                                   SUMA_SurfContHelp_AlphaThr );
+
+            SUMA_SET_SELECT_COLOR(SurfCont->AlphaOpacityFalloff_tb);
+                    
+            // create the "B" toggle checkbox 
+// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER            SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("B",
+            SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("_",     // TEMPORARY FOR MERGE WITH MASTER
+            xmToggleButtonWidgetClass, ABCheckBoxContainer,
+            NULL);
+            // Make hover help, and BHelp, for "B" checkbox
+            XtAddCallback (SurfCont->BoxOutlineThresh_tb,
+                XmNvalueChangedCallback, SUMA_cb_BoxOutlineThresh_tb_toggled, ado);
+            SUMA_Register_Widget_Help(SurfCont->BoxOutlineThresh_tb , 1, 
+                                   "SurfCont->BoxOutlineThresh_tb",
+                                   "'Boxes: outline threshold regions",
+                                   SUMA_SurfContHelp_BoxOutlineThr );
+
+            SUMA_SET_SELECT_COLOR(SurfCont->BoxOutlineThresh_tb);
+
+            XtManageChild(ABCheckBoxContainer);
+        }
+
       /* convenient common arguments for scales */
       arglist = XtVaCreateArgsList( NULL,
                                     XmNshowValue, True,
@@ -10719,6 +10886,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                                           xmScaleWidgetClass, rct,
                                           XtVaNestedList, arglist,
                                           NULL);
+
 #ifdef USING_LESSTIF
    if (LocalHead) fprintf(stderr,"\n========= setting width to %d\n",
                                  SUMA_SCALE_SLIDER_WIDTH);
@@ -11296,7 +11464,7 @@ void SUMA_SetScaleRange(SUMA_ALL_DO *ado, double range[2])
 
    rmult = (double)SUMA_floatEnv("SUMA_Range_Multiplier", 0.0) ;
    if (rmult > 0.0f && rmult != 1.0f) {
-      SUMA_LHv("Applying range multipler of %f\n", rmult);
+      SUMA_LHv("Applying range multiplier of %f\n", rmult);
       range[0] = range[0]*rmult;
       range[1] = range[1]*rmult;
    }
@@ -12921,7 +13089,7 @@ SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_ALL_DO *ado)
          SUMA_UpdateNodeField(ado);
          break;
       case GDSET_type:
-         SUMA_S_Err("No init for a DO that cannot be dispalyed\n"
+         SUMA_S_Err("No init for a DO that cannot be displayed\n"
                     "without variant");
          SUMA_RETURN(NOPE);
          break;

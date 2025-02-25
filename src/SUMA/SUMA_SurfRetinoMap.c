@@ -382,7 +382,7 @@ void usage_RetinoMap (SUMA_GENERIC_ARGV_PARSE *ps)
 "     each node in input datasets. This thresholding \n"
 "     parameter is like a union mask of input data \n"
 "     thresholded at the same level.\n"
-"  The signficance value is not provided on purpose.\n"
+"  The significance value is not provided on purpose.\n"
 "     I don't know of a good way to compute it, but \n"
 "     it serves its function or wedding out low SNR nodes.\n"
 "\n"                      
@@ -417,7 +417,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
    Opt->out_prefix = NULL;
    kar = 1;
    brk = NOPE;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           ps->hverb = strlen(argv[kar])>3?2:1;

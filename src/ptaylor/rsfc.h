@@ -34,7 +34,7 @@ int CalcAveRTS(int *LIST, double *RAT, THD_3dim_dataset *T,
                int *DIM, int *Nv, float *W);
 
 /*
-  takes neigbor radius, calcs int version, and number of vox therein,
+  takes neighbor radius, calcs int version, and number of vox therein,
   returned as an int; other one gets shape indices
 */
 int IntSpherVol(int *RD, float *NR);

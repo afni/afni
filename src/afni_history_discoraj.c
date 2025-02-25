@@ -58,7 +58,7 @@ afni_history_struct discoraj_history[] = {
    "Added YouTube button to afni GUI."
  } ,
  { 21 , APR , 2020 , JKR , "afni" , MINOR , TYPE_NEW_OPT ,
-   "Added -all_dsets to load all datasets togther."
+   "Added -all_dsets to load all datasets together."
  } ,
  { 16 , AUG , 2019 , JKR , "FATCAT_matplot" , MICRO , TYPE_BUG_FIX ,
    "Fix for FATCAT_matplot header reading."
@@ -73,7 +73,7 @@ afni_history_struct discoraj_history[] = {
    "New program to extract data from json files. Useful for BIDS data."
  } ,
  { 04 , MAY , 2018 , JKR , "BayesianGroupAna.py" , SUPER , TYPE_NEW_PROG ,
-   "New program to preform Bayesian group analysis on ROI level data."
+   "New program to perform Bayesian group analysis on ROI level data."
  } ,
  { 23 , MAR , 2018 , JKR , "tedana_wrapper.py" , SUPER , TYPE_NEW_PROG ,
    "add wrapper for tedana.py that will be run from afni_proc.py"

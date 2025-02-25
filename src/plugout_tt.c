@@ -191,7 +191,7 @@ int main( int argc , char * argv[] )
   This routine handles all communications with AFNI.
   The only input is the global variable afni_host, which determines
   on which system AFNI is running.
-  The output is -1 if an error occured, 0 if everything is OK.
+  The output is -1 if an error occurred, 0 if everything is OK.
 =====================================================================*/
 
 /***** Mode flags for determining what afni_io does.

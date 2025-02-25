@@ -22,7 +22,7 @@ static int ulong_size ( unsigned long l );
 /*----------------------------------------------------------------------
  * r_hex_str_to_long    - convert hex_digits hex digits to a long
  *
- * Conver up to 8 hex digits into a single unsigned long integer.
+ * Convert up to 8 hex digits into a single unsigned long integer.
  * The input string must consist of hex type characters, without
  * a leading 0x.  i.e. '0'->'9', 'a'->'f' and 'A'->'F'.
  *

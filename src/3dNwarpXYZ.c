@@ -85,7 +85,7 @@ void print_usage(void)
     "                application the differences should be negligible.\n"
     "\n"
 #if 0  /* -wfac does NOT work with -iwarp!!! */
-    " -wfac fff = Scale displacments by factor 'fff' before using.\n"
+    " -wfac fff = Scale displacements by factor 'fff' before using.\n"
     "             It is hard to see that this has any value, but here it is.\n"
     "\n"
 #endif

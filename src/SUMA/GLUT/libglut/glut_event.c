@@ -202,7 +202,7 @@ purgeStaleWindow(Window win)
   GLUTstale **pEntry = &__glutStaleWindowList;
   GLUTstale *entry = __glutStaleWindowList;
 
-  /* Tranverse singly-linked stale window list look for the
+  /* Traverse singly-linked stale window list look for the
      window ID. */
   while (entry) {
     if (entry->win == win) {
@@ -311,7 +311,7 @@ processEvents(void)
               mappedMenuButton = event.xbutton.button;
             } else {
               /* Ignore a release of a button with a menu
-                 attatched to it when no menu is popped up, or
+                 attached to it when no menu is popped up, or
                  ignore a press when another menu is already
                  popped up. */
             }
@@ -632,7 +632,7 @@ waitForSomething(void)
        needed to wait for a writable X connection file
        descriptor, and in the process, may have had to read off
        X protocol from the file descriptor. If XPending is true,
-       this case occured and we should avoid waiting in select
+       this case occurred and we should avoid waiting in select
        since X protocol buffered within Xlib is due to be
        processed and potentially no more X protocol is on the
        file descriptor, so we would risk waiting improperly in
@@ -683,7 +683,7 @@ waitForSomething(void)
      for pending X events *and* then handle any timeouts. We
      always look for X events even if select returned with 0
      (indicating a timeout); otherwise we risk starving X event
-     processing by continous timeouts. */
+     processing by continuous timeouts. */
   while (XPending(__glutDisplay)) {
   immediatelyHandleXinput:
     processEvents();
@@ -744,7 +744,7 @@ processWindowWorkList(GLUTwindow * window)
     if (workMask & GLUT_EVENT_MASK_WORK) {
       long eventMask;
 
-      /* Make sure children are not propogating events this
+      /* Make sure children are not propagating events this
          window is selecting for.  Be sure to do this before
          enabling events on the children's parent. */
       if (window->children) {
