@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Feb, 2025, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "update Makefile.linux_ubuntu* (16,24,24_ARM) to distribute libgsl",
+   NULL
+ } ,
+
  { 24, Feb, 2025, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
    "no masking for max F on surface",
    NULL
