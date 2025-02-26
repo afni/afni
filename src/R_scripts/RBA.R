@@ -29,7 +29,7 @@ intro <-
 	      Welcome to RBA ~1~
 Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.7, Feb 21, 2025 
+Version 1.1.8, Feb 26, 2025 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -670,7 +670,7 @@ an <- parse.AFNI.name(lop$outFN)
 if(!lop$overwrite && (
     file.exists(paste0(lop$outFN,".txt")) ||
     file.exists(paste0(lop$outFN,".RData")) ||
-    file.exists(paste0(lop$outFN,".pdf"))) ) {
+    file.exists(paste0(lop$outFN,".png"))) ) {
  errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
  return(NULL)
 }      
@@ -1046,7 +1046,7 @@ addTrans <- function(color,trans)
 
 plotPDP <- function(fn, ps, nR, nr, nc, w=8) {
    h <- ceiling(8*nr/(nc*2))  # plot window height
-   pdf(paste0(fn, "_PDF.pdf"), width=w, height=h)
+   png(paste0(fn, "_PDP.png"), width=w, height=h)
    #dev.new(width=w, height=h)
    par(mfrow=c(lop$PDP[1], nc), mar=c(2.5,0,0.0,0.8), oma=c(0,0,0,0))
    qq <- apply(ps, 2, quantile, c(0.025, 0.05, 0.1, 0.9, 0.95, 0.975)) # 95% central interval
@@ -1171,7 +1171,7 @@ ridge <- function(dat, xlim, labx, wi, hi) {
    units <- "in"                                           # "in", "cm", or "mm"
    height <- 5
    width <- 9
-   file.type <- ".jpeg"                   # can be ".jpeg",".pdf",".png",".bmp",".tiff",etc
+   file.type <- ".png" # ".jpeg"             # can be ".jpeg",".pdf",".png",".bmp",".tiff",etc
 
    ############################### O T H E R  #################################################
    #gradient.colors<-c("#41245C","yellow","gray","gray","blue","#C9182B") # change gradient colors
@@ -1239,7 +1239,7 @@ ridge <- function(dat, xlim, labx, wi, hi) {
        x = NULL,
        y = NULL) +
      scale_x_continuous(limits = xlim)+xlab(labx)
-     ggsave(file = paste0(labx, "_ridge.pdf"), width=wi, height=hi, dpi = 120)
+     ggsave(file = paste0(labx, "_ridge.png"), width=wi, height=hi, dpi = 120)
 }
 
 # for Intercept and quantitative variables
