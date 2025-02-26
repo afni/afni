@@ -320,6 +320,16 @@ cbar (see 'JSONs' in the Notes above).
         -thr_val   3                                             \\
         -alpha     No                                          
 
+    7) Make a colorbar from the name within the known AFNI list.
+
+    colorbar_tool.py                                             \\
+        -in_cbar_name  Viridis                                   \\
+        -prefix        CBAR_Viridis.jpg                          \\
+        -cbar_min      -5                                        \\
+        -cbar_max      5                                         \\
+        -thr_val       3                                         \\
+        -alpha         Linear                                          
+
 
 """.format(all_alpha=lct.list_alpha_str, thr_wid=lct.DOPTS['thr_width'],
            thr_no=lct.DOPTS['thr_num_osc'], tick_ni=lct.DOPTS['tick_num_int'],
