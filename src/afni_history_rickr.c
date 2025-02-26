@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Feb, 2025, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "note if 'afni' is owned by root or not user",
+   NULL
+ } ,
+
  { 24, Feb, 2025, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "update Makefile.linux_ubuntu* (16,24,24_ARM) to distribute libgsl",
    NULL

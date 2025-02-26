@@ -1651,8 +1651,14 @@ class SysInfo:
                if len(files) > 1:
                   self.comments.append("have multiple versions of AFNI in PATH")
                if len(files) > 0:
+                  # check ownership vs user
+                  cmt = ''
                   if os.stat(files[0]).st_uid == 0:
-                     self.comments.append("'afni' executable is owned by root")
+                     cmt = "      (owned by root)"
+                  elif not self.file_and_user_match(files[0], default=1):
+                     cmt = "      (not owned by user)"
+                  if cmt != '':
+                     print('    %-*s %s' % (ml, '', cmt))
             elif prog == 'Xvfb' :
                if not(len(files)) :
                   self.comments.append("missing 'Xvfb', please install")
@@ -1662,6 +1668,27 @@ class SysInfo:
       # time to do away with the py2 vs py3 comment, per PT  [24 Oct 2024]
       # explicit python2 vs python3 check    7 Dec 2016
       # was: n2 = UTIL.num_found_in_path('python2', mtype=1)
+
+   def file_and_user_match(self, fname, default=1):
+      """return wither the file os.stat().st_uid matches os.geteuid()
+
+         return default on failure
+      """
+      fuid = euid = 0
+      try:
+         fuid = os.stat(fname).st_uid
+      except:
+         return default
+
+      try:
+         euid = os.geteuid()
+      except:
+         return default
+
+      if fuid == euid:
+         return 1
+      else:
+         return 0
 
    def check_select_AFNI_progs(self):
       # try select AFNI programs
