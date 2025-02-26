@@ -44,6 +44,7 @@ rez = np.array([255, 255, 255], dtype=np.uint8)   # white
 DOPTS = {
     'user_opts'     : [],         # command the user ran
     'in_cbar'       : '',
+    'in_cbar_name'  : '',
     'prefix'        : '',
     'cbar_min'      : None,
     'cbar_max'      : None,
@@ -96,6 +97,7 @@ inobj : InOpts object
         self.prefix          = DOPTS['prefix']
 
         # cbar properties from @chauffeur_afni pbar JSON
+        self.in_cbar_name    = DOPTS['in_cbar_name']
         self.cbar_min        = DOPTS['cbar_min']
         self.cbar_max        = DOPTS['cbar_max']
         self.thr_val         = DOPTS['thr_val']
@@ -136,22 +138,59 @@ inobj : InOpts object
         if user_inobj :
             tmp1 = self.load_from_inopts()
             tmp2 = self.check_required_inputs()
-            tmp2 = self.check_valid_opts()
-            tmp3 = self.check_files_exist()
-            tmp4 = self.read_cbar_file()
-            tmp5 = self.proc_cbar()
-            tmp6 = self.write_cbar()
+            tmp3 = self.check_valid_opts()
+            if self.in_cbar_name :
+                tmp4 = self.make_cbar_from_name()
+            tmp5 = self.check_files_exist()
+            tmp6 = self.read_cbar_file()
+            tmp7 = self.proc_cbar()
+            tmp8 = self.write_cbar()
 
     # ----------------------------
 
+    def make_cbar_from_name(self):
+        """if a cbar was entered by name (not by file), create it. then,
+        that will become the new in_cbar.
+        """
+
+        # in case we entered here with nothing to do
+        if not(self.in_cbar_name) :
+            return 0
+
+        # create output fname, which becomes the in_cbar
+        odir  = self.outdir
+        oname = '__tmp_' + self.in_cbar_name + '.png'
+        self.in_cbar = odir + '/' + oname
+
+        if self.verb :
+            ab.IP("Creating temporary cbar file: " + self.in_cbar)
+
+        # do the writing
+        cmd    = 'adjunct_cbar_out -cbar ' + self.in_cbar_name
+        cmd   += '  -pbar_saveim ' + self.in_cbar
+        com    = ab.shell_com(cmd, capture=1)
+        stat   = com.run()
+
+        return stat
+
     def write_cbar(self):
+
         """not worrying about overwriting yet"""
+
+        stat = 0
 
         # write the new cbar to disk
         if self.prefix :
             plt.imsave(self.prefix, self.cbar_arr)
 
-        return 0
+        # might have to clean up temp cbar
+        if self.in_cbar_name :
+            ab.IP("Cleaning up temp cbar: " + self.in_cbar)
+            cmd    = '''\\rm {fff}'''.format(fff = self.in_cbar)
+            com    = ab.shell_com(cmd, capture=1)
+            stat   = com.run()
+
+        return stat
 
     def proc_cbar(self):
         """Do the main work of thresholding and/or blending the cbar, either
@@ -418,12 +457,12 @@ inobj : InOpts object
         """Make sure that a necessary minimum set of items has been
         provided."""
       
-        if self.in_cbar is None :
-            ttt = "User is missing input cbar name: see '-in_cbar ..', "
-            ttt+= "and please try again."
+        if self.in_cbar == '' and self.in_cbar_name == '' :
+            ttt = "User is missing input cbar name: see '-in_cbar ..' "
+            ttt+= "or '-in_cbar_name ..' and please try again."
             ab.EP(ttt)
 
-        if self.prefix is None :
+        if self.prefix == '' :
             ttt = "User is missing output cbar name: see '-prefix ..', "
             ttt+= "and please try again."
             ab.EP(ttt)
@@ -473,6 +512,8 @@ inobj : InOpts object
         if io.prefix is not None :
             self.prefix = io.prefix
 
+        if io.in_cbar_name is not None :
+            self.in_cbar_name = io.in_cbar_name
         if io.cbar_min is not None :
             self.cbar_min = io.cbar_min
         if io.cbar_max is not None :
@@ -516,6 +557,15 @@ inobj : InOpts object
             self.verb = io.verb
 
         return 0
+
+    @property
+    def outdir(self):
+        """get output dir from the prefix"""
+        ppp = os.path.dirname(self.prefix)
+        if not(ppp) :
+            return '.'
+        else:
+            return ppp
 
 # -----------------------------------------------------------------------
 
