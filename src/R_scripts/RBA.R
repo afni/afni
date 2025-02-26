@@ -331,14 +331,17 @@ if (adieu) exit.AFNI();
 read.RBA.opts.batch <- function (args=NULL, verb = 0) {
 params <- list (
 '-prefix' = apl(n = 1, d = NA,  h = paste(
-"-prefix PREFIX: Prefix is used to specify output file names. The main output is",
-"        a text with prefix appended with .txt and stores inference information ",
-"        for effects of interest in a tabulated format depending on selected ",
-"        options. The prefix will also be used for other output files such as ",
-"        visualization plots and for saved R data in binary format. The .RData can",
-"        be used for post hoc processing such as customized processing and plotting.",
-"        Remove the .RData file to save disk space once you deem such a file is no",
-"        longer useful.\n", sep = '\n'
+"-prefix PREFIX: The prefix option specifies the base name for output files. A",
+"         directory path can be included in the file name to specify a designated",
+"         location for storing output files. The primary output is a text file named",
+"         <prefix>.txt, which contains inference results for effects of interest in a",
+"         tabulated format based on the selected options. In addition to the text file,",
+"         the prefix is also used for other output files, including visualization plots",
+"         and an R data file saved in binary format (<prefix>.RData). The .RData file",
+"         allows for post hoc analysis, such as customized processing and plotting in ",
+"         R. If disk space is a concern, you can safely remove the .RData file once it",
+"         is no longer needed, as it is primarily for further exploratory analyses",
+"         rather than essential results.\n", sep = '\n'
 	     ) ),
 
 '-chains' = apl(n = 1, d = 1, h = paste(
