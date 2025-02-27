@@ -2127,34 +2127,47 @@ class SysInfo:
       # currently another future condition: neither alpha nor beta
       return 0
 
-   def get_kmdi_version(self, path, verb=1):
+   def get_kmdi_version(self, path):
       """for the given program, run: mdls -name kMDItemVersion
 
          return found version string, or an empty one on failure
       """
+      return self.get_macos_mdls_val('kMDItemVersion', path)
 
-      cmd = 'mdls -name kMDItemVersion %s' % path
-      s, soe = UTIL.exec_tcsh_command(cmd, lines=1)
+   def get_macos_mdls_val(self, attr, app_path):
+      """run 'mdls -name app_path (or -attr)' and extract the value from output:
+            attr = "value"
 
-      # return on failure
-      if len(soe) == 0: return ''
+         return value (or '' on error)
+      """
 
-      rstr = soe[0]
-      rposn = rstr.find('kMDItemVersion')
-      if rposn < 0: return ''
-      
-      rlist = rstr[rposn:].split()
-      if verb > 1: print("-- kmdi_v: list is %s" % rlist)
-      
-      if len(rlist) < 3: return ''
-      if rlist[0] != 'kMDItemVersion' or rlist[1] != '=':
-         return ''
+      # option seems to be moving from -name to -attr
+      val = ''
+      for opt in ['attr', 'name']:
+         cmd = 'mdls -%s %s %s' % (opt, attr, app_path)
+         s, soe = UTIL.exec_tcsh_command(cmd, lines=1)
+         if self.verb > 1:
+            vstr = "-- cmd: %s\n%s\n" % (cmd, '\n'.join(soe))
+            print(vstr)
 
-      # found something, remove any quotes, tabs and spaces, and return
-      rstr = rlist[2].strip('\'" \t')
+         # require attr = "val", but block any val of (null)
+         if s or len(soe) < 1: continue
+         vlist = soe[0].split()
+         if len(vlist) < 3: continue
+         if vlist[1] != '=': continue
+         rstr = vlist[2].strip('\'"') # get rid of either standard quote
+         if rstr == '(null)': continue
 
-      return rstr
-   
+         # success
+         return rstr
+
+      # failure - if the app_path exists and we are verbose, warn
+      if self.verb and os.path.exists(app_path):
+         print("** mdls error on existing path: %s" % app_path)
+         print("   consider reviewing: mdls %s\n" % app_path)
+
+      return ''
+
    def get_cpu_count(self):
        """
        Number of virtual or physical CPUs on this system, i.e. user/real as
