@@ -364,9 +364,10 @@ g_history = """
    1.39 Jan 13, 2025 - updates for OS version, gcc and CLT SDK
    1.40 Jan 23, 2025 - more checks for gcc, check rPkgsInstall
    1.41 Feb 26, 2025 - note if afni is owned by root or not user
+   1.42 Feb 27, 2025 - add a more detailed get_macos_mdls_val()
 """
 
-g_version = "afni_system_check.py version 1.41, February 26, 2025"
+g_version = "afni_system_check.py version 1.42, February 27, 2025"
 
 
 class CmdInterface:
