@@ -12390,6 +12390,38 @@ OPTIONS:  ~2~
         The format of the output is affected by -verb, with -verb 2 format
         being the default.
 
+    -show_merged_opts EG    : merge with example EG and show resulting command
+
+            e.g. -show_merged_opts 'publish 3i'
+
+        This option is intended to help one supply a list of input datasets
+        and perhaps some preferable options, and then to fill the command with
+        option based on a known example.
+
+           all (non-merge) options are initially included, and then...
+
+           if an example option is already provided
+              the option is skipped
+           else if the example option is to specify a dataset
+              the option is added, with a '-CHECK' prefix to the option name
+           else
+              the option is added
+
+        This command would show the entire 'publish 3i' example.
+        Many output options start with -CHECK.
+
+           afni_proc.py -show_merged_opts 'publish 3i'
+
+        This command would show the entire 'publish 3i' example, but include
+        the user-specified options.
+
+           afni_proc.py -copy_anat sub-000_anat.nii.gz              \\
+                        -dsets_me_run sub-000_echo{1,2,3}.nii.gz    \\
+                        -regress_censor_motion 0.4                  \\
+                        -show_merged_opts 'publish 3i'
+
+        See also -compare_merged_opts.
+
     -show_pretty_command    : output the same command, but in a nice format
 
             e.g. afni_proc.py -show_pretty_command
@@ -12499,6 +12531,18 @@ OPTIONS:  ~2~
         separated by -compare_opts_vs_opts.  This is a comparison method
         for comparing 2 local commands, rather than against any known
         example.
+
+    -compare_merged_opts EG : first merge with example EG, then -compare_opts
+
+            e.g. -compare_merged_opts 'publish 3i'
+
+        This is like running "-show_merged_opts EG", then "-compare_opts EG".
+
+        Instead of showing the merged command with options, the merged command
+        is then compared with the original EG, as would be done with
+        -compare_opts EG.
+
+        See also -show_merged_opts, -compare_opts.
 
     -----------------------------------------------------------------
     General execution and setup options ~3~

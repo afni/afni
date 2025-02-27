@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Feb, 2025, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add options -show_merged_opts and -compare_merged_opts",
+   NULL
+ } ,
+
  { 27, Feb, 2025, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "add get_macos_mdls_val() for a deeper check on the XQuartz version",
    NULL
