@@ -2116,7 +2116,7 @@ int SUMA_cb_SymIrange_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
     *                                           19 Feb 2021 [rickr] */
    if ( 0 ) {
       /* nothing else to do */
-      SUMA_RETURNe;
+      SUMA_RETURN(0);
    }
 
    SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
