@@ -808,9 +808,10 @@ g_history = """
     7.83 Jan 27, 2025: fix -compare_opts display of fewer/more options applied
     7.84 Jan 28, 2025: add option -tlrc_affine_warped_dsets
     7.85 Jan 29, 2025: suggest OC_B if only 2 echoes
+    7.86 Feb 27, 2025: add -show_merged_opts, -compare_merged_opts
 """
 
-g_version = "version 7.85, January 29, 2025"
+g_version = "version 7.86, February 27, 2025"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1384,6 +1385,10 @@ class SubjProcSream:
                         helpstr="compare earlier options vs. later ones")
         self.valid_opts.add_opt('-compare_example_pair', 2, [],
                         helpstr="compare the specified pair of examples")
+        self.valid_opts.add_opt('-compare_merged_opts', 1, [],
+                        helpstr="compare options against merged example")
+        self.valid_opts.add_opt('-show_merged_opts', 1, [],
+                        helpstr="show command with merged options")
 
         # general execution options
         self.valid_opts.add_opt('-blocks', -1, [], okdash=0,
@@ -2061,7 +2066,7 @@ class SubjProcSream:
             return 0  # gentle termination
 
         # ------------------------------------------------------------
-        # example and "compare" options - to compare option lists
+        # example, compare and merge options - to compare option lists
         if opt_list.find_opt('-compare_opts'):
            comp, rv = opt_list.get_string_opt('-compare_opts')
            self.compare_vs_opts(opt_list.olist, comp)
@@ -2079,6 +2084,11 @@ class SubjProcSream:
            self.compare_example_pair(pair)
            return 0
         
+        if opt_list.find_opt('-compare_merged_opts'):
+           target, rv = opt_list.get_string_opt('-compare_merged_opts')
+           self.compare_merged_opts(opt_list.olist, target)
+           return 0
+
         if opt_list.find_opt('-show_example'):
            eg, rv = opt_list.get_string_opt('-show_example')
            self.show_example(eg, verb=self.verb)
@@ -2097,6 +2107,10 @@ class SubjProcSream:
               self.show_example_names()
            return 0
         
+        if opt_list.find_opt('-show_merged_opts'):
+           target, rv = opt_list.get_string_opt('-show_merged_opts')
+           return self.show_merged_command(target, verb=self.verb)
+
         # options which are NO LONGER VALID
 
         if opt_list.find_opt('-surf_blur_fwhm'):
@@ -3738,27 +3752,35 @@ class SubjProcSream:
 
         return 0
 
-    def get_ap_command_str(self, style='compact', lstart='# '):
+    def get_ap_command_str(self, args=None, valid=None, style='compact',
+                           lstart='# '):
        """return a commented command string, depending on the desired style
 
+            args    : None (use self.argv) or a list of command line arguments
+            valid   : None (all_opt_names) or a list of valid option names
             style   : either 'compact' or 'pretty'
             cstart  : line start string, usually comment '# ', else ''
        """
        if style == 'none':
           return ''
 
+       if args is None:
+          args = self.argv
+
        if style not in ['compact', 'pretty']:
           print("** AP.get_ap_command_str: invalid style %s" % style)
        if style == 'pretty':
           # get a straight command, and prettify it
-          tstr = UTIL.get_command_str(args=self.argv,
-                                      preamble=0, comment=0, wrap=0)
+          tstr = UTIL.get_command_str(args=args, preamble=0, comment=0, wrap=0)
           # and run PT's niceify on it
-          allopts = self.valid_opts.all_opt_names()
+          if valid is not None:
+             allopts = valid
+          else:
+             allopts = self.valid_opts.all_opt_names()
           rv, tstr = FCS.afni_niceify_cmd_str(tstr, comment_start=lstart,
                                               list_cmd_args=allopts)
        else:
-          tstr = UTIL.get_command_str(args=self.argv)
+          tstr = UTIL.get_command_str(args=args)
 
        return tstr
 
@@ -4292,6 +4314,75 @@ class SubjProcSream:
            print("   %-*s   %-*s" % (max0, pair[0], max1, pair[1]))
         print()
         
+    def show_merged_command(self, target, verb=1):
+        """merge opt example with self.user_opts and display pretty command
+        """
+        newlist = self.merge_opts(self.user_opts.olist, target)
+        if newlist is None:
+           return 1
+
+        # create a new argument list to override self.args
+        args = [self.argv[0]]
+        for opt in newlist:
+            # skip anything we don't want to include
+            if opt[0] in ['-show_merged_opts']:
+               continue
+            args.append(opt[0])
+            args.extend(opt[1])
+
+        # start with valid opts, and additionally prepend '-CHECK' to them
+        valid_opts = self.valid_opts.all_opt_names()
+        valid_opts.extend([('-CHECK'+oname) for oname in valid_opts])
+
+        tstr = self.get_ap_command_str(args=args, valid=valid_opts,
+                                       style='pretty', lstart='')
+        print(tstr)
+        return 0
+
+    def merge_opts(self, olist, comp, check_skip=1):
+        """compare given option list (list of BASE.comopt elements)
+           vs. comp (some APExample name)
+
+           olist        : option list to merge into
+           comp         : target to merge
+           check_skip   : flag: add -CHECK to data options
+
+           - remove any -compare* options
+        """
+        EGS = self.egs()
+        olist = [ [opt.name, opt.parlist]
+                  for opt in olist if not opt.name.startswith('-compare')]
+        eg = EGS.APExample('command', olist)
+
+        # if checking skip options, pass them, else empty
+        if check_skip:
+           eskip = g_eg_skip_opts
+        else:
+           eskip = []
+
+        # can pass a noelemnt list, of opts not to compare elements of
+        if eg.merge_w_instance(comp, eskip=eskip, verb=self.verb):
+           return None
+
+        return eg.olist
+
+    def compare_merged_opts(self, olist, target, verb=1):
+        """merge opt example with self.user_opts, then compare with
+           that original target
+        """
+        # get rid of -compare in option list, and merge
+        olist = [o for o in olist if not o.name.startswith('-compare')]
+        newlist = self.merge_opts(olist, target, check_skip=0)
+
+        # but we need a comopt list, so use an OptionList
+        newolist = OL.OptionList('merged')
+        for newo in newlist:
+           newolist.add_opt(newo[0], 1, newo[1], setpar=1)
+
+        self.compare_vs_opts(newolist.olist, target)
+
+        return 0
+
     def compare_vs_opts(self, olist, comp):
         """compare given option list (list of BASE.comopt elements)
            vs. comp (some APExample name)
@@ -4299,6 +4390,7 @@ class SubjProcSream:
            - remove any -compare* options
         """
         EGS = self.egs()
+        # replace olist, removing any compare opts
         olist = [ [opt.name, opt.parlist]
                   for opt in olist if not opt.name.startswith('-compare')]
         eg = EGS.APExample('command', olist)

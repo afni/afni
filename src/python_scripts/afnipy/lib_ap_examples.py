@@ -107,23 +107,41 @@ class APExample:
 
          for any key in eskip, do not print all details of element differences
       """
-      if isinstance(target, APExample):
-         return self.compare_v_instance(target, eskip=eskip, verb=verb)
-
-      if type(target) != str:
-         print("** APExample.compare: target is neither instance nor string")
+      itarg = self.find_instance(target, verb=verb)
+      if itarg is None:
          return
+
+      return self.compare_v_instance(itarg, eskip=eskip, verb=verb)
+
+   def find_instance(self, target, verb):
+      """target might already be an instance, but allow for a string,
+         possibly with spaces, to be found as an example name
+
+         on error, return None
+      """
+      if isinstance(target, APExample):
+         return target
+
+      # target must be either an instance or a string
+      if type(target) != str:
+         print("** find_instance: target not instance or string, %s" % target)
+         return None
 
       # otherwise, try to find an instance in the ap_examples list
       eg = find_eg(target)
       # if not found, try replacing any '_' with ' '
-      if eg == None and target.find('_') >= 0:
+      if eg is None and target.find('_') >= 0:
           eg = find_eg(target.replace('_', ' '))
-      if eg != None:
-         return self.compare_v_instance(eg, eskip=eskip, verb=verb)
 
-      print("** comp : failed to find instance for target '%s'" % target)
-      return
+      # success
+      if eg is not None:
+         if verb > 2:
+            print("-- found instance for target string '%s'" % target)
+         return eg
+
+      # failure
+      print("** find_instance : failed for target '%s'" % target)
+      return None
 
    def compare_v_instance(self, target, eskip=[], verb=1):
       """compare against another APExample instance
@@ -287,6 +305,73 @@ class APExample:
       print("")
 
       print("")
+
+   def merge_w_instance(self, target, eskip=[], verb=1):
+      """merge with another APExample instance
+
+         Expand the current instance with options in the target.
+
+         For each option in the target:
+
+            if it exists in current
+              ignore (for repeated options, do we require all?)
+            else
+              add (if in eskip, prepend -CHECK)
+
+         Do not need much verb, since we can compare opts afterwards.
+
+         return 0 on success
+      """
+
+      # use more generic name
+      source = self
+
+      if verb > 2: print("-- merge_w_instance() ..., target %s" % target)
+
+      # be sure we have an instance, and not a string
+      target = self.find_instance(target, verb=verb)
+      if target is None:
+         return 1
+
+      # loop over unique keys, counting number in both key lists
+      uniq_target_keys = UTIL.get_unique_sublist(target.keys)
+
+      for key in uniq_target_keys:
+
+         # ignore if already in current (ponder repeated options?)
+         if key in source.keys:
+            if verb > 2:
+               print("-- skip already applied, %s" % key)
+            continue
+
+         # key is missing in source, so add all such target options to source
+
+         # make note of all target options
+         # ksource = [ind for ind, e in enumerate(source.olist) if e[0]==key]
+         ktarget = [ind for ind, e in enumerate(target.olist) if e[0]==key]
+         ntarget = len(ktarget)
+
+         # if the key is in eskip, modify the option name with prefix -CHECK
+         prefix = ''
+         if key in eskip:
+            if verb > 2:
+               print("-- add with prefix, %s" % key)
+            prefix = '-CHECK'
+         else:
+            if verb > 2:
+               print("-- add directly, %s" % key)
+
+         # for each such option, duplicate, possibly modify, and insert
+         for ind in range(ntarget):
+            newopt = copy.deepcopy(target.olist[ktarget[ind]])
+            if prefix:
+               newopt[0] = prefix+newopt[0]
+            source.olist.append(newopt)
+
+         # and add the new key, without prefix
+         source.keys.append(key)
+
+      return 0
 
    def depath_lists_equal(self, list0, list1):
        """if we depath_list() both lists, are they equal"""
