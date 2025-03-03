@@ -644,6 +644,7 @@ echo ""
 echo "== configure: saving debug info into save.rr"
 rm -fr save.rr
 mkdir -p save.rr
+cp conftest.$ac_ext confdefs.h save.rr
 r_ac_link='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS'
 set -x
 echo $r_ac_link > save.rr/ac.link
