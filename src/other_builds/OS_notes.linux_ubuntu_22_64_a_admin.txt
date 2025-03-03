@@ -8,6 +8,11 @@
 echo "++ Add universe repo"
 sudo add-apt-repository universe
 
+echo "++ Add official Cran repo (get more modern R version than default)"
+sudo echo "" >> /etc/apt/sources.list
+sudo echo "deb https://cloud.r-project.org/bin/linux/ubuntu jammy-cran40/" \
+             >> /etc/apt/sources.list
+sudo echo "" >> /etc/apt/sources.list
 
 echo "++ Update package manager info"
 sudo apt-get update
