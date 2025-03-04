@@ -233,7 +233,7 @@ Options ~1~
 -overwrite             : when writing output, overwrite any preexisting
                          dataset (def: do not overwrite)
 -no_clean              : when done, do not remove temporary working
-                         directory (def: do remove woroking directory
+                         directory (def: do remove working directory)
 -echo                  : run very verbosely (with 'set echo' on)
 -ver                   : display program version
 -help                  : show help
