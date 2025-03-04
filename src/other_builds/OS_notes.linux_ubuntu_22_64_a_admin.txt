@@ -8,6 +8,16 @@
 echo "++ Add universe repo"
 sudo add-apt-repository universe
 
+echo "++ Add official Cran repo (get more modern R version than default)"
+# add repo to sources file
+sudo echo "" >> /etc/apt/sources.list
+sudo echo "deb https://cloud.r-project.org/bin/linux/ubuntu jammy-cran40/" \
+             >> /etc/apt/sources.list
+sudo echo "" >> /etc/apt/sources.list
+# add its public key (note: in future Ubuntu versions, apt-key is
+# deprecated, and so using gpg might have to be done; see:
+# https://cran.r-project.org/bin/linux/ubuntu/fullREADME.html)
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 51716619E084DAB9
 
 echo "++ Update package manager info"
 sudo apt-get update
@@ -19,7 +29,8 @@ sudo apt-get install -y tcsh xfonts-base libssl-dev       \
                         python3-matplotlib python3-numpy  \
                         python3-flask python3-flask-cors  \
                         python3-pil                       \
-                        gsl-bin netpbm gnome-tweaks       \
+                        gsl-bin libgsl-dev                \
+                        netpbm gnome-tweaks               \
                         libjpeg62 xvfb xterm vim curl     \
                         gedit evince eog                  \
                         libglu1-mesa-dev libglw1-mesa     \
