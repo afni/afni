@@ -389,7 +389,7 @@ dataset, for example, one would not want that option, instead
 preferring '-final NN'.
 
 One could also apply the inverse matrix DSET_OUT_${pmat_I} to the
-DSET_WARP_DEOB.nii.gz dset, mapping it to the datset output by this
+DSET_WARP_DEOB.nii.gz dset, mapping it to the dset output by this
 prog, which might be called DSET_OUT.nii.gz, like:
 
     3dAllineate                                    \
