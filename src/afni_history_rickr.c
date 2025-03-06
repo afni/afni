@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Mar, 2025, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "jpeg-6b/configure: save more details",
+   NULL
+ } ,
+
  { 27, Feb, 2025, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add options -show_merged_opts and -compare_merged_opts",
    NULL
