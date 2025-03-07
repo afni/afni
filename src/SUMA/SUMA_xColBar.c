@@ -1011,6 +1011,8 @@ void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call)
 
    SUMA_ENTRY;
 
+   fprintf(stderr, "+++++ %s\n", FuncName);
+
    SUMA_LH("called");
    ado = (SUMA_ALL_DO *)clientData;
    if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }
@@ -1020,6 +1022,99 @@ void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call)
 
    SUMA_set_threshold_label(ado, fff, 0.0);
 
+   SUMA_RETURNe;
+}
+
+void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay)
+{
+    // Called when B checkbox toggled
+   static char FuncName[]={"SUMA_RestoreThresholdContours"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *over2 = NULL;
+   Bool  thresholdChanged;
+   static int BoxOutlineThresh = 0;
+   static float threshold;
+   int colorplaneIndex = -1;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+
+   SUMA_ENTRY;
+
+   // Get relevant overlay (overlay showing thresholded region)
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURNe;
+   //  SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+
+   fprintf(stderr, "+++++ %s\n", FuncName);
+   
+   // Get box outline threshold status from checkbox
+   BoxOutlineThresh = XmToggleButtonGetState(SurfCont->BoxOutlineThresh_tb); 
+   
+    // Process all surface objects
+   int numSurfaceObjects;
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist)
+   {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        SUMA_RETURNe;
+   }
+   for (j=0; j<N_adolist; ++j){
+        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if (ado->do_type == SO_type){
+            applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE);
+        }
+   }
+
+   // Refresh display
+   if (refreshDisplay){
+       SUMA_Remixedisplay(ado);
+       SUMA_UpdateNodeLblField(ado);
+   }
+
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
+{
+    // Called when sliding bar dragged
+   static char FuncName[]={"SUMA_cb_set_threshold"};
+   SUMA_ALL_DO *ado=NULL;
+   XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call ;
+   float fff=0.0;
+   int dec=-1;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL;
+   int BoxOutlineThresh;
+   int colorplaneIndex = -1;
+   int i, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+
+   SUMA_ENTRY;
+   
+   fprintf(stderr, "+++++ %s\n", FuncName);
+
+   SUMA_LH("called");
+   ado = (SUMA_ALL_DO *)clientData;
+   if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }
+   
+   
+   fprintf(stderr, "+++++ %s: Temporarily suspend threshold outline\n", FuncName);
+
+   // Change threshold   
+   fprintf(stderr, "+++++ %s: Change threshold\n", FuncName);
+   XtVaGetValues(w, XmNuserData, &dec, NULL);
+   fff = (float)cbs->value / pow(10.0, dec);
+   SUMA_LHv("Have %f\n", fff);
+   
+    if (ado->do_type == SO_type) SUMA_set_threshold(ado, NULL, &fff);
+    
+    if (ado->do_type == SO_type){
+        SO = (SUMA_SurfaceObject *)ado;
+        if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh){
+            SUMA_RestoreThresholdContours(ado, YUP);
+        }       
+    }
+   
    SUMA_RETURNe;
 }
 
@@ -1134,29 +1229,6 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_UpdatePvalueField (ado, colp->OptScl->ThreshRange[0]);
 
    SUMA_RETURN(1);
-}
-
-void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
-{
-    // Called when sliding bar dragged
-   static char FuncName[]={"SUMA_cb_set_threshold"};
-   SUMA_ALL_DO *ado=NULL;
-   XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call ;
-   float fff=0.0;
-   int dec=-1;
-   SUMA_Boolean LocalHead = NOPE;
-
-   SUMA_ENTRY;
-
-   SUMA_LH("called");
-   ado = (SUMA_ALL_DO *)clientData;
-   if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }
-   XtVaGetValues(w, XmNuserData, &dec, NULL);
-   fff = (float)cbs->value / pow(10.0, dec);
-   SUMA_LHv("Have %f\n", fff);
-   SUMA_set_threshold(ado, NULL, &fff);
-
-   SUMA_RETURNe;
 }
 
 int SUMA_SwitchColPlaneIntensity(
@@ -2353,7 +2425,8 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
-SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *over2, Bool thresholdChanged)
+SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, 
+    SUMA_OVERLAYS *over2, Bool thresholdChanged)
 {
    static char FuncName[]={"setBoxOutlineForThresh"};
    float *bckupColorMap, *onesVector;

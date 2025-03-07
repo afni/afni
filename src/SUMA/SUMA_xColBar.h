@@ -502,6 +502,15 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
                                      SUMA_SurfaceViewer *sv);
 XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w, 
                                  char *fontname, char *tag);
+void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
+                                   XtPointer client_data);
+void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado, 
+        int BoxOutlineThresh, SUMA_Boolean refreshDisplay);
+SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, 
+    SUMA_OVERLAYS *over2, Bool thresholdChanged);
+void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay);
+
+
 
 /* the help strings */
 
