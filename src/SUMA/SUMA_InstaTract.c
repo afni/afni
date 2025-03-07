@@ -347,7 +347,7 @@ int SendToSuma (COMM_STRUCT *cs, NI_group *ngru, int action)
 
 
          /* now wait till stream goes bad */
-         SUMA_Wait_Till_Stream_Goes_Bad(cs, 1000, 5000, 1);
+         Wait_Till_Stream_Goes_Bad(cs, 1000, 5000, 1);
           
          NI_stream_close(cs->NimlStream);
          cs->NimlStream = NULL;
@@ -365,6 +365,39 @@ int SendToSuma (COMM_STRUCT *cs, NI_group *ngru, int action)
    /* should not get here */
    fprintf (stderr,"Flow error.\nThis should not be\n");
    return(0);
+}
+
+/* A function to wait until open stream goes bad */
+/* (initially forgotten, using SUMA_ instead) [7 Mar 2025 rickr] */
+void Wait_Till_Stream_Goes_Bad(COMM_STRUCT *cs, int slp, int WaitMax, int verb)
+{
+   static char FuncName[]={"Wait_Till_Stream_Goes_Bad"};
+   int good = 1;
+   int WaitClose = 0;
+   int LocalHead = 0;
+
+   if (verb) fprintf (stderr,"\nWaiting for SUMA to close stream .\n");
+   while (good && WaitClose < WaitMax) {
+      if (NI_stream_goodcheck(cs->NimlStream, 1) <= 0) {
+         good = 0;
+      } else {
+         if (LocalHead)
+            fprintf(stderr,"Good Check OK. Sleeping for %d ms...", slp);
+         NI_sleep(slp);
+         if (verb) fprintf (stderr,".");
+         WaitClose += slp;
+      }
+   }
+
+   if (WaitClose >= WaitMax) {
+      if (verb)
+         fprintf(stderr,"\nFailed to detect closed stream after %d ms.\n"
+                        "Closing shop anyway...", WaitMax);
+   }else{
+      if (verb) fprintf (stderr,"Done.\n");
+   }
+
+   return;
 }
 
 /*-----------------------------------------------------------------------*/
