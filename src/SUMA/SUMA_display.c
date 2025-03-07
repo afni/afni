@@ -1174,6 +1174,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    SUMA_RETURNe;
 }
 
+
 /*!
    \brief, retrieves an vector attribute
    and decodes it into m_fv (or m_dv for double). It is your
@@ -1306,8 +1307,6 @@ void SUMA_SaveVisualState(char *fname, void *csvp )
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    csv = (SUMA_SurfaceViewer *)csvp;
 
@@ -1445,8 +1444,6 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
    float    floatBuf[1];
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (!nel || !csv) {
       SUMA_S_Err("NULL input");
@@ -6336,8 +6333,6 @@ void SUMA_cb_helpSurfaceStruct (Widget w, XtPointer data, XtPointer callData)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    datap = (SUMA_MenuCallBackData *)data;
    sv = &(SUMAg_SVv[(INT_CAST)datap->ContID]);
    if (!(ado = SUMA_SV_Focus_ADO(sv))) {
@@ -6598,8 +6593,6 @@ int SUMA_OpenSurfCont_if_other(Widget w,
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    if (!SUMAg_CF->X->UseSameSurfCont) { SUMA_RETURN(1); /* only in same mode */ }
    if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0); /* bad */
    if (!SUMAg_CF->X->SameSurfContOpen) { /* window not on screen, do nothing */
@@ -6633,8 +6626,6 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    SUMA_Boolean LocalHead=NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
 
@@ -6703,8 +6694,6 @@ SUMA_ALL_DO **SUMA_DOsInSurfContNotebook(Widget NB)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    iso=0;
    DOv[0]=NULL;
@@ -6790,8 +6779,6 @@ SUMA_Boolean SUMA_MarkSurfContOpen(int Open, SUMA_ALL_DO *ado)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    if (SUMAg_CF->X->UseSameSurfCont) {
       SUMAg_CF->X->SameSurfContOpen = Open;
       SurfCont = SUMA_ADO_Cont(ado);
@@ -6867,7 +6854,6 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_RETURN(0);
@@ -7681,8 +7667,6 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    ado = (SUMA_ALL_DO *)data;
    if (!(SurfCont = SUMA_ADO_Cont(ado))) {
       SUMA_S_Errv("Failed to get Controller for ado %s\n",
@@ -7868,8 +7852,6 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    ado = (SUMA_ALL_DO *)data;
    if (!(SurfCont = SUMA_ADO_Cont(ado))) {
@@ -8714,8 +8696,6 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    ado = (SUMA_ALL_DO *)data;
    if (ado->do_type != GRAPH_LINK_type) {
@@ -9667,8 +9647,6 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    ado = (SUMA_ALL_DO *)data;
    if (ado->do_type != TRACT_type) {
       SUMA_S_Errv("Calling me with (%s) other than TRACT_type type,\n"
@@ -10501,8 +10479,6 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    ado = (SUMA_ALL_DO *)data;
    if (ado->do_type != VO_type) {
@@ -11405,8 +11381,6 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    ado = (SUMA_ALL_DO *)data;
    SurfCont = SUMA_ADO_Cont(ado);
    SUMA_LHv("Have TLS %p Open %d Same %d SameOpen %d\n",
@@ -11516,6 +11490,8 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_ALL_DO *ado)
 
    if (!ado) SUMA_RETURN(NOPE);
    
+   // SUMA_RETURN(NOPE);   
+
    switch (ado->do_type) {
       case SO_type:
          SUMA_RETURN(SUMA_Init_SurfCont_SurfParam_SO((SUMA_SurfaceObject *)ado));
@@ -11802,8 +11778,6 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
    int imax;
    SUMA_Boolean LocalHead = NOPE;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    SUMA_ENTRY;
    if (!NB || i < 1) {
       SUMA_S_Errv("NULL widget or bad page number %d\n", i);
@@ -11908,8 +11882,6 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_ADO(SUMA_ALL_DO *ado)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (!ado || !(SurfCont = SUMA_ADO_Cont(ado)) || !SurfCont->TLS) {
       SUMA_S_Err("NULL input on ADO %s type %s (%p, TLS %p)",
@@ -12407,8 +12379,6 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_GLDO (
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    SUMA_LH("Called");
 
    SurfCont = SUMA_ADO_Cont(ado);
@@ -12524,8 +12494,6 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_TDO (
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (LocalHead) {
       SUMA_LH("Called with ColPlane %p", ColPlane);
@@ -12645,8 +12613,6 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_CO (
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    SUMA_LH("Called with ColPlane %p", ColPlane);
 
    SurfCont = SUMA_ADO_Cont(ado);
@@ -12681,8 +12647,6 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_VO (
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_LH("Called with ColPlane %p", ColPlane);
 
@@ -12804,8 +12768,6 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_MDO (
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    SUMA_LH("Called with ColPlane %p", ColPlane);
 
    SurfCont = SUMA_ADO_Cont(ado);
@@ -12918,8 +12880,6 @@ SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_ALL_DO *ado)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    SurfCont = SUMA_ADO_Cont(ado);
    if (!SurfCont) SUMA_RETURN(NOPE);
@@ -13224,7 +13184,7 @@ SUMA_Register_Widget_Help( SUMAg_CF->X->DrawROI->AppShell , 0,
       XmNmarginWidth , 0 ,
       NULL);
 
-   // DEBUG: This function has nothing to do with the lengthening of the surface control menu
+
    SUMA_CreateTextField ( rc, "Label:",
                            6, SUMA_DrawROI_NewLabel,
                            "ROICont->ROI->Label",
@@ -14577,8 +14537,6 @@ int SUMA_ColPlane_NewOrder(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (!colp) colp = curColPlane;
@@ -14634,8 +14592,6 @@ int SUMA_ColPlane_NewOrder_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
 
@@ -14743,8 +14699,6 @@ void SUMA_cb_ColPlane_NewOrder (void *data)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    ado = (SUMA_ALL_DO *)data;
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
             || !SurfCont->ColPlaneOrder) SUMA_RETURNe;
@@ -14777,8 +14731,6 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    ado = (SUMA_ALL_DO *)data;
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
             || !SurfCont->SurfContPage) SUMA_RETURNe;
@@ -14786,7 +14738,7 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
 
    SUMA_LHv("About to change page to %d\n", (int)SurfCont->SurfContPage->value);
    
-   // This function causes the surface control menu to expand downwards.
+   // This if function causes the surface control menu to expand downwards.
    if (!(SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook,
                                     SurfCont->SurfContPage->value))) {
       /* revert to good value */
@@ -14801,9 +14753,9 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
 
    // Set "A" check-box to reflect whether there should be variable overlay 
    //   opacity for this object
-//   if (SurfCont && SurfCont->AlphaOpacityFalloff_tb)
-//       XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
-//                      SurfCont->alphaOpacityModel, YUP);
+   if (SurfCont && SurfCont->AlphaOpacityFalloff_tb)
+       XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+                      SurfCont->alphaOpacityModel, YUP);
 
    SUMA_RETURNe;
 }
@@ -14820,9 +14772,6 @@ void SUMA_cb_AllConts(Widget w, XtPointer data, XtPointer client_data)
    int ido, new = 0;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    /* For a large number of objects, say 90, this function
       can take a very long (2-3 mins) time to finsh. The reason
       for this latency is that a very large number of events end up
@@ -14876,8 +14825,6 @@ void SUMA_cb_ColPlane_NewOpacity(void *data)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    ado = (SUMA_ALL_DO *)data;
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
             || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
@@ -14904,8 +14851,6 @@ int SUMA_ColPlane_NewOpacity (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_ENTRY;
 
    SUMA_LH("Called");
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
    curColPlane = SUMA_ADO_CurColPlane(ado);
@@ -14961,8 +14906,6 @@ int SUMA_ColPlane_NewOpacity_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (!colp) colp = curColPlane;
@@ -15003,8 +14946,6 @@ void SUMA_cb_Tract_NewGray(void *data)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    ado = (SUMA_ALL_DO *)data;
    if (!ado || !(TSaux=SUMA_ADO_TSaux(ado)) ||
        !(SurfCont = SUMA_ADO_Cont(ado))) SUMA_RETURNe;
@@ -15028,8 +14969,6 @@ int SUMA_Tract_NewGray (SUMA_ALL_DO *ado,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -15063,19 +15002,13 @@ int SUMA_Tract_NewGray (SUMA_ALL_DO *ado,
 */
 void SUMA_cb_ColPlane_NewDimFact (void *data)
 {
-   // This function is called when the up or down Dim arrow clicked
-   // or when Dim value changed with edit box
    static char FuncName[]={"SUMA_cb_ColPlane_NewDimFact"};
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   SUMA_SurfaceObject *SO=NULL;
-   static int BoxOutlineThresh;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -15085,22 +15018,9 @@ void SUMA_cb_ColPlane_NewDimFact (void *data)
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (curColPlane->DimFact ==
        SurfCont->ColPlaneDimFact->value) SUMA_RETURNe;
-   
-   // Save box threshold outline status
-   if (ado->do_type == SO_type) {
-       SO=(SUMA_SurfaceObject *)ado;
-       BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
-   }
 
    SUMA_ColPlane_NewDimFact(ado, curColPlane,
                             SurfCont->ColPlaneDimFact->value, 1);
-   
-   // Restore proper threshold contours after Dim changed
-   if (ado->do_type == SO_type && SO) {
-       SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-       restoreProperThresholdCcontours(ado);
-   }
-
    SUMA_RETURNe;
 }
 
@@ -15115,8 +15035,6 @@ int SUMA_ColPlane_NewDimFact (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -15172,8 +15090,6 @@ int SUMA_ColPlane_NewDimFact_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -15231,8 +15147,6 @@ void SUMA_cb_ColPlane_NewAlphaThresh (void *data)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    SUMA_LH("Called");
 
    ado = (SUMA_ALL_DO *)data;
@@ -15258,8 +15172,6 @@ int SUMA_ColPlane_NewAlphaThresh (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -15316,8 +15228,6 @@ int SUMA_ColPlane_NewAlphaThresh_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    SUMA_LH("Called");
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
@@ -15370,8 +15280,6 @@ void SUMA_cb_ColPlane_NewNodeRadGain (void *data)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    SUMA_LH("Called");
 
    ado = (SUMA_ALL_DO *)data;
@@ -15397,8 +15305,6 @@ int SUMA_ColPlane_NewNodeRadGain (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -15430,8 +15336,6 @@ int SUMA_ColPlane_NewNodeRadGain_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -15484,8 +15388,6 @@ void SUMA_cb_ColPlane_NewEdgeThickGain (void *data)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    SUMA_LH("Called");
 
    ado = (SUMA_ALL_DO *)data;
@@ -15512,8 +15414,6 @@ int SUMA_ColPlane_NewEdgeThickGain (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -15545,8 +15445,6 @@ int SUMA_ColPlane_NewEdgeThickGain_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -15601,9 +15499,7 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
-   fprintf(stderr, "%s\n", FuncName);
-   
+
    SUMA_LHv("Called with ado=%p, ado->do_type=%d, ado->idcode_str=%s\n",
       ADO, ADO?ADO->do_type:-1, SUMA_CHECK_NULL_STR(SUMA_ADO_idcode(ADO)));
 
@@ -15637,7 +15533,6 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
    if (!list) list = SUMA_CreateList ();
    SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_RedisplayNow_AllVisible,
                                        SES_Suma, NULL);
-
    if (!SUMA_Engine(&list)) {
       SUMA_SLP_Err("Failed to redisplay.");
       SUMA_RETURN(NOPE);
@@ -15707,16 +15602,9 @@ void SUMA_cb_ColPlaneShowOneFore_toggled (Widget w, XtPointer data,
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    SUMA_LH("Called");
 
    ado = (SUMA_ALL_DO *)data;
-   
-   // Turn off "A" checkbox if "1" checkbox toggled off
-   if (!(XmToggleButtonGetState(w)) && (SurfCont = SUMA_ADO_Cont(ado))){
-       XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 0, 1);
-   }
 
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
@@ -15737,7 +15625,6 @@ int SUMA_ColPlaneShowOneFore_Set_one ( SUMA_ALL_DO *ado,
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
    if (!SUMA_isADO_Cont_Realized(ado)) SUMA_RETURN(0);
@@ -15767,8 +15654,6 @@ int SUMA_ColPlaneShowOneFore_Set ( SUMA_ALL_DO *ado,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
    if (!SUMA_isADO_Cont_Realized(ado)) SUMA_RETURN(0);
@@ -15818,8 +15703,6 @@ void SUMA_cb_GDSET_ShowBundles_toggled (Widget w, XtPointer data,
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    SUMA_LH("Called");
 
    ado = (SUMA_ALL_DO *)data;
@@ -15842,8 +15725,6 @@ void SUMA_cb_GDSET_ShowUncon_toggled (Widget w, XtPointer data,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -15894,8 +15775,6 @@ int SUMA_GDSET_ShowBundles ( SUMA_ALL_DO *ado,
    SUMA_ENTRY;
 
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
    if (!SUMA_isADO_Cont_Realized(ado)) SUMA_RETURN(0);
    if (!(GSaux = SUMA_ADO_GSaux(ado))) SUMA_RETURN(0);
@@ -15921,7 +15800,6 @@ int SUMA_GDSET_ShowUncon ( SUMA_ALL_DO *ado,
    SUMA_GRAPH_SAUX *GSaux = NULL;
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
    if (!SUMA_isADO_Cont_Realized(ado)) SUMA_RETURN(0);
@@ -16361,8 +16239,6 @@ int SUMA_SelectSwitchColPlane_one(SUMA_ALL_DO *ado,
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    if (!ado || !LW) SUMA_RETURN(0);
    SurfCont = SUMA_ADO_Cont(ado);
 
@@ -16404,23 +16280,10 @@ int SUMA_SelectSwitchColPlane(SUMA_ALL_DO *ado,
 {
    static char FuncName[]={"SUMA_SelectSwitchColPlane"};
    SUMA_Boolean LocalHead = NOPE;
-   int N_adolist, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], j;
-   SUMA_ALL_DO *ado2;
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    if (!ado || !LW) SUMA_RETURN(0);
-      
-    // Enure threshold outline is deactivated for other datasets
-    N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);   
-    for (j=0; j<N_adolist; ++j){
-        ado2 = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        if (ado2->do_type == SO_type){
-            applyBoxOutlineThreshStatusToSurfaceObject(ado2, 0, NOPE);
-        }
-    }
 
    if (!SUMA_SelectSwitchColPlane_one(ado, LW, ichoice, CloseShop, setmen)) {
       SUMA_RETURN(0);
@@ -16470,8 +16333,6 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    SUMA_Boolean LocalHead=NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    ado = (SUMA_ALL_DO *)data;
 
@@ -17647,8 +17508,6 @@ void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    ado = (SUMA_ALL_DO *)client_data;
    SurfCont = SUMA_ADO_Cont(ado);
 
@@ -17714,9 +17573,6 @@ void SUMA_SurfInfo_destroyed (void *p)
    SUMA_X_SurfCont *SurfCont=NULL;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    if (!(ado = (SUMA_ALL_DO *)p) || !(SurfCont = SUMA_ADO_Cont(ado))) {
       SUMA_S_Err("Real bad cheese");
       SUMA_RETURNe;
@@ -19072,7 +18928,6 @@ int SUMA_FontStr2FontMenuItem(char *str)
 */
 int SUMA_SetDsetViewMode(SUMA_ALL_DO *ado, int imenu, int updatemenu)
 {
-    // This function is called when Dsp changes
    static char FuncName[]={"SUMA_SetDsetViewMode"};
    DList *list = NULL;
    DListElmt *Elmnt = NULL;
@@ -19081,8 +18936,6 @@ int SUMA_SetDsetViewMode(SUMA_ALL_DO *ado, int imenu, int updatemenu)
    SUMA_OVERLAYS *curColPlane=NULL;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
@@ -19163,8 +19016,6 @@ int SUMA_SetDsetFont(SUMA_ALL_DO *ado, int imenu, int updatemenu)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
    ED = SUMA_InitializeEngineListData (SE_SetDsetFont);
@@ -19234,8 +19085,6 @@ int SUMA_SetDsetNodeRad(SUMA_ALL_DO *ado, int imenu, int updatemenu)
    SUMA_OVERLAYS *curColPlane=NULL;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
@@ -19307,8 +19156,6 @@ int SUMA_SetDsetThrough(SUMA_ALL_DO *ado, int imenu, int updatemenu)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
    ED = SUMA_InitializeEngineListData (SE_SetDsetThrough);
@@ -19378,8 +19225,6 @@ int SUMA_SetDsetEdgeThick(SUMA_ALL_DO *ado, int imenu, int updatemenu)
    SUMA_OVERLAYS *curColPlane=NULL;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
@@ -19451,8 +19296,6 @@ int SUMA_SetDsetAlphaVal(SUMA_ALL_DO *ado, int imenu, int updatemenu)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
    ED = SUMA_InitializeEngineListData (SE_SetDsetAlphaVal);
@@ -19523,8 +19366,6 @@ int SUMA_SetDsetEdgeStip(SUMA_ALL_DO *ado, int imenu, int updatemenu)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
    ED = SUMA_InitializeEngineListData (SE_SetDsetEdgeStip);
@@ -19594,9 +19435,6 @@ int SUMA_SetTractStyle(SUMA_ALL_DO *ado, int imenu, int updatemenu)
    SUMA_OVERLAYS *curColPlane=NULL;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
 
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
@@ -19669,9 +19507,6 @@ int SUMA_SetTractMask(SUMA_ALL_DO *ado, int imenu, int updatemenu)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
-
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
    ED = SUMA_InitializeEngineListData (SE_SetTractMask);
@@ -19741,8 +19576,6 @@ int SUMA_SetDsetNodeCol(SUMA_ALL_DO *ado, int imenu, int updatemenu)
    SUMA_OVERLAYS *curColPlane=NULL;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
@@ -19814,8 +19647,6 @@ int SUMA_SetDsetTxtShad(SUMA_ALL_DO *ado, int imenu, int updatemenu)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
    ED = SUMA_InitializeEngineListData (SE_SetDsetTxtShad);
@@ -19886,8 +19717,6 @@ int SUMA_SetDsetGmatBord(SUMA_ALL_DO *ado, int imenu, int updatemenu)
    SUMA_OVERLAYS *curColPlane=NULL;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
@@ -20555,8 +20384,6 @@ void SUMA_cb_DrawROI_Load (Widget w, XtPointer data, XtPointer client_data)
 
 void SUMA_DrawROI_NewLabel (void *data)
 {
-    /* DEBUG: This function has nothing to do with the lengthening of the 
-	surface control menu */
    static char FuncName[]={"SUMA_DrawROI_NewLabel"};
    SUMA_DRAWN_ROI *DrawnROI=NULL;
    SUMA_ARROW_TEXT_FIELD * AF=NULL;
@@ -22096,8 +21923,6 @@ void  SUMA_cb_ToggleManagementColPlaneWidget(Widget w, XtPointer data,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
 
    ado = (SUMA_ALL_DO *)data;
    SurfCont = SUMA_ADO_Cont(ado);

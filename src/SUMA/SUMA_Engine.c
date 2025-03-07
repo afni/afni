@@ -4012,38 +4012,21 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      XmToggleButtonSetState (SurfCont->SymIrange_tb, 
                         SurfCont->curColPlane->SymIrange, 1);
                         
-                     int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
-                     int numSurfaceObjects, j;
-                     int newMin = SurfCont->curColPlane->OptScl->IntRange[0];
-                     int newMax = SurfCont->curColPlane->OptScl->IntRange[1];
-                     XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
-                     N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-                     if (numSurfaceObjects != N_adolist) {
-                            SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-                            SUMA_RETURNe;
+                     SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 1,
+                                 SurfCont->curColPlane->OptScl->IntRange[0]);
+                     SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 2,
+                                 SurfCont->curColPlane->OptScl->IntRange[1]);
+                     if (SurfCont->curColPlane->ShowMode > 0 &&
+                         SurfCont->curColPlane->ShowMode <
+                                             SW_SurfCont_DsetViewXXX ) {
+                        if (!SUMA_ColorizePlane (SurfCont->curColPlane)) {
+                           SUMA_SLP_Err("Failed to colorize plane.\n");
+                        } else {
+                           SUMA_Remixedisplay(ado);
+                           SUMA_UpdateNodeValField(ado);
+                           SUMA_UpdateNodeLblField(ado);
+                        }
                      }
-                     for (j=0; j<N_adolist; ++j){
-                         SUMA_ALL_DO *ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-                         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-                         SurfCont = SO->SurfCont;
-                         SurfCont->curColPlane->OptScl->IntRange[0] = newMin;
-                         SurfCont->curColPlane->OptScl->IntRange[1] = newMax;
-                         SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 1,
-                                     SurfCont->curColPlane->OptScl->IntRange[0]);
-                         SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 2,
-                                     SurfCont->curColPlane->OptScl->IntRange[1]);
-                         if (SurfCont->curColPlane->ShowMode > 0 &&
-                             SurfCont->curColPlane->ShowMode <
-                                                 SW_SurfCont_DsetViewXXX ) {
-                            if (!SUMA_ColorizePlane (SurfCont->curColPlane)) {
-                               SUMA_SLP_Err("Failed to colorize plane.\n");
-                            } else {
-                               SUMA_Remixedisplay(ado);
-                               SUMA_UpdateNodeValField(ado);
-                               SUMA_UpdateNodeLblField(ado);
-                            }
-                         }
-                      }
                   }
                   SUMA_free(stmp); stmp = NULL;
                }
@@ -7178,7 +7161,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov,
                   SUMA_free(XYZ);
                   SUMA_RETURN (NULL);
                } else {
-                  /* comes from inherrently mappable stuff, makes sense to
+                  /* comes from inherently mappable stuff, makes sense to
                      leave XYZ */
                   SUMA_SL_Warn(  "No node was close enough\n"
                                  "to XYZmap, linking by coordinate."   );

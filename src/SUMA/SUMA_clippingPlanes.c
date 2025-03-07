@@ -48,14 +48,10 @@ Boolean activeClipPlanes = True;
 int locallySelectedPlane;
 DList *list = NULL;
 
-void initializeIncrement(float objectMinMax[3][2])
-{
-    static char FuncName[]={"initializeIncrement"};
-    float max = 0; 
+void initializeIncrement(float objectMinMax[3][2]){
+    float max = 0;
     int i;
     float dim;
-
-    SUMA_ENTRY;
     
     for (i=0; i<3; ++i){
         dim = objectMinMax[i][1] - objectMinMax[i][0];
@@ -63,17 +59,12 @@ void initializeIncrement(float objectMinMax[3][2])
     }
     
     scrollInc = max/40;
-
-    SUMA_RETURNe;
 }
 
-Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySelectedPlane)
-{
-    static char FuncName[]={"toggleClippingPlaneMode"};
+Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySelectedPlane){
     int i, planeIndex;
+    char *FuncName = "toggleClippingPlaneMode";
 
-    SUMA_ENTRY;
-    
     clippingPlaneMode = !clippingPlaneMode; // Toggle clipping plane state
 
     if (SUMAg_CF->clippingPlaneVerbose) fprintf(stderr, "### Clipping plane mode %s\n",
@@ -193,15 +184,11 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
         if (!(active[i])) clipIdentificationPlane[i]->Show = 0;
     }
 
-    SUMA_RETURN(1);
+    return 1;
 }
 
 Boolean determineAdditionalRotationsFromRequiredAndExistingRotations(float theta, float phi,
-    int planeIndex, float *deltaTheta, float *deltaPhi)
-{
-    static char FuncName[]={"determineAdditionalRotationsFromRequiredAndExistingRotations"};
-
-    SUMA_ENTRY;
+    int planeIndex, float *deltaTheta, float *deltaPhi){
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Determine additional rotations based on plane index\n");
@@ -234,18 +221,13 @@ Boolean determineAdditionalRotationsFromRequiredAndExistingRotations(float theta
         break;
     }
 
-    SUMA_RETURN(1);
+    return 1;
 }
 
-Boolean determineRotationAnglesFromEquation(float *equation, float *theta, float *phi)
-{
-    static char FuncName[]={"determineRotationAnglesFromEquation"};
+Boolean determineRotationAnglesFromEquation(float *equation, float *theta, float *phi){
     static float rad2degrees=180.0/M_PI, degrees2rad=M_PI/180;
 
-    SUMA_ENTRY;
-
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) 
-        fprintf(stderr, "### Determine rotation angles from equation\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Determine rotation angles from equation\n");
 
     if (equation[2] == 1.0){
         *theta = 0.0;
@@ -274,30 +256,21 @@ Boolean determineRotationAnglesFromEquation(float *equation, float *theta, float
         }
     }
 
-    SUMA_RETURN(1);
+    return 1;
 }
 
-Boolean determineDeltaDFromExistingDAndRequiredD(float requiredD, int planeIndex, float *deltaD)
-{
-   static char FuncName[]={"determineDeltaDFromExistingDAndRequiredD"};
- 
-    SUMA_ENTRY;
+Boolean determineDeltaDFromExistingDAndRequiredD(float requiredD, int planeIndex, float *deltaD){
 
     *deltaD = requiredD - SUMAg_CF->ClipPlanes[4*planeIndex + 3];
 
-    SUMA_RETURN(1);
+    return 1;
 }
 
-Boolean applyEquationParametersToClippingPlane(int planeIndex, float *theta, float *phi, float *offset)
-{
-    static char FuncName[]={"applyEquationParametersToClippingPlane"};
+Boolean applyEquationParametersToClippingPlane(int planeIndex, float *theta, float *phi, float *offset){
     float deltaTheta, deltaPhi, deltaD;
     int     i;
 
-    SUMA_ENTRY;
-
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) 
-        fprintf(stderr, "### Apply equation parameters to clipping plane\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Apply equation parameters to clipping plane\n");
 
     // Determine additional rotations from required and existing rotations
     determineAdditionalRotationsFromRequiredAndExistingRotations(theta[planeIndex], phi[planeIndex],
@@ -309,19 +282,14 @@ Boolean applyEquationParametersToClippingPlane(int planeIndex, float *theta, flo
     // Apply rotations and delta Ds
     clipPlaneTransform(deltaTheta, deltaPhi, deltaD, 0, planeIndex, 0, 0);
 
-    SUMA_RETURN(1);
+    return 1;
 }
 
-Boolean applyEquationToClippingPlane(float *equation, int planeIndex)
-{
-    static char FuncName[]={"applyEquationToClippingPlane"};
+Boolean applyEquationToClippingPlane(float *equation, int planeIndex){
     float theta, phi, deltaTheta, deltaPhi, deltaD;
     int     i;
 
-    SUMA_ENTRY;
-
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) 
-        fprintf(stderr, "### Apply equation to clipping plane %d\n", planeIndex+1);
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Apply equation to clipping plane %d\n", planeIndex+1);
 
     // Determine rotation angles from equation
     determineRotationAnglesFromEquation(equation, &theta, &phi);
@@ -336,12 +304,10 @@ Boolean applyEquationToClippingPlane(float *equation, int planeIndex)
     // Apply rotations and delta Ds
     clipPlaneTransform(deltaTheta, deltaPhi, deltaD, 0, planeIndex, 0, 0);
 
-    SUMA_RETURN(1);
+    return 1;
 }
 
-Boolean loadSavedClippingPlanes(char *clippingPlaneFile, int *locallySelectedPlane)
-{
-    static char FuncName[]={"loadSavedClippingPlanes"};
+Boolean loadSavedClippingPlanes(char *clippingPlaneFile, int *locallySelectedPlane){
     int feyl, planeIndex, i;
     Boolean isActive;
     float   equation[4], floatBuf[4];
@@ -351,25 +317,22 @@ Boolean loadSavedClippingPlanes(char *clippingPlaneFile, int *locallySelectedPla
     char *strbuf;
     float   theta[SUMA_MAX_N_CLIP_PLANES], phi[SUMA_MAX_N_CLIP_PLANES], offset[SUMA_MAX_N_CLIP_PLANES];
 
-    SUMA_ENTRY;
-
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) 
-        fprintf(stderr, "### Load saved clipping planes\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Load saved clipping planes\n");
 
     // Make sure correct form of filename supplied
     if (!clippingPlaneFile){
         fprintf(stderr, "Clipping plane file not supplied.\n");
-        SUMA_RETURN(0);
+        return 0;
     }
     if (!strstr(clippingPlaneFile, ".niml.vvs")){
         fprintf(stderr, "Invalid clipping plane file name.\n");
-        SUMA_RETURN(0);
+        return 0;
     }
 
     // Allocate memory to filename buffer
     if (!(strbuf=(char *)malloc((strlen(clippingPlaneFile) + 8)*sizeof(char)))){
         fprintf(stderr, "Error allocating memory to clipping plane file string\n");
-        SUMA_RETURN(0);
+        return 0;
     }
 
 
@@ -378,14 +341,14 @@ Boolean loadSavedClippingPlanes(char *clippingPlaneFile, int *locallySelectedPla
     if (!(nstdin = NI_stream_open( strbuf,"r"))){
         perror("Error opening clipping plane file.");
         free(strbuf);
-        SUMA_RETURN(0);
+        return 0;
     }
     free(strbuf);
 
     // Read NIML element
     if (!(nel = NI_read_element (nstdin, 1))) {
         perror("Failed to read nel.");
-        SUMA_RETURN(0);
+        return 0;
     }
 
     // Read NIML entries for clipping planes
@@ -424,16 +387,12 @@ Boolean loadSavedClippingPlanes(char *clippingPlaneFile, int *locallySelectedPla
     NI_stream_close(nstdin);
     NI_free_element(nel); nel = NULL;
 
-    SUMA_RETURN(1);
+    return 1;
 }
 
-Boolean getClippingEquationParameters(NI_element *nel, char *attribute, float *parameters)
-{
-    static char FuncName[]={"getClippingEquationParameters"};
+Boolean getClippingEquationParameters(NI_element *nel, char *attribute, float *parameters){
     char *strbuffer;
     int feyl, i;
-
-    SUMA_ENTRY;
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Get clipping plane parameters\n");
@@ -445,13 +404,12 @@ Boolean getClippingEquationParameters(NI_element *nel, char *attribute, float *p
             parameters[i] = atof(strtok(NULL, ","));
         }
 
-        SUMA_RETURN(1);
+        return 1;
       }
 
-      SUMA_RETURN(0);
+      return 0;
 }
 
-#if 0
 Boolean getEquationForClippingPlane(NI_element *nel, char attribute[32], float equation[4]){
     char *strbuf, *eqnBuffer;
     int feyl, i;
@@ -466,12 +424,12 @@ Boolean getEquationForClippingPlane(NI_element *nel, char attribute[32], float e
             equation[i] = atof(strtok(NULL, "+"));
         }
 
-        SUMA_RETURN(1);
+        return 1;
       }
 
-      SUMA_RETURN(0);
+      return 0;
 }
-#endif
+
 // #include "GL/glcorearb.h"
 /* GL/glcorearb.h is restricted to newer style functionality,
  * and we are dependent on the old.  Hopefully it is not needed.
@@ -533,30 +491,22 @@ int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
    SUMA_RETURN (1); /* OK */
 }/* determine intersection */
 
-Boolean activeClippingPlanes()
-{
-    static char FuncName[]={"activeClippingPlanes"};
+Boolean activeClippingPlanes(){
     int i;
-
-    SUMA_ENTRY;
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Activate clipping planes\n");
 
     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
-        if (active[i]) SUMA_RETURN(1);
+        if (active[i]) return True;
 
-    SUMA_RETURN(0);
+    return False;
 }
 
-void getObjectMinMaxForAxes(float objectMinMax[][2])
-{
-    static char FuncName[]={"activeClippingPlanes"};
+void getObjectMinMaxForAxes(float objectMinMax[][2]){
     int allowableMin = -SUMA_TESSCON_DIFF_FLAG/2;
     int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
     int i, dov_ID;
-
-    SUMA_ENTRY;
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Get object min/max for axes\n");
@@ -584,18 +534,12 @@ void getObjectMinMaxForAxes(float objectMinMax[][2])
             objectMinMax[i][1] = 100;
         }
     }
-
-    SUMA_RETURNe;
 }
 
-void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO)
-{
-    static char FuncName[]={"dimensionsInscribeThoseOfPreviousSurfaceObjects"};
+void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
     int allowableMin = -SUMA_TESSCON_DIFF_FLAG/2;
     int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
     int i, dov_ID;
-
-    SUMA_ENTRY;
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Dimensions inscribe those of previous surface objects\n");
@@ -630,14 +574,9 @@ void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO)
         SO->aMaxDims = MIN(100.0, SO->aMaxDims);
         SO->aMinDims = MAX(-100.0, SO->aMinDims);
     }
-
-    SUMA_RETURNe;
 }
 
-void determineCornersOfSquare(SUMA_SurfaceObject *SO)
-{
-    static char FuncName[]={"determineCornersOfSquare"};
-    SUMA_ENTRY;
+void determineCornersOfSquare(SUMA_SurfaceObject *SO){
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Determine corners of square\n");
@@ -653,35 +592,22 @@ void determineCornersOfSquare(SUMA_SurfaceObject *SO)
         MIN(SO->MinDims[1], SO->MinDims[2]);
     SO->aMaxDims = (SO->MaxDims[0]>SO->MaxDims[1])? MAX(SO->MaxDims[0], SO->MaxDims[2]) :
         MIN(SO->MaxDims[1], SO->MaxDims[2]);
-
-    SUMA_RETURNe;
 }
 
 #define DARK_COLOR 0.4
 #define DARK_BACKGROUND 0.1
 
-void makeCommonNodesOfRectangleDarkRed(SUMA_SurfaceObject *SO)
-{
-    static char FuncName[]={"makeCommonNodesOfRectangleDarkRed"};
+void makeCommonNodesOfRectangleDarkRed(SUMA_SurfaceObject *SO){
     int i;
-
-    SUMA_ENTRY;
-
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
     SO->Overlays[0]->ColVec[0] = DARK_COLOR;
     SO->Overlays[0]->ColVec[3] = DARK_COLOR;
     SO->Overlays[0]->ColVec[6] = DARK_COLOR;
     SO->Overlays[0]->ColVec[9] = DARK_COLOR;
-
-    SUMA_RETURNe;
 }
 
-void makeCommonNodesOfRectangleDarkGreen(SUMA_SurfaceObject *SO)
-{
-    static char FuncName[]={"makeCommonNodesOfRectangleDarkGreen"};
+void makeCommonNodesOfRectangleDarkGreen(SUMA_SurfaceObject *SO){
     int i;
-
-    SUMA_ENTRY;
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1){
         fprintf(stderr, "### makeCommonNodesOfRectangleDarkGreen: SO = %p\n", SO);
@@ -694,66 +620,40 @@ void makeCommonNodesOfRectangleDarkGreen(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[4] = DARK_COLOR;
     SO->Overlays[0]->ColVec[7] = DARK_COLOR;
     SO->Overlays[0]->ColVec[10] = DARK_COLOR;
-
-    SUMA_RETURNe;
 }
 
 void makeCommonNodesOfRectangleDarkBlue(SUMA_SurfaceObject *SO){
-    static char FuncName[]={"makeCommonNodesOfRectangleDarkBlue"};
     int i;
-
-    SUMA_ENTRY;
-
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
 
     SO->Overlays[0]->ColVec[2] = DARK_COLOR;
     SO->Overlays[0]->ColVec[5] = DARK_COLOR;
     SO->Overlays[0]->ColVec[8] = DARK_COLOR;
     SO->Overlays[0]->ColVec[11] = DARK_COLOR;
-
-    SUMA_RETURNe;
 }
 
-void makeCommonNodesOfRectangleDarkCyan(SUMA_SurfaceObject *SO)
-{
-    static char FuncName[]={"makeCommonNodesOfRectangleDarkCyan"};
+void makeCommonNodesOfRectangleDarkCyan(SUMA_SurfaceObject *SO){
     int i;
-
-    SUMA_ENTRY;
-
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
 
     SO->Overlays[0]->ColVec[1] = SO->Overlays[0]->ColVec[2] = DARK_COLOR;
     SO->Overlays[0]->ColVec[7] = SO->Overlays[0]->ColVec[8] = DARK_COLOR;
     SO->Overlays[0]->ColVec[4] = SO->Overlays[0]->ColVec[5] = DARK_COLOR;
     SO->Overlays[0]->ColVec[10] = SO->Overlays[0]->ColVec[11] = DARK_COLOR;
-
-    SUMA_RETURNe;
 }
 
-void makeCommonNodesOfRectangleDarkMagenta(SUMA_SurfaceObject *SO)
-{
-    static char FuncName[]={"makeCommonNodesOfRectangleDarkMagenta"};
+void makeCommonNodesOfRectangleDarkMagenta(SUMA_SurfaceObject *SO){
     int i;
-
-    SUMA_ENTRY;
-
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
 
     SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[2] = DARK_COLOR;
     SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = DARK_COLOR;
     SO->Overlays[0]->ColVec[3] = SO->Overlays[0]->ColVec[5] = DARK_COLOR;
     SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[11] = DARK_COLOR;
-
-    SUMA_RETURNe;
 }
 
-void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO)
-{
-    static char FuncName[]={"makeCommonNodesOfRectangleDarkYellow"};
+void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO){
     int i;
-
-    SUMA_ENTRY;
 
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
 
@@ -761,17 +661,13 @@ void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[7] = DARK_COLOR;
     SO->Overlays[0]->ColVec[3] = SO->Overlays[0]->ColVec[4] = DARK_COLOR;
     SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[10] = DARK_COLOR;
-
-    SUMA_RETURNe;
 }
 
 
-void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO)
-{
-    static char FuncName[]={"makeCommonNodesOfRectangleRed"};
+void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO){
     int i;
 
-    SUMA_ENTRY;
+    // fprintf(stderr, "makeCommonNodesOfRectangleRed\n");
 
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
@@ -779,16 +675,10 @@ void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[3] = 1.0;
     SO->Overlays[0]->ColVec[6] = 1.0;
     SO->Overlays[0]->ColVec[9] = 1.0;
-
-    SUMA_RETURNe;
 }
 
-void makeCommonNodesOfRectangleGreen(SUMA_SurfaceObject *SO)
-{
-    static char FuncName[]={"makeCommonNodesOfRectangleGreen"};
+void makeCommonNodesOfRectangleGreen(SUMA_SurfaceObject *SO){
     int i;
-
-    SUMA_ENTRY;
 
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
@@ -796,33 +686,21 @@ void makeCommonNodesOfRectangleGreen(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[4] = 1.0;
     SO->Overlays[0]->ColVec[7] = 1.0;
     SO->Overlays[0]->ColVec[10] = 1.0;
-
-    SUMA_RETURNe;
 }
 
-void makeCommonNodesOfRectangleBlue(SUMA_SurfaceObject *SO)
-{
-    static char FuncName[]={"makeCommonNodesOfRectangleBlue"};
+void makeCommonNodesOfRectangleBlue(SUMA_SurfaceObject *SO){
     int i;
-
-    SUMA_ENTRY;
-
+    // for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
     SO->Overlays[0]->ColVec[2] = 1.0;
     SO->Overlays[0]->ColVec[5] = 1.0;
     SO->Overlays[0]->ColVec[8] = 1.0;
     SO->Overlays[0]->ColVec[11] = 1.0;
-
-    SUMA_RETURNe;
 }
 
-void makeCommonNodesOfRectangleCyan(SUMA_SurfaceObject *SO)
-{
-    static char FuncName[]={"makeCommonNodesOfRectangleCyan"};
+void makeCommonNodesOfRectangleCyan(SUMA_SurfaceObject *SO){
     int i;
-
-    SUMA_ENTRY;
 
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
@@ -830,16 +708,10 @@ void makeCommonNodesOfRectangleCyan(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[7] = SO->Overlays[0]->ColVec[8] = 1.0;
     SO->Overlays[0]->ColVec[4] = SO->Overlays[0]->ColVec[5] = 1.0;
     SO->Overlays[0]->ColVec[10] = SO->Overlays[0]->ColVec[11] = 1.0;
-
-    SUMA_RETURNe;
 }
 
-void makeCommonNodesOfRectangleMagenta(SUMA_SurfaceObject *SO)
-{
-    static char FuncName[]={"makeCommonNodesOfRectangleMagenta"};
+void makeCommonNodesOfRectangleMagenta(SUMA_SurfaceObject *SO){
     int i;
-
-    SUMA_ENTRY;
 
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
@@ -847,16 +719,10 @@ void makeCommonNodesOfRectangleMagenta(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = 1.0;
     SO->Overlays[0]->ColVec[3] = SO->Overlays[0]->ColVec[5] = 1.0;
     SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[11] = 1.0;
-
-    SUMA_RETURNe;
 }
 
-void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO)
-{
-    static char FuncName[]={"makeCommonNodesOfRectangleYellow"};
+void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO){
     int i;
-
-    SUMA_ENTRY;
 
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
@@ -864,18 +730,14 @@ void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO)
     SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[7] = 1.0;
     SO->Overlays[0]->ColVec[3] = SO->Overlays[0]->ColVec[4] = 1.0;
     SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[10] = 1.0;
-
-    SUMA_RETURNe;
 }
 
 SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
-   SUMA_FreeSurfer_struct FS){
-    static char FuncName[]={"makeAxisPlaneFromNodeAndFaceSetList"};
+    SUMA_FreeSurfer_struct FS){
     int i;
 
-    SUMA_ENTRY;
-
     // Set global variables
+    char *FuncName = "makeAxisPlaneFromNodeAndFaceSetList";
     SUMA_DO *dov = SUMAg_DOv;
     int N_dov = SUMAg_N_DOv-1;
     SUMA_ALL_DO *ado;
@@ -1070,7 +932,6 @@ SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
 SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
     SUMA_FreeSurfer_struct FS, int planeIndex){
     int i;
-
     // Set global variables
     char *FuncName = "drawPlaneFromNodeAndFaceSetList";
     SUMA_DO *dov = SUMAg_DOv;
@@ -1277,12 +1138,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
     return SO;
 }
 
-void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2)
-{
-    static char FuncName[]={"compareSurfaces"};
-
-    SUMA_ENTRY;
-
+void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2){
     fprintf(stderr, "Beginning surface comparison\n");
 
     fprintf(stderr, "do_type (1) = %d\n", SO1->do_type);
@@ -1479,15 +1335,9 @@ void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2)
     fprintf(stderr, "DW (2) = %p\n", SO2->DW);
 
     fprintf(stderr, "Ending surface comparison\n");
-    
-    SUMA_RETURNe;
 }
 
-void getSquareOnPlane(float *plane, float points[4][3])
-{
-    static char FuncName[]={"getSquareOnPlane"};
-
-    SUMA_ENTRY;
+void getSquareOnPlane(float *plane, float points[4][3]){
 
     float planeOrigin[3], otherPoint[3], normal[3], tangent[3], bitangent[3];
     float   divisor;
@@ -1528,24 +1378,18 @@ void getSquareOnPlane(float *plane, float points[4][3])
         points[2][i]=planeOrigin[i]-overallMax*tangent[i]+overallMax*bitangent[i];
         points[3][i]=planeOrigin[i]-overallMax*tangent[i]-overallMax*bitangent[i];
     }
-
-    SUMA_RETURNe;
 }
 
-Boolean updateClipSquare(int planeIndex)
-{
-    static char FuncName[]={"updateClipSquare"};
+Boolean updateClipSquare(int planeIndex){
     float plane[4], points[4][3];
     int i, j;
-
-    SUMA_ENTRY;
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Update clip square\n");
 
     if (!(clipIdentificationPlane[planeIndex])){
         fprintf(stderr, "ERROR: Index %d exceeds number of clip planes\n", planeIndex);
-        SUMA_RETURN(0);
+        return 0;
     }
 
     // Test values for plane
@@ -1561,23 +1405,19 @@ Boolean updateClipSquare(int planeIndex)
         for (j=0; j<3; ++j)
             clipIdentificationPlane[planeIndex]->NodeList[inc++] = points[i][j];
 
-    SUMA_RETURN(0);
+    return 0;
 }
 
-Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv)
-{
-    static char FuncName[]={"makeAxisObject"};
+Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv){
 
     float plane[4], points[4][3];
     int i, j;
-
-    SUMA_ENTRY;
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Make axis object\n");
 
     // Axis plane object already exists?
-    if (axisObject) SUMA_RETURN(1);
+    if (axisObject) return 1;
 
     // Test values for plane
     for (i=0; i<4; ++i) plane[i]=activeClipPlane[i];
@@ -1611,7 +1451,7 @@ Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv)
     SUMA_SurfaceObject *SO = makeAxisPlaneFromNodeAndFaceSetList(sv, FS);
     if (!SO){
         fprintf(stderr, "Error makeAxisObject: Error drawing clipping plane rectangle.\n");
-        SUMA_RETURN (0);
+        return False;
     }
     axisObject = SO;   // Record pointer to clip identification plane object
 
@@ -1619,22 +1459,18 @@ Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv)
 
     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
 
-    SUMA_RETURN (1); /* OK */
+    return TRUE;
 }
 
-Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv)
-{
-    static char FuncName[]={"makeClipIdentificationPlane"};
+Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv){
     float plane[4], points[4][3];
     int i, j;
-
-    SUMA_ENTRY;
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Make clip identification plane\n");
 
     // Clipping plane identification object already exists?
-    if (clippingPlaneIDDisplayableObjects[planeIndex]) SUMA_RETURN(1);
+    if (clippingPlaneIDDisplayableObjects[planeIndex]) return 1;
 
     getSquareOnPlane(plane, points);
 
@@ -1664,41 +1500,28 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
     SUMA_SurfaceObject *SO = drawPlaneFromNodeAndFaceSetList(sv, FS, planeIndex);
     if (!SO){
         fprintf(stderr, "Error makeClipIdentificationPlane: Error drawing clipping plane rectangle.\n");
-        SUMA_RETURN (0);
+        return False;
     } 
     clipIdentificationPlane[planeIndex] = SO;   // Record pointer to clip identification plane object
 
     // Avoid gray planes
-    // A non-NULL SO->Overlays[*]->V is required for this operation
-    if (SO && SO->Overlays && SO->Overlays[0]->V)
-    {
-        for (i=0; i<4; ++i){
-            SO->Overlays[0]->V[i] = 0.583694;
-        }
-        for (i=0; i<4; ++i) SO->Overlays[0]->NodeDef[i] = i;
-        SO->Overlays[0]->isBackGrnd = 1;
-
-        SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+    for (i=0; i<4; ++i){
+        SO->Overlays[0]->V[i] = 0.583694;
     }
-    else {
-        fprintf(stderr, 
-            "++ WARNING:  Colored clipping planes not currently handled for ");
-            fprintf(stderr, "this data type\n");
-    }
+    for (i=0; i<4; ++i) SO->Overlays[0]->NodeDef[i] = i;
+    SO->Overlays[0]->isBackGrnd = 1;
 
-    SUMA_RETURN(1);
+    SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+
+    return TRUE;
 }
 
-void lightenActiveClipPlaneSquare(int planeIndex)
-{
-    static char FuncName[]={"makeClipIdentificationPlane"};
+void lightenActiveClipPlaneSquare(int planeIndex){
     SUMA_SurfaceObject* SO =clipIdentificationPlane[planeIndex];
     int i;
     SUMA_SurfaceViewer *sv;
     Widget w=NULL;
     int isv;
-
-    SUMA_ENTRY;
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Lighten active clip plane square\n");
@@ -1715,7 +1538,7 @@ void lightenActiveClipPlaneSquare(int planeIndex)
         /* Cmp->idvec = SO->idcode_str; */
         if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
             fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
-            SUMA_RETURNe;
+            return;
         }
 
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
@@ -1731,19 +1554,13 @@ void lightenActiveClipPlaneSquare(int planeIndex)
         case 4: makeCommonNodesOfRectangleMagenta(SO); break;
         case 5: makeCommonNodesOfRectangleYellow(SO); break;
     }
-
-    SUMA_RETURNe;
 }
 
- void darkenClipPlaneSquare(int planeIndex)
- {
-    static char FuncName[]={"makeClipIdentificationPlane"};
+ void darkenClipPlaneSquare(int planeIndex){
     SUMA_SurfaceObject* SO =clipIdentificationPlane[planeIndex];
         SUMA_SurfaceViewer *sv;
         Widget w=NULL;
         int isv, i;
-
-    SUMA_ENTRY;
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Darken clipping plane square %d\n", planeIndex+1);
@@ -1782,13 +1599,13 @@ void lightenActiveClipPlaneSquare(int planeIndex)
             fprintf(stderr, "### Darken clipping plane square: switch to the recently loaded  cmap\n");
             fprintf(stderr, "### Darken clipping plane square: Cmp = %p\n", Cmp);
             fprintf(stderr, "### Darken clipping plane square: Cmp Name = %s\n", Cmp->Name);
-            // fprintf(stderr, "### Darken clipping plane square: Cmp cname = %ls\n", Cmp->cname);
+            fprintf(stderr, "### Darken clipping plane square: Cmp cname = %ls\n", Cmp->cname);
             fprintf(stderr, "### Darken clipping plane square: justEnteredClippingPlaneMode = %d\n", justEnteredClippingPlaneMode);
             fprintf(stderr, "### Darken clipping plane square: sv->N_ColList = %d\n", sv->N_ColList);
         }
         if (!justEnteredClippingPlaneMode && !SUMA_SwitchColPlaneCmap(ado, Cmp)) {
             fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
-            SUMA_RETURNe;
+            return;
         }
 
         if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
@@ -1799,16 +1616,10 @@ void lightenActiveClipPlaneSquare(int planeIndex)
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Darken clipping plane square: completed\n");
-
-    SUMA_RETURNe;
 }
 
-void darkenInactiveClipPlaneSquares(int activePlane)
-{
-    static char FuncName[]={"darkenInactiveClipPlaneSquares"};
+void darkenInactiveClipPlaneSquares(int activePlane){
     int p, i;
-
-    SUMA_ENTRY;
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Darken inactive clipping plane squares\n");
@@ -1818,21 +1629,15 @@ void darkenInactiveClipPlaneSquares(int activePlane)
     }
 
         SUMA_SurfaceObject* SO =clipIdentificationPlane[1];
-
-    SUMA_RETURNe;
 }
 
 void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *planeA,
-    float *planeB, float *planeC)
-{
-    static char FuncName[]={"darkenInactiveClipPlaneSquares"};
+    float *planeB, float *planeC){
     char chrTmp[64];
     int isv;
     SUMA_SurfaceViewer *sv;
     Widget w=NULL;
     int i;
-
-    SUMA_ENTRY;
 
     SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
@@ -1874,14 +1679,10 @@ void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *pla
 
     previousClipPlaneIdentificationMode=1;
     // clippingPlaneMode=0;
-
-    SUMA_RETURNe;
 }
 
 void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bool flip,
-    int activePlane, Bool toggleOffOn, Bool reset)
-{
-    static char FuncName[]={"clipPlaneTransform"};
+    int activePlane, Bool toggleOffOn, Bool reset){
     static float  planeTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,180,270,180};
     static float  planePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,270};
     static float  planeA[SUMA_MAX_N_CLIP_PLANES]={0.0,0.0,1.0,0.0,0.0,0.0};
@@ -1896,8 +1697,6 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
     SUMA_SurfaceViewer *sv;
     Widget w=NULL;
     static SUMA_Boolean    firstCall = 1;
-
-    SUMA_ENTRY;
     
     if (reset){
         planeIndex = 0;
@@ -2004,23 +1803,20 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
      selectedPlane = planeIndex;
 
     SUMA_SetObjectClip(chrTmp, sv);
-
-    SUMA_RETURNe;
 }
 
-void writeClippingPlanes (char *s, void *data)
-{
-    static char FuncName[]={"writeClippingPlanes"};
+void writeClippingPlanes (char *s, void *data){
     SUMA_SurfaceViewer *sv = (SUMA_SurfaceViewer *)data;
     FILE *outFile;
     int     i, j, parameterInc=0, lastPlane = SUMAg_CF->N_ClipPlanes-1;
 
-    SUMA_ENTRY;
+     fprintf(stderr, "s = %s\n", s);
+
 
      // Open output file
     if (!(outFile = fopen(s, "w"))){
         perror("Error opening output file");
-        SUMA_RETURNe;
+        return;
     }
 
     // Write opening tag
@@ -2055,65 +1851,40 @@ void writeClippingPlanes (char *s, void *data)
 
      // Close output file
      fclose(outFile);
-
-    SUMA_RETURNe;
 }
 
- void getPlanePtClosestToViewerOrigin(float *plane, float *point)
- {
-    static char FuncName[]={"getPlanePtClosestToViewerOrigin"};
+ void getPlanePtClosestToViewerOrigin(float *plane, float *point){
     int i;
     /* Returns the point, on the plane, closest to the viewer origin <0,0,0>.  This
     point is given by P = k<A,B,C> s.t. k(A^2 + B^2 + C^2) = D is satisfied.  I.e.
     k = D/(A^2 + B^2 + C^2)
     */
 
-    SUMA_ENTRY;
-
     float k = plane[3]/((plane[0]*plane[0])+(plane[1]*plane[1])+(plane[2]*plane[2]));
 
     for (i=0; i<3; ++i) point[i] = k*plane[i];
-
-    SUMA_RETURNe;
 }
 
- void getPlanePtClosestToViewerPoint(float *plane, float *viewerPt, float *point)
- {
-    static char FuncName[]={"getPlanePtClosestToViewerPoint"};
+ void getPlanePtClosestToViewerPoint(float *plane, float *viewerPt, float *point){
      int i;
    /* Returns the point, on the plane, closest to the viewer origin <0,0,0>.  This
     point is given by P = k<A,B,C> s.t. k(A^2 + B^2 + C^2) = D is satisfied.  I.e.
     k = D/(A^2 + B^2 + C^2)
     */
 
-    SUMA_ENTRY;
-
     float k = (plane[3]-(plane[0]*viewerPt[0])-(plane[1]*viewerPt[1])-(plane[2]*viewerPt[2]))/((plane[0]*plane[0])+(plane[1]*plane[1])+(plane[2]*plane[2]));
 
     for (i=0; i<3; ++i) point[i] = viewerPt[i] + k*plane[i];
-
-    SUMA_RETURNe;
 }
 
-void crossProduct(float input1[], float input2[], float output[])
-{
-    static char FuncName[]={"crossProduct"};
-
-    SUMA_ENTRY;
-
+void crossProduct(float input1[], float input2[], float output[]){
     output[0] = (input1[1]*input2[2]) - (input1[2]*input2[1]);
     output[1] = (input1[2]*input2[0]) - (input1[0]*input2[2]);
     output[2] = (input1[0]*input2[1]) - (input1[1]*input2[0]);
-
-    SUMA_RETURNe;
 }
 
-void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *objectMinMax)
-{
-    static char FuncName[]={"getOveralMinAndMaxOfCurrentSurfaceObjects"};
+void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *objectMinMax){
     int i, dov_ID;
-
-    SUMA_ENTRY;
 
     objectMinMax[0] = 1000.0;
     objectMinMax[1] = -1000.0;
@@ -2144,14 +1915,9 @@ void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *ob
             axisMinMax[i][1] = 100.0;
         }
     }
-
-    SUMA_RETURNe;
 }
 
-void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3])
-{
-    static char FuncName[]={"getFourCoordsJustInsideClipPlane"};
-    SUMA_ENTRY;
+void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]){
 
     float divisor=plane[0]+plane[1]+plane[2];
     float D = plane[3] + ((plane[3]>0)? - 1 : 1);
@@ -2187,6 +1953,4 @@ void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3])
     points[3][0]=x;
     points[3][1]=y;
     points[3][2]=z;
-
-    SUMA_RETURNe;
 }

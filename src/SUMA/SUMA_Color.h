@@ -48,20 +48,6 @@ void SUMA_KillOverlayContours(SUMA_OVERLAYS * Sover);
 SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover);
 SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ADO, 
                                     SUMA_SurfaceViewer *sv, GLfloat *glcolar);
-void processForThresholdNotReset(SUMA_OVERLAYS *currentOverlay, GLfloat 
-    *glcolar_Fore, int N_Node);
-void processForMapChanged(SUMA_OVERLAYS *currentOverlay, SUMA_SurfaceObject *SO,    
-    int *ITB, int N_Node, 
-    SUMA_Boolean *DSET_MapChanged, SUMA_Boolean thresholdReset, 
-    GLfloat *glcolar_Fore);
-void processOverlays(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *currentOverlay, 
-    int *ITB, int N_Node, SUMA_Boolean  cmapChanged,
-    SUMA_Boolean *DSET_MapChanged, 
-    SUMA_Boolean thresholdReset, GLfloat *glcolar_Fore);
-void processForAlphaOpacityFalloff(SUMA_SurfaceObject *SO, 
-    SUMA_OVERLAYS *currentOverlay, int *ITB, int N_Node, SUMA_Boolean cmapChanged,
-    SUMA_Boolean *DSET_MapChanged, SUMA_Boolean thresholdReset, 
-    GLfloat *glcolar_Fore, int *reload, size_t bytes2CopyToColVec);
 SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO, 
                                  SUMA_SurfaceViewer *SV, GLfloat *glcolar);
 SUMA_OVERLAYS * SUMA_Fetch_OverlayPointerByDset(SUMA_ALL_DO *ado,

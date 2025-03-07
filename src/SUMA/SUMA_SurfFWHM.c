@@ -164,7 +164,7 @@ void usage_SurfFWHM (SUMA_GENERIC_ARGV_PARSE *ps)
 "               underestimating the Local FWHM at most of the nodes.\n"
 "               The more FWHM/R exceeds 0.5, the more you will under-\n"
 "               estimate FWHM. Going for an excessive R however is not\n"
-"               very advantagious either. Large R is computationaly \n"
+"               very advantageous either. Large R is computationaly \n"
 "               expensive and if it is much larger than FWHM estimates,\n" 
 "               it will lead to a blurring of the local FWHM estimates.\n"
 "               Set R to -1 to allow the program\n"

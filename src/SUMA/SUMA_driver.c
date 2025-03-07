@@ -67,9 +67,6 @@ static char uDS_surf_cont[]={
 "       DriveSuma -com surf_cont -switch_dset blooby.curv.1D.dset \\\n"
 "                      -view_surf_cont n -I_range -0.05 0.14\n"
 "       DriveSuma -com surf_cont -load_cmap bbr.1D.cmap\n"
-"       DriveSuma -com surf_cont -SET_FUNC_ALPHA\n"
-"       DriveSuma -com surf_cont -SET_FUNC_BOXED\n"
-"       DriveSuma -com surf_cont -T_abs\n"
 };
 
 static char uDS_tract_cont[]={
@@ -406,13 +403,10 @@ if (detail > 1) {
 "       -shw_0 y/n      or \n"
 "       -show_0 y/n: Set shw 0 toggle button of DSET.\n"
 "       -SET_FUNC_ALPHA y/n       or \n"
-"       -SET_FUNC_ALPHA on/off: Set variable opacity for color overlay as\n"
-"                               underlying value falls below the threshold\n"
-"       -SET_FUNC_ALPHA A.Linear/A.Quadratic: Set order of opacicy falloff as\n"
-"                               underlying value falls below the threshold\n"
+"       -SET_FUNC_ALPHA on/off\n"
+"       -SET_FUNC_ALPHA A.Linear/A.Quadratic \n"
 "       -SET_FUNC_BOXED y/n       or \n"
-"       -SET_FUNC_BOXED on/off: Set threshold outline around color overlay.\n"
-"       -T_abs on/off: Absolute thresholding.\n"
+"       -SET_FUNC_BOXED on/off\n"
 "       -Dsp MODE: Set the viewing mode of the current DSET.\n"
 "                  MODE is one of XXX, Con, Col, or 'C&C' \n"
 "                      (single quotes necessary for 'C&C' MODE).\n"
@@ -621,16 +615,6 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
       if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
       NI_free_element(ngr); ngr = NULL;
    }  else if (strstr(com, "SET_FUNC_BOXED")) {
-      if (!(ngr = SUMA_ComToNgr(com, act))) {
-         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
-      }
-      SUMA_LH("Sending LoadCol to suma");
-      if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
-         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
-      }
-      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
-      NI_free_element(ngr); ngr = NULL;
-   }  else if (strstr(com, "T_abs")) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
          SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
       }
@@ -1676,33 +1660,6 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          else {
             fprintf (SUMA_STDERR, "need a 'y/n', or 'on/off', after");
             fprintf (SUMA_STDERR, " -SET_FUNC_BOXED \n");
-            SUMA_RETURN(0);
-         }
-         argt[kar][0] = '\0';
-         brk = YUP;
-      }
-
-      if (!brk && (  (strcmp(argt[kar], "-T_abs") == 0) ))
-      {
-         if (kar+1 >= argtc)
-         {
-            fprintf (SUMA_STDERR, "need a 'y/n', or 'on/off', after");
-            fprintf (SUMA_STDERR, " -T_abs \n");
-            SUMA_RETURN(0);
-         }
-         argt[kar][0] = '\0';
-         ++kar;
-         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y' ||
-            (strcmp(argt[kar], "on") == 0) || (strcmp(argt[kar], "On") == 0) ||
-            (strcmp(argt[kar], "ON") == 0))
-            NI_set_attribute(ngr, "T_abs", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N' ||
-            (strcmp(argt[kar], "off") == 0) || (strcmp(argt[kar], "Off") == 0)
-            || (strcmp(argt[kar], "OFF") == 0))
-            NI_set_attribute(ngr, "T_abs", "n");
-         else {
-            fprintf (SUMA_STDERR, "need a 'y/n', or 'on/off', after");
-            fprintf (SUMA_STDERR, " -T_abs \n");
             SUMA_RETURN(0);
          }
          argt[kar][0] = '\0';

@@ -439,7 +439,6 @@ void SUMA_IJKInput(void*data);
 SUMA_Boolean SUMA_UpdateTriField(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_ALL_DO *ADO);
 SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ADO);
-void restoreProperThresholdCcontours(SUMA_ALL_DO *ado);
 char **SUMA_FormNodeValFieldStrings(SUMA_ALL_DO *ado, 
                                  SUMA_DSET *dset, int Node,
                                  int find, int tind, int bind, int dec,
@@ -496,11 +495,6 @@ SUMA_Boolean SUMA_UpdatePointField(SUMA_ALL_DO*ado);
 SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado);
 char *SUMA_GetLabelsAtSelection(SUMA_ALL_DO *ado, int node, int sec);
 char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec);
-SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, 
-    SUMA_OVERLAYS *over2, Bool thresholdChanged);
-void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado, 
-    int BoxOutlineThresh, SUMA_Boolean refreshDisplay);
-void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay);
 SUMA_Boolean SUMA_GetValuesAtSelection(SUMA_ALL_DO *ado, int fromtable,
                                        float *I, float *T, float *B);
 SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_ALL_DO *ado, char *str);
@@ -508,7 +502,6 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
                                      SUMA_SurfaceViewer *sv);
 XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w, 
                                  char *fontname, char *tag);
-
 
 /* the help strings */
 
@@ -1375,7 +1368,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "where:\n\n"   \
 "     O(n) is the opacity set by the alpha mapping.:LR:\n"   \
 "     O(o) is the original opacity and\n"  \
-"     T is the threshold set by the sliding bar. "
+"     T is the threshold set by the sliding bar. "  \
 
    #define  SUMA_SurfContHelp_BoxOutlineThr  \
 "Box outline thresholded regions.:LR:\n\n"   \
