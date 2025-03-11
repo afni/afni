@@ -7936,7 +7936,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    float **alphaOpacities = NULL;
    SUMA_OVERLAYS *baseOverlay = SO->Overlays[0];
    SUMA_OVERLAYS *currentOverlay = SO->SurfCont->curColPlane;
-   SUMA_Boolean cmapChanged;
    SUMA_Boolean DSET_MapChanged;
    size_t bytes2CopyToColVec/* = SO->N_Node*3*sizeof(float)*/;
    int numThresholdNodes = 0;
@@ -7950,7 +7949,12 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    // static double IntRange[2]={DBL_MAX, -DBL_MAX};
    // static char *cMapName;
    // static float *ColVec;
-   
+   static SUMA_Boolean rangeChanged, cmapChanged;
+   static SUMA_Boolean ISubbrickChanged, TSubbrickChanged, BSubbrickChanged;
+   static double IntRange[2];
+   static char cMapName[256];
+   static int find = -1, tind = -1, bind = -1;
+
    SUMA_ENTRY;
    
    // fprintf(stderr, "%s: SO->SurfCont->alphaOpacityModel = %d\n", FuncName, SO->SurfCont->alphaOpacityModel);
@@ -7962,9 +7966,41 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    
    cmapChanged = 0;
    bytes2CopyToColVec = SO->N_Node*4*sizeof(float);
-     
+/*
+   // Check whether threshold range changed
+   if (rangeChanged = (IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
+            IntRange[1] != currentOverlay->OptScl->IntRange[1])) {
+        IntRange[0] = currentOverlay->OptScl->IntRange[0];
+        IntRange[1] = currentOverlay->OptScl->IntRange[1];
+        if (currentOverlay->OptScl->ThreshRange[0] > 0) 
+            currentThreshold = currentOverlay->OptScl->ThreshRange[0];
+        currentOverlay->OptScl->ThreshRange[0] = 0.0f;
+   }
+   
+   // Color map changed
+   if (cmapChanged = (strcmp(cMapName, currentOverlay->cmapname))){
+        sprintf(cMapName, "%s", currentOverlay->cmapname);
+   }
+*//**/   
+   // I subbrick changed
+   if (ISubbrickChanged = (currentOverlay->OptScl->find != find)){
+        find = currentOverlay->OptScl->find;
+   }
+   
+   // T subbrick changed
+   if (TSubbrickChanged = (currentOverlay->OptScl->tind != tind)){
+        tind = currentOverlay->OptScl->tind;
+   }
+   
+   // B subbrick changed
+   if (BSubbrickChanged = (currentOverlay->OptScl->bind != bind)){
+        bind = currentOverlay->OptScl->bind;
+   }
+/* */    
    
    if (SO->SurfCont->AlphaOpacityFalloff != 1) SO->SurfCont->AlphaOpacityFalloff = 0;
+   
+   // #if 0
    
    if (!thresholdReset && currentOverlay){
    
@@ -8116,6 +8152,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
            }
        }
    }
+// #endif
    
    // return 1; // DEBUG
 

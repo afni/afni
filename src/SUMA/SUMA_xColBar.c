@@ -1523,6 +1523,26 @@ void SUMA_cb_SwitchIntensity(Widget w, XtPointer client_data, XtPointer call)
    SUMA_RETURNe;
 }
 
+void restoreProperThresholdCcontours(SUMA_ALL_DO *ado)
+{
+   static char FuncName[]={"restoreProperThresholdCcontours"};
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   XtPointer clientData = (XtPointer)ado;
+
+   SUMA_ENTRY;
+   
+   if (!SO || !(SO->SurfCont)){
+    fprintf(stderr, "WARNING: %s: No surface available", FuncName);
+    SUMA_RETURNe;
+   }
+   
+   if (SO->SurfCont->BoxOutlineThresh ){
+        SUMA_RestoreThresholdContours(clientData, NOPE);
+   }
+
+   SUMA_RETURNe;
+}
+
 int SUMA_SwitchColPlaneThreshold(
          SUMA_ALL_DO *ado,
          SUMA_OVERLAYS *colp,
@@ -1574,15 +1594,32 @@ int SUMA_SwitchColPlaneThreshold_one(
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL;
+   int BoxOutlineThresh = NOPE, AlphaOpacityFalloff = NOPE;
+   char *Label=NULL;
 
    SUMA_ENTRY;
 
-
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
-   if (!ado || !SurfCont || !curColPlane ||
-       !colp || ind < -1 || !colp->dset_link) { SUMA_RETURN(0); }
+   Label = SUMA_ADO_Label(ado);
 
+   if (  !ado || !SurfCont ||
+         !curColPlane ||
+         !colp || !colp->dset_link || !colp->OptScl) { SUMA_RETURN(0); }
+   
+   // Temporarily suspend threshold outline.  This appears to resolve the 
+   // problem of the color map changing with the threshold slider
+   if  (ado->do_type == SO_type) {
+       SO = (SUMA_SurfaceObject *)ado;
+       if (SO->SurfCont){
+           BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+           AlphaOpacityFalloff = SO->SurfCont->AlphaOpacityFalloff;
+           SO->SurfCont->BoxOutlineThresh = 0;
+           SO->SurfCont->AlphaOpacityFalloff = 0;
+           XmToggleButtonSetState(SO->SurfCont->AlphaOpacityFalloff_tb, 0, 1);
+       }
+   }
 
    if (LocalHead) {
       fprintf(SUMA_STDERR, "%s:\n request to switch threshold to col. %d\n",
@@ -1656,6 +1693,23 @@ int SUMA_SwitchColPlaneThreshold_one(
             { SUMA_SL_Err("Error in SUMA_set_threshold_one"); SUMA_RETURN(0); }
       }
    }
+   
+   if (SO && SO->SurfCont){
+        // Restore threshold boundary if necessary. // This is called when the 
+          // threshold slider is moved
+        SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+       
+        // Restore proper threshold contours when intensity (I) subbrick changed
+        restoreProperThresholdCcontours(ado);
+       
+        // Restore alpha opacity falloff if applicable
+        if (AlphaOpacityFalloff) XmToggleButtonSetState(SO->SurfCont->AlphaOpacityFalloff_tb, 1, 1);
+   }
+
+   SUMA_Remixedisplay(ado);
+
+   SUMA_UpdateNodeValField(ado);
+   SUMA_UpdateNodeLblField(ado);
 
    SUMA_RETURN(1);
 }

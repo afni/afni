@@ -509,6 +509,7 @@ void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
 SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, 
     SUMA_OVERLAYS *over2, Bool thresholdChanged);
 void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay);
+void restoreProperThresholdCcontours(SUMA_ALL_DO *ado);
 
 
 
