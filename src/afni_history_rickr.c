@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Mar, 2025, RCR, "InstaTract", MINOR, TYPE_BUG_FIX,
+   "added forgottenn Wait_Till_Stream_Goes_Bad function (was using SUMA_)",
+   NULL
+ } ,
+
  {  6, Mar, 2025, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "jpeg-6b/configure: save more details",
    NULL
