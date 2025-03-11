@@ -9001,6 +9001,15 @@ def tlrc_cmd_nlwarp_priors(proc, block):
 
     print('-- importing NL-warp datasets')
 
+    # this case requires -volreg_align_e2a for the xform to apply (correctly)
+    vblk = proc.find_block('volreg')
+    if vblk is not None:
+       if vblk.opts.find_opt('-volreg_tlrc_warp') \
+          and not vblk.opts.find_opt('-volreg_align_e2a'):
+          print("** -tlrc_NL_warped_dsets requires -volreg_align_e2a")
+          print("   (else EPI -> stdandard space will not be correct)")
+          return None
+
     p0 = proc.nlw_priors[0]
     p1 = proc.nlw_priors[1]
     p2 = proc.nlw_priors[2]

@@ -53,8 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Mar, 2025, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "update examples class 3,5 per AD6; NL_warped_dsets requires e2a",
+   NULL
+ } ,
+
  {  7, Mar, 2025, RCR, "InstaTract", MINOR, TYPE_BUG_FIX,
-   "added forgottenn Wait_Till_Stream_Goes_Bad function (was using SUMA_)",
+   "add forgotten Wait_Till_Stream_Goes_Bad function (was using SUMA_)",
    NULL
  } ,
 

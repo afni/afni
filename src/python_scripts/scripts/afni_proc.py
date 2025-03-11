@@ -809,9 +809,10 @@ g_history = """
     7.84 Jan 28, 2025: add option -tlrc_affine_warped_dsets
     7.85 Jan 29, 2025: suggest OC_B if only 2 echoes
     7.86 Feb 27, 2025: add -show_merged_opts, -compare_merged_opts
+    7.87 Mar 11, 2025: update examples class 3,5 per AD6
 """
 
-g_version = "version 7.86, February 27, 2025"
+g_version = "version 7.87, March 11, 2025"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

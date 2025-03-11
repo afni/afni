@@ -1962,7 +1962,7 @@ def egs_class():
    examples.append( APExample('AP class 3',
      source='FT_analysis',
      descrip='s03.ap.surface - basic surface analysis',
-     moddate='2022.11.23',
+     moddate='2025.03.11',
      keywords=['complete', 'surface', 'task'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
@@ -1977,12 +1977,14 @@ def egs_class():
         ['-copy_anat',             ['FT/FT_anat+orig']],
         ['-blocks',                ['tshift', 'align', 'volreg', 'surf',
                                     'blur', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
         ['-tcat_remove_first_trs', ['2']],
         ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
                                     '-check_flip']],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_align_e2a',      []],
+        ['-volreg_compute_tsnr',   ['yes']],
         ['-surf_anat',             ['FT/SUMA/FT_SurfVol.nii']],
         ['-surf_spec',             ['FT/SUMA/std.60.FT_?h.spec']],
         ['-blur_size',             ['6']],
@@ -1993,27 +1995,28 @@ def egs_class():
                                     '-glt_label', '1', 'V-A']],
         ['-regress_motion_per_run', []],
         ['-regress_censor_motion', ['0.3']],
+        ['-regress_censor_outliers', ['0.05']],
        ]
      ))
 
    examples.append( APExample('AP class 5',
      source='FT_analysis',
      descrip='s05.ap.uber - basic task analysis',
-     moddate='2024.08.29',
+     moddate='2025.03.11',
      keywords=['task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
-              (              prefer: see Example 6b)
+              (              prefer: see Example publish 3b for NL warp)
 
            A basic task analysis with a pair of visual and auditory tasks.
 
            notable options include :
-                - affine registration to the (default) TT_N27+tlrc template
+                - affine registration to MNI152_2009_template.nii.gz template
                 - censoring based on both motion params and outliers
                 - '-regress_compute_fitts' to reduce RAM needs in 3dD
                 - mask_epi_anat - intersect full_mask (epi) with mask_anat
                 - QC: computing radial correlation volumes at the end
-                      of the tcat (initial) and volreg processing blocks
+                      of the tcat, volreg and regress processing blocks
                 - QC: include -check_flip left/right consistency check
                 - QC: compute sum of ideals, for evaluation
             """,
@@ -2026,14 +2029,16 @@ def egs_class():
         ['-copy_anat',             ['FT/FT_anat+orig']],
         ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
                                     'mask', 'blur', 'scale', 'regress']],
-        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
         ['-tcat_remove_first_trs', ['2']],
         ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
                                     '-check_flip']],
+        ['-tlrc_base',             ['MNI152_2009_template.nii.gz']],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_align_e2a',      []],
         ['-volreg_tlrc_warp',      []],
+        ['-volreg_compute_tsnr',   ['yes']],
         ['-mask_epi_anat',         ['yes']],
         ['-blur_size',             ['4.0']],
         ['-regress_stim_times',    ['FT/AV1_vis.txt', 'FT/AV2_aud.txt']],
@@ -2051,6 +2056,7 @@ def egs_class():
         ['-regress_est_blur_epits', []],
         ['-regress_est_blur_errts', []],
         ['-regress_run_clustsim',  ['no']],
+        ['-html_review_style',     ['pythonic']],
         ['-execute',               []],
        ]
      ))
