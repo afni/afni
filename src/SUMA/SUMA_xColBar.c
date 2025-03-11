@@ -2750,6 +2750,9 @@ void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
    SUMA_ColorizePlane(curColPlane);
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
+   
+   // Restore proper threshold contours after switch Int (middle "v" toggled)
+   if  (ado->do_type == SO_type) restoreProperThresholdCcontours(ado);
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
@@ -3092,6 +3095,7 @@ void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data,
    SUMA_Boolean NewDisp = NOPE;
    SUMA_VIS_XFORM_DATUM *x0=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL;
 
    SUMA_ENTRY;
    /* get the surface object that the setting belongs to */
@@ -3178,6 +3182,13 @@ void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data,
    }
 
    SUMA_UpdateNodeNodeField(ado);
+
+   // Restore threshold boundary if necessary
+   if (ado->do_type == SO_type) SO = (SUMA_SurfaceObject *)ado;
+   if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh ){
+        XtPointer clientData = (XtPointer)ado;
+        SUMA_RestoreThresholdContours(clientData, YUP);
+   }
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
@@ -5878,10 +5889,20 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL;
+   int BoxOutlineThresh = 0;
 
    SUMA_ENTRY;
 
    SUMA_LH("Called");
+   
+   // Temporarily suspend threshold outline.  This appears to resolve the 
+   // problem of the color map changing with the threshold slider
+   if (ado->do_type == SO_type) {
+       SO = (SUMA_SurfaceObject *)ado;
+       BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+       SO->SurfCont->BoxOutlineThresh = 0;
+   }
 
    if (!(SurfCont=SUMA_ADO_Cont(ado)) ||
        !SurfCont->SetThrScaleTable) SUMA_RETURN(0);
@@ -5974,6 +5995,19 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_UpdateNodeLblField(ado);
    SUMA_UpdatePvalueField( ado,
                            curColPlane->OptScl->ThreshRange[0]);
+
+    if (SO && SO->SurfCont) {
+       // Restore threshold boundary if necessary.  This is called when the 
+       //   threshold slider is moved
+       SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+
+       // Restore threshold boundary if necessary
+       if (SO->SurfCont->BoxOutlineThresh ){
+            XtPointer clientData = (XtPointer)ado;
+            SUMA_RestoreThresholdContours(clientData, YUP);
+       }
+    }
+
    SUMA_RETURN(1);
 }
 
@@ -6466,6 +6500,7 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_TABLE_FIELD *TF=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL;
 
    SUMA_ENTRY;
 
@@ -6749,9 +6784,12 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
    }
 
    /* Now, you need to redraw the deal */
-   if (REDISP) {
-      SUMA_ColorizePlane(curColPlane);
-      SUMA_Remixedisplay(ado);
+   if  (ado->do_type == SO_type){
+       SO = (SUMA_SurfaceObject *)ado;
+       if (!(SO->SurfCont->BoxOutlineThresh ) && REDISP) {
+          SUMA_ColorizePlane(curColPlane);
+          SUMA_Remixedisplay(ado);
+       }
    }
 
    /* update the Xhair Info block */
@@ -6759,6 +6797,14 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
       SUMA_UpdateNodeNodeField(ado);
    }
    SUMA_UpdateNodeLblField(ado);
+
+   // Restore threshold boundary if necessary
+   if  (SO && SO->SurfCont){
+       if (SO->SurfCont->BoxOutlineThresh ){
+            XtPointer clientData = (XtPointer)ado;
+            SUMA_RestoreThresholdContours(clientData, YUP);
+       }
+   }  
 
    SUMA_RETURN(1);
 }
