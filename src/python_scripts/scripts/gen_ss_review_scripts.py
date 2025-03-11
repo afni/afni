@@ -940,7 +940,7 @@ g_history = """
    1.28 Mar 11, 2024: add max_4095_warn_dset key
    1.29 Apr  5, 2024: add reg_echo and echo_times (ET to basic output)
    1.30 Apr 26, 2024: -init_uvars_json will now pass through unknown uvars
-   1.31 Feb 27, 2025: fix invalid escape sequence for \ls
+   1.31 Feb 27, 2025: fix invalid escape sequence for \\ls
 """
 
 g_version = "gen_ss_review_scripts.py version 1.31, February 27, 2025"
