@@ -4001,6 +4001,17 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_LHv("Have range of %f, %f\n", dv15[0], dv15[1]);
                      SurfCont->curColPlane->OptScl->IntRange[0] = dv15[0];
                      SurfCont->curColPlane->OptScl->IntRange[1] = dv15[1];
+                     
+                     // Ensure symmetric I range compatible with input I range values
+                     if (SurfCont->curColPlane->OptScl->IntRange[1] != 
+                        -SurfCont->curColPlane->OptScl->IntRange[0])
+                        SurfCont->curColPlane->SymIrange = 0;
+                        
+                     // Toggle symmetric I range button which also sets 
+                     // the threshold (temporarily) to zero
+                     XmToggleButtonSetState (SurfCont->SymIrange_tb, 
+                        SurfCont->curColPlane->SymIrange, 1);
+                        
                      SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 1,
                                  SurfCont->curColPlane->OptScl->IntRange[0]);
                      SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 2,
@@ -4080,7 +4091,29 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               SurfCont->curColPlane->OptScl->MaskZero, YUP);
             }
 
-            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA")) {
+            if (NI_get_attribute(EngineData->ngr, "T_abs")) {
+                SUMA_Boolean toggleOn;
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "T_abs", "y")){
+                  toggleOn = 1;
+               }
+               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "T_abs", "n"))
+               {
+                  toggleOn = 0;
+               }
+               else {
+                  SUMA_S_Errv("Bad value of %s for T_abs, setting to 'y'\n",
+                              NI_get_attribute(EngineData->ngr, "T_abs"));
+                  toggleOn = NOPE;
+               }
+               XmToggleButtonSetState ( SurfCont->AbsThresh_tb,
+                              toggleOn, YUP);
+            }
+
+            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA") &&
+            
+                // Ensure "A" button is not disabled
+                XtIsSensitive(SUMA_SV_Focus_SO(sv)->SurfCont->AlphaOpacityFalloff_tb)) {
+                
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "y")){
                 fprintf(stderr, "Show alpha\n");
                   // SurfCont->AlphaOpacityFalloff = 1;
@@ -5849,6 +5882,42 @@ int SUMA_Selectable_ADOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
                SUMA_LHv("Ignoring %s\n", iDO_label(sv->RegistDO[i].dov_ind));
                break;
          }
+      }
+   }
+
+   SUMA_RETURN (k);
+}
+
+int SUMA_ADOs_WithUniqueSurfCont (SUMA_DO *dov, int N_dov, int *dov_IDs)
+{
+   static char FuncName[]={"SUMA_ADOs_WithSurfCont"};
+   SUMA_SurfaceObject *SO=NULL;
+   int i, j, k = 0, surfContPtrCnt=0, unique;
+   int  ;
+   SUMA_NIDO *SDO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_X_SurfCont *SurfConts[SUMA_MAX_DISPLAYABLE_OBJECTS], *SurfCont;
+
+   SUMA_ENTRY;
+   
+   // Fill list of surface contour pointers
+   for (i=0; i< N_dov; ++i) {
+        if (SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO*)SUMAg_DOv[i].OP)) {
+            SurfConts[surfContPtrCnt++] = SurfCont;
+        }
+   }
+
+   for (i=0; i< N_dov; ++i) {
+      if (SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO*)SUMAg_DOv[i].OP)) {
+        unique = 1;
+        for (j=0; j<k; ++j) if (SurfCont==SurfConts[j]){
+             unique = 0;
+             break;
+        } 
+        if (unique){
+            dov_IDs[k] = i;
+            ++k;
+        }
       }
    }
 
