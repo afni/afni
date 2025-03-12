@@ -512,7 +512,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              Mixed-Effects Multilevel-Analysis Modeling!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.3, Mar 11, 2025
+Version 1.1.4, Mar 12, 2025
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MEMA
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1529,8 +1529,8 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
       R   <- vb %*% tmp  # projection of Y to space spanned by X
       P   <- W - t(tmp) %*% R  # projection of Y to space spanned by residuals
       stat <- collect(Y, vb, R, P, n, p, knha, con)
-      out <- list(stat$se, stat$b, stat$z, sqrt(tau2), P, 0, 0)
-      names(out) <- c("se", "b", "z", "tau", "P", "meth", "iter")
+      out <- list(stat$se, stat$b, stat$z, tau2, P, 0, 0)
+      names(out) <- c("se", "b", "z", "tau2", "P", "meth", "iter")
       out
    }                 
 
@@ -1620,8 +1620,8 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
       tau2 <- 2*nu^2
       
       stat <- collect(Y, vb, R, P, n, p, knha, con)
-      out  <- list(stat$se, stat$b, stat$z, sqrt(tau2), P, 1, 1, iter)
-      names(out) <- c("se", "b", "z", "tau", "P", "conv", "meth", "iter")
+      out  <- list(stat$se, stat$b, stat$z, tau2, P, 1, 1, iter)
+      names(out) <- c("se", "b", "z", "tau2", "P", "conv", "meth", "iter")
    }
    out
    } # end of Laplace
@@ -1663,8 +1663,8 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
          names(out) <- c("conv")
       } else {   # REML succeeded         
          stat <- collect(Y, vb, R, P, n, p, knha, con)
-         out <- list(stat$se, stat$b, stat$z, sqrt(tau2), P, 1, 2, iter)
-         names(out) <- c("se", "b", "z", "tau", "P", "conv", "meth", "iter")
+         out <- list(stat$se, stat$b, stat$z, tau2, P, 1, 2, iter)
+         names(out) <- c("se", "b", "z", "tau2", "P", "conv", "meth", "iter")
       }
       out
    }  # end of REML
@@ -1721,11 +1721,11 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
       # need to scale this for Knapp & Hartung method as done above by s2w <- c( t(Y) %*% P %*% Y ) / (n-p)?
       if((lapMod==0) | noMoM) resZ <- P %*% Y / sqrt(diag(P %*% tcrossprod(diag(vTot), P)))
    
-      res         <- list(b, se, z, sqrt(tau2), QE, lamc, resZ, meth, iter)
-      names(res)  <- c("b", "se", "z", "tau", "QE", "lamc", "resZ", "meth", "iter")
+      res         <- list(b, se, z, tau2, QE, lamc, resZ, meth, iter)
+      names(res)  <- c("b", "se", "z", "tau2", "QE", "lamc", "resZ", "meth", "iter")
    } else {  # no residual statistics
-      res         <- list(b, se, z, sqrt(tau2), QE, meth, iter)
-      names(res)  <- c("b", "se", "z", "tau", "QE", "meth", "iter")
+      res         <- list(b, se, z, tau2, QE, meth, iter)
+      names(res)  <- c("b", "se", "z", "tau2", "QE", "meth", "iter")
    }
    res
    #browser()
@@ -1780,8 +1780,8 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod,
       R   <- vb %*% tmp  # projection of Y to space spanned by X
       P   <- W - t(tmp) %*% R  # projection of Y to space spanned by residuals
       stat <- collect(Y, vb, R, P, n, p, knha, con)
-      out <- list(stat$se, stat$b, stat$z, sqrt(tau2), P, 0, 0)
-      names(out) <- c("se", "b", "z", "tau", "P", "meth", "iter")
+      out <- list(stat$se, stat$b, stat$z, tau2, P, 0, 0)
+      names(out) <- c("se", "b", "z", "tau2", "P", "meth", "iter")
       out
    }                 
 
@@ -1867,7 +1867,7 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod,
       tau2 <- 2*nu^2
       
       stat <- collect(Y, vb, R, P, n, p, knha, con)
-      out  <- list(stat$se, stat$b, stat$z, sqrt(tau2), P, 1, 1, iter)
+      out  <- list(stat$se, stat$b, stat$z, tau2, P, 1, 1, iter)
       names(out) <- c("se", "b", "z", "tau", "P", "conv", "meth", "iter")
    }
    out
@@ -1906,8 +1906,8 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod,
          names(out) <- c("conv")
       } else {   # REML succeeded         
          stat <- collect(Y, vb, R, P, n, p, knha, con)
-         out <- list(stat$se, stat$b, stat$z, sqrt(tau2), P, 1, 2, iter)
-         names(out) <- c("se", "b", "z", "tau", "P", "conv", "meth", "iter")
+         out <- list(stat$se, stat$b, stat$z, tau2, P, 1, 2, iter)
+         names(out) <- c("se", "b", "z", "tau2", "P", "conv", "meth", "iter")
       }
       out
    }  # end of REML
@@ -1991,11 +1991,11 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod,
       resZ <- c(P1 %*% Y1/sqrt(diag(P1 %*% tcrossprod(diag(vTot1), P1))),
          P2 %*% Y2/sqrt(diag(P2 %*% tcrossprod(diag(vTot2), P2))))
  
-      res         <- list(b, se, z, sqrt(tau2), QE, scl, lamc, resZ, meth, iter)
-      names(res)  <- c("b", "se", "z", "tau", "QE", "scl", "lamc", "resZ", "meth", "iter")
+      res         <- list(b, se, z, tau2, QE, scl, lamc, resZ, meth, iter)
+      names(res)  <- c("b", "se", "z", "tau2", "QE", "scl", "lamc", "resZ", "meth", "iter")
    } else {  # no residual statistics requested
-      res         <- list(b, se, z, sqrt(tau2), QE, scl, meth, iter)
-      names(res)  <- c("b", "se", "z", "tau", "QE", "scl", "meth", "iter")
+      res         <- list(b, se, z, tau2, QE, scl, meth, iter)
+      names(res)  <- c("b", "se", "z", "tau2", "QE", "scl", "meth", "iter")
    }
    res
    } else return(NULL) # if(continue)
@@ -2082,20 +2082,20 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
       if(KHtest & all(resList$scl>tol)) outData[c(2,4,6)] <- outData[c(2,4,6)]/resList$scl
    
       if(resZout==0) {
-         outData[nBrick-5] <- resList$tau[1]
-         outData[nBrick-3]   <- resList$tau[2]
+         outData[nBrick-5] <- sqrt(resList$tau2[1])
+         outData[nBrick-3]   <- sqrt(resList$tau2[2])
          outData[nBrick-4] <- resList$QE[1]
          outData[nBrick-2]   <- resList$QE[2]
-         outData[nBrick-1] <- ifelse(resList$tau[2] > tol, resList$tau[1]/resList$tau[2], 0)
-         outData[nBrick]   <- ifelse(resList$tau[1] > tol, resList$tau[2]/resList$tau[1], 0)
+         outData[nBrick-1] <- sqrt(ifelse(resList$tau2[2] > tol, resList$tau2[1]/resList$tau2[2], 0))
+         outData[nBrick]   <- sqrt(ifelse(resList$tau2[1] > tol, resList$tau2[2]/resList$tau2[1], 0))
       } else {
    
-      outData[nBrick-2*n[2]-5] <- resList$tau[1]
-      outData[nBrick-2*n[2]-3]   <- resList$tau[2]
+      outData[nBrick-2*n[2]-5] <- sqrt(resList$tau2[1])
+      outData[nBrick-2*n[2]-3]   <- sqrt(resList$tau2[2])
       outData[nBrick-2*n[2]-4] <- resList$QE[1]
       outData[nBrick-2*n[2]-2]   <- resList$QE[2]
-      outData[nBrick-2*n[2]-1] <- ifelse(resList$tau[2] > tol, resList$tau[1]/resList$tau[2], 0)
-      outData[nBrick-2*n[2]]   <- ifelse(resList$tau[1] > tol, resList$tau[2]/resList$tau[1], 0)
+      outData[nBrick-2*n[2]-1] <- sqrt(ifelse(resList$tau2[2] > tol, resList$tau2[1]/resList$tau2[2], 0))
+      outData[nBrick-2*n[2]]   <- sqrt(ifelse(resList$tau2[1] > tol, resList$tau2[2]/resList$tau2[1], 0))
    
       for(ii in 1:n[1]) {
          outData[nBrick-2*(n[2]-ii)-1] <- resList$lamc[ii]   # lamda = 1-I^2
@@ -2109,10 +2109,10 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
       } # if(resZout==0)
    } else {  # not anaType==4
    if(resZout==0) {
-      outData[nBrick-1] <- resList$tau
+      outData[nBrick-1] <- sqrt(resList$tau2)
       outData[nBrick]   <- resList$QE
    } else {
-      outData[nBrick-2*n-1] <- resList$tau
+      outData[nBrick-2*n-1] <- sqrt(resList$tau2)
       outData[nBrick-2*n]   <- resList$QE
       for(ii in 1:n) {
       outData[nBrick-2*(n-ii)-1] <- resList$lamc[ii]   # lamda = 1-I^2
