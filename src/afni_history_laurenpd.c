@@ -54,6 +54,11 @@
 afni_history_struct laurenpd_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 12, Mar, 2025, PDL, "suma", MAJOR, TYPE_MODIFY,
+   "make |T|, 'sym I' and 'shw 0' apply to all surfaces",
+   NULL
+ } ,
+
  { 24, May, 2024, PDL, "suma", MAJOR, TYPE_NEW_OPT,
    "add alpha thresholding",
    NULL
