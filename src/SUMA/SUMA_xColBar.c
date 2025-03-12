@@ -6536,19 +6536,16 @@ void SUMA_cb_SetRangeValue (void *data)
         SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
         SUMA_RETURNe;
     }
-    fprintf(stderr, "*******************N_adolist = %d\n", N_adolist);
-    fprintf(stderr, "reset = %d\n", reset);
     for (j=0; j<N_adolist; ++j){
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        // fprintf(stderr, "otherAdo[%d] = %p\n", j, otherAdo);
-        if (1 || otherAdo != ado){
+
+        if (otherAdo != ado){
 
             if (!(SurfCont=SUMA_ADO_Cont(otherAdo))) {
               fprintf(stderr, "Surface index = %d", j);
               SUMA_S_Warn("NULL input"); 
               continue;
             }
-            fprintf(stderr, "SurfCont[%d] = %p\n", j, SurfCont);
         
            curColPlane = SUMA_ADO_CurColPlane(otherAdo);
 
@@ -6558,7 +6555,6 @@ void SUMA_cb_SetRangeValue (void *data)
            TF->cell_modified = n;
            if (TF->cell_modified<0) SUMA_RETURNe;
            n = TF->cell_modified;
-           fprintf(stderr, "n = %d\n", n);
 
            row = n % TF->Ni;
            col = n / TF->Ni;
@@ -6571,9 +6567,7 @@ void SUMA_cb_SetRangeValue (void *data)
            an = SUMA_SetRangeValueNew(otherAdo, colp, row, col,
                                   newMin, 0.0,
                                   0, 1, &reset, TF->num_units);
-            fprintf(stderr, "an = %d\n", an);
-            fprintf(stderr, "reset = %d\n", reset);
-                                  /**/
+
            if (an < 0) {
               if (an == -1 || an == -2) {
                  SUMA_BEEP;
