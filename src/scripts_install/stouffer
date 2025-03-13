@@ -74,7 +74,7 @@ if ( "$prefix" == "" || $#inputs == 0 ) then
 endif
 
 # Create temporary mean image
-3dMean -prefix tmp $inputs
+3dMean -prefix ZYXtmp $inputs
 if ( $status != 0 ) then
     echo "Error: 3dMean failed. Check input files or AFNI installation."
     exit 1
@@ -84,16 +84,25 @@ endif
 set N = $#inputs
 
 # Compute Stouffer's Z-score
-3dcalc -a tmp+tlrc -expr "a*sqrt($N)" -prefix ${prefix}
+3dcalc -a ZYXtmp+tlrc -expr "a*sqrt($N)" -prefix ${prefix}
 if ( $status != 0 ) then
     echo "Error: 3dcalc failed."
     exit 1
 endif
 
-# declare the output as Z-statistic: assuming tlrc -- need to fix this
-3drefit -substatpar 0 fizt ${prefix}+tlrc
+# Declare the output as Z-statistic
+if ( -e ${prefix}+tlrc.HEAD ) then
+    3drefit -substatpar 0 fizt ${prefix}+tlrc
+else
+    3drefit -substatpar 0 fizt ${prefix}
+endif
 
 # Clean up temporary files (safe with nonomatch)
-rm tmp+tlrc*
+if ( -e ZYXtmp+tlrc.HEAD ) then
+    rm ZYXtmp+tlrc*
+else
+    rm ZYXtmp
+endif
+
 
 END:
