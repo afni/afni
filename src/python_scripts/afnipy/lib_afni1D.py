@@ -29,6 +29,7 @@ MTYPE_DUR  = 2   # duration modulation
 g_xmat_basis_labels = ['Name', 'Option', 'Formula', 'Columns']
 g_xmat_stim_types   = [ 'times', 'AM', 'AM1', 'AM2', 'IM' ]
 g_1D_write_styles   = [ 'basic', 'pretty', 'ljust', 'rjust', 'tsv' ]
+g_val               = None      # generic global for exec()
 
 class Afni1D:
    def __init__(self, filename="", from_mat=0, matrix=None, verb=1):
@@ -872,14 +873,14 @@ class Afni1D:
    def show_gcor_all(self):
       for ind in range(1,6):
          print('----------------- GCOR test %d --------------------' % ind)
-         exec('val = self.gcor%d()' % ind)
-         exec('print("GCOR rv = %.10f" % val)')
+         # modification of locals is undefined
+         exec('global g_val ; g_val = self.gcor%d()' % ind, globals(), locals())
+         print("GCOR rv = %.10f" % g_val)
 
    def show_gcor_doc_all(self):
       for ind in range(1,6):
          print('----------------- GCOR doc %d --------------------' % ind)
-         exec('val = self.gcor%d.__doc__' % ind)
-         exec('print("%s" % val)')
+         exec('print(self.gcor%d.__doc__)' % ind, globals(), locals())
 
    # basically, a link to the one we really want to call
    def gcor(self): return self.gcor2()
