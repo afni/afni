@@ -1,0 +1,99 @@
+#!/usr/bin/env tcsh
+
+HELP:
+if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
+   echo ""
+   echo "Program 'stouffer': meta-analysis using Stouffer's method"
+   echo ""
+   echo "                          Gang Chen "
+   echo "                     gangchen@mail.nih.gov"
+   echo "                        March 13, 2025 "
+   echo "                      SSCC/NIMH/NIH/DHHS"
+   echo ""
+   echo "Usage: "
+   echo ""
+   echo "  stouffer -prefix output.file.name -input here.is.a.list.of.input.files"
+   echo ""
+   echo "Input files contain Z-statistic values, typically derived from multiple "
+   echo "studies. T-statistic values may also be used if the degrees of freedom "
+   echo "are sufficiently large (e.g., ≥30); otherwise, they should first be "
+   echo "converted to Z-statistics. The output is a Z-statistic reflecting the "
+   echo "pooled evidence across studies. The sample sizes for the individual"
+   echo "studies are assumed to roughly equal."
+   echo ""
+   goto END
+endif
+
+
+# Prevent wildcard errors
+set nonomatch
+
+# Parse arguments
+set prefix = ""
+set inputs = ()
+
+while ( $#argv > 0 )
+    switch ( $argv[1] )
+        case "-prefix":
+            if ( $#argv < 2 ) then
+                echo "Error: Missing argument for -prefix"
+                exit 1
+            endif
+            set prefix = $argv[2]
+            shift; shift
+            breaksw
+        case "-input":
+            shift
+            while ( $#argv > 0 )
+                if ( "$argv[1]" =~ "-*" ) then
+                  break
+                endif
+                # Check if file exists
+                #if ( ! -e "$argv[1]" ) then
+	        #echo "Here: '$argv[1]'"
+                # Check if file exists using 3dinfo
+                set nvols = `3dinfo -nv "$argv[1]" 2>/dev/null`
+                if ( "$nvols" == "NO-DSET" ) then
+                    echo "Error: Input file '$argv[1]' does not exist"
+                    exit 1
+                endif
+                set inputs = ( $inputs "$argv[1]" )
+                shift
+            end
+            breaksw
+        default:
+            echo "Unknown option: $argv[1]"
+            exit 1
+    endsw
+end
+
+# Check required arguments
+if ( "$prefix" == "" || $#inputs == 0 ) then
+    echo "Usage: Stouffer -prefix output -input 'file1' 'file2' ..."
+    exit 1
+endif
+
+# Create temporary mean image
+3dMean -prefix tmp $inputs
+if ( $status != 0 ) then
+    echo "Error: 3dMean failed. Check input files or AFNI installation."
+    exit 1
+endif
+
+# Get number of input files
+set N = $#inputs
+
+# Compute Stouffer's Z-score
+3dcalc -a tmp+tlrc -expr "a*sqrt($N)" -prefix ${prefix}
+if ( $status != 0 ) then
+    echo "Error: 3dcalc failed."
+    exit 1
+endif
+
+# declare the output as Z-statistic: assuming tlrc -- need to fix this
+3drefit -substatpar 0 fizt ${prefix}+tlrc
+
+# Clean up temporary files (safe with nonomatch)
+rm tmp+tlrc*
+
+END:
