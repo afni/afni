@@ -1461,9 +1461,10 @@ g_history = """
    2.18 Sep  1, 2023 - added -show_slice_timing_gentle
    2.19 Sep 13, 2023 - have -write_xstim create an empty file if need be
    2.20 Jan 31, 2025 - add -show_slice_timing_resolution
+   2.21 Mar 12, 2025 - allow auto-reading of TSV as -infile
 """
 
-g_version = "1d_tool.py version 2.20, January 31, 2025"
+g_version = "1d_tool.py version 2.21, March 12, 2025"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
