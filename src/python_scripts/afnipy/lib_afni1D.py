@@ -29,6 +29,7 @@ MTYPE_DUR  = 2   # duration modulation
 g_xmat_basis_labels = ['Name', 'Option', 'Formula', 'Columns']
 g_xmat_stim_types   = [ 'times', 'AM', 'AM1', 'AM2', 'IM' ]
 g_1D_write_styles   = [ 'basic', 'pretty', 'ljust', 'rjust', 'tsv' ]
+g_val               = None      # generic global for exec()
 
 class Afni1D:
    def __init__(self, filename="", from_mat=0, matrix=None, verb=1):
@@ -872,14 +873,14 @@ class Afni1D:
    def show_gcor_all(self):
       for ind in range(1,6):
          print('----------------- GCOR test %d --------------------' % ind)
-         exec('val = self.gcor%d()' % ind)
-         exec('print("GCOR rv = %.10f" % val)')
+         # modification of locals is undefined
+         exec('global g_val ; g_val = self.gcor%d()' % ind, globals(), locals())
+         print("GCOR rv = %.10f" % g_val)
 
    def show_gcor_doc_all(self):
       for ind in range(1,6):
          print('----------------- GCOR doc %d --------------------' % ind)
-         exec('val = self.gcor%d.__doc__' % ind)
-         exec('print("%s" % val)')
+         exec('print(self.gcor%d.__doc__)' % ind, globals(), locals())
 
    # basically, a link to the one we really want to call
    def gcor(self): return self.gcor2()
@@ -3194,14 +3195,34 @@ class Afni1D:
       return [self.labels.index(lab) for lab in labels]
 
    def init_from_matrix(self, matrix):
-      """initialize Afni1D from a 2D (or 1D) array"""
+      """initialize Afni1D from a 2D (or 1D) array
+            mat:      2D matrix, each element is a column
+            nvec:     number of columns
+            nt:       number of data rows
+            ready:    flag - ready for processing
+
+          not included:
+            labels:   labels of the columns
+            havelabs: flag - do we have labels
+            header:   an unprocessed comment line
+      """
 
       if self.verb > 3: print("-- Afni1D: init_from_matrix")
 
       if type(matrix) != type([]):
          print('** matrix for init must be [[float]] format')
          return 1
-      elif type(matrix[0]) != type([]):
+
+      # allow an empty matrix?
+      if len(matrix) == 0:
+         self.mat   = matrix
+         self.nvec  = 0
+         self.nt    = 0
+         self.ready = 1
+         return 0
+
+      # do we just have a single column?
+      if type(matrix[0]) != type([]):
          if type(matrix[0]) == type(1.0):
 
             # init from vector
@@ -3209,12 +3230,13 @@ class Afni1D:
             self.nvec  = 1
             self.nt    = len(matrix)
             self.ready = 1
-            return 1
+            return 0
 
          else:
             print('** matrix for init must be [[float]] format')
             return 1
 
+      # otherwise, should have 2D array
       self.mat   = matrix
       self.nvec  = len(matrix)
       self.nt    = len(matrix[0])
@@ -3337,8 +3359,81 @@ class Afni1D:
 
       return 1, btype, bind
 
+   def init_from_tsv(self, fname):
+      """initialize Afni1D from a TSV file (return err code)
+         set self. : mat, nvec, nt, ready, labels, havelab, header
+
+         always set:
+            mat:      2D matrix, each element is a column
+            nvec:     number of columns
+            nt:       number of data rows
+            ready:    flag - ready for processing
+
+         if first row is labels:
+            labels:   labels of the columns
+            havelabs: flag - do we have labels
+
+         never in this function:
+            header:   an unprocessed comment line
+      """
+
+      if self.verb > 3: print("-- Afni1D: init_from_tsv '%s'" % fname)
+
+      # ------------------------------------------------------------
+      # read in
+      tdat = UTIL.read_tsv_file(fname)
+      # if empty, do base init
+      if len(tdat) == 0:
+         return self.init_from_matrix(tdat)
+
+      # ------------------------------------------------------------
+      # do we have labels in a header? (all floats means no)
+      self.havelabs = 1
+      try:
+         fdata = [float(val) for val in tdata[0]]
+         self.havelabs = 0
+      except:
+         pass
+      if self.havelabs:
+         # extract row 0 as labels, and process
+         self.labels = tdat.pop(0)
+
+      # ------------------------------------------------------------
+      # have rectangular data, all must be float now
+      try:
+         fmat = [ [float(val) for val in trow] for trow in tdat ]
+      except:
+         if self.verb:
+            print("** data in TSV not all float for '%s'" % fname)
+            return 1
+
+      # ------------------------------------------------------------
+      # treat columns as across time
+      mat = UTIL.transpose(fmat)
+
+      # ------------------------------------------------------------
+      # and init the data part
+      return self.init_from_matrix(mat)
+
    def init_from_1D(self, fname):
-      """initialize Afni1D from a 1D file (return err code)"""
+      """initialize Afni1D from a 1D file (return err code)
+         set self. : mat, nvec, nt, ready, labels, havelab, header
+
+         main attributes:
+            mat:      2D matrix, each element is a column
+            nvec:     number of columns
+            nt:       number of data rows
+            ready:    flag - ready for processing
+
+         possible extras:
+            labels:   labels of the columns
+            havelabs: flag - do we have labels (needed?)
+            header:   an unprocessed comment line
+      """
+
+      # process a TSV in more of a known way, possible header and data
+      if fname.endswith('.tsv'):
+         return self.init_from_tsv(fname)
 
       if self.verb > 3: print("-- Afni1D: init_from_1D '%s'" % fname)
 

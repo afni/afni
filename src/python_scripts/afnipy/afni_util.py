@@ -169,51 +169,24 @@ def read_tsv_file(fname='stdin', strip=0, verb=1):
       return []
 
    # test for separators, require rectangular input
-   nt = tdata[0].count('\t')
-   nc = tdata[0].count(',')
-   ns = tdata[0].count(' ')
-
-   # try to find a good separator
    sep = ''
-
-   # test for tabs first
-   if nt > 0:
-     c = '\t'
+   for tsep in ['\t', ',', ' ']:
+     nsep = tdata[0].count(tsep)
+     # is there anything?
+     if nsep == 0:
+        continue
+     # if so, every line should have the same count
      matches = 1
      for tline in tdata:
-       nn = tline.count(c)
-       if nn != nt:
+       nn = tline.count(tsep)
+       if nn != nsep:
+          if verb > 2:
+             print("-- sep '%s' mismatch: %d vs. %d, skipping" % (tsep,nn,nsep))
           matches = 0
           break
      if matches:
         # declare a winner
-        sep = c
-
-   # test for commas (change nt and c)
-   if sep == '' and nc > 0:
-     c = ','
-     matches = 1
-     for tline in tdata:
-       nn = tline.count(c)
-       if nn != nc:
-          matches = 0
-          break
-     if matches:
-        # declare a winner
-        sep = c
-
-   # test for spaces (change nt and c)
-   if sep == '' and ns > 0:
-     c = ' '
-     matches = 1
-     for tline in tdata:
-       nn = tline.count(c)
-       if nn != ns:
-          matches = 0
-          break
-     if matches:
-        # declare a winner
-        sep = c
+        sep = tsep
 
    if verb > 1:
       print("-- read_tsv_file: have sep '%s'" % sep)
