@@ -1,5 +1,5 @@
 #!/bin/tcsh
-
+ 
 # Applies to epi <-> anat, anat <-> temp, etc.
 
 
