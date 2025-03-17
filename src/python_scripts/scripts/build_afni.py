@@ -31,8 +31,9 @@ build_afni.py - compile an AFNI package ~1~
          - and 'cd' to it
       - prepare git directory tree
          - clone AFNI's git repository under new 'git' directory
-         - possibly checkout a branch (master)
-         - possibly checkout the most recent tag (AFNI_XX.X.XX)
+         - possibly checkout a branch (master) and pull
+         - possibly checkout a tag
+           (if branch is master, tag defaults to most recent, AFNI_XX.X.XX)
       - prepare atlases
          - download and extract afni_atlases_dist.tgz package
          - if afni_atlases_dist exists, new atlases will not be pulled
@@ -876,11 +877,13 @@ class MyInterface:
          self.makefile_path = os.path.abspath(self.makefile)
 
       # assign any needed defaults - usually corresponding to 'misc checks'
-      if self.git_branch == '':
+      # (unspecified or master branch defaults to LAST_TAG)
+      if self.git_branch == '' or self.git_branch == 'master':
          self.git_branch = 'master'
 
-      if self.git_tag == '':
-         self.git_tag = 'LAST_TAG'
+         # possibly set a default git tag if no branch is specified
+         if self.git_tag == '':
+            self.git_tag = 'LAST_TAG'
 
       return 0
 
@@ -1353,6 +1356,10 @@ class MyInterface:
 
       if self.prepare_root():
          return 1
+
+      # flush buffers, in case of pipes
+      sys.stdout.flush()
+      sys.stderr.flush()
 
       # build source - the main purpose of this program
       if self.run_make:
@@ -2100,6 +2107,8 @@ class MyInterface:
          if st: return st
 
       # now possibly checkout a tag ('' means unset)
+      # note: not having LAST_TAG implies the user specified either
+      #       a non-master branch or a tag
       if self.git_tag == 'LAST_TAG':
          tag = self.most_recent_tag()
       else:
