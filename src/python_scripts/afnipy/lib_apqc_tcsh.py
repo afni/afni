@@ -6229,15 +6229,26 @@ num : int
     opref  = ap_ssdict['odir_img'] + '/' + oname   # prefix = path + name
     ojson  = opref + '.json'
 
+    # hover text can include ses ID, if present
+    hov_txt = lah.qc_title[qcb][0] + ap_ssdict['subj']
+    if check_dep(ap_ssdict, ['ses']) :
+        hov_txt += ', ' + ap_ssdict['ses']
+
     # NB: most blockid_hov are fully formed; this one needs subj ID added
     odict = {
         'itemtype'    : 'TITLE',
         'itemid'      : qci,
         'blockid'     : qcb,
-        'blockid_hov' : lah.qc_title[qcb][0] + ap_ssdict['subj'],
+        'blockid_hov' : hov_txt,
         'title'       : lah.qc_title[qcb][1],
         'subj'        : ap_ssdict['subj'],
     }
+
+    # extra entries that might be useful (likely via AP uvars)
+    all_extra  = ['ses', 'taskname']
+    for extra in all_extra:
+        if check_dep(ap_ssdict, [extra]) :
+            odict[extra] = ap_ssdict[extra]
 
     # write JSON
     with codecs.open(ojson, 'w', encoding='utf-8') as fff:

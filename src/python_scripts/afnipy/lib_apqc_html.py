@@ -874,6 +874,7 @@ class apqc_title_info:
 
     title       = ""
     subj        = ""
+    ses         = ""
     taskname    = ""
     itemtype    = ""
     itemid      = ""
@@ -908,6 +909,10 @@ class apqc_title_info:
         if 'subj' in DICT :
             self.subj = DICT['subj']
 
+    def set_ses(self, DICT):
+        if 'ses' in DICT :
+            self.ses = DICT['ses']
+
     # this just runs through all possible things above and fills in
     # what it can
     def set_all_from_dict(self, DICT):
@@ -918,6 +923,7 @@ class apqc_title_info:
         self.set_blockid_hov(DICT)
         self.set_taskname(DICT)
         self.set_subj(DICT)
+        self.set_ses(DICT)
 
 # -------------------------------------------------------------------
 
@@ -965,7 +971,7 @@ def write_list_ids_file(oids, list_ids):
 
 # -------------------------------------------------------------------
 
-def make_nav_table(llinks, subj='', max_wlevel=''):
+def make_nav_table(llinks, subj='', ses='', max_wlevel=''):
     # table form, not ul 
     N = len(llinks)
     idx = 0
@@ -1153,9 +1159,21 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
     <p class="subj_text">{subj}</p>
     </td>
   </tr>
-</table>
 '''.format(subj=subj)
 
+    # ... and maybe session ID, if available
+    if ses :
+        y+= '''
+  <tr>
+    <td style="width: fit-content;">
+    <p class="subj_text">{ses}</p>
+    </td>
+  </tr>
+'''.format(ses=ses)
+
+    y+= '''
+</table>
+'''
 
 
     # ------------------------------------------------------ 
@@ -2363,13 +2381,17 @@ function translateBtn1TextToJsonRating( tt ) {
 # -------------------------------------------------------------------
 # -------------------------------------------------------------------
 
-def wrap_page_title( xtitle, xsubj, xstudy='',
+def wrap_page_title( xtitle, xsubj, xses='', xstudy='',
                      vpad=0, addclass="", blockid='', padmarg=0 ):
 
+    # can have session info at top now (via AP uvar)
+    if xses :    txt_ses = ', ' + xses
+    else:        txt_ses = ''
 
-    txt_study = ''
-    if xstudy :
-        txt_study+= '<pre><h3>task: {study}</h3></pre>'.format( study=xstudy )
+    # task name, which could come via AP uvar
+    if xstudy :    ttt = xstudy
+    else:          ttt = 'task_name'
+    txt_study = '<pre><h3>task: {study}</h3></pre>'.format( study=ttt )
 
     # start the first div on the page
     y = '''<!-- start of title block div -->
@@ -2394,12 +2416,12 @@ def wrap_page_title( xtitle, xsubj, xstudy='',
   <!-- top of subj/title info -->
   <div style="text-align: center;">
     <div style="display: inline-block; text-align: left;">
-      <pre><h2>subj: {subj}</h2></pre>
+      <pre><h2>subj: {subj}{txt_ses}</h2></pre>
       {txt_study}
     </div>
   </div> <!-- bot of subj/title info -->
 </div> <!-- end of title block div -->
-'''.format( title=xtitle, subj=xsubj, txt_study=txt_study )
+'''.format( title=xtitle, subj=xsubj, txt_study=txt_study, txt_ses=txt_ses )
 
     if vpad:
         y = """\n"""+y
