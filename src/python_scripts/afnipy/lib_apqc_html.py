@@ -74,9 +74,12 @@
 #ver = '3.08' ; date = 'Sep 4, 2022' 
 # [PT] create+use subj ID info now
 #
-ver = '3.09' ; date = 'Sep 6, 2022' 
+#ver = '3.09' ; date = 'Sep 6, 2022' 
 # [PT] make URL more flexible by reading in origin---don't assume it is 
 # just 5000
+#
+ver = '4.00' ; date = 'Mar 17, 2025' 
+# [PT] top row buttons now make pages jump across all tabs, if doubleclicked
 #
 #########################################################################
 
@@ -1037,6 +1040,7 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
       <td class="td1" id=td1_{ll}>
         <button class="button-generic button-LHS btn5" id="btn5_{ll}" 
         onmousedown="moveToDiv(hr_{ll})" 
+        ondblclick="jumpAllOpenApqcToID('{ll}')"
         title="{hov}" 
         {finaltab} 
         onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{ll}); }}">
@@ -1054,6 +1058,7 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
       <td class="td1" id=td1_{ll}>
         <button class="button-generic button-LHS btn0" id="btn5_{ll}" 
         onmousedown="moveToDiv(hr_{ll})" 
+        ondblclick="jumpAllOpenApqcToID('{ll}')"
         title="{hov}" 
         {finaltab} 
         onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{ll}); }}">
