@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Mar, 2025, RCR, "build_afni.py", MINOR, TYPE_BUG_FIX,
+   "if -git_branch is non-master, do not apply default tag",
+   NULL
+ } ,
+
  { 11, Mar, 2025, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "update examples class 3,5 per AD6; NL_warped_dsets requires e2a",
    NULL
