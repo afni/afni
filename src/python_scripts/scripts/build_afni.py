@@ -1354,6 +1354,10 @@ class MyInterface:
       if self.prepare_root():
          return 1
 
+      # flush buffers, in case of pipes
+      sys.stdout.flush()
+      sys.stderr.flush()
+
       # build source - the main purpose of this program
       if self.run_make:
          if self.f_build_via_make():
