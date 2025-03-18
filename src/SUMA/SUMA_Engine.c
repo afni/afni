@@ -4012,21 +4012,38 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      XmToggleButtonSetState (SurfCont->SymIrange_tb, 
                         SurfCont->curColPlane->SymIrange, 1);
                         
-                     SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 1,
-                                 SurfCont->curColPlane->OptScl->IntRange[0]);
-                     SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 2,
-                                 SurfCont->curColPlane->OptScl->IntRange[1]);
-                     if (SurfCont->curColPlane->ShowMode > 0 &&
-                         SurfCont->curColPlane->ShowMode <
-                                             SW_SurfCont_DsetViewXXX ) {
-                        if (!SUMA_ColorizePlane (SurfCont->curColPlane)) {
-                           SUMA_SLP_Err("Failed to colorize plane.\n");
-                        } else {
-                           SUMA_Remixedisplay(ado);
-                           SUMA_UpdateNodeValField(ado);
-                           SUMA_UpdateNodeLblField(ado);
-                        }
+                     int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+                     int numSurfaceObjects, j;
+                     int newMin = SurfCont->curColPlane->OptScl->IntRange[0];
+                     int newMax = SurfCont->curColPlane->OptScl->IntRange[1];
+                     XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+                     N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+                     if (numSurfaceObjects != N_adolist) {
+                            SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+                            SUMA_RETURNe;
                      }
+                     for (j=0; j<N_adolist; ++j){
+                         SUMA_ALL_DO *ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+                         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+                         SurfCont = SO->SurfCont;
+                         SurfCont->curColPlane->OptScl->IntRange[0] = newMin;
+                         SurfCont->curColPlane->OptScl->IntRange[1] = newMax;
+                         SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 1,
+                                     SurfCont->curColPlane->OptScl->IntRange[0]);
+                         SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 2,
+                                     SurfCont->curColPlane->OptScl->IntRange[1]);
+                         if (SurfCont->curColPlane->ShowMode > 0 &&
+                             SurfCont->curColPlane->ShowMode <
+                                                 SW_SurfCont_DsetViewXXX ) {
+                            if (!SUMA_ColorizePlane (SurfCont->curColPlane)) {
+                               SUMA_SLP_Err("Failed to colorize plane.\n");
+                            } else {
+                               SUMA_Remixedisplay(ado);
+                               SUMA_UpdateNodeValField(ado);
+                               SUMA_UpdateNodeLblField(ado);
+                            }
+                         }
+                      }
                   }
                   SUMA_free(stmp); stmp = NULL;
                }
@@ -5890,7 +5907,7 @@ int SUMA_Selectable_ADOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
 
 int SUMA_ADOs_WithUniqueSurfCont (SUMA_DO *dov, int N_dov, int *dov_IDs)
 {
-   static char FuncName[]={"SUMA_ADOs_WithSurfCont"};
+   static char FuncName[]={"SUMA_ADOs_WithUniqueSurfCont"};
    SUMA_SurfaceObject *SO=NULL;
    int i, j, k = 0, surfContPtrCnt=0, unique;
    int  ;
