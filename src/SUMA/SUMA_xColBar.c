@@ -1168,10 +1168,19 @@ int SUMA_SwitchColPlaneIntensity(
    char srange[500];
    double range[2];
    int loc[2];
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_Boolean AlphaOpacityFalloff;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
+   // Temporarily disable alpha opacity falloff to prevent infinite recursion   
+   SO = (SUMA_SurfaceObject *)ado;
+   if (SO && SO->SurfCont){
+    AlphaOpacityFalloff = SO->SurfCont->AlphaOpacityFalloff;
+    SO->SurfCont->AlphaOpacityFalloff = 0;
+   }   
+   
    if (!SUMA_SwitchColPlaneIntensity_one(ado, colp, ind, setmen)) {
       SUMA_S_Err("Failed in _one");
       SUMA_RETURN(0);
@@ -1196,6 +1205,11 @@ int SUMA_SwitchColPlaneIntensity(
       }
    }
 
+   // Reenable alpha opacity falloff
+   if (SO && SO->SurfCont){
+    SO->SurfCont->AlphaOpacityFalloff = AlphaOpacityFalloff;
+   }   
+   
    SUMA_RETURN(1);
 }
 
@@ -1217,7 +1231,6 @@ int SUMA_SwitchColPlaneIntensity_one (
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
 
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
@@ -2153,7 +2166,8 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
    curColPlane = SUMA_ADO_CurColPlane(ado);
-   if ( !curColPlane )  {
+   if (  !curColPlane ||
+         !curColPlane->OptScl )  {
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
 
@@ -2300,28 +2314,24 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
                                    XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
-   SUMA_ALL_DO *ado=NULL;
+   SUMA_ALL_DO *ado=NULL, *otherAdo = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   static int AlphaOpacityFalloff = 0;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_Boolean AlphaOpacityFalloff;
+   SUMA_SurfaceObject *SO = NULL, *otherSO = NULL;
+   int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
 
    SUMA_ENTRY;
    
    ado = (SUMA_ALL_DO *)data;
    if (!ado) SUMA_RETURNe;
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   SO = (SUMA_SurfaceObject *)ado;
    if (!(SO->SurfCont=SUMA_ADO_Cont(ado))
             || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
    
-   if (AlphaOpacityFalloff==0){
-    SO->SurfCont->AlphaOpacityFalloff = 0;
-    AlphaOpacityFalloff = 1;
-   }
-   
-   // AlphaOpacityFalloff = !AlphaOpacityFalloff;
-   SO->SurfCont->AlphaOpacityFalloff = !(SO->SurfCont->AlphaOpacityFalloff);
-   
-   // SO->SurfCont->AlphaThresh is common across period key
-   // SO->SurfCont->AlphaOpacityFalloff = /* SurfCont->AlphaOpacityFalloff = */ AlphaOpacityFalloff;
+   AlphaOpacityFalloff = SO->SurfCont->AlphaOpacityFalloff = 
+        XmToggleButtonGetState(SO->SurfCont->AlphaOpacityFalloff_tb);
+   // SO->SurfCont->AlphaOpacityFalloff = !(SO->SurfCont->AlphaOpacityFalloff);
 
    if (!(SO->Overlays)){
     if (SO->SurfCont->AlphaOpacityFalloff){
@@ -2345,6 +2355,37 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    // Refresh display
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
+
+   // Set sym range for other surfaces
+   int numSurfaceObjects;
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist)  {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        SUMA_RETURNe;
+   }
+
+   for (j=0; j<N_adolist; ++j){
+        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if (otherAdo != ado && otherAdo->do_type == SO_type){
+            otherSO = (SUMA_SurfaceObject *)otherAdo;
+
+            if (!(otherSO->SurfCont=SUMA_ADO_Cont(otherAdo))
+                    || !otherSO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
+
+            otherSO->SurfCont->AlphaOpacityFalloff = AlphaOpacityFalloff;
+            
+            XmToggleButtonSetState ( otherSO->SurfCont->AlphaOpacityFalloff_tb,
+                              otherSO->SurfCont->AlphaOpacityFalloff, NOPE);    
+ 
+           // Default opacity model
+           if (!(otherSO->SurfCont->alphaOpacityModel)) otherSO->SurfCont->alphaOpacityModel = QUADRATIC;
+           
+           // Refresh display
+           SUMA_Remixedisplay(otherAdo);
+           SUMA_UpdateNodeLblField(otherAdo);
+       }
+    }
 
    SUMA_RETURNe;
 }
@@ -6542,7 +6583,6 @@ void SUMA_cb_SetRangeValue (void *data)
         if (otherAdo != ado){
 
             if (!(SurfCont=SUMA_ADO_Cont(otherAdo))) {
-              fprintf(stderr, "Surface index = %d", j);
               SUMA_S_Warn("NULL input"); 
               continue;
             }
