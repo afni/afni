@@ -12197,6 +12197,7 @@ are some issues that may come up, listed by relevant option:
  *  -regress_use_stim_files This may fail, as make_stim_times.py is not
                             currently prepared to handle runs of different
                             lengths.
+                          * This option is essentially obsolete.
 
     -regress_censor_motion  OK, as of version 2.14
 
@@ -16048,7 +16049,8 @@ OPTIONS:  ~2~
 
     -regress_no_stim_times  : do not use
 
-        OBSOLETE: please see -regress_use_stim_files
+        OBSOLETE: please see -regress_use_stim_files (which is also OBSOLETE)
+        OBSOLETE: please see -regress_stim_times and -regress_stim_types
 
     -regress_opts_fwhmx OPTS ... : specify extra options for 3dFWHMx
 
@@ -16395,6 +16397,18 @@ OPTIONS:  ~2~
             e.g. -regress_stim_files ED_stim_file*.1D
             e.g. -regress_stim_files stim_A.1D stim_B.1D stim_C.1D
 
+        ------------------------------------------------------------
+      * Most likely this option should not be used.
+
+        Only use this option with the intention of having afni_proc.py
+        convert the given stim-locked binary files to stim_times format
+        via make_stim_times.py.
+
+        So preferably, do not apply -regress_use_stim_files with this
+        option.  Rather use -regress_stim_times and -regress_stim_types
+        (with corresponding parameters of 'file').
+        ------------------------------------------------------------
+
         Without the -regress_use_stim_files option, 3dDeconvolve will be
         run using '-stim_times', not '-stim_file'.  The user can still
         specify the 3dDeconvolve -stim_file files here, but they would
@@ -16423,8 +16437,8 @@ OPTIONS:  ~2~
         regressors should match the order of any labels, provided via the
         -regress_stim_labels option.
 
-        Alternately, this can be done via -regress_stim_times, along
-        with -regress_stim_types 'file'.
+        Alternately, and preferably, this can be done via -regress_stim_times,
+        along with -regress_stim_types 'file'.
 
         Please see '3dDeconvolve -help' for more information, or the link:
             https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
