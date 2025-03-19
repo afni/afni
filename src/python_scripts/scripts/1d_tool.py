@@ -1511,6 +1511,7 @@ class A1DInterface:
       self.reverse         = 0          # reverse data over time
       self.select_groups   = []         # column selection list
       self.select_cols     = ''         # column selection string
+      self.select_cols_vtsv= ''         # column select via TSV
       self.select_rows     = ''         # row selection string
       self.select_runs     = []         # run selection list
       self.label_pre_drop  = []         # columns to drop - label prefix list
@@ -1768,6 +1769,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-select_cols', 1, [], 
                       helpstr='select the list of columns from the dataset')
+
+      self.valid_opts.add_opt('-select_cols_via_TSV_table', 3, [],
+                      helpstr='use a TSV table to select input columns')
 
       self.valid_opts.add_opt('-select_rows', 1, [], 
                       helpstr='select the list of rows from the dataset')
@@ -2263,6 +2267,11 @@ class A1DInterface:
             if err: return 1
             self.select_cols = val
 
+         elif opt.name == '-select_cols_via_TSV_table':
+            val, err = uopts.get_string_list('', opt=opt)
+            if err: return 1
+            self.select_cols_vtsv = val
+
          elif opt.name == '-select_rows':
             val, err = uopts.get_string_opt('', opt=opt)
             if err: return 1
@@ -2539,6 +2548,22 @@ class A1DInterface:
          if not newrd.ready: return 1
          if self.adata.append_vecs(newrd): return 1
 
+      # have TSV file, select column and where pattern
+      # --> use this to populate self.select_cols
+      #     (this should proceed if self.select_cols block)
+      if self.select_cols_vtsv:
+         fname = self.select_cols_vtsv[0]
+         vcol  = self.select_cols_vtsv[1]
+         where = self.select_cols_vtsv[2]
+         rv, vlist = UTIL.tsv_get_vals_where_condition(fname, vcol, where,
+                                                       verb=self.verb)
+         if rv: return rv
+
+         # else, use this to set self.select_cols and proceed
+         self.select_cols = ','.join(vlist)
+
+      # have string of encoded 1D column selectors (e.g. 2,3..7)
+      # (or values from prior self.select_cols_vtsv)
       if self.select_cols:
          ilist=UTIL.decode_1D_ints(self.select_cols, verb=self.verb,
                           imax=self.adata.nvec-1, labels=self.adata.labels)

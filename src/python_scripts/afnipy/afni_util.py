@@ -213,6 +213,74 @@ def read_tsv_file(fname='stdin', strip=0, verb=1):
 
    return table
 
+def tsv_get_vals_where_condition(fname, lab_val, where_val, verb=1):
+   """from a TSV file, return value list where a condition is met
+
+        fname     : (str) TSV file name to process, must have header row
+        lab_val   : (str) column label to return values from
+        where_val : (str) condition for when to include a value in return list
+        verb      : (int) how much to chit-chat
+
+      This function was written for tedana processing, where the input might
+      be desc-tedana_metrics.tsv.  The metric file holds many details about
+      each ICA component, where each component is on a row.  The columns to
+      consider include
+        'Component'      : the list of which we want to return
+        'classification' : the decision for whether to return
+
+      In this example,
+        fname       = 'desc-tedana_metrics.tsv'
+        lab_val     = 'Component'
+        where_val   = 'classification=accepted' (or rejected)
+
+      And the return status and value might be something like
+        0, ['ICA_08', 'ICA_11', 'ICA_49']
+
+      That is to say we might return a list of values from the 'Component'
+      column where the 'classification' column value is 'accepted'.
+
+      return status, value list
+   """
+
+   if verb > 1:
+      print("-- using %s to report %s when %s" % (fname, lab_val, where_val))
+
+   # parse inputs: where_val must currently be of the form A=B
+   if '=' not in where_val:
+      print("** TSV_GVWC: mal-formed where string '%s'" % where_val)
+      return 1, []
+
+   where = where_val.split()[0].split('=')
+   if len(where) != 2:
+      print("** TSV_GVWC: bad where string '%s'" % where_val)
+      return 1, []
+
+   imat = read_tsv_file(fname, verb=verb)
+   if len(imat) == 0: return 1, []  # error
+
+   ihead = imat.pop(0)
+   if len(imat) == 0: return 0, []  # empty
+
+   # we must have columns lab_val and where[0] now
+   if (lab_val not in ihead) or (where[0] not in ihead):
+      print("** TSV_GVWC: missing header entries '%s', '%s' in %s" \
+            % (lab_val, where[0], fname))
+      return 1, []
+
+   # okay, we should be ready to roll
+   lab_ind = ihead.index(lab_val)
+   wh_ind  = ihead.index(where[0])
+   matlen  = len(imat)
+
+   outvals = [irow[lab_ind] for irow in imat if irow[wh_ind] == where[1]]
+
+   if verb > 1:
+      print("++ TSV %s : '%s' when '%s'" % (fname, lab_val, where_val))
+      print("     : %s\n" % ','.join(outvals))
+
+   return 0, outvals
+
+
 def read_top_lines(fname='stdin', nlines=1, strip=0, verb=1):
    """use read_text_file, but return only the first 'nlines' lines"""
    tdata = read_text_file(fname, strip=strip, verb=verb)
