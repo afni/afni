@@ -1461,7 +1461,8 @@ class SysInfo:
       elist = ['PATH', 'PYTHONPATH', 'R_LIBS',
                'LD_LIBRARY_PATH',
                'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH',
-               'CONDA_SHLVL', 'CONDA_DEFAULT_ENV', 'CC']
+               'CONDA_SHLVL', 'CONDA_DEFAULT_ENV', 'CC',
+               'HOMEBREW_PREFIX']
       maxlen = max(len(e) for e in elist)
 
       for evar in elist:
