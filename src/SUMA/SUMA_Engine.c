@@ -4020,7 +4020,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
                      if (numSurfaceObjects != N_adolist) {
                             SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-                            SUMA_RETURNe;
+                             SUMA_RETURN(NOPE);
                      }
                      for (j=0; j<N_adolist; ++j){
                          SUMA_ALL_DO *ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
@@ -5910,7 +5910,6 @@ int SUMA_ADOs_WithUniqueSurfCont (SUMA_DO *dov, int N_dov, int *dov_IDs)
    static char FuncName[]={"SUMA_ADOs_WithUniqueSurfCont"};
    SUMA_SurfaceObject *SO=NULL;
    int i, j, k = 0, surfContPtrCnt=0, unique;
-   int  ;
    SUMA_NIDO *SDO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_X_SurfCont *SurfConts[SUMA_MAX_DISPLAYABLE_OBJECTS], *SurfCont;
