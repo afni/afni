@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Mar, 2025, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -select_cols_via_TSV_table",
+   "This was intended for processing tedana output.  Given a TSV component\n"
+   "file as -input, the new option allows one to select accepted or rejected\n"
+   "components via the metrics.tsv table."
+ } ,
+
  { 17, Mar, 2025, RCR, "build_afni.py", MINOR, TYPE_BUG_FIX,
    "if -git_branch is non-master, do not apply default tag",
    NULL
