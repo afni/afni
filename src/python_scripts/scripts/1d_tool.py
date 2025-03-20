@@ -104,7 +104,16 @@ examples (very basic for now): ~1~
 
         i) .... apparently I forgot to do this...
 
+   Example 2e. Select tedana mixing columns by accept or reject. ~2~
 
+       ME-ICA tedana outputs component metrics in desc-tedana_metrics.tsv
+       and the actual components in desc-ICA_mixing.tsv.  Write the rejected
+       components to tedana.rejected.1D.
+
+         1d_tool.py -infile desc-ICA_mixing.tsv                        \\
+                    -select_cols_via_TSV_table desc-tedana_metrics.tsv \\
+                        Component classification=rejected              \\
+                    -write tedana.rejected.1D -verb 2
 
    Example 3.  Transpose a dataset, akin to 1dtranspose. ~2~
 
@@ -1011,6 +1020,11 @@ general options: ~2~
 
    -select_cols SELECTOR        : apply AFNI column selectors, [] is optional
                                   e.g. '[5,0,7..21(2)]'
+   -select_cols_via_TSV_table TABLE FIELD WHERE
+                                : use tsv TABLE to select FIELD elements where
+                                  WHERE is true; resulting values are then
+                                  taken as column headers to select from any
+                                  -input tsv data file
    -select_rows SELECTOR        : apply AFNI row selectors, {} is optional
                                   e.g. '{5,0,7..21(2)}'
    -select_runs r1 r2 ...       : extract the given runs from the dataset
@@ -1462,9 +1476,10 @@ g_history = """
    2.19 Sep 13, 2023 - have -write_xstim create an empty file if need be
    2.20 Jan 31, 2025 - add -show_slice_timing_resolution
    2.21 Mar 12, 2025 - allow auto-reading of TSV as -infile
+   2.22 Mar 20, 2025 - add -select_cols_via_TSV_table
 """
 
-g_version = "1d_tool.py version 2.21, March 12, 2025"
+g_version = "1d_tool.py version 2.22, March 20, 2025"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']

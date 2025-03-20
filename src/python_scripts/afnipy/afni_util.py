@@ -250,16 +250,19 @@ def tsv_get_vals_where_condition(fname, lab_val, where_val, verb=1):
       print("** TSV_GVWC: mal-formed where string '%s'" % where_val)
       return 1, []
 
+   # might allow multiple where entries later, start with [0]
    where = where_val.split()[0].split('=')
    if len(where) != 2:
       print("** TSV_GVWC: bad where string '%s'" % where_val)
       return 1, []
 
+   # read the file with the lab_val and 'where' column headers
    imat = read_tsv_file(fname, verb=verb)
    if len(imat) == 0: return 1, []  # error
 
+   # the first row must be a header (with the 2 entries)
    ihead = imat.pop(0)
-   if len(imat) == 0: return 0, []  # empty
+   if len(imat) == 0: return 0, []  # empty matrix, no worries
 
    # we must have columns lab_val and where[0] now
    if (lab_val not in ihead) or (where[0] not in ihead):
@@ -276,7 +279,7 @@ def tsv_get_vals_where_condition(fname, lab_val, where_val, verb=1):
 
    if verb > 1:
       print("++ TSV %s : '%s' when '%s'" % (fname, lab_val, where_val))
-      print("     : %s\n" % ','.join(outvals))
+      print("     %d entries : %s\n" % (len(outvals), ','.join(outvals)))
 
    return 0, outvals
 
