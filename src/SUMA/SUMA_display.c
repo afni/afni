@@ -11454,7 +11454,7 @@ int SUMA_PageWidgetToNumber(Widget NB, Widget page)
                    XtName(pi.page_widget));
       if (pi.page_widget==page) SUMA_RETURN(i+1);
    }
-   SUMA_RETURN(0);
+   SUMA_RETURN(1);
 }
 
 int SUMA_isCurrentContPage(Widget NB, Widget page)
@@ -11779,15 +11779,18 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+
+   XtVaGetValues(NB, XmNlastPageNumber, &imax, NULL);
    if (!NB || i < 1) {
       SUMA_S_Errv("NULL widget or bad page number %d\n", i);
-      SUMA_RETURN(NOPE);
+      imax = imax;
+      // SUMA_RETURN(NOPE);
    }
-   XtVaGetValues(NB, XmNlastPageNumber, &imax, NULL);
    if (i > imax) {
       SUMA_S_Errv("Request to switch to page %d, but have %d pages total.\n",
                   i, imax);
-      SUMA_RETURN(NOPE);
+      i = 1;
+      // SUMA_RETURN(NOPE);
    }
    SUMA_LHv("Setting page to %d\n", i);
    XtVaSetValues(NB, XmNcurrentPageNumber, i, NULL);
@@ -11822,6 +11825,7 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
                      XmSTRING_DEFAULT_CHARSET);
          XtVaSetValues( SurfCont->SurfContPage_label,
                         XmNlabelString, string, NULL);
+
          XmStringFree (string);
       }
    }
@@ -14713,12 +14717,15 @@ void SUMA_cb_ColPlane_NewOrder (void *data)
 */
 void SUMA_cb_SurfCont_SwitchPage (void *data)
 {
+    // Called by Switch up/down arrows that change the surface controller
+    //  to that of a different surface object
    static char FuncName[]={"SUMA_cb_SurfCont_SwitchPage"};
    char sbuf[SUMA_MAX_LABEL_LENGTH];
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   int imax;
 
    SUMA_ENTRY;
 
@@ -14726,6 +14733,18 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
             || !SurfCont->SurfContPage) SUMA_RETURNe;
    curColPlane = SUMA_ADO_CurColPlane(ado);
+   
+   // Allow arrow wraparound
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &imax, NULL);
+   if (!SUMAg_CF->X->SC_Notebook || SurfCont->SurfContPage->value < 1) {
+      SUMA_S_Errv("NULL widget or bad page number %d\n", SurfCont->SurfContPage->value);
+      SurfCont->SurfContPage->value = imax;
+   }
+   if (SurfCont->SurfContPage->value > imax) {
+      SUMA_S_Errv("Request to switch to page %d, but have %d pages total.\n",
+                  SurfCont->SurfContPage->value, imax);
+      SurfCont->SurfContPage->value = 1;
+   }
 
    SUMA_LHv("About to change page to %d\n", (int)SurfCont->SurfContPage->value);
    
@@ -14741,12 +14760,6 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
       SUMA_LHv("Problem, reverting to %d\n",
                (int)SurfCont->SurfContPage->value);
    }
-
-   // Set "A" check-box to reflect whether there should be variable overlay 
-   //   opacity for this object
-   if (SurfCont && SurfCont->AlphaOpacityFalloff_tb)
-       XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
-                      SurfCont->alphaOpacityModel, YUP);
 
    SUMA_RETURNe;
 }
