@@ -8002,14 +8002,12 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
        
        // This block causes the left-hand surface to be lighter when both
        //   hemispheres are loaded
-       if (ISubbrickChanged) cmapChanged = 1;
        if ((SO->SurfCont->AlphaOpacityFalloff) && SO->N_Overlays > 0){
             // Check whether display changed
             cmapChanged = (strcmp(currentOverlay->originalCMapName, currentOverlay->cmapname) ||
                 currentOverlay->IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
                 currentOverlay->IntRange[1] != currentOverlay->OptScl->IntRange[1]);
-            if (ISubbrickChanged) cmapChanged = 1;
-            if ((cmapChanged || ISubbrickChanged)){ // CMAP changed with alpha threshold
+            if ((cmapChanged)){ // CMAP changed with alpha threshold
                 // Update parameters to be checked for change
                 if (strlen(currentOverlay->cmapname)>strlen(currentOverlay->originalCMapName)){
                     int allocationLength = strlen(currentOverlay->cmapname)+128;

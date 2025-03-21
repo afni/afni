@@ -498,6 +498,11 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
                                  char *fontname, char *tag);
 int SUMA_cb_SymIrange_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
         Boolean notify);
+int SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
+        Boolean notify);
+int SUMA_cb_ShowZero_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
+        Boolean notify);
+void restoreSubthresholdColors(SUMA_ALL_DO *ado);
 
 /* the help strings */
 
