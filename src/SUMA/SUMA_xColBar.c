@@ -1159,6 +1159,61 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    SUMA_RETURNe;
 }
 
+void restoreSubthresholdColors(SUMA_ALL_DO *ado){
+   static char FuncName[]={"restoreSubthresholdColors"};
+   SUMA_ALL_DO *otherAdo=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+
+   SUMA_ENTRY;
+   
+   fprintf(stderr, "%s: ado = %p\n", FuncName, ado);
+
+   // ado = (SUMA_ALL_DO *)data;
+
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (  !curColPlane ||
+         !curColPlane->OptScl )  {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+   }
+
+   curColPlane->SymIrange = !(curColPlane->SymIrange);
+   
+   if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
+        curColPlane->SymIrange, NOPE)){
+    SUMA_S_Warn("Error toggling sym I for current surface"); SUMA_RETURNe;
+   }
+
+   // Set sym range for other surfaces
+   int numSurfaceObjects;
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist)
+   {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        SUMA_RETURNe;
+   }
+
+   for (j=0; j<N_adolist; ++j){
+            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+            if (otherAdo != ado && otherAdo->do_type == SO_type){
+       
+            if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(otherAdo, 
+                curColPlane->SymIrange, YUP)){
+                    SUMA_S_Warn("Error toggling sym I for current surface"); 
+                    SUMA_RETURNe;
+            }
+        }
+   }
+
+   SUMA_RETURNe;
+}
+
 int SUMA_SwitchColPlaneIntensity(
          SUMA_ALL_DO *ado,
          SUMA_OVERLAYS *colp,
@@ -1182,13 +1237,6 @@ int SUMA_SwitchColPlaneIntensity(
    if (SO && SO->SurfCont){
     AlphaOpacityFalloff = SO->SurfCont->AlphaOpacityFalloff;
     SO->SurfCont->AlphaOpacityFalloff = 0;
-    if (AlphaOpacityFalloff) {
-        curThresh = colp->OptScl->IntRange[0];
-
-        // Set threshold to zero.
-        float value = 0.0f;
-        // SUMA_set_threshold(ado, colp, &value);
-    }
    }   
    
    if (!SUMA_SwitchColPlaneIntensity_one(ado, colp, ind, setmen)) {
@@ -1219,21 +1267,8 @@ int SUMA_SwitchColPlaneIntensity(
    SO = (SUMA_SurfaceObject *)ado;
    SO->SurfCont->AlphaOpacityFalloff = AlphaOpacityFalloff;
    
-   curColPlane = SO->SurfCont->curColPlane;
-   if (  !curColPlane ||
-         !curColPlane->OptScl )  {
-      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
-   }
+   restoreSubthresholdColors(ado);
 
-   curColPlane->SymIrange = XmToggleButtonGetState (SO->SurfCont->SymIrange_tb);
-   
-    XmToggleButtonSetState (SO->SurfCont->SymIrange_tb, 
-                        !(SO->SurfCont->curColPlane->SymIrange), 1); 
-
-   if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, curColPlane->SymIrange, 0)){
-    SUMA_S_Warn("Error toggling sym I for current surface"); SUMA_RETURN(0);
-   }
-                        
    SUMA_RETURN(1);
 }
 
@@ -2183,9 +2218,7 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
 
    SUMA_ENTRY;
-
-   SUMA_LH("Called");
-
+   
    ado = (SUMA_ALL_DO *)data;
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
