@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Mar, 2025, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add combine methods OC_m_tedort and m_tedana_OC_tedort",
+   "These are additional methods using the MEICA group tedana.  They both\n"
+   "extract the tedort regressors (reject, but with accept projected out),\n"
+   "using OC data and passing the tedort regressors to the final regression."
+ } ,
+
  { 20, Mar, 2025, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add option -select_cols_via_TSV_table",
    "This was intended for processing tedana output.  Given a TSV component\n"
