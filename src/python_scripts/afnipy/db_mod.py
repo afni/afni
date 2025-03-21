@@ -37,18 +37,20 @@ clustsim_types = ['FWHM', 'ACF', 'both', 'yes', 'no']
 
 # OC/MEICA/TEDANA methods
 g_oc_methods = [
-    'mean',             # average across echoes
-    'OC',               # default OC in @compute_OC_weights
-    'OC_A',             # Javier's method
-    'OC_B',             # full run method
-    'OC_tedort',        # OC,        and ortvecs from tedana
-    'tedana',           # dn_ts_OC.nii           from tedana
-    'tedana_OC',        # ts_OC.nii              from tedana
-    'tedana_OC_tedort', # ts_OC.nii, and ortvecs from tedana
+    'mean',               # average across echoes
+    'OC',                 # default OC in @compute_OC_weights
+    'OC_A',               # Javier's method
+    'OC_B',               # full run method
+    'OC_tedort',          # OC,        and ortvecs from tedana
+    'OC_m_tedort',        # OC,        and ortvecs from MEICA tedana
+    'tedana',             # dn_ts_OC.nii           from tedana
+    'tedana_OC',          # ts_OC.nii              from tedana
+    'tedana_OC_tedort',   # ts_OC.nii, and ortvecs from tedana
     # https://github.com/ME-ICA/tedana
-    'm_tedana',         # tedana from MEICA group: dn_ts_OC.nii
-    'm_tedana_OC',      # ts_OC.nii              from m_tedana
-    'm_tedana_m_tedort' # tedana --tedort (MEICA group tedort)
+    'm_tedana',           # tedana from MEICA group: dn_ts_OC.nii
+    'm_tedana_OC',        # ts_OC.nii              from m_tedana
+    'm_tedana_OC_tedort', # tedana --tedort, extract ortvecs for 3dD
+    'm_tedana_m_tedort'   # tedana --tedort (MEICA group tedort)
     ]
 g_m_tedana_site = 'https://github.com/ME-ICA/tedana'
 
@@ -3788,12 +3790,19 @@ def db_cmd_combine(proc, block):
 
    # handle any MEICA tedana methods separately
    if ted_meth == 2:
-      ccmd = cmd_combine_m_tedana(proc, block, ocmeth)
+      if ocmeth == 'OC_m_tedort':
+         # AFNI OC, but get tedorts from m_tedana
+         ccmd = cmd_combine_OC(proc, block, ocmeth)
+         tcmd = cmd_combine_m_tedana(proc, block, 'getorts')
+         if ccmd is None or tcmd is None: return
+         ccmd += tcmd
+      else:
+         ccmd = cmd_combine_m_tedana(proc, block, ocmeth)
    elif ocmeth == 'mean':
       ccmd = cmd_combine_mean(proc, block)
    elif ocmeth[0:2] == 'OC':
       ccmd = cmd_combine_OC(proc, block, ocmeth)
-      if ocmeth == 'OC_tedort':
+      if ocmeth == 'OC_tedort' and ccmd is not None:
          # now ALSO run tedana to get ortvecs
          tcmd = cmd_combine_tedana(proc, block, 'getorts')
          if tcmd is None: return
@@ -3905,37 +3914,36 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    # decide what to do
    #    - what output to copy, if any (and a corresponding comment)
    #    - whether to grab the ortvec
-   ready = 1    # flag what still needs to be done
+   ready = 1            # flag what still needs to be done
+   convention = 'orig'  # orig or bids convention for output
    if method == 'm_tedana':
-      getorts = 0
       dataout = 'dn_ts_OC.nii.gz'
+      getorts = 0
       mstr = '# (get MEICA tedana final result, %s)\n\n' % dataout
    elif method == 'm_tedana_OC':
-      getorts = 0
       dataout = 'ts_OC.nii.gz'
+      getorts = 0
       mstr = '# (get MEICA tedana OC result, %s)\n\n' % dataout
    elif method == 'm_tedana_m_tedort':
-      getorts = 0
-      dataout = 'dn_ts_OC.nii.gz'   # same name as m_tedana
       exopts.append('--tedort')
+      dataout = 'dn_ts_OC.nii.gz'   # same name as m_tedana
+      getorts = 0
       mstr = '# (get MEICA tedana OC result, %s, plus -ortvec)\n\n' \
              % dataout
-   # todo: methods that need to extract ortvecs
+   # methods that need to extract ortvecs...
    elif method == 'm_tedana_OC_tedort':
-      ready = 0
-      print("** MEICA -combine_method %s not ready" % method)
-
+      convention = 'bids'  # dataout and components will have bids naming
+      exopts.append('--tedort')
+      dataout = 'desc-optcom_bold.nii.gz'
       getorts = 1
-      dataout = 'ts_OC.nii.gz'
-      mstr = '# (get MEICA tedana OC result, %s, plus -ortvec)\n\n' \
+      mstr = '# (get MEICA tedana OC result, %s, and get tedorts)\n\n' \
              % dataout
    elif method == 'getorts':
-      ready = 0
-      print("** MEICA -combine_method %s not ready" % method)
-
-      getorts = 1
+      convention = 'bids'  # dataout and components will have bids naming
+      exopts.append('--tedort')
       dataout = ''
-      mstr = '# (get MEICA tedana -ortvec results)\n\n'
+      getorts = 1
+      mstr = '# (get MEICA tedana -tedort regressors)\n\n'
    else:
       print("** invalid tedana combine method, %s" % method)
       return
@@ -3971,7 +3979,6 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    else:
       exoptstr = ''
 
-
    # actually run tedana
    # rcr - todo: consider tracking --tedpca, with default of kundu-stabalize
    #             consider --png
@@ -3986,9 +3993,10 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
        '          -e $echo_times \\\n'                               \
        '          --mask %s  \\\n'                                   \
        '%s'                                                          \
-       '          --out-dir tedana_r$run --convention orig\n'        \
+       '          --out-dir tedana_r$run --convention %s\n'          \
        'end\n\n'                                                     \
-       % (vstr, mstr, prev_prefix, proc.mask.nice_input(head=1), exoptstr)
+       % (vstr, mstr, prev_prefix, proc.mask.nice_input(head=1),
+          exoptstr, convention)
 
 
    # ----------------------------------------------------------------------
@@ -4006,8 +4014,33 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
 
    # ----------------------------------------------------------------------
    # finally, grab the orts, if desired
-   # if getorts:
-   # rcr - todo
+   if getorts:
+      # here, all orts are tedort (reject, with accept projected out)
+      # mix is tsv with components/regressors, metrics has component details
+      mixfile = 'tedana_r$run/desc-ICAOrth_mixing.tsv'
+      metfile = 'tedana_r$run/desc-tedana_metrics.tsv'
+      ocmd = '# extract orthogonalized projection terms\n'              \
+             'mkdir meica_orts\n'                                       \
+             'foreach run ( $runs )\n'                                  \
+             '   1d_tool.py -infile %s \\\n'                            \
+             '              -select_cols_via_TSV_table %s \\\n'         \
+             '                 Component classification=rejected \\\n'  \
+             '              -write meica_orts/sorts_r$run.1D -verb 2\n' \
+             '\n' % (mixfile, metfile)
+
+      ocmd+= '   # pad single run terms across all runs\n'           \
+             '   1d_tool.py -infile meica_orts/sorts_r$run.1D  \\\n' \
+             '              -set_run_lengths $tr_counts        \\\n' \
+             '              -pad_into_many_runs $run %d        \\\n' \
+             '              -write meica_orts/morts_r$run.1D\n'      \
+             'end\n\n' % (proc.runs)
+      cmd += ocmd
+
+      # now make note of the files for the regress block
+      for rind in range(proc.runs):
+          label = 'morts_r%02d' % (rind+1)
+          ortfile = 'meica_orts/%s.1D' % label
+          proc.regress_orts.append([ortfile, label])
 
    return cmd
 
@@ -4221,7 +4254,7 @@ def cmd_combine_OC(proc, block, method='OC'):
       print("** option -echo_times is required for 'OC' combine method")
       return
 
-   if method == 'OC' or method == 'OC_tedort':
+   if method in ['OC', 'OC_tedort', 'OC_m_tedort']:
       mstr = ''
    elif method == 'OC_A' or method == 'OC_B':
       mstr = '        -oc_method %s   \\\n' % method
