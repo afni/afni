@@ -7947,18 +7947,28 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    int nSurfaces = SV->N_ColList;
    static int *outlinevector = NULL;
    static int ITB[3] = {-1, -1, -1};
+   static SUMA_Boolean ISubbrickChanged, TSubbrickChanged, BSubbrickChanged;
+   static int find = -1, tind = -1, bind = -1;
    // static double IntRange[2]={DBL_MAX, -DBL_MAX};
    // static char *cMapName;
    // static float *ColVec;
    
    SUMA_ENTRY;
    
-   // fprintf(stderr, "%s: SO->SurfCont->alphaOpacityModel = %d\n", FuncName, SO->SurfCont->alphaOpacityModel);
+   // I subbrick changed
+   if (ISubbrickChanged = (currentOverlay->OptScl->find != find)){
+        find = currentOverlay->OptScl->find;
+   }
    
-   // DEBUG
-//   fprintf(stderr, "+++++++++++  %s: SO = %p\n", FuncName, SO);
-//   fprintf(stderr, "+++++++++++  %s: SO->N_Node = %d\n", FuncName, SO->N_Node);
-//   fprintf(stderr, "%s: nSurfaces = %d\n", FuncName, nSurfaces);
+   // T subbrick changed
+   if (TSubbrickChanged = (currentOverlay->OptScl->tind != tind)){
+        tind = currentOverlay->OptScl->tind;
+   }
+   
+   // B subbrick changed
+   if (BSubbrickChanged = (currentOverlay->OptScl->bind != bind)){
+        bind = currentOverlay->OptScl->bind;
+   }
    
    cmapChanged = 0;
    bytes2CopyToColVec = SO->N_Node*4*sizeof(float);
@@ -7992,12 +8002,14 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
        
        // This block causes the left-hand surface to be lighter when both
        //   hemispheres are loaded
-       if (SO->SurfCont->AlphaOpacityFalloff && SO->N_Overlays > 0){
+       if (ISubbrickChanged) cmapChanged = 1;
+       if ((SO->SurfCont->AlphaOpacityFalloff) && SO->N_Overlays > 0){
             // Check whether display changed
             cmapChanged = (strcmp(currentOverlay->originalCMapName, currentOverlay->cmapname) ||
                 currentOverlay->IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
                 currentOverlay->IntRange[1] != currentOverlay->OptScl->IntRange[1]);
-            if ((cmapChanged)){ // CMAP changed with alpha threshold
+            if (ISubbrickChanged) cmapChanged = 1;
+            if ((cmapChanged || ISubbrickChanged)){ // CMAP changed with alpha threshold
                 // Update parameters to be checked for change
                 if (strlen(currentOverlay->cmapname)>strlen(currentOverlay->originalCMapName)){
                     int allocationLength = strlen(currentOverlay->cmapname)+128;
@@ -8028,7 +8040,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
                 }
                 
-                if (currentOverlay->OptScl->find!= 0 ||
+                if (0 && currentOverlay->OptScl->find!= 0 ||
                     currentOverlay->OptScl->tind!=0){
                         reload = 1;
                         cmapChanged = 0;

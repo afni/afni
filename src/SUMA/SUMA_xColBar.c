@@ -1170,6 +1170,9 @@ int SUMA_SwitchColPlaneIntensity(
    int loc[2];
    SUMA_SurfaceObject *SO = NULL;
    SUMA_Boolean AlphaOpacityFalloff;
+   float curThresh;
+   SUMA_OVERLAYS *colorPlane;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -1179,6 +1182,13 @@ int SUMA_SwitchColPlaneIntensity(
    if (SO && SO->SurfCont){
     AlphaOpacityFalloff = SO->SurfCont->AlphaOpacityFalloff;
     SO->SurfCont->AlphaOpacityFalloff = 0;
+    if (AlphaOpacityFalloff) {
+        curThresh = colp->OptScl->IntRange[0];
+
+        // Set threshold to zero.
+        float value = 0.0f;
+        // SUMA_set_threshold(ado, colp, &value);
+    }
    }   
    
    if (!SUMA_SwitchColPlaneIntensity_one(ado, colp, ind, setmen)) {
@@ -1206,10 +1216,24 @@ int SUMA_SwitchColPlaneIntensity(
    }
 
    // Reenable alpha opacity falloff
-   if (SO && SO->SurfCont){
-    SO->SurfCont->AlphaOpacityFalloff = AlphaOpacityFalloff;
-   }   
+   SO = (SUMA_SurfaceObject *)ado;
+   SO->SurfCont->AlphaOpacityFalloff = AlphaOpacityFalloff;
    
+   curColPlane = SO->SurfCont->curColPlane;
+   if (  !curColPlane ||
+         !curColPlane->OptScl )  {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+   }
+
+   curColPlane->SymIrange = XmToggleButtonGetState (SO->SurfCont->SymIrange_tb);
+   
+    XmToggleButtonSetState (SO->SurfCont->SymIrange_tb, 
+                        !(SO->SurfCont->curColPlane->SymIrange), 1); 
+
+   if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, curColPlane->SymIrange, 0)){
+    SUMA_S_Warn("Error toggling sym I for current surface"); SUMA_RETURN(0);
+   }
+                        
    SUMA_RETURN(1);
 }
 
@@ -1896,6 +1920,7 @@ int SUMA_SwitchCmap(SUMA_ALL_DO *ado,
          }
       }
    }
+   
    SUMA_RETURN(1);
 }
 
@@ -6619,7 +6644,6 @@ void SUMA_cb_SetRangeValue (void *data)
                  SUMA_S_Err("Erriosity");
               }
            }
-           /**/
          }
     }
 
