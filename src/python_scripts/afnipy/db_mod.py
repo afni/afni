@@ -4029,6 +4029,12 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
              'end\n\n' % (proc.runs)
       cmd += ocmd
 
+      # now make note of the files for the regress block
+      for rind in range(proc.runs):
+          label = 'morts_r%02d' % (rind+1)
+          ortfile = 'meica_orts/%s.1D' % label
+          proc.regress_orts.append([ortfile, label])
+
    return cmd
 
 def cmd_combine_tedana(proc, block, method='tedana'):
