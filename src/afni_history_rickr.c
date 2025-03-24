@@ -53,6 +53,15 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Mar, 2025, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
+   "fix -sort_method geme_rin (now replaced by echo_rin)",
+   "The geme_rin method used geme_index for part of the sorting, which\n"
+   "was not intended.  To avoid confusion by altering a sort, the geme_rin\n"
+   "method no longer exists, and has been replaced by echo_rin.\n"
+   "The echo_rin sort method sorts by RIN, then groups by necho and sorts\n"
+   "by echo/RIN."
+ } ,
+
  { 21, Mar, 2025, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add combine methods OC_m_tedort and m_tedana_OC_tedort",
    "These are additional methods using the MEICA group tedana.  They both\n"
