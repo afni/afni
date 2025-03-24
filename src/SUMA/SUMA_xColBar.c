@@ -1170,9 +1170,7 @@ void restoreSubthresholdColors(SUMA_ALL_DO *ado){
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "%s: ado = %p\n", FuncName, ado);
-
-   // ado = (SUMA_ALL_DO *)data;
+   fprintf(stderr, "###################### %s\n", FuncName);
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
@@ -1183,6 +1181,21 @@ void restoreSubthresholdColors(SUMA_ALL_DO *ado){
    }
 
    curColPlane->SymIrange = !(curColPlane->SymIrange);
+   fprintf(stderr, "-1: curColPlane->OptScl->IntRange[0] = %f\n",
+    curColPlane->OptScl->IntRange[0]);
+   fprintf(stderr, "-1: curColPlane->OptScl->IntRange[1] = %f\n",
+    curColPlane->OptScl->IntRange[1]);
+   curColPlane->OptScl->IntRange[0] -= 1;
+   curColPlane->OptScl->IntRange[1] += 1;
+
+   fprintf(stderr, "0: SurfCont->curColPlane->OptScl->IntRange[0] = %f\n",
+    SurfCont->curColPlane->OptScl->IntRange[0]);
+   fprintf(stderr, "0: SurfCont->curColPlane->OptScl->IntRange[1] = %f\n",
+    SurfCont->curColPlane->OptScl->IntRange[1]);
+   fprintf(stderr, "0: curColPlane->OptScl->IntRange[0] = %f\n",
+    curColPlane->OptScl->IntRange[0]);
+   fprintf(stderr, "0: curColPlane->OptScl->IntRange[1] = %f\n",
+    curColPlane->OptScl->IntRange[1]);
    
    if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
         curColPlane->SymIrange, NOPE)){
@@ -1986,7 +1999,7 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
 int SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
         Boolean notify)
 {
-   static char FuncName[]={"SUMA_cb_SymIrange_tb_toggledForSurfaceObject"};
+   static char FuncName[]={"SUMA_cb_AbsThresh_tb_toggledForSurfaceObject"};
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    char slabel[100];
@@ -2154,7 +2167,7 @@ int SUMA_cb_SymIrange_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
     // Set I Range check box
     SurfCont=SUMA_ADO_Cont(ado);
     if (  !SurfCont ||
-         !SurfCont->ShowZero_tb )  {
+         !SurfCont->SymIrange_tb )  {
       SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
     }
     if (notify) XmToggleButtonSetState(SurfCont->SymIrange_tb, state, notify);
