@@ -163,8 +163,11 @@
 # [PT] add new opt to control post-affine inflation before 
 #      punching away brain
 #
-set version   = "2.9"; set rev_dat   = "Mar 25, 2025"
+#set version   = "2.9"; set rev_dat   = "Mar 25, 2025"
 # [PT] add new opt -mask_apply: this will trust the input mask
+#
+set version   = "3.0"; set rev_dat   = "Mar 25, 2025"
+# [PT] avoid '-iwarp' in inverse warp
 #
 # ----------------------------------------------------------------
 # ----------------------------------------------------------------
@@ -1301,9 +1304,10 @@ else
   ## eventually.
   echo "++ SSW3: skullstrip orig space UAC dset (via warp of template mask)"
 
+  # [PT: 25-03-2025] Updated for better inv warp behavior (no '-iwarp')
   3dNwarpApply                                                       \
-      -nwarp  "${odir}/anatQQ.${SubID}_WARP.nii $odir/anatQQ.${SubID}.aff12.1D" \
-      -iwarp                                                         \
+      -nwarp  "INV($odir/anatQQ.${SubID}.aff12.1D)                   \
+               INV(${odir}/anatQQ.${SubID}_WARP.nii)"                \
       -ainterp NN                                                    \
       -master "${odir}/anatUAC.${SubID}.nii"                         \
       -source "${Basedset}[3]"                                       \
