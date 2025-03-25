@@ -1170,8 +1170,6 @@ void restoreSubthresholdColors(SUMA_ALL_DO *ado){
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "###################### %s\n", FuncName);
-
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
    curColPlane = SUMA_ADO_CurColPlane(ado);
@@ -1181,25 +1179,22 @@ void restoreSubthresholdColors(SUMA_ALL_DO *ado){
    }
 
    curColPlane->SymIrange = !(curColPlane->SymIrange);
-   fprintf(stderr, "-1: curColPlane->OptScl->IntRange[0] = %f\n",
-    curColPlane->OptScl->IntRange[0]);
-   fprintf(stderr, "-1: curColPlane->OptScl->IntRange[1] = %f\n",
-    curColPlane->OptScl->IntRange[1]);
+
    curColPlane->OptScl->IntRange[0] -= 1;
    curColPlane->OptScl->IntRange[1] += 1;
 
-   fprintf(stderr, "0: SurfCont->curColPlane->OptScl->IntRange[0] = %f\n",
-    SurfCont->curColPlane->OptScl->IntRange[0]);
-   fprintf(stderr, "0: SurfCont->curColPlane->OptScl->IntRange[1] = %f\n",
-    SurfCont->curColPlane->OptScl->IntRange[1]);
-   fprintf(stderr, "0: curColPlane->OptScl->IntRange[0] = %f\n",
-    curColPlane->OptScl->IntRange[0]);
-   fprintf(stderr, "0: curColPlane->OptScl->IntRange[1] = %f\n",
-    curColPlane->OptScl->IntRange[1]);
-   
    if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
         curColPlane->SymIrange, NOPE)){
     SUMA_S_Warn("Error toggling sym I for current surface"); SUMA_RETURNe;
+   }
+
+   if ((curColPlane->SymIrange)){
+       curColPlane->OptScl->IntRange[0] += 1;
+       curColPlane->OptScl->IntRange[1] -= 1;
+       if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
+            curColPlane->SymIrange, NOPE)){
+        SUMA_S_Warn("Error toggling sym I for current surface"); SUMA_RETURNe;
+       }
    }
 
    // Set sym range for other surfaces
@@ -2170,8 +2165,9 @@ int SUMA_cb_SymIrange_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
          !SurfCont->SymIrange_tb )  {
       SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
     }
+
     if (notify) XmToggleButtonSetState(SurfCont->SymIrange_tb, state, notify);
-   
+
    if (curColPlane->SymIrange) {
       /* manual setting of range.
          DO NOT Call SUMA_InitRangeTable because it will
@@ -2187,7 +2183,7 @@ int SUMA_cb_SymIrange_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
       SUMA_INSERT_CELL_VALUE(TF, 1, 2,
                   curColPlane->OptScl->IntRange[1]);
    }
-   
+ 
    /* seems the '!' were remnants -                                 */
    /* revert to original logic, but avoid warnings
     * (to later evaluate changes) todo: apply ShowMode
