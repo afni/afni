@@ -153,15 +153,18 @@
 #set version   = "2.72"; set rev_dat   = "Apr 29, 2024"
 # [PT] remove old opts (that no longer exist) from help
 #    
-set version   = "2.73"; set rev_dat   = "Sep 18, 2024"
+#set version   = "2.73"; set rev_dat   = "Sep 18, 2024"
 # [PT] fix final output text if '-skipwarp' is used
 #    + some QC images are *not* made in this case, so don't
 #      try to talk about them.  Thanks, Dan Handwerker for
 #      pointing this issue out. 
 #    
-set version   = "2.8"; set rev_dat   = "Sep 26, 2024"
+#set version   = "2.8"; set rev_dat   = "Sep 26, 2024"
 # [PT] add new opt to control post-affine inflation before 
 #      punching away brain
+#
+set version   = "2.9"; set rev_dat   = "Mar 25, 2025"
+# [PT] add new opt -mask_apply: this will trust the input mask
 #
 # ----------------------------------------------------------------
 # ----------------------------------------------------------------
@@ -233,6 +236,7 @@ set start2_thr = 500        # used before mask_tool to get rid of nonbrain
 
 set mask_ss      = ""
 set HAVE_MASK_SS = 0
+set HAVE_MASK_APPLY = 0
 
 # ------------------- process options, a la rr ----------------------
 
@@ -313,6 +317,12 @@ while ( $ac <= $#argv )
         @ ac += 1
         set mask_ss      = "$argv[$ac]"
         set HAVE_MASK_SS = 1
+
+    else if ( "$argv[$ac]" == "-mask_apply" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mask_ss      = "$argv[$ac]"
+        set HAVE_MASK_APPLY = 1
 
     else if ( "$argv[$ac]" == "-post_aff_tol" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -442,6 +452,11 @@ if ( ! -f "$Adataset" ) then
   endif
 endif
 
+if ( $HAVE_MASK_SS && $HAVE_MASK_APPLY ) then
+  echo "** ERROR: can only use one of: -mask_ss or -trusted_mask"
+  goto BAD_EXIT
+endif
+
 if( "$SubID" == "" )then
   echo "***** ${this_prog} -- no subject ID entered with -subid? :("
   goto BAD_EXIT
@@ -542,6 +557,10 @@ echo "++ SSW PHASE 0: prep dset"
     -prefix "${pref}MASK3.nii"             \
     -input  "${Basedset}[3]"
 
+if ( $status ) then
+   goto BAD_EXIT
+endif
+
 ## Step #0: Deoblique, either in style of 3dWarp or 3drefit
 if ( ${DO_DEOB} ) then
     set dset_do = $odir/anatDO."${SubID}".nii
@@ -550,6 +569,11 @@ if ( ${DO_DEOB} ) then
         -wsinc5                   \
         -prefix "${dset_do}"      \
         "$Adataset"
+
+    if ( $status ) then
+       goto BAD_EXIT
+    endif
+
     # ... and this will be new "input" dset
     set Adataset = "${dset_do}"
 else if ( ${DO_DEOB_REF} ) then
@@ -563,6 +587,10 @@ else if ( ${DO_DEOB_REF} ) then
     3drefit                       \
         -deoblique                \
         "${dset_do}"
+
+    if ( $status ) then
+       goto BAD_EXIT
+    endif
 
     # ... and this will be new "input" dset
     set Adataset = "${dset_do}"
@@ -582,11 +610,19 @@ if( ! -f $odir/anatU."${SubID}".nii ) then
             -Urad 30                          \
             -prefix $odir/anatU."$SubID".nii  \
             -input "$Adataset"
+
+        if ( $status ) then
+           goto BAD_EXIT
+        endif
     else
         echo "++ SSW0: NOT unifizing"
         3dcopy                                \
             "$Adataset"                       \
             $odir/anatU."$SubID".nii
+
+        if ( $status ) then
+           goto BAD_EXIT
+        endif
     endif
 endif
 
@@ -601,11 +637,19 @@ if( ! -f $odir/anatUA."${SubID}".nii ) then
             -noneg                              \
             -prefix $odir/anatUA."${SubID}".nii \
             $odir/anatU."${SubID}".nii
+
+        if ( $status ) then
+           goto BAD_EXIT
+        endif
     else
         echo "++ SSW0: NOT anisosmoothing"
         3dcopy                                  \
             $odir/anatU."$SubID".nii            \
             $odir/anatUA."$SubID".nii
+
+        if ( $status ) then
+           goto BAD_EXIT
+        endif
     endif
 endif
 
@@ -624,11 +668,18 @@ if( ! -f $odir/anatUAC."${SubID}".nii ) then
             -expr "maxbelow(${vvv[2]},a)"       \
             -prefix $odir/anatUAC."${SubID}".nii
 
+        if ( $status ) then
+           goto BAD_EXIT
+        endif
     else
         echo "++ SSW0: NOT ceiling"
         3dcopy                                   \
             $odir/anatUA."$SubID".nii            \
             $odir/anatUAC."$SubID".nii
+
+        if ( $status ) then
+           goto BAD_EXIT
+        endif
     endif
 endif
 
@@ -640,6 +691,10 @@ if ( ${DO_ALHI} ) then
         -input  $odir/anatUAC."$SubID".nii           \
         -master "${Basedset}"                        \
         -prefix "${pref}start.nii"
+
+    if ( $status ) then
+       goto BAD_EXIT
+    endif
 
     set lab_alhi = start
     echo "++ SSW align hist: ${lab_alhi}"
@@ -659,7 +714,7 @@ endif
 
 #### no longer use skullstripping:  focus on alignment to define edge
 
-if ( $HAVE_MASK_SS ) then
+if ( $HAVE_MASK_SS || $HAVE_MASK_APPLY ) then
 
     # This branch applies the mask_ss, and so basically has to do only
     # 1 aff alignment. For aff alignment in this branch:
@@ -669,12 +724,45 @@ if ( $HAVE_MASK_SS ) then
 
     echo "++ SSW1: linear affine alignment (with mask_ss)"
 
-    # apply mask_ss
+    # make a copy of the mask in the odir
+    3dcalc       -echo_edu                                    \
+        -a       "${mask_ss}"                                 \
+        -expr    'step(a)'                                    \
+        -prefix  "${pref}InputMask.nii"                       \
+        -datum   byte                                         \
+        -nscale
+
+    # do grids match? NB: this variable has 2 values here
+    set same_grid = `3dinfo -same_grid                  \
+                        "${pref}InputMask.nii"          \
+                        $odir/anatUAC."$SubID".nii`
+
+    if ( ! $same_grid[1] ) then
+        echo "+* WARNING: input mask dset is on a different grid than"
+        echo "   the input dset.  I am regridding to proceed, but make"
+        echo "   sure you are happy about that."
+                 
+        3dresample -overwrite \
+            -input "${pref}InputMask.nii" \
+            -prefix "${pref}InputMask.nii" \
+            -master $odir/anatUAC."$SubID".nii \
+            -rmode  NN
+
+        if ( $status ) then
+           goto BAD_EXIT
+        endif
+    endif
+
+    # apply mask_ss (have non-mask dset as 'a', to preserve type)
     3dcalc -echo_edu                                          \
-        -a "${mask_ss}"                                       \
-        -b  $odir/anatUAC."$SubID".nii                        \
-        -expr 'step(a)*b'                                     \
-        -prefix $odir/anatUACS."$SubID".nii
+        -a       $odir/anatUAC."$SubID".nii                   \
+        -b       "${pref}InputMask.nii"                       \
+        -expr    'b*a'                                        \
+        -prefix  $odir/anatUACS."$SubID".nii
+
+    if ( $status ) then
+       goto BAD_EXIT
+    endif
 
     if ( ${DO_GIANT} ) then
         3dAllineate -echo_edu      ${verbopt}                 \
@@ -689,6 +777,10 @@ if ( $HAVE_MASK_SS ) then
             -final wsinc5                                     \
             -twobest 11 -maxrot 45                            \
                 -maxshf 40 -source_automask+2 -cmass
+
+        if ( $status ) then
+           goto BAD_EXIT
+        endif
     else
         3dAllineate -echo_edu      ${verbopt}                 \
             -base "${Basedset}[0]"                            \
@@ -701,11 +793,15 @@ if ( $HAVE_MASK_SS ) then
             -1Dmatrix_save "${pref}AllinC.aff12.1D"           \
             -final wsinc5                                     \
             -source_automask 
+
+        if ( $status ) then
+           goto BAD_EXIT
+         endif
     endif
 
     # this is now the full aff mat from orig space to templ; we will
-    # keep the *.aff12.1D file as a final output; *just a copy in this
-    # mask_ss case!
+    # keep the *.aff12.1D file as a final output; 
+    # **just a copy in this mask_ss case**
     cat_matvec                            \
         -ONELINE                          \
         ${pref}AllinC.aff12.1D            \
@@ -713,7 +809,7 @@ if ( $HAVE_MASK_SS ) then
 
     if ( ${DO_ALHI} ) then
 
-        set lab_alhi = Allin_mask_ss
+        set lab_alhi = Allin
         echo "++ SSW align hist: ${lab_alhi}"
         @ alhidx +=  1 ; set jj = ${alhi_ct[${alhidx}]}
         set ulay       = "${pref}${lab_alhi}.nii"
@@ -744,6 +840,10 @@ else
             -final wsinc5                                     \
             -twobest 11 -maxrot 45                            \
                 -maxshf 40 -source_automask+2 -cmass
+
+        if ( $status ) then
+           goto BAD_EXIT
+         endif
     else
         3dAllineate -echo_edu      ${verbopt}                 \
             -base "${Basedset}[1]"                            \
@@ -756,6 +856,10 @@ else
             -1Dmatrix_save "${pref}AllinA.aff12.1D"           \
             -final wsinc5                                     \
             -source_automask 
+
+        if ( $status ) then
+           goto BAD_EXIT
+         endif
     endif
 
     if ( ${DO_ALHI} ) then
@@ -793,6 +897,10 @@ else
         -final wsinc5                                      \
         -source_automask 
 
+    if ( $status ) then
+      goto BAD_EXIT
+    endif
+
     # this is now the full aff mat from orig space to templ; we will keep
     # the *.aff12.1D file as a final output
     cat_matvec                            \
@@ -819,7 +927,6 @@ else
 endif # end of else for: $HAVE_MASK_SS
 
 
-
 ## Run 3dQwarp first time to a moderate level (skull off)
 echo "++ SSW1: first nonlinear alignment"
 
@@ -835,6 +942,10 @@ echo "++ SSW1: first nonlinear alignment"
     -wtgaus ${gaus_wt}                                \
     -inedge                                           \
     -prefix "${pref}QQ2.nii"
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 # [PT: Apr 6, 2020] Add intermediate QC image: early alignment, affine
 # result
@@ -862,6 +973,10 @@ echo "++ SSW1: apply initial alignments, bring forward orig"
     -master "${Basedset}"                                         \
     -prefix  ${pref}start2.nii
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 if ( ${DO_ALHI} ) then
 
     set lab_alhi = start2
@@ -877,39 +992,61 @@ if ( ${DO_ALHI} ) then
         -prefix "${opref_alhi}"
 endif
 
-# both apply a 'generous' masking from the base dset (assume we are
-# within 3 voxels of boundary, basically) *and* apply a threshold
-echo "++ SSW1: loosely mask warped dset"
+if ( $HAVE_MASK_APPLY ) then
+  # in this case, we have trusted our input mask dset that we applied
+  # at the start, so we don't need to re-mask. Just copy, to maintain
+  # same flow
+  echo "++ Copying start2 dset to make start2_nice (bc of -mask_apply opt)"
+  3dcopy ${pref}start2.nii ${pref}start2_nice.nii
 
-3dcalc                                         \
-    -a "${pref}MASK3.nii"                      \
-    -b ${pref}start2.nii                       \
-    -expr "a*step(b-${start2_thr})*b"          \
-    -prefix ${pref}s2_thr.nii
+  if ( $status ) then
+      goto BAD_EXIT
+  endif
 
-# clean up some stuff
-3dmask_tool                                    \
-    -dilate_inputs -2 2                        \
-    -inputs ${pref}s2_thr.nii                  \
-    -prefix ${pref}s2mask_dil-22.nii
+else
+  # both apply a 'generous' masking from the base dset (assume we are
+  # within 3 voxels of boundary, basically) *and* apply a threshold
+  echo "++ SSW1: loosely mask warped dset"
 
-3dmask_tool                                    \
-    -dilate_inputs 2                           \
-    -fill_holes                                \
-    -inputs  ${pref}s2mask_dil-22.nii          \
-    -prefix  ${pref}s2mask_dil-222h.nii
+  3dcalc                                         \
+      -a "${pref}MASK3.nii"                      \
+      -b ${pref}start2.nii                       \
+      -expr "a*step(b-${start2_thr})*b"          \
+      -prefix ${pref}s2_thr.nii
 
-3dmask_tool                                    \
-    -dilate_inputs -2                          \
-    -inputs  ${pref}s2mask_dil-222h.nii        \
-    -prefix  ${pref}s2mask_dil-222h-2.nii
+  if ( $status ) then
+      goto BAD_EXIT
+  endif
 
-# now use this to re-mask the start2 dset (purge neg vals from it, too)
-3dcalc                                         \
-    -a ${pref}s2mask_dil-222h-2.nii            \
-    -b ${pref}s2_thr.nii                       \
-    -expr "a*step(b)*b"                        \
-    -prefix ${pref}start2_nice.nii
+  # clean up some stuff
+  3dmask_tool                                    \
+      -dilate_inputs -2 2                        \
+      -inputs ${pref}s2_thr.nii                  \
+      -prefix ${pref}s2mask_dil-22.nii
+
+  3dmask_tool                                    \
+      -dilate_inputs 2                           \
+      -fill_holes                                \
+      -inputs  ${pref}s2mask_dil-22.nii          \
+      -prefix  ${pref}s2mask_dil-222h.nii
+
+  3dmask_tool                                    \
+      -dilate_inputs -2                          \
+      -inputs  ${pref}s2mask_dil-222h.nii        \
+      -prefix  ${pref}s2mask_dil-222h-2.nii
+
+  # now use this to re-mask the start2 dset (purge neg vals from it, too)
+  3dcalc                                         \
+      -a ${pref}s2mask_dil-222h-2.nii            \
+      -b ${pref}s2_thr.nii                       \
+      -expr "a*step(b)*b"                        \
+      -prefix ${pref}start2_nice.nii
+
+  if ( $status ) then
+     goto BAD_EXIT
+  endif
+endif
+
 
 if ( ${DO_ALHI} ) then
 
@@ -954,6 +1091,10 @@ echo "++ SSW2: Qwarp to level 5"
     -pblur -workhard:5:5                 \
     -prefix "${pref}QQ5.nii"
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 if ( ${DO_ALHI} ) then
 
     set lab_alhi = QQ5
@@ -985,6 +1126,10 @@ echo "++ SSW2: Qwarp to level 7"
     -pblur "${pblur_base}" "${pblur_src}"   \
     -noneg ${nodset}                        \
     -prefix "${pref}QQ7.nii"
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 if ( ${DO_ALHI} ) then
 
@@ -1018,6 +1163,10 @@ if( $minp > 13 )then
         -noneg  -minpatch ${minp}             \
         -Qfinal                               \
         -prefix "${pref}QQminp.nii"
+
+   if ( $status ) then
+       goto BAD_EXIT
+   endif
 else
     # Penultimate piece for refined final patch size
     @ mpp = $minp + 6
@@ -1051,6 +1200,10 @@ else
         -inedge                               \
         -Qfinal                               \
         -prefix "${pref}QQminp.nii"
+
+   if ( $status ) then
+       goto BAD_EXIT
+   endif
 endif
 
 if ( ${DO_ALHI} ) then
@@ -1086,6 +1239,10 @@ echo "++ SSW3: create final warps and map dset to final space"
     -source "${odir}/anatUAC.${SubID}.nii"                                    \
     -master "${Basedset}"                                                     \
     -prefix  ${pref}QQnew.nii
+
+if ( $status ) then
+   goto BAD_EXIT
+endif
 
 if ( ${DO_ALHI} ) then
 
@@ -1124,32 +1281,52 @@ if ( ${DO_ALHI} ) then
         -prefix "${opref_alhi}"
 endif
 
-# [PT: Apr 6, 2020] invert standard space mask result back to standard
-# space for skullstripping: should be better than anatSS.
-## NB: have to use the 'temp' name of the aff12 matrix at this
-## point. Use NN interp for the dset, because we will mask it
-## eventually.
-echo "++ SSW3: skullstrip orig space UAC dset (via warp of template mask)"
+if ( $HAVE_MASK_APPLY ) then
+  # because we trusted the input mask dset, we just apply that
+  3dcalc                                                      \
+      -a       $odir/anatUAC."$SubID".nii                     \
+      -b      "${pref}InputMask.nii"                          \
+      -expr   'a*b'                                           \
+      -prefix "${odir}/anatSS.${SubID}.nii"
 
-3dNwarpApply                                                       \
-    -nwarp  "${odir}/anatQQ.${SubID}_WARP.nii $odir/anatQQ.${SubID}.aff12.1D" \
-    -iwarp                                                         \
-    -ainterp NN                                                    \
-    -master "${odir}/anatUAC.${SubID}.nii"                         \
-    -source "${Basedset}[3]"                                       \
-    -prefix "${pref}refmask_in_orig.nii"
+  if ( $status ) then
+     goto BAD_EXIT
+  endif
 
-3dmask_tool                                                        \
-    -dilate_inputs -1 1                                            \
-    -fill_holes                                                    \
-    -prefix "${odir}/anatSS_mask.${SubID}.nii"                     \
-    -input  "${pref}refmask_in_orig.nii"
+else
+  # [PT: Apr 6, 2020] invert standard space mask result back to standard
+  # space for skullstripping: should be better than anatSS.
+  ## NB: have to use the 'temp' name of the aff12 matrix at this
+  ## point. Use NN interp for the dset, because we will mask it
+  ## eventually.
+  echo "++ SSW3: skullstrip orig space UAC dset (via warp of template mask)"
 
-3dcalc                                                      \
-    -a       $odir/anatUAC."$SubID".nii                     \
-    -b      "${odir}/anatSS_mask.${SubID}.nii"              \
-    -expr   'a*step(b)'                                     \
-    -prefix "${odir}/anatSS.${SubID}.nii"
+  3dNwarpApply                                                       \
+      -nwarp  "${odir}/anatQQ.${SubID}_WARP.nii $odir/anatQQ.${SubID}.aff12.1D" \
+      -iwarp                                                         \
+      -ainterp NN                                                    \
+      -master "${odir}/anatUAC.${SubID}.nii"                         \
+      -source "${Basedset}[3]"                                       \
+      -prefix "${pref}refmask_in_orig.nii"
+
+  3dmask_tool                                                        \
+      -dilate_inputs -1 1                                            \
+      -fill_holes                                                    \
+      -prefix "${odir}/anatSS_mask.${SubID}.nii"                     \
+      -input  "${pref}refmask_in_orig.nii"
+
+  3dcalc                                                      \
+      -a       $odir/anatUAC."$SubID".nii                     \
+      -b      "${odir}/anatSS_mask.${SubID}.nii"              \
+      -expr   'a*step(b)'                                     \
+      -prefix "${odir}/anatSS.${SubID}.nii"
+
+  if ( $status ) then
+     goto BAD_EXIT
+  endif
+endif
+
+
 
 # -------------- Phase IV: final QC images ----------------
 
@@ -1365,7 +1542,16 @@ grown/improved over time):
               can also input it to help with the alignment.  For
               example, if you are running FreeSurfer's recon-all with
               @SUMA_Make_Spec_FS, you might find the 'fs_parc_wb_mask*' 
-              dset a useful MS dset to input.
+              dset a useful MS dset to input.  The input here is treated
+              as a first approximation mask, which will be refined via
+              alignment to the template during the processing here.
+
+ -mask_apply MA :(opt) this is similar to using '-mask_ss ..', *but* the
+              difference is that this mask will be *applied* from the
+              start and *not* refined further; the '-mask_ss' mask is
+              a first guess that gets alignment started but is not
+              fully trusted, while using this option does trust the
+              mask input here fully.
 
   -minp   MP :(opt) minimum patch size on final 3dQwarp (def: 11).
 
@@ -1640,6 +1826,52 @@ Temporary files ~2~
   whose names start with 'junk.SSwarper' -- you should delete these
   files manually.
 
+# -------------------------------------------------------------------
+
+TIPS ~1~
+
+A random assortment of tips and potential suggestions.
+
+1) If the input dataset and the reference base dataset have good
+   overlap, you might be able to save a fair amount of processing time
+   by using this opt:
+
+        -cost_aff lpa
+
+   This also assumes that the input dataset and reference base dataset
+   have similar tissue contrasts.  The main idea is that the default
+   cost 'lpa+ZZ' is more stable, but will take longer to run the
+   affine alignment---sometimes much longer.  But of course, it might
+   just be simpler to process with that.
+
+2) If your input dataset has differing tissue contrast from the
+   reference base dataset, then you might want to switch all the cost
+   functions being used to lpc+ZZ and/or lpc, via:
+    
+        -cost_aff      lpc+ZZ
+        -cost_nl_init  lpc
+        -cost_nl_final lpc
+
+   The "+ZZ" part on the first one only applies in the affine
+   alignment, hence it is only used in that option.  It will make the
+   code run slower, but more stably.
+
+3) If you are processing 7T data, then you might want to use:
+
+        -start2_thr 100
+
+   This is noted in the option help description above.  Basically,
+   this option might prevent over-chopping away parts of the
+   anatomical because of how the contrasts appear to work in many
+   cases.
+
+4) For most users, adding '-skipwarp' is not recommended.  It is
+   mostly there for debugging and/or testing part of the processing.
+   Only some of the outputs are created, and they will be rough
+   approximations.
+
+# -------------------------------------------------------------------
+
 EXAMPLES ~1~
 
   1) Run the program, deciding what the main output directory will be
@@ -1649,7 +1881,7 @@ EXAMPLES ~1~
         -input  anat_t1w.nii.gz                  \
         -base   MNI152_2009_template_SSW.nii.gz  \
         -subid  sub-001                          \
-        -odir   group/o.aw_sub-001
+        -odir   group/o.ssw_sub-001
 
   2) You can input a mask to be used instead of skullstripping.  For
   example, a good one might be the parcellation-derived (but filled
@@ -1662,11 +1894,12 @@ EXAMPLES ~1~
         -mask_ss fs_parc_wb_mask_RES.nii.gz       \
         -base    MNI152_2009_template_SSW.nii.gz  \
         -subid   sub-001                          \
-        -odir    group/o.aw_sub-001
+        -odir    group/o.ssw_sub-001
 
 
 # -------------------------------------------------------
   Author: Bob, Bob, there is one Bob, He spells it B-O-B.
+  Updated: PA Taylor (SSCC, NIMH, NIH, USA)
 # -------------------------------------------------------
 
 EOF
