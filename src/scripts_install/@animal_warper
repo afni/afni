@@ -1801,7 +1801,7 @@ if ( ($ok_to_exist == "1") && \
    echo "++ Reusing nonlinear WARP dataset"
 else
    # nonlinear warping via auto_warp script
-   # [PT: 25-03-2025] removing '-iwarp' here; see 3dNwarCat, just below
+   # [PT: 25-03-2025] removing '-iwarp' here; see 3dNwarpCat, just below
    auto_warp.py  -overwrite                                      \
       -base "${base_dset}"                                       \
       -affine_input_xmat ID                                      \
