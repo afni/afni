@@ -353,8 +353,11 @@ set progname = @animal_warper
 #set version   = "3.61";   set rev_dat   = "Dec 2, 2022"
 #     + [PT] add QC image when using '-init_scale ..'
 #   
-set version   = "4.00";   set rev_dat   = "Aug 6, 2024"
+#set version   = "4.00";   set rev_dat   = "Aug 6, 2024"
 #     + [PT, DRG] fix application of shift shifting.
+#   
+set version   = "4.10";   set rev_dat   = "Mar 25, 2025"
+#     + [PT, DRG] avoid '-iwarp' in auto_warp.py
 #   
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -1798,19 +1801,32 @@ if ( ($ok_to_exist == "1") && \
    echo "++ Reusing nonlinear WARP dataset"
 else
    # nonlinear warping via auto_warp script
+   # [PT: 25-03-2025] removing '-iwarp' here; see 3dNwarCat, just below
    auto_warp.py  -overwrite                                      \
       -base "${base_dset}"                                       \
       -affine_input_xmat ID                                      \
       -qworkhard 0 2                                             \
       -input ${imed}/${srcsh2_prefix}_aff.nii.gz                 \
       -output_dir ${awpy_dir}                                    \
-      -qw_opts -iwarp -maxlev ${maxlev} ${nlcostoption}          \
+      -qw_opts -maxlev ${maxlev} ${nlcostoption}                 \
       $extra_qw_opts
 
    if ( ${status} ) then
        echo "** ERROR: program failed (autowarp)"
        exit 1
    endif
+
+   # [PT: 25-03-2025] adding next cmd to avoid using '-iwarp' in
+   # auto_warp.py, above
+   cd ${awpy_dir}
+   # need to propagate this explicitly in many cases
+   set aspace = `3dinfo -space anat.un.qw_WARP.nii`
+   3dNwarpCat                                                  \
+      -overwrite                                               \
+      -warp1  'INV(anat.un.qw_WARP.nii)'                       \
+      -prefix  anat.un.qw_WARPINV.nii
+   3drefit -space ${aspace} anat.un.qw_WARPINV.nii
+   cd -
 
    # the awpy has the result dataset, copy the warped data, the warp,
    # inverse warp don't copy the warped dataset - combine the
