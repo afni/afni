@@ -21,6 +21,9 @@
 
 import sys, os, copy
 import json
+import random
+import string
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcol
@@ -151,6 +154,7 @@ inobj : InOpts object
     def make_cbar_from_name(self):
         """if a cbar was entered by name (not by file), create it. then,
         that will become the new in_cbar.
+        [PT: 26-03-2025] add in random chars to name, make threadsafe
         """
 
         # in case we entered here with nothing to do
@@ -159,7 +163,8 @@ inobj : InOpts object
 
         # create output fname, which becomes the in_cbar
         odir  = self.outdir
-        oname = '__tmp_' + self.in_cbar_name + '.png'
+        rnd   = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
+        oname = '__tmp_' + rnd + '_' + self.in_cbar_name + '.png'
         self.in_cbar = odir + '/' + oname
 
         if self.verb :
