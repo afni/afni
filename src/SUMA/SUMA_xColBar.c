@@ -1159,6 +1159,77 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    SUMA_RETURNe;
 }
 
+
+int restoreSubthresholdColorsForSurfaceObject(SUMA_ALL_DO *ado, int state, 
+        Boolean notify)
+{
+   static char FuncName[]={"restoreSubthresholdColorsForSurfaceObject"};
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+
+   SUMA_ENTRY;
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (  !curColPlane ||
+         !curColPlane->OptScl )  {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURN(0);
+   }
+   
+    // Set I Range check box
+    SurfCont=SUMA_ADO_Cont(ado);
+    if (  !SurfCont ||
+         !SurfCont->SymIrange_tb )  {
+      SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
+    }
+    if (notify) XmToggleButtonSetState(SurfCont->SymIrange_tb, state, notify);
+   
+   if (curColPlane->SymIrange) {
+      /* manual setting of range.
+         DO NOT Call SUMA_InitRangeTable because it will
+         automatically update the I range under certain conditions*/
+      TF = SurfCont->SetRangeTable;
+      curColPlane->OptScl->IntRange[1] =
+         SUMA_LARG_ABS(curColPlane->OptScl->IntRange[0],
+         curColPlane->OptScl->IntRange[1]);
+      curColPlane->OptScl->IntRange[0] =
+         -curColPlane->OptScl->IntRange[1];
+      SUMA_INSERT_CELL_VALUE(TF, 1, 1,
+                  curColPlane->OptScl->IntRange[0]);
+      SUMA_INSERT_CELL_VALUE(TF, 1, 2,
+                  curColPlane->OptScl->IntRange[1]);
+   }
+  
+   /* seems the '!' were remnants -                                 */
+   /* revert to original logic, but avoid warnings
+    * (to later evaluate changes) todo: apply ShowMode
+    *   original     : if (!curColPlane->ShowMode < 0)
+    *   fix??        : if (curColPlane->ShowMode < 0)
+    *   temp.as.orig : if ( 0 )
+    *
+    *   comments     : orig/temp would never show
+    *                : we probably want to RETURN if not showing ( < 0 )
+    *                : so '!' was just a remnant typo
+    *                : might be unclear when == 0
+    *                                           19 Feb 2021 [rickr] */
+   if ( 0 ) {
+      /* nothing else to do */
+      SUMA_RETURN(0);
+   }
+
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+
+   if (!SUMA_ColorizePlane (curColPlane)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURN(0);}
+  
+   // This part is necessary to main the correct colors
+   SUMA_Remixedisplay(ado);   
+   SUMA_UpdateNodeValField(ado);
+   SUMA_UpdateNodeLblField(ado);
+
+   SUMA_RETURN(1);   
+}
+
 void restoreSubthresholdColors(SUMA_ALL_DO *ado){
    static char FuncName[]={"restoreSubthresholdColors"};
    SUMA_ALL_DO *otherAdo=NULL;
@@ -1183,18 +1254,19 @@ void restoreSubthresholdColors(SUMA_ALL_DO *ado){
    curColPlane->OptScl->IntRange[0] -= 1;
    curColPlane->OptScl->IntRange[1] += 1;
 
-   if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
+   if (!restoreSubthresholdColorsForSurfaceObject(ado, 
         curColPlane->SymIrange, NOPE)){
-    SUMA_S_Warn("Error toggling sym I for current surface"); SUMA_RETURNe;
+    SUMA_S_Warn("Error restoring subthreshold colors for current surface"); 
+    SUMA_RETURNe;
    }
 
-   if ((curColPlane->SymIrange)){
-       curColPlane->OptScl->IntRange[0] += 1;
-       curColPlane->OptScl->IntRange[1] -= 1;
-       if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
-            curColPlane->SymIrange, NOPE)){
-        SUMA_S_Warn("Error toggling sym I for current surface"); SUMA_RETURNe;
-       }
+   curColPlane->OptScl->IntRange[0] += 1;
+   curColPlane->OptScl->IntRange[1] -= 1;
+
+   if (!restoreSubthresholdColorsForSurfaceObject(ado, 
+        curColPlane->SymIrange, NOPE)){
+    SUMA_S_Warn("Error restoring subthreshold colors for current surface"); 
+    SUMA_RETURNe;
    }
 
    // Set sym range for other surfaces
@@ -1206,19 +1278,29 @@ void restoreSubthresholdColors(SUMA_ALL_DO *ado){
         SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
         SUMA_RETURNe;
    }
-
    for (j=0; j<N_adolist; ++j){
             otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
             if (otherAdo != ado && otherAdo->do_type == SO_type){
        
-            if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(otherAdo, 
+            if (!restoreSubthresholdColorsForSurfaceObject(otherAdo, 
                 curColPlane->SymIrange, YUP)){
-                    SUMA_S_Warn("Error toggling sym I for current surface"); 
+                    SUMA_S_Warn("Error restoring subthreshold colors for current surface"); 
                     SUMA_RETURNe;
             }
+            /*
+               SUMA_Remixedisplay(otherAdo);
+               
+               SUMA_UpdateNodeValField(otherAdo);
+               SUMA_UpdateNodeLblField(otherAdo);
+               */
         }
    }
-
+/*   
+   SUMA_Remixedisplay(ado);
+   
+   SUMA_UpdateNodeValField(ado);
+   SUMA_UpdateNodeLblField(ado);
+*/
    SUMA_RETURNe;
 }
 
@@ -2206,9 +2288,9 @@ int SUMA_cb_SymIrange_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
    if (!SUMA_ColorizePlane (curColPlane)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
          SUMA_RETURN(0);}
-   
-   SUMA_Remixedisplay(ado);
-   
+  
+   // This part is necessary to main the correct colors
+   SUMA_Remixedisplay(ado);   
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
 
