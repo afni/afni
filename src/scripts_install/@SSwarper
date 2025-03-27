@@ -1248,7 +1248,7 @@ cat <<EOF
    https://afni.nimh.nih.gov/pub/dist/OHBM2024/ohbm_2024_taylor_etal_ssw2.pdf
 
    You should consider using that in your analyses, as it should have
-   generally similar-to-improved performace.  It also contains more
+   generally similar-to-improved performance.  It also contains more
    detailed control options and QC.
 
    The basic usage options are the same as this program's, as are the
@@ -1684,7 +1684,7 @@ Please note:
    https://afni.nimh.nih.gov/pub/dist/OHBM2024/ohbm_2024_taylor_etal_ssw2.pdf
 
    You should consider using that in your analyses, as it should have
-   generally similar-to-improved performace.  It also contains more
+   generally similar-to-improved performance.  It also contains more
    detailed control options and QC.
 
    The basic usage options are the same as this program's, as are the
