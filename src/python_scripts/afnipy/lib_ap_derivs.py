@@ -9,6 +9,9 @@ from   afnipy import afni_base     as ab
 from   afnipy import afni_util     as au
 from   afnipy import lib_ss_review as lssr
 
+# [PT: 27-03-2025] put in extra check to fix this error:
+#    "** ERROR: I don't recognize the ext on this file to map: NO_STATS"
+
 # ==========================================================================
 
 DEF_deriv_dir = 'bids_deriv'  # def name of dir mapped from AP results
@@ -237,7 +240,7 @@ class ap_deriv_obj:
                                                       sss + '/' + fname))
 
             # copy text file
-            cmd  = '''\cp {} {}'''.format(log_ap, log_drv)
+            cmd  = '''\\cp {} {}'''.format(log_ap, log_drv)
             com  = ab.shell_com(cmd, capture=1)
             stat = com.run()
 
@@ -279,8 +282,11 @@ class ap_deriv_obj:
         RETURN_NULL = (-1, '', '')
 
         # check dependencies to proceed
+        # [PT: 27-03-2025] also check if it is a keyword that means
+        # 'no entry'; this list may grow
         ldep = [uvar]
-        if not check_dep(self.ap_ssdict, ldep) :  
+        if not( check_dep(self.ap_ssdict, ldep) ) or \
+           self.ap_ssdict[uvar] in ['NO_STATS'] :  
             if self.verb > 1 :  
                 ab.IP("no map uvar: {:>17}".format(uvar))
             return RETURN_NULL
