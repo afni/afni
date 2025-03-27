@@ -1181,7 +1181,7 @@ int restoreSubthresholdColorsForSurfaceObject(SUMA_ALL_DO *ado, int state,
          !SurfCont->SymIrange_tb )  {
       SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
     }
-    if (notify) XmToggleButtonSetState(SurfCont->SymIrange_tb, state, notify);
+    XmToggleButtonSetState(SurfCont->SymIrange_tb, state, notify);
    
    if (curColPlane->SymIrange) {
       /* manual setting of range.
@@ -1198,30 +1198,13 @@ int restoreSubthresholdColorsForSurfaceObject(SUMA_ALL_DO *ado, int state,
       SUMA_INSERT_CELL_VALUE(TF, 1, 2,
                   curColPlane->OptScl->IntRange[1]);
    }
-  
-   /* seems the '!' were remnants -                                 */
-   /* revert to original logic, but avoid warnings
-    * (to later evaluate changes) todo: apply ShowMode
-    *   original     : if (!curColPlane->ShowMode < 0)
-    *   fix??        : if (curColPlane->ShowMode < 0)
-    *   temp.as.orig : if ( 0 )
-    *
-    *   comments     : orig/temp would never show
-    *                : we probably want to RETURN if not showing ( < 0 )
-    *                : so '!' was just a remnant typo
-    *                : might be unclear when == 0
-    *                                           19 Feb 2021 [rickr] */
-   if ( 0 ) {
-      /* nothing else to do */
-      SUMA_RETURN(0);
-   }
 
-   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
-
+   // SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+/*
    if (!SUMA_ColorizePlane (curColPlane)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
          SUMA_RETURN(0);}
-  
+*/  
    // This part is necessary to main the correct colors
    SUMA_Remixedisplay(ado);   
    SUMA_UpdateNodeValField(ado);

@@ -15500,9 +15500,17 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
    static char FuncName[]={"SUMA_Remixedisplay"};
    DList *list=NULL;
    char *idcode=NULL;
+   static int stackLevel;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   // Prevent infinite recursion
+   if (++stackLevel > 10){
+      SUMA_SLP_Err("Stack overflow.");
+      --stackLevel;
+      SUMA_RETURN(NOPE);
+   }
 
    SUMA_LHv("Called with ado=%p, ado->do_type=%d, ado->idcode_str=%s\n",
       ADO, ADO?ADO->do_type:-1, SUMA_CHECK_NULL_STR(SUMA_ADO_idcode(ADO)));
@@ -15530,6 +15538,7 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
 
    if (!SUMA_SetRemixFlag(idcode, SUMAg_SVv, SUMAg_N_SVv)) {
       SUMA_SLP_Err("Failed in SUMA_SetRemixFlag.");
+      --stackLevel;
       SUMA_RETURN(NOPE);
    }
 
@@ -15539,8 +15548,11 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
                                        SES_Suma, NULL);
    if (!SUMA_Engine(&list)) {
       SUMA_SLP_Err("Failed to redisplay.");
+      --stackLevel;
       SUMA_RETURN(NOPE);
    }
+   
+   --stackLevel;
 
    SUMA_RETURN(YUP);
 }
