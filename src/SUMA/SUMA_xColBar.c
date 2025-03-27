@@ -1181,31 +1181,11 @@ int restoreSubthresholdColorsForSurfaceObject(SUMA_ALL_DO *ado, int state,
          !SurfCont->SymIrange_tb )  {
       SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
     }
+    
+    // This was found to be necessary
     XmToggleButtonSetState(SurfCont->SymIrange_tb, state, notify);
-   
-   if (curColPlane->SymIrange) {
-      /* manual setting of range.
-         DO NOT Call SUMA_InitRangeTable because it will
-         automatically update the I range under certain conditions*/
-      TF = SurfCont->SetRangeTable;
-      curColPlane->OptScl->IntRange[1] =
-         SUMA_LARG_ABS(curColPlane->OptScl->IntRange[0],
-         curColPlane->OptScl->IntRange[1]);
-      curColPlane->OptScl->IntRange[0] =
-         -curColPlane->OptScl->IntRange[1];
-      SUMA_INSERT_CELL_VALUE(TF, 1, 1,
-                  curColPlane->OptScl->IntRange[0]);
-      SUMA_INSERT_CELL_VALUE(TF, 1, 2,
-                  curColPlane->OptScl->IntRange[1]);
-   }
 
-   // SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
-/*
-   if (!SUMA_ColorizePlane (curColPlane)) {
-         SUMA_SLP_Err("Failed to colorize plane.\n");
-         SUMA_RETURN(0);}
-*/  
-   // This part is necessary to main the correct colors
+   // This part is necessary to maintain the correct colors
    SUMA_Remixedisplay(ado);   
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
@@ -1270,20 +1250,9 @@ void restoreSubthresholdColors(SUMA_ALL_DO *ado){
                     SUMA_S_Warn("Error restoring subthreshold colors for current surface"); 
                     SUMA_RETURNe;
             }
-            /*
-               SUMA_Remixedisplay(otherAdo);
-               
-               SUMA_UpdateNodeValField(otherAdo);
-               SUMA_UpdateNodeLblField(otherAdo);
-               */
         }
    }
-/*   
-   SUMA_Remixedisplay(ado);
-   
-   SUMA_UpdateNodeValField(ado);
-   SUMA_UpdateNodeLblField(ado);
-*/
+
    SUMA_RETURNe;
 }
 
