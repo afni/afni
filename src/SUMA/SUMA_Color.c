@@ -6994,147 +6994,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
 	 SUMA_S_Note("This is no longer in use. CIFTI datasets and DOs "
 	             "are elementarized and rendered thusly");
 	 break;
-         #if 0
-	    /* delete soon, that was pass one */
-	 if (!CSaux || !CSaux->N_Overlays || !CSaux->Overlays) {
-            SUMA_S_Errv("No CSaux or CSaux->Overlays for %s\n",
-                        ADO_LABEL(ado));
-            SUMA_RETURN(NOPE);
-         }
-         if (!(SO->SurfCont = SUMA_ADO_Cont(ado))) {
-            SUMA_S_Err("No ADO controller");
-            SUMA_RETURN(NOPE);
-         }
-         if (!CSaux->isColored) {
-            if (!(CSaux->isColored =
-                 (SUMA_Boolean *)SUMA_calloc(N_dat,sizeof(SUMA_Boolean)))) {
-               SUMA_S_Crit("Failed to allocate for iscolored");
-               SUMA_RETURN(NOPE);
-            }
-         } else {
-            memset(CSaux->isColored, 0, sizeof(SUMA_Boolean)*N_dat);
-         }
-
-         NshowOverlays = 0;
-         for (j=0; j < CSaux->N_Overlays; ++j) {
-            SUMA_LH("overlay %d, %p, ShowMode %d",
-                     j, CSaux->Overlays[j], CSaux->Overlays[j]->ShowMode);
-            if ( (CSaux->Overlays[j]->ShowMode == SW_SurfCont_DsetViewCol  &&
-                  CSaux->Overlays[j]->GlobalOpacity != 0) ) {
-               if (SurfCont->ShowCurForeOnly) {
-                  if (SurfCont->curColPlane == CSaux->Overlays[j]) {
-                     SUMA_LHv("Le ShowCurForeOnly %s , j=%d in action\n",
-                             CSaux->Overlays[j]->Label, j);
-                     ShowOverLays[NshowOverlays] = j;
-                     OverlayOrder[NshowOverlays] =
-                                                CSaux->Overlays[j]->PlaneOrder;
-                     ++ NshowOverlays;
-                  }
-               } else {
-                  ShowOverLays[NshowOverlays] = j;
-                  OverlayOrder[NshowOverlays] = CSaux->Overlays[j]->PlaneOrder;
-                  ++ NshowOverlays;
-               }
-            }
-         }
-         if (NshowOverlays > 1) {
-            isort = SUMA_z_dqsort (OverlayOrder, NshowOverlays );
-            /* use sorting by plane order to reorder ShowOverlays */
-            for (j=0; j < NshowOverlays; ++j) {
-               ShowOverLays_sort[j] = ShowOverLays[isort[j]];
-            }
-            /* done with isort, free it */
-            SUMA_free(isort);
-         } else if (NshowOverlays  == 1) {
-            ShowOverLays_sort[0] = ShowOverLays[0];
-         } else { /* be safe */
-            ShowOverLays_sort[0] = 0;
-         }
-         SUMA_LH("Have %d overlays to mix", NshowOverlays);
-         if (NshowOverlays &&
-             !SUMA_MixOverlays ( CSaux->Overlays, CSaux->N_Overlays,
-                                 ShowOverLays_sort, NshowOverlays,
-                                 glcolar, N_dat,
-                                 CSaux->isColored, NOPE)) {
-            SUMA_S_Err("Failed in SUMA_MixOverlays.");
-            SUMA_RETURN (NOPE);
-         }
-
-	 ioff = 0;
-	 for (k=0; k<co->N_subdoms; ++k) {
-	    if (k>0) ioff += SUMA_ADO_N_Datum(co->subdoms[k-1]);
-
-	    if (co->subdoms[k]->do_type == VO_type) {
-	       SUMA_VolumeObject *vo = (SUMA_VolumeObject *)co->subdoms[k];
-	       N_dat = SUMA_ADO_N_Datum(co->subdoms[k]);
-	       SUMA_LH("Loading into texture %d voxels.\n"
-                 "Using VE zero's (%p) textureonly, ioff=%d",
-                 N_dat, vo->VE ? vo->VE[0]:NULL, ioff);
-               if (!(tex3ddata = vo->VE[0]->texvec)) {
-        	  SUMA_S_Err("No texture vector?.");
-        	  SUMA_RETURN (NOPE);
-               }
-	       j=0;
-               for(i = ioff; i < N_dat+ioff; i++) {
-                  if (CSaux->isColored[i]) {
-                     SUMA_S_Note("Voxel %d is colored", j/4);
-		     i4 = 4*(i); av = 0.0; am = 0;
-                     tex3ddata[j] = (byte)(glcolar[i4] * 255);
-                     av += tex3ddata[j];  am = tex3ddata[j]; ++j;
-                     tex3ddata[j] = (byte)(glcolar[i4+1] * 255);
-                     av += tex3ddata[j]; if (tex3ddata[j] > am)
-                                             am = tex3ddata[j]; ++j;
-                     tex3ddata[j] = (byte)(glcolar[i4+2] * 255);
-                     av += tex3ddata[j]; if (tex3ddata[j] > am)
-                                             am = tex3ddata[j]; ++j;
-                     if (0)   tex3ddata[j] = (byte)(av/3.0);
-                     else  tex3ddata[j] = am;
-                     ++j;
-                  } else {
-                     tex3ddata[j++] = 0;
-                     tex3ddata[j++] = 0;
-                     tex3ddata[j++] = 0;
-                     tex3ddata[j++] = 1;
-        	  }
-               }
-               /* Set the alphas, for now this would work for one volume only.
-               When mixing multiple overlays, may decide who will be doing
-               the mixing and how, if at all ColAlpha is to play with
-               LocalOpacity ...*/
-               if (NshowOverlays > 0) {
-        	  SUMA_OVERLAYS *Sover=CSaux->Overlays[ShowOverLays_sort[0]];
-        	  int cnt;
-        	  SUMA_LH("Have AlphaVal of %d (%d)",
-                	   Sover ? Sover->AlphaVal:-999, ShowOverLays_sort[0]);
-		  if (Sover && Sover->ColAlpha && Sover->NodeDef) {
-        	     if (NshowOverlays != 1) {
-                	SUMA_S_Warn(
-             "ColAlpha has not been considered for multiple overlays\n"
-              "Using alpha of zeroth volume.");
-        	     }
-        	     SUMA_LH("Doing the alphas %d", Sover->N_NodeDef);
-        	     for(cnt = 0; cnt < Sover->N_NodeDef; cnt++) {
-                	#if 0
-			/* We are not ready for the use of NodeDef in Sover
-			quite yet. NodeDef has to have a Domain Definition
-			accompanying it. */
-			i = Sover->NodeDef[cnt];
-                	tex3ddata[4*i+3] = Sover->ColAlpha[cnt];
-                	/*if (cnt < 10) fprintf(stderr,"%d   ",Sover->ColAlpha[cnt]);*/
-			#endif
-        	     }
-        	     /* fprintf(stderr,"\n");*/
-        	  }
-               }
-
-               if (!SUMA_VE_LoadTexture(vo->VE, 0)){
-        	  SUMA_S_Err("Failed to GL load texture");
-        	  SUMA_RETURN(NOPE);
-               }
-	    }
-	 }
-         break;
-	 #endif
          SUMA_RETURN(YUP);
 	 }
       case GDSET_type: {
@@ -7947,18 +7806,28 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    int nSurfaces = SV->N_ColList;
    static int *outlinevector = NULL;
    static int ITB[3] = {-1, -1, -1};
+   static SUMA_Boolean ISubbrickChanged, TSubbrickChanged, BSubbrickChanged;
+   static int find = -1, tind = -1, bind = -1;
    // static double IntRange[2]={DBL_MAX, -DBL_MAX};
    // static char *cMapName;
    // static float *ColVec;
    
    SUMA_ENTRY;
    
-   // fprintf(stderr, "%s: SO->SurfCont->alphaOpacityModel = %d\n", FuncName, SO->SurfCont->alphaOpacityModel);
+   // I subbrick changed
+   if (ISubbrickChanged = (currentOverlay->OptScl->find != find)){
+        find = currentOverlay->OptScl->find;
+   }
    
-   // DEBUG
-//   fprintf(stderr, "+++++++++++  %s: SO = %p\n", FuncName, SO);
-//   fprintf(stderr, "+++++++++++  %s: SO->N_Node = %d\n", FuncName, SO->N_Node);
-//   fprintf(stderr, "%s: nSurfaces = %d\n", FuncName, nSurfaces);
+   // T subbrick changed
+   if (TSubbrickChanged = (currentOverlay->OptScl->tind != tind)){
+        tind = currentOverlay->OptScl->tind;
+   }
+   
+   // B subbrick changed
+   if (BSubbrickChanged = (currentOverlay->OptScl->bind != bind)){
+        bind = currentOverlay->OptScl->bind;
+   }
    
    cmapChanged = 0;
    bytes2CopyToColVec = SO->N_Node*4*sizeof(float);
@@ -7992,7 +7861,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
        
        // This block causes the left-hand surface to be lighter when both
        //   hemispheres are loaded
-       if (SO->SurfCont->AlphaOpacityFalloff && SO->N_Overlays > 0){
+       if ((SO->SurfCont->AlphaOpacityFalloff) && SO->N_Overlays > 0){
             // Check whether display changed
             cmapChanged = (strcmp(currentOverlay->originalCMapName, currentOverlay->cmapname) ||
                 currentOverlay->IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
@@ -8028,7 +7897,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
                 }
                 
-                if (currentOverlay->OptScl->find!= 0 ||
+                if (0 && currentOverlay->OptScl->find!= 0 ||
                     currentOverlay->OptScl->tind!=0){
                         reload = 1;
                         cmapChanged = 0;
