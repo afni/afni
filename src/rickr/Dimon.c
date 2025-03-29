@@ -168,6 +168,7 @@ static char * g_history[] =
     " 4.35 Mar 24, 2025 [rickr]: -sort_method echo_rin replaces geme_rin\n"
     "                            (mistake: do not make Shruti angry)\n"
     " 4.36 Mar 24, 2025 [rickr]: keep both echo_rin and geme_rin\n"
+    "                            (and improve description)\n"
     "----------------------------------------------------------------------\n"
 };
 
@@ -6373,8 +6374,13 @@ printf(
     "           geme_index      : by GE multi-echo index\n"
     "                           - alphabetical, but for each grouping of\n"
     "                             ge_me_index values, sort by that\n"
+    "                             (prefer geme_rin, if RIN is set)\n"
     "           echo_rin        : modulo sort by RIN, subsort by echo/RIN\n"
+    "                           - RIN repeats per echo and vol\n"
     "           geme_rin        : modulo sort by RIN, subsort by echo/GEME\n"
+    "                           - RIN is init sort, but does not repeat\n"
+    "                           - GEME repeats per echo and vol\n"
+    "                             (a more stable version of geme_index)\n"
     "           geme_suid       : pre-sort by SOP IUID (0008 0018)\n"
     "                             as a major/minor pair, then by geme_index\n"
     "           geme_xnat       : pre-sort by RIN, then sort by geme_index\n"
