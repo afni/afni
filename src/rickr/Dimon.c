@@ -1703,19 +1703,8 @@ static int make_sorted_fim_list(param_t  * p)
          break;
       }
       /* same as RIN, but try to set g_mod_sort, first */
-      case IFM_SORT_GEME_RIN: {
-         n2sort = nfim_in_state(p, p->fim_start, p->nfim-1, IFM_FSTATE_TO_PROC);
-         /* try to init */
-         if( g_mod_sort <= 0 )
-            update_g_mod_sort(p, method, n2sort);
-
-         /* if ready, sort */
-         if( g_mod_sort > 0 )
-            do_sort_by_rin(p, fp, n2sort);
-
-         break;
-      }
-      /* also get g_mod_sort, first */
+      /* (the difference between these is in update_g_mod_sort) */
+      case IFM_SORT_GEME_RIN:
       case IFM_SORT_ECHO_RIN: {
          n2sort = nfim_in_state(p, p->fim_start, p->nfim-1, IFM_FSTATE_TO_PROC);
          /* try to init */
@@ -2166,9 +2155,11 @@ static int echo_rin_get_sort_n_base(param_t * p, int n2proc,
    }
 
    /* if we do not have what we came for (and NO wait), there must only be
-    * one volume, set next_base according to what we have */
+    * one volume, set next_base according to what we have
+    * (one more than the previous index) */
    if( next_base < 0 && p->opts.no_wait == 1 ) {
-      next_base = rin_base + nfim;
+      fp--;
+      next_base = fp->geh.index+1;
       if( gD.level > 2 )
          fprintf(stderr,"-- only 1 vol?, assume next_base = %d\n", next_base);
 
@@ -2352,10 +2343,23 @@ static int geme_rin_get_sort_n_base(param_t * p, int n2proc,
       fprintf(stderr,"-- rin_base = %d, next_base = %d, ind = %d\n",
               rin_base, next_base, ind);
 
-   /* see if we have what we came for, if not, come back later */
-
-   if( next_base < 0 )
+   /* if we do not have what we came for (and wait), come back later */
+   if( next_base < 0 && p->opts.no_wait == 0 ) {
+      if( gD.level > 2 ) fprintf(stderr,"   (will try again)\n");
       return 0;
+   }
+
+   /* if we do not have what we came for (and NO wait), there must only be
+    * one volume, set next_base according to what we have
+    * (one more than the previous index) */
+   if( next_base < 0 && p->opts.no_wait == 1 ) {
+      fp--;
+      next_base = fp->geh.index+1;
+      if( gD.level > 2 )
+         fprintf(stderr,"-- only 1 vol?, assume next_base = %d\n", next_base);
+
+      /* and continue below... */
+   }
 
    /* SANITY CHECKS: we have a matching echo/geme pair, do a few sanity checks
     *
