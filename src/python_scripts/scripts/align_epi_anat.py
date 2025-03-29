@@ -1899,7 +1899,7 @@ class RegWrap:
          # end with a slash
          self.output_dir = "%s/" % os.path.realpath(self.output_dir)
          print("# User has selected a new output directory %s" % self.output_dir)
-         com = shell_com(("mkdir %s" % self.output_dir), self.oexec)
+         com = shell_com(("\\mkdir -p %s" % self.output_dir), self.oexec)
          com.run()
          print("cd %s" % self.output_dir)
          if(not self.dry_run()):
@@ -3096,7 +3096,7 @@ class RegWrap:
       else:
          d3AE = afni_name("%s%s" % (d3name,d3.view))
       
-      com = shell_com(("mkdir %sAddEdge"% ps.output_dir), ps.oexec)
+      com = shell_com(("\\mkdir -p %sAddEdge"% ps.output_dir), ps.oexec)
       com.run()
 
       com = shell_com( \
