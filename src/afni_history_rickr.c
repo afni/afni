@@ -53,13 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
- { 24, Mar, 2025, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
-   "fix -sort_method geme_rin (now replaced by echo_rin)",
-   "The geme_rin method used geme_index for part of the sorting, which\n"
-   "was not intended.  To avoid confusion by altering a sort, the geme_rin\n"
-   "method no longer exists, and has been replaced by echo_rin.\n"
-   "The echo_rin sort method sorts by RIN, then groups by necho and sorts\n"
-   "by echo/RIN."
+ { 29, Mar, 2025, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
+   "add -sort_method geme_rin back in",
+   "This method is like geme_index, but uses RIN for the initial sort.\n"
+   "Thanks to Shruti for reminding of its usefulness."
+ } ,
+
+ { 24, Mar, 2025, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -sort_method echo_rin",
+   "This works well if RIN repeats per volume and echo, and echo is set.\n"
+   "geme_rin was temporarily removed, but that angered the mighty Shruti."
  } ,
 
  { 21, Mar, 2025, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
