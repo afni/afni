@@ -7,7 +7,7 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo ""
    echo "                          Gang Chen "
    echo "                     gangchen@mail.nih.gov"
-   echo "                        March 13, 2025 "
+   echo "                        March 31, 2025 "
    echo "                      SSCC/NIMH/NIH/DHHS"
    echo ""
    echo "Usage: "
@@ -92,9 +92,9 @@ endif
 
 # Declare the output as Z-statistic
 if ( -e ${prefix}+tlrc.HEAD ) then
-    3drefit -substatpar 0 fizt ${prefix}+tlrc
+    3drefit -sublabel 0 'stouffer-Z' -substatpar 0 fizt ${prefix}+tlrc
 else
-    3drefit -substatpar 0 fizt ${prefix}
+    3drefit -sublabel 0 'stouffer-Z' -substatpar 0 fizt ${prefix}
 endif
 
 # Clean up temporary files (safe with nonomatch)
