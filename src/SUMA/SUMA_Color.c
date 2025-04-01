@@ -7939,6 +7939,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 ITB[1] != currentOverlay->OptScl->tind ||
                 ITB[2] != currentOverlay->OptScl->bind);
 
+               // This part appears to be necessary to maintain correct subthreshold colors
                if (DSET_MapChanged){
                     ITB[0] = currentOverlay->OptScl->find;
                     ITB[1] = currentOverlay->OptScl->tind;
@@ -7948,6 +7949,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                     applyColorMapToOverlay(SO, currentOverlay);
                     memcpy(currentOverlay->originalColVec, currentOverlay->ColVec, bytes2CopyToColVec);
                     
+                    // This part appears to be necessary to maintain correct subthreshold colors
                     if (!thresholdReset){
                         // Reinitialize threshold
                         currentThreshold = currentOverlay->OptScl->ThreshRange[0];
@@ -7978,8 +7980,12 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
                             { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
                         
-                        // Set slider location to zero
-                        if (reload) setSliderLocation(SO, 0);
+                        if (reload){
+                            fprintf(stderr, "$$$$$$$$$$$$$$$$$ Set slider to zero for surface %p\n", SO);
+
+                            // Set slider location to zero
+                            if (reload) setSliderLocation(SO, 0);
+                        }
                     }
                 }
            }
