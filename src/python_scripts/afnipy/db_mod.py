@@ -2292,8 +2292,19 @@ def db_cmd_tshift(proc, block):
        if oname in opt.parlist:
           tind = opt.parlist.index(oname)
           if tind < len(opt.parlist) - 1:
-             # propagate as a valid uvar
-             proc.uvars.set_var('slice_pattern', [opt.parlist[tind+1]])
+             # init tpat, but if '@', try to figure it out
+             mb = 1
+             tpat = opt.parlist[tind+1]
+             if tpat.startswith('@'):
+                try:
+                    adata = LD.Afni1D(filename=tpat[1:])
+                    mb, tpat = adata.get_tpattern()
+                    if proc.verb > 1:
+                       print("-- found @ timing: mb %s, tpat %s" % (mb, tpat))
+                except:
+                    print("** failed to get timing pattern from", tpat)
+             proc.uvars.set_var('slice_pattern', [tpat])
+             if mb > 1: proc.uvars.set_var('mb_level', ['%s' % mb])
 
     # write commands
     cmd = cmd + '# %s\n'                                                \
