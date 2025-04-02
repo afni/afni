@@ -2589,11 +2589,26 @@ class Afni1D:
    def show_tpattern(self, mesg='', rdigits=1, verb=1):
       """display the multiband level and to3d-style tpattern
 
-         mesg    : ['']  : print before output
-         rdigits : [1]   : number of digtits used for rounding in pattern detection
-         verb    : [1]   : verbosity level (0 = quiet)"""
+             mesg    : ['']  : print before output
+             rdigits : [1]   : N digtits used for rounding in pattern detection
+             verb    : [1]   : verbosity level (0 = quiet)
+      """
 
       if mesg:     print('%s' % mesg, end='')
+
+      nb, tpat = self.get_tpattern(rdigits=rdigits, verb=verb)
+
+      if verb > 0: print('nbands : %d, tpattern : %s' % (nb, tpat))
+      else:        print('%d %s' % (nb, tpat))
+
+   def get_tpattern(self, rdigits=1, verb=1):
+      """get the multiband level and to3d-style tpattern
+
+             rdigits : [1]   : digtits used for rounding in pattern detection
+             verb    : [1]   : verbosity level (0 = quiet)
+
+         return number of bands and detected pattern or 'INVALID'
+      """
 
       # allow timing to be either vertical or horizontal
       if self.nvec == 1:
@@ -2604,8 +2619,8 @@ class Afni1D:
       nb, tpat = UTIL.timing_to_slice_pattern(timing, rdigits=rdigits,verb=verb)
       if nb < 0:
          tpat = 'INVALID'
-      if verb > 0: print('nbands : %d, tpattern : %s' % (nb, tpat))
-      else:        print('%d %s' % (nb, tpat))
+
+      return nb, tpat
 
    def show_tresolution(self, mesg='', rdigits=-1, verb=1):
       """display the apparent numerical resolution (error) in the data

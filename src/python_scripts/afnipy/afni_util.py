@@ -1881,7 +1881,7 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
 
       inputs:
          timing     : <float list> : slice times
-         rdigits    : [1] <int>    : number of digits to round to for required test
+         rdigits    : [1] <int>    : num digits to round to for required test
          verb       : [1] <int>    : verbosity level
 
       method:
@@ -1892,7 +1892,7 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
             - detect timing pattern in this int list
             - check for multiband # of repeats
 
-      return status (int), tpattern (string):
+      return status/mb level (int), tpattern (string):
         status     -1   invalid timing
                     0   invalid multiband (not even 1)
                  >= 1   multiband level of timing (usually 1)
