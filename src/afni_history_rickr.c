@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Apr, 2025, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "parse and pass any opts_ts -tpattern @FILE pattern to review_basic",
+   "Thanks to colmconn on MB for pointing it out.\n"
+ } ,
+
  { 29, Mar, 2025, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
    "add -sort_method geme_rin back in",
    "This method is like geme_index, but uses RIN for the initial sort.\n"
