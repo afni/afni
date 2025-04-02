@@ -1320,6 +1320,33 @@ console.log('URL', url)
 console.log('is_served', is_served)
 '''.format( subj=subj )
 
+    # [PT: 2025-04-02] allow pages to close more easily (saving is unchanged)
+    y+= '''
+/*
+  The following three items allow us to close an HTML page without
+  needing to verify, which is nice when the are many tabs open.  
+  From:
+  https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event#examples
+*/
+const beforeUnloadHandler = (event) => {
+  // Recommended
+  event.preventDefault();
+
+  // Included for legacy support, e.g. Chrome/Edge < 119
+  event.returnValue = true;
+};
+
+const nameInput = document.querySelector("#name");
+
+nameInput.addEventListener("input", (event) => {
+  if (event.target.value !== "") {
+    window.addEventListener("beforeunload", beforeUnloadHandler);
+  } else {
+    window.removeEventListener("beforeunload", beforeUnloadHandler);
+  }
+});
+'''
+
     y+= '''
 /* For using is_served to set saving button color:
     First, get the root element, which has color
