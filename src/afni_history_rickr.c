@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Apr, 2025, RCR, "APMULTI_Demo2_realtime", MINOR, TYPE_ENHANCE,
+   "add rt.21.py2rr example, send mot and ROI aves 2 rr via python",
+   "Demonstrate the basics of sending motion parameters and ROI averages\n"
+   "to realtime_receiver.py."
+ } ,
+
  {  2, Apr, 2025, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "parse and pass any opts_ts -tpattern @FILE pattern to review_basic",
    "Thanks to colmconn on MB for pointing it out.\n"
@@ -62,6 +68,11 @@ afni_history_struct rickr_history[] = {
    "add -sort_method geme_rin back in",
    "This method is like geme_index, but uses RIN for the initial sort.\n"
    "Thanks to Shruti for reminding of its usefulness."
+ } ,
+
+ { 28, Mar, 2025, RCR, "APMULTI_Demo2_realtime", MINOR, TYPE_ENHANCE,
+   "add rt.20.python example, data 2 afni -rt via python",
+   "Demonstrate the basics of sending data to 'afni -rt'."
  } ,
 
  { 24, Mar, 2025, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
