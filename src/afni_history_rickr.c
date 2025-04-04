@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Apr, 2025, RCR, "3dTshift", MICRO, TYPE_MODIFY,
+   "modify the -help to show slice timing in units of seconds",
+   "Seconds are more common now.  Mention connection with dataset TR units."
+ } ,
+
  {  3, Apr, 2025, RCR, "APMULTI_Demo2_realtime", MINOR, TYPE_ENHANCE,
    "add rt.21.py2rr example, send mot and ROI aves 2 rr via python",
    "Demonstrate the basics of sending motion parameters and ROI averages\n"
@@ -61,7 +66,7 @@ afni_history_struct rickr_history[] = {
 
  {  2, Apr, 2025, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "parse and pass any opts_ts -tpattern @FILE pattern to review_basic",
-   "Thanks to colmconn on MB for pointing it out.\n"
+   "Thanks to colmconn on MB for pointing it out."
  } ,
 
  { 29, Mar, 2025, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
