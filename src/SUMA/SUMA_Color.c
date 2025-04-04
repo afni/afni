@@ -7814,6 +7814,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    
    SUMA_ENTRY;
    
+   fprintf(stderr, "%s\n", FuncName);
+   
    // I subbrick changed
    if (ISubbrickChanged = (currentOverlay->OptScl->find != find)){
         find = currentOverlay->OptScl->find;
@@ -7866,7 +7868,9 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
             cmapChanged = (strcmp(currentOverlay->originalCMapName, currentOverlay->cmapname) ||
                 currentOverlay->IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
                 currentOverlay->IntRange[1] != currentOverlay->OptScl->IntRange[1]);
-            if ((cmapChanged)){ // CMAP changed with alpha threshold
+            if ((cmapChanged)){ // CMAP changed with alpha threshold.  This part is definitely necessary
+                cmapChanged = 0;
+                
                 // Update parameters to be checked for change
                 if (strlen(currentOverlay->cmapname)>strlen(currentOverlay->originalCMapName)){
                     int allocationLength = strlen(currentOverlay->cmapname)+128;
@@ -7888,7 +7892,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 }
                 memcpy(currentOverlay->originalColVec, currentOverlay->ColVec, bytes2CopyToColVec);
    
-                if (SO->N_Overlays > 1 && SO->SurfCont->Thr_tb){    // Does not apply to toy examples
+                if (0 && SO->N_Overlays > 1 && SO->SurfCont->Thr_tb){    // Does not apply to toy examples
                     // Touch threshold sliding bar without moving it.  This is often 
                     //  necessary to ensure the correct colors are displayed in the
                     //  suprathreshold regions when the colormap or max I are changed

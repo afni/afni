@@ -1159,6 +1159,71 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    SUMA_RETURNe;
 }
 
+SUMA_Boolean SUMA_Remixedisplay2 (SUMA_ALL_DO *ADO)
+{
+   static char FuncName[]={"SUMA_Remixedisplay"};
+   DList *list=NULL;
+   char *idcode=NULL;
+   static int stackLevel;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   // Prevent infinite recursion
+   if (++stackLevel > 1){
+      SUMA_SLP_Err("Stack overflow.");
+      --stackLevel;
+      SUMA_RETURN(NOPE);
+   }
+
+   SUMA_LHv("Called with ado=%p, ado->do_type=%d, ado->idcode_str=%s\n",
+      ADO, ADO?ADO->do_type:-1, SUMA_CHECK_NULL_STR(SUMA_ADO_idcode(ADO)));
+
+   /* remix colors for all viewers displaying related surfaces */
+   switch (ADO->do_type) {
+      case SO_type:
+      case VO_type:
+      case MASK_type:
+      case TRACT_type:
+      case CDOM_type:
+      case GDSET_type:
+         idcode = SUMA_ADO_idcode(ADO);
+         break;
+      case GRAPH_LINK_type: {
+         SUMA_DSET *dset = SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ADO);
+         idcode = SUMA_ADO_idcode((SUMA_ALL_DO *)dset);
+         break; }
+      default:
+         SUMA_S_Errv("Not ready for type %s\n", ADO_TNAME(ADO));
+         SUMA_RETURN(NOPE);
+         break;
+   }
+
+
+   if (!SUMA_SetRemixFlag(idcode, SUMAg_SVv, SUMAg_N_SVv)) {
+      SUMA_SLP_Err("Failed in SUMA_SetRemixFlag.");
+      --stackLevel;
+      SUMA_RETURN(NOPE);
+   }
+
+   /* redisplay */
+   if (!list) list = SUMA_CreateList ();
+   SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_RedisplayNow_AllVisible,
+                                       SES_Suma, NULL);
+
+    fprintf(stderr, "list->size = %d\n", list->size);
+    fprintf(stderr, "stackLevel = %d\n", stackLevel);
+   if (!SUMA_Engine(&list)) {
+      SUMA_SLP_Err("Failed to redisplay.");
+      --stackLevel;
+      SUMA_RETURN(NOPE);
+   }
+   --stackLevel;
+
+   SUMA_RETURN(YUP);
+}
+
+
 
 int restoreSubthresholdColorsForSurfaceObject(SUMA_ALL_DO *ado, int state, 
         Boolean notify)
@@ -1186,9 +1251,9 @@ int restoreSubthresholdColorsForSurfaceObject(SUMA_ALL_DO *ado, int state,
     XmToggleButtonSetState(SurfCont->SymIrange_tb, state, notify);
 
    // This part is necessary to maintain the correct colors
-   SUMA_Remixedisplay(ado);   
-   SUMA_UpdateNodeValField(ado);
-   SUMA_UpdateNodeLblField(ado);
+   SUMA_Remixedisplay2(ado);   
+   // SUMA_UpdateNodeValField(ado);
+   // SUMA_UpdateNodeLblField(ado);
 
    SUMA_RETURN(1);   
 }
@@ -1200,7 +1265,8 @@ void restoreSubthresholdColors(SUMA_ALL_DO *ado){
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_TABLE_FIELD *TF=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist, SymIrange;
+   float min, max;
 
    SUMA_ENTRY;
    
@@ -1212,7 +1278,7 @@ void restoreSubthresholdColors(SUMA_ALL_DO *ado){
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
 
-   curColPlane->SymIrange = !(curColPlane->SymIrange);
+   SymIrange = curColPlane->SymIrange = !(curColPlane->SymIrange);
 
    curColPlane->OptScl->IntRange[0] -= 1;
    curColPlane->OptScl->IntRange[1] += 1;
@@ -1231,7 +1297,11 @@ void restoreSubthresholdColors(SUMA_ALL_DO *ado){
     SUMA_S_Warn("Error restoring subthreshold colors for current surface"); 
     SUMA_RETURNe;
    }
-
+/*
+   if (!SUMA_ColorizePlane (curColPlane)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURN(0);}
+*/
    // Set sym range for other surfaces
    int numSurfaceObjects;
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
@@ -1244,9 +1314,17 @@ void restoreSubthresholdColors(SUMA_ALL_DO *ado){
    for (j=0; j<N_adolist; ++j){
             otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
             if (otherAdo != ado && otherAdo->do_type == SO_type){
-       
+
+           curColPlane = SUMA_ADO_CurColPlane(otherAdo);
+           if (  !curColPlane ||
+                 !curColPlane->OptScl )  {
+              SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+           }
+           
+           curColPlane->SymIrange = SymIrange;
+
             if (!restoreSubthresholdColorsForSurfaceObject(otherAdo, 
-                curColPlane->SymIrange, YUP)){
+                curColPlane->SymIrange, NOPE)){
                     SUMA_S_Warn("Error restoring subthreshold colors for current surface"); 
                     SUMA_RETURNe;
             }
