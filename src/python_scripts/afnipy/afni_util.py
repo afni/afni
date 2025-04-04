@@ -493,7 +493,14 @@ def read_json_file(fname='stdin'):
    return json.loads(textdata)
 
 def print_dict(pdict, fields=[], nindent=0, jstr=' ', verb=1):
+   """print the contents of a dictionary, and possibly just a list of fields"""
+
    istr = ' '*nindent
+
+   # allow for passing a simple string
+   if type(fields) == str:
+      fields = [fields]
+
    nfields = len(fields)
    for kk in pdict.keys():
       if nfields > 0 and kk not in fields:
