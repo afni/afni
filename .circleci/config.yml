@@ -249,7 +249,6 @@ commands:
 
             # Install dependency list
             cat /tmp/macos_dependencies_version.txt | xargs brew install
-            pip install --upgrade pip
             # note other useful dependencies:
             # ffmpeg
 
@@ -451,6 +450,7 @@ jobs:
             cd build
             python3 -m venv venv
             source venv/bin/activate
+            pip install --upgrade pip
             pip install setuptools
             cmake ..                                                      \
                 -GNinja                                                   \
