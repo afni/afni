@@ -494,9 +494,6 @@ workflows:
   afni_tests:
     jobs:
       - macos_build:
-          requires:
-            - macos_build
-            # - test_cmake_build
           filters:
             tags:
               only: /.*/
