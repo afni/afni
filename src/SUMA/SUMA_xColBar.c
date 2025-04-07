@@ -1252,8 +1252,6 @@ int restoreSubthresholdColorsForSurfaceObject(SUMA_ALL_DO *ado, int state,
 
    // This part is necessary to maintain the correct colors
    SUMA_Remixedisplay2(ado);   
-   // SUMA_UpdateNodeValField(ado);
-   // SUMA_UpdateNodeLblField(ado);
 
    SUMA_RETURN(1);   
 }
@@ -1278,17 +1276,18 @@ void restoreSubthresholdColors(SUMA_ALL_DO *ado){
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
 
-   SymIrange = curColPlane->SymIrange = !(curColPlane->SymIrange);
-
+   // SymIrange = curColPlane->SymIrange = !(curColPlane->SymIrange);
+   curColPlane->updateSubthresholdColors = 1;
+/*
    curColPlane->OptScl->IntRange[0] -= 1;
    curColPlane->OptScl->IntRange[1] += 1;
-
+*/
    if (!restoreSubthresholdColorsForSurfaceObject(ado, 
         curColPlane->SymIrange, NOPE)){
     SUMA_S_Warn("Error restoring subthreshold colors for current surface"); 
     SUMA_RETURNe;
    }
-
+/*
    curColPlane->OptScl->IntRange[0] += 1;
    curColPlane->OptScl->IntRange[1] -= 1;
 
@@ -1311,7 +1310,7 @@ void restoreSubthresholdColors(SUMA_ALL_DO *ado){
         SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
         SUMA_RETURNe;
    }
-   for (j=0; j<N_adolist; ++j){
+   if (0) for (j=0; j<N_adolist; ++j){
             otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
             if (otherAdo != ado && otherAdo->do_type == SO_type){
 
@@ -1321,7 +1320,8 @@ void restoreSubthresholdColors(SUMA_ALL_DO *ado){
               SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
            }
            
-           curColPlane->SymIrange = SymIrange;
+           // curColPlane->SymIrange = SymIrange;
+           curColPlane->updateSubthresholdColors = 1;
 
             if (!restoreSubthresholdColorsForSurfaceObject(otherAdo, 
                 curColPlane->SymIrange, NOPE)){

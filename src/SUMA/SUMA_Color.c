@@ -7868,7 +7868,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
             cmapChanged = (strcmp(currentOverlay->originalCMapName, currentOverlay->cmapname) ||
                 currentOverlay->IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
                 currentOverlay->IntRange[1] != currentOverlay->OptScl->IntRange[1]);
-            if ((cmapChanged)){ // CMAP changed with alpha threshold.  This part is definitely necessary
+            if ((currentOverlay->updateSubthresholdColors || cmapChanged)){ // CMAP changed with alpha threshold.  This part is definitely necessary
                 cmapChanged = 0;
                 
                 // Update parameters to be checked for change
@@ -7892,7 +7892,9 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 }
                 memcpy(currentOverlay->originalColVec, currentOverlay->ColVec, bytes2CopyToColVec);
    
-                if (0 && SO->N_Overlays > 1 && SO->SurfCont->Thr_tb){    // Does not apply to toy examples
+                if (currentOverlay->updateSubthresholdColors && SO->N_Overlays > 1 && SO->SurfCont->Thr_tb){    // Does not apply to toy examples                      
+                    currentOverlay->updateSubthresholdColors = 0;
+
                     // Touch threshold sliding bar without moving it.  This is often 
                     //  necessary to ensure the correct colors are displayed in the
                     //  suprathreshold regions when the colormap or max I are changed
@@ -7901,7 +7903,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
                 }
                 
-                if (0 && currentOverlay->OptScl->find!= 0 ||
+                if (currentOverlay->OptScl->find!= 0 ||
                     currentOverlay->OptScl->tind!=0){
                         reload = 1;
                         cmapChanged = 0;
@@ -7944,7 +7946,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 ITB[2] != currentOverlay->OptScl->bind);
 
                // This part appears to be necessary to maintain correct subthreshold colors
-               if (DSET_MapChanged){
+               if (currentOverlay->updateSubthresholdColors || DSET_MapChanged){
+                    currentOverlay->updateSubthresholdColors = 0;
                     ITB[0] = currentOverlay->OptScl->find;
                     ITB[1] = currentOverlay->OptScl->tind;
                     ITB[2] = currentOverlay->OptScl->bind;
@@ -7983,16 +7986,11 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         val = currentThreshold;
                         if (!(SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val)))
                             { SUMA_SL_Err("Error setting threshold"); SUMA_RETURN(0); }
-                        
-                        if (reload){
-                            fprintf(stderr, "$$$$$$$$$$$$$$$$$ Set slider to zero for surface %p\n", SO);
-
-                            // Set slider location to zero
-                            if (reload) setSliderLocation(SO, 0);
-                        }
                     }
                 }
            }
+           
+           currentOverlay->updateSubthresholdColors = 0;
        }
    }
    
