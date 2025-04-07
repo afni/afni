@@ -248,6 +248,7 @@ commands:
             #echo 'export PKG_CONFIG_PATH="/usr/local/opt/python@3.8/lib"' >> /Users/distiller/.bash_profile
 
             # Install dependency list
+            pip install --upgrade pip
             cat /tmp/macos_dependencies_version.txt | xargs brew install
             # note other useful dependencies:
             # ffmpeg
