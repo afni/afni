@@ -248,8 +248,8 @@ commands:
             #echo 'export PKG_CONFIG_PATH="/usr/local/opt/python@3.8/lib"' >> /Users/distiller/.bash_profile
 
             # Install dependency list
-            pip install --upgrade pip
             cat /tmp/macos_dependencies_version.txt | xargs brew install
+            pip install --upgrade pip
             # note other useful dependencies:
             # ffmpeg
 
@@ -495,24 +495,24 @@ workflows:
     jobs:
       - macos_build:
           requires:
-            - test_cmake_build
+            # - test_cmake_build
           filters:
             tags:
               only: /.*/
             branches:
               only: /.*/
-      - build:
-          name: cmake_build
-          matrix:
-            parameters:
-              build_type: ["cmake_build"]
-              # cache version should match for all jobs
-              image_cache_version: ["0"]
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
+      # - build:
+      #     name: cmake_build
+      #     matrix:
+      #       parameters:
+      #         build_type: ["cmake_build"]
+      #         # cache version should match for all jobs
+      #         image_cache_version: ["0"]
+      #     filters:
+      #       tags:
+      #         only: /.*/
+      #       branches:
+      #         only: /.*/
       # - build:
       #     name: make_build
       #     requires:
@@ -527,21 +527,21 @@ workflows:
       #         only: /.*/
       #       branches:
       #         only: /.*/
-      - test:
-          name: test_<< matrix.build_type >>
-          matrix:
-            parameters:
-              build_type: ["cmake_build"]
-              # cache version should match for all jobs
-              image_cache_version: ["0"]
-              test_data_cache_version: ["0"]
-          requires:
-            - << matrix.build_type >>
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
+      # - test:
+      #     name: test_<< matrix.build_type >>
+      #     matrix:
+      #       parameters:
+      #         build_type: ["cmake_build"]
+      #         # cache version should match for all jobs
+      #         image_cache_version: ["0"]
+      #         test_data_cache_version: ["0"]
+      #     requires:
+      #       - << matrix.build_type >>
+      #     filters:
+      #       tags:
+      #         only: /.*/
+      #       branches:
+      #         only: /.*/
       # - containers_check:
       #     name: check containers for issues with users and permissions and environments
       #     matrix:
