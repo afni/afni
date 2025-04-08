@@ -42,7 +42,7 @@ elseif(AFNI_COMPILER_CHOICE STREQUAL GNU)
   # exact version of gcc installed
   # [RR 2025.04.08] change from /usr/local/bin/gcc-9 to /opt/homebrew/bin/gcc-14
   set(CMAKE_C_COMPILER /opt/homebrew/bin/gcc-14)
-  set(CMAKE_C_COMPILER /opt/homebrew/bin/g++-14)
+  set(CMAKE_CXX_COMPILER /opt/homebrew/bin/g++-14)
   # set(CMAKE_EXE_LINKER_FLAGS "-L/usr/local/opt/gcc/lib")
   set(CMAKE_EXE_LINKER_FLAGS "-L/opt/homebrew/lib")
 endif()
