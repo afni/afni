@@ -452,7 +452,7 @@ jobs:
             source venv/bin/activate
             pip install --upgrade pip
             pip install setuptools
-            ls /usr/local/bin/gcc-*
+            ls /opt/homebrew/bin/gcc-*
             cmake ..                                                      \
                 -GNinja                                                   \
                 -DCMAKE_TOOLCHAIN_FILE=../cmake/macos_toolchainfile.cmake \
