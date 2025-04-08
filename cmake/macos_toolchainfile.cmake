@@ -15,6 +15,7 @@
 # # The different compilers can be chosen by setting the AFNI_COMPILER_CHOICE variable
 # See https://cmake.org/cmake/help/v3.18/variable/CMAKE_LANG_COMPILER_ID.html
 set(ALLOWED_COMPILER_CHOICES "Clang;AppleClang;Intel;GNU")
+message(STATUS "== AFNI_COMPILER_CHOICE = $AFNI_COMPILER_CHOICE")
 if( EXISTS AFNI_COMPILER_CHOICE)
   if(NOT ${AFNI_COMPILER_CHOICE} IN_LIST ALLOWED_COMPILER_CHOICES)
     message(FATAL_ERROR "Please choose one of the following compilers: ${ALLOWED_COMPILER_CHOICES}")
