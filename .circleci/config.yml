@@ -201,7 +201,7 @@ commands:
           #   see AFNI_COMPILER_CHOICE in cmake/macos_toolchainfile.cmake
           command: |
             echo \
-              gcc cmake@3 ninja \
+              gcc cmake ninja \
               jpeg gsl gts openmotif libpng expat \
               freetype fontconfig netpbm git-annex | \
               tr " " '\n' | sort > /tmp/macos_dependencies_version.txt
@@ -251,6 +251,7 @@ commands:
 
             # Install dependency list
             cat /tmp/macos_dependencies_version.txt | xargs brew install
+            # brew install cmake 3.31.6
             # note other useful dependencies:
             # ffmpeg
 
