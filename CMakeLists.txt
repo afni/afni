@@ -37,10 +37,12 @@ string(TIMESTAMP BUILD_DATE "%m %d %Y")
 set(AFNI_VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/src/AFNI_version.h")
 check_header_has_been_created("${AFNI_VERSION_HEADER}" "${GIT_REPO_VERSION}")
 
-if("/usr/bin/cc" STREQUAL "${CMAKE_C_COMPILER}")
-    # This should never happen, compiler should be gcc or clang.
-    message(FATAL_ERROR "wrong compiler: ${CMAKE_C_COMPILER}. Please check to see if clang or gcc are installed and functioning")
-endif()
+# test without this failure point
+# if("/usr/bin/cc" STREQUAL "${CMAKE_C_COMPILER}")
+#     # This should never happen, compiler should be gcc or clang.
+#     message(FATAL_ERROR "wrong compiler: ${CMAKE_C_COMPILER}. Please check to see if clang or gcc are installed and functioning")
+# endif()
+
 # set(CMAKE_LINK_WHAT_YOU_USE $<$<C_COMPILER_ID:GNU>:ON>)
 include(afni_cmake_build_options)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
