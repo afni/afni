@@ -455,6 +455,7 @@ jobs:
             pip install --upgrade pip
             pip install setuptools
             ls /opt/homebrew/bin/gcc-*
+            echo CMAKE_C_COMPILER = $CMAKE_C_COMPILER
             cmake ..                                                      \
                 -GNinja                                                   \
                 -DCMAKE_TOOLCHAIN_FILE=../cmake/macos_toolchainfile.cmake \
