@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Apr, 2025, RCR, "afni_general", MICRO, TYPE_MODIFY,
+   "deal with homebrew updating cmake to 4.0.0 just after AFNI_25.0.13",
+   "The cmake version was changed from 3.31.6 to 4.0.0, leading to a\n"
+   "few needed updates."
+ } ,
+
  {  4, Apr, 2025, RCR, "3dTshift", MICRO, TYPE_MODIFY,
    "modify the -help to show slice timing in units of seconds",
    "Seconds are more common now.  Mention connection with dataset TR units."
