@@ -454,7 +454,7 @@ jobs:
             source venv/bin/activate
             pip install --upgrade pip
             pip install setuptools
-            ls /opt/homebrew/bin/gcc-*
+            ls /opt/homebrew/bin/g??-[0-9]*
             echo == CC = ${CC}
             echo == CMAKE_C_COMPILER = ${CMAKE_C_COMPILER}
             cmake ..                                                      \

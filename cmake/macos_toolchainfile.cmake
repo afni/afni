@@ -27,16 +27,19 @@ if(AFNI_COMPILER_CHOICE STREQUAL Intel)
   set(CMAKE_C_COMPILER /opt/intel/bin/icc)
   set(CMAKE_CXX_COMPILER /opt/intel/bin/icpc)
   set(CMAKE_EXE_LINKER_FLAGS "-L/opt/intel/lib")
+  message(STATUS "== setting Intel CMAKE_C_COMPILER to $CMAKE_C_COMPILER")
 elseif(AFNI_COMPILER_CHOICE STREQUAL AppleClang)
   # Comes with Xcode/apple command line tools
   # libomp is required for OMP support
   set(CMAKE_C_COMPILER clang)
   set(CMAKE_CXX_COMPILER clang++)
+  message(STATUS "== setting AppleClang CMAKE_C_COMPILER to $CMAKE_C_COMPILER")
 elseif(AFNI_COMPILER_CHOICE STREQUAL Clang)
   # Can be installed with "brew install llvm"
   set(CMAKE_C_COMPILER /usr/local/opt/llvm/bin/clang)
   set(CMAKE_CXX_COMPILER /usr/local/opt/llvm/bin/clang++)
   set(CMAKE_EXE_LINKER_FLAGS "-L/usr/local/opt/llvm/lib")
+  message(STATUS "== setting Clang CMAKE_C_COMPILER to $CMAKE_C_COMPILER")
 elseif(AFNI_COMPILER_CHOICE STREQUAL GNU)
   # Can be installed with "brew install gcc", will need to be modified for the
   # exact version of gcc installed
@@ -45,6 +48,7 @@ elseif(AFNI_COMPILER_CHOICE STREQUAL GNU)
   set(CMAKE_CXX_COMPILER /opt/homebrew/bin/g++-14)
   # set(CMAKE_EXE_LINKER_FLAGS "-L/usr/local/opt/gcc/lib")
   set(CMAKE_EXE_LINKER_FLAGS "-L/opt/homebrew/lib")
+  message(STATUS "== setting GNU CMAKE_C_COMPILER to $CMAKE_C_COMPILER")
 endif()
 
 
