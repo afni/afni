@@ -197,6 +197,8 @@ commands:
           # command list here, but CCI started failing on macos-build with:
           #   'Error: Formula installation already attempted: python@3.13'
           # and removing explicit 'python' resolved that.
+          # [RR: 2025-04-08] add gcc, now at /opt/homebrew/bin/gcc-14
+          #   see AFNI_COMPILER_CHOICE in cmake/macos_toolchainfile.cmake
           command: |
             echo \
               gcc cmake ninja \

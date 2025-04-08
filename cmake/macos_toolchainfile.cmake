@@ -40,9 +40,11 @@ elseif(AFNI_COMPILER_CHOICE STREQUAL Clang)
 elseif(AFNI_COMPILER_CHOICE STREQUAL GNU)
   # Can be installed with "brew install gcc", will need to be modified for the
   # exact version of gcc installed
-  set(CMAKE_C_COMPILER /usr/local/bin/gcc-9)
-  set(CMAKE_C_COMPILER /usr/local/bin/g++-9)
-  set(CMAKE_EXE_LINKER_FLAGS "-L/usr/local/opt/gcc/lib")
+  # [RR 2025.04.08] change from /usr/local/bin/gcc-9 to /opt/homebrew/bin/gcc-14
+  set(CMAKE_C_COMPILER /opt/homebrew/bin/gcc-14)
+  set(CMAKE_C_COMPILER /opt/homebrew/bin/g++-14)
+  # set(CMAKE_EXE_LINKER_FLAGS "-L/usr/local/opt/gcc/lib")
+  set(CMAKE_EXE_LINKER_FLAGS "-L/opt/homebrew/lib")
 endif()
 
 
