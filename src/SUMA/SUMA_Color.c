@@ -8438,11 +8438,11 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2;
                    avg_Back = (glcolar_Back[i4_0] + glcolar_Back[i4_1] +
                                glcolar_Back[i4_2])/3;
-                   glcolar[i4] = (glcolar_Fore[i4]*opacity) +
+                   glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
                     (avg_Back * complement); ++i4; ++i3;
-                   glcolar[i4] = (glcolar_Fore[i4]*opacity) +
+                   glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
                     (avg_Back * complement); ++i4; ++i3;
-                   glcolar[i4] = (glcolar_Fore[i4]*opacity) +
+                   glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
                     (avg_Back * complement); ++i4; ++i3;
                    isColored[i] = NOPE;
              }
