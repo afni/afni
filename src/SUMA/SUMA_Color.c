@@ -8533,11 +8533,11 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                float complement = 1.0f - opacity;
                int i3 = 3 * i;
                i4 = 4 * i;
-               glcolar[i4] = (glcolar_Fore[i4]*opacity) +
+               glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
                 (SUMA_GRAY_NODE_COLOR * complement); ++i4; ++i3;
-               glcolar[i4] = (glcolar_Fore[i4]*opacity) +
+               glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
                 (SUMA_GRAY_NODE_COLOR * complement); ++i4; ++i3;
-               glcolar[i4] = (glcolar_Fore[i4]*opacity) +
+               glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
                 (SUMA_GRAY_NODE_COLOR * complement); ++i4; ++i3;
                isColored[i] = NOPE;
             }
@@ -8613,11 +8613,11 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                float complement = 1.0f - opacity;
                int i3 = 3 * i;
                i4 = 4 * i;
-               glcolar[i4] = (glcolar_Fore[i4]*opacity) +
+               glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
                 (SUMA_GRAY_NODE_COLOR * complement); ++i4; ++i3;
-               glcolar[i4] = (glcolar_Fore[i4]*opacity) +
+               glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
                 (SUMA_GRAY_NODE_COLOR * complement); ++i4; ++i3;
-               glcolar[i4] = (glcolar_Fore[i4]*opacity) +
+               glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
                 (SUMA_GRAY_NODE_COLOR * complement); ++i4; ++i3;
                isColored[i] = NOPE;
             }
