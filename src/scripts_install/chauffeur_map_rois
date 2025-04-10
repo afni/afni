@@ -437,10 +437,16 @@ Options ~1~
                     include subbrick selector
 
 -in_map_olay  MO   :(req) text file mapping ROI values to overlay-dset
-                    values
+                    values.  This file has 2 columns:
+                      1st col: ROI integer values
+                      2nd col: overlay data value the ROI should have
+                               (e.g., effect estimate value)
 
 -in_map_thr   MT   :(req) text file mapping ROI values to threshold-dset
-                    values
+                    values.  This file has 2 columns:
+                      1st col: ROI integer values
+                      2nd col: threshold data value the ROI should have
+                               (e.g., statistic value)
 
 -thr_val THR       :(req) threshold value to apply
 
