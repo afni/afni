@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Apr, 2025, RCR, "model_conv_PRF_DN", MINOR, TYPE_NEW_PROG,
+   "add Divisive Normalization population receptive field model",
+   "Requested by E Merriam."
+ } ,
+
+ { 12, Apr, 2025, RCR, "get_afni_model_PRF_DN", MICRO, TYPE_NEW_PROG,
+   "interface to compute model curve from parameters",
+   NULL
+ } ,
+
  {  8, Apr, 2025, RCR, "afni_general", MICRO, TYPE_MODIFY,
    "deal with homebrew updating cmake to 4.0.0 just after AFNI_25.0.13",
    "The cmake version was changed from 3.31.6 to 4.0.0, leading to a\n"
