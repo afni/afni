@@ -1731,6 +1731,10 @@ static char *gby[] = {
      "\n  The more I think about language, the more it amazes me\n"
      "  that people ever understand each other."                                                ,
 
+     // Hannah Sullivan
+     "\n  When things are patternless, their fascination's stronger.\n"
+     "  Failed form is hectic with loveliness, and compels us longer."                        ,
+
      "\n  May the following be true for you:\n"
      "   'Work is about a search for daily meaning as well as daily bread,\n"
      "    for recognition as well as cash, for astonishment rather than torpor;\n"
