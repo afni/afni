@@ -105,7 +105,7 @@ MODEL_interface * initialize_model ()
          p_DN = ---------------------  -  --
                 Amp1 * (G1.Stim) + B1     B1
 
-  where Gx.Stim means g(x,y,sigma) convolved with the stim mask.
+  where Gx.Stim means g(x,y,sigma) integrated over the stim mask.
 
 */
 static int signal_model
@@ -117,7 +117,7 @@ static int signal_model
   int      debug        /* make some noise */
 )
 {
-  static float * ts2 = NULL; /* for seconnd curve */
+  static float * ts2 = NULL; /* for second curve */
   float  A0, x, y, Sig0, B0; /* model params - numerator */
   float  A1, Sig1, B1;       /* model params - denominator */
   int    ind, maxind;        /* largest dimension */
@@ -162,14 +162,13 @@ static int signal_model
      return maxind;
   }
 
-  /* time array must be ordered according to stim dset */
-  /* for each: A * (G(x,y,sig).Sim) */
+  /* for each: A * (G(x,y,sig).Stim) */
   get_signal_computed(ts_array, maxind, g_saset, x, y, Sig0, A0, debug);
   get_signal_computed(ts2,      maxind, g_saset, x, y, Sig1, A1, debug);
 
-  /* and compute final result : (R0-B0)/(R1-B1) - B0/B1  */
+  /* and compute final result : (R0+B0)/(R1+B1) - B0/B1  */
   for(ind=0; ind<maxind; ind++)
-     ts_array[ind] = (ts_array[ind]-B0)/(ts2[ind]-B1) - B0/B1;
+     ts_array[ind] = (ts_array[ind]+B0)/(ts2[ind]+B1) - B0/B1;
 
   /* NOTE: this function computes only the reference time series, which will
    *       then be convolved with the HRF back in conv_model().

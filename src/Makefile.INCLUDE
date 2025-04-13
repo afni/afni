@@ -166,7 +166,7 @@ PROGS_4  = 3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip       \
            3dExtractGroupInCorr dcm2niix_afni 3dTto1D 3dBrainSync 3dGrayplot  \
            1dsound afni_check_omp 3dPVmap 3dExchange 3dEdu_01_scale 3dDiff    \
            get_afni_model_PRF get_afni_model_PRF_6 get_afni_model_PRF_6_BAD   \
-           3dedgedog p2dsetstat dsetstat2p                                    \
+           3dedgedog p2dsetstat dsetstat2p get_afni_model_PRF_DN              \
            $(EXTRAS)
 
 progs_1:$(PROGS_1)
@@ -213,7 +213,7 @@ PROGRAMS_NOPLUG =                                                             \
         stimband 1dNLfit tokens 3dLocalACF 3dDegreeCentrality 3dECM 3dLFCD    \
         3dMSE 3dsvm_linpredict 3dTto1D 3dExchange 2dcat get_afni_model_PRF    \
         get_afni_model_PRF_6 get_afni_model_PRF_6_BAD 3dEdu_01_scale          \
-        p2dsetstat dsetstat2p count_afni                                          \
+        p2dsetstat dsetstat2p count_afni get_afni_model_PRF_DN                \
         $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -2879,7 +2879,8 @@ MODELLIST =                                                            \
         model_conv_diffgamma.$(SO) model_expMEMRI.$(SO)                \
         model_expMEMRI3.$(SO) model_conv_cosine4.$(SO)                 \
         model_conv_PRF.$(SO) model_conv_PRF_6.$(SO)                    \
-        model_conv_PRF_6_BAD.$(SO) model_conv_PRF_DOG.$(SO)
+        model_conv_PRF_6_BAD.$(SO) model_conv_PRF_DOG.$(SO)            \
+        model_conv_PRF_DN.$(SO)
 
 models: $(MODELLIST)
 
