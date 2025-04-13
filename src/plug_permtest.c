@@ -1407,8 +1407,8 @@ static int PERMTEST_compute(
   DTREE *randomised_corr;
   CLIST *coord_mem,			/*data area for coord-corr pair lists*/
 	*coord_next;			/*next free location in coord_mem*/
-  double sx_trend, sx_ref, sx_ort, *sy,	/*correlation parameters*/
-	 sxx_trend, sxx_ref, sxx_ort, *syy,
+  double sx_trend, sx_ref, sx_ort=0.0, *sy,	/*correlation parameters*/
+	 sxx_trend, sxx_ref, sxx_ort=0.0, *syy,
 	 corr, slope, intercept,	/*regression coefficients*/
 	 max_corr;			/*correlation w/ max absolute value*/
   int percent_done, prev_percent_done,	/*statistics for progress meter*/

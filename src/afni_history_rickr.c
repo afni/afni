@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Apr, 2025, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "quiet some compile warnings",
+   NULL
+ } ,
+
  { 12, Apr, 2025, RCR, "model_conv_PRF_DN", MINOR, TYPE_NEW_PROG,
    "add Divisive Normalization population receptive field model",
    "Requested by E Merriam."
