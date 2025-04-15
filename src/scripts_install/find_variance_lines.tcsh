@@ -430,7 +430,7 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
 
       # if there is an adjustment to make, do so
       set ecfile = edge_coords.r$ind02.txt
-      set backfile = bad_coords.r$ind02.full.txt
+      set backfile = bad_coords.full.r$ind02.txt
       cp $bfile $backfile
       echo "" > $ecfile    # start with an empty file
       if ( $nclust > 0 && $#edgelist > 0 ) then
@@ -474,6 +474,12 @@ set bfile = bad_coords.inter.txt
 grep -v '#' $cfile                                                    \
      | awk '{z='$zcoord'; printf "%7.2f %7.2f %7.2f\n", $14, $15, z}' \
      | tee $bfile
+
+# *** hack for now: if edge_mask, just use run 1
+if ( $edge_mask != "" ) then
+   echo "** FIX : using run 01 instead of intersection"
+   cp bad_clust.r01.txt $bfile
+endif
 
 # ---------------------------------------------------------------------------
 # create images pointing to vlines
