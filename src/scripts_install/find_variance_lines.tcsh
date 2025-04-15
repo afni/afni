@@ -405,17 +405,50 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
    echo $cmd
    $cmd | tee $cfile
 
-   # if we have an edge_mask, just see what clusters overlap for now
-   if ( $edge_mask != "" ) then
-      set edge_clust = $clust_pre.r$ind02.edge.nii.gz
-      3dcalc -a $clust_mask -b $edge_mask -expr 'a*b' -prefix $edge_clust
-   endif
-
    # and grab the coordinates of the bad clusters
    set bfile = bad_coords.r$ind02.txt
    grep -v '#' $cfile                                                     \
         | awk '{ z='$zcoord'; printf "%7.2f %7.2f %7.2f\n", $14, $15, z}' \
         | tee $bfile
+
+   # if we have an edge_mask, possibly remove edge clusters from $bfile
+   if ( $edge_mask != "" ) then
+      set edge_clust = $clust_pre.r$ind02.edge.nii.gz
+      3dcalc -a $clust_mask -b $edge_mask -expr 'a*b' -prefix $edge_clust
+      # use 3dRank to get badlist: non-zero values in $edge_clust
+      3dRank -prefix rank.$ind02 -input $edge_clust
+      \rm rank.$ind02+*
+      set edgelist = ( `1dcat rank.$ind02.rankmap.1D'[1]' | tail -n +2` )
+      set nclust = ( `cat $bfile | wc -l` )
+
+      # if there is an adjustment to make, do so
+      set ecfile = edge_coords.r$ind02.txt
+      set backfile = bad_coords.r$ind02.full.txt
+      cp $bfile $backfile
+      echo "" > $ecfile    # start with an empty file
+      if ( $nclust > 0 && $#edgelist > 0 ) then
+         # note: line and cluster numbers are 1-based
+         echo "++ have $nclust clusters but $#edgelist are at edges"
+         set pedge = "[`echo $edgelist | tr ' ' ,`]"
+         # find clusters that are not in edgelist
+         set inlist = ( `python -c "for ind in [i+1 for i in range($nclust) \
+                           if i+1 not in $pedge]: print(ind)"`)
+         echo "-- keeping clusters : $inlist"
+         echo "   removing clusters: $edgelist"
+         # create new files (new bfile from inlist, ecfile from edgelist)
+         echo -n "" > $bfile
+         foreach r ( $inlist )
+            awk "{if(NR==$r) print}" $backfile >> $bfile
+         end
+         foreach r ( $edgelist )
+            awk "{if(NR==$r) print}" $backfile >> $ecfile
+         end
+         echo "++ updated inner coord list:"
+         cat $bfile
+      else
+         echo "-- no edge clusters to remove"
+      endif
+   endif
 
    set bad_counts = ( $bad_counts `cat $bfile | wc -l` )
 end  # foreach index
