@@ -282,7 +282,7 @@ g_help_string = """
                      the options of this program.
     -Allineate_opts '-ssss  -sss' : options to use with 3dAllineate. Default
                      options are 
-                     "-weight_frac 1.0 -maxrot 6 -maxshf 10 -VERB -warp aff "
+                     "-weight_frac 1.0 -maxrot 6 -maxshf 10 -warp aff "
     -volreg [on]/off : do volume registration on EPI dataset before alignment
     -volreg_opts  '-ssss -sss' : options to use with 3dvolreg
     -volreg_base basenum/type : the epi base used in time series volume
@@ -756,7 +756,7 @@ class RegWrap:
                               "Run @AddEdge script to create double-edge images")
 
       self.valid_opts.add_opt('-Allineate_opts', -1,                       \
-                             ["-weight_frac 1.0 -maxrot 6 -maxshf 10 -VERB"\
+                             ["-weight_frac 1.0 -maxrot 6 -maxshf 10 "\
                               " -warp aff -source_automask+4 "],\
                                helpstr="Options passed to 3dAllineate.")
 
@@ -1422,7 +1422,7 @@ class RegWrap:
             fsize = featuresize
             
          ps.AlOpt =  \
-         "%s -twobest 11 -twopass -VERB -maxrot 45 -maxshf 40 " \
+         "%s -twobest 11 -twopass -maxrot 45 -maxshf 40 " \
          "-fineblur %s -source_automask+2" % (ps.AlOpt, fsize)
          ps.cmass = "cmass"
          ps.giant_move = 1
@@ -2059,7 +2059,7 @@ class RegWrap:
   
    def align_anat2epi(  self, e=None, a=None, m=None, \
                         alopt=" -onepass -weight_frac 1.0 -maxrot 6 " \
-                               "-maxshf 10 -VERB -warp aff ",\
+                               "-maxshf 10 -warp aff ",\
                         suf = "_alnd_epi", costfunction = "lpc"):
                         #m is the weight brick
       self.info_msg( "Aligning %s data to %s data" % \
@@ -2143,7 +2143,7 @@ class RegWrap:
             com.run()
             if((ps.flip_giant) and not(ps.giant_move)):
                alopt =  \
-               "%s -twobest 11 -twopass -VERB -maxrot 45 -maxshf 40 " \
+               "%s -twobest 11 -twopass -maxrot 45 -maxshf 40 " \
                "-source_automask+2" % (ps.AlOpt)
                ps.cmass = "cmass"
             # flips don't need weight            
