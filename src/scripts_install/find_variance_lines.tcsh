@@ -32,6 +32,7 @@ unalias grep
 set din_list   = ( )            # input datasets
 set do_clean   = 1              # do we remove temporary files
 set do_img     = 1              # make images
+set keep_edge  = 0              # do we allow clusters at xy edge locations?
 set mask_in    = 'AUTO'         # any input mask (possibly renamed)
 set max_img    = 7              # maximum number of high-var images to make
 set min_cvox   = 7              # minimum voxels in a column
@@ -44,6 +45,9 @@ set rdir       = vlines.result  # output directory
 set sdpower    = 2              # power on stdev (2=default variance)
 set thresh     = 0.97           # threshold for tscale average (was .95)
 
+# computed vars
+set edge_mask  = ''             # edge voxel mask, if applied
+set clust_pre  = 'clustset'     # prefix for cluster mask
 
 set prog = find_variance_lines.tcsh
 
@@ -314,6 +318,24 @@ if ( $mask_in != NONE ) then
              -prefix $mask_in
       echo ""
    endif
+
+   # If we do not want clusters touching the farthest front/back/sides of brain,
+   # make an edge mask.  Grow the current mask vertically, take 1 minus.  Since
+   # anything touching this would be bad, dilate by 1 and take only the dilated
+   # voxels.  Any cluster that includes such voxels is unwanted.
+   if ( ! $keep_edge ) then
+      set edge_mask = mask_edge.nii.gz
+      set tset = tmp.edge.nii.gz
+      set t2   = tmp.e2.nii.gz
+      # grow vertically and take 1 minus
+      3dLocalstat -nbhd "Rect(0,0,-$nk)" -stat max -prefix $tset $mask_in
+      3dcalc -a $tset -expr '1-bool(a)' -prefix $t2 -datum byte
+      \rm $tset
+      # dilate and subtract out previous edge mask
+      3dmask_tool -dilate_inputs 1 -input $t2 -prefix $tset
+      3dcalc -a $tset -b $t2 -expr a-b -prefix $edge_mask
+      \rm $tset $t2
+   endif
 endif
 
 # --------------------------------------------------
@@ -374,10 +396,22 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
                -prefix $pset $sset
 
    # now threshold and cluster (slices are equal, so 1-D == 3-D)
+   # (show command before executing)
+   # change NN3 to NN2, as this is really 2D clustering (could use NN 1)
    set cfile = bad_clust.r$ind02.txt
-   3dClusterize -ithr 0 -idat 0 -NN 3 -inset $pset -2sided -1 $thresh \
-                | tee $cfile
+   set clust_mask = $clust_pre.r$ind02.nii.gz
+   set cmd = ( 3dClusterize -ithr 0 -idat 0 -NN 2 -inset $pset \
+                            -2sided -1 $thresh -pref_map $clust_mask )
+   echo $cmd
+   $cmd | tee $cfile
 
+   # if we have an edge_mask, just see what clusters overlap for now
+   if ( $edge_mask != "" ) then
+      set edge_clust = $clust_pre.r$ind02.edge.nii.gz
+      3dcalc -a $clust_mask -b $edge_mask -expr 'a*b' -prefix $edge_clust
+   endif
+
+   # and grab the coordinates of the bad clusters
    set bfile = bad_coords.r$ind02.txt
    grep -v '#' $cfile                                                     \
         | awk '{ z='$zcoord'; printf "%7.2f %7.2f %7.2f\n", $14, $15, z}' \
