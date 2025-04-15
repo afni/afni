@@ -32,7 +32,7 @@ unalias grep
 set din_list   = ( )            # input datasets
 set do_clean   = 1              # do we remove temporary files
 set do_img     = 1              # make images
-set keep_edge  = 0              # do we allow clusters at xy edge locations?
+set do_edge    = 1              # do we allow clusters at xy edge locations?
 set mask_in    = 'AUTO'         # any input mask (possibly renamed)
 set max_img    = 7              # maximum number of high-var images to make
 set min_cvox   = 7              # minimum voxels in a column
@@ -81,6 +81,13 @@ while ( $ac <= $#argv )
       endif
       @ ac += 1
       set do_img = $argv[$ac]
+   else if ( "$argv[$ac]" == "-do_edge" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
+      @ ac += 1
+      set do_edge = $argv[$ac]
    else if ( "$argv[$ac]" == "-echo" ) then
       set echo
    else if ( "$argv[$ac]" == "-mask" ) then
@@ -323,7 +330,7 @@ if ( $mask_in != NONE ) then
    # make an edge mask.  Grow the current mask vertically, take 1 minus.  Since
    # anything touching this would be bad, dilate by 1 and take only the dilated
    # voxels.  Any cluster that includes such voxels is unwanted.
-   if ( ! $keep_edge ) then
+   if ( $do_edge != "1" ) then
       set edge_mask = mask_edge.nii.gz
       set tset = tmp.edge.nii.gz
       set t2   = tmp.e2.nii.gz
@@ -685,6 +692,13 @@ Options (processing):
 
                           Specify whether to make jpeg images of high
                           variance locations.
+
+   -do_edge VAL         : allow edge voxels in vline clusters (def=$do_edge)
+
+                             VAL in {0,1}
+
+                          Specify whether to warn about vline clusters which
+                          reach the x,y edge of the brain.
 
    -echo                : run script with shell 'echo' set (def=no)
                           (this is VERY verbose)
