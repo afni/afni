@@ -1,6 +1,6 @@
 #!/usr/bin/env tcsh
 
-# Make AFNI's help readable in a text editor again!
+# Make AFNI's help readable in a text editor
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
 set retval = 0   # return a status (do we need to goto END?)
@@ -291,7 +291,7 @@ if ($mode == 'grid') then
          if ( $overw == 0 && `@CheckForAfniDset $v1_pth/$oname` != 0 ) then
             echo ""
             echo "Error `basename $0`"
-            echo "Dset $v1_pth/$oname found, cleanup first!"
+            echo "Dset $v1_pth/$oname found, cleanup first"
             echo ""
             set retval = 1
             goto END
@@ -325,7 +325,7 @@ else if ($mode == "cm") then
          if ( $overw == 0 && `@CheckForAfniDset $v1_pth/$oname` != 0 ) then
             echo ""
             echo "Error `basename $0`"
-            echo "Dset $v1_pth/$oname found, cleanup first!"
+            echo "Dset $v1_pth/$oname found, cleanup first"
             echo ""
             set retval = 1
             goto END
@@ -387,7 +387,7 @@ else if (($mode == "shift1D") || ($mode == "shift1D_inv")) then
          if ( $overw == 0 && `@CheckForAfniDset $v1_pth/$oname` != 0 ) then
             echo ""
             echo "Error `basename $0`"
-            echo "Dset $v1_pth/$oname found, cleanup first!"
+            echo "Dset $v1_pth/$oname found, cleanup first"
             echo ""
             set retval = 1
             goto END
@@ -404,7 +404,7 @@ else if (($mode == "shift1D") || ($mode == "shift1D_inv")) then
                   -dyorigin $del_refit[2] \
                   -dzorigin $del_refit[3] $v1_pth/$oname
       endif
-   else  # not a copy, refitting the dataset in place!
+   else  # not a copy, refitting the dataset in place
       if ($xmat_only_meanit != 1) then
           3drefit  -dxorigin $del_refit[1] \
                -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1
@@ -482,7 +482,7 @@ foreach v1foli ( $v1_list )
          if ( $overw == 0 && `@CheckForAfniDset $v1fol_pth/${oname}` != 0 ) then
             echo ""
             echo "Error `basename $0`"
-            echo "Child Dset $v1fol_pth/${oname} found, cleanup first!"
+            echo "Child Dset $v1fol_pth/${oname} found, cleanup first"
             echo ""
             set retval = 1
             goto END
