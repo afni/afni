@@ -78,7 +78,7 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (?!)."
+    echo "** Cannot find 'afni' (???)."
     goto BAD_EXIT
 else
     set aa   = `which afni`
@@ -109,12 +109,12 @@ endif
 # =======================================================================
 
 if ( "$imtop" == "" ) then
-    echo "** ERROR: missing top img! Use '-imtop ..'"
+    echo "** ERROR: missing top img. Use '-imtop ..'"
     goto BAD_EXIT
 endif
 
 if ( "$imbot" == "" ) then
-    echo "** ERROR: missing bot img! Use '-imbot ..'"
+    echo "** ERROR: missing bot img. Use '-imbot ..'"
     goto BAD_EXIT
 endif
 
@@ -151,7 +151,7 @@ else
 endif
 
 echo ""
-echo "++ DONE! Image output:"
+echo "++ DONE. Image output:"
 echo "       ${odir}/${opref}"
 echo ""
 
@@ -197,7 +197,7 @@ SHOW_VERSION:
    goto GOOD_EXIT
 
 FAIL_MISSING_ARG:
-    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
     goto BAD_EXIT
 
 BAD_EXIT:

@@ -1085,7 +1085,7 @@ if ( $do_recur ) then
    # see if there are any changes to apply
    cmp -s $prog ../$prog
    if ( $status ) then
-      # use new version!
+      # use new version
       echo "++ using updated $prog, instead..."
       echo ""
 

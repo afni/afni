@@ -225,4 +225,4 @@ unsetenv AFNI_QUIET_STARTUP
 \rm -f ${pfx}_*????+orig.*
 
 END:
-### Free at last!!!
+### Free at last

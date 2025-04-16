@@ -80,14 +80,14 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (?!)."
+    echo "** Cannot find 'afni' (???)."
     goto BAD_EXIT
 else
     set aa   = `which afni`
     set adir = $aa:h
 endif
 
-# default location of viewer: user could modify!
+# default location of viewer: user could modify
 set my_viewer = "$adir/@chauffeur_afni"
 
 # ----------------------- set defaults --------------------------
@@ -212,10 +212,10 @@ echo "++ Start script version: $version"
 
 # NEED these two inputs
 if ( "$it1w" == "" ) then
-    echo "** ERROR: no t1w file input?!"
+    echo "** ERROR: no t1w file input???"
     goto BAD_EXIT
 else if ( "$it2w" == "" ) then
-    echo "** ERROR: no t2w file input?!"
+    echo "** ERROR: no t2w file input???"
     goto BAD_EXIT
 endif
 
@@ -233,7 +233,7 @@ end
 # ===================== output and working dirs =========================
 
 if ( "$opref" == "" ) then
-    echo "** ERROR: need '-prefix ...' option provided!"
+    echo "** ERROR: need '-prefix ...' option provided"
     echo "   See the helpfile for more information."
     goto BAD_EXIT
 else
@@ -294,7 +294,7 @@ if ( "$RES" == "" ) then
     foreach dd ( $dim )
         set comp = `echo "$RES > $dd" | bc`
         if ( "$comp" != "0" ) then
-            echo "++ Found smaller vox dim: $dd < ${RES} !"
+            echo "++ Found smaller vox dim: $dd < ${RES} "
             set RES = "$dd"
         endif
     end
@@ -353,7 +353,7 @@ endif
 # copy the t1w file to wdir via resampling: match t2w-t1w orients
 set orient_t2w = `3dinfo -orient "$it2w"`
 set t1res      = $wdir/f00_t1res.nii
-set T1TOMAP    = $t1res                 # we will apply map to this!
+set T1TOMAP    = $t1res                 # we will apply map to this
 3dresample                          \
     -overwrite                      \
     -prefix $t1res                  \
@@ -529,7 +529,7 @@ endif
 
 # clean, by default
 if ( "$DO_CLEAN" == "1" ) then
-    echo "\n++ Cleaning working directory!\n"
+    echo "\n++ Cleaning working directory\n"
     \rm -rf $wdir
 else
     echo "\n++ NOT removing working directory '$wdir'.\n"
@@ -565,7 +565,7 @@ cat << EOF
  This program mainly assumes that the T1w and T2w volume come from the
  same subject, and have similar contrasts expected for standard
  sequences and healthy adult brains.  This might still work for other
- applications, but caveat emptor (even more than usual!).  This would
+ applications, but caveat emptor (even more than usual).  This would
  *not* be recommended for aligning brains that aren't from the same
  subject.
 
@@ -696,7 +696,7 @@ SHOW_VERSION:
     goto GOOD_EXIT
 
 FAIL_MISSING_ARG:
-    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
     goto BAD_EXIT
 
 BAD_EXIT:
