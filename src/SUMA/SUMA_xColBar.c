@@ -1189,12 +1189,23 @@ int SUMA_SwitchColPlaneIntensity(
                       " %s and %s\n",
                       SO->Label, CHECK_NULL_STR(colp->Label),
                       SOC->Label, CHECK_NULL_STR(colpC->Label));
+         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
          if (!SUMA_SwitchColPlaneIntensity_one(
                            (SUMA_ALL_DO *)SOC, colpC, ind, 1)) {
             SUMA_S_Warn("Failed in contralateral");
          }
+
+        // SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+        colpC->OptScl->UseThr = !(SO->SurfCont->AlphaOpacityFalloff);
+        SUMA_ColorizePlane (colpC);          
+        colpC->OptScl->UseThr = 1;
       }
    }
+
+    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+    colp->OptScl->UseThr = !(SO->SurfCont->AlphaOpacityFalloff);
+    SUMA_ScaleToMap_Interactive ( colp );
+    colp->OptScl->UseThr = 1;
 
    SUMA_RETURN(1);
 }
