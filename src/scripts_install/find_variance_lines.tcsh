@@ -32,7 +32,6 @@ unalias grep
 set din_list   = ( )            # input datasets
 set do_clean   = 1              # do we remove temporary files
 set do_img     = 1              # make images
-set do_edge    = 1              # do we allow clusters at xy edge locations?
 set mask_in    = 'AUTO'         # any input mask (possibly renamed)
 set max_img    = 7              # maximum number of high-var images to make
 set min_cvox   = 7              # minimum voxels in a column
@@ -41,9 +40,10 @@ set nerode     = 0              # number of mask erosions
 set nfirst     = 0              # number of first time points to exclude
 set perc       = 90             # percentile limit of variance
 set polort     = A              # polort for trend removal (A = auto)
+set rm_edge    = 1              # remove clusters at xy edge locations?
 set rdir       = vlines.result  # output directory
 set sdpower    = 2              # power on stdev (2=default variance)
-set thresh     = 0.97           # threshold for tscale average (was .95)
+set thresh     = 0.95           # threshold for tscale average (was .97)
 
 # computed vars
 set edge_mask  = ''             # edge voxel mask, if applied
@@ -81,13 +81,6 @@ while ( $ac <= $#argv )
       endif
       @ ac += 1
       set do_img = $argv[$ac]
-   else if ( "$argv[$ac]" == "-do_edge" ) then
-      if ( $ac >= $#argv ) then
-         echo "** missing parameter after $argv[$ac]"
-         exit 1
-      endif
-      @ ac += 1
-      set do_edge = $argv[$ac]
    else if ( "$argv[$ac]" == "-echo" ) then
       set echo
    else if ( "$argv[$ac]" == "-mask" ) then
@@ -151,6 +144,13 @@ while ( $ac <= $#argv )
       else if ( $polort == NONE ) then
          set polort = -1
       endif
+   else if ( "$argv[$ac]" == "-rm_edge" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
+      @ ac += 1
+      set rm_edge = $argv[$ac]
    else if ( "$argv[$ac]" == "-stdev_power" ) then
       if ( $ac >= $#argv ) then
          echo "** missing parameter after $argv[$ac]"
@@ -214,8 +214,8 @@ foreach dset ( $din_list )
 end
 
 echo "++ have nslices : $nk_list"
-echo "++ params: min_cvox $min_cvox, nerode $nerode,"
-echo "           perc $perc, sdpower $sdpower, thresh $thresh"
+echo "++ params: min_cvox $min_cvox, nerode $nerode, perc $perc,"
+echo "           rm_edge $rm_edge, sdpower $sdpower, thresh $thresh"
 echo ""
 
 # ----------------------------------------------------------------------
@@ -330,7 +330,7 @@ if ( $mask_in != NONE ) then
    # make an edge mask.  Grow the current mask vertically, take 1 minus.  Since
    # anything touching this would be bad, dilate by 1 and take only the dilated
    # voxels.  Any cluster that includes such voxels is unwanted.
-   if ( $do_edge != "1" ) then
+   if ( $rm_edge != "1" ) then
       set edge_mask = mask_edge.nii.gz
       set tset = tmp.edge.nii.gz
       set t2   = tmp.e2.nii.gz
@@ -699,13 +699,6 @@ Options (processing):
                           Specify whether to make jpeg images of high
                           variance locations.
 
-   -do_edge VAL         : allow edge voxels in vline clusters (def=$do_edge)
-
-                             VAL in {0,1}
-
-                          Specify whether to warn about vline clusters which
-                          reach the x,y edge of the brain.
-
    -echo                : run script with shell 'echo' set (def=no)
                           (this is VERY verbose)
 
@@ -797,6 +790,13 @@ Options (processing):
 
                           All output is put into this results directory.
 
+   -rm_edge VAL         : allow edge voxels in vline clusters (def=$rm_edge)
+
+                             VAL in {0,1}
+
+                          Specify whether to warn about vline clusters which
+                          reach the x,y edge of the brain.
+
    -stdev_power POW     : power on stdev to apply before ave/thresh
 
                              default :  -stdev_power $sdpower
@@ -847,6 +847,8 @@ $prog modification history:
    0.6   8 Jan 2025 : min_cvox: 5->7
                     - add -thresh option
                     - add -stdev_power
+   0.7  18 Apr 2025 : add -rm_edge
+                    - revert thresh default from 0.97 back to 0.95
 
 EOF
 # check $version, at top
