@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Apr, 2025, RCR, "find_variance_lines.tcsh", MINOR, TYPE_NEW_OPT,
+   "add -ignore_edges, to help avoid reporting motion-based variance lines",
+   NULL
+ } ,
+
  { 13, Apr, 2025, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "quiet some compile warnings",
    NULL

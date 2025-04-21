@@ -29,21 +29,25 @@ unalias grep
 
 # ----------------------------------------------------------------------
 # main input variables ($run is the typical one to set)
-set din_list   = ( )            # input datasets
-set do_clean   = 1              # do we remove temporary files
-set do_img     = 1              # make images
-set mask_in    = 'AUTO'         # any input mask (possibly renamed)
-set max_img    = 7              # maximum number of high-var images to make
-set min_cvox   = 7              # minimum voxels in a column
-set min_nt     = 10             # minimum time series length (after nfirst)
-set nerode     = 0              # number of mask erosions
-set nfirst     = 0              # number of first time points to exclude
-set perc       = 90             # percentile limit of variance
-set polort     = A              # polort for trend removal (A = auto)
-set rdir       = vlines.result  # output directory
-set sdpower    = 2              # power on stdev (2=default variance)
-set thresh     = 0.97           # threshold for tscale average (was .95)
+set din_list     = ( )            # input datasets
+set do_clean     = 1              # do we remove temporary files
+set do_img       = 1              # make images
+set mask_in      = 'AUTO'         # any input mask (possibly renamed)
+set max_img      = 7              # maximum number of high-var images to make
+set min_cvox     = 7              # minimum voxels in a column
+set min_nt       = 10             # minimum time series length (after nfirst)
+set nerode       = 0              # number of mask erosions
+set nfirst       = 0              # number of first time points to exclude
+set perc         = 90             # percentile limit of variance
+set polort       = A              # polort for trend removal (A = auto)
+set ignore_edges = 1              # ignore lines clustering with edge voxels
+set rdir         = vlines.result  # output directory
+set sdpower      = 2              # power on stdev (2=default variance)
+set thresh       = 0.95           # threshold for tscale average (was .97)
 
+# computed vars
+set edge_mask  = ''             # edge voxel mask, if applied
+set clust_pre  = 'clustset'     # prefix for cluster mask
 
 set prog = find_variance_lines.tcsh
 
@@ -140,6 +144,13 @@ while ( $ac <= $#argv )
       else if ( $polort == NONE ) then
          set polort = -1
       endif
+   else if ( "$argv[$ac]" == "-ignore_edges" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
+      @ ac += 1
+      set ignore_edges = $argv[$ac]
    else if ( "$argv[$ac]" == "-stdev_power" ) then
       if ( $ac >= $#argv ) then
          echo "** missing parameter after $argv[$ac]"
@@ -203,8 +214,8 @@ foreach dset ( $din_list )
 end
 
 echo "++ have nslices : $nk_list"
-echo "++ params: min_cvox $min_cvox, nerode $nerode,"
-echo "           perc $perc, sdpower $sdpower, thresh $thresh"
+echo "++ params: min_cvox $min_cvox, nerode $nerode, perc $perc,"
+echo "           ignore_edges $ignore_edges, sdpower $sdpower, thresh $thresh"
 echo ""
 
 # ----------------------------------------------------------------------
@@ -314,6 +325,24 @@ if ( $mask_in != NONE ) then
              -prefix $mask_in
       echo ""
    endif
+
+   # If we do not want clusters touching the farthest front/back/sides of brain,
+   # make an edge mask.  Grow the current mask vertically, take 1 minus.  Since
+   # anything touching this would be bad, dilate by 1 and take only the dilated
+   # voxels.  Any cluster that includes such voxels is unwanted.
+   if ( $ignore_edges != "1" ) then
+      set edge_mask = mask_edge.nii.gz
+      set tset = tmp.edge.nii.gz
+      set t2   = tmp.e2.nii.gz
+      # grow vertically and take 1 minus
+      3dLocalstat -nbhd "Rect(0,0,-$nk)" -stat max -prefix $tset $mask_in
+      3dcalc -a $tset -expr '1-bool(a)' -prefix $t2 -datum byte
+      \rm $tset
+      # dilate and subtract out previous edge mask
+      3dmask_tool -dilate_inputs 1 -input $t2 -prefix $tset
+      3dcalc -a $tset -b $t2 -expr a-b -prefix $edge_mask
+      \rm $tset $t2
+   endif
 endif
 
 # --------------------------------------------------
@@ -374,14 +403,59 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
                -prefix $pset $sset
 
    # now threshold and cluster (slices are equal, so 1-D == 3-D)
+   # (show command before executing)
+   # change NN3 to NN2, as this is really 2D clustering (could use NN 1)
    set cfile = bad_clust.r$ind02.txt
-   3dClusterize -ithr 0 -idat 0 -NN 3 -inset $pset -2sided -1 $thresh \
-                | tee $cfile
+   set clust_mask = $clust_pre.r$ind02.nii.gz
+   set cmd = ( 3dClusterize -ithr 0 -idat 0 -NN 2 -inset $pset \
+                            -2sided -1 $thresh -pref_map $clust_mask )
+   echo $cmd
+   $cmd | tee $cfile
 
+   # and grab the coordinates of the bad clusters
    set bfile = bad_coords.r$ind02.txt
    grep -v '#' $cfile                                                     \
         | awk '{ z='$zcoord'; printf "%7.2f %7.2f %7.2f\n", $14, $15, z}' \
         | tee $bfile
+
+   # if we have an edge_mask, possibly remove edge clusters from $bfile
+   if ( $edge_mask != "" ) then
+      set edge_clust = $clust_pre.r$ind02.edge.nii.gz
+      3dcalc -a $clust_mask -b $edge_mask -expr 'a*b' -prefix $edge_clust
+      # use 3dRank to get badlist: non-zero values in $edge_clust
+      3dRank -prefix rank.$ind02 -input $edge_clust
+      \rm rank.$ind02+*
+      set edgelist = ( `1dcat rank.$ind02.rankmap.1D'[1]' | tail -n +2` )
+      set nclust = ( `cat $bfile | wc -l` )
+
+      # if there is an adjustment to make, do so
+      set ecfile = edge_coords.r$ind02.txt
+      set backfile = bad_coords.full.r$ind02.txt
+      cp $bfile $backfile
+      echo "" > $ecfile    # start with an empty file
+      if ( $nclust > 0 && $#edgelist > 0 ) then
+         # note: line and cluster numbers are 1-based
+         echo "++ have $nclust clusters but $#edgelist are at edges"
+         set pedge = "[`echo $edgelist | tr ' ' ,`]"
+         # find clusters that are not in edgelist
+         set inlist = ( `python -c "for ind in [i+1 for i in range($nclust) \
+                           if i+1 not in $pedge]: print(ind)"`)
+         echo "-- keeping clusters : $inlist"
+         echo "   removing clusters: $edgelist"
+         # create new files (new bfile from inlist, ecfile from edgelist)
+         echo -n "" > $bfile
+         foreach r ( $inlist )
+            awk "{if(NR==$r) print}" $backfile >> $bfile
+         end
+         foreach r ( $edgelist )
+            awk "{if(NR==$r) print}" $backfile >> $ecfile
+         end
+         echo "++ updated inner coord list:"
+         cat $bfile
+      else
+         echo "-- no edge clusters to remove"
+      endif
+   endif
 
    set bad_counts = ( $bad_counts `cat $bfile | wc -l` )
 end  # foreach index
@@ -400,6 +474,12 @@ set bfile = bad_coords.inter.txt
 grep -v '#' $cfile                                                    \
      | awk '{z='$zcoord'; printf "%7.2f %7.2f %7.2f\n", $14, $15, z}' \
      | tee $bfile
+
+# *** hack for now: if edge_mask, just use run 1
+if ( $edge_mask != "" ) then
+   echo "** FIX : using run 01 instead of intersection"
+   cp bad_clust.r01.txt $bfile
+endif
 
 # ---------------------------------------------------------------------------
 # create images pointing to vlines
@@ -710,6 +790,23 @@ Options (processing):
 
                           All output is put into this results directory.
 
+   -ignore_edges VAL    : ignore vline clusters at edges (def=$ignore_edges)
+
+                             VAL in {0,1}
+
+                          Set this option to ignore clusters at the R,L,A,P
+                          edges, so vlines near those edges are not reported.
+
+                          If a vline cluster traces the outer edge of the brain
+                          (in the j-axis direction), it is probably just due to
+                          motion.  Use this option to ignore such clusters, and
+                          therefore not report vlines connected to edges.
+
+                          Such edges are defined as the outermost edges in the
+                          i and j directions of the 3-D mask.  This is because
+                          lines are along the k axis (usually I/S), and the
+                          limits should be perpendicular to the vline axis.
+
    -stdev_power POW     : power on stdev to apply before ave/thresh
 
                              default :  -stdev_power $sdpower
@@ -760,6 +857,8 @@ $prog modification history:
    0.6   8 Jan 2025 : min_cvox: 5->7
                     - add -thresh option
                     - add -stdev_power
+   0.7  21 Apr 2025 : add -ignore_edges
+                    - revert thresh default from 0.97 back to 0.95
 
 EOF
 # check $version, at top
