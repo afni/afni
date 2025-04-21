@@ -420,7 +420,10 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
 
    # if we have an edge_mask, possibly remove edge clusters from $bfile
    if ( $edge_mask != "" ) then
-      set edge_clust = $clust_pre.r$ind02.edge.nii.gz
+      # create inner_clust laster, either avoid edges or using full clust
+      set inner_clust = $clust_pre.inner.r$ind02.nii.gz
+      # store edge cluster (restricted to edges) and inner clusters
+      set edge_clust = $clust_pre.edge.r$ind02.nii.gz
       3dcalc -a $clust_mask -b $edge_mask -expr 'a*b' -prefix $edge_clust
       # use 3dRank to get badlist: non-zero values in $edge_clust
       3dRank -prefix rank.$ind02 -input $edge_clust
@@ -440,6 +443,18 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
          # find clusters that are not in edgelist
          set inlist = ( `python -c "for ind in [i+1 for i in range($nclust) \
                            if i+1 not in $pedge]: print(ind)"`)
+         # create inner_clust dset: extract inlist clusters
+         # (this might be empty)
+         if ( $#inlist > 0 ) then
+            echo "-- creating inner clusterset $inner_clust ($#inlist clusters)"
+            set vinner = "<`echo $inlist | tr ' ' ,`>"
+            3dbucket -prefix $inner_clust $clust_mask"$vinner"
+         else
+            echo "-- creating inner clusterset $inner_clust (but empty)"
+            # still make an inner_clust dataset, but it is empty
+            3dcalc -a $clust_mask -expr 0 -prefix $inner_clust
+         endif
+
          echo "-- keeping clusters : $inlist"
          echo "   removing clusters: $edgelist"
          # create new files (new bfile from inlist, ecfile from edgelist)
@@ -454,6 +469,9 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
          cat $bfile
       else
          echo "-- no edge clusters to remove"
+         # some runs might have inner, some not, so we "need" an inner dset
+         # to wildcard on for the later intersection
+         3dcopy $clust_mask $inner_clust
       endif
    endif
 
@@ -463,23 +481,27 @@ echo ""
 
 # ---------------------------------------------------------------------------
 # report intersection clusters from projection dsets
-echo "-- evaluating intersection..."
-set pset = proj.min.nii.gz
-3dMean -min -prefix proj.min.nii.gz proj.r*.nii.gz
+
+# if ignoring edges, only use inner clusters
+if ( $edge_mask != "" ) then
+   set cform = "$clust_pre.inner.r*.nii.gz"
+else
+   set cform = "$clust_pre.r*.nii.gz"
+endif
+set clustsets = ( $cform )
+
+echo "-- evaluating intersection (across $cform) ..."
+set iset = clust.inter.nii.gz
+3dmask_tool -inter -prefix $iset -input $clustsets
 
 set cfile = bad_clust.inter.txt
-3dClusterize -ithr 0 -idat 0 -NN 3 -inset $pset -2sided -1 $thresh \
+# we are clustering a binary dataset, so use any threshold above zero
+3dClusterize -ithr 0 -idat 0 -NN 2 -inset $iset -2sided 0 0.9 \
              | tee $cfile
 set bfile = bad_coords.inter.txt
 grep -v '#' $cfile                                                    \
      | awk '{z='$zcoord'; printf "%7.2f %7.2f %7.2f\n", $14, $15, z}' \
      | tee $bfile
-
-# *** hack for now: if edge_mask, just use run 1
-if ( $edge_mask != "" ) then
-   echo "** FIX : using run 01 instead of intersection"
-   cp bad_clust.r01.txt $bfile
-endif
 
 # ---------------------------------------------------------------------------
 # create images pointing to vlines
