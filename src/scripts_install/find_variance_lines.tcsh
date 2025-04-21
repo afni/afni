@@ -330,7 +330,7 @@ if ( $mask_in != NONE ) then
    # make an edge mask.  Grow the current mask vertically, take 1 minus.  Since
    # anything touching this would be bad, dilate by 1 and take only the dilated
    # voxels.  Any cluster that includes such voxels is unwanted.
-   if ( $ignore_edges != "1" ) then
+   if ( $ignore_edges == "1" ) then
       set edge_mask = mask_edge.nii.gz
       set tset = tmp.edge.nii.gz
       set t2   = tmp.e2.nii.gz
