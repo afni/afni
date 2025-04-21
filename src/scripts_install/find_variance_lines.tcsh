@@ -407,8 +407,8 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
    # change NN3 to NN2, as this is really 2D clustering (could use NN 1)
    set cfile = bad_clust.r$ind02.txt
    set clust_mask = $clust_pre.r$ind02.nii.gz
-   set cmd = ( 3dClusterize -ithr 0 -idat 0 -NN 2 -inset $pset \
-                            -2sided -1 $thresh -pref_map $clust_mask )
+   set cmd = ( 3dClusterize -ithr 0 -idat 0 -NN 2 -2sided -1 $thresh \
+                  -inset $pset -pref_map $clust_mask -outvol_if_no_clust )
    echo $cmd
    $cmd | tee $cfile
 
@@ -497,7 +497,7 @@ set iset = clust.inter.nii.gz
 set cfile = bad_clust.inter.txt
 # we are clustering a binary dataset, so use any threshold above zero
 3dClusterize -ithr 0 -idat 0 -NN 2 -inset $iset -2sided 0 0.9 \
-             | tee $cfile
+             -outvol_if_no_clust | tee $cfile
 set bfile = bad_coords.inter.txt
 grep -v '#' $cfile                                                    \
      | awk '{z='$zcoord'; printf "%7.2f %7.2f %7.2f\n", $14, $15, z}' \
