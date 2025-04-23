@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Apr, 2025, RCR, "afni.c", MICRO, TYPE_MODIFY,
+   "add terminal handler to pass to XtAppSetErrorHandler",
+   "This is needed to use __attribute__((noreturn)) for macos /usr/bin/gcc.\n"
+   "Added for J Kadlec."
+ } ,
+
  { 13, Apr, 2025, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "quiet some compile warnings",
    NULL
