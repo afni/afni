@@ -2047,6 +2047,29 @@ void AFNI_handler(char *msg){
    return ;
 }
 
+/*-----------------------------------------------------------------------
+   A terminal version.  This cannot even return.      [23 Apr 2025 rickr]
+
+   Some compilers require __attribute__((noreturn)) for a function passed
+   to XtAppSetErrorHandler.  But in that case, exit() might be required,
+   rather than return.
+
+   Since AFNI_handler is also used for XtAppSetWarningHandler, it should
+   not exit().  So add this new function just for XtAppSetErrorHandler.
+-------------------------------------------------------------------------*/
+
+static __attribute__((noreturn)) void AFNI_exit_handler(char *msg) {
+   ERROR_message("terminal failure, exiting...") ;
+   if( GLOBAL_argopt.xtwarns > 0 &&
+       msg != NULL               &&
+       strstr(msg,"Attempt to add wrong") == NULL )
+   {
+     ERROR_message("Xt message: %s", msg ) ;
+     TRACEBACK ;
+   }
+   exit(1) ;
+}
+
 /*-----------------------------------------------------------------------*/
 /*! Avoid fatal X11 errors.  Stupid thing is so touchy sometimes. */
 
@@ -2770,7 +2793,7 @@ int main( int argc , char *argv[] )
    /*-- disable X11 and Xt error messages and crashes (we hope) --*/
 
    (void) XSetErrorHandler( AFNI_xerrhandler ) ;      /* 26 Jun 2003 */
-   (void) XtAppSetErrorHandler(MAIN_app,AFNI_handler) ;
+   (void) XtAppSetErrorHandler(MAIN_app, AFNI_exit_handler) ;
 
    if( GLOBAL_argopt.xtwarns != 1 )
      (void) XtAppSetWarningHandler(MAIN_app,AFNI_handler) ;  /* turn off */
