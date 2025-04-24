@@ -1045,14 +1045,14 @@ def run_qc_var_line_blocks(proc, block):
     rdir = 'vlines.pb%02d.%s' % (block.index, block.label)
     proc.uvars.set_var('vlines_%s_dir' % block.label, [rdir])
 
-    nerode = 2
+    # no longer erode, the default has changed to -ignore_edges
     cmd  = '# ---------------------------------------------------------\n' \
            '# QC: look for columns of high variance\n'                     \
-           'find_variance_lines.tcsh -polort %s -nerode %s \\\n'           \
+           'find_variance_lines.tcsh -polort %s            \\\n'           \
            '%s'                                                            \
            '       -rdir %s \\\n'                                          \
            '       %s |& tee out.%s.txt\n\n'                               \
-           % (proc.regress_polort, nerode, other_opts, rdir, dsets, rdir)
+           % (proc.regress_polort, other_opts, rdir, dsets, rdir)
 
     return 0, cmd
 
