@@ -43,7 +43,7 @@ set polort       = A              # polort for trend removal (A = auto)
 set ignore_edges = 1              # ignore lines clustering with edge voxels
 set rdir         = vlines.result  # output directory
 set sdpower      = 2              # power on stdev (2=default variance)
-set thresh       = 0.95           # threshold for tscale average (was .97)
+set thresh       = 0.90           # threshold for tscale average (was .97)
 
 # computed vars
 set edge_mask  = ''             # edge voxel mask, if applied
@@ -879,8 +879,8 @@ $prog modification history:
    0.6   8 Jan 2025 : min_cvox: 5->7
                     - add -thresh option
                     - add -stdev_power
-   0.7  21 Apr 2025 : add -ignore_edges
-                    - revert thresh default from 0.97 back to 0.95
+   0.7  23 Apr 2025 : add -ignore_edges (default on)
+                    - change corresponding thresh default from 0.97 to 0.90
 
 EOF
 # check $version, at top
