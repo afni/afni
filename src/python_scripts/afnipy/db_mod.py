@@ -3737,7 +3737,7 @@ def db_mod_combine(block, proc, user_opts):
       return 1
 
    # if using tedana for data and later blurring, suggest -blur_in_mask
-   if ocmeth[0:6] == 'tedana' and \
+   if ocmeth.find('tedana') >= 0 and \
          proc.find_block_order('combine', 'blur') == -1 :
       if not proc.user_opts.have_yes_opt('-blur_in_mask'):
          # okay, finally whine here
