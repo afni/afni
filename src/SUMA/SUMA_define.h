@@ -1093,6 +1093,7 @@ typedef struct {
    float *originalColVec;
    char *originalCMapName;
    double IntRange[2];
+   SUMA_Boolean intensitySwitched;
 } SUMA_OVERLAYS;
 
 

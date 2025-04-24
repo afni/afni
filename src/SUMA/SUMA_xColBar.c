@@ -1201,12 +1201,12 @@ int SUMA_SwitchColPlaneIntensity(
         colpC->OptScl->UseThr = 1;
       }
    }
-
+/*
     SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
     colp->OptScl->UseThr = !(SO->SurfCont->AlphaOpacityFalloff);
     SUMA_ScaleToMap_Interactive ( colp );
     colp->OptScl->UseThr = 1;
-
+*/
    SUMA_RETURN(1);
 }
 
@@ -1457,6 +1457,8 @@ void SUMA_cb_SwitchIntensity(Widget w, XtPointer client_data, XtPointer call)
    }
 
    SUMA_SwitchColPlaneIntensity(ado, curColPlane, imenu -1, 0);
+   
+   curColPlane->intensitySwitched = 1;
 
    SUMA_RETURNe;
 }
