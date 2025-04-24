@@ -1354,7 +1354,10 @@ colorizeSavingButton(is_served);
     # [PT: 2025-04-02] allow pages to close more easily (saving is unchanged)
     # [PT: 2025-04-09] this has to go *after* the colorizeSavingButton stuff,
     #                  apparently
-    y+= '''
+    # [PT: 2025-04-23] having this here breaks cross-tab jumpability, so 
+    #                  commenting out for now
+    if 0 :
+        y+= '''
 /*
   The following three items allow us to close an HTML page without
   needing to verify, which is nice when the are many tabs open.  
