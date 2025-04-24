@@ -53,10 +53,20 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Apr, 2025, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "use updated find_variance_lines.tcsh (no -erode 2)",
+   "The -ignore_edges method improves on the intention of -erode."
+ } ,
+
  { 23, Apr, 2025, RCR, "afni.c", MICRO, TYPE_MODIFY,
    "add terminal handler to pass to XtAppSetErrorHandler",
    "This is needed to use __attribute__((noreturn)) for macos /usr/bin/gcc.\n"
    "Added for J Kadlec."
+ } ,
+
+ { 21, Apr, 2025, RCR, "find_variance_lines.tcsh", MINOR, TYPE_NEW_OPT,
+   "add -ignore_edges, to help avoid reporting motion-based variance lines",
+   NULL
  } ,
 
  { 13, Apr, 2025, RCR, "afni-general", MICRO, TYPE_MODIFY,

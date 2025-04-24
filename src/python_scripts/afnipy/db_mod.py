@@ -1045,14 +1045,14 @@ def run_qc_var_line_blocks(proc, block):
     rdir = 'vlines.pb%02d.%s' % (block.index, block.label)
     proc.uvars.set_var('vlines_%s_dir' % block.label, [rdir])
 
-    nerode = 2
+    # no longer erode, the default has changed to -ignore_edges
     cmd  = '# ---------------------------------------------------------\n' \
            '# QC: look for columns of high variance\n'                     \
-           'find_variance_lines.tcsh -polort %s -nerode %s \\\n'           \
+           'find_variance_lines.tcsh -polort %s            \\\n'           \
            '%s'                                                            \
            '       -rdir %s \\\n'                                          \
            '       %s |& tee out.%s.txt\n\n'                               \
-           % (proc.regress_polort, nerode, other_opts, rdir, dsets, rdir)
+           % (proc.regress_polort, other_opts, rdir, dsets, rdir)
 
     return 0, cmd
 
@@ -3737,7 +3737,7 @@ def db_mod_combine(block, proc, user_opts):
       return 1
 
    # if using tedana for data and later blurring, suggest -blur_in_mask
-   if ocmeth[0:6] == 'tedana' and \
+   if ocmeth.find('tedana') >= 0 and \
          proc.find_block_order('combine', 'blur') == -1 :
       if not proc.user_opts.have_yes_opt('-blur_in_mask'):
          # okay, finally whine here

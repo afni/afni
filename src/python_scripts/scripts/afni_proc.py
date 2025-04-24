@@ -812,12 +812,14 @@ g_history = """
     7.87 Mar 11, 2025: update examples class 3,5 per AD6
     7.88 Mar 21, 2025: add combine methods OC_m_tedort and m_tedana_OC_tedort
     7.89 Apr  2, 2025: parse/pass any opts_ts -tpattern @FILE to review_basic
+    7.90 Apr 24, 2025: use updated find_variance_lines.tcsh (no -nerode 2)
 """
 
-g_version = "version 7.89, April 2, 2025"
+g_version = "version 7.90, April 24, 2025"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ "24 Apr 2025",  "find_variance_lines.tcsh -ignore_edges" ],
       [ " 7 Mar 2024",  "3dTto1D -method 4095_warn" ],
       [ "15 Feb 2024",  "compute_ROI_stats.tcsh, whereami -index_to_label" ],
       [ "14 Nov 2022",  "find_variance_lines.tcsh" ],
