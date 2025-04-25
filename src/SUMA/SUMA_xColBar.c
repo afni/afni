@@ -2313,9 +2313,10 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
                                    XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
-   SUMA_ALL_DO *ado=NULL;
+   SUMA_ALL_DO *ado=NULL, *otherAdo=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    static int AlphaOpacityFalloff = 0;
+   int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
 
    SUMA_ENTRY;
    
@@ -2325,16 +2326,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    if (!(SO->SurfCont=SUMA_ADO_Cont(ado))
             || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
    
-   if (AlphaOpacityFalloff==0){
-    SO->SurfCont->AlphaOpacityFalloff = 0;
-    AlphaOpacityFalloff = 1;
-   }
-   
-   // AlphaOpacityFalloff = !AlphaOpacityFalloff;
-   SO->SurfCont->AlphaOpacityFalloff = !(SO->SurfCont->AlphaOpacityFalloff);
-   
-   // SO->SurfCont->AlphaThresh is common across period key
-   // SO->SurfCont->AlphaOpacityFalloff = /* SurfCont->AlphaOpacityFalloff = */ AlphaOpacityFalloff;
+   AlphaOpacityFalloff = SO->SurfCont->AlphaOpacityFalloff = XmToggleButtonGetState(w);
 
    if (!(SO->Overlays)){
     if (SO->SurfCont->AlphaOpacityFalloff){
@@ -2358,6 +2350,37 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    // Refresh display
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
+   
+   // Process all surface objects
+   int numSurfaceObjects;
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist)
+   {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        SUMA_RETURNe;
+   }
+   for (j=0; j<N_adolist; ++j){
+        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+        if (otherAdo != ado){
+            if (otherAdo->do_type == SO_type){
+               SO = (SUMA_SurfaceObject *)otherAdo;
+               if (!(SO->SurfCont=SUMA_ADO_Cont(otherAdo))
+                        || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
+        
+               SO->SurfCont->AlphaOpacityFalloff = AlphaOpacityFalloff;
+               XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
+                                          SO->SurfCont->AlphaOpacityFalloff, NOPE);
+
+               // Default opacity model
+               if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
+               
+               // Refresh display
+               SUMA_Remixedisplay(otherAdo);
+               SUMA_UpdateNodeLblField(otherAdo);            
+            }
+        }
+    }
 
    SUMA_RETURNe;
 }
