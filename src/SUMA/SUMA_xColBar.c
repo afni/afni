@@ -2316,7 +2316,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    SUMA_ALL_DO *ado=NULL, *otherAdo=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    static int AlphaOpacityFalloff = 0;
-   int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
 
    SUMA_ENTRY;
    
@@ -2376,8 +2376,10 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
                if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
                
                // Refresh display
-               SUMA_Remixedisplay(otherAdo);
-               SUMA_UpdateNodeLblField(otherAdo);            
+               for (i=0; i<2; ++i){
+                   SUMA_Remixedisplay(otherAdo);
+                   SUMA_UpdateNodeLblField(otherAdo);            
+               }
             }
         }
     }
