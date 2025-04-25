@@ -469,7 +469,7 @@ NOTE: distribution of ISI ~2~
 
        set nhist = `1dcat isis_hist.1D | wc -l`
        make_random_timing.py -verb 0 -show_isi_pdf 100 1000 > pure_probs.1D
-       grep -v prob pure_probs.1D | grep -v result | grep -v '\-----' \\
+       grep -v prob pure_probs.1D | grep -v result | grep -v '\\-----' \\
            | head -n $nhist > prob.1D
        1dplot -sepscl prob.1D'[1]' isis_hist.1D'[1,2]'
 
