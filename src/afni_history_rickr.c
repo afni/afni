@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Apr, 2025, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
+   "automatically replace n/a values with 0.0 when reading TSV",
+   NULL
+ } ,
+
  { 24, Apr, 2025, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "use updated find_variance_lines.tcsh (no -erode 2)",
    "The -ignore_edges method improves on the intention of -erode."

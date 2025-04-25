@@ -3427,6 +3427,7 @@ class Afni1D:
             print("** float n/a retry for '%s'..." % fname)
          try:
             nacount = 0
+            naval = ''
             fmat = []
             for trow in tdat:
                fline = []
@@ -3435,11 +3436,13 @@ class Afni1D:
                   if val in ['n/a', 'N/A', 'na', 'NA']:
                      fline.append(0.0)
                      nacount += 1
+                     naval = val
                   else:
                      fline.append(float(val))
                fmat.append(fline)
             if self.verb > 1:
-               print("-- replaced %d n/a values with 0 in %s"%(nacount, fname))
+               print("-- replaced %d '%s' values with 0.0 in %s" \
+                     % (nacount, naval, fname))
          except:
             if self.verb:
                print("** data in TSV not all float for '%s'" % fname)
