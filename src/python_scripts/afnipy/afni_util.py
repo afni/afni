@@ -2932,6 +2932,7 @@ def decode_1D_ints(istr, verb=1, imax=-1, labels=[]):
                 N = int(N)
                 val = to_int_special(val, '$', imax, labels)
                 ilist.extend([val for i in range(N)])
+                if verb > 2: print("-- decode_1D_ints: @ special %s" % s)
             elif s.find('..') >= 0:     # then expect "A..B"
                 pos = s.find('..')
                 if s.find('(', pos) > 0:    # look for "A..B(C)"
@@ -2955,6 +2956,12 @@ def decode_1D_ints(istr, verb=1, imax=-1, labels=[]):
                    if v1 < v2 : step = 1
                    else:        step = -1
                    ilist.extend([i for i in range(v1, v2+step, step)])
+                if verb > 2: print("-- decode_1D_ints: .. special %s" % s)
+            elif '*' in s or '?' in s:
+                lll = to_intlist_wild(s, labels)
+                ilist.extend(lll)
+                if verb > 2:
+                   print("-- decode_1D_ints: wild special %s, list %s" %(s,lll))
             else:
                 ilist.extend([to_int_special(s, '$', imax, labels)])
         except:
@@ -2963,6 +2970,26 @@ def decode_1D_ints(istr, verb=1, imax=-1, labels=[]):
     if verb > 3: print('++ ilist: %s' % ilist)
     del(newstr)
     return ilist
+
+def to_intlist_wild(cval, labels=[]):
+   """return the index list of any labels that match cval, including wildcards
+
+      Use '*' and '?' for wilcard matching.
+      In the regular expression, replace '*' with '.*', and '?' with '.'.
+
+        cval:   int as character string, or a label
+        labels: labels to consider
+   """
+
+   cval = cval.replace('*', '.*')
+   cval = cval.replace('?', '.')
+
+   # look for any matching label
+   ilist = []
+   for lind, label in enumerate(labels):
+      if re.fullmatch(cval, label):
+         ilist.append(lind)
+   return ilist
 
 def to_int_special(cval, spec, sint, labels=[]):
    """basically return int(cval), but if cval==spec, return sint
