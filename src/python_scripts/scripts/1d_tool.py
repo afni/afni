@@ -130,7 +130,7 @@ examples (very basic for now): ~1~
          1d_tool.py -infile fmriprep_confounds.tsv'[rot_?,trans_?]' \\
                     -write fmriprep_motion.1D
 
-       verify the labels and indices chosen by selector:
+       verify the labels chosen by selector:
 
          1d_tool.py -infile fmriprep_confounds.tsv'[rot_?,trans_?]' \\
                     -show_group_labels
