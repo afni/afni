@@ -115,6 +115,26 @@ examples (very basic for now): ~1~
                         Component classification=rejected              \\
                     -write tedana.rejected.1D -verb 2
 
+   Example 2f. Select fMRIPrep confounds. ~2~
+
+       fMRIPrep outputs many time series to optionally use for regression.
+       Assuming this is in a file fmriprep_confounds.tsv:
+
+       select AROMA motion time series:
+
+         1d_tool.py -infile fmriprep_confounds.tsv'[aroma_mot*]' \\
+                    -write aroma_motion.1D
+
+       select standard motion parameters (3 rotations, 3 shifts):
+
+         1d_tool.py -infile fmriprep_confounds.tsv'[rot_?,trans_?]' \\
+                    -write fmriprep_motion.1D
+
+       verify the labels and indices chosen by selector:
+
+         1d_tool.py -infile fmriprep_confounds.tsv'[rot_?,trans_?]' \\
+                    -show_group_labels
+
    Example 3.  Transpose a dataset, akin to 1dtranspose. ~2~
 
          1d_tool.py -infile t3.1D -transpose -write ttr.1D
@@ -1020,6 +1040,8 @@ general options: ~2~
 
    -select_cols SELECTOR        : apply AFNI column selectors, [] is optional
                                   e.g. '[5,0,7..21(2)]'
+                                  e.g. '[aroma_mot*]'       # aroma_motion
+                                  e.g. '[rot_?,trans_?]'    " 6 motion params
    -select_cols_via_TSV_table TABLE FIELD WHERE
                                 : use tsv TABLE to select FIELD elements where
                                   WHERE is true; resulting values are then

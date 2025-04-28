@@ -3283,10 +3283,16 @@ class Afni1D:
          ilist = UTIL.decode_1D_ints(aname.colsel, imax=self.nvec-1,
                                      labels=labels, verb=self.verb)
          if ilist == None: return 1
+         if self.verb > 1:
+            print("-- selecting columns: %s" % UTIL.int_list_string(ilist))
+         if self.verb > 2:
+            print("-- labels: %s" % ', '.join([labels[i] for i in ilist]))
          if self.reduce_by_vec_list(ilist): return 1
       if aname.rowsel:
          ilist = UTIL.decode_1D_ints(aname.rowsel,imax=self.nt-1,verb=self.verb)
          if ilist == None: return 1
+         if self.verb > 1:
+            print("-- selecting rows: %s" % UTIL.int_list_string(ilist))
          if self.reduce_by_tlist(ilist): return 1
 
       return 0

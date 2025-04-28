@@ -2909,7 +2909,7 @@ def restrict_by_index_lists(dlist, ilist, base=0, nonempty=1, verb=1):
     # the big finish
     return 0, [dlist[ind] for ind in clist]
 
-def decode_1D_ints(istr, imax=-1, labels=[], verb=verb):
+def decode_1D_ints(istr, imax=-1, labels=[], verb=1):
     """Decode a comma-delimited string of ints, ranges and A@B syntax,
        and AFNI-style sub-brick selectors (including A..B(C)).
        If the A..B format is used, and B=='$', then B gets 'imax'.
