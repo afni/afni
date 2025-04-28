@@ -1158,7 +1158,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
             SS('o');
             sprintf(lbuf,"%-36s\t%-12s", "Focus point (LPI)", "Coord.Space");
             ADDTO_SARR(sar,lbuf);
-            for (ii=0; ii<3; ++ii) {
+            for (ii=0; ii<N_out_spaces; ++ii) {
                SS('p');sprintf(tmps,"%s, %s, %s", xlab[ii], ylab[ii], zlab[ii]);
                SS('q');sprintf(lbuf,"%-36s\t%-64s", tmps, clab[ii]);
                ADDTO_SARR(sar,lbuf);
@@ -1726,6 +1726,9 @@ int find_coords_in_space(ATLAS_COORD *acl, int N_acl, char *space_name)
    return(-1);
 }
 
+/* this version should no longer be called - 
+ * replaced long ago by genx_Atlas_query_to_string 
+ * remove function and calls */
 char * Atlas_Query_to_String (ATLAS_QUERY *wami,
                               ATLAS_COORD ac, WAMI_SORT_MODES mode,
                               ATLAS_LIST *atlas_list)
@@ -1740,6 +1743,7 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
    int i, ii, nfind=0, nfind_one = 0, iq=0, il=0, newzone = 0;
    AFNI_STD_SPACES start_space;
    ATLAS *atlas=NULL;
+   int N_out_spaces= 1;
    int LocalHead = wami_lh();
 
    ENTRY("Atlas_Query_to_String") ;
@@ -1856,7 +1860,7 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
             SS('o');
             sprintf(lbuf,"%-36s\t%-64s", "Focus point (LPI)", "Coord.Space");
             ADDTO_SARR(sar,lbuf);
-            for (ii=0; ii<3; ++ii) {
+            for (ii=0; ii<N_out_spaces; ++ii) {
                SS('p');sprintf(tmps,"%s,%s,%s", xlab[ii], ylab[ii], zlab[ii]);
                SS('q');sprintf(lbuf,"%-36s\t%-12s", tmps, clab[ii]);
                ADDTO_SARR(sar,lbuf);
