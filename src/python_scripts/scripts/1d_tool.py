@@ -1477,9 +1477,10 @@ g_history = """
    2.20 Jan 31, 2025 - add -show_slice_timing_resolution
    2.21 Mar 12, 2025 - allow auto-reading of TSV as -infile
    2.22 Mar 20, 2025 - add -select_cols_via_TSV_table
+   2.23 Apr 25, 2025 - allow float read retry for na values
 """
 
-g_version = "1d_tool.py version 2.22, March 20, 2025"
+g_version = "1d_tool.py version 2.23, April 25, 2025"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']

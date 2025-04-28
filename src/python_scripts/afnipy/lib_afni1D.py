@@ -3415,12 +3415,41 @@ class Afni1D:
 
       # ------------------------------------------------------------
       # have rectangular data, all must be float now
+      retry = 0
       try:
          fmat = [ [float(val) for val in trow] for trow in tdat ]
       except:
-         if self.verb:
-            print("** data in TSV not all float for '%s'" % fname)
-            return 1
+         retry = 1
+
+      # allow slower retry, setting n/a to 0.0 (we can add options for this)
+      if retry:
+         if self.verb > 2:
+            print("** float n/a retry for '%s'..." % fname)
+         try:
+            nacount = 0
+            naval = ''
+            fmat = []
+            for trow in tdat:
+               fline = []
+               for val in trow:
+                  sys.stdout.flush()
+                  if val in ['n/a', 'N/A', 'na', 'NA']:
+                     fline.append(0.0)
+                     nacount += 1
+                     naval = val
+                  else:
+                     fline.append(float(val))
+               fmat.append(fline)
+            if self.verb > 1:
+               print("-- replaced %d '%s' values with 0.0 in %s" \
+                     % (nacount, naval, fname))
+         except:
+            if self.verb:
+               print("** data in TSV not all float for '%s'" % fname)
+               if self.verb > 2:
+                  print("   val = %s" % val)
+                  print("   trow = %s" % trow)
+               return 1
 
       # ------------------------------------------------------------
       # treat columns as across time
