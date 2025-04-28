@@ -1249,7 +1249,7 @@ class Afni1D:
 
       if self.verb > 3: print('-- Afni1D reverse...')
 
-      ilist = UTIL.decode_1D_ints('$..0(-1)',verb=self.verb,imax=self.nt-1)
+      ilist = UTIL.decode_1D_ints('$..0(-1)',imax=self.nt-1,verb=self.verb)
       if self.reduce_by_tlist(ilist): return 1
 
       return 0
@@ -3280,12 +3280,12 @@ class Afni1D:
          else:
             labels = []
 
-         ilist = UTIL.decode_1D_ints(aname.colsel, verb=self.verb,
-                                     imax=self.nvec-1, labels=labels)
+         ilist = UTIL.decode_1D_ints(aname.colsel, imax=self.nvec-1,
+                                     labels=labels, verb=self.verb)
          if ilist == None: return 1
          if self.reduce_by_vec_list(ilist): return 1
       if aname.rowsel:
-         ilist = UTIL.decode_1D_ints(aname.rowsel,verb=self.verb,imax=self.nt-1)
+         ilist = UTIL.decode_1D_ints(aname.rowsel,imax=self.nt-1,verb=self.verb)
          if ilist == None: return 1
          if self.reduce_by_tlist(ilist): return 1
 

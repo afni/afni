@@ -2878,7 +2878,7 @@ def restrict_by_index_lists(dlist, ilist, base=0, nonempty=1, verb=1):
         if type(istr) != str:
             print('** RBIL: bad index selector %s' % istr)
             return 1, []
-        curlist = decode_1D_ints(istr, verb=verb, imax=imax)
+        curlist = decode_1D_ints(istr, imax=imax, verb=verb)
         if not curlist and nonempty:
             if verb: print("** empty index list for istr[%d]='%s'" % (ind,istr))
             return 1, []
@@ -2909,12 +2909,50 @@ def restrict_by_index_lists(dlist, ilist, base=0, nonempty=1, verb=1):
     # the big finish
     return 0, [dlist[ind] for ind in clist]
 
-def decode_1D_ints(istr, verb=1, imax=-1, labels=[]):
+def decode_1D_ints(istr, imax=-1, labels=[], verb=verb):
     """Decode a comma-delimited string of ints, ranges and A@B syntax,
        and AFNI-style sub-brick selectors (including A..B(C)).
        If the A..B format is used, and B=='$', then B gets 'imax'.
        If the list is enclosed in [], <> or ##, strip those characters.
-       - return a list of ints"""
+
+          istr      : the int string to search through
+          imax      : the max int (like final sub-brick index)
+          labels    : array of labels, to possibly convert istr values to ints
+          verb      : how chatty to be
+
+       First split istr by ','.  Each returned element, can have the form of:
+          - A           : a single integer (or label)
+          - A@B         : (int) A entries of (int or label) B
+          - A..B        : the inclusive values from (int/label) A to (I/L) B
+          - A..B(C)     : similar, but with step of (int) C
+          - wildcards   : like 'A', but it may contain '*' or '?'
+                        - '*' matches any number of characters, '?' matches one
+                        - like filename wildcard matching
+
+       Examples:
+
+          using ints for values:
+
+               2,6..10      : return [2, 6, 7, 8, 9, 10]
+               2,6..10(2)   : return [2, 6, 8, 10]
+               2,4@8        : return [2, 8, 8, 8, 8]
+               2,5..$(3)    : return [2, 5, 8, 11]   (given imax=11)
+
+           with labels: replace labels by their index in the labels array,
+           given labels = ['b0', 'b1', 'b2',
+                           'mot01_roll', 'mot02_pitch', 'mot03_yaw',
+                           'mot04_RL', 'mot05_AP', 'mot06_IS',
+                           'ma', 'mb', 'mc']
+
+               'mot04_RL,mot05_AP' : return [6, 7]
+               'm*'           : return [3, 4, 5, 6, 7, 8, 9, 10, 11]
+               'mot*_??'      : return [6, 7, 8]
+               '??'           : return [0, 1, 2, 9, 10, 11]
+               '5,??'         : return [5, 0, 1, 2, 9, 10, 11]
+               'mot03*,??'    : return [5, 0, 1, 2, 9, 10, 11]
+
+       - return a list of ints
+    """
 
     newstr = strip_list_brackets(istr, verb)
     slist = newstr.split(',')
