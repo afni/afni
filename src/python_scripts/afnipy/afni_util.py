@@ -2974,7 +2974,7 @@ def decode_1D_ints(istr, verb=1, imax=-1, labels=[]):
 def to_intlist_wild(cval, labels=[]):
    """return the index list of any labels that match cval, including wildcards
 
-      Use '*' and '?' for wilcard matching.
+      Use '*' and '?' for wildcard matching.
       In the regular expression, replace '*' with '.*', and '?' with '.'.
 
         cval:   int as character string, or a label
