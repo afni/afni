@@ -44,6 +44,7 @@ set ignore_edges = 1              # ignore lines clustering with edge voxels
 set rdir         = vlines.result  # output directory
 set sdpower      = 2              # power on stdev (2=default variance)
 set thresh       = 0.90           # threshold for tscale average (was .97)
+set num_pc       = 0              # number of PCs per vline to output
 
 # computed vars
 set edge_mask  = ''             # edge voxel mask, if applied
@@ -172,6 +173,13 @@ while ( $ac <= $#argv )
       endif
       @ ac += 1
       set rdir = $argv[$ac]
+   else if ( "$argv[$ac]" == "-num_pc" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
+      @ ac += 1
+      set num_pc = $argv[$ac]
 
    # otherwise, these should be the input datasets
    else
@@ -364,6 +372,8 @@ set zcoord = `3dinfo -dcz $dset_list[1]`
 # ---------------------------------------------------------------------------
 # count the number of bad columnar regions per input
 set bad_counts = ()
+# make a list of dsets for (possible) PC calculation
+set pc_list = ()
 
 foreach index ( `count_afni -digits 1 1 $#dset_list` )
 
@@ -380,6 +390,9 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
       set dset = $newset
       echo ""
    endif
+
+   # append to PC list
+   set pc_list = ( $pc_list $dset )
 
    # compute temporal variance dset (square stdev for now)
    set sset = var.0.orig.r$ind02.nii.gz
@@ -503,6 +516,28 @@ set bfile = bad_coords.inter.txt
 grep -v '#' $cfile                                                    \
      | awk '{z='$zcoord'; printf "%7.2f %7.2f %7.2f\n", $14, $15, z}' \
      | tee $bfile
+
+# ---------------------------------------------------------------------------
+# create PCs per vline
+if ( $num_pc ) then
+
+    foreach index ( `count_afni -digits 1 1 $#pc_list` )
+        set ind02    = `ccalc -form '%02d' $index`
+        set dset     = $pc_list[$index]
+        set clustset = ( $clust_pre.inner.r$ind02.nii.gz )
+
+        set nvline = `3dBrickStat -slow -mask $dset -max $dset`
+        foreach nn ( `count_afni -digits 1 1 $nvline` )
+            set n02 = `ccalc -form '%02d' $nn`
+            3dpc                                         \
+                -nscale                                  \
+                -pcsave  $num_pc                         \
+                -mask    ${clustset}"<$nn>"              \
+                -prefix  pc.inner.r$ind02.c$n02.nii.gz   \
+                $dset
+        end 
+    end
+endif
 
 # ---------------------------------------------------------------------------
 # create images pointing to vlines
