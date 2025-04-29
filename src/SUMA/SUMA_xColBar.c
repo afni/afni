@@ -1196,7 +1196,7 @@ int SUMA_SwitchColPlaneIntensity(
          }
 
         // SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-        colpC->OptScl->UseThr = !(SO->SurfCont->AlphaOpacityFalloff);
+        colpC->OptScl->UseThr = !(colp->AlphaOpacityFalloff);
         SUMA_ColorizePlane (colpC);          
         colpC->OptScl->UseThr = 1;
       }
@@ -2309,6 +2309,114 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
+
+int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
+        Boolean notify)
+{
+   static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject"};
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+   SUMA_SurfaceObject *SO = NULL;
+
+   SUMA_ENTRY;
+   
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (  !curColPlane ||
+         !curColPlane->OptScl )  {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURN(0);
+   }
+   
+    // Set I Range check box
+    SurfCont=SUMA_ADO_Cont(ado);
+    if (  !SurfCont ||
+         !SurfCont->ShowZero_tb )  {
+      SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
+    }
+    SO = (SUMA_SurfaceObject *)ado;
+    /* if (notify) */ XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, state, notify);
+    // if (notify) XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 1, notify);
+  
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+
+   if (!SUMA_ColorizePlane (curColPlane)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURN(0);}
+   
+   SUMA_Remixedisplay(ado);
+   
+   SUMA_UpdateNodeValField(ado);
+   SUMA_UpdateNodeLblField(ado);
+
+   SUMA_RETURN(1);
+}
+
+void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
+                                   XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
+   SUMA_ALL_DO *ado = NULL, *otherAdo=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean AlphaOpacityFalloff;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   SUMA_SurfaceObject *SO = NULL;
+
+   SUMA_ENTRY;
+
+   SUMA_LH("Called");
+
+   ado = (SUMA_ALL_DO *)data;
+
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if ( !curColPlane )  {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; 
+   }
+
+    SO = (SUMA_SurfaceObject *)ado;
+   AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
+   
+   if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado, 
+        curColPlane->AlphaOpacityFalloff, NOPE)){
+    SUMA_S_Warn("Error toggling variable opacity for current surface"); SUMA_RETURNe;
+   }
+
+   // Set sym range for other surfaces
+   int numSurfaceObjects;
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist)
+   {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        SUMA_RETURNe;
+   }
+   for (j=0; j<N_adolist; ++j){
+            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+            if (otherAdo != ado && otherAdo->do_type == SO_type){
+
+           curColPlane = SUMA_ADO_CurColPlane(otherAdo);
+           if ( !curColPlane )  {
+              SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; 
+           }
+
+           curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;   
+       
+            if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo, 
+                AlphaOpacityFalloff, YUP)){
+                    SUMA_S_Warn("Error toggling variable opacity for current surface"); 
+                    SUMA_RETURNe;
+            }
+        }
+   }
+
+   SUMA_RETURNe;
+}
+
+/*
 void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
                                    XtPointer client_data)
 {
@@ -2386,7 +2494,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
 
    SUMA_RETURNe;
 }
-
+*/
 void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
                                    XtPointer client_data)
 {
