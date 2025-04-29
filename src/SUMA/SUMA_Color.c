@@ -7961,7 +7961,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    cmapChanged = 0;
    bytes2CopyToColVec = SO->N_Node*4*sizeof(float);
      
-   
+   // AlphaOpacityFalloff can only be 1 or 0
    if (currentOverlay->AlphaOpacityFalloff != 1) currentOverlay->AlphaOpacityFalloff = 0;
    
    if (currentOverlay->AlphaOpacityFalloff){
@@ -8131,8 +8131,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
       fprintf (SUMA_STDERR,
                "Error %s: Failed to allocate for isColored.\n", FuncName);
       SUMA_RETURN (NOPE);
-   }
-   
+   }   
 
    glcolar_Back = NULL;
    isColored_Back = NULL;
@@ -8167,8 +8166,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
 
    /* vvvvvvvvvvvvvvvvvvvvvvvvv Background colors -----------------------------*/
    
-   // return 1; // DEBUG
-
    if (ShowBackground) {
       /* arrange Background color planes by plane order in preparation for
          mixing them */
@@ -8258,29 +8255,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 free(isColored_ForeTmp);
             }
 
-           if (0 && reload){ // Reload colormap used for alpha transparencies
-                int ii, jj, i3, i4;
-                /************************************************************
-                As of 2024-02-02, this block is only called (reload true) 
-                when SUMA_Overlays_2_GLCOLAR4_SO is called from inside the 
-                SUMA_set_threshold function.  Hence, this call to
-                SUMA_Overlays_2_GLCOLAR4_SO ends inside
-                the SUMA_set_threshold function.  If SUMA_set_threshold is
-                called within this function, the end of this call, to 
-                SUMA_Overlays_2_GLCOLAR4_SO, is followed by the end of the
-                SUMA_set_threshold which is probably inside this function.  Hence,
-                after this block, execution will arrive at the part of 
-                SUMA_Overlays_2_GLCOLAR4_SO, just after where SUMA_set_threshold 
-                is called, before the beginning of SUMA_Overlays_2_GLCOLAR4_SO.
-                ************************************************************/
-                reload = 0;
-                for (ii=0; ii<N_Node; ++ii){
-                    i3 = ii*3;
-                    i4 = ii*4;
-                    for (jj=0; jj<3; ++jj)
-                        currentOverlay->originalColVec[i3++] = glcolar_Fore[i4++];
-                }
-           }
             if (SUMAg_CF->X->NumForeSmoothing > 0) {
                 fprintf(stderr, "**************** Update glcolar_Fore\n");
                glcolar_Fore_tmp = NULL;
@@ -8410,7 +8384,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 isColored[i] = NOPE;
              }
           }
-     
      }
 
       if (LocalHead)
@@ -8473,7 +8446,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
             }
          }
       }
-
    }
           
    free(activeAlphaOpacities);

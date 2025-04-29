@@ -2309,7 +2309,6 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
-
 int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
         Boolean notify)
 {
@@ -2334,8 +2333,7 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int
       SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
     }
     SO = (SUMA_SurfaceObject *)ado;
-    /* if (notify) */ XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, state, notify);
-    // if (notify) XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 1, notify);
+    XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, state, notify);
   
    SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
 
@@ -2416,85 +2414,6 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
-/*
-void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
-                                   XtPointer client_data)
-{
-   static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
-   SUMA_ALL_DO *ado=NULL, *otherAdo=NULL;
-   SUMA_X_SurfCont *SurfCont=NULL;
-   static int AlphaOpacityFalloff = 0;
-   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
-
-   SUMA_ENTRY;
-   
-   ado = (SUMA_ALL_DO *)data;
-   if (!ado) SUMA_RETURNe;
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   if (!(SO->SurfCont=SUMA_ADO_Cont(ado))
-            || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
-   
-   AlphaOpacityFalloff = SO->SurfCont->AlphaOpacityFalloff = XmToggleButtonGetState(w);
-
-   if (!(SO->Overlays)){
-    if (SO->SurfCont->AlphaOpacityFalloff){
-        fprintf (SUMA_STDERR,
-            "ERROR %s: Cannot make overlay variably opqaue.  There is no overlay.\n", 
-            FuncName);
-        // No variable opacity since there is no overlay
-        SO->SurfCont->AlphaOpacityFalloff = 0;
-        
-        // Uncheck "A" check-box
-        // SurfCont->AlphaOpacityFalloff = 0;
-        XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
-                              SO->SurfCont->AlphaOpacityFalloff, YUP);    
-        }
-    SUMA_RETURNe;
-   }
-
-   // Default opacity model
-   if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
-   
-   // Refresh display
-   SUMA_Remixedisplay(ado);
-   SUMA_UpdateNodeLblField(ado);
-   
-   // Process all surface objects
-   int numSurfaceObjects;
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   if (numSurfaceObjects != N_adolist)
-   {
-        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-        SUMA_RETURNe;
-   }
-   for (j=0; j<N_adolist; ++j){
-        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        if (otherAdo != ado){
-            if (otherAdo->do_type == SO_type){
-               SO = (SUMA_SurfaceObject *)otherAdo;
-               if (!(SO->SurfCont=SUMA_ADO_Cont(otherAdo))
-                        || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
-        
-               SO->SurfCont->AlphaOpacityFalloff = AlphaOpacityFalloff;
-               XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
-                                          SO->SurfCont->AlphaOpacityFalloff, NOPE);
-
-               // Default opacity model
-               if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
-               
-               // Refresh display
-               for (i=0; i<2; ++i){
-                   SUMA_Remixedisplay(otherAdo);
-                   SUMA_UpdateNodeLblField(otherAdo);            
-               }
-            }
-        }
-    }
-
-   SUMA_RETURNe;
-}
-*/
 void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
                                    XtPointer client_data)
 {

@@ -1773,7 +1773,7 @@ typedef struct {
    Widget AlphaOpacityFalloff_tb; /*!< alpha threshold */
    Widget BoxOutlineThresh_tb; /*!< box outline threshold */
    // int AlphaOpacityFalloff;
-   // int alphaOpacityModel;   // Model used for the opacity falloff from the alpha threshold
+   int alphaOpacityModel;   // Model used for the opacity falloff from the alpha threshold
    int BoxOutlineThresh;
 }SUMA_X_SurfCont;
 
