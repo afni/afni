@@ -520,23 +520,39 @@ grep -v '#' $cfile                                                    \
 # ---------------------------------------------------------------------------
 # create PCs per vline
 if ( $num_pc ) then
-
+    # loop over each run's cluster map
     foreach index ( `count_afni -digits 1 1 $#pc_list` )
         set ind02    = `ccalc -form '%02d' $index`
         set dset     = $pc_list[$index]
         set clustset = ( $clust_pre.inner.r$ind02.nii.gz )
 
-        set nvline = `3dBrickStat -slow -mask $dset -max $dset`
+        set nvline = `3dBrickStat -slow -max $clustset`
         foreach nn ( `count_afni -digits 1 1 $nvline` )
             set n02 = `ccalc -form '%02d' $nn`
             3dpc                                         \
                 -nscale                                  \
                 -pcsave  $num_pc                         \
                 -mask    ${clustset}"<$nn>"              \
-                -prefix  pc.inner.r$ind02.c$n02.nii.gz   \
+                -prefix  pc.inner.r$ind02.c$n02.val      \
                 $dset
         end 
     end
+
+    # and PCs for cluster intersection, if such a dset exists
+    if ( -f clust.inter.enum.nii.gz ) then
+        set clustset = clust.inter.enum.nii.gz
+
+        set nvline = `3dBrickStat -slow -max $clustset`
+        foreach nn ( `count_afni -digits 1 1 $nvline` )
+            set n02 = `ccalc -form '%02d' $nn`
+            3dpc                                         \
+                -nscale                                  \
+                -pcsave  $num_pc                         \
+                -mask    ${clustset}"<$nn>"              \
+                -prefix  pc.inter.enum.c$n02.val         \
+                $dset
+        end
+    endif
 endif
 
 # ---------------------------------------------------------------------------
@@ -654,6 +670,12 @@ if ( $do_clean == 1 ) then
    echo ""
 
    \rm -f ts*
+
+   # clean up PC dsets: since they are only within mask, not so useful
+   if ( $num_pc ) then
+      \rm -f pc.inner.*.BRIK*       pc.inner.*.HEAD       \
+             pc.inter.enum.*.BRIK*  pc.inter.enum.*.HEAD
+   endif
 endif
 
 
@@ -888,7 +910,17 @@ Options (processing):
                           a column to be consider a variance line.  A value
                           just under 1.0 might be reasonable.
 
+   -num_pc NUM          : number of PCs to calculate per variance line 
 
+                             default : -num_pc $num_pc  (i.e., none estimated)
+
+                          Preliminary tests with this have found 2 to be a 
+                          reasonable value to use, if you want PCs output. 
+                          As an example of naming, the info from component #3
+                          in run 2 is named: pc.inner.r02.c03*.
+                          The outputs from the intersection vline dset are 
+                          named like: pc.inter.enum.c*.
+                          
 - R Reynolds, P Taylor, D Glen
   Nov, 2022
   version $version
@@ -917,6 +949,7 @@ $prog modification history:
                     - add -stdev_power
    0.7  23 Apr 2025 : add -ignore_edges (default on)
                     - change corresponding thresh default from 0.97 to 0.90
+   0.8  29 Apr 2025 : [PT] add optional PC output
 
 EOF
 # check $version, at top
