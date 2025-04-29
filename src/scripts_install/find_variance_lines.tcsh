@@ -496,8 +496,9 @@ set iset = clust.inter.nii.gz
 
 set cfile = bad_clust.inter.txt
 # we are clustering a binary dataset, so use any threshold above zero
-3dClusterize -ithr 0 -idat 0 -NN 2 -inset $iset -2sided 0 0.9 \
-             -outvol_if_no_clust | tee $cfile
+3dClusterize -ithr 0 -idat 0 -NN 2 -inset $iset -2sided 0 0.9         \
+             -pref_map clust.inter.enum.nii.gz -outvol_if_no_clust    \
+             | tee $cfile
 set bfile = bad_coords.inter.txt
 grep -v '#' $cfile                                                    \
      | awk '{z='$zcoord'; printf "%7.2f %7.2f %7.2f\n", $14, $15, z}' \
