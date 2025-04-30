@@ -22,10 +22,6 @@ extern Bool clippingPlaneMode;
 /*! The set of functions deals with node colors
 */
 
-int useAlphaThresholding;
-
-
-
 /*!
 This function creates an RGB colormap containing Ncols that vary linearly
    from the first color in Fiducials to the last.
@@ -3092,7 +3088,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
                if (Sover->T[i] < Opt->ThreshRange[0]) {
                   // SV->isMasked[i] = YUP; /* Mask */
-                  // SV->isMasked[i] = !useAlphaThresholding; /* Mask */
                   SV->isMasked[i] = !(Sover->AlphaOpacityFalloff); /* Mask */
                }
             }
@@ -7937,25 +7932,14 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    float Back_Modfact;
    SUMA_Boolean ShowBackground;
    SUMA_Boolean ShowForeground;
-   SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */
    float **alphaOpacities = NULL;
-   SUMA_OVERLAYS *baseOverlay = SO->Overlays[0];
    SUMA_OVERLAYS *currentOverlay = SO->SurfCont->curColPlane;
-   SUMA_Boolean DSET_MapChanged;
    int numThresholdNodes = 0;
-   int nodeIndex = getNodeIndex(SO, SV);
-   static int reload;
-   static float currentThreshold;
-   static int thresholdReset = 0;
-   int nSurfaces = SV->N_ColList;
    static int *outlinevector = NULL;
-   float *unthresholded = NULL;
-   static int ITB[3] = {-1, -1, -1};
    byte *isColored_ForeTmp;
+   SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */
    
    SUMA_ENTRY;
-   
-   useAlphaThresholding = currentOverlay->AlphaOpacityFalloff;
    
    // AlphaOpacityFalloff can only be 1 or 0
    if (currentOverlay->AlphaOpacityFalloff != 1) currentOverlay->AlphaOpacityFalloff = 0;
@@ -8500,8 +8484,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
     outlinevector = NULL;
    } 
    
-   if (unthresholded) free(unthresholded);
-
    SUMA_RETURN (YUP);
 }
 
