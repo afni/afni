@@ -7994,40 +7994,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
         currentOverlay->IntRange[1] = currentOverlay->OptScl->IntRange[1] ||
         currentOverlay->intensitySwitched;
        }
-       
-       // This block causes the left-hand surface to be lighter when both
-       //   hemispheres are loaded
-       if (0 && currentOverlay->AlphaOpacityFalloff && SO->N_Overlays > 0){  // THIS IS NECESSARY
-            // Check whether display changed
-            cmapChanged = (strcmp(currentOverlay->originalCMapName, currentOverlay->cmapname) ||
-                currentOverlay->IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
-                currentOverlay->IntRange[1] != currentOverlay->OptScl->IntRange[1]);
-
-           if ((cmapChanged)){ // CMAP changed with alpha threshold
-                currentOverlay->intensitySwitched = 0;
-                
-                // Update parameters to be checked for change
-                if (strlen(currentOverlay->cmapname)>strlen(currentOverlay->originalCMapName)){
-                    int allocationLength = strlen(currentOverlay->cmapname)+128;
-                    free(currentOverlay->originalCMapName);
-                    if (!(currentOverlay->originalCMapName=(char *)malloc(allocationLength*sizeof(char)))){
-                        SUMA_SL_Err("Failed to allocate memory to colormap name buffer!");
-                    }
-                }
-                sprintf(currentOverlay->originalCMapName, "%s", currentOverlay->cmapname);
-                currentOverlay->IntRange[0] = currentOverlay->OptScl->IntRange[0];
-                currentOverlay->IntRange[1] = currentOverlay->OptScl->IntRange[1];
-                applyColorMapToOverlay(SO, currentOverlay);
-                if (currentOverlay->originalColVec){
-                    free(currentOverlay->originalColVec);
-                    currentOverlay->originalColVec = NULL;
-                } 
-                if (!(currentOverlay->originalColVec=malloc(bytes2CopyToColVec))){
-                    SUMA_SL_Err("Failed to allocate memory to colormap!");
-                }
-                memcpy(currentOverlay->originalColVec, currentOverlay->ColVec, bytes2CopyToColVec);
-            }
-       }
    }
 
    if (!SO || !SV || !glcolar) {
