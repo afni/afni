@@ -7964,7 +7964,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    // AlphaOpacityFalloff can only be 1 or 0
    if (currentOverlay->AlphaOpacityFalloff != 1) currentOverlay->AlphaOpacityFalloff = 0;
    
-   if (currentOverlay->AlphaOpacityFalloff){
+   if (0 && currentOverlay->AlphaOpacityFalloff){
     unthresholded = (float *)malloc(bytes2CopyToColVec);
     SUMA_ColorizePlane (currentOverlay);          
     memcpy(unthresholded, currentOverlay->ColVec, bytes2CopyToColVec);
