@@ -7997,7 +7997,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
        
        // This block causes the left-hand surface to be lighter when both
        //   hemispheres are loaded
-       if (currentOverlay->AlphaOpacityFalloff && SO->N_Overlays > 0){  // THIS IS NECESSARY
+       if (0 && currentOverlay->AlphaOpacityFalloff && SO->N_Overlays > 0){  // THIS IS NECESSARY
             // Check whether display changed
             cmapChanged = (strcmp(currentOverlay->originalCMapName, currentOverlay->cmapname) ||
                 currentOverlay->IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
