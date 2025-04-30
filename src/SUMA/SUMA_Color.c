@@ -3092,7 +3092,8 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
                if (Sover->T[i] < Opt->ThreshRange[0]) {
                   // SV->isMasked[i] = YUP; /* Mask */
-                  SV->isMasked[i] = !useAlphaThresholding; /* Mask */
+                  // SV->isMasked[i] = !useAlphaThresholding; /* Mask */
+                  SV->isMasked[i] = !(Sover->AlphaOpacityFalloff); /* Mask */
                }
             }
             break;
@@ -3101,7 +3102,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                if (Sover->T[i] < Opt->ThreshRange[0] &&
                    Sover->T[i] > -Opt->ThreshRange[0]) {
                   // SV->isMasked[i] = YUP; /* Mask */
-                  SV->isMasked[i] = !useAlphaThresholding; /* Mask */
+                  SV->isMasked[i] = !(Sover->AlphaOpacityFalloff); /* Mask */
                }
             }
             break;
@@ -3110,7 +3111,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                if (Sover->T[i] >= Opt->ThreshRange[0] &&
                    Sover->T[i] <= Opt->ThreshRange[1]) {
                   // SV->isMasked[i] = YUP; /* Mask */
-                  SV->isMasked[i] = !useAlphaThresholding; /* Mask */
+                  SV->isMasked[i] = !(Sover->AlphaOpacityFalloff); /* Mask */
                }
             }
             break;
@@ -3119,7 +3120,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                if (Sover->T[i] < Opt->ThreshRange[0] ||
                    Sover->T[i] > Opt->ThreshRange[1]) {
                   // SV->isMasked[i] = YUP; /* Mask */
-                  SV->isMasked[i] = !useAlphaThresholding; /* Mask */
+                  SV->isMasked[i] = !(Sover->AlphaOpacityFalloff); /* Mask */
                }
             }
             break;
@@ -7940,9 +7941,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    float **alphaOpacities = NULL;
    SUMA_OVERLAYS *baseOverlay = SO->Overlays[0];
    SUMA_OVERLAYS *currentOverlay = SO->SurfCont->curColPlane;
-   SUMA_Boolean cmapChanged;
    SUMA_Boolean DSET_MapChanged;
-   size_t bytes2CopyToColVec/* = SO->N_Node*3*sizeof(float)*/;
    int numThresholdNodes = 0;
    int nodeIndex = getNodeIndex(SO, SV);
    static int reload;
@@ -7958,9 +7957,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    
    useAlphaThresholding = currentOverlay->AlphaOpacityFalloff;
    
-   cmapChanged = 0;
-   bytes2CopyToColVec = SO->N_Node*4*sizeof(float);
-     
    // AlphaOpacityFalloff can only be 1 or 0
    if (currentOverlay->AlphaOpacityFalloff != 1) currentOverlay->AlphaOpacityFalloff = 0;
    
