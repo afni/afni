@@ -7971,7 +7971,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
     SUMA_ColorizePlane (currentOverlay);          
    }
    
-   if (!thresholdReset && currentOverlay){   
+   if (0 && !thresholdReset && currentOverlay){   
        // Ititialize display changing variables
        if (!(currentOverlay->originalCMapName)){
           int allocationLength = strlen(currentOverlay->cmapname)+512;
