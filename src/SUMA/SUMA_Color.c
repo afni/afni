@@ -7970,31 +7970,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
     memcpy(unthresholded, currentOverlay->ColVec, bytes2CopyToColVec);
     SUMA_ColorizePlane (currentOverlay);          
    }
-   
-   if (0 && !thresholdReset && currentOverlay){   
-       // Ititialize display changing variables
-       if (!(currentOverlay->originalCMapName)){
-          int allocationLength = strlen(currentOverlay->cmapname)+512;
-          if (!(currentOverlay->originalCMapName=(char *)malloc(allocationLength*sizeof(char)))){
-            SUMA_SL_Err("Failed to allocate memory to colormap name buffer!");
-          }
-          sprintf(currentOverlay->originalCMapName, "%s", currentOverlay->cmapname);
-       } 
-   
-        // Initialize color map
-        if (!(currentOverlay->originalColVec)){
-            if (!(currentOverlay->originalColVec=malloc(bytes2CopyToColVec))){
-                SUMA_SL_Err("Failed to allocate memory to colormap!");
-            }
-            memcpy(currentOverlay->originalColVec, currentOverlay->ColVec, bytes2CopyToColVec);
-        }
-
-       if (currentOverlay->IntRange[0] > currentOverlay->IntRange[1]){
-        currentOverlay->IntRange[0] = currentOverlay->OptScl->IntRange[0];
-        currentOverlay->IntRange[1] = currentOverlay->OptScl->IntRange[1] ||
-        currentOverlay->intensitySwitched;
-       }
-   }
 
    if (!SO || !SV || !glcolar) {
       SUMA_SL_Err("Null input to SUMA_Overlays_2_GLCOLAR4_SO!");
