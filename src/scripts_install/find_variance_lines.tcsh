@@ -528,34 +528,44 @@ set bfile = bad_coords.inter.txt
 grep -v '#' $cfile                                                    \
      | awk '{z='$zcoord'; printf "%7.2f %7.2f %7.2f\n", $14, $15, z}' \
      | tee $bfile
+set bad_count_inter = `cat $bfile | wc -l`
 
 # ---------------------------------------------------------------------------
-# create PCs per vline
+# create PCs per vline (check along the way if/where vlines exist)
 if ( $num_pc ) then
+   set vcount = 0
+
    # loop over each run's cluster map
    foreach index ( `count_afni -digits 1 1 $#pc_list` )
-      set ind02    = `ccalc -form '%02d' $index`
-      set dset     = $pc_list[$index]
-      set clustset = ( $clust_pre.inner.r$ind02.nii.gz )
+      # only do PCs if the run had vlines, which bad_counts keeps track of
+      if ( ${bad_counts[$index]} ) then
+         set ind02    = `ccalc -form '%02d' $index`
+         set dset     = $pc_list[$index]
+         set clustset = ( $clust_pre.inner.r$ind02.nii.gz )
 
-      set nvline = `3dBrickStat -slow -max $clustset`
-      foreach nn ( `count_afni -digits 1 1 $nvline` )
-          set n02 = `ccalc -form '%02d' $nn`
-          3dpc                                         \
-              -nscale                                  \
-              -pcsave  $num_pc                         \
-              -mask    ${clustset}"<$nn>"              \
-              -prefix  pc.inner.r$ind02.c$n02.val      \
-              $dset
-      end 
+         # if we are in this if-condition, nvline > 0
+         set nvline = `3dBrickStat -slow -max $clustset`
+         foreach nn ( `count_afni -digits 1 1 $nvline` )
+             @ vcount+= 1
+             set n02 = `ccalc -form '%02d' $nn`
+             3dpc                                         \
+                 -nscale                                  \
+                 -pcsave  $num_pc                         \
+                 -mask    ${clustset}"<$nn>"              \
+                 -prefix  pc.inner.r$ind02.c$n02.val      \
+                 $dset
+         end 
+      endif
    end
 
-   # and PCs for cluster intersection, if such a dset exists
-   if ( -f clust.inter.enum.nii.gz ) then
+   # and PCs for cluster intersection, if such a dset exists and if
+   # the intersection file has at least 1 vline
+   if ( -f clust.inter.enum.nii.gz && $bad_count_inter ) then
       set clustset = clust.inter.enum.nii.gz
 
       set nvline = `3dBrickStat -slow -max $clustset`
       foreach nn ( `count_afni -digits 1 1 $nvline` )
+          @ vcount+= 1
           set n02 = `ccalc -form '%02d' $nn`
           3dpc                                         \
               -nscale                                  \
@@ -566,19 +576,21 @@ if ( $num_pc ) then
       end
    endif
 
-   if ( $do_clean == 1 ) then
-      # clean up PC dsets: since they are only within mask, not so useful
-      \rm -f pc.inner.*.BRIK*       pc.inner.*.HEAD       \
-             pc.inter.enum.*.BRIK*  pc.inter.enum.*.HEAD
-   endif
+   if ( $vcount ) then
+      if ( $do_clean == 1 ) then
+         # clean up PC dsets: since they are only within mask, not so useful
+         \rm -f pc.inner.*.BRIK*       pc.inner.*.HEAD       \
+                pc.inter.enum.*.BRIK*  pc.inter.enum.*.HEAD
+      endif
 
-   # trim some 1D outputs (put ones we want in temp dir, then bring them back)
-   set tdir = __tmp_dir_for_pc_1Ds
-   \mkdir -p ${tdir}
-   \mv pc.in*eig.1D pc.in*vec.1D ${tdir}/.
-   \rm pc.in*.1D
-   \mv ${tdir}/pc.in*.1D .
-   \rm -rf ${tdir}
+      # trim some 1D outputs (put ones we want in temp dir, then bring them back)
+      set tdir = __tmp_dir_for_pc_1Ds
+      \mkdir -p ${tdir}
+      \mv pc.in*eig.1D pc.in*vec.1D ${tdir}/.
+      \rm pc.in*.1D
+      \mv ${tdir}/pc.in*.1D .
+      \rm -rf ${tdir}
+   endif
 endif
 
 # ---------------------------------------------------------------------------
@@ -970,6 +982,7 @@ $prog modification history:
    0.7  23 Apr 2025 : add -ignore_edges (default on)
                     - change corresponding thresh default from 0.97 to 0.90
    0.8  29 Apr 2025 : [PT] add optional PC output
+   0.9  30 Apr 2025 : [PT] clean up PC-related functionality
 
 EOF
 # check $version, at top
