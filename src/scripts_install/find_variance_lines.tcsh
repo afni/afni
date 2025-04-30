@@ -233,7 +233,7 @@ if ( -d $rdir ) then
    exit 0
 endif
 
-mkdir $rdir
+\mkdir $rdir
 if ( $status ) then
    echo "** failed to create results directory, $rdir"
    exit 0
@@ -276,6 +276,18 @@ cd $rdir
 
 # ----------------------------------------------------------------------
 # main work: compute correlation datasets and surviving threshold fractions
+
+# store the command that was run, for reference
+set cmd_copy = a_cmd_copy.tcsh 
+cat <<EOF > _tmp
+# The command used to create this dir was:
+
+find_variance_lines.tcsh $argv
+
+EOF
+# ... readably.
+file_tool -wrap_lines -infiles _tmp > ${cmd_copy}
+\rm _tmp
 
 # if the user wants an automask, make one
 if ( $mask_in == AUTO ) then
@@ -520,39 +532,53 @@ grep -v '#' $cfile                                                    \
 # ---------------------------------------------------------------------------
 # create PCs per vline
 if ( $num_pc ) then
-    # loop over each run's cluster map
-    foreach index ( `count_afni -digits 1 1 $#pc_list` )
-        set ind02    = `ccalc -form '%02d' $index`
-        set dset     = $pc_list[$index]
-        set clustset = ( $clust_pre.inner.r$ind02.nii.gz )
+   # loop over each run's cluster map
+   foreach index ( `count_afni -digits 1 1 $#pc_list` )
+      set ind02    = `ccalc -form '%02d' $index`
+      set dset     = $pc_list[$index]
+      set clustset = ( $clust_pre.inner.r$ind02.nii.gz )
 
-        set nvline = `3dBrickStat -slow -max $clustset`
-        foreach nn ( `count_afni -digits 1 1 $nvline` )
-            set n02 = `ccalc -form '%02d' $nn`
-            3dpc                                         \
-                -nscale                                  \
-                -pcsave  $num_pc                         \
-                -mask    ${clustset}"<$nn>"              \
-                -prefix  pc.inner.r$ind02.c$n02.val      \
-                $dset
-        end 
-    end
+      set nvline = `3dBrickStat -slow -max $clustset`
+      foreach nn ( `count_afni -digits 1 1 $nvline` )
+          set n02 = `ccalc -form '%02d' $nn`
+          3dpc                                         \
+              -nscale                                  \
+              -pcsave  $num_pc                         \
+              -mask    ${clustset}"<$nn>"              \
+              -prefix  pc.inner.r$ind02.c$n02.val      \
+              $dset
+      end 
+   end
 
-    # and PCs for cluster intersection, if such a dset exists
-    if ( -f clust.inter.enum.nii.gz ) then
-        set clustset = clust.inter.enum.nii.gz
+   # and PCs for cluster intersection, if such a dset exists
+   if ( -f clust.inter.enum.nii.gz ) then
+      set clustset = clust.inter.enum.nii.gz
 
-        set nvline = `3dBrickStat -slow -max $clustset`
-        foreach nn ( `count_afni -digits 1 1 $nvline` )
-            set n02 = `ccalc -form '%02d' $nn`
-            3dpc                                         \
-                -nscale                                  \
-                -pcsave  $num_pc                         \
-                -mask    ${clustset}"<$nn>"              \
-                -prefix  pc.inter.enum.c$n02.val         \
-                $dset
-        end
-    endif
+      set nvline = `3dBrickStat -slow -max $clustset`
+      foreach nn ( `count_afni -digits 1 1 $nvline` )
+          set n02 = `ccalc -form '%02d' $nn`
+          3dpc                                         \
+              -nscale                                  \
+              -pcsave  $num_pc                         \
+              -mask    ${clustset}"<$nn>"              \
+              -prefix  pc.inter.enum.c$n02.val         \
+              $dset
+      end
+   endif
+
+   if ( $do_clean == 1 ) then
+      # clean up PC dsets: since they are only within mask, not so useful
+      \rm -f pc.inner.*.BRIK*       pc.inner.*.HEAD       \
+             pc.inter.enum.*.BRIK*  pc.inter.enum.*.HEAD
+   endif
+
+   # trim some 1D outputs (put ones we want in temp dir, then bring them back)
+   set tdir = __tmp_dir_for_pc_1Ds
+   \mkdir -p ${tdir}
+   \mv pc.in*eig.1D pc.in*vec.1D ${tdir}/.
+   \rm pc.in*.1D
+   \mv ${tdir}/pc.in*.1D .
+   \rm -rf ${tdir}
 endif
 
 # ---------------------------------------------------------------------------
@@ -670,12 +696,6 @@ if ( $do_clean == 1 ) then
    echo ""
 
    \rm -f ts*
-
-   # clean up PC dsets: since they are only within mask, not so useful
-   if ( $num_pc ) then
-      \rm -f pc.inner.*.BRIK*       pc.inner.*.HEAD       \
-             pc.inter.enum.*.BRIK*  pc.inter.enum.*.HEAD
-   endif
 endif
 
 
