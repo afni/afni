@@ -1125,6 +1125,7 @@ echo "++ SSW2: Qwarp to level 7"
     ${cost_nlf}                             \
     -inilev 6 -maxlev 7 -workhard:6:7       \
     -weight "${Basedset}[2]"                \
+    -penfac   ${penfac}                     \
     -inedge                                 \
     -pblur "${pblur_base}" "${pblur_src}"   \
     -noneg ${nodset}                        \
@@ -1162,6 +1163,7 @@ if( $minp > 13 )then
         -pblur "${pblur_base}" "${pblur_src}" \
         -inilev 8                             \
         -weight "${Basedset}[2]"              \
+        -penfac   ${penfac}                   \
         -inedge                               \
         -noneg  -minpatch ${minp}             \
         -Qfinal                               \
@@ -1184,6 +1186,7 @@ else
         -pblur "${pblur_base}" "${pblur_src}" \
         -inilev 8 -minpatch $mpp              \
         -weight "${Basedset}[2]"              \
+        -penfac   ${penfac}                   \
         -inedge   ${nodset}                   \
         -prefix "${pref}QQ9.nii"
         
@@ -1199,6 +1202,7 @@ else
         -pblur "${pblur_base}" "${pblur_src}" \
         -inilev 10                            \
         -weight "${Basedset}[2]"              \
+        -penfac   ${penfac}                   \
         -minpatch $minp                       \
         -inedge                               \
         -Qfinal                               \
@@ -1662,6 +1666,14 @@ grown/improved over time):
               '-cost_nl_init ..', because using those here might be
               pretty slow; however, using "lpa" here might help
               results.
+
+ -penfac PF  :(opt) use the number PF to weight the penalty.
+              The default value is 1. Larger values of PF mean the
+              penalty counts more, aiming to reduce grid distortions;
+              smaller values allow for more flexibility (which can lead
+              to weird results if too flexible), and the minimum
+              value is 0. The penalty values specified here are only 
+              applied in the final rounds of 3dQwarp here.
 
   -tmp_name_rand :(opt) the default prefix for temporary/intermediate
               files is ${pref_nice}.  However, if you want to have
