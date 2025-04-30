@@ -7178,7 +7178,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov,
                   SUMA_free(XYZ);
                   SUMA_RETURN (NULL);
                } else {
-                  /* comes from inherrently mappable stuff, makes sense to
+                  /* comes from inherently mappable stuff, makes sense to
                      leave XYZ */
                   SUMA_SL_Warn(  "No node was close enough\n"
                                  "to XYZmap, linking by coordinate."   );
