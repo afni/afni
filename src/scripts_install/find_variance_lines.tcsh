@@ -44,6 +44,7 @@ set ignore_edges = 1              # ignore lines clustering with edge voxels
 set rdir         = vlines.result  # output directory
 set sdpower      = 2              # power on stdev (2=default variance)
 set thresh       = 0.90           # threshold for tscale average (was .97)
+set num_pc       = 0              # number of PCs per vline to output
 
 # computed vars
 set edge_mask  = ''             # edge voxel mask, if applied
@@ -172,6 +173,13 @@ while ( $ac <= $#argv )
       endif
       @ ac += 1
       set rdir = $argv[$ac]
+   else if ( "$argv[$ac]" == "-num_pc" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
+      @ ac += 1
+      set num_pc = $argv[$ac]
 
    # otherwise, these should be the input datasets
    else
@@ -225,7 +233,7 @@ if ( -d $rdir ) then
    exit 0
 endif
 
-mkdir $rdir
+\mkdir $rdir
 if ( $status ) then
    echo "** failed to create results directory, $rdir"
    exit 0
@@ -268,6 +276,18 @@ cd $rdir
 
 # ----------------------------------------------------------------------
 # main work: compute correlation datasets and surviving threshold fractions
+
+# store the command that was run, for reference
+set cmd_copy = a_cmd_copy.tcsh 
+cat <<EOF > _tmp
+# The command used to create this dir was:
+
+find_variance_lines.tcsh $argv
+
+EOF
+# ... readably.
+file_tool -wrap_lines -infiles _tmp > ${cmd_copy}
+\rm _tmp
 
 # if the user wants an automask, make one
 if ( $mask_in == AUTO ) then
@@ -364,6 +384,8 @@ set zcoord = `3dinfo -dcz $dset_list[1]`
 # ---------------------------------------------------------------------------
 # count the number of bad columnar regions per input
 set bad_counts = ()
+# make a list of dsets for (possible) PC calculation
+set pc_list = ()
 
 foreach index ( `count_afni -digits 1 1 $#dset_list` )
 
@@ -380,6 +402,9 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
       set dset = $newset
       echo ""
    endif
+
+   # append to PC list
+   set pc_list = ( $pc_list $dset )
 
    # compute temporal variance dset (square stdev for now)
    set sset = var.0.orig.r$ind02.nii.gz
@@ -503,6 +528,70 @@ set bfile = bad_coords.inter.txt
 grep -v '#' $cfile                                                    \
      | awk '{z='$zcoord'; printf "%7.2f %7.2f %7.2f\n", $14, $15, z}' \
      | tee $bfile
+set bad_count_inter = `cat $bfile | wc -l`
+
+# ---------------------------------------------------------------------------
+# create PCs per vline (check along the way if/where vlines exist)
+if ( $num_pc ) then
+   set vcount = 0
+
+   # loop over each run's cluster map
+   foreach index ( `count_afni -digits 1 1 $#pc_list` )
+      # only do PCs if the run had vlines, which bad_counts keeps track of
+      if ( ${bad_counts[$index]} ) then
+         set ind02    = `ccalc -form '%02d' $index`
+         set dset     = $pc_list[$index]
+         set clustset = ( $clust_pre.inner.r$ind02.nii.gz )
+
+         # if we are in this if-condition, nvline > 0
+         set nvline = `3dBrickStat -slow -max $clustset`
+         foreach nn ( `count_afni -digits 1 1 $nvline` )
+             @ vcount+= 1
+             set n02 = `ccalc -form '%02d' $nn`
+             3dpc                                         \
+                 -nscale                                  \
+                 -pcsave  $num_pc                         \
+                 -mask    ${clustset}"<$nn>"              \
+                 -prefix  pc.inner.r$ind02.c$n02.val      \
+                 $dset
+         end 
+      endif
+   end
+
+   # and PCs for cluster intersection, if such a dset exists and if
+   # the intersection file has at least 1 vline
+   if ( -f clust.inter.enum.nii.gz && $bad_count_inter ) then
+      set clustset = clust.inter.enum.nii.gz
+
+      set nvline = `3dBrickStat -slow -max $clustset`
+      foreach nn ( `count_afni -digits 1 1 $nvline` )
+          @ vcount+= 1
+          set n02 = `ccalc -form '%02d' $nn`
+          3dpc                                         \
+              -nscale                                  \
+              -pcsave  $num_pc                         \
+              -mask    ${clustset}"<$nn>"              \
+              -prefix  pc.inter.enum.c$n02.val         \
+              $dset
+      end
+   endif
+
+   if ( $vcount ) then
+      if ( $do_clean == 1 ) then
+         # clean up PC dsets: since they are only within mask, not so useful
+         \rm -f pc.inner.*.BRIK*       pc.inner.*.HEAD       \
+                pc.inter.enum.*.BRIK*  pc.inter.enum.*.HEAD
+      endif
+
+      # trim some 1D outputs (put ones we want in temp dir, then bring them back)
+      set tdir = __tmp_dir_for_pc_1Ds
+      \mkdir -p ${tdir}
+      \mv pc.in*eig.1D pc.in*vec.1D ${tdir}/.
+      \rm pc.in*.1D
+      \mv ${tdir}/pc.in*.1D .
+      \rm -rf ${tdir}
+   endif
+endif
 
 # ---------------------------------------------------------------------------
 # create images pointing to vlines
@@ -853,7 +942,17 @@ Options (processing):
                           a column to be consider a variance line.  A value
                           just under 1.0 might be reasonable.
 
+   -num_pc NUM          : number of PCs to calculate per variance line 
 
+                             default : -num_pc $num_pc  (i.e., none estimated)
+
+                          Preliminary tests with this have found 2 to be a 
+                          reasonable value to use, if you want PCs output. 
+                          As an example of naming, the info from component #3
+                          in run 2 is named: pc.inner.r02.c03*.
+                          The outputs from the intersection vline dset are 
+                          named like: pc.inter.enum.c*.
+                          
 - R Reynolds, P Taylor, D Glen
   Nov, 2022
   version $version
@@ -882,6 +981,8 @@ $prog modification history:
                     - add -stdev_power
    0.7  23 Apr 2025 : add -ignore_edges (default on)
                     - change corresponding thresh default from 0.97 to 0.90
+   0.8  29 Apr 2025 : [PT] add optional PC output
+   0.9  30 Apr 2025 : [PT] clean up PC-related functionality
 
 EOF
 # check $version, at top
