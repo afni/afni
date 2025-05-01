@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.8, Jan 25, 2025
+Version 1.0.9, May 1, 2025
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -1207,17 +1207,18 @@ Stat[is.nan(Stat)] <- 0
 #Stat[Stat < (-Top)] <- -Top
 Stat[is.na(Stat)] <- 0
 
-if(!is.null(lop$mrr))
+if(!is.null(lop$mrr)) {
    brickNames <- c(c(rbind(rownames(summary(fm)$p.table), paste0(rownames(summary(fm)$p.table), '-Z'))),
       rownames(summary(fm)$s.table), 'R.sq')
    if(!is.null(lop$Pred)) brickNames <- c(brickNames, c(rbind(as.character(lop$Pred[1:lop$nr,1]),
       paste0(as.character(lop$Pred[1:lop$nr,1]),'.se'))))
-if(!is.null(lop$lme)) 
+}
+if(!is.null(lop$lme)) {
    brickNames <- c(c(rbind(rownames(summary(fm$gam)$p.table), paste0(rownames(summary(fm$gam)$p.table), '-Z'))),
       rownames(summary(fm$gam)$s.table), 'R.sq')
    if(!is.null(lop$Pred)) brickNames <- c(brickNames, c(rbind(as.character(lop$Pred[1:lop$nr,1]),
       paste0(as.character(lop$Pred[1:lop$nr,1]),'.se'))))
-
+}
 if(!is.null(lop$sdiff)) brickNames <- c(brickNames, c(rbind(sdiffLabel, paste0(sdiffLabel, '.se'))))
 
 statsym <- NULL
