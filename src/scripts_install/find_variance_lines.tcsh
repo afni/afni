@@ -459,7 +459,7 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
       # if there is an adjustment to make, do so
       set ecfile = edge_coords.r$ind02.txt
       set backfile = bad_coords.full.r$ind02.txt
-      cp $bfile $backfile
+      \cp $bfile $backfile
       echo "" > $ecfile    # start with an empty file
       if ( $nclust > 0 && $#edgelist > 0 ) then
          # note: line and cluster numbers are 1-based
@@ -546,14 +546,21 @@ if ( $num_pc ) then
          # if we are in this if-condition, nvline > 0
          set nvline = `3dBrickStat -slow -max $clustset`
          foreach nn ( `count_afni -digits 1 1 $nvline` )
-             @ vcount+= 1
-             set n02 = `ccalc -form '%02d' $nn`
-             3dpc                                         \
-                 -nscale                                  \
-                 -pcsave  $num_pc                         \
-                 -mask    ${clustset}"<$nn>"              \
-                 -prefix  pc.inner.r$ind02.c$n02.val      \
-                 $dset
+             # check to make sure line still exists after ignoring edges
+             # (nvox has: 2 values if line exists; 0 values if it was removed)
+             set nvox = `3dROIstats -quiet -nzvoxels      \
+                            -mask ${clustset}"<$nn>"      \
+                            ${clustset}`
+             if ( ${#nvox} ) then
+                @ vcount+= 1
+                set n02 = `ccalc -form '%02d' $nn`
+                3dpc                                         \
+                    -nscale                                  \
+                    -pcsave  $num_pc                         \
+                    -mask    ${clustset}"<$nn>"              \
+                    -prefix  pc.inner.r$ind02.c$n02.val      \
+                    $dset
+             endif
          end 
       endif
    end
@@ -983,6 +990,7 @@ $prog modification history:
                     - change corresponding thresh default from 0.97 to 0.90
    0.8  29 Apr 2025 : [PT] add optional PC output
    0.9  30 Apr 2025 : [PT] clean up PC-related functionality
+   1.0   1 May 2025 : [PT] remove PC errors if edge-ignore removed line(s)
 
 EOF
 # check $version, at top
