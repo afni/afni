@@ -86,7 +86,7 @@ derived data.
         self.rvt_ts    = np.zeros(0, dtype=float) # arr, 'raw' rvt time series
 
         # regressor stuff: lists of labels and the actual values
-        # NB: at present, rvt likely only for rest (but doesn't matter deeply)
+        # NB: at present, rvt likely only for resp (but doesn't matter deeply)
         self.regress_dict_phys = {}      # dict of list, (lab, value)
         self.regress_dict_rvt  = {}      # dict of list, (lab, value)
 
@@ -294,8 +294,8 @@ derived data.
         return len(self.regress_dict_rvt)
 
     @property
-    def regress_rvt_phys(self):
-        """The keys of the physio regressors."""
+    def regress_phys_keys(self):
+        """The keys of the physio regressors (like c1, s1, c2, s2, ...)."""
         return list(self.regress_dict_phys.keys())
 
     @property
@@ -406,8 +406,11 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.out_dir      = None       # str, name of output dir
         self.prefix       = None       # str, prefix of output filenames
         self.do_out_rvt   = True       # bool, flag
-        self.do_out_card  = True       # bool, flag
-        self.do_out_resp  = True       # bool, flag
+        self.do_out_phys  = {
+            'card' : True,             # bool, flag to proc card if present
+            'resp' : True,             # bool, flag to proc resp if present
+        }
+        self.do_out_slibase  = False   # bool, flag to write (older) slibase file
         self.save_proc_peaks = False   # bool, flag to write proc peaks to file
         self.save_proc_troughs = False # bool, flag to write proc trou to file
         self.load_proc = {
@@ -432,6 +435,8 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
             self.apply_cmd_line_args()
             # read in physio data
             data_dict = self.read_in_physio_data()
+            # see if we are ignoring any physio data
+            data_dict = self.possibly_remove_physio_data(data_dict)
             # check and store physio data
             self.check_and_store_physio_data(data_dict)
 
@@ -456,7 +461,44 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                 
     # ----------------------------------------------------------------------
 
+    def possibly_remove_physio_data(self, data_dict):
+        """The users might turn off some specific physio data, to take a
+        subset of the input data types that are stored in the
+        data_dict. This function will act on that by removing the
+        key+value pair storing that data. Each key in data_dict is one
+        of the possible physio labels, like 'card', 'resp', etc. 
+
+        If the user has specified a label that does not exist in the
+        data_dict, that is not a problem.
+
+        Returns the filtered dictionary, which might just be a copy of
+        the original.
+        """
+
+        # copy input dict
+        D = copy.deepcopy(data_dict)
+
+        # keys in the data dictionary
+        all_data_keys = list(D.keys())
+        # keys in the on/off dictionary (should be superset of labels)
+        all_phys_keys = list(self.do_out_phys.keys())
+
+        for key in all_data_keys :
+            # make sure key is valid
+            if key not in all_phys_keys :
+                print("** ERROR: key {} not in list of physio keys?"
+                      "".format(key))
+                sys.exit(5)
+
+            # see if we have to remove an item
+            if not(self.do_out_phys[key]) :
+                print("++ Removing {} data before processing".format(key))
+                tmp = D.pop(key, None)
+
+        return D
+
     def load_proc_peaks(self, label):
+
         """See if we have any load_proc_* data to read in, and if so, do it.
         The load_proc_* file inputs are just single columns of
         ints. So, use existing functionality to read them in, just
@@ -484,7 +526,6 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         return 0
 
     def read_in_physio_data(self):
-
         """Read in any physio (card, resp, etc.) data, from whatever sources
         might have some: a single 1D file, a pair of 1D files, a file+json
         combo, etc.
@@ -629,8 +670,9 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.out_dir          = AD['out_dir']
         self.prefix           = AD['prefix']
         self.do_out_rvt       = not(AD['rvt_off'])
-        self.do_out_card      = not(AD['no_card_out'])
-        self.do_out_resp      = not(AD['no_resp_out'])
+        self.do_out_phys['card'] = not(AD['no_card_out'])
+        self.do_out_phys['resp'] = not(AD['no_resp_out'])
+        self.do_out_slibase   = AD['do_slibase_out']
         self.save_proc_peaks  = AD['save_proc_peaks']
         self.save_proc_troughs = AD['save_proc_troughs']
         

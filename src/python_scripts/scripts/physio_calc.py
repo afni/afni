@@ -118,9 +118,9 @@ if __name__ == "__main__":
         if retobj.data[label] :
             lpf.calc_timing_selection_phys( retobj, label=label, verb=verb )
 
-    # Set up timing for RVT time series
+    # Set up timing for RVT time series (user can turn off, if desired)
     label = 'resp'
-    if retobj.data[label] :
+    if retobj.data[label] and retobj.do_out_rvt :
         lpf.calc_timing_selection_rvt( retobj, label=label, verb=verb )
 
     # ------------- Process any card/resp/etc. time series ------------------
@@ -183,7 +183,13 @@ if __name__ == "__main__":
 
     # ------------- Write out regressors ------------------
 
-    lpreg.write_regressor_file(retobj)
+    # older style of output: everything is slicewise (not done by default)
+    if retobj.do_out_slibase :
+        lpreg.write_regressor_file(retobj)
+
+    # newer, preferred style: separate slicewise and volumetric regressors
+    lpreg.write_regressor_file_sli(retobj)
+    lpreg.write_regressor_file_vol(retobj)
 
     # -------------------- log some of the results --------------------------
 
