@@ -25,7 +25,7 @@ if ( $#argv > $basearg ) then
 endif
 
 # separate dir and file (and be careful of spaces)
-set dname = "$inname:h"
+set dname = "`dirname $inname`"
 set fname = "$inname:t"
 
 # if no dir, use .

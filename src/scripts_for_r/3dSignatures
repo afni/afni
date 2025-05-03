@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set pp = $0:h
+set pp = `dirname $0`
 #Run R in script mode. Better than R CMD BATCH
 
 if ($#argv == 0) then

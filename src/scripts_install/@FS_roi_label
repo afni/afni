@@ -83,16 +83,16 @@ else
          endif
 
       else
-         set fsp = "$bin:h"
+         set fsp = "`dirname $bin`"
          #peel off a couple of layers
          if ( ! -f "$fsp/${fsdb}") then
-            set fsp = "$fsp:h"
+            set fsp = "`dirname $fsp`"
          endif
          if ( ! -f "$fsp/${fsdb}") then
-            set fsp = "$fsp:h"
+            set fsp = "`dirname $fsp`"
          endif
          if ( ! -f "$fsp/${fsdb}") then
-            set fsp = "$fsp:h"
+            set fsp = "`dirname $fsp`"
          endif
          if ( ! -f "$fsp/${fsdb}") then
             echo "Cannot find LUT"

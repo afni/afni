@@ -84,8 +84,9 @@ endif
 # ===================== output dir + wdir =======================
  
 set wa        = `which afni`
-set list_2000 = ${wa:h}/afni_fs_aparc+aseg_2000.txt
-set list_2009 = ${wa:h}/afni_fs_aparc+aseg_2009.txt
+set wap       = `dirname ${wa}`
+set list_2000 = ${wap}/afni_fs_aparc+aseg_2000.txt
+set list_2009 = ${wap}/afni_fs_aparc+aseg_2009.txt
 set oroi_2000 = "stats_fs_rois_2000_${subj}.1D"
 set oroi_2009 = "stats_fs_rois_2009_${subj}.1D"
 set oseg_2000 = "stats_fs_segs_2000_${subj}.1D"

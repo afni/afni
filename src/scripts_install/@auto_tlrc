@@ -1542,7 +1542,7 @@ CLEANUP:
 goto $Ret_Clean
 
 SET_REF_PATH:
-set ref_path = $ref_in:h
+set ref_path = `dirname $ref_in`
 if ( "$ref_path" == "$ref_in" ) then
    #echo "No Path specified ( $ref_path == $ref_in )" 
    set ref_path = "."

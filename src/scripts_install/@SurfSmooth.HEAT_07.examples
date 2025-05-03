@@ -10,7 +10,8 @@ else
    set pt = $1
 endif
 
-if ("$pt:t" != "suma_demo" || ("$pt:t" == "" && "$pt:h:t" == "suma_demo")) then
+set ppt = `dirname $pt`
+if ("$pt:t" != "suma_demo" || ("$pt:t" == "" && "$ppt:t" == "suma_demo")) then
    echo "path $pt does not point to suma_demo"
    echo "If you don't have suma_demo directory, install it"
    echo "by following the commands specified in `basename $0` -help"

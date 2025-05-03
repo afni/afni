@@ -111,7 +111,7 @@ PARSE:
 
 DOIT:
    set v1_vw = `@GetAfniView $v1i`
-   set v1_pth = $v1i:h
+   set v1_pth = `dirname $v1i`
    if ("$v1_pth" == "$v1i") then 
       set v1_pth = .
    endif

@@ -12,7 +12,7 @@ endif
 set anat_in = `echo "$1" | cut -d \[ -f1`
 set bling = `echo "$1" | cut -d \[ -f2 | cut -d \] -f1`
 
-set anat_path = $anat_in:h
+set anat_path = `dirname $anat_in`
 if ( "$anat_path" == "${anat_in}" ) then
     set anat_path = "."
 endif

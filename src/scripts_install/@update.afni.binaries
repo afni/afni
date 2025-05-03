@@ -760,7 +760,7 @@ if ( $stat ) then
    set cur_afni = ""
 else
    set cur_afni = `which $test_prog`
-   set cur_afni = $cur_afni:h
+   set cur_afni = `dirname $cur_afni`
    echo "-- have AFNI binaries under $cur_afni"
 endif
 
@@ -815,11 +815,11 @@ if ( $local_package != "" ) then
    endif
 
    # get the directory of the file
-   if ( $local_package == $local_package:h ) then
+   if ( $local_package == "`dirname $local_package`" ) then
       set local_package_dir = `pwd`
-   else if ( -d $local_package:h ) then
+   else if ( -d "`dirname $local_package`" ) then
       # path to file
-      cd $local_package:h
+      cd "`dirname $local_package`"
       set local_package_dir = `pwd`
       cd -
 
@@ -1585,7 +1585,7 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          rehash
          set cur_afni = `which $test_prog`
          if ( ! $status ) then
-            set cur_afni = $cur_afni:h
+            set cur_afni = `dirname $cur_afni`
          else
             # no afni found
             set cur_afni = ""

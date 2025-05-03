@@ -18,7 +18,7 @@ if ("$bling" == "$1") then
     set bling = ""
 endif
 
-set anat_path = "$anat_in:h"
+set anat_path = "`dirname $anat_in`"
 if ( "$anat_path" == "${anat_in}" ) then
     set anat_path = "."
 endif

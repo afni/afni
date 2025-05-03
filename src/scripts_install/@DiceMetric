@@ -171,7 +171,7 @@ if ("$prefix" !~ "") then
    echo "#Col.0 = 'ROI label in $base ($lll)'" >> $prefix.1D
    set cnt = 1
    foreach dset ($dsets)
-      set bp = $base:h
+      set bp = `dirname $base`
    echo "#Col.$cnt.Command = 'Dice(`@GetAfniPrefix $dset` VS $base (in $bp))' " \
            >> $prefix.1D
    echo "#Col.$cnt.Dset = '$dset'" >> $prefix.1D   
