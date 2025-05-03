@@ -89,6 +89,8 @@ derived data.
         # NB: at present, rvt likely only for rest (but doesn't matter deeply)
         self.regress_dict_phys = {}      # dict of list, (lab, value)
         self.regress_dict_rvt  = {}      # dict of list, (lab, value)
+        self.regress_dict_rvtrrf  = {}   # dict of list, (lab, value)
+        self.regress_dict_hrtcrf  = {}   # dict of list, (lab, value)
 
         # prefiltering related: not used in proc, just to be able to report
         self.prefilt_init_freq = prefilt_init_freq # flt, freq (Hz) before filt
@@ -294,6 +296,24 @@ derived data.
         return len(self.regress_dict_rvt)
 
     @property
+    def n_regress_hr(self):
+        """The number of fancy HR regressors (probably 5 or 0, but user can
+        choose)."""
+        return len(self.regress_dict_hr)
+
+    @property
+    def n_regress_rvtrrf(self):
+        """The number of fancy RVTRRF regressors (probably 5 or 0, but user can
+        choose)."""
+        return len(self.regress_dict_rvtrrf)
+
+    @property
+    def n_regress_hrtcrf(self):
+        """The number of fancy hrtcrf regressors (probably 5 or 0, but user can
+        choose)."""
+        return len(self.regress_dict_hrtcrf)
+
+    @property
     def regress_rvt_phys(self):
         """The keys of the physio regressors."""
         return list(self.regress_dict_phys.keys())
@@ -302,6 +322,21 @@ derived data.
     def regress_rvt_keys(self):
         """The keys of the RVT regressors."""
         return list(self.regress_dict_rvt.keys())
+
+    @property
+    def regress_hr_keys(self):
+        """The keys of the HR regressors."""
+        return list(self.regress_dict_hr.keys())
+
+    @property
+    def regress_rvtrrf_keys(self):
+        """The keys of the RVTRRF regressors."""
+        return list(self.regress_dict_rvtrrf.keys())
+
+    @property
+    def regress_hrtcrf_keys(self):
+        """The keys of the HRTCRF regressors."""
+        return list(self.regress_dict_hrtcrf.keys())
 
     @property
     def img_arr_step(self):
@@ -379,6 +414,9 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.extra_fix_list  = []      # list of to-be-bad values (-> interp)
         self.remove_val_list = []      # list of values to be purged
         self.rvt_shift_list  = []      # list of RVT shift values
+        self.hr_shift_list   = []      # list of RVT shift values
+        self.rvtrrf_shift_list  = []   # list of RVT shift values
+        self.hrtcrf_shift_list  = []   # list of RVT shift values
 
         # physio info (-> some now in data['resp'] and data['card'] objs)
         self.start_time   = None       # float, time offset (<=0, in s) from 
@@ -406,6 +444,8 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.out_dir      = None       # str, name of output dir
         self.prefix       = None       # str, prefix of output filenames
         self.do_out_rvt   = True       # bool, flag
+        self.do_out_rvtrrf   = False       # bool, flag
+        self.do_out_hrtcrf   = False       # bool, flag
         self.do_out_card  = True       # bool, flag
         self.do_out_resp  = True       # bool, flag
         self.save_proc_peaks = False   # bool, flag to write proc peaks to file
@@ -629,6 +669,8 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.out_dir          = AD['out_dir']
         self.prefix           = AD['prefix']
         self.do_out_rvt       = not(AD['rvt_off'])
+        self.do_out_rvtrrf    = AD['rvtrrf']
+        self.do_out_hrtcrf    = AD['hrtcrf']
         self.do_out_card      = not(AD['no_card_out'])
         self.do_out_resp      = not(AD['no_resp_out'])
         self.save_proc_peaks  = AD['save_proc_peaks']
@@ -657,6 +699,9 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.extra_fix_list   = copy.deepcopy(AD['extra_fix_list'])
         self.remove_val_list  = copy.deepcopy(AD['remove_val_list'])
         self.rvt_shift_list   = copy.deepcopy(AD['rvt_shift_list'])
+        self.hr_shift_list   = copy.deepcopy(AD['hr_shift_list'])
+        self.rvtrrf_shift_list   = copy.deepcopy(AD['rvtrrf_shift_list'])
+        self.hrtcrf_shift_list   = copy.deepcopy(AD['hrtcrf_shift_list'])
         self.do_interact      = AD['do_interact']
     # -----------------------
 
