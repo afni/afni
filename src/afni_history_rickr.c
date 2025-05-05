@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, May, 2025, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "report OpenMP thread usage in any applicable program",
+   NULL
+ } ,
+
  { 25, Apr, 2025, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
    "automatically replace n/a values with 0.0 when reading TSV",
    "And allow wildcard matching for column selectors."

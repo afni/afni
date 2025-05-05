@@ -42,18 +42,22 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
 #endif
 
 /* Set max number of threads to be at most thn */
-
+/* (and report to the user) [5 May 2025 rickr] */
 #ifdef USE_OMP
-# define AFNI_SETUP_OMP(thn)                            \
-  do{ int mm=omp_get_max_threads() , nn=thn , ee;       \
-      ee = (int)AFNI_numenv("OMP_NUM_THREADS") ;        \
-      if( ee <= 0 ){                                    \
-        if( nn < 1 ) nn = 15 ; if( mm > nn ) mm = nn ;  \
-        omp_set_num_threads(mm) ;                       \
-      }                                                 \
+# define AFNI_SETUP_OMP(thn)                                               \
+  do{ int mm=omp_get_max_threads() , nn=thn , ee;                          \
+      ee = (int)AFNI_numenv("OMP_NUM_THREADS") ;                           \
+      if( ee <= 0 ){                                                       \
+        if( nn < 1 ) nn = 15 ; if( mm > nn ) mm = nn ;                     \
+        omp_set_num_threads(mm) ;                                          \
+        fprintf(stderr,"-- OMP: auto setting num threads to %d\n", mm) ;   \
+      } else {                                                             \
+        fprintf(stderr,"-- OMP: using OMP_NUM_THREADS=%d threads\n", mm) ; \
+      }                                                                    \
   } while(0)
 #else
-# define AFNI_SETUP_OMP(thn) /*nada*/
+# define AFNI_SETUP_OMP(thn)                                               \
+   fprintf(stderr,"-- OMP: this program not compiled with OpenMP\n")
 #endif
 
 /* Macro to use in -help output */
