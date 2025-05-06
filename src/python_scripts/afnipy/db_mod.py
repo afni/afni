@@ -8198,9 +8198,23 @@ def db_cmd_resam_ROI_imports(proc, block):
     vbase = proc.epi_final
     if vbase is None:
        vbase = proc.vr_base_dset
+
+    # ------------------------------------------------------------
+    # if no volreg block, just be sure ROIs have correct view
     if vbase is None:
-       print("** cannot resample ROIs without vr_base_dset")
-       return 1, ''
+       if proc.verb > 1:
+           print("-- no vr_base_dset to resample ROIs, assuming on final grid")
+
+       # be sure the view is current
+       for opt in proc.user_opts.find_all_opts(oname):
+          label = opt.parlist[0]
+          aname = proc.get_roi_dset(label)
+          if not aname.to_resam:
+             continue
+          aname = proc.roi_dict[label]
+          aname.view = proc.view
+
+       return 0, ''
 
     cmd = '# resample any -ROI_import dataset onto the EPI grid\n' \
           '# (and copy its labeltable)\n\n'
