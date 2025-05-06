@@ -95,6 +95,7 @@ history for $prog :
                    - add -build_afni (only to override current source)
                    - add -build_root and -built_opts for build_afni.py
   3.27  4 Feb 2025 : allow use in updating just anyos_text* packages
+  3.28  6 May 2025 : [PT/RR] remove :h tcsh syntax
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -814,21 +815,18 @@ if ( $local_package != "" ) then
       exit 1
    endif
 
-   # get the directory of the file
-   if ( $local_package == "`dirname $local_package`" ) then
-      set local_package_dir = `pwd`
-   else if ( -d "`dirname $local_package`" ) then
-      # path to file
-      cd "`dirname $local_package`"
-      set local_package_dir = `pwd`
-      cd -
+   # get the full path directory of the file
+   cd "`dirname $local_package`"
+   set local_package_dir = "`pwd`"
+   cd -
 
-      # and clear the path
-      set local_package = $local_package:t
-   else
-      echo "** cannot determine path to -local_package file, $local_package"
+   if ( ! -d $local_package_dir ) then
+      echo "** invalid path to -local_package file, $local_package"
       exit 1
    endif
+
+   # and clear any path
+   set local_package = $local_package:t
 
    # use package for extensionless name
    set package = $local_package:r

@@ -1543,9 +1543,8 @@ goto $Ret_Clean
 
 SET_REF_PATH:
 set ref_path = `dirname $ref_in`
-if ( "$ref_path" == "$ref_in" ) then
+if ( "$ref_path" == "." ) then
    #echo "No Path specified ( $ref_path == $ref_in )" 
-   set ref_path = "."
    if ($apar_mode == 1) then
       goto END_REF_SEARCH
    endif
