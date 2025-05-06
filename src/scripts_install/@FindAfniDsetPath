@@ -77,9 +77,10 @@ set ref_file = ` ParseName "${ref_in}" | grep "FileName "|awk -F: '{print $2}'`
 
 # if path to dset, test separately    31 Jul 2015 [rickr]
 # (differs from ./$ref_in if path is absolute)
-# [PT: Oct 15, 3018] Update to allow for finding NIFTIs in this way
-set dir = "`dirname $ref_in`"
-if ( "$dir" != "$ref_in" ) then
+# [PT: Oct 15, 2018] Update to allow for finding NIFTIs in this way
+echo $ref_in | \grep / > /dev/null
+if ( ! $status ) then
+    set dir = "`dirname $ref_in`"
     set result = `@CheckForAfniDset "${ref_in}"`
     if ($full_path == 1) then
        if ($dir == ".") then
@@ -172,9 +173,6 @@ if ( $status != 0) then
    exit 1
 endif
 set ref_path = "`dirname $wa`"
-if ( "$ref_path" == "$wa" ) then
-   exit 1
-endif
 if ( `@CheckForAfniDset "${ref_path}/${ref_in}"` ) then
     if ($append_file == 0) then
        echo "$ref_path"

@@ -201,9 +201,7 @@ SET_PARAMS:
 if ( $v2coord != 1 ) then
    set v2_vw = `@GetAfniView $v2i`
    set pth2 = `dirname $v2i`
-   if ("$pth2" == "$v2i") then 
-
-      set pth2 = .
+   if ("$pth2" == ".") then
 
       # allow for template datasets in path, etc.  24 Apr 2011 [rickr]
       # if path is not found for input dataset,
@@ -233,9 +231,6 @@ endif
 SETCENTER:
    set v1_vw = `@GetAfniView $v1i`
    set v1_pth = `dirname $v1i`
-   if ("$v1_pth" == "$v1i") then 
-      set v1_pth = .
-   endif
 
    set v1_pref = `@GetAfniPrefix $v1i`
    set v1 = $v1_pth/$v1_pref$v1_vw
@@ -447,9 +442,6 @@ SETCHILDREN:
 foreach v1foli ( $v1_list )
    set v1fol_vw = `@GetAfniView $v1foli`
    set v1fol_pth = `dirname $v1foli`
-   if ("$v1fol_pth" == "$v1foli") then 
-      set v1fol_pth = .
-   endif
 
    set v1fol_pref = `@GetAfniPrefix $v1foli`
    set v1fol = $v1fol_pth/$v1fol_pref$v1fol_vw
