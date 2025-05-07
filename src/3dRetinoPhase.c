@@ -190,18 +190,18 @@ char * Phase_Dirs_ulbl(int p) {
    return(ps);
 }
 
-int Dir_is_eccentricity(d) {
+int Dir_is_eccentricity(int d) {
    if (d == CONT || d == EXP) return(1);
    return(0);
 }
 
-int Dir_is_polar(d) {
+int Dir_is_polar(int d) {
    if (d == CLW || d == CCW) return(1);
    return(0);
 }
 
 
-int Dir2Type(p) {
+int Dir2Type(int p) {
    switch (p){
       case CONT:
       case EXP:
@@ -217,7 +217,7 @@ int Dir2Type(p) {
    }  
 }
 
-Show_RP_UD(RP_UD *u, char *str) {
+void Show_RP_UD(RP_UD *u, char *str) {
    if (str) {
       fprintf(stderr,"%s", str);
    }
@@ -617,7 +617,7 @@ static void RP_tsfunc( double tzero, double tdelta ,
    } else {
       val[0] =  phz[rpud->stk[1]];
    }
-   /* linear interpolation between closest frequecies for amplitude */
+   /* linear interpolation between closest frequencies for amplitude */
    val[1] = (  mag[rpud->stk[0]]*rpud->stw[0] + 
                mag[rpud->stk[1]]*rpud->stw[1] );
    val[1] *= val[1]; /* square for power*/

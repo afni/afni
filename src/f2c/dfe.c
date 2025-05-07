@@ -2,7 +2,7 @@
 #include "fio.h"
 #include "fmt.h"
 
-y_rsk(Void)
+int y_rsk(Void)
 {
 	if(f__curunit->uend || f__curunit->url <= f__recpos
 		|| f__curunit->url == 1) return 0;
@@ -11,7 +11,7 @@ y_rsk(Void)
 	} while(++f__recpos < f__curunit->url);
 	return 0;
 }
-y_getc(Void)
+int y_getc(Void)
 {
 	int ch;
 	if(f__curunit->uend) return(-1);
@@ -37,7 +37,7 @@ y_getc(Void)
 #ifdef KR_headers
 y_putc(c)
 #else
-y_putc(int c)
+int y_putc(int c)
 #endif
 {
 	f__recpos++;
@@ -47,7 +47,7 @@ y_putc(int c)
 		err(f__elist->cierr,110,"dout");
 	return(0);
 }
-y_rev(Void)
+int y_rev(Void)
 {	/*what about work done?*/
 	if(f__curunit->url==1 || f__recpos==f__curunit->url)
 		return(0);
@@ -56,7 +56,7 @@ y_rev(Void)
 	f__recpos=0;
 	return(0);
 }
-y_err(Void)
+int y_err(Void)
 {
 	err(f__elist->cierr, 110, "dfe");
 #ifdef __cplusplus
@@ -64,7 +64,7 @@ y_err(Void)
 #endif
 }
 
-y_newrec(Void)
+int y_newrec(Void)
 {
 	if(f__curunit->url == 1 || f__recpos == f__curunit->url) {
 		f__hiwater = f__recpos = f__cursor = 0;
@@ -80,7 +80,7 @@ y_newrec(Void)
 #ifdef KR_headers
 c_dfe(a) cilist *a;
 #else
-c_dfe(cilist *a)
+int c_dfe(cilist *a)
 #endif
 {
 	f__sequential=0;

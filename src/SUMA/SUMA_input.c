@@ -1809,7 +1809,7 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
    Widget w = NULL;
    XKeyEvent Kev;
-   static  previouslySelectedPlane;
+   static int previouslySelectedPlane;
 
    SUMA_ENTRY;
 
