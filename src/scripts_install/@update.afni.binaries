@@ -95,6 +95,7 @@ history for $prog :
                    - add -build_afni (only to override current source)
                    - add -build_root and -built_opts for build_afni.py
   3.27  4 Feb 2025 : allow use in updating just anyos_text* packages
+  3.28  6 May 2025 : [PT/RR] remove :h tcsh syntax
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -760,7 +761,7 @@ if ( $stat ) then
    set cur_afni = ""
 else
    set cur_afni = `which $test_prog`
-   set cur_afni = $cur_afni:h
+   set cur_afni = `dirname $cur_afni`
    echo "-- have AFNI binaries under $cur_afni"
 endif
 
@@ -814,21 +815,18 @@ if ( $local_package != "" ) then
       exit 1
    endif
 
-   # get the directory of the file
-   if ( $local_package == $local_package:h ) then
-      set local_package_dir = `pwd`
-   else if ( -d $local_package:h ) then
-      # path to file
-      cd $local_package:h
-      set local_package_dir = `pwd`
-      cd -
+   # get the full path directory of the file
+   cd "`dirname $local_package`"
+   set local_package_dir = "`pwd`"
+   cd -
 
-      # and clear the path
-      set local_package = $local_package:t
-   else
-      echo "** cannot determine path to -local_package file, $local_package"
+   if ( ! -d $local_package_dir ) then
+      echo "** invalid path to -local_package file, $local_package"
       exit 1
    endif
+
+   # and clear any path
+   set local_package = $local_package:t
 
    # use package for extensionless name
    set package = $local_package:r
@@ -1585,7 +1583,7 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          rehash
          set cur_afni = `which $test_prog`
          if ( ! $status ) then
-            set cur_afni = $cur_afni:h
+            set cur_afni = `dirname $cur_afni`
          else
             # no afni found
             set cur_afni = ""

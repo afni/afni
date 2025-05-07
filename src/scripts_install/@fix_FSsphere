@@ -106,16 +106,10 @@ PARSE:
 
 
 PATHS_NAMES:
-   set srfd = $srfin:h
+   set srfd = `dirname $srfin`
    set srfn = $srfin:t
-   if ("$srfd" == "$srfin") then
-     set srfd = '.'
-   endif
-   set spcd = $spcin:h
+   set spcd = `dirname $spcin`
    set spcn = $spcin:t
-   if ("$spcd" == "$spcin") then
-      set spcd = '.'
-   endif
    set srfp = `@NoExt $srfn asc`
    set spcp = `@NoExt $spcn spec`
    set outsn = ${srfp}_fxd.asc         

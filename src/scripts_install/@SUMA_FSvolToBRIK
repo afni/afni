@@ -8,7 +8,7 @@ set neuro_ori = 0
 
 set strt_dir = "$PWD"
 
-if ("$input:t" == "$input:h") then
+if ("`dirname $input`" == ".") then
    set fdir = ./
    set fname = "$input:t"
 else 
@@ -16,7 +16,7 @@ else
       set fdir = "$input"
       set fname = ""
    else
-      set fdir = "$input:h"
+      set fdir = "`dirname $input`"
       set fname = "$input:t"
    endif
 endif
@@ -24,11 +24,11 @@ cd "$fdir"
 set fdir = "$PWD"
 cd -
 
-if ("$afni_prefix:t" == "$afni_prefix:h") then
+if ("`dirname $afni_prefix`" == ".") then
    set out_dir = "$PWD"
    set afni_prefix = "$afni_prefix:t"
 else 
-   set out_dir = $afni_prefix:h
+   set out_dir = `dirname $afni_prefix`
    set afni_prefix = $afni_prefix:t
 endif
 
