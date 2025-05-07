@@ -45,6 +45,7 @@ set rdir         = vlines.result  # output directory
 set sdpower      = 2              # power on stdev (2=default variance)
 set thresh       = 0.90           # threshold for tscale average (was .97)
 set num_pc       = 0              # number of PCs per vline to output
+set suffix       = ""             # extra str for QC* output files
 
 # computed vars
 set edge_mask  = ''             # edge voxel mask, if applied
@@ -52,7 +53,7 @@ set clust_pre  = 'clustset'     # prefix for cluster mask
 
 set prog = find_variance_lines.tcsh
 
-set version = "0.6, 8 Jan, 2025"
+set version = "1.1, 7 May, 2025"
 
 if ( $#argv < 1 ) goto SHOW_HELP
 
@@ -180,6 +181,13 @@ while ( $ac <= $#argv )
       endif
       @ ac += 1
       set num_pc = $argv[$ac]
+   else if ( "$argv[$ac]" == "-suffix_qc" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
+      @ ac += 1
+      set suffix = $argv[$ac]
 
    # otherwise, these should be the input datasets
    else
@@ -687,11 +695,11 @@ if ( $do_img ) then
    # finish the subtext string (remove last comma)
    set text = `echo ${text:q} | awk '{print substr($0,1,length($0)-1)}'`
 
-   echo ${text} > QC_var_lines.txt
+   echo ${text} > QC_var_lines${suffix}.txt
 
    # combine img files
    if ( ${count} ) then
-       set opref = QC_var_lines
+       set opref = QC_var_lines${suffix}
        2dcat                                                             \
            -overwrite                                                    \
            -zero_wrap                                                    \
@@ -909,6 +917,14 @@ Options (processing):
 
                           All output is put into this results directory.
 
+   -suffix_qc VAL       : string to append to QC* file outputs (def="")
+
+                             VAL is a string appended to "QC_var_lines"
+                             files;  it should likely start with "_".
+
+                          Including the subject ID in the files in this way
+                          might be useful at times.
+
    -ignore_edges VAL    : ignore vline clusters at edges (def=$ignore_edges)
 
                              VAL in {0,1}
@@ -991,6 +1007,7 @@ $prog modification history:
    0.8  29 Apr 2025 : [PT] add optional PC output
    0.9  30 Apr 2025 : [PT] clean up PC-related functionality
    1.0   1 May 2025 : [PT] remove PC errors if edge-ignore removed line(s)
+   1.1   7 May 2025 : [PT] add -suffix_qc so QC* files can be unique per subj
 
 EOF
 # check $version, at top
