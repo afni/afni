@@ -2939,8 +2939,9 @@ class SubjProcSream:
                                                    verb=self.verb)
                   if err: return 1
                   if reps != self.reps_all[rind]:
-                     print("run %d reps vary between echo 1 and echo %d" \
-                           % (rind+1, eind+1))
+                     print("** run %d reps differ between echo 1 (%d)" \
+                           " and echo %d (%d)"                         \
+                           % (rind+1, self.reps_all[rind], eind+1, reps))
                      return 1
                   if tr != self.tr:
                       print('** TR of %g (in %s) != run 1 echo 1 TR %g' \
