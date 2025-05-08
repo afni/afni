@@ -141,6 +141,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                              is now always in NI_TEXT_MODE,
                                              verify that AFNI handles either well
                                              THIS handling here is TEMPORARY */
+    int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+    int numSurfaceObjects, j;
+    int newMin, newMax;
    SUMA_Boolean LocalHead = NOPE;
 
 
@@ -4012,10 +4015,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      XmToggleButtonSetState (SurfCont->SymIrange_tb, 
                         SurfCont->curColPlane->SymIrange, 1);
                         
-                     int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
-                     int numSurfaceObjects, j;
-                     int newMin = SurfCont->curColPlane->OptScl->IntRange[0];
-                     int newMax = SurfCont->curColPlane->OptScl->IntRange[1];
+                     newMin = SurfCont->curColPlane->OptScl->IntRange[0];
+                     newMax = SurfCont->curColPlane->OptScl->IntRange[1];
                      XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
                      N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
                      if (numSurfaceObjects != N_adolist) {
@@ -4157,24 +4158,36 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
 
             if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE")) {
-               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "L")){
-                  SurfCont->alphaOpacityModel = LINEAR;
-               }
-               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "Q"))
-               {
-                  SurfCont->alphaOpacityModel = QUADRATIC;
-               }
-               else {
-                  SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L/Q",
-                              NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
-               }
-               if (!sv) sv = &(SUMAg_SVv[0]); 
-               SO = SUMA_SV_Focus_SO(sv);
-               SO->SurfCont->alphaOpacityModel = SurfCont->alphaOpacityModel;
-   
-               // Refresh display
-               SUMA_Remixedisplay(ado);
-               SUMA_UpdateNodeLblField(ado);
+            
+             XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+             N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+             if (numSurfaceObjects != N_adolist) {
+                    SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+                    SUMA_RETURN (NOPE);
+             }
+             for (j=0; j<N_adolist; ++j){
+                 SUMA_ALL_DO *ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+                 SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+                 SurfCont = SO->SurfCont;
+                   if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "L")){
+                      SurfCont->alphaOpacityModel = LINEAR;
+                   }
+                   else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "Q"))
+                   {
+                      SurfCont->alphaOpacityModel = QUADRATIC;
+                   }
+                   else {
+                      SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L/Q",
+                                  NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
+                   }
+                   if (!sv) sv = &(SUMAg_SVv[0]); 
+                   SO = SUMA_SV_Focus_SO(sv);
+                   SO->SurfCont->alphaOpacityModel = SurfCont->alphaOpacityModel;
+       
+                   // Refresh display
+                   SUMA_Remixedisplay(ado);
+                   SUMA_UpdateNodeLblField(ado);
+                }             
             }
 
             if (NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED")) {
