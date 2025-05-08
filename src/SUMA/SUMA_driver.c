@@ -404,7 +404,7 @@ if (detail > 1) {
 "       -show_0 y/n: Set shw 0 toggle button of DSET.\n"
 "       -SET_FUNC_ALPHA y/n       or \n"
 "       -SET_FUNC_ALPHA on/off\n"
-"       -SET_FUNC_ALPHA A.Linear/A.Quadratic \n"
+"       -SET_FUNC_ALPHA Linear/Quadratic \n"
 "       -SET_FUNC_BOXED y/n       or \n"
 "       -SET_FUNC_BOXED on/off\n"
 "       -Dsp MODE: Set the viewing mode of the current DSET.\n"

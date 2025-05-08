@@ -2319,7 +2319,7 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int
    SUMA_SurfaceObject *SO = NULL;
 
    SUMA_ENTRY;
-   
+     
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (  !curColPlane ||
          !curColPlane->OptScl )  {
@@ -2332,6 +2332,7 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int
          !SurfCont->ShowZero_tb )  {
       SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
     }
+    SurfCont->alphaOpacityModel = QUADRATIC;    // Make quadratic fall-off default
     SO = (SUMA_SurfaceObject *)ado;
     XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, state, notify);
   

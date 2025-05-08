@@ -7502,13 +7502,10 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
         for (j=0; j<overlay->N_V; ++j){
             // alphaOpacityPtr[j] = denom? MIN(1.0f, (fabs(overlay->V[j] - MinVal))/denom) : 1.0f;
             alphaOpacityPtr[j] = denom? MIN(1.0f, (fabs(overlay->V[j]))/denom) : 1.0f;
-            if (i<10) fprintf(stderr, "%s: opacityModel = %d\n", FuncName, opacityModel);
             if (opacityModel == FRACTIONAL) {
-                if (i<10) fprintf(stderr, "%s: opacityModel = FRACTIONAL\n", FuncName);
                 alphaOpacityPtr[j] *= sqrt(alphaOpacityPtr[j]);
             }
             else if (opacityModel == QUADRATIC){
-                if (i<10) fprintf(stderr, "%s: opacityModel = QUADRATIC\n", FuncName);
                 alphaOpacityPtr[j] *= alphaOpacityPtr[j];
             }
         }
