@@ -45,15 +45,20 @@ set rdir         = vlines.result  # output directory
 set sdpower      = 2              # power on stdev (2=default variance)
 set thresh       = 0.90           # threshold for tscale average (was .97)
 set num_pc       = 0              # number of PCs per vline to output
+set do_pc_3dD    = 1              # if calc'ing PCs, create+run 3dDeconvolve
 set suffix       = ""             # extra str for QC* output files
 
 # computed vars
 set edge_mask  = ''             # edge voxel mask, if applied
 set clust_pre  = 'clustset'     # prefix for cluster mask
 
+# created scripts
+set cmd_copy     = a_cmd_00_copy.tcsh 
+set cmd_3dD_base = a_cmd_01_3dD
+
 set prog = find_variance_lines.tcsh
 
-set version = "1.1, 7 May, 2025"
+set version = "1.2, 8 May, 2025"
 
 if ( $#argv < 1 ) goto SHOW_HELP
 
@@ -188,6 +193,13 @@ while ( $ac <= $#argv )
       endif
       @ ac += 1
       set suffix = $argv[$ac]
+   else if ( "$argv[$ac]" == "-do_pc_3dD" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
+      @ ac += 1
+      set do_pc_3dD = $argv[$ac]
 
    # otherwise, these should be the input datasets
    else
@@ -286,7 +298,6 @@ cd $rdir
 # main work: compute correlation datasets and surviving threshold fractions
 
 # store the command that was run, for reference
-set cmd_copy = a_cmd_copy.tcsh 
 cat <<EOF > _tmp
 # The command used to create this dir was:
 
@@ -570,6 +581,57 @@ if ( $num_pc ) then
                     $dset
              endif
          end 
+
+         # do simple 3dD on the PCs here
+         set all_pc = `find . -maxdepth 1 -name "pc.inner.r$ind02.c*.val_vec.1D" \
+                            | cut -b3- | sort`
+         set nall_pc = ${#all_pc}
+         if ( ${nall_pc} && ${do_pc_3dD} ) then
+            set num_stimts = `ccalc -i -eval "${nall_pc}*${num_pc}"`
+            set polort     = -1    # already detrended dset
+
+            # loop over all lines and components and build -stim_* opts
+            set sss = ""
+            set idx = 1 
+            @ Mpc   = $num_pc - 1    # max index for PC selector; 0-based count
+            foreach cc ( `seq 1 1 ${nall_pc}` ) 
+               set pcname = ${all_pc[$cc]}
+               set tmp1   = `basename ${pcname} .val_vec.1D`
+               set pccore = ${tmp1:gas/pc.inner.//}
+               foreach pp ( `seq 0 1 ${Mpc}` ) 
+                  set sss = "${sss:q} -stim_file $idx ${pcname}'[$pp]' "
+                  set sss = "${sss:q} -stim_label $idx ${pccore}.$pp "
+                  @ idx += 1
+               end
+            end
+
+cat <<EOF > _tmp_3dD_cmd.tcsh
+#!/bin/tcsh
+
+# 3dD command for already-detrended time series
+
+3dDeconvolve                                             \
+    -overwrite                                           \
+    -input           ${dset}                             \
+    -polort          ${polort}                           \
+    -num_stimts      ${num_stimts}                       \
+    ${sss:q}                                             \
+    -tout                                                \
+    -x1D             X.xmat.1D                           \
+    -xjpeg           X.jpg                               \
+    -x1D_uncensored  X.nocensor.xmat.1D                  \
+    -bucket          stats${suffix}.r$ind02.nii.gz
+EOF
+
+            # make the command readable in its file
+            set cmd_3dD = ${cmd_3dD_base}.r$ind02.tcsh
+            file_tool -wrap_lines -infiles _tmp_3dD_cmd.tcsh > ${cmd_3dD}
+            \rm _tmp_3dD_cmd.tcsh
+            # ... and execute it
+            tcsh ${cmd_3dD}
+            # ... and rename the created REML cmd, per run
+            \mv  stats.REML_cmd  stats${suffix}.r$ind02.REML_cmd
+         endif
       endif
    end
 
@@ -757,6 +819,8 @@ SHOW_HELP:
 
 cat << EOF
 ---------------------------------------------------------------------------
+Overview: ~1~
+
 $prog   - look for high temporal variance columns
 
    usage : $prog [options] datasets ..."
@@ -784,7 +848,7 @@ the (masked) slices.
         where a vline is a column with Localstat mean >= $thresh
 
 ------------------------------------------------------------
-Examples:
+Examples: ~1~
 
   1. Run using defaults.
 
@@ -804,13 +868,13 @@ Examples:
               epi_run*.nii.gz
 
 ------------------------------------------------------------
-Options (terminal):
+Options (terminal): ~1~
 
    -help                : show this help
    -hist                : show the version history
    -ver                 : show the current version
 
-Options (processing):
+Options (processing): ~1~
 
    -do_clean VAL        : do we clean up a little? (def=$do_clean)
 
@@ -917,10 +981,13 @@ Options (processing):
 
                           All output is put into this results directory.
 
-   -suffix_qc VAL       : string to append to QC* file outputs (def="")
+   -suffix_qc VAL       : string to append to QC* file outputs, as well as any
+                          stats*.nii.gz file output if using -num_pc (def="")
 
                              VAL is a string appended to "QC_var_lines"
-                             files;  it should likely start with "_".
+                             files;  it would also be appended to "stats" in
+                             the NIFTI file output associated with any PCs;
+                             it should likely start with "_".
 
                           Including the subject ID in the files in this way
                           might be useful at times.
@@ -975,7 +1042,47 @@ Options (processing):
                           in run 2 is named: pc.inner.r02.c03*.
                           The outputs from the intersection vline dset are 
                           named like: pc.inter.enum.c*.
-                          
+
+   -do_pc_3dD VAL       : if '-num_pc ..' is used and variance lines are found
+                          in a run, then by default this program will
+                          build+execute a 3dDeconvolve command with those
+                          PCs as '-stim_file ..' regressors; this opt controls
+                          whether 3dD would be run or not (def=$do_pc3dD)
+
+                             VAL in {0,1}
+
+                          This will help highlight where the variance
+                          line influence appears to be more/less
+                          across the dataset. See the Note on 'Outputs
+                          when -num_pc is used' for more details.
+
+-----------------------------------------------------------------------------
+Notes: ~1~
+
+Outputs when -num_pc is used: ~2~
+
+When '-num_pc ..' is used, 3dpc will be used to perform a principal
+component analysis (PCA) decomposition of each variance line.  For
+each line, the specified number of PCs will be saved in a text file
+called pc.inner.*.val_vec.1D (one per column).
+
+Additionally, a 3dDeconvolve command will be executed for each run
+that has at least one variance line.  The full set of PCs for that run
+will be used at '-stim_file ..' inputs to the command, and a Full
+F-stat is calculated.  This shows the amount of variance explained in
+the detrended input time series by the full set of the PC
+components. That is, where the F is larger, some combination of PCs is
+explaining more of the time series variability (i.e., having more
+influence on the time series pattern).  The result is stored in the
+stats*.nii.gz file.
+
+A copy of the 3dDeconvolve command for each run is stored in a text
+file within the output vlines directory, called
+${cmd_3dD_base}.r*.tcsh.
+
+
+
+------------------------------
 - R Reynolds, P Taylor, D Glen
   Nov, 2022
   version $version
@@ -1008,6 +1115,7 @@ $prog modification history:
    0.9  30 Apr 2025 : [PT] clean up PC-related functionality
    1.0   1 May 2025 : [PT] remove PC errors if edge-ignore removed line(s)
    1.1   7 May 2025 : [PT] add -suffix_qc so QC* files can be unique per subj
+   1.2   8 May 2025 : [PT] add 3dDeconvolve cmd to PC calcs
 
 EOF
 # check $version, at top
