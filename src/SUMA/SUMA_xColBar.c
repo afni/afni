@@ -1196,14 +1196,16 @@ int SUMA_SwitchColPlaneIntensity(
          }
 
         // SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-        colpC->OptScl->UseThr = !(colp->AlphaOpacityFalloff);
+        // colpC->OptScl->UseThr = !(colp->AlphaOpacityFalloff);
         SUMA_ColorizePlane (colpC);          
-        colpC->OptScl->UseThr = 1;
+        // colpC->OptScl->UseThr = 1;
       }
    }
 /*
+    */
     SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-    colp->OptScl->UseThr = !(SO->SurfCont->AlphaOpacityFalloff);
+    colp->OptScl->UseThr = !(colp->AlphaOpacityFalloff);
+    /*
     SUMA_ScaleToMap_Interactive ( colp );
     colp->OptScl->UseThr = 1;
 */
@@ -1550,7 +1552,7 @@ int SUMA_SwitchColPlaneThreshold_one(
 
    /* make sure threshold is on if command is not from the interface*/
    if (setmen && !colp->OptScl->UseThr && colp->OptScl->tind >= 0) {
-      colp->OptScl->UseThr = YUP;
+      // colp->OptScl->UseThr = YUP;
       XmToggleButtonSetState (SurfCont->Thr_tb, YUP, NOPE);
    }
 
@@ -2495,10 +2497,15 @@ void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
 
 void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
 {
+    // Toggles the use of the threshold pn/off when v button,
+    // by T subvrick pulldown, clicked
    static char FuncName[]={"SUMA_cb_SwitchThr_toggled"};
    SUMA_ALL_DO *ado = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
+    int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+    int numSurfaceObjects, j;
+    SUMA_Boolean UseThr;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -2514,7 +2521,6 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
 
-
    /* make sure ok to turn on */
    if (curColPlane->OptScl->tind < 0) {
       SUMA_BEEP;
@@ -2523,13 +2529,43 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
       SUMA_RETURNe;
    }
 
-   curColPlane->OptScl->UseThr =
-         XmToggleButtonGetState (SurfCont->Thr_tb);
+   UseThr = XmToggleButtonGetState (SurfCont->Thr_tb);
 
-   SUMA_ColorizePlane(curColPlane);
-   SUMA_Remixedisplay(ado);
+    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+    if (numSurfaceObjects != N_adolist) {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        if (numSurfaceObjects != 1) SUMA_RETURNe;
+    }
+    for (j=0; j<numSurfaceObjects; ++j){
+        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
 
-   SUMA_UpdateNodeLblField(ado);
+       if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+          SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+       curColPlane = SUMA_ADO_CurColPlane(ado);
+       if ( !curColPlane )  {
+          SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+       }
+
+       /* make sure ok to turn on */
+       if (curColPlane->OptScl->tind < 0) {
+          SUMA_BEEP;
+          SUMA_SLP_Note("no threshold column set");
+          XmToggleButtonSetState (SurfCont->Thr_tb, NOPE, NOPE);
+          SUMA_RETURNe;
+       }
+
+       curColPlane->OptScl->UseThr = UseThr;
+             // XmToggleButtonGetState (SurfCont->Thr_tb);
+             
+       // Set toggle button for this surface
+       XmToggleButtonSetState (SurfCont->Thr_tb, UseThr , NOPE);
+
+       SUMA_ColorizePlane(curColPlane);
+       SUMA_Remixedisplay(ado);
+
+       SUMA_UpdateNodeLblField(ado);
+    }
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
@@ -5688,6 +5724,7 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
             NULL);
 
    SUMA_LHv("Colorize if necessary, redisplay=%d\n", redisplay);
+
    /* colorize if necessary */
    if ( redisplay == 0 ||
         (redisplay == 1 && !curColPlane->OptScl->UseThr) ) {
