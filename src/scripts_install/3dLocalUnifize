@@ -12,9 +12,13 @@
 #set version   = "1.1";  set rev_dat   = "July 4, 2022"
 # [PT]  change how masking is turned off
 #
-set version   = "1.2";  set rev_dat   = "Jan 29, 2024"
+#set version   = "1.2";  set rev_dat   = "Jan 29, 2024"
 # [PT]  change how local_mask is parsed, so '-mask DSET' is 
 #       properly handled with an initial dset copy to the wdir
+#
+set version   = "1.3";  set rev_dat   = "May 11, 2025"
+# [PT]  add -sharpen_with_phi, to possibly insert 3dSharpen into
+#       the processing stream
 #
 # ----------------------------------------------------------------
 
@@ -33,6 +37,7 @@ set wdir_name = "${wdir_base}_${pppp}"
 set local_perc = 50
 set local_rad  = -3
 set local_mask = "-automask"
+set sharp_phi  = ""
 
 set filt_thr   = 1.5
 
@@ -80,6 +85,11 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set local_rad = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-sharpen_with_phi" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set sharp_phi = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-local_mask" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -133,6 +143,15 @@ endif
 if ( "${opref}" == "" ) then
     echo "** ERROR: missing output prefix. Use '-prefix ..'"
     goto BAD_EXIT
+endif
+
+if ( "${sharp_phi}" != "" ) then
+    set is_ok = `ccalc -i -eval "within(${sharp_phi},0.1,0.9)"`
+    if ( ! ${is_ok} ) then
+        echo "** ERROR: Sharpen phi must be in range [0.1, 0.9], not: ${sharp_phi}"
+        echo "          Please fix your input to '-sharpen_with_phi ..'"
+        goto BAD_EXIT
+    endif
 endif
 
 # ===================== output dir + wdir =======================
@@ -224,13 +243,33 @@ set odset_rat = dset_02_rat.nii.gz
 
 set dset_out = "${odset_rat}"
 
+# (opt) Sharpen
+
+if ( "${sharp_phi}" != "" ) then
+    echo "++ Apply sharpening to image with phi: ${sharp_phi}"
+
+    set idset       = "${odset_rat}"
+    set odset_sharp = dset_03_sharp.nii.gz
+
+    if ( "${overwrite}" != "" && -f ${odset_sharp} ) then
+        \rm ${odset_sharp}
+    endif
+
+    3dSharpen                                                      \
+        -phi     ${sharp_phi}                                      \
+        -input   "${idset}"                                        \
+        -prefix  "${odset_sharp}"
+
+    set dset_out = "${odset_sharp}"
+endif
+
 # (opt) Filter possible outlier ratio values
 
 if ( `echo "${filt_thr} > 0 " | bc` ) then
     echo "++ Apply filter threshold to scaled image: ${filt_thr}"
 
-    set idset      = "${odset_rat}"
-    set odset_filt = dset_03_filt.nii.gz
+    set idset      = "${dset_out}"
+    set odset_filt = dset_04_filt.nii.gz
 
     3dcalc ${overwrite}                                            \
         -a       "${idset}"                                        \
@@ -335,6 +374,12 @@ where the following options exist:
                        "None" as the option value.
                        (def: "${local_mask}")
 
+  -sharpen_with_phi PHI :before possible filtering and output, apply 3dSharpen
+                       to sharpen the locally unifized result.  The value of
+                       PHI must be in range [0.1, 0.9]; this sets the 
+                       value of the '-phi ..' opt in 3dSharpen---see that 
+                       program's help for details (def: no sharpening applied)
+
   -filter_thr FT      :put a ceiling on values in the final, scaled dataset,
                        whose values should be of order 1; setting FT to be a
                        value <=0 turns off this final filtering
@@ -355,11 +400,17 @@ EXAMPLES ~1~
         -prefix  vr_base_LU                                          \\
         -input   vr_base_min_outlier+orig.HEAD
 
-  1. Same as above, without masking:
+  2. Same as above, without masking:
      3dLocalUnifize                                                  \\
         -prefix      vr_base_LU_FOV                                  \\
         -input       vr_base_min_outlier+orig.HEAD                   \\
         -local_mask  None
+
+  3. Same as Ex. 1, but adding sharpening:
+     3dLocalUnifize                                                  \\
+        -prefix            vr_base_LU_SHARP.nii.gz                   \\
+        -input             vr_base_min_outlier+orig.HEAD             \\
+        -sharpen_with_phi  0.5
 
 EOF
 
