@@ -12,9 +12,13 @@
 #set version   = "1.1";  set rev_dat   = "July 4, 2022"
 # [PT]  change how masking is turned off
 #
-set version   = "1.2";  set rev_dat   = "Jan 29, 2024"
+#set version   = "1.2";  set rev_dat   = "Jan 29, 2024"
 # [PT]  change how local_mask is parsed, so '-mask DSET' is 
 #       properly handled with an initial dset copy to the wdir
+#
+set version   = "1.3";  set rev_dat   = "May 11, 2025"
+# [PT]  add -sharpen_with_phi, to possibly insert 3dSharpen into
+#       the processing stream
 #
 # ----------------------------------------------------------------
 
@@ -372,8 +376,9 @@ where the following options exist:
 
   -sharpen_with_phi PHI :before possible filtering and output, apply 3dSharpen
                        to sharpen the locally unifized result.  The value of
-                       PHI must be in range [0.1, 0.9]; see 3dSharpen's help 
-                       for details (def: no sharpening applied)
+                       PHI must be in range [0.1, 0.9]; this sets the 
+                       value of the '-phi ..' opt in 3dSharpen---see that 
+                       program's help for details (def: no sharpening applied)
 
   -filter_thr FT      :put a ceiling on values in the final, scaled dataset,
                        whose values should be of order 1; setting FT to be a
@@ -395,11 +400,17 @@ EXAMPLES ~1~
         -prefix  vr_base_LU                                          \\
         -input   vr_base_min_outlier+orig.HEAD
 
-  1. Same as above, without masking:
+  2. Same as above, without masking:
      3dLocalUnifize                                                  \\
         -prefix      vr_base_LU_FOV                                  \\
         -input       vr_base_min_outlier+orig.HEAD                   \\
         -local_mask  None
+
+  3. Same as Ex. 1, but adding sharpening:
+     3dLocalUnifize                                                  \\
+        -prefix            vr_base_LU_SHARP.nii.gz                   \\
+        -input             vr_base_min_outlier+orig.HEAD             \\
+        -sharpen_with_phi  0.5
 
 EOF
 
