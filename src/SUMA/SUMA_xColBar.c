@@ -1485,7 +1485,7 @@ int SUMA_SwitchColPlaneThreshold(
       SUMA_S_Err("Failed in _one");
       SUMA_RETURN(0);
    }
-
+   
    if (ado->do_type == SO_type) {
       SO = (SUMA_SurfaceObject *)ado;
       /* do we have a contralateral SO and overlay? */
@@ -1552,7 +1552,7 @@ int SUMA_SwitchColPlaneThreshold_one(
 
    /* make sure threshold is on if command is not from the interface*/
    if (setmen && !colp->OptScl->UseThr && colp->OptScl->tind >= 0) {
-      // colp->OptScl->UseThr = YUP;
+      colp->OptScl->UseThr = YUP;
       XmToggleButtonSetState (SurfCont->Thr_tb, YUP, NOPE);
    }
 
@@ -1604,6 +1604,7 @@ int SUMA_SwitchColPlaneThreshold_one(
 
 void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
 {
+   // Called when T subbrick option changed
    static char FuncName[]={"SUMA_cb_SwitchThreshold"};
    int imenu = 0;
    SUMA_MenuCallBackData *datap=NULL;
@@ -2530,6 +2531,7 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
    }
 
    UseThr = XmToggleButtonGetState (SurfCont->Thr_tb);
+   curColPlane->OptScl->UseThr = UseThr;
 
     XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
     N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
@@ -2556,7 +2558,7 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
        }
 
        curColPlane->OptScl->UseThr = UseThr;
-             // XmToggleButtonGetState (SurfCont->Thr_tb);
+            // XmToggleButtonGetState (SurfCont->Thr_tb);
              
        // Set toggle button for this surface
        XmToggleButtonSetState (SurfCont->Thr_tb, UseThr , NOPE);
