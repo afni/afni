@@ -58,7 +58,7 @@ set cmd_3dD_base = a_cmd_01_3dD
 
 set prog = find_variance_lines.tcsh
 
-set version = "1.2, 8 May, 2025"
+set version = "1.3, 12 May, 2025"
 
 if ( $#argv < 1 ) goto SHOW_HELP
 
@@ -241,10 +241,14 @@ foreach dset ( $din_list )
    set nk_list = ( $nk_list $nstuff[2] )
 end
 
-echo "++ have nslices : $nk_list"
-echo "++ params: min_cvox $min_cvox, nerode $nerode, perc $perc,"
-echo "           ignore_edges $ignore_edges, sdpower $sdpower, thresh $thresh"
-echo ""
+cat <<EOF
+
+++ have nslices : $nk_list
+++ params: min_cvox $min_cvox, nerode $nerode, perc $perc, polort $polort,
+           ignore_edges $ignore_edges, sdpower $sdpower, thresh $thresh,
+           num_pc $num_pc, do_pc_3dD $do_pc_3dD
+
+EOF
 
 # ----------------------------------------------------------------------
 # make results dir, enter it and remove old results
@@ -307,6 +311,29 @@ EOF
 # ... readably.
 file_tool -wrap_lines -infiles _tmp > ${cmd_copy}
 \rm _tmp
+
+cat <<EOF>> ${cmd_copy}
+
+#  Additional notes
+# ------------------
+# program version : $version
+# have nslices    : $nk_list
+# 
+# Params (some/many likely set with default values)
+# nfirst          : $nfirst
+# min_cvox        : $min_cvox
+# mask_in         : $mask_in
+# nerode          : $nerode
+# polort          : $polort
+# perc            : $perc
+# ignore_edges    : $ignore_edges
+# sdpower         : $sdpower
+# thresh          : $thresh
+# num_pc          : $num_pc
+# do_pc_3dD       : $do_pc_3dD
+
+EOF
+
 
 # if the user wants an automask, make one
 if ( $mask_in == AUTO ) then
@@ -1116,6 +1143,7 @@ $prog modification history:
    1.0   1 May 2025 : [PT] remove PC errors if edge-ignore removed line(s)
    1.1   7 May 2025 : [PT] add -suffix_qc so QC* files can be unique per subj
    1.2   8 May 2025 : [PT] add 3dDeconvolve cmd to PC calcs
+   1.3  12 May 2025 : [PT] add more reporting output
 
 EOF
 # check $version, at top
