@@ -1604,27 +1604,40 @@ int SUMA_SwitchColPlaneThreshold_one(
 
 void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
 {
-   // Called when T subbrick option changed
-   static char FuncName[]={"SUMA_cb_SwitchThreshold"};
-   int imenu = 0;
-   SUMA_MenuCallBackData *datap=NULL;
-   SUMA_ALL_DO *ado=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+    // Called when T subbrick option changed
+    static char FuncName[]={"SUMA_cb_SwitchThreshold"};
+    int imenu = 0;
+    SUMA_MenuCallBackData *datap=NULL;
+    SUMA_ALL_DO *ado=NULL;
+    SUMA_OVERLAYS *curColPlane=NULL;
+    int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+    int numSurfaceObjects, j;
+    SUMA_Boolean LocalHead = NOPE;
 
-   SUMA_ENTRY;
+    SUMA_ENTRY;
 
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
-   ado = (SUMA_ALL_DO *)datap->ContID;
-   imenu = (INT_CAST)datap->callback_data;
+   /* ado = (SUMA_ALL_DO *)datap->ContID;*/
+    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+    if (numSurfaceObjects != N_adolist) {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        SUMA_RETURNe;
+    }
+    for (j=0; j<N_adolist; ++j){
+        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
 
-   curColPlane = SUMA_ADO_CurColPlane(ado);
-   if (imenu-1 == curColPlane->OptScl->tind) {
-      SUMA_RETURNe; /* nothing to be done */
+       imenu = (INT_CAST)datap->callback_data;
+
+       curColPlane = SUMA_ADO_CurColPlane(ado);
+       if (imenu-1 == curColPlane->OptScl->tind) {
+          SUMA_RETURNe; /* nothing to be done */
+       }
+
+       SUMA_SwitchColPlaneThreshold(ado, curColPlane, imenu -1, 1);
    }
-
-   SUMA_SwitchColPlaneThreshold(ado, curColPlane, imenu -1, 0);
+   
    SUMA_RETURNe;
 }
 
