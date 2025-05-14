@@ -2624,10 +2624,15 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
 
 void SUMA_cb_SwitchBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
 {
+    // Toggles the use of the threshold pn/off when v button,
+    // by - subvrick pulldown, clicked
    static char FuncName[]={"SUMA_cb_SwitchBrt_toggled"};
    SUMA_ALL_DO *ado = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
+    int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+    int numSurfaceObjects, j;
+    SUMA_Boolean UseBrt;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -2651,12 +2656,27 @@ void SUMA_cb_SwitchBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
       SUMA_RETURNe;
    }
 
-   curColPlane->OptScl->UseBrt =
-                     XmToggleButtonGetState (SurfCont->Brt_tb);
+   UseBrt = XmToggleButtonGetState (SurfCont->Brt_tb);
+   curColPlane->OptScl->UseBrt = UseBrt;
 
-   SUMA_ColorizePlane(curColPlane);
-   SUMA_Remixedisplay(ado);
-   SUMA_UpdateNodeLblField(ado);
+    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+    if (numSurfaceObjects != N_adolist) {
+        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        if (numSurfaceObjects != 1) SUMA_RETURNe;
+    }
+    for (j=0; j<numSurfaceObjects; ++j){
+       ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+       curColPlane = SUMA_ADO_CurColPlane(ado);
+       if ( !curColPlane )  {
+          SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+       }
+       curColPlane->OptScl->UseBrt = UseBrt;
+       XmToggleButtonSetState (SurfCont->Brt_tb, UseBrt, NOPE);
+       SUMA_ColorizePlane(curColPlane);
+       SUMA_Remixedisplay(ado);
+       SUMA_UpdateNodeLblField(ado);
+    }
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
