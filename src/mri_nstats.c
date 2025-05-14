@@ -239,6 +239,32 @@ float mri_nstat( int code , int npt , float *far , float voxval, MCW_cluster *nb
      }
      break ;
 
+     // [PT: 2025-05-14] 
+     case NSTAT_RANKINV:{
+       register int ii ;
+       qsort_float(npt, far); // sorts into ascending order in place
+       for( ii=1 ; ii <= npt ; ii++ ){
+         if (voxval >= far[npt-ii]) break ;
+       }
+       outval = ii;
+     }
+     break ;
+
+     // [PT: 2025-05-14] 
+     case NSTAT_FRANKINV:{
+       register int ii ;
+       outval = 1.0 ;
+       if (npt > 1) {
+          qsort_float(npt, far);
+          for( ii=1 ; ii <=npt ; ii++ ){
+             if (voxval >= far[npt-ii]) break ;
+          }
+          outval = ii;
+          outval/= npt;
+       }
+     }
+     break ;
+
    }
 
    return outval ;
