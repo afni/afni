@@ -8091,7 +8091,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
       if (LocalHead)
          fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n", FuncName);
       if (currentOverlay->AlphaOpacityFalloff 
-         && currentOverlay->OptScl->UseThr){
+         && currentOverlay->OptScl->UseThr)
+      {
          for (i=0; i < N_Node; ++i) {
             i4 = 4 * i;
             float opacity = activeAlphaOpacities[i];
@@ -8125,7 +8126,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                glcolar[i4] = glcolar_Fore[i4]; ++i4;
                glcolar[i4] = glcolar_Fore[i4]; ++i4;
                isColored[i] = YUP;
-               continue;
             } else {
                glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
                glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
@@ -8138,17 +8138,17 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
           
    free(activeAlphaOpacities);
 
-  if (!NshowOverlays && NshowOverlays_Back) {   // Toy examples
+   if (!NshowOverlays && NshowOverlays_Back) {   // Toy examples
       if (LocalHead)
          fprintf (SUMA_STDERR,"%s: Only Background colors.\n", FuncName);
          
-         /* ??? should Alpha be applied for Toy examples? */
+      /* ??? should Alpha be applied for Toy examples? */
 
-         /* Make local opacities if A threshold true */
-         if (currentOverlay->AlphaOpacityFalloff
+      /* Make local opacities if A threshold true */
+      if (currentOverlay->AlphaOpacityFalloff
              && currentOverlay->OptScl->UseThr){
 
-          float *opacities = alphaOpacitiesForOverlay(SO, currentOverlay);
+         float *opacities = alphaOpacitiesForOverlay(SO, currentOverlay);
 
          for (i=0; i < N_Node; ++i) {
             i4 = 4 * i;
@@ -8170,29 +8170,28 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                isColored[i] = NOPE;
             }
          }
-         
+
          free(opacities);
-    }else{
-             for (i=0; i < N_Node; ++i) {
-                   if (isColored_Back[i]) {
-                    i4 = 4 * i;
-                  
-                   glcolar[i4] = glcolar_Back[i4]; ++i4;
-                   glcolar[i4] = glcolar_Back[i4]; ++i4;
-                   glcolar[i4] = glcolar_Back[i4]; ++i4;
-                  
-                   isColored[i] = YUP;
-                   continue;
-                } else {
-                   i4 = 4 * i;
-                   
-                   glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
-                   glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
-                   glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
-                   isColored[i] = NOPE;
-                }
-             }
+      } else {
+         for (i=0; i < N_Node; ++i) {
+            if (isColored_Back[i]) {
+                i4 = 4 * i;
+
+               glcolar[i4] = glcolar_Back[i4]; ++i4;
+               glcolar[i4] = glcolar_Back[i4]; ++i4;
+               glcolar[i4] = glcolar_Back[i4]; ++i4;
+
+               isColored[i] = YUP;
+            } else {
+               i4 = 4 * i;
+
+               glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+               glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+               glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+               isColored[i] = NOPE;
+            }
          }
+      }
 
    }
 
