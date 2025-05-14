@@ -13,7 +13,7 @@ first.in.path <- function(file) {
    return(gsub('//','/',ff[1], fixed=TRUE)) 
 }
 source(first.in.path('AFNIio.R'))
-ExecName <- '3dmeta'
+ExecName <- '3dMEMA'
 
 #################################################################################
 ##################### Begin MEMA Input functions ################################
@@ -509,7 +509,7 @@ AllSubj.MEMA <- function (subjLab) {
 
 greeting.MEMA <- function ()
    return( "#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-          ================== Welcome to 3dmeta.R ==================          
+          ================== Welcome to 3dMEMA.R ==================          
              Mixed-Effects Multilevel-Analysis Modeling!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Version 1.1.4, Mar 12, 2025
@@ -531,14 +531,14 @@ Please consider citing the following if this program is useful for you:
 #######################################################################"
    )
 
-#The help function for 3dmeta batch (command line mode)
+#The help function for 3dMEMA batch (command line mode)
 help.MEMA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
 
    intro <- 
 '
 Usage:
 ------ 
- 3dmeta is a program for performing Mixed Effects Meta Analysis at group level 
+ 3dMEMA is a program for performing Mixed Effects Meta Analysis at group level 
  that models both within- and across- subjects variability, thereby requiring
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input.  To get accurate 
@@ -554,7 +554,7 @@ Usage:
    FMRI group analysis combining effect estimates and their variances. 
    NeuroImage 60, 747–765. https://doi.org/10.1016/j.neuroimage.2011.12.060
  
- The basic usage of 3dmeta is to derive group effects of a condition, contrast,
+ The basic usage of 3dMEMA is to derive group effects of a condition, contrast,
  or linear combination (GLT) of multiple conditions. It can be used to analyze
  data from one, two, or multiple groups. However, if there are more than two
  groups or more than one subject-grouping variables (e.g., sex, adolescent/adults,
@@ -565,7 +565,7 @@ Usage:
  incorporated in the model, but centering and potential interactions with other 
  effects in the model should be considered. 
  
- Basically, 3dmeta can run one-sample, two-sample, and all types of BETWEEN-SUBJECTS
+ Basically, 3dMEMA can run one-sample, two-sample, and all types of BETWEEN-SUBJECTS
  ANOVA and ANCOVA. Within-subject variables mostly cannot be modeled, but there are 
  a few exceptions. For instance, paired-test can be performed through feeding the 
  contrast of the two conditions as input. Multi-way ANOVA can be analyzed under the
@@ -585,7 +585,7 @@ Usage:
 Example 1 --- One-sample type (one regression coefficient or general linear 
 contrast from each subject in a group):
 --------------------------------
-      3dmeta   -prefix ex1  \\
+      3dMEMA   -prefix ex1  \\
                -jobs 4      \\
                -set  happy  \\
                   ac   ac+tlrc\'[14]\'   ac+tlrc\'[15]\'  \\
@@ -596,7 +596,7 @@ contrast from each subject in a group):
                -model_outliers \\        
                -residual_Z        
 
-      3dmeta   -prefix ex1  \\
+      3dMEMA   -prefix ex1  \\
                -jobs 4      \\
                -set  happy  \\
                   ac   ac+tlrc\'[happy#0_Coef]\'   ac+tlrc\'[happy#0_Tstat]\'  \\
@@ -616,7 +616,7 @@ interest till Memorial Day next year. Notice that option -groups has to be
 present in this case, and the output includes the difference of the second group
 versus the first one.
 -------------------------------------------------------------------------
-   3dmeta   -prefix ex3  \\
+   3dMEMA   -prefix ex3  \\
             -jobs 4      \\
             -groups horses goats  \\
             -set   healthy_horses \\
@@ -658,7 +658,7 @@ general linear contrasts from each subject in a group). One scenario of
 general linear combinations is to test linear or higher order trend at 
 individual level, and then take the trend information to group level.
 ---------------------------------
-   3dmeta   -prefix ex2  \\
+   3dMEMA   -prefix ex2  \\
             -jobs 4      \\
             -missing_data happyMiss+tlrc sadMiss+tlrc \\
             -set happy-sad \\
@@ -709,7 +709,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
 
       '-dbgArgs' = apl(n=0, h = paste(
    "-dbgArgs: This option will enable R to save the parameters in a",
-   "         file called .3dmeta.dbg.AFNI.args in the current directory",
+   "         file called .3dMEMA.dbg.AFNI.args in the current directory",
    "          so that debugging can be performed.\n", sep='\n')),
       
       '-groups' = apl(n = c(1,2), d = 'G1', h = paste(
@@ -762,7 +762,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "               more than MM zero beta coefficients or GLTs. Voxels around\n",
    "               the edges of the group brain will not have data from\n",
    "               some of the subjects. Therefore, some of their beta\'s or\n",
-   "               GLTs and t-stats are masked with 0. 3dmeta can handle\n",
+   "               GLTs and t-stats are masked with 0. 3dMEMA can handle\n",
    "               missing data at those voxels but obviously too much\n",
    "               missing data is not good. Setting -max_zeros to 0.25\n",
    "               means process data only at voxels where no more than 1/4\n",
@@ -777,7 +777,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "-n_nonzero NN: Do not compute statistics at any voxel that has \n",
    "               less than NN non-zero beta values. This options is\n",
    "               complimentary to -max_zeroes, and matches an option in\n",
-   "               the interactive 3dmeta mode. NN is basically (number of\n",
+   "               the interactive 3dMEMA mode. NN is basically (number of\n",
    "               unique subjects - MM). Alternatively option -missing_data\n",
    "               can be used to handle missing data.\n"
                            )),
@@ -928,7 +928,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
                           )
    if (verb) show.AFNI.args(ops, verb=0, hstr='');
    if (is.null(ops)) {
-      errex.AFNI('Error parsing arguments. See 3dmeta -help for details.');
+      errex.AFNI('Error parsing arguments. See 3dMEMA -help for details.');
    }
    
    #Parse dems options
@@ -999,7 +999,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
              dbgArgs = lop$dbgArgs <- TRUE,
              help = help.MEMA.opts(params, adieu=TRUE),
              show_allowed_options = show.AFNI.args(ops, verb=0, 
-                                              hstr="3dmeta's",adieu=TRUE),
+                                              hstr="3dMEMA's",adieu=TRUE),
              cio = lop$iometh<-'clib',
              Rio = lop$iometh<-'Rlib'
              )
@@ -1155,7 +1155,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    return(lop)
 }# end of read.MEMA.opts.batch
 
-#Change options list to 3dmeta variable list 
+#Change options list to 3dMEMA variable list 
 process.MEMA.opts <- function (lop, verb = 0) {
    if (file.exists(paste(lop$outFN,"+orig.HEAD", sep="")) || 
          file.exists(paste(lop$outFN,"+tlrc.HEAD", sep=""))) {
@@ -2143,7 +2143,7 @@ tolU <- 1e8  # upper tolerance for those variances of 0
       rfile <- first.in.path(sprintf('%s.R',ExecName))  
       # save only on -dbg_args          28 Apr 2016 [rickr]
       if ( '-dbgArgs' %in% args ) {
-         try(save(args, rfile, file=".3dmeta.dbg.AFNI.args", ascii = TRUE), silent=TRUE)
+         try(save(args, rfile, file=".3dMEMA.dbg.AFNI.args", ascii = TRUE), silent=TRUE)
       }
    } else {
       note.AFNI("Using .DBG_args resident in workspace");
