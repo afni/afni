@@ -1,11 +1,20 @@
 #!/usr/bin/env python
 
-import copy
+import copy, sys
 import numpy             as np
 import matplotlib.pyplot as plt
 
 from afnipy import afni_base as ab
 
+# ==========================================================================
+
+# time interval ranges for all kernels defined here
+all_kernel_trange = {
+    'rrf_birn08'  : [0.0, 50.0],
+    'crf_chang09' : [0.0, 25.0],
+    }
+
+# ==========================================================================
 
 def rrf_birn_etal(t):
     """The respiratory response function (RRF) from Birn et al. (2008).
@@ -14,8 +23,6 @@ Check out the paper for details.  The input parameter is either a
 single time point or an array of time values, and this function will
 output the corresponding functional RRF value(s).  The approximate
 time scale for this function is 40-50 s.
-
-If kwarg save
 
 Parameters
 ----------
@@ -50,13 +57,91 @@ y : float or array of floats
 
     return y
 
-def rrf_simple_image(oimg):
+
+def crf_chang_etal(t):
+    """The cardiac response function (RRF) from Chang et al. (2009).
+This is an empirical fit found from deconvolving some measured data.
+Check out the paper for details.  The input parameter is either a
+single time point or an array of time values, and this function will
+output the corresponding functional CRF value(s).  The approximate
+time scale for this function is 30 s (hence, the output trange interval).
+
+NB: To better match with Fig. 6D of Chang et al. (2009), this function
+is scaled vertically by a factor of 0.5.  Eq. 5 of Chang et al. (2009)
+appears to need this to have a plus/minus range of 1, in line with
+that figure (and with other similar response functions).
+
+Parameters
+----------
+t : float or array of floats
+    time value(s)
+
+Returns
+-------
+y : float or array of floats
+    value(s) of CRF, which Rasmus assures us are correct
+
     """
-    Simple plotting of RRF.  fname is the output file name. 
+
+    # any negative t has a 0 value output
+    if isinstance(t, float) :
+        if t <= 0 :
+            return 0.0
+    elif isinstance(t, (np.ndarray, list)) :
+        N = len(t)
+        u = np.zeros(N, dtype=float)
+        for i in range(N):
+            if t[i]>0.0 :
+                u[i] = t[i]
+        t = copy.deepcopy(u)
+    else:
+        print("+* WARN: unexpected dtype for t:", dtype(t))
+        return -1
+
+    # parameter
+    sig = 3.0
+    
+    aa = 0.6 * (t**2.7) * np.exp(-t / 1.6)
+    bb = (16.0 / np.sqrt(2*np.pi*sig**2)) * np.exp(-0.5*((t-12.0)/sig)**2)
+    y  = aa - bb
+
+    # this is not in the Chang et al. (2009) Eq. 5, but it appears
+    # necessary for vertical scaling to be correct and match with
+    # Fig. 6D there.
+    y/= 2.0
+
+    return y
+
+# ----------------------------------------------------------------------------
+
+def simple_kernel_image(oimg, kernel='rrf_birn08'):
+    """ Simple plotting of a response shape kernel, where fname is the
+output file name.  The kernel is any of the following string
+labels, corresponding to an available response function of interest (and
+this list might grow over time):
+    rrf_birn08
+    crf_chang09
 """
 
-    t = np.linspace(0, 50, 201)
-    rrf = rrf_birn_etal(t)
+    if kernel not in all_kernel_trange.keys() :
+        print("** ERROR: kernel '{}' not in list:".format(kernel))
+        print("   {}".format(', '.join(all_allowed_kernel)))
+        sys.exit(1)
+
+    if kernel == 'rrf_birn08' :
+        title = 'RRF (Birn et al., 2008)'
+        trange = all_kernel_trange[kernel]
+        N = int((trange[1] - trange[0]) * 5 + 1)
+        t = np.linspace(trange[0], trange[1], N)
+        y = rrf_birn_etal(t)
+        ylab = "$\Delta$ BOLD (%)"
+    elif kernel == 'crf_chang09' :
+        title = 'CRF (Chang et al., 2009)'
+        trange = all_kernel_trange[kernel]
+        N = int((trange[1] - trange[0]) * 5 + 1)
+        t = np.linspace(trange[0], trange[1], N)
+        y = crf_chang_etal(t)
+        ylab = "$\Delta$ BOLD (%)"
 
     osize = (5, 3)
     dpi   = 300
@@ -64,10 +149,10 @@ def rrf_simple_image(oimg):
     fff = plt.figure( oimg, figsize=osize )
 
     plt.axhline(y=0, color='0.5')
-    plt.plot(t, rrf, color='tab:red')
-    plt.title("RRF")
+    plt.plot(t, y, color='tab:red')
+    plt.title(title)
     plt.xlabel("t (s)")
-    plt.ylabel("$\Delta$ BOLD (%)")
+    plt.ylabel(ylab)
 
     plt.xlim([t[0], t[-1]])
     plt.ylim([-1.1, 1.1])
