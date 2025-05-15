@@ -118,9 +118,9 @@ def simple_kernel_image(oimg, kernel='rrf_birn08'):
     """ Simple plotting of a response shape kernel, where fname is the
 output file name.  The kernel is any of the following string
 labels, corresponding to an available response function of interest (and
-this list might grow over time):
-    rrf_birn08
-    crf_chang09
+this list might grow over time), which can be seen with:
+    all_kernel_trange.keys()
+    
 """
 
     if kernel not in all_kernel_trange.keys() :
@@ -163,16 +163,19 @@ this list might grow over time):
 
     return 0
 
-def convolve_with_rrf(x, delt=None):
-    """Convolve the array x with the RRF function rrf_birn_etal(...).  We
-have to know delt, the time step in x.  In Birn et al. (2008), the RRF
-was convolved with the RVT time series that had already been
-downsampled to the FMRI TR, and we expect users to follow suit here.
+def convolve_with_kernel(x, delt=None, kernel=None):
+    """Convolve the array x with the response specified by the kernel
+label. See all_kernel_trange.keys() for the list of available kernels.
+We also have to know delt, the time step in x.  
+
+In Birn et al. (2008), the RRF was convolved with the RVT time series
+that had already been downsampled to the FMRI TR, and we expect users
+to follow suit here.
 
 During the calculation, this function will pad x at both ends by the
-time scale it takes for RRF to return to zero, which is about 50 s.
-This done by simply connecting x's mean linearly to the first or last
-time point.
+time scale it takes for the response to go to 0.  For example, for
+Birn et al. (2008)'s RRF, the duration is about 50 s.  This done by
+simply connecting x's mean linearly to the first or last time point.
 
 Parameters
 ----------
@@ -181,6 +184,9 @@ x : array (of floats)
 delt : float
     delta time, the sampling rate (in s), likely the TR of FMRI data;
     this value must be >0
+kernel : str
+    label of potential response functions, which are listed in
+    all_kernel_trange.keys()
 
 Returns
 -------
@@ -194,12 +200,18 @@ z : array (of floats)
     elif delt <= 0 :
         AB.EP("Need to provide a delt value >0, not:", delt)
 
+    if kernel not in all_kernel_trange.keys() :
+        print("** ERROR: kernel '{}' not in list:".format(kernel))
+        print("   {}".format(', '.join(all_allowed_kernel)))
+        sys.exit(1)
+
     nx = len(x)
     meanx = np.mean(x)
 
     # num time points to pad input, based on RRF time scale (plus t=0)
-    tscale_rrf = 50.0
-    n_extra = int(np.ceil( tscale_rrf / delt )) + 1
+    trange  = all_kernel_trange[kernel]
+    tscale  = trange[1] - trange[0]
+    n_extra = int(np.ceil( tscale / delt )) + 1
 
     # make intermediate time series (mean zeropadding here); bc RRF is
     # nonzero for only t>0, we just pad on one side for the convolution
@@ -207,15 +219,18 @@ z : array (of floats)
     y  = np.ones(ny, dtype=float) * meanx
     y[n_extra:] = x
 
-    # make rrf vector, for convolving with x
-    t_rrf = np.arange(0.0, n_extra*delt, delt)
-    h_rrf = rrf_birn_etal(t_rrf)
+    # make response vector h, for convolving with x
+    t = np.arange(0.0, n_extra*delt, delt)
+    if kernel == 'rrf_birn08' :
+        h = rrf_birn_etal(t)
+    elif kernel == 'crf_chang09' :
+        h = crf_chang_etal(t)
 
     # do convolution (again, kernel is positive definite, hence kk range)
     z = np.zeros(ny, dtype=float)
     for nn in range(n_extra, ny):
         for kk in range(n_extra):
-            z[nn]+= h_rrf[kk] * y[nn-kk]
+            z[nn]+= h[kk] * y[nn-kk]
 
     # return the part corresponding to original time series length
     return z[n_extra:]

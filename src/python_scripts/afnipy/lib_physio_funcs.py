@@ -1164,7 +1164,8 @@ calculated...
                                0)
 
     # convolve RVT with RRF
-    rvtrrf_reg = lpcon.convolve_with_rrf(rvt_regr, delt=retobj.vol_tr)
+    rvtrrf_reg = lpcon.convolve_with_kernel(rvt_regr, delt=retobj.vol_tr,
+                                            kernel='rrf_birn08')
     
     # add to dict
     lab = 'rvtrrf'
