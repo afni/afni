@@ -1228,12 +1228,20 @@ def plot_regressors_rvt(retobj, label, ext='svg'):
     data_lab   = ['LABEL'] * nrvt
 
     # process any/all RVT regressors
-    for ii in range(nrvt):
-        key  = phobj.regress_rvt_keys[ii]
-        ylab = key + '\\n' + '$\Delta={}$'.format(retobj.rvt_shift_list[ii])
-
-        data_lab[ii] = ylab
-        data_arr[:,ii] = phobj.regress_dict_rvt[key]
+    if len(retobj.rvt_shift_list) == nrvt:
+        for ii in range(nrvt):
+            key  = phobj.regress_rvt_keys[ii]
+            ylab = key + '\\n' + '$\Delta={}$'.format(retobj.rvt_shift_list[ii])
+    
+            data_lab[ii] = ylab
+            data_arr[:,ii] = phobj.regress_dict_rvt[key]
+    else:
+        for ii in range(nrvt):
+            key  = phobj.regress_rvtrrf_keys[ii]
+            ylab = key + '\\n' + '$\Delta={}$'.format(retobj.rvtrrf_shift_list[ii])
+    
+            data_lab[ii] = ylab
+            data_arr[:,ii] = phobj.regress_dict_rvtrrf[key]
 
     # --------------------- write tmp data file ---------------------
 
@@ -1276,6 +1284,278 @@ def plot_regressors_rvt(retobj, label, ext='svg'):
     print("++ Made plot of {}-based RVT regressors: {}".format(label, fname))
 
 
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# dump a temp text file and plot RVT regressors, if being used
+
+def plot_regressors_hr(retobj, label, ext='svg'):
+    """
+
+
+"""
+
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+    nvol   = retobj.vol_nv
+    verb   = retobj.verb
+    nhr   = phobj.n_regress_hr
+    
+    # make the filename (final image)
+    fname = 'regressors_hr_' + label + '.{}'.format(ext)
+    if prefix  :  fname = prefix + '_' + fname
+    if odir :     fname = odir + '/' + fname
+
+    # make the data file (temporary file)
+    ftmp = '__tmp' + label + '_hr_regressors.dat'
+    if prefix  :  ftmp = prefix + '_' + ftmp
+    if odir :     ftmp = odir + '/' + ftmp
+
+    title = 'Process {} data: HR regressors'.format(label)
+
+    # put data+labels into simple forms for writing; initialize objs
+    data_shape = (nvol, nhr)
+    data_arr   = np.zeros(data_shape, dtype=float)
+    data_lab   = ['LABEL'] * nhr
+
+    # process any/all HR regressors
+    if len(retobj.hr_shift_list) == nhr:
+        for ii in range(nhr):
+            key  = phobj.regress_hr_keys[ii]
+            ylab = key + '\\n' + '$\Delta={}$'.format(retobj.hr_shift_list[ii])
+    
+            data_lab[ii] = ylab
+            data_arr[:,ii] = phobj.regress_dict_hr[key]
+    else:
+        for ii in range(nhr):
+            key  = phobj.regress_hrtcrf_keys[ii]
+            ylab = key + '\\n' + '$\Delta={}$'.format(retobj.hrtcrf_shift_list[ii])
+    
+            data_lab[ii] = ylab
+            data_arr[:,ii] = phobj.regress_dict_hrtcrf[key]
+
+    # --------------------- write tmp data file ---------------------
+
+    # open the file and write the header/start
+    fff = open(ftmp, 'w')
+    # write data
+    for ii in range(data_shape[0]):
+        for jj in range(data_shape[1]):
+            fff.write(" {:6.4f} ".format(data_arr[ii,jj]))
+        fff.write('\n')
+    # le fin: close and finish
+    fff.close()
+
+    # --------------------- make image of HR data -----------------------
+
+    par_dict = {
+        'ftmp'    : ftmp,
+        'fname'   : fname,
+        'title'   : title,
+        'all_lab' : ' '.join(['\''+lab+'\'' for lab in data_lab])
+    }
+
+    cmd = '''
+    1dplot.py                                                            \
+        -reverse_order                                                   \
+        -infiles        {ftmp}                                           \
+        -ylabels        {all_lab}                                        \
+        -xlabel         "vol index"                                      \
+        -title          "{title}"                                        \
+        -prefix         "{fname}"
+    '''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    # --------------- clean up tmp file
+    cmd    = '''\\rm {ftmp}'''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    print("++ Made plot of {}-based HR regressors: {}".format(label, fname))
+
+
+    return 0
+
+# ---------------------------------------------------------------------------
+# dump a temp text file and plot RVTRRF regressors, if being used
+
+def plot_regressors_rvtrrf(retobj, label, ext='svg'):
+    """
+
+
+"""
+
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+    nvol   = retobj.vol_nv
+    verb   = retobj.verb
+    nrvt   = phobj.n_regress_rvtrrf
+    
+    # make the filename (final image)
+    fname = 'regressors_rvtrrf_' + label + '.{}'.format(ext)
+    if prefix  :  fname = prefix + '_' + fname
+    if odir :     fname = odir + '/' + fname
+
+    # make the data file (temporary file)
+    ftmp = '__tmp' + label + '_rvtrrf_regressors.dat'
+    if prefix  :  ftmp = prefix + '_' + ftmp
+    if odir :     ftmp = odir + '/' + ftmp
+
+    title = 'Process {} data: RVTrrf regressors'.format(label)
+
+    # put data+labels into simple forms for writing; initialize objs
+    data_shape = (nvol, nrvt)
+    data_arr   = np.zeros(data_shape, dtype=float)
+    data_lab   = ['LABEL'] * nrvt
+
+    # process any/all RVTRRF regressors
+    for ii in range(nrvt):
+        key  = phobj.regress_rvtrrf_keys[ii]
+        ylab = key + '\\n' + '$\Delta={}$'.format(retobj.rvtrrf_shift_list[ii])
+
+        data_lab[ii] = ylab
+        data_arr[:,ii] = phobj.regress_dict_rvtrrf[key]
+
+    # --------------------- write tmp data file ---------------------
+
+    # open the file and write the header/start
+    fff = open(ftmp, 'w')
+    # write data
+    for ii in range(data_shape[0]):
+        for jj in range(data_shape[1]):
+            fff.write(" {:6.4f} ".format(data_arr[ii,jj]))
+        fff.write('\n')
+    # le fin: close and finish
+    fff.close()
+
+    # --------------------- make image of rvtrrf data -----------------------
+
+    par_dict = {
+        'ftmp'    : ftmp,
+        'fname'   : fname,
+        'title'   : title,
+        'all_lab' : ' '.join(['\''+lab+'\'' for lab in data_lab])
+    }
+
+    cmd = '''
+    1dplot.py                                                            \
+        -reverse_order                                                   \
+        -infiles        {ftmp}                                           \
+        -ylabels        {all_lab}                                        \
+        -xlabel         "vol index"                                      \
+        -title          "{title}"                                        \
+        -prefix         "{fname}"
+    '''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    # --------------- clean up tmp file
+    cmd    = '''\\rm {ftmp}'''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    print("++ Made plot of {}-based RVTRRF regressors: {}".format(label, fname))
+
+
+    return 0
+
+# ---------------------------------------------------------------------------
+# dump a temp text file and plot RVTRRF regressors, if being used
+
+def plot_regressors_hrtcrf(retobj, label, ext='svg'):
+    """
+
+
+"""
+
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+    nvol   = retobj.vol_nv
+    verb   = retobj.verb
+    nrvt   = phobj.n_regress_hrtcrf
+    
+    # make the filename (final image)
+    fname = 'regressors_hrtcrf_' + label + '.{}'.format(ext)
+    if prefix  :  fname = prefix + '_' + fname
+    if odir :     fname = odir + '/' + fname
+
+    # make the data file (temporary file)
+    ftmp = '__tmp' + label + '_hrtcrf_regressors.dat'
+    if prefix  :  ftmp = prefix + '_' + ftmp
+    if odir :     ftmp = odir + '/' + ftmp
+
+    title = 'Process {} data: hrtcrf regressors'.format(label)
+
+    # put data+labels into simple forms for writing; initialize objs
+    data_shape = (nvol, nrvt)
+    data_arr   = np.zeros(data_shape, dtype=float)
+    data_lab   = ['LABEL'] * nrvt
+
+    # process any/all HRTCRF regressors
+    for ii in range(nrvt):
+        key  = phobj.regress_hrtcrf_keys[ii]
+        ylab = key + '\\n' + '$\Delta={}$'.format(retobj.hrtcrf_shift_list[ii])
+
+        data_lab[ii] = ylab
+        data_arr[:,ii] = phobj.regress_dict_hrtcrf[key]
+
+    # --------------------- write tmp data file ---------------------
+
+    # open the file and write the header/start
+    fff = open(ftmp, 'w')
+    # write data
+    for ii in range(data_shape[0]):
+        for jj in range(data_shape[1]):
+            fff.write(" {:6.4f} ".format(data_arr[ii,jj]))
+        fff.write('\n')
+    # le fin: close and finish
+    fff.close()
+
+    # --------------------- make image of HRTCRF data -----------------------
+
+    par_dict = {
+        'ftmp'    : ftmp,
+        'fname'   : fname,
+        'title'   : title,
+        'all_lab' : ' '.join(['\''+lab+'\'' for lab in data_lab])
+    }
+
+    cmd = '''
+    1dplot.py                                                            \
+        -reverse_order                                                   \
+        -infiles        {ftmp}                                           \
+        -ylabels        {all_lab}                                        \
+        -xlabel         "vol index"                                      \
+        -title          "{title}"                                        \
+        -prefix         "{fname}"
+    '''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    # --------------- clean up tmp file
+    cmd    = '''\\rm {ftmp}'''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    print("++ Made plot of {}-based HRTCRF regressors: {}".format(label, fname))
+    
     return 0
 
 # ---------------------------------------------------------------------------
@@ -1383,6 +1663,57 @@ def plot_regressors_phys(retobj, ext='svg'):
 
     print("++ Made plot of {}-based RVT regressors: {}".format(label, fname))
 
+    # PLot RVT (and RRF)
+        
+    #RVT
+    if retobj.do_out_rvt:
+        # Make abscissa scale
+        nElements = len(phobj.rvt_ts)
+        abscissa = np.zeros(nElements)
+        for i in range(0,nElements): abscissa[i] = i/phobj.samp_freq
+    
+        plt.plot(abscissa, phobj.rvt_ts, color='red')
+        plt.xlabel("Time (s)")
+        plt.ylabel("RVT")    
+        plt.savefig(retobj.out_dir + '/FigRVT.pdf') 
+        plt.show(block=True)
+    
+    #RVTRRF
+    if retobj.do_out_rvtrrf:
+        # Make abscissa scale
+        nElements = len(phobj.rvtrrf_ts)
+        abscissa = np.zeros(nElements)
+        for i in range(0,nElements): abscissa[i] = i/phobj.samp_freq
+
+        plt.plot(abscissa, phobj.rvtrrf_ts, color='red')
+        plt.xlabel("Time (s)")
+        plt.ylabel("RVTRRF")    
+        plt.savefig(retobj.out_dir + '/FigRVTRRF.pdf', pad_inches=0.2) 
+        plt.show(block=True)
+    
+    #HRTCRF
+    label = "card"
+    phobj = retobj.data[label]
+    if retobj.do_out_hrtcrf:
+        # HR time series
+        nElements = len(phobj.hr_ts)
+        abscissa = np.zeros(nElements)
+        for i in range(0,nElements): abscissa[i] = i/phobj.samp_freq
+        plt.plot(abscissa, phobj.hr_ts, color='red')
+        plt.xlabel("Time (s)")
+        plt.ylabel("HR (per second)")    
+        plt.savefig(retobj.out_dir + '/FigHR.pdf', pad_inches=0.2) 
+        plt.show(block=True)
+
+        # HRTCRF
+        nElements = len(phobj.hrtcrf_ts)
+        abscissa = np.zeros(nElements)
+        for i in range(0,nElements): abscissa[i] = i/phobj.samp_freq
+        plt.plot(abscissa, phobj.hrtcrf_ts, color='red')
+        plt.xlabel("Time (s)")
+        plt.ylabel("HRTCRF")    
+        plt.savefig(retobj.out_dir + '/FigHRTCRF.pdf', pad_inches=0.2) 
+        plt.show(block=True)
 
     return 0
 
