@@ -9,6 +9,7 @@ from   afnipy import lib_physio_opts    as lpo
 from   afnipy import lib_physio_peaks   as lpp
 from   afnipy import lib_physio_phases  as lpph
 from   afnipy import lib_physio_rvt     as lprvt
+from   afnipy import lib_physio_convolve as lpcon
 from   afnipy import lib_physio_plot    as lpplt
 from   afnipy import lib_physio_util    as lpu
 
@@ -1034,7 +1035,7 @@ Eq. 1 of Glover et al., 2000.
 
 def calc_regress_rvt(retobj, label=None, verb=0):
     """Calculate RVT regressors, as described in Birn et al.,
-2006.  Apply shifts here
+2006.  Apply shifts here.
 
     """
 
@@ -1061,8 +1062,8 @@ def calc_regress_rvt(retobj, label=None, verb=0):
     # tvalues array, and then selecting the same MRI-snapshot points.
     # We use the time series median to pad values
 
-    # the primary, unshifted regressor
-    rvt_regr = phobj.rvt_ts[phobj.list_slice_sel_rvt]
+    # the primary, unshifted RVT regressor
+    ###rvt_regr = phobj.rvt_ts[phobj.list_slice_sel_rvt]
 
     for ii in range(nshift):
         # make shifted regressors
@@ -1131,3 +1132,47 @@ y : np.ndarray
         else:               y[ii] = pad_val
 
     return y
+
+# ==========================================================================
+
+def calc_regress_rvtrrf(retobj, label=None, verb=0):
+    """Calculate regressor that is the result of convolving the RVT
+regressor with an empirical RRF function, as described in Birn et al.,
+2008.  This (perhaps obviously) depends on having RVT already
+calculated...
+
+    """
+
+    if verb : print("++ Start RVTRRF regressor calc for {} data".format(label))
+
+    check_label_all(label)
+    check_label_rvt(label)      # a practical RVT reality, at present
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+
+    regress_dict_rvtrrf = {}
+
+    # the primary, unshifted RVT regressor
+    rvt_regr = get_shifted_rvt(phobj.rvt_ts,
+                               phobj.samp_freq,
+                               phobj.list_slice_sel_rvt,
+                               0)
+
+    # convolve RVT with RRF
+    rvtrrf_reg = lpcon.convolve_with_rrf(rvt_regr, delt=retobj.vol_tr)
+    
+    # add to dict
+    lab = 'rvtrrf'
+    regress_dict_rvtrrf[lab]  = rvtrrf_reg
+    phobj.regress_dict_rvtrrf = regress_dict_rvtrrf
+
+    # make lineplot image of the RVTRRF regressors
+    tmp = lpplt.plot_regressors_rvtrrf(retobj, label)
+
+    return 0
+

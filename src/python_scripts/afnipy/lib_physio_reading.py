@@ -89,6 +89,7 @@ derived data.
         # NB: at present, rvt likely only for resp (but doesn't matter deeply)
         self.regress_dict_phys = {}      # dict of list, (lab, value)
         self.regress_dict_rvt  = {}      # dict of list, (lab, value)
+        self.regress_dict_rvtrrf = {}    # dict of list, (lab, value)
 
         # prefiltering related: not used in proc, just to be able to report
         self.prefilt_init_freq = prefilt_init_freq # flt, freq (Hz) before filt
@@ -294,6 +295,12 @@ derived data.
         return len(self.regress_dict_rvt)
 
     @property
+    def n_regress_rvtrrf(self):
+        """The number of RVTRRF regressors (probably 5 or 0, but user can
+        choose)."""
+        return len(self.regress_dict_rvtrrf)
+
+    @property
     def regress_phys_keys(self):
         """The keys of the physio regressors (like c1, s1, c2, s2, ...)."""
         return list(self.regress_dict_phys.keys())
@@ -302,6 +309,11 @@ derived data.
     def regress_rvt_keys(self):
         """The keys of the RVT regressors."""
         return list(self.regress_dict_rvt.keys())
+
+    @property
+    def regress_rvtrrf_keys(self):
+        """The keys of the RVTRRF regressors."""
+        return list(self.regress_dict_rvtrrf.keys())
 
     @property
     def img_arr_step(self):
@@ -405,12 +417,14 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.verb         = verb       # int, verbosity level
         self.out_dir      = None       # str, name of output dir
         self.prefix       = None       # str, prefix of output filenames
-        self.do_out_rvt   = True       # bool, flag
+        self.do_calc_rvt    = True     # bool, flag
+        self.do_calc_rvtrrf = False    # bool, flag
+        self.do_out_rvt     = True     # bool, flag (might calc but not write)
+        self.do_out_rvtrrf  = False    # bool, flag (might calc but not write)
         self.do_out_phys  = {
             'card' : True,             # bool, flag to proc card if present
             'resp' : True,             # bool, flag to proc resp if present
         }
-        self.do_out_slibase  = False   # bool, flag to write (older) slibase file
         self.save_proc_peaks = False   # bool, flag to write proc peaks to file
         self.save_proc_troughs = False # bool, flag to write proc trou to file
         self.load_proc = {
@@ -667,14 +681,16 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
         self.do_extend_bp_resp = AD['do_extend_bp_resp']
 
-        self.out_dir          = AD['out_dir']
-        self.prefix           = AD['prefix']
-        self.do_out_rvt       = not(AD['rvt_off'])
+        self.out_dir             = AD['out_dir']
+        self.prefix              = AD['prefix']
+        self.do_calc_rvt         = AD['do_calc_rvt']
+        self.do_calc_rvtrrf      = AD['do_calc_rvtrrf']
+        self.do_out_rvt          = AD['do_out_rvt']
+        self.do_out_rvtrrf       = AD['do_out_rvtrrf']
         self.do_out_phys['card'] = not(AD['no_card_out'])
         self.do_out_phys['resp'] = not(AD['no_resp_out'])
-        self.do_out_slibase   = AD['do_slibase_out']
-        self.save_proc_peaks  = AD['save_proc_peaks']
-        self.save_proc_troughs = AD['save_proc_troughs']
+        self.save_proc_peaks     = AD['save_proc_peaks']
+        self.save_proc_troughs   = AD['save_proc_troughs']
         
         # read in earlier processed peak indices
         if AD['load_proc_peaks_card'] :

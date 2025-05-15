@@ -11,10 +11,15 @@ from   afnipy import  lib_physio_funcs as lpf
 # ==========================================================================
 
 def write_regressor_file(retobj):
+    """This is the older version of writing regressors out.  As in the
+style of RetroTS.py, here all regressors are made slicewise (even RVT)
+and output to a single slicebase file.
+
+This will be deprecated in favor of the separate functions with a
+similar name with suffixes of *_sli() and *_vol(), for respectively
+writing out the slice- and volume-based ones sepraately.
+
     """
-
-
-"""
 
     # copy names for some convenience (do NOT alter!)
     verb   = retobj.verb
@@ -42,7 +47,7 @@ def write_regressor_file(retobj):
     data_lab   = ['LABEL'] * ntype
 
     # make the filename
-    fname = 'slibase.1D'
+    fname = 'slibase_OLD.1D'
     if prefix  :  fname = prefix + '_' + fname
     if odir :     fname = odir + '/' + fname
 
@@ -116,7 +121,7 @@ def write_regressor_file(retobj):
     # le fin: close and finish
     fff.close()
 
-    print("++ Wrote (old format) slibase regressor file: {}".format(fname))
+    print("++ Wrote regressor file: {}".format(fname))
 
     return 0
 
@@ -124,10 +129,10 @@ def write_regressor_file(retobj):
 
 def write_regressor_file_sli(retobj):
     """Write out all the slicewise regressors to a single text file. Right
-    now, this would be just the RETROICOR regressors, and *not* RVT,
-    RVTRRF, or others.
+now, this would be just the RETROICOR regressors, and *not* RVT,
+RVTRRF, or others.
 
-    """
+"""
 
     # copy names for some convenience (do NOT alter!)
     verb   = retobj.verb
@@ -138,7 +143,7 @@ def write_regressor_file_sli(retobj):
     nreg   = 0                                # num of regressors per slice
 
     # make the filename
-    fname = 'physreg_sli.1D'
+    fname = 'slibase.1D'
     if prefix  :  fname = prefix + '_' + fname
     if odir :     fname = odir + '/' + fname
 
@@ -196,8 +201,8 @@ def write_regressor_file_sli(retobj):
 
     # open the file and write the header/start
     fff = open(fname, 'w')
-    fff.write('# physio_calc_sli\n')
-    fff.write('# ni_type = "{}*double"\n'.format(ntype))
+    fff.write('# physio_calc_out_slibase\n')
+    fff.write('# ni_type = "{}*double"\n'.format(nreg))
     fff.write('# ni_dimen = "{}"\n'.format(nvol))
     fff.write('# ColumnLabels = " ')
 
@@ -212,7 +217,7 @@ def write_regressor_file_sli(retobj):
         fff.write('\n')
 
     # close out the NIML
-    fff.write('# </physio_calc_sli>\n')
+    fff.write('# </physio_calc_out_slibase>\n')
 
     # le fin: close and finish
     fff.close()
@@ -225,11 +230,11 @@ def write_regressor_file_sli(retobj):
 
 def write_regressor_file_vol(retobj):
     """Write out all the volumetric regressors to a single text
-    file. Right now, this would *not* include the RETROICOR
-    regressors, but all things like RVT, RVTRRF, etc.
+file. Right now, this would *not* include the RETROICOR regressors,
+but all things like RVT, RVTRRF, etc.
 
-    The writing style of this relates to its origins as a creator of
-    slicewise regressors; basically, we just have nslice=1.
+The writing style of this relates to its origins as a creator of
+slicewise regressors; basically, we just have nslice=1.
 
     """
 
@@ -238,70 +243,64 @@ def write_regressor_file_vol(retobj):
     prefix = retobj.prefix
     odir   = retobj.out_dir
     nvol   = retobj.vol_nv                    # ni_dimen, nrow data
-    nslice = 1                                # by definition, for vol regr 
-    nreg   = 0                                # num of regressors per slice
 
     # make the filename
-    fname = 'physreg_vol.1D'
+    fname = 'volbase.1D'
     if prefix  :  fname = prefix + '_' + fname
     if odir :     fname = odir + '/' + fname
 
-    # build up count of number of regressors
-    for label in lpf.PO_all_label :
-        if retobj.have_label(label) :
-            phobj = retobj.data[label]        # simplify coding below
-            nreg+= phobj.n_regress_rvt
-            # *** add more types here, as we are able to include them
+    # ----- build up list of regressors and labels
+
+    # to avoid possibly making label/regressors inconsistent later, we
+    # will add all numbers to one big array to output, and one big
+    # header list. That should still be fine, memory-wise, for foreseeable
+    # applications at present
+    nreg      = 0
+    data_lab  = []  # hold all labels
+    data_list = []  # hold all regressors (each a 1-D array)
+
+    # check all resp...
+    label = "resp"
+    if retobj.have_label(label) :
+        phobj = retobj.data[label]        # simplify coding below
+        if retobj.do_out_rvt :
+            for ii in range(phobj.n_regress_rvt):
+                key = phobj.regress_rvt_keys[ii]
+                dat = phobj.regress_dict_rvt[key]
+                title = 'vol' + '.' + key      # column header title
+                data_lab.append( title )
+                data_list.append( np.array(dat, dtype=float) )
+                nreg+= 1
+        if retobj.do_out_rvtrrf :
+            for ii in range(phobj.n_regress_rvtrrf):
+                key = phobj.regress_rvtrrf_keys[ii]
+                dat = phobj.regress_dict_rvtrrf[key]
+                title = 'vol' + '.' + key      # column header title
+                data_lab.append( title )
+                data_list.append( np.array(dat, dtype=float) )
+                nreg+= 1
+        # *** add more types here, as we are able to include them
+
+    # ... and check all card
+    label = "card"
+    if retobj.have_label(label) :
+        phobj = retobj.data[label]        # simplify coding below
+        # *** add more types here, as we are able to include them
 
     # check if we have a regressor to output
     if nreg == 0 :
         print("+* NO volumetric regressor to output: ", fname)
         return 0
 
-    ntype = nreg * nslice                     # ni_type quantity, ncol data
-
-    # to avoid possibly making label/regressors inconsistent later, we
-    # will add all numbers to one big array to output, and one big
-    # header list. That should still be fine, memory-wise, for foreseeable
-    # applications at present
-    data_shape = (nvol, ntype)
-    data_arr   = np.zeros(data_shape, dtype=float)
-    data_lab   = ['LABEL'] * ntype
-
-    # the order of columns will be:
-    # + for each slice in MRI volume
-    #   + for each label list in PO_all_label (in order)
-    #     - check for all RVT
-    #     - check for all *** other stuff ***
-
-    # build set of regressors, slice by slice
-    for ss in range(nslice):
-
-        # count number of regressors per slice, as added
-        rcount = 0 
- 
-        # RVT regressors: add label+data
-        for label in lpf.PO_all_label :
-            if retobj.have_label(label) :
-                phobj = retobj.data[label]        # simplify coding below
-                # process any/all RVT regressors
-                for ii in range(phobj.n_regress_rvt):
-                    key = phobj.regress_rvt_keys[ii]
-                    title = 'vol.' + key      # column header title
-
-                    # go to column, and add info (RVT = const across slice)
-                    cc = ss*nreg + rcount
-                    data_lab[cc] = title
-                    data_arr[:,cc] = phobj.regress_dict_rvt[key]
-                    rcount+= 1
-
+    print("++ {} volbase regressors, each with {} timepoints"
+          "".format(nreg, nvol))
 
     # --------------------- write -------------------------------
 
     # open the file and write the header/start
     fff = open(fname, 'w')
-    fff.write('# physio_calc_vol\n')
-    fff.write('# ni_type = "{}*double"\n'.format(ntype))
+    fff.write('# physio_calc_out_volbase\n')
+    fff.write('# ni_type = "{}*double"\n'.format(nreg))
     fff.write('# ni_dimen = "{}"\n'.format(nvol))
     fff.write('# ColumnLabels = " ')
 
@@ -310,13 +309,13 @@ def write_regressor_file_vol(retobj):
     fff.write('# >\n')
 
     # write data
-    for ii in range(data_shape[0]):
-        for jj in range(data_shape[1]):
-            fff.write(" {:>7.4f} ".format(data_arr[ii,jj]))
+    for ii in range(nvol):
+        for jj in range(nreg):
+            fff.write(" {:>7.4f} ".format(data_list[jj][ii]))
         fff.write('\n')
 
     # close out the NIML
-    fff.write('# </physio_calc_vol>\n') 
+    fff.write('# </physio_calc_out_volbase>\n')
 
     # le fin: close and finish
     fff.close()

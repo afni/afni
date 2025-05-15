@@ -1279,6 +1279,94 @@ def plot_regressors_rvt(retobj, label, ext='svg'):
     return 0
 
 # ---------------------------------------------------------------------------
+
+def plot_regressors_rvtrrf(retobj, label, ext='svg'):
+    """
+
+
+"""
+
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+    nvol   = retobj.vol_nv
+    verb   = retobj.verb
+    nnn    = phobj.n_regress_rvtrrf
+    
+    # make the filename (final image)
+    fname = 'regressors_rvtrrf_' + label + '.{}'.format(ext)
+    if prefix  :  fname = prefix + '_' + fname
+    if odir :     fname = odir + '/' + fname
+
+    # make the data file (temporary file)
+    ftmp = '__tmp' + label + '_rvtrrf_regressors.dat'
+    if prefix  :  ftmp = prefix + '_' + ftmp
+    if odir :     ftmp = odir + '/' + ftmp
+
+    title = 'Process {} data: RVTRRF regressors'.format(label)
+
+    # put data+labels into simple forms for writing; initialize objs
+    data_shape = (nvol, nnn)
+    data_arr   = np.zeros(data_shape, dtype=float)
+    data_lab   = ['LABEL'] * nnn
+
+    # process any/all RVTRRF regressors
+    for ii in range(nnn):
+        key  = phobj.regress_rvtrrf_keys[ii]
+        ylab = key 
+
+        data_lab[ii] = ylab
+        data_arr[:,ii] = phobj.regress_dict_rvtrrf[key]
+
+    # --------------------- write tmp data file ---------------------
+
+    # open the file and write the header/start
+    fff = open(ftmp, 'w')
+    # write data
+    for ii in range(data_shape[0]):
+        for jj in range(data_shape[1]):
+            fff.write(" {:6.4f} ".format(data_arr[ii,jj]))
+        fff.write('\n')
+    # le fin: close and finish
+    fff.close()
+
+    # --------------------- make image of the data -----------------------
+
+    par_dict = {
+        'ftmp'    : ftmp,
+        'fname'   : fname,
+        'title'   : title,
+        'all_lab' : ' '.join(['\''+lab+'\'' for lab in data_lab])
+    }
+
+    cmd = '''
+    1dplot.py                                                            \
+        -reverse_order                                                   \
+        -infiles        {ftmp}                                           \
+        -ylabels        {all_lab}                                        \
+        -xlabel         "vol index"                                      \
+        -title          "{title}"                                        \
+        -prefix         "{fname}"
+    '''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    # --------------- clean up tmp file
+    cmd    = '''\\rm {ftmp}'''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    print("++ Made plot of {}-based RVTRRF regressors: {}".format(label, fname))
+
+
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # dump a temp text file and plot phys regressors, if being used
 
 def plot_regressors_phys(retobj, ext='svg'):

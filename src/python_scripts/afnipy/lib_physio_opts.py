@@ -7,7 +7,8 @@
 #version = '1.0'
 #version = '1.1'   # add remove_val_list, for some vals to get replaced
 #version = '1.2'   # better bandpassing and tapering, no 'add missing' for now
-version = '1.3'   # can read in previous peaks/troughs
+#version = '1.3'   # can read in previous peaks/troughs
+version = '1.4'   # separate sli/vol regr; implement RVTRRF, too
 
 # ==========================================================================
 
@@ -39,10 +40,11 @@ DEF_max_bpm_resp = 60.0
 
 # RVT shifts: either no RVT, direct list, or linspace set of pars
 # (units: sec)
-all_rvt_opt = ['rvt_off', 'rvt_shift_list', 'rvt_shift_linspace']
-DEF_rvt_off            = False
+all_rvt_opt = ['rvt_shift_list', 'rvt_shift_linspace']
 DEF_rvt_shift_list     = '0 1 2 3 4'  # split+listified, below, if used
 DEF_rvt_shift_linspace = None         # can be pars for NumPy linspace(A,B,C)
+
+DEF_volbase_types_resp = 'rvt'
 
 # some QC image plotting options that the user can change
 DEF_img_figsize   = []
@@ -116,7 +118,6 @@ DEF = {
     'remove_val_list'   : [],        # (list) purge some values from ts
     'no_card_out'       : False,     # (bool) do not output card info
     'no_resp_out'       : False,     # (bool) do not output resp info
-    'do_slibase_out'    : False,     # (bool) do not output slibase file
     'min_bpm_resp'      : DEF_min_bpm_resp, # (float) min breaths per min
     'min_bpm_card'      : DEF_min_bpm_card, # (float) min beats per min
     'max_bpm_resp'      : DEF_max_bpm_resp, # (float) max breaths per min
@@ -128,9 +129,9 @@ DEF = {
     'ver'               : False,     # (bool) do show ver num?
     'help'              : False,     # (bool) do show help in term?
     'hview'             : False,     # (bool) do show help in text ed?
-    'rvt_off'           : DEF_rvt_off, # (bool) turn off RVT output
     'rvt_shift_list'    : None,      # (str) space sep list of nums
     'rvt_shift_linspace': DEF_rvt_shift_linspace, # (str) pars for RVT shift 
+    'volbase_types_resp': DEF_volbase_types_resp, # (str) if resp, which regr?
     'img_verb'          : 1,         # (int) amount of graphs to save
     'img_figsize'       : DEF_img_figsize,   # (tuple) figsize dims for QC imgs
     'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs 
@@ -220,6 +221,19 @@ all_quant_ge_zero = [
     'max_bpm_card',
     'max_bpm_resp',
 ]
+
+# --------------------------------------------------------------------------
+# codes for volumetric physio regressors
+
+# resp list
+list_volbase_resp = [
+    'NONE',
+    'rvt',
+    'rvtrrf',
+    ]
+# ... and as a comma-separated string list
+all_volbase_resp = ', '.join(list_volbase_resp)
+
 
 # --------------------------------------------------------------------------
 # sundry other items
@@ -1002,22 +1016,9 @@ physio and RVT regressors), and some are helpful QC images.  The
 input, and similarly for *card* files with cardiac input.  At present,
 RVT is only calculated from resp input.
 
-  PREFIX_physreg_sli.1D     : slice-based regressor file, which can include
-                              card and resp regressors from RETROICOR; this can
-                              be provided to an FMRI processing program like
-                              afni_proc.py
-
-  PREFIX_physreg_vol.1D     : volumetric-based regressor file, which can include
-                              RVT, RVTRRF and other related regressors; this can
-                              be provided to an FMRI processing program like
-                              afni_proc.py
-
-  PREFIX_slibase.1D         : older, omnibus slice-based regressor file, which 
-                              can include card, resp and RVT regressors; this is
-                              no longer output by default, since the separate
-                              *physreg*.1D files are preferred; though this can
-                              be created via '-do_slibase_out' and provided to 
-                              an FMRI processing program like afni_proc.py
+  PREFIX_slibase.1D         : slice-based regressor file, which can include
+                              card, resp and RVT regressors, and provided 
+                              to afni_proc.py for inclusion in FMRI processing
 
   PREFIX_regressors_phys.svg: QC image of all physio regressors (including
                               card and/or resp), corresponding to slice=0
@@ -1124,47 +1125,6 @@ might reflect natural variability of the physio time series, or possibly
 draw attention to a QC issue like an out-of-place or missing extremum 
 (which could be edited in "interactive mode").
 
-{ddashline}
-
-Using output regressor files in afni_proc.py (AP) ~1~
-
-This program is typically used to take input physiological measures
-and output regressors for FMRI processing.  The primary regressor
-files are currently the '*physreg_sli.1D' and '*physreg_vol.1D'
-files---these contain all the estimated slicewise and volumetric
-regressors, respectively.  The slicewise ones tend to come from
-RETROICOR, and the volumetric ones from RVT, RVTRRF, and similar
-variations.
-
-To include one or both of these files in afni_proc.py, you can use the
-following options (and please see further examples and details in the
-AP help, itself):
-
-  For *.physreg_sli.1D (slicewise regressor file):
-    + include 'ricor' in your list of processing blocks, at the very
-      beginning or just after 'despike'
-    + provide the path+name of the file with: 
-      -ricor_regs THE_PATH/PREFIX_physreg_sli.1D
-
-  For *.physreg_vol.1D (volumetric regressor file):
-    + include 'regress' in your list of processing blocks, at the very
-      end
-    + provide the path+name of the file with: 
-      -regress_extra_stim_files THE_PATH/PREFIX_physreg_vol.1D
-    + optionally, you can also provide a label for this extra regressor
-      with: 
-      -regress_extra_stim_labels THE_LABEL
-
-Note that the main output file _used_ to be '*slibase.1D', which
-contained all regressors in slicewise format, even if they didn't need
-to be (like the RVT ones). This file is no longer output by default,
-as the separate slicewise and volumetric pairing is preferred.  If you
-want to use the *slibase.1D file instead of the other *physreg*.1D
-pair for some reason, you can add '-do_slibase_out' to your
-physio_calc.py run; then, in afni_proc.py you could include the
-*slibase.1D in the same manner you would include the *.physreg_sli.1D
-file, shown above.  If you do so, you would likely *not* want to use
-either *physreg*.1D file in the same AP command.
 
 
 {ddashline}
@@ -1442,12 +1402,15 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     metavar=('START', 'STOP', 'N'),
                     nargs=3, type=str) # parse later
 
-opt = '''rvt_off'''
-hlp = '''Turn off output of RVT regressors
-'''
+opt = '''volbase_types_resp'''
+hlp = '''Provide a list of one or more types of volumetric regressors
+derived from the input respiratory physio data. This is done by
+listing one or more codes from among the following list:  {}  (def: {})
+'''.format(all_volbase_resp, DEF_volbase_types_resp)
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+                    metavar=('RTYPE1', 'RTYPE2'),
+                    nargs='+', type=str) # parse later
 
 opt = '''no_card_out'''
 hlp = '''Turn off output of cardiac regressors'''
@@ -1457,17 +1420,6 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
 
 opt = '''no_resp_out'''
 hlp = '''Turn off output of respiratory regressors'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
-
-opt = '''do_slibase_out'''
-hlp = '''Turn on output of the (older) *slibase.1D regressor file. This file
-contains all estimated regressors as being slicewise, even though the
-RVT/etc. ones need not be. More modern output creates a separate pair
-of *physreg_sli.1D and *physreg_vol.1D files, which are respectively
-slice-wise and volumetric, for improved processing. This option exists
-mainly for testing comparisons, and likely won't be used often.'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
@@ -2105,16 +2057,57 @@ args_dict2 : dict
 
         if IS_BAD :  sys.exit(1)
 
+    # for resp inputs, which volume-based regressors will be created? 
+    # There will always be at least one value in this list
+    # NB: check this BEFORE the RVT considerations are parsed; it will 
+    # control lots of switches for calculations and outputs 
+    if args_dict2['volbase_types_resp'] :
+        IS_BAD = 0
+
+        # defaults, which don't change if 'NONE' is in the list here
+        args_dict2['do_calc_rvt']    = False
+        args_dict2['do_calc_rvtrrf'] = False
+        args_dict2['do_out_rvt']     = False
+        args_dict2['do_out_rvtrrf']  = False
+
+        L = args_dict2['volbase_types_resp'].split()
+
+        if 'NONE' in L :
+            if len(L) > 1 :
+                print("** ERROR with '-volbase_types_resp ..' args: '{}'"
+                      "".format(args_dict2['volbase_types_resp']))
+                print("   Cannot mix 'NONE' with other types")
+                IS_BAD = 1
+
+            #  NB: if here, no need to change def switch values above
+
+        if 'rvt' in L :
+            args_dict2['do_calc_rvt']    = True
+            args_dict2['do_out_rvt']     = True
+
+        if 'rvtrrf' in L :
+            # RVT calc is also needed for RVTRRF calc
+            args_dict2['do_calc_rvt']    = True
+            args_dict2['do_calc_rvtrrf'] = True
+            args_dict2['do_out_rvtrrf']  = True
+
+        if IS_BAD :  sys.exit(1)
+
     # RVT considerations: several branches here; first check if >1 opt
     # was used, which is bad; then check for any other opts.  When
     # this full conditional is complete, we should have our shift
     # list, one way or another
     if check_multiple_rvt_shift_opts(args_dict2) :
-            sys.exit(1)
+        sys.exit(1)
     elif args_dict2['rvt_shift_list'] != None :
         # RVT branch A: direct list of shifts from user to make into array
 
         IS_BAD = 0
+
+        if not(args_dict2['do_rvt_out']) :
+            print("** ERROR, RVT calcs were turned off in opt proc;")
+            print("   you cannot then use -rvt_shift_list")
+            IS_BAD = 1
 
         L = args_dict2['rvt_shift_list'].split()
 
@@ -2133,6 +2126,11 @@ args_dict2 : dict
         # RVT branch B: linspace pars from user, list of ints or floats
 
         IS_BAD = 0
+
+        if not(args_dict2['do_rvt_out']) :
+            print("** ERROR, RVT calcs were turned off in opt proc")
+            print("   you cannot then use -rvt_shift_linspace")
+            IS_BAD = 1
 
         # make sure -rvt_shift_list had 3 entries
         L = args_dict2['rvt_shift_linspace'].split()
@@ -2159,9 +2157,6 @@ args_dict2 : dict
             IS_BAD = 1
 
         if IS_BAD :  sys.exit(1)
-    elif  args_dict2['rvt_off'] :
-        # RVT branch C: no shifts (simple), as per user
-        args_dict2['rvt_shift_list'] = []
     else:
         # RVT branch D: use default shifts
         L   = DEF_rvt_shift_list.split()

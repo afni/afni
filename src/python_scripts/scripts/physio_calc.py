@@ -118,9 +118,9 @@ if __name__ == "__main__":
         if retobj.data[label] :
             lpf.calc_timing_selection_phys( retobj, label=label, verb=verb )
 
-    # Set up timing for RVT time series (user can turn off, if desired)
+    # Set up timing for RVT time series
     label = 'resp'
-    if retobj.data[label] and retobj.do_out_rvt :
+    if retobj.data[label] :
         lpf.calc_timing_selection_rvt( retobj, label=label, verb=verb )
 
     # ------------- Process any card/resp/etc. time series ------------------
@@ -156,7 +156,7 @@ if __name__ == "__main__":
 
     # RVT time series estimation (prob just for resp)
     label = 'resp'
-    if retobj.data[label] :
+    if retobj.data[label] and retobj.do_calc_rvt :
         lpf.calc_time_series_rvt( retobj, label=label, verb=verb )
 
     # ------------- Calculate regressors ------------------
@@ -176,18 +176,20 @@ if __name__ == "__main__":
     # make a plot of the physio regressors
     lpplt.plot_regressors_phys(retobj)
 
-    # Regressors, for RVT time series (plot is made within this func)
+    # Resp-derived volbase regressors (plot is made within this func)
     label = 'resp'
     if retobj.data[label] :
-        lpf.calc_regress_rvt( retobj, label=label, verb=verb )
+        # make RVT regressor 
+        if retobj.do_calc_rvt :
+            lpf.calc_regress_rvt( retobj, label=label, verb=verb )
+
+        # make RVTRRF regressor (can only be done after RVT one is made)
+        if retobj.do_calc_rvtrrf :
+            lpf.calc_regress_rvtrrf( retobj, label=label, verb=verb )
 
     # ------------- Write out regressors ------------------
 
-    # older style of output: everything is slicewise (not done by default)
-    if retobj.do_out_slibase :
-        lpreg.write_regressor_file(retobj)
-
-    # newer, preferred style: separate slicewise and volumetric regressors
+    lpreg.write_regressor_file(retobj)
     lpreg.write_regressor_file_sli(retobj)
     lpreg.write_regressor_file_vol(retobj)
 
