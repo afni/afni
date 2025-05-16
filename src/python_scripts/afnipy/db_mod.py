@@ -14962,7 +14962,7 @@ OPTIONS:  ~2~
 
         ---- basic combine methods (that do not use any tedana) ----
 
-            methods
+            methods - AFNI only
             -------
             mean             : simple mean of echoes
             OC               : optimally combined (via @compute_OC_weights)
@@ -14988,7 +14988,7 @@ OPTIONS:  ~2~
               tedana_wrapper.py by applying:
                      -combine_opts_tedwrap -tedana_is_exec
 
-            methods
+            methods - Prantik tedana
             -------
             OC_tedort        : OC, and pass tedana orts to regression
             tedana           : run tedana.py, using output dn_ts_OC.nii
@@ -15008,13 +15008,15 @@ OPTIONS:  ~2~
 
                  https://tedana.readthedocs.io/en/stable/installation.html
 
-            methods
+            methods - MEICA group tedana
             -------
-            m_tedana         : tedana from MEICA group (dn_ts_OC.nii.gz)
-            m_tedana_OC      : tedana OC from MEICA group (ts_OC.nii.gz)
-            m_tedana_m_tedort: tedana from MEICA group (dn_ts_OC.nii.gz)
-                               "tedort" from MEICA group
-                               (--tedort: "good" projected from "bad")
+            m_tedana          : tedana from MEICA group (dn_ts_OC.nii.gz)
+            m_tedana_OC       : tedana OC from MEICA group (ts_OC.nii.gz)
+            m_tedana_m_tedort : tedana from MEICA group (dn_ts_OC.nii.gz)
+                                "tedort" from MEICA group
+                                (--tedort: "good" projected from "bad")
+            m_tedana_OC_tedort: MEICA OC, and tedorts to 3dDeconvolve
+            OC_m_tedort       : AFNI  OC, and tedorts to 3dDeconvolve
 
 
         The OC/OC_A combine method is from Posse et. al., 1999, and then
@@ -15030,10 +15032,13 @@ OPTIONS:  ~2~
         combine the echoes, and the tedort components will be passed on to
         the regress block).
 
-        The 'm_tedanam_m_tedort' method for the MEICA group's passes
+        The 'm_tedana_m_tedort' method for the MEICA group's passes
         option --tedort to 'tedana', and tedana does the "good" from "bad"
         projection before projecting the modified "bad" components from the
-        time series.
+        time series.  The 'm_tedana_OC_tedort' method gets the MEICA OC data,
+        and passes the MEICA tedort regressors on to the regress block.  The
+        'OC_m_tedort' methed gets the AFNI OC result, and passes the MEICA
+        tedort regressors on to the regress block.
 
         Please see '@compute_OC_weights -help' for more information.
         Please see '@extract_meica_ortvec -help' for more information.

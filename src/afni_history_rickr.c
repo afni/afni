@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, May, 2025, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "add help for forgotten m_tedana_OC_tedort/OC_m_tedort combine methods",
+   NULL
+ } ,
+
  { 25, Apr, 2025, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
    "automatically replace n/a values with 0.0 when reading TSV",
    "And allow wildcard matching for column selectors."

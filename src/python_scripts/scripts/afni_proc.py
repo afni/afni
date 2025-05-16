@@ -814,9 +814,10 @@ g_history = """
     7.89 Apr  2, 2025: parse/pass any opts_ts -tpattern @FILE to review_basic
     7.90 Apr 24, 2025: use updated find_variance_lines.tcsh (no -nerode 2)
     7.91 May  6, 2025: set ROI_import view in case of no volreg block
+    7.92 May 16, 2025: add help for m_tedort combine methods
 """
 
-g_version = "version 7.91, May 6, 2025"
+g_version = "version 7.92, May 16, 2025"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
