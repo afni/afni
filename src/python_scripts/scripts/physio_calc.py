@@ -118,10 +118,10 @@ if __name__ == "__main__":
         if retobj.data[label] :
             lpf.calc_timing_selection_phys( retobj, label=label, verb=verb )
 
-    # Set up timing for RVT time series
-    label = 'resp'
-    if retobj.data[label] :
-        lpf.calc_timing_selection_rvt( retobj, label=label, verb=verb )
+    # Set up timing for volume-based time series (RVT, HR, etc.)
+    for label in ['card', 'resp']:
+        if retobj.data[label] :
+            lpf.calc_timing_selection_volbase( retobj, label=label, verb=verb )
 
     # ------------- Process any card/resp/etc. time series ------------------
 
@@ -154,10 +154,15 @@ if __name__ == "__main__":
         if retobj.data[label] :
             lpf.calc_time_series_phases( retobj, label=label, verb=verb )
 
-    # RVT time series estimation (prob just for resp)
+    # RVT time series estimation (just for resp)
     label = 'resp'
     if retobj.data[label] and retobj.do_calc_rvt :
         lpf.calc_time_series_rvt( retobj, label=label, verb=verb )
+
+    # HR time series estimation (just for card)
+    label = 'card'
+    if retobj.data[label] and retobj.do_calc_hr :
+        lpf.calc_time_series_hr( retobj, label=label, verb=verb )
 
     # ------------- Calculate regressors ------------------
 

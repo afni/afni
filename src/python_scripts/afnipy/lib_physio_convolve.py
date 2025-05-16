@@ -141,7 +141,7 @@ this list might grow over time), which can be seen with:
         N = int((trange[1] - trange[0]) * 5 + 1)
         t = np.linspace(trange[0], trange[1], N)
         y = crf_chang_etal(t)
-        ylab = "$\Delta$ BOLD (%)"
+        ylab = "amplitude (no units)" #"$\Delta$ BOLD (%)"
 
     osize = (5, 3)
     dpi   = 300

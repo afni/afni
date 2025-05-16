@@ -19,6 +19,7 @@ from   afnipy import lib_physio_util    as lpu
 # set of allowed time series labels for calculation at present
 PO_all_label = ['card', 'resp']
 PO_rvt_label = ['resp']
+PO_hr_label  = ['card']
 
 # ===========================================================================
 
@@ -48,6 +49,19 @@ valid for RVT calcs (e.g., might only apply to 'resp' label)."""
         print("   {}".format(', '.join(PO_rvt_label)))
         sys.exit(3)
 
+def check_label_hr(label):
+    """Simple check for some main funcs, that label is both present and
+valid for HR calcs (e.g., might only apply to 'card' label)."""
+
+    if not(label) :
+        print("** ERROR: must provide label kwarg from allowed HR list:")
+        print("   {}".format(', '.join(PO_hr_label)))
+        sys.exit(3)
+    elif not(label in PO_hr_label) :
+        print("** ERROR: label '{}' is not in allowed HR list:".format(label))
+        print("   {}".format(', '.join(PO_hr_label)))
+        sys.exit(3)
+
 def check_empty_list(x, count, lab_title, label):
     """Simple check whether a peak, trough or phase list x is empty or
 not.  Whine if it is, and return nonzero.  If things are cool, just
@@ -65,7 +79,6 @@ return 0.
 # ---------------------------------------------------------------------------
 
 def calc_timing_selection_phys(retobj, label=None, verb=0):
-
     """Calculate the 'timing selection array' for the phys_obj
 (=retobj.data[label]) time series tvalues, for each MRI slice based on
 the slice timing information.  That is, for any of the
@@ -128,19 +141,22 @@ is_ok : int
 
     return 0
 
-def calc_timing_selection_rvt(retobj, label=None, verb=0):
+def calc_timing_selection_volbase(retobj, label=None, verb=0):
     """Calculate the 'timing selection array' for the phys_obj
 (=retobj.data[label]) time series tvalues, **just starting at time 0,
-for the RVT regressor**, based on the slice timing information.  That
-is, we need to know where to sample the physio time series to match
-with the MRI volume (just initial slice, which we assume is at t=0.0).
-The 'timing array' records this information.  We basically step
-through the finely-sampled physio data 'x-axis', and figure out which
-values correspond to a given coarse-sampled MRI slice.
+for any volume-based regressor**, based on the slice timing
+information.  That is, we need to know where to sample the physio time
+series to match with the MRI volume (just initial slice, which we
+assume is at t=0.0).  The 'timing array' records this information.  We
+basically step through the finely-sampled physio data 'x-axis', and
+figure out which values correspond to a given coarse-sampled MRI
+slice.
 
 NB: we *could* have just gotten this info as a special case of the
 full physio slicewise regressors calculation, but decided to keep this
 separate, to be more general.
+
+Used for RVT, HR, etc.
 
 Parameters
 ----------
@@ -184,7 +200,7 @@ is_ok : int
                                    vol_nv, vol_tr, verb=verb)
 
     # done, store
-    phobj.list_slice_sel_rvt = all_ind
+    phobj.list_slice_sel_volbase = all_ind
 
     return 0
 
@@ -912,6 +928,47 @@ is_ok : int
 
 # ===========================================================================
 
+def calc_time_series_hr(retobj, label=None, win=6, verb=0):
+    """Calculate heart rate (HR), as described in:
+
+    ``Influence of heart rate on the BOLD signal: The cardiac response
+    function'' by Catie Chang a, John P. Cunningham a, Gary H. Glover
+    (2009).
+
+This just uses the time series and card inter-peak intervals to
+estimate 'heart rate'.  We calculate the mean interpeak interval in a
+win of time (units: s) around a given TR. The result is divided by 60,
+to have units of beats per minute.
+
+    """
+
+    if verb : print("++ Start RVT calc for {} data".format(label))
+
+    check_label_all(label)
+    check_label_hr(label)       # a practical HR reality, at present
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+
+    # ------ time series envelope
+    count     = 21 
+    lab_title = 'HR measure'
+    lab_short = 'hr_measure'
+    if verb :   print('++ ({}) {}'.format(label, lab_title))
+
+
+    #### WORKING HERE
+    #####**** phobj.peaks
+
+    return 0
+
+
+# ---------------------------------------------------------------------------
+
 def calc_time_series_rvt(retobj, label=None, verb=0):
     """Calculate regression volume per time (RVT), as described in:
 
@@ -1063,7 +1120,7 @@ def calc_regress_rvt(retobj, label=None, verb=0):
     # We use the time series median to pad values
 
     # the primary, unshifted RVT regressor
-    ###rvt_regr = phobj.rvt_ts[phobj.list_slice_sel_rvt]
+    ###rvt_regr = phobj.rvt_ts[phobj.list_slice_sel_volbase]
 
     for ii in range(nshift):
         # make shifted regressors
@@ -1071,7 +1128,7 @@ def calc_regress_rvt(retobj, label=None, verb=0):
         shift = shift_list[ii]
         regress_dict_rvt[lab] = get_shifted_rvt(phobj.rvt_ts,
                                                 phobj.samp_freq,
-                                                phobj.list_slice_sel_rvt,
+                                                phobj.list_slice_sel_volbase,
                                                 shift)
 
     phobj.regress_dict_rvt = regress_dict_rvt
@@ -1160,7 +1217,7 @@ calculated...
     # the primary, unshifted RVT regressor
     rvt_regr = get_shifted_rvt(phobj.rvt_ts,
                                phobj.samp_freq,
-                               phobj.list_slice_sel_rvt,
+                               phobj.list_slice_sel_volbase,
                                0)
 
     # convolve RVT with RRF

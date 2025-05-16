@@ -69,8 +69,8 @@ derived data.
         # the list_of_ind refer to time point values within self.tvalues,
         # and can pick out values from any time series with len(self.ts_orig),
         # esp. self.phases and self.rvt_ts
-        self.list_slice_sel_phys = []        # list, lab+ind for ts_orig sel
-        self.list_slice_sel_rvt  = []        # list, lab+ind for ts_orig sel
+        self.list_slice_sel_phys    = []        # list, lab+ind for ts_orig sel
+        self.list_slice_sel_volbase = []        # list, lab+ind for ts_orig sel
 
         # peak/trough stuff
         self.peaks     = []                      # list, for indices of peaks
@@ -85,11 +85,17 @@ derived data.
         # rvt stuff (only becomes non-trivial for resp, prob)
         self.rvt_ts    = np.zeros(0, dtype=float) # arr, 'raw' rvt time series
 
+        # hr stuff (only becomes non-trivial for card, prob)
+        self.hr_ts    = np.zeros(0, dtype=float) # arr, 'raw' hr time series
+
         # regressor stuff: lists of labels and the actual values
         # NB: at present, rvt likely only for resp (but doesn't matter deeply)
+        #     and hr only for card
         self.regress_dict_phys = {}      # dict of list, (lab, value)
         self.regress_dict_rvt  = {}      # dict of list, (lab, value)
         self.regress_dict_rvtrrf = {}    # dict of list, (lab, value)
+        self.regress_dict_hr     = {}    # dict of list, (lab, value)
+        self.regress_dict_hrcrf  = {}    # dict of list, (lab, value)
 
         # prefiltering related: not used in proc, just to be able to report
         self.prefilt_init_freq = prefilt_init_freq # flt, freq (Hz) before filt
@@ -296,9 +302,18 @@ derived data.
 
     @property
     def n_regress_rvtrrf(self):
-        """The number of RVTRRF regressors (probably 5 or 0, but user can
-        choose)."""
+        """The number of RVTRRF regressors."""
         return len(self.regress_dict_rvtrrf)
+
+    @property
+    def n_regress_hr(self):
+        """The number of fancy HR regressors."""
+        return len(self.regress_dict_hr)
+
+    @property
+    def n_regress_hrcrf(self):
+        """The number of HRCRF regressors."""
+        return len(self.regress_dict_hrcrf)
 
     @property
     def regress_phys_keys(self):
@@ -314,6 +329,16 @@ derived data.
     def regress_rvtrrf_keys(self):
         """The keys of the RVTRRF regressors."""
         return list(self.regress_dict_rvtrrf.keys())
+
+    @property
+    def regress_hr_keys(self):
+        """The keys of the HR regressors."""
+        return list(self.regress_dict_hr.keys())
+
+    @property
+    def regress_hrcrf_keys(self):
+        """The keys of the HRCRF regressors."""
+        return list(self.regress_dict_hrcrf.keys())
 
     @property
     def img_arr_step(self):
@@ -421,6 +446,10 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_calc_rvtrrf = False    # bool, flag
         self.do_out_rvt     = True     # bool, flag (might calc but not write)
         self.do_out_rvtrrf  = False    # bool, flag (might calc but not write)
+        self.do_calc_hr     = False    # bool, flag
+        self.do_calc_hrcrf  = False    # bool, flag
+        self.do_out_hr      = False    # bool, flag (might calc but not write)
+        self.do_out_hrcrf   = False    # bool, flag (might calc but not write)
         self.do_out_phys  = {
             'card' : True,             # bool, flag to proc card if present
             'resp' : True,             # bool, flag to proc resp if present
@@ -687,6 +716,10 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_calc_rvtrrf      = AD['do_calc_rvtrrf']
         self.do_out_rvt          = AD['do_out_rvt']
         self.do_out_rvtrrf       = AD['do_out_rvtrrf']
+        self.do_calc_hr          = AD['do_calc_hr']
+        self.do_calc_hrcrf       = AD['do_calc_hrcrf']
+        self.do_out_hr           = AD['do_out_hr']
+        self.do_out_hrcrf        = AD['do_out_hrcrf']
         self.do_out_phys['card'] = not(AD['no_card_out'])
         self.do_out_phys['resp'] = not(AD['no_resp_out'])
         self.save_proc_peaks     = AD['save_proc_peaks']

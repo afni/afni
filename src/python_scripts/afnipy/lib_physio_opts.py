@@ -44,6 +44,7 @@ all_rvt_opt = ['rvt_shift_list', 'rvt_shift_linspace']
 DEF_rvt_shift_list     = '0 1 2 3 4'  # split+listified, below, if used
 DEF_rvt_shift_linspace = None         # can be pars for NumPy linspace(A,B,C)
 
+DEF_volbase_types_card = 'hrcrf'
 DEF_volbase_types_resp = 'rvt'
 
 # some QC image plotting options that the user can change
@@ -132,6 +133,7 @@ DEF = {
     'rvt_shift_list'    : None,      # (str) space sep list of nums
     'rvt_shift_linspace': DEF_rvt_shift_linspace, # (str) pars for RVT shift 
     'volbase_types_resp': DEF_volbase_types_resp, # (str) if resp, which regr?
+    'volbase_types_card': DEF_volbase_types_card, # (str) if card, which regr?
     'img_verb'          : 1,         # (int) amount of graphs to save
     'img_figsize'       : DEF_img_figsize,   # (tuple) figsize dims for QC imgs
     'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs 
@@ -234,6 +236,13 @@ list_volbase_resp = [
 # ... and as a comma-separated string list
 all_volbase_resp = ', '.join(list_volbase_resp)
 
+# card list
+list_volbase_card = [
+    'NONE',
+    'hrcrf',
+    ]
+# ... and as a comma-separated string list
+all_volbase_card = ', '.join(list_volbase_card)
 
 # --------------------------------------------------------------------------
 # sundry other items
@@ -1412,6 +1421,16 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     metavar=('RTYPE1', 'RTYPE2'),
                     nargs='+', type=str) # parse later
 
+opt = '''volbase_types_card'''
+hlp = '''Provide a list of one or more types of volumetric regressors
+derived from the input cardiac physio data. This is done by
+listing one or more codes from among the following list:  {}  (def: {})
+'''.format(all_volbase_card, DEF_volbase_types_card)
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    metavar=('CTYPE1', 'CTYPE2'),
+                    nargs='+', type=str) # parse later
+
 opt = '''no_card_out'''
 hlp = '''Turn off output of cardiac regressors'''
 odict[opt] = hlp
@@ -2054,6 +2073,36 @@ args_dict2 : dict
         except:
             print("** ERROR interpreting remove_val_list")
             IS_BAD = 1
+
+        if IS_BAD :  sys.exit(1)
+
+    # for card inputs, which volume-based regressors will be created? 
+    # There will always be at least one value in this list
+    if args_dict2['volbase_types_card'] :
+        IS_BAD = 0
+
+        # defaults, which don't change if 'NONE' is in the list here
+        args_dict2['do_calc_hr']    = False
+        args_dict2['do_calc_hrcrf'] = False
+        args_dict2['do_out_hr']     = False
+        args_dict2['do_out_hrcrf']  = False
+
+        L = args_dict2['volbase_types_card'].split()
+
+        if 'NONE' in L :
+            if len(L) > 1 :
+                print("** ERROR with '-volbase_types_card ..' args: '{}'"
+                      "".format(args_dict2['volbase_types_card']))
+                print("   Cannot mix 'NONE' with other types")
+                IS_BAD = 1
+
+            #  NB: if here, no need to change def switch values above
+
+        if 'hrcrf' in L :
+            # HR calc is also needed for hrcrf calc
+            args_dict2['do_calc_hr']    = True
+            args_dict2['do_calc_hrcrf'] = True
+            args_dict2['do_out_hrcrf']  = True
 
         if IS_BAD :  sys.exit(1)
 
