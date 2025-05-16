@@ -141,6 +141,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                              is now always in NI_TEXT_MODE,
                                              verify that AFNI handles either well
                                              THIS handling here is TEMPORARY */
+    int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+    int numSurfaceObjects, j;
+    int newMin, newMax;
    SUMA_Boolean LocalHead = NOPE;
 
 
@@ -4012,21 +4015,36 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      XmToggleButtonSetState (SurfCont->SymIrange_tb, 
                         SurfCont->curColPlane->SymIrange, 1);
                         
-                     SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 1,
-                                 SurfCont->curColPlane->OptScl->IntRange[0]);
-                     SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 2,
-                                 SurfCont->curColPlane->OptScl->IntRange[1]);
-                     if (SurfCont->curColPlane->ShowMode > 0 &&
-                         SurfCont->curColPlane->ShowMode <
-                                             SW_SurfCont_DsetViewXXX ) {
-                        if (!SUMA_ColorizePlane (SurfCont->curColPlane)) {
-                           SUMA_SLP_Err("Failed to colorize plane.\n");
-                        } else {
-                           SUMA_Remixedisplay(ado);
-                           SUMA_UpdateNodeValField(ado);
-                           SUMA_UpdateNodeLblField(ado);
-                        }
+                     newMin = SurfCont->curColPlane->OptScl->IntRange[0];
+                     newMax = SurfCont->curColPlane->OptScl->IntRange[1];
+                     XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+                     N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+                     if (numSurfaceObjects != N_adolist) {
+                            SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+                            SUMA_RETURN (NOPE);
                      }
+                     for (j=0; j<N_adolist; ++j){
+                         SUMA_ALL_DO *ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+                         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+                         SurfCont = SO->SurfCont;
+                         SurfCont->curColPlane->OptScl->IntRange[0] = newMin;
+                         SurfCont->curColPlane->OptScl->IntRange[1] = newMax;
+                         SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 1,
+                                     SurfCont->curColPlane->OptScl->IntRange[0]);
+                         SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 2,
+                                     SurfCont->curColPlane->OptScl->IntRange[1]);
+                         if (SurfCont->curColPlane->ShowMode > 0 &&
+                             SurfCont->curColPlane->ShowMode <
+                                                 SW_SurfCont_DsetViewXXX ) {
+                            if (!SUMA_ColorizePlane (SurfCont->curColPlane)) {
+                               SUMA_SLP_Err("Failed to colorize plane.\n");
+                            } else {
+                               SUMA_Remixedisplay(ado);
+                               SUMA_UpdateNodeValField(ado);
+                               SUMA_UpdateNodeLblField(ado);
+                            }
+                         }
+                      }
                   }
                   SUMA_free(stmp); stmp = NULL;
                }
@@ -4117,46 +4135,59 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "y")){
                 fprintf(stderr, "Show alpha\n");
                   // SurfCont->AlphaOpacityFalloff = 1;
-                  if (!(SurfCont->AlphaOpacityFalloff))
+                  // if (!(SurfCont->AlphaOpacityFalloff))
                     XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
-                      !(SurfCont->AlphaOpacityFalloff), YUP);
+                      YUP, YUP);
 
                }
                else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "n"))
                {
-                  if (SurfCont->AlphaOpacityFalloff)
+                  //if (SurfCont->AlphaOpacityFalloff)
                     XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
-                      !(SurfCont->AlphaOpacityFalloff), YUP);
+                      NOPE, YUP);
                   // SurfCont->AlphaOpacityFalloff = 0;
                }
                else {
                   SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA, setting to 'y'\n",
                               NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA"));
-                  SurfCont->AlphaOpacityFalloff = NOPE;
+                    XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+                      NOPE, YUP);
                }
 //               XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
 //                              SurfCont->AlphaOpacityFalloff, YUP);
             }
 
             if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE")) {
-               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "L")){
-                  SurfCont->alphaOpacityModel = LINEAR;
-               }
-               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "Q"))
-               {
-                  SurfCont->alphaOpacityModel = QUADRATIC;
-               }
-               else {
-                  SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L/Q",
-                              NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
-               }
-               if (!sv) sv = &(SUMAg_SVv[0]); 
-               SO = SUMA_SV_Focus_SO(sv);
-               SO->SurfCont->alphaOpacityModel = SurfCont->alphaOpacityModel;
-   
-               // Refresh display
-               SUMA_Remixedisplay(ado);
-               SUMA_UpdateNodeLblField(ado);
+            
+             XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+             N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+             if (numSurfaceObjects != N_adolist) {
+                    SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+                    SUMA_RETURN (NOPE);
+             }
+             for (j=0; j<N_adolist; ++j){
+                 SUMA_ALL_DO *ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+                 SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+                 SurfCont = SO->SurfCont;
+                   if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "L")){
+                      SurfCont->alphaOpacityModel = LINEAR;
+                   }
+                   else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "Q"))
+                   {
+                      SurfCont->alphaOpacityModel = QUADRATIC;
+                   }
+                   else {
+                      SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L/Q",
+                                  NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
+                   }
+                   if (!sv) sv = &(SUMAg_SVv[0]); 
+                   SO = SUMA_SV_Focus_SO(sv);
+                   SO->SurfCont->alphaOpacityModel = SurfCont->alphaOpacityModel;
+       
+                   // Refresh display
+                   SUMA_Remixedisplay(ado);
+                   SUMA_UpdateNodeLblField(ado);
+                }             
             }
 
             if (NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED")) {
@@ -5890,10 +5921,9 @@ int SUMA_Selectable_ADOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
 
 int SUMA_ADOs_WithUniqueSurfCont (SUMA_DO *dov, int N_dov, int *dov_IDs)
 {
-   static char FuncName[]={"SUMA_ADOs_WithSurfCont"};
+   static char FuncName[]={"SUMA_ADOs_WithUniqueSurfCont"};
    SUMA_SurfaceObject *SO=NULL;
    int i, j, k = 0, surfContPtrCnt=0, unique;
-   int  ;
    SUMA_NIDO *SDO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_X_SurfCont *SurfConts[SUMA_MAX_DISPLAYABLE_OBJECTS], *SurfCont;

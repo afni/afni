@@ -14746,7 +14746,7 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
    //   opacity for this object
    if (SurfCont && SurfCont->AlphaOpacityFalloff_tb)
        XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
-                      SurfCont->alphaOpacityModel, YUP);
+                      curColPlane->AlphaOpacityFalloff, YUP);
 
    SUMA_RETURNe;
 }
