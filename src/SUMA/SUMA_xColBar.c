@@ -1446,23 +1446,17 @@ void SUMA_cb_SwitchIntensity(Widget w, XtPointer client_data, XtPointer call)
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "%s\n", FuncName);
-
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
    ado = (SUMA_ALL_DO *)datap->ContID;
    curColPlane = SUMA_ADO_CurColPlane(ado);
    imenu = (INT_CAST)datap->callback_data;
 
-   fprintf(stderr, "1: curColPlane->OptScl->UseThr = %d\n", curColPlane->OptScl->UseThr);
-   
    if (imenu-1 == curColPlane->OptScl->find) {
       SUMA_RETURNe; /* nothing to be done */
    }
 
    SUMA_SwitchColPlaneIntensity(ado, curColPlane, imenu -1, 0);
-
-   fprintf(stderr, "2: curColPlane->OptScl->UseThr = %d\n", curColPlane->OptScl->UseThr);
    
    curColPlane->intensitySwitched = 1;
 
@@ -1485,8 +1479,6 @@ int SUMA_SwitchColPlaneThreshold(
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "%s\n", FuncName);
-
    if (!SUMA_SwitchColPlaneThreshold_one(ado, colp, ind, setmen)) {
       SUMA_S_Err("Failed in _one");
       SUMA_RETURN(0);
@@ -1525,9 +1517,6 @@ int SUMA_SwitchColPlaneThreshold_one(
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "%s\n", FuncName);
-
-
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (!ado || !SurfCont || !curColPlane ||
@@ -1664,8 +1653,6 @@ int SUMA_SwitchColPlaneBrightness(
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "%s\n", FuncName);
-
    if (LocalHead) {
       fprintf(SUMA_STDERR,
          "%s:\n request to switch brightness to col. %d\n", FuncName, ind);
@@ -1800,8 +1787,6 @@ void SUMA_cb_SwitchBrightness(Widget w, XtPointer client_data, XtPointer call)
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "%s\n", FuncName);
-
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
    ado = (SUMA_ALL_DO *)datap->ContID;
