@@ -285,6 +285,14 @@ slicewise regressors; basically, we just have nslice=1.
     label = "card"
     if retobj.have_label(label) :
         phobj = retobj.data[label]        # simplify coding below
+        if retobj.do_out_hrcrf :
+            for ii in range(phobj.n_regress_hrcrf):
+                key = phobj.regress_hrcrf_keys[ii]
+                dat = phobj.regress_dict_hrcrf[key]
+                title = 'vol' + '.' + key      # column header title
+                data_lab.append( title )
+                data_list.append( np.array(dat, dtype=float) )
+                nreg+= 1
         # *** add more types here, as we are able to include them
 
     # check if we have a regressor to output

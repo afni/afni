@@ -82,11 +82,12 @@ derived data.
         self.phases    = np.zeros(0, dtype=int)  # arr, for phase info
         self.M         = 2                       # int, later can vary
 
-        # rvt stuff (only becomes non-trivial for resp, prob)
+        # rvt stuff (for resp only)
         self.rvt_ts    = np.zeros(0, dtype=float) # arr, 'raw' rvt time series
 
-        # hr stuff (only becomes non-trivial for card, prob)
-        self.hr_ts    = np.zeros(0, dtype=float) # arr, 'raw' hr time series
+        # hr stuff (for card only)
+        self.hr_ts     = np.zeros(0, dtype=float) # arr, 'raw' HR time series
+        self.hr_win    = 6.0             # flt, window with for HR est (in s)
 
         # regressor stuff: lists of labels and the actual values
         # NB: at present, rvt likely only for resp (but doesn't matter deeply)
@@ -229,7 +230,6 @@ derived data.
 
     @property
     def n_ts_orig(self):
-
         """The number of time points in original time series."""
         return len(self.ts_orig)
 

@@ -159,7 +159,7 @@ if __name__ == "__main__":
     if retobj.data[label] and retobj.do_calc_rvt :
         lpf.calc_time_series_rvt( retobj, label=label, verb=verb )
 
-    # HR time series estimation (just for card)
+    # HR time series estimation (just for card; and on EPI ts grid)
     label = 'card'
     if retobj.data[label] and retobj.do_calc_hr :
         lpf.calc_time_series_hr( retobj, label=label, verb=verb )
@@ -191,6 +191,11 @@ if __name__ == "__main__":
         # make RVTRRF regressor (can only be done after RVT one is made)
         if retobj.do_calc_rvtrrf :
             lpf.calc_regress_rvtrrf( retobj, label=label, verb=verb )
+
+    # Card-derived volbase regressors
+    label = 'card'
+    if retobj.data[label] and retobj.do_calc_hr :
+        lpf.calc_regress_hr( retobj, label=label, verb=verb )
 
     # ------------- Write out regressors ------------------
 
