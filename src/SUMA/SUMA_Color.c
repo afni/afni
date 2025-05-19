@@ -3026,7 +3026,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    if (!Sover) { SUMA_SL_Err("NULL Sover"); SUMA_RETURN(NOPE); }
    if (!Sover->cmapname) {
       SUMA_SL_Err("NULL Colormap name"); SUMA_RETURN(NOPE);
@@ -8085,7 +8085,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                   "%s: Done Modulating Brightness of overlay colors.\n",
                   FuncName);
    }
-   
+
    // This is called when the background is toggled off with the B key
    if (NshowOverlays && !NshowOverlays_Back) {
       if (LocalHead)

@@ -1614,8 +1614,8 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
                 NI_set_attribute(ngr, "SET_FUNC_ALPHA_MODE", "Q");
          }
          else {
-            fprintf (SUMA_STDERR, "need a 'yes/no' or 'on/off' or 'L\Q', after");
-            fprintf (SUMA_STDERR, " -SET_FUNC_ALPHA \n");
+            fprintf(SUMA_STDERR, "need a 'yes/no' or 'on/off' or 'L/Q', after");
+            fprintf(SUMA_STDERR, " -SET_FUNC_ALPHA \n");
             SUMA_RETURN(0);
          }
          argt[kar][0] = '\0';
