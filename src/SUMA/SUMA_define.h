@@ -1093,7 +1093,6 @@ typedef struct {
    float *originalColVec;
    char *originalCMapName;
    double IntRange[2];
-   SUMA_Boolean intensitySwitched;
    SUMA_Boolean AlphaOpacityFalloff; /*!<  Variable opacity for sub-threshold colors */
 } SUMA_OVERLAYS;
 
