@@ -46,6 +46,7 @@ set sdpower      = 2              # power on stdev (2=default variance)
 set thresh       = 0.90           # threshold for tscale average (was .97)
 set num_pc       = 0              # number of PCs per vline to output
 set do_pc_3dD    = 1              # if calc'ing PCs, create+run 3dDeconvolve
+set do_pc_vstat  = 1              # if calc'ing PCs, create+run views of stats
 set suffix       = ""             # extra str for QC* output files
 
 # computed vars
@@ -53,12 +54,13 @@ set edge_mask  = ''             # edge voxel mask, if applied
 set clust_pre  = 'clustset'     # prefix for cluster mask
 
 # created scripts
-set cmd_copy     = a_cmd_00_copy.tcsh 
-set cmd_3dD_base = a_cmd_01_3dD
+set cmd_copy       = a_cmd_00_copy.tcsh 
+set cmd_3dD_base   = a_cmd_01_3dD
+set cmd_vstat_base = a_cmd_02_vstat
 
 set prog = find_variance_lines.tcsh
 
-set version = "1.3, 12 May, 2025"
+set version = "1.4, 20 May, 2025"
 
 if ( $#argv < 1 ) goto SHOW_HELP
 
@@ -200,6 +202,13 @@ while ( $ac <= $#argv )
       endif
       @ ac += 1
       set do_pc_3dD = $argv[$ac]
+   else if ( "$argv[$ac]" == "-do_pc_vstat" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
+      @ ac += 1
+      set do_pc_vstat = $argv[$ac]
 
    # otherwise, these should be the input datasets
    else
@@ -246,7 +255,7 @@ cat <<EOF
 ++ have nslices : $nk_list
 ++ params: min_cvox $min_cvox, nerode $nerode, perc $perc, polort $polort,
            ignore_edges $ignore_edges, sdpower $sdpower, thresh $thresh,
-           num_pc $num_pc, do_pc_3dD $do_pc_3dD
+           num_pc $num_pc, do_pc_3dD $do_pc_3dD, do_pc_vstat $do_pc_vstat
 
 EOF
 
@@ -331,6 +340,7 @@ cat <<EOF>> ${cmd_copy}
 # thresh          : $thresh
 # num_pc          : $num_pc
 # do_pc_3dD       : $do_pc_3dD
+# do_pc_vstat     : $do_pc_vstat
 
 EOF
 
@@ -658,6 +668,23 @@ EOF
             tcsh ${cmd_3dD}
             # ... and rename the created REML cmd, per run
             \mv  stats.REML_cmd  stats${suffix}.r$ind02.REML_cmd
+
+            if ( $do_pc_vstat ) then
+                # make images and run script to view stats file, via
+                # @chauffeur_afni, using a preexisting template script
+                set cmd_vstat = ${cmd_vstat_base}.r$ind02.tcsh
+
+                # copy script template file from abin/ ...
+                set dir_abin = "`afni_system_check.py -disp_abin`"
+                \cp "${dir_abin}/afni_vlines_run_text.txt" ${cmd_vstat}
+
+                # ... insert run number ...
+                sed -i s/REPLACE_ME_WITH_RUN_NUM/r${ind02}/g ${cmd_vstat}
+
+                # ... and run the script, which creates an image of the
+                # Full_Fstat, as well as a run_*.tcsh script to drive AFNI GUI 
+                tcsh ${cmd_vstat}
+            endif
          endif
       endif
    end
@@ -1074,7 +1101,7 @@ Options (processing): ~1~
                           in a run, then by default this program will
                           build+execute a 3dDeconvolve command with those
                           PCs as '-stim_file ..' regressors; this opt controls
-                          whether 3dD would be run or not (def=$do_pc3dD)
+                          whether 3dD would be run or not (def=$do_pc_3dD)
 
                              VAL in {0,1}
 
@@ -1082,6 +1109,32 @@ Options (processing): ~1~
                           line influence appears to be more/less
                           across the dataset. See the Note on 'Outputs
                           when -num_pc is used' for more details.
+
+   -do_pc_vstat VAL     : if '-num_pc ..' is used and variance lines are found
+                          in a run (and 3dDeconvolve is _not_ turned off via
+                          '-do_pc_3dD 0'), then by default this program will
+                          build+execute an @chauffeur_afni command to make
+                          images of the Full_Fstat volume in the stats dset
+                          of each run with vlines (stats.r*.image*jpg), as well
+                          as an executable script to surf that dset and volume
+                          in the AFNI GUI (run_stats.r*_pc.tcsh); this opt
+                          controls whether @chauffeur would be run or not 
+                          (def=$do_pc_vstat)
+
+                             VAL in {0,1}
+
+                          This will help with quality control (QC)
+                          checks of where the variance line influence
+                          appears to be more/less across the dataset.
+                          Note that image montage slices might miss
+                          some of the variance lines themselves, so
+                          executing the run script might be the most
+                          useful. This can be done as follows:
+                          
+                             tcsh run_stats.r01.tcsh
+
+                          See the Note on 'Outputs when -num_pc is
+                          used' for more details.
 
 -----------------------------------------------------------------------------
 Notes: ~1~
@@ -1107,6 +1160,27 @@ A copy of the 3dDeconvolve command for each run is stored in a text
 file within the output vlines directory, called
 ${cmd_3dD_base}.r*.tcsh.
 
+Furthermore, an @chauffeur_afni command will be executed for each run
+that has at least one variance line and for which a stats*.nii.gz has
+been created.  This will make multislice image montages of the
+Full_Fstat volume for each run (stats.r*.image*.jpg), which show
+where any linear combination of the detected variance lines' PCs fit
+the input time series data well.  The Full_Fstat volume is used for
+both the overlay and thresholding datasets. The overlay color range
+comes from a high percentile value of the data itself, and the
+threshold value corresponds to p=0.01---of course, the transparent
+alpha thresholding is also turned on.
+
+The executed @chauffeur_afni also creates a run_stats.r*_pc.tcsh
+script that will drive the AFNI GUI to load up the stats dataset with
+the same data, to enable deeper checks of it in an efficient way. Each
+script can be run just like:
+
+    tcsh run_stats.r01.tcsh
+
+A copy of the @chauffeur_afni command for each run is stored in a text
+file within the output vlines directory, called
+${cmd_vstat_base}.r*.tcsh.
 
 
 ------------------------------
@@ -1144,6 +1218,7 @@ $prog modification history:
    1.1   7 May 2025 : [PT] add -suffix_qc so QC* files can be unique per subj
    1.2   8 May 2025 : [PT] add 3dDeconvolve cmd to PC calcs
    1.3  12 May 2025 : [PT] add more reporting output
+   1.4  20 May 2025 : [PT] add more chauffeur script and image output
 
 EOF
 # check $version, at top
