@@ -453,6 +453,9 @@ set gen_comm   = ""            # [PT: Feb 22, 2021] pbar json output
 set pbar_for   = ""
 set ulay_comm  = ""
 
+set do_pbar_alpha = 0          # [PT: May 202 2025] can fade with colorbar_tool.py
+set pbar_orth  = ""            # [PT: May 202 2025] fade is not orth
+
 set func_resam = "NN"            # def. no resample; opt: {NN|Li|Cu|Bk}
 
 set acropx = ( 0 0 )             # [PT: May 29, 2018]  
@@ -967,6 +970,22 @@ while ( $ac <= $#argv )
 
         set com_pbar_str = "PBAR_SAVEIM $pbar_fname"
         set SAVE_PBAR = 1
+
+    # [PT: May 25, 2025] allow colorbar_tool.py to operate
+    else if ( "$argv[$ac]" == "-pbar_use_alpha" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        if ( ( "$argv[$ac]" == "Yes" ) || \
+             ( "$argv[$ac]" == "1"   ) ) then
+            set do_pbar_alpha = 1
+        else if ( ( "$argv[$ac]" == "No" ) || \
+                  ( "$argv[$ac]" == "0"  ) ) then
+            set do_pbar_alpha = 0
+        else
+            echo "** ERROR: unknown pbar_use_alpha value: $do_pbar_alpha"
+            goto BAD_EXIT
+        endif
+        echo "++ pbar_use_alpha has known value: $do_pbar_alpha"
 
     # [PT: Oct 21, 2018] save colorbar (and range to text file)
     else if ( "$argv[$ac]" == "-pbar_dim" ) then
@@ -2229,6 +2248,7 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
     # thr value
     if ( $SAVE_PBAR == 1 ) then
         set opbar_file = "${pbar_fname:r}.txt"
+        set opbar_json = "${pbar_fname:r}.json"      # for colorbar_tool.py
 
         if ( "$pbar_sign" == "+" ) then
             # Q: frange is never negative, itself??
@@ -2272,6 +2292,25 @@ ulay_globran :: "${urange}"
 ulay_comm    :: "${ulay_comm}"
 ${pbar_for}
 EOF
+        
+        if ( $do_pbar_alpha ) then
+            # prepare for colorbar_tool.py
+            abids_json_tool.py                                  \
+                -txt2json                                       \
+                -delimiter_major  "::"                          \
+                -delimiter_minor  ",,"                          \
+                -input             "${opbar_file}"              \
+                -prefix            "${read_dir}/${opbar_json}"
+                
+            if ( "${subbb[2]}" != "${subbb[3]}" ) then
+                set pbar_orth = "-orth_on"
+            endif
+
+            colorbar_tool.py  ${pbar_orth}                 \
+                -in_json      "${read_dir}/${opbar_json}"  \
+                -prefix       TEST1.jpg
+        endif
+        
 
     endif
 
@@ -2667,6 +2706,14 @@ EOF
     -com "${do_quit}" \
     "${read_dir}"
 
+    if ( $SAVE_PBAR == 1 && $do_pbar_alpha ) then
+        colorbar_tool.py   ${pbar_orth}                 \
+            -in_json       "${read_dir}/${opbar_json}"  \
+            -prefix        TEST2.jpg
+    endif
+
+
+
     endif ### end of NOT 4D MODE
 
 END_DRY_RUN:
@@ -2974,6 +3021,16 @@ COMMAND OPTIONS ~1~
                     -pbar_comm_* options, below).  See also '-pbar_dim
                     ..'  for relation pbar optioning.  (See DR:
                     PBAR_SAVEIM)
+
+-pbar_use_alpha PUA :if the color pbar is being saved, then use can
+                    use this option to allow for alpha fading either
+                    along the pbar (if olay and thr dsets are same)
+                    or orthogonal to it (if olay and thr dsets differ).
+                    Valid values of PUA are:
+                        Yes, 1 : to use any alpha fading in pbar
+                        No, 0  : to ignore any alpha fading in pbar.
+                    At some point, this will be on by default 
+                    (def:${do_use_pbar})
 
 -pbar_comm_range PBR :if using '-pbar_saveim ..', one can save a
                     text/string comment on why the pbar range was
