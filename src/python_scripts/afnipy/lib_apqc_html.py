@@ -1383,6 +1383,16 @@ nameInput.addEventListener("input", (event) => {
 });
 '''
 
+    # [PT: 2025-05-20] ACTUALLY allow pages to close easily, while saving
+    y+= '''
+/*
+  Adding this helps the APQC HTMLs close without being requested to verify,
+  which is much nicer functionality, particularly when many are open.
+  Thanks for this go to: T. Hanayik.  
+*/
+window.addEventListener("beforeunload", (event) => { })
+'''
+
     y+= '''
 
 /* 
@@ -1576,7 +1586,11 @@ function flt2str0_dir(flt, ndec = 0, dir = '' ) {
 
 '''
 
-    y+= '''
+    # [PT: 2025-05-20] think we can leave this out of HTML, to
+    # facilitate easier closing of webpage; see above for adding in
+    # new onbeforeunload behavior
+    if 0 :
+        y+= '''
 /*
   OFF AT THE MOMENT, but a guard for reloading page
 */
