@@ -1706,6 +1706,13 @@ endif
 # QUESTION: don't allow clusterizing with 4D_mode??
 # QUESTION: if obliquity stuff is done, has the header/label/stats info been passed along?
 if ( "${clust_cmd}" != "" ) then
+
+    if ( "${subbb[2]}" == "-1" || "${subbb[3]}" == "-1" ) then
+        echo "** ERROR: Clustering needs to know olay and thr subbricks."
+        echo "   Use '-set_subbricks ..' to specify these."
+        goto BAD_EXIT
+    endif
+
     # translate chauffeur's sidedness + thr value to 3dClusterize format
     if ( "${p_thr_side}" == "bisided" || "${p_thr_side}" == "2sided" ) then
         set clust_thr_args = ( -${p_thr_side} -${thrnew} ${thrnew} )
@@ -1718,7 +1725,7 @@ if ( "${clust_cmd}" != "" ) then
     else if ( "${p_thr_side}" == "within_range" ) then
         echo "** ERROR: Sorry, '-within_range' can't be used here."
         goto BAD_EXIT
-    else if ( "${p_thr_side}" == "" )
+    else if ( "${p_thr_side}" == "" ) then
         echo "** ERROR: Need to include 3dClusterize sidedness specification."
         echo "   Use '-thr_olay_pside ..' with one of: 1sided, 2sided or bisided"
         goto BAD_EXIT
