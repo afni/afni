@@ -360,8 +360,13 @@
 #set version   = "6.8";   set rev_dat   = "Aug 26, 2024"
 #    + [PT] add subbrick selection to AMASK_FOCUS_ULAY functionality
 #
-set version   = "6.9";   set rev_dat   = "Jan 6, 2025"
+#set version   = "6.9";   set rev_dat   = "Jan 6, 2025"
 #    + [PT] add -olay_boxed_color opt
+#
+set version   = "7.0";   set rev_dat   = "May 21, 2025"
+#    + [PT] improved colorbar functionality
+#         + better driving if user enters own cbar
+#         + better use of alpha (still need to finalize addition)
 #
 # =====================================================================
 
@@ -515,6 +520,7 @@ set umax_magic = "98"
 set USER_CSCALE  = 0             # [PT: Apr 23, 2020] for AFNI_COLORSCALE_xx
 set cscale_idx   = ""
 set cscale_fname = ""
+set cscale_env   = ""
 
 set BIGNEG = -100000001
 @ BIGNEGp1 = $BIGNEG + 1
@@ -1395,11 +1401,17 @@ if ( ${USER_CSCALE} ) then
         echo "** ERROR: need colorscale index."
         goto BAD_EXIT
     endif
-
+    
+    # make sure this index has 2 digits
+    set cscale_idx = `ccalc -form "%02d" "${cscale_idx}"`
+    
     echo "   colorscale index : ${cscale_idx}"
     echo "   colorscale fname : ${cscale_fname}"
 
     setenv AFNI_COLORSCALE_${cscale_idx}  "${cscale_fname}"
+
+    # to be added to any run*.tcsh script
+    set cscale_env = "setenv AFNI_COLORSCALE_${cscale_idx} ${cscale_fname}"
 
     # get new cbar name from top line of file
     set my_cbar = `head -n 1 "${cscale_fname}"`
@@ -2282,7 +2294,7 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
 # [PT: Mar 28, 2023] add more info, for APQC outputs
 cat << EOF >! "${opbar_file}"
 itemtype     :: CBAR
-cbar         :: "${my_cbar}"
+cbar         :: "${my_cbar:q}"
 pbar_fname   :: "${pbar_fname:t}"
 pbar_bot     :: "${bot_frange}"
 pbar_top     :: "${frange}"
@@ -2393,7 +2405,7 @@ echo "set see_olay     = "\""${see_olay}"\"""  >> $oechocmd
 echo "set pbar_sign    = "\""${pbar_sign}"\"""  >> $oechocmd
 echo "set ncolors      = "\""${ncolors}"\"""  >> $oechocmd
 echo "set topval       = "\""${topval}"\"""  >> $oechocmd
-echo "set my_cbar      = "\""${my_cbar}"\"""  >> $oechocmd
+echo "set my_cbar      = "\""${my_cbar:q}"\"""  >> $oechocmd
 echo "set XXX_NPANE    = "\""${XXX_NPANE}"\"""  >> $oechocmd
 echo "set com_pbar_str = "\""${com_pbar_str}"\"""  >> $oechocmd
 echo "set subbb        = ( ${subbb} )"  >> $oechocmd
@@ -2438,7 +2450,7 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu           \\\
      -com "$OW ${ppord[$rrr]}image opacity=${opac} ${butpress}        \\\
             mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
             crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
-     -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \\\
+     -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval ${my_cbar:q}" \\\
      -com "$com_pbar_str"                                             \\\
      -com "SET_SUBBRICKS   ${subbb}"                                  \\\
      -com "$com_ulay_str"                                             \\\
@@ -2468,7 +2480,7 @@ endif
              -com "$OW ${ppord[$rrr]}image opacity=${opac} ${butpress}      \
                     mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}         \
                     crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
-             -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
+             -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval ${my_cbar:q}" \
              -com "$com_pbar_str"                                           \
              -com "SET_SUBBRICKS   ${subbb}"                                \
              -com "$com_ulay_str"                                           \
@@ -2566,7 +2578,7 @@ setenv AFNI_IMAGE_ZOOM_NN      YES
 setenv AFNI_NEVER_SAY_GOODBYE  YES
 setenv AFNI_MOTD_CHECK         NO
 setenv AFNI_NIFTI_TYPE_WARN    NO
-
+${cscale_env}
 
 # define all variables used in AFNI drive command
 set read_ulay    = "${e_ulay}"  
@@ -2578,7 +2590,7 @@ set see_olay     = "${see_olay}"
 set pbar_sign    = "${pbar_sign}"  
 set ncolors      = "${ncolors}"  
 set topval       = "${topval}"  
-set my_cbar      = "${my_cbar}"  
+set my_cbar      = "${my_cbar:q}"  
 set XXX_NPANE    = "${XXX_NPANE}"  
 set com_pbar_str = "${com_pbar_str}"  
 set subbb        = ( ${subbb} )
@@ -2641,7 +2653,7 @@ afni -q -no1D \${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
     -com "\$OW axialimage    opacity=\${opac} \${butpress}              \
            mont=\${mx}x\${my}:\${gapord[3]}:\${mgap}:\${mcolor}           \
            crop=\${acropx[1]}:\${acropx[2]},\${acropy[1]}:\${acropy[2]}" \
-    -com "SET_PBAR_ALL    \${pbar_sign}\${ncolors} \$topval \$my_cbar"   \
+    -com "SET_PBAR_ALL    \${pbar_sign}\${ncolors} \$topval \${my_cbar:q}"   \
     -com "\$com_pbar_str"  \
     -com "SET_SUBBRICKS   \${subbb}"                                  \
     -com "\$com_ulay_str"                                             \
@@ -2700,7 +2712,7 @@ EOF
     -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]} ${butpress}" \
     -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]} ${butpress}" \
     -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]} ${butpress}" \
-    -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
+    -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval ${my_cbar:q}" \
     -com "$com_pbar_str" \
     -com "SET_SUBBRICKS   ${subbb}" \
     -com "$com_ulay_str" \
@@ -2987,7 +2999,7 @@ COMMAND OPTIONS ~1~
 
 -cbar    CCC       :specify a new colorbar, where CCC can be any of the
                     cbars in the standard AFNI list, Matplotlib colornames,
-                    or hex values (def: $my_cbar).
+                    or hex values (def: ${my_cbar:q}).
 
 -colorscale_idx_file CI CF 
                    :another way to specify a colorbar, in this case
