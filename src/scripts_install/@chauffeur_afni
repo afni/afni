@@ -1665,6 +1665,13 @@ else
     echo "++ Converted $USED_SUBBRICK_LABS to labels"
     echo "++ Final subbrick indices: $subbb"
 
+    # in case pbar is being saved and allowed to show alpha fading
+    if ( "${subbb[2]}" != "${subbb[3]}" ) then
+        echo "++ pbar: orth on"
+        echo "   ${subbb[2]} != ${subbb[3]}"
+        set pbar_orth = "-orth_on"
+    endif
+
     # -------------------
 
     # Get info stored in header about: what kind of stat is stored,
@@ -1990,7 +1997,7 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
                 endif
 
                 echo "++ Ulay to be visualized within user range${umin_fac_text}:"
-                echo "  [${pmin}, ${pmax_orig}] -> [${umin}, ${umax}]"
+                echo "   [${pmin}, ${pmax_orig}] -> [${umin}, ${umax}]"
 
             else
                 echo "++ Ulay to be visualized within user range:"
@@ -2301,13 +2308,9 @@ EOF
                 -delimiter_minor  ",,"                          \
                 -input             "${opbar_file}"              \
                 -prefix            "${read_dir}/${opbar_json}"
-                
-            if ( "${subbb[2]}" != "${subbb[3]}" ) then
-                set pbar_orth = "-orth_on"
-            endif
 
-            colorbar_tool.py  ${pbar_orth}                 \
-                -in_json      "${read_dir}/${opbar_json}"  \
+            colorbar_tool.py  ${pbar_orth}                      \
+                -in_json      "${read_dir}/${opbar_json}"       \
                 -prefix       TEST1.jpg
         endif
         
@@ -3030,7 +3033,7 @@ COMMAND OPTIONS ~1~
                         Yes, 1 : to use any alpha fading in pbar
                         No, 0  : to ignore any alpha fading in pbar.
                     At some point, this will be on by default 
-                    (def:${do_use_pbar})
+                    (def: ${do_pbar_alpha})
 
 -pbar_comm_range PBR :if using '-pbar_saveim ..', one can save a
                     text/string comment on why the pbar range was
