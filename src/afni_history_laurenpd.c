@@ -54,6 +54,11 @@
 afni_history_struct laurenpd_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 21, May, 2025, PDL, "suma", MAJOR, TYPE_MODIFY,
+   "Made alpha variable opacity apply to all surfaces",
+   NULL
+ } ,
+
  { 12, Mar, 2025, PDL, "suma", MAJOR, TYPE_MODIFY,
    "make |T|, 'sym I' and 'shw 0' apply to all surfaces",
    NULL
@@ -61,7 +66,8 @@ afni_history_struct laurenpd_history[] = {
 
  { 24, May, 2024, PDL, "suma", MAJOR, TYPE_NEW_OPT,
    "add alpha thresholding",
-   NULL
+   "Fixed certain problems with variable transparency and\n"
+   "and made functions apply to all surfaces.
  } ,
 
  { 99,99,99, NULL,NULL, 99,99, NULL,NULL}  /** the end (do not delete) **/
