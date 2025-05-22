@@ -342,6 +342,7 @@ g_history = """
 
   0.1   Jan 26, 2025 :: started this command line interface for lib_cbar_tool
   0.2   Jan 30, 2025 :: beta version complete (with options)
+  0.3   May 21, 2025 :: better prioritizing within JSON (cbar/pbar_fname)
 """
 
 g_ver     = g_history.split("\n")[-2].split("::")[0].strip()
@@ -684,42 +685,60 @@ See lct.CbarPbar() for the set of things that are populated for the actual
        D     = lct.read_json(self.in_json)
        dkeys = D.keys()
 
-       if 'cbar' in dkeys :
-           # this dual condition check here is unique for cbar, bc it
+       
+       if 'pbar_fname' in dkeys and 'cbar' in dkeys and self.verb :
+           BASE.IP("JSON has both pbar_fname and cbar; "
+                   "priority goes to pbar_fname ")
+
+       # this first if/elif branch check is the most complicated,
+       # because the input pbar can come from either a name or a file.
+       # We give preference to the file itself, because that is easier
+       # for user-created pbars whose name is unknown within AFNI in
+       # general
+       if 'pbar_fname' in dkeys :
+           # this dual condition check here is semi-unique for pbar_fname, bc it
+           # can come from either in_cbar_name or in_cbar
+           if self.in_cbar_name == None and self.in_cbar == None :
+               self.in_cbar = D['pbar_fname']
+           elif self.verb :
+               BASE.WP("Using user-specified value of '{}', rather than JSON's "
+                       "'{}'".format('in_cbar', 'pbar_fname'))
+       elif 'cbar' in dkeys :
+           # this dual condition check here is semi-unique for cbar, bc it
            # can come from either in_cbar_name or in_cbar
            if self.in_cbar_name == None and self.in_cbar == None :
                self.in_cbar_name = D['cbar']
            elif self.verb :
-               ab.WP("Using user-specified value of '{}', rather than JSON's "
-                     "'{}'".format('in_cbar_name', 'cbar'))
+               BASE.WP("Using user-specified value of '{}', rather than JSON's "
+                       "'{}'".format('in_cbar_name', 'cbar'))
 
        if 'pbar_bot' in dkeys :
            if self.cbar_min == None :
                self.cbar_min = float(D['pbar_bot'])
            elif self.verb :
-               ab.WP("Using user-specified value of '{}', rather than JSON's "
-                     "'{}'".format('cbar_min', 'pbar_bot'))
+               BASE.WP("Using user-specified value of '{}', rather than JSON's "
+                       "'{}'".format('cbar_min', 'pbar_bot'))
 
        if 'pbar_top' in dkeys :
            if self.cbar_max == None :
                self.cbar_max = float(D['pbar_top'])
            elif self.verb :
-               ab.WP("Using user-specified value of '{}', rather than JSON's "
-                     "'{}'".format('cbar_max', 'pbar_top'))
+               BASE.WP("Using user-specified value of '{}', rather than JSON's "
+                       "'{}'".format('cbar_max', 'pbar_top'))
 
        if 'vthr' in dkeys :
            if self.thr_val == None :
                self.thr_val = float(D['vthr'])
            elif self.verb :
-               ab.WP("Using user-specified value of '{}', rather than JSON's "
-                     "'{}'".format('thr_val', 'vthr'))
+               BASE.WP("Using user-specified value of '{}', rather than JSON's "
+                       "'{}'".format('thr_val', 'vthr'))
 
        if 'olay_alpha' in dkeys :
            if self.alpha == None :
                self.alpha   = D['olay_alpha']
            elif self.verb :
-               ab.WP("Using user-specified value of '{}', rather than JSON's "
-                     "'{}'".format('thr_val', 'vthr'))
+               BASE.WP("Using user-specified value of '{}', rather than JSON's "
+                       "'{}'".format('alpha', 'olay_alpha'))
 
        return 0
 
