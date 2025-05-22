@@ -2585,7 +2585,7 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist) {
-       SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+       if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
        if (numSurfaceObjects != 1) SUMA_RETURNe;
    }
    for (j=0; j<numSurfaceObjects; ++j){
@@ -2666,7 +2666,7 @@ void SUMA_cb_SwitchBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
                  &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist) {
-       SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+       if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
        if (numSurfaceObjects != 1) SUMA_RETURNe;
    }
    for (j=0; j<numSurfaceObjects; ++j){
@@ -6708,7 +6708,7 @@ void SUMA_cb_SetRangeValue (void *data)
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist) {
-       SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+       if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
        SUMA_RETURNe;
    }
    for (j=0; j<N_adolist; ++j){
