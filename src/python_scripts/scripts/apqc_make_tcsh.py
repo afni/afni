@@ -253,8 +253,11 @@ auth = 'PA Taylor'
 # [PT] simpler use cases with main_dset, more flexible if the full
 #      analysis was not run in AP
 #
-ver = '6.01' ; date = 'May 23, 2025'
+#ver = '6.01' ; date = 'May 23, 2025'
 # [PT] the mecho QC block now applies to all MEICA group tedana methods
+#
+ver = '6.02' ; date = 'May 23, 2025'
+# [PT] ... even m_tedort will be recognized for the mecho QC block
 #
 #########################################################################
 
@@ -787,7 +790,8 @@ if __name__ == "__main__":
     if lat.check_dep(ap_ssdict, ldep) :
         # [PT: 2025-05-23] make this QC block apply to all MEICA group
         # tedana combine methods
-        if 'm_tedana' in ap_ssdict['combine_method'] :
+        if 'm_tedana' in ap_ssdict['combine_method'] or \
+           'm_tedort' in ap_ssdict['combine_method'] :
             comb_meth = ap_ssdict['combine_method']
             obase     = 'qc_{:02d}'.format(idx)
             cmd       = lat.apqc_mecho_mtedana( ap_ssdict, obase, 
