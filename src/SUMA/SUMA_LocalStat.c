@@ -1175,8 +1175,6 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_Extrema (
    Clust->totalvalue = 0.0; Clust->totalabsvalue = 0.0;  
    Clust->minvalue = ToBeAssigned[dothisnode]; Clust->minnode = dothisnode;
    Clust->maxvalue = ToBeAssigned[dothisnode]; Clust->maxnode = dothisnode; 
-   Clust->minabsvalue = SUMA_ABS(Clust->minvalue); 
-   Clust->maxabsvalue = SUMA_ABS(Clust->maxvalue); 
    Clust->varvalue = 0.0;  Clust->centralnode = 0; 
    Clust->weightedcentralnode = 0;
    Clust->NodeList = (int *)SUMA_malloc((*N_TobeAssigned) * sizeof(int)); 
