@@ -249,9 +249,12 @@ auth = 'PA Taylor'
 #      a script intermediately, to simplify flexibility, additions and
 #      apqc2/NiiVue functionality
 #
-ver = '6.0' ; date = 'Feb 7, 2025'
+#ver = '6.0' ; date = 'Feb 7, 2025'
 # [PT] simpler use cases with main_dset, more flexible if the full
 #      analysis was not run in AP
+#
+ver = '6.01' ; date = 'May 23, 2025'
+# [PT] the mecho QC block now applies to all MEICA group tedana methods
 #
 #########################################################################
 
@@ -782,8 +785,9 @@ if __name__ == "__main__":
 
     ldep = ['combine_method']
     if lat.check_dep(ap_ssdict, ldep) :
-        # ***For now*** just m_tedana checks available
-        if ap_ssdict['combine_method'] == 'm_tedana':
+        # [PT: 2025-05-23] make this QC block apply to all MEICA group
+        # tedana combine methods
+        if 'm_tedana' in ap_ssdict['combine_method'] :
             comb_meth = ap_ssdict['combine_method']
             obase     = 'qc_{:02d}'.format(idx)
             cmd       = lat.apqc_mecho_mtedana( ap_ssdict, obase, 
