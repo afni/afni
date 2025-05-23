@@ -1175,6 +1175,8 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_Extrema (
    Clust->totalvalue = 0.0; Clust->totalabsvalue = 0.0;  
    Clust->minvalue = ToBeAssigned[dothisnode]; Clust->minnode = dothisnode;
    Clust->maxvalue = ToBeAssigned[dothisnode]; Clust->maxnode = dothisnode; 
+   Clust->minabsvalue = SUMA_ABS(Clust->minvalue);
+   Clust->maxabsvalue = SUMA_ABS(Clust->maxvalue);
    Clust->varvalue = 0.0;  Clust->centralnode = 0; 
    Clust->weightedcentralnode = 0;
    Clust->NodeList = (int *)SUMA_malloc((*N_TobeAssigned) * sizeof(int)); 
@@ -1947,7 +1949,7 @@ SUMA_DSET *SUMA_SurfClust_list_2_DsetMask(
                Function will fill centralnode and weightedcentralnode
    \param UseSurfDist (int) 0: use distances along the surface 
                                (approximated by distances on the graph)
-                            1: use Euclidean distances. 
+                            1: use Euclidean distances.
    \return ans (int) : NOPE failed, YUP succeeded.
                        
 */
