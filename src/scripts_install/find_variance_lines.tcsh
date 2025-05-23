@@ -60,7 +60,7 @@ set cmd_vstat_base = a_cmd_02_vstat
 
 set prog = find_variance_lines.tcsh
 
-set version = "1.4, 20 May, 2025"
+set version = "1.5, 23 May, 2025"
 
 if ( $#argv < 1 ) goto SHOW_HELP
 
@@ -437,6 +437,11 @@ endif
 # not matter in projection dsets
 set zcoord = `3dinfo -dcz $dset_list[1]`
 
+# --------------------------------------------------
+# make the prefix for stats dsets and scripts
+
+set sname = stats${suffix}
+
 # ---------------------------------------------------------------------------
 # count the number of bad columnar regions per input
 set bad_counts = ()
@@ -657,7 +662,7 @@ cat <<EOF > _tmp_3dD_cmd.tcsh
     -x1D             X.xmat.1D                           \
     -xjpeg           X.jpg                               \
     -x1D_uncensored  X.nocensor.xmat.1D                  \
-    -bucket          stats${suffix}.r$ind02.nii.gz
+    -bucket          ${sname}.r$ind02.nii.gz
 EOF
 
             # make the command readable in its file
@@ -667,7 +672,7 @@ EOF
             # ... and execute it
             tcsh ${cmd_3dD}
             # ... and rename the created REML cmd, per run
-            \mv  stats.REML_cmd  stats${suffix}.r$ind02.REML_cmd
+            \mv  ${sname}.REML_cmd  ${sname}.r$ind02.REML_cmd
 
             if ( $do_pc_vstat ) then
                 # make images and run script to view stats file, via
@@ -678,8 +683,9 @@ EOF
                 set dir_abin = "`afni_system_check.py -disp_abin`"
                 \cp "${dir_abin}/afni_vlines_run_text.txt" ${cmd_vstat}
 
-                # ... insert run number ...
+                # ... insert run number and stats name string...
                 sed -i s/REPLACE_ME_WITH_RUN_NUM/r${ind02}/g ${cmd_vstat}
+                sed -i s/REPLACE_ME_WITH_STAT_PREF/${sname}/g ${cmd_vstat}
 
                 # ... and run the script, which creates an image of the
                 # Full_Fstat, as well as a run_*.tcsh script to drive AFNI GUI 
@@ -1115,9 +1121,9 @@ Options (processing): ~1~
                           '-do_pc_3dD 0'), then by default this program will
                           build+execute an @chauffeur_afni command to make
                           images of the Full_Fstat volume in the stats dset
-                          of each run with vlines (stats.r*.image*jpg), as well
+                          of each run with vlines (stats*.r*.image*jpg), as well
                           as an executable script to surf that dset and volume
-                          in the AFNI GUI (run_stats.r*_pc.tcsh); this opt
+                          in the AFNI GUI (run_stats*.r*_pc.tcsh); this opt
                           controls whether @chauffeur would be run or not 
                           (def=$do_pc_vstat)
 
@@ -1129,7 +1135,8 @@ Options (processing): ~1~
                           Note that image montage slices might miss
                           some of the variance lines themselves, so
                           executing the run script might be the most
-                          useful. This can be done as follows:
+                          useful. This can be done as follows (if no -suffix_qc
+                          was used):
                           
                              tcsh run_stats.r01.tcsh
 
@@ -1219,6 +1226,7 @@ $prog modification history:
    1.2   8 May 2025 : [PT] add 3dDeconvolve cmd to PC calcs
    1.3  12 May 2025 : [PT] add more reporting output
    1.4  20 May 2025 : [PT] add more chauffeur script and image output
+   1.5  23 May 2025 : [PT] fix stats dset/script behavior when suffix_qc is used
 
 EOF
 # check $version, at top

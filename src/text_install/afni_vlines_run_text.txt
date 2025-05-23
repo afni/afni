@@ -5,13 +5,21 @@
 #   scaled var dset 
 # + make an AFNI GUI driver script (run_*.tcsh) to open stats.nii.gz,
 #   over the scaled var dset
+#
+# Modification history
+# 1.1  23 May 2025 : [PT] fix behavior when suffix_qc is used
 
 # ==============================================================================
 
-# input volumes
+# name and ID values (provided by wrapper script)
 set run         = REPLACE_ME_WITH_RUN_NUM
+set sname       = REPLACE_ME_WITH_STAT_PREF
+
+# input volumes
+# NB: there should be only 1 stats dset per run, but we make sure we only get 1
+set all_rstats  = ( ${sname}.${run}.nii.gz )
+set olay        = ${all_rstats[1]}
 set ulay        = var.1.scale.${run}.nii.gz
-set olay        = stats.${run}.nii.gz
 
 # olay and thr volume parameters
 set cbar        = Plasma
@@ -20,9 +28,9 @@ set thrbrick    = Full_Fstat
 set olay_minval = "-pbar_posonly"
 
 # naming outputs
-set opref       = stats.${run}.image
+set opref       = ${sname}.${run}.image
 set opbarrt     = ${opref}.pbar
-set odoafni     = run_stats.${run}_pc.tcsh
+set odoafni     = run_${sname}.${run}_pc.tcsh
 set qcb         = find_variance_lines
 set qci         = ${olaybrick}
 
