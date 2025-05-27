@@ -15,6 +15,26 @@ all_kernel_trange = {
     }
 
 # ==========================================================================
+# simple test time series for convolution and plotting
+
+simple_x1 = np.zeros(400, dtype=float)
+simple_x1[5]   = 1.
+simple_x1[50]  = -2.
+simple_x1[90]  = 1.
+simple_x1[100] = 1.
+simple_x1[150:160] = 1.
+simple_x1[185] = 1.
+
+simple_x2 = np.zeros(400, dtype=float)
+simple_x2[10]  = 1.
+simple_x2[100] = -2.
+simple_x2[180] = 1.
+simple_x2[200] = 1.
+simple_x2[300:320] = 1.
+simple_x2[370] = 1.
+
+# ==========================================================================
+
 
 def rrf_birn_etal(t):
     """The respiratory response function (RRF) from Birn et al. (2008).
@@ -196,9 +216,9 @@ z : array (of floats)
     """
 
     if delt is None :
-        AB.EP("Need to provide a delt value")
+        ab.EP("Need to provide a delt value")
     elif delt <= 0 :
-        AB.EP("Need to provide a delt value >0, not:", delt)
+        ab.EP("Need to provide a delt value >0, not:", delt)
 
     if kernel not in all_kernel_trange.keys() :
         print("** ERROR: kernel '{}' not in list:".format(kernel))
@@ -234,3 +254,46 @@ z : array (of floats)
 
     # return the part corresponding to original time series length
     return z[n_extra:]
+
+
+def simple_convolve_with_kernel_image(oimg, x=simple_x1, 
+                                      delt=1.0, kernel="crf_chang09"):
+    """ Simple plotting of a convolved result, where fname is the
+output file name.  The kernel is any of the following string
+labels, corresponding to an available response function of interest (and
+this list might grow over time), which can be seen with:
+    all_kernel_trange.keys()
+
+User can input any time series, or use the simple default one.
+
+This function is useful for testing implemented convolution.
+    
+"""
+
+    z = convolve_with_kernel(x, delt=delt, kernel=kernel)
+    title = "test convolution with kernel: " + kernel
+
+    N = len(x)
+    t = np.arange(0, N)*delt
+
+    osize = (10, 3)
+    dpi   = 300
+
+    fff = plt.figure( oimg, figsize=osize )
+
+    plt.axhline(y=0, color='0.5')
+    plt.stem(t, x, markerfmt='.', label="input")
+    plt.plot(t, z, color='tab:red', label="convolved")
+    plt.title(title)
+    plt.xlabel("t (s)")
+    #plt.ylabel(ylab)
+
+    plt.xlim([t[0], t[-1]])
+    #plt.ylim([-1.1, 1.1])
+
+    plt.tight_layout()
+
+    plt.savefig(oimg, dpi=300)
+    plt.clf()
+
+    return 0
