@@ -1072,18 +1072,30 @@ result is divided by 60, to have units of beats per minute.
         bot = all_tr[ii] - int(nperwin/2)
         top = all_tr[ii] + int(nperwin/2)
 
+        # respect known boundaries of physio data index range
+        if bot < 0 : 
+            bot = 0
+        if top >= phobj.n_ts_orig : 
+            top = phobj.n_ts_orig - 1
+
         # find idx vals for min/max window range in peaks
-        # *****consider when starting case min_p falls on a bot val?????
         while peaks[min_p] < bot and min_p < npeaks :
             min_p+= 1
         max_p = min_p
-        while peaks[max_p] < top and max_p < npeaks :
+        while peaks[max_p] < top and max_p < npeaks-1 :
             max_p+= 1
         max_p-= 1  # bc this went one too high
         # verify no obvious badness has occurred; bc of boundaries,
         # min_p cd be equal to all_tr[ii], etc.
-        if min_p >= npeaks or max_p >= npeaks or min_p >= max_p or \
-           peaks[min_p] > all_tr[ii] or peaks[max_p] < all_tr[ii] :
+        ## + it is OK to have "min_p == max_p", which just means there
+        ##   was only 1 peak in the window (should still be fractions
+        ##   around); for default peak of 6s, in card data this would only
+        ##   likely happen for test data
+        ## + it is actually OK for min_p to be above the TR index,
+        ##   because the first peak might be after like TR=0
+        ## + similarly, the last peak could be at an index below the 
+        ##   max TR value
+        if min_p >= npeaks or max_p >= npeaks or min_p > max_p :
             print("** ERROR: bad min_p or max_p calc: ({}, {})"
                   "".format(min_p, max_p))
             print("   (bot, top) = ({}, {}); peaks[min], peaks[max] = ({}, {})"
@@ -1138,19 +1150,29 @@ result is divided by 60, to have units of beats per minute.
 
         # peak count should definitely be positive, and it seems
         # impossible for the value to be less than 1 for a reasonable
-        # window
+        # window, without some problem in the calc/data
         if peak_count < 1 :
-            print("** ERROR: Peak count < 1 (unreasonably small): {}"
+            print("+* Warn: Peak count < 1 (which is quite small): {}"
                   "".format(peak_count))
-            print("   [{}]th TR, window bot, top, time_ival are: {}, {}, {}"
-                  "".format(ii, bot, top, time_ival))
-            sys.exit(4)
+            if verb > 7 :
+                print("   [{}]th TR, win bot, top, time_ival are: {}, {}, {}"
+                      "".format(ii, bot, top, time_ival))
 
         # scale the time interval to have units of physical time
         time_ival*= delt
 
         # *finally* the average interpeak interval in this range
-        ave_ival = time_ival / peak_count
+        if peak_count :
+            ave_ival = time_ival / peak_count
+        else:
+            ave_ival = 0.0
+
+        if verb > 5 :
+            if ii == 0 :
+                print("++ (card) ave HR per TR")
+            print("   [{:4d}] time_ival = {:0.3f}, peak_count = {:0.3f}, "
+                  "ave_ival = {:0.3f}".format(ii, time_ival, peak_count, 
+                                              ave_ival))
 
         # append this average, and divide by 60 to be beats per min
         hr_ave.append(ave_ival / 60.)

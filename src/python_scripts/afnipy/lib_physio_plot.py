@@ -1044,9 +1044,10 @@ Returns
         diff_rvt   = maxrvt - minrvt
         mints      = np.min(ts)
         diff_ts    = np.max(ts) - mints
-        scale_rvt  = (rvt - minrvt)/diff_rvt*diff_ts + mints
+        scl        = diff_ts / diff_rvt
+        scale_rvt  = (rvt - minrvt)*scl + mints
         ret_plobj6 = RetroPlobj(phobj.tvalues[::istep], scale_rvt[::istep], 
-                                label='RVT (scaled)',
+                                label='RVT (scaled: {:0.2e}; offset)'.format(scl),
                                 alpha=1.0,
                                 lw=DEF_lw*1.5,
                                 color='green')
@@ -1061,9 +1062,10 @@ Returns
         diff_hr    = maxhr - minhr
         mints      = np.min(ts)
         diff_ts    = np.max(ts) - mints
-        scale_hr   = (hr - minhr)/diff_hr*diff_ts + mints
+        scl        = diff_ts / diff_hr
+        scale_hr   = (hr - minhr)*scl + mints
         ret_plobj7 = RetroPlobj(phobj.tvalues[all_idx], scale_hr, 
-                                label='ave HR (scaled)',
+                                label='ave HR (scaled: {:0.2e}; offset)'.format(scl),
                                 alpha=1.0,
                                 lw=DEF_lw*1.5,
                                 color='lightcoral')
