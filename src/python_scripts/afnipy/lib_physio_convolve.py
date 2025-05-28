@@ -17,7 +17,7 @@ all_kernel_trange = {
 # ==========================================================================
 # simple test time series for convolution and plotting
 
-simple_x1 = np.zeros(400, dtype=float)
+simple_x1 = np.zeros(200, dtype=float)
 simple_x1[5]   = 1.
 simple_x1[50]  = -2.
 simple_x1[90]  = 1.
