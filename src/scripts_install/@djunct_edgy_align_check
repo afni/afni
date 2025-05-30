@@ -94,6 +94,11 @@ set version   = "1.51";   set rev_dat   = "Mar 12, 2023"
 # + [PT]  add '-blowup ..' opt, to control output blowup size
 #
 # ----------------------------------------------------------------
+# ----------------------------------------------------------------
+# some AFNI environment variables
+
+setenv AFNI_ENVIRON_WARNINGS NO             # turn off env var discussions
+setenv AFNI_DONT_LOGFILE  YES
 setenv AFNI_COMPRESSOR NONE
 
 set this_prog = "@djunct_edgy_align_check"
