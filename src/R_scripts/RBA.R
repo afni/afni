@@ -29,7 +29,7 @@ intro <-
 	      Welcome to RBA ~1~
 Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.8, Feb 26, 2025 
+Version 1.1.9, May 31, 2025 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1049,7 +1049,7 @@ addTrans <- function(color,trans)
 
 plotPDP <- function(fn, ps, nR, nr, nc, w=8) {
    h <- ceiling(8*nr/(nc*2))  # plot window height
-   png(paste0(fn, "_PDP.png"), width=w, height=h)
+   png(paste0(fn, "_PDP.png"), width=w, height=h, units='in',res=300)
    #dev.new(width=w, height=h)
    par(mfrow=c(lop$PDP[1], nc), mar=c(2.5,0,0.0,0.8), oma=c(0,0,0,0))
    qq <- apply(ps, 2, quantile, c(0.025, 0.05, 0.1, 0.9, 0.95, 0.975)) # 95% central interval
