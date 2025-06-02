@@ -154,7 +154,7 @@ this list might grow over time), which can be seen with:
         N = int((trange[1] - trange[0]) * 5 + 1)
         t = np.linspace(trange[0], trange[1], N)
         y = rrf_birn_etal(t)
-        ylab = "$\Delta$ BOLD (%)"
+        ylab = "$\\Delta$ BOLD (%)"
     elif kernel == 'crf_chang09' :
         title = 'CRF (Chang et al., 2009)'
         trange = all_kernel_trange[kernel]

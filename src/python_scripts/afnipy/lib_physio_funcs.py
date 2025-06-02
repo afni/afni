@@ -717,7 +717,7 @@ is_ok : int
 
     # ----- run INTERACTIVE plot
     count+=1
-    lab_title = 'Interactive peaks ($\Delta t_{\\rm med}$ = '
+    lab_title = 'Interactive peaks ($\\Delta t_{\\rm med}$ = '
     lab_title+= '{:0.3f} s)'.format(p_ival)
     lab_short = 'interact_peaks'
     if len(troughs) :
@@ -815,7 +815,7 @@ is_ok : int
         count+=1
     else:
         count = 10
-    lab_title = 'Final peaks ($\Delta t_{\\rm med}$ = '
+    lab_title = 'Final peaks ($\\Delta t_{\\rm med}$ = '
     lab_title+= '{:0.3f} s)'.format(p_ival)
     lab_short = 'final_peaks'
     if len(troughs) :

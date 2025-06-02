@@ -1253,7 +1253,7 @@ def plot_regressors_rvt(retobj, label, ext='svg'):
     # process any/all RVT regressors
     for ii in range(nrvt):
         key  = phobj.regress_rvt_keys[ii]
-        ylab = key + '\\n' + '$\Delta={}$'.format(retobj.rvt_shift_list[ii])
+        ylab = key + '\\n' + '$\\Delta={}$'.format(retobj.rvt_shift_list[ii])
 
         data_lab[ii] = ylab
         data_arr[:,ii] = phobj.regress_dict_rvt[key]
