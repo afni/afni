@@ -521,9 +521,9 @@ them.
                 self.list_plobj[ii].mec = self.list_plobj[ii].color
 
         if len(self.figsize) == 0 :
-            self.figsize_use = (7, 1.0+self.n_subplots_per_fig*1.0)
+            self.figsize_use = (14, 1.0+self.n_subplots_per_fig*1.0)
             # for plot of 'remainder' lines, if applicable
-            self.figsize_rem = (7, 0.5+self.n_subplots_per_fig_rem*1.0)
+            self.figsize_rem = (14, 0.5+self.n_subplots_per_fig_rem*1.0)
         else:
             self.figsize_use = copy.deepcopy(self.figsize)
             # for plot of 'remainder' lines, if applicable

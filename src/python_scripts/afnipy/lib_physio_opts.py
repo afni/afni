@@ -50,8 +50,8 @@ DEF_volbase_types_resp = 'rvt'
 # some QC image plotting options that the user can change
 DEF_img_figsize   = []
 DEF_img_fontsize  = 10
-DEF_img_line_time = 60               # units = seconds
-DEF_img_fig_line  = 6                # max num lines per fig
+DEF_img_line_time = 120              # units = seconds, ergo def: 2mins/line
+DEF_img_fig_line  = 5                # max num lines per fig
 DEF_img_dot_freq  = 50               # points per sec
 DEF_img_bp_max_f  = 5.0              # Hz, for bandpass plot
 
