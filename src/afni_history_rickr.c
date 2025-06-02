@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Jun, 2025, RCR, "build_afni.py", MICRO, TYPE_ENHANCE,
+   "display full make command before compiling",
+   NULL
+ } ,
+
  {  2, Jun, 2025, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "update OS_notes.macos_12_b_user.tcsh to skip homebrew gcc for now",
    "Use 'build_afni.py ... -cc_path /usr/bin/gcc' for now, until we\n"

@@ -421,11 +421,12 @@ g_history = """
         - add option -cc_path
         - else if LOCAL_CC_PATH does not exist, try to find alternate compiler
    0.14 Nov 17, 2024 - add -make_flags option
+   0.15 Jun  2, 2025 - display full make command before compiling
 
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.14, November 17, 2024" % g_prog
+g_version = "%s, version 0.15, June 2, 2025" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
@@ -1561,7 +1562,7 @@ class MyInterface:
          if st: return st
 
       # -----------------------------------------------------------------
-      # lots of messages before running the build
+      # prepare make_flags and final make_command with logfile
 
       # for convenience:
       buildpath = '%s/%s' % (self.do_root.dname, self.dsbuild)
@@ -1570,22 +1571,7 @@ class MyInterface:
       if len(self.make_flags) > 0 or self.verb > 1:
          MESGm("extra make_flags: %s" % ' '.join(self.make_flags))
 
-      # if -prep_only, we are done
-      if self.prep_only:
-         MESG("")
-         MESGp("have -prep_only, skipping make and test")
-         return 0
-
-      logfile = 'log_make.txt'
-      MESG("")
-      MESGm("consider monitoring the build in a separate window with:")
-      MESGi("    cd %s" % self.do_orig_dir.abspath)
-      MESGi("    tail -f %s/%s" % (buildpath, logfile))
-      MESGi("    # use ctrl-c to terminate 'tail' command (not the build)")
-      MESGp("building (please be patient)...")
-
-      # -----------------------------------------------------------------
-      # actually run the main build
+      # prepare other make flags and possible alternate compiler
       # expected AFNI_WHOMADEIT values:
       #    local    : default
       #    build    : from this (build_afni.py)
@@ -1596,12 +1582,35 @@ class MyInterface:
       gver = self.get_alternate_compiler_str()
       # if successful, add a space for separation
       if gver != '':
+         MESGm("specifying compiler via : %s" % gver)
          self.make_flags.append(gver)
 
       flags = ' '.join(self.make_flags)
 
-      st, ot = self.run_cmd('make %s %s >& %s' \
-                            % (flags, self.make_target, logfile))
+      # set the actual compile command
+      logfile = 'log_make.txt'
+      make_command = 'make %s %s >& %s' % (flags, self.make_target, logfile)
+      MESGm("compiling with: %s" % make_command)
+
+      # --------------------------------------------------
+      # if -prep_only, we are done
+      if self.prep_only:
+         MESG("")
+         MESGp("have -prep_only, skipping make and test")
+         return 0
+
+      # -----------------------------------------------------------------
+      # warn the user of impending doom
+      MESG("")
+      MESGm("consider monitoring the build in a separate window with:")
+      MESGi("    cd %s" % self.do_orig_dir.abspath)
+      MESGi("    tail -f %s/%s" % (buildpath, logfile))
+      MESGi("    # use ctrl-c to terminate 'tail' command (not the build)")
+      MESGp("building (please be patient)...")
+
+      # -----------------------------------------------------------------
+      # actually run the main build
+      st, ot = self.run_cmd(make_command)
       if st: tmesg = 'FAILURE'
       else:  tmesg = 'SUCCESS'
       MESGm("status: building %s" % tmesg)
@@ -1706,7 +1715,7 @@ class MyInterface:
       elif self.cc_path != '':
          if not os.path.exists(self.cc_path):
             MESGw("-cc_path compiler does not exist, expect problems")
-         return ' %s=%s' % (lstr, self.cc_path)
+         return '%s=%s' % (lstr, self.cc_path)
 
       # otherwise, first decide if we should go looking for a compiler
 
