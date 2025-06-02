@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Jun, 2025, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "update OS_notes.macos_12_b_user.tcsh to skip homebrew gcc for now",
+   "Use 'build_afni.py ... -cc_path /usr/bin/gcc' for now, until we\n"
+   "resolve the issues with gcc-15."
+ } ,
+
  { 16, May, 2025, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "add help for forgotten m_tedana_OC_tedort/OC_m_tedort combine methods",
    NULL
