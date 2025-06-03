@@ -267,7 +267,7 @@ slicewise regressors; basically, we just have nslice=1.
             for ii in range(phobj.n_regress_rvt):
                 key = phobj.regress_rvt_keys[ii]
                 dat = phobj.regress_dict_rvt[key]
-                title = 'vol' + '.' + key      # column header title
+                title = label + '.' + key      # column header title
                 data_lab.append( title )
                 data_list.append( np.array(dat, dtype=float) )
                 nreg+= 1
@@ -275,7 +275,7 @@ slicewise regressors; basically, we just have nslice=1.
             for ii in range(phobj.n_regress_rvtrrf):
                 key = phobj.regress_rvtrrf_keys[ii]
                 dat = phobj.regress_dict_rvtrrf[key]
-                title = 'vol' + '.' + key      # column header title
+                title = label + '.' + key      # column header title
                 data_lab.append( title )
                 data_list.append( np.array(dat, dtype=float) )
                 nreg+= 1
@@ -289,7 +289,7 @@ slicewise regressors; basically, we just have nslice=1.
             for ii in range(phobj.n_regress_hrcrf):
                 key = phobj.regress_hrcrf_keys[ii]
                 dat = phobj.regress_dict_hrcrf[key]
-                title = 'vol' + '.' + key      # column header title
+                title = label + '.' + key      # column header title
                 data_lab.append( title )
                 data_list.append( np.array(dat, dtype=float) )
                 nreg+= 1
