@@ -29,25 +29,38 @@ unalias grep
 
 # ----------------------------------------------------------------------
 # main input variables ($run is the typical one to set)
-set din_list   = ( )            # input datasets
-set do_clean   = 1              # do we remove temporary files
-set do_img     = 1              # make images
-set mask_in    = 'AUTO'         # any input mask (possibly renamed)
-set max_img    = 7              # maximum number of high-var images to make
-set min_cvox   = 7              # minimum voxels in a column
-set min_nt     = 10             # minimum time series length (after nfirst)
-set nerode     = 0              # number of mask erosions
-set nfirst     = 0              # number of first time points to exclude
-set perc       = 90             # percentile limit of variance
-set polort     = A              # polort for trend removal (A = auto)
-set rdir       = vlines.result  # output directory
-set sdpower    = 2              # power on stdev (2=default variance)
-set thresh     = 0.97           # threshold for tscale average (was .95)
+set din_list     = ( )            # input datasets
+set do_clean     = 1              # do we remove temporary files
+set do_img       = 1              # make images
+set mask_in      = 'AUTO'         # any input mask (possibly renamed)
+set max_img      = 7              # maximum number of high-var images to make
+set min_cvox     = 7              # minimum voxels in a column
+set min_nt       = 10             # minimum time series length (after nfirst)
+set nerode       = 0              # number of mask erosions
+set nfirst       = 0              # number of first time points to exclude
+set perc         = 90             # percentile limit of variance
+set polort       = A              # polort for trend removal (A = auto)
+set ignore_edges = 1              # ignore lines clustering with edge voxels
+set rdir         = vlines.result  # output directory
+set sdpower      = 2              # power on stdev (2=default variance)
+set thresh       = 0.90           # threshold for tscale average (was .97)
+set num_pc       = 0              # number of PCs per vline to output
+set do_pc_3dD    = 1              # if calc'ing PCs, create+run 3dDeconvolve
+set do_pc_vstat  = 1              # if calc'ing PCs, create+run views of stats
+set suffix       = ""             # extra str for QC* output files
 
+# computed vars
+set edge_mask  = ''             # edge voxel mask, if applied
+set clust_pre  = 'clustset'     # prefix for cluster mask
+
+# created scripts
+set cmd_copy       = a_cmd_00_copy.tcsh 
+set cmd_3dD_base   = a_cmd_01_3dD
+set cmd_vstat_base = a_cmd_02_vstat
 
 set prog = find_variance_lines.tcsh
 
-set version = "0.6, 8 Jan, 2025"
+set version = "1.5, 23 May, 2025"
 
 if ( $#argv < 1 ) goto SHOW_HELP
 
@@ -140,6 +153,13 @@ while ( $ac <= $#argv )
       else if ( $polort == NONE ) then
          set polort = -1
       endif
+   else if ( "$argv[$ac]" == "-ignore_edges" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
+      @ ac += 1
+      set ignore_edges = $argv[$ac]
    else if ( "$argv[$ac]" == "-stdev_power" ) then
       if ( $ac >= $#argv ) then
          echo "** missing parameter after $argv[$ac]"
@@ -161,6 +181,34 @@ while ( $ac <= $#argv )
       endif
       @ ac += 1
       set rdir = $argv[$ac]
+   else if ( "$argv[$ac]" == "-num_pc" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
+      @ ac += 1
+      set num_pc = $argv[$ac]
+   else if ( "$argv[$ac]" == "-suffix_qc" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
+      @ ac += 1
+      set suffix = $argv[$ac]
+   else if ( "$argv[$ac]" == "-do_pc_3dD" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
+      @ ac += 1
+      set do_pc_3dD = $argv[$ac]
+   else if ( "$argv[$ac]" == "-do_pc_vstat" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter after $argv[$ac]"
+         exit 1
+      endif
+      @ ac += 1
+      set do_pc_vstat = $argv[$ac]
 
    # otherwise, these should be the input datasets
    else
@@ -202,10 +250,14 @@ foreach dset ( $din_list )
    set nk_list = ( $nk_list $nstuff[2] )
 end
 
-echo "++ have nslices : $nk_list"
-echo "++ params: min_cvox $min_cvox, nerode $nerode,"
-echo "           perc $perc, sdpower $sdpower, thresh $thresh"
-echo ""
+cat <<EOF
+
+++ have nslices : $nk_list
+++ params: min_cvox $min_cvox, nerode $nerode, perc $perc, polort $polort,
+           ignore_edges $ignore_edges, sdpower $sdpower, thresh $thresh,
+           num_pc $num_pc, do_pc_3dD $do_pc_3dD, do_pc_vstat $do_pc_vstat
+
+EOF
 
 # ----------------------------------------------------------------------
 # make results dir, enter it and remove old results
@@ -214,7 +266,7 @@ if ( -d $rdir ) then
    exit 0
 endif
 
-mkdir $rdir
+\mkdir $rdir
 if ( $status ) then
    echo "** failed to create results directory, $rdir"
    exit 0
@@ -257,6 +309,41 @@ cd $rdir
 
 # ----------------------------------------------------------------------
 # main work: compute correlation datasets and surviving threshold fractions
+
+# store the command that was run, for reference
+cat <<EOF > _tmp
+# The command used to create this dir was:
+
+find_variance_lines.tcsh $argv
+
+EOF
+# ... readably.
+file_tool -wrap_lines -infiles _tmp > ${cmd_copy}
+\rm _tmp
+
+cat <<EOF>> ${cmd_copy}
+
+#  Additional notes
+# ------------------
+# program version : $version
+# have nslices    : $nk_list
+# 
+# Params (some/many likely set with default values)
+# nfirst          : $nfirst
+# min_cvox        : $min_cvox
+# mask_in         : $mask_in
+# nerode          : $nerode
+# polort          : $polort
+# perc            : $perc
+# ignore_edges    : $ignore_edges
+# sdpower         : $sdpower
+# thresh          : $thresh
+# num_pc          : $num_pc
+# do_pc_3dD       : $do_pc_3dD
+# do_pc_vstat     : $do_pc_vstat
+
+EOF
+
 
 # if the user wants an automask, make one
 if ( $mask_in == AUTO ) then
@@ -314,6 +401,24 @@ if ( $mask_in != NONE ) then
              -prefix $mask_in
       echo ""
    endif
+
+   # If we do not want clusters touching the farthest front/back/sides of brain,
+   # make an edge mask.  Grow the current mask vertically, take 1 minus.  Since
+   # anything touching this would be bad, dilate by 1 and take only the dilated
+   # voxels.  Any cluster that includes such voxels is unwanted.
+   if ( $ignore_edges == "1" ) then
+      set edge_mask = mask_edge.nii.gz
+      set tset = tmp.edge.nii.gz
+      set t2   = tmp.e2.nii.gz
+      # grow vertically and take 1 minus
+      3dLocalstat -nbhd "Rect(0,0,-$nk)" -stat max -prefix $tset $mask_in
+      3dcalc -a $tset -expr '1-bool(a)' -prefix $t2 -datum byte
+      \rm $tset
+      # dilate and subtract out previous edge mask
+      3dmask_tool -dilate_inputs 1 -input $t2 -prefix $tset
+      3dcalc -a $tset -b $t2 -expr a-b -prefix $edge_mask
+      \rm $tset $t2
+   endif
 endif
 
 # --------------------------------------------------
@@ -332,9 +437,16 @@ endif
 # not matter in projection dsets
 set zcoord = `3dinfo -dcz $dset_list[1]`
 
+# --------------------------------------------------
+# make the prefix for stats dsets and scripts
+
+set sname = stats${suffix}
+
 # ---------------------------------------------------------------------------
 # count the number of bad columnar regions per input
 set bad_counts = ()
+# make a list of dsets for (possible) PC calculation
+set pc_list = ()
 
 foreach index ( `count_afni -digits 1 1 $#dset_list` )
 
@@ -351,6 +463,9 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
       set dset = $newset
       echo ""
    endif
+
+   # append to PC list
+   set pc_list = ( $pc_list $dset )
 
    # compute temporal variance dset (square stdev for now)
    set sset = var.0.orig.r$ind02.nii.gz
@@ -374,14 +489,77 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
                -prefix $pset $sset
 
    # now threshold and cluster (slices are equal, so 1-D == 3-D)
+   # (show command before executing)
+   # change NN3 to NN2, as this is really 2D clustering (could use NN 1)
    set cfile = bad_clust.r$ind02.txt
-   3dClusterize -ithr 0 -idat 0 -NN 3 -inset $pset -2sided -1 $thresh \
-                | tee $cfile
+   set clust_mask = $clust_pre.r$ind02.nii.gz
+   set cmd = ( 3dClusterize -ithr 0 -idat 0 -NN 2 -2sided -1 $thresh \
+                  -inset $pset -pref_map $clust_mask -outvol_if_no_clust )
+   echo $cmd
+   $cmd | tee $cfile
 
+   # and grab the coordinates of the bad clusters
    set bfile = bad_coords.r$ind02.txt
    grep -v '#' $cfile                                                     \
         | awk '{ z='$zcoord'; printf "%7.2f %7.2f %7.2f\n", $14, $15, z}' \
         | tee $bfile
+
+   # if we have an edge_mask, possibly remove edge clusters from $bfile
+   if ( $edge_mask != "" ) then
+      # create inner_clust laster, either avoid edges or using full clust
+      set inner_clust = $clust_pre.inner.r$ind02.nii.gz
+      # store edge cluster (restricted to edges) and inner clusters
+      set edge_clust = $clust_pre.edge.r$ind02.nii.gz
+      3dcalc -a $clust_mask -b $edge_mask -expr 'a*b' -prefix $edge_clust
+      # use 3dRank to get badlist: non-zero values in $edge_clust
+      3dRank -prefix rank.$ind02 -input $edge_clust
+      \rm rank.$ind02+*
+      set edgelist = ( `1dcat rank.$ind02.rankmap.1D'[1]' | tail -n +2` )
+      set nclust = ( `cat $bfile | wc -l` )
+
+      # if there is an adjustment to make, do so
+      set ecfile = edge_coords.r$ind02.txt
+      set backfile = bad_coords.full.r$ind02.txt
+      \cp $bfile $backfile
+      echo "" > $ecfile    # start with an empty file
+      if ( $nclust > 0 && $#edgelist > 0 ) then
+         # note: line and cluster numbers are 1-based
+         echo "++ have $nclust clusters but $#edgelist are at edges"
+         set pedge = "[`echo $edgelist | tr ' ' ,`]"
+         # find clusters that are not in edgelist
+         set inlist = ( `python -c "for ind in [i+1 for i in range($nclust) \
+                           if i+1 not in $pedge]: print(ind)"`)
+         # create inner_clust dset: extract inlist clusters
+         # (this might be empty)
+         if ( $#inlist > 0 ) then
+            echo "-- creating inner clusterset $inner_clust ($#inlist clusters)"
+            set vinner = "<`echo $inlist | tr ' ' ,`>"
+            3dbucket -prefix $inner_clust $clust_mask"$vinner"
+         else
+            echo "-- creating inner clusterset $inner_clust (but empty)"
+            # still make an inner_clust dataset, but it is empty
+            3dcalc -a $clust_mask -expr 0 -prefix $inner_clust
+         endif
+
+         echo "-- keeping clusters : $inlist"
+         echo "   removing clusters: $edgelist"
+         # create new files (new bfile from inlist, ecfile from edgelist)
+         echo -n "" > $bfile
+         foreach r ( $inlist )
+            awk "{if(NR==$r) print}" $backfile >> $bfile
+         end
+         foreach r ( $edgelist )
+            awk "{if(NR==$r) print}" $backfile >> $ecfile
+         end
+         echo "++ updated inner coord list:"
+         cat $bfile
+      else
+         echo "-- no edge clusters to remove"
+         # some runs might have inner, some not, so we "need" an inner dset
+         # to wildcard on for the later intersection
+         3dcopy $clust_mask $inner_clust
+      endif
+   endif
 
    set bad_counts = ( $bad_counts `cat $bfile | wc -l` )
 end  # foreach index
@@ -389,17 +567,168 @@ echo ""
 
 # ---------------------------------------------------------------------------
 # report intersection clusters from projection dsets
-echo "-- evaluating intersection..."
-set pset = proj.min.nii.gz
-3dMean -min -prefix proj.min.nii.gz proj.r*.nii.gz
+
+# if ignoring edges, only use inner clusters
+if ( $edge_mask != "" ) then
+   set cform = "$clust_pre.inner.r*.nii.gz"
+else
+   set cform = "$clust_pre.r*.nii.gz"
+endif
+set clustsets = ( $cform )
+
+echo "-- evaluating intersection (across $cform) ..."
+set iset = clust.inter.nii.gz
+3dmask_tool -inter -prefix $iset -input $clustsets
 
 set cfile = bad_clust.inter.txt
-3dClusterize -ithr 0 -idat 0 -NN 3 -inset $pset -2sided -1 $thresh \
+# we are clustering a binary dataset, so use any threshold above zero
+3dClusterize -ithr 0 -idat 0 -NN 2 -inset $iset -2sided 0 0.9         \
+             -pref_map clust.inter.enum.nii.gz -outvol_if_no_clust    \
              | tee $cfile
 set bfile = bad_coords.inter.txt
 grep -v '#' $cfile                                                    \
      | awk '{z='$zcoord'; printf "%7.2f %7.2f %7.2f\n", $14, $15, z}' \
      | tee $bfile
+set bad_count_inter = `cat $bfile | wc -l`
+
+# ---------------------------------------------------------------------------
+# create PCs per vline (check along the way if/where vlines exist)
+if ( $num_pc ) then
+   set vcount = 0
+
+   # loop over each run's cluster map
+   foreach index ( `count_afni -digits 1 1 $#pc_list` )
+      # only do PCs if the run had vlines, which bad_counts keeps track of
+      if ( ${bad_counts[$index]} ) then
+         set ind02    = `ccalc -form '%02d' $index`
+         set dset     = $pc_list[$index]
+         set clustset = ( $clust_pre.inner.r$ind02.nii.gz )
+
+         # if we are in this if-condition, nvline > 0
+         set nvline = `3dBrickStat -slow -max $clustset`
+         foreach nn ( `count_afni -digits 1 1 $nvline` )
+             # check to make sure line still exists after ignoring edges
+             # (nvox has: 2 values if line exists; 0 values if it was removed)
+             set nvox = `3dROIstats -quiet -nzvoxels      \
+                            -mask ${clustset}"<$nn>"      \
+                            ${clustset}`
+             if ( ${#nvox} ) then
+                @ vcount+= 1
+                set n02 = `ccalc -form '%02d' $nn`
+                3dpc                                         \
+                    -nscale                                  \
+                    -pcsave  $num_pc                         \
+                    -mask    ${clustset}"<$nn>"              \
+                    -prefix  pc.inner.r$ind02.c$n02.val      \
+                    $dset
+             endif
+         end 
+
+         # do simple 3dD on the PCs here
+         set all_pc = `find . -maxdepth 1 -name "pc.inner.r$ind02.c*.val_vec.1D" \
+                            | cut -b3- | sort`
+         set nall_pc = ${#all_pc}
+         if ( ${nall_pc} && ${do_pc_3dD} ) then
+            set num_stimts = `ccalc -i -eval "${nall_pc}*${num_pc}"`
+            set polort     = -1    # already detrended dset
+
+            # loop over all lines and components and build -stim_* opts
+            set sss = ""
+            set idx = 1 
+            @ Mpc   = $num_pc - 1    # max index for PC selector; 0-based count
+            foreach cc ( `seq 1 1 ${nall_pc}` ) 
+               set pcname = ${all_pc[$cc]}
+               set tmp1   = `basename ${pcname} .val_vec.1D`
+               set pccore = ${tmp1:gas/pc.inner.//}
+               foreach pp ( `seq 0 1 ${Mpc}` ) 
+                  set sss = "${sss:q} -stim_file $idx ${pcname}'[$pp]' "
+                  set sss = "${sss:q} -stim_label $idx ${pccore}.$pp "
+                  @ idx += 1
+               end
+            end
+
+cat <<EOF > _tmp_3dD_cmd.tcsh
+#!/bin/tcsh
+
+# 3dD command for already-detrended time series
+
+3dDeconvolve                                             \
+    -overwrite                                           \
+    -input           ${dset}                             \
+    -polort          ${polort}                           \
+    -num_stimts      ${num_stimts}                       \
+    ${sss:q}                                             \
+    -tout                                                \
+    -x1D             X.xmat.1D                           \
+    -xjpeg           X.jpg                               \
+    -x1D_uncensored  X.nocensor.xmat.1D                  \
+    -bucket          ${sname}.r$ind02.nii.gz
+EOF
+
+            # make the command readable in its file
+            set cmd_3dD = ${cmd_3dD_base}.r$ind02.tcsh
+            file_tool -wrap_lines -infiles _tmp_3dD_cmd.tcsh > ${cmd_3dD}
+            \rm _tmp_3dD_cmd.tcsh
+            # ... and execute it
+            tcsh ${cmd_3dD}
+            # ... and rename the created REML cmd, per run
+            \mv  ${sname}.REML_cmd  ${sname}.r$ind02.REML_cmd
+
+            if ( $do_pc_vstat ) then
+                # make images and run script to view stats file, via
+                # @chauffeur_afni, using a preexisting template script
+                set cmd_vstat = ${cmd_vstat_base}.r$ind02.tcsh
+
+                # copy script template file from abin/ ...
+                set dir_abin = "`afni_system_check.py -disp_abin`"
+                \cp "${dir_abin}/afni_vlines_run_text.txt" ${cmd_vstat}
+
+                # ... insert run number and stats name string...
+                sed -i s/REPLACE_ME_WITH_RUN_NUM/r${ind02}/g ${cmd_vstat}
+                sed -i s/REPLACE_ME_WITH_STAT_PREF/${sname}/g ${cmd_vstat}
+
+                # ... and run the script, which creates an image of the
+                # Full_Fstat, as well as a run_*.tcsh script to drive AFNI GUI 
+                tcsh ${cmd_vstat}
+            endif
+         endif
+      endif
+   end
+
+   # and PCs for cluster intersection, if such a dset exists and if
+   # the intersection file has at least 1 vline
+   if ( -f clust.inter.enum.nii.gz && $bad_count_inter ) then
+      set clustset = clust.inter.enum.nii.gz
+
+      set nvline = `3dBrickStat -slow -max $clustset`
+      foreach nn ( `count_afni -digits 1 1 $nvline` )
+          @ vcount+= 1
+          set n02 = `ccalc -form '%02d' $nn`
+          3dpc                                         \
+              -nscale                                  \
+              -pcsave  $num_pc                         \
+              -mask    ${clustset}"<$nn>"              \
+              -prefix  pc.inter.enum.c$n02.val         \
+              $dset
+      end
+   endif
+
+   if ( $vcount ) then
+      if ( $do_clean == 1 ) then
+         # clean up PC dsets: since they are only within mask, not so useful
+         \rm -f pc.inner.*.BRIK*       pc.inner.*.HEAD       \
+                pc.inter.enum.*.BRIK*  pc.inter.enum.*.HEAD
+      endif
+
+      # trim some 1D outputs (put ones we want in temp dir, then bring them back)
+      set tdir = __tmp_dir_for_pc_1Ds
+      \mkdir -p ${tdir}
+      \mv pc.in*eig.1D pc.in*vec.1D ${tdir}/.
+      \rm pc.in*.1D
+      \mv ${tdir}/pc.in*.1D .
+      \rm -rf ${tdir}
+   endif
+endif
 
 # ---------------------------------------------------------------------------
 # create images pointing to vlines
@@ -488,11 +817,11 @@ if ( $do_img ) then
    # finish the subtext string (remove last comma)
    set text = `echo ${text:q} | awk '{print substr($0,1,length($0)-1)}'`
 
-   echo ${text} > QC_var_lines.txt
+   echo ${text} > QC_var_lines${suffix}.txt
 
    # combine img files
    if ( ${count} ) then
-       set opref = QC_var_lines
+       set opref = QC_var_lines${suffix}
        2dcat                                                             \
            -overwrite                                                    \
            -zero_wrap                                                    \
@@ -550,6 +879,8 @@ SHOW_HELP:
 
 cat << EOF
 ---------------------------------------------------------------------------
+Overview: ~1~
+
 $prog   - look for high temporal variance columns
 
    usage : $prog [options] datasets ..."
@@ -577,7 +908,7 @@ the (masked) slices.
         where a vline is a column with Localstat mean >= $thresh
 
 ------------------------------------------------------------
-Examples:
+Examples: ~1~
 
   1. Run using defaults.
 
@@ -597,13 +928,13 @@ Examples:
               epi_run*.nii.gz
 
 ------------------------------------------------------------
-Options (terminal):
+Options (terminal): ~1~
 
    -help                : show this help
    -hist                : show the version history
    -ver                 : show the current version
 
-Options (processing):
+Options (processing): ~1~
 
    -do_clean VAL        : do we clean up a little? (def=$do_clean)
 
@@ -710,6 +1041,34 @@ Options (processing):
 
                           All output is put into this results directory.
 
+   -suffix_qc VAL       : string to append to QC* file outputs, as well as any
+                          stats*.nii.gz file output if using -num_pc (def="")
+
+                             VAL is a string appended to "QC_var_lines"
+                             files;  it would also be appended to "stats" in
+                             the NIFTI file output associated with any PCs;
+                             it should likely start with "_".
+
+                          Including the subject ID in the files in this way
+                          might be useful at times.
+
+   -ignore_edges VAL    : ignore vline clusters at edges (def=$ignore_edges)
+
+                             VAL in {0,1}
+
+                          Set this option to ignore clusters at the R,L,A,P
+                          edges, so vlines near those edges are not reported.
+
+                          If a vline cluster traces the outer edge of the brain
+                          (in the j-axis direction), it is probably just due to
+                          motion.  Use this option to ignore such clusters, and
+                          therefore not report vlines connected to edges.
+
+                          Such edges are defined as the outermost edges in the
+                          i and j directions of the 3-D mask.  This is because
+                          lines are along the k axis (usually I/S), and the
+                          limits should be perpendicular to the vline axis.
+
    -stdev_power POW     : power on stdev to apply before ave/thresh
 
                              default :  -stdev_power $sdpower
@@ -733,7 +1092,105 @@ Options (processing):
                           a column to be consider a variance line.  A value
                           just under 1.0 might be reasonable.
 
+   -num_pc NUM          : number of PCs to calculate per variance line 
 
+                             default : -num_pc $num_pc  (i.e., none estimated)
+
+                          Preliminary tests with this have found 2 to be a 
+                          reasonable value to use, if you want PCs output. 
+                          As an example of naming, the info from component #3
+                          in run 2 is named: pc.inner.r02.c03*.
+                          The outputs from the intersection vline dset are 
+                          named like: pc.inter.enum.c*.
+
+   -do_pc_3dD VAL       : if '-num_pc ..' is used and variance lines are found
+                          in a run, then by default this program will
+                          build+execute a 3dDeconvolve command with those
+                          PCs as '-stim_file ..' regressors; this opt controls
+                          whether 3dD would be run or not (def=$do_pc_3dD)
+
+                             VAL in {0,1}
+
+                          This will help highlight where the variance
+                          line influence appears to be more/less
+                          across the dataset. See the Note on 'Outputs
+                          when -num_pc is used' for more details.
+
+   -do_pc_vstat VAL     : if '-num_pc ..' is used and variance lines are found
+                          in a run (and 3dDeconvolve is _not_ turned off via
+                          '-do_pc_3dD 0'), then by default this program will
+                          build+execute an @chauffeur_afni command to make
+                          images of the Full_Fstat volume in the stats dset
+                          of each run with vlines (stats*.r*.image*jpg), as well
+                          as an executable script to surf that dset and volume
+                          in the AFNI GUI (run_stats*.r*_pc.tcsh); this opt
+                          controls whether @chauffeur would be run or not 
+                          (def=$do_pc_vstat)
+
+                             VAL in {0,1}
+
+                          This will help with quality control (QC)
+                          checks of where the variance line influence
+                          appears to be more/less across the dataset.
+                          Note that image montage slices might miss
+                          some of the variance lines themselves, so
+                          executing the run script might be the most
+                          useful. This can be done as follows (if no -suffix_qc
+                          was used):
+                          
+                             tcsh run_stats.r01.tcsh
+
+                          See the Note on 'Outputs when -num_pc is
+                          used' for more details.
+
+-----------------------------------------------------------------------------
+Notes: ~1~
+
+Outputs when -num_pc is used: ~2~
+
+When '-num_pc ..' is used, 3dpc will be used to perform a principal
+component analysis (PCA) decomposition of each variance line.  For
+each line, the specified number of PCs will be saved in a text file
+called pc.inner.*.val_vec.1D (one per column).
+
+Additionally, a 3dDeconvolve command will be executed for each run
+that has at least one variance line.  The full set of PCs for that run
+will be used at '-stim_file ..' inputs to the command, and a Full
+F-stat is calculated.  This shows the amount of variance explained in
+the detrended input time series by the full set of the PC
+components. That is, where the F is larger, some combination of PCs is
+explaining more of the time series variability (i.e., having more
+influence on the time series pattern).  The result is stored in the
+stats*.nii.gz file.
+
+A copy of the 3dDeconvolve command for each run is stored in a text
+file within the output vlines directory, called
+${cmd_3dD_base}.r*.tcsh.
+
+Furthermore, an @chauffeur_afni command will be executed for each run
+that has at least one variance line and for which a stats*.nii.gz has
+been created.  This will make multislice image montages of the
+Full_Fstat volume for each run (stats.r*.image*.jpg), which show
+where any linear combination of the detected variance lines' PCs fit
+the input time series data well.  The Full_Fstat volume is used for
+both the overlay and thresholding datasets. The overlay color range
+comes from a high percentile value of the data itself, and the
+threshold value corresponds to p=0.01---of course, the transparent
+alpha thresholding is also turned on.
+
+The executed @chauffeur_afni also creates a run_stats.r*_pc.tcsh
+script that will drive the AFNI GUI to load up the stats dataset with
+the same data, to enable deeper checks of it in an efficient way. Each
+script can be run just like:
+
+    tcsh run_stats.r01.tcsh
+
+A copy of the @chauffeur_afni command for each run is stored in a text
+file within the output vlines directory, called
+${cmd_vstat_base}.r*.tcsh.
+
+
+------------------------------
 - R Reynolds, P Taylor, D Glen
   Nov, 2022
   version $version
@@ -760,6 +1217,16 @@ $prog modification history:
    0.6   8 Jan 2025 : min_cvox: 5->7
                     - add -thresh option
                     - add -stdev_power
+   0.7  23 Apr 2025 : add -ignore_edges (default on)
+                    - change corresponding thresh default from 0.97 to 0.90
+   0.8  29 Apr 2025 : [PT] add optional PC output
+   0.9  30 Apr 2025 : [PT] clean up PC-related functionality
+   1.0   1 May 2025 : [PT] remove PC errors if edge-ignore removed line(s)
+   1.1   7 May 2025 : [PT] add -suffix_qc so QC* files can be unique per subj
+   1.2   8 May 2025 : [PT] add 3dDeconvolve cmd to PC calcs
+   1.3  12 May 2025 : [PT] add more reporting output
+   1.4  20 May 2025 : [PT] add more chauffeur script and image output
+   1.5  23 May 2025 : [PT] fix stats dset/script behavior when suffix_qc is used
 
 EOF
 # check $version, at top

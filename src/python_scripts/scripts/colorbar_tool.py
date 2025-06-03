@@ -66,6 +66,13 @@ Usage ~1~
 
 -prefix PREFIX :(req) name of output file, including file extension
 
+-in_cbar_name NAME  
+               :alternative way to provide input colorbar, by specifying
+                the name of a known colorbar (i.e., one that would show
+                up in the AFNI GUI menu).  NB: if you mistype the name or
+                enter one that doesn't exist, then some default colorbar
+                will be used.
+
 -in_json  JSON :name of a JSON file with known keys that describe relevant
                 cbar values; in particular, JSONs output by @chauffeur_afni
                 are good to use here. An efficient way to provide cbar_min,
@@ -313,6 +320,16 @@ cbar (see 'JSONs' in the Notes above).
         -thr_val   3                                             \\
         -alpha     No                                          
 
+    7) Make a colorbar from the name within the known AFNI list.
+
+    colorbar_tool.py                                             \\
+        -in_cbar_name  Viridis                                   \\
+        -prefix        CBAR_Viridis.jpg                          \\
+        -cbar_min      -5                                        \\
+        -cbar_max      5                                         \\
+        -thr_val       3                                         \\
+        -alpha         Linear                                          
+
 
 """.format(all_alpha=lct.list_alpha_str, thr_wid=lct.DOPTS['thr_width'],
            thr_no=lct.DOPTS['thr_num_osc'], tick_ni=lct.DOPTS['tick_num_int'],
@@ -348,6 +365,7 @@ See lct.CbarPbar() for the set of things that are populated for the actual
 
       # main data variables
       self.in_cbar         = None
+      self.in_cbar_name    = None
       self.prefix          = None
 
       # the JSON from @chauffeur_afni, or all the keys that can be in it;
@@ -409,6 +427,9 @@ See lct.CbarPbar() for the set of things that are populated for the actual
                       helpstr='name of output cbar file')
 
       # optional parameters
+      self.valid_opts.add_opt('-in_cbar_name', 1, [], 
+                      helpstr='name of known cbar in AFNI')
+
       self.valid_opts.add_opt('-in_json', 1, [], 
                       helpstr='name of JSON file for cbar file')
 
@@ -533,6 +554,12 @@ See lct.CbarPbar() for the set of things that are populated for the actual
 
          # general options
 
+         if opt.name == '-in_cbar_name':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val is None or err:
+                BASE.EP1(err_base + opt.name)
+            self.in_cbar_name = val
+
          elif opt.name == '-in_json':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err:
@@ -632,10 +659,10 @@ See lct.CbarPbar() for the set of things that are populated for the actual
          elif opt.name == '-overwrite':
             self.do_ow = True
 
-         # might have to merge some options
-         tmp1 = self.combine_chauffeur_json_opts()
-         if tmp1 :
-            return -1
+      # at end, might have to merge some options
+      tmp1 = self.combine_chauffeur_json_opts()
+      if tmp1 :
+         return -1
 
       return 0
 
@@ -656,6 +683,15 @@ See lct.CbarPbar() for the set of things that are populated for the actual
 
        D     = lct.read_json(self.in_json)
        dkeys = D.keys()
+
+       if 'cbar' in dkeys :
+           # this dual condition check here is unique for cbar, bc it
+           # can come from either in_cbar_name or in_cbar
+           if self.in_cbar_name == None and self.in_cbar == None :
+               self.in_cbar_name = D['cbar']
+           elif self.verb :
+               ab.WP("Using user-specified value of '{}', rather than JSON's "
+                     "'{}'".format('in_cbar_name', 'cbar'))
 
        if 'pbar_bot' in dkeys :
            if self.cbar_min == None :

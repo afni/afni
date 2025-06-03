@@ -135,7 +135,7 @@ PARSE:
             if ("$xform_type" == "shift_rotate") then
                echo ""
                echo "Warning: ********************************"
-               echo "-xform option does not allow for scaling!"
+               echo "-xform option does not allow for scaling."
                echo "Proceeding with your wishes anyway ..."
                echo ""
             endif
@@ -565,7 +565,7 @@ PARSE:
       echo "Error: input dataset must be in the current directory"
       echo "Current path for input dataset is $anat_path"
       echo "Sorry."
-# checking why this is here!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# **checking why this is here???**
 #      goto END
    endif
    
@@ -605,7 +605,7 @@ PARSE:
    else
       set ns_pref = ${anat_pref}
    endif
-   #update tmppref IF YOU MUST! 
+   #update tmppref IF YOU MUST 
    #  so that you can use multiple versions concurrently
    #set tmppref = "${tmppref}__`@GetAfniPrefix ${anat_in}`" 
    set rs_pref = ${tmppref}__rs_`@GetAfniPrefix "${anat_in}"`
@@ -967,7 +967,7 @@ AUTO_TLRC_MODE:
             goto END
          endif
          #check for convergence
-         # this one fails when there is a # in the name! 
+         # this one fails when there is a # in the name 
              #set res = "`cat ${ns_pref}_WarpDrive.log | grep 'RMS\[0\]'`"
          # this should do it:
             cat "${ns_pref}_WarpDrive.log" > ___cat.tmp
@@ -1542,10 +1542,9 @@ CLEANUP:
 goto $Ret_Clean
 
 SET_REF_PATH:
-set ref_path = $ref_in:h
-if ( "$ref_path" == "$ref_in" ) then
+set ref_path = `dirname $ref_in`
+if ( "$ref_path" == "." ) then
    #echo "No Path specified ( $ref_path == $ref_in )" 
-   set ref_path = "."
    if ($apar_mode == 1) then
       goto END_REF_SEARCH
    endif
@@ -1734,8 +1733,8 @@ echo "      -rigid_equiv   : Also output a the rigid-body version of the "
 echo "                       alignment. This would align the brain with"
 echo "                       TLRC axis without any distortion. Note that"
 echo "                       the resultant .Xrigid volume is NOT in TLRC"
-echo "                       space. Do not use this option if you do not"
-echo "                       know what to do with it!"
+echo "                       space. **Do not use this option if you do not"
+echo "                       know what to do with it**"
 echo "                       For more information on how the rigid-body"
 echo "                       equivalent transformation is obtained, see"
 echo "                       cat_matvec -help 's output for the -P option. "
@@ -1884,7 +1883,7 @@ echo "   -verb          :  Yakiti yak yak"
 echo ""
 echo ""
 echo "When you're down and troubled and you need a helping hand:"
-echo "   1- Oh my God! The brain is horribly distorted (by Jason Stein):"
+echo "   1- The brain is horribly distorted (by Jason Stein):"
 echo "      The probable cause is a failure of 3dWarpDrive to converge."
 echo "      In that case, rerun the script with the option "
 echo "      -xform shift_rotate_scale. That usually takes care of it."

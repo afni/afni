@@ -1,0 +1,96 @@
+#!/bin/tcsh
+
+# Create and run an @chauffeur_afni command that will:
+# + make images (stats*image*.jpg) of the stats*.nii.gz data, over the
+#   scaled var dset 
+# + make an AFNI GUI driver script (run_*.tcsh) to open stats.nii.gz,
+#   over the scaled var dset
+#
+# Modification history
+# 1.1  23 May 2025 : [PT] fix behavior when suffix_qc is used
+
+# ==============================================================================
+
+# name and ID values (provided by wrapper script)
+set run         = REPLACE_ME_WITH_RUN_NUM
+set sname       = REPLACE_ME_WITH_STAT_PREF
+
+# input volumes
+# NB: there should be only 1 stats dset per run, but we make sure we only get 1
+set all_rstats  = ( ${sname}.${run}.nii.gz )
+set olay        = ${all_rstats[1]}
+set ulay        = var.1.scale.${run}.nii.gz
+
+# olay and thr volume parameters
+set cbar        = Plasma
+set olaybrick   = Full_Fstat
+set thrbrick    = Full_Fstat
+set olay_minval = "-pbar_posonly"
+
+# naming outputs
+set opref       = ${sname}.${run}.image
+set opbarrt     = ${opref}.pbar
+set odoafni     = run_${sname}.${run}_pc.tcsh
+set qcb         = find_variance_lines
+set qci         = ${olaybrick}
+
+# ----- get threshold value, using p
+
+set pval = 0.01
+set thr_thresh = `p2dsetstat -quiet -1sided -pval ${pval}     \
+                      -inset "${olay}[${thrbrick}]"`
+set pbar_comm_thr = "p=${pval}, alpha on"
+
+# ----- get olay range, from perc
+
+if ( -f mask.nii.gz ) then
+    set p2  = 99                         # percentile: top of cbar 
+    set mmm = "-mask mask.nii.gz"        # perc calc within mask
+    set ttt = " in mask"                 # text note on FOV for perc
+    set focusbox = "mask.nii.gz"
+else
+    set p2  = 98                         # percentile: top of cbar 
+    set mmm = ""                         # no mask; perc across WB
+    set ttt = " in full nonzero volume"  # text note on FOV for perc
+    set focusbox = AMASK_FOCUS_ULAY
+endif
+
+set pbar_comm_range = "${p2}%ile ${ttt}"
+set olay_topval = `3dBrickStat -slow -perc_quiet -perclist 1 $p2 $mmm    \
+                       "${olay}[${olaybrick}]"`
+
+set text2 = "Surf around to see where vline PCs affect data"
+
+# ===========================================================================
+
+@chauffeur_afni                                                          \
+    -ulay              ${ulay}                                           \
+    -box_focus_slices  ${focusbox}                                       \
+    -olay              ${olay}                                           \
+    -cbar              ${cbar}                                           \
+    ${olay_minval}                                                       \
+    -ulay_range        0% 99%                                            \
+    -func_range        ${olay_topval}                                    \
+    -thr_olay          ${thr_thresh}                                     \
+    -olay_alpha        Quadratic                                         \
+    -olay_boxed        No                                                \
+    -set_subbricks     0 "${olaybrick}" "${thrbrick}"                    \
+    -opacity           9                                                 \
+    -pbar_saveim       "${opbarrt}.jpg"                                  \
+    -pbar_comm_range   "${pbar_comm_range}"                              \
+    -pbar_comm_thr     "${pbar_comm_thr}"                                \
+    -prefix            "${opref}"                                        \
+    -save_ftype        JPEG                                              \
+    -blowup            4                                                 \
+    -montx             7                                                 \
+    -monty             1                                                 \
+    -montgap           1                                                 \
+    -montcolor         black                                             \
+    -set_xhairs        OFF                                               \
+    -label_mode        1                                                 \
+    -label_size        4                                                 \
+    -no_axi                                                              \
+    -cmd2script        "${odoafni}"                                      \
+    -c2s_text          "QC, ${qcb}: ${qci}"                              \
+    -c2s_text2         "${text2}"                                        \
+    -c2s_mont_1x1

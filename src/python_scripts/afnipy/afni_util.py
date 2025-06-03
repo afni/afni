@@ -169,51 +169,24 @@ def read_tsv_file(fname='stdin', strip=0, verb=1):
       return []
 
    # test for separators, require rectangular input
-   nt = tdata[0].count('\t')
-   nc = tdata[0].count(',')
-   ns = tdata[0].count(' ')
-
-   # try to find a good separator
    sep = ''
-
-   # test for tabs first
-   if nt > 0:
-     c = '\t'
+   for tsep in ['\t', ',', ' ']:
+     nsep = tdata[0].count(tsep)
+     # is there anything?
+     if nsep == 0:
+        continue
+     # if so, every line should have the same count
      matches = 1
      for tline in tdata:
-       nn = tline.count(c)
-       if nn != nt:
+       nn = tline.count(tsep)
+       if nn != nsep:
+          if verb > 2:
+             print("-- sep '%s' mismatch: %d vs. %d, skipping" % (tsep,nn,nsep))
           matches = 0
           break
      if matches:
         # declare a winner
-        sep = c
-
-   # test for commas (change nt and c)
-   if sep == '' and nc > 0:
-     c = ','
-     matches = 1
-     for tline in tdata:
-       nn = tline.count(c)
-       if nn != nc:
-          matches = 0
-          break
-     if matches:
-        # declare a winner
-        sep = c
-
-   # test for spaces (change nt and c)
-   if sep == '' and ns > 0:
-     c = ' '
-     matches = 1
-     for tline in tdata:
-       nn = tline.count(c)
-       if nn != ns:
-          matches = 0
-          break
-     if matches:
-        # declare a winner
-        sep = c
+        sep = tsep
 
    if verb > 1:
       print("-- read_tsv_file: have sep '%s'" % sep)
@@ -239,6 +212,77 @@ def read_tsv_file(fname='stdin', strip=0, verb=1):
       print("-- have %d x %d TSV data from %s" % (len(table), ncols, fname))
 
    return table
+
+def tsv_get_vals_where_condition(fname, lab_val, where_val, verb=1):
+   """from a TSV file, return value list where a condition is met
+
+        fname     : (str) TSV file name to process, must have header row
+        lab_val   : (str) column label to return values from
+        where_val : (str) condition for when to include a value in return list
+        verb      : (int) how much to chit-chat
+
+      This function was written for tedana processing, where the input might
+      be desc-tedana_metrics.tsv.  The metric file holds many details about
+      each ICA component, where each component is on a row.  The columns to
+      consider include
+        'Component'      : the list of which we want to return
+        'classification' : the decision for whether to return
+
+      In this example,
+        fname       = 'desc-tedana_metrics.tsv'
+        lab_val     = 'Component'
+        where_val   = 'classification=accepted' (or rejected)
+
+      And the return status and value might be something like
+        0, ['ICA_08', 'ICA_11', 'ICA_49']
+
+      That is to say we might return a list of values from the 'Component'
+      column where the 'classification' column value is 'accepted'.
+
+      return status, value list
+   """
+
+   if verb > 1:
+      print("-- using %s to report %s when %s" % (fname, lab_val, where_val))
+
+   # parse inputs: where_val must currently be of the form A=B
+   if '=' not in where_val:
+      print("** TSV_GVWC: mal-formed where string '%s'" % where_val)
+      return 1, []
+
+   # might allow multiple where entries later, start with [0]
+   where = where_val.split()[0].split('=')
+   if len(where) != 2:
+      print("** TSV_GVWC: bad where string '%s'" % where_val)
+      return 1, []
+
+   # read the file with the lab_val and 'where' column headers
+   imat = read_tsv_file(fname, verb=verb)
+   if len(imat) == 0: return 1, []  # error
+
+   # the first row must be a header (with the 2 entries)
+   ihead = imat.pop(0)
+   if len(imat) == 0: return 0, []  # empty matrix, no worries
+
+   # we must have columns lab_val and where[0] now
+   if (lab_val not in ihead) or (where[0] not in ihead):
+      print("** TSV_GVWC: missing header entries '%s', '%s' in %s" \
+            % (lab_val, where[0], fname))
+      return 1, []
+
+   # okay, we should be ready to roll
+   lab_ind = ihead.index(lab_val)
+   wh_ind  = ihead.index(where[0])
+   matlen  = len(imat)
+
+   outvals = [irow[lab_ind] for irow in imat if irow[wh_ind] == where[1]]
+
+   if verb > 1:
+      print("++ TSV %s : '%s' when '%s'" % (fname, lab_val, where_val))
+      print("     %d entries : %s\n" % (len(outvals), ','.join(outvals)))
+
+   return 0, outvals
+
 
 def read_top_lines(fname='stdin', nlines=1, strip=0, verb=1):
    """use read_text_file, but return only the first 'nlines' lines"""
@@ -449,7 +493,14 @@ def read_json_file(fname='stdin'):
    return json.loads(textdata)
 
 def print_dict(pdict, fields=[], nindent=0, jstr=' ', verb=1):
+   """print the contents of a dictionary, and possibly just a list of fields"""
+
    istr = ' '*nindent
+
+   # allow for passing a simple string
+   if type(fields) == str:
+      fields = [fields]
+
    nfields = len(fields)
    for kk in pdict.keys():
       if nfields > 0 and kk not in fields:
@@ -1837,7 +1888,7 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
 
       inputs:
          timing     : <float list> : slice times
-         rdigits    : [1] <int>    : number of digits to round to for required test
+         rdigits    : [1] <int>    : num digits to round to for required test
          verb       : [1] <int>    : verbosity level
 
       method:
@@ -1848,7 +1899,7 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
             - detect timing pattern in this int list
             - check for multiband # of repeats
 
-      return status (int), tpattern (string):
+      return status/mb level (int), tpattern (string):
         status     -1   invalid timing
                     0   invalid multiband (not even 1)
                  >= 1   multiband level of timing (usually 1)
@@ -2827,7 +2878,7 @@ def restrict_by_index_lists(dlist, ilist, base=0, nonempty=1, verb=1):
         if type(istr) != str:
             print('** RBIL: bad index selector %s' % istr)
             return 1, []
-        curlist = decode_1D_ints(istr, verb=verb, imax=imax)
+        curlist = decode_1D_ints(istr, imax=imax, verb=verb)
         if not curlist and nonempty:
             if verb: print("** empty index list for istr[%d]='%s'" % (ind,istr))
             return 1, []
@@ -2858,12 +2909,50 @@ def restrict_by_index_lists(dlist, ilist, base=0, nonempty=1, verb=1):
     # the big finish
     return 0, [dlist[ind] for ind in clist]
 
-def decode_1D_ints(istr, verb=1, imax=-1, labels=[]):
+def decode_1D_ints(istr, imax=-1, labels=[], verb=1):
     """Decode a comma-delimited string of ints, ranges and A@B syntax,
        and AFNI-style sub-brick selectors (including A..B(C)).
        If the A..B format is used, and B=='$', then B gets 'imax'.
        If the list is enclosed in [], <> or ##, strip those characters.
-       - return a list of ints"""
+
+          istr      : the int string to search through
+          imax      : the max int (like final sub-brick index)
+          labels    : array of labels, to possibly convert istr values to ints
+          verb      : how chatty to be
+
+       First split istr by ','.  Each returned element, can have the form of:
+          - A           : a single integer (or label)
+          - A@B         : (int) A entries of (int or label) B
+          - A..B        : the inclusive values from (int/label) A to (I/L) B
+          - A..B(C)     : similar, but with step of (int) C
+          - wildcards   : like 'A', but it may contain '*' or '?'
+                        - '*' matches any number of characters, '?' matches one
+                        - like filename wildcard matching
+
+       Examples:
+
+          using ints for values:
+
+               2,6..10      : return [2, 6, 7, 8, 9, 10]
+               2,6..10(2)   : return [2, 6, 8, 10]
+               2,4@8        : return [2, 8, 8, 8, 8]
+               2,5..$(3)    : return [2, 5, 8, 11]   (given imax=11)
+
+           with labels: replace labels by their index in the labels array,
+           given labels = ['b0', 'b1', 'b2',
+                           'mot01_roll', 'mot02_pitch', 'mot03_yaw',
+                           'mot04_RL', 'mot05_AP', 'mot06_IS',
+                           'ma', 'mb', 'mc']
+
+               'mot04_RL,mot05_AP' : return [6, 7]
+               'm*'           : return [3, 4, 5, 6, 7, 8, 9, 10, 11]
+               'mot*_??'      : return [6, 7, 8]
+               '??'           : return [0, 1, 2, 9, 10, 11]
+               '5,??'         : return [5, 0, 1, 2, 9, 10, 11]
+               'mot03*,??'    : return [5, 0, 1, 2, 9, 10, 11]
+
+       - return a list of ints
+    """
 
     newstr = strip_list_brackets(istr, verb)
     slist = newstr.split(',')
@@ -2881,6 +2970,7 @@ def decode_1D_ints(istr, verb=1, imax=-1, labels=[]):
                 N = int(N)
                 val = to_int_special(val, '$', imax, labels)
                 ilist.extend([val for i in range(N)])
+                if verb > 2: print("-- decode_1D_ints: @ special %s" % s)
             elif s.find('..') >= 0:     # then expect "A..B"
                 pos = s.find('..')
                 if s.find('(', pos) > 0:    # look for "A..B(C)"
@@ -2904,6 +2994,12 @@ def decode_1D_ints(istr, verb=1, imax=-1, labels=[]):
                    if v1 < v2 : step = 1
                    else:        step = -1
                    ilist.extend([i for i in range(v1, v2+step, step)])
+                if verb > 2: print("-- decode_1D_ints: .. special %s" % s)
+            elif '*' in s or '?' in s:
+                lll = to_intlist_wild(s, labels)
+                ilist.extend(lll)
+                if verb > 2:
+                   print("-- decode_1D_ints: wild special %s, list %s" %(s,lll))
             else:
                 ilist.extend([to_int_special(s, '$', imax, labels)])
         except:
@@ -2912,6 +3008,26 @@ def decode_1D_ints(istr, verb=1, imax=-1, labels=[]):
     if verb > 3: print('++ ilist: %s' % ilist)
     del(newstr)
     return ilist
+
+def to_intlist_wild(cval, labels=[]):
+   """return the index list of any labels that match cval, including wildcards
+
+      Use '*' and '?' for wildcard matching.
+      In the regular expression, replace '*' with '.*', and '?' with '.'.
+
+        cval:   int as character string, or a label
+        labels: labels to consider
+   """
+
+   cval = cval.replace('*', '.*')
+   cval = cval.replace('?', '.')
+
+   # look for any matching label
+   ilist = []
+   for lind, label in enumerate(labels):
+      if re.fullmatch(cval, label):
+         ilist.append(lind)
+   return ilist
 
 def to_int_special(cval, spec, sint, labels=[]):
    """basically return int(cval), but if cval==spec, return sint
@@ -3930,7 +4046,7 @@ def glob_form_matches_list(slist, ordered=1):
    return 1
    
 
-def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=2, strip=''):
+def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
    """given a list of strings, return the inner part of the list that varies
       (i.e. remove the consistent head and tail elements)
 
@@ -4099,9 +4215,11 @@ def okay_as_lr_spec_names(fnames, verb=0):
       if verb: print("** spec file '%s' missing 'lh' or 'rh'" % fnames[0])
       return 0
 
-   # so we have 2 files
+   # so we have 2 files, get the varying part
 
-   hlist = list_minus_glob_form(fnames, tpad=1)  # go after following 'h'
+   # - tpad=1 to include following 'h'
+   # - do not return dir entry prefix (e.g. avoid sub-*)
+   hlist = list_minus_glob_form(fnames, tpad=1, keep_dent_pre=0)
 
    for h in hlist:
       if h != 'rh' and h != 'lh':
@@ -4390,7 +4508,7 @@ def get_ids_from_dsets(dsets, prefix='', suffix='', hpad=0, tpad=0, verb=1):
    # if nothing to come from file prefixes, try the complete path names
    if vals_are_constant(dlist): dlist = dsets
 
-   slist = list_minus_glob_form(dlist, hpad, tpad)
+   slist = list_minus_glob_form(dlist, hpad, tpad, keep_dent_pre=2)
 
    # do some error checking
    for val in slist:

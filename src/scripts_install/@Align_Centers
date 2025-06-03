@@ -1,6 +1,6 @@
 #!/usr/bin/env tcsh
 
-# Make AFNI's help readable in a text editor again!
+# Make AFNI's help readable in a text editor
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
 set retval = 0   # return a status (do we need to goto END?)
@@ -200,10 +200,8 @@ endif
 SET_PARAMS: 
 if ( $v2coord != 1 ) then
    set v2_vw = `@GetAfniView $v2i`
-   set pth2 = $v2i:h
-   if ("$pth2" == "$v2i") then 
-
-      set pth2 = .
+   set pth2 = `dirname $v2i`
+   if ("$pth2" == ".") then
 
       # allow for template datasets in path, etc.  24 Apr 2011 [rickr]
       # if path is not found for input dataset,
@@ -232,10 +230,7 @@ endif
 
 SETCENTER:
    set v1_vw = `@GetAfniView $v1i`
-   set v1_pth = $v1i:h
-   if ("$v1_pth" == "$v1i") then 
-      set v1_pth = .
-   endif
+   set v1_pth = `dirname $v1i`
 
    set v1_pref = `@GetAfniPrefix $v1i`
    set v1 = $v1_pth/$v1_pref$v1_vw
@@ -291,7 +286,7 @@ if ($mode == 'grid') then
          if ( $overw == 0 && `@CheckForAfniDset $v1_pth/$oname` != 0 ) then
             echo ""
             echo "Error `basename $0`"
-            echo "Dset $v1_pth/$oname found, cleanup first!"
+            echo "Dset $v1_pth/$oname found, cleanup first"
             echo ""
             set retval = 1
             goto END
@@ -325,7 +320,7 @@ else if ($mode == "cm") then
          if ( $overw == 0 && `@CheckForAfniDset $v1_pth/$oname` != 0 ) then
             echo ""
             echo "Error `basename $0`"
-            echo "Dset $v1_pth/$oname found, cleanup first!"
+            echo "Dset $v1_pth/$oname found, cleanup first"
             echo ""
             set retval = 1
             goto END
@@ -387,7 +382,7 @@ else if (($mode == "shift1D") || ($mode == "shift1D_inv")) then
          if ( $overw == 0 && `@CheckForAfniDset $v1_pth/$oname` != 0 ) then
             echo ""
             echo "Error `basename $0`"
-            echo "Dset $v1_pth/$oname found, cleanup first!"
+            echo "Dset $v1_pth/$oname found, cleanup first"
             echo ""
             set retval = 1
             goto END
@@ -404,7 +399,7 @@ else if (($mode == "shift1D") || ($mode == "shift1D_inv")) then
                   -dyorigin $del_refit[2] \
                   -dzorigin $del_refit[3] $v1_pth/$oname
       endif
-   else  # not a copy, refitting the dataset in place!
+   else  # not a copy, refitting the dataset in place
       if ($xmat_only_meanit != 1) then
           3drefit  -dxorigin $del_refit[1] \
                -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1
@@ -446,10 +441,7 @@ DELTA_TO_XMAT:
 SETCHILDREN:
 foreach v1foli ( $v1_list )
    set v1fol_vw = `@GetAfniView $v1foli`
-   set v1fol_pth = $v1foli:h
-   if ("$v1fol_pth" == "$v1foli") then 
-      set v1fol_pth = .
-   endif
+   set v1fol_pth = `dirname $v1foli`
 
    set v1fol_pref = `@GetAfniPrefix $v1foli`
    set v1fol = $v1fol_pth/$v1fol_pref$v1fol_vw
@@ -482,7 +474,7 @@ foreach v1foli ( $v1_list )
          if ( $overw == 0 && `@CheckForAfniDset $v1fol_pth/${oname}` != 0 ) then
             echo ""
             echo "Error `basename $0`"
-            echo "Child Dset $v1fol_pth/${oname} found, cleanup first!"
+            echo "Child Dset $v1fol_pth/${oname} found, cleanup first"
             echo ""
             set retval = 1
             goto END

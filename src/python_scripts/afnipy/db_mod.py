@@ -37,18 +37,20 @@ clustsim_types = ['FWHM', 'ACF', 'both', 'yes', 'no']
 
 # OC/MEICA/TEDANA methods
 g_oc_methods = [
-    'mean',             # average across echoes
-    'OC',               # default OC in @compute_OC_weights
-    'OC_A',             # Javier's method
-    'OC_B',             # full run method
-    'OC_tedort',        # OC,        and ortvecs from tedana
-    'tedana',           # dn_ts_OC.nii           from tedana
-    'tedana_OC',        # ts_OC.nii              from tedana
-    'tedana_OC_tedort', # ts_OC.nii, and ortvecs from tedana
+    'mean',               # average across echoes
+    'OC',                 # default OC in @compute_OC_weights
+    'OC_A',               # Javier's method
+    'OC_B',               # full run method
+    'OC_tedort',          # OC,        and ortvecs from tedana
+    'OC_m_tedort',        # OC,        and ortvecs from MEICA tedana
+    'tedana',             # dn_ts_OC.nii           from tedana
+    'tedana_OC',          # ts_OC.nii              from tedana
+    'tedana_OC_tedort',   # ts_OC.nii, and ortvecs from tedana
     # https://github.com/ME-ICA/tedana
-    'm_tedana',         # tedana from MEICA group: dn_ts_OC.nii
-    'm_tedana_OC',      # ts_OC.nii              from m_tedana
-    'm_tedana_m_tedort' # tedana --tedort (MEICA group tedort)
+    'm_tedana',           # tedana from MEICA group: dn_ts_OC.nii
+    'm_tedana_OC',        # ts_OC.nii              from m_tedana
+    'm_tedana_OC_tedort', # tedana --tedort, extract ortvecs for 3dD
+    'm_tedana_m_tedort'   # tedana --tedort (MEICA group tedort)
     ]
 g_m_tedana_site = 'https://github.com/ME-ICA/tedana'
 
@@ -1043,14 +1045,14 @@ def run_qc_var_line_blocks(proc, block):
     rdir = 'vlines.pb%02d.%s' % (block.index, block.label)
     proc.uvars.set_var('vlines_%s_dir' % block.label, [rdir])
 
-    nerode = 2
+    # no longer erode, the default has changed to -ignore_edges
     cmd  = '# ---------------------------------------------------------\n' \
            '# QC: look for columns of high variance\n'                     \
-           'find_variance_lines.tcsh -polort %s -nerode %s \\\n'           \
+           'find_variance_lines.tcsh -polort %s            \\\n'           \
            '%s'                                                            \
            '       -rdir %s \\\n'                                          \
            '       %s |& tee out.%s.txt\n\n'                               \
-           % (proc.regress_polort, nerode, other_opts, rdir, dsets, rdir)
+           % (proc.regress_polort, other_opts, rdir, dsets, rdir)
 
     return 0, cmd
 
@@ -2290,8 +2292,19 @@ def db_cmd_tshift(proc, block):
        if oname in opt.parlist:
           tind = opt.parlist.index(oname)
           if tind < len(opt.parlist) - 1:
-             # propagate as a valid uvar
-             proc.uvars.set_var('slice_pattern', [opt.parlist[tind+1]])
+             # init tpat, but if '@', try to figure it out
+             mb = 1
+             tpat = opt.parlist[tind+1]
+             if tpat.startswith('@'):
+                try:
+                    adata = LD.Afni1D(filename=tpat[1:])
+                    mb, tpat = adata.get_tpattern()
+                    if proc.verb > 1:
+                       print("-- found @ timing: mb %s, tpat %s" % (mb, tpat))
+                except:
+                    print("** failed to get timing pattern from", tpat)
+             proc.uvars.set_var('slice_pattern', [tpat])
+             if mb > 1: proc.uvars.set_var('mb_level', ['%s' % mb])
 
     # write commands
     cmd = cmd + '# %s\n'                                                \
@@ -3724,7 +3737,7 @@ def db_mod_combine(block, proc, user_opts):
       return 1
 
    # if using tedana for data and later blurring, suggest -blur_in_mask
-   if ocmeth[0:6] == 'tedana' and \
+   if ocmeth.find('tedana') >= 0 and \
          proc.find_block_order('combine', 'blur') == -1 :
       if not proc.user_opts.have_yes_opt('-blur_in_mask'):
          # okay, finally whine here
@@ -3788,12 +3801,19 @@ def db_cmd_combine(proc, block):
 
    # handle any MEICA tedana methods separately
    if ted_meth == 2:
-      ccmd = cmd_combine_m_tedana(proc, block, ocmeth)
+      if ocmeth == 'OC_m_tedort':
+         # AFNI OC, but get tedorts from m_tedana
+         ccmd = cmd_combine_OC(proc, block, ocmeth)
+         tcmd = cmd_combine_m_tedana(proc, block, 'getorts')
+         if ccmd is None or tcmd is None: return
+         ccmd += tcmd
+      else:
+         ccmd = cmd_combine_m_tedana(proc, block, ocmeth)
    elif ocmeth == 'mean':
       ccmd = cmd_combine_mean(proc, block)
    elif ocmeth[0:2] == 'OC':
       ccmd = cmd_combine_OC(proc, block, ocmeth)
-      if ocmeth == 'OC_tedort':
+      if ocmeth == 'OC_tedort' and ccmd is not None:
          # now ALSO run tedana to get ortvecs
          tcmd = cmd_combine_tedana(proc, block, 'getorts')
          if tcmd is None: return
@@ -3905,37 +3925,36 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    # decide what to do
    #    - what output to copy, if any (and a corresponding comment)
    #    - whether to grab the ortvec
-   ready = 1    # flag what still needs to be done
+   ready = 1            # flag what still needs to be done
+   convention = 'orig'  # orig or bids convention for output
    if method == 'm_tedana':
-      getorts = 0
       dataout = 'dn_ts_OC.nii.gz'
+      getorts = 0
       mstr = '# (get MEICA tedana final result, %s)\n\n' % dataout
    elif method == 'm_tedana_OC':
-      getorts = 0
       dataout = 'ts_OC.nii.gz'
+      getorts = 0
       mstr = '# (get MEICA tedana OC result, %s)\n\n' % dataout
    elif method == 'm_tedana_m_tedort':
-      getorts = 0
-      dataout = 'dn_ts_OC.nii.gz'   # same name as m_tedana
       exopts.append('--tedort')
+      dataout = 'dn_ts_OC.nii.gz'   # same name as m_tedana
+      getorts = 0
       mstr = '# (get MEICA tedana OC result, %s, plus -ortvec)\n\n' \
              % dataout
-   # todo: methods that need to extract ortvecs
+   # methods that need to extract ortvecs...
    elif method == 'm_tedana_OC_tedort':
-      ready = 0
-      print("** MEICA -combine_method %s not ready" % method)
-
+      convention = 'bids'  # dataout and components will have bids naming
+      exopts.append('--tedort')
+      dataout = 'desc-optcom_bold.nii.gz'
       getorts = 1
-      dataout = 'ts_OC.nii.gz'
-      mstr = '# (get MEICA tedana OC result, %s, plus -ortvec)\n\n' \
+      mstr = '# (get MEICA tedana OC result, %s, and get tedorts)\n\n' \
              % dataout
    elif method == 'getorts':
-      ready = 0
-      print("** MEICA -combine_method %s not ready" % method)
-
-      getorts = 1
+      convention = 'bids'  # dataout and components will have bids naming
+      exopts.append('--tedort')
       dataout = ''
-      mstr = '# (get MEICA tedana -ortvec results)\n\n'
+      getorts = 1
+      mstr = '# (get MEICA tedana -tedort regressors)\n\n'
    else:
       print("** invalid tedana combine method, %s" % method)
       return
@@ -3971,7 +3990,6 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    else:
       exoptstr = ''
 
-
    # actually run tedana
    # rcr - todo: consider tracking --tedpca, with default of kundu-stabalize
    #             consider --png
@@ -3986,9 +4004,10 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
        '          -e $echo_times \\\n'                               \
        '          --mask %s  \\\n'                                   \
        '%s'                                                          \
-       '          --out-dir tedana_r$run --convention orig\n'        \
+       '          --out-dir tedana_r$run --convention %s\n'          \
        'end\n\n'                                                     \
-       % (vstr, mstr, prev_prefix, proc.mask.nice_input(head=1), exoptstr)
+       % (vstr, mstr, prev_prefix, proc.mask.nice_input(head=1),
+          exoptstr, convention)
 
 
    # ----------------------------------------------------------------------
@@ -4006,8 +4025,33 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
 
    # ----------------------------------------------------------------------
    # finally, grab the orts, if desired
-   # if getorts:
-   # rcr - todo
+   if getorts:
+      # here, all orts are tedort (reject, with accept projected out)
+      # mix is tsv with components/regressors, metrics has component details
+      mixfile = 'tedana_r$run/desc-ICAOrth_mixing.tsv'
+      metfile = 'tedana_r$run/desc-tedana_metrics.tsv'
+      ocmd = '# extract orthogonalized projection terms\n'              \
+             'mkdir meica_orts\n'                                       \
+             'foreach run ( $runs )\n'                                  \
+             '   1d_tool.py -infile %s \\\n'                            \
+             '              -select_cols_via_TSV_table %s \\\n'         \
+             '                 Component classification=rejected \\\n'  \
+             '              -write meica_orts/sorts_r$run.1D -verb 2\n' \
+             '\n' % (mixfile, metfile)
+
+      ocmd+= '   # pad single run terms across all runs\n'           \
+             '   1d_tool.py -infile meica_orts/sorts_r$run.1D  \\\n' \
+             '              -set_run_lengths $tr_counts        \\\n' \
+             '              -pad_into_many_runs $run %d        \\\n' \
+             '              -write meica_orts/morts_r$run.1D\n'      \
+             'end\n\n' % (proc.runs)
+      cmd += ocmd
+
+      # now make note of the files for the regress block
+      for rind in range(proc.runs):
+          label = 'morts_r%02d' % (rind+1)
+          ortfile = 'meica_orts/%s.1D' % label
+          proc.regress_orts.append([ortfile, label])
 
    return cmd
 
@@ -4221,7 +4265,7 @@ def cmd_combine_OC(proc, block, method='OC'):
       print("** option -echo_times is required for 'OC' combine method")
       return
 
-   if method == 'OC' or method == 'OC_tedort':
+   if method in ['OC', 'OC_tedort', 'OC_m_tedort']:
       mstr = ''
    elif method == 'OC_A' or method == 'OC_B':
       mstr = '        -oc_method %s   \\\n' % method
@@ -8154,9 +8198,23 @@ def db_cmd_resam_ROI_imports(proc, block):
     vbase = proc.epi_final
     if vbase is None:
        vbase = proc.vr_base_dset
+
+    # ------------------------------------------------------------
+    # if no volreg block, just be sure ROIs have correct view
     if vbase is None:
-       print("** cannot resample ROIs without vr_base_dset")
-       return 1, ''
+       if proc.verb > 1:
+           print("-- no vr_base_dset to resample ROIs, assuming on final grid")
+
+       # be sure the view is current
+       for opt in proc.user_opts.find_all_opts(oname):
+          label = opt.parlist[0]
+          aname = proc.get_roi_dset(label)
+          if not aname.to_resam:
+             continue
+          aname = proc.roi_dict[label]
+          aname.view = proc.view
+
+       return 0, ''
 
     cmd = '# resample any -ROI_import dataset onto the EPI grid\n' \
           '# (and copy its labeltable)\n\n'
@@ -9000,6 +9058,15 @@ def tlrc_cmd_nlwarp_priors(proc, block):
     if len(proc.nlw_priors) != 3: return ''
 
     print('-- importing NL-warp datasets')
+
+    # this case requires -volreg_align_e2a for the xform to apply (correctly)
+    vblk = proc.find_block('volreg')
+    if vblk is not None:
+       if vblk.opts.find_opt('-volreg_tlrc_warp') \
+          and not vblk.opts.find_opt('-volreg_align_e2a'):
+          print("** -tlrc_NL_warped_dsets requires -volreg_align_e2a")
+          print("   (else EPI -> stdandard space will not be correct)")
+          return None
 
     p0 = proc.nlw_priors[0]
     p1 = proc.nlw_priors[1]
@@ -12188,6 +12255,7 @@ are some issues that may come up, listed by relevant option:
  *  -regress_use_stim_files This may fail, as make_stim_times.py is not
                             currently prepared to handle runs of different
                             lengths.
+                          * This option is essentially obsolete.
 
     -regress_censor_motion  OK, as of version 2.14
 
@@ -12390,6 +12458,38 @@ OPTIONS:  ~2~
         The format of the output is affected by -verb, with -verb 2 format
         being the default.
 
+    -show_merged_opts EG    : merge with example EG and show resulting command
+
+            e.g. -show_merged_opts 'publish 3i'
+
+        This option is intended to help one supply a list of input datasets
+        and perhaps some preferable options, and then to fill the command with
+        option based on a known example.
+
+           all (non-merge) options are initially included, and then...
+
+           if an example option is already provided
+              the option is skipped
+           else if the example option is to specify a dataset
+              the option is added, with a '-CHECK' prefix to the option name
+           else
+              the option is added
+
+        This command would show the entire 'publish 3i' example.
+        Many output options start with -CHECK.
+
+           afni_proc.py -show_merged_opts 'publish 3i'
+
+        This command would show the entire 'publish 3i' example, but include
+        the user-specified options.
+
+           afni_proc.py -copy_anat sub-000_anat.nii.gz              \\
+                        -dsets_me_run sub-000_echo{1,2,3}.nii.gz    \\
+                        -regress_censor_motion 0.4                  \\
+                        -show_merged_opts 'publish 3i'
+
+        See also -compare_merged_opts.
+
     -show_pretty_command    : output the same command, but in a nice format
 
             e.g. afni_proc.py -show_pretty_command
@@ -12499,6 +12599,18 @@ OPTIONS:  ~2~
         separated by -compare_opts_vs_opts.  This is a comparison method
         for comparing 2 local commands, rather than against any known
         example.
+
+    -compare_merged_opts EG : first merge with example EG, then -compare_opts
+
+            e.g. -compare_merged_opts 'publish 3i'
+
+        This is like running "-show_merged_opts EG", then "-compare_opts EG".
+
+        Instead of showing the merged command with options, the merged command
+        is then compared with the original EG, as would be done with
+        -compare_opts EG.
+
+        See also -show_merged_opts, -compare_opts.
 
     -----------------------------------------------------------------
     General execution and setup options ~3~
@@ -14850,7 +14962,7 @@ OPTIONS:  ~2~
 
         ---- basic combine methods (that do not use any tedana) ----
 
-            methods
+            methods - AFNI only
             -------
             mean             : simple mean of echoes
             OC               : optimally combined (via @compute_OC_weights)
@@ -14876,7 +14988,7 @@ OPTIONS:  ~2~
               tedana_wrapper.py by applying:
                      -combine_opts_tedwrap -tedana_is_exec
 
-            methods
+            methods - Prantik tedana
             -------
             OC_tedort        : OC, and pass tedana orts to regression
             tedana           : run tedana.py, using output dn_ts_OC.nii
@@ -14896,13 +15008,15 @@ OPTIONS:  ~2~
 
                  https://tedana.readthedocs.io/en/stable/installation.html
 
-            methods
+            methods - MEICA group tedana
             -------
-            m_tedana         : tedana from MEICA group (dn_ts_OC.nii.gz)
-            m_tedana_OC      : tedana OC from MEICA group (ts_OC.nii.gz)
-            m_tedana_m_tedort: tedana from MEICA group (dn_ts_OC.nii.gz)
-                               "tedort" from MEICA group
-                               (--tedort: "good" projected from "bad")
+            m_tedana          : tedana from MEICA group (dn_ts_OC.nii.gz)
+            m_tedana_OC       : tedana OC from MEICA group (ts_OC.nii.gz)
+            m_tedana_m_tedort : tedana from MEICA group (dn_ts_OC.nii.gz)
+                                "tedort" from MEICA group
+                                (--tedort: "good" projected from "bad")
+            m_tedana_OC_tedort: MEICA OC, and tedorts to 3dDeconvolve
+            OC_m_tedort       : AFNI  OC, and tedorts to 3dDeconvolve
 
 
         The OC/OC_A combine method is from Posse et. al., 1999, and then
@@ -14918,10 +15032,13 @@ OPTIONS:  ~2~
         combine the echoes, and the tedort components will be passed on to
         the regress block).
 
-        The 'm_tedanam_m_tedort' method for the MEICA group's passes
+        The 'm_tedana_m_tedort' method for the MEICA group's passes
         option --tedort to 'tedana', and tedana does the "good" from "bad"
         projection before projecting the modified "bad" components from the
-        time series.
+        time series.  The 'm_tedana_OC_tedort' method gets the MEICA OC data,
+        and passes the MEICA tedort regressors on to the regress block.  The
+        'OC_m_tedort' methed gets the AFNI OC result, and passes the MEICA
+        tedort regressors on to the regress block.
 
         Please see '@compute_OC_weights -help' for more information.
         Please see '@extract_meica_ortvec -help' for more information.
@@ -15995,7 +16112,8 @@ OPTIONS:  ~2~
 
     -regress_no_stim_times  : do not use
 
-        OBSOLETE: please see -regress_use_stim_files
+        OBSOLETE: please see -regress_use_stim_files (which is also OBSOLETE)
+        OBSOLETE: please see -regress_stim_times and -regress_stim_types
 
     -regress_opts_fwhmx OPTS ... : specify extra options for 3dFWHMx
 
@@ -16342,6 +16460,18 @@ OPTIONS:  ~2~
             e.g. -regress_stim_files ED_stim_file*.1D
             e.g. -regress_stim_files stim_A.1D stim_B.1D stim_C.1D
 
+        ------------------------------------------------------------
+      * Most likely this option should not be used.
+
+        Only use this option with the intention of having afni_proc.py
+        convert the given stim-locked binary files to stim_times format
+        via make_stim_times.py.
+
+        So preferably, do not apply -regress_use_stim_files with this
+        option.  Rather use -regress_stim_times and -regress_stim_types
+        (with corresponding parameters of 'file').
+        ------------------------------------------------------------
+
         Without the -regress_use_stim_files option, 3dDeconvolve will be
         run using '-stim_times', not '-stim_file'.  The user can still
         specify the 3dDeconvolve -stim_file files here, but they would
@@ -16370,8 +16500,8 @@ OPTIONS:  ~2~
         regressors should match the order of any labels, provided via the
         -regress_stim_labels option.
 
-        Alternately, this can be done via -regress_stim_times, along
-        with -regress_stim_types 'file'.
+        Alternately, and preferably, this can be done via -regress_stim_times,
+        along with -regress_stim_types 'file'.
 
         Please see '3dDeconvolve -help' for more information, or the link:
             https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004

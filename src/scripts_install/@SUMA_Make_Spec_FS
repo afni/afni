@@ -673,7 +673,7 @@ L_SET_SURF_DIRS:
             set endstr = ""
         else if ( $#surf_dirs == 1 ) then
             echo "surf directory found at '$surf_dirs[1]'"
-            set endstr = "consider running program from '$surf_dirs[1]:h'"
+            set endstr = "consider running program from '`dirname $surf_dirs[1]`'"
         else
             echo "multiple surf directories found:"
             set count = 1

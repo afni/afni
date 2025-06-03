@@ -136,6 +136,7 @@ int  AFNI_check_environ_done(void)  { return afni_env_done ; }
 
 static int bloced=0 ;
 
+/* return env var value, but on first call (machdep), init env from .afnirc */
 char * my_getenv( char *ename )
 {
    if( !bloced && !afni_env_done ){

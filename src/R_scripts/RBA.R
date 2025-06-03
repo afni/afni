@@ -29,158 +29,134 @@ intro <-
 	      Welcome to RBA ~1~
 Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.6, July 31, 2024 
+Version 1.1.9, May 31, 2025 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Usage: ~1~
------- 
-RBA performs region-based analysis (RBA) as theoretically elaborated in the
-manuscript: https://rdcu.be/bhhJp and is conducted with a shell script (as
-shown in the examples below). The input data should be formulated in a
-pure-text table that codes the regions and variables. The response variable
-is some effect at the individual subject level.
+Introduction
+-------
+RBA (Region-Based Analysis) is performed via a shell script, as demonstrated in the
+examples below. The method is detailed in the manuscript: https://rdcu.be/bhhJp.
+Input data must be formatted as a plain-text table specifying regions and variables.
+The response variable represents an effect at the individual subject level.
 
-Thanks to Paul-Christian Bürkner and the Stan/R communities for the strong support.
+Special thanks to Paul-Christian Bürkner and the Stan/R communities for their
+invaluable support.
 
-Citation: ~1~
-If you want to cite the approach for RBA, consider the following:~2~
+Citation
+-------
+If you wish to cite RBA, consider the following references:
 
-Chen G, Xiao Y, Taylor PA, Riggins T, Geng F, Redcay E, 2019. Handling Multiplicity
+Chen G, Xiao Y, Taylor PA, Riggins T, Geng F, Redcay E (2019). Handling Multiplicity
 in Neuroimaging through Bayesian Lenses with Multilevel Modeling. Neuroinformatics.
 https://rdcu.be/bhhJp
 
-Chen, G., Taylor, P.A., Cox, R.W., Pessoa, L., 2020. Fighting or embracing 
-multiplicity in neuroimaging? neighborhood leverage versus global calibration. 
-NeuroImage 206, 116320. https://doi.org/10.1016/j.neuroimage.2019.116320
+Chen G, Taylor PA, Cox RW, Pessoa L (2020). Fighting or embracing multiplicity in
+neuroimaging? Neighborhood leverage versus global calibration. NeuroImage, 206,
+116320. https://doi.org/10.1016/j.neuroimage.2019.116320
 
-Chen, G., Taylor, P.A., Stoddard, J., Cox, R.W., Bandettini, P.A., Pessoa, L., 
-2022. Sources of Information Waste in Neuroimaging: Mishandling Structures, 
-Thinking Dichotomously, and Over-Reducing Data. Aperture Neuro 2021, 46. 
+Chen G, Taylor PA, Stoddard J, Cox RW, Bandettini PA, Pessoa L (2022). Sources of
+Information Waste in Neuroimaging: Mishandling Structures, Thinking Dichotomously,
+and Over-Reducing Data. Aperture Neuro, 2021, 46.
 https://doi.org/10.52294/2e179dbf-5e37-4338-a639-9ceb92b055ea
 
-=============================== 
-Read the following carefully!
-===============================
-A data table in pure text format is needed as input for an RBA script. The
-data table should contain at least 3 columns that specify the information
-about subjects, regions and the response variable values with the following
-fixed header. The header labels are case-sensitive, and their order does not
-matter.
+Data Format Requirements
+-------
+A properly formatted plain-text data table is required for RBA. The table must
+contain at least three columns specifying subjects, regions, and response variable
+values. Column names are case-sensitive, but their order does not matter.
 
-Subj   ROI        Y      Age
-S1     Amyg    0.2643    11
-S2     BNST    0.3762    16
+Example Format:
+Subj   ROI       Y      Age  
+S1     Amyg    0.2643    11  
+S2     BNST    0.3762    16  
 ...
 
-0) You are performing Bayesian analysis. So, you will directly obtain the
-probability of the respective effect being positive or negative with your 
-data and adopted model, instead of looking for the p-value (weirdness of 
-your data under the modeling assumptions when pretending that absolutely 
-no effect exists).
+Key Guidelines
+-------
+1. Bayesian Approach:
 
-1) Avoid using pure numbers to code the labels for categorical variables. The
-column order does not matter. You can specify those column names as you
-prefer, but it saves a little bit scripting if you adopt the default naming
-for subjects (\'Subj\'), regions (\'ROI\') and response variable (\'Y\').
+Unlike frequentist methods, Bayesian analysis provides direct probability estimates
+for effects rather than p-values.
 
-2) Add more columns if explanatory variables are considered in the model. Currently
-only between-subjects variables (e.g., sex, patients vs. controls, age) are
-allowed. Capability of modeling within-subject or repeated-measures variables
-may be added in the future. Each label in a between-subjects factor (categorical
-variable) should be coded with at least 1 character (labeling with pure numbers
-is fine but not recommended). If preferred, you can quantitatively code the
-levels of a factor yourself by creating k-1 columns for a factor with k levels.
-However, be careful with your coding strategy because it would impact how to
-interpret the results. Here is a good reference about factor coding strategies:
-https://stats.idre.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables/
+2. Variable Naming & Encoding:
 
-3) It is strongly suggested that a quantitative explanatory variable be
-standardized with option -stdz; that is, remove the mean and scale by
-the standard deviation. This will improve the chance of convergence
-with each Markov chain. If a between-subjects factor (e.g., sex) is
-involved, it may be better to standardize a quantitative variable
-within each group in terms of interpretability if the mean value differs
-substantially. However, do not standardize a between-subjects factor if
-you quantitatively code it. And do not standardize the response variable
-if the intercept is of interest!
+* Avoid using pure numbers for categorical variables.
+* Default names (Subj, ROI, Y) simplify scripting but are not required.
 
-4) For within-subject variables, try to formulate the data as a contrast
-between two factor levels or as a linear combination of multiple levels.
+3. Incorporating Explanatory Variables:
 
-5) The results from RBA are effect estimates for each region. They can be
-slightly different across different runs or different computers and R
-package versions due to the nature of randomness involved in Monte Carlo
-simulations.
+* Only between-subject variables (e.g., sex, age, patient/control status) are
+  currently supported.
+* Within-subject/repeated measures support may be added in the future.
+* If encoding categorical variables numerically, ensure correct factor coding.
+* Reference: Factor coding strategies.
 
-6) The evidence for region effects in the output can be assessed through P+,
-the probability that the effect is positive conditional on the current
-model and dataset. Unlike the NHST convention, we emphasize that a decision 
-about the strength of statistical evidence should not be purely based on an
-artificial threshold. Instead, we encourage full results reporting:
-highlight some results with strong evidence and literature support (if
-available) without hiding the rest.
+4. Standardization for Improved Convergence:
+* Use the -stdz option to standardize continuous explanatory variables.
+* If grouping factors (e.g., sex) are present, standardize within each group if their
+  means differ significantly.
+* Do not standardize categorical variables or the response variable if the intercept
+  is of interest.
 
-7) WARNING: If the results are unexpectedly homogenized across regions, it is an
-indication that presumably partial pooling becomes full pooling. Most
-likely the cross-region variability is so negligible that the model
-renders the overall average as individual effects for all regions. When
-this occurs, you may need much more data for the model to differentiate
-the subtle effects.
+5. Handling Within-Subject Variables:
+* Express them as contrasts or linear combinations of factor levels.
 
-=========================
+6. Interpretation of Results:
+* RBA estimates effects per region, with slight variations across runs due to Monte
+  Carlo sampling.
+* The key output metric P+ represents the probability of an effect being positive
+  under the given model and data.
+* Unlike NHST, we discourage rigid significance thresholds and advocate full results
+  reporting.
 
-Installation requirements: ~1~
-In addition to R installation, the R package "brms" is required for RBA. Make
-sure that you have the most recent version of R. To install "brms", run the following
-command at the terminal:
+7. Homogenization Warning:
+* If results appear overly uniform across regions, cross-region variability may be too
+  low, leading to excessive pooling.
+* This suggests the need for more data to resolve subtle effects.
 
-rPkgsInstall -pkgs "brms" -site http://cran.us.r-project.org"
+Installation Requirements
+-------
+R & Required Packages
+* Ensure you have an up-to-date R installation. The brms package is required:
 
-Alternatively, you may install them in R:
+* Installation via Terminal:
+rPkgsInstall -pkgs "brms" -site http://cran.us.r-project.org
 
+* Or within R:
 install.packages("brms")
 
-*** To take full advantage of parallelization, install both \'cmdstan\' and 
-\'cmdstanr\' and use the option -WCP in MBA. However, extra stpes are required: 
-both \'cmdstan\' and \'cmdstanr\' have to be installed. To install \'cmdstanir\',
-execute the following command in R:
+Parallelization for Performance
+-------
+* For better performance, install cmdstan and cmdstanr and use the -WCP option in MBA.
 
-install.packages(\'cmdstanr\', repos = c(\'https://mc-stan.org/r-packages/\', getOption(\'repos\')))
+* Installing cmdstanr in R:
+install.packages("cmdstanr", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
 
-Then install \'cmdstan\' using the following command in R:
-
+* Installing cmdstan in R:
 cmdstanr::install_cmdstan(cores = 2)
-# Follow the instruction here for the installation of \'cmdstan\': 
-#    https://mc-stan.org/cmdstanr/articles/cmdstanr.html
-# If \'cmdstan\' is installed in a directory other than home, use option -StanPath 
-# to specify the path (e.g., -StanPath \'~/my/stan/path\').
 
-In addition, if you want to show the ridge plots of the posterior distributions
-through option -ridgePlot, make sure that the following R packages are installed:
+* Installation guide: https://mc-stan.org/cmdstanr/articles/cmdstanr.html
+If installed outside the home directory, specify the path using -StanPath \'~/my/stan/path\'.
 
-data.table
-ggplot2
-ggridges
-dplyr
-tidyr
-scales
+* Additional Packages for Ridge Plots
+If using -ridgePlot, install the following R packages:
+install.packages(c("data.table", "ggplot2", "ggridges", "dplyr", "tidyr", "scales"))
 
-Running: ~1~
-Once the RBA command script is constructed, it can be run by copying and
-pasting to the terminal. Alternatively (and probably better) you save the 
-script as a text file, for example, called myRBA.txt, and execute it with the 
-following  (assuming on tcsh shell),
+Running RBA
+-------
+Once the RBA script is ready, execute it via the terminal.
+
+Recommended Execution (tcsh shell)
+Save the script as myRBA.txt, then run:
 
 nohup tcsh -x myRBA.txt > diary.txt &
 nohup tcsh -x myRBA.txt |& tee diary.txt &
 
-The advantage of the commands above is that the progression is saved into
-the text file diary.txt and, if anything goes awry, can be examined later.
-The \'nohup\' command allows the analysis running in the background even if
-the terminal is killed.'
+The output is saved in diary.txt for debugging.
+The nohup command allows the script to continue running even if the terminal session is closed.'
 
 ex1 <- 
 "\n--------------------------------
@@ -355,14 +331,17 @@ if (adieu) exit.AFNI();
 read.RBA.opts.batch <- function (args=NULL, verb = 0) {
 params <- list (
 '-prefix' = apl(n = 1, d = NA,  h = paste(
-"-prefix PREFIX: Prefix is used to specify output file names. The main output is",
-"        a text with prefix appended with .txt and stores inference information ",
-"        for effects of interest in a tabulated format depending on selected ",
-"        options. The prefix will also be used for other output files such as ",
-"        visualization plots and for saved R data in binary format. The .RData can",
-"        be used for post hoc processing such as customized processing and plotting.",
-"        Remove the .RData file to save disk space once you deem such a file is no",
-"        longer useful.\n", sep = '\n'
+"-prefix PREFIX: The prefix option specifies the base name for output files. A",
+"         directory path can be included in the file name to specify a designated",
+"         location for storing output files. The primary output is a text file named",
+"         <prefix>.txt, which contains inference results for effects of interest in a",
+"         tabulated format based on the selected options. In addition to the text file,",
+"         the prefix is also used for other output files, including visualization plots",
+"         and an R data file saved in binary format (<prefix>.RData). The .RData file",
+"         allows for post hoc analysis, such as customized processing and plotting in ",
+"         R. If disk space is a concern, you can safely remove the .RData file once it",
+"         is no longer needed, as it is primarily for further exploratory analyses",
+"         rather than essential results.\n", sep = '\n'
 	     ) ),
 
 '-chains' = apl(n = 1, d = 1, h = paste(
@@ -694,7 +673,7 @@ an <- parse.AFNI.name(lop$outFN)
 if(!lop$overwrite && (
     file.exists(paste0(lop$outFN,".txt")) ||
     file.exists(paste0(lop$outFN,".RData")) ||
-    file.exists(paste0(lop$outFN,".pdf"))) ) {
+    file.exists(paste0(lop$outFN,".png"))) ) {
  errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
  return(NULL)
 }      
@@ -804,7 +783,10 @@ if(is.na(lop$mean)) {
    
 #   if(!lop$MD) if(nlevels(lop$dataTable$Subj)*nR < nrow(lop$dataTable))
 #stop(sprintf('Error: with %d regions and %d subjects, it is expected to have %d rows per subject, leading to totally %d rows in the input data table. However, there are only %d rows. If you have missing data, use option -MD', nR, nlevels(lop$dataTable$Subj), nR, nlevels(lop$dataTable$Subj)*nR, nrow(lop$dataTable)))
-}
+} else { # !is.na(lop$mean)
+   lop$dataTable[[lop$ROI]] <- as.factor(lop$dataTable[[lop$ROI]])
+   nR <- nlevels(lop$dataTable[[lop$ROI]]) # number of ROIs
+}    
 
 cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 
@@ -1067,7 +1049,7 @@ addTrans <- function(color,trans)
 
 plotPDP <- function(fn, ps, nR, nr, nc, w=8) {
    h <- ceiling(8*nr/(nc*2))  # plot window height
-   pdf(paste0(fn, "_PDF.pdf"), width=w, height=h)
+   png(paste0(fn, "_PDP.png"), width=w, height=h, units='in',res=300)
    #dev.new(width=w, height=h)
    par(mfrow=c(lop$PDP[1], nc), mar=c(2.5,0,0.0,0.8), oma=c(0,0,0,0))
    qq <- apply(ps, 2, quantile, c(0.025, 0.05, 0.1, 0.9, 0.95, 0.975)) # 95% central interval
@@ -1192,7 +1174,7 @@ ridge <- function(dat, xlim, labx, wi, hi) {
    units <- "in"                                           # "in", "cm", or "mm"
    height <- 5
    width <- 9
-   file.type <- ".jpeg"                   # can be ".jpeg",".pdf",".png",".bmp",".tiff",etc
+   file.type <- ".png" # ".jpeg"             # can be ".jpeg",".pdf",".png",".bmp",".tiff",etc
 
    ############################### O T H E R  #################################################
    #gradient.colors<-c("#41245C","yellow","gray","gray","blue","#C9182B") # change gradient colors
@@ -1260,7 +1242,7 @@ ridge <- function(dat, xlim, labx, wi, hi) {
        x = NULL,
        y = NULL) +
      scale_x_continuous(limits = xlim)+xlab(labx)
-     ggsave(file = paste0(labx, "_ridge.pdf"), width=wi, height=hi, dpi = 120)
+     ggsave(file = paste0(labx, "_ridge.png"), width=wi, height=hi, dpi = 120)
 }
 
 # for Intercept and quantitative variables
@@ -1289,8 +1271,9 @@ if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
 
 # for factor
 if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
-   lvl <- levels(lop$dataTable[[lop$EOIc[ii]]])  # levels
-   nl <- nlevels(lop$dataTable[[lop$EOIc[ii]]])  # number of levels: last level is the reference in deviation coding
+   lvl <- levels(as.factor(lop$dataTable[[lop$EOIc[ii]]]))  # levels
+   nl <- nlevels(as.factor(lop$dataTable[[lop$EOIc[ii]]]))  # number of levels: last level is the reference in deviation coding
+   #nR <- nlevels(as.factor(lop$dataTable[[lop$ROI]])) # number of ROIs
    ps <- array(0, dim=c(nl, ns, nR)) # posterior samples
    for(jj in 1:(nl-1)) ps[jj,,] <- psROI(aa, bb, paste0(lop$EOIc[ii],jj))
    ps[nl,,] <- psROI(aa, bb, 'Intercept') # Intercept: average effect 

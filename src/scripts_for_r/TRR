@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set pp = $0:h
+set pp = `dirname $0`
 #Run R in script more. Better than R CMD BATCH
 if ($#argv) then
    set na = $#argv; if ($na>10) set na=10; 

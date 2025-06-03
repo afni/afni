@@ -823,31 +823,33 @@ extern void binarize_mask( int , byte * ) ;
 #define NSTAT_VAR         17
 #define NSTAT_NUM         18
 #define NSTAT_PERCENTILE  19
-#define NSTAT_RANK        21      /* ZSS Jan 10 */
-#define NSTAT_FRANK       22      /* ZSS Jan 10 */
-#define NSTAT_P2SKEW      23      /* ZSS March 04 10*/
-#define NSTAT_KURT        24      /* ZSS Jan   04 11*/
-#define NSTAT_mMP2s0      25
-#define NSTAT_mMP2s1      26
-#define NSTAT_mMP2s2      27
-#define NSTAT_mmMP2s0     28
-#define NSTAT_mmMP2s1     29
-#define NSTAT_mmMP2s2     30
-#define NSTAT_mmMP2s3     31
-#define NSTAT_NZNUM       32
-#define NSTAT_FNZNUM      33
-#define NSTAT_diffs0      34
-#define NSTAT_diffs1      35
-#define NSTAT_diffs2      36
-#define NSTAT_adiffs0     37
-#define NSTAT_adiffs1     38
-#define NSTAT_adiffs2     39
-#define NSTAT_LIST        40
-#define NSTAT_HIST        41
-#define NSTAT_FILLED      42
-#define NSTAT_UNFILLED    43
-#define NSTAT_MASKED      44
-#define NSTAT_MASKED2     45
+#define NSTAT_RANK        21      /* ZSS Jan 10; updated 2025 */
+#define NSTAT_FRANK       22      /* ZSS Jan 10; updated 2025 */
+#define NSTAT_RANKINV     23      /* PT  May 14 2025 */
+#define NSTAT_FRANKINV    24      /* PT  May 14 2025 */
+#define NSTAT_P2SKEW      25      /* ZSS March 04 10*/
+#define NSTAT_KURT        26      /* ZSS Jan   04 11*/
+#define NSTAT_mMP2s0      27
+#define NSTAT_mMP2s1      28
+#define NSTAT_mMP2s2      29
+#define NSTAT_mmMP2s0     30
+#define NSTAT_mmMP2s1     31
+#define NSTAT_mmMP2s2     32
+#define NSTAT_mmMP2s3     33
+#define NSTAT_NZNUM       34
+#define NSTAT_FNZNUM      35
+#define NSTAT_diffs0      36
+#define NSTAT_diffs1      37
+#define NSTAT_diffs2      38
+#define NSTAT_adiffs0     39
+#define NSTAT_adiffs1     40
+#define NSTAT_adiffs2     41
+#define NSTAT_LIST        42
+#define NSTAT_HIST        43
+#define NSTAT_FILLED      44
+#define NSTAT_UNFILLED    45
+#define NSTAT_MASKED      46
+#define NSTAT_MASKED2     47
 
 #define NSTAT_FWHMx      63   /*these should be after all other NSTAT_* values */
 #define NSTAT_FWHMy      64

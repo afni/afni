@@ -2,9 +2,9 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-# !!! comment about movie/mpeg stuff! gifsicle, etc.
+# *** comment about movie/mpeg stuff, gifsicle, etc.
 
-# !!!? control loop speed?
+# ***? control loop speed?
 
 # written by PA Taylor (NIMH, NIH)
 # filter sets of acquired DWIs with accompanying bvals/vecs
@@ -71,7 +71,7 @@
 #set version = "3.6"; set rev_dat = "Mar 14, 2018"
 #   + bug fix: program would crash if bval was used, because the
 #     selector wasn't being copied in the correct location; thanks for
-#     finding, G. Cabras!
+#     finding, G. Cabras
 #
 #set version = "3.7"; set rev_dat = "May 22, 2018"
 #   + bug fix: was doing union, not intersection, of lists of string
@@ -93,14 +93,14 @@ set here      = "$PWD"
 set adir      = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (?!)."
+    echo "** Cannot find 'afni' (???)."
     goto BAD_EXIT
 else
     set aa   = `which afni`
-    set adir = $aa:h
+    set adir = `dirname $aa`
 endif
 
-# default location of viewer: user could modify!
+# default location of viewer: user could modify
 set my_viewer    = "$adir/@chauffeur_afni"
 set my_viewer_4d = "$adir/@djunct_4d_imager"
 
@@ -167,7 +167,7 @@ while ( $ac <= $#argv )
         set i0 = $ac
         # check that this ain't the end of argv[] entries
         if ( $i0 == $#argv ) then
-            echo "** ERROR: need at least one dset after $argv[$ac]!"
+            echo "** ERROR: need at least one dset after $argv[$ac]"
             goto BAD_EXIT
         else 
             # check that next argv[] member isn't a new option: shd be
@@ -185,7 +185,7 @@ while ( $ac <= $#argv )
             end
 
             if ( $#keepsel == 0 ) then
-                echo "** ERROR: need at least one dset after $argv[$ac]!"
+                echo "** ERROR: need at least one dset after $argv[$ac]"
                 goto BAD_EXIT
             else
                 echo "++ User has listed $#keepsel followers_NN dsets"
@@ -198,7 +198,7 @@ while ( $ac <= $#argv )
         set i0 = $ac
         # check that this ain't the end of argv[] entries
         if ( $i0 == $#argv ) then
-            echo "** ERROR: need at least one dset after $argv[$ac]!"
+            echo "** ERROR: need at least one dset after $argv[$ac]"
             goto BAD_EXIT
         else 
             # check that next argv[] member isn't a new option: shd be
@@ -216,7 +216,7 @@ while ( $ac <= $#argv )
             end
 
             if ( $#keepsel == 0 ) then
-                echo "** ERROR: need at least one dset after $argv[$ac]!"
+                echo "** ERROR: need at least one dset after $argv[$ac]"
                 goto BAD_EXIT
             else
                 echo "++ User has listed $#keepsel followers_NN dsets"
@@ -296,7 +296,7 @@ while ( $ac <= $#argv )
         if ( ( $movie == "MPEG" ) || ( $movie == "AGIF" ) ) then
             echo "++ OK, will make a movie of type $movie."
         else
-            echo "** ERROR: '$movie' is NOT an allowed movie format!"
+            echo "** ERROR: '$movie' is NOT an allowed movie format"
             echo "      -> must be either 'MPEG' or 'AGIF'"
             goto BAD_EXIT
         endif
@@ -366,7 +366,7 @@ endif
 # -------------------------------
 
 if ( ( "$keepsel" == "" ) ) then
-    echo "** ERROR: need SOME selection string!"
+    echo "** ERROR: need SOME selection string"
     echo "          Use either '-select ...' or '-select_file ...'"
     goto BAD_EXIT
 endif
@@ -374,7 +374,7 @@ endif
 # ========================= output/working dir ==========================
 
 if ( "$opref" == "" ) then
-    echo "** ERROR: need '-prefix ...' option provided!"
+    echo "** ERROR: need '-prefix ...' option provided"
     echo "   See the helpfile for more information."
     goto BAD_EXIT
 else
@@ -434,7 +434,7 @@ if ( "$outvecmat[4]" != "" ) then
 endif
 
 # in case someone wants just unit-mag vec|mat, we don't want to lose
-# the bvalue info!
+# the bvalue info
 if ( "$do_unit_mag" != "" ) then
     if ( "$outvecmat[3]" == "" ) then
         set outvecmat[3] = "-out_col_bval_sep"
@@ -514,7 +514,7 @@ if ( 1 ) then
         -prefix $odir/${opref}.nii.gz                            \
         -overwrite
 
-    # Feb,2017: take images!
+    # Feb,2017: take images
     if ( "$DO_VIEWER" == "1" ) then
         echo "++ Make AP images."
         set img_pref = "${opref}"
@@ -622,7 +622,7 @@ cat << EOF
                      files for an input set. Either this or '-select_file ..',
                      below, is required.
                      NB: there are neither square nor curly brackets used
-                     here!
+                     here
                      NB2: Always use single or double quotes around the
                      selector expression. 
                      NB3: User can enter a list of strings here, such as:
@@ -666,7 +666,7 @@ cat << EOF
   EXAMPLES:
 
     1) ... with selector via the command line (again, note the single
-       apostrophes around the selector!):
+       apostrophes around the selector):
 
         $this_prog  \
             -in_dwi       UNFILT_AP/AP.nii.gz       \
@@ -694,7 +694,7 @@ SHOW_VERSION:
    goto GOOD_EXIT
 
 FAIL_MISSING_ARG:
-    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
     goto BAD_EXIT
 
 BAD_EXIT:

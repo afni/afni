@@ -25,15 +25,9 @@ if ( $#argv > $basearg ) then
 endif
 
 # separate dir and file (and be careful of spaces)
-set dname = "$inname:h"
+# (if there are tabs or multiple spaces, this might fail)
+set dname = "`dirname $inname`"
 set fname = "$inname:t"
-
-# if no dir, use .
-if ( "$dname" == "$inname" ) then
-   set pt = "."
-else
-   set pt = "$dname"
-endif
 
 # remove any sub-brick selector
 set Nom = `echo "$fname" | awk -F[ '{print $1}'`

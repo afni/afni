@@ -17,14 +17,14 @@ set this_prog = @djunct_4d_slices_to_3d_vol
 #
 #set rev_dat = "July 12, 2018"
 #set version = "1.2"
-#   + work in much better way with 3dXYZcat!
+#   + work in much better way with 3dXYZcat
 #
 #set rev_dat = "July 25, 2018"; set version = "1.21"
-#   + rename to this!
+#   + rename to this
 #   + use "-pass" to avoid null arguments
 #
 set rev_dat = "Aug 28, 2018"; set version = "1.3"
-#   + use update xyz -> ijk prog!
+#   + use update xyz -> ijk prog
 #
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -37,10 +37,10 @@ if ( $status ) then
     goto BAD_EXIT
 else
     set aa   = `which afni`
-    set adir = $aa:h
+    set adir = `dirname $aa`
 endif
 
-# default location of viewer: user could modify!
+# default location of viewer: user could modify
 set my_viewer    = "$adir/@chauffeur_afni"
 set my_calc_func = "$adir/adjunct_calc_mont_dims.py"
 
@@ -251,8 +251,7 @@ if ( "$iseto" != "" ) then
         -master "$odir/$wdir/${ifileu0}"        \
         -rmode  "$res_mode"     \
         -prefix "$odir/$wdir/${ifileo0}"
-    # ! At this point, the input and master sets should have the same
-    # ! grid.
+    # At this point, the input and master sets should have the same grid.
 endif
 
 # ---------------------- what slice to grab ---------------------------
@@ -307,7 +306,7 @@ foreach jj ( `seq 1 1 $Nff` )
     else if ( $jj == 2 ) then
         set ll = "o"
     else
-        echo "** ERROR! Too many files looped?  How??"
+        echo "** ERROR: Too many files looped?  How??"
         goto BAD_EXIT
     endif
 
@@ -358,7 +357,7 @@ foreach jj ( `seq 1 1 $Nff` )
                     -prefix ${soutp}_${idxpad}.nii
             end
         else
-            echo "** ERROR! The number of volumes is somehow wrong??"
+            echo "** ERROR: The number of volumes is somehow wrong??"
             goto BAD_EXIT
         endif
 

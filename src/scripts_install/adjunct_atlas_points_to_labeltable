@@ -2,8 +2,11 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-set version   = "0.0";  set rev_dat   = "Apr 04, 2024"
+#set version   = "0.0";  set rev_dat   = "Apr 04, 2024"
 # + convert an atlas_point list to a labeltable
+#
+set version   = "1.0";  set rev_dat   = "Apr 11, 2025"
+# + sort entries by ROI int val by default (with option to not do so)
 #
 # ----------------------------------------------------------------
 
@@ -26,6 +29,8 @@ set DO_OW      = 0                       # when attaching, replace a LT?
 
 set wdir      = ""
 set DO_CLEAN  = 1                       # default: keep working dir
+
+set DO_SORT   = 1                       # default: sort columns by int val
 
 # ------------------- process options, a la rr ----------------------
 
@@ -74,6 +79,9 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-add_lt_to_input" ) then
         set DO_ADD = 1
+
+    else if ( "$argv[$ac]" == "-no_sort" ) then
+        set DO_SORT = 0
 
     else if ( "$argv[$ac]" == "-overwrite" ) then
         set DO_OW = 1
@@ -236,7 +244,12 @@ echo "++ Labeltable ready, and has ${nval} labels"
 
 # ----- write new labeltable
 
-set new_table = "${odir}/${wdir}/new_labeltable.niml.lt"
+set new_table  = "${odir}/${wdir}/new_labeltable.niml.lt"
+
+# temporary working files (helps with sorting and/or formatting)
+set new_labvalA = "${odir}/${wdir}/new_00_lab_val.1D"
+set new_labvalB = "${odir}/${wdir}/new_01_lab_val_sort.1D"
+
 
 # start new output file
 cat <<EOF >>! "${new_table}"
@@ -245,15 +258,29 @@ cat <<EOF >>! "${new_table}"
   ni_dimen="${nlab}" >
 EOF
 
-# middle of table: all the values
+
+# middle of new output file
+# 1) temp file first, with 3 cols (first is pure number: sort by this)
 foreach ii ( `seq 1 1 ${nlab}` ) 
     set lab = "${all_lab[$ii]}"
     set val = "${all_val[$ii]}"
-    # keep quotes in output, so treat val as a str
-    printf "%8s  %s\n" "${val:q}" "${lab:q}" >> "${new_table}"
+    set uuu = `echo "${val}" | tr -d '"'`  # same as val, w/o quotes
+    # keep most quotes in output, so treat val as a str
+    printf "%10d  %8s  %s\n" "${uuu}" "${val:q}" "${lab:q}" >> "${new_labvalA}"
 end
+# 2) write out either sorted or unsorted version
+if ( $DO_SORT ) then
+    # sort by the adjunct first col of pure numbers
+    sort -n -k 1 -b "${new_labvalA}" > "${new_labvalB}"
+    # ... and write cols 2-3 to a file, with justified formatting
+    cat "${new_labvalB}" | awk '{printf "%10s    %-s\n", $2,$3}' >> "${new_table}"
+else
+    # write the (unsorted) cols 2-3 to a file, with justified formatting
+    cat "${new_labvalA}" | awk '{printf "%10s    %-s\n", $2,$3}' >> "${new_table}"
+endif
 
-# end of table
+
+# end of output file
 cat <<EOF >>! "${new_table}"
 </VALUE_LABEL_DTABLE>
 EOF
@@ -334,6 +361,10 @@ Options ~1~
                    for convenience and recognizability
 
 -add_lt_to_input  :add the labeltable to the input dset header
+
+-no_sort          :by default, this program sorts the LT by integer value;
+                   using this option disables that, so they are written in 
+                   the order of the atlas_points
 
 -overwrite        :needed to overwrite an existing labeltable file PPP, or
                    to refit the labeltable of the input dset if 

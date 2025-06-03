@@ -512,7 +512,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              Mixed-Effects Multilevel-Analysis Modeling!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.2, Jan 17, 2023
+Version 1.1.4, Mar 12, 2025
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MEMA
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1721,11 +1721,11 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
       # need to scale this for Knapp & Hartung method as done above by s2w <- c( t(Y) %*% P %*% Y ) / (n-p)?
       if((lapMod==0) | noMoM) resZ <- P %*% Y / sqrt(diag(P %*% tcrossprod(diag(vTot), P)))
    
-      res         <- list(b, se, z, tau2, QE, lamc, resZ, meth, iter)
-      names(res)  <- c("b", "se", "z", "tau2", "QE", "lamc", "resZ", "meth", "iter")
+      res         <- list(b, se, z, 1/(1+(n-p-1)/(tr(P0)*tau2)), tau2, QE, lamc, resZ, meth, iter)
+      names(res)  <- c("b", "se", "z", "I2", "tau2", "QE", "lamc", "resZ", "meth", "iter")
    } else {  # no residual statistics
-      res         <- list(b, se, z, tau2, QE, meth, iter)
-      names(res)  <- c("b", "se", "z", "tau2", "QE", "meth", "iter")
+      res         <- list(b, se, z, 1/(1+(n-p-1)/(tr(P0)*tau2)), tau2, QE, meth, iter)
+      names(res)  <- c("b", "se", "z", "I2", "tau2", "QE", "meth", "iter")
    }
    res
    #browser()
@@ -1868,7 +1868,7 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod,
       
       stat <- collect(Y, vb, R, P, n, p, knha, con)
       out  <- list(stat$se, stat$b, stat$z, tau2, P, 1, 1, iter)
-      names(out) <- c("se", "b", "z", "tau2", "P", "conv", "meth", "iter")
+      names(out) <- c("se", "b", "z", "tau", "P", "conv", "meth", "iter")
    }
    out
    } # end of Laplace
@@ -2028,7 +2028,7 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
    if(sum(abs(Y)>tol) >= nNonzero) {  # run only when there are more than 2 non-zeros in both Y and V
    resList <- NULL
    if(anaType==4) try(resList <- mema(Y, V, n[1], n[2], p, X=xMat, resZout, lapMod, knha=KHtest), silent=TRUE) else
-      if(length(n)==1) try(resList <- mema(Y, V, n, p, X=xMat, resZout, lapMod, knha=KHtest), silent=TRUE) else
+      if(length(n)==1) try(resList <- mema(Y, V, n, p, X=xMat, resZout, lapMod, knha=KHtest), silent=TRUE) else  # one group
       try(resList <- mema(Y, V, n[2], p, X=xMat, resZout, lapMod, knha=KHtest), silent=TRUE)  # for the case of 2 groups with homoskedasticiy
    
    #if(is.null(resList)) tag <- FALSE  # stop here if singularity occurs
@@ -2082,20 +2082,20 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
       if(KHtest & all(resList$scl>tol)) outData[c(2,4,6)] <- outData[c(2,4,6)]/resList$scl
    
       if(resZout==0) {
-         outData[nBrick-5] <- resList$tau2[1]
-         outData[nBrick-3]   <- resList$tau2[2]
+         outData[nBrick-5] <- sqrt(resList$tau2[1])
+         outData[nBrick-3]   <- sqrt(resList$tau2[2])
          outData[nBrick-4] <- resList$QE[1]
          outData[nBrick-2]   <- resList$QE[2]
-         outData[nBrick-1] <- ifelse(resList$tau2[2] > tol, resList$tau2[1]/resList$tau2[2], 0)
-         outData[nBrick]   <- ifelse(resList$tau2[1] > tol, resList$tau2[2]/resList$tau2[1], 0)
+         outData[nBrick-1] <- sqrt(ifelse(resList$tau2[2] > tol, resList$tau2[1]/resList$tau2[2], 0))
+         outData[nBrick]   <- sqrt(ifelse(resList$tau2[1] > tol, resList$tau2[2]/resList$tau2[1], 0))
       } else {
    
-      outData[nBrick-2*n[2]-5] <- resList$tau2[1]
-      outData[nBrick-2*n[2]-3]   <- resList$tau2[2]
+      outData[nBrick-2*n[2]-5] <- sqrt(resList$tau2[1])
+      outData[nBrick-2*n[2]-3]   <- sqrt(resList$tau2[2])
       outData[nBrick-2*n[2]-4] <- resList$QE[1]
       outData[nBrick-2*n[2]-2]   <- resList$QE[2]
-      outData[nBrick-2*n[2]-1] <- ifelse(resList$tau2[2] > tol, resList$tau2[1]/resList$tau2[2], 0)
-      outData[nBrick-2*n[2]]   <- ifelse(resList$tau2[1] > tol, resList$tau2[2]/resList$tau2[1], 0)
+      outData[nBrick-2*n[2]-1] <- sqrt(ifelse(resList$tau2[2] > tol, resList$tau2[1]/resList$tau2[2], 0))
+      outData[nBrick-2*n[2]]   <- sqrt(ifelse(resList$tau2[1] > tol, resList$tau2[2]/resList$tau2[1], 0))
    
       for(ii in 1:n[1]) {
          outData[nBrick-2*(n[2]-ii)-1] <- resList$lamc[ii]   # lamda = 1-I^2
@@ -2109,10 +2109,11 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
       } # if(resZout==0)
    } else {  # not anaType==4
    if(resZout==0) {
-      outData[nBrick-1] <- resList$tau2
+      outData[nBrick-1] <- sqrt(resList$tau2)
       outData[nBrick]   <- resList$QE
+      outData[nBrick-2] <- resList$I2
    } else {
-      outData[nBrick-2*n-1] <- resList$tau2
+      outData[nBrick-2*n-1] <- sqrt(resList$tau2)
       outData[nBrick-2*n]   <- resList$QE
       for(ii in 1:n) {
       outData[nBrick-2*(n-ii)-1] <- resList$lamc[ii]   # lamda = 1-I^2
@@ -2284,9 +2285,9 @@ tolU <- 1e8  # upper tolerance for those variances of 0
    # for outlier identificaiton - need to do the same for type 4
   
    if(is.null(lop$myDim)) lop$myDim <- c(1,1,1) 
-   nBrick0 <- 4*lop$nGrp+(anyCov)*2*lop$nCov   
+   nBrick0 <- 4*lop$nGrp+(anyCov)*2*lop$nCov + 1 # extra one for I2 
                         # no. sub-bricks in the main output
-   nBrick <- 4*lop$nGrp+(anyCov)*2*lop$nCov+2*sum(lop$nSubj)*lop$resZout  
+   nBrick <- 4*lop$nGrp+(anyCov)*2*lop$nCov+2*sum(lop$nSubj)*lop$resZout+1
                         # total sub-bricks in all output
    if(lop$anaType==4) {
       nBrick0 <- nBrick0+4; nBrick <- nBrick+4
@@ -2468,13 +2469,14 @@ tolU <- 1e8  # upper tolerance for those variances of 0
    
    if(lop$anaType==4) {
       for(ii in 1:lop$nGrp) {
-         outLabel <- append(outLabel, sprintf("%s:tau^2", lop$testName[[ii]]))
+         outLabel <- append(outLabel, sprintf("%s:tau", lop$testName[[ii]]))
          outLabel <- append(outLabel, sprintf("%s:QE", lop$testName[[ii]]))
       }
-      outLabel <- append(outLabel, "tau1^2 / tau2^2")
-      outLabel <- append(outLabel, "tau2^2 / tau1^2")
+      outLabel <- append(outLabel, "tau1 / tau2")
+      outLabel <- append(outLabel, "tau2 / tau1")
    } else {
-      outLabel <- append(outLabel, "tau^2")
+      outLabel <- append(outLabel, "I2")
+      outLabel <- append(outLabel, "tau")
       outLabel <- append(outLabel, "QE:Chisq")  
    }
    
@@ -2567,8 +2569,8 @@ tolU <- 1e8  # upper tolerance for those variances of 0
    if(anyCov) {
       for(ii in 1:lop$nCov) {
          statpar <- paste( statpar, " -substatpar ", 
-                           nBrick0-3-2*(lop$nCov-ii), " fitt ", nDF)
-         statsym <- c(statsym,list(list(sb=nBrick0-3-2*(lop$nCov-ii), typ="fitt",
+                           nBrick0-3-2*(lop$nCov-ii)-1, " fitt ", nDF)
+         statsym <- c(statsym,list(list(sb=nBrick0-3-2*(lop$nCov-ii)-1, typ="fitt",
                                    par=nDF)))
       }
    }

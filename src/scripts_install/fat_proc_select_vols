@@ -47,14 +47,14 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (?!)."
+    echo "** Cannot find 'afni' (???)."
     goto BAD_EXIT
 else
     set aa   = `which afni`
-    set adir = $aa:h
+    set adir = `dirname $aa`
 endif
 
-# default location of viewer: user could modify!
+# default location of viewer: user could modify
 set my_viewer    = "$adir/@chauffeur_afni"
 set my_selector  = "$adir/@djunct_dwi_selector.tcsh" # [PT: Jun 25, 2018] tcsh
 set my_encoder   = "$adir/adjunct_select_str.py"
@@ -140,7 +140,7 @@ while ( $ac <= $#argv )
         if ( ( $movie == "MPEG" ) || ( $movie == "AGIF" ) ) then
             echo "++ OK, will make a movie of type $movie."
         else
-            echo "** ERROR: '$movie' is NOT an allowed movie format!"
+            echo "** ERROR: '$movie' is NOT an allowed movie format"
             echo "      -> must be either 'MPEG' or 'AGIF'"
             goto BAD_EXIT
         endif
@@ -236,7 +236,7 @@ if ( "$obads" == "" ) then
 
     if ( -e "$obads" ) then
         echo ""
-        echo "** ERROR! File for listing 'bads' exists already: $odir/$obads"
+        echo "** ERROR: File for listing 'bads' exists already: $odir/$obads"
         echo "   ---> If you want to add to a list you started previously,"
         echo "        you must use the '-in_bads ...' option."
         echo "        (Sorry, but hopefully this prevents mistakenly"
@@ -249,10 +249,10 @@ else
     # in input by the user, then $obads shd be a full path, as needed, 
     if ( -e "$obads" ) then
         echo ""
-        echo "+* WARNING! Just so you know the file: $obads"
-        echo "   exists already!  I assume you know that you will append to"
+        echo "+* WARNING: Just so you know the file: $obads"
+        echo "   exists already.  I assume you know that you will append to"
         echo "   it, and that you want to do so (because I assume all users"
-        echo "   read help files as much as *I* do!)"
+        echo "   read help files as much as *I* do)."
         echo "   Ooook, carrying on, then.\n"
     endif
 endif
@@ -372,7 +372,7 @@ else
         endif
 
         if ( "$DO_CLEAN" == "1" ) then
-            echo "\n++ Cleaning working directory!\n"
+            echo "\n++ Cleaning working directory\n"
             cd "$here"
             \rm -rf $wdir
         else
@@ -449,7 +449,7 @@ cat << EOF
                    the complete removal to *both* volumes.  Note also,
                    that once you apply this selection to the volumes,
                    you also need to apply it to any bval, bvec, bmatrix,
-                   etc. text files!
+                   etc. text files.
 
     -do_movie AGIF | MPEG:
                    when "-apply_to_vols" is used, static images are 
@@ -492,7 +492,7 @@ SHOW_VERSION:
     goto GOOD_EXIT
 
 FAIL_MISSING_ARG:
-    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
     goto BAD_EXIT
 
 BAD_EXIT:

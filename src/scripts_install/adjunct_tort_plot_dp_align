@@ -218,7 +218,7 @@ cat << EOF
 
 OVERVIEW ~1~
 
-When processing DWI data with TORTOISE's DIFFPREP, you (yes, you!) can
+When processing DWI data with TORTOISE's DIFFPREP, you (yes, *you*) can
 view some of the output alignment parameters.  In particular, this
 program displays the rigid-body alignment parameters (3 rotations and
 3 translations), which might give you a sense of subject motion.
@@ -328,7 +328,7 @@ SHOW_VERSION:
    goto GOOD_EXIT
 
 FAIL_MISSING_ARG:
-    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
     goto BAD_EXIT
 
 BAD_EXIT:

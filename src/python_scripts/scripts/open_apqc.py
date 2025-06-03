@@ -53,6 +53,11 @@ flask_warn+= """
    We continue on, but the fancy APQC buttons will not be enabled.
 """
 
+anti_warn = """
+++ IGNORE the following warning about being a development server
+   that should not be used in production deployment... 'Tis fine."""
+
+
 # ========================================================================== 
 # setup help and options
 
@@ -531,6 +536,7 @@ if __name__ == "__main__":
     
     if DO_HAVE_FLASK :
         # start the flask application---have to refresh above pages?
+        print(anti_warn)
         app.run(host=host, port=portnum) #, debug=True)
 
         print("++ DONE.  Goodbye.")

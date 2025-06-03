@@ -434,11 +434,7 @@ PARSE_COMMAND:
          endif
          set SurfAnatPrefix = `@GetAfniPrefix $SA_in` 
          set SurfAnatView = `@GetAfniView $SA_in` 
-         set SurfAnatPath = $SA_in:h
-         if ( $SurfAnatPath == $SA_in:t ) then 
-            #no path given
-            set SurfAnatPath = .
-         endif
+         set SurfAnatPath = `dirname $SA_in`
    endif
    
    goto Ret_PARSE_COMMAND

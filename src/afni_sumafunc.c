@@ -30,7 +30,7 @@ int AFNI_vnlist_func_overlay( Three_D_View *im3d, int ks ,
                               SUMA_irgba **map, int *nvused )
 {
    MRI_IMAGE *im_thr , *im_fim ;
-   short fim_ovc[NPANE_MAX+1] ;
+   short fim_ovc[NPANE_MAX+1]={0} ; /* init to quiet poor compiler warning */
    byte  ovc_r[NPANE_MAX+1], ovc_g[NPANE_MAX+1], ovc_b[NPANE_MAX+1] ;
    int ii,jj,nn , lp , num_lp , ival ;
    float scale_factor , scale_thr=1.0 , scale_fim=1.0 ;

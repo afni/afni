@@ -74,9 +74,12 @@
 #ver = '3.08' ; date = 'Sep 4, 2022' 
 # [PT] create+use subj ID info now
 #
-ver = '3.09' ; date = 'Sep 6, 2022' 
+#ver = '3.09' ; date = 'Sep 6, 2022' 
 # [PT] make URL more flexible by reading in origin---don't assume it is 
 # just 5000
+#
+ver = '4.00' ; date = 'Mar 17, 2025' 
+# [PT] top row buttons now make pages jump across all tabs, if doubleclicked
 #
 #########################################################################
 
@@ -871,6 +874,7 @@ class apqc_title_info:
 
     title       = ""
     subj        = ""
+    ses         = ""
     taskname    = ""
     itemtype    = ""
     itemid      = ""
@@ -905,6 +909,10 @@ class apqc_title_info:
         if 'subj' in DICT :
             self.subj = DICT['subj']
 
+    def set_ses(self, DICT):
+        if 'ses' in DICT :
+            self.ses = DICT['ses']
+
     # this just runs through all possible things above and fills in
     # what it can
     def set_all_from_dict(self, DICT):
@@ -915,6 +923,7 @@ class apqc_title_info:
         self.set_blockid_hov(DICT)
         self.set_taskname(DICT)
         self.set_subj(DICT)
+        self.set_ses(DICT)
 
 # -------------------------------------------------------------------
 
@@ -962,7 +971,7 @@ def write_list_ids_file(oids, list_ids):
 
 # -------------------------------------------------------------------
 
-def make_nav_table(llinks, subj='', max_wlevel=''):
+def make_nav_table(llinks, subj='', ses='', max_wlevel=''):
     # table form, not ul 
     N = len(llinks)
     idx = 0
@@ -1037,6 +1046,7 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
       <td class="td1" id=td1_{ll}>
         <button class="button-generic button-LHS btn5" id="btn5_{ll}" 
         onmousedown="moveToDiv(hr_{ll})" 
+        ondblclick="jumpAllOpenApqcToID('{ll}')"
         title="{hov}" 
         {finaltab} 
         onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{ll}); }}">
@@ -1054,6 +1064,7 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
       <td class="td1" id=td1_{ll}>
         <button class="button-generic button-LHS btn0" id="btn5_{ll}" 
         onmousedown="moveToDiv(hr_{ll})" 
+        ondblclick="jumpAllOpenApqcToID('{ll}')"
         title="{hov}" 
         {finaltab} 
         onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{ll}); }}">
@@ -1148,9 +1159,21 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
     <p class="subj_text">{subj}</p>
     </td>
   </tr>
-</table>
 '''.format(subj=subj)
 
+    # ... and maybe session ID, if available
+    if ses :
+        y+= '''
+  <tr>
+    <td style="width: fit-content;">
+    <p class="subj_text">{ses}</p>
+    </td>
+  </tr>
+'''.format(ses=ses)
+
+    y+= '''
+</table>
+'''
 
 
     # ------------------------------------------------------ 
@@ -1326,6 +1349,48 @@ function colorizeSavingButton(val) {
 
 /* ... finally, use and colorize */
 colorizeSavingButton(is_served);
+'''
+
+    # [PT: 2025-04-02] allow pages to close more easily (saving is unchanged)
+    # [PT: 2025-04-09] this has to go *after* the colorizeSavingButton stuff,
+    #                  apparently
+    # [PT: 2025-04-23] having this here breaks cross-tab jumpability, so 
+    #                  commenting out for now
+    if 0 :
+        y+= '''
+/*
+  The following three items allow us to close an HTML page without
+  needing to verify, which is nice when the are many tabs open.  
+  From:
+  https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event#examples
+*/
+const beforeUnloadHandler = (event) => {
+  // Recommended
+  event.preventDefault();
+
+  // Included for legacy support, e.g. Chrome/Edge < 119
+  event.returnValue = true;
+};
+
+const nameInput = document.querySelector("#name");
+
+nameInput.addEventListener("input", (event) => {
+  if (event.target.value !== "") {
+    window.addEventListener("beforeunload", beforeUnloadHandler);
+  } else {
+    window.removeEventListener("beforeunload", beforeUnloadHandler);
+  }
+});
+'''
+
+    # [PT: 2025-05-20] ACTUALLY allow pages to close easily, while saving
+    y+= '''
+/*
+  Adding this helps the APQC HTMLs close without being requested to verify,
+  which is much nicer functionality, particularly when many are open.
+  Thanks for this go to: T. Hanayik.  
+*/
+window.addEventListener("beforeunload", (event) => { })
 '''
 
     y+= '''
@@ -1521,7 +1586,11 @@ function flt2str0_dir(flt, ndec = 0, dir = '' ) {
 
 '''
 
-    y+= '''
+    # [PT: 2025-05-20] think we can leave this out of HTML, to
+    # facilitate easier closing of webpage; see above for adding in
+    # new onbeforeunload behavior
+    if 0 :
+        y+= '''
 /*
   OFF AT THE MOMENT, but a guard for reloading page
 */
@@ -2358,13 +2427,17 @@ function translateBtn1TextToJsonRating( tt ) {
 # -------------------------------------------------------------------
 # -------------------------------------------------------------------
 
-def wrap_page_title( xtitle, xsubj, xstudy='',
+def wrap_page_title( xtitle, xsubj, xses='', xstudy='',
                      vpad=0, addclass="", blockid='', padmarg=0 ):
 
+    # can have session info at top now (via AP uvar)
+    if xses :    txt_ses = ', ' + xses
+    else:        txt_ses = ''
 
-    txt_study = ''
-    if xstudy :
-        txt_study+= '<pre><h3>task: {study}</h3></pre>'.format( study=xstudy )
+    # task name, which could come via AP uvar
+    if xstudy :    ttt = xstudy
+    else:          ttt = 'task_name'
+    txt_study = '<pre><h3>task: {study}</h3></pre>'.format( study=ttt )
 
     # start the first div on the page
     y = '''<!-- start of title block div -->
@@ -2389,12 +2462,12 @@ def wrap_page_title( xtitle, xsubj, xstudy='',
   <!-- top of subj/title info -->
   <div style="text-align: center;">
     <div style="display: inline-block; text-align: left;">
-      <pre><h2>subj: {subj}</h2></pre>
+      <pre><h2>subj: {subj}{txt_ses}</h2></pre>
       {txt_study}
     </div>
   </div> <!-- bot of subj/title info -->
 </div> <!-- end of title block div -->
-'''.format( title=xtitle, subj=xsubj, txt_study=txt_study )
+'''.format( title=xtitle, subj=xsubj, txt_study=txt_study, txt_ses=txt_ses )
 
     if vpad:
         y = """\n"""+y

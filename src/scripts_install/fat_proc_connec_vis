@@ -48,11 +48,11 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (?!)."
+    echo "** Cannot find 'afni' (???)."
     goto BAD_EXIT
 else
     set aa   = `which afni`
-    set adir = $aa:h
+    set adir = `dirname $aa`
 endif
 
 # ----------------------- set defaults --------------------------
@@ -99,7 +99,7 @@ while ( $ac <= $#argv )
         set i0 = $ac
         # check that this ain't the end of argv[] entries
         if ( $i0 == $#argv ) then
-            echo "** ERROR: need at least one dset after $argv[$ac]!"
+            echo "** ERROR: need at least one dset after $argv[$ac]"
             goto BAD_EXIT
         else 
             # check that next argv[] member isn't a new option: shd be
@@ -117,7 +117,7 @@ while ( $ac <= $#argv )
             end
 
             if ( $#fNN == 0 ) then
-                echo "** ERROR: need at least one dset after $argv[$ac]!"
+                echo "** ERROR: need at least one dset after $argv[$ac]"
                 goto BAD_EXIT
             else
                 echo "++ User has listed $#fNN followers_NN dsets"
@@ -302,7 +302,7 @@ if ( $#fNN > 0 ) then
                 echo "** ERROR: while trying to parse file names"
                 echo "     I ran into the file: $ffi"
                 echo "     which has >1 instance of '__' in it"
-                echo "     ... and I don't know how to deal with it!"
+                echo "     ... and I don't know how to deal with it"
                 echo "     You flagged this as 3dTrackID output--"
                 echo "     are you *sure* of that?"
                 goto BAD_EXIT
@@ -347,7 +347,7 @@ foreach ii ( `seq 1 1 $#ilist` )
 end
 echo ""
 
-# ========================= Now do work! ==========================
+# ========================= Now do work ==========================
 
 echo "++ Now, start putting the files together."
 
@@ -436,12 +436,6 @@ echo "++ View with: "
 echo "       suma -onestate -i ${fout}*.gii\n"
 echo "   ... and possibly add something like '-vol dt_FA.nii.gz'?\n"
 
-#echo   "#\!/bin/tcsh\n"                      > $run_file
-#printf "suma -onestate -i ${opref}*.gii "   >> $run_file
-
-#set runf = `ls $run_file`
-#echo "++ Basic SUMA command saved in: "
-#echo "       $runf\n"
 
 if ( "$DO_CLEAN" == "1" ) then
     cd "$here"
@@ -563,7 +557,7 @@ SHOW_VERSION:
     goto GOOD_EXIT
 
 FAIL_MISSING_ARG:
-    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
     goto BAD_EXIT
 
 BAD_EXIT:

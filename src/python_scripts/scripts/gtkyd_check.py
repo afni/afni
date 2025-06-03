@@ -101,13 +101,15 @@ Examples ~1~
 
 ... and any of these might be usefully followed up with
 gen_ss_review_table.py (querying the dset*.txt files in the outdir),
-to find subject datasets that have certain properties.  For example:
+to find subject datasets that have certain properties.  For example
+('-outlier_sep space' vertically aligns text output columns):
 
     gen_ss_review_table.py                               \\
-       -infiles group_summary/dset*txt                   \\
-       -report_outliers 'nv'     VARY                    \\
-       -report_outliers 'orient' VARY                    \\
-       -report_outliers 'ad3'    LT 3.0 
+       -infiles          group_summary/dset*txt          \\
+       -outlier_sep      space                           \\
+       -report_outliers  'nv'     VARY                   \\
+       -report_outliers  'orient' VARY                   \\
+       -report_outliers  'ad3'    LT 3.0 
 
 
 """

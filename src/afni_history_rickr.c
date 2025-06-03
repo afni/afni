@@ -53,6 +53,161 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Jun, 2025, RCR, "build_afni.py", MICRO, TYPE_ENHANCE,
+   "display full make command before compiling",
+   NULL
+ } ,
+
+ {  2, Jun, 2025, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "update OS_notes.macos_12_b_user.tcsh to skip homebrew gcc for now",
+   "Use 'build_afni.py ... -cc_path /usr/bin/gcc' for now, until we\n"
+   "resolve the issues with gcc-15."
+ } ,
+
+ { 16, May, 2025, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "add help for forgotten m_tedana_OC_tedort/OC_m_tedort combine methods",
+   NULL
+ } ,
+
+ { 25, Apr, 2025, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
+   "automatically replace n/a values with 0.0 when reading TSV",
+   "And allow wildcard matching for column selectors."
+ } ,
+
+ { 24, Apr, 2025, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "use updated find_variance_lines.tcsh (no -erode 2)",
+   "The -ignore_edges method improves on the intention of -erode."
+ } ,
+
+ { 23, Apr, 2025, RCR, "afni.c", MICRO, TYPE_MODIFY,
+   "add terminal handler to pass to XtAppSetErrorHandler",
+   "This is needed to use __attribute__((noreturn)) for macos /usr/bin/gcc.\n"
+   "Added for J Kadlec."
+ } ,
+
+ { 21, Apr, 2025, RCR, "find_variance_lines.tcsh", MINOR, TYPE_NEW_OPT,
+   "add -ignore_edges, to help avoid reporting motion-based variance lines",
+   NULL
+ } ,
+
+ { 13, Apr, 2025, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "quiet some compile warnings",
+   NULL
+ } ,
+
+ { 12, Apr, 2025, RCR, "model_conv_PRF_DN", MINOR, TYPE_NEW_PROG,
+   "add Divisive Normalization population receptive field model",
+   "Requested by E Merriam."
+ } ,
+
+ { 12, Apr, 2025, RCR, "get_afni_model_PRF_DN", MICRO, TYPE_NEW_PROG,
+   "interface to compute model curve from parameters",
+   NULL
+ } ,
+
+ {  8, Apr, 2025, RCR, "afni_general", MICRO, TYPE_MODIFY,
+   "deal with homebrew updating cmake to 4.0.0 just after AFNI_25.0.13",
+   "The cmake version was changed from 3.31.6 to 4.0.0, leading to a\n"
+   "few needed updates."
+ } ,
+
+ {  4, Apr, 2025, RCR, "3dTshift", MICRO, TYPE_MODIFY,
+   "modify the -help to show slice timing in units of seconds",
+   "Seconds are more common now.  Mention connection with dataset TR units."
+ } ,
+
+ {  3, Apr, 2025, RCR, "APMULTI_Demo2_realtime", MINOR, TYPE_ENHANCE,
+   "add rt.21.py2rr example, send mot and ROI aves 2 rr via python",
+   "Demonstrate the basics of sending motion parameters and ROI averages\n"
+   "to realtime_receiver.py."
+ } ,
+
+ {  2, Apr, 2025, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "parse and pass any opts_ts -tpattern @FILE pattern to review_basic",
+   "Thanks to colmconn on MB for pointing it out."
+ } ,
+
+ { 29, Mar, 2025, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
+   "add -sort_method geme_rin back in",
+   "This method is like geme_index, but uses RIN for the initial sort.\n"
+   "Thanks to Shruti for reminding of its usefulness."
+ } ,
+
+ { 28, Mar, 2025, RCR, "APMULTI_Demo2_realtime", MINOR, TYPE_ENHANCE,
+   "add rt.20.python example, data 2 afni -rt via python",
+   "Demonstrate the basics of sending data to 'afni -rt'."
+ } ,
+
+ { 24, Mar, 2025, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -sort_method echo_rin",
+   "This works well if RIN repeats per volume and echo, and echo is set.\n"
+   "geme_rin was temporarily removed, but that angered the mighty Shruti."
+ } ,
+
+ { 21, Mar, 2025, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add combine methods OC_m_tedort and m_tedana_OC_tedort",
+   "These are additional methods using the MEICA group tedana.  They both\n"
+   "extract the tedort regressors (reject, but with accept projected out),\n"
+   "using OC data and passing the tedort regressors to the final regression."
+ } ,
+
+ { 20, Mar, 2025, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -select_cols_via_TSV_table",
+   "This was intended for processing tedana output.  Given a TSV component\n"
+   "file as -input, the new option allows one to select accepted or rejected\n"
+   "components via the metrics.tsv table."
+ } ,
+
+ { 17, Mar, 2025, RCR, "build_afni.py", MINOR, TYPE_BUG_FIX,
+   "if -git_branch is non-master, do not apply default tag",
+   NULL
+ } ,
+
+ { 11, Mar, 2025, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "update examples class 3,5 per AD6; NL_warped_dsets requires e2a",
+   NULL
+ } ,
+
+ {  7, Mar, 2025, RCR, "InstaTract", MINOR, TYPE_BUG_FIX,
+   "add forgotten Wait_Till_Stream_Goes_Bad function (was using SUMA_)",
+   NULL
+ } ,
+
+ {  6, Mar, 2025, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "jpeg-6b/configure: save more details",
+   NULL
+ } ,
+
+ { 27, Feb, 2025, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add options -show_merged_opts and -compare_merged_opts",
+   NULL
+ } ,
+
+ { 27, Feb, 2025, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "add get_macos_mdls_val() for a deeper check on the XQuartz version",
+   NULL
+ } ,
+
+ { 26, Feb, 2025, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "note if 'afni' is owned by root or not user",
+   NULL
+ } ,
+
+ { 24, Feb, 2025, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "update Makefile.linux_ubuntu* (16,24,24_ARM) to distribute libgsl",
+   NULL
+ } ,
+
+ { 24, Feb, 2025, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
+   "no masking for max F on surface",
+   NULL
+ } ,
+
+ { 24, Feb, 2025, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "avoid potential sub prefix when getting spec files",
+   "Thanks to jmj0309 on MB for noting the issue."
+ } ,
+
  { 11, Feb, 2025, RCR, "3dROIstats", MINOR, TYPE_BUG_FIX,
    "fix nzvoxels and mode - had incorrectly applied float formatting",
    NULL

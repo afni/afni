@@ -23,7 +23,7 @@ help.GLMM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dGLMM ==================
           Program for Voxelwise Generalized Linear Mixed-Models (GLMMs) 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Nov 27, 2024
+Version 0.0.3, Feb 18, 2025
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -172,8 +172,10 @@ Introduction
   The following four reserved keywords should not be used in custom
   specifications for post-hoc estimations:  
   
-  - **LAB**:   Used to define a label for the estimate.  
-  - **CAT**:   Specifies a categorical variable.  
+  - **LAB**:   Used to define a label for the estimated effect.  
+  - **CAT**:   Specifies a categorical variable for which effects are estimated
+               each level, and all possible pairwise comparisons. Use *1* for
+               the intercept or overall mean of the model.  
   - **FIX**:   Indicates variables fixed at specific levels or values.  
   - **QUANT**: Specifies the estimation of a slope for a quantitative variable.  
   
@@ -187,10 +189,12 @@ Introduction
   
   2. **`-level LAB pos.slp2 CAT 1 FIX task=pos,age=2`**  
      - Estimates the effect of the *pos* task at *age = 2* (relative to the
-       centered value of age).  
+       centered value of age). The number *1* represents the intercept or grand
+       mean of the model.  
   
   3. **`-slope LAB pos.age CAT 1 FIX task=pos QUANT age`**  
-     - Estimates the slope effect of *age* for the *pos* task.  
+     - Estimates the slope effect of *age* for the *pos* task. The number *1* 
+       represents the intercept or grand mean of the model.
   
   4. **`-slope LAB task.by.age CAT task QUANT age`**  
      - Estimates the slope effect of *age* for both *pos* and *neg* tasks and
@@ -291,7 +295,10 @@ read.GLMM.opts.batch <- function (args=NULL, verb = 0) {
    "         be confined within [lb, ub]: any values in the input data that are beyond",
    "         the bounds will be removed and treated as missing. Make sure the first number",
    "         is less than the second. The default (the absence of this option) is no",
-   "         outlier removal. \n", sep='\n')),
+   "         outlier removal. ",
+   "         **NOTE**: Using the -bounds option to remove outliers should be approached",
+   "         with caution due to its arbitrariness. A more principled alternative is to",
+   "         use the -family option with a Student's t-distribution.\n", sep='\n')),
 
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",

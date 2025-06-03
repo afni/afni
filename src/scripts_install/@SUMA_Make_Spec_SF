@@ -246,7 +246,7 @@ L_SET_SURF_DIRS:
 	    set endstr = ""
 	else if ( $#surfaces_dirs == 1 ) then
 	    echo "SURFACES directory found at '$surfaces_dirs[1]'"
-	    set endstr = "consider running program from '$surfaces_dirs[1]:h'"
+	    set endstr = "consider running program from '`dirname $surfaces_dirs[1]`'"
 	else
 	    echo "multiple SURFACES directories found:"
 	    set count = 1

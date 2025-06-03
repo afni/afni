@@ -81,7 +81,7 @@ if ( $status ) then
     goto BAD_EXIT
 else
     set aa   = `which afni`
-    set adir = $aa:h
+    set adir = `dirname $aa`
 endif
 
 # default location of viewer: user could modify!

@@ -545,7 +545,7 @@ OVERVIEW ~1~
 
 Just an adjunct program for making TSNR plots for APQC.
 
-Ceci n'est pas un fichier d'aide utile!
+Ceci n'est pas un fichier d'aide utile
 
 written by PA Taylor.
 
@@ -633,7 +633,7 @@ SHOW_VERSION:
    goto GOOD_EXIT
 
 FAIL_MISSING_ARG:
-    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
     goto BAD_EXIT
 
 BAD_EXIT:

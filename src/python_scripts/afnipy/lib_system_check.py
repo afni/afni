@@ -1461,7 +1461,8 @@ class SysInfo:
       elist = ['PATH', 'PYTHONPATH', 'R_LIBS',
                'LD_LIBRARY_PATH',
                'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH',
-               'CONDA_SHLVL', 'CONDA_DEFAULT_ENV', 'CC']
+               'CONDA_SHLVL', 'CONDA_DEFAULT_ENV', 'CC',
+               'HOMEBREW_PREFIX']
       maxlen = max(len(e) for e in elist)
 
       for evar in elist:
@@ -1651,8 +1652,14 @@ class SysInfo:
                if len(files) > 1:
                   self.comments.append("have multiple versions of AFNI in PATH")
                if len(files) > 0:
+                  # check ownership vs user
+                  cmt = ''
                   if os.stat(files[0]).st_uid == 0:
-                     self.comments.append("'afni' executable is owned by root")
+                     cmt = "      (owned by root)"
+                  elif not self.file_and_user_match(files[0], default=1):
+                     cmt = "      (not owned by user)"
+                  if cmt != '':
+                     print('    %-*s %s' % (ml, '', cmt))
             elif prog == 'Xvfb' :
                if not(len(files)) :
                   self.comments.append("missing 'Xvfb', please install")
@@ -1662,6 +1669,27 @@ class SysInfo:
       # time to do away with the py2 vs py3 comment, per PT  [24 Oct 2024]
       # explicit python2 vs python3 check    7 Dec 2016
       # was: n2 = UTIL.num_found_in_path('python2', mtype=1)
+
+   def file_and_user_match(self, fname, default=1):
+      """return wither the file os.stat().st_uid matches os.geteuid()
+
+         return default on failure
+      """
+      fuid = euid = 0
+      try:
+         fuid = os.stat(fname).st_uid
+      except:
+         return default
+
+      try:
+         euid = os.geteuid()
+      except:
+         return default
+
+      if fuid == euid:
+         return 1
+      else:
+         return 0
 
    def check_select_AFNI_progs(self):
       # try select AFNI programs
@@ -2100,34 +2128,47 @@ class SysInfo:
       # currently another future condition: neither alpha nor beta
       return 0
 
-   def get_kmdi_version(self, path, verb=1):
+   def get_kmdi_version(self, path):
       """for the given program, run: mdls -name kMDItemVersion
 
          return found version string, or an empty one on failure
       """
+      return self.get_macos_mdls_val('kMDItemVersion', path)
 
-      cmd = 'mdls -name kMDItemVersion %s' % path
-      s, soe = UTIL.exec_tcsh_command(cmd, lines=1)
+   def get_macos_mdls_val(self, attr, app_path):
+      """run 'mdls -name app_path (or -attr)' and extract the value from output:
+            attr = "value"
 
-      # return on failure
-      if len(soe) == 0: return ''
+         return value (or '' on error)
+      """
 
-      rstr = soe[0]
-      rposn = rstr.find('kMDItemVersion')
-      if rposn < 0: return ''
-      
-      rlist = rstr[rposn:].split()
-      if verb > 1: print("-- kmdi_v: list is %s" % rlist)
-      
-      if len(rlist) < 3: return ''
-      if rlist[0] != 'kMDItemVersion' or rlist[1] != '=':
-         return ''
+      # option seems to be moving from -name to -attr
+      val = ''
+      for opt in ['attr', 'name']:
+         cmd = 'mdls -%s %s %s' % (opt, attr, app_path)
+         s, soe = UTIL.exec_tcsh_command(cmd, lines=1)
+         if self.verb > 1:
+            vstr = "-- cmd: %s\n%s\n" % (cmd, '\n'.join(soe))
+            print(vstr)
 
-      # found something, remove any quotes, tabs and spaces, and return
-      rstr = rlist[2].strip('\'" \t')
+         # require attr = "val", but block any val of (null)
+         if s or len(soe) < 1: continue
+         vlist = soe[0].split()
+         if len(vlist) < 3: continue
+         if vlist[1] != '=': continue
+         rstr = vlist[2].strip('\'"') # get rid of either standard quote
+         if rstr == '(null)': continue
 
-      return rstr
-   
+         # success
+         return rstr
+
+      # failure - if the app_path exists and we are verbose, warn
+      if self.verb and os.path.exists(app_path):
+         print("** mdls error on existing path: %s" % app_path)
+         print("   consider reviewing: mdls %s\n" % app_path)
+
+      return ''
+
    def get_cpu_count(self):
        """
        Number of virtual or physical CPUs on this system, i.e. user/real as

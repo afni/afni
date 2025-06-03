@@ -166,8 +166,18 @@ void usage_3dLocalstat(int detail)
 "                          Compute percentiles between P0 and P1 with a \n"
 "                          step of Pstep.\n"
 "                          Default P1 is equal to P0 and default P2 = 1\n"
-"               * rank   = rank of the voxel's intensity\n"
+"               * rank   = rank of the voxel's intensity, with a min value\n"
+"                          of 1 and counting 'upwards'; ergo, a voxel with\n"
+"                          value 4 in a nbhd set [3, 4, 5, 6] would have\n"
+"                          a rank of 2. In a set [3, 4, 4, 4, 5, 6], a value\n"
+"                          4 would have rank of 2 and a value 5 would have a\n"
+"                          rank of 5.\n"
 "               * frank  = rank / number of voxels in neighborhood\n"
+"               * rankinv = inverse-rank of the voxel's intensity, with a\n"
+"                          min value of 1 and counting 'downwards'; ergo,\n"
+"                          a voxel with value 5 in a nbhd set [3, 4, 5, 6]\n"
+"                          would have a rankinv of 2.\n"
+"               * frankinv = rankinv / number of voxels in neighborhood\n"
 "               * P2skew = Pearson's second skewness coefficient\n"
 "                           3 * (mean - median) / stdev \n"
 "               * ALL    = all of the above, in that order \n"
@@ -276,7 +286,8 @@ int main( int argc , char *argv[] )
 {
    char allstats[] = { "mean; stdev; var; cvar; median; osfilt; MAD; P2skew;"
                        "kurt; min; max; absmax; mconex; num; nznum; fnznum;"
-                       "sum; rank; frank; fwhm; diffs; adiffs; mMP2s;"
+                       "sum; rank; frank; rankinv; frankinv;"
+                       "fwhm; diffs; adiffs; mMP2s;"
                        "mmMP2s; list; hist; perc; fwhmbar; fwhmbar12;"
                        "mode;nzmode;filled;unfilled;has_mask;has_mask2;ALL;" };
    THD_3dim_dataset *inset=NULL , *outset ;
@@ -675,6 +686,8 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(cpt,"sum")   == 0 ) code[ncode++] = NSTAT_SUM   ;
        else if( strcasecmp(cpt,"rank")  == 0 ) code[ncode++] = NSTAT_RANK  ;
        else if( strcasecmp(cpt,"frank") == 0 ) code[ncode++] = NSTAT_FRANK ;
+       else if( strcasecmp(cpt,"rankinv") == 0 ) code[ncode++] = NSTAT_RANKINV ;
+       else if( strcasecmp(cpt,"frankinv") == 0 ) code[ncode++] = NSTAT_FRANKINV ;
        else if( strcasecmp(cpt,"fwhm")  == 0 ){code[ncode++] = NSTAT_FWHMx ;
                                                code[ncode++] = NSTAT_FWHMy ;
                                                code[ncode++] = NSTAT_FWHMz ;
@@ -770,6 +783,7 @@ int main( int argc , char *argv[] )
          code[ncode++] = NSTAT_FWHMx ; code[ncode++] = NSTAT_FWHMy ;
          code[ncode++] = NSTAT_FWHMz ; do_fwhm++ ;
          code[ncode++] = NSTAT_RANK  ; code[ncode++] = NSTAT_FRANK ; 
+         code[ncode++] = NSTAT_RANKINV ; code[ncode++] = NSTAT_FRANKINV ; 
          code[ncode++] = NSTAT_P2SKEW; code[ncode++] = NSTAT_KURT  ;
          code[ncode++] = NSTAT_NZNUM ; code[ncode++] = NSTAT_FNZNUM;
        }
@@ -815,6 +829,7 @@ int main( int argc , char *argv[] )
      lcode[NSTAT_FWHMy]   = "FWHMy";   lcode[NSTAT_SUM]        = "SUM"    ;
      lcode[NSTAT_FWHMz]   = "FWHMz";   lcode[NSTAT_FWHMbar]    = "FWHMavg"; 
      lcode[NSTAT_RANK]    = "RANK" ;   lcode[NSTAT_FRANK]      = "FRANK";
+     lcode[NSTAT_RANKINV] = "RANKINV"; lcode[NSTAT_FRANKINV]   = "FRANKINV";
      lcode[NSTAT_P2SKEW]  = "P2skew";  lcode[NSTAT_KURT]       = "KURT"; 
      lcode[NSTAT_mMP2s0]  = "MEDIAN";  lcode[NSTAT_mMP2s1]     = "MAD";
      lcode[NSTAT_mMP2s2]  = "P2skew";  lcode[NSTAT_mmMP2s0]    = "MEAN";

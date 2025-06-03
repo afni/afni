@@ -160,7 +160,7 @@ DriveSuma   -echo_edu   \
 NIDO:
 #Displayable objects (DO) action
 set spath = `which suma`
-set spath = $spath:h
+set spath = `dirname $spath`
 foreach dopath ($spath $spath/.. $spath/../.. /usr/share/doc/afni-common/examples)
    if ( -f $dopath/demo.fixed.niml.do) then
      cp $dopath/demo.fixed.niml.do ./fixed.niml.do
