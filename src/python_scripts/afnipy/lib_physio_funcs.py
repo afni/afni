@@ -1161,21 +1161,21 @@ result is divided by 60, to have units of beats per minute.
         # scale the time interval to have units of physical time
         time_ival*= delt
 
-        # *finally* the average interpeak interval in this range
-        if peak_count :
-            ave_ival = time_ival / peak_count
+        # *finally* the average HR here (= num peaks per time interval)
+        if time_ival :
+            hr = peak_count / time_ival
         else:
-            ave_ival = 0.0
+            hr = 0.0
 
         if verb > 5 :
             if ii == 0 :
                 print("++ (card) ave HR per TR")
-            print("   [{:4d}] time_ival = {:0.3f}, peak_count = {:0.3f}, "
-                  "ave_ival = {:0.3f}".format(ii, time_ival, peak_count, 
-                                              ave_ival))
+            print("   [{:4d}] peak_count = {:0.3f}, time_ival = {:0.3f} "
+                  "hr = {:0.3f}".format(ii, peak_count, time_ival,
+                                              hr))
 
         # append this average, and divide by 60 to be beats per min
-        hr_ave.append(ave_ival / 60.)
+        hr_ave.append( hr/60. )
 
     # after going through EPI time series, convert to array
     hr_ave = np.array(hr_ave, dtype=float)
