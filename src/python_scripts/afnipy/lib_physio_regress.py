@@ -202,7 +202,7 @@ RVTRRF, or others.
     # open the file and write the header/start
     fff = open(fname, 'w')
     fff.write('# physio_calc_out_slibase\n')
-    fff.write('# ni_type = "{}*double"\n'.format(nreg))
+    fff.write('# ni_type = "{}*double"\n'.format(ntype))
     fff.write('# ni_dimen = "{}"\n'.format(nvol))
     fff.write('# ColumnLabels = " ')
 
@@ -308,7 +308,7 @@ slicewise regressors; basically, we just have nslice=1.
     # open the file and write the header/start
     fff = open(fname, 'w')
     fff.write('# physio_calc_out_volbase\n')
-    fff.write('# ni_type = "{}*double"\n'.format(nreg))
+    fff.write('# ni_type = "{}*double"\n'.format(nreg)) # no sep ntype here
     fff.write('# ni_dimen = "{}"\n'.format(nvol))
     fff.write('# ColumnLabels = " ')
 
