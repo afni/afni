@@ -94,6 +94,11 @@ set mview = ( "axial" "coronal" "sagittal" )
 
 set movie = ""                        # not on by default, at the moment
 
+set bufac = "2"                       # blowup factor
+set USER_COORS = 0                    # switch to let user pick IJK
+set coors  = ( 0 0 0 )                # xyz coors from user
+set coor_type = ""                    # default, can switch to SET_XYZ
+
 # default to make all styles and slice views, but can turn off
 set DO_ONESCL = 1                     
 set DO_SEPSCL = 1
@@ -159,6 +164,23 @@ while ( $ac <= $#argv )
 
     #else if ( "$argv[$ac]" == "-no_clean" ) then
     #    set DO_CLEAN = 0
+
+    else if ( "$argv[$ac]" == "-blowup" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set bufac = "$argv[$ac]"
+
+    # [PT] start adding in this functionality; not used yet, though
+    else if ( "$argv[$ac]" == "-set_dicom_xyz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set coor_type = "SET_DICOM_XYZ"
+        set coors[1] = "$argv[$ac]"
+        @ ac += 1
+        set coors[2] = "$argv[$ac]"
+        @ ac += 1
+        set coors[3] = "$argv[$ac]"
+        set USER_COORS = 1
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -404,6 +426,7 @@ foreach ii ( ${all_ii} )
                 -save_ftype "$movie"           \
                 -montx 1                       \
                 -monty 1                       \
+                -blowup ${bufac}               \
                 -set_ijk 0 0 0                 \
                 -ulay_range 1% 99.5%           \
                 -label_mode 1 -label_size 4    \
@@ -418,6 +441,7 @@ foreach ii ( ${all_ii} )
                 -save_ftype "$movie"           \
                 -montx 1                       \
                 -monty 1                       \
+                -blowup ${bufac}               \
                 -set_ijk 0 0 0                 \
                 -globalrange "SLICE"           \
                 -ulay_range 1% 99%             \
@@ -447,6 +471,7 @@ foreach ii ( ${all_ii} )
             -olay_off                      \
             -montx $Ncol                   \
             -monty $Nrow                   \
+            -blowup ${bufac}               \
             -ulay_range 1% 99.5%           \
             -label_mode 1 -label_size 4    \
             -image_label_ijk
@@ -460,6 +485,7 @@ foreach ii ( ${all_ii} )
             -olay_off                      \
             -montx $Ncol                   \
             -monty $Nrow                   \
+            -blowup ${bufac}               \
             -globalrange "SLICE"           \
             -ulay_range 1% 99%             \
             -label_mode 1 -label_size 4    \
@@ -591,6 +617,10 @@ written by PA Taylor (NIMH, NIH, USA).
                       MPEG   AGIF
                     This is optional; by default, a montage of PNG images
                     is created: the same slice across the 4D set.
+
+-blowup  BB        :enter a "blowup factor", where BB is an integer 
+                    in the interval [1, 8].  Increases spatial resolution
+                    in the output by a factor of BB (see DR; def: 2).
 
 -no_sepscl         :do not create *sepscl* montage (or movie, if using
                     -do_movie)
