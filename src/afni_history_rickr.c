@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Jun, 2025, RCR, "APMULTI_Demo2_realtime", MINOR, TYPE_ENHANCE,
+   "add rt.22.py2py, to generally test client to server communication",
+   "Added for S Fede."
+ } ,
+
  {  2, Jun, 2025, RCR, "build_afni.py", MICRO, TYPE_ENHANCE,
    "display full make command before compiling",
    NULL
