@@ -53,9 +53,12 @@ set this_prog = "@djunct_4d_imager"
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
 #
-set version   = "2.4";   set rev_dat   = "Aug 22, 2024"
+#set version   = "2.4";   set rev_dat   = "Aug 22, 2024"
 #     + [PT] new opts to turn off sepscl or onescl images
 #          - also, can turn off various slice views
+#
+set version   = "2.5";   set rev_dat   = "Jun 6, 2025"
+#     + [PT] re-enable -no_clean
 #
 # ----------------- find AFNI and set viewer ---------------------
 setenv AFNI_ENVIRON_WARNINGS NO
@@ -162,8 +165,8 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-no_sag" ) then
         set DO_SAG = 0
 
-    #else if ( "$argv[$ac]" == "-no_clean" ) then
-    #    set DO_CLEAN = 0
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = 0
 
     else if ( "$argv[$ac]" == "-blowup" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -336,8 +339,8 @@ foreach ii ( ${all_ii} )
         set mfile = "$mcopy"
     endif
 
-    set slpref   = "sssli"
-    set ccpref   = "padcombo"
+    set slpref   = "sssli_${ii}"
+    set ccpref   = "padcombo_${ii}"
     set ovol     = "${ccpref}.nii"
 
     # where the calc function is/can be called
