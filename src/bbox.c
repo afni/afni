@@ -691,7 +691,7 @@ ENTRY("new_MCW_arrowval") ;
                        NULL ) ;
 
          av->text_CB   = (text_proc != NULL ) ? (text_proc)
-                                              : (AV_default_text_CB) ;
+                                              : ((str_func *)AV_default_text_CB) ;
          av->text_data = text_data ;
       break ;
 
@@ -750,7 +750,7 @@ ENTRY("new_MCW_arrowval") ;
                                   XtListTail ) ;     /* last in queue */
          }
 
-         av->text_CB   = AV_default_text_CB ;
+         av->text_CB   = (str_func *)AV_default_text_CB ;
          av->text_data = NULL ;
       }
       break ;
@@ -1043,7 +1043,7 @@ STATUS("creating option menu") ;
                   NULL ) ;
 
    av->text_CB   = (text_proc != NULL ) ? (text_proc)
-                                        : (AV_default_text_CB) ;
+                                        : ((str_func *)AV_default_text_CB) ;
    av->text_data = text_data ;
    av->decimals  = decim ;
    av->fmin      = av->imin = minval ; AV_SHIFT_VAL(decim,av->fmin) ;
@@ -1059,7 +1059,7 @@ STATUS("creating option menu") ;
       AV_assign_ival( av , ival ) ;  /* just to create label */
 
       blab = butlabel = XtNewString( av->sval ) ;
-      if( av->text_CB==AV_default_text_CB && butlabel[0]==' ' && minval >= 0 ){
+      if( av->text_CB==(str_func *)AV_default_text_CB && butlabel[0]==' ' && minval >= 0 ){
         blab += 1 ;  /* deal with leading blanks in default routine */
       }
 
@@ -1262,7 +1262,7 @@ rcparent = XtVaCreateWidget ("rowcolumn",
                   NULL ) ;
 
    av->text_CB   = (text_proc != NULL ) ? (text_proc)
-                                        : (AV_default_text_CB) ;
+                                        : ((str_func *)AV_default_text_CB) ;
    av->text_data = text_data ;
    av->decimals  = decim ;
    av->fmin      = av->imin = minval ; AV_SHIFT_VAL(decim,av->fmin) ;
@@ -1278,7 +1278,7 @@ rcparent = XtVaCreateWidget ("rowcolumn",
       AV_assign_ival( av , ival ) ;  /* just to create label */
 
       blab = butlabel = XtNewString( av->sval ) ;
-      if( av->text_CB==AV_default_text_CB && butlabel[0]==' ' && minval >= 0 ){
+      if( av->text_CB==(str_func *)AV_default_text_CB && butlabel[0]==' ' && minval >= 0 ){
         blab += 1 ;  /* deal with leading blanks in default routine */
       }
 
@@ -1411,7 +1411,7 @@ ENTRY("refit_MCW_optmenu") ;
    /** reset some internal parameters **/
 
    av->text_CB   = (text_proc != NULL ) ? (text_proc)
-                                        : (AV_default_text_CB) ;
+                                        : ((str_func *)AV_default_text_CB) ;
    av->text_data = text_data ;
    av->decimals  = decim ;
    av->fmin      = av->imin = minval ; AV_SHIFT_VAL(decim,av->fmin) ;
@@ -1431,7 +1431,7 @@ ENTRY("refit_MCW_optmenu") ;
       AV_assign_ival( av , ival ) ;  /* just to create label */
 
       blab = butlabel = XtNewString( av->sval ) ;
-      if( av->text_CB==AV_default_text_CB && butlabel[0]==' ' && minval >= 0 ){
+      if( av->text_CB==(str_func *)AV_default_text_CB && butlabel[0]==' ' && minval >= 0 ){
          blab += 1 ;  /* deal with leading blanks in default routine */
       }
 
@@ -1710,7 +1710,7 @@ ENTRY("optmenu_EV") ;
 
    MCW_choose_strlist( w , slab , nstr ,
                        sval - av->imin , strlist ,
-                       optmenu_finalize , cd      ) ;
+                       (gen_func *)optmenu_finalize , cd      ) ;
    EXRETURN ;
 }
 
@@ -1732,7 +1732,7 @@ ENTRY("new_MCW_colormenu") ;
    av = new_MCW_optmenu( parent , label ,
                          min_col , max_col , ini_col , 0 ,
                          delta_value , delta_data ,
-                         MCW_DC_ovcolor_text , (XtPointer)dc ) ;
+                         (str_func *)MCW_DC_ovcolor_text , (XtPointer)dc ) ;
 
    XtVaGetValues( av->wmenu , XmNchildren    , &children ,
                               XmNnumChildren , &num_children , NULL ) ;
@@ -3336,8 +3336,8 @@ ENTRY("MCW_choose_multi_strlist") ;
                NULL ) ;
 
       wav = new_MCW_optmenu( wrc , "Selection Mode" , 0,NUM_LIST_MODES-1,0,0 ,
-                            MCW_list_mode_CB , wlist ,
-                            MCW_av_substring_CB , list_modes ) ;
+                            (gen_func *)MCW_list_mode_CB , wlist ,
+                            (str_func *)MCW_av_substring_CB , list_modes ) ;
 
       MCW_reghelp_children( wav->wrowcol , OVC_list_help_2 ) ;
       MCW_reghint_children( wav->wrowcol , "How list selections work" ) ;
@@ -3357,7 +3357,7 @@ ENTRY("MCW_choose_multi_strlist") ;
 
       str_wlist_av = new_MCW_arrowval( wrc , "Index" , MCW_AV_updown ,
                                        0 , num_str-1 , ival , MCW_AV_editext , 0 ,
-                                       MCW_strlist_av_CB , NULL , NULL , NULL ) ;
+                                       (gen_func *)MCW_strlist_av_CB , NULL , NULL , NULL ) ;
 
       XtAddCallback(wlist,XmNbrowseSelectionCallback,MCW_strlist_select_CB,NULL);
    }
@@ -4142,8 +4142,8 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
                NULL ) ;
 
       av = new_MCW_optmenu( wrc , "Selection Mode" , 0,NUM_LIST_MODES-1,0,0 ,
-                            MCW_list_mode_CB , wlist ,
-                            MCW_av_substring_CB , list_modes ) ;
+                            (gen_func *)MCW_list_mode_CB , wlist ,
+                            (str_func *)MCW_av_substring_CB , list_modes ) ;
 
       MCW_reghelp_children( av->wrowcol , OVC_list_help_2 ) ;
       MCW_reghint_children( av->wrowcol , "How list selections work" ) ;
@@ -5011,7 +5011,7 @@ ENTRY("MCW_choose_stuff") ;
          av = new_MCW_optmenu( wrc , lab ,
                                 0 , nstr-1 , init , 0 ,
                                 NULL , NULL ,
-                                MCW_av_substring_CB , strlist ) ;
+                                (str_func *)MCW_av_substring_CB , strlist ) ;
 
          CS_sav = (void **)realloc( CS_sav , sizeof(void *)*(CS_nsav+1) ) ;
          CS_sav[CS_nsav] = (void *)av ;
@@ -5029,7 +5029,7 @@ ENTRY("MCW_choose_stuff") ;
          av = new_MCW_optmenu( wrc , lab ,
                                 0 , 1 , 0 , 0 ,
                                 NULL , NULL ,
-                                MCW_av_substring_CB , strlist ) ;
+                                (str_func *)MCW_av_substring_CB , strlist ) ;
 
          CS_sav = (void **)realloc( CS_sav , sizeof(void *)*(CS_nsav+1) ) ;
          CS_sav[CS_nsav] = (void *)av ;

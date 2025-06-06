@@ -1404,7 +1404,7 @@ if( PRINT_TRACING ){
                              newseq->wform , ISQ_arrow_label[ii] ,
                              MCW_AV_downup , 0,0,0 ,
                              MCW_AV_notext , 0 ,
-                             ISQ_arrow_CB , (XtPointer) newseq ,
+                             (gen_func *)ISQ_arrow_CB , (XtPointer) newseq ,
                              NULL,NULL ) ;
 
       newseq->onoff_widgets[(newseq->onoff_num)++] = newseq->arrow[ii]->wrowcol ;
@@ -1460,7 +1460,7 @@ if( PRINT_TRACING ){
                                iov ,                  /* init */
                                MCW_AV_notext ,        /* type */
                                0 ,                    /* decim */
-                               ISQ_opacity_CB ,       /* action CB */
+                               (gen_func *)ISQ_opacity_CB ,       /* action CB */
                                (XtPointer) newseq ,   /* and its data */
                                NULL ,                 /* text maker */
                                NULL                   /* and its data */
@@ -1511,7 +1511,7 @@ if( PRINT_TRACING ){
                                ZOOM_BOT ,             /* init */
                                MCW_AV_notext ,        /* type */
                                0 ,                    /* decim */
-                               ISQ_zoom_av_CB ,       /* action CB */
+                               (gen_func *)ISQ_zoom_av_CB ,       /* action CB */
                                (XtPointer) newseq ,   /* and its data */
                                NULL ,                 /* text maker */
                                NULL                   /* and its data */
@@ -1768,7 +1768,7 @@ if( PRINT_TRACING ){
    STATUS("creating arrowpad") ;
    newseq->arrowpad = new_MCW_arrowpad(
                            newseq->wform ,
-                           ISQ_arrowpad_CB , (XtPointer) newseq ) ;
+                           (gen_func *)ISQ_arrowpad_CB , (XtPointer) newseq ) ;
 
    newseq->onoff_widgets[(newseq->onoff_num)++] = newseq->arrowpad->wform ;
 
@@ -2053,9 +2053,9 @@ STATUS("creation: widgets created") ;
                           iii ,                 /* initial selection */
                           MCW_AV_readtext ,     /* ignored but needed */
                           0 ,                   /* ditto */
-                          ISQ_wbar_globrange_CB , /* callback when changed */
+                          (gen_func *)ISQ_wbar_globrange_CB , /* callback when changed */
                           (XtPointer)newseq ,   /* data for above */
-                          MCW_av_substring_CB , /* text creation routine */
+                          (str_func *)MCW_av_substring_CB , /* text creation routine */
                           mlabel                /* data for above */
                         ) ;
      MCW_reghint_children(newseq->wbar_globrange_av->wrowcol,
@@ -2108,9 +2108,9 @@ STATUS("creation: widgets created") ;
                           iii ,                 /* initial selection */
                           MCW_AV_readtext ,     /* ignored but needed */
                           0 ,                   /* ditto */
-                          ISQ_wbar_label_CB ,   /* callback when changed */
+                          (gen_func *)ISQ_wbar_label_CB ,   /* callback when changed */
                           (XtPointer)newseq ,   /* data for above */
-                          MCW_av_substring_CB , /* text creation routine */
+                          (str_func *)MCW_av_substring_CB , /* text creation routine */
                           alabel                /* data for above */
                         ) ;
      MCW_reghint_children(newseq->wbar_label_av->wrowcol,"Show coordinate label") ;
@@ -2129,9 +2129,9 @@ STATUS("creation: widgets created") ;
                           iii ,                 /* initial selection */
                           MCW_AV_readtext ,     /* ignored but needed */
                           0 ,                   /* ditto */
-                          ISQ_wbar_label_CB ,   /* callback when changed */
+                          (gen_func *)ISQ_wbar_label_CB ,   /* callback when changed */
                           (XtPointer)newseq ,   /* data for above */
-                          MCW_av_substring_CB , /* text creation routine */
+                          (str_func *)MCW_av_substring_CB , /* text creation routine */
                           slabel                /* data for above */
                         ) ;
      MCW_reghint_children(newseq->wbar_labsz_av->wrowcol,"Set coordinate label size") ;
@@ -2163,7 +2163,7 @@ STATUS("creation: widgets created") ;
                         0 ,                   /* initial selection */
                         MCW_AV_readtext ,     /* ignored but needed */
                         0 ,                   /* ditto */
-                        ISQ_wbar_label_CB ,   /* callback when changed */
+                        (gen_func *)ISQ_wbar_label_CB ,   /* callback when changed */
                         (XtPointer)newseq ,   /* data for above */
                         NULL                , /* text creation routine */
                         NULL                  /* data for above */
@@ -2180,7 +2180,7 @@ STATUS("creation: widgets created") ;
                         1 ,                   /* initial selection */
                         MCW_AV_readtext ,     /* ignored but needed */
                         0 ,                   /* ditto */
-                        ISQ_wbar_label_CB ,   /* callback when changed */
+                        (gen_func *)ISQ_wbar_label_CB ,   /* callback when changed */
                         (XtPointer)newseq ,   /* data for above */
                         NULL                , /* text creation routine */
                         NULL                  /* data for above */
@@ -2204,7 +2204,7 @@ STATUS("creation: widgets created") ;
                         0 ,                   /* initial selection */
                         MCW_AV_readtext ,     /* ignored but needed */
                         0 ,                   /* ditto */
-                        ISQ_wbar_label_CB ,   /* callback when changed */
+                        (gen_func *)ISQ_wbar_label_CB ,   /* callback when changed */
                         (XtPointer)newseq ,   /* data for above */
                         NULL                , /* text creation routine */
                         NULL                  /* data for above */
@@ -2224,7 +2224,7 @@ STATUS("creation: widgets created") ;
                         ISQ_anim_dup ,        /* initial selection */
                         MCW_AV_readtext ,     /* ignored but needed */
                         0 ,                   /* ditto */
-                        ISQ_wbar_label_CB ,   /* callback when changed */
+                        (gen_func *)ISQ_wbar_label_CB ,   /* callback when changed */
                         (XtPointer)newseq ,   /* data for above */
                         NULL                , /* text creation routine */
                         NULL                  /* data for above */
@@ -2881,7 +2881,7 @@ void ISQ_butcrop_EV( Widget w , XtPointer client_data ,
                 "   Crop window will be centered on image:\n"
                 "    Adjust with Shift+Keypad_Arrow_Keys.\n"
                 "--------------------------------------------"  ,
-                2 , lvec , fvec , ISQ_butcrop_choice_CB , (XtPointer)seq ) ;
+                2 , lvec , fvec , (gen_func *)ISQ_butcrop_choice_CB , (XtPointer)seq ) ;
            }
 
          } else if( event->button == Button2 ){
@@ -5170,19 +5170,19 @@ ENTRY("ISQ_but_save_CB") ;
    if( seq->opt.save_one && !DO_ANIM(seq) ){
      if( seq->opt.save_filter >= 0 &&
          ppmto_gimpize != NULL     && ppmto_gimpize[seq->opt.save_filter] ){
-       MCW_choose_stuff( w , "Image Saver (One)" , ISQ_saver_CB , (XtPointer)seq ,
+       MCW_choose_stuff( w , "Image Saver (One)" , (gen_func *)ISQ_saver_CB , (XtPointer)seq ,
                            MSTUF_STRING , "Prefix"  ,
                            MSTUF_INT    , "Blowup " , 1 , 8 , ibl ,
                            MSTUF_YESNO  , "Open in Gimp?",
                          MSTUF_END ) ;
      } else {
-       MCW_choose_stuff( w , "Image Saver (One)" , ISQ_saver_CB , (XtPointer)seq ,
+       MCW_choose_stuff( w , "Image Saver (One)" , (gen_func *)ISQ_saver_CB , (XtPointer)seq ,
                            MSTUF_STRING , "Prefix"  ,
                            MSTUF_INT    , "Blowup " , 1 , 8 , ibl ,
                          MSTUF_END ) ;
      }
    } else {
-     MCW_choose_stuff( w , "Image Saver (Multiple)" , ISQ_saver_CB , (XtPointer)seq ,
+     MCW_choose_stuff( w , "Image Saver (Multiple)" , (gen_func *)ISQ_saver_CB , (XtPointer)seq ,
                          MSTUF_STRING , "Prefix"  ,
                          MSTUF_INT    , "Blowup " , 1 , 8 , ibl ,
                          MSTUF_INT    , "From:  " , 0 , seq->status->num_total-1 , 0 ,
@@ -7096,8 +7096,8 @@ ENTRY("ISQ_but_disp_CB") ;
                 new_MCW_optmenu( rcboxes , "Project" ,
                                  0 , seq->status->slice_proj->num ,
                                  seq->slice_proj_index , 0 ,
-                                 ISQ_slice_proj_CB , (XtPointer) seq ,
-                                 ISQ_transform_label ,
+                                 (gen_func *)ISQ_slice_proj_CB , (XtPointer) seq ,
+                                 (str_func *)ISQ_transform_label ,
                                  (XtPointer) seq->status->slice_proj ) ;
 
              if( seq->status->slice_proj->num >= COLSIZE )
@@ -7121,7 +7121,7 @@ ENTRY("ISQ_but_disp_CB") ;
              seq->slice_proj_range_av =
                 new_MCW_optmenu( rcboxes , "Slab +-" ,
                                  0 , 19 , seq->slice_proj_range , 0 ,
-                                 ISQ_slice_proj_CB , (XtPointer) seq ,
+                                 (gen_func *)ISQ_slice_proj_CB , (XtPointer) seq ,
                                  NULL , NULL ) ;
              MCW_reghelp_children( seq->slice_proj_range_av->wrowcol ,
                                    "Choose thickness of Project slice\n"
@@ -7149,8 +7149,8 @@ ENTRY("ISQ_but_disp_CB") ;
                 new_MCW_optmenu( rcboxes , "Tran 0D" ,
                                  0 , seq->status->transforms0D->num ,
                                  seq->transform0D_index , 0 ,
-                                 ISQ_transform_CB , (XtPointer) seq ,
-                                 ISQ_transform_label ,
+                                 (gen_func *)ISQ_transform_CB , (XtPointer) seq ,
+                                 (str_func *)ISQ_transform_label ,
                                  (XtPointer) seq->status->transforms0D ) ;
 
              if( seq->status->transforms0D->num >= COLSIZE )
@@ -7180,8 +7180,8 @@ ENTRY("ISQ_but_disp_CB") ;
                 new_MCW_optmenu( rcboxes , "Tran 2D" ,
                                  0 , seq->status->transforms2D->num ,
                                  seq->transform2D_index , 0 ,
-                                 ISQ_transform_CB , (XtPointer) seq ,
-                                 ISQ_transform_label ,
+                                 (gen_func *)ISQ_transform_CB , (XtPointer) seq ,
+                                 (str_func *)ISQ_transform_label ,
                                  (XtPointer) seq->status->transforms2D ) ;
 
              if( seq->status->transforms2D->num >= COLSIZE )
@@ -7208,8 +7208,8 @@ ENTRY("ISQ_but_disp_CB") ;
             seq->rowgraph_av =
                new_MCW_optmenu( rcboxes , "RowGraphs" ,
                                 0 , ROWGRAPH_MAX , seq->rowgraph_num , 0 ,
-                                ISQ_rowgraph_CB , (XtPointer) seq ,
-                                ISQ_rowgraph_label , NULL ) ;
+                                (gen_func *)ISQ_rowgraph_CB , (XtPointer) seq ,
+                                (str_func *)ISQ_rowgraph_label , NULL ) ;
             AVOPT_columnize( seq->rowgraph_av , 2 ) ;
 
             MCW_reghelp_children( seq->rowgraph_av->wrowcol ,
@@ -7245,8 +7245,8 @@ ENTRY("ISQ_but_disp_CB") ;
             seq->surfgraph_av =
                new_MCW_optmenu( rcboxes , "SurfGraph" ,
                                 0 , SURFGRAPH_MAX , seq->surfgraph_num , 0 ,
-                                ISQ_surfgraph_CB , (XtPointer) seq ,
-                                ISQ_surfgraph_label , NULL ) ;
+                                (gen_func *)ISQ_surfgraph_CB , (XtPointer) seq ,
+                                (str_func *)ISQ_surfgraph_label , NULL ) ;
 
             MCW_reghelp_children( seq->surfgraph_av->wrowcol ,
                                   "The SurfGraph is a wiremesh plot of the\n"
@@ -9628,29 +9628,29 @@ ENTRY("ISQ_wbar_menu_CB") ;
 
    if( w == seq->wbar_rng_but ){
       MCW_choose_string( seq->wimage , "Display range: bot top [ztop]" ,
-                         NULL , ISQ_set_rng_CB , seq ) ;
+                         NULL , (gen_func *)ISQ_set_rng_CB , seq ) ;
    }
 
    else if( w == seq->wbar_zer_but ){
       MCW_choose_ovcolor( seq->wimage , seq->dc , seq->zer_color ,
-                          ISQ_set_zcol_CB , seq ) ;
+                          (gen_func *)ISQ_set_zcol_CB , seq ) ;
    }
 
    else if( w == seq->wbar_flat_but ){
       MCW_choose_string( seq->wimage , "Flatten range: bot top" ,
-                         NULL , ISQ_set_flat_CB , seq ) ;
+                         NULL , (gen_func *)ISQ_set_flat_CB , seq ) ;
    }
 
    else if( w == seq->wbar_sharp_but ){
       MCW_choose_integer( seq->wimage , "Sharpen Factor" ,
                           1 , 9 , (int)(10.01*seq->sharp_fac) ,
-                          ISQ_set_sharp_CB , seq ) ;
+                          (gen_func *)ISQ_set_sharp_CB , seq ) ;
    }
 
    else if( w == seq->wbar_vgize_but ){
       MCW_choose_integer( seq->wimage , "VG Factor" ,
                           1 , 9 , VGFAC_TO_INDEX(seq->vgize_fac) ,
-                          ISQ_set_vgize_CB , seq ) ;
+                          (gen_func *)ISQ_set_vgize_CB , seq ) ;
    }
 
    else if( w == seq->wbar_graymap_pb ){   /* 24 Oct 2003 */
@@ -9659,7 +9659,7 @@ ENTRY("ISQ_wbar_menu_CB") ;
 
    else if( w == seq->wbar_labst_pb ){     /* 23 Dec 2011 */
      MCW_choose_string( w , "Overlay Label Append String" ,
-                            seq->overlay_label , ISQ_overlay_label_CB , seq ) ;
+                            seq->overlay_label , (gen_func *)ISQ_overlay_label_CB , seq ) ;
    }
 
    EXRETURN ;
@@ -9916,7 +9916,7 @@ if( AFNI_yesenv("TMONT") ){
                           MCW_AV_optmenu ,
                           0 , MONT_LAST_TYPE , seq->mont_mode,
                           MCW_AV_edittext , 0 ,
-                          NULL , NULL , MCW_av_substring_CB , mont_types ) ;
+                          NULL , NULL , (str_func *)MCW_av_substring_CB , mont_types ) ;
    MCW_reghint_children( seq->mont_across_av->wrowcol ,
                          "Spatial or Temporal montage?" ) ;
 } else {
@@ -11043,7 +11043,7 @@ ENTRY("ISQ_rowgraph_draw") ;
 
       X11_SET_NEW_PLOT ;
       seq->rowgraph_mtd = memplot_to_topshell( seq->dc->display, mp,
-                                               ISQ_rowgraph_mtdkill ) ;
+                                               (void_func *)ISQ_rowgraph_mtdkill ) ;
 
       if( seq->rowgraph_mtd == NULL ){ delete_memplot( mp ); EXRETURN; }
 
@@ -11179,7 +11179,7 @@ ENTRY("ISQ_graymap_draw") ;
 
    } else {  /* make a new plot window */
 
-      seq->graymap_mtd = memplot_to_topshell( seq->dc->display, mp, ISQ_graymap_mtdkill ) ;
+      seq->graymap_mtd = memplot_to_topshell( seq->dc->display, mp, (void_func *)ISQ_graymap_mtdkill ) ;
       if( seq->graymap_mtd == NULL ){ delete_memplot(mp); EXRETURN; }
       seq->graymap_mtd->userdata = (void *) seq ;
       ISQ_place_widget( seq->wtop , seq->graymap_mtd->top ) ;
@@ -11284,7 +11284,7 @@ ENTRY("ISQ_surfgraph_draw") ;
 
    } else {  /* make a new plot window */
 
-      seq->surfgraph_mtd = memplot_to_topshell( seq->dc->display, mp, ISQ_surfgraph_mtdkill ) ;
+      seq->surfgraph_mtd = memplot_to_topshell( seq->dc->display, mp, (void_func *)ISQ_surfgraph_mtdkill ) ;
 
       if( seq->surfgraph_mtd == NULL ){ delete_memplot(mp); EXRETURN; }
 
@@ -11295,7 +11295,7 @@ ENTRY("ISQ_surfgraph_draw") ;
       WAIT_for_window(seq->surfgraph_mtd->top) ;
 
       seq->surfgraph_arrowpad = new_MCW_arrowpad( seq->surfgraph_mtd->form ,
-                                                  ISQ_surfgraph_arrowpad_CB ,
+                                                  (gen_func *)ISQ_surfgraph_arrowpad_CB ,
                                                   (XtPointer)seq ) ;
 
       /* XtUnmanageChild( seq->surfgraph_arrowpad->wform ) ; */
@@ -11854,7 +11854,7 @@ ENTRY("ISQ_record_open") ;
 
    ntot = IMARR_COUNT(seq->record_imarr) ;
 
-   seq->record_imseq = open_MCW_imseq( seq->dc , ISQ_record_getim , seq ) ;
+   seq->record_imseq = open_MCW_imseq( seq->dc , (get_ptr)ISQ_record_getim , seq ) ;
    seq->record_imseq->parent = seq ;
 
    drive_MCW_imseq( seq->record_imseq , isqDR_record_mode , NULL ) ;
@@ -11931,7 +11931,7 @@ ENTRY("ISQ_record_getim") ;
                                                             /* destroyed    */
       stat->num_total  = ntot ;
       stat->num_series = stat->num_total ;
-      stat->send_CB    = ISQ_record_send_CB ;
+      stat->send_CB    = (gen_func *)ISQ_record_send_CB ;
       stat->parent     = NULL ;
       stat->aux        = NULL ;
 
@@ -12121,7 +12121,7 @@ void ISQ_butsave_EV( Widget w , XtPointer client_data ,
             else                                     pp=seq->opt.save_filter+1 ;
             MCW_choose_strlist( w , "Image Save format" ,
                                 nstr , pp , strlist ,
-                                ISQ_butsave_choice_CB , (XtPointer) seq ) ;
+                                (gen_func *)ISQ_butsave_choice_CB , (XtPointer) seq ) ;
             for( pp=0 ; pp < nstr ; pp++ ) free(strlist[pp]) ;
             free(strlist) ;
          } else if( event->button == Button2 ){
@@ -13000,7 +13000,7 @@ ENTRY("SNAP_imseq_getim") ;
                                                             /* destroyed    */
      stat->num_total  = ntot ;
      stat->num_series = ntot ;
-     stat->send_CB    = SNAP_imseq_send_CB ;
+     stat->send_CB    = (gen_func *)SNAP_imseq_send_CB ;
      stat->parent     = NULL ;
      stat->aux        = NULL ;
 
@@ -13102,7 +13102,7 @@ ENTRY("SNAP_store_image") ;
 
      SNAP_make_dc( w ) ; if( snap_dc == NULL ) EXRETURN ;
 
-     snap_isq = open_MCW_imseq( snap_dc, SNAP_imseq_getim, NULL ) ;
+     snap_isq = open_MCW_imseq( snap_dc, (get_ptr)SNAP_imseq_getim, NULL ) ;
 
      drive_MCW_imseq( snap_isq, isqDR_periodicmont, (XtPointer) 0 ) ;
      drive_MCW_imseq( snap_isq, isqDR_realize     , NULL          ) ;

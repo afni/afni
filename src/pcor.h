@@ -172,28 +172,28 @@ fprintf(stderr," max_pcor_pos=%11.4g neg=%11.4g  max_coef_pos=%11.4g neg=%11.4g\
 
 /*** prototypes ***/
 
-extern references * new_references() ;
+extern references * new_references(int numref) ;
 
-extern void update_references() ;
+extern void update_references(float *vec, references *ref) ;
 
-extern voxel_corr * new_voxel_corr() ;
+extern voxel_corr * new_voxel_corr(int numvox, int numref) ;
 
-extern void free_voxel_corr() ;
+extern void free_references(references *ref) ;
 
-extern void free_references() ;
+extern void free_voxel_corr(voxel_corr *vc) ;
 
-extern void update_voxel_corr() ;
+extern void update_voxel_corr(vox_data *vdata, references *ref, voxel_corr *vc);
 
-extern void get_pcor() ;
+extern void get_pcor(references *ref, voxel_corr *vc, float *pcor) ;
 
-extern void get_coef() ;
+extern void get_coef(references *ref, voxel_corr *vc, float *coef) ;
 
-extern void get_pcor_thresh_coef() ;
+extern void get_variance(voxel_corr *vc, float *var) ;
 
-extern void get_variances() ;
+extern void get_lsqfit(references *ref, voxel_corr *vc, float *fit[]) ;
 
-extern void get_lsqfit() ;
-
-extern void get_variance() ;
+extern void get_pcor_thresh_coef( references *ref, voxel_corr *vc,
+                                  float pcthresh, float cothresh, float *pcor,
+                                  float *coef, thresh_result *thr ) ;
 
 #endif

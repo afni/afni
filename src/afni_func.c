@@ -245,7 +245,8 @@ ENTRY("AFNI_func_setthresh_CB") ;
 
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
-   MCW_choose_string(w,"Enter threshold",NULL,AFNI_func_setthresh_final_CB,cd) ;
+   MCW_choose_string(w,"Enter threshold",NULL,
+                     (gen_func *)AFNI_func_setthresh_final_CB,cd) ;
    EXRETURN ;
 }
 
@@ -292,7 +293,8 @@ ENTRY("AFNI_func_setpval_CB") ;
 
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
-   MCW_choose_string( w, "Enter p-value", NULL, AFNI_func_setpval_final_CB,cd ) ;
+   MCW_choose_string( w, "Enter p-value", NULL,
+                     (gen_func *) AFNI_func_setpval_final_CB,cd ) ;
    EXRETURN ;
 }
 
@@ -378,7 +380,7 @@ ENTRY("AFNI_func_setqval_CB") ;
    ifix = (im3d->vinfo->fix_qval) ? 1 : 0 ;
 
    MCW_choose_stuff( w , "FDR q-value Settings" ,
-                     AFNI_func_setqval_final_CB , im3d ,
+                     (gen_func *)AFNI_func_setqval_final_CB , im3d ,
                        MSTUF_STRING  , "Set q-value"  ,
                        MSTUF_STRLIST , "Keep fixed? " , 2 , ifix , yesno ,
                      MSTUF_END ) ;
@@ -3705,7 +3707,7 @@ if( first ){
    MCW_set_browse_select( browse_select ) ;
 
    MCW_choose_strlist( wpar , label , num_str , init_str , strlist ,
-                       cbfun , (XtPointer)im3d ) ;
+                       (gen_func *)cbfun , (XtPointer)im3d ) ;
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -4674,7 +4676,7 @@ ENTRY("AFNI_read_Web_CB") ;
     "Complete http:// or ftp:// address of dataset (.HEAD or .mnc or .mnc.gz):\n"
     "Examples: ftp://afni.nimh.nih.gov/AFNI/data/astrip+orig.HEAD\n"
     "          https://afni.nimh.nih.gov/afni/norm305.mnc.gz"
-     , NULL , AFNI_finalize_read_Web_CB , (XtPointer) im3d ) ;
+     , NULL , (gen_func *)AFNI_finalize_read_Web_CB , (XtPointer) im3d ) ;
 
    EXRETURN ;
 }
@@ -5611,7 +5613,8 @@ ENTRY("AFNI_write_many_dataset_CB") ;
 #if 1
    MCW_choose_multi_strlist( w , "Datasets to Write" , mcwCT_multi_mode ,
                              num_dset , NULL , strlist ,
-                             AFNI_do_many_writes , (XtPointer) idclist ) ;
+                             (gen_func *)AFNI_do_many_writes ,
+                             (XtPointer) idclist ) ;
 #else
    { THD_string_array *sar ;  /*** This code is for experiments only! ***/
      INIT_SARR(sar) ;
@@ -5763,7 +5766,8 @@ ENTRY("AFNI_saveas_dataset_CB") ;
      BEEPIT ; WARNING_message("SaveAs code improperly executed") ; EXRETURN ;
    }
 
-   MCW_choose_string( w, label, NULL, AFNI_saveas_finalize_CB, NULL ) ;
+   MCW_choose_string( w, label, NULL,
+                      (gen_func *)AFNI_saveas_finalize_CB, NULL ) ;
 
    EXRETURN ;
 }
@@ -7078,7 +7082,7 @@ ENTRY("AFNI_tips_CB") ;
        inf = (char *)malloc(sizeof(char)*(strlen(fpt)+16)) ;
        strcpy(inf,"file:") ; strcat(inf,fpt) ; free(fpt) ;
        tips_hw = new_MCW_htmlwin( im3d->vwid->imag->topper, inf,
-                                  AFNI_tips_killfun , NULL  ,
+                                  (void_func *)AFNI_tips_killfun , NULL  ,
                                   NULL, 0   ) ;
        free(inf) ; tips_open = 1 ; EXRETURN ;
      }
@@ -7983,7 +7987,7 @@ ENTRY("AFNI_hidden_CB") ;
               ? "Enter IJK input filename:"
               : "Enter XYZ input filename:" ,
 
-            NULL , AFNI_hidden_pts_CB , cd ) ;
+            NULL , (gen_func *)AFNI_hidden_pts_CB , cd ) ;
    }
 
    /****----- Write points -----****/
@@ -8010,7 +8014,7 @@ ENTRY("AFNI_hidden_CB") ;
               ? "Enter IJK output filename:"
               : "Enter XYZ output filename:" ,
 
-            NULL , AFNI_hidden_pts_CB , cd ) ;
+            NULL , (gen_func *)AFNI_hidden_pts_CB , cd ) ;
    }
 
    /****----- Show points -----****/

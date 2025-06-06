@@ -300,7 +300,7 @@ ENTRY("AFNI_clu_CB") ;
                         "  a complete cluster report panel.\n"     ,
 
              /* min cluster size dropped to 1 (from 2) for DRG [12 Jul 2021] */
-                      AFNI_cluster_choose_CB , (XtPointer)im3d ,
+          (gen_func *)AFNI_cluster_choose_CB , (XtPointer)im3d ,
                         MSTUF_INT     , "NN level " , 1 ,     3 , nnlev ,
                         MSTUF_INT     , "Voxels   " , 1 , 99999 , ccsiz ,
                         MSTUF_STRLIST , "Bi-sided?" , 2 , bisid , yesno ,
@@ -585,7 +585,7 @@ ENTRY("AFNI_clus_linknum_EV") ;
          if( event->button == Button3 ){
             MCW_choose_integer( w , "Max linkRbrain clusters" ,
                                 0 , 99 , cwid->linkrbrain_nclu ,
-                                AFNI_clus_linknum_CB , client_data ) ;
+                    (gen_func *)AFNI_clus_linknum_CB , client_data ) ;
          } else if( event->button == Button2 ){
             XBell(XtDisplay(w),100) ;
             MCW_popup_message( w, " \n U R Bad! \n ", MCW_USER_KILL|MCW_TIMER_KILL );
@@ -836,7 +836,8 @@ ENTRY("AFNI_clus_make_widgets") ;
      { static char *clab[2] = { "Tasks" , "Genes" } ;
        static char *lbhelp=NULL ;
        cwid->linkrbrain_av = new_MCW_optmenu( rc , "type" , 0,1,0,0 ,
-                          AFNI_linkrbrain_av_CB,im3d , MCW_av_substring_CB,clab ) ;
+                                   (gen_func *)AFNI_linkrbrain_av_CB, im3d ,
+                                   (str_func *)MCW_av_substring_CB, clab ) ;
        MCW_reghint_children( cwid->linkrbrain_av->wrowcol ,
                               "Correlate coordinates with tasks or genes" ) ;
        if( lbhelp == NULL ){
@@ -900,7 +901,8 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    { static char *clab[3] = { "Peak" , "CMass" , "ICent" } ;
      cwid->cmode_av = new_MCW_optmenu( rc , "XYZ" , 0,2,0,0 ,
-                        AFNI_clus_av_CB,im3d , MCW_av_substring_CB,clab ) ;
+                                       (gen_func *)AFNI_clus_av_CB, im3d ,
+                                       (str_func *)MCW_av_substring_CB, clab ) ;
      MCW_reghint_children( cwid->cmode_av->wrowcol , "Coordinate display type" ) ;
      MCW_reghelp_children( cwid->cmode_av->wrowcol ,
                             "Choose whether to show the Peak, or\n"
@@ -1188,7 +1190,7 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    { static char *clab[6] = { "Mean", "Median", "PC#1", "Histog", "S:mean", "S:all" } ;
      cwid->aver_av = new_MCW_optmenu( rc , "Plot" , 0,5,0,0 ,
-                                      NULL,NULL , MCW_av_substring_CB,clab ) ;
+                          NULL,NULL , (str_func *)MCW_av_substring_CB,clab ) ;
      MCW_reghint_children( cwid->aver_av->wrowcol ,
                            "Set data processing method for Plot/Save" ) ;
      MCW_reghelp_children( cwid->aver_av->wrowcol ,
@@ -1760,7 +1762,7 @@ ENTRY("AFNI_clus_update_widgets") ;
 
    if( !cwid->receive_on ){
      AFNI_receive_init(im3d, RECEIVE_VIEWPOINT_MASK,
-                       AFNI_clus_viewpoint_CB, im3d, "AFNI_clus_viewpoint_CB") ;
+           (gen_func *)AFNI_clus_viewpoint_CB, im3d, "AFNI_clus_viewpoint_CB") ;
      cwid->receive_on = 1 ;
    }
 
@@ -1901,8 +1903,9 @@ ENTRY("AFNI_clus_action_CB") ;
      if( IMARR_COUNT(GLOBAL_library.timeseries) > 0 ){
        int init_ts = AFNI_ts_in_library(cwid->splotim) ;
        MCW_choose_timeseries( cwid->top_lab , "Scatterplot x-axis" ,
-                                     GLOBAL_library.timeseries , init_ts ,
-                                     AFNI_clus_finalize_scat1D_CB , (XtPointer)im3d ) ;
+                              GLOBAL_library.timeseries , init_ts ,
+                              (gen_func *)AFNI_clus_finalize_scat1D_CB ,
+                              (XtPointer)im3d ) ;
      } else {
        MCW_popup_message( w , " \n"
                               "** No 1D files have  **\n"
@@ -2056,7 +2059,7 @@ ENTRY("AFNI_clus_action_CB") ;
                         "[ data will be used  ]\n"
                         "----------------------" ,
                         2 , lvec,fvec ,
-                        AFNI_histrange_choose_CB , (XtPointer)im3d ) ;
+            (gen_func *)AFNI_histrange_choose_CB , (XtPointer)im3d ) ;
      EXRETURN ;
    }
 

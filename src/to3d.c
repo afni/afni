@@ -528,8 +528,8 @@ ENTRY("T3D_create_widgets") ;
                       user_inputs.xorient ,              /* init */
                       MCW_AV_readtext ,                  /* text */
                       0 ,                                /* decimals */
-                      T3D_orient_av_CB , NULL ,          /* callback */
-                      T3D_text_display ,                 /* text maker */
+          (gen_func *)T3D_orient_av_CB , NULL ,          /* callback */
+          (str_func *)T3D_text_display ,                 /* text maker */
                       ORIENT_typestr                     /* and data */
                      ) ;
 
@@ -549,8 +549,8 @@ ENTRY("T3D_create_widgets") ;
                       user_inputs.yorient ,              /* init */
                       MCW_AV_readtext ,                  /* text */
                       0 ,                                /* decimals */
-                      T3D_orient_av_CB , NULL ,          /* callback */
-                      T3D_text_display ,                 /* text maker */
+          (gen_func *)T3D_orient_av_CB , NULL ,          /* callback */
+          (str_func *)T3D_text_display ,                 /* text maker */
                       ORIENT_typestr                     /* and data */
                      ) ;
 
@@ -571,8 +571,8 @@ ENTRY("T3D_create_widgets") ;
                       user_inputs.zorient ,              /* init */
                       MCW_AV_readtext ,                  /* text */
                       0 ,                                /* decimals */
-                      T3D_orient_av_CB , NULL ,          /* callback */
-                      T3D_text_display ,                 /* text maker */
+          (gen_func *)T3D_orient_av_CB , NULL ,          /* callback */
+          (str_func *)T3D_text_display ,                 /* text maker */
                       ORIENT_typestr                     /* and data */
                      ) ;
 
@@ -640,7 +640,7 @@ ENTRY("T3D_create_widgets") ;
                       (int)(100*user_inputs.xsize), /* init */
                       MCW_AV_editext ,              /* text */
                       2 ,                           /* decimals */
-                      T3D_size_av_CB , NULL ,       /* callback */
+          (gen_func *)T3D_size_av_CB , NULL ,       /* callback */
                       NULL , NULL                   /* text maker */
                      ) ;
 
@@ -665,7 +665,7 @@ ENTRY("T3D_create_widgets") ;
                       (int)(100*user_inputs.ysize), /* init */
                       MCW_AV_editext ,              /* text */
                       2 ,                           /* decimals */
-                      T3D_size_av_CB , NULL ,       /* callback */
+          (gen_func *)T3D_size_av_CB , NULL ,       /* callback */
                       NULL , NULL                   /* text maker */
                      ) ;
 
@@ -687,7 +687,7 @@ ENTRY("T3D_create_widgets") ;
                       (int)(100*user_inputs.zsize), /* init */
                       MCW_AV_editext ,              /* text */
                       2 ,                           /* decimals */
-                      T3D_size_av_CB , NULL ,       /* callback */
+          (gen_func *)T3D_size_av_CB , NULL ,       /* callback */
                       NULL , NULL                   /* text maker */
                      ) ;
 
@@ -710,7 +710,7 @@ ENTRY("T3D_create_widgets") ;
                         (int)(100*user_inputs.zspacing),  /* init */
                         MCW_AV_editext ,                  /* text */
                         2 ,                               /* decimals */
-                        T3D_size_av_CB , NULL ,           /* callback */
+            (gen_func *)T3D_size_av_CB , NULL ,           /* callback */
                         NULL , NULL                       /* text maker */
                       ) ;
 
@@ -733,7 +733,7 @@ ENTRY("T3D_create_widgets") ;
                       (int)(10*user_inputs.fov), /* init */
                       MCW_AV_editext ,           /* text */
                       1 ,                        /* decimals */
-                      T3D_fov_av_CB , NULL ,     /* callback */
+          (gen_func *)T3D_fov_av_CB , NULL ,     /* callback */
                       NULL , NULL                /* text maker */
                      ) ;
 
@@ -913,7 +913,7 @@ ENTRY("T3D_create_widgets") ;
                         (int)(100*user_inputs.xorigin), /* init */
                         MCW_AV_editext ,                /* text */
                         2 ,                             /* decimals */
-                        T3D_origin_av_CB , NULL ,       /* callback */
+            (gen_func *)T3D_origin_av_CB , NULL ,       /* callback */
                         NULL , NULL                     /* text maker */
                      ) ;
 
@@ -947,7 +947,7 @@ ENTRY("T3D_create_widgets") ;
                         (int)(100*user_inputs.yorigin), /* init */
                         MCW_AV_editext ,                /* text */
                         2 ,                             /* decimals */
-                        T3D_origin_av_CB , NULL ,       /* callback */
+            (gen_func *)T3D_origin_av_CB , NULL ,       /* callback */
                         NULL , NULL                     /* text maker */
                      ) ;
 
@@ -982,7 +982,7 @@ ENTRY("T3D_create_widgets") ;
                         (int)(100*user_inputs.zorigin), /* init */
                         MCW_AV_editext ,                /* text */
                         2 ,                             /* decimals */
-                        T3D_origin_av_CB , NULL ,       /* callback */
+            (gen_func *)T3D_origin_av_CB , NULL ,       /* callback */
                         NULL , NULL                     /* text maker */
                      ) ;
 
@@ -1129,8 +1129,8 @@ ENTRY("T3D_create_widgets") ;
                          user_inputs.view_type ,          /* init */
                          MCW_AV_readtext ,                /* text */
                          0 ,                              /* decimals */
-                         T3D_orient_av_CB , NULL ,        /* callback */
-                         T3D_text_display ,               /* text maker */
+             (gen_func *)T3D_orient_av_CB , NULL ,        /* callback */
+             (str_func *)T3D_text_display ,               /* text maker */
                          VIEW_typestr                     /* and data */
                        ) ;
 
@@ -1556,8 +1556,8 @@ ENTRY("T3D_create_widgets") ;
              user_inputs.dataset_type ,         /* init */
              MCW_AV_readtext ,                  /* text type */
              0 ,                                /* decimals */
-             T3D_type_av_CB , NULL ,            /* callback */
-             T3D_text_display ,                 /* text maker */
+ (gen_func *)T3D_type_av_CB , NULL ,            /* callback */
+ (str_func *)T3D_text_display ,                 /* text maker */
              DATASET_typestr                    /* and data */
        ) ;
 
@@ -1602,8 +1602,8 @@ ENTRY("T3D_create_widgets") ;
              user_inputs.function_type ,         /* init */
              MCW_AV_readtext ,                   /* text type */
              0 ,                                 /* decimals */
-             T3D_type_av_CB , NULL ,             /* callback */
-             T3D_text_display ,                  /* text maker */
+ (gen_func *)T3D_type_av_CB , NULL ,             /* callback */
+ (str_func *)T3D_text_display ,                  /* text maker */
              FUNC_typestr                        /* and data */
        ) ;
 
@@ -1645,8 +1645,8 @@ ENTRY("T3D_create_widgets") ;
              user_inputs.anatomy_type ,          /* init */
              MCW_AV_readtext ,                   /* text type */
              0 ,                                 /* decimals */
-             T3D_type_av_CB , NULL ,             /* callback */
-             T3D_text_display ,                  /* text maker */
+ (gen_func *)T3D_type_av_CB , NULL ,             /* callback */
+ (str_func *)T3D_text_display ,                  /* text maker */
              ANAT_typestr                        /* and data */
        ) ;
 
@@ -4919,7 +4919,7 @@ void T3D_open_view_CB( Widget w ,
       return ;
    }
 
-   wset.seq = open_MCW_imseq( wset.dc , T3D_getim , br ) ;
+   wset.seq = open_MCW_imseq( wset.dc , (get_ptr)T3D_getim , br ) ;
    drive_MCW_imseq( wset.seq,isqDR_realize , NULL ) ;
    NORMAL_cursorize( wset.seq->wimage ) ;                       /* 07 Dec 2001 */
 
@@ -4957,7 +4957,7 @@ XtPointer T3D_getim( int n , int type , FD_brick * br )
 
       stat->num_total  = br->n3 ;
       stat->num_series = br->n3 ;
-      stat->send_CB    = T3D_imseq_CB ;
+      stat->send_CB    = (gen_func *)T3D_imseq_CB ;
       stat->parent     = (XtPointer) br ;
       stat->aux        = NULL ;
 

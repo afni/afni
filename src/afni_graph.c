@@ -571,7 +571,7 @@ ENTRY("new_MCW_grapher") ;
 #define OPT_MENU_OPTMENU(wmenu,wname,label,cb,hhh)                  \
    grapher -> wname =                                               \
       new_MCW_optmenu( grapher -> wmenu , label , 0,1,0,0 ,         \
-                       cb , (XtPointer) grapher , NULL , NULL ) ;   \
+           (gen_func *)cb , (XtPointer) grapher , NULL , NULL ) ;   \
    MCW_reghint_children( grapher -> wname -> wrowcol , hhh ) ;
 
 #endif /* USE_OPTMENUS */
@@ -728,7 +728,7 @@ ENTRY("new_MCW_grapher") ;
                               grapher->dc ,
                               gr_color_start[ii] , grapher->dc->ovc->ncol_ov-1,
                               grapher->color_index[ii] ,
-                              GRA_color_CB , (XtPointer) grapher ) ;
+                  (gen_func *)GRA_color_CB , (XtPointer) grapher ) ;
         MCW_reghint_children( grapher->opt_color_av[ii]->wrowcol ,
                               gr_color_hint[ii] ) ;           /* 28 Jan 2004 */
 
@@ -787,7 +787,7 @@ ENTRY("new_MCW_grapher") ;
      grapher->opt_ggap_av =
         new_MCW_optmenu( grapher->opt_colors_menu , "Graph Gap" ,
                          0 , 19 , INIT_GR_ggap , 0 ,
-                         GRA_ggap_CB , (XtPointer) grapher , NULL , NULL ) ;
+             (gen_func *)GRA_ggap_CB , (XtPointer) grapher , NULL , NULL ) ;
      AVOPT_columnize( grapher->opt_ggap_av , 4 ) ;
      MCW_reghint_children( grapher->opt_ggap_av->wrowcol ,
                            "Space sub-graphs apart" ) ;
@@ -797,7 +797,7 @@ ENTRY("new_MCW_grapher") ;
      grapher->opt_gthick_av =
         new_MCW_optmenu( grapher->opt_colors_menu , "'Thick'  " ,
                          2 , 10 , INIT_GR_gthick , 0 ,
-                         GRA_gthick_CB , (XtPointer) grapher , NULL , NULL ) ;
+             (gen_func *)GRA_gthick_CB , (XtPointer) grapher , NULL , NULL ) ;
      AVOPT_columnize( grapher->opt_gthick_av , 2 ) ;
      MCW_reghint_children( grapher->opt_gthick_av->wrowcol ,
                            "Width of 'Thick' lines" ) ;
@@ -808,8 +808,8 @@ ENTRY("new_MCW_grapher") ;
        grapher->opt_upsam_av =
          new_MCW_optmenu( grapher->opt_colors_menu , "Smooth?  " ,
                           0 , 1 , 0 , 0 ,
-                          GRA_upsam_CB , (XtPointer)grapher ,
-                          MCW_av_substring_CB , strlist ) ;
+              (gen_func *)GRA_upsam_CB , (XtPointer)grapher ,
+              (str_func *)MCW_av_substring_CB , strlist ) ;
        AVOPT_columnize( grapher->opt_gthick_av , 2 ) ;
        MCW_reghint_children( grapher->opt_upsam_av->wrowcol ,
                              "Draw smoother curves?" ) ;
@@ -941,8 +941,8 @@ ENTRY("new_MCW_grapher") ;
          new_MCW_optmenu( grapher->opt_menu ,
                           "Tran 0D" ,
                           0 , grapher->status->transforms0D->num , 0 , 0 ,
-                          GRA_transform_CB , (XtPointer) grapher ,
-                          GRA_transform_label , (XtPointer) grapher->status->transforms0D ) ;
+              (gen_func *)GRA_transform_CB , (XtPointer) grapher ,
+              (str_func *)GRA_transform_label , (XtPointer) grapher->status->transforms0D ) ;
 
       if( grapher->status->transforms0D->num >= COLSIZE )
          AVOPT_columnize( grapher->transform0D_av ,
@@ -970,8 +970,8 @@ ENTRY("new_MCW_grapher") ;
          new_MCW_optmenu( grapher->opt_menu ,
                           "Tran 1D" ,
                           0 , grapher->status->transforms1D->num , 0 , 0 ,
-                          GRA_transform_CB , (XtPointer) grapher ,
-                          GRA_transform_label ,
+              (gen_func *)GRA_transform_CB , (XtPointer) grapher ,
+              (str_func *)GRA_transform_label ,
                           (XtPointer) grapher->status->transforms1D ) ;
 
       /* force the optmenu to call us even if the same button is chosen twice */
@@ -1016,7 +1016,7 @@ ENTRY("new_MCW_grapher") ;
          new_MCW_optmenu( grapher->opt_menu ,
                           "Detrend" ,
                           -1 , GRA_MAX_DETREND , -1 , 0 ,
-                          GRA_detrend_CB , (XtPointer)grapher ,
+              (gen_func *)GRA_detrend_CB , (XtPointer)grapher ,
                           NULL , NULL ) ;
 
    MCW_reghint_children( grapher->detrend_av->wrowcol ,
@@ -4234,7 +4234,7 @@ STATUS(str); }
                            "Save Image prefix:\n"
                            "  * end in .jpg or .png *\n"
                            "  * for those formats   *" , NULL ,
-                           GRA_saver_CB , (XtPointer) grapher ) ;
+               (gen_func *)GRA_saver_CB , (XtPointer) grapher ) ;
       break ;
 
       case 's':{  /* 28 May 2020 */
@@ -4588,14 +4588,14 @@ STATUS("User pressed Done button: starting timeout") ;
       GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
       MCW_choose_string( grapher->option_rowcol ,
                          "'Write Center' Suffix:" , Grapher_Stuff.wcsuffix ,
-                         GRA_wcsuffix_choose_CB , NULL ) ;
+             (gen_func *)GRA_wcsuffix_choose_CB , NULL ) ;
       EXRETURN ;
    }
 
    if( w == grapher->opt_scale_choose_pb ){
      MCW_choose_integer( grapher->option_rowcol , "Scale" ,
                          -9999 , 9999 , (int)(grapher->fscale) ,
-                         GRA_scale_choose_CB , (XtPointer) grapher ) ;
+             (gen_func *)GRA_scale_choose_CB , (XtPointer) grapher ) ;
      EXRETURN ;
    }
 
@@ -4603,7 +4603,7 @@ STATUS("User pressed Done button: starting timeout") ;
    if( w == grapher->opt_mat_choose_pb ){
      MCW_choose_integer( grapher->option_rowcol , "Matrix" ,
                          1 , grapher->mat_max , grapher->mat ,
-                         GRA_mat_choose_CB , (XtPointer) grapher ) ;
+             (gen_func *)GRA_mat_choose_CB , (XtPointer) grapher ) ;
      EXRETURN ;
    }
 #endif
@@ -4611,7 +4611,7 @@ STATUS("User pressed Done button: starting timeout") ;
    if( w == grapher->opt_grid_choose_pb ){
      MCW_choose_integer( grapher->option_rowcol , "Grid" ,
                          1 , grid_ar[GRID_MAX-1] , grapher->grid_spacing ,
-                         GRA_grid_choose_CB , (XtPointer) grapher ) ;
+             (gen_func *)GRA_grid_choose_CB , (XtPointer) grapher ) ;
      EXRETURN ;
    }
 
@@ -4624,7 +4624,7 @@ STATUS("User pressed Done button: starting timeout") ;
      fvec[2] = grapher->pin_stride ;
      MCW_choose_vector( grapher->option_rowcol , "Graph Pins: Bot..Top-1" ,
                         3 , lvec,fvec ,
-                        GRA_pin_choose_CB , (XtPointer)grapher ) ;
+            (gen_func *)GRA_pin_choose_CB , (XtPointer)grapher ) ;
      /* adjust some stuff on the 'vector' choosers [08 Jun 2020] */
      av = MCW_choose_vector_avarray( &nav ) ;
      av[0]->fmin = av[0]->imin = 0 ;                    /* change min for Bot */
@@ -4642,7 +4642,7 @@ STATUS("User pressed Done button: starting timeout") ;
    if( w == grapher->opt_slice_choose_pb && grapher->status->nz > 1 ){
      MCW_choose_integer( grapher->option_rowcol , "Slice" ,
                          0 , grapher->status->nz - 1 , grapher->zpoint ,
-                         GRA_slice_choose_CB , (XtPointer) grapher ) ;
+             (gen_func *)GRA_slice_choose_CB , (XtPointer) grapher ) ;
      EXRETURN ;
    }
 #endif
@@ -4665,7 +4665,7 @@ STATUS("User pressed Done button: starting timeout") ;
        POPDOWN_strlist_chooser ;
        MCW_choose_timeseries( grapher->fdw_graph , "Graph x-axis" ,
                               GLOBAL_library.timeseries , -1 ,
-                              GRA_pick_xaxis_CB , (XtPointer) grapher ) ;
+                  (gen_func *)GRA_pick_xaxis_CB , (XtPointer) grapher ) ;
      } else {
        (void) MCW_popup_message(
                  grapher->option_rowcol ,
@@ -4736,7 +4736,7 @@ STATUS("User pressed Done button: starting timeout") ;
    if( w == grapher->opt_baseline_setglobal_pb ){
      MCW_choose_integer( grapher->option_rowcol , "Global Baseline" ,
                          -29999 , 29999 , (int)(grapher->global_base) ,
-                         GRA_finalize_global_baseline_CB ,
+             (gen_func *)GRA_finalize_global_baseline_CB ,
                          (XtPointer) grapher ) ;
      EXRETURN ;
    }
@@ -5849,14 +5849,14 @@ ENTRY("GRA_fim_CB") ;
    else if( w == grapher->fmenu->fim_editref_read_pb ){
       MCW_choose_string( grapher->option_rowcol ,
                          "Ideal Input Filename:" , NULL ,
-                         GRA_refread_choose_CB , (XtPointer) grapher ) ;
+             (gen_func *)GRA_refread_choose_CB , (XtPointer) grapher ) ;
    }
 
    else if( w == grapher->fmenu->fim_editref_write_pb ){
       if( grapher->ref_ts != NULL && IMARR_COUNT(grapher->ref_ts) > 0 ){
          MCW_choose_string( grapher->option_rowcol ,
                             "Ideal Output Filename:" , NULL ,
-                            GRA_refwrite_choose_CB , (XtPointer) grapher ) ;
+                (gen_func *)GRA_refwrite_choose_CB , (XtPointer) grapher ) ;
       } else {
          BEEPIT ; WARNING_message("ref time series not defined!?") ;
       }
@@ -5866,7 +5866,7 @@ ENTRY("GRA_fim_CB") ;
       if( grapher->ref_ts != NULL && IMARR_COUNT(grapher->ref_ts) > 0 ){
          MCW_choose_string( grapher->option_rowcol ,
                             "Label to Store Ideal:" , NULL ,
-                            GRA_refstore_choose_CB , (XtPointer) grapher ) ;
+                (gen_func *)GRA_refstore_choose_CB , (XtPointer) grapher ) ;
       } else {
          BEEPIT ; WARNING_message("ref time series not defined!?") ;
       }
@@ -5994,7 +5994,7 @@ ENTRY("GRA_fim_CB") ;
 #else
       MCW_choose_integer( grapher->option_rowcol , "Initial Ignore" ,
                           0 , grapher->status->num_series-1 , grapher->init_ignore ,
-                          GRA_ignore_choose_CB , (XtPointer) grapher ) ;
+              (gen_func *)GRA_ignore_choose_CB , (XtPointer) grapher ) ;
 #endif
    }
 
@@ -6006,7 +6006,7 @@ ENTRY("GRA_fim_CB") ;
 #else
       MCW_choose_integer( grapher->option_rowcol , "Polort Order" ,
                           0 , MAX_POLORT , grapher->polort ,
-                          GRA_polort_choose_CB , (XtPointer) grapher ) ;
+              (gen_func *)GRA_polort_choose_CB , (XtPointer) grapher ) ;
 #endif
    }
 
@@ -6015,7 +6015,7 @@ ENTRY("GRA_fim_CB") ;
    else if( w == grapher->fmenu->fim_bkthr_choose_pb ){
       MCW_choose_integer( grapher->option_rowcol , "Bkg Thresh %" ,
                           0 , 99 , (int)(100*FIM_THR) ,
-                          GRA_bkthr_choose_CB , (XtPointer) grapher ) ;
+              (gen_func *)GRA_bkthr_choose_CB , (XtPointer) grapher ) ;
    }
 
    /*** Unimplemented Button ***/
@@ -6556,7 +6556,7 @@ ENTRY("AFNI_new_fim_menu") ;
 #ifdef USE_OPTMENUS
       fmenu->fim_polort_choose_av =
          new_MCW_optmenu( fmenu->fim_editref_menu , "Polort " , 0,MAX_POLORT,1,0 ,
-                          GRA_fmenu_av_CB , (XtPointer) fmenu , NULL , NULL ) ;
+              (gen_func *)GRA_fmenu_av_CB , (XtPointer) fmenu , NULL , NULL ) ;
       fmenu->fim_polort_choose_pb = fmenu->fim_polort_choose_av->wrowcol ;
       MCW_reghint_children( fmenu->fim_polort_choose_av->wrowcol , "Order of Polynomial Baseline for FIM" ) ;
 #else
@@ -6588,7 +6588,7 @@ ENTRY("AFNI_new_fim_menu") ;
 #ifdef USE_OPTMENUS
    fmenu->fim_ignore_choose_av =
       new_MCW_optmenu( fmenu->fim_ignore_menu , "# " , 0,2,0,0 ,
-                       GRA_fmenu_av_CB , (XtPointer) fmenu , NULL , NULL ) ;
+           (gen_func *)GRA_fmenu_av_CB , (XtPointer) fmenu , NULL , NULL ) ;
    fmenu->fim_ignore_choose_pb = fmenu->fim_ignore_choose_av->wrowcol ;
    MCW_reghint_children( fmenu->fim_ignore_choose_av->wrowcol , "Pick number of ignored points" ) ;
 #else

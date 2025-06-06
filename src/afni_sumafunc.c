@@ -567,16 +567,16 @@ static void AFNI_surf_bbox_CB( Widget,XtPointer,XtPointer ) ; /* 19 Feb 2003 */
                                "Nodes" , im3d->dc ,                \
                                0 , im3d->dc->ovc->ncol_ov-1 ,      \
                                box_col ,                           \
-                               AFNI_surf_redraw_CB , im3d ) ;      \
+                   (gen_func *)AFNI_surf_redraw_CB , im3d ) ;      \
      swid->surf_line_av[ii] = new_MCW_colormenu( rc ,              \
                                "Lines" , im3d->dc ,                \
                                0 , im3d->dc->ovc->ncol_ov-1 ,      \
                                line_col ,                          \
-                               AFNI_surf_redraw_CB , im3d ) ;      \
+                   (gen_func *)AFNI_surf_redraw_CB , im3d ) ;      \
      swid->surf_ledg_av[ii] = new_MCW_colormenu( rc ,              \
                                "+/-" , im3d->dc ,                  \
                                0 , im3d->dc->ovc->ncol_ov-1 , 0 ,  \
-                               AFNI_surf_redraw_CB , im3d ) ;      \
+                   (gen_func *)AFNI_surf_redraw_CB , im3d ) ;      \
      MCW_reghint_children( swid->surf_node_av[ii]->wrowcol ,       \
                            "Color of node boxes" ) ;               \
      MCW_reghelp_children( swid->surf_node_av[ii]->wrowcol ,       \
@@ -685,7 +685,7 @@ ENTRY("AFNI_make_surface_widgets") ;
 
    swid->boxsize_av = new_MCW_optmenu( rc , "BoxSize" ,
                                        1,19,2,0 ,
-                                       AFNI_surf_redraw_CB , im3d ,
+                           (gen_func *)AFNI_surf_redraw_CB , im3d ,
                                        NULL , NULL ) ;
    MCW_reghint_children( swid->boxsize_av->wrowcol ,
                          "Size of boxes drawn at nodes" ) ;
@@ -704,7 +704,7 @@ ENTRY("AFNI_make_surface_widgets") ;
 
    swid->linewidth_av = new_MCW_optmenu( rc , "LineWidth" ,
                                          0,19,0,0 ,
-                                         AFNI_surf_redraw_CB , im3d ,
+                             (gen_func *)AFNI_surf_redraw_CB , im3d ,
                                          NULL , NULL ) ;
    MCW_reghint_children( swid->linewidth_av->wrowcol ,
                          "Width of lines drawn for surface" ) ;

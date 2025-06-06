@@ -1623,7 +1623,7 @@ ENTRY("AFNI_drive_open_graph_xy") ;
                            xbot , xtop ,
                            -ny , ybot , ytop ,
                            xlabel , ylabel ,
-                           toplabel , yname , kill_graph_xy ) ;
+                           toplabel , yname , (void_func *)kill_graph_xy ) ;
 
    freeup_strings(ntok,stok) ;
    if( yname != NULL ) free(yname) ;
@@ -1890,7 +1890,7 @@ ENTRY("AFNI_drive_open_graph_1D") ;
                               nx , dx ,
                               -ny , ybot , ytop ,
                               xlabel , ylabel ,
-                              toplabel , yname , kill_graph_xy ) ;
+                              toplabel , yname , (void_func *)kill_graph_xy ) ;
 
    freeup_strings(ntok,stok) ;
    if( yname != NULL ) free(yname) ;

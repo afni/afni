@@ -46,7 +46,7 @@ extern void memplot_to_X11_funfunfun( Display *dpy , Window w , MEM_plotdata *mp
                                       int start , int end , int mask ) ;
 
 #undef  X11_SET_NEW_PLOT
-#define X11_SET_NEW_PLOT      memplot_to_X11_set_substitute(memplot_to_X11_funfunfun)
+#define X11_SET_NEW_PLOT      memplot_to_X11_set_substitute((void (*)(void))memplot_to_X11_funfunfun)
 
 #undef  X11_SET_OLD_PLOT
 #define X11_SET_OLD_PLOT      memplot_to_X11_set_substitute(NULL)

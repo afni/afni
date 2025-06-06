@@ -1315,9 +1315,9 @@ STATUS("making imag->crosshair_av") ;
                           ii ,                        /* initial selection */
                           MCW_AV_readtext ,           /* ignored but needed */
                           0 ,                         /* ditto */
-                          AFNI_crosshair_visible_CB , /* callback when changed */
+              (gen_func *)AFNI_crosshair_visible_CB , /* CB  when changed */
                           (XtPointer) im3d ,          /* data for above */
-                          MCW_av_substring_CB ,       /* text creation routine */
+              (str_func *)MCW_av_substring_CB ,       /* text creation routine*/
                           AFNI_crosshair_av_label     /* data for above */
                         ) ;
 
@@ -1373,11 +1373,12 @@ STATUS("making imag->crosshair_color_av") ;
                            im3d->vinfo->crosshair_ovcolor ,/* init value */
                            MCW_AV_readtext ,               /* readonly text */
                            0 ,                             /* 0 decimal shift */
-                           AFNI_crosshair_color_CB ,       /* click routine */
+               (gen_func *)AFNI_crosshair_color_CB ,       /* click routine */
                            (XtPointer) im3d ,              /* data for above */
-                           MCW_DC_ovcolor_text ,           /* text routine */
+               (str_func *)MCW_DC_ovcolor_text ,           /* text routine */
                            (XtPointer) im3d->dc            /* data for text */
                          ) ;
+
 
       (void) MCW_DC_ovcolor_text( imag->crosshair_color_av ,
                                   im3d->dc ) ;    /* set color now! */
@@ -1389,7 +1390,7 @@ STATUS("making imag->crosshair_color_av") ;
       imag->crosshair_color_av =
          new_MCW_colormenu( imag->crosshair_rowcol , "Color " , im3d->dc ,
                             1 , last_color , im3d->vinfo->crosshair_ovcolor ,
-                            AFNI_crosshair_color_CB , (XtPointer) im3d ) ;
+                (gen_func *)AFNI_crosshair_color_CB , (XtPointer) im3d ) ;
    }
 
    imag->crosshair_color_av->parent     = (XtPointer) im3d ;
@@ -1432,7 +1433,7 @@ STATUS("making imag->crosshair_gap_av") ;
                         im3d->vinfo->crosshair_gap , /* init value */
                         MCW_AV_editext ,             /* input/output text */
                         0 ,                          /* 0 decimal shift */
-                        AFNI_crosshair_gap_CB ,      /* click routine */
+            (gen_func *)AFNI_crosshair_gap_CB ,      /* click routine */
                         (XtPointer) im3d ,           /* data */
                         NULL , NULL
                       ) ;
@@ -1491,7 +1492,7 @@ STATUS("making imag->time_index_av") ;
                         im3d->vinfo->time_index ,    /* init value */
                         MCW_AV_editext ,             /* input/output text */
                         0 ,                          /* 0 decimal shift */
-                        AFNI_time_index_CB ,         /* click routine */
+            (gen_func *)AFNI_time_index_CB ,         /* click routine */
                         (XtPointer) im3d ,           /* data */
                         NULL , NULL
                       ) ;
@@ -2590,9 +2591,9 @@ STATUS("making marks->rowcol") ;
             marks->ov_pcolor ,      /* init value */
             MCW_AV_readtext ,       /* readonly text display */
             0 ,                     /* 0 decimal shift */
-            AFNI_marks_disp_av_CB , /* click routine */
+(gen_func *)AFNI_marks_disp_av_CB , /* click routine */
             (XtPointer) im3d ,      /* data */
-            MCW_DC_ovcolor_text ,   /* text routine */
+(str_func *)MCW_DC_ovcolor_text ,   /* text routine */
             (XtPointer) im3d->dc    /* data */
           ) ;
       marks->disp_pcolor_av->fastdelay  = 333 ;  /* slow down repeat action */
@@ -2603,7 +2604,7 @@ STATUS("making marks->rowcol") ;
       marks->disp_pcolor_av =
          new_MCW_colormenu( marks->disp_rowcol , "Pcolor" , im3d->dc ,
                             0 , last_color , marks->ov_pcolor ,
-                            AFNI_marks_disp_av_CB , (XtPointer) im3d ) ;
+                (gen_func *)AFNI_marks_disp_av_CB , (XtPointer) im3d ) ;
    }
 
    marks->disp_pcolor_av->parent = (XtPointer) im3d ;
@@ -2628,9 +2629,9 @@ STATUS("making marks->rowcol") ;
             marks->ov_scolor ,      /* init value */
             MCW_AV_readtext ,       /* readonly text display */
             0 ,                     /* 0 decimal shift */
-            AFNI_marks_disp_av_CB , /* click routine */
+(gen_func *)AFNI_marks_disp_av_CB , /* click routine */
             (XtPointer) im3d ,      /* data */
-            MCW_DC_ovcolor_text ,   /* text routine */
+(str_func *)MCW_DC_ovcolor_text ,   /* text routine */
             (XtPointer) im3d->dc    /* data */
           ) ;
       marks->disp_scolor_av->fastdelay  = 333 ;  /* slow down repeat action */
@@ -2641,7 +2642,7 @@ STATUS("making marks->rowcol") ;
       marks->disp_scolor_av =
          new_MCW_colormenu( marks->disp_rowcol , "Scolor" , im3d->dc ,
                             0 , last_color , marks->ov_scolor ,
-                            AFNI_marks_disp_av_CB , (XtPointer) im3d ) ;
+                (gen_func *)AFNI_marks_disp_av_CB , (XtPointer) im3d ) ;
    }
 
    marks->disp_scolor_av->parent = (XtPointer) im3d ;
@@ -2669,7 +2670,7 @@ STATUS("making marks->rowcol") ;
          marks->ov_size ,        /* init value */
          MCW_AV_editext ,        /* input/output text display */
          0 ,                     /* 0 decimal shift */
-         AFNI_marks_disp_av_CB , /* routine to call after click */
+(gen_func *)AFNI_marks_disp_av_CB , /* routine to call after click */
          (XtPointer) im3d ,      /* data to pass */
          NULL ,                  /* routine to call for text display */
          NULL                    /* data for text display routine */
@@ -2700,7 +2701,7 @@ STATUS("making marks->rowcol") ;
          marks->ov_gap ,         /* init value */
          MCW_AV_editext ,        /* input/output text display */
          0 ,                     /* 0 decimal shift */
-         AFNI_marks_disp_av_CB , /* routine to call after click */
+(gen_func *)AFNI_marks_disp_av_CB , /* routine to call after click */
          (XtPointer) im3d ,      /* data to pass */
          NULL ,                  /* routine to call for text display */
          NULL                    /* data for text display routine */
@@ -3180,9 +3181,9 @@ STATUS("making func->rowcol") ;
            im3d->vinfo->thr_sign , /* init value */
            MCW_AV_editext ,        /* input/output text display */
            0 ,                     /* 0 decimal shift */
-           AFNI_func_thrsign_CB ,  /* routine to call after click */
+(gen_func *)AFNI_func_thrsign_CB , /* routine to call after click */
            (XtPointer) im3d ,      /* data to pass */
-           MCW_av_substring_CB ,   /* text creation routine */
+(str_func *)MCW_av_substring_CB ,  /* text creation routine */
            thr_sign_label          /* data for above */
         ) ;
       MCW_reghint_children( func->thr_sign_av->wrowcol ,
@@ -3205,9 +3206,9 @@ STATUS("making func->rowcol") ;
            mm             ,             /* init value */
            MCW_AV_editext ,             /* input/output text display */
            0 ,                          /* 0 decimal shift */
-           AFNI_func_alpha_CB ,         /* routine to call after click */
+(gen_func *)AFNI_func_alpha_CB ,        /* routine to call after click */
            (XtPointer) im3d ,           /* data to pass (viewer) */
-           MCW_av_substring_CB ,        /* text creation routine */
+(str_func *)MCW_av_substring_CB ,       /* text creation routine */
            thr_alpha_label              /* data for above */
         ) ;
       MCW_reghint_children( func->thr_alpha_av->wrowcol ,
@@ -3230,9 +3231,9 @@ STATUS("making func->rowcol") ;
            0                          , /* init value */
            MCW_AV_editext ,             /* input/output text display */
            0 ,                          /* 0 decimal shift */
-           AFNI_func_floor_CB ,         /* routine to call after click */
+(gen_func *)AFNI_func_floor_CB ,        /* routine to call after click */
            (XtPointer)im3d ,            /* data to pass */
-           MCW_av_substring_CB ,        /* text creation routine */
+(str_func *)MCW_av_substring_CB ,       /* text creation routine */
            thr_floor_label              /* data for above */
         ) ;
       MCW_reghint_children( func->thr_floor_av->wrowcol ,
@@ -3417,8 +3418,8 @@ STATUS("making func->rowcol") ;
                                         AVOPT_STYLE ,
                                         0,THR_top_expon,0 ,
                                         MCW_AV_notext , 0 ,
-                                        AFNI_thresh_top_CB , (XtPointer)im3d ,
-                                        AFNI_thresh_tlabel_CB , NULL ) ;
+                            (gen_func *)AFNI_thresh_top_CB , (XtPointer)im3d ,
+                            (str_func *)AFNI_thresh_tlabel_CB , NULL ) ;
    BBOX_set_wsubtype(NULL) ;
 
    im3d->vinfo->func_thresh_top = 1.0 ;
@@ -3695,9 +3696,9 @@ STATUS("making func->rowcol") ;
                              0 ,                   /* initial selection */
                              MCW_AV_readtext ,     /* ignored but needed */
                              0 ,                   /* ditto */
-                             AFNI_palette_av_CB ,  /* callback when changed */
+                 (gen_func *)AFNI_palette_av_CB ,  /* callback when changed */
                              (XtPointer)im3d ,     /* data for above */
-                             MCW_av_substring_CB , /* text creation routine */
+                 (str_func *)MCW_av_substring_CB , /* text creation routine */
                              AFNI_dummy_av_label   /* data for above */
                            ) ;
 
@@ -3709,7 +3710,7 @@ STATUS("making func->rowcol") ;
                            PALTAB_NUM(GPT)-1 ,     /* new maxval */
                            0 ,                     /* new inival */
                            0 ,                     /* new decim? */
-                           AFNI_palette_label_CB , /* text routine */
+               (str_func *)AFNI_palette_label_CB , /* text routine */
                            NULL                    /* text data */
                         ) ;
    } else {
@@ -3731,9 +3732,9 @@ STATUS("making func->rowcol") ;
                              0 ,                   /* initial selection */
                              MCW_AV_readtext ,     /* ignored but needed */
                              0 ,                   /* ditto */
-                             AFNI_palette_tran_CB, /* callback when changed */
+                 (gen_func *)AFNI_palette_tran_CB, /* callback when changed */
                              (XtPointer)im3d ,     /* data for above */
-                             MCW_av_substring_CB , /* text creation routine */
+                 (str_func *)MCW_av_substring_CB , /* text creation routine */
                              AFNI_dummy_av_label   /* data for above */
                            ) ;
 
@@ -3758,9 +3759,9 @@ STATUS("making func->rowcol") ;
                              0 ,                   /* initial selection */
                              MCW_AV_readtext ,     /* ignored but needed */
                              0 ,                   /* ditto */
-                             AFNI_palette_tran_CB, /* callback when changed */
+                 (gen_func *)AFNI_palette_tran_CB, /* callback when changed */
                              (XtPointer)im3d ,     /* data for above */
-                             MCW_av_substring_CB , /* text creation routine */
+                 (str_func *)MCW_av_substring_CB , /* text creation routine */
                              AFNI_dummy_av_label   /* data for above */
                            ) ;
 
@@ -3789,7 +3790,7 @@ STATUS("making func->rowcol") ;
                           npane ,                     /* number panes */
                           sel_height / npane ,        /* init pane height */
                           pmin , pmax ,               /* value range */
-                          AFNI_inten_pbar_CB ,        /* callback */
+              (gen_func *)AFNI_inten_pbar_CB ,        /* callback */
                           (XtPointer)im3d ,           /* callback data */
                           AFNI_yesenv("AFNI_PBAR_THREE") ) ; /* bigthree mode? */
 
@@ -3861,8 +3862,8 @@ STATUS("making func->rowcol") ;
                         NPANE_MIN , NPANE_MAX+1 ,
                         (func->inten_pbar->bigmode) ? NPANE_MAX+1 : npane ,
                         MCW_AV_notext , 0 ,
-                        AFNI_inten_av_CB , func->inten_pbar ,
-                        AFNI_inten_av_texter,NULL ) ;
+            (gen_func *)AFNI_inten_av_CB , func->inten_pbar ,
+            (str_func *)AFNI_inten_av_texter,NULL ) ;
 
    if( AVOPT_STYLE == MCW_AV_optmenu )
       AVOPT_columnize( func->inten_av , 2 ) ;
@@ -3966,9 +3967,9 @@ STATUS("making func->rowcol") ;
                                0 ,                        /* initial selection */
                                MCW_AV_readtext ,          /* ignored but needed */
                                0 ,                        /* ditto */
-                               AFNI_vedit_CB  ,           /* callback when changed */
+                   (gen_func *)AFNI_vedit_CB  ,           /* callback when changed */
                                (XtPointer)im3d ,          /* data for above */
-                               MCW_av_substring_CB ,      /* text creation routine */
+                   (str_func *)MCW_av_substring_CB ,      /* text creation routine */
                                options_vedit_label        /* data for above */
                              ) ;
      for( ibut=0 ; ibut < nopt ; ibut++ )
@@ -4353,9 +4354,9 @@ STATUS("making func->rowcol") ;
                           0 ,                     /* initial selection */
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* ditto */
-                          AFNI_bucket_CB ,        /* callback when changed */
+              (gen_func *)AFNI_bucket_CB ,        /* callback when changed */
                           (XtPointer)im3d ,       /* data for above */
-                          MCW_av_substring_CB ,   /* text creation routine */
+              (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                           AFNI_dummy_av_label     /* data for above */
                         ) ;
 
@@ -4390,9 +4391,9 @@ STATUS("making func->rowcol") ;
                           0 ,                     /* initial selection */
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* ditto */
-                          AFNI_bucket_CB ,        /* callback when changed */
+              (gen_func *)AFNI_bucket_CB ,        /* callback when changed */
                           (XtPointer)im3d ,       /* data for above */
-                          MCW_av_substring_CB ,   /* text creation routine */
+              (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                           AFNI_dummy_av_label     /* data for above */
                         ) ;
 
@@ -4427,9 +4428,9 @@ STATUS("making func->rowcol") ;
                           0 ,                     /* initial selection */
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* ditto */
-                          AFNI_bucket_CB ,        /* callback when changed */
+              (gen_func *)AFNI_bucket_CB ,        /* callback when changed */
                           (XtPointer)im3d ,       /* data for above */
-                          MCW_av_substring_CB ,   /* text creation routine */
+              (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                           AFNI_dummy_av_label     /* data for above */
                         ) ;
 
@@ -4599,7 +4600,7 @@ STATUS("making func->rowcol") ;
          (int) (im3d->vinfo->fim_range) ,  /* init value */
          MCW_AV_editext ,                  /* input/output text display */
          0 ,                               /* decimal shift */
-         AFNI_range_av_CB ,                /* routine to call when button */
+(gen_func *)AFNI_range_av_CB ,             /* routine to call when button */
          (XtPointer) im3d ,                /* is pressed, and its data */
          NULL,NULL                         /* no special display */
       ) ;
@@ -4625,7 +4626,8 @@ STATUS("making func->rowcol") ;
                              hrc , "Rota" ,
                              MCW_AV_downup , 0,0,0 ,
                              MCW_AV_notext , 0 ,
-                             AFNI_range_rotate_av_CB , (XtPointer) func->inten_pbar ,
+                 (gen_func *)AFNI_range_rotate_av_CB ,
+                 (XtPointer) func->inten_pbar ,
                              NULL,NULL ) ;
    func->range_rotate_av->parent = (XtPointer) im3d ;
    MCW_reghelp_children( func->range_rotate_av->wrowcol ,
@@ -4855,8 +4857,8 @@ STATUS("making dmode->rowcol") ;
                              LAST_RESAM_TYPE ,
                              im3d->vinfo->anat_resam_mode ,
                              MCW_AV_readtext , 0 ,
-                             AFNI_resam_av_CB , (XtPointer) im3d ,
-                             AFNI_resam_texter , NULL ) ;
+                 (gen_func *)AFNI_resam_av_CB , (XtPointer) im3d ,
+                 (str_func *)AFNI_resam_texter , NULL ) ;
 
    dmode->anat_resam_av->parent     = (XtPointer) im3d ;
    dmode->anat_resam_av->allow_wrap = 1 ;         /* wrap values */
@@ -4892,7 +4894,7 @@ STATUS("making dmode->rowcol") ;
          (int)(10*INIT_resam_vox) ,       /* init value */
          MCW_AV_editext ,                 /* input/output text display */
          1 ,                              /* decimal shift */
-         AFNI_resam_vox_av_CB ,           /* routine to call when button */
+(gen_func *)AFNI_resam_vox_av_CB ,        /* routine to call when button */
          (XtPointer) im3d ,               /* is pressed, and its data */
          NULL,NULL                        /* no special display */
       ) ;
@@ -4966,8 +4968,8 @@ STATUS("making dmode->rowcol") ;
                              LAST_RESAM_TYPE ,
                              im3d->vinfo->func_resam_mode ,
                              MCW_AV_readtext , 0 ,
-                             AFNI_resam_av_CB , (XtPointer) im3d ,
-                             AFNI_resam_texter , NULL ) ;
+                 (gen_func *)AFNI_resam_av_CB , (XtPointer) im3d ,
+                 (str_func *)AFNI_resam_texter , NULL ) ;
 
    dmode->func_resam_av->parent     = (XtPointer) im3d ;
    dmode->func_resam_av->allow_wrap = 1 ;       /* wrap values */
@@ -5008,8 +5010,8 @@ STATUS("making dmode->rowcol") ;
                              LAST_RESAM_TYPE ,
                              im3d->vinfo->thr_resam_mode ,
                              MCW_AV_readtext , 0 ,
-                             AFNI_resam_av_CB , (XtPointer) im3d ,
-                             AFNI_resam_texter , NULL ) ;
+                 (gen_func *)AFNI_resam_av_CB , (XtPointer) im3d ,
+                 (str_func *)AFNI_resam_texter , NULL ) ;
 
    dmode->thr_resam_av->parent     = (XtPointer) im3d ;
    dmode->thr_resam_av->allow_wrap = 1 ;       /* wrap values */

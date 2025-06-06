@@ -453,7 +453,7 @@ ENTRY("SPLASH_imseq_getim") ;
       MCW_imseq_status *stat = myXtNew( MCW_imseq_status ) ;
       stat->num_total  = 1 ;
       stat->num_series = 1 ;
-      stat->send_CB    = PLUGIN_seq_send_CB ;
+      stat->send_CB    = (gen_func *)PLUGIN_seq_send_CB ;
       stat->parent     = (XtPointer)imp  ;
       stat->aux        = NULL ;
 
@@ -568,7 +568,7 @@ ENTRY("SPLASH_popup_image") ;
    if( imp->seq == NULL ){
      STATUS("opening new splash window") ;
      imp->seq = open_MCW_imseq( GLOBAL_library.dc ,
-                                SPLASH_imseq_getim , (XtPointer) imp ) ;
+                       (get_ptr)SPLASH_imseq_getim , (XtPointer) imp ) ;
    } else {
      STATUS("realizing old splash window") ;
      drive_MCW_imseq( imp->seq , isqDR_realize , NULL ) ;
@@ -1679,7 +1679,7 @@ ENTRY("AFNI_save_layout_CB") ;
 
    MCW_choose_string( im3d->vwid->picture ,
                       "Layout filename [blank => .afni.startup_script]:" ,
-                      NULL , AFNI_finalsave_layout_CB , cd ) ;
+                      NULL , (gen_func *)AFNI_finalsave_layout_CB , cd ) ;
    EXRETURN ;
 }
 
@@ -2012,7 +2012,7 @@ ENTRY("AFNI_run_script_CB") ;
 
    MCW_choose_string( im3d->vwid->picture ,
                       "Enter AFNI script filename:" ,
-                      NULL , AFNI_finalrun_script_CB , cd ) ;
+                      NULL , (gen_func *)AFNI_finalrun_script_CB , cd ) ;
    EXRETURN ;
 }
 

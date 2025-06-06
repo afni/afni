@@ -315,7 +315,7 @@ ENTRY("TTRR_setup_widgets") ;
    ttc->meth_av = new_MCW_optmenu( toprc , "Method" ,
                                    0 , NMETHOD-1 , 1 , 0 ,
                                    NULL,NULL ,
-                                   MCW_av_substring_CB, METHOD_strings ) ;
+                       (str_func *)MCW_av_substring_CB, METHOD_strings ) ;
 
    XtVaSetValues( ttc->meth_av->wrowcol ,
                     XmNleftAttachment , XmATTACH_FORM ,
@@ -328,7 +328,7 @@ ENTRY("TTRR_setup_widgets") ;
    ttc->hemi_av = new_MCW_optmenu( toprc , "Hemisphere(s)" ,
                                    0 , NHEMI-1 , NHEMI-1 , 0 ,
                                    NULL,NULL ,
-                                   MCW_av_substring_CB, HEMI_strings ) ;
+                       (str_func *)MCW_av_substring_CB, HEMI_strings ) ;
 
    XtVaSetValues( ttc->hemi_av->wrowcol ,
                     XmNrightAttachment, XmATTACH_FORM ,
@@ -428,7 +428,7 @@ ENTRY("TTRR_setup_widgets") ;
                0 ,                            /* first color */
                dc->ovc->ncol_ov - 1 ,         /* last color */
                0 ,                            /* initial color */
-               TTRR_av_CB,NULL                /* callback func,data */
+   (gen_func *)TTRR_av_CB,NULL                /* callback func,data */
             ) ;
 
          XtVaSetValues( ttc->reg_av[ttc->reg_num]->wrowcol ,
@@ -587,12 +587,12 @@ ENTRY("TTRR_action_CB") ;
    } else if( strcmp(wname,TTRR_load_label) == 0 ){
 
       MCW_choose_string( w , "Filename to load" , NULL ,
-                             TTRR_load_CB , NULL ) ;
+                 (gen_func *)TTRR_load_CB , NULL ) ;
 
    } else if( strcmp(wname,TTRR_save_label) == 0 ){
 
       MCW_choose_string( w , "Filename to save" , NULL ,
-                             TTRR_save_CB , NULL ) ;
+                 (gen_func *)TTRR_save_CB , NULL ) ;
    }
 
    EXRETURN ;
