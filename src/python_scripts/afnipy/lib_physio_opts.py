@@ -7,7 +7,8 @@
 #version = '1.0'
 #version = '1.1'   # add remove_val_list, for some vals to get replaced
 #version = '1.2'   # better bandpassing and tapering, no 'add missing' for now
-version = '1.3'   # can read in previous peaks/troughs
+#version = '1.3'   # can read in previous peaks/troughs
+version = '1.4'   # separate sli/vol regr; implement RVTRRF, too
 
 # ==========================================================================
 
@@ -39,16 +40,18 @@ DEF_max_bpm_resp = 60.0
 
 # RVT shifts: either no RVT, direct list, or linspace set of pars
 # (units: sec)
-all_rvt_opt = ['rvt_off', 'rvt_shift_list', 'rvt_shift_linspace']
-DEF_rvt_off            = False
+all_rvt_opt = ['rvt_shift_list', 'rvt_shift_linspace']
 DEF_rvt_shift_list     = '0 1 2 3 4'  # split+listified, below, if used
 DEF_rvt_shift_linspace = None         # can be pars for NumPy linspace(A,B,C)
+
+DEF_volbase_types_card = 'hrcrf'
+DEF_volbase_types_resp = 'rvt'
 
 # some QC image plotting options that the user can change
 DEF_img_figsize   = []
 DEF_img_fontsize  = 10
-DEF_img_line_time = 60               # units = seconds
-DEF_img_fig_line  = 6                # max num lines per fig
+DEF_img_line_time = 120              # units = seconds, ergo def: 2mins/line
+DEF_img_fig_line  = 5                # max num lines per fig
 DEF_img_dot_freq  = 50               # points per sec
 DEF_img_bp_max_f  = 5.0              # Hz, for bandpass plot
 
@@ -127,9 +130,10 @@ DEF = {
     'ver'               : False,     # (bool) do show ver num?
     'help'              : False,     # (bool) do show help in term?
     'hview'             : False,     # (bool) do show help in text ed?
-    'rvt_off'           : DEF_rvt_off, # (bool) turn off RVT output
     'rvt_shift_list'    : None,      # (str) space sep list of nums
     'rvt_shift_linspace': DEF_rvt_shift_linspace, # (str) pars for RVT shift 
+    'volbase_types_resp': DEF_volbase_types_resp, # (str) if resp, which regr?
+    'volbase_types_card': DEF_volbase_types_card, # (str) if card, which regr?
     'img_verb'          : 1,         # (int) amount of graphs to save
     'img_figsize'       : DEF_img_figsize,   # (tuple) figsize dims for QC imgs
     'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs 
@@ -219,6 +223,26 @@ all_quant_ge_zero = [
     'max_bpm_card',
     'max_bpm_resp',
 ]
+
+# --------------------------------------------------------------------------
+# codes for volumetric physio regressors
+
+# resp list
+list_volbase_resp = [
+    'NONE',
+    'rvt',
+    'rvtrrf',
+    ]
+# ... and as a comma-separated string list
+all_volbase_resp = ', '.join(list_volbase_resp)
+
+# card list
+list_volbase_card = [
+    'NONE',
+    'hrcrf',
+    ]
+# ... and as a comma-separated string list
+all_volbase_card = ', '.join(list_volbase_card)
 
 # --------------------------------------------------------------------------
 # sundry other items
@@ -1387,12 +1411,25 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     metavar=('START', 'STOP', 'N'),
                     nargs=3, type=str) # parse later
 
-opt = '''rvt_off'''
-hlp = '''Turn off output of RVT regressors
-'''
+opt = '''volbase_types_resp'''
+hlp = '''Provide a list of one or more types of volumetric regressors
+derived from the input respiratory physio data. This is done by
+listing one or more codes from among the following list:  {}  (def: {})
+'''.format(all_volbase_resp, DEF_volbase_types_resp)
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+                    metavar=('RTYPE1', 'RTYPE2'),
+                    nargs='+', type=str) # parse later
+
+opt = '''volbase_types_card'''
+hlp = '''Provide a list of one or more types of volumetric regressors
+derived from the input cardiac physio data. This is done by
+listing one or more codes from among the following list:  {}  (def: {})
+'''.format(all_volbase_card, DEF_volbase_types_card)
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    metavar=('CTYPE1', 'CTYPE2'),
+                    nargs='+', type=str) # parse later
 
 opt = '''no_card_out'''
 hlp = '''Turn off output of cardiac regressors'''
@@ -2039,16 +2076,87 @@ args_dict2 : dict
 
         if IS_BAD :  sys.exit(1)
 
+    # for card inputs, which volume-based regressors will be created? 
+    # There will always be at least one value in this list
+    if args_dict2['volbase_types_card'] :
+        IS_BAD = 0
+
+        # defaults, which don't change if 'NONE' is in the list here
+        args_dict2['do_calc_hr']    = False
+        args_dict2['do_calc_hrcrf'] = False
+        args_dict2['do_out_hr']     = False
+        args_dict2['do_out_hrcrf']  = False
+
+        L = args_dict2['volbase_types_card'].split()
+
+        if 'NONE' in L :
+            if len(L) > 1 :
+                print("** ERROR with '-volbase_types_card ..' args: '{}'"
+                      "".format(args_dict2['volbase_types_card']))
+                print("   Cannot mix 'NONE' with other types")
+                IS_BAD = 1
+
+            #  NB: if here, no need to change def switch values above
+
+        if 'hrcrf' in L :
+            # HR calc is also needed for hrcrf calc
+            args_dict2['do_calc_hr']    = True
+            args_dict2['do_calc_hrcrf'] = True
+            args_dict2['do_out_hrcrf']  = True
+
+        if IS_BAD :  sys.exit(1)
+
+    # for resp inputs, which volume-based regressors will be created? 
+    # There will always be at least one value in this list
+    # NB: check this BEFORE the RVT considerations are parsed; it will 
+    # control lots of switches for calculations and outputs 
+    if args_dict2['volbase_types_resp'] :
+        IS_BAD = 0
+
+        # defaults, which don't change if 'NONE' is in the list here
+        args_dict2['do_calc_rvt']    = False
+        args_dict2['do_calc_rvtrrf'] = False
+        args_dict2['do_out_rvt']     = False
+        args_dict2['do_out_rvtrrf']  = False
+
+        L = args_dict2['volbase_types_resp'].split()
+
+        if 'NONE' in L :
+            if len(L) > 1 :
+                print("** ERROR with '-volbase_types_resp ..' args: '{}'"
+                      "".format(args_dict2['volbase_types_resp']))
+                print("   Cannot mix 'NONE' with other types")
+                IS_BAD = 1
+
+            #  NB: if here, no need to change def switch values above
+
+        if 'rvt' in L :
+            args_dict2['do_calc_rvt']    = True
+            args_dict2['do_out_rvt']     = True
+
+        if 'rvtrrf' in L :
+            # RVT calc is also needed for RVTRRF calc
+            args_dict2['do_calc_rvt']    = True
+            args_dict2['do_calc_rvtrrf'] = True
+            args_dict2['do_out_rvtrrf']  = True
+
+        if IS_BAD :  sys.exit(1)
+
     # RVT considerations: several branches here; first check if >1 opt
     # was used, which is bad; then check for any other opts.  When
     # this full conditional is complete, we should have our shift
     # list, one way or another
     if check_multiple_rvt_shift_opts(args_dict2) :
-            sys.exit(1)
+        sys.exit(1)
     elif args_dict2['rvt_shift_list'] != None :
         # RVT branch A: direct list of shifts from user to make into array
 
         IS_BAD = 0
+
+        if not(args_dict2['do_rvt_out']) :
+            print("** ERROR, RVT calcs were turned off in opt proc;")
+            print("   you cannot then use -rvt_shift_list")
+            IS_BAD = 1
 
         L = args_dict2['rvt_shift_list'].split()
 
@@ -2067,6 +2175,11 @@ args_dict2 : dict
         # RVT branch B: linspace pars from user, list of ints or floats
 
         IS_BAD = 0
+
+        if not(args_dict2['do_rvt_out']) :
+            print("** ERROR, RVT calcs were turned off in opt proc")
+            print("   you cannot then use -rvt_shift_linspace")
+            IS_BAD = 1
 
         # make sure -rvt_shift_list had 3 entries
         L = args_dict2['rvt_shift_linspace'].split()
@@ -2093,9 +2206,6 @@ args_dict2 : dict
             IS_BAD = 1
 
         if IS_BAD :  sys.exit(1)
-    elif  args_dict2['rvt_off'] :
-        # RVT branch C: no shifts (simple), as per user
-        args_dict2['rvt_shift_list'] = []
     else:
         # RVT branch D: use default shifts
         L   = DEF_rvt_shift_list.split()
