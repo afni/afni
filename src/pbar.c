@@ -290,7 +290,8 @@ STATUS("init pval_save") ;
                              XmNtraversalOn , True  ,
                              XmNinitialResourcesPersistent , False ,
                           NULL ) ;
-   XtAddCallback( pbar->big_choose_pb, XmNactivateCallback, PBAR_big_menu_CB , pbar ) ;
+   XtAddCallback( pbar->big_choose_pb, XmNactivateCallback,
+                  (XtCallbackProc)PBAR_big_menu_CB , pbar ) ;
    MCW_register_hint( pbar->big_choose_pb , "Change the continuous colorscale" ) ;
 
    if( bigthree ){
@@ -815,7 +816,7 @@ ENTRY("PBAR_big_menu_CB") ;
                          bigmap_num ,
                          pbar->bigmap_index ,
                          bigmap_name ,
-                         PBAR_bigmap_finalize , cd ) ;
+             (gen_func *)PBAR_bigmap_finalize , cd ) ;
 
    } else if ( w == pbar->big_scaleup_pb ){  /* Feb 2012 */
 
@@ -850,7 +851,7 @@ ENTRY("PBAR_big_menu_CB") ;
        XBell(pbar->dc->display,100) ;
      }
      MCW_choose_stuff( wtop , "Color pbar range" ,
-                       PBAR_topbot_finalize, (XtPointer)pbar ,
+           (gen_func *)PBAR_topbot_finalize, (XtPointer)pbar ,
                          MSTUF_STRING , "Bot" ,
                          MSTUF_STRING , "Top" ,
                        MSTUF_END ) ;
@@ -1435,7 +1436,8 @@ ENTRY("PBAR_click_CB") ;
      else                           EXRETURN ; /* should not happen */
      MCW_choose_binary( w ,
                         ((ip==0) ? "Colorize Above?" : "Colorize Below?") ,
-                        con , "Off" , "On" , PBAR_setonoff_CB , pbar ) ;
+                        con , "Off" , "On" ,
+                        (gen_func *)PBAR_setonoff_CB , pbar ) ;
      EXRETURN ;
    }
 
@@ -1444,7 +1446,8 @@ ENTRY("PBAR_click_CB") ;
    for( ip=0 ; ip < pbar->num_panes ; ip++ ) if( pbar->panes[ip] == w ) break ;
    if( ip == pbar->num_panes ) EXRETURN ;
 
-   MCW_choose_ovcolor( w , dc , pbar->ov_index[ip] , PBAR_setcolor_CB , dc ) ;
+   MCW_choose_ovcolor( w , dc , pbar->ov_index[ip] ,
+                       (gen_func *)PBAR_setcolor_CB , dc ) ;
 
    EXRETURN ;
 }
