@@ -120,7 +120,7 @@ MCW_graf * new_MCW_graf( Widget wpar , MCW_DC * dc , char * title ,
    gp->handle_av =  new_MCW_arrowval( rcbox , "#" ,
                                       MCW_AV_downup , 2,MAX_GHANDS,4 ,
                                       MCW_AV_notext , 0 ,
-                                      GRAF_handle_CB , (XtPointer) gp ,
+                          (gen_func *)GRAF_handle_CB , (XtPointer) gp ,
                                       NULL,NULL ) ;
 
    gp->reset_pb = XtVaCreateManagedWidget(
