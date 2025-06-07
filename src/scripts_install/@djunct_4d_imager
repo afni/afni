@@ -57,8 +57,11 @@ set this_prog = "@djunct_4d_imager"
 #     + [PT] new opts to turn off sepscl or onescl images
 #          - also, can turn off various slice views
 #
-set version   = "2.5";   set rev_dat   = "Jun 6, 2025"
+#set version   = "2.5";   set rev_dat   = "Jun 6, 2025"
 #     + [PT] re-enable -no_clean
+#
+set version   = "2.6";   set rev_dat   = "Jun 6, 2025"
+#     + [PT] enable -set_dicom_xyz, to select non-default slices
 #
 # ----------------- find AFNI and set viewer ---------------------
 setenv AFNI_ENVIRON_WARNINGS NO
@@ -123,8 +126,11 @@ while ( $ac <= $#argv )
         goto SHOW_VERSION
     endif
 
+    if ( "$argv[$ac]" == "-echo" ) then
+        set echo
+
     # --------------- input dset(s) ----------------
-    if ( "$argv[$ac]" == "-inset" ) then
+    else if ( "$argv[$ac]" == "-inset" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set iset = "$argv[$ac]"
@@ -281,7 +287,9 @@ endif
 
 # ====================================================================
 
-echo "\n-----> STARTING imager ---->"
+echo ""
+echo "++ -----> STARTING imager ---->"
+echo ""
 
 # --------------- copy inset, go to wdir ------------------------
 
@@ -302,6 +310,28 @@ set ori1 = `echo $ori | awk '{print substr($0,2,1)}'`
 set ori2 = `echo $ori | awk '{print substr($0,3,1)}'`
 set all_ori = ( $ori0 $ori1 $ori2 )
 set dim0 = `3dinfo -n4 "$mfile0"`
+
+# in case the user specifies a particular XYZ location to get slices
+if ( "$coor_type" == "SET_DICOM_XYZ" && $USER_COORS ) then
+    set ijk_user = `@xyz_to_ijk -inset   ${mfile0}        \
+                                -xyz     ${coors}         \
+                                -prefix  user_coors.txt`
+    echo "++ User coord selection XYZ   : ${coors}"
+    echo "   ... have corresponding IJK : ${ijk_user}"
+
+    set n4 = `3dinfo -n4 ${mfile0}`
+    foreach nn ( `seq 1 1 3` )
+        if ( ${ijk_user[$nn]} < 0 || ${ijk_user[$nn]} >= ${n4[$nn]} ) then
+            echo "** ERROR in user coord selection, for XYZ coors: ${coors}."
+            echo "   Corresponding IJK = '${ijk_user}',"
+            echo "   But the allowed range from n4 is: ${n4[1-3]}"
+            goto BAD_EXIT
+        endif
+    end
+
+    # due to ordering of all_ii array, we reorder the ijk_user to ijk_reorder
+    set ijk_reorder = ( ${ijk_user[3]} ${ijk_user[2]} ${ijk_user[1]} )
+endif
 
 # **see note above about creating all_ii array
 foreach ii ( ${all_ii} ) 
@@ -351,7 +381,11 @@ foreach ii ( ${all_ii} )
     set mdtype  = `3dinfo -datum "$mfile""[0]"` 
     set mdim    = `3dinfo -n4 "$mfile"`
 
-    @ slnum        = ( $mdim[3] / 2 ) + 3
+    if ( "$coor_type" == "SET_DICOM_XYZ" && $USER_COORS ) then
+        set slnum = ${ijk_reorder[$ii]} # *** VERIFY THIS***
+    else
+        @ slnum        = ( $mdim[3] / 2 ) + 3
+    endif
     set svals[$ii] = $slnum
     echo "++ Going to view slice [${slnum}]"
 
@@ -625,6 +659,11 @@ written by PA Taylor (NIMH, NIH, USA).
                     in the interval [1, 8].  Increases spatial resolution
                     in the output by a factor of BB (see DR; def: 2).
 
+-set_dicom_xyz XX YY ZZ :Set the controller coordinates to the given
+                    triple, which are the (x, y, z) coordinates in
+                    AFNI's favorite RAI DICOM notation.  (def: for
+                    each coordinate, choose middle slice along axis).
+
 -no_sepscl         :do not create *sepscl* montage (or movie, if using
                     -do_movie)
 
@@ -640,6 +679,8 @@ written by PA Taylor (NIMH, NIH, USA).
 -no_clean          :by default, the temporary directory made by this
                     program is deleted when finishing.  Use this option
                     to keep the final intermediate files.
+
+-echo              :run script verbosely (with 'set echo' executed)
 
 # ========================================================================
 
@@ -663,7 +704,7 @@ SHOW_VERSION:
     goto GOOD_EXIT
 
 FAIL_MISSING_ARG:
-    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
     goto BAD_EXIT
 
 BAD_EXIT:
