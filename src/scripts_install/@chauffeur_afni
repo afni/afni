@@ -363,10 +363,12 @@
 #set version   = "6.9";   set rev_dat   = "Jan 6, 2025"
 #    + [PT] add -olay_boxed_color opt
 #
-set version   = "7.0";   set rev_dat   = "May 21, 2025"
+#set version   = "7.0";   set rev_dat   = "May 21, 2025"
 #    + [PT] improved colorbar functionality
 #         + better driving if user enters own cbar
 #         + better use of alpha (still need to finalize addition)
+set version   = "7.01"; set rev_dat   = "Jun 20, 2025"
+#   + [PT] remove "-no1D" in afni command, so we can pick ideal time series
 #
 # =====================================================================
 
@@ -2439,7 +2441,7 @@ echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 # before values are calc'ed for ranges---thanks, RWC
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
-afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu           \\\
+afni -q  ${XXX_NPANE} -noplugins -no_detach  -echo_edu                \\\
      -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
      -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
      -com "SEE_OVERLAY     ${see_olay}"                               \\\
@@ -2471,7 +2473,7 @@ endif
 # some point just run via the command script with xvfb
 # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
 # before values are calc'ed for ranges---thanks, RWC
-        afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu         \
+        afni -q  ${XXX_NPANE} -noplugins -no_detach  -echo_edu              \
              -com "SWITCH_UNDERLAY ${read_ulay}"                            \
              -com "SWITCH_OVERLAY  ${read_olay}"                            \
              -com "SEE_OVERLAY     ${see_olay}"                             \
@@ -2645,7 +2647,7 @@ endif
 set portnum = `afni -available_npb_quiet`
 
 # the drive command itself (without quitting)
-afni -q -no1D \${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
+afni -q  \${XXX_NPANE} -noplugins -no_detach  -echo_edu               \
     -npb \${portnum}  \${use_ad}                                      \
     -com "SWITCH_UNDERLAY \${read_ulay}"                              \
     -com "SWITCH_OVERLAY  \${read_olay}"                              \
@@ -2711,7 +2713,7 @@ EOF
     # at some point just run via the command script with xvfb
     # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing
     # done, before values are calc'ed for ranges---thanks, RWC
-    afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu \
+    afni -q  ${XXX_NPANE} -noplugins -no_detach  -echo_edu \
     -com "SWITCH_UNDERLAY ${read_ulay}" \
     -com "SWITCH_OVERLAY  ${read_olay}" \
     -com "SEE_OVERLAY     ${see_olay}" \
