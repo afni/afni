@@ -4961,8 +4961,8 @@ ENTRY("PLUTO_4D_to_typed_fbuc") ;
    if( ! PLUTO_prefix_ok(new_prefix) ) RETURN(NULL) ;
 
    new_dset = MAKER_4D_to_typed_fbuc( old_dset , new_prefix , new_datum ,
-                                      ignore , detrend , nbrik , user_func ,
-                                      user_data, NULL, 0 ) ;
+                                      ignore , detrend , nbrik ,
+                      (generic_func *)user_func , user_data, NULL, 0 ) ;
 
    RETURN(new_dset) ;
 }

@@ -703,7 +703,7 @@ static char * DELAY_main( PLUGIN_interface * plint )
           ud->ignore ,               /* ignore count */
           1 ,   /* detrend = ON Let BOB do it*/
           NBUCKETS,					/*Number of values at each voxel*/
-			 DELAY_tsfuncV2 ,         /* timeseries processor (bucket version)*/
+(generic_func *)DELAY_tsfuncV2 , /* timeseries processor (bucket version)*/
 			 (void *)ud,          /* data for tsfunc */
 			 NULL, 0							) ; 
 										 
