@@ -955,7 +955,7 @@ main (int argc, char *argv[])
                                       0,	/* can't detrend in maker
                                              function KRH 12/02 */
                                       nbriks,	/* number of briks */
-                                      DWItoDT_tsfunc,	/* timeseries processor */
+                      (generic_func *)DWItoDT_tsfunc,	/* timeseries processor */
                                       NULL,	/* data for tsfunc */
                                       NULL,  /* mask */
                                       0   /* Allow auto scaling of output */
@@ -1153,17 +1153,17 @@ main (int argc, char *argv[])
 
       // calculates FIT dset: !!! prob not use fitprefix *here*
       fit_dset = MAKER_4D_to_typed_fbuc (new_dsetDT, /* input dataset */
-                                         fitprefix,  /* output prefix */
-                                         datum,	     /* output datum  */
-                                         0,	        /* ignore count  */
-                                         0,      	  /* can't detrend in maker
-                                                      function KRH 12/02 */
-                                         nvols,	     /* number of briks */
-                                         DTtoDWI_tsfunc,	/* timeseries processor */
-                                         NULL,       /* data for tsfunc */
-                                         NULL,       /* mask */
-                                         0           /* Allow auto scaling of output */
-                                         );
+                               fitprefix,  /* output prefix */
+                               datum,      /* output datum  */
+                               0,          /* ignore count  */
+                               0,          /* can't detrend in maker
+                                            function KRH 12/02 */
+                               nvols,      /* number of briks */
+               (generic_func *)DTtoDWI_tsfunc,   /* timeseries processor */
+                               NULL,       /* data for tsfunc */
+                               NULL,       /* mask */
+                               0           /* Allow auto scaling of output */
+                               );
 
       if ( fit_dset == NULL) 
          ERROR_message("'fit' dset was somehow null!");
@@ -1271,10 +1271,7 @@ main (int argc, char *argv[])
 
 /*! save separate datasets for each kind of output */
 static void
-Save_Sep_DTdata(whole_dset, prefix, output_datum)
-     THD_3dim_dataset *whole_dset; /* whole dataset */
-     char *prefix;
-     int output_datum;
+Save_Sep_DTdata(THD_3dim_dataset *whole_dset, char *prefix, int output_datum)
 {
    /* takes base prefix and appends to it for DT, eigvalues,
       eigvectors, FA, MD, debug bricks */
@@ -1329,11 +1326,8 @@ Save_Sep_DTdata(whole_dset, prefix, output_datum)
 
 /*! create new dataset from part of existing dataset in memory */
 static void
-Copy_dset_array(whole_dset,startbrick,nbriks,prefix,output_datum)
-     THD_3dim_dataset *whole_dset;
-     int startbrick, nbriks;
-     char *prefix;
-     int output_datum;
+Copy_dset_array(THD_3dim_dataset *whole_dset, int startbrick, int nbriks,
+                char *prefix, int output_datum)
 {
    THD_3dim_dataset *out_dset;
 
@@ -1404,7 +1398,8 @@ Form_R_Matrix (MRI_IMAGE * grad1Dptr)
    int i, nrows, noff; // @@new: offset counter, 'noff'= number for offset
    register float *imptr, *Gxptr, *Gyptr, *Gzptr;
    register float *Bxxptr, *Byyptr, *Bzzptr, *Bxyptr, *Bxzptr, *Byzptr;
-   matrix *nullptr = NULL;
+   /* for some reason, we cannot use nullptr here  [10 Jun 2025 rickr] */
+   matrix * null_ptr=NULL;
    register double Gx, Gy, Gz, Bxx, Byy, Bzz, Bxy, Bxz, Byz;
    double gscale;
 
@@ -1507,7 +1502,7 @@ Form_R_Matrix (MRI_IMAGE * grad1Dptr)
 
    matrix_initialize (&Rtmat);
    /* compute pseudo-inverse of Rmat=Rtmat */
-   matrix_psinv (Rmat, nullptr, &Rtmat);
+   matrix_psinv (Rmat, null_ptr, &Rtmat);
    matrix_destroy (&Rmat);	/*  from the other two matrices */
    EXRETURN;
 }
@@ -3286,9 +3281,7 @@ static int DWI_NIML_create_graph()
 }
 
 /*! create new graph with left and right y axes scaled from 0 to max1, max2*/
-static int DWI_NIML_create_newgraph(npts, max1, max2)
-     int npts;
-     double max1, max2;
+static int DWI_NIML_create_newgraph(int npts, double max1, double max2)
 {
    NI_element *nel;
    char stmp[256];
