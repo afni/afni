@@ -338,10 +338,10 @@ THD_3dim_dataset * Voxelwise_Operations(THD_3dim_dataset *dset,
             dset ,             /* input dataset */
             stmp ,             /* output prefix */
             MRI_short ,        /* output datum  */
-            0 ,                /* samples to skip from beginning of time series*/
+            0 ,                /* samples to skip from start of time series*/
             1 ,                /* pass linearly detrended time series */
             2 ,                /* number of values expected in output */
-            toy_tsfunc,        /* timeseries processor */
+(generic_func *)toy_tsfunc,    /* timeseries processor */
             (void *)(&ud),     /* user data for tsfunc */
             voxmask,           /* byte mask of voxels to process */
             0                  /* Allow auto scaling of output */
