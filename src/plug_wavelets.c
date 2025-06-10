@@ -147,7 +147,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
   plint = PLUTO_new_interface ("Wavelets" ,
 			       "Wavelet Analysis of Time Series Data" ,
-			       helpstring, PLUGIN_CALL_VIA_MENU, WA_main);
+			       helpstring, PLUGIN_CALL_VIA_MENU, (cptr_func *)WA_main);
 
   global_plint = plint ;  /* make global copy */
   

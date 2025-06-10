@@ -173,7 +173,7 @@ plint = PLUTO_new_interface("Reorder",
 							"Reorders voxel time-courses within a 3D+Time BRIK",
 							helpstring,
 							PLUGIN_CALL_VIA_MENU,
-							REORDER_main);
+							(cptr_func *)REORDER_main);
 
    PLUTO_set_sequence( plint , "z:Kummer" ) ;
 

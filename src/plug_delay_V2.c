@@ -266,7 +266,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "Hilbert Delay98" ,
                "Time delay between FMRI and reference time series" ,
                helpstring ,
-               PLUGIN_CALL_VIA_MENU , DELAY_main  ) ;
+               PLUGIN_CALL_VIA_MENU , (cptr_func *)DELAY_main  ) ;
 
    global_plint = plint ;  /* make global copy */
 

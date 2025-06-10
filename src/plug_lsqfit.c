@@ -126,7 +126,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "LSqFit & Dtr" ,
                                 "Control LSqFit and LSqDtr Functions" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , LSQ_main ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)LSQ_main ) ;
 
    global_plint = plint ;  /* make global copy */
 
@@ -458,7 +459,8 @@ PLUGIN_interface * TSGEN_init(void)
    plint = PLUTO_new_interface( "TS Generate" ,
                                 "Generate a Timeseries" ,
                                 plehstring ,
-                                PLUGIN_CALL_VIA_MENU , TSGEN_main ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)TSGEN_main ) ;
 
    PLUTO_add_hint( plint , "Generate a 1D Timeseries" ) ;
 
@@ -622,7 +624,8 @@ PLUGIN_interface * EXP0D_init(void)
    plint = PLUTO_new_interface( "Expr 0D" ,
                                 "Control the Expr 0D transformation" ,
                                 fredstring ,
-                                PLUGIN_CALL_VIA_MENU , EXP0D_main ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)EXP0D_main ) ;
 
    PLUTO_add_option( plint , "Variable" , "Variable" , TRUE ) ;
    PLUTO_add_string( plint , NULL , NALPHA,vstring , exp0d_var ) ;
@@ -724,7 +727,8 @@ PLUGIN_interface * LOMOR_init(void)
    plint = PLUTO_new_interface( "Lomo Regression" ,
                                 "Control the Local Monotone Regression" ,
                                 NULL ,
-                                PLUGIN_CALL_VIA_MENU , LOMOR_main ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)LOMOR_main ) ;
 
    PLUTO_add_option( plint , "Parameters" , "Parameters" , TRUE ) ;
    PLUTO_add_number( plint , "Order" , 3, 20,0,lomo_order  , FALSE ) ;

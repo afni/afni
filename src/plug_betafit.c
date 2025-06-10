@@ -83,7 +83,8 @@ PLUGIN_interface * PLUGIN_init(int ncall)
    plint = PLUTO_new_interface( "Histogram: BFit" ,
                                 "Betafit Histogram" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , BFIT_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)BFIT_main  ) ;
 
    PLUTO_add_hint( plint , "Histogram: Betafit" ) ;
 

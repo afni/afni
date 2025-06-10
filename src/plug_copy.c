@@ -63,7 +63,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*-- set titles and call point --*/
 
    plint = PLUTO_new_interface( "Dataset Copy" , "Make a Copy of a Dataset" , helpstring ,
-                                 PLUGIN_CALL_VIA_MENU , COPY_main  ) ;
+                                 PLUGIN_CALL_VIA_MENU ,
+                                 (cptr_func *)COPY_main  ) ;
 
    PLUTO_add_hint( plint , "Make a Copy of a Dataset" ) ;
 

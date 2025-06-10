@@ -78,7 +78,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "3D+t Statistic" ,
                                 "Voxel Statistics of 3D+time Dataset" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , STATS_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)STATS_main  ) ;
 
    PLUTO_add_hint( plint , "Voxel Statistics of 3D+time Dataset" ) ;
 
@@ -209,7 +210,7 @@ char * STATS_main( PLUGIN_interface * plint )
                                new_prefix ,           /* output prefix */
                                ignore ,               /* ignore count */
                                1 ,                    /* detrend = ON */
-                               STATS_tsfunc ,         /* timeseries processor */
+               (generic_func *)STATS_tsfunc ,         /* timeseries processor */
                                ITOP(meth)             /* data for tsfunc */
                              ) ;
 

@@ -103,7 +103,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    if( ncall > 0 ) return NULL ;  /* only one interface */
 
    plint = PLUTO_new_interface( "Edit Tagset" , NULL , NULL ,
-                                PLUGIN_CALL_IMMEDIATELY , TAG_main ) ;
+                                PLUGIN_CALL_IMMEDIATELY ,
+                                (cptr_func *)TAG_main ) ;
 
    PLUTO_add_hint( plint , "Interactive Tagset Editor" ) ;
 
@@ -464,7 +465,7 @@ static void TAG_make_widgets(void)
    value_av = new_MCW_arrowval( thetop , "Tag Value: " ,
                                 MCW_AV_downup , -32767,32767,value_int ,
                                 MCW_AV_editext , 0 ,
-                                TAG_value_CB , NULL , NULL,NULL ) ;
+                                (gen_func *)TAG_value_CB , NULL , NULL,NULL ) ;
 
    MCW_reghelp_children( value_av->wrowcol ,
                          "Use this to set the value that\n"
@@ -1152,7 +1153,8 @@ static void TAG_dset_CB( Widget w, XtPointer client_data, XtPointer call_data )
    /*-- just show a chooser, let the user commune with the list --*/
 
    PLUTO_popup_dset_chooser( help_pb , im3d->vinfo->view_type , 0 ,
-                             TAG_check_dataset , TAG_get_dset_CB , NULL ) ;
+                             (int_func *)TAG_check_dataset ,
+                             (void_func *)TAG_get_dset_CB , NULL ) ;
 
    return ;
 }
@@ -1240,7 +1242,8 @@ static void TAG_copy_CB( Widget w, XtPointer client_data, XtPointer call_data )
    /*-- just show a chooser, let the user commune with the list --*/
 
    PLUTO_popup_dset_chooser( help_pb , im3d->vinfo->view_type , 0 ,
-                             TAG_check_copyset , TAG_get_copy_CB , NULL ) ;
+                             (int_func *)TAG_check_copyset ,
+                             (void_func *)TAG_get_copy_CB , NULL ) ;
 
    return ;
 }

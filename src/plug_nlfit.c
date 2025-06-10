@@ -604,7 +604,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "NLfit & NLerr" ,
                                 "Control NLfit and NLerr Functions" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , NL_main ) ;
+                                PLUGIN_CALL_VIA_MENU , (cptr_func *)NL_main ) ;
 
    { char *eee = getenv("AFNI_NLFIM_METHOD") , str[94] ;
      if( eee == NULL || strcasecmp(eee,"simplex") == 0 )

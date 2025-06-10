@@ -68,7 +68,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "Histogram" ,
                                 "Histogram of Dataset Brick" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , HISTO_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)HISTO_main  ) ;
 
    PLUTO_add_hint( plint , "Histogram of Dataset Brick" ) ;
 
@@ -600,7 +601,8 @@ static PLUGIN_interface * CORREL_init(void)
    plint = PLUTO_new_interface( "Histogram: CC" ,
                                 "Histogram of Correlation Coefficient" ,
                                 c_helpstring ,
-                                PLUGIN_CALL_VIA_MENU , CORREL_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)CORREL_main  ) ;
 
    PLUTO_add_hint( plint , "Histogram: Correlation Coefficient" ) ;
 

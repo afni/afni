@@ -43,7 +43,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "Images" ,
                                 "Images" ,
                                 NULL ,
-                                PLUGIN_CALL_VIA_MENU , IM_main  ) ;
+                                PLUGIN_CALL_VIA_MENU , (cptr_func *)IM_main  ) ;
 
    global_plint = plint ;  /* make global copy */
 

@@ -84,7 +84,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*-- at this point, histusername and histfilename are setup, so proceed --*/
    plint = PLUTO_new_interface( "++AFNI_History++" , NULL , NULL ,
-                                PLUGIN_CALL_IMMEDIATELY , AHIST_main ) ;
+                                PLUGIN_CALL_IMMEDIATELY ,
+                                (cptr_func *)AHIST_main ) ;
 
    PLUTO_add_hint( plint , "Add to your personal afni_history file" ) ;
 
@@ -253,13 +254,13 @@ static void AHIST_make_widgets(void)
 
    level_av = new_MCW_optmenu( twid , "Level" ,
                                0,NLEVEL-1 , 0,0 , NULL,NULL ,
-                               MCW_av_substring_CB , level_labs ) ;
+                   (str_func *)MCW_av_substring_CB , level_labs ) ;
 
    /* Type chooser */
 
    type_av = new_MCW_optmenu( twid , "Type" ,
                               0,NTYPE-1 , 0,0 , NULL,NULL ,
-                              MCW_av_substring_CB , type_labs ) ;
+                  (str_func *)MCW_av_substring_CB , type_labs ) ;
 
    XtManageChild(twid) ;  /*** end of top row ***/
 

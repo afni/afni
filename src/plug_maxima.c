@@ -180,7 +180,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /* create the new interface */
 
    plint = PLUTO_new_interface( "Maxima", "find extrema in a dataset",
-		helpstring, PLUGIN_CALL_VIA_MENU , MAXIMA_main );
+		helpstring, PLUGIN_CALL_VIA_MENU , (cptr_func *)MAXIMA_main );
 
    PLUTO_add_hint( plint, "find local maxima/minima" );
 
