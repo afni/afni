@@ -78,7 +78,7 @@ MODEL_interface * initialize_model ()
 /*  mi->min_constr[5] = 0.0;  mi->max_constr[5] = 100.0;*/
  
   /*----- function which implements the model -----*/
-  mi->call_func = &signal_model;
+  mi->call_func = (void_func *)&signal_model;
 
 #if 0
   envp = my_getenv("AFNI_MODEL_EXPMEMRI_T_FILE");

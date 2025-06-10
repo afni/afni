@@ -63,7 +63,7 @@ MODEL_interface * initialize_model ()
   /*----- there are none -----*/
   
   /*----- function which implements the model -----*/
-  mi->call_func = &noise_model;
+  mi->call_func = (void_func *)&noise_model;
 
 
   /*----- return pointer to the model interface -----*/
