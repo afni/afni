@@ -115,19 +115,19 @@ if __name__ == "__main__":
 
     # Set up timing selection matrices, for slicewise regressors
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
+        if retobj.data[label] and retobj.do_calc_phys[label] :
             lpf.calc_timing_selection_phys( retobj, label=label, verb=verb )
 
     # Set up timing for volume-based time series (RVT, HR, etc.)
     for label in ['card', 'resp']:
-        if retobj.data[label] :
+        if retobj.data[label] and retobj.do_calc_phys[label] :
             lpf.calc_timing_selection_volbase( retobj, label=label, verb=verb )
 
     # ------------- Process any card/resp/etc. time series ------------------
 
     # Peak and trough estimation: now can also be loaded in from a previous run
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
+        if retobj.data[label] and retobj.do_calc_phys[label] :
             # check if the peaks/troughs were loaded in already
             if not(retobj.count_load_proc(label)) :
                 # do all peak/trough processing steps
@@ -144,14 +144,14 @@ if __name__ == "__main__":
 
     # save/write out peaks/troughs, if user asks
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
+        if retobj.data[label] and retobj.do_calc_phys[label] :
             lpl.save_peaks_troughs_file_1D( retobj, label=label, verb=verb )
 
 
     # Phase estimation, which uses very diff methods for card and resp
     # processing.
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
+        if retobj.data[label] and retobj.do_calc_phys[label] :
             lpf.calc_time_series_phases( retobj, label=label, verb=verb )
 
     # RVT time series estimation (just for resp)
@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
     # Regressors, for all physio inputs
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
+        if retobj.data[label] and retobj.do_calc_phys[label] :
             lpf.calc_regress_phys( retobj, label=label, verb=verb )
 
     ### Comment: after this step, here is an example of the physio
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     #    time series (the [0] in the last bracket would point to a label)
 
     # make a plot of the physio regressors
-    lpplt.plot_regressors_phys(retobj)
+    tmp = lpplt.plot_regressors_phys(retobj)
 
     # Resp-derived volbase regressors (plot is made within this func)
     label = 'resp'

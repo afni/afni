@@ -95,7 +95,7 @@ volume-based: rvt, rvtrrf, hrcrf.
         
         # these can be either card or resp
         for label in lpf.PO_all_label :
-            if retobj.have_label(label) and 1 : 
+            if retobj.have_label(label) and retobj.do_out_phys[label] : 
                 phobj = retobj.data[label]        # simplify coding below
                 for ii in range(phobj.n_regress_phys):
                     keyA = phobj.regress_phys_keys[ii]
@@ -168,7 +168,7 @@ RVTRRF, or others.
 
     # build up count of number of regressors
     for label in lpf.PO_all_label :
-        if retobj.have_label(label) :
+        if retobj.have_label(label) and retobj.do_out_phys[label] :
             phobj = retobj.data[label]        # simplify coding below
             nreg+= phobj.n_regress_phys
             
@@ -201,7 +201,7 @@ RVTRRF, or others.
  
         # physio regressors: add label+data (these *are* slicewise)
         for label in lpf.PO_all_label :
-            if retobj.have_label(label) :
+            if retobj.have_label(label) and retobj.do_out_phys[label] :
                 phobj = retobj.data[label]        # simplify coding below
                 # process any/all phys regressors
                 for ii in range(phobj.n_regress_phys):

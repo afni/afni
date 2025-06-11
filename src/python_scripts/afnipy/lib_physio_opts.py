@@ -8,7 +8,9 @@
 #version = '1.1'   # add remove_val_list, for some vals to get replaced
 #version = '1.2'   # better bandpassing and tapering, no 'add missing' for now
 #version = '1.3'   # can read in previous peaks/troughs
-version = '1.4'   # separate sli/vol regr; implement RVTRRF, too
+#version = '1.4'   # separate sli/vol regr; implement RVTRRF, too
+version = '1.5'   # control on/off of all regressors with the -regress_types*
+                  # opts
 
 # ==========================================================================
 
@@ -44,8 +46,8 @@ all_rvt_opt = ['rvt_shift_list', 'rvt_shift_linspace']
 DEF_rvt_shift_list     = '0 1 2 3 4'  # split+listified, below, if used
 DEF_rvt_shift_linspace = None         # can be pars for NumPy linspace(A,B,C)
 
-DEF_volbase_types_card = 'hrcrf'
-DEF_volbase_types_resp = 'rvt'
+DEF_regress_types_card = 'retro'
+DEF_regress_types_resp = 'retro'
 
 # some QC image plotting options that the user can change
 DEF_img_figsize   = []
@@ -117,8 +119,6 @@ DEF = {
     'do_fix_outliers'   : False,     # (list) fix/interp outliers
     'extra_fix_list'    : [],        # (list) extra values to fix
     'remove_val_list'   : [],        # (list) purge some values from ts
-    'no_card_out'       : False,     # (bool) do not output card info
-    'no_resp_out'       : False,     # (bool) do not output resp info
     'min_bpm_resp'      : DEF_min_bpm_resp, # (float) min breaths per min
     'min_bpm_card'      : DEF_min_bpm_card, # (float) min beats per min
     'max_bpm_resp'      : DEF_max_bpm_resp, # (float) max breaths per min
@@ -132,8 +132,8 @@ DEF = {
     'hview'             : False,     # (bool) do show help in text ed?
     'rvt_shift_list'    : None,      # (str) space sep list of nums
     'rvt_shift_linspace': DEF_rvt_shift_linspace, # (str) pars for RVT shift 
-    'volbase_types_resp': DEF_volbase_types_resp, # (str) if resp, which regr?
-    'volbase_types_card': DEF_volbase_types_card, # (str) if card, which regr?
+    'regress_types_resp': DEF_regress_types_resp, # (str) if resp, which regr?
+    'regress_types_card': DEF_regress_types_card, # (str) if card, which regr?
     'img_verb'          : 1,         # (int) amount of graphs to save
     'img_figsize'       : DEF_img_figsize,   # (tuple) figsize dims for QC imgs
     'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs 
@@ -230,6 +230,7 @@ all_quant_ge_zero = [
 # resp list
 list_volbase_resp = [
     'NONE',
+    'retro',
     'rvt',
     'rvtrrf',
     ]
@@ -239,6 +240,7 @@ all_volbase_resp = ', '.join(list_volbase_resp)
 # card list
 list_volbase_card = [
     'NONE',
+    'retro',
     'hrcrf',
     ]
 # ... and as a comma-separated string list
@@ -1411,37 +1413,25 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     metavar=('START', 'STOP', 'N'),
                     nargs=3, type=str) # parse later
 
-opt = '''volbase_types_resp'''
-hlp = '''Provide a list of one or more types of volumetric regressors
-derived from the input respiratory physio data. This is done by
-listing one or more codes from among the following list:  {}  (def: {})
-'''.format(all_volbase_resp, DEF_volbase_types_resp)
+opt = '''regress_types_resp'''
+hlp = '''Provide a list of one or more types of regressors derived from the
+input respiratory physio data. This is done by listing one or more
+codes from among the following list:   {}   (def: {})
+'''.format(all_volbase_resp, DEF_regress_types_resp)
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    metavar=('RTYPE1', 'RTYPE2'),
+                    metavar=('TYPER1', 'TYPER2'),
                     nargs='+', type=str) # parse later
 
-opt = '''volbase_types_card'''
-hlp = '''Provide a list of one or more types of volumetric regressors
-derived from the input cardiac physio data. This is done by
-listing one or more codes from among the following list:  {}  (def: {})
-'''.format(all_volbase_card, DEF_volbase_types_card)
+opt = '''regress_types_card'''
+hlp = '''Provide a list of one or more types of regressors derived from the
+input cardiac physio data. This is done by listing one or more codes
+from among the following list:   {}   (def: {})
+'''.format(all_volbase_card, DEF_regress_types_card)
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    metavar=('CTYPE1', 'CTYPE2'),
+                    metavar=('TYPEC1', 'TYPEC2'),
                     nargs='+', type=str) # parse later
-
-opt = '''no_card_out'''
-hlp = '''Turn off output of cardiac regressors'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
-
-opt = '''no_resp_out'''
-hlp = '''Turn off output of respiratory regressors'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
 
 opt = '''do_extend_bp_resp'''
 hlp = '''Use less strict initial bandpass for resp data'''
@@ -2078,31 +2068,38 @@ args_dict2 : dict
 
     # for card inputs, which volume-based regressors will be created? 
     # There will always be at least one value in this list
-    if args_dict2['volbase_types_card'] :
+    if args_dict2['regress_types_card'] :
         IS_BAD = 0
 
         # defaults, which don't change if 'NONE' is in the list here
-        args_dict2['do_calc_hr']    = False
-        args_dict2['do_calc_hrcrf'] = False
-        args_dict2['do_out_hr']     = False
-        args_dict2['do_out_hrcrf']  = False
+        args_dict2['do_calc_retro-card'] = False
+        args_dict2['do_calc_hr']         = False
+        args_dict2['do_calc_hrcrf']      = False
+        args_dict2['do_out_retro-card']  = False
+        args_dict2['do_out_hr']          = False
+        args_dict2['do_out_hrcrf']       = False
 
-        L = args_dict2['volbase_types_card'].split()
+        L = args_dict2['regress_types_card'].split()
 
         if 'NONE' in L :
             if len(L) > 1 :
-                print("** ERROR with '-volbase_types_card ..' args: '{}'"
-                      "".format(args_dict2['volbase_types_card']))
+                print("** ERROR with '-regress_types_card ..' args: '{}'"
+                      "".format(args_dict2['regress_types_card']))
                 print("   Cannot mix 'NONE' with other types")
                 IS_BAD = 1
 
             #  NB: if here, no need to change def switch values above
 
+        if 'retro' in L :
+            args_dict2['do_calc_retro-card'] = True
+            args_dict2['do_out_retro-card']  = True
+
         if 'hrcrf' in L :
-            # HR calc is also needed for hrcrf calc
-            args_dict2['do_calc_hr']    = True
-            args_dict2['do_calc_hrcrf'] = True
-            args_dict2['do_out_hrcrf']  = True
+            # retro and hr calc needed here
+            args_dict2['do_calc_retro-card'] = True
+            args_dict2['do_calc_hr']         = True
+            args_dict2['do_calc_hrcrf']      = True
+            args_dict2['do_out_hrcrf']       = True
 
         if IS_BAD :  sys.exit(1)
 
@@ -2110,35 +2107,44 @@ args_dict2 : dict
     # There will always be at least one value in this list
     # NB: check this BEFORE the RVT considerations are parsed; it will 
     # control lots of switches for calculations and outputs 
-    if args_dict2['volbase_types_resp'] :
+    if args_dict2['regress_types_resp'] :
         IS_BAD = 0
 
         # defaults, which don't change if 'NONE' is in the list here
-        args_dict2['do_calc_rvt']    = False
-        args_dict2['do_calc_rvtrrf'] = False
-        args_dict2['do_out_rvt']     = False
-        args_dict2['do_out_rvtrrf']  = False
+        args_dict2['do_calc_retro-resp'] = False
+        args_dict2['do_calc_rvt']        = False
+        args_dict2['do_calc_rvtrrf']     = False
+        args_dict2['do_out_retro-resp']  = False
+        args_dict2['do_out_rvt']         = False
+        args_dict2['do_out_rvtrrf']      = False
 
-        L = args_dict2['volbase_types_resp'].split()
+        L = args_dict2['regress_types_resp'].split()
 
         if 'NONE' in L :
             if len(L) > 1 :
-                print("** ERROR with '-volbase_types_resp ..' args: '{}'"
-                      "".format(args_dict2['volbase_types_resp']))
+                print("** ERROR with '-regress_types_resp ..' args: '{}'"
+                      "".format(args_dict2['regress_types_resp']))
                 print("   Cannot mix 'NONE' with other types")
                 IS_BAD = 1
 
             #  NB: if here, no need to change def switch values above
 
+        if 'retro' in L :
+            args_dict2['do_calc_retro-resp'] = True
+            args_dict2['do_out_retro-resp']  = True
+
         if 'rvt' in L :
-            args_dict2['do_calc_rvt']    = True
-            args_dict2['do_out_rvt']     = True
+            # retro calc needed here
+            args_dict2['do_calc_retro-resp'] = True
+            args_dict2['do_calc_rvt']        = True
+            args_dict2['do_out_rvt']         = True
 
         if 'rvtrrf' in L :
-            # RVT calc is also needed for RVTRRF calc
-            args_dict2['do_calc_rvt']    = True
-            args_dict2['do_calc_rvtrrf'] = True
-            args_dict2['do_out_rvtrrf']  = True
+            # retro and RVT calc needed here
+            args_dict2['do_calc_retro-resp'] = True
+            args_dict2['do_calc_rvt']        = True
+            args_dict2['do_calc_rvtrrf']     = True
+            args_dict2['do_out_rvtrrf']      = True
 
         if IS_BAD :  sys.exit(1)
 

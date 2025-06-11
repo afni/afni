@@ -450,9 +450,13 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_calc_hrcrf  = False    # bool, flag
         self.do_out_hr      = False    # bool, flag (might calc but not write)
         self.do_out_hrcrf   = False    # bool, flag (might calc but not write)
+        self.do_calc_phys   = {
+            'card' : True,             # bool, flag to proc card-phys
+            'resp' : True,             # bool, flag to proc resp-phys
+        }
         self.do_out_phys  = {
-            'card' : True,             # bool, flag to proc card if present
-            'resp' : True,             # bool, flag to proc resp if present
+            'card' : True,             # bool, flag to output card-phys
+            'resp' : True,             # bool, flag to output resp-phys
         }
         self.save_proc_peaks = False   # bool, flag to write proc peaks to file
         self.save_proc_troughs = False # bool, flag to write proc trou to file
@@ -533,8 +537,11 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                       "".format(key))
                 sys.exit(5)
 
-            # see if we have to remove an item
-            if not(self.do_out_phys[key]) :
+            # see if we have to remove an item; 
+            # [PT: Jun 11, 2025] nowadays, if calc_phys is off for a
+            # type of data, then that means we remove it from further
+            # consideration.
+            if not(self.do_calc_phys[key]) :
                 print("++ Removing {} data before processing".format(key))
                 tmp = D.pop(key, None)
 
@@ -712,6 +719,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
         self.out_dir             = AD['out_dir']
         self.prefix              = AD['prefix']
+        # turn on and off lots of calcs and outputs
         self.do_calc_rvt         = AD['do_calc_rvt']
         self.do_calc_rvtrrf      = AD['do_calc_rvtrrf']
         self.do_out_rvt          = AD['do_out_rvt']
@@ -720,8 +728,10 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_calc_hrcrf       = AD['do_calc_hrcrf']
         self.do_out_hr           = AD['do_out_hr']
         self.do_out_hrcrf        = AD['do_out_hrcrf']
-        self.do_out_phys['card'] = not(AD['no_card_out'])
-        self.do_out_phys['resp'] = not(AD['no_resp_out'])
+        self.do_calc_phys['card'] = AD['do_calc_retro-card']
+        self.do_calc_phys['resp'] = AD['do_calc_retro-resp']
+        self.do_out_phys['card'] = AD['do_out_retro-card']
+        self.do_out_phys['resp'] = AD['do_out_retro-resp']
         self.save_proc_peaks     = AD['save_proc_peaks']
         self.save_proc_troughs   = AD['save_proc_troughs']
         

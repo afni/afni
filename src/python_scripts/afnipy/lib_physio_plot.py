@@ -1521,6 +1521,11 @@ def plot_regressors_phys(retobj, ext='svg'):
         nreg += phobj.n_regress_rvt
         nreg += phobj.n_regress_phys
 
+    if nreg == 0 :
+        if verb :
+            print("++ No phys-based retro regressors to plot")
+        return 0
+
     # put data+labels into simple forms for writing; initialize objs
     data_shape = (nvol, nreg)
     data_arr   = np.zeros(data_shape, dtype=float)
@@ -1554,7 +1559,7 @@ def plot_regressors_phys(retobj, ext='svg'):
     # le fin: close and finish
     fff.close()
 
-    # --------------------- make image of rvt data -----------------------
+    # ------------------ make image of phys/retro data -------------------
 
     par_dict = {
         'ftmp'    : ftmp,
@@ -1580,7 +1585,7 @@ def plot_regressors_phys(retobj, ext='svg'):
     com    = BASE.shell_com(cmd, capture=1)
     stat   = com.run()
 
-    print("++ Made plot of {}-based RVT regressors: {}".format(label, fname))
+    print("++ Made plot of {}-based retro regressors: {}".format(label, fname))
 
 
     return 0
