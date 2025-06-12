@@ -557,7 +557,7 @@ characters, uniform vertical spacing, etc.
     # Start with the [0][0]th element, which should be the prog name.
     # The cheese stands alone in this row; but make sure it has at
     # least one space after it, to separate it from any backslash.
-    ostr = '''{text:<{lw}s} '''.format(text=big_list[0][0], lw=max_lw)
+    ostr = '''{text:<{lw}s}'''.format(text=big_list[0][0]+' ', lw=max_lw)
 
     # loop over each sub_list
     for j in range(1, nbig):
