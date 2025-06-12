@@ -115,19 +115,19 @@ if __name__ == "__main__":
 
     # Set up timing selection matrices, for slicewise regressors
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
+        if retobj.data[label] and retobj.do_calc_phys[label] :
             lpf.calc_timing_selection_phys( retobj, label=label, verb=verb )
 
-    # Set up timing for RVT time series
-    label = 'resp'
-    if retobj.data[label] :
-        lpf.calc_timing_selection_rvt( retobj, label=label, verb=verb )
+    # Set up timing for volume-based time series (RVT, HR, etc.)
+    for label in ['card', 'resp']:
+        if retobj.data[label] and retobj.do_calc_phys[label] :
+            lpf.calc_timing_selection_volbase( retobj, label=label, verb=verb )
 
     # ------------- Process any card/resp/etc. time series ------------------
 
     # Peak and trough estimation: now can also be loaded in from a previous run
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
+        if retobj.data[label] and retobj.do_calc_phys[label] :
             # check if the peaks/troughs were loaded in already
             if not(retobj.count_load_proc(label)) :
                 # do all peak/trough processing steps
@@ -144,26 +144,31 @@ if __name__ == "__main__":
 
     # save/write out peaks/troughs, if user asks
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
+        if retobj.data[label] and retobj.do_calc_phys[label] :
             lpl.save_peaks_troughs_file_1D( retobj, label=label, verb=verb )
 
 
     # Phase estimation, which uses very diff methods for card and resp
     # processing.
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
+        if retobj.data[label] and retobj.do_calc_phys[label] :
             lpf.calc_time_series_phases( retobj, label=label, verb=verb )
 
-    # RVT time series estimation (prob just for resp)
+    # RVT time series estimation (just for resp)
     label = 'resp'
-    if retobj.data[label] :
+    if retobj.data[label] and retobj.do_calc_rvt :
         lpf.calc_time_series_rvt( retobj, label=label, verb=verb )
+
+    # HR time series estimation (just for card; and on EPI ts grid)
+    label = 'card'
+    if retobj.data[label] and retobj.do_calc_hr :
+        lpf.calc_time_series_hr( retobj, label=label, verb=verb )
 
     # ------------- Calculate regressors ------------------
 
     # Regressors, for all physio inputs
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
+        if retobj.data[label] and retobj.do_calc_phys[label] :
             lpf.calc_regress_phys( retobj, label=label, verb=verb )
 
     ### Comment: after this step, here is an example of the physio
@@ -174,16 +179,29 @@ if __name__ == "__main__":
     #    time series (the [0] in the last bracket would point to a label)
 
     # make a plot of the physio regressors
-    lpplt.plot_regressors_phys(retobj)
+    tmp = lpplt.plot_regressors_phys(retobj)
 
-    # Regressors, for RVT time series (plot is made within this func)
+    # Resp-derived volbase regressors (plot is made within this func)
     label = 'resp'
     if retobj.data[label] :
-        lpf.calc_regress_rvt( retobj, label=label, verb=verb )
+        # make RVT regressor 
+        if retobj.do_calc_rvt :
+            lpf.calc_regress_rvt( retobj, label=label, verb=verb )
+
+        # make RVTRRF regressor (can only be done after RVT one is made)
+        if retobj.do_calc_rvtrrf :
+            lpf.calc_regress_rvtrrf( retobj, label=label, verb=verb )
+
+    # Card-derived volbase regressors
+    label = 'card'
+    if retobj.data[label] and retobj.do_calc_hr :
+        lpf.calc_regress_hr( retobj, label=label, verb=verb )
 
     # ------------- Write out regressors ------------------
 
     lpreg.write_regressor_file(retobj)
+    lpreg.write_regressor_file_sli(retobj)
+    lpreg.write_regressor_file_vol(retobj)
 
     # -------------------- log some of the results --------------------------
 
