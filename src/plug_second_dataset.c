@@ -93,8 +93,9 @@ ENTRY("PLUGIN_init:Dataset#2") ;
                                NEEDS_DSET_INDEX | SET_DPLOT_OVERLAY ) ;
    AFNI_register_nD_func_init( 1 , (generic_func *)DSET2_func_init ) ;  /* 21 Jul 2003 */
 
-   plint = PLUTO_new_interface( "Dataset#2" , "Controls 1D function Dataset#2" , helpstring ,
-                                 PLUGIN_CALL_VIA_MENU , DSET2_main  ) ;
+   plint = PLUTO_new_interface( "Dataset#2", "Controls 1D function Dataset#2",
+                                helpstring , PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)DSET2_main  ) ;
 
    PLUTO_add_hint( plint , "Controls 1D function Dataset#2" ) ;
 
@@ -152,8 +153,8 @@ ENTRY("DSET2_main") ;
 
    if ( g_dset_recv < 0 )	/* only initialize once */
        g_dset_recv = AFNI_receive_init( plint->im3d, RECEIVE_DSETCHANGE_MASK,
-					DSET2_dset_recv, (void *)plint ,
-                                       "DSET2_dset_recv" ) ;
+                                        (gen_func *)DSET2_dset_recv,
+                                        (void *)plint , "DSET2_dset_recv" ) ;
 
    if ( g_dset_recv < 0 )
       RETURN("*************************************\n"

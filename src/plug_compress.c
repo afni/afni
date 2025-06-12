@@ -76,7 +76,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "BRIK Compressor" ,
                                 "Control .BRIK compression" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , COMP_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)COMP_main  ) ;
 
    PLUTO_add_hint( plint , "Control .BRIK compression" ) ;
 

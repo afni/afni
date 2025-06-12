@@ -27,7 +27,7 @@ typedef struct {
      (name)->num = 0 , (name)->nall = INC_TSARR ,                              \
      (name)->tsarr = (time_series **)malloc(sizeof(time_series *)*INC_TSARR) )
 
-#define ADDTO_TSARR(name,tsname) \
+#define ADDTO_TSARR(name,tsname)                                                            \
  do{ int nn ;                                                                               \
      if( (name)->num == (name)->nall ){                                                     \
        (name)->nall += INC_TSARR+(name)->nall/16; nn = sizeof(time_series *) * (name)->nall;\
@@ -45,13 +45,14 @@ typedef struct {
          for( ii=0 ; ii < (name)->num ; ii++ ) RWC_free_time_series((name)->tsarr[ii]) ;   \
       free((name)->tsarr) ; free((name)) ; (name) = NULL ; break ; } while(0)
 
-extern time_series * RWC_read_time_series() ;   /* more declarations */
-extern float         RWC_norm_ts() ;
-extern float         RWC_max_ts() ;
-extern float         RWC_min_ts() ;
-extern void          RWC_free_time_series() ;
-extern time_series * RWC_blank_time_series() ;
-extern void          RWC_medfilt_time_series() ;
+/* more declarations */
+extern time_series * RWC_read_time_series(char *fname) ;
+extern float         RWC_norm_ts(int nn, time_series *vec) ;
+extern float         RWC_max_ts(int nn, time_series *vec) ;
+extern float         RWC_min_ts(int nn, time_series *vec) ;
+extern void          RWC_free_time_series(time_series *ts) ;
+extern time_series * RWC_blank_time_series(int npt) ;
+extern void          RWC_medfilt_time_series(time_series * vec) ;
 
 #define MALLOC_ERR(str) \
      { fprintf(stderr,"MALLOC error: %s\n",str); exit(-1); }

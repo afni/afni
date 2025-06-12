@@ -84,7 +84,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "Coord Order" ,
                                 "Coordinate Order Display" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , CORD_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)CORD_main  ) ;
 
    PLUTO_add_hint( plint , "Coordinate Order Display" ) ;
 

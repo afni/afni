@@ -51,7 +51,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "Dset Zeropad" ,
                                 "Make a Zero-Padded Copy of a Dataset" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , ZPAD_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)ZPAD_main  ) ;
 
    PLUTO_add_hint( plint , "Copy and Zero-Pad a Dataset" ) ;
 

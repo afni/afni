@@ -128,7 +128,8 @@ ENTRY("PLUGIN_init:Dataset#N") ;
    AFNI_register_nD_func_init( 1 , (generic_func *) DSETN_func_init ) ;  /* 21 Jul 2003 */
 
    plint = PLUTO_new_interface( "Dataset#N", "Controls 1D function Dataset#N",
-                                 helpstring, PLUGIN_CALL_VIA_MENU, DSETN_main  ) ;
+                                 helpstring, PLUGIN_CALL_VIA_MENU,
+                                 (cptr_func *)DSETN_main  ) ;
 
    PLUTO_add_hint( plint , "Controls 1D function Dataset#N" ) ;
 
@@ -240,7 +241,7 @@ ENTRY( "DSETN_main" ) ;
 
    if ( g_dset_recv < 0 )
        g_dset_recv = AFNI_receive_init( plint->im3d, RECEIVE_DSETCHANGE_MASK,
-                                        DSETN_dset_recv, plint ,
+                                        (gen_func *)DSETN_dset_recv, plint ,
                                         "DSETN_dset_recv" ) ;
    if ( g_dset_recv < 0 )
      RETURN("*************************************\n"
@@ -478,7 +479,7 @@ ININFO_message(" set dset=%s icol=%d",dss->idcode.str,icol) ;
 ININFO_message("call AFNI_receive_init") ;
 #endif
      g_dset_recv = AFNI_receive_init( im3d, RECEIVE_DSETCHANGE_MASK,
-                                      DSETN_dset_recv, plint ,
+                                      (gen_func *)DSETN_dset_recv, plint ,
                                       "DSETN_dset_recv" ) ;
    }
 

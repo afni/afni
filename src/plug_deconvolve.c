@@ -227,7 +227,9 @@ static char * DC_main( PLUGIN_interface * ) ;  /* the entry point */
 static void DC_Fit (int nt, double to, double dt, float * vec, char ** label) ;
 static void DC_Err (int nt, double to, double dt, float * vec, char ** label) ;
 static void DC_IRF (int nt, double to, double dt, float * vec, char ** label) ;
-static int calculate_results();
+static int calculate_results(int nt, double dt, float * vec, int * NN,
+                             int * nfit, float * fit, char ** label,
+                             float ** fitts, float ** errts);
 
 
 
@@ -543,7 +545,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    plint = PLUTO_new_interface ("Deconvolution" ,
 	   "Control DC_Fit, DC_Err, and DC_IRF Deconvolution Functions" ,
-	   helpstring, PLUGIN_CALL_VIA_MENU, DC_main);
+	   helpstring, PLUGIN_CALL_VIA_MENU, (cptr_func *)DC_main);
 
    global_plint = plint ;  /* make global copy */
 

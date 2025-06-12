@@ -149,8 +149,8 @@ static MCW_action_item ICALC_act[] =
      VLINE(iwid->war[aa].rc) ;                                       \
      iwid->war[aa].menu_av =                                         \
         new_MCW_optmenu( rc , "Type" , 0, ICALC_NUMTYPE-1, 0, 0,     \
-                         ICALC_menu_av_CB, (XtPointer)ITOP(iwid) ,   \
-                         MCW_av_substring_CB, ICALC_typestr ) ;      \
+             (gen_func *)ICALC_menu_av_CB, (XtPointer)ITOP(iwid) ,   \
+             (str_func *)MCW_av_substring_CB, ICALC_typestr ) ;      \
      ICALC_userdata(iwid->war[aa].menu_av->wrowcol,aa+1) ;           \
      VLINEE(iwid->war[aa].rc) ;                                      \
      iwid->war[aa].chooser_pb =                                      \
@@ -163,8 +163,8 @@ static MCW_action_item ICALC_act[] =
      ICALC_userdata(iwid->war[aa].chooser_pb,aa+1) ;                 \
      iwid->war[aa].index_av =                                        \
         new_MCW_optmenu( rc , "[-]" , -1,0, 0,0,                     \
-                         ICALC_index_av_CB, (XtPointer)ITOP(iwid) ,  \
-                         ICALC_index_lab_CB,(XtPointer)iwid  ) ;     \
+             (gen_func *)ICALC_index_av_CB, (XtPointer)ITOP(iwid) ,  \
+             (str_func *)ICALC_index_lab_CB,(XtPointer)iwid  ) ;     \
      ICALC_userdata(iwid->war[aa].index_av->wrowcol,aa+1) ;          \
      VLINEE(iwid->war[aa].rc) ;                                      \
      iwid->war[aa].chooser_lab =                                     \
@@ -737,7 +737,7 @@ ENTRY("ICALC_choose_dataset") ;
 
    MCW_choose_strlist( iwid->war[aa].chooser_pb , label ,
                        num_dset , dsv->dset_choice , strlist ,
-                       ICALC_finalize_dataset_CB , (XtPointer)iwid ) ;
+           (gen_func *)ICALC_finalize_dataset_CB , (XtPointer)iwid ) ;
 
    EXRETURN ;
 }
@@ -771,7 +771,7 @@ ENTRY("ICALC_finalize_dataset_CB") ;
    if( inival > topval ) inival = topval ;
    refit_MCW_optmenu( iwid->war[dsa].index_av ,
                       -1 , topval , inival, 0 ,
-                      ICALC_index_lab_CB,(XtPointer)iwid  ) ;
+          (str_func *)ICALC_index_lab_CB,(XtPointer)iwid  ) ;
    EXRETURN ;
 }
 

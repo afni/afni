@@ -232,7 +232,7 @@ MODEL_interface * initialize_model ()
   }
 
   /*----- function which implements the model -----*/
-  mi->call_func = &conv_model;
+  mi->call_func = (void_func *)&conv_model;
 
   return (mi);
 }

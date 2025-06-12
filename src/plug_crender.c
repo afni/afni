@@ -174,7 +174,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    if( ncall > 0 ) return(NULL);  /* only one interface */
 
    plint = PLUTO_new_interface( "Render Dataset" , NULL , NULL ,
-                                PLUGIN_CALL_IMMEDIATELY , RCREND_main ) ;
+                                PLUGIN_CALL_IMMEDIATELY ,
+                                (cptr_func *)RCREND_main ) ;
 
    PLUTO_add_hint( plint , "Volume Rendering" ) ;
 
@@ -187,9 +188,10 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       val = strtod(env,NULL) ;
       if( val > 0.0 && val < 100.0 ) angle_fstep = val ;
    }
-   PLUTO_register_environment_numeric( "AFNI_RENDER_ANGLE_DELTA" ,
-                                       "Angle stepsize in deg (volume renderer)" ,
-                                       1,9,0,(int)angle_fstep, RCREND_environ_CB );
+   PLUTO_register_environment_numeric("AFNI_RENDER_ANGLE_DELTA" ,
+                                      "Angle stepsize in deg (volume renderer)",
+                                      1,9,0,(int)angle_fstep,
+                                      (generic_func *)RCREND_environ_CB );
 
    /*--*/
 
@@ -198,9 +200,10 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       val = strtod(env,NULL) ;
       if( val > 0.0 && val < 100.0 ) cutout_fstep = val ;
    }
-   PLUTO_register_environment_numeric( "AFNI_RENDER_CUTOUT_DELTA" ,
-                                       "Cutout stepsize in mm (volume renderer)" ,
-                                       1,9,0,(int)cutout_fstep, RCREND_environ_CB );
+   PLUTO_register_environment_numeric("AFNI_RENDER_CUTOUT_DELTA" ,
+                                      "Cutout stepsize in mm (volume renderer)",
+                                      1,9,0,(int)cutout_fstep,
+                                      (generic_func *)RCREND_environ_CB );
 
 #if 0      /* 2002 Mar 06 : showthru factor has moved to the plugin GUI */
    env = getenv("AFNI_RENDER_SHOWTHRU_FAC") ;
@@ -984,12 +987,12 @@ char * RCREND_main( PLUGIN_interface * plint )
                                  | RECEIVE_DRAWNOTICE_MASK
                                  | RECEIVE_DSETCHANGE_MASK
                                  | RECEIVE_TIMEINDEX_MASK      /* 29 Jan 2003 */
-                               , RCREND_xhair_recv , NULL ,
+                               , (gen_func *)RCREND_xhair_recv , NULL ,
                                 "RCREND_xhair_recv"  ) ;
 #else
    xhair_recv = AFNI_receive_init( im3d ,
                                    RECEIVE_VIEWPOINT_MASK ,
-                                   RCREND_xhair_recv , NULL ,
+                                   (gen_func *)RCREND_xhair_recv , NULL ,
                                   "RCREND_xhair_recv" ) ;
 #endif
 
@@ -1174,9 +1177,9 @@ ENTRY( "RCREND_make_widgets" );
                           0 ,                     /* initial selection */
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* decimal shift */
-                          RCREND_choose_av_CB ,     /* callback when changed */
+              (gen_func *)RCREND_choose_av_CB ,     /* callback when changed */
                           NULL ,                  /* data for above */
-                          MCW_av_substring_CB ,   /* text creation routine */
+              (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                           RCREND_dummy_av_label     /* data for above */
                         ) ;
 
@@ -1289,7 +1292,7 @@ ENTRY( "RCREND_make_widgets" );
    clipbot_av = new_MCW_arrowval( vrc , "Bot " ,
                                 MCW_AV_downup , -CLIP_RANGE,CLIP_RANGE,-CLIP_RANGE ,
                                 MCW_AV_editext , 0 ,
-                                RCREND_clip_CB , NULL , NULL,NULL ) ;
+                    (gen_func *)RCREND_clip_CB , NULL , NULL,NULL ) ;
 
    MCW_reghelp_children( clipbot_av->wrowcol ,
                          "All (unscaled) voxel values below\n"
@@ -1332,7 +1335,7 @@ ENTRY( "RCREND_make_widgets" );
    cliptop_av = new_MCW_arrowval( vrc , "Top " ,
                                 MCW_AV_downup , -CLIP_RANGE,CLIP_RANGE, CLIP_RANGE ,
                                 MCW_AV_editext , 0 ,
-                                RCREND_clip_CB , NULL , NULL,NULL ) ;
+                    (gen_func *)RCREND_clip_CB , NULL , NULL,NULL ) ;
 
    MCW_reghelp_children( cliptop_av->wrowcol ,
                          "All (unscaled) voxel values above\n"
@@ -1377,7 +1380,8 @@ ENTRY( "RCREND_make_widgets" );
 
    /*** graph to control grayscale ***/
 
-   gry_graf = new_MCW_graf( hrc , im3d->dc, "Brightness", RCREND_graf_CB, NULL ) ;
+   gry_graf = new_MCW_graf( hrc , im3d->dc, "Brightness",
+                            (gen_func *)RCREND_graf_CB, NULL ) ;
 
    MCW_reghelp_children( gry_graf->topform ,
                          "This graph controls the brightness (y-axis) of each\n"
@@ -1397,7 +1401,8 @@ ENTRY( "RCREND_make_widgets" );
 
    /*** graph to control opacity ***/
 
-   opa_graf = new_MCW_graf( hrc , im3d->dc, "Opacity", RCREND_graf_CB, NULL ) ;
+   opa_graf = new_MCW_graf( hrc , im3d->dc, "Opacity",
+                            (gen_func *)RCREND_graf_CB, NULL ) ;
 
    MCW_reghelp_children( opa_graf->topform ,
                          "This graph controls the opacity (y-axis) of each\n"
@@ -1457,7 +1462,7 @@ ENTRY( "RCREND_make_widgets" );
 
    numcutout_av = new_MCW_optmenu( hrc , "Cutouts " ,
                               0 , MAX_CUTOUTS , num_cutouts,0 ,
-                              RCREND_numcutout_CB , NULL , NULL , NULL ) ;
+                  (gen_func *)RCREND_numcutout_CB , NULL , NULL , NULL ) ;
 
    MCW_reghelp_children( numcutout_av->wrowcol ,
                          "Use this to choose the number of cutouts\n"
@@ -1470,7 +1475,7 @@ ENTRY( "RCREND_make_widgets" );
    logiccutout_av = new_MCW_optmenu( hrc , "+" ,
                               0 , 1 , logic_cutout,0 ,
                               NULL , NULL ,
-                              MCW_av_substring_CB , cutout_logic_labels ) ;
+                  (str_func *)MCW_av_substring_CB , cutout_logic_labels ) ;
 
    MCW_reghelp_children( logiccutout_av->wrowcol ,
                          "Use this to control the logic of how\n"
@@ -1486,7 +1491,7 @@ ENTRY( "RCREND_make_widgets" );
    opacity_scale_av = new_MCW_arrowval( hrc , "Opacity Factor " ,
                                 MCW_AV_downup , 0,10,10 ,
                                 MCW_AV_noactext , 1 ,
-                                RCREND_opacity_scale_CB , NULL , NULL,NULL ) ;
+                    (gen_func *)RCREND_opacity_scale_CB , NULL , NULL,NULL ) ;
    XtAddCallback( opacity_scale_av->wtext, XmNactivateCallback,
                   RCREND_textact_CB, opacity_scale_av ) ;
 
@@ -1601,8 +1606,8 @@ ENTRY( "RCREND_make_widgets" );
 
    interp_av = new_MCW_optmenu( hrc , "Interp " ,
                               0 , RCREND_NUM_interp_modes-1 , interp_ival,0 ,
-                              RCREND_interp_CB , NULL ,
-                              MCW_av_substring_CB , interp_mode_strings ) ;
+                  (gen_func *)RCREND_interp_CB , NULL ,
+                  (str_func *)MCW_av_substring_CB , interp_mode_strings ) ;
 
    MCW_reghelp_children( interp_av->wrowcol ,
                          "Use this to set the interpolation mode.  The\n"
@@ -1738,7 +1743,7 @@ ENTRY( "RCREND_make_widgets" );
    roll_av = new_MCW_arrowval( hrc , "Roll" ,
                                 MCW_AV_downup , -999999,999999,(int)(0.1*angle_roll) ,
                                 MCW_AV_noactext , -1 ,
-                                RCREND_angle_CB , NULL , NULL,NULL ) ;
+                    (gen_func *)RCREND_angle_CB , NULL , NULL,NULL ) ;
    roll_av->fstep = angle_fstep ;
    MCW_reghelp_children( roll_av->wrowcol ,
                          "Use this to set the roll angle\n"
@@ -1752,7 +1757,7 @@ ENTRY( "RCREND_make_widgets" );
    pitch_av = new_MCW_arrowval( hrc , "Pitch" ,
                                 MCW_AV_downup , -999999,999999,(int)(0.1*angle_pitch) ,
                                 MCW_AV_noactext , -1 ,
-                                RCREND_angle_CB , NULL , NULL,NULL ) ;
+                    (gen_func *)RCREND_angle_CB , NULL , NULL,NULL ) ;
    pitch_av->fstep = angle_fstep ;
    MCW_reghelp_children( pitch_av->wrowcol ,
                          "Use this to set the pitch angle\n"
@@ -1766,7 +1771,7 @@ ENTRY( "RCREND_make_widgets" );
    yaw_av = new_MCW_arrowval( hrc , "Yaw" ,
                                 MCW_AV_downup , -999999,999999,(int)(0.1*angle_yaw) ,
                                 MCW_AV_noactext , -1 ,
-                                RCREND_angle_CB , NULL , NULL,NULL ) ;
+                    (gen_func *)RCREND_angle_CB , NULL , NULL,NULL ) ;
    yaw_av->fstep = angle_fstep ;
    MCW_reghelp_children( yaw_av->wrowcol ,
                          "Use this to set the yaw angle\n"
@@ -1952,8 +1957,8 @@ ENTRY( "RCREND_make_cutout" );
    sprintf(str,"#%d",n+1) ;
    rc->type_av = new_MCW_optmenu( rc->hrc , str ,
                                   0 , NUM_CUTOUT_TYPES-1 , CUT_NONE,0 ,
-                                  RCREND_cutout_type_CB , NULL ,
-                                  MCW_av_substring_CB , cutout_type_labels ) ;
+                      (gen_func *)RCREND_cutout_type_CB , NULL ,
+                      (str_func *)MCW_av_substring_CB , cutout_type_labels ) ;
    if( NUM_CUTOUT_TYPES >= COLSIZE )
       AVOPT_columnize( rc->type_av , 1+(NUM_CUTOUT_TYPES+1)/COLSIZE ) ;
 
@@ -1976,7 +1981,7 @@ ENTRY( "RCREND_make_cutout" );
    rc->param_av = new_MCW_arrowval( rc->hrc , NULL ,
                                 MCW_AV_downup , -999999,999999,0 ,
                                 MCW_AV_noactext , -1 ,
-                                RCREND_param_CB , NULL , NULL,NULL ) ;
+                    (gen_func *)RCREND_param_CB , NULL , NULL,NULL ) ;
    rc->param_av->fstep = cutout_fstep ;
    XtAddCallback( rc->param_av->wtext, XmNactivateCallback, RCREND_textact_CB, rc->param_av ) ;
    XtUnmanageChild( rc->param_av->wrowcol ) ;
@@ -3427,8 +3432,8 @@ ENTRY( "RCREND_choose_CB" );
    sprintf( label , "AFNI Dataset from\nthe %s" , VIEW_typestr[vv] ) ;
 
    MCW_choose_strlist( w , label , ndsl , isl , strlist ,
-                       (dofunc) ? RCREND_finalize_func_CB
-                                : RCREND_finalize_dset_CB , NULL ) ;
+                       (dofunc) ? (gen_func *)RCREND_finalize_func_CB
+                                : (gen_func *)RCREND_finalize_dset_CB , NULL ) ;
    EXRETURN ;
 }
 
@@ -3480,7 +3485,7 @@ ENTRY( "RCREND_finalize_dset_CB" );
                       DSET_NVALS(dset)-1 ,      /* new maxval */
                       dset_ival ,               /* new inival */
                       0 ,                       /* new decim? */
-                      RCREND_choose_av_label_CB , /* text routine */
+          (str_func *)RCREND_choose_av_label_CB , /* text routine */
                       dset                      /* text data */
                     ) ;
 
@@ -3574,7 +3579,7 @@ ENTRY( "RCREND_finalize_func_CB" );
                       DSET_NVALS(func_dset)-1 , /* new maxval */
                       func_color_ival ,         /* new inival */
                       0 ,                       /* new decim? */
-                      RCREND_choose_av_label_CB , /* text routine */
+          (str_func *)RCREND_choose_av_label_CB , /* text routine */
                       func_dset                 /* text data */
                     ) ;
 
@@ -3588,7 +3593,7 @@ ENTRY( "RCREND_finalize_func_CB" );
                       DSET_NVALS(func_dset)-1 , /* new maxval */
                       func_thresh_ival ,        /* new inival */
                       0 ,                       /* new decim? */
-                      RCREND_choose_av_label_CB , /* text routine */
+          (str_func *)RCREND_choose_av_label_CB , /* text routine */
                       func_dset                 /* text data */
                     ) ;
 
@@ -3826,7 +3831,8 @@ ENTRY( "RCREND_xhair_EV" );
      case ButtonPress:{
        XButtonEvent *event = (XButtonEvent *) ev ;
        if( event->button == Button3 || event->button == Button2 ){
-         MCW_choose_ovcolor( w,dc , xhair_ovc , RCREND_xhair_ovc_CB,NULL ) ;
+         MCW_choose_ovcolor( w,dc , xhair_ovc ,
+                             (gen_func *)RCREND_xhair_ovc_CB,NULL ) ;
        }
      }
      break ;
@@ -3998,7 +4004,8 @@ ENTRY( "RCREND_accum_lab_EV" );
 
          ttl = (accum_lab_replace) ? "Replacement Label"
                                    : "New Overlay Label" ;
-         MCW_choose_string( w,ttl,accum_label , RCREND_accum_lab_CB,NULL ) ;
+         MCW_choose_string( w,ttl,accum_label, (gen_func *)RCREND_accum_lab_CB,
+                            NULL ) ;
        }
      }
      break ;
@@ -4892,7 +4899,7 @@ ENTRY( "RCREND_open_imseq" );
       }
    }
 
-   imseq = open_MCW_imseq( dc , RCREND_imseq_getim , NULL ) ;
+   imseq = open_MCW_imseq( dc , (get_ptr)RCREND_imseq_getim , NULL ) ;
 
    drive_MCW_imseq( imseq , isqDR_clearstat , NULL ) ;
 
@@ -5014,7 +5021,7 @@ ENTRY( "RCREND_imseq_getim" );
                                                             /* destroyed    */
       stat->num_total  = ntot ;
       stat->num_series = stat->num_total ;
-      stat->send_CB    = RCREND_seq_send_CB ;
+      stat->send_CB    = (gen_func *)RCREND_seq_send_CB ;
       stat->parent     = NULL ;
       stat->aux        = NULL ;
 
@@ -5487,8 +5494,8 @@ ENTRY( "RCREND_func_widgets" );
                                         MCW_AV_optmenu ,
                                         0,THR_top_expon,0 ,
                                         MCW_AV_notext , 0 ,
-                                        RCREND_thresh_top_CB , NULL ,
-                                        RCREND_thresh_tlabel_CB , NULL ) ;
+                            (gen_func *)RCREND_thresh_top_CB , NULL ,
+                            (str_func *)RCREND_thresh_tlabel_CB , NULL ) ;
    XtManageChild(wfunc_thr_rowcol) ;
 
    /*--------------- column 2: color chooser stuff ------------------------------*/
@@ -5599,9 +5606,9 @@ ENTRY( "RCREND_func_widgets" );
                              0 ,                   /* initial selection */
                              MCW_AV_readtext ,     /* ignored but needed */
                              0 ,                   /* ditto */
-                             RCREND_palette_av_CB ,  /* callback when changed */
+                 (gen_func *)RCREND_palette_av_CB ,  /* callback when changed */
                              NULL ,                /* data for above */
-                             MCW_av_substring_CB , /* text creation routine */
+                 (str_func *)MCW_av_substring_CB , /* text creation routine */
                              pb_dum_label          /* data for above */
                            ) ;
    }
@@ -5620,9 +5627,9 @@ ENTRY( "RCREND_func_widgets" );
                              0 ,                   /* initial selection */
                              MCW_AV_readtext ,     /* ignored but needed */
                              0 ,                   /* ditto */
-                             RCREND_mixshade_av_CB , /* callback when changed */
+                 (gen_func *)RCREND_mixshade_av_CB , /* callback when changed */
                              NULL ,                /* data for above */
-                             MCW_av_substring_CB , /* text creation routine */
+                 (str_func *)MCW_av_substring_CB , /* text creation routine */
                              pb_dum_label          /* data for above */
                            ) ;
    }
@@ -5633,7 +5640,7 @@ ENTRY( "RCREND_func_widgets" );
                            PALTAB_NUM(GPT)-1 ,     /* new maxval */
                            0 ,                     /* new inival */
                            0 ,                     /* new decim? */
-                           AFNI_palette_label_CB , /* text routine */
+               (str_func *)AFNI_palette_label_CB , /* text routine */
                            NULL                    /* text data */
                         ) ;
    } else {
@@ -5654,7 +5661,7 @@ ENTRY( "RCREND_func_widgets" );
                         npane ,                     /* number panes */
                         sel_height / npane ,        /* init pane height */
                         pmin , pmax ,               /* value range */
-                        RCREND_color_pbar_CB ,      /* callback */
+            (gen_func *)RCREND_color_pbar_CB ,      /* callback */
                         NULL , 0            ) ;     /* callback data */
 
    wfunc_color_pbar->parent       = NULL ;
@@ -5678,8 +5685,8 @@ ENTRY( "RCREND_func_widgets" );
                         NPANE_MIN , NPANE_MAX+1 ,
                         wfunc_color_pbar->bigmode ? NPANE_MAX+1 : npane ,
                         MCW_AV_notext , 0 ,
-                        RCREND_colornum_av_CB , NULL ,
-                        AFNI_inten_av_texter,NULL ) ;
+            (gen_func *)RCREND_colornum_av_CB , NULL ,
+            (str_func *)AFNI_inten_av_texter,NULL ) ;
 
    PBAR_set_bigmode( wfunc_color_pbar , 1 , pmin,pmax ) ;   /* v1.8 [rickr] */
 
@@ -5754,9 +5761,9 @@ ENTRY( "RCREND_func_widgets" );
                           0 ,                     /* initial selection */
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* decimal shift */
-                          RCREND_choose_av_CB ,     /* callback when changed */
+              (gen_func *)RCREND_choose_av_CB ,     /* callback when changed */
                           NULL ,                  /* data for above */
-                          MCW_av_substring_CB ,   /* text creation routine */
+              (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                           RCREND_dummy_av_label     /* data for above */
                         ) ;
 
@@ -5769,9 +5776,9 @@ ENTRY( "RCREND_func_widgets" );
                           0 ,                     /* initial selection */
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* decimal shift */
-                          RCREND_choose_av_CB ,     /* callback when changed */
+              (gen_func *)RCREND_choose_av_CB ,     /* callback when changed */
                           NULL ,                  /* data for above */
-                          MCW_av_substring_CB ,   /* text creation routine */
+              (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                           RCREND_dummy_av_label     /* data for above */
                         ) ;
 
@@ -5814,9 +5821,9 @@ ENTRY( "RCREND_func_widgets" );
                           5 ,                     /* initial selection */
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* decimal shift */
-                          RCREND_color_opacity_CB , /* callback when changed */
+              (gen_func *)RCREND_color_opacity_CB , /* callback when changed */
                           NULL ,                  /* data for above */
-                          MCW_av_substring_CB ,   /* text creation routine */
+              (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                           func_opacity_labels     /* data for above */
                         ) ;
    }
@@ -5856,9 +5863,9 @@ ENTRY( "RCREND_func_widgets" );
                           15,                   /* initial selection     */
                           MCW_AV_readtext,      /* ignored but needed    */
                           0,                    /* decimal shift         */
-                          RCREND_ST_factor_CB,  /* callback when changed */
+              (gen_func *)RCREND_ST_factor_CB,  /* callback when changed */
                           NULL,                 /* data for above        */
-                          MCW_av_substring_CB,  /* text creation routine */
+              (str_func *)MCW_av_substring_CB,  /* text creation routine */
                           ST_factor_labels      /* data for above        */
                         );
 
@@ -5935,14 +5942,14 @@ ENTRY( "RCREND_func_widgets" );
          new_MCW_arrowval( wfunc_opacity_rowcol , "   rmm  " , MCW_AV_downup ,
                            0 , 99 , (int)(10*func_clusters_rmm) ,
                            MCW_AV_edittext , 1 ,
-                           RCREND_clusters_av_CB,NULL,NULL,NULL
+               (gen_func *)RCREND_clusters_av_CB,NULL,NULL,NULL
                          ) ;
 
      wfunc_clusters_vmul_av =
          new_MCW_arrowval( wfunc_opacity_rowcol , "   vmul " , MCW_AV_downup ,
                            0 , 9999 , (int)(0.1*func_clusters_vmul),
                            MCW_AV_edittext , -1 ,
-                           RCREND_clusters_av_CB,NULL,NULL,NULL
+               (gen_func *)RCREND_clusters_av_CB,NULL,NULL,NULL
                          ) ;
 
      AV_SENSITIZE( wfunc_clusters_rmm_av , False ) ;
@@ -6023,7 +6030,7 @@ ENTRY( "RCREND_func_widgets" );
                         (int)(func_range) ,   /* init value */
                         MCW_AV_editext ,      /* input/output text display */
                         0 ,                   /* decimal shift */
-                        RCREND_range_av_CB ,    /* routine to call when button */
+            (gen_func *)RCREND_range_av_CB ,  /* routine to call when button */
                         NULL ,                /* is pressed, and its data */
                         NULL,NULL             /* no special display */
                      ) ;
@@ -6035,7 +6042,7 @@ ENTRY( "RCREND_func_widgets" );
                              wqqq , "Rota" ,
                              MCW_AV_downup , 0,0,0 ,
                              MCW_AV_notext , 0 ,
-                             AFNI_range_rotate_av_CB ,
+                 (gen_func *)AFNI_range_rotate_av_CB ,
                              (XtPointer) wfunc_color_pbar ,
                              NULL,NULL ) ;
 
@@ -6694,7 +6701,7 @@ ENTRY( "RCREND_pbarmenu_EV" );
                                     PALTAB_NUM(GPT)-1 ,     /* new maxval */
                                     0 ,                     /* new inival */
                                     0 ,                     /* new decim? */
-                                    AFNI_palette_label_CB , /* text routine */
+                        (str_func *)AFNI_palette_label_CB , /* text routine */
                                     NULL                    /* text data */
                                  ) ;
                XtManageChild( wfunc_pbar_palette_av->wrowcol ) ;
@@ -6746,7 +6753,7 @@ ENTRY( "RCREND_pbarmenu_CB" );
    else if( w == wfunc_pbar_settop_pb ){
       MCW_choose_integer( wfunc_choices_rowcol,
                           "Pbar Top" , 0 , 99999 , 1 ,
-                          RCREND_set_pbar_top_CB , NULL  ) ;
+                          (gen_func *)RCREND_set_pbar_top_CB , NULL  ) ;
    }
 
    /*--- Save pbar into image file ---*/
@@ -6757,7 +6764,7 @@ ENTRY( "RCREND_pbarmenu_CB" );
                          "  * end in .jpg or .png *\n"
                          "  * for those formats   *"
                          , NULL ,
-                         RCREND_finalize_saveim_CB , cd ) ;
+             (gen_func *)RCREND_finalize_saveim_CB , cd ) ;
    }
 
    EXRETURN ;
@@ -7643,14 +7650,14 @@ ENTRY( "RCREND_script_CB" );
 
    if( w == script_save_this_pb ){
       MCW_choose_string( w , "[Save This] Filename prefix:" , NULL ,
-                         RCREND_save_this_CB , NULL ) ;
+                         (gen_func *)RCREND_save_this_CB , NULL ) ;
       EXRETURN ;
    }
 
    if( w == script_read_this_pb ){
       MCW_choose_string( w , "[Read This] Filename prefix:" ,
                          script_read_fname ,
-                         RCREND_read_this_CB , NULL ) ;
+                         (gen_func *)RCREND_read_this_CB , NULL ) ;
       EXRETURN ;
    }
 
@@ -7664,7 +7671,7 @@ ENTRY( "RCREND_script_CB" );
          PLUTO_beep() ; EXRETURN ;
       }
       MCW_choose_string( w , "[Save Many] Filename prefix:" , NULL ,
-                         RCREND_save_many_CB , NULL ) ;
+                         (gen_func *)RCREND_save_many_CB , NULL ) ;
       EXRETURN ;
    }
 
@@ -7684,7 +7691,7 @@ ENTRY( "RCREND_script_CB" );
       }
       MCW_choose_string( w , "[Read & Exec] Filename prefix:" ,
                          script_read_fname ,
-                         RCREND_read_exec_CB , NULL ) ;
+                         (gen_func *)RCREND_read_exec_CB , NULL ) ;
       EXRETURN ;
    }
 
@@ -7818,7 +7825,7 @@ ENTRY( "RCREND_read_this_CB" );
    } else {
       MCW_choose_integer( w , "[Read This] State Index" ,
                           0 , RSA_COUNT(rsa)-1 , 0 ,
-                          RCREND_read_this_finalize_CB , (XtPointer) rsa ) ;
+              (gen_func *)RCREND_read_this_finalize_CB , (XtPointer) rsa ) ;
    }
 
    EXRETURN ;

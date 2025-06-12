@@ -146,8 +146,9 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*-- set titles and call point --*/
 
-   plint = PLUTO_new_interface( "3D Dump98" , "Ascii dump of 3D Dataset" , helpstring ,
-                                 PLUGIN_CALL_VIA_MENU , DUMP_main  ) ;
+   plint = PLUTO_new_interface( "3D Dump98" , "Ascii dump of 3D Dataset" ,
+                                helpstring , PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)DUMP_main  ) ;
 
    PLUTO_set_runlabels( plint , "Dump+Keep" , "Dump+Close" ) ;  /* 04 Nov 2003 */
 

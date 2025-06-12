@@ -172,8 +172,8 @@ static int filexists (char *f_name);
 
 static int f_file_size (char *f_name);
 
-static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int detrend ,
-                         generic_func * user_func , void * user_data );
+static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore ,
+                 int detrend , generic_func * user_func , void * user_data );
 
 /*---------------------------- global data ---------------------------*/
 
@@ -206,7 +206,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "4D Dump" ,
                                 "Extract voxel time courses given their index or XYZ coordinates" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , EXTRACT_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)EXTRACT_main  ) ;
 
    global_plint = plint ;  /* make global copy */
 
@@ -559,7 +560,7 @@ static char * EXTRACT_main( PLUGIN_interface * plint )
    /*------------- ready to compute new dataset -----------*/
 
 	PLUTO_4D_to_nothing (old_dset , ud->ignore , ud->dtrnd ,
-                             EXTRACT_tsfunc , (void *)ud );
+                        (generic_func *)EXTRACT_tsfunc , (void *)ud );
 
 	fclose (ud->outlogfile);
 	fclose (ud->outwritets);
@@ -1058,8 +1059,8 @@ static void disp_vect (float *v,int l)
 /*    (adapted from BDW's function PLUTO_4D_to_typed_fith 			 */
 /* *************************************************************** */
 
-static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int detrend ,
-                         generic_func * user_func, void * user_data )
+static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore ,
+                      int detrend , generic_func * user_func, void * user_data )
 {
 
    byte    ** bptr = NULL ;  /* one of these will be the array of */

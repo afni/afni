@@ -69,7 +69,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
     CHECK_IF_ALLOWED("MASKCALC","maskcalc") ;  /* 30 Sep 2016 */
 
     plint = PLUTO_new_interface( "maskcalc", "masked computations on datasets",
-	    gr_help_message, PLUGIN_CALL_VIA_MENU, MASKCALC_main );
+	    gr_help_message, PLUGIN_CALL_VIA_MENU, (cptr_func *)MASKCALC_main );
 
     PLUTO_add_hint( plint, "Wouldn't some cookies be right tasty?" );
 

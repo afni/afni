@@ -796,7 +796,7 @@ MODEL_interface * initialize_model ()
   mi->min_constr[5] =   -PI/2.0;  mi->max_constr[5] =    PI/2.0;
 
   /*----- function which implements the model -----*/
-  mi->call_func = conv_model;
+  mi->call_func = (void_func *)conv_model;
 
   return (mi);
 }

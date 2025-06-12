@@ -89,7 +89,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "SingleTrial Avg" ,
                                 "Averaging of epochs in Single Trial data" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , STAVG_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)STAVG_main  ) ;
 
    PLUTO_add_hint( plint , "Averaging of epochs in Single Trial data" ) ;
 

@@ -53,6 +53,18 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Jun, 2025, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "gcc-15 : code updates for building",
+   "This is a partial update for building using gcc-15.\n"
+   "The main change is that gcc-15 defaults to -std=gnu23 instead of\n"
+   "  -std=gnu17.  The main change between those standards being that\n"
+   "  empty function parameter lists are now taken as (void), so use of\n"
+   "  generic function pointers now needs casting to avoid errors of\n"
+   "  -Wincompatible-pointer-types.  Similarly, some K&R parameter styles\n"
+   "  must be updated to ANSI.\n"
+   "This affects 135 files so far, and the SUMA tree is still to be done."
+ } ,
+
  {  5, Jun, 2025, RCR, "APMULTI_Demo2_realtime", MINOR, TYPE_ENHANCE,
    "add rt.22.py2py, to generally test client to server communication",
    "Added for S Fede."

@@ -4067,7 +4067,7 @@ if(PRINT_TRACING){ char str[1024] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(
       grstat->ny         = br->n2 ;
       grstat->nz         = br->n3 ;
 
-      grstat->send_CB    = AFNI_gra_send_CB ;
+      grstat->send_CB    = (void (*)(void))AFNI_gra_send_CB ;
       grstat->parent     = (XtPointer) br ;
       grstat->aux        = NULL ;
 
@@ -4156,7 +4156,7 @@ STATUS("get status") ;
 
       stat->num_total  = br->n3 ;
       stat->num_series = br->n3 ;
-      stat->send_CB    = AFNI_seq_send_CB ;
+      stat->send_CB    = (void (*)(void))AFNI_seq_send_CB ;
       stat->parent     = (XtPointer) br ;
       stat->aux        = NULL ;
 
@@ -6092,7 +6092,8 @@ STATUS("graCR_pickref") ;
 
             MCW_choose_timeseries( grapher->fdw_graph , "FIM Reference Vector" ,
                                    GLOBAL_library.timeseries , init_ts ,
-                                   AFNI_fimmer_pickref_CB , (XtPointer) im3d ) ;
+                                   (gen_func *)AFNI_fimmer_pickref_CB ,
+                                   (XtPointer) im3d ) ;
          } else {
             (void) MCW_popup_message(
                       grapher->option_rowcol ,
@@ -6113,7 +6114,8 @@ STATUS("graCR_pickort") ;
 
             MCW_choose_timeseries( grapher->fdw_graph , "FIM Ort Vector" ,
                                    GLOBAL_library.timeseries , init_ts ,
-                                   AFNI_fimmer_pickort_CB , (XtPointer) im3d ) ;
+                                   (gen_func *)AFNI_fimmer_pickort_CB ,
+                                   (XtPointer) im3d ) ;
          } else {
             (void) MCW_popup_message(
                       grapher->option_rowcol ,
@@ -7080,7 +7082,7 @@ ENTRY("AFNI_startup_3dview") ;
                            GLOBAL_library.registered_0D.num ,  /* new maxval */
                            0 ,                                 /* new inival */
                            0 ,                                 /* new decim? */
-                           ISQ_transform_label ,               /* text func  */
+                           (str_func *)ISQ_transform_label ,   /* text func  */
                            &(GLOBAL_library.registered_0D)     /* text data  */
                         ) ;
       XtManageChild( im3d->vwid->func->pbar_transform0D_av->wrowcol ) ;
@@ -7101,7 +7103,7 @@ ENTRY("AFNI_startup_3dview") ;
                            GLOBAL_library.registered_2D.num ,  /* new maxval */
                            0 ,                                 /* new inival */
                            0 ,                                 /* new decim? */
-                           ISQ_transform_label ,               /* text func  */
+                           (str_func *)ISQ_transform_label ,   /* text func  */
                            &(GLOBAL_library.registered_2D)     /* text data  */
                         ) ;
       XtManageChild( im3d->vwid->func->pbar_transform2D_av->wrowcol ) ;
@@ -7521,7 +7523,7 @@ ENTRY("AFNI_time_index_EV") ;
 
          MCW_choose_stuff( im3d->vwid->imag->time_index_av->wlabel ,
                              "Time Index Stepping" ,
-                             AFNI_time_index_step_CB , im3d ,
+                             (gen_func *)AFNI_time_index_step_CB , im3d ,
                              MSTUF_INT ,     "Index Step     " , 1 , 9     , istep ,
                              MSTUF_STRLIST , "SLAVE_FUNCTIME " , 2 , sftin , yesno ,
                              MSTUF_STRLIST , "Thr = Olay?+1? " , 3 , thrin , throx ,
@@ -7852,7 +7854,8 @@ ENTRY("AFNI_view_xyz_CB") ;
 STATUS("opening an image window") ;
       MCW_invert_widget(pboff) ;
       POPUP_cursorize(pboff) ;   /* 20 Jul 2005 */
-      *snew = open_MCW_imseq( im3d->dc, AFNI_brick_to_mri, (XtPointer) brnew ) ;
+      *snew = open_MCW_imseq( im3d->dc, (get_ptr)AFNI_brick_to_mri,
+                              (XtPointer) brnew ) ;
 
       (*snew)->parent = (XtPointer)im3d ;
 
@@ -7985,7 +7988,8 @@ STATUS("opening a graph window") ;
 
        MCW_invert_widget(pboff) ;
        POPUP_cursorize(pboff) ;   /* 20 Jul 2005 */
-       gr = new_MCW_grapher( im3d->dc , AFNI_brick_to_mri , (XtPointer) brnew ) ;
+       gr = new_MCW_grapher( im3d->dc , (get_ptr)AFNI_brick_to_mri ,
+                             (XtPointer) brnew ) ;
        drive_MCW_grapher( gr, graDR_title, (XtPointer) im3d->window_title );
        drive_MCW_grapher( gr, graDR_addref_ts, (XtPointer) im3d->fimdata->fimref );
        drive_MCW_grapher( gr, graDR_setignore, (XtPointer)ITOP(im3d->fimdata->init_ignore) );
@@ -10491,7 +10495,7 @@ STATUS(" -- set threshold to zero (startup)") ;
                            DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
                            im3d->vinfo->fim_index ,       /* new inival */
                            0 ,                            /* new decim? */
-                           AFNI_bucket_label_CB ,         /* text routine */
+                           (str_func *)AFNI_bucket_label_CB, /* text routine */
                            im3d->fim_now                  /* text data */
                          ) ;
         refit_MCW_optmenu( im3d->vwid->func->thr_buck_av ,
@@ -10499,7 +10503,7 @@ STATUS(" -- set threshold to zero (startup)") ;
                            DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
                            im3d->vinfo->thr_index ,       /* new inival */
                            0 ,                            /* new decim? */
-                           AFNI_bucket_label_CB ,         /* text routine */
+                           (str_func *)AFNI_bucket_label_CB, /* text routine */
                            im3d->fim_now                  /* text data */
                          ) ;
       }
@@ -10511,7 +10515,7 @@ STATUS(" -- set threshold to zero (startup)") ;
                            DSET_NVALS(im3d->anat_now)-1 ,  /* new maxval */
                            im3d->vinfo->anat_index ,       /* new inival */
                            0 ,                             /* new decim? */
-                           AFNI_bucket_label_CB ,          /* text routine */
+                           (str_func *)AFNI_bucket_label_CB, /* text routine */
                            im3d->anat_now                  /* text data */
                          ) ;
       }
@@ -11291,17 +11295,17 @@ ENTRY("AFNI_crosshair_pop_CB") ;
      sprintf(tbuf , "Enter new x y z (%s mm):" , GLOBAL_library.cord.orcode ) ;
      MCW_choose_string( im3d->vwid->imag->crosshair_label , tbuf ,
                         last_jumpto_xyz_string,
-                        AFNI_jumpto_CB, (XtPointer) im3d ) ;
+                        (gen_func *)AFNI_jumpto_CB, (XtPointer) im3d ) ;
      EXRETURN ;
    } else if ( w == im3d->vwid->imag->crosshair_jtijk_pb ){
      MCW_choose_string( im3d->vwid->imag->crosshair_label , "Enter new i j k (UnderLay):" ,
                         last_jumpto_ijk_string ,
-                        AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
+                        (gen_func *)AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
      EXRETURN ;
    } else if ( w == im3d->vwid->imag->crosshair_jtijk_olay_pb ){  /* 20 Apr 2016 */
      MCW_choose_string( im3d->vwid->imag->crosshair_label , "Enter new i j k (OverLay):" ,
                         last_jumpto_ijk_olay_string ,
-                        AFNI_jumpto_ijk_olay_CB , (XtPointer) im3d ) ;
+                        (gen_func *)AFNI_jumpto_ijk_olay_CB , (XtPointer) im3d ) ;
      EXRETURN ;
    }
 
@@ -11378,7 +11382,7 @@ ENTRY("AFNI_imag_pop_CB") ;
       if( ISQ_REALZ(seq) ){
         sprintf(tbuf , "Enter new x y z (%s mm):" , GLOBAL_library.cord.orcode ) ;
         MCW_choose_string( seq->wbar , tbuf , last_jumpto_xyz_string ,
-                           AFNI_jumpto_CB , (XtPointer) im3d ) ;
+                           (gen_func *)AFNI_jumpto_CB , (XtPointer) im3d ) ;
       }
    }
 
@@ -11387,7 +11391,7 @@ ENTRY("AFNI_imag_pop_CB") ;
 
       if( ISQ_REALZ(seq) ){
          MCW_choose_string( seq->wbar , "Enter new i j k (UnderLay):" , last_jumpto_ijk_string ,
-                            AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
+                            (gen_func *)AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
       }
    }
 
@@ -11396,7 +11400,7 @@ ENTRY("AFNI_imag_pop_CB") ;
 
       if( ISQ_REALZ(seq) ){
          MCW_choose_string( seq->wbar , "Enter new i j k (OverLay):" , last_jumpto_ijk_olay_string ,
-                            AFNI_jumpto_ijk_olay_CB , (XtPointer) im3d ) ;
+                            (gen_func *)AFNI_jumpto_ijk_olay_CB , (XtPointer) im3d ) ;
       }
    }
 
@@ -11409,7 +11413,7 @@ ENTRY("AFNI_imag_pop_CB") ;
          sprintf(jumpstring,"Enter %s x,y,z (LPI mm):", get_jump_space());
          MCW_choose_string( seq->wbar , jumpstring ,
                             last_mnito_string ,
-                            AFNI_mnito_CB , (XtPointer) im3d ) ;
+                            (gen_func *)AFNI_mnito_CB , (XtPointer) im3d ) ;
       } else {
          BEEPIT ; /* should never happen */
       }
@@ -11430,7 +11434,7 @@ ENTRY("AFNI_imag_pop_CB") ;
 
       if( ISQ_REALZ(seq) ){
          MCW_choose_string( seq->wbar , "Enter SUMA node ID:" , last_sumato_string ,
-                            AFNI_sumato_CB , (XtPointer) im3d ) ;
+                            (gen_func *)AFNI_sumato_CB , (XtPointer) im3d ) ;
       }
    }
 
@@ -11458,7 +11462,7 @@ ENTRY("AFNI_imag_pop_CB") ;
                        atlas_n_points(Current_Atlas_Default_Name()) ,
                        atlas_current_structure ,
                        at_labels ,
-                       AFNI_talto_CB , (XtPointer) im3d ) ;
+                       (gen_func *)AFNI_talto_CB , (XtPointer) im3d ) ;
             for (iii=0; iii<atlas_n_points(Current_Atlas_Default_Name()); ++iii) {
                if (at_labels[iii]) free(at_labels[iii]);
             }
@@ -11500,7 +11504,7 @@ ENTRY("AFNI_imag_pop_CB") ;
 
          im3d->vwid->imag->pop_whereami_twin =
            new_MCW_textwin_2001( im3d->vwid->imag->crosshair_label , tlab ,
-                                 TEXT_READONLY , AFNI_pop_whereami_kill , im3d ) ;
+               TEXT_READONLY , (void_func *)AFNI_pop_whereami_kill , im3d ) ;
 
 #if 0
          /* 31 Jul 2001: NULL out the pointer when the window is destroyed */
@@ -11772,7 +11776,7 @@ void AFNI_htmlwami_CB( Widget w , XtPointer cd , XtPointer cbd )
      EXRETURN ;
    } else {
      htmlwami_hw = new_MCW_htmlwin( im3d->vwid->imag->topper, inf,
-                               AFNI_htmlwami_killfun , im3d  , NULL, 0    ) ;
+                      (void_func *)AFNI_htmlwami_killfun , im3d  , NULL, 0 ) ;
      im3d->vwid->imag->pop_whereami_htmlwin = htmlwami_hw;
    }
    free(inf) ; inf = NULL ; htmlwami_open = 1 ;
@@ -13906,7 +13910,7 @@ void AFNI_sonnet_CB( Widget w , XtPointer client_data , XtPointer call_data )
       MCW_choose_integer( im3d->vwid->picture ,
                           "Sonnet " ,
                           1 , NUM_SONNETS , sonnet_index+1 ,
-                          AFNI_sonnet_CB , (XtPointer) im3d ) ;
+                          (gen_func *)AFNI_sonnet_CB , (XtPointer) im3d ) ;
       return ;
    }
 

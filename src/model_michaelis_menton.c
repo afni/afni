@@ -70,7 +70,8 @@ MODEL_interface * initialize_model ()
     M->min_constr[3] =   0.040;  M->max_constr[3] =   0.060;  /* mean 0.05 */
     M->min_constr[4] =   0.080;  M->max_constr[4] =   0.120;  /* mean 0.1  */
   
-    M->call_func = &signal_model; /* set the signal model generator callback */
+    /* set the signal model generator callback */
+    M->call_func = (void_func *)&signal_model;
 
     return (M);
 }

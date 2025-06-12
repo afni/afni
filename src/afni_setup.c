@@ -631,7 +631,7 @@ ENTRY("AFNI_pbar_CB") ;
    else if( w == im3d->vwid->func->pbar_settop_pb ){
       MCW_choose_integer( im3d->vwid->func->options_label ,
                           "Pbar Top" , 0 , 999999 , 1 ,
-                          AFNI_set_pbar_top_CB , cd   ) ;
+              (gen_func *)AFNI_set_pbar_top_CB , cd   ) ;
    }
 
    /*--- Flip [08 Feb 2012] ---*/
@@ -674,8 +674,8 @@ ENTRY("AFNI_pbar_CB") ;
 
    else if( w == im3d->vwid->func->pbar_writeout_pb ){
       MCW_choose_string( im3d->vwid->func->options_label ,
-                         (pbar->bigmode) ? "Colorscale Name" : "Palette Name" ,
-                         NULL , AFNI_finalize_write_palette_CB , cd ) ;
+                      (pbar->bigmode) ? "Colorscale Name" : "Palette Name" ,
+                      NULL , (gen_func *)AFNI_finalize_write_palette_CB , cd ) ;
    }
 
    /*--- Display the palette table ---*/
@@ -695,7 +695,7 @@ ENTRY("AFNI_pbar_CB") ;
                          " * end in .jpg or .png *\n"
                          " * for those formats   *"
                          , NULL ,
-                         AFNI_finalize_saveim_CB , cd ) ;
+             (gen_func *)AFNI_finalize_saveim_CB , cd ) ;
    }
 
    /*---- 10 Feb 2004: start the Edit Environment pseudo-plugin ----*/
@@ -789,13 +789,13 @@ ENTRY("AFNI_finalize_read_palette_CB") ;
                      qq3d = GLOBAL_library.controllers[ii] ;
                      if( IM3D_VALID(qq3d) ){
                         refit_MCW_optmenu( qq3d->vwid->func->pbar_palette_av ,
-                                           0 ,                     /* new minval */
-                                           npal2-1 ,               /* new maxval */
-                                           0 ,                     /* new inival */
-                                           0 ,                     /* new decim? */
-                                           AFNI_palette_label_CB , /* text routine */
-                                           NULL                    /* text data */
-                                          ) ;
+                                     0 ,                     /* new minval */
+                                     npal2-1 ,               /* new maxval */
+                                     0 ,                     /* new inival */
+                                     0 ,                     /* new decim? */
+                         (str_func *)AFNI_palette_label_CB , /* text routine */
+                                     NULL                    /* text data */
+                                    ) ;
 
                         /* 14 Jul 1998: whoops */
                         XtManageChild( qq3d->vwid->func->pbar_palette_av->wrowcol ) ;

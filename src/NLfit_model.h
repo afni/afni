@@ -51,6 +51,9 @@ struct NLFIT_MODEL_array ; /* incomplete definition */
 *******************************************************************/
 
 typedef void (*vfp)();       /* pointer to generic function */
+/* gcc-15 is picky about types, be explicit  [9 Jun 2025 rickr] */
+typedef void (* model_4_type)(float *, int, float **,float *);
+
 
 #ifndef VOID_FUNC
 #define VOID_FUNC

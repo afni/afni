@@ -199,8 +199,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    plint = PLUTO_new_interface( "3D+t Extract" ,
                                 "Extract voxel time courses given their index or XYZ coordinates" ,
-                                helpstring ,
-                                PLUGIN_CALL_VIA_MENU , EXTRACT_main  ) ;
+                                helpstring , PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)EXTRACT_main  ) ;
 
    global_plint = plint ;  /* make global copy */
 
@@ -587,13 +587,13 @@ static char * EXTRACT_main( PLUGIN_interface * plint )
    
    /*------------- ready to compute new dataset -----------*/
   
-   new_dset = PLUTO_4D_to_typed_fim( old_dset ,             /* input dataset */
-                               ud->new_prefix ,           /* output prefix */
-                               -1,							/* negative value indicating data type is like original brick */
-                               ud->ignore ,               /* ignore count */
-                               ud->dtrnd ,                    /* detrend */
-                               EXTRACT_tsfunc ,         /* timeseries processor */
-                               (void *)ud          /* data for tsfunc */
+   new_dset = PLUTO_4D_to_typed_fim( old_dset , /* input dataset */
+                               ud->new_prefix , /* output prefix */
+                               -1,					/* negative value indicating data type is like original brick */
+                               ud->ignore ,     /* ignore count */
+                               ud->dtrnd ,      /* detrend */
+               (generic_func *)EXTRACT_tsfunc , /* timeseries processor */
+                               (void *)ud       /* data for tsfunc */
                              ) ;
    
    PLUTO_add_dset( plint , new_dset , DSET_ACTION_MAKE_CURRENT ) ;

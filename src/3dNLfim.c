@@ -2431,6 +2431,12 @@ void save_results
   float * s_array;         /* fitted signal model time series */
   float * n_array;         /* fitted noise model time series */
 
+  /* gcc-15 is picky about types, make new type  [9 Jun 2025 rickr] */
+  model_4_type typed_smodel = NULL;
+  model_4_type typed_nmodel = NULL;
+
+  typed_smodel = (model_4_type)smodel;
+  typed_nmodel = (model_4_type)nmodel;
 
   /*----- save regression results into volume data -----*/
   if (freg_vol != NULL)    freg_vol[iv] = freg;
@@ -2474,7 +2480,7 @@ void save_results
        s_array = (float *) malloc (sizeof(float) * (ts_length));
        MTEST (s_array);
 
-       smodel (par_full + r, ts_length, x_array, s_array);
+       typed_smodel (par_full + r, ts_length, x_array, s_array);
 
        for (it = 0;  it < ts_length;  it++)
          sfit_vol[it][iv] = s_array[it];
@@ -2489,7 +2495,7 @@ void save_results
     {
       n_array = (float *) malloc (sizeof(float) * (ts_length));
       MTEST (n_array);
-      nmodel (par_full, ts_length, x_array, n_array);
+      typed_nmodel (par_full, ts_length, x_array, n_array);
 
       for (it = 0;  it < ts_length;  it++)
      {
@@ -2503,7 +2509,7 @@ void save_results
      {
        s_array = (float *) malloc (sizeof(float) * (ts_length));
        MTEST (s_array);
-       smodel (par_full + r, ts_length, x_array, s_array);
+       typed_smodel (par_full + r, ts_length, x_array, s_array);
 
        for (it = 0;  it < ts_length;  it++)
          {

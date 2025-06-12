@@ -63,7 +63,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "ScatterPlot" ,
                                 "ScatterPlot of 2 Bricks" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , SCAT_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)SCAT_main  ) ;
 
    PLUTO_add_hint( plint , "Of 2 Bricks" ) ;
 

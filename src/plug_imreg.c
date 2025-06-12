@@ -70,7 +70,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "2D Registration" ,
                                 "2D Registration of a 3D+time Dataset" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , IMREG_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)IMREG_main  ) ;
 
    PLUTO_add_hint( plint , "2D Registration of a 3D+time Dataset" ) ;
 
