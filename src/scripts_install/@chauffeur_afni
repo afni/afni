@@ -1361,6 +1361,15 @@ if ( $innit == 0 ) then
     goto BAD_EXIT
 endif
 
+# [PT: Jun 10, 2025] check some clustering opts
+if ( "${clust_cmd}" != "" ) then
+    if ( "${p_thr_side}" == "" ) then 
+        echo "** ERROR: you used -clusterize but the sidedness of thresholding"
+        echo "  is unknown. Please specify it with '-thr_olay_pside ..'\n\n"
+        goto BAD_EXIT
+    endif
+endif
+
 # [PT: Apr 23, 2020] 
 if ( ${USER_CSCALE} ) then
     echo "++ Using user-specified colorscale:"
