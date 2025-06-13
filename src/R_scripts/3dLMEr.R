@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.2, May 28, 2025
+Version 1.1.2, Jun 13, 2025
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -298,9 +298,9 @@ Introduction
           -model  'group*emotion*type+age+(1|Subj)+(1|Subj:emotion)+(1|Subj:type)'        \\
           -SS_type 3                                                                      \\
           -bounds -2 2                                                                    \\
-          -gltCode pat.pos      'gruop : 1*patient emotion : 1*pos'                       \\
-          -gltCode pat.neg      'gruop : 1*patient emotion : 1*neg'                       \\
-          -gltCode ctr.pos.age  'gruop : 1*control emotion : 1*pos age :'                 \\
+          -gltCode pat.pos      'group : 1*patient emotion : 1*pos'                       \\
+          -gltCode pat.neg      'group : 1*patient emotion : 1*neg'                       \\
+          -gltCode ctr.pos.age  'group : 1*control emotion : 1*pos age :'                 \\
           -dataTable                                              \\
           Subj  group    emotion  type  age  InputFile            \\
           s1    control   pos     face  35  s1_pos+tlrc           \\
@@ -1198,13 +1198,12 @@ while(is.null(fm)) {
    } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
       cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')
-      cat('Possible reasons for failure:\n\n')
-      cat('0) Required R packages are missing: lme4, lmerTest, or phia.\n')
-      cat('1) Incorrect model specification via the -model or -qVars options.\n')
-      cat('2) Errors in -gltCode definitions.\n')
-      cat('3) Mask may be too restrictive. Try running the analysis without a mask and apply it afterward.\n')
-      cat('4) Inconsistencies or formatting errors in the data table.\n')
-      cat('5) Variable name mismatches (e.g., typos or case sensitivity issues).\n')
+      cat('Possible reasons:\n\n')
+      cat('0) Missing R packages lme4, lmerTest, and phia. \n')
+      cat('1) Inappropriate model specification with options -model, or -qVars.\n\n')
+      cat('2) Incorrect specifications with -gltCode.\n\n')
+      cat('3) inconsistencies in the data table.\n')
+      cat('4) Inconsistent variable names (e.g., typos, case sensitive characters).\n')
       errex.AFNI("Quitting due to model test failure...")
    }
 }
