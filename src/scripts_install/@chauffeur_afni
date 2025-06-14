@@ -360,8 +360,15 @@
 #set version   = "6.8";   set rev_dat   = "Aug 26, 2024"
 #    + [PT] add subbrick selection to AMASK_FOCUS_ULAY functionality
 #
-set version   = "6.9";   set rev_dat   = "Jan 6, 2025"
+#set version   = "6.9";   set rev_dat   = "Jan 6, 2025"
 #    + [PT] add -olay_boxed_color opt
+#
+#set version   = "7.0";   set rev_dat   = "May 21, 2025"
+#    + [PT] improved colorbar functionality
+#         + better driving if user enters own cbar
+#         + better use of alpha (still need to finalize addition)
+set version   = "7.01"; set rev_dat   = "Jun 20, 2025"
+#   + [PT] remove "-no1D" in afni command, so we can pick ideal time series
 #
 # =====================================================================
 
@@ -453,6 +460,9 @@ set gen_comm   = ""            # [PT: Feb 22, 2021] pbar json output
 set pbar_for   = ""
 set ulay_comm  = ""
 
+set do_pbar_alpha = 0          # [PT: May 202 2025] can fade with colorbar_tool.py
+set pbar_orth  = ""            # [PT: May 202 2025] fade is not orth
+
 set func_resam = "NN"            # def. no resample; opt: {NN|Li|Cu|Bk}
 
 set acropx = ( 0 0 )             # [PT: May 29, 2018]  
@@ -512,6 +522,7 @@ set umax_magic = "98"
 set USER_CSCALE  = 0             # [PT: Apr 23, 2020] for AFNI_COLORSCALE_xx
 set cscale_idx   = ""
 set cscale_fname = ""
+set cscale_env   = ""
 
 set BIGNEG = -100000001
 @ BIGNEGp1 = $BIGNEG + 1
@@ -968,6 +979,22 @@ while ( $ac <= $#argv )
         set com_pbar_str = "PBAR_SAVEIM $pbar_fname"
         set SAVE_PBAR = 1
 
+    # [PT: May 25, 2025] allow colorbar_tool.py to operate
+    else if ( "$argv[$ac]" == "-pbar_thr_alpha" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        if ( ( "$argv[$ac]" == "Yes" ) || \
+             ( "$argv[$ac]" == "1"   ) ) then
+            set do_pbar_alpha = 1
+        else if ( ( "$argv[$ac]" == "No" ) || \
+                  ( "$argv[$ac]" == "0"  ) ) then
+            set do_pbar_alpha = 0
+        else
+            echo "** ERROR: unknown pbar_thr_alpha value: $do_pbar_alpha"
+            goto BAD_EXIT
+        endif
+        echo "++ pbar_thr_alpha has known value: $do_pbar_alpha"
+
     # [PT: Oct 21, 2018] save colorbar (and range to text file)
     else if ( "$argv[$ac]" == "-pbar_dim" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -1385,11 +1412,17 @@ if ( ${USER_CSCALE} ) then
         echo "** ERROR: need colorscale index."
         goto BAD_EXIT
     endif
-
+    
+    # make sure this index has 2 digits
+    set cscale_idx = `ccalc -form "%02d" "${cscale_idx}"`
+    
     echo "   colorscale index : ${cscale_idx}"
     echo "   colorscale fname : ${cscale_fname}"
 
     setenv AFNI_COLORSCALE_${cscale_idx}  "${cscale_fname}"
+
+    # to be added to any run*.tcsh script
+    set cscale_env = "setenv AFNI_COLORSCALE_${cscale_idx} ${cscale_fname}"
 
     # get new cbar name from top line of file
     set my_cbar = `head -n 1 "${cscale_fname}"`
@@ -1655,6 +1688,13 @@ else
     echo "++ Converted $USED_SUBBRICK_LABS to labels"
     echo "++ Final subbrick indices: $subbb"
 
+    # in case pbar is being saved and allowed to show alpha fading
+    if ( "${subbb[2]}" != "${subbb[3]}" ) then
+        echo "++ pbar: orth on"
+        echo "   ${subbb[2]} != ${subbb[3]}"
+        set pbar_orth = "-orth_on"
+    endif
+
     # -------------------
 
     # Get info stored in header about: what kind of stat is stored,
@@ -1689,6 +1729,13 @@ endif
 # QUESTION: don't allow clusterizing with 4D_mode??
 # QUESTION: if obliquity stuff is done, has the header/label/stats info been passed along?
 if ( "${clust_cmd}" != "" ) then
+
+    if ( "${subbb[2]}" == "-1" || "${subbb[3]}" == "-1" ) then
+        echo "** ERROR: Clustering needs to know olay and thr subbricks."
+        echo "   Use '-set_subbricks ..' to specify these."
+        goto BAD_EXIT
+    endif
+
     # translate chauffeur's sidedness + thr value to 3dClusterize format
     if ( "${p_thr_side}" == "bisided" || "${p_thr_side}" == "2sided" ) then
         set clust_thr_args = ( -${p_thr_side} -${thrnew} ${thrnew} )
@@ -1701,7 +1748,7 @@ if ( "${clust_cmd}" != "" ) then
     else if ( "${p_thr_side}" == "within_range" ) then
         echo "** ERROR: Sorry, '-within_range' can't be used here."
         goto BAD_EXIT
-    else if ( "${p_thr_side}" == "" )
+    else if ( "${p_thr_side}" == "" ) then
         echo "** ERROR: Need to include 3dClusterize sidedness specification."
         echo "   Use '-thr_olay_pside ..' with one of: 1sided, 2sided or bisided"
         goto BAD_EXIT
@@ -1980,7 +2027,7 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
                 endif
 
                 echo "++ Ulay to be visualized within user range${umin_fac_text}:"
-                echo "  [${pmin}, ${pmax_orig}] -> [${umin}, ${umax}]"
+                echo "   [${pmin}, ${pmax_orig}] -> [${umin}, ${umax}]"
 
             else
                 echo "++ Ulay to be visualized within user range:"
@@ -2238,6 +2285,7 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
     # thr value
     if ( $SAVE_PBAR == 1 ) then
         set opbar_file = "${pbar_fname:r}.txt"
+        set opbar_json = "${pbar_fname:r}.json"      # for colorbar_tool.py
 
         if ( "$pbar_sign" == "+" ) then
             # Q: frange is never negative, itself??
@@ -2257,7 +2305,7 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
 # [PT: Mar 28, 2023] add more info, for APQC outputs
 cat << EOF >! "${opbar_file}"
 itemtype     :: CBAR
-cbar         :: "${my_cbar}"
+cbar         :: "${my_cbar:q}"
 pbar_fname   :: "${pbar_fname:t}"
 pbar_bot     :: "${bot_frange}"
 pbar_top     :: "${frange}"
@@ -2281,6 +2329,17 @@ ulay_globran :: "${urange}"
 ulay_comm    :: "${ulay_comm}"
 ${pbar_for}
 EOF
+        
+        if ( $do_pbar_alpha ) then
+            # prepare for colorbar_tool.py
+            abids_json_tool.py                                  \
+                -txt2json                                       \
+                -delimiter_major  "::"                          \
+                -delimiter_minor  ",,"                          \
+                -input             "${opbar_file}"              \
+                -prefix            "${read_dir}/${opbar_json}"
+        endif
+        
 
     endif
 
@@ -2353,7 +2412,7 @@ echo "set see_olay     = "\""${see_olay}"\"""  >> $oechocmd
 echo "set pbar_sign    = "\""${pbar_sign}"\"""  >> $oechocmd
 echo "set ncolors      = "\""${ncolors}"\"""  >> $oechocmd
 echo "set topval       = "\""${topval}"\"""  >> $oechocmd
-echo "set my_cbar      = "\""${my_cbar}"\"""  >> $oechocmd
+echo "set my_cbar      = "\""${my_cbar:q}"\"""  >> $oechocmd
 echo "set XXX_NPANE    = "\""${XXX_NPANE}"\"""  >> $oechocmd
 echo "set com_pbar_str = "\""${com_pbar_str}"\"""  >> $oechocmd
 echo "set subbb        = ( ${subbb} )"  >> $oechocmd
@@ -2391,14 +2450,14 @@ echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 # before values are calc'ed for ranges---thanks, RWC
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
-afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu           \\\
+afni -q  ${XXX_NPANE} -noplugins -no_detach  -echo_edu                \\\
      -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
      -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
      -com "SEE_OVERLAY     ${see_olay}"                               \\\
      -com "$OW ${ppord[$rrr]}image opacity=${opac} ${butpress}        \\\
             mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
             crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
-     -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \\\
+     -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval ${my_cbar:q}" \\\
      -com "$com_pbar_str"                                             \\\
      -com "SET_SUBBRICKS   ${subbb}"                                  \\\
      -com "$com_ulay_str"                                             \\\
@@ -2415,20 +2474,22 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu           \\\
             blowup=${bufac}"                                          \\\
      -com "${do_quit}"                                                \\\
      "${read_dir}"' >> $oechocmd
+
+     # *** and maybe use colorbar_tool.py, too
 endif
 
 # the command run with xvfb; same as above but different spacing; at
 # some point just run via the command script with xvfb
 # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
 # before values are calc'ed for ranges---thanks, RWC
-        afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu         \
+        afni -q  ${XXX_NPANE} -noplugins -no_detach  -echo_edu              \
              -com "SWITCH_UNDERLAY ${read_ulay}"                            \
              -com "SWITCH_OVERLAY  ${read_olay}"                            \
              -com "SEE_OVERLAY     ${see_olay}"                             \
              -com "$OW ${ppord[$rrr]}image opacity=${opac} ${butpress}      \
                     mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}         \
                     crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
-             -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
+             -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval ${my_cbar:q}" \
              -com "$com_pbar_str"                                           \
              -com "SET_SUBBRICKS   ${subbb}"                                \
              -com "$com_ulay_str"                                           \
@@ -2445,6 +2506,14 @@ endif
                     blowup=${bufac}"                                        \
              -com "${do_quit}"                                              \
              "${read_dir}"
+
+        if ( $SAVE_PBAR == 1 && $do_pbar_alpha ) then
+            # replace the saved pbar with one that uses alpha info
+            colorbar_tool.py   ${pbar_orth}                 \
+                -in_json       "${read_dir}/${opbar_json}"  \
+                -prefix        "${pbar_fname}"
+        endif
+
     else   ### branch for being NOT 4D MODE
 
     # [PT: Sep 21, 2021] By default, view all planes, but user can turn
@@ -2526,7 +2595,7 @@ setenv AFNI_IMAGE_ZOOM_NN      YES
 setenv AFNI_NEVER_SAY_GOODBYE  YES
 setenv AFNI_MOTD_CHECK         NO
 setenv AFNI_NIFTI_TYPE_WARN    NO
-
+${cscale_env}
 
 # define all variables used in AFNI drive command
 set read_ulay    = "${e_ulay}"  
@@ -2538,7 +2607,7 @@ set see_olay     = "${see_olay}"
 set pbar_sign    = "${pbar_sign}"  
 set ncolors      = "${ncolors}"  
 set topval       = "${topval}"  
-set my_cbar      = "${my_cbar}"  
+set my_cbar      = "${my_cbar:q}"  
 set XXX_NPANE    = "${XXX_NPANE}"  
 set com_pbar_str = "${com_pbar_str}"  
 set subbb        = ( ${subbb} )
@@ -2587,7 +2656,7 @@ endif
 set portnum = `afni -available_npb_quiet`
 
 # the drive command itself (without quitting)
-afni -q -no1D \${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
+afni -q  \${XXX_NPANE} -noplugins -no_detach  -echo_edu               \
     -npb \${portnum}  \${use_ad}                                      \
     -com "SWITCH_UNDERLAY \${read_ulay}"                              \
     -com "SWITCH_OVERLAY  \${read_olay}"                              \
@@ -2601,7 +2670,7 @@ afni -q -no1D \${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
     -com "\$OW axialimage    opacity=\${opac} \${butpress}              \
            mont=\${mx}x\${my}:\${gapord[3]}:\${mgap}:\${mcolor}           \
            crop=\${acropx[1]}:\${acropx[2]},\${acropy[1]}:\${acropy[2]}" \
-    -com "SET_PBAR_ALL    \${pbar_sign}\${ncolors} \$topval \$my_cbar"   \
+    -com "SET_PBAR_ALL    \${pbar_sign}\${ncolors} \$topval \${my_cbar:q}"   \
     -com "\$com_pbar_str"  \
     -com "SET_SUBBRICKS   \${subbb}"                                  \
     -com "\$com_ulay_str"                                             \
@@ -2653,14 +2722,14 @@ EOF
     # at some point just run via the command script with xvfb
     # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing
     # done, before values are calc'ed for ranges---thanks, RWC
-    afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu \
+    afni -q  ${XXX_NPANE} -noplugins -no_detach  -echo_edu \
     -com "SWITCH_UNDERLAY ${read_ulay}" \
     -com "SWITCH_OVERLAY  ${read_olay}" \
     -com "SEE_OVERLAY     ${see_olay}" \
     -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]} ${butpress}" \
     -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]} ${butpress}" \
     -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]} ${butpress}" \
-    -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
+    -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval ${my_cbar:q}" \
     -com "$com_pbar_str" \
     -com "SET_SUBBRICKS   ${subbb}" \
     -com "$com_ulay_str" \
@@ -2675,6 +2744,13 @@ EOF
     ${view_planes:q} \
     -com "${do_quit}" \
     "${read_dir}"
+
+    if ( $SAVE_PBAR == 1 && $do_pbar_alpha ) then
+        # replace the saved pbar with one that uses alpha info
+        colorbar_tool.py   ${pbar_orth}                 \
+            -in_json       "${read_dir}/${opbar_json}"  \
+            -prefix        "${pbar_fname}"
+    endif
 
     endif ### end of NOT 4D MODE
 
@@ -2939,7 +3015,7 @@ COMMAND OPTIONS ~1~
 
 -cbar    CCC       :specify a new colorbar, where CCC can be any of the
                     cbars in the standard AFNI list, Matplotlib colornames,
-                    or hex values (def: $my_cbar).
+                    or hex values (def: ${my_cbar:q}).
 
 -colorscale_idx_file CI CF 
                    :another way to specify a colorbar, in this case
@@ -2983,6 +3059,18 @@ COMMAND OPTIONS ~1~
                     -pbar_comm_* options, below).  See also '-pbar_dim
                     ..'  for relation pbar optioning.  (See DR:
                     PBAR_SAVEIM)
+
+-pbar_thr_alpha PTA :if the color pbar is being saved, then use can
+                    use this option to allow for both thresholding and 
+                    alpha fading to be applied. This will be done either
+                    along the pbar (if olay and thr dsets are same)
+                    or orthogonal to it (if olay and thr dsets differ;
+                    in this case, no thresholding is applied, only alpha).
+                    Valid values of PTA are:
+                        Yes, 1 : to use any alpha fading in pbar
+                        No, 0  : to ignore any alpha fading in pbar.
+                    At some point, this will be on by default 
+                    (def: ${do_pbar_alpha})
 
 -pbar_comm_range PBR :if using '-pbar_saveim ..', one can save a
                     text/string comment on why the pbar range was
