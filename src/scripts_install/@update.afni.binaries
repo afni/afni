@@ -96,6 +96,7 @@ history for $prog :
                    - add -build_root and -built_opts for build_afni.py
   3.27  4 Feb 2025 : allow use in updating just anyos_text* packages
   3.28  6 May 2025 : [PT/RR] remove :h tcsh syntax
+  3.29 16 Jun 2025 : [PT/RR] if recur, use :q to quotize args
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -103,7 +104,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.27, February 4, 2025"
+set aub_version = "3.29, June 16, 2025"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -1093,7 +1094,8 @@ if ( $do_recur ) then
       cd ..     # so we don't sit in deleted directory
 
       # if local_package, we need to change the path to the file
-      set args = ( $argv )
+      # (and quote args, since some could have special chars)
+      set args = ( $argv:q )
       if ( $local_package != "" ) then
          set ind = 1
          while ( $ind < $#args )
@@ -1107,8 +1109,10 @@ if ( $do_recur ) then
          end
       endif
 
+      # quote args, since special chars have already been processed
+      # [16 June 2025 rickr]
       echo "++ running: tcsh $temp_prog -no_recur $args"
-      tcsh $temp_prog -no_recur $args
+      tcsh $temp_prog -no_recur $args:q
       set ss = $status
       if ( ! $ss ) then
          echo "...finished, removing temp version, $temp_prog"
