@@ -259,6 +259,13 @@ auth = 'PA Taylor'
 ver = '6.02' ; date = 'May 23, 2025'
 # [PT] ... even m_tedort will be recognized for the mecho QC block
 #
+# [PT] ... even m_tedort will be recognized for the mecho QC blockver = '6.1' ; date = 'June 16, 2025'
+# [PT, RCR] introduce a series of changes in logic to deal with a
+#      situation of the "tlrc" being used but the -volreg_tlrc_warp is
+#      *not* included.
+#      + this involves a new main_dset check, as well as newer 
+#        if-conditions around what the final space is
+#
 #########################################################################
 
 import sys
@@ -505,11 +512,12 @@ if __name__ == "__main__":
     # item    : EPI mask on final dset (template, anat_final, *vr_base*)
 
     ldep       = ['mask_dset', 'vr_base_dset']
-    ldep_anti1 = ['template']    # check this does NOT exist
+    ###ldep_anti1 = ['template']    # check this does NOT exist
     ldep_anti2 = ['final_anat']  # check this does NOT exist
-    if lat.check_dep(ap_ssdict, ldep)              and \
-       not( lat.check_dep(ap_ssdict, ldep_anti1) ) and \
+    if lat.check_dep(ap_ssdict, ldep)               and \
+       ap_ssdict['main_dset_sp'] == 'ORIG'          and \
        not( lat.check_dep(ap_ssdict, ldep_anti2) ) :
+       ###not( lat.check_dep(ap_ssdict, ldep_anti1) ) and \
         focusbox = ap_ssdict['main_dset']
         ulay     = ap_ssdict['main_dset']
         obase    = 'qc_{:02d}'.format(idx)
@@ -542,9 +550,11 @@ if __name__ == "__main__":
     # item    : EPI mask on final dset (template, *anat_final*, vr_base)
 
     ldep      = ['mask_dset', 'final_anat']
-    ldep_anti = ['template']  # check this does NOT exist
-    if lat.check_dep(ap_ssdict, ldep) and \
-       not( lat.check_dep(ap_ssdict, ldep_anti) ) :
+    ###ldep_anti = ['template']  # check this does NOT exist
+    # [pt, rcr: June 16, 2025] use simpler and more general 2ary check
+    # for this; now also applies if -volreg_tlrc_warp is not used
+    if lat.check_dep(ap_ssdict, ldep) and ap_ssdict['main_dset_sp'] == 'ORIG' :
+        ###and not( lat.check_dep(ap_ssdict, ldep_anti) ) :
         focusbox = ap_ssdict['main_dset']
         ulay     = ap_ssdict['main_dset']
         obase    = 'qc_{:02d}'.format(idx)
@@ -558,7 +568,11 @@ if __name__ == "__main__":
     # item    : anat to template align
 
     ldep = ['final_anat', 'template']
-    if lat.check_dep(ap_ssdict, ldep) :
+    # [pt, rcr: June 16, 2025] the additional check here is for when
+    # -volreg_tlrc_warp is *not* used; then, anat_final is in
+    # EPI/+orig space and we don't have a uvar for the anat that is
+    # aligned to the template yet (when that is added, this could be updated)
+    if lat.check_dep(ap_ssdict, ldep) and ap_ssdict['main_dset_sp'] != 'ORIG' :
         focusbox  = ap_ssdict['main_dset']
         dice_file = None
         if lat.check_dep(ap_ssdict, ['mask_anat_templ_corr_dset']):
@@ -577,7 +591,9 @@ if __name__ == "__main__":
     # item    : EPI mask on final dset (*template*, anat_final, vr_base)
 
     ldep = ['mask_dset', 'template']
-    if lat.check_dep(ap_ssdict, ldep) :
+    # [pt, rcr: June 16, 2025] the additional check here is for when
+    # -volreg_tlrc_warp is *not* used
+    if lat.check_dep(ap_ssdict, ldep) and ap_ssdict['main_dset_sp'] != 'ORIG' :
         focusbox = ap_ssdict['main_dset']
         ulay     = ap_ssdict['main_dset']
         obase    = 'qc_{:02d}'.format(idx)
