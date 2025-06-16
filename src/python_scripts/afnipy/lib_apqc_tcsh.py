@@ -1303,7 +1303,7 @@ ap_ssdict : dict
             HAVE_MAIN = 1
             ap_ssdict['main_dset'] = ap_ssdict['final_anat']
 
-    elif check_dep(ap_ssdict, ldep) :         # --------- check for template
+    if not(HAVE_MAIN) and check_dep(ap_ssdict, ldep) :  # ----- check for template
         # pre-check, output might be used in a couple ways
         cmd  = '''basename {}'''.format( ap_ssdict['template'] )
         com  = ab.shell_com(cmd, capture=do_cap)
