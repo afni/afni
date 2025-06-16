@@ -1025,9 +1025,9 @@ class MyInterface:
                if check == 'VARY':
                   baseval = varyrow[posn]
                elif check in Z_COMP_OPS :
-                  check, val = self.apply_Z_transform(float(baseval), label,
-                                                      inverse=True)
-                  if check :  return 1, []
+                  tmp, val = self.apply_Z_transform(float(baseval), label,
+                                                    inverse=True)
+                  if tmp :  return 1, []
                   baseval = str(val)
                testval = table[rind][posn]
                outlier = self.ro_val_is_outlier(testval, check, baseval)
