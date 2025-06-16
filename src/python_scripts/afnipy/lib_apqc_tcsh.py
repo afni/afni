@@ -1293,7 +1293,7 @@ ap_ssdict : dict
     # stuff stays in EPI/+orig space, so we *don't* want the template
     # to be the main dset. We check for that by asking if final_anat
     # is +orig (which would be a proxy of that situation); this is
-    # expected to be a rare occurence.
+    # expected to be a rare occurrence.
     if check_dep(ap_ssdict, ldep_alt1) :
         cmd  = '''3dinfo -av_space {}'''.format( ap_ssdict['final_anat'] )
         com  = ab.shell_com(cmd, capture=do_cap)
