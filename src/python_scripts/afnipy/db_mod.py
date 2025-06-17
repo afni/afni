@@ -4695,26 +4695,31 @@ def db_mod_blur(block, proc, user_opts):
     block.valid = 1
 
 def db_cmd_blur(proc, block):
-    # handle surface data separately
-    if proc.surf_anat: return cmd_blur_surf(proc, block)
 
-    opt      = block.opts.find_opt('-blur_filter')
-    filtname = opt.parlist[0]
-    opt      = block.opts.find_opt('-blur_size')
-    if opt:
-        size = opt.parlist[0]
+    # first get blur size, then possibly handle surface case
+    val, err = proc.user_opts.get_type_opt(float, '-blur_size')
+    if err:
+        print('** error: -blur_size requires float argument')
+        return 1
+    elif val is not None and val > 0.0:
+        size = val
         havesize = 1
     else:
         size = 4.0
         havesize = 0
 
+    # pass blur_size to APQC
+    proc.uvars.set_var('blur_size', [str(size)])
+
+    # --------------- handle surface data separately ---------------
+    if proc.surf_anat: return cmd_blur_surf(proc, block, size, havesize)
+
+    # check for filter update
+    opt      = block.opts.find_opt('-blur_filter')
+    filtname = opt.parlist[0]
+
     prefix = proc.prefix_form_run(block)
     prev   = proc.prev_prefix_form_run(block, view=1)
-
-    try: fsize = float(size)
-    except:
-        print("** -blur_size must be a real number, have '%s'" %(parlist[0]))
-        return
 
     other_opts = ''
 
@@ -4853,21 +4858,13 @@ def mod_blur_surf(block, proc, user_opts):
 
     block.valid = 1
 
-def cmd_blur_surf(proc, block):
+def cmd_blur_surf(proc, block, bsize, havesize=1):
     """surface analysis: return a command to blur the data"""
 
-    # the Maya fix: do not warn on blur_size without blur
-    if proc.find_block('blur'):
-       val, err = proc.user_opts.get_type_opt(float, '-blur_size')
-       if err:
-           print('** error: -blur_size requires float argument')
-           return 1
-       elif val != None and val > 0.0:
-           proc.surf_blur_fwhm = val
-       else:
-           proc.surf_blur_fwhm = 4.0
-           print('** applying default -blur_size of %s mm FWHM' \
-                 % proc.surf_blur_fwhm)
+    proc.surf_blur_fwhm = bsize
+    if not havesize:
+        print('** applying default -blur_size of %s mm FWHM' \
+              % proc.surf_blur_fwhm)
 
     if proc.verb > 2:
        print('-- surf blur_size : %s\n' % proc.surf_blur_fwhm)
