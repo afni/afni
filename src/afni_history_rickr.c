@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Jun, 2025, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "pass blur_size uvar to PT and APQC",
+   NULL
+ } ,
+
  { 12, Jun, 2025, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "gcc-15 : code updates for building",
    "This is a partial update for building using gcc-15.\n"
