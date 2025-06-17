@@ -70,7 +70,7 @@ DOPTS = {
 }
 
 # list of possible output extensions to check for
-list_ext     = ['svg', 'png', 'tif', 'jpg', 'jpeg', 'pdf', 'ps', 'raw']
+list_ext     = ['svg', 'png', 'tif', 'tiff', 'jpg', 'jpeg', 'pdf', 'ps', 'raw']
 list_ext_str = ', '.join(list_ext)
 
 # ============================================================================
@@ -195,14 +195,19 @@ inobj : InOpts object
                 out_ext = ''
                 HAS_EXT = False
                 for ext in list_ext :
-                    if (self.prefix).endswith(ext) :
+                    if (self.prefix).endswith('.' + ext) :
                         out_ext = ext
                         HAS_EXT = True
                 ab.WP("Could not save image")
                 if not(HAS_EXT) :
                     ab.EP("Output prefix name may be missing an extension?")
+                elif out_ext == 'tif':
+                    # special case: odd that 'tif' doesn't always seem to work
+                    ab.EP("Maybe try a different extension type?  Sometimes "
+                          "'tiff' works, even if 'tif' does not.")
                 else:
-                    ab.EP("Maybe try a different extension type?")
+                    ab.EP("Maybe try a different extension type (see "
+                          "the help file, under '-prefix ..')?")
 
         # might have to clean up temp cbar
         if self.in_cbar_name :
