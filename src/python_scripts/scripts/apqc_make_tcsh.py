@@ -512,12 +512,10 @@ if __name__ == "__main__":
     # item    : EPI mask on final dset (template, anat_final, *vr_base*)
 
     ldep       = ['mask_dset', 'vr_base_dset']
-    ###ldep_anti1 = ['template']    # check this does NOT exist
     ldep_anti2 = ['final_anat']  # check this does NOT exist
     if lat.check_dep(ap_ssdict, ldep)               and \
        ap_ssdict['main_dset_sp'] == 'ORIG'          and \
        not( lat.check_dep(ap_ssdict, ldep_anti2) ) :
-       ###not( lat.check_dep(ap_ssdict, ldep_anti1) ) and \
         focusbox = ap_ssdict['main_dset']
         ulay     = ap_ssdict['main_dset']
         obase    = 'qc_{:02d}'.format(idx)
@@ -550,11 +548,9 @@ if __name__ == "__main__":
     # item    : EPI mask on final dset (template, *anat_final*, vr_base)
 
     ldep      = ['mask_dset', 'final_anat']
-    ###ldep_anti = ['template']  # check this does NOT exist
     # [pt, rcr: June 16, 2025] use simpler and more general 2ary check
     # for this; now also applies if -volreg_tlrc_warp is not used
     if lat.check_dep(ap_ssdict, ldep) and ap_ssdict['main_dset_sp'] == 'ORIG' :
-        ###and not( lat.check_dep(ap_ssdict, ldep_anti) ) :
         focusbox = ap_ssdict['main_dset']
         ulay     = ap_ssdict['main_dset']
         obase    = 'qc_{:02d}'.format(idx)
