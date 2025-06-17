@@ -62,9 +62,11 @@ auth = PA Taylor (SSCC, NIMH, NIH, USA)
 Usage ~1~
 
 -in_cbar CBAR  :(req) name of the cbar file, which can be in one of the
-                following formats: JPG, PNG, TIF
+                following formats: jpg, png, tif
 
--prefix PREFIX :(req) name of output file, including file extension
+-prefix PREFIX :(req) name of output file, including file extension. 
+                Possible extensions (likely) include:
+                  {list_ext_str}
 
 -in_cbar_name NAME  
                :alternative way to provide input colorbar, by specifying
@@ -86,7 +88,7 @@ Usage ~1~
                 thresholding.  Must be one of the following values:
                   {all_alpha}
 
--thr_val TVAL  :threshold value, applied as an absolute value
+-thr_val TVAL  :threshold value, applied as an absolute value (def: {thr_val})
 
 -thr_width TWID :when displaying the threshold line in the output cbar,
                 this controls the width, as an integer number of pixels
@@ -334,8 +336,8 @@ cbar (see 'JSONs' in the Notes above).
 """.format(all_alpha=lct.list_alpha_str, thr_wid=lct.DOPTS['thr_width'],
            thr_no=lct.DOPTS['thr_num_osc'], tick_ni=lct.DOPTS['tick_num_int'],
            tick_frac=lct.DOPTS['tick_frac'], orth_frac=lct.DOPTS['orth_frac'],
-           outwid=lct.DOPTS['outline_width'], 
-           bkgd_color=lct.DOPTS['bkgd_color'])
+           outwid=lct.DOPTS['outline_width'], list_ext_str=lct.list_ext_str,
+           bkgd_color=lct.DOPTS['bkgd_color'], thr_val=lct.DOPTS['thr_val'])
 
 g_history = """
   gtkyd_check.py history:
@@ -343,6 +345,7 @@ g_history = """
   0.1   Jan 26, 2025 :: started this command line interface for lib_cbar_tool
   0.2   Jan 30, 2025 :: beta version complete (with options)
   0.3   May 21, 2025 :: better prioritizing within JSON (cbar/pbar_fname)
+  0.3   Jun 17, 2025 :: checks about extension when failing to write
 """
 
 g_ver     = g_history.split("\n")[-2].split("::")[0].strip()
