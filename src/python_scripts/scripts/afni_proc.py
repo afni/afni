@@ -815,9 +815,10 @@ g_history = """
     7.90 Apr 24, 2025: use updated find_variance_lines.tcsh (no -nerode 2)
     7.91 May  6, 2025: set ROI_import view in case of no volreg block
     7.92 May 16, 2025: add help for m_tedort combine methods
+    7.93 Jun 17, 2025: pass blur_size uvar to PT for APQC
 """
 
-g_version = "version 7.92, May 16, 2025"
+g_version = "version 7.93, June 17, 2025"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
