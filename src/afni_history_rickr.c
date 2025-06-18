@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Jun, 2025, RCR, "build_afni.py", MICRO, TYPE_ENHANCE,
+   "check that build_root is not at or under install dir",
+   NULL
+ } ,
+
  { 17, Jun, 2025, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "pass blur_size uvar to PT and APQC",
    NULL
