@@ -422,11 +422,12 @@ g_history = """
         - else if LOCAL_CC_PATH does not exist, try to find alternate compiler
    0.14 Nov 17, 2024 - add -make_flags option
    0.15 Jun  2, 2025 - display full make command before compiling
+   0.16 Jun 18, 2025 - verify that build_root is not under install dir
 
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.15, June 2, 2025" % g_prog
+g_version = "%s, version 0.16, June 18, 2025" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
@@ -2321,6 +2322,15 @@ class MyInterface:
       else:
          if self.verb > 1:
             MESGm("no %s in original PATH to set orig_abin from" % prog)
+
+      # and check that install dir does not happen to be build_root
+      do_dest = self.f_get_rsync_abin_do()
+      do_root = self.do_root
+      if do is not None and do_root is not None:
+         if do_root.abspath.startswith(do_dest.abspath):
+            MESGe("-build_root cannot be at or under install path")
+            MESGi("build root: %s" % do_root.abspath)
+            return 1
 
       return 0
 
