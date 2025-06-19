@@ -256,15 +256,19 @@ auth = 'PA Taylor'
 #ver = '6.01' ; date = 'May 23, 2025'
 # [PT] the mecho QC block now applies to all MEICA group tedana methods
 #
-ver = '6.02' ; date = 'May 23, 2025'
+#ver = '6.02' ; date = 'May 23, 2025'
 # [PT] ... even m_tedort will be recognized for the mecho QC block
 #
-# [PT] ... even m_tedort will be recognized for the mecho QC blockver = '6.1' ; date = 'June 16, 2025'
+# [PT] ... even m_tedort will be recognized for the mecho QC block
+#ver = '6.1' ; date = 'June 16, 2025'
 # [PT, RCR] introduce a series of changes in logic to deal with a
 #      situation of the "tlrc" being used but the -volreg_tlrc_warp is
 #      *not* included.
 #      + this involves a new main_dset check, as well as newer 
 #        if-conditions around what the final space is
+ver = '6.2' ; date = 'June 18, 2025'
+# [PT] make+use errts_blur for in QC, to make it easier to evaluate
+#      seedbased corr (non-task) and IC (all FMRI)
 #
 #########################################################################
 
@@ -347,6 +351,9 @@ if __name__ == "__main__":
 
     # add main dset name for ulays: main_dset
     ap_ssdict = lat.set_apqc_main_dset(ap_ssdict)
+
+    # add errts_blur* uvars, _if_ no blur was applied during proc
+    do_blur, ap_ssdict = lat.set_apqc_errts_blur(ap_ssdict)
 
     # add censoring info: numbers ranges and text blocks
     # Q: what about RUN_STYLE=='none'?

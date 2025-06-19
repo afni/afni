@@ -195,7 +195,14 @@ locations corresponding to major networks. In other cases (when the final
 space is ORIG or a standard space without pre-chosen seeds), then two
 seed locations in roughly the center of each left- and right-half-brain
 will be chosen, with additional constraint from the mask_dset if it 
-exists.
+exists. 
+
+If no blur was applied during processing, then a blurred version of the 
+errts dataset will be created at the start of the APQC HTML generation,
+to use in making seedbased correlation maps and InstaCorr.  Having a 
+slight blur typically facilitates QC evaluation.  The applied blur size
+is based on the errts data's voxel scale size: either 1.5 or 1.1 times 
+the voxel's geometric mean, for single- or multi-echo FMRI, respectively.
 
 Colorbar ranges and thresholds are chosen from either percentile
 values within the data set (preferably from within a WB mask,

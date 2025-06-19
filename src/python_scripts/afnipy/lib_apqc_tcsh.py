@@ -1303,7 +1303,7 @@ ap_ssdict : dict
             HAVE_MAIN = 1
             ap_ssdict['main_dset'] = ap_ssdict['final_anat']
 
-    if not(HAVE_MAIN) and check_dep(ap_ssdict, ldep) :  # ----- check for template
+    if not(HAVE_MAIN) and check_dep(ap_ssdict, ldep) :  # --- check for template
         # pre-check, output might be used in a couple ways
         cmd  = '''basename {}'''.format( ap_ssdict['template'] )
         com  = ab.shell_com(cmd, capture=do_cap)
@@ -1367,7 +1367,96 @@ ap_ssdict : dict
 
     return ap_ssdict
 
+# ---------
+
+def set_apqc_errts_blur(ap_ssdict, make_dset_if_not_existing=True):
+    """When no blur is applied during processing, we will (likely) make a
+temp errts dset that has blur applied, for easier QC
+evaluation---esp. for seedbased correlation maps and IC.  This
+function checks if we should apply blurring, and then how much,
+according to the following rule: for SE-FMRI, 1.5 times the geometric
+mean of errts vox dim; for ME-FMRI, 1.1 time the geom mean.
+
+This function will *create* the errts_blur dset now, when
+make_dset_if_not_existing is true. Note that if the errts_blur dset
+exists already, then it will *not* overwrite it.
+
+This function will update the ap_ssdict with the new errts_blur dset.
+
+If the errts_dset uvar is not present, this function does nothing.
+If the blur_size uvar is present, this function does nothing.
+
+This should only be applied for volumetric data.
+
+Parameters
+----------
+ap_ssdict : dict
+    dictionary of subject uvars
+make_dset_if_not_existing : bool
+    if the blurred errts dset doesn't exist already, make it if this
+    kwarg is set to True; otherwise, don't even try
+
+Returns
+----------
+do_blur : bool
+    will blurring be done?
+D : dict
+    copy of updated ap_ssdict, now including errts_blur dset name and
+    the errts_blur_size (amount of blurring applied)
+
+    """
+
+    D = copy.deepcopy(ap_ssdict)
+
+    # no errts to blur (somehow? not sure this can happen, in reality)
+    if not(check_dep(ap_ssdict, ['errts_dset'])) :
+        return False, D
+
+    # data are already blurred; nothing to do
+    if check_dep(ap_ssdict, ['blur_size']) :
+        return False, D
+
+    if 1 :
+        print("++ APQC create: blurred errts for IC"); sys.stdout.flush() 
+    do_cap = True
+
+    # get olay prefix and voxel volume
+    olay   = ap_ssdict['errts_dset']
+    cmd    = '3dinfo -prefix -voxvol ' + olay
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    lll    = com.so[0].split()
+    olay_pref = lll[0]
+    voxvol    = float(lll[1])
+
+    if check_dep(ap_ssdict, ['combine_method']) :
+        errts_blur_size = 1.1 * (voxvol**0.3334)
+    else:
+        errts_blur_size = 1.5 * (voxvol**0.3334)
+
+    # new blurred errts dset, and add to dict if we are here
+    errts_blur = olay_pref + '_blur_for_qc' + '.nii.gz'
+    D['errts_blur']      = errts_blur
+    D['errts_blur_size'] = errts_blur_size
+
+    # only create this dset once
+    if not(os.path.isfile(errts_blur)) and make_dset_if_not_existing :
+        cmd = '''
+        3dmerge                                                          \
+            -1blur_fwhm  {errts_blur_size}                               \
+            -doall                                                       \
+            -prefix      {errts_blur}                                    \
+            {errts_dset}
+        '''.format( errts_blur_size=errts_blur_size, 
+                    errts_blur=errts_blur,
+                    errts_dset=ap_ssdict['errts_dset'] )
+        com  = ab.shell_com(cmd, capture=do_cap)
+        stat = com.run()
+
+    return True, D
+
 def set_alternate_seed_locs(ap_ssdict):
+
     """When the final space is ORIG or a non-seed-specified TLRC space,
 then we have a script to find a couple useful seed locations.  Return
 seed info in the same format as UTIL.read_afni_seed_file(...)
@@ -3296,14 +3385,28 @@ num : int
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
 
+    # [PT: Jun 18, 2025] start checking if blurring was applied during
+    # processing; if it *wasn't*, then we will apply some just before
+    # this 3dTcorr1D command, for QC purpose
+    ldep = ['errts_blur', 'errts_blur_size']
+    if check_dep(ap_ssdict, ldep) :
+        # we will use the blurred dset for the corr maps
+        corr_dset = ap_ssdict['errts_blur']
+        ebs       = ap_ssdict['errts_blur_size']
+        blur_note = ', adding {:0.2f} mm blur'.format(ebs)
+
+    else:
+        corr_dset = ap_ssdict['errts_dset']
+        blur_note = ''
+
     # Make corr map with ave time series
     cmd    = '''
     3dTcorr1D                                                                \
         -overwrite                                                           \
         -prefix       {tcorrvol}                                             \
-        {errts_dset}                                                         \
+        {corr_dset}                                                          \
         {t1dfile}
-    '''.format( tcorrvol=tcorrvol, errts_dset=ap_ssdict['errts_dset'],
+    '''.format( tcorrvol=tcorrvol, corr_dset=corr_dset,
                 t1dfile=t1dfile )
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
@@ -3371,7 +3474,9 @@ num : int
 
     # text above images
     otoptxt = []
-    otoptxt.append('olay: {} (in {})'.format('seed-based corr map', olay_pref))
+    otoptxt.append('olay: {} (in {}{})'.format('seed-based corr map', 
+                                               olay_pref,
+                                               blur_note))
     otoptxt.append('seed: {}, {}'.format(netw_str, loc_str))
 
     # Make info above images
