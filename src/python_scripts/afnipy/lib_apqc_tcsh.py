@@ -1452,6 +1452,9 @@ D : dict
                     errts_dset=ap_ssdict['errts_dset'] )
         com  = ab.shell_com(cmd, capture=do_cap)
         stat = com.run()
+    else:
+        print("   -> already exists"); sys.stdout.flush() 
+
 
     return True, D
 
