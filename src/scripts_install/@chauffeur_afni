@@ -367,8 +367,11 @@
 #    + [PT] improved colorbar functionality
 #         + better driving if user enters own cbar
 #         + better use of alpha (still need to finalize addition)
-set version   = "7.01"; set rev_dat   = "Jun 20, 2025"
+#set version   = "7.01"; set rev_dat   = "Jun 12, 2025"
 #   + [PT] remove "-no1D" in afni command, so we can pick ideal time series
+#
+set version   = "7.1"; set rev_dat   = "Jun 18, 2025"
+#   + [PT] generalized use of -pbar_thr_alpha functionality
 #
 # =====================================================================
 
@@ -2285,7 +2288,9 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
     # thr value
     if ( $SAVE_PBAR == 1 ) then
         set opbar_file = "${pbar_fname:r}.txt"
-        set opbar_json = "${pbar_fname:r}.json"      # for colorbar_tool.py
+        ##set opbar_name = `basename "${pbar_fname}"`  # remove any path
+        ##set opbar_json = "${opbar_name:r}.json"      # for colorbar_tool.py
+        set opbar_json = "${pbar_fname:r}.json"
 
         if ( "$pbar_sign" == "+" ) then
             # Q: frange is never negative, itself??
@@ -2337,7 +2342,7 @@ EOF
                 -delimiter_major  "::"                          \
                 -delimiter_minor  ",,"                          \
                 -input             "${opbar_file}"              \
-                -prefix            "${read_dir}/${opbar_json}"
+                -prefix            "${opbar_json}"
         endif
         
 
@@ -2510,7 +2515,7 @@ endif
         if ( $SAVE_PBAR == 1 && $do_pbar_alpha ) then
             # replace the saved pbar with one that uses alpha info
             colorbar_tool.py   ${pbar_orth}                 \
-                -in_json       "${read_dir}/${opbar_json}"  \
+                -in_json       "${opbar_json}"              \
                 -prefix        "${pbar_fname}"
         endif
 
@@ -2748,7 +2753,7 @@ EOF
     if ( $SAVE_PBAR == 1 && $do_pbar_alpha ) then
         # replace the saved pbar with one that uses alpha info
         colorbar_tool.py   ${pbar_orth}                 \
-            -in_json       "${read_dir}/${opbar_json}"  \
+            -in_json       "${opbar_json}"              \
             -prefix        "${pbar_fname}"
     endif
 
