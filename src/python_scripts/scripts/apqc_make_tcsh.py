@@ -266,9 +266,12 @@ auth = 'PA Taylor'
 #      *not* included.
 #      + this involves a new main_dset check, as well as newer 
 #        if-conditions around what the final space is
-ver = '6.2' ; date = 'June 18, 2025'
+#ver = '6.2' ; date = 'June 18, 2025'
 # [PT] make+use errts_blur for in QC, to make it easier to evaluate
 #      seedbased corr (non-task) and IC (all FMRI)
+#
+ver = '6.3' ; date = 'June 18, 2025'
+# [PT] when thresholding is applied, pbars use the alpha/thr info
 #
 #########################################################################
 

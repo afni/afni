@@ -1452,6 +1452,7 @@ D : dict
                     errts_dset=ap_ssdict['errts_dset'] )
         com  = ab.shell_com(cmd, capture=do_cap)
         stat = com.run()
+        print("     ", errts_blur); sys.stdout.flush() 
     else:
         print("   -> already exists"); sys.stdout.flush() 
 
@@ -3196,6 +3197,7 @@ num : int
         -pbar_saveim       "{opbarrt}.jpg"                                   \
         -pbar_comm_range   "{pbar_cr}"                                       \
         -pbar_comm_thr     "{pbar_tr}"                                       \
+        -pbar_thr_alpha    Yes                                               \
         -prefix            "{opref}"                                         \
         -save_ftype        JPEG                                              \
         -blowup            2                                                 \
@@ -3441,6 +3443,7 @@ num : int
         -pbar_saveim       "{opbarrt}.jpg"                                   \
         -pbar_comm_range   "{pbar_cr}"                                       \
         -pbar_comm_thr     "{pbar_tr}"                                       \
+        -pbar_thr_alpha    Yes                                               \
         -prefix            "{opref}"                                         \
         -save_ftype        JPEG                                              \
         -blowup            2                                                 \
@@ -3798,6 +3801,7 @@ num : int
         -pbar_saveim       "{opbarrt}.jpg"                                   \
         -pbar_comm_range   "{pbar_comm_range}"                               \
         -pbar_comm_thr     "{pbar_comm_thr}"                                 \
+        -pbar_thr_alpha    Yes                                               \
         -prefix            "{opref}"                                         \
         -save_ftype        JPEG                                              \
         -blowup            2                                                 \
@@ -6048,6 +6052,7 @@ num : int
             -pbar_saveim       "{opbarrt}.jpg"                               \
             -pbar_comm_range   "{pbar_cr}"                                   \
             -pbar_comm_thr     "{pbar_tr}"                                   \
+            -pbar_thr_alpha    Yes                                           \
             -prefix            "{opref}"                                     \
             -save_ftype        JPEG                                          \
             -blowup            2                                             \
