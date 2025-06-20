@@ -345,7 +345,8 @@ g_history = """
   0.1   Jan 26, 2025 :: started this command line interface for lib_cbar_tool
   0.2   Jan 30, 2025 :: beta version complete (with options)
   0.3   May 21, 2025 :: better prioritizing within JSON (cbar/pbar_fname)
-  0.3   Jun 17, 2025 :: checks about extension when failing to write
+  0.4   Jun 17, 2025 :: checks about extension when failing to write
+  0.5   Jun 18, 2025 :: use json path to find local cbar
 """
 
 g_ver     = g_history.split("\n")[-2].split("::")[0].strip()
