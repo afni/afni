@@ -22,14 +22,22 @@ set left_range = (`count_afni -digits 2 31 51`)
  
 #set inset = HCA_lr_v0.9.nii.gz
 set inset = ""
+
 set isosurfs = ""
 set isosurf_dir = "./"
 set isosurf_base = ""
 set isosurf_labels = ""
 set make_isosurfs = ""
+
 set right_range = ""
 set left_range = ""
 set reportfile = /dev/stdout
+
+set patch_areas = ""
+set fullatlas_surf = ""
+set make_patch_surf = ""
+set patch_labels = ""
+set patchsurf = "fullpatchsurf.gii"
 
 if ("$#" <  "1") then
    goto HELP
@@ -111,6 +119,26 @@ while ($ac <= $#argv)
         set make_isosurfs = 1
         set isosurfs = 1
 
+    # compute surface patch areas for each region
+    else if ("$argv[$ac]" == "-surf_patch") then
+        set patch_areas = 1
+
+    # make patch surface, implies computing surface patch areas
+    else if ("$argv[$ac]" == "-make_patch_surface") then
+        set make_patch_surf = 1
+        set patch_areas = 1
+
+    # use existing patch surface, implies computing surface patch areas
+    else if ("$argv[$ac]" == "-surf_patch_surface") then
+        set this_opt = "$argv[$ac]"
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '${this_opt}'"
+            exit 1
+        endif
+        set fullatlas_surf =  $argv[$ac]
+        set patch_areas = 1
+
     else if ("$argv[$ac]" == "-reportfile") then
         set this_opt = "$argv[$ac]"
         @ ac ++
@@ -145,10 +173,30 @@ endif
 if (($isosurfs == "1") && ($isosurf_base == "")) then
   echo "Must supply base of gifti file name shared among all gifti files"
    exit 1
-else
-   set isosurf_labels = "   right_area left_area ra/la_asymm"
 endif
 
+if ($isosurfs == "1") then
+   set isosurf_labels = "  right_area left_area ra/la_asymm"
+endif
+
+# check if making patches or using patches
+# may allow for making new patch surface if specified one doesn't exist
+if ($patch_areas == "1") then
+   set patch_labels = "   right_patch_area left_patch_area rpa/lpa_asymm"
+   if (($make_patch_surf == "1") && ($fullatlas_surf != "")) then
+      echo "Cannot specify both surf_patch_surface and make_patch_surface"
+      exit 1
+   endif
+   if (($make_patch_surf == "") && ($fullatlas_surf == "")) then
+      echo "Neither surf_patch_surface nor make_patch_surf specified"
+      echo "Assuming you want a patch surface created and continuing"
+      echo "Using default name of $patchsurf for patch surface"
+      set fullatlas_surf = $patchsurf
+      set make_patch_surf = 1
+   endif
+endif
+
+# make isosurfaces for all the individual regions
 if ($make_isosurfs == "1") then
    mkdir -p $isosurf_dir 
    cp $inset $isosurf_dir/
@@ -157,10 +205,41 @@ if ($make_isosurfs == "1") then
    cd -
 endif
 
-echo "#index label right_vol left_vol r/l_asymm $isosurf_labels" > $reportfile
+# if computing patch areas, project volumetric atlas onto full surface
+if ($patch_areas == "1") then
+   if ($make_patch_surf == "1") then
+      IsoSurface -isorange 1 100000 -input $inset -o $fullatlas_surf -overwrite      
+   endif
+
+   quickspec -spec asymmquick_patch.spec -overwrite -tn gii $fullatlas_surf
+   3dVol2Surf -spec asymmquick_patch.spec -surf_A $fullatlas_surf -sv $inset \
+      -grid_parent $inset -gp_index 0 -map_func nzmode     \
+      -f_steps 5 -f_index nodes -use_norms -norm_len 5     \
+      -oob_value 0 -reverse_norm_dir                       \
+      -out_niml roi_proj.niml.dset -overwrite
+   SurfLocalstat  -hood 2 -stat mode                       \
+           -i_gii $fullatlas_surf                          \
+           -input roi_proj.niml.dset                       \
+           -prefix roi_proj_smooth.niml.dset
+   ConvertDset -i roi_proj_smooth.niml.dset -o roi_proj_smooth.1D.dset
+
+endif
+
+# -cmask '-a HCA_lr_v0.9.nii.gz+tlrc[0] -expr astep(a,0.000000)'
+
+echo "#index label right_vol left_vol r/l_asymm $isosurf_labels $patch_labels" > $reportfile
 foreach roi (`count -digits 2 1 $#right_range`)
    set righti = $right_range[$roi] 
    set lefti  = $left_range[$roi] 
+
+   set resultline = $righti
+
+   # get the label of the roi, stripping off any leading Right_
+   set roilab = \
+   `whereami -DAFNI_ATLAS_NAME_TYPE=name \
+    -dset $inset -index_to_label $righti |sed 's/Right_//'` 
+
+   set resultline = "$resultline $roilab"
 
    # compute right and left volumes
    set rightv = `3dBrickStat -volume -non-zero $inset"<$righti>"`
@@ -173,10 +252,7 @@ foreach roi (`count -digits 2 1 $#right_range`)
    set leftv = `ccalc -form "%.1f" $leftv`
    set asymm = `ccalc -form "%.3f" $asymm`
 
-   # get the label of the roi, stripping off any leading Right_
-   set roilab = \
-   `whereami -DAFNI_ATLAS_NAME_TYPE=name \
-    -dset $inset -index_to_label $righti |sed 's/Right_//'` 
+   set resultline = "$resultline $rightv $leftv $asymm"
 
    if ( $isosurfs ) then
       set righti_1d = `ccalc -int $righti`
@@ -193,15 +269,38 @@ foreach roi (`count -digits 2 1 $#right_range`)
       set righta = `ccalc -form "%.1f" $righta`
       set lefta = `ccalc -form "%.1f" $lefta`
       set surf_asymm = `ccalc -form "%.3f" $surf_asymm`
-   else
-      set righta = ""
-      set lefta = ""
-      set surf_asymm = ""
+      set resultline = "$resultline     $righta $lefta $surf_asymm"
    endif
 
+   if ($patch_areas == "1") then
+      SurfMeasures                                           \
+            -spec       asymmquick_patch.spec                      \
+            -sv         $inset                               \
+            -surf_A     $fullatlas_surf                      \
+            -func       n_area_A                             \
+            -nodes_1D   'roi_proj_smooth.1D.dset'       \
+            -cmask "-a roi_proj_smooth.1D.dset[0] -expr equals(a,$righti)"  \
+            -out        temppatch_rightarea.1D.dset -overwrite                        
+      set rightparea = `3dBrickStat -sum temppatch_rightarea.1D.dset'[1]'`
+      SurfMeasures                                           \
+            -spec       asymmquick_patch.spec                      \
+            -sv         $inset                               \
+            -surf_A     $fullatlas_surf                      \
+            -func       n_area_A                             \
+            -nodes_1D   'roi_proj_smooth.1D.dset[0]'       \
+            -cmask "-a roi_proj_smooth.1D.dset[0] -expr equals(a,$lefti)"  \
+            -out        temppatch_leftarea.1D.dset -overwrite                        
+      set leftparea = `3dBrickStat -sum temppatch_leftarea.1D.dset'[1]'`
+      set parea_asymm = `ccalc "$rightparea/$leftparea"`
+   
+      set rightparea = `ccalc -form "%.1f" $rightparea`
+      set leftparea = `ccalc -form "%.1f" $leftparea`
+      set parea_asymm = `ccalc -form "%.3f" $parea_asymm`
 
-   echo $roi $roilab   $rightv   $leftv  $asymm    $righta  $lefta\
-     $surf_asymm >> $reportfile
+      set resultline = "$resultline     $rightparea $leftparea $parea_asymm"
+   endif
+
+   echo $resultline >> $reportfile
 
 end
 
@@ -242,6 +341,10 @@ Options ~1~
   -make_isosurfs       :make isosurfaces from all regions in input volume
                         uses isosurf_dir for directory and isosurf_base for
                         prefix for output, e.g. isosurf_base.gii
+  -surf_patch          :compute areas of patches on surfaces
+  -surf_patch_surface  surfdset :use one isosurface from labeled volume for patches
+                        (different than isosurfaces for individual regions)
+  -make_patch_surface  :generate new surface for patch area computations
   -reportfile textout  :specify filename for text output (default is stdout)
 
 SCRIPT_HELP_STRING
