@@ -2338,6 +2338,7 @@ EOF
         if ( $do_pbar_alpha ) then
             # prepare for colorbar_tool.py
             abids_json_tool.py                                  \
+                -overwrite                                      \
                 -txt2json                                       \
                 -delimiter_major  "::"                          \
                 -delimiter_minor  ",,"                          \
