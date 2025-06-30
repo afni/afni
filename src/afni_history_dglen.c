@@ -53,6 +53,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 20, JUN, 2025, DRG, "asymm_report.csh",
+     MINOR, TYPE_NEW_PROG,
+    "asymm_report.csh - generate reports of asymmetry in ROIs",
+    "Use labeled datasets in native space or an atlas in a template space\n"
+    "to create reports of asymmetry by volume and by surface area"
+},
 { 14, FEB, 2024, DRG, "whereami",
      MICRO, TYPE_NEW_OPT,
     "whereami -index_to_label to show label for an index",
