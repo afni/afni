@@ -13719,7 +13719,7 @@ OPTIONS:  ~2~
         Without this option, the first TRs of the first input EPI time
         series would be used as the forward blip dataset.
 
-        See also -blip_revers_dset.
+        See also -blip_reverse_dset.
 
         Please see '3dQwarp -help' for more information, and the -plusminus
         option in particular.
