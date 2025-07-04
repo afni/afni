@@ -53,9 +53,9 @@
 
 afni_history_struct rickr_history[] = {
 
- { 18, Jun, 2025, RCR, "build_afni.py", MICRO, TYPE_ENHANCE,
-   "check that build_root is not at or under install dir",
-   NULL
+ {  3, Jul, 2025, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix test of atr_flt2 when setting TAXIS_FLOATS",
+   "Thanks to C Rorden for noting the problem."
  } ,
 
  { 17, Jun, 2025, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,

@@ -1122,7 +1122,7 @@ ENTRY("THD_datablock_apply_atr") ;
    /* (save atr_flt2 for possible correction, below) */
    atr_int = THD_find_int_atr  ( blk , ATRNAME_TAXIS_NUMS ) ;
    atr_flt2 = THD_find_float_atr( blk , ATRNAME_TAXIS_FLOATS ) ;
-   if( atr_int != NULL && atr_flt != NULL ){
+   if( atr_int != NULL && atr_flt2 != NULL ){
      int isfunc , nvals ;
 
      dset->taxis = myRwcNew( THD_timeaxis ) ;
