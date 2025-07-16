@@ -450,10 +450,16 @@ SUMA_Boolean SUMA_GetNodeValsAtSelection(SUMA_ALL_DO *ado,
 SUMA_Boolean SUMA_UpdateNodeValField(SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_ALL_DO *ado);
+int SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
+        Boolean notify);
 void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, 
                                     XtPointer client_data);
+int SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
+        Boolean notify);
 void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, 
                                     XtPointer client_data);
+int SUMA_cb_ShowZero_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
+        Boolean notify);
 void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data, 
                                     XtPointer client_data);
 void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data, 
@@ -496,6 +502,16 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
                                      SUMA_SurfaceViewer *sv);
 XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w, 
                                  char *fontname, char *tag);
+void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
+                                   XtPointer client_data);
+void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado, 
+        int BoxOutlineThresh, SUMA_Boolean refreshDisplay);
+SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, 
+    SUMA_OVERLAYS *over2, Bool thresholdChanged);
+void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay);
+void restoreProperThresholdCcontours(SUMA_ALL_DO *ado);
+
+
 
 /* the help strings */
 
