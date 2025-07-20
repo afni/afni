@@ -116,8 +116,8 @@ as is normally the case when the epi dataset closely precedes or follows an
 anatomical dataset acquisition. If the two data are acquired over separate
 sessions, or accurate coordinate data is not available in the dataset header
 (as sometimes occurs for oblique data), various options allow for larger
-movement including "-cmass cmass", "-big_move","-giant_move",
-"-ginormous_move", and -align_centers yes". Each of these options
+movement including "-cmass cmass", "-big_move", "-large_move", "-giant_move",
+"-ginormous_move", and "-align_centers yes". Each of these options
 is described below. If the datasets do not share the same
 coordinate space at all, it may be useful to use the "-ginormous_move", 
 "-align_centers" options or run @Align_Centers script first.
@@ -197,6 +197,7 @@ that are exactly equivalent.
 
 -big_move   : indicates that large displacement is needed to align the
               two volumes. This option is off by default.
+-large_move : same as '-giant_move', but without the cmass part
 -giant_move : even larger movement required - uses cmass, two passes and
               very large angles and shifts. May miss finding the solution
               in the vastness of space, so use with caution
@@ -614,7 +615,7 @@ cite is:
 #                     (default is 1.0)
 
 #    -tlrc_epar epi_template_dset : EPI  dataset that has been aligned to
-#                  a master template such as a tlrc dataset If this option
+#                  a master template such as a tlrc dataset. If this option
 #                  is supplied, then an anat+tlrc dataset will be created.
 
 
@@ -622,7 +623,7 @@ cite is:
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.64" # software version (update for changes)
+      self.align_version = "1.65" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -753,6 +754,8 @@ class RegWrap:
                helpstr="Even larger movement between epi and anat.\n"     \
                        "Uses twopass option for 3dAllineate.\n"           \
                        "cmass options and wide angles and shifts")
+      self.valid_opts.add_opt('-large_move', 0, [], \
+               helpstr="Same as -giant_move but does not use cmass")
       self.valid_opts.add_opt('-ginormous_move', 0, [], \
                helpstr="Adds align_centers to giant_move")
       self.valid_opts.add_opt('-supersize', 0, [], \
@@ -1419,9 +1422,11 @@ class RegWrap:
       opt1 = self.user_opts.find_opt('-big_move')
       #giant_move?
       opt2 = self.user_opts.find_opt('-giant_move')
+      #large move? (same as giant_move, but without cmass part)
+      opt2b = self.user_opts.find_opt('-large_move')
       #ginormous move?
       opt3 = self.user_opts.find_opt('-ginormous_move')
-      if(not (opt1 or opt2 or opt3)):
+      if(not (opt1 or opt2 or opt2b or opt3)):
          ps.AlOpt = "%s -onepass " % ps.AlOpt
       else:
          # resampling has the potential to cut off data
@@ -1432,7 +1437,7 @@ class RegWrap:
       if(opt1):
          ps.AlOpt = "%s -twopass " % ps.AlOpt
          
-      if(opt2 or opt3):
+      if(opt2 or opt2b or opt3):
          if featuresize  == 0.0 :
             fsize = 1
          else:
@@ -1441,7 +1446,8 @@ class RegWrap:
          ps.AlOpt =  \
          "%s -twobest 11 -twopass -maxrot 45 -maxshf 40 " \
          "-fineblur %s -source_automask+2" % (ps.AlOpt, fsize)
-         ps.cmass = "cmass"
+         if not(opt2b):
+             ps.cmass = "cmass"
          ps.giant_move = 1
       else :
          ps.giant_move = 0
@@ -3631,7 +3637,9 @@ if __name__ == '__main__':
 
          # Note 3dAllineate does not require resampling. This script
          # provides an option to avoid resampling.
-         # If @AddEdge does require resampling though, so do it now if it hasn't been done yet
+
+         # If @AddEdge does require resampling though, so do it now if it hasn't 
+         # been done yet
          if(ps.resample_flag):
             ein_rs = e
          else:
