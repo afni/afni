@@ -1343,9 +1343,16 @@ def dset_is_oblique(aname, verb):
       print('== dset_is_oblique cmd: %s' % cmd)
       print('       st = %s, so = %s, se = %s' % (st, so, se))
 
-   if len(so) < 1:    return 0
-   elif so[0] == '1': return 1
-   else:              return 0
+
+   if len(so) < 1:
+      return 0
+   elif so[0] == '1':
+      return 1
+   elif so[0] == 'NO-DSET':
+      print("** warning: failed obliquity check for '%s'" % aname.rel_input())
+      return 0
+   else:
+      return 0
 
 def blip_warp_command(proc, warp, source, prefix, interp=' -quintic',
                       oblset=None, indent=''):
