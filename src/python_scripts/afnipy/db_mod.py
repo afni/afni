@@ -1838,6 +1838,8 @@ def db_cmd_ricor(proc, block):
         print("** ERROR: failed to read '%s' as Afni1D" % proc.ricor_regs[0])
         return
     nsr_labs = adata.labs_matching_str('s0.')
+    # might have zero-padded labels now
+    if len(nsr_labs) == 0: nsr_labs = adata.labs_matching_str('s000.')
     nsliregs = adata.nvec // nslices
     nlab = len(nsr_labs)
     if nlab > 0: nrslices = adata.nvec//nlab
@@ -1855,11 +1857,11 @@ def db_cmd_ricor(proc, block):
               % (nrslices, nslices))
         return
 
-    if nlab > 0 and nlab != 13:
-        print("** WARNING: have %d regressors per slice (13 is typical)" % nlab)
+    # do not expect 13 sliregs anymore - remove warning
 
-    if proc.verb > 1: print('-- ricor: nsliregs = %d, # slice 0 labels = %d' \
-                            % (nsliregs, len(nsr_labs)))
+    if proc.verb > 0:
+       print('-- ricor: nsliregs = %d, nslices = %d, # slice 0 labels = %d' \
+             % (nsliregs, nslices, len(nsr_labs)))
     if proc.verb > 2: print('-- ricor: slice 0 labels: %s' % ' '.join(nsr_labs))
 
     # check reps against adjusted NT
