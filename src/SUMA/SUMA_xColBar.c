@@ -11512,7 +11512,7 @@ SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_ALL_DO *ado,
    static char FuncName[]={"SUMA_FormSwitchColMenuVector"};
    SUMA_MenuItem *menu = NULL;
    int i, isarrow;
-   void (*callback)();
+   XtCallbackProc callback; /* 25 Jul 2025 rickr */
    NI_element *nel = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
@@ -11686,7 +11686,7 @@ SUMA_MenuItem *SUMA_FormSwitchCmapMenuVector(SUMA_COLOR_MAP **CMv, int N_maps)
    static char FuncName[]={"SUMA_FormSwitchCmapMenuVector"};
    SUMA_MenuItem *menu = NULL;
    int i;
-   void (*callback)();
+   XtCallbackProc callback; /* 25 Jul 2025 rickr */
    NI_element *nel = NULL;
    SUMA_Boolean LocalHead = NOPE;
 
