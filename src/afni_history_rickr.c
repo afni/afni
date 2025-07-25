@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Jul, 2025, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "gcc-15 : code updates under the SUMA tree",
+   "This hopefully finalizes the June 12, 2025 update, including SUMA."
+ } ,
+
  { 22, Jul, 2025, RCR, "@update.afni.binaries", MICRO, TYPE_NEW_OPT,
    "add option -binary_source, to supersede -build_afni and -overwrite_build",
    NULL
