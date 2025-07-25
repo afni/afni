@@ -2537,6 +2537,13 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    //   checkbox toggled
    restoreProperThresholdCcontours(ado);
    
+   /*
+   // DEBUG
+   float val = 30.0f;
+   SUMA_SetScaleThr(ado, NULL, &val, 0, 1);
+   */
+   
+   
    // Process all surface objects
    int numSurfaceObjects;
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
@@ -2588,7 +2595,11 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
                restoreProperThresholdCcontours(otherAdo);
            }
         }
-    }
+    
+       // DEBUG
+       float val = 30.0f;
+       SUMA_SetScaleThr(otherAdo, NULL, &val, 0, 1);
+   }
 
    SUMA_RETURNe;
 }
