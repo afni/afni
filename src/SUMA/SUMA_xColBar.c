@@ -2537,11 +2537,9 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
    //   checkbox toggled
    restoreProperThresholdCcontours(ado);
    
-   /*
    // DEBUG
-   float val = 30.0f;
+   float val = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
    SUMA_SetScaleThr(ado, NULL, &val, 0, 1);
-   */
    
    
    // Process all surface objects
@@ -2596,8 +2594,8 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
            }
         }
     
-       // DEBUG
-       float val = 30.0f;
+       // DEBUG: Quick hack that make variable opacity appear
+       float val = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
        SUMA_SetScaleThr(otherAdo, NULL, &val, 0, 1);
    }
 
