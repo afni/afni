@@ -3700,6 +3700,7 @@ class AfniData(object):
       self.verb      = verb
       # self.hist    = g_AfniData_hist (why did I do this?)
       self.write_dm  = 1        # if found include durations when printing
+      self.force_w_type = ''    # force write type: simple, AM, DM, AMDM
 
       # computed variables
       self.cormat      = None   # correlation mat (normed xtx)
@@ -4135,22 +4136,50 @@ class AfniData(object):
       # (little gain in trying to usually put one '*')
       if len(data) == 0 and flag_empty: rstr += '* *'
 
+      # check force_w_type (simple, AM, DM, AMDM)
+      do_am = -1
+      do_dm = -1
+      if self.force_w_type == 'simple':
+         simple = 1
+      elif self.force_w_type == 'AM':
+         simple = 0
+         do_am = 1
+         do_dm = 0
+      elif self.force_w_type == 'DM':
+         simple = 0
+         do_am = 0
+         do_dm = 1
+      elif self.force_w_type == 'AMDM':
+         simple = 0
+         do_am = 1
+         do_dm = 1
+
       for val in data:
          if simple:
             if nplaces >= 0: rstr += '%.*f ' % (nplaces, val[0])
             else:            rstr += '%g ' % (val[0])
          else:
-            if self.mtype & MTYPE_AMP and len(val[1]) > 0:
+            # (if default or forced AM) see if AM is appropriate
+            if do_am != 0 and self.mtype & MTYPE_AMP and len(val[1]) > 0:
                if mplaces >= 0: alist = ['*%.*f'%(nplaces, a) for a in val[1]]
                else:            alist = ['*%g'%a for a in val[1]]
                astr = ''.join(alist)
-            else: astr = ''
+            # else if forced, add constant modulator
+            elif do_am == 1:
+               astr = '*1'
+            # else, nothing
+            else:
+               astr = ''
 
-            # if married and want durations, include them
-            if self.write_dm and (self.mtype & MTYPE_DUR):
+            # (if default or forced) if married and want durations, include them
+            if do_dm != 0 and self.write_dm and (self.mtype & MTYPE_DUR):
                if mplaces >= 0: dstr = ':%.*f' % (nplaces, val[2])
                else:            dstr = ':%g' % val[2]
-            else: dstr = ''
+            # else if forced, add constant duration of 0
+            elif do_dm == 1:
+               dstr = ':0'
+            else:
+               dstr = ''
 
             if nplaces >= 0: rstr += '%.*f%s%s ' % (nplaces, val[0], astr, dstr)
             else: rstr += '%g%s%s ' % (val[0], astr, dstr)
