@@ -490,6 +490,15 @@ examples: ~1~
 
       Consider "-show_events" to view event list.
 
+   Example 19h.  can force the timing to be simple, AM, DM or AMDM ~2~
+
+      Here "-force_write_type simple", but can use AM or DM or AMDM,
+      to force the output to be exactly that modulation type.
+
+         timing_tool.py -multi_timing_ncol_tsv sing_weather.run*.tsv \\
+                        -write_multi_timing AFNI_timing.weather      \\
+                        -force_write_type simple
+
    Example 20.  set event durations based on next events ~2~
 
       Suppose one has timing files for conditions Pre, BPress and Post,
@@ -681,7 +690,7 @@ options with both single and multi versions (all single first): ~1~
         After modifying the timing data, the multiple timing instances
         can be written out.
 
-            Consider '-write_as_married'.
+            Consider '-force_write_type', '-write_as_married'.
 
    -write_simple_tsv PREFIX     : write timing to new TSV files ~2~
 
@@ -1094,6 +1103,11 @@ action options (apply to single timing element, only): ~1~
         of a basis function).  Use -write_as_married to include any constant
         duration as a modulator.
 
+        If there are no modulators in the input but married output is wanted,
+        consider -force_write_type.
+
+            See also '-force_write_type'.
+
    -write_tsv_cols_of_interest NEW_FILE : write cols of interest ~2~
 
         e.g. -write_tsv_cols_of_interest cols_of_interest.tsv
@@ -1113,7 +1127,7 @@ action options (apply to single timing element, only): ~1~
         out the result.  Alternatively, the user could use -show_timing and
         cut-and-paste to write such a file.
 
-            Consider '-write_as_married'.
+            Consider '-force_write_type', '-write_as_married'.
 
 ------------------------------------------
 action options (apply to multi timing elements, only): ~1~
@@ -1229,6 +1243,18 @@ general options: ~1~
    -chrono                      : process options chronologically ~2~
 
         This option has been removed.
+
+   -force_write_type            : force output to have given modulators ~2~
+
+        By default, or via other options, writing timing files with have
+        amplitude modulators, duration modulators, neither or both.
+
+        Use this option to force what is in the output timing files.
+
+            simple  : no modulators
+            AM      : only amplitude modulators (if none, use a=1)
+            DM      : only duration modulators (if none, use d=0)
+            AMDM    : both AM and DM (if missing a=1, d=0)
 
    -min_frac FRAC               : specify minimum TR fraction ~2~
 
@@ -1738,9 +1764,10 @@ g_history = """
    3.23 Dec 10, 2024 - add -show_modulator_stats
    3.24 Feb  6, 2025 - allow -multi_timing with -timing_to_1D
                      - add -timing_to_1D_method
+   3.25 Jul 29, 2025 - add -force_write_type
 """
 
-g_version = "timing_tool.py version 3.24, February 6, 2025"
+g_version = "timing_tool.py version 3.25, July 29, 2025"
 
 
 
@@ -1754,6 +1781,7 @@ class ATInterface:
       self.all_edtypes     = ['i', 'p', 't', 'o', 'd', 'm', 'f']
 
       # user options
+      self.force_w_type    = ''         # can force write: simple, AM, DM, AMDM
       self.nplaces         = -1         # num decimal places for writing
       self.mplaces         = -1         # decimal places for married info
       self.run_len         = [0]        # time per run (for single/multi)
@@ -1976,6 +2004,9 @@ class ATInterface:
       if not self.timing:
          print('** no timing to write')
          return 1
+      # pass along any sub-class vars
+      if self.force_w_type:
+         self.timing.force_w_type = self.force_w_type
       return self.timing.write_times(fname, nplaces=self.nplaces,
                 mplaces=self.mplaces, force_married=self.write_married)
 
@@ -1993,6 +2024,11 @@ class ATInterface:
          if   timing.fname: fname = prefix+timing.fname
          elif timing.name:  fname = prefix+timing.name+'.txt'
          else:              fname = '%sclass_%02d' % (pp, tind)
+
+         # pass along any sub-class vars
+         if self.force_w_type:
+            timing.force_w_type = self.force_w_type
+
          timing.write_times(fname, nplaces=self.nplaces,
                     mplaces=self.mplaces, force_married=self.write_married)
 
@@ -2278,6 +2314,9 @@ class ATInterface:
 
 
       # general options (including multi)
+      self.valid_opts.add_opt('-force_write_type', 1, [],
+                         acplist=['simple', 'AM', 'DM', 'AMDM'],
+                         helpstr='force timing file type')
       self.valid_opts.add_opt('-min_frac', 1, [],
                          helpstr='min tr fraction (in [0,1.0])')
       self.valid_opts.add_opt('-nplaces', 1, [],
@@ -2367,6 +2406,13 @@ class ATInterface:
       if oind >= 0:
          val, err = uopts.get_type_opt(int, '-verb')
          if val != None and not err: self.verb = val
+         uopts.olist.pop(oind)
+
+      oind = uopts.find_opt_index('-force_write_type')
+      if oind >= 0:
+         val, err = uopts.get_string_opt('-force_write_type')
+         if val and not err:
+            self.force_w_type = val
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-min_frac')
