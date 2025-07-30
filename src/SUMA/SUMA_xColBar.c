@@ -977,9 +977,10 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
          break;
    }
    if (!(SurfCont->Thr_tb)){
-        fprintf( SUMA_STDERR, "%s:\nNo thresholding available for this data\n", FuncName);
+        fprintf( SUMA_STDERR, "%s:\nNo thresholding available for this data\n",
+                 FuncName);
         SUMA_RETURN(0);
-     }
+   }
    /* SUMA_SET_LABEL(SurfCont->thr_lb,  slabel);*/
       SUMA_INSERT_CELL_STRING(SurfCont->SetThrScaleTable, 0,0,slabel);
 
@@ -1011,8 +1012,6 @@ void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    SUMA_LH("called");
    ado = (SUMA_ALL_DO *)clientData;
    if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }
@@ -1024,6 +1023,176 @@ void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call)
 
    SUMA_RETURNe;
 }
+
+SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, 
+    SUMA_OVERLAYS *over2, Bool thresholdChanged)
+{
+   static char FuncName[]={"setBoxOutlineForThresh"};
+   float *bckupColorMap, *onesVector;
+   int i, j, returnVal;   
+   float *overlayBackup; 
+   float *CMapBackup; 
+   static SUMA_DRAWN_ROI **OutlineContours = NULL;
+   static int N_OutlineContours = 0;
+   static SUMA_DRAWN_ROI **OriginalContours = NULL;
+   static int N_OriginalContours = 0;
+
+   SUMA_ENTRY;
+
+   fprintf(stderr, "+++++ %s\n", FuncName);
+   
+   if (!over2) SUMA_RETURN (YUP);
+
+   if (over2){ // If there are at least three overlay levels (as teh thrid has
+                // the colored region that the threshold relates to)
+    if (SO->SurfCont->BoxOutlineThresh){    // If B box checked
+        // Show threshold outline on topt of color overlay
+        // NB.  This is the basis of the C&C option of the Dsp control on the
+        // surface control menu
+        over2->ShowMode = SW_SurfCont_DsetViewCaC; 
+
+        if (OutlineContours && !thresholdChanged){ // If threshold outline
+                                // contours exist and threshold unchanged
+            over2->Contours = OutlineContours;  // Used existing contuors
+            over2->N_Contours = N_OutlineContours;
+        } else {    // Need new contours
+            // Free contours from different threshold
+            if (0 && OutlineContours){
+                free(OutlineContours);
+                OutlineContours = NULL;
+            }
+            
+             /* kill current contours */
+             // Remove existing conours which will be replaced
+             SUMA_KillOverlayContours(over2);
+             over2->Contours = NULL;
+             
+           // Back up overlay color map
+           size_t bytes2Copy = over2->N_NodeDef*sizeof(float);
+           size_t bytes2Copy2 = 3*over2->N_NodeDef*sizeof(float);
+           if (!(overlayBackup=(float *)malloc(bytes2Copy)) ||
+                !(CMapBackup=(float *)malloc(bytes2Copy2))){
+                if (overlayBackup) free(overlayBackup);
+                fprintf(stderr, "*** %s: Error allocating memory\n", FuncName);
+                SUMA_RETURN (NOPE);
+           }
+           for (i=j=0; i<over2->N_NodeDef; ++i){
+                overlayBackup[i] = over2->V[over2->NodeDef[i]];
+           }
+           memcpy((void *)CMapBackup, (void *)(over2->ColVec), bytes2Copy2);
+           
+           // Threshold based on relationship to threshold
+           for (i=j=0; i<over2->N_NodeDef; ++i){
+                over2->V[over2->NodeDef[i]] = 1.0f;  
+           }
+           
+           // Colorization also forms contours
+           if (!SUMA_ColorizePlane (over2)) {
+                 SUMA_SLP_Err("Failed to colorize plane.\n");
+                 SUMA_RETURN(NOPE);
+            }
+            
+           // Restore overlay colormap
+           for (i=0; i<over2->N_NodeDef; ++i){
+                over2->V[over2->NodeDef[i]] = overlayBackup[i];
+           }
+           memcpy((void *)(over2->ColVec), (void *)CMapBackup, bytes2Copy2);
+           free(CMapBackup);
+           free(overlayBackup);
+        
+            // Make contours black
+            if (over2->Contours){
+                for (i=0; i<over2->N_Contours; ++i){
+                    for (j=0; j<4; ++j){
+                        over2->Contours[i]->FillColor[j] = 0.0f;
+                    }
+                    over2->Contours[i]->EdgeThickness = 8;
+                }
+
+                // Save threshold outline contours
+                OutlineContours = over2->Contours;
+                N_OutlineContours = over2->N_Contours;
+            } else {
+                fprintf(stderr, "over2 = %p\n", over2);
+                if (over2) fprintf(stderr, "over2->N_Contours = %d\n", over2->N_Contours);
+                SUMA_SL_Err("ERROR: No contours found\n");
+                SUMA_RETURN (NOPE);
+            }
+        }
+    } else {    // Don't show threshold contours
+        over2->ShowMode = SW_SurfCont_DsetViewCol;
+        over2->Contours = OriginalContours;
+        over2->N_Contours = N_OriginalContours;
+    }
+   }
+   
+   SUMA_RETURN (YUP);
+}
+
+void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado, 
+        int BoxOutlineThresh, SUMA_Boolean refreshDisplay)
+{
+   static char FuncName[]={"applyBoxOutlineThreshStatusToSurfaceObject"};
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_OVERLAYS *over2 = NULL;
+   Widget w = NULL;
+   int i, colorplaneIndex = -1;
+   Bool  thresholdChanged;
+   static float threshold;
+
+   SUMA_ENTRY;
+
+   SO = (SUMA_SurfaceObject *)ado;
+   if (!(SO->SurfCont)){
+        fprintf(stderr, "ERROR %s: Cannot have surface threshold outline.  No surface\n", 
+            FuncName);
+        XmToggleButtonSetState(w, 0, 0);
+        SUMA_RETURNe;
+   }
+   
+   // Set widget state without calling callback
+   w = SO->SurfCont->BoxOutlineThresh_tb;   
+   XmToggleButtonSetState(w, BoxOutlineThresh, 0);
+   
+   // Record threshold contour status for this surface object
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+     
+   // Apply threshold contours
+    for (i=0; i<SO->N_Overlays; ++i){
+        if (SO->SurfCont->curColPlane == SO->Overlays[i]){
+           colorplaneIndex = i;
+
+           // Get colorplane overlay
+           over2 = SO->Overlays[colorplaneIndex];
+           
+           // Don't process if threshold zero
+           if (over2->OptScl->ThreshRange[0] == 0) continue;
+            
+           if (!over2){
+                fprintf(stderr, "+++++ WARNING: %s: Required overlay unavailable\n",
+                    FuncName);
+                SUMA_RETURNe;
+           }
+          
+           // Determine whether threshold changed
+           thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
+
+           // Set up outlines for thresholded regions
+           setBoxOutlineForThresh(SO, over2, thresholdChanged);   
+           
+           break;
+        }
+    }   
+  
+   // Refresh display
+   if (refreshDisplay){
+       SUMA_Remixedisplay(ado);
+       SUMA_UpdateNodeLblField(ado);
+   }
+
+   SUMA_RETURNe;   
+}
+
 
 void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay)
 {
@@ -1075,9 +1244,9 @@ void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay)
    SUMA_RETURNe;
 }
 
+/* Called when sliding bar dragged */
 void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
 {
-    // Called when sliding bar dragged
    static char FuncName[]={"SUMA_cb_set_threshold"};
    SUMA_ALL_DO *ado=NULL;
    XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call ;
@@ -1173,6 +1342,26 @@ int SUMA_set_threshold(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_RETURN(1);
 }
 
+void restoreProperThresholdCcontours(SUMA_ALL_DO *ado)
+{
+   static char FuncName[]={"restoreProperThresholdCcontours"};
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   XtPointer clientData = (XtPointer)ado;
+
+   SUMA_ENTRY;
+   
+   if (!SO || !(SO->SurfCont)){
+    fprintf(stderr, "WARNING: %s: No surface available", FuncName);
+    SUMA_RETURNe;
+   }
+   
+   if (SO->SurfCont->BoxOutlineThresh ){
+        SUMA_RestoreThresholdContours(clientData, NOPE);
+   }
+
+   SUMA_RETURNe;
+}
+
 int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                            float *valp)
 {
@@ -1266,9 +1455,10 @@ int SUMA_SwitchColPlaneIntensity(
    }
 
    if (ado->do_type == SO_type) {
-      SUMA_SurfaceObject *SOC=NULL;
+      SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
       SUMA_OVERLAYS *colpC=NULL;
-      
+      /* do we have a contralateral SO and overlay? */
+      SO = (SUMA_SurfaceObject *)ado;
       colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
       if (colpC && SOC) {
          SUMA_LHv("Found contralateral equivalent to:\n"
@@ -1280,12 +1470,12 @@ int SUMA_SwitchColPlaneIntensity(
                            (SUMA_ALL_DO *)SOC, colpC, ind, 1)) {
             SUMA_S_Warn("Failed in contralateral");
          }
+
+        SUMA_ColorizePlane (colpC);          
       }
    }
       
   // Restore variable thresholding
-  fprintf(stderr, "AlphaOpacityFalloff = %d\n", AlphaOpacityFalloff);
-  fprintf(stderr, "SO = %p\n", SO);
   if (SO) SO->SurfCont->curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;
 
    SUMA_RETURN(1);
@@ -1320,19 +1510,6 @@ int SUMA_SwitchColPlaneIntensity_one (
    if (  !ado || !SurfCont ||
          !curColPlane ||
          !colp || !colp->dset_link || !colp->OptScl) { SUMA_RETURN(0); }
-   
-   // Temporarily suspend threshold outline.  This appears to resolve the 
-   // problem of the color map changing with the threshold slider
-   if  (ado->do_type == SO_type) {
-       SO = (SUMA_SurfaceObject *)ado;
-       if (SO->SurfCont){
-           BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
-           AlphaOpacityFalloff = SO->SurfCont->curColPlane->AlphaOpacityFalloff;
-           SO->SurfCont->BoxOutlineThresh = 0;
-           SO->SurfCont->curColPlane->AlphaOpacityFalloff = 0;
-           XmToggleButtonSetState(SO->SurfCont->curColPlane->AlphaOpacityFalloff, 0, 1);
-       }
-   }
 
    if (ind < 0) {
       if (ind == SUMA_BACK_ONE_SUBBRICK) {/* --1 */
@@ -1544,9 +1721,9 @@ int SUMA_SwitchColPlaneIntensity_one (
    SUMA_RETURN(1);
 }
 
+/* Called when I (intensity) subbrick changed */
 void SUMA_cb_SwitchIntensity(Widget w, XtPointer client_data, XtPointer call)
 {
-    // Called when I subbrick option changed
    static char FuncName[]={"SUMA_cb_SwitchIntensity"};
    int imenu = 0;
    SUMA_MenuCallBackData *datap=NULL;
@@ -1567,26 +1744,6 @@ void SUMA_cb_SwitchIntensity(Widget w, XtPointer client_data, XtPointer call)
    }
 
    SUMA_SwitchColPlaneIntensity(ado, curColPlane, imenu -1, 0);
-
-   SUMA_RETURNe;
-}
-
-void restoreProperThresholdCcontours(SUMA_ALL_DO *ado)
-{
-   static char FuncName[]={"restoreProperThresholdCcontours"};
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   XtPointer clientData = (XtPointer)ado;
-
-   SUMA_ENTRY;
-   
-   if (!SO || !(SO->SurfCont)){
-    fprintf(stderr, "WARNING: %s: No surface available", FuncName);
-    SUMA_RETURNe;
-   }
-   
-   if (SO->SurfCont->BoxOutlineThresh ){
-        SUMA_RestoreThresholdContours(clientData, NOPE);
-   }
 
    SUMA_RETURNe;
 }
@@ -1650,7 +1807,8 @@ int SUMA_SwitchColPlaneThreshold_one(
 
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
-   Label = SUMA_ADO_Label(ado);
+   if (!ado || !SurfCont || !curColPlane ||
+       !colp || ind < -1 || !colp->dset_link) { SUMA_RETURN(0); }
 
    if (  !ado || !SurfCont ||
          !curColPlane ||
@@ -1762,32 +1920,43 @@ int SUMA_SwitchColPlaneThreshold_one(
    SUMA_RETURN(1);
 }
 
+/* Called when T (threshold) subbrick changed */
 void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
 {
-   // Called when T subbrick option changed
    static char FuncName[]={"SUMA_cb_SwitchThreshold"};
    int imenu = 0;
    SUMA_MenuCallBackData *datap=NULL;
    SUMA_ALL_DO *ado=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
+   int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   int numSurfaceObjects, j;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
-   ado = (SUMA_ALL_DO *)datap->ContID;
-   imenu = (INT_CAST)datap->callback_data;
+   /* ado = (SUMA_ALL_DO *)datap->ContID;*/
+    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+                  &numSurfaceObjects, NULL);
+    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+    if (numSurfaceObjects != N_adolist) {
+        if (0) SUMA_S_Warn("Mismatch between # surface objects "
+                    "and # unique surface controllers"); 
+        SUMA_RETURNe;
+    }
+    for (j=0; j<N_adolist; ++j){
+       ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
 
-   curColPlane = SUMA_ADO_CurColPlane(ado);
-   if (imenu-1 == curColPlane->OptScl->tind) {
-      SUMA_RETURNe; /* nothing to be done */
+       imenu = (INT_CAST)datap->callback_data;
+
+       curColPlane = SUMA_ADO_CurColPlane(ado);
+       if (imenu-1 == curColPlane->OptScl->tind) {
+          SUMA_RETURNe; /* nothing to be done */
+       }
+
+       SUMA_SwitchColPlaneThreshold(ado, curColPlane, imenu -1, 1);
    }
-
-   SUMA_SwitchColPlaneThreshold(ado, curColPlane, imenu -1, 0);
-   
-   // Restore proper threshold contours when switching the thresold (T) subbrick
-   restoreProperThresholdCcontours(ado);
 
    SUMA_RETURNe;
 }
@@ -1934,9 +2103,9 @@ int SUMA_SwitchColPlaneBrightness_one(
 }
 
 
+/* Called when B (brightness) subbrick changed */
 void SUMA_cb_SwitchBrightness(Widget w, XtPointer client_data, XtPointer call)
 {
-   // Called when B subbrick option changed
    static char FuncName[]={"SUMA_cb_SwitchBrightness"};
    int imenu = 0;
    SUMA_MenuCallBackData *datap=NULL;
@@ -2220,7 +2389,7 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
    
-   // Get state of |T| check box
+   /* Get state of |T| check box */
    AbsThresh = XmToggleButtonGetState (SurfCont->AbsThresh_tb);
    
    if (!SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(ado, 
@@ -2230,7 +2399,8 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
                                                 /* nothing else to do */
    // Process other surface objects
    int numSurfaceObjects;
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+                 &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist)
    {
@@ -2316,7 +2486,8 @@ int SUMA_cb_SymIrange_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
 
    if (!SUMA_ColorizePlane (curColPlane)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
-         SUMA_RETURN(0);}
+         SUMA_RETURN(0);
+   }
    
    SUMA_Remixedisplay(ado);
    
@@ -2336,6 +2507,7 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    SUMA_TABLE_FIELD *TF=NULL;
    SUMA_Boolean LocalHead = NOPE;
    int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   int numSurfaceObjects;
 
    SUMA_ENTRY;
 
@@ -2358,12 +2530,13 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    }
 
    // Set sym range for other surfaces
-   int numSurfaceObjects;
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+                 &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist)
    {
-        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+        if (0) SUMA_S_Warn("Mismatch between # surface objects and "
+                    "# unique surface controllers"); 
         SUMA_RETURNe;
    }
    for (j=0; j<N_adolist; ++j){
@@ -2467,7 +2640,8 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    
    // Set show zero for other surfaces
    int numSurfaceObjects;
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+                 &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist)
    {
@@ -2489,62 +2663,84 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
-void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
+int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
+        Boolean notify)
+{
+   static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject"};
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+   SUMA_SurfaceObject *SO = NULL;
+
+   SUMA_ENTRY;
+
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (  !curColPlane ||
+         !curColPlane->OptScl )  {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURN(0);
+   }
+
+    // Set I Range check box
+    SurfCont=SUMA_ADO_Cont(ado);
+    if ( !SurfCont || !SurfCont->ShowZero_tb )  {
+      SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
+    }
+    SurfCont->alphaOpacityModel = QUADRATIC; // Make quadratic fall-off default
+    SO = (SUMA_SurfaceObject *)ado;
+    XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, state, notify);
+  
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+
+   if (!SUMA_ColorizePlane (curColPlane)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURN(0);
+   }
+   
+   SUMA_Remixedisplay(ado);
+   
+   SUMA_UpdateNodeValField(ado);
+   SUMA_UpdateNodeLblField(ado);
+
+   SUMA_RETURN(1);
+}
+
+void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
                                    XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
-   SUMA_ALL_DO *ado=NULL, *otherAdo=NULL;
+   SUMA_ALL_DO *ado = NULL, *otherAdo=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_SurfaceObject *SO = NULL;
-   int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   SUMA_TABLE_FIELD *TF=NULL;
    SUMA_Boolean AlphaOpacityFalloff;
+   int numSurfaceObjects;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
+   SUMA_LH("Called");
+
    ado = (SUMA_ALL_DO *)data;
-   if (!ado) SUMA_RETURNe;
-   SO = (SUMA_SurfaceObject *)ado;
-   if (!(SO->SurfCont=SUMA_ADO_Cont(ado))
-            || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
-    
-   // AlphaOpacityFalloff = !AlphaOpacityFalloff;
-   AlphaOpacityFalloff = SO->SurfCont->curColPlane->AlphaOpacityFalloff = XmToggleButtonGetState(w);
-/*
-   if (!(SO->Overlays)){
-    if (SO->SurfCont->AlphaOpacityFalloff){
-        fprintf (SUMA_STDERR,
-            "ERROR %s: Cannot make overlay variably opqaue.  There is no overlay.\n", 
-            FuncName);
-        // No variable opacity since there is no overlay
-        SO->SurfCont->AlphaOpacityFalloff = 0;
-        
-        // Uncheck "A" check-box
-        // SurfCont->AlphaOpacityFalloff = 0;
-        XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
-                              SO->SurfCont->AlphaOpacityFalloff, NOPE);    
-        }
-    SUMA_RETURNe;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+      SUMA_S_Warn("NULL input"); SUMA_RETURNe;
    }
-*/
-   // Default opacity model
-   if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
-   
-   // Refresh display
-   SUMA_Remixedisplay(ado);
-   SUMA_UpdateNodeLblField(ado);
-   
-   // Restore proper threshold contours if required when Alpha opacity 
-   //   checkbox toggled
-   restoreProperThresholdCcontours(ado);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if ( !curColPlane ) {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; 
+   }
+
+   SO = (SUMA_SurfaceObject *)ado;
+   AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
    
    // DEBUG
    float val = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
    SUMA_SetScaleThr(ado, NULL, &val, 0, 1);
    
-   
    // Process all surface objects
-   int numSurfaceObjects;
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+                 &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist)
    {
@@ -2563,23 +2759,6 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
                SO->SurfCont->curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;
                XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
                                           SO->SurfCont->curColPlane->AlphaOpacityFalloff, NOPE);
-/*
-               if (!(SO->Overlays)){
-                if (SO->SurfCont->AlphaOpacityFalloff){
-                    fprintf (SUMA_STDERR,
-                        "ERROR %s: Cannot make overlay variably opqaue.  There is no overlay.\n", 
-                        FuncName);
-                    // No variable opacity since there is no overlay
-                    SO->SurfCont->AlphaOpacityFalloff = 0;
-                    
-                    // Uncheck "A" check-box
-                    // SurfCont->AlphaOpacityFalloff = 0;
-                    XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
-                                          SO->SurfCont->AlphaOpacityFalloff, NOPE);    
-                    }
-                SUMA_RETURNe;
-               }
-               */
 
                // Default opacity model
                if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
@@ -2588,187 +2767,26 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled(Widget w, XtPointer data,
                SUMA_Remixedisplay(otherAdo);
                SUMA_UpdateNodeLblField(otherAdo);            
        
+           if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo,
+                AlphaOpacityFalloff, YUP)){
+                   SUMA_S_Warn("Error toggling variable opacity for "
+                               "current surface"); 
+                   SUMA_RETURNe;
+               }
+       
                // Restore proper threshold contours if required when Alpha opacity 
                //   checkbox toggled
-               restoreProperThresholdCcontours(otherAdo);
+               if (SO->SurfCont->BoxOutlineThresh)
+                    restoreProperThresholdCcontours(otherAdo);
+    
+               // DEBUG: Quick hack that make variable opacity appear
+               float val = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
+               SUMA_SetScaleThr(otherAdo, NULL, &val, 0, 1);
            }
         }
-    
-       // DEBUG: Quick hack that make variable opacity appear
-       float val = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
-       SUMA_SetScaleThr(otherAdo, NULL, &val, 0, 1);
    }
 
    SUMA_RETURNe;
-}
-
-SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, 
-    SUMA_OVERLAYS *over2, Bool thresholdChanged)
-{
-   static char FuncName[]={"setBoxOutlineForThresh"};
-   float *bckupColorMap, *onesVector;
-   int i, j, returnVal;   
-   float *overlayBackup; 
-   float *CMapBackup; 
-   static SUMA_DRAWN_ROI **OutlineContours = NULL;
-   static int N_OutlineContours = 0;
-   static SUMA_DRAWN_ROI **OriginalContours = NULL;
-   static int N_OriginalContours = 0;
-
-   SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
-   
-   if (!over2) SUMA_RETURN (YUP);
-
-   if (over2){ // If there are at least three overlay levels (as teh thrid has
-                // the colored region that the threshold relates to)
-    if (SO->SurfCont->BoxOutlineThresh){    // If B box checked
-        // Show threshold outline on topt of color overlay
-        // NB.  This is the basis of the C&C option of the Dsp control on the
-        // surface control menu
-        over2->ShowMode = SW_SurfCont_DsetViewCaC; 
-
-        if (OutlineContours && !thresholdChanged){ // If threshold outline
-                                // contours exist and threshold unchanged
-            over2->Contours = OutlineContours;  // Used existing contuors
-            over2->N_Contours = N_OutlineContours;
-        } else {    // Need new contours
-            // Free contours from different threshold
-            if (0 && OutlineContours){
-                free(OutlineContours);
-                OutlineContours = NULL;
-            }
-            
-             /* kill current contours */
-             // Remove existing conours which will be replaced
-             SUMA_KillOverlayContours(over2);
-             over2->Contours = NULL;
-             
-           // Back up overlay color map
-           size_t bytes2Copy = over2->N_NodeDef*sizeof(float);
-           size_t bytes2Copy2 = 3*over2->N_NodeDef*sizeof(float);
-           if (!(overlayBackup=(float *)malloc(bytes2Copy)) ||
-                !(CMapBackup=(float *)malloc(bytes2Copy2))){
-                if (overlayBackup) free(overlayBackup);
-                fprintf(stderr, "*** %s: Error allocating memory\n", FuncName);
-                SUMA_RETURN (NOPE);
-           }
-           for (i=j=0; i<over2->N_NodeDef; ++i){
-                overlayBackup[i] = over2->V[over2->NodeDef[i]];
-           }
-           memcpy((void *)CMapBackup, (void *)(over2->ColVec), bytes2Copy2);
-           
-           // Threshold based on relationship to threshold
-           for (i=j=0; i<over2->N_NodeDef; ++i){
-                over2->V[over2->NodeDef[i]] = 1.0f;  
-           }
-           
-           // Colorization also forms contours
-           if (!SUMA_ColorizePlane (over2)) {
-                 SUMA_SLP_Err("Failed to colorize plane.\n");
-                 SUMA_RETURN(NOPE);
-            }
-            
-           // Restore overlay colormap
-           for (i=0; i<over2->N_NodeDef; ++i){
-                over2->V[over2->NodeDef[i]] = overlayBackup[i];
-           }
-           memcpy((void *)(over2->ColVec), (void *)CMapBackup, bytes2Copy2);
-           free(CMapBackup);
-           free(overlayBackup);
-        
-            // Make contours black
-            if (over2->Contours){
-                for (i=0; i<over2->N_Contours; ++i){
-                    for (j=0; j<4; ++j){
-                        over2->Contours[i]->FillColor[j] = 0.0f;
-                    }
-                    over2->Contours[i]->EdgeThickness = 8;
-                }
-
-                // Save threshold outline contours
-                OutlineContours = over2->Contours;
-                N_OutlineContours = over2->N_Contours;
-            } else {
-                fprintf(stderr, "over2 = %p\n", over2);
-                if (over2) fprintf(stderr, "over2->N_Contours = %d\n", over2->N_Contours);
-                SUMA_SL_Err("ERROR: No contours found\n");
-                SUMA_RETURN (NOPE);
-            }
-        }
-    } else {    // Don't show threshold contours
-        over2->ShowMode = SW_SurfCont_DsetViewCol;
-        over2->Contours = OriginalContours;
-        over2->N_Contours = N_OriginalContours;
-    }
-   }
-   
-   SUMA_RETURN (YUP);
-}
-
-void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado, 
-        int BoxOutlineThresh, SUMA_Boolean refreshDisplay)
-{
-   static char FuncName[]={"applyBoxOutlineThreshStatusToSurfaceObject"};
-   SUMA_SurfaceObject *SO = NULL;
-   SUMA_OVERLAYS *over2 = NULL;
-   Widget w = NULL;
-   int i, colorplaneIndex = -1;
-   Bool  thresholdChanged;
-   static float threshold;
-
-   SUMA_ENTRY;
-
-   SO = (SUMA_SurfaceObject *)ado;
-   if (!(SO->SurfCont)){
-        fprintf(stderr, "ERROR %s: Cannot have surface threshold outline.  No surface\n", 
-            FuncName);
-        XmToggleButtonSetState(w, 0, 0);
-        SUMA_RETURNe;
-   }
-   
-   // Set widget state without calling callback
-   w = SO->SurfCont->BoxOutlineThresh_tb;   
-   XmToggleButtonSetState(w, BoxOutlineThresh, 0);
-   
-   // Record threshold contour status for this surface object
-   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-     
-   // Apply threshold contours
-    for (i=0; i<SO->N_Overlays; ++i){
-        if (SO->SurfCont->curColPlane == SO->Overlays[i]){
-           colorplaneIndex = i;
-
-           // Get colorplane overlay
-           over2 = SO->Overlays[colorplaneIndex];
-           
-           // Don't process if threshold zero
-           if (over2->OptScl->ThreshRange[0] == 0) continue;
-            
-           if (!over2){
-                fprintf(stderr, "+++++ WARNING: %s: Required overlay unavailable\n",
-                    FuncName);
-                SUMA_RETURNe;
-           }
-          
-           // Determine whether threshold changed
-           thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
-
-           // Set up outlines for thresholded regions
-           setBoxOutlineForThresh(SO, over2, thresholdChanged);   
-           
-           break;
-        }
-    }   
-  
-   // Refresh display
-   if (refreshDisplay){
-       SUMA_Remixedisplay(ado);
-       SUMA_UpdateNodeLblField(ado);
-   }
-
-   SUMA_RETURNe;   
 }
 
 void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
@@ -2821,61 +2839,92 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
         }
    }
 
+   // Refresh display
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
 
    SUMA_RETURNe;
 }
 
+/* Toggles the use of the threshold pn/off when v button,
+   by I subvrick pulldown, clicked
+ */
 void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_SwitchInt_toggled"};
    SUMA_ALL_DO *ado = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
+   int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   int numSurfaceObjects, j, Int_tb;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
    SUMA_LH("Called");
 
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+                  &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist) {
+       if (0) SUMA_S_Warn("Mismatch between # surface objects and "
+                   "# unique surface controllers"); 
+       if (numSurfaceObjects != 1) SUMA_RETURNe;
+   }
+    
    ado = (SUMA_ALL_DO *)data;
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
-      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+      SUMA_S_Warn("NULL input"); SUMA_RETURNe;
+   }
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if ( !curColPlane )  {
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
-   }
-
-   /* make sure ok to turn on */
-   if (curColPlane->OptScl->find < 0) {
-      SUMA_BEEP;
-      SUMA_SLP_Note("no intensity column set");
-      XmToggleButtonSetState (SurfCont->Int_tb, NOPE, NOPE);
-      SUMA_RETURNe;
-   }
-
+   }   
+   
    /* this button's the same as the Show button */
    if (XmToggleButtonGetState (SurfCont->Int_tb)) {
-      curColPlane->ShowMode =
-         SUMA_ABS(curColPlane->ShowMode);
+      curColPlane->ShowMode = SUMA_ABS(curColPlane->ShowMode);
    } else {
-      curColPlane->ShowMode =
-         -SUMA_ABS(curColPlane->ShowMode);
-   }
-   if (SurfCont->DsetViewModeMenu) {
-      SUMA_Set_Menu_Widget(SurfCont->DsetViewModeMenu,
-                           SUMA_ShowMode2ShowModeMenuItem(
-                                                curColPlane->ShowMode));
+      curColPlane->ShowMode = -SUMA_ABS(curColPlane->ShowMode);
    }
 
-   SUMA_ColorizePlane(curColPlane);
-   SUMA_Remixedisplay(ado);
-   SUMA_UpdateNodeLblField(ado);
-   
-   // Restore proper threshold contours after switch Int (middle "v" toggled)
-   if  (ado->do_type == SO_type) restoreProperThresholdCcontours(ado);
+   Int_tb = XmToggleButtonGetState (SurfCont->Int_tb);
+    
+   for (j=0; j<numSurfaceObjects; ++j){
+      ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+
+      if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+         SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+      curColPlane = SUMA_ADO_CurColPlane(ado);
+      if ( !curColPlane )  {
+         SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+      }
+
+      /* make sure ok to turn on */
+      if (curColPlane->OptScl->find < 0) {
+         SUMA_BEEP;
+         SUMA_SLP_Note("no intensity column set");
+         XmToggleButtonSetState (SurfCont->Int_tb, NOPE, NOPE);
+         SUMA_RETURNe;
+      }
+
+      /* this button's the same as the Show button */
+      XmToggleButtonSetState (SurfCont->Int_tb,Int_tb, 0);
+      if (Int_tb) {
+         curColPlane->ShowMode = SUMA_ABS(curColPlane->ShowMode);
+      } else {
+         curColPlane->ShowMode = -SUMA_ABS(curColPlane->ShowMode);
+      }
+      if (SurfCont->DsetViewModeMenu) {
+         SUMA_Set_Menu_Widget(SurfCont->DsetViewModeMenu,
+                     SUMA_ShowMode2ShowModeMenuItem( curColPlane->ShowMode));
+      }
+
+      SUMA_ColorizePlane(curColPlane);
+      SUMA_Remixedisplay(ado);
+      SUMA_UpdateNodeLblField(ado);
+   }
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
@@ -2883,12 +2932,18 @@ void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
    SUMA_RETURNe;
 }
 
+/* Toggles the use of the threshold pn/off when v button,
+   by T subvrick pulldown, clicked
+*/
 void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_SwitchThr_toggled"};
    SUMA_ALL_DO *ado = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
+   int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   int numSurfaceObjects, j;
+   SUMA_Boolean UseThr;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -2903,7 +2958,6 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
    if ( !curColPlane )  {
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
-
 
    /* make sure ok to turn on */
    if (curColPlane->OptScl->tind < 0) {
@@ -2913,13 +2967,44 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
       SUMA_RETURNe;
    }
 
-   curColPlane->OptScl->UseThr =
-         XmToggleButtonGetState (SurfCont->Thr_tb);
+   UseThr = XmToggleButtonGetState (SurfCont->Thr_tb);
+   curColPlane->OptScl->UseThr = UseThr;
 
-   SUMA_ColorizePlane(curColPlane);
-   SUMA_Remixedisplay(ado);
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist) {
+       if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+       if (numSurfaceObjects != 1) SUMA_RETURNe;
+   }
+   for (j=0; j<numSurfaceObjects; ++j){
+       ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
 
-   SUMA_UpdateNodeLblField(ado);
+      if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+         SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+      curColPlane = SUMA_ADO_CurColPlane(ado);
+      if ( !curColPlane )  {
+         SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+      }
+
+      /* make sure ok to turn on */
+      if (curColPlane->OptScl->tind < 0) {
+         SUMA_BEEP;
+         SUMA_SLP_Note("no threshold column set");
+         XmToggleButtonSetState (SurfCont->Thr_tb, NOPE, NOPE);
+         SUMA_RETURNe;
+      }
+
+      curColPlane->OptScl->UseThr = UseThr;
+           /* XmToggleButtonGetState (SurfCont->Thr_tb); */
+
+      /* Set toggle button for this surface */
+      XmToggleButtonSetState (SurfCont->Thr_tb, UseThr , NOPE);
+
+      SUMA_ColorizePlane(curColPlane);
+      SUMA_Remixedisplay(ado);
+
+      SUMA_UpdateNodeLblField(ado);
+   }
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
@@ -2927,12 +3012,18 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
    SUMA_RETURNe;
 }
 
+/* Toggles the use of the threshold pn/off when v button,
+   by - subvrick pulldown, clicked
+*/
 void SUMA_cb_SwitchBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_SwitchBrt_toggled"};
    SUMA_ALL_DO *ado = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
+   int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   int numSurfaceObjects, j;
+   SUMA_Boolean UseBrt;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -2956,12 +3047,28 @@ void SUMA_cb_SwitchBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
       SUMA_RETURNe;
    }
 
-   curColPlane->OptScl->UseBrt =
-                     XmToggleButtonGetState (SurfCont->Brt_tb);
+   UseBrt = XmToggleButtonGetState (SurfCont->Brt_tb);
+   curColPlane->OptScl->UseBrt = UseBrt;
 
-   SUMA_ColorizePlane(curColPlane);
-   SUMA_Remixedisplay(ado);
-   SUMA_UpdateNodeLblField(ado);
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+                 &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist) {
+       if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+       if (numSurfaceObjects != 1) SUMA_RETURNe;
+   }
+   for (j=0; j<numSurfaceObjects; ++j){
+      ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+      curColPlane = SUMA_ADO_CurColPlane(ado);
+      if ( !curColPlane )  {
+         SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+      }
+      curColPlane->OptScl->UseBrt = UseBrt;
+      XmToggleButtonSetState (SurfCont->Brt_tb, UseBrt, NOPE);
+      SUMA_ColorizePlane(curColPlane);
+      SUMA_Remixedisplay(ado);
+      SUMA_UpdateNodeLblField(ado);
+   }
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
@@ -3030,7 +3137,6 @@ SUMA_MenuItem LinkMode_Menu[] = {
 };
 
 SUMA_MenuItem AlphaMode_Menu[] = {
-/**/
    {  "Threshol", &xmPushButtonWidgetClass,
       '\0', NULL, NULL,
       SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_None, NULL},
@@ -3048,7 +3154,6 @@ SUMA_MenuItem AlphaMode_Menu[] = {
       SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_Stat, NULL},
 
    {NULL},
-/**/
 };
 
 /*!
@@ -6097,6 +6202,7 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
             NULL);
 
    SUMA_LHv("Colorize if necessary, redisplay=%d\n", redisplay);
+
    /* colorize if necessary */
    if ( redisplay == 0 ||
         (redisplay == 1 && !curColPlane->OptScl->UseThr) ) {
@@ -6907,12 +7013,9 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
    }
 
    /* Now, you need to redraw the deal */
-   if  (ado->do_type == SO_type){
-       SO = (SUMA_SurfaceObject *)ado;
-       if (!(SO->SurfCont->BoxOutlineThresh ) && REDISP) {
-          SUMA_ColorizePlane(curColPlane);
-          SUMA_Remixedisplay(ado);
-       }
+   if (REDISP) {
+      SUMA_ColorizePlane(curColPlane);
+      SUMA_Remixedisplay(ado);
    }
 
    /* update the Xhair Info block */
@@ -7048,48 +7151,47 @@ void SUMA_cb_SetRangeValue (void *data)
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
 
-            if (!(SurfCont=SUMA_ADO_Cont(otherAdo))) {
-              SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
-         
-           SurfCont = SUMA_ADO_Cont(otherAdo);
-           curColPlane = SUMA_ADO_CurColPlane(otherAdo);
-
-           colp = curColPlane;
-
-           TF = SurfCont->SetRangeTable;
-           TF->cell_modified = n;
-           if (TF->cell_modified<0) SUMA_RETURNe;
-           n = TF->cell_modified;
-           fprintf(stderr, "n = %d\n", n);
-
-           row = n % TF->Ni;
-           col = n / TF->Ni;
-           // XtVaGetValues(TF->cells[n], XmNvalue, &cv, NULL);
-           if (LocalHead) {
-              fprintf(SUMA_STDERR,"%s:\nTable cell[%d, %d]=%s\n",
-                                   FuncName, row, col, (char *)cv);
+           if (!(SurfCont=SUMA_ADO_Cont(otherAdo))) {
+             fprintf(stderr, "Surface index = %d", j);
+             SUMA_S_Warn("NULL input"); 
+             continue;
            }
 
-           an = SUMA_SetRangeValueNew(otherAdo, colp, row, col,
-                                  newMin, 0.0,
-                                  0, 1, &reset, TF->num_units);
-            fprintf(stderr, "an = %d\n", an);
-            fprintf(stderr, "reset = %d\n", reset);
-                                  /**/
-           if (an < 0) {
-              if (an == -1 || an == -2) {
-                 SUMA_BEEP;
-                 TF->num_value[n] = reset;
-                 SUMA_TableF_SetString(TF);
-                 if (an == -1) { SUMA_SLP_Err("Lower bound > Upper bound!"); }
-                 else { SUMA_SLP_Err("Upper bound < Lower bound!"); }
-              } else {
-                 SUMA_S_Err("Erriosity");
-              }
-           }
-           /**/
-         }
-    }
+          curColPlane = SUMA_ADO_CurColPlane(otherAdo);
+
+          colp = curColPlane;
+
+          TF = SurfCont->SetRangeTable;
+          TF->cell_modified = n;
+          if (TF->cell_modified<0) SUMA_RETURNe;
+          n = TF->cell_modified;
+
+          row = n % TF->Ni;
+          col = n / TF->Ni;
+          // XtVaGetValues(TF->cells[n], XmNvalue, &cv, NULL);
+          if (LocalHead) {
+             fprintf(SUMA_STDERR,"%s:\nTable cell[%d, %d]=%s\n",
+                                  FuncName, row, col, (char *)cv);
+          }
+
+          an = SUMA_SetRangeValueNew(otherAdo, colp, row, col,
+                                 newMin, 0.0,
+                                 0, 1, &reset, TF->num_units);
+
+          if (an < 0) {
+             if (an == -1 || an == -2) {
+                SUMA_BEEP;
+                TF->num_value[n] = reset;
+                SUMA_TableF_SetString(TF);
+                if (an == -1) { SUMA_SLP_Err("Lower bound > Upper bound!"); }
+                else { SUMA_SLP_Err("Upper bound < Lower bound!"); }
+             } else {
+                SUMA_S_Err("Erriosity");
+             }
+          }
+          /**/
+        }
+   }
 
    SUMA_RETURNe;
 }
