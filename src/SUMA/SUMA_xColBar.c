@@ -2737,6 +2737,13 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    // DEBUG
    float val = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
    SUMA_SetScaleThr(ado, NULL, &val, 0, 1);
+       
+    if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo,
+        AlphaOpacityFalloff, YUP)){
+           SUMA_S_Warn("Error toggling variable opacity for "
+                       "current surface"); 
+           SUMA_RETURNe;
+       }
    
    // Process all surface objects
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
@@ -2749,7 +2756,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    }
    for (j=0; j<N_adolist; ++j){
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        if (otherAdo != ado){
+        if (1 || otherAdo != ado){
             if (otherAdo->do_type == SO_type){
                SO = (SUMA_SurfaceObject *)otherAdo;
                if (!(SO->SurfCont=SUMA_ADO_Cont(otherAdo))
@@ -2762,23 +2769,23 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
 
                // Default opacity model
                if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
-               
+/*               
                // Refresh display
                SUMA_Remixedisplay(otherAdo);
                SUMA_UpdateNodeLblField(otherAdo);            
-       
-           if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo,
-                AlphaOpacityFalloff, YUP)){
-                   SUMA_S_Warn("Error toggling variable opacity for "
-                               "current surface"); 
-                   SUMA_RETURNe;
-               }
-       
+*/       
+                if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo,
+                    AlphaOpacityFalloff, YUP)){
+                       SUMA_S_Warn("Error toggling variable opacity for "
+                                   "current surface"); 
+                       SUMA_RETURNe;
+                   }
+/*       
                // Restore proper threshold contours if required when Alpha opacity 
                //   checkbox toggled
                if (SO->SurfCont->BoxOutlineThresh)
                     restoreProperThresholdCcontours(otherAdo);
-    
+*/    
                // DEBUG: Quick hack that make variable opacity appear
                float val = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
                SUMA_SetScaleThr(otherAdo, NULL, &val, 0, 1);
