@@ -8348,10 +8348,11 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
             }
          }
       }
-   
+#if 0   
    if (SO->SurfCont->BoxOutlineThresh /* && outlinevector */){
         drawThresholdOutline(SO, SV);
    }
+#endif
 
    /* free this mess and get out */
    if (isColored) SUMA_free(isColored);

@@ -2734,6 +2734,144 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    SO = (SUMA_SurfaceObject *)ado;
    AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
 
+               XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
+                                          AlphaOpacityFalloff, YUP);
+
+               // Default opacity model
+               if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
+
+               // #if 0
+               // DEBUG: Quick hack that make variable opacity appear
+               float Value = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
+               // SUMA_SetScaleThr_one(ado, SO->SurfCont->curColPlane, &val, 0, 1);
+               SUMA_OVERLAYS *colp = SO->SurfCont->curColPlane;
+               SUMA_ALL_DO *curDO = NULL;
+               // SUMA_TABLE_FIELD *TF=NULL;
+               int cv=0;
+               // SUMA_X_SurfCont *SurfCont=NULL;
+               // SUMA_OVERLAYS *curColPlane=NULL;
+               float *val = &Value;
+               int setmen = 0;
+               int redisplay = 1;
+               
+               if (ado->do_type == SO_type) {
+                   SO = (SUMA_SurfaceObject *)ado;
+                   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+                   SO->SurfCont->BoxOutlineThresh = 0;
+               }
+
+               if (!(SurfCont=SUMA_ADO_Cont(ado)) ||
+                   !SurfCont->SetThrScaleTable) SUMA_RETURN(0);
+               curColPlane = SUMA_ADO_CurColPlane(ado);
+               if (colp && colp != curColPlane) SUMA_RETURN(0);
+
+               if (!(curDO = SUMA_SurfCont_GetcurDOp(SurfCont))) {
+                  SUMA_S_Err("Failed to get curDOp");
+                  SUMA_RETURNe;
+               }
+               TF = SurfCont->SetThrScaleTable;
+               
+               
+               switch (TF->num_units) {
+                  case SUMA_P_VALUE_UNITS:
+                     if (LocalHead)
+                           fprintf( SUMA_STDERR,
+                                    "%s:\nUnits in p value, transforming %f\n",
+                                    FuncName, *val);
+                     /* transform value from P to threshold value */
+                     *val = (float)SUMA_Pval2ThreshVal (ado, (double)*val);
+                     if (LocalHead)
+                           fprintf( SUMA_STDERR,
+                                    "   to %f\n",
+                                    *val);
+                     /* reset the units of the table to reflect new value,
+                        string containing new val is reset later on*/
+                     TF->num_units = SUMA_NO_NUM_UNITS;
+                     break;
+                  case SUMA_PERC_VALUE_UNITS:
+                     SUMA_LH("Units in percentile value, transforming %f\n", *val);
+                     *val = SUMA_OverlayPercentile(colp, 'T', *val);
+                     TF->num_units = SUMA_NO_NUM_UNITS;
+                     break;
+                  default:
+                     break;
+               }
+
+
+               cv = SUMA_ThreshVal2ScalePos (ado, val );
+
+
+               /* TF->cell_modifed is not good when the call is made
+               as a result of LR controller yoking. So don't bother using it.
+               We only have one cell to be modified anyway. ZSS Sept 11 2012 */
+
+
+               /* check on value */
+               if (TF->num_value[0] != *val) {
+                  /* a change in value (plateau effect) */
+                  TF->num_value[0] = *val;
+                  if (!setmen) setmen = 1;
+               }
+
+
+               if (setmen) {
+                  SUMA_INSERT_CELL_VALUE(TF, 0, 0, *val);
+               }
+
+
+               if (LocalHead)
+                  fprintf( SUMA_STDERR,
+                           "%s:\nSet thresholdiation, new value is %f\n",
+                           FuncName, *val);
+               /* if value OK, set threshold bar*/
+               curColPlane->OptScl->ThreshRange[0] = *val;
+               XtVaSetValues(SurfCont->thr_sc,
+                        XmNvalue, cv,
+                        NULL);
+
+
+               SUMA_LHv("Colorize if necessary, redisplay=%d\n", redisplay);
+
+               /* colorize if necessary */
+               if ( redisplay == 0 ||
+                    (redisplay == 1 && !curColPlane->OptScl->UseThr) ) {
+                  SUMA_RETURNe;
+               } /* nothing else to do */
+
+
+
+               SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+
+               SUMA_LH("Colorize");
+               if (!SUMA_ColorizePlane (curColPlane)) {
+                  SUMA_SLP_Err("Failed to colorize plane.\n");
+                  SUMA_RETURNe;
+               }
+
+               SUMA_LH("Remix redisplay");
+               SUMA_Remixedisplay(ado);
+
+               SUMA_UpdateNodeLblField(ado);
+               SUMA_UpdatePvalueField( ado,
+                                       curColPlane->OptScl->ThreshRange[0]);
+
+                if (SO && SO->SurfCont) {
+                   // Restore threshold boundary if necessary.  This is called when the 
+                   //   threshold slider is moved
+                   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+
+                   // Restore threshold boundary if necessary
+                   if (0 && SO->SurfCont->BoxOutlineThresh ){
+                        XtPointer clientData = (XtPointer)ado;
+                        SUMA_RestoreThresholdContours(clientData, NOPE);
+                   }
+                }
+// #endif
+
+               
+               
+               
+
    // Process all surface objects
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                  &numSurfaceObjects, NULL);
@@ -2744,35 +2882,55 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
         SUMA_RETURNe;
    }
 
+   fprintf(stderr, "N_adolist = %d\n", N_adolist);
+   fprintf(stderr, "ado = %p\n", ado);
+   fprintf(stderr, "ado->do_type = %d\n", ado->do_type);
    for (j=0; j<N_adolist; ++j){
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        if (1 || otherAdo != ado){
+            fprintf(stderr, "otherAdo->do_type = %d\n", otherAdo->do_type);
             if (otherAdo->do_type == SO_type){
                SO = (SUMA_SurfaceObject *)otherAdo;
                if (!(SO->SurfCont=SUMA_ADO_Cont(otherAdo))
-                        || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
+                        || !SO->SurfCont->ColPlaneOpacity) {
+                            fprintf(stderr, "Appropriate surface object unavailable\n");
+                            continue;
+                        }
    
-//               BoxOutlineThresh=SO->SurfCont->BoxOutlineThresh;
-//               SO->SurfCont->BoxOutlineThresh = 0;
-        
-               // AlphaOpacityFalloff = !AlphaOpacityFalloff;
+               fprintf(stderr, "otherAdo = %p\n", otherAdo);
                SO->SurfCont->curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;
                XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
-                                          SO->SurfCont->curColPlane->AlphaOpacityFalloff, NOPE);
+                                          AlphaOpacityFalloff, YUP);
 
                // Default opacity model
                if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
 
-               // DEBUG: Quick hack that make variable opacity appear
-               float val = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
-               // SUMA_SetScaleThr(otherAdo, NULL, &val, 0, 1);
-               SUMA_SetScaleThr_one(otherAdo, SO->SurfCont->curColPlane, &val, 0, 1);
-               // SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+               BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+               SO->SurfCont->BoxOutlineThresh = 0;
+
+               SUMA_LH("Colorize");
+               if (!SUMA_ColorizePlane (curColPlane)) {
+                  SUMA_SLP_Err("Failed to colorize plane.\n");
+                  SUMA_RETURNe;
+               }
+
+               SUMA_LH("Remix redisplay");
+               SUMA_Remixedisplay(otherAdo);
+
+                if (SO && SO->SurfCont) {
+                   // Restore threshold boundary if necessary.  This is called when the 
+                   //   threshold slider is moved
+                   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+
+                   // Restore threshold boundary if necessary
+                   if (SO->SurfCont->BoxOutlineThresh ){
+                        XtPointer clientData = (XtPointer)otherAdo;
+                        SUMA_RestoreThresholdContours(clientData, NOPE);
+                   }
+                }
+
+               break;
            }
-        }
    }
-   
-   // SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
 
    SUMA_RETURNe;
 }
@@ -6131,6 +6289,7 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    }
    TF = SurfCont->SetThrScaleTable;
 
+   
    switch (TF->num_units) {
       case SUMA_P_VALUE_UNITS:
          if (LocalHead)
