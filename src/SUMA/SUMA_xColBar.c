@@ -1076,14 +1076,14 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
                 fprintf(stderr, "*** %s: Error allocating memory\n", FuncName);
                 SUMA_RETURN (NOPE);
            }
-           for (i=j=0; i<over2->N_NodeDef; ++i){
+           for (i=0; i<over2->N_NodeDef; ++i){
                 overlayBackup[i] = over2->V[over2->NodeDef[i]];
            }
            memcpy((void *)CMapBackup, (void *)(over2->ColVec), bytes2Copy2);
            
-           // Threshold based on relationship to threshold
-           for (i=j=0; i<over2->N_NodeDef; ++i){
-                over2->V[over2->NodeDef[i]] = 1.0f;  
+           // Threshold based on relationship to superthreshold regions
+           for (i=0; i<over2->N_V; ++i){
+                over2->V[i] = (float)(over2->V[i] >= over2->IntRange[0]);  
            }
            
            // Colorization also forms contours
@@ -2818,30 +2818,12 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
                   SUMA_INSERT_CELL_VALUE(TF, 0, 0, *val);
                }
 
-
-               if (LocalHead)
-                  fprintf( SUMA_STDERR,
-                           "%s:\nSet thresholdiation, new value is %f\n",
-                           FuncName, *val);
-               /* if value OK, set threshold bar*/
+               /* if value OK, set threshold bar*//*
                curColPlane->OptScl->ThreshRange[0] = *val;
                XtVaSetValues(SurfCont->thr_sc,
                         XmNvalue, cv,
                         NULL);
-
-
-               SUMA_LHv("Colorize if necessary, redisplay=%d\n", redisplay);
-
-               /* colorize if necessary */
-               if ( redisplay == 0 ||
-                    (redisplay == 1 && !curColPlane->OptScl->UseThr) ) {
-                  SUMA_RETURNe;
-               } /* nothing else to do */
-
-
-
-               SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
-
+*/
                SUMA_LH("Colorize");
                if (!SUMA_ColorizePlane (curColPlane)) {
                   SUMA_SLP_Err("Failed to colorize plane.\n");
@@ -2850,10 +2832,6 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
 
                SUMA_LH("Remix redisplay");
                SUMA_Remixedisplay(ado);
-
-               SUMA_UpdateNodeLblField(ado);
-               SUMA_UpdatePvalueField( ado,
-                                       curColPlane->OptScl->ThreshRange[0]);
 
                 if (SO && SO->SurfCont) {
                    // Restore threshold boundary if necessary.  This is called when the 
@@ -2873,18 +2851,14 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
                
 
    // Process all surface objects
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
-                 &numSurfaceObjects, NULL);
+   // int numSurfaceObjects;
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist)
    {
         SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
         SUMA_RETURNe;
    }
-
-   fprintf(stderr, "N_adolist = %d\n", N_adolist);
-   fprintf(stderr, "ado = %p\n", ado);
-   fprintf(stderr, "ado->do_type = %d\n", ado->do_type);
    for (j=0; j<N_adolist; ++j){
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
             fprintf(stderr, "otherAdo->do_type = %d\n", otherAdo->do_type);
@@ -2988,6 +2962,9 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    // Refresh display
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
+   
+   // DEBUG
+   fprintf(stderr, "SO->SurfCont->curColPlane->AlphaOpacityFalloff = %d\n", SO->SurfCont->curColPlane->AlphaOpacityFalloff);
 
    SUMA_RETURNe;
 }
