@@ -1234,13 +1234,13 @@ void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay)
             applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE);
         }
    }
-
+/*
    // Refresh display
    if (refreshDisplay){
        SUMA_Remixedisplay(ado);
        SUMA_UpdateNodeLblField(ado);
    }
-
+*/
    SUMA_RETURNe;
 }
 
@@ -1260,17 +1260,11 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "+++++ %s\n", FuncName);
-
    SUMA_LH("called");
    ado = (SUMA_ALL_DO *)clientData;
    if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }
-   
-   
-   fprintf(stderr, "+++++ %s: Temporarily suspend threshold outline\n", FuncName);
 
    // Change threshold   
-   fprintf(stderr, "+++++ %s: Change threshold\n", FuncName);
    XtVaGetValues(w, XmNuserData, &dec, NULL);
    fff = (float)cbs->value / pow(10.0, dec);
    SUMA_LHv("Have %f\n", fff);
@@ -1304,6 +1298,7 @@ int SUMA_set_threshold(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    // Refreshes variable opacity with threshold outlines
    if (!SUMA_SetScaleThr_one(ado, colp, val, 1, 1)) SUMA_RETURN(0);
 
+   // Process other surfaces
    if (ado->do_type == SO_type) {
       /* do we have a contralateral SO and overlay? */
       SO = (SUMA_SurfaceObject *)ado;
@@ -2777,8 +2772,8 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
        
                // Restore proper threshold contours if required when Alpha opacity 
                //   checkbox toggled
-               if (SO->SurfCont->BoxOutlineThresh)
-                    restoreProperThresholdCcontours(otherAdo);
+//               if (SO->SurfCont->BoxOutlineThresh)
+//                    restoreProperThresholdCcontours(otherAdo);
     
                // DEBUG: Quick hack that make variable opacity appear
                float val = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];

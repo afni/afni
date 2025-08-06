@@ -8099,8 +8099,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
        *   to block color of voxels, but AlphaOp overrode that, so check
        *   AlphaOp and UseThr as a pair
        */
-//       fprintf(stderr, "Color: currentOverlay->AlphaOpacityFalloff = %d\n", currentOverlay->AlphaOpacityFalloff);
-//       fprintf(stderr, "Color: currentOverlay->OptScl->UseThr = %d\n", currentOverlay->OptScl->UseThr);
+       fprintf(stderr, "Color: currentOverlay->AlphaOpacityFalloff = %d\n", currentOverlay->AlphaOpacityFalloff);
+       fprintf(stderr, "Color: currentOverlay->OptScl->UseThr = %d\n", currentOverlay->OptScl->UseThr);
 
       if (currentOverlay->AlphaOpacityFalloff
          && currentOverlay->OptScl->UseThr) {
@@ -8111,11 +8111,11 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
            
             avgfact = Back_Modfact / 3.0;
             
-//            if ( opacity > 0.1 && debugCnt++ < 6){
-//            
-//                fprintf(stderr, "opacity = %f, i = %d, isColored_Fore[i] = %d, isColored_Back[i] = %d, debugCnt = %d\n",
-//                    opacity, i, isColored_Fore[i] , isColored_Back[i] , debugCnt);            
-//            }
+            if ( opacity > 0.1 && debugCnt++ < 4){
+            
+                fprintf(stderr, "opacity = %f, i = %d, isColored_Fore[i] = %d, isColored_Back[i] = %d, debugCnt = %d\n",
+                    opacity, i, isColored_Fore[i] , isColored_Back[i] , debugCnt);            
+            }
 
             if (isColored_Fore[i] && isColored_Back[i]) {
                         /* colors from both sides, adjust brightness */
