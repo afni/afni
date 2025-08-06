@@ -109,7 +109,8 @@ to find subject datasets that have certain properties.  For example
        -outlier_sep      space                           \\
        -report_outliers  'nv'     VARY                   \\
        -report_outliers  'orient' VARY                   \\
-       -report_outliers  'ad3'    LT 3.0 
+       -report_outliers  'ad3'    LT 3.0                 \\
+       -report_outliers  'ad3'    VARY_PM 0.001
 
 
 """
