@@ -1265,9 +1265,9 @@ class MyInterface:
          return -4
 
       # parse pm
-      chck, fpm = self.parse_pm(pm, f2)
-      if chck :
-         return chck
+      check, fpm = self.parse_pm(pm, f2)
+      if check :
+         return check
 
       # have floats, perform comparison
       return int(abs(f2-f1) > fpm)
