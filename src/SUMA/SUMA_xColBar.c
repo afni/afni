@@ -1234,13 +1234,16 @@ void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay)
             applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE);
         }
    }
-/*
+   
+/* NB: This restores the threshol outlines to both surfaces but variable thresholding only
+on one surface.
+
    // Refresh display
    if (refreshDisplay){
        SUMA_Remixedisplay(ado);
        SUMA_UpdateNodeLblField(ado);
    }
-*/
+/**/
    SUMA_RETURNe;
 }
 
@@ -1277,6 +1280,8 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
             SUMA_RestoreThresholdContours(ado, YUP);
         }       
     }
+    
+    // SUMA_postRedisplay(w, clientData, call);
    
    SUMA_RETURNe;
 }
@@ -2755,7 +2760,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
                SO->SurfCont->curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;
                
                BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh ;
-               SO->SurfCont->BoxOutlineThresh  = 0;
+               // SO->SurfCont->BoxOutlineThresh  = 0;
                
                XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
                                           SO->SurfCont->curColPlane->AlphaOpacityFalloff, NOPE);
