@@ -395,6 +395,43 @@ def db_cmd_tcat(proc, block):
        if rv: return
        if tcmd != '': cmd += tcmd
 
+    # QC: run gtkyd.py
+    gcmd = run_gtkyd(proc, block)
+    if gcmd != '':
+       cmd += gcmd
+
+    return cmd
+
+def run_gtkyd(proc, block):
+    """run gtkyd_check.py, and check for any errors or warnings
+
+        basic command: gtkyd_check.py -infiles pb00.*.HEAD -outdir gtkyd
+
+        Then run any commands to possibly produce a warnings file, or to
+        have the script fail outright.
+
+**** todo: datum, same_all_grid (obliquity might need to be linient)
+
+
+    """
+
+    # basic, for now (add blip, warp, etc.)
+    cmd = '# -------------------------------------------------------\n'     \
+          '# QC - GTKYD: get to know your data: generate attribute files\n' \
+          'gtkyd_check.py -infiles pb00.*.HEAD -outdir gtkyd\n\n'
+
+    gbase = 'gen_ss_review_table.py -infiles gtkyd/dset*.txt -outlier_sep space'
+
+    gtests = [ 'datum VARY', 'orient VARY', 'av_space VARY' ]
+    tstr   = ' \\\n    -report_outliers '.join(gtests)
+
+    cmd += '# -------------------------------------------------------\n'   \
+           '# QC - GTKYD: check for varying data type across EPI inputs\n' \
+           '%s \\\n'                                                       \
+           '    -report_outliers %s \\\n'                                  \
+           '    |& tee out.gtkyd.outliers.txt\n\n'                         \
+           % (gbase, tstr)
+
     return cmd
 
 def tcat_make_blip_in_for(proc, block):
