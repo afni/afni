@@ -713,11 +713,11 @@ dict_info : dict
 
     elif do_nifti_if_brik :
         for key in gtkyd_nifti_tool_all.keys():
-            dict_info[key] = [gtkyd_nifti_tool_all[x] * 'NA']
+            dict_info[key] = ['NA']
         for key in gtkyd_nifti_tool_exts.keys():
-            dict_info[key] = [gtkyd_nifti_tool_exts[x] * 'NA']
+            dict_info[key] = ['NA']
         for key in gtkyd_nifti_sidecar.keys():
-            dict_info[key] = [gtkyd_nifti_sidecar[x] * 'NA']
+            dict_info[key] = ['NA']
 
     # 3dBrickStat part
     if do_brickstat :

@@ -1330,17 +1330,6 @@ general options: ~2~
 
         See example 23.
 
-   -write FILE                  : write the current 1D data to FILE
-
-   -write_sep SEP               : use SEP for column separators
-
-   -write_style STYLE           : write using one of the given styles
-
-        basic:      the default, don't work too hard
-        ljust:      left-justified columns of the same width
-        rjust:      right-justified columns of the same width
-        tsv:        tab-separated (use <tab> as in -write_sep '\\t')
-
    -weight_vec v1 v2 ...        : supply weighting vector
 
         e.g. -weight_vec 0.9 0.9 0.9 1 1 1
@@ -1351,6 +1340,8 @@ general options: ~2~
         parameters output by 3dvolreg.
 
         See also -collapse_cols.
+
+   -write FILE                  : write the current 1D data to FILE
 
    -write_censor FILE           : write as boolean censor.1D
 
@@ -1383,6 +1374,23 @@ general options: ~2~
         This file is in the easily readable format applied with -CENSORTR.
         It has the same effect on 3dDeconvolve as the sister file from
         -write_censor, above.
+
+   -write_sep SEP               : use SEP for column separators
+
+   -write_style STYLE           : write using one of the given styles
+
+        basic:      the default, don't work too hard
+        ljust:      left-justified columns of the same width
+        rjust:      right-justified columns of the same width
+        tsv:        tab-separated (use <tab> as in -write_sep '\\t')
+
+   -write_with_header yes/no    : include comment header in 1D output
+
+        e.g. -write_with_header yes
+        def  -write_with_header no
+
+        Use this option (with 'yes') to include a commented header with the
+        text output.
 
    -verb LEVEL                  : set the verbosity level
 

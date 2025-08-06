@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Aug, 2025, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add basic GTKYD (getting to know your data) and outlier check",
+   "This will grow, including with user control."
+ } ,
+
+ { 29, Jul, 2025, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -force_write_type, to force output of simple, AM, DM or AM/DM",
+   NULL
+ } ,
+
  { 25, Jul, 2025, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "gcc-15 : code updates under the SUMA tree",
    "This hopefully finalizes the June 12, 2025 update, including SUMA."

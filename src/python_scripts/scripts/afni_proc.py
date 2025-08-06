@@ -816,9 +816,10 @@ g_history = """
     7.91 May  6, 2025: set ROI_import view in case of no volreg block
     7.92 May 16, 2025: add help for m_tedort combine methods
     7.93 Jun 17, 2025: pass blur_size uvar to PT for APQC
+    8.00 Aug  6, 2025: run gtkyd and report outliers (basic start for now)
 """
 
-g_version = "version 7.93, June 17, 2025"
+g_version = "version 8.00, August 6, 2025"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -895,6 +896,7 @@ interesting milestones for afni_proc.py:
    2024.04 : ap_run_simple_rest_me.tcsh: low-option afni_proc.py for multiecho
    2024.05 : enable output of BIDS derivative tree
    2024.08 : input external distortion warp dataset
+   2025.08 : GTKYD - outlier check from: getting to know your data
 """
 
 
