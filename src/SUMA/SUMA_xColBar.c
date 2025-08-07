@@ -1086,11 +1086,18 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
                 over2->V[i] = (float)(over2->V[i] >= over2->IntRange[0]);  
            }
            
+           /*
            // Colorization also forms contours
-           if (!SUMA_ColorizePlane (over2)) {
+           if (!SUMA_ColorizePlane2 (over2)) {
                  SUMA_SLP_Err("Failed to colorize plane.\n");
                  SUMA_RETURN(NOPE);
             }
+            */
+            if (!SUMA_ScaleToMap_Interactive (over2)) {
+                 SUMA_SL_Err("Failed in SUMA_ScaleToMap_Interactive.");
+                 SUMA_RETURN(0);
+              }
+
             
            // Restore overlay colormap
            for (i=0; i<over2->N_NodeDef; ++i){
