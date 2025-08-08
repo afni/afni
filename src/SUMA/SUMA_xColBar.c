@@ -1092,8 +1092,13 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
                  SUMA_SLP_Err("Failed to colorize plane.\n");
                  SUMA_RETURN(NOPE);
             }
-            */
-            if (!SUMA_ScaleToMap_Interactive (over2)) {
+            *//*
+            if (!SUMA_ScaleToMap_Interactive2 (over2)) {
+                 SUMA_SL_Err("Failed in SUMA_ScaleToMap_Interactive.");
+                 SUMA_RETURN(0);
+              }
+              */
+            if (!SUMA_MakeThresholdOutlines (over2)) {
                  SUMA_SL_Err("Failed in SUMA_ScaleToMap_Interactive.");
                  SUMA_RETURN(0);
               }
