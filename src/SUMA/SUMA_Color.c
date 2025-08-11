@@ -3120,7 +3120,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          }
       }
    }
-   Sover->N_NodeDef = cnt;
+   Sover->N_NodeDef = SV->N_VCont;
    Sover->FullList = NOPE;
 
    /* Do we need clusterinzing ? */
@@ -3712,11 +3712,7 @@ SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
          }
       }
    }
-   #if 0
-   Sover->N_NodeDef = cnt;
    Sover->FullList = NOPE;
-#endif   
-   // #if 0
 
    /* colorizing */
   SUMA_LHv("Scaling a la SUMA %f %f\n", Opt->IntRange[0], Opt->IntRange[1]);
@@ -12268,6 +12264,8 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
             SUMA_KillOverlayContours(cp);
          }
          if (SV->N_VCont != cp->N_NodeDef) {
+            fprintf(stderr, "SV->N_VCont = %d\n", SV->N_VCont);
+            fprintf(stderr, "cp->N_NodeDef = %d\n", cp->N_NodeDef);
             SUMA_S_Warn("I expected N_VCont and N_NodeDef to match!\n"
                         "Bad things might happen.");
          }

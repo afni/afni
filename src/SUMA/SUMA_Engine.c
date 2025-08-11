@@ -4183,7 +4183,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                    if (!sv) sv = &(SUMAg_SVv[0]); 
                    SO = SUMA_SV_Focus_SO(sv);
                    SO->SurfCont->alphaOpacityModel = SurfCont->alphaOpacityModel;
-       
+
                    // Refresh display
                    SUMA_Remixedisplay(ado);
                    SUMA_UpdateNodeLblField(ado);

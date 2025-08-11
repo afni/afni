@@ -1279,8 +1279,6 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
             SUMA_RestoreThresholdContours(ado, YUP);
         }       
     }
-    
-    // SUMA_postRedisplay(w, clientData, call);
    
    SUMA_RETURNe;
 }
@@ -2793,6 +2791,10 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
            }
         }
    }
+
+       // Refresh display
+       SUMA_Remixedisplay(ado);
+       SUMA_UpdateNodeLblField(ado);
 
    SUMA_RETURNe;
 }
@@ -6406,6 +6408,8 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
             SUMA_RestoreThresholdContours(clientData, YUP);
        }
     }
+    
+    // SUMA_postRedisplay(w, clientData, call);
 
    SUMA_RETURN(1);
 }
