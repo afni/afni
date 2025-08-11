@@ -2729,11 +2729,11 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
 
    SO = (SUMA_SurfaceObject *)ado;
    AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
-   
+/*   
    // DEBUG
    float val = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
    SUMA_SetScaleThr(ado, NULL, &val, 0, 1);
-   
+*/   
    // Process all surface objects
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                  &numSurfaceObjects, NULL);
@@ -2771,11 +2771,6 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
                                "current surface"); 
                    SUMA_RETURNe;
                }
-       
-               // Restore proper threshold contours if required when Alpha opacity 
-               //   checkbox toggled
-//               if (SO->SurfCont->BoxOutlineThresh)
-//                    restoreProperThresholdCcontours(otherAdo);
     
                // DEBUG: Quick hack that make variable opacity appear
                float val = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
