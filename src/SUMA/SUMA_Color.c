@@ -3120,7 +3120,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          }
       }
    }
-   Sover->N_NodeDef = SV->N_VCont;
+   Sover->N_NodeDef = cnt;
    Sover->FullList = NOPE;
 
    /* Do we need clusterinzing ? */
