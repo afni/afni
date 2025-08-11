@@ -2707,6 +2707,10 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject2(SUMA_ALL_DO *ado)
    SUMA_OVERLAYS *curColPlane = NULL, *colp = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    int setmen = 0, redisplay = 1;
+   SUMA_Boolean BoxOutlineThresh;
+   SUMA_TABLE_FIELD *TF=NULL;
+   SUMA_ALL_DO *curDO = NULL;
+   int cv=0;
 
    SUMA_Boolean LocalHead = NOPE;
 
@@ -2738,12 +2742,138 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject2(SUMA_ALL_DO *ado)
                       " %s and %s\n",
                       SO->Label, CHECK_NULL_STR(colp->Label),
                       SOC->Label, CHECK_NULL_STR(colpC->Label));
-         if (!SUMA_SetScaleThr_one((SUMA_ALL_DO *)SOC,
+        //TODO: Add code
+        
+        
+          // Temporarily suspend threshold outline.  This appears to resolve the 
+   // problem of the color map changing with the threshold slider
+   if (ado->do_type == SO_type) {
+       SO = (SUMA_SurfaceObject *)ado;
+       BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+       SO->SurfCont->BoxOutlineThresh = 0;
+   }
+
+   if (!(SurfCont=SUMA_ADO_Cont(ado)) ||
+       !SurfCont->SetThrScaleTable) SUMA_RETURN(0);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (colp && colp != curColPlane) SUMA_RETURN(0);
+
+   if (!(curDO = SUMA_SurfCont_GetcurDOp(SurfCont))) {
+      SUMA_S_Err("Failed to get curDOp");
+      SUMA_RETURN(0);
+   }
+   TF = SurfCont->SetThrScaleTable;
+
+   
+   switch (TF->num_units) {
+      case SUMA_P_VALUE_UNITS:
+         if (LocalHead)
+               fprintf( SUMA_STDERR,
+                        "%s:\nUnits in p value, transforming %f\n",
+                        FuncName, *val);
+         /* transform value from P to threshold value */
+         *val = (float)SUMA_Pval2ThreshVal (ado, (double)*val);
+         if (LocalHead)
+               fprintf( SUMA_STDERR,
+                        "   to %f\n",
+                        *val);
+         /* reset the units of the table to reflect new value,
+            string containing new val is reset later on*/
+         TF->num_units = SUMA_NO_NUM_UNITS;
+         break;
+      case SUMA_PERC_VALUE_UNITS:
+         SUMA_LH("Units in percentile value, transforming %f\n", *val);
+         *val = SUMA_OverlayPercentile(colp, 'T', *val);
+         TF->num_units = SUMA_NO_NUM_UNITS;
+         break;
+      default:
+         break;
+   }
+
+   cv = SUMA_ThreshVal2ScalePos (ado, val );
+
+   if (LocalHead)
+      fprintf(SUMA_STDERR,
+              "%s:\nChecksums, new value is %f, cv to be set to %d\n"
+              "val now %f\n",
+              FuncName, TF->num_value[0], cv, *val);
+
+               /* TF->cell_modifed is not good when the call is made
+               as a result of LR controller yoking. So don't bother using it.
+               We only have one cell to be modified anyway. ZSS Sept 11 2012 */
+
+               /* check on value */
+               if (TF->num_value[0] != *val) {
+                  /* a change in value (plateau effect) */
+                  TF->num_value[0] = *val;
+                  if (!setmen) setmen = 1;
+               }
+
+               if (setmen) {
+                  SUMA_INSERT_CELL_VALUE(TF, 0, 0, *val);
+               }
+
+               if (LocalHead)
+                  fprintf( SUMA_STDERR,
+                           "%s:\nSet thresholdiation, new value is %f\n",
+                           FuncName, *val);
+               /* if value OK, set threshold bar*/
+               curColPlane->OptScl->ThreshRange[0] = *val;
+               XtVaSetValues(SurfCont->thr_sc,
+                        XmNvalue, cv,
+                        NULL);
+
+               SUMA_LHv("Colorize if necessary, redisplay=%d\n", redisplay);
+
+               /* colorize if necessary */
+               if ( redisplay == 0 ||
+                    (redisplay == 1 && !curColPlane->OptScl->UseThr) ) {
+                  SUMA_RETURN(0);
+               } /* nothing else to do */
+
+
+               SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+
+               SUMA_LH("Colorize");
+               if (!SUMA_ColorizePlane (curColPlane)) {
+                  SUMA_SLP_Err("Failed to colorize plane.\n");
+                  SUMA_RETURN(0);
+               }
+
+               SUMA_LH("Remix redisplay");
+               SUMA_Remixedisplay(ado);
+
+               SUMA_UpdateNodeLblField(ado);
+               SUMA_UpdatePvalueField( ado,
+                                       curColPlane->OptScl->ThreshRange[0]);
+
+                if (SO && SO->SurfCont) {
+                   // Restore threshold boundary if necessary.  This is called when the 
+                   //   threshold slider is moved
+                   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+
+                   // Restore threshold boundary if necessary
+                   if (SO->SurfCont->BoxOutlineThresh ){
+                        XtPointer clientData = (XtPointer)ado;
+                        SUMA_RestoreThresholdContours(clientData, YUP);
+
+                       // Refresh display to get threshold outlines on all surfaces
+                       SUMA_Remixedisplay(ado);
+                       SUMA_UpdateNodeLblField(ado);
+                   }
+                }
+ 
+        
+        
+        
+        
+        /*
+        if (!SUMA_SetScaleThr_one((SUMA_ALL_DO *)SOC,
                                     colpC, val, 1, redisplay)) SUMA_RETURN(0);
+                                    */
       }
    }
-   //TODO: Add code
-
+ 
 
    SUMA_RETURN(1);
 }
