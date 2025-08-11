@@ -2792,9 +2792,11 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
         }
    }
 
-       // Refresh display
+   // Refresh display to get threshold outlines on all surfaces
+   if (SO->SurfCont->BoxOutlineThresh ){
        SUMA_Remixedisplay(ado);
        SUMA_UpdateNodeLblField(ado);
+    }
 
    SUMA_RETURNe;
 }
@@ -6406,6 +6408,10 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
        if (SO->SurfCont->BoxOutlineThresh ){
             XtPointer clientData = (XtPointer)ado;
             SUMA_RestoreThresholdContours(clientData, YUP);
+
+           // Refresh display to get threshold outlines on all surfaces
+           SUMA_Remixedisplay(ado);
+           SUMA_UpdateNodeLblField(ado);
        }
     }
     
