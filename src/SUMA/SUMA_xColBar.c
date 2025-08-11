@@ -2699,6 +2699,54 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int
    SUMA_RETURN(1);
 }
 
+int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject2(SUMA_ALL_DO *ado)
+{
+   static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject"};
+   float *val, Value;
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_OVERLAYS *curColPlane = NULL, *colp = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   int setmen = 0, redisplay = 1;
+
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   SO = (SUMA_SurfaceObject *)ado;
+   SurfCont = SUMA_ADO_Cont(ado);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   colp = curColPlane;
+   if (!ado || !SurfCont || !curColPlane) SUMA_RETURN(0);
+
+   Value = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
+   val = &Value;
+   //SUMA_SetScaleThr(ado, NULL, &val, 0, 1);
+
+   if (colp && colp != curColPlane) SUMA_RETURN(0);
+   colp = SUMA_ADO_CurColPlane(ado);;
+
+   if (!SUMA_SetScaleThr_one(ado, colp, val, setmen, redisplay)) SUMA_RETURN(0);
+
+   if (ado->do_type == SO_type) {
+      SUMA_SurfaceObject *SOC=NULL, *SO = (SUMA_SurfaceObject *)ado;
+      SUMA_OVERLAYS *colpC=NULL;
+      /* do we have a contralateral SO and overlay? */
+      colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+      if (colpC && SOC) {
+         SUMA_LHv("Found contralateral equivalent to:\n"
+                      " %s and %s in\n"
+                      " %s and %s\n",
+                      SO->Label, CHECK_NULL_STR(colp->Label),
+                      SOC->Label, CHECK_NULL_STR(colpC->Label));
+         if (!SUMA_SetScaleThr_one((SUMA_ALL_DO *)SOC,
+                                    colpC, val, 1, redisplay)) SUMA_RETURN(0);
+      }
+   }
+   //TODO: Add code
+
+
+   SUMA_RETURN(1);
+}
 
 void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
                                    XtPointer client_data)
@@ -2769,8 +2817,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
                }
     
                // DEBUG: Quick hack that make variable opacity appear
-               float val = SO->SurfCont->curColPlane->OptScl->ThreshRange[0];
-               SUMA_SetScaleThr(otherAdo, NULL, &val, 0, 1);
+               SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject2(otherAdo);;
    
                 SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
 
