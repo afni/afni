@@ -2938,16 +2938,16 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
 
                // Default opacity model
                if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
-
+/*
                if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo,
                 AlphaOpacityFalloff, YUP)){
                    SUMA_S_Warn("Error toggling variable opacity for "
                                "current surface"); 
                    SUMA_RETURNe;
                }
-    
+*/    
                // DEBUG: Quick hack that make variable opacity appear
-               SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject2(otherAdo);;
+               SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject2(otherAdo);
    
                 SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
 
