@@ -146,9 +146,10 @@ static char g_history[] =
  "      - add any missing newline character at end of file\n"
  " 3.19 Jun 18, 2018    - return status 0 on options like -help\n"
  " 3.20 Jan 21, 2024    - add -wrap_lines and -wrap_method\n"
+ " 3.21 Aug 12, 2025    - -show_bad_* opts can process from stdin\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.20 (January 21, 2024)"
+#define VERSION         "3.21 (August 12, 2025)"
 
 
 /* ----------------------------------------------------------------------

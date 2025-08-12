@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Aug, 2025, RCR, "file_tool", MINOR, TYPE_ENHANCE,
+   "the -bad_* or -test options can now read from stdin",
+   "This is for use as:\n"
+   "  afni -get_processed_env | file_tool -test -infile -"
+ } ,
+
  {  6, Aug, 2025, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add basic GTKYD (getting to know your data) and outlier check",
    "This will grow, including with user control."
