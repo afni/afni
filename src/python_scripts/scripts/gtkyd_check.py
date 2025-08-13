@@ -62,6 +62,13 @@ Usage ~1~
                 slow (uses '3dBrickStat -slow ...' to calculate it 
                 afresh)
 
+-sidecar_keys SK1 [SK2 SK3 ...]
+               :provide a list of one or more keys to check for in a
+                sidecar file; there will be one output column per key, 
+                under labels like:  sidecar_SK1, sidecar_SK2, etc.
+                If an input file does not have a sidecar, the table 
+                value will will be: NA.
+
 -id_keeps_dirs N  :keep N directories (counting backward from the 
                 input filename) as part of the 'subject ID' field; 
                 default is to only keep the prefix_noext of the input
@@ -122,9 +129,10 @@ g_history = """
    0.1  Sep 10, 2024    - migrated to Python
    0.2  Oct  8, 2024    - add .py to name
    0.3  Oct  9, 2024    - add -id_keeps_dirs opt
+   0.4  Aug 13, 2025    - add -sidecar_keys opt
 """
 
-g_version = "gtkyd_check.py version 0.3 : Oct  9, 2024"
+g_version = "gtkyd_check.py version 0.4 : Aug  13, 2025"
 
 
 class MyInterface:
@@ -140,6 +148,7 @@ class MyInterface:
       self.outdir          = None
       self.do_ow           = False
       self.do_minmax       = False
+      self.sidecar_keys    = []
       self.id_keeps_dirs   = 0
 
       # general variables
@@ -171,6 +180,9 @@ class MyInterface:
       # optional parameters
       self.valid_opts.add_opt('-do_minmax', 0, [], 
                       helpstr='include dset min and max info (can be slow)')
+
+      self.valid_opts.add_opt('-sidecar_keys', -1, [], 
+                      helpstr='if a sidecar file exists, do these keys exist?')
 
       self.valid_opts.add_opt('-id_keeps_dirs', 1, [], 
                       helpstr='keep N dirs as part of subject ID')
@@ -251,6 +263,12 @@ class MyInterface:
          elif opt.name == '-do_minmax':
             self.do_minmax = True
 
+         if opt.name == '-sidecar_keys':
+            self.sidecar_keys, err = uopts.get_string_list('', opt=opt)
+            if self.sidecar_keys == None or err:
+               print('** failed to read -sidecar_keys list')
+               errs +=1
+
          elif opt.name == '-overwrite':
             self.do_ow = True
 
@@ -275,6 +293,7 @@ class MyInterface:
       gtkyd_obj = lgtk.GtkydInfo( self.infiles,
                                   outdir = self.outdir,
                                   do_minmax = self.do_minmax,
+                                  sidecar_keys = self.sidecar_keys,
                                   id_keeps_dirs = self.id_keeps_dirs,
                                   do_ow = self.do_ow,
                                   verb=self.verb )
