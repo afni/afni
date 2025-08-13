@@ -2654,44 +2654,6 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
-#if 0
-int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
-        Boolean notify)
-{
-   static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject"};
-   SUMA_OVERLAYS *curColPlane=NULL;
-   SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_TABLE_FIELD *TF=NULL;
-   SUMA_SurfaceObject *SO = NULL;
-
-   SUMA_ENTRY;
-
-   curColPlane = SUMA_ADO_CurColPlane(ado);
-   if (  !curColPlane ||
-         !curColPlane->OptScl )  {
-      SUMA_S_Warn("NULL input 2"); SUMA_RETURN(0);
-   }
-
-    // Set I Range check box
-    SurfCont=SUMA_ADO_Cont(ado);
-    if ( !SurfCont || !SurfCont->ShowZero_tb )  {
-      SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
-    }
-    SurfCont->alphaOpacityModel = QUADRATIC; // Make quadratic fall-off default
-    SO = (SUMA_SurfaceObject *)ado;
-    XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, state, notify);
-  
-   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
-
-   if (!SUMA_ColorizePlane (curColPlane)) {
-         SUMA_SLP_Err("Failed to colorize plane.\n");
-         SUMA_RETURN(0);
-   }
-
-   SUMA_RETURN(1);
-}
-#endif 
-
 int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject"};
@@ -2732,7 +2694,7 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado)
        // Restore threshold boundary if necessary
        if (SO->SurfCont->BoxOutlineThresh ){
             XtPointer clientData = (XtPointer)ado;
-            SUMA_RestoreThresholdContours(clientData, YUP);
+            SUMA_RestoreThresholdContours(clientData, NOPE);
        }
     }
 
@@ -2792,7 +2754,6 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
                SO->SurfCont->curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;
                
                BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh ;
-               // SO->SurfCont->BoxOutlineThresh  = 0;
                
                XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
                                           SO->SurfCont->curColPlane->AlphaOpacityFalloff, NOPE);
@@ -2804,17 +2765,12 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
                SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
    
                SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-
-               // Restore threshold boundary if necessary
-               if (SO->SurfCont->BoxOutlineThresh ){
-                    XtPointer clientData = (XtPointer)otherAdo;
-                    SUMA_RestoreThresholdContours(clientData, YUP);
-               }
            }
         }
    }
 
-   // Refresh display to get threshold outlines on all surfaces
+   // If this part is left out, outlines are only restored to one of two surfaces unless
+   //
    if (SO->SurfCont->BoxOutlineThresh ){
        SUMA_Remixedisplay(ado);
        SUMA_UpdateNodeLblField(ado);
