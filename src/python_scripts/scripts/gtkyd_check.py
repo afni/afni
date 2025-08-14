@@ -65,9 +65,21 @@ Usage ~1~
 -sidecar_has_keys SHK1 [SHK2 SHK3 ...]
                :provide a list of one or more keys to check for in a
                 sidecar file; there will be one output column per key, 
-                under labels like:  sidecar_has_SK1, sidecar_has_SK2, etc.
+                under labels like:  sidecar_has_SHK1, sidecar_has_SHK2, etc.
                 If an input file does not have a sidecar, the table 
                 value will will be: NA.
+
+-sidecar_val_keys SVK1 [SVK2 SVK3 ...]
+               :provide a list of one or more keys to check *and compare
+                the value* for in a sidecar file; there will be one output 
+                column per key, under labels like: sidecar_val_SVK1, 
+                sidecar_val_SVK2, etc.
+                If an input file does not have a sidecar or the key, the 
+                table value will will be: NA.
+                NB: you should only use this opt with single-valued keys
+                (i.e., *not* SliceTiming). A dict value will be compressed
+                using json.dumps(), and a list value will be compressed by
+                joining items into a comma-separated string.
 
 -id_keeps_dirs N  :keep N directories (counting backward from the 
                 input filename) as part of the 'subject ID' field; 
@@ -106,6 +118,15 @@ Examples ~1~
         -do_minmax                                       \\
         -outdir     group_summary2
 
+3) Include sidecar checks (both for existence of a given key, and for
+   dumping out the values of single-valued keys), for an EPI dataset:
+    gtkyd_check.py                                            \\
+        -infiles           sub*/func/sub*nii*                 \\
+        -outdir            group_summary3                     \\
+        -sidecar_has_keys  SliceTiming PhaseEncodingDirection \\
+        -sidecar_val_keys  PhaseEncodingDirection FlipAngle   \\
+                           AccelerationFactorPE SequenceName
+
 ... and any of these might be usefully followed up with
 gen_ss_review_table.py (querying the dset*.txt files in the outdir),
 to find subject datasets that have certain properties.  For example
@@ -130,6 +151,7 @@ g_history = """
    0.2  Oct  8, 2024    - add .py to name
    0.3  Oct  9, 2024    - add -id_keeps_dirs opt
    0.4  Aug 13, 2025    - add -sidecar_has_keys opt
+   0.5  Aug 14, 2025    - add -sidecar_val_keys opt
 """
 
 g_version = "gtkyd_check.py version 0.4 : Aug  13, 2025"
@@ -149,6 +171,7 @@ class MyInterface:
       self.do_ow           = False
       self.do_minmax       = False
       self.sidecar_has_keys = []
+      self.sidecar_val_keys = []
       self.id_keeps_dirs   = 0
 
       # general variables
@@ -183,6 +206,9 @@ class MyInterface:
 
       self.valid_opts.add_opt('-sidecar_has_keys', -1, [], 
                       helpstr='if a sidecar file exists, do these keys exist?')
+
+      self.valid_opts.add_opt('-sidecar_val_keys', -1, [], 
+                      helpstr='if a sidecar file exists, get key values')
 
       self.valid_opts.add_opt('-id_keeps_dirs', 1, [], 
                       helpstr='keep N dirs as part of subject ID')
@@ -269,6 +295,12 @@ class MyInterface:
                print('** failed to read -sidecar_has_keys list')
                errs +=1
 
+         if opt.name == '-sidecar_val_keys':
+            self.sidecar_val_keys, err = uopts.get_string_list('', opt=opt)
+            if self.sidecar_val_keys == None or err:
+               print('** failed to read -sidecar_val_keys list')
+               errs +=1
+
          elif opt.name == '-overwrite':
             self.do_ow = True
 
@@ -294,6 +326,7 @@ class MyInterface:
                                   outdir = self.outdir,
                                   do_minmax = self.do_minmax,
                                   sidecar_has_keys = self.sidecar_has_keys,
+                                  sidecar_val_keys = self.sidecar_val_keys,
                                   id_keeps_dirs = self.id_keeps_dirs,
                                   do_ow = self.do_ow,
                                   verb=self.verb )
