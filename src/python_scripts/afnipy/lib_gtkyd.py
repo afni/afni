@@ -82,8 +82,8 @@ gtkyd_nifti_sidecar = {
 }
 
 # right now, this one is just for nifti case
-# ... and this empty dict grows if the user enters a sidecar_keys list
-gtkyd_sidecar_keys = {
+# ... and this empty dict grows if the user enters a sidecar_has_keys list
+gtkyd_sidecar_has_keys = {
 }
 
 gtkyd_brickstat_minmax = {
@@ -96,7 +96,7 @@ gtkyd_brickstat_minmax = {
 class GtkydInfo:
 
     def __init__(self, infiles, outdir='GTKYD', do_minmax=False, 
-                 sidecar_keys=[],
+                 sidecar_has_keys=[],
                  id_keeps_dirs=0, do_ow=0, verb=1):
         """Create object holding GTKYD info data, namely dictionaries of
         header info.
@@ -109,7 +109,7 @@ class GtkydInfo:
         self.mixed_vols = False               # bool, have B/H *and* NIFTI?
 
         self.do_minmax  = do_minmax           # bool, run 3dBrickStat (slow)
-        self.sidecar_keys = sidecar_keys      # list, keys for sidecar check
+        self.sidecar_has_keys = sidecar_has_keys      # list, keys for sidecar check
         self.id_keeps_dirs = id_keeps_dirs    # int, add N dirs to prefix_noext
         self.outdir     = outdir              # str, output dir name
         self.outxls     = ''                  # str, XLS file (prepped below)
@@ -124,7 +124,7 @@ class GtkydInfo:
         # prep/check
         if self.check_infiles() : 
             sys.exit(1)
-        if self.check_and_prep_sidecar_keys():
+        if self.check_and_prep_sidecar_has_keys():
             sys.exit(-1)
         if self.check_and_prep_outnames() : 
             sys.exit(2)
@@ -348,16 +348,16 @@ class GtkydInfo:
 
         return 0
 
-    def check_and_prep_sidecar_keys(self):
-        """check if we have any sidecar_keys, and then prepare by populating
-        the global var gtkyd_sidecar_keys. Later, we remove the prefix
+    def check_and_prep_sidecar_has_keys(self):
+        """check if we have any sidecar_has_keys, and then prepare by populating
+        the global var gtkyd_sidecar_has_keys. Later, we remove the prefix
         'sidecar_has_' when checking if the key exists in the relevant JSON 
         sidecar.
         """
 
-        if len(self.sidecar_keys) :
-            for key in self.sidecar_keys:
-                gtkyd_sidecar_keys['sidecar_has_' + key] = 1
+        if len(self.sidecar_has_keys) :
+            for key in self.sidecar_has_keys:
+                gtkyd_sidecar_has_keys['sidecar_has_' + key] = 1
 
         return 0
 
@@ -567,16 +567,16 @@ dict_info : dict
     dict_info['has_sidecar'] = [str(have_json)]
 
     # for any sidecar keys: if JSON exists, check for each; else, NA for each
-    if len(gtkyd_sidecar_keys) :
+    if len(gtkyd_sidecar_has_keys) :
         if have_json :
             with open(name_json, 'r') as fff:
                 json_dict = json.load(fff)
-            for long_key in gtkyd_sidecar_keys:
+            for long_key in gtkyd_sidecar_has_keys:
                 # remove added prefix 'sidecar_has_'
                 key = long_key[len('sidecar_has_'):]
                 dict_info[long_key] = [str(int(key in json_dict))]
         else:
-            for long_key in gtkyd_sidecar_keys:
+            for long_key in gtkyd_sidecar_has_keys:
                 dict_info[long_key] = ['NA']
 
     return 0, dict_info
@@ -757,7 +757,7 @@ dict_info : dict
             dict_info[key] = [gtkyd_nifti_tool_exts[key] * 'NA']
         for key in gtkyd_nifti_sidecar.keys():
             dict_info[key] = [gtkyd_nifti_sidecar[key] * 'NA']
-        for long_key in gtkyd_sidecar_keys:
+        for long_key in gtkyd_sidecar_has_keys:
             dict_info[long_key] = [1 * 'NA']
 
     # 3dBrickStat part
@@ -807,7 +807,7 @@ abbr : str
         return 'nifti_tool', '-disp_exts (with parsing) ', 'nifti'
     elif key in gtkyd_nifti_sidecar :
         return 'os.path.isfile(PREFIX.json)', ': ', 'nifti'
-    elif key in gtkyd_sidecar_keys :
+    elif key in gtkyd_sidecar_has_keys :
         return 'key', ': ', 'json'
     elif key in gtkyd_brickstat_minmax :
         return '3dBrickStat', '-', 'brickstat'
