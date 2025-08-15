@@ -52,6 +52,7 @@ set echo_dsets = ()
 set etimes_file = ''
 set oc_method = 'OC_A'
 set prefix = OC_weights
+set prefix_combine = ''
 set t2s_limit = 300
 set tolerance = 0.001
 set work_dir = OC.weight.results
@@ -152,6 +153,23 @@ while ( $ac <= $#argv )
          exit 1
       endif
 
+   else if ( "$argv[$ac]" == "-prefix_combine" ) then
+      @ ac ++
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-prefix_combine'"
+         exit 1
+      endif
+      set prefix_combine = $argv[$ac]
+
+      # if there is a view, whine
+      set vstr = `@parse_afni_name $prefix_combine | awk '{print $3}'`
+      set vchr = `echo $vstr | cut -b 1`
+      if ( "$vchr" == "+" ) then
+         echo "** please remove the view ($vstr) from the -prefix_combine param"
+         echo "   at the end of: -prefix_combine $prefix_combine"
+         exit 1
+      endif
+
    else if ( "$argv[$ac]" == "-sum_weight_tolerance" ) then
       @ ac ++
       if ( $ac > $#argv ) then
@@ -197,7 +215,7 @@ endif
 
 
 # if etimes_list is not already input, try to set from file
-if ( $#etimes_list == 0 ) then
+if ( $#etimes_list == 0 && $etimes_file != "" ) then
    if ( ! -f $etimes_file ) then
       echo "** missing -echo_times_file $etimes_file"
       exit 1
@@ -234,6 +252,7 @@ if ( $verb ) then
    echo "++ num echo dsets = $#echo_dsets"
    echo "++ echo times     = $etimes_list"
    echo "++ weight prefix  = $prefix"
+   echo "++ combine prefix = $prefix_combine"
    echo "++ work_dir       = $work_dir"
    echo "++ T2* limit      = $t2s_limit"
    echo "++ NT             = $nt"
@@ -431,8 +450,15 @@ endif
 cd $root_dir
 3dbucket -prefix $prefix $work_dir/$result_dset$view
 3dNotes -h "$prog $argv" $prefix$view
+set rv = $status
 
-if ( $status ) then
+# maybe the user actually wants the combined dataset created
+if ( $rv == "0" && $prefix_combine != "" ) then
+   echo "++ creating combined dataset, $prefix_combine ..."
+   3dMean -weightset $prefix$view -prefix $prefix_combine $echo_dsets
+endif
+
+if ( $rv ) then
    echo "** failed to create $prefix$view"
 else
    echo ""
@@ -440,10 +466,14 @@ else
    echo ""
    echo "++ final output is $prefix$view"
    echo ""
-   echo "   consider the command:"
-   echo ""
-   echo "   3dMean -weightset $prefix$view -prefix opt.combined \\"
-   echo "          $echo_dsets"
+   if ( $prefix_combine != "" ) then
+      echo "++ final combined output is $prefix_combine$view"
+   else
+      echo "   consider the command:"
+      echo ""
+      echo "   3dMean -weightset $prefix$view -prefix opt.combined \\"
+      echo "          $echo_dsets"
+   endif
    echo ""
    echo "============================================================"
    echo ""
