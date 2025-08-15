@@ -4183,7 +4183,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                    if (!sv) sv = &(SUMAg_SVv[0]); 
                    SO = SUMA_SV_Focus_SO(sv);
                    SO->SurfCont->alphaOpacityModel = SurfCont->alphaOpacityModel;
-       
+
                    // Refresh display
                    SUMA_Remixedisplay(ado);
                    SUMA_UpdateNodeLblField(ado);
@@ -5924,6 +5924,7 @@ int SUMA_ADOs_WithUniqueSurfCont (SUMA_DO *dov, int N_dov, int *dov_IDs)
    static char FuncName[]={"SUMA_ADOs_WithUniqueSurfCont"};
    SUMA_SurfaceObject *SO=NULL;
    int i, j, k = 0, surfContPtrCnt=0, unique;
+   int  ;
    SUMA_NIDO *SDO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_X_SurfCont *SurfConts[SUMA_MAX_DISPLAYABLE_OBJECTS], *SurfCont;
@@ -7191,7 +7192,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov,
                   SUMA_free(XYZ);
                   SUMA_RETURN (NULL);
                } else {
-                  /* comes from inherently mappable stuff, makes sense to
+                  /* comes from inherrently mappable stuff, makes sense to
                      leave XYZ */
                   SUMA_SL_Warn(  "No node was close enough\n"
                                  "to XYZmap, linking by coordinate."   );

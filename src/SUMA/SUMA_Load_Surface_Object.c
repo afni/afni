@@ -4072,7 +4072,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (
                NewColPlane->ShowMode = SW_SurfCont_DsetViewCon;
             }
             /* create contours for this monster */
-            SUMA_ContourateDsetOverlay(NewColPlane, NULL);
+            SUMA_ContourateDsetOverlay(NewColPlane, NULL, SO);
 
             /* move that plane down the stack, nice to have convexity stay
             on top */
