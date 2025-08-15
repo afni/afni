@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Aug, 2025, RCR, "@compute_OC_weights", MINOR, TYPE_NEW_OPT,
+   "add -prefix_combine, to combine the echoes using computed weights",
+   "Added for P Molfese."
+ } ,
+
  { 15, Aug, 2025, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
    "add -fast_log_commands and -fast_log_messages",
    NULL
