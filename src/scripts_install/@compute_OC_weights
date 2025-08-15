@@ -572,6 +572,16 @@ $prog           - compute optimally combined weights dataset
          3dMean -weightset OC.weights.run1+tlrc -prefix epi_run1_OC \
                 pb02*r01*volreg*.HEAD
 
+      3. Specify working directory and resulting weights dataset prefix.
+         Also, specify -prefix_combine to combine the echoes, running
+         3dMean internally.
+
+         @compute_OC_weights -echo_times_file etimes.1D \
+                -echo_dsets pb02*r01*volreg*.HEAD       \
+                -prefix OC.weights.run1                 \
+                -prefix_combine OC.combine.run1         \
+                -work_dir OC.work.run1
+
    ----------------------------------------------------------------------
 
    random babble:
@@ -657,6 +667,13 @@ $prog           - compute optimally combined weights dataset
 
            e.g. -prefix OC.weights.SUBJ
 
+      -prefix_combine PREFIX    - specify prefix for optimally combined dataset
+
+           e.g. -prefix_combine OC.combine.SUBJ
+
+           Use this option to tell the program to run 3dMean at the end,
+           combining the input echoes using the given weights.
+
       -sum_weight_tolerance TOL - tolerance for summed weight diff from 1.0
                                   (default = 0.001)
 
@@ -718,6 +735,7 @@ modification history for $prog :
    0.3  23 Feb 2018 : added -echo_times, to list on command line
    0.4  10 Dec 2019 : added 3dMean -weightset example
    0.5  20 Dec 2019 : added 3dMean hint at end of execution
+   0.6  15 Aug 2025 : added -prefix_combine, to run 3dMean internally
 
 EOF
 exit
