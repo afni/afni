@@ -166,7 +166,7 @@ void SUMA_Flip_Color_Map (SUMA_COLOR_MAP *CM);
 int SUMA_Rotate_Color_Map (SUMA_COLOR_MAP *CM, float frac);
 int SUMA_ColorizePlane (SUMA_OVERLAYS *cp);
 SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
-                                        SUMA_COLOR_SCALED_VECT * SV);
+        SUMA_COLOR_SCALED_VECT * SV, SUMA_SurfaceObject *SO);
 SUMA_AFNI_COLORS *SUMA_Build_Color_maps(void);
 char *SUMA_ScaleToMapOpt_Info (SUMA_SCALE_TO_MAP_OPT *OptScl, int detail);
 SUMA_Boolean SUMA_ShowScaleToMapOpt(SUMA_SCALE_TO_MAP_OPT *OptScl, FILE *Out, 

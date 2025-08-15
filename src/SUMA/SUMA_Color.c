@@ -3575,9 +3575,9 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    /* Do we need to create contours */
    if (Opt->ColsContMode) {
       if (SUMA_is_Label_dset(Sover->dset_link,NULL))
-         SUMA_ContourateDsetOverlay(Sover, NULL);
+         SUMA_ContourateDsetOverlay(Sover, NULL, SO);
       else
-         SUMA_ContourateDsetOverlay(Sover, SV);
+         SUMA_ContourateDsetOverlay(Sover, SV, SO);
    }
 
 
@@ -3969,9 +3969,9 @@ SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
    /* Do we need to create contours */
    if (Opt->ColsContMode) {
       if (SUMA_is_Label_dset(Sover->dset_link,NULL))
-         SUMA_ContourateDsetOverlay(Sover, NULL);
+         SUMA_ContourateDsetOverlay(Sover, NULL, SO);
       else
-         SUMA_ContourateDsetOverlay(Sover, SV);
+         SUMA_ContourateDsetOverlay(Sover, SV, SO);
    }
 
    /* update remix ID */
@@ -8489,9 +8489,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
        *   to block color of voxels, but AlphaOp overrode that, so check
        *   AlphaOp and UseThr as a pair
        */
-       fprintf(stderr, "Color: currentOverlay->AlphaOpacityFalloff = %d\n", currentOverlay->AlphaOpacityFalloff);
-       fprintf(stderr, "Color: currentOverlay->OptScl->UseThr = %d\n", currentOverlay->OptScl->UseThr);
-
       if (currentOverlay->AlphaOpacityFalloff
          && currentOverlay->OptScl->UseThr) {
           int debugCnt = 0;
@@ -8500,12 +8497,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
            float complement = 1.0f - opacity;
            
             avgfact = Back_Modfact / 3.0;
-            
-            if ( opacity > 0.1 && debugCnt++ < 4){
-            
-                fprintf(stderr, "opacity = %f, i = %d, isColored_Fore[i] = %d, isColored_Back[i] = %d, debugCnt = %d\n",
-                    opacity, i, isColored_Fore[i] , isColored_Back[i] , debugCnt);            
-            }
 
             if (isColored_Fore[i] && isColored_Back[i]) {
                         /* colors from both sides, adjust brightness */
@@ -12453,11 +12444,12 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
 }
 
 SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
-                                        SUMA_COLOR_SCALED_VECT *SV)
+                        SUMA_COLOR_SCALED_VECT *SV, SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_ContourateDsetOverlay"};
    int kkk=0, *ind=NULL, *key=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   int numContours;
 
    SUMA_ENTRY;
 
@@ -12513,10 +12505,12 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
          }
          ind = cp->NodeDef;
          key = SV->VCont;
-         /*for (kkk=0; kkk<cp->N_NodeDef; ++kkk)
-            fprintf(SUMA_STDERR,"%d-->%d\t", ind[kkk], key[kkk]);*/
-         cp->Contours =
-            SUMA_MultiColumnsToDrawnROI( cp->N_NodeDef,
+
+         numContours = (SO->SurfCont->BoxOutlineThresh)? SV->N_VCont :
+            cp->N_NodeDef;
+         // numContours = cp->N_NodeDef;   // DEBUG
+         cp->Contours = 
+            SUMA_MultiColumnsToDrawnROI( numContours,
                   (void *)ind, SUMA_int,
                   (void *)key, SUMA_int,
                   NULL, SUMA_notypeset,

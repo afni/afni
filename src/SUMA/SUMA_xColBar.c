@@ -2748,7 +2748,6 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    for (j=0; j<N_adolist; ++j){
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if (otherAdo != ado){
-            fprintf(stderr, "otherAdo = %p\n", otherAdo);
             if (otherAdo->do_type == SO_type){
                SO = (SUMA_SurfaceObject *)otherAdo;
         
