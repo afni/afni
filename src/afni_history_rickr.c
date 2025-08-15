@@ -53,10 +53,9 @@
 
 afni_history_struct rickr_history[] = {
 
- { 12, Aug, 2025, RCR, "file_tool", MINOR, TYPE_ENHANCE,
-   "the -bad_* or -test options can now read from stdin",
-   "This is for use as:\n"
-   "  afni -get_processed_env | file_tool -test -infile -"
+ { 15, Aug, 2025, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
+   "add -fast_log_commands and -fast_log_messages",
+   NULL
  } ,
 
  {  6, Aug, 2025, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
