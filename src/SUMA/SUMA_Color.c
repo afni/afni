@@ -3597,6 +3597,250 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    SUMA_RETURN(YUP);
 }
 
+SUMA_Boolean SUMA_ScaleToMap_Interactive2 (   SUMA_OVERLAYS *Sover )
+{
+   static char FuncName[]={"SUMA_ScaleToMap_Interactive2"};
+   float *B=NULL;
+   int i, icmap, i3, cnt, cnt3, loc[2], *nd=NULL;
+   float *nv = NULL, am = 0.0;
+   double Range[2];
+   double minB, maxB, fact=0.0, floc = 0.0;
+   SUMA_COLOR_MAP *ColMap = NULL;
+   SUMA_SCALE_TO_MAP_OPT *Opt = NULL;
+   SUMA_COLOR_SCALED_VECT * SV = NULL;
+   float *junk;
+   byte *alphaval=NULL;
+   static int nwarn=0;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   SUMA_WIDGET_INDEX_COORDBIAS HoldBiasOpt;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   ado = SUMA_Overlay_OwnerADO(Sover);
+   SO = (SUMA_SurfaceObject *)ado;
+
+   if (!Sover) { SUMA_SL_Err("NULL Sover"); SUMA_RETURN(NOPE); }
+   if (!Sover->cmapname) {
+      SUMA_SL_Err("NULL Colormap name"); SUMA_RETURN(NOPE);
+   }
+
+   SUMA_LH("Finding ColorMap %s", Sover->cmapname);
+   icmap = SUMA_Find_ColorMap (  Sover->cmapname,
+                                 SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
+   if (icmap < 0) {
+      SUMA_SL_Err("Failed to find ColMap");
+      SUMA_S_Errv("Missing ColMap called %s\n", Sover->cmapname);
+      SUMA_RETURN(NOPE);
+   }
+   ColMap = SUMAg_CF->scm->CMv[icmap];
+
+   Opt = Sover->OptScl;
+
+
+   SUMA_LH("Creating a scaled color vect");
+   if (Sover->ShowMode == SW_SurfCont_DsetViewCon ||
+       Sover->ShowMode == SW_SurfCont_DsetViewCaC ) {
+      if (SUMA_NeedsLinearizing(ColMap)) {
+         if (!nwarn) {
+            SUMA_SLP_Note("Cannot do contouring with colormaps\n"
+                          "that panes of unequal sizes.\n"
+                          "Notice shown once per session.");
+            ++nwarn;
+         }
+         Opt->ColsContMode = 0;
+      } else {
+         Opt->ColsContMode = 1;
+      }
+   } else {
+      Opt->ColsContMode = 0;
+   }
+   SV = SUMA_Create_ColorScaledVect(SDSET_VECFILLED(Sover->dset_link),
+                                    Opt->ColsContMode);
+
+   SUMA_LH("Fetching vectors from dset");
+
+   B = NULL;
+   /* Thresholding ? */
+   if (Opt->tind >= 0 && Opt->UseThr) {
+      SUMA_LH("Fetching Threshold column");
+      if (  !SUMA_SetOverlay_Vecs(Sover, 'T', Opt->tind, "update", 0) ||
+            !Sover->T ) {
+         SUMA_S_Err("Failed to get T");
+         SUMA_RETURN(NOPE);
+      }
+      /* setting SV->isMasked[i] means the node overlay is not shown */
+      /* (if Alpha, nothing gets masked out here) */
+      switch (Opt->ThrMode) {
+         case SUMA_NO_THRESH:
+            break;
+         case SUMA_LESS_THAN:
+            for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
+               if (Sover->T[i] < Opt->ThreshRange[0]) {
+                  if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
+               }
+            }
+            break;
+         case SUMA_ABS_LESS_THAN:
+            for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
+               if (Sover->T[i] < Opt->ThreshRange[0] &&
+                   Sover->T[i] > -Opt->ThreshRange[0]) {
+                  if (!Sover->AlphaOpacityFalloff ||
+                     SO->SurfCont->BoxOutlineThresh) 
+                         SV->isMasked[i] = YUP; /* Mask */
+               }
+            }
+            break;
+         case SUMA_THRESH_OUTSIDE_RANGE:
+            for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
+               if (Sover->T[i] >= Opt->ThreshRange[0] &&
+                   Sover->T[i] <= Opt->ThreshRange[1]) {
+                  if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
+               }
+            }
+            break;
+         case SUMA_THRESH_INSIDE_RANGE:
+            for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
+               if (Sover->T[i] < Opt->ThreshRange[0] ||
+                   Sover->T[i] > Opt->ThreshRange[1]) {
+                  if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
+               }
+            }
+            break;
+         default:
+            SUMA_SL_Err("Wrond threshold mode");
+            SUMA_RETURN(NOPE);
+            break;
+      }
+   }
+
+   /* setup nodedef so that it can be used along with Sover->V
+      for clusterinzing. Sover->V will get modified in subsequent
+      calls so got to do it now */
+   if (Opt->Clusterize && Opt->RecomputeClust) {
+      if (!(nv = (float *)SUMA_calloc(SDSET_VECFILLED(Sover->dset_link),
+                                          sizeof(float)))) {
+         SUMA_S_Crit("Failed to allocate!");
+         SUMA_RETURN(NOPE);
+      }
+
+   }
+   nd = SUMA_GetNodeDef(Sover->dset_link);
+   if (nd) {
+      cnt = 0;
+      for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
+         if (!SV->isMasked[i]) {
+            Sover->NodeDef[cnt] = nd[i];
+            if (nv) nv[cnt] = Sover->V[i];
+            ++cnt;
+         }
+      }
+   } else {
+      cnt = 0;
+      for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
+         if (!SV->isMasked[i]) {
+            Sover->NodeDef[cnt] = i;
+            if (nv) nv[cnt] = Sover->V[i];
+            ++cnt;
+         }
+      }
+   }
+   Sover->N_NodeDef = cnt;
+
+   /* nv is no longer needed, only needed for clustering. */
+   if (nv) SUMA_free(nv); nv = NULL;
+
+
+
+   /* colorizing */
+   if ( (Opt->interpmode == SUMA_DIRECT)&&
+        (SUMA_is_Label_dset(Sover->dset_link,NULL) ||
+         SUMA_is_Label_dset_col(Sover->dset_link, Opt->find)) ) {
+      SUMA_LH("Scaling a la HASH");
+      if (!SUMA_ScaleToMap_alaHASH (Sover->V, SDSET_VECFILLED(Sover->dset_link),
+                                    ColMap, Opt,
+                                    SV) ) {
+         SUMA_SL_Err("Failed in SUMA_ScaleToMap_alaHASH");
+         SUMA_RETURN(NOPE);
+      }
+   } else if (Opt->alaAFNI) {
+      /* a la AFNI */
+      SUMA_LH("Scaling a la AFNI");
+      if (!SUMA_ScaleToMap_alaAFNI (Sover->V, SDSET_VECFILLED(Sover->dset_link),
+                              SUMA_LARG_ABS(Opt->IntRange[0], Opt->IntRange[1]),
+                                    ColMap, Opt,
+                                    SV) ) {
+         SUMA_SL_Err("Failed in SUMA_ScaleToMap_alaAFNI");
+         SUMA_RETURN(NOPE);
+      }
+   } else {
+      /* a la SUMA */
+      SUMA_LHv("Scaling a la SUMA %f %f\n", Opt->IntRange[0], Opt->IntRange[1]);
+      if (!SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
+                            Opt->IntRange[0], Opt->IntRange[1],
+                            ColMap, Opt,
+                            SV) ){
+         SUMA_SL_Err("Failed in  SUMA_ScaleToMap");
+         SUMA_RETURN(NOPE);
+      }
+   }
+
+
+   /* finally copy results */
+   SUMA_LH("Copying into NodeDef");
+   if (nd) {
+      cnt = 0;
+      for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
+         if (!SV->isMasked[i]) {
+            cnt3 = 3*cnt; i3 = 3*i;
+            Sover->NodeDef[cnt] = nd[i]; /*This is a redundant operation
+                    clustering is on. But I leave it here for clarity.
+                    Otherwise that line would have to be conditioned
+                    on the clustering options.*/
+            Sover->ColVec[cnt3   ] = SV->cV[i3   ];
+            Sover->ColVec[cnt3 +1] = SV->cV[i3 +1];
+            Sover->ColVec[cnt3 +2] = SV->cV[i3 +2];
+            if (SV->BiasCoordVec)
+               SV->BiasCoordVec[cnt] = SV->BiasCoordVec[i];
+                  /* a compression of BiasCoordVec vector to match NodeDef */
+            ++cnt;
+         }
+      }
+   } else {
+      cnt = 0;
+      for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
+         if (!SV->isMasked[i]) {
+            cnt3 = 3*cnt; i3 = 3*i;
+            Sover->NodeDef[cnt] = i; /* This is at times a redundant operation
+                                        see above */
+            Sover->ColVec[cnt3   ] = SV->cV[i3   ];
+            Sover->ColVec[cnt3 +1] = SV->cV[i3 +1];
+            Sover->ColVec[cnt3 +2] = SV->cV[i3 +2];
+            if (SV->BiasCoordVec)
+               SV->BiasCoordVec[cnt] = SV->BiasCoordVec[i];
+                  /* a compression of BiasCoordVec vector to match NodeDef */
+            ++cnt;
+         }
+      }
+   }
+
+   if (LocalHead) {
+      SUMA_LH("In Scale_Interactive\n**********************");
+      /* SUMA_Show_ColorOverlayPlanes (&Sover, 1, 1);  */
+   }
+
+   /* update remix ID */
+   ++Sover->RemixOID;
+
+   /* clean up */
+   SUMA_LH("Cleanup, cleanup, everybody cleanup");
+   if (B) SUMA_free(B); B = NULL;
+   if (SV)  SUMA_Free_ColorScaledVect (SV); SV = NULL;
+   
+   SUMA_RETURN(YUP);
+}
+
 SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
 {
    static char FuncName[]={"SUMA_ScaleToMap_Interactive"};
@@ -3620,7 +3864,7 @@ SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
 
    ado = SUMA_Overlay_OwnerADO(Sover);
    SO = (SUMA_SurfaceObject *)ado;
-// #if 0
+
    if (!Sover) { SUMA_SL_Err("NULL Sover"); SUMA_RETURN(NOPE); }
    if (!Sover->cmapname) {
       SUMA_SL_Err("NULL Colormap name"); SUMA_RETURN(NOPE);
@@ -3678,8 +3922,6 @@ SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
                  SV->isMasked[i] = YUP; /* Mask */
        }
    }
-   
-   // #if 0
 
    /* setup nodedef so that it can be used along with Sover->V
       for clusterinzing. Sover->V will get modified in subsequent
@@ -3692,7 +3934,7 @@ SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
       }
    }
    nd = SUMA_GetNodeDef(Sover->dset_link);
-    // #if 0
+    
    if (nd) {
       cnt = 0;
       for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
@@ -12222,7 +12464,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
    if (!cp) SUMA_RETURN(NOPE);
    if (!cp->dset_link) SUMA_RETURN(NOPE);
 
-   if (!SV) {
+  if (!SV) {
       if (SUMA_is_Label_dset(cp->dset_link,NULL) ||
           SUMA_is_Label_dset_col(cp->dset_link, cp->OptScl->find)) {
          SUMA_LHv("Creating contours for %s\n",SDSET_LABEL(cp->dset_link));
@@ -12394,6 +12636,49 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
 
    SUMA_RETURN(1);
 }
+
+int SUMA_ColorizePlane2 (SUMA_OVERLAYS *cp)
+{
+   static char FuncName[]={"SUMA_ColorizePlane2"};
+   int i, i3, N_i, *iv, *Nv;
+   float *Rv, *Bv, *Gv;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   if (LocalHead)  {
+      SUMA_LH("Color Plane Pre Colorizing");
+      SUMA_DUMP_TRACE("Who called ColorizePlane?");
+      SUMA_Show_ColorOverlayPlanes ( &cp, 1, 0);
+   }
+   if (!cp) { SUMA_SL_Err("NULL cp"); SUMA_RETURN(NOPE); }
+   if (!cp->dset_link) {
+      SUMA_SL_Err("Where's your dset_link?");
+      SUMA_RETURN(NOPE);
+   }
+   if (!cp->cmapname) {
+      SUMA_SL_Err("Where's your cmapname?");
+      SUMA_RETURN(NOPE);
+   }
+
+   if (!cp->ColVec) { SUMA_SL_Err("NULL cV"); SUMA_RETURN(NOPE); }
+
+   /* is the coloring direct ? */
+   fprintf(stderr, "%s: cp->cmapname = %s\n", FuncName, cp->cmapname);
+      /* indirect mapping */
+      if (!SUMA_ScaleToMap_Interactive (cp)) {
+         SUMA_SL_Err("Failed in SUMA_ScaleToMap_Interactive.");
+         SUMA_RETURN(0);
+      }
+
+   if (LocalHead)  {
+      SUMA_LH("Color Plane Post Colorizing");
+      SUMA_Show_ColorOverlayPlanes ( &cp, 1, 0);
+   }
+
+   SUMA_RETURN(1);
+}
+
 
 /*!
    \brief Sets up the defaults for the convexity plane.

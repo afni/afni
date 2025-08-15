@@ -1086,6 +1086,9 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
                 over2->V[i] = (float)(over2->V[i] >= over2->IntRange[0]);  
            }
            
+//            fprintf(stderr, "SV->N_VCont = %d\n", SV->N_VCont);
+//            fprintf(stderr, "cp->N_NodeDef = %d\n", cp->N_NodeDef);
+           
             if (!SUMA_MakeThresholdOutlines (over2)) {
                  SUMA_SL_Err("Failed in SUMA_ScaleToMap_Interactive.");
                  SUMA_RETURN(0);
@@ -1191,7 +1194,6 @@ void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
 
    SUMA_RETURNe;   
 }
-
 
 void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay)
 {
@@ -2677,8 +2679,9 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado)
        SO->SurfCont->BoxOutlineThresh = 0;
    }
    
+   // curColPlane->N_NodeDef changed here to reflect the variable opacity nodes
    SUMA_LH("Colorize");
-   if (!SUMA_ColorizePlane (curColPlane)) {
+   if (!SUMA_ScaleToMap_Interactive2 (curColPlane)) {
       SUMA_SLP_Err("Failed to colorize plane.\n");
       SUMA_RETURN(0);
    }
@@ -2729,7 +2732,8 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    }
 
    SO = (SUMA_SurfaceObject *)ado;
-   AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
+   AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = 
+    XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
 
    // Process all surface objects
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
@@ -2740,15 +2744,13 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
         SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
         SUMA_RETURNe;
    }
-   fprintf(stderr, "ado = %p\n", ado);
+      
    for (j=0; j<N_adolist; ++j){
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        if (1 || otherAdo != ado){
+        if (otherAdo != ado){
             fprintf(stderr, "otherAdo = %p\n", otherAdo);
             if (otherAdo->do_type == SO_type){
                SO = (SUMA_SurfaceObject *)otherAdo;
-               if (!(SO->SurfCont=SUMA_ADO_Cont(otherAdo))
-                        || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
         
                // AlphaOpacityFalloff = !AlphaOpacityFalloff;
                SO->SurfCont->curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;
@@ -2763,7 +2765,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
 
                // Make variable opacity appear
                SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
-   
+
                SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
            }
         }
