@@ -377,7 +377,9 @@ otxt  : str
     BAD_RETURN = "", ""
 
     # list of uvars, in decreasing order of preference
-    list_ldep = ['errts_dset']
+    # [PT: Jun 18, 2025] now, if errts_blur exists, it will get priority
+    # as the dset for IC, bc it has only been created if it should be used
+    list_ldep = ['errts_blur', 'errts_dset']
 
     # initialize
     ouvar = ''
@@ -768,7 +770,7 @@ afni -q  -no_detach                                                     \\
 sleep 1
 
 set l = `prompt_popup -message \\
-"   Run InstaCorr on AP results data:  ${label}\\n\\n\\
+"   Run InstaCorr on AP results data:  ${label}  \\n\\n\\
 \\n\\
 InstaCorr calc using : ${ic_dset}\\n\\
 Initial ulay dataset : ${ic_dset}\\n\\
