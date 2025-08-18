@@ -2617,6 +2617,7 @@ def db_mod_volreg(block, proc, user_opts):
     #   - would be nice to also allow -volreg_warp_dxyz, but as that is an
     #     isotropic voxels size, it should not be applied without user request
     #     (i.e. be able to use -master without -dxyz)
+    #     ** these options are allowed together, as is -volreg_warp_master_box
     #   - could simply require user to be sure it is appropriate
     #     (for now, and account for issues as they arise, e.g. check space)
     #   - what if oblique? even allowed? can 3dAllin/NwA output be oblique?
@@ -2633,15 +2634,24 @@ def db_mod_volreg(block, proc, user_opts):
     block.valid = 1
 
 def vr_prep_for_warp_master(proc, user_opts):
-    """check for -volreg_warp_master option and prep for processing"""
+    """check for -volreg_warp_master or _box option and prep for processing"""
 
-    # if no such option, bail
+    # check for either option, starting with master
     oname = '-volreg_warp_master'
     warp_master, rv = user_opts.get_string_opt(oname)
+    mbox = 0
+    # if no master, check for master_box
+    if warp_master is None or warp_master == '':
+       mbox = 1
+       oname = '-volreg_warp_master_box'
+       warp_master, rv = user_opts.get_string_opt(oname)
+
+    # if neither was used, we are done
     if warp_master is None or warp_master == '':
        return 0
 
     proc.vr_wmast_in = warp_master
+    proc.vr_warp_mbox = mbox    # flag to use EPI to set voxel size
     view = UTIL.dset_view(warp_master)
     if view == '':
        print("** failed to get view from -volreg_warp_master, %s" % warp_master)
@@ -2952,6 +2962,7 @@ def db_cmd_volreg(proc, block):
           "           -prefix %s\n"                                         \
           % (prev_prefix, all1_input.prefix)
 
+    # ------------------------------------------------------------
     # if warping to new grid, note dimensions
     dim = 0
     if doadwarp or dowarp or doe2a:
@@ -2961,16 +2972,21 @@ def db_cmd_volreg(proc, block):
         proc.delta = [dim, dim, dim]
 
         opt = block.opts.find_opt('-volreg_warp_dxyz')
+        get_dim = 1
         if opt:
            dim = opt.parlist[0]
            proc.delta = [dim, dim, dim]
-        elif proc.vr_warp_mast is not None:
+           get_dim = 0
+        # else if warp master but not a _box (if _box, still get_dim from EPI)
+        elif proc.vr_warp_mast is not None and proc.vr_warp_mbox == 0:
             dims = UTIL.get_3dinfo_val_list(proc.vr_wmast_in, "d3", float)
             if dims is None or len(dims) != 3:
                print("** failed to get dimensions of -volreg_warp_master")
                return
             proc.delta = dims
-        else:
+            get_dim = 0
+
+        if get_dim:
             # truncate min dimension, but scale up slightly
             dim = UTIL.get_truncated_grid_dim(proc.dsets[0].rel_input(),
                                               scale=1.0001)
@@ -2982,6 +2998,7 @@ def db_cmd_volreg(proc, block):
         if proc.verb > 2: print("++ volreg: setting delta = %s" % proc.delta)
 
 
+    # ------------------------------------------------------------
     # create EPI warp list, outer to inner
     epi_warps      = []
     allinbase      = None       # master grid for warp

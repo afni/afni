@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Aug, 2025, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -volreg_warp_master_box",
+   "This is like -volreg_warp_master, but dxyz will come from EPI.\n"
+   "If -volreg_warp_dxyz is given, _master is the same as _master_box."
+ } ,
+
  { 15, Aug, 2025, RCR, "@compute_OC_weights", MINOR, TYPE_NEW_OPT,
    "add -prefix_combine, to combine the echoes using computed weights",
    "Added for P Molfese."
