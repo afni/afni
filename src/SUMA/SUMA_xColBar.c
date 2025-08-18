@@ -2501,6 +2501,8 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    SUMA_Boolean LocalHead = NOPE;
    int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
    int numSurfaceObjects;
+   SUMA_SurfaceObject *SO;
+   SUMA_Boolean BoxOutlineThresh, AlphaOpacityFalloff;
 
    SUMA_ENTRY;
 
@@ -2514,6 +2516,10 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    if ( !curColPlane )  {
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
+   
+   SO = (SUMA_SurfaceObject *)ado;
+   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+   SO->SurfCont->BoxOutlineThresh = 0;
 
    curColPlane->SymIrange = XmToggleButtonGetState (SurfCont->SymIrange_tb);
    
@@ -2534,7 +2540,7 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    }
    for (j=0; j<N_adolist; ++j){
             otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-            if (otherAdo != ado && otherAdo->do_type == SO_type){
+            if (/* otherAdo != ado && */ otherAdo->do_type == SO_type){
        
             if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(otherAdo, 
                 curColPlane->SymIrange, YUP)){
@@ -2543,6 +2549,56 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
             }
         }
    }
+   
+   if (SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh){
+       AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = 
+        XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
+
+       // Process all surface objects
+       XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+                     &numSurfaceObjects, NULL);
+       N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+       if (numSurfaceObjects != N_adolist)
+       {
+            SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+            SUMA_RETURNe;
+       }
+          
+       for (j=0; j<N_adolist; ++j){
+            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+            if (otherAdo != ado){
+                if (otherAdo->do_type == SO_type){
+                   SO = (SUMA_SurfaceObject *)otherAdo;
+            
+                   // AlphaOpacityFalloff = !AlphaOpacityFalloff;
+                   SO->SurfCont->curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;
+                   
+                   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh ;
+                   
+                   XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
+                                              SO->SurfCont->curColPlane->AlphaOpacityFalloff, NOPE);
+
+                   // Default opacity model
+                   if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
+
+                   // Make variable opacity appear
+                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
+
+                   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+               }
+            }
+       }
+
+       // If this part is left out, outlines are only restored to one of two surfaces unless
+       //
+       if (SO->SurfCont->BoxOutlineThresh ){
+           SUMA_Remixedisplay(ado);
+           SUMA_UpdateNodeLblField(ado);
+        }
+    // SUMA_RestoreThresholdContours(client_data, NOPE);
+   }
+   
+   // SUMA_cb_AlphaOpacityFalloff_tb_toggled (w, data, client_data);
 
    SUMA_RETURNe;
 }
