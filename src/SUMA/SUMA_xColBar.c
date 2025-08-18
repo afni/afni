@@ -2551,54 +2551,18 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    }
    
    if (SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh){
-       AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = 
-        XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
-
-       // Process all surface objects
-       XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
-                     &numSurfaceObjects, NULL);
-       N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-       if (numSurfaceObjects != N_adolist)
-       {
-            SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-            SUMA_RETURNe;
-       }
           
        for (j=0; j<N_adolist; ++j){
             otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
             if (otherAdo != ado){
                 if (otherAdo->do_type == SO_type){
-                   SO = (SUMA_SurfaceObject *)otherAdo;
-            
-                   // AlphaOpacityFalloff = !AlphaOpacityFalloff;
-                   SO->SurfCont->curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;
-                   
-                   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh ;
-                   
-                   XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
-                                              SO->SurfCont->curColPlane->AlphaOpacityFalloff, NOPE);
-
-                   // Default opacity model
-                   if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
 
                    // Make variable opacity appear
                    SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
-
-                   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
                }
             }
        }
-
-       // If this part is left out, outlines are only restored to one of two surfaces unless
-       //
-       if (SO->SurfCont->BoxOutlineThresh ){
-           SUMA_Remixedisplay(ado);
-           SUMA_UpdateNodeLblField(ado);
-        }
-    // SUMA_RestoreThresholdContours(client_data, NOPE);
    }
-   
-   // SUMA_cb_AlphaOpacityFalloff_tb_toggled (w, data, client_data);
 
    SUMA_RETURNe;
 }

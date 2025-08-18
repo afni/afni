@@ -12497,7 +12497,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
                          SDSET_LABEL(cp->dset_link));
             SUMA_KillOverlayContours(cp);
          }
-         if (SV->N_VCont != cp->N_NodeDef) {
+         if (!(SO->SurfCont->BoxOutlineThresh) && SV->N_VCont != cp->N_NodeDef) {
             fprintf(stderr, "SV->N_VCont = %d\n", SV->N_VCont);
             fprintf(stderr, "cp->N_NodeDef = %d\n", cp->N_NodeDef);
             SUMA_S_Warn("I expected N_VCont and N_NodeDef to match!\n"
