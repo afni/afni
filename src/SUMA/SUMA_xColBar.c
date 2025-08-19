@@ -1269,7 +1269,7 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
     if (ado->do_type == SO_type){
         SO = (SUMA_SurfaceObject *)ado;
         if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh){
-            SUMA_RestoreThresholdContours(ado, YUP);
+            SUMA_RestoreThresholdContours(ado, NOPE);
         }       
     }
    
@@ -2573,6 +2573,9 @@ int SUMA_cb_ShowZero_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
    static char FuncName[]={"SUMA_cb_ShowZero_tb_toggledForSurfaceObject"};
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   int  j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist, numSurfaceObjects;
+   SUMA_ALL_DO *otherAdo;
 
    SUMA_ENTRY;
 
@@ -2615,7 +2618,26 @@ int SUMA_cb_ShowZero_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
 
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
+
    
+   if (SO->SurfCont->BoxOutlineThresh){
+       // Process all surface objects
+       XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+                     &numSurfaceObjects, NULL);
+       N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+       if (numSurfaceObjects != N_adolist)
+       {
+            SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+            SUMA_RETURNe;
+       }
+          
+        float val = curColPlane->OptScl->ThreshRange[0];
+       for (j=0; j<N_adolist; ++j){
+           otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+           if (!SUMA_SetScaleThr_one(otherAdo, curColPlane, &val, 0, 1)) SUMA_RETURN(0);
+       }
+    }
+      
    SUMA_RETURN(1);
 }
 
