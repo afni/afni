@@ -40,7 +40,7 @@ ENTRY("mri_catvol_1D_xx") ;
 
    nyout = nyin = imin->ny ; nzout = nzin = imin->nz ; nxout = imin->nx ;
    datum = imin->kind ;
-   for( nn=na ; nn <= nb ; nn++ ){
+   for( nn=na+1 ; nn <= nb ; nn++ ){   // bug fix - was nn=na 19 Aug 2025 DRG
      imin = IMARR_SUBIM(imar,nn) ; if( imin == NULL ) continue ;
      if( nyin != imin->ny || nzin != imin->nz || datum != imin->kind ) RETURN(NULL);
      nxout += imin->nx ;
