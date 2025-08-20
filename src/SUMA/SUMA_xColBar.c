@@ -2366,6 +2366,7 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   SUMA_SurfaceObject *SO = NULL;
    int AbsThresh;
 
    SUMA_ENTRY;
@@ -2381,6 +2382,7 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
          !curColPlane->OptScl )  {
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
+   SO = (SUMA_SurfaceObject *)ado;
    
    /* Get state of |T| check box */
    AbsThresh = XmToggleButtonGetState (SurfCont->AbsThresh_tb);
@@ -2413,6 +2415,20 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
                     SUMA_RETURNe;
             }
         }
+   }
+   
+   if (SO->SurfCont->BoxOutlineThresh){
+          
+       for (j=0; j<N_adolist; ++j){
+            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+            if (otherAdo != ado){
+                if (otherAdo->do_type == SO_type){
+
+                   // Make variable opacity appear
+                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
+               }
+            }
+       }
    }
 
    SUMA_RETURNe;
@@ -2703,9 +2719,9 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado)
 
    SUMA_ENTRY;
    
-   SO = (SUMA_SurfaceObject *)ado;
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (!ado || !curColPlane) SUMA_RETURN(0);
+   SO = (SUMA_SurfaceObject *)ado;
 
     // Temporarily suspend threshold outline.  This appears to resolve the 
    // problem of the color map changing with the threshold slider
