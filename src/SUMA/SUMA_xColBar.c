@@ -2615,29 +2615,7 @@ int SUMA_cb_ShowZero_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
 
    // REFRESH DISPLAY
    SUMA_Remixedisplay(ado);
-
-   SUMA_UpdateNodeValField(ado);
-   SUMA_UpdateNodeLblField(ado);
-
    
-   if (SO->SurfCont->BoxOutlineThresh){
-       // Process all surface objects
-       XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
-                     &numSurfaceObjects, NULL);
-       N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-       if (numSurfaceObjects != N_adolist)
-       {
-            SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-            SUMA_RETURNe;
-       }
-          
-        float val = curColPlane->OptScl->ThreshRange[0];
-       for (j=0; j<N_adolist; ++j){
-           otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-           if (!SUMA_SetScaleThr_one(otherAdo, curColPlane, &val, 0, 1)) SUMA_RETURN(0);
-       }
-    }
-      
    SUMA_RETURN(1);
 }
 
@@ -2650,6 +2628,7 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   SUMA_SurfaceObject *SO = NULL;
 
    SUMA_ENTRY;
 
@@ -2659,6 +2638,7 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+   SO = (SUMA_SurfaceObject *)ado;
 
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (  !curColPlane ||
@@ -2693,6 +2673,20 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
                     SUMA_RETURNe;
            }
         }
+   }
+   
+   if (SO->SurfCont->BoxOutlineThresh){
+          
+       for (j=0; j<N_adolist; ++j){
+            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+            if (otherAdo != ado){
+                if (otherAdo->do_type == SO_type){
+
+                   // Make variable opacity appear
+                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
+               }
+            }
+       }
    }
 
    SUMA_RETURNe;
