@@ -7138,6 +7138,7 @@ int SUMA_SetRangeValueNew (SUMA_ALL_DO *ado,
 void SUMA_cb_SetRangeValue (void *data)
 {
     // Set threshold range values
+    // Search terms: imin imax mini maxi
    static char FuncName[]={"SUMA_cb_SetRangeValue"};
    SUMA_SRV_DATA srvdC, *srvd=NULL;
    SUMA_ALL_DO *ado=NULL, *otherAdo=NULL;
@@ -7148,6 +7149,7 @@ void SUMA_cb_SetRangeValue (void *data)
    SUMA_TABLE_FIELD *TF=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_SurfaceObject *SO = NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -7159,6 +7161,7 @@ void SUMA_cb_SetRangeValue (void *data)
    if (!(srvd = (SUMA_SRV_DATA *)data)) SUMA_RETURNe;
    ado = srvd->ado; colp = srvd->colp;
    if (!ado) SUMA_RETURNe;
+   SO = (SUMA_SurfaceObject *)ado;
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
 
@@ -7202,7 +7205,6 @@ void SUMA_cb_SetRangeValue (void *data)
         SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
         SUMA_RETURNe;
     }
-    fprintf(stderr, "*******************N_adolist = %d\n", N_adolist);
     for (j=0; j<N_adolist; ++j){
         otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
         if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
@@ -7245,8 +7247,21 @@ void SUMA_cb_SetRangeValue (void *data)
                 SUMA_S_Err("Erriosity");
              }
           }
-          /**/
         }
+   }
+   
+   if (SO->SurfCont->BoxOutlineThresh){
+          
+       for (j=0; j<N_adolist; ++j){
+            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+            if (otherAdo != ado){
+                if (otherAdo->do_type == SO_type){
+
+                   // Make variable opacity appear
+                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
+               }
+            }
+       }
    }
 
    SUMA_RETURNe;
