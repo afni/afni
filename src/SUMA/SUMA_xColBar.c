@@ -1429,9 +1429,13 @@ int SUMA_SwitchColPlaneIntensity(
    int loc[2];
    SUMA_Boolean LocalHead = NOPE;
    SUMA_Boolean AlphaOpacityFalloff;
-   SUMA_SurfaceObject   *SO=NULL;
+   SUMA_SurfaceObject *SO = SUMA_ADO_Cont(ado);
+   int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist, numSurfaceObjects;
+   SUMA_ALL_DO *otherAdo;
 
    SUMA_ENTRY;
+   
+   fprintf(stderr, "************* %s\n", FuncName);
    
    if (ado->do_type == SO_type) {
       SO = (SUMA_SurfaceObject *)ado;
@@ -1470,6 +1474,26 @@ int SUMA_SwitchColPlaneIntensity(
       
   // Restore variable thresholding
   if (SO) SO->SurfCont->curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;
+   
+   fprintf(stderr, "************* %s: SO->SurfCont->BoxOutlineThresh = %d\n", FuncName, SO->SurfCont->BoxOutlineThresh);
+   if (SO->SurfCont->BoxOutlineThresh){
+        N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+        if (numSurfaceObjects != N_adolist) {
+            SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+            SUMA_RETURNe;
+        }
+          
+       for (j=0; j<N_adolist; ++j){
+            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+            if (1 || otherAdo != ado){
+                if (otherAdo->do_type == SO_type){
+
+                   // Make variable opacity appear
+                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
+               }
+            }
+       }
+   }
 
    SUMA_RETURN(1);
 }
@@ -10744,8 +10768,10 @@ void SUMA_optmenu_EV( Widget w , XtPointer cd ,
    Dimension lw=0 ;
    Widget * children , wl = NULL;
    XButtonEvent * bev = (XButtonEvent *) ev ;
-   int  num_children , ic ;
-   SUMA_ALL_DO *ado = (SUMA_ALL_DO *)cd;
+   int  num_children , ic , j;
+   SUMA_ALL_DO *ado = (SUMA_ALL_DO *)cd, *otherAdo;
+   SUMA_SurfaceObject *SO = SUMA_ADO_Cont(ado);
+   int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -10801,6 +10827,20 @@ void SUMA_optmenu_EV( Widget w , XtPointer cd ,
    } else {
       SUMA_SLP_Err("wahtchyoutalkinaboutwillis?");
       SUMA_RETURNe;
+   }
+   
+   if (SO->SurfCont->BoxOutlineThresh){
+          
+       for (j=0; j<N_adolist; ++j){
+            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+            if (otherAdo != ado){
+                if (otherAdo->do_type == SO_type){
+
+                   // Make variable opacity appear
+                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
+               }
+            }
+       }
    }
 
    SUMA_RETURNe;
