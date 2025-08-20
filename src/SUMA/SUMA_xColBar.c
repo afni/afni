@@ -1480,7 +1480,7 @@ int SUMA_SwitchColPlaneIntensity(
         N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
         if (numSurfaceObjects != N_adolist) {
             SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-            SUMA_RETURNe;
+            SUMA_RETURN(0);
         }
           
        for (j=0; j<N_adolist; ++j){
@@ -2872,7 +2872,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
 
    // Get relevant overlay (overlay showing thresholded region)
    ado = (SUMA_ALL_DO *)data;
-   if (!ado || ado->do_type != SO_type | !(SurfCont=SUMA_ADO_Cont(ado))) {
+   if (!ado || ado->do_type != SO_type || !(SurfCont=SUMA_ADO_Cont(ado))) {
     fprintf(stderr, "ERROR %s: Cannot have surface threshold outline.  No surface\n", 
         FuncName);
     XmToggleButtonSetState(w, 0, 0);
