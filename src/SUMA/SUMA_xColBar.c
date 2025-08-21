@@ -2228,7 +2228,7 @@ int SUMA_cb_ShowZero_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
       SUMA_S_Warn("NULL input 2"); SUMA_RETURN(0);
    }
    
-    // Set I Range check box
+    // Set Show Zero check box
     SurfCont=SUMA_ADO_Cont(ado);
     if (  !SurfCont ||
          !SurfCont->ShowZero_tb )  {
@@ -2340,7 +2340,7 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int
       SUMA_S_Warn("NULL input 2"); SUMA_RETURN(0);
    }
 
-    // Set I Range check box
+    // Set Alpha check box
     SurfCont=SUMA_ADO_Cont(ado);
     if ( !SurfCont || !SurfCont->ShowZero_tb )  {
       SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
@@ -2378,7 +2378,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    SUMA_SurfaceObject *SO = NULL;
 
    SUMA_ENTRY;
-
+   
    SUMA_LH("Called");
 
    ado = (SUMA_ALL_DO *)data;
@@ -3256,8 +3256,7 @@ void SUMA_RangeTableCell_EV ( Widget w , XtPointer cd ,
    SUMA_ENTRY;
 
    SUMA_LH("Called");
-
-
+   
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
    curDO = SUMA_Cont_ADO(SurfCont);
@@ -6255,6 +6254,7 @@ void SUMA_XhairInput (void* data)
                FuncName, i, j, (char *)cv);
    }
    /* Now parse that string into 3 numbers */
+   fprintf(stderr, "++++++++++++ cv = %s\n", cv);
    if (SUMA_StringToNum ((char *)cv, (void *)fv3, 3,1) != 3) {
       SUMA_BEEP;
       str[0]='\0';
@@ -6307,7 +6307,7 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
 
    SUMA_ENTRY;
 
-   if (LocalHead) {
+  if (LocalHead) {
       SUMA_DUMP_TRACE("Who called SUMA_SetRangeValueNew_one?");
    }
 
@@ -6702,8 +6702,8 @@ void SUMA_cb_SetRangeValue (void *data)
    // Process other surface objects
    int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
    int numSurfaceObjects, j;
-   int newMin = TF->num_value[n];
-   int newMax = TF->num_value[1];
+   float newMin = TF->num_value[n];
+   float newMax = TF->num_value[1];
    // int newMax = 0.0;
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
