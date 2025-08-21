@@ -2378,7 +2378,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    SUMA_SurfaceObject *SO = NULL;
 
    SUMA_ENTRY;
-   
+
    SUMA_LH("Called");
 
    ado = (SUMA_ALL_DO *)data;
@@ -6254,7 +6254,6 @@ void SUMA_XhairInput (void* data)
                FuncName, i, j, (char *)cv);
    }
    /* Now parse that string into 3 numbers */
-   fprintf(stderr, "++++++++++++ cv = %s\n", cv);
    if (SUMA_StringToNum ((char *)cv, (void *)fv3, 3,1) != 3) {
       SUMA_BEEP;
       str[0]='\0';
@@ -6307,7 +6306,7 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
 
    SUMA_ENTRY;
 
-  if (LocalHead) {
+   if (LocalHead) {
       SUMA_DUMP_TRACE("Who called SUMA_SetRangeValueNew_one?");
    }
 
