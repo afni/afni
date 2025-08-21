@@ -3256,7 +3256,7 @@ void SUMA_RangeTableCell_EV ( Widget w , XtPointer cd ,
    SUMA_ENTRY;
 
    SUMA_LH("Called");
-   
+
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
    curDO = SUMA_Cont_ADO(SurfCont);
@@ -6701,9 +6701,8 @@ void SUMA_cb_SetRangeValue (void *data)
    // Process other surface objects
    int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
    int numSurfaceObjects, j;
-   float newMin = TF->num_value[n];
-   float newMax = TF->num_value[1];
-   // int newMax = 0.0;
+   float newValue = TF->num_value[n];
+
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist) {
@@ -6739,7 +6738,7 @@ void SUMA_cb_SetRangeValue (void *data)
           }
 
           an = SUMA_SetRangeValueNew(otherAdo, colp, row, col,
-                                 newMin, 0.0,
+                                 newValue, 0.0,
                                  0, 1, &reset, TF->num_units);
 
           if (an < 0) {
