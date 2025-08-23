@@ -12,6 +12,7 @@ from afnipy import option_list as OL
 
 # useful globals
 Z_COMP_OPS = ['ZLE', 'ZLT', 'ZGE', 'ZGT']
+V_COMP_OPS = ['VARY', 'VARY_PM']
 
 # ----------------------------------------------------------------------
 # globals
@@ -374,9 +375,10 @@ g_history = """
    1.7  Mar 21, 2024   - allow ANY or ANY0 for a field choice
    1.8  Aug 07, 2024   - [pt] new opt -join_values, for JG-C
    1.9  Aug 06, 2025   - [pt] new operator VARY_PM, for "plus/minus" equality
+   2.0  Aug 22, 2025   - [pt] VARY and VARY_PM show comparand in label row
 """
 
-g_version = "gen_ss_review_table.py version 1.8, Aug 07, 2024"
+g_version = "gen_ss_review_table.py version 2.0, Aug 22, 2025"
 
 
 class MyInterface:
@@ -1034,13 +1036,13 @@ class MyInterface:
                continue
 
             # avoid 'SHOW' and 'VARY', to be sure [2] exists
-            if not(check in ['VARY', 'VARY_PM']) :
+            if not(check in V_COMP_OPS) :
                baseval = otest[2]
 
             # the main purpose: look for errors
             for repind in range(nchecks):
                # if VARY, comparison is against first row
-               if check in ['VARY', 'VARY_PM'] :
+               if check in V_COMP_OPS :
                   baseval = varyrow[posn]
                elif check in Z_COMP_OPS :
                   tmp, val = self.apply_Z_transform(float(baseval), label,
@@ -1325,7 +1327,7 @@ class MyInterface:
       for otest in test_list:
          label = otest[0]
          check = otest[1]
-         if check == 'SHOW' or check == 'VARY':
+         if check == 'SHOW' :
             newlab = check
          elif check in Z_COMP_OPS :
             # [PT: Sep 2, 2024] new label format for Z-score comparisons
@@ -1334,6 +1336,8 @@ class MyInterface:
             if check : return -1
             thr = UTIL.round_int_or_nsig(val, 3, stringify=True)
             newlab = '%s:%s (=%s)' % (check, otest[2], str(thr))
+         elif check in V_COMP_OPS :
+            newlab = '%s:%s' % (check, table[2][posn])
          else:
             newlab = '%s:%s' % (check, otest[2])
 
