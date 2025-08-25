@@ -945,7 +945,7 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
     SUMA_SL_Err("NULL SurfCont"); SUMA_RETURN(0); }
 
    curColPlane = SUMA_ADO_CurColPlane(ado);
-   if (curColPlane->OptScl<0x20)
+   if ((long)(curColPlane->OptScl)<0x20)
       { SUMA_SL_Err("Invalid curColPlane->OptScl"); SUMA_RETURN(0); }
    
    switch (curColPlane->OptScl->ThrMode) {
@@ -1429,7 +1429,7 @@ int SUMA_SwitchColPlaneIntensity(
    int loc[2];
    SUMA_Boolean LocalHead = NOPE;
    SUMA_Boolean AlphaOpacityFalloff;
-   SUMA_SurfaceObject *SO = SUMA_ADO_Cont(ado);
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist, numSurfaceObjects;
    SUMA_ALL_DO *otherAdo;
 
@@ -2899,11 +2899,8 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
         SUMA_RETURNe;
    }
   
-  fprintf(stderr, "****** ado = %p\n", ado);
    for (j=0; j<N_adolist; ++j){
         ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        fprintf(stderr, "****** otherAdo = %p\n", ado);
-        fprintf(stderr, "****** SUMAg_DOv[adolist[j]] = %p\n", SUMAg_DOv[adolist[j]]);
         if (ado->do_type == SO_type){
             applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE);
         }
@@ -2912,9 +2909,6 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    // Refresh display
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
-   
-   // DEBUG
-   fprintf(stderr, "SO->SurfCont->curColPlane->AlphaOpacityFalloff = %d\n", SO->SurfCont->curColPlane->AlphaOpacityFalloff);
 
    SUMA_RETURNe;
 }
@@ -4517,9 +4511,15 @@ void SUMA_CreateTable(  Widget parent,
    if (!TF) { SUMA_SL_Err("NULL TF"); SUMA_RETURNe; }
    /* looks like wname is the "useless default"    17 Feb 2021 [rickr] */
    if (iwname) { /* override useless default */
-      snprintf(TF->wname,63,"%s", iwname);
+      if (snprintf(TF->wname,63,"%s", iwname) < 0){
+        fprintf(stderr, "Error writing entry to table\n");
+        SUMA_RETURNe;
+      }
    } else {
-      snprintf(TF->wname,63,"%s", wname);
+      if (snprintf(TF->wname,63,"%s", wname) < 0){
+        fprintf(stderr, "Error writing entry to table\n");
+        SUMA_RETURNe;
+      }
    }
    TF->Ni = Ni; TF->Nj = Nj; TF->editable = editable;
    TF->cwidth = (int *)SUMA_calloc(TF->Nj, sizeof(int));
@@ -4596,7 +4596,10 @@ void SUMA_CreateTable(  Widget parent,
       }
 
       /* Create what would become a table URI in the html help */
-      snprintf(wname, 63, "%s", TF->wname);
+      if (snprintf(wname, 63, "%s", TF->wname) < 0){
+        fprintf(stderr, "Error writing table URL for html help\n");
+        SUMA_RETURNe;
+      }
       SUMA_Register_Widget_Help(NULL, 2, wname, NULL, NULL);
 
       for (j=0; j<TF->Nj; ++j) { /* for each column */
@@ -4649,9 +4652,15 @@ void SUMA_CreateTable(  Widget parent,
                     Cannot use it before updating
                     help generating functions which now call for help on .c00,
                     .c01, or .r00 .r01, etc. */
-                  snprintf(wname, 63, "%s.%s", TF->wname, row_tit[i]);
+                  if (snprintf(wname, 63, "%s.%s", TF->wname, row_tit[i]) < 0){
+                    fprintf(stderr, "Error writing label to table\n");
+                    SUMA_RETURNe;
+                  }
                } else {
-                  snprintf(wname, 63, "%s.r%02d", TF->wname, i);
+                  if (snprintf(wname, 63, "%s.r%02d", TF->wname, i) < 0){
+                    fprintf(stderr, "Error writing label to table\n");
+                    SUMA_RETURNe;
+                  }
                }
                SUMA_Register_Widget_Help(TF->cells[n], 1, wname,
                                          row_hint?row_hint[i]:NULL,
@@ -4752,7 +4761,10 @@ void SUMA_CreateTable(  Widget parent,
                     .c01, or .r00 .r01, etc. */
                   snprintf(wname, 63, "%s.%s", TF->wname, col_tit[j]);
                } else {
-                  snprintf(wname, 63, "%s.c%02d", TF->wname, j);
+                  if (snprintf(wname, 63, "%s.c%02d", TF->wname, j) < 0){
+                    fprintf(stderr, "Error writing name to color table\n");
+                    SUMA_RETURNe;
+                  }
                }
                SUMA_Register_Widget_Help(TF->cells[n], 1, wname,
                                          col_hint?col_hint[j]:NULL,
@@ -4778,9 +4790,15 @@ void SUMA_CreateTable(  Widget parent,
                               SUMAg_CF->X->TableTextFontList, NULL);
                if (col_help || col_hint || row_help || row_hint)  {
                   if (TF->Ni>1) {
-                     snprintf(wname, 63, "%s[%d,%d]", TF->wname, i, j);
+                     if (snprintf(wname, 63, "%s[%d,%d]", TF->wname, i, j) < 0){
+                        fprintf(stderr, "Error writing label to table\n");
+                        SUMA_RETURNe;                        
+                     }
                   } else {
-                     snprintf(wname, 63, "%s[%d]", TF->wname, n);
+                     if (snprintf(wname, 63, "%s[%d]", TF->wname, n) < 0){
+                        fprintf(stderr, "Error writing label to table\n");
+                        SUMA_RETURNe;                        
+                     }
                   }
                   if (!row_tit && !col_tit && TF->Ni == 1 && TF->Nj == 1) {
                      char *shh=NULL, *sii=NULL;
@@ -5268,7 +5286,10 @@ void SUMA_CreateSliceFields(  Widget parent,
                            XmNfontList, SUMAg_CF->X->TableTextFontList,
                                      NULL);
    if (hint || help) {
-      snprintf(wname,63, "%s->%s", SF->wname, tit);
+      if (snprintf(wname,63, "%s->%s", SF->wname, tit) < 0){
+        fprintf(stderr, "Error writing label to table.\n");
+        SUMA_RETURNe;
+      }
       SUMA_Register_Widget_Help( SF->lab, 1, wname, hint, help);
    }
    mult = ((int)(SF->Nslc/20.0)/5)*5; if (mult < 1) mult = 1;
@@ -5313,7 +5334,10 @@ void SUMA_CreateSliceFields(  Widget parent,
                   SUMAg_CF->X->TableTextFontList, NULL);
 
    if (hint || help) {
-      snprintf(wname, 63, "%s->%s_text", SF->wname, tit);
+      if (snprintf(wname, 63, "%s->%s_text", SF->wname, tit) < 0){
+        fprintf(stderr, "Error writing label to table.\n");
+        SUMA_RETURNe;
+      }
       SUMA_Register_Widget_Help( SF->text, 1, wname, hint, help);
    }
    XtVaSetValues(SF->text, XmNcolumns, 3, NULL);
@@ -5347,7 +5371,10 @@ void SUMA_CreateSliceFields(  Widget parent,
                   SUMAg_CF->X->TableTextFontList, NULL);
 
    if (hint || help) {
-      snprintf(wname, 63, "%s->mont", SF->wname);
+      if (snprintf(wname, 63, "%s->mont", SF->wname)){
+        fprintf(stderr, "Error writing label to table.\n");
+        SUMA_RETURNe;
+      }
       SUMA_Register_Widget_Help( SF->mont, 1, wname, hint, help);
    }
    XtVaSetValues(SF->mont, XmNcolumns, 5, NULL);
@@ -5372,7 +5399,10 @@ void SUMA_CreateSliceFields(  Widget parent,
       xmToggleButtonWidgetClass, SF->rc, NULL);
    XtAddCallback (SF->tb,
          XmNvalueChangedCallback, shwslccb, ado);
-   snprintf(wname, 63, "%s->tb", SF->wname);
+   if (snprintf(wname, 63, "%s->tb", SF->wname)){
+        fprintf(stderr, "Error writing label to table.\n");
+        SUMA_RETURNe;
+      }
    SUMA_Register_Widget_Help(SF->tb, 1, wname,
                      "View (ON)/Hide Slice(s)",
                      SUMA_SurfContHelp_ShowSliceTgl);
@@ -7217,21 +7247,21 @@ void SUMA_cb_SetRangeValue (void *data)
       }
    }
 
-    // Process other surface objects
-    int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
-    int numSurfaceObjects, j;
-    int newMin = TF->num_value[n];
-    int newMax = TF->num_value[1];
-    // int newMax = 0.0;
-    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
-    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-    if (numSurfaceObjects != N_adolist) {
-        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-        SUMA_RETURNe;
-    }
-    for (j=0; j<N_adolist; ++j){
-        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
+   // Process other surface objects
+   int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   int numSurfaceObjects, j;
+   float newValue = TF->num_value[n];
+
+   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   if (numSurfaceObjects != N_adolist) {
+       if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+       SUMA_RETURNe;
+   }
+   for (j=0; j<N_adolist; ++j){
+       otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+
+       if (otherAdo != ado){
 
            if (!(SurfCont=SUMA_ADO_Cont(otherAdo))) {
              fprintf(stderr, "Surface index = %d", j);
@@ -7257,7 +7287,7 @@ void SUMA_cb_SetRangeValue (void *data)
           }
 
           an = SUMA_SetRangeValueNew(otherAdo, colp, row, col,
-                                 newMin, 0.0,
+                                 newValue, 0.0,
                                  0, 1, &reset, TF->num_units);
 
           if (an < 0) {
@@ -10770,7 +10800,7 @@ void SUMA_optmenu_EV( Widget w , XtPointer cd ,
    XButtonEvent * bev = (XButtonEvent *) ev ;
    int  num_children , ic , j;
    SUMA_ALL_DO *ado = (SUMA_ALL_DO *)cd, *otherAdo;
-   SUMA_SurfaceObject *SO = SUMA_ADO_Cont(ado);
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -12116,7 +12146,10 @@ SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_ALL_DO *ado,
             of sub-bricks. In any case, sub-brick labels are not that
             important here, this should be improved someday*/
          menu[i].label = (char*)malloc(13*sizeof(char));
-         snprintf(menu[i].label,11*sizeof(char), "sb%d", i-1);
+         if (snprintf(menu[i].label,11*sizeof(char), "sb%d", i-1) < 0){
+            fprintf(stderr, "Error writing  entry to switch color menu vector\n");
+            SUMA_RETURN(0);
+         }
       }
       menu[i].class = &xmPushButtonWidgetClass;
       menu[i].mnemonic = '\0';
@@ -12388,8 +12421,14 @@ void SUMA_UpdatePvalueField (SUMA_ALL_DO *ado, float thresh)
          else {
            int dec = (int)(0.999 - log10(qval)) ;
            zval = qval * pow( 10.0 , (double)dec ) ;  /* between 1 and 10 */
-           if( dec < 10 ) sprintf( qbuf, " %3.1f-%1d",            zval, dec );
-           else           sprintf( qbuf, " %1d.-%2d" , (int)rint(zval), dec );
+           if( dec < 10 && snprintf( qbuf, 16, " %3.1f-%1d", zval, dec ) < 0){
+                fprintf(stderr, "Error updating p-value field.\n");
+                SUMA_RETURNe;
+           }
+           else if (sprintf( qbuf, " %1d.-%2d" , (int)rint(zval), dec ) < 0){
+                fprintf(stderr, "Error updating p-value field.\n");
+                SUMA_RETURNe;
+           }
          }
          strcat(buf,"\nq=") ; SUMA_strncat(buf,qbuf+1,99) ;
       } else {
