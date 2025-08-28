@@ -481,7 +481,7 @@ See lct.CbarPbar() for the set of things that are populated for the actual
       self.valid_opts.add_opt('-orth_on', 0, [], 
                       helpstr="orthogonal fade: on (=fade perp to color grad)")
 
-      self.valid_opts.add_opt('-orth_frac', 0, [], 
+      self.valid_opts.add_opt('-orth_frac', 1, [], 
                       helpstr="orthogonal fade: fraction at which to start")
 
       self.valid_opts.add_opt('-outline_width', 1, [], 
