@@ -3,7 +3,7 @@
 # python3 status: compatible
 
 import sys, os
-import copy, glob
+import copy, glob, re
 from afnipy import afni_util as UTIL
 from afnipy import lib_vars_object as VO
 
@@ -14,6 +14,9 @@ g_ttpp_tests = ['-AminusB', '-BminusA']
 g_valid_atomic_types = [int, float, str, list]
 g_simple_types = [int, float, str]
 g_subject_sort_key = None
+
+G_SUBJ_ENTRY = 1    # flags for if subject or session are found
+G_SESS_ENTRY = 2
 
 def comment_section_string(comment, length=70, cchar='-'):
    """return a string of the form:
@@ -266,31 +269,122 @@ class Subject(object):
 
    _sort_key = None             # attribute key used in compare()
    _order    = 1                # 1 for normal, -1 for reverse
+   reg_sub   = re.compile('sub-[0-9]+')     # patterns for sub/ses searches
+   reg_ses   = re.compile('ses-[0-9]+')
+
+   # global variable names
+   var_sub   = '${subj}'
+   var_ses   = '${sess}'
+   var_sid   = '${subj}'        # or e.g. ${subj}_${sess}
 
    def __init__(self, sid='', dset='', atrs=None):
 
       self.sid   = sid          # subject ID (string)
+                                # perhaps equal to subj, or subj_sess
       self.dset  = dset         # dset name (string: existing filename)
+      self.vset  = ''           # dset, but with variables for subj, sess
       self.atrs  = None         # attributes (VarsObject instance)
 
       self.ddir  = '.'          # split dset name into directory and file
       self.dfile = ''
+      self.vdir  = '.'          # same pair, but with variables
+      self.vfile = ''
       self.maxlinelen = 0       # if set, maximum line len for subj in command
                                 # rcr - todo
 
-      dir, file = os.path.split(dset)   # and update them
-      if dir: self.ddir = dir
+      # BIDS fields, they might be used to control sid
+      self.bids_sub  = ''       # sub-[0-9]+, if found
+      self.bids_ses  = ''       # ses-[0-9]+, if found
+
+      self.bids_lev  = 0        # binary level 0,1,2,3: no B, sub-, ses-, both
+      self.bids_flev = 0        # binary level in just file
+      self.bids_errs = 0        # errors found in BIDS aspects
+
+      # get to work ...
+      sdir, file = os.path.split(dset)   # and update them
+      if sdir: self.ddir = sdir
       self.dfile = file
+
+      # set any BIDS fields, and set vset based on what is found
+      self.set_bids_info(dset)
+      self.set_vset_from_vars()
 
       # init to empty, and merge if something is passed
       self.atrs = VO.VarsObject('subject %s' % sid)
       if atrs != None: self.atrs.merge(atrs)
+
+   def set_vset_from_vars(self):
+      """set self.vset, vdir, vfile from self.dset, etc.,
+         replacing sub/ses with self.var_sub/ses
+      """
+      self.vset = self.dset
+      if self.bids_sub != '':
+         self.vset = self.vset.replace(self.bids_sub, self.var_sub)
+         self.vdir = self.vdir.replace(self.bids_sub, self.var_sub)
+         self.vfile = self.vfile.replace(self.bids_sub, self.var_sub)
+      if self.bids_ses != '':
+         self.vset = self.vset.replace(self.bids_ses, self.var_ses)
+         self.vdir = self.vdir.replace(self.bids_ses, self.var_ses)
+         self.vfile = self.vfile.replace(self.bids_ses, self.var_ses)
+
+   def set_bids_info(self, fname):
+      """try to set all bids fields (bids_*) from fname
+
+         b_lev  : 0 if no BIDS, +1 if sub, +2 if ses
+         b_flev : same, but just in trailing file name
+
+         return 0 on success
+      """
+
+      # ---------- subject
+      m = self.reg_sub.search(fname)
+
+      # special case, if no subject, just bail
+      if m is None:
+         return 0
+
+      # have a subject in the given path
+      self.bids_lev |= G_SUBJ_ENTRY
+      self.bids_sub = m.group()
+
+      # check in file, too
+      sdir, sfile = os.path.split(fname) # separate dir and file
+
+      m = self.reg_sub.search(sfile)
+      if m is not None:
+         self.bids_flev |= G_SUBJ_ENTRY
+
+         # verify: initial subject should match the file-level subject
+         ss = m.group()
+         if self.bids_sub != ss:
+            self.bids_errs += 1
+            print("** warning: conflicting subject IDs in %s" % fname)
+
+      # ---------- session
+      m = self.reg_ses.search(fname)
+      if m is not None:
+         self.bids_lev |= G_SESS_ENTRY
+         self.bids_ses = m.group()
+
+         # check session in file
+         m = self.reg_ses.search(sfile)
+         if m is not None:
+            self.bids_flev |= G_SESS_ENTRY
+
+            # verify: initial session should match the file-level session
+            ss = m.group()
+            if self.bids_ses != ss:
+               self.bids_errs += 1
+               print("** conflicting sessions in path, %s" % fname)
+
+      return self.bids_errs
 
    def show(self):
       natr = self.atrs.count()-1  # do not include name
       print("Subject %s, natr = %d" % (self.sid, natr))
       print("   dset = %s" % self.dset)
       print("   ddir = %s\n   dfile = %s\n" % (self.ddir, self.dfile))
+      print("   bsub = %s, bses = %s\n" % (self.bids_sub, self.bids_ses))
       if natr > 0:
          self.atrs.show('  attributes: ')
 
@@ -424,11 +518,127 @@ class SubjectList(object):
          if self.verb > 1:
             print('++ setting common dir, %s = %s' % (cname, cdir))
 
-   def set_ids_from_dsets(self, prefix='', suffix='', hpad=0, tpad=0, dpre=2):
+   def set_ids_from_dsets(self, prefix='', suffix='', hpad=0, tpad=0, dpre=2,
+                          method='default'):
+       """choose new or old way of setting IDs
+
+          method bids    : go after sub-*, ses-*
+                 vary    : old way: look for varying part, and pad
+                 default : first try BIDS, then vary
+       """
+
+       # if not forcing the old way, first try BIDS
+       if method != 'vary':
+          rv = self.set_sids_from_bids()
+          if rv > 0:
+             return 0  # success
+          elif rv < 0:
+             return 1  # failure
+
+          # else 0 (no BIDS): return if forcing BIDS, else use old way
+          if method == 'bids':
+             return 1  # so failure
+
+       return self.old_set_ids_from_dsets(prefix=prefix, suffix=suffix,
+                                          hpad=hpad, tpad=tpad, dpre=dpre)
+
+   def set_sids_from_bids(self, try_ses=1):
+      """if we can, set each s.sid (and s.var_sid?) based on BIDS info
+
+         For example, if s.vset values are identical we might be able to use
+         s.bids_sub, but might need a long form if ses is in filename tail.
+
+         try_ses: if set, try to include session in the sid
+                - e.g. in a paired t-test or one with covariates, exclude it
+         todo: make an option for this
+
+         return > 1 if we're done, 0, if not, -1 on error
+      """
+
+      # if BIDS variables do not make dsets constant, cannot just use BIDS
+      if not UTIL.vals_are_constant([s.vset for s in self.subjects]):
+         return 0
+
+      if self.verb > 2:
+         print("== vset vals: %s" % [s.vset for s in self.subjects])
+
+      # base most choices on the first subject
+      s = self.subjects[0]
+
+      # if we don't have BIDS subject IDs, forget BIDS
+      if s.bids_sub == '':
+         return 0
+
+      # -------------------------------------------------------------------
+      # all datasets have ${subj}, so use ${subj}, ${subj}_${sess}, or fail
+      # (failure means sid's are not unique, even if try_ses is set)
+      # -------------------------------------------------------------------
+
+      # make note of all current subject IDs
+      sid_list = [s.bids_sub for s in self.subjects]
+
+      # include ${sess} if in vfile, or if sids are not unique
+      # (save try_ses for later, so one can see verbose messages)
+      do_ses = 0
+      if s.vfile.find(s.var_ses) >= 0:
+         if self.verb > 1:
+            print("-- including session in IDs, since in file name")
+         do_ses = 1
+      elif not UTIL.vals_are_unique(sid_list):
+         if self.verb > 1:
+            print("-- including session in IDs, since subjects not unique")
+         do_ses = 1
+
+      # and possibly turn if off
+      if do_ses and not try_ses:
+         if self.verb > 1:
+            print("-- excluding session in IDs, at request")
+         do_ses = 0
+
+      # ------------------------------------------------------------
+      # actual effect:
+      #
+      # if including session, put it in sid and var_sid
+      # else, sid is just bids_sub
+      if do_ses:
+         for s in self.subjects:
+            s.sid = '%s_%s' % (s.bids_sub, s.bids_ses)
+         s.var_sid = '%s_%s' % (s.var_sub, s.var_ses)
+      else:
+         for s in self.subjects:
+            s.sid = s.bids_sub
+
+      # ------------------------------------------------------------
+      # now be sure those subject IDs are unique
+
+      sid_list = [s.sid for s in self.subjects]
+
+      # if these are not unique, we have failed
+      uniq = UTIL.vals_are_unique(sid_list)
+      if not uniq and not try_ses:
+         print('** failed to set IDs from dsets, labels not unique:\n  %s' \
+               % sid_list)
+         return -1
+
+      if self.verb > 1:
+         if uniq: vtype = 'valid'
+         else:    vtype = 'non-unique'
+         s = self.subjects[0]
+         print("++ have %s SIDs, with var %s" % (vtype, s.var_sid))
+         print("-- file names have form %s" % s.vset)
+         s.show()
+
+      # else, success
+      return 1
+
+   def old_set_ids_from_dsets(self, prefix='', suffix='',
+                              hpad=0, tpad=0, dpre=2):
       """use the varying part of the dataset names for subject IDs
 
          If hpad > 0 or tpad > 0, expand into the head or tail of the dsets.
          If prefix or suffix is passed, apply them.
+
+         result: set subj.sid for each subject in self.subjects
 
          return 0 on success, 1 on error
       """
