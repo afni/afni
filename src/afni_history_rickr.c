@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Aug, 2025, RCR, "gen_group_command.py", MINOR, TYPE_NEW_OPT,
+   "try to detect BIDS; add option -sid_method",
+   "This will also be incorporated in gen_ss_review_table.py."
+ } ,
+
  { 18, Aug, 2025, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -volreg_warp_master_box",
    "This is like -volreg_warp_master, but dxyz will come from EPI.\n"

@@ -1034,9 +1034,12 @@ g_history = """
         - no require on restricted subjects
    1.3  Jul 30, 2019 - sphinx help update
    1.4  Oct  4, 2024 - datatable creation
+   1.5  Aug 28, 2026
+        - try to detect BIDS inputs
+        - added option -sid_method (to allow one to revert)
 """
 
-g_version = "gen_group_command.py version 1.4 October 4, 2024"
+g_version = "gen_group_command.py version 1.5 August 28, 2026"
 
 g_todo = """
   - add option to output in 'shell' format, with quoted selectors and line wrap
