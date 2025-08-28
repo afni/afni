@@ -332,6 +332,14 @@ cbar (see 'JSONs' in the Notes above).
         -thr_val       3                                         \\
         -alpha         Linear                                          
 
+    8) Make a colorbar from the name within the known AFNI list, with
+       orthogonal fading.
+
+    colorbar_tool.py                                             \\
+        -in_cbar_name  Reds_and_Blues_Inv                        \\
+        -prefix        CBAR_RaBI_orth.png                        \\
+        -alpha         Yes                                       \\
+        -orth_on
 
 """.format(all_alpha=lct.list_alpha_str, thr_wid=lct.DOPTS['thr_width'],
            thr_no=lct.DOPTS['thr_num_osc'], tick_ni=lct.DOPTS['tick_num_int'],
