@@ -43,9 +43,12 @@
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
 #
-set version   = "2.4";   set rev_dat   = "Apr 23, 2022"
+#set version   = "2.4";   set rev_dat   = "Apr 23, 2022"
 #     + [PT] start optionizing template+shell to use
 #       - also introduce new shell with larger face/neck removal
+#
+set version   = "2.5";   set rev_dat   = "Aug 29, 2025"
+#     + [PT] add cubeface functionality and opts
 #
 # ============================================================================
 
@@ -62,6 +65,11 @@ set owrite     = ""
 set DO_ANON    = 0             # opt: anonymize the output dsets
 
 set cost_allin = "lpa"          # cost function used; this was orig def
+
+# for cubeface
+set lcube = 10
+set edge  = ( 0 0 0 )
+
 
 ### these dsets are now selectable/alterable at command line
 # this is a newer shell than (now long ago) original: this one is
@@ -108,6 +116,8 @@ while ( $ac <= $#argv )
         set run_mode = "reface"
     else if ( "$argv[$ac]" == "-mode_reface_plus" ) then
         set run_mode = "reface_plus"
+    else if ( "$argv[$ac]" == "-mode_cubeface" ) then
+        set run_mode = "cubeface"
     else if ( "$argv[$ac]" == "-mode_all" ) then
         set run_mode = "ALL"
 
@@ -136,6 +146,11 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set cost_allin = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-cube_len" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set lcube = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-no_images" ) then
         set DO_CHAUFF = 0
@@ -216,6 +231,12 @@ else
     set wdir0 = __work_refacer.${opref}.`3dnewid -fun11`
     set wdir  = ${odir}/${wdir0}
     \mkdir -p ${wdir}
+endif
+
+# cube length for cubeface
+if ( ${lcube} <= 0 ) then
+    echo "** ERROR: cube length must be >=0, not ${lcube}; fix '-cube_len ..'"
+    goto BAD_EXIT
 endif
 
 # if we got to here:  good to continue.  Brag a bit first.
@@ -325,7 +346,7 @@ set ifac = `ccalc "1.222*${ibar}/${mbar}"`
 
 # entries here are indexed by use_subbr entries for first two, but not
 # for defacing
-set reface_type = ( "reface_plus" "reface" "deface" )
+set reface_type = ( "reface_plus" "reface" "deface" "cubeface" )
 
 set use_subbr = ( )
 if ( "${run_mode}" == "ALL" || "${run_mode}" == "reface_plus" ) then
@@ -385,6 +406,71 @@ if ( "${run_mode}" == "ALL" || "${run_mode}" == "deface" ) then
 
 endif
 
+# CUBEFACE: replace face with Cubist averages
+
+if ( "${run_mode}" == "ALL" || "${run_mode}" == "cubeface" ) then
+
+    set subbr = 1 
+    set idx   = 4
+
+    echo "+++ Proc for ${reface_type[${idx}]}"
+    echo "    with subbrick ${subbr} and list index ${idx}"
+
+    # figure out edge lengths for making ROI map
+    set dim = `3dinfo -n4 tmp.05.sh_t2a_thr.nii`
+    foreach ii ( `seq 1 1 3` )
+        # integer division
+        set edge[$ii] = `ccalc -i -eval "int((${dim[$ii]} - 1) / ${lcube}) + 1"`
+    end
+
+    echo "++ CUBE: ${lcube}"
+    echo "++ DIM : ${dim[1-3]}"
+    echo "++ EDGE: ${edge}"
+
+    # make the cubist ROI map
+    3dcalc                                                                   \
+        -overwrite                                                           \
+        -a          tmp.05.sh_t2a_thr.nii"[1]"                               \
+        -expr       "bool(a)*(int(i/${lcube}) + ${edge[1]}*int(j/${lcube}) + ${edge[1]}*${edge[2]}*int(k/${lcube}))" \
+        -prefix     tmp.11.cube.nii                                          \
+        -datum      float                                                    \
+        -nscale
+
+    # make the text file of info for ROI_label -> ROI_value mapping
+    # ... first as 2 rows:
+    3dROIstats                                                               \
+        -quiet                                                               \
+        -mask          tmp.11.cube.nii                                       \
+        -float_format  '%.0f'                                                \
+        tmp.11.cube.nii                                                      \
+        > tmp.12.mapping_row.1D
+    3dROIstats                                                               \
+        -quiet                                                               \
+        -mask          tmp.11.cube.nii                                       \
+        -float_format  '%f'                                                  \
+        tmp.00.INPUT.nii                                                     \
+        >> tmp.12.mapping_row.1D
+
+    # ... and then as 2 cols:
+    1dtranspose -overwrite tmp.12.mapping_row.1D tmp.13.mapping_col.1D 
+
+    # map average values into place in cubes
+    3dExchange                                                               \
+        -overwrite                                                           \
+        -input      tmp.11.cube.nii                                          \
+        -map        tmp.13.mapping_col.1D                                    \
+        -prefix     tmp.14.cube_mapped.nii
+
+    # finally, put together the mapped cubes and original data 
+    3dcalc                                                                   \
+        -overwrite                                                           \
+        -a          tmp.00.INPUT.nii                                         \
+        -b          tmp.14.cube_mapped.nii                                   \
+        -expr       'b + not(b)*a'                                           \
+        -prefix     tmp.99.result.${reface_type[${idx}]}.nii                 \
+        -datum      float
+
+endif
 
 # ----- also make a short-valued copy of the result, if practicable ------
 
@@ -629,11 +715,12 @@ OUTPUTS ~1~
 When running with '-mode_all', then 5 datasets will be output, all in
 the same space as the input volume:
 
-    + Three refaced/defaced volumes:
+    + Four refaced/defaced volumes:
       1) a "defaced" volume (face+ears replaced with zeros)
       2) a "refaced" volume (face+ears replaced with artificial values) 
       3) a "reface_plused" volume (face+ears+skull replaced with artificial
          values)
+      4) a "cubefaced" volume (face+ears replaced with average across big cubes)
 
     + Two face-replacing volumes:
       4) the face+ears used to replace or remove subject data
@@ -647,15 +734,15 @@ A temporary working directory is also created.  This will be cleaned
 
 USAGE ~1~
 
-  @afni_refacer_run                         \
-    -input  DSET                            \
-    -mode_{reface|reface_plus|deface|all}   \
-    -prefix PPP                             \
-    {-anonymize_output}                     \
-    {-cost CC}                              \
-    {-overwrite}                            \
-    {-no_clean}                             \
-    {-no_images}                            \
+  @afni_refacer_run                                  \
+    -input  DSET                                     \
+    -mode_{reface|reface_plus|deface|cubeface|all}   \
+    -prefix PPP                                      \
+    {-anonymize_output}                              \
+    {-cost CC}                                       \
+    {-overwrite}                                     \
+    {-no_clean}                                      \
+    {-no_images}                                     \
     {-verb_allin}      
 
 where:
@@ -671,8 +758,14 @@ where:
                 set of artificial values (i.e., like 'refacing', but
                 replacing a more complete shell around the subject's
                 brain)
- -mode_all    : output three volumes: one defaced, one refaced and one
-                reface_plused
+ -mode_cubeface : replace the subject's face+ears with values averaged
+                across large cubes (see -cube_len, for controlling cube size)
+                NB: this mode is NOT particularly recommended for use in
+                practice. It was added because it existed in The Wild, 
+                and we wanted to be able to replicate it for training 
+                a skullstripping program.
+ -mode_all    : output four volumes: one defaced, one refaced, one
+                reface_plused, and one cubefaced
 
  -prefix PPP  : (req) name of output dset (see NOTES for info about
                 about file names, particularly when "-mode_all" is used).
@@ -692,6 +785,10 @@ where:
                   afni_refacer_shell_sym_2.0.nii.gz  (more face/neck removal)
                 (def: ${ref_shell})
 
+ -cube_len CL : (opt) when using "cubeface"-style refacing, users can control
+                the number voxels along a cubeface side with this number; must
+                be greater than 0 (def: ${lcube})
+                
  -no_clean    : (opt) don't delete temp working dir (def: remove working
                 dir)
 
@@ -723,6 +820,7 @@ choice, with identifying suffixes and *.nii.gz extensions:
     PREFIX.deface.nii.gz 
     PREFIX.reface.nii.gz
     PREFIX.reface_plus.nii.gz
+    PREFIX.cubeface.nii.gz
 Additionally, both replacement volumes will be output, having the
 same prefix and relevant suffix:
     PREFIX.face.nii.gz 
