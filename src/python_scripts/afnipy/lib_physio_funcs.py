@@ -9,6 +9,7 @@ from   afnipy import lib_physio_opts    as lpo
 from   afnipy import lib_physio_peaks   as lpp
 from   afnipy import lib_physio_phases  as lpph
 from   afnipy import lib_physio_rvt     as lprvt
+from   afnipy import lib_physio_convolve as lpcon
 from   afnipy import lib_physio_plot    as lpplt
 from   afnipy import lib_physio_util    as lpu
 
@@ -18,6 +19,7 @@ from   afnipy import lib_physio_util    as lpu
 # set of allowed time series labels for calculation at present
 PO_all_label = ['card', 'resp']
 PO_rvt_label = ['resp']
+PO_hr_label  = ['card']
 
 # ===========================================================================
 
@@ -47,6 +49,19 @@ valid for RVT calcs (e.g., might only apply to 'resp' label)."""
         print("   {}".format(', '.join(PO_rvt_label)))
         sys.exit(3)
 
+def check_label_hr(label):
+    """Simple check for some main funcs, that label is both present and
+valid for HR calcs (e.g., might only apply to 'card' label)."""
+
+    if not(label) :
+        print("** ERROR: must provide label kwarg from allowed HR list:")
+        print("   {}".format(', '.join(PO_hr_label)))
+        sys.exit(3)
+    elif not(label in PO_hr_label) :
+        print("** ERROR: label '{}' is not in allowed HR list:".format(label))
+        print("   {}".format(', '.join(PO_hr_label)))
+        sys.exit(3)
+
 def check_empty_list(x, count, lab_title, label):
     """Simple check whether a peak, trough or phase list x is empty or
 not.  Whine if it is, and return nonzero.  If things are cool, just
@@ -64,7 +79,6 @@ return 0.
 # ---------------------------------------------------------------------------
 
 def calc_timing_selection_phys(retobj, label=None, verb=0):
-
     """Calculate the 'timing selection array' for the phys_obj
 (=retobj.data[label]) time series tvalues, for each MRI slice based on
 the slice timing information.  That is, for any of the
@@ -127,19 +141,22 @@ is_ok : int
 
     return 0
 
-def calc_timing_selection_rvt(retobj, label=None, verb=0):
+def calc_timing_selection_volbase(retobj, label=None, verb=0):
     """Calculate the 'timing selection array' for the phys_obj
 (=retobj.data[label]) time series tvalues, **just starting at time 0,
-for the RVT regressor**, based on the slice timing information.  That
-is, we need to know where to sample the physio time series to match
-with the MRI volume (just initial slice, which we assume is at t=0.0).
-The 'timing array' records this information.  We basically step
-through the finely-sampled physio data 'x-axis', and figure out which
-values correspond to a given coarse-sampled MRI slice.
+for any volume-based regressor**, based on the slice timing
+information.  That is, we need to know where to sample the physio time
+series to match with the MRI volume (just initial slice, which we
+assume is at t=0.0).  The 'timing array' records this information.  We
+basically step through the finely-sampled physio data 'x-axis', and
+figure out which values correspond to a given coarse-sampled MRI
+slice.
 
 NB: we *could* have just gotten this info as a special case of the
 full physio slicewise regressors calculation, but decided to keep this
 separate, to be more general.
+
+Used for RVT, HR, etc.
 
 Parameters
 ----------
@@ -158,10 +175,10 @@ is_ok : int
 
     """
 
-    if verb : print("++ Start RVT arr timing calc for {} data".format(label))
+    if verb : print("++ Start volbase arr timing calc for {}".format(label))
 
+    # this is for either card or resp data
     check_label_all(label)
-    check_label_rvt(label)      # a practical RVT reality, at present
 
     # the specific card/resp/etc. obj we use here (NB: not copying
     # obj, just dual-labelling for simplifying function calls while
@@ -183,7 +200,7 @@ is_ok : int
                                    vol_nv, vol_tr, verb=verb)
 
     # done, store
-    phobj.list_slice_sel_rvt = all_ind
+    phobj.list_slice_sel_volbase = all_ind
 
     return 0
 
@@ -982,6 +999,209 @@ intervals to estimate 'instantaneous period'.
 
     return 0
 
+def calc_time_series_hr(retobj, label=None, win=6, verb=0):
+    """Calculate average heart rate (HR), as described in:
+
+    ``Influence of heart rate on the BOLD signal: The cardiac response
+    function'' by Catie Chang a, John P. Cunningham a, Gary H. Glover
+    (2009).
+
+NB: Output here is on the FMRI/EPI grid. 
+
+This is a fairly straightforward calc that doesn't require pre-calc on
+the card time series level.  It just uses the time series and card
+inter-peak intervals to estimate 'heart rate'.  We calculate the mean
+interpeak interval in a win of time (units: s) around a given TR. The
+result is divided by 60, to have units of beats per minute.
+
+    """
+
+    if verb : print("++ Start HR regressor calc for {} data".format(label))
+
+    check_label_all(label)
+    check_label_hr(label)       # a practical HR reality, at present
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+
+    # ------ time series average interpeak interval (**EPI time grid**)
+    count     = 22
+    lab_title = 'HR average rate estimation'
+    lab_short = 'hr_ave'
+    if verb :   print('++ ({}) {}'.format(label, lab_title))
+
+    # time-related values
+    tr   = retobj.vol_tr         # EPI data sampling rate (s)
+    delt = phobj.samp_rate       # phys data sampling rate (s) 
+    win  = phobj.hr_win          # window for average HR (s) 
+    nperwin = int(win/delt)      # N phys samples per window
+
+    # lists of ints on the physio grid
+    peaks  = phobj.peaks                   # indices of peaks
+    npeaks = len(peaks)
+    all_tr = phobj.list_slice_sel_volbase  # indices of EPI TR locs
+    ntr    = len(all_tr)
+
+    if verb > 1 :
+        print("   window size time, delt and nperwin:", win, delt, nperwin)
+
+    ## *** Note *** 
+    # Here we have 2 systems of indices we care about: 'time indices'
+    # that maps directly onto physical time, if we multiplied it by
+    # the physio sampling rate, delt; and 'peak indices' which are the
+    # indices of the peaks list, which define where physio peaks
+    # occurred. Below, bot and top define a time interval window in
+    # terms of time indices; we search through to find peak indices
+    # within that window, because we are interested in the average
+    # interpeak interval within the time window.  Interpeak intervals
+    # can/will generally fractionally extend beyond the time window,
+    # and we try to account for those bits.  At the EPI TR boundaries,
+    # we likely have to truncate the EPI windows in a one-sided manner.
+
+    min_p = 0      # to be min index of peaks for per-TR window
+    max_p = 0      # to be min index of peaks for per-TR window
+    hr_ave = []    # store all average heart rate values
+
+    for ii in range(ntr):
+        # define current window around ii-th TR: the possible range of
+        # time index indices within which to find peaks
+        bot = all_tr[ii] - int(nperwin/2)
+        top = all_tr[ii] + int(nperwin/2)
+
+        # respect known boundaries of physio data index range
+        if bot < 0 : 
+            bot = 0
+        if top >= phobj.n_ts_orig : 
+            top = phobj.n_ts_orig - 1
+
+        # find idx vals for min/max window range in peaks
+        while peaks[min_p] < bot and min_p < npeaks :
+            min_p+= 1
+        max_p = min_p
+        while peaks[max_p] < top and max_p < npeaks-1 :
+            max_p+= 1
+        max_p-= 1  # bc this went one too high
+        # verify no obvious badness has occurred; bc of boundaries,
+        # min_p cd be equal to all_tr[ii], etc.
+        ## + it is OK to have "min_p == max_p", which just means there
+        ##   was only 1 peak in the window (should still be fractions
+        ##   around); for default peak of 6s, in card data this would only
+        ##   likely happen for test data
+        ## + it is actually OK for min_p to be above the TR index,
+        ##   because the first peak might be after like TR=0
+        ## + similarly, the last peak could be at an index below the 
+        ##   max TR value
+        if min_p >= npeaks or max_p >= npeaks or min_p > max_p :
+            print("** ERROR: bad min_p or max_p calc: ({}, {})"
+                  "".format(min_p, max_p))
+            print("   (bot, top) = ({}, {}); peaks[min], peaks[max] = ({}, {})"
+                  "".format(bot, top, peaks[min_p], peaks[max_p]))
+            print("   npeaks: {}, [{}]th TR, all_tr[ii]: {}"
+                  "".format(npeaks, ii, all_tr[ii]))
+            sys.exit(3)
+
+        # Part 1 of average: count num of peaks in this interval, and
+        # their first peak-to-last peak time duration; time_ival will
+        # be scaled by delt below, when we are done
+        peak_count = float(max_p - min_p)
+        time_ival  = float(peaks[max_p] - peaks[min_p])
+
+        # Part 2 of average: see if we can/should add fractional
+        # interval on left side of window; this means stepping back
+        # one index in peaks, and calculating relative fraction of
+        # peak-to-peak interval within the current window
+        if min_p > 0 and peaks[min_p] > bot :
+            numer = float(peaks[min_p] - bot)
+            denom = float(peaks[min_p] - peaks[min_p - 1])
+            if denom <= 0 or numer <= 0:
+                print("** ERROR: neg val in left peak (numer, denom): ({}, {})"
+                      "".format(numer, denom))
+                sys.exit(3)
+            frac = numer/denom
+            if frac <= 0 :
+                print("** ERROR: bad left peak frac=numer/denom: {}; "
+                      "(numer, denom): ({}, {})".format(frac, numer, denom))
+                sys.exit(3)
+            peak_count+= frac
+            time_ival+= numer
+
+        # Part 3 of average: see if we can/should add fractional
+        # interval on right side of window; this means stepping
+        # forward one index in peaks, and calculating relative
+        # fraction of peak-to-peak interval within the current window
+        if max_p < npeaks and peaks[max_p] < top :
+            numer = float(top - peaks[max_p])
+            denom = float(peaks[max_p + 1] - peaks[max_p])
+            if denom <= 0 or numer <= 0:
+                print("** ERROR: neg val in right peak (numer, denom): ({}, {})"
+                      "".format(numer, denom))
+                sys.exit(3)
+            frac = numer/denom
+            if frac <= 0 :
+                print("** ERROR: bad right peak frac=numer/denom: {}; "
+                      "(numer, denom): ({}, {})".format(frac, numer, denom))
+                sys.exit(3)
+            peak_count+= frac
+            time_ival+= numer
+
+        # peak count should definitely be positive, and it seems
+        # impossible for the value to be less than 1 for a reasonable
+        # window, without some problem in the calc/data
+        if peak_count < 1 :
+            print("+* Warn: Peak count < 1 (which is quite small): {}"
+                  "".format(peak_count))
+            if verb > 7 :
+                print("   [{}]th TR, win bot, top, time_ival are: {}, {}, {}"
+                      "".format(ii, bot, top, time_ival))
+
+        # scale the time interval to have units of physical time
+        time_ival*= delt
+
+        # *finally* the average HR here (= num peaks per time interval)
+        if time_ival :
+            hr = peak_count / time_ival
+        else:
+            hr = 0.0
+
+        if verb > 5 :
+            if ii == 0 :
+                print("++ (card) ave HR per TR")
+            print("   [{:4d}] peak_count = {:0.3f}, time_ival = {:0.3f} "
+                  "hr = {:0.3f}".format(ii, peak_count, time_ival,
+                                              hr))
+
+        # append this average, and divide by 60 to be beats per min
+        hr_ave.append( hr/60. )
+
+    # after going through EPI time series, convert to array
+    hr_ave = np.array(hr_ave, dtype=float)
+
+    # actual RVT (only plotted as regressor, later)
+    count    += 1
+    lab_title = 'HR average'
+    lab_short = 'hr_ave'
+    if verb :   print('++ ({}) {}'.format(label, lab_title))
+
+    if retobj.img_verb > 1 :
+        fname, title = make_str_ts_peak_trough(label, count, 
+                                               lab_title, lab_short, 
+                                               prefix=prefix, odir=odir)
+        lpplt.makefig_phobj_peaks_troughs(phobj, peaks=phobj.peaks,
+                                          troughs=phobj.troughs,
+                                          hr=hr_ave,
+                                          title=title, fname=fname,
+                                          retobj=retobj,
+                                          verb=verb)
+
+    phobj.hr_ts = hr_ave
+    
+    return 0
+
+
 # --------------------------------------------------------------------------
 
 
@@ -1034,7 +1254,7 @@ Eq. 1 of Glover et al., 2000.
 
 def calc_regress_rvt(retobj, label=None, verb=0):
     """Calculate RVT regressors, as described in Birn et al.,
-2006.  Apply shifts here
+2006.  Apply shifts here.
 
     """
 
@@ -1061,8 +1281,8 @@ def calc_regress_rvt(retobj, label=None, verb=0):
     # tvalues array, and then selecting the same MRI-snapshot points.
     # We use the time series median to pad values
 
-    # the primary, unshifted regressor
-    rvt_regr = phobj.rvt_ts[phobj.list_slice_sel_rvt]
+    # the primary, unshifted RVT regressor
+    ###rvt_regr = phobj.rvt_ts[phobj.list_slice_sel_volbase]
 
     for ii in range(nshift):
         # make shifted regressors
@@ -1070,7 +1290,7 @@ def calc_regress_rvt(retobj, label=None, verb=0):
         shift = shift_list[ii]
         regress_dict_rvt[lab] = get_shifted_rvt(phobj.rvt_ts,
                                                 phobj.samp_freq,
-                                                phobj.list_slice_sel_rvt,
+                                                phobj.list_slice_sel_volbase,
                                                 shift)
 
     phobj.regress_dict_rvt = regress_dict_rvt
@@ -1131,3 +1351,97 @@ y : np.ndarray
         else:               y[ii] = pad_val
 
     return y
+
+# ==========================================================================
+
+def calc_regress_rvtrrf(retobj, label=None, verb=0):
+    """Calculate regressor that is the result of convolving the RVT
+regressor with an empirical RRF function, as described in Birn et al.,
+2008.  This (perhaps obviously) depends on having RVT already
+calculated...
+
+    """
+
+    if verb : print("++ Start RVTRRF regressor calc for {} data".format(label))
+
+    check_label_all(label)
+    check_label_rvt(label)      # a practical RVT reality, at present
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+
+    regress_dict_rvtrrf = {}
+
+    # the primary, unshifted RVT regressor
+    rvt_regr = get_shifted_rvt(phobj.rvt_ts,
+                               phobj.samp_freq,
+                               phobj.list_slice_sel_volbase,
+                               0)
+
+    # convolve RVT with RRF
+    rvtrrf_reg = lpcon.convolve_with_kernel(rvt_regr, delt=retobj.vol_tr,
+                                            kernel='rrf_birn08')
+    
+    # add to dict
+    lab = 'rvtrrf'
+    regress_dict_rvtrrf[lab]  = rvtrrf_reg
+    phobj.regress_dict_rvtrrf = regress_dict_rvtrrf
+
+    # make lineplot image of the RVTRRF regressors
+    tmp = lpplt.plot_regressors_rvtrrf(retobj, label)
+
+    return 0
+
+# --------------------------------------------------------------------------
+
+def calc_regress_hr(retobj, label=None, win=6, verb=0):
+    """Calculate average heart rate (HR), as described in:
+
+    ``Influence of heart rate on the BOLD signal: The cardiac response
+    function'' by Catie Chang a, John P. Cunningham a, Gary H. Glover
+    (2009).
+
+Output here is on the FMRI/EPI grid. 
+
+This is a fairly straightforward calc that doesn't require pre-calc on
+the card time series level.  It just uses the time series and card
+inter-peak intervals to estimate 'heart rate'.  We calculate the mean
+interpeak interval in a win of time (units: s) around a given TR. The
+result is divided by 60, to have units of beats per minute.
+
+    """
+
+    if verb : print("++ Start HR regressor calc for {} data".format(label))
+
+    check_label_all(label)
+    check_label_hr(label)       # a practical HR reality, at present
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+
+    regress_dict_hrcrf = {}
+
+    # the average HR time series is already at the locations of EPI TRs
+    hr_regr = phobj.hr_ts
+
+    # convolve RVT with RRF
+    hrcrf_reg = lpcon.convolve_with_kernel(hr_regr, delt=retobj.vol_tr,
+                                           kernel='crf_chang09')
+    
+    # add to dict
+    lab = 'hrcrf'
+    regress_dict_hrcrf[lab]  = hrcrf_reg
+    phobj.regress_dict_hrcrf = regress_dict_hrcrf
+
+    # make lineplot image of the HRCRF regressors
+    tmp = lpplt.plot_regressors_hrcrf(retobj, label)
+
+    return 0
