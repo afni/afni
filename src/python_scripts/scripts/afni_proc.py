@@ -3378,8 +3378,8 @@ class SubjProcSream:
             self.write_text("%s\n" % stat_inc)
 
         # do the same for per_run ortvecs, but need -pad_into_many_runs
-        # if self.user_opts.find_opt('-regress_per_run_ortvec'):
-        #    self.copy_per_run_ortvecs()
+        if self.user_opts.find_opt('-regress_per_run_ortvec'):
+           self.copy_per_run_ortvecs()
 
         if self.anat:
             oanat = self.anat.nice_input()
@@ -3659,6 +3659,31 @@ class SubjProcSream:
                             "endif\n\n")
 
         self.flush_script()
+
+    # copy per_run ortvecs, calling 1d_tool.py -pad_into_many_runs
+    #
+    # checks:
+    #   - first term should be a label and not a file
+    #   - other terms should be files, one per run
+    #   - check the run lengths (in regress block)
+    #     - consider nt_rm_first/last
+    #
+    #   - here, just copy the files
+    def copy_per_run_ortvecs(self):
+        oname = '-regress_per_run_ortvec'
+        olist = self.user_opts.find_all_opts(oname)
+        if len(olist) == 0:
+           return
+
+        # we have options, copy all files to stimuli/per_run_orig
+        cstr = '# copy per-run ortvec files into stimuli dir\n'
+        for opt in olist:
+            fnames = opt.parlist[1:]
+            cstr += 'cp %s %s/stimuli\n' % \
+                      (' '.join(quotize_list(fnames,'')),self.od_var)
+            self.tlist.add_many(fnames, 'ortvec', ftype='1D')
+
+        self.write_text(add_line_wrappers(cstr+'\n'))
 
     # and last steps
     def finalize_script(self):
