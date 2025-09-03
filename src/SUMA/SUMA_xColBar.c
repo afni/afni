@@ -1664,13 +1664,38 @@ int SUMA_SwitchColPlaneIntensity_one (
    if (colp->ShowMode < 0) { SUMA_RETURN(1); } /* nothing else to do */
 
    SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+   
+   if (!SUMA_ColorizePlane (colp)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURN(0);
+   }
+
+
+   SUMA_Remixedisplay(ado);
+
+   #if SUMA_SEPARATE_SURF_CONTROLLERS
+      SUMA_UpdateColPlaneShellAsNeeded(ado);
+   #endif
+
+   SUMA_UpdateNodeValField(ado);
+   SUMA_UpdateNodeLblField(ado);
       
    // Restore variable opacity and threshold boundaries if necessar6y
    if (curColPlane->AlphaOpacityFalloff || SurfCont->BoxOutlineThresh){
+    float val = curColPlane->OptScl->ThreshRange[0];
+    SUMA_set_threshold(ado, curColPlane, &val);
+    // restoreProperThresholdCcontours(ado);
+   /*
        int numSurfaceObjects;
        int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
        SUMA_Boolean AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff;
        SUMA_ALL_DO *otherAdo;
+           
+       if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado)){
+               SUMA_S_Warn("Error toggling variable opacity for "
+                           "current surface"); 
+               SUMA_RETURNe;
+       }
        
       XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                      &numSurfaceObjects, NULL);
@@ -1698,23 +1723,8 @@ int SUMA_SwitchColPlaneIntensity_one (
                }
            }
        }
+       */
    }
-
-   
-   if (!SUMA_ColorizePlane (colp)) {
-         SUMA_SLP_Err("Failed to colorize plane.\n");
-         SUMA_RETURN(0);
-   }
-
-
-   SUMA_Remixedisplay(ado);
-
-   #if SUMA_SEPARATE_SURF_CONTROLLERS
-      SUMA_UpdateColPlaneShellAsNeeded(ado);
-   #endif
-
-   SUMA_UpdateNodeValField(ado);
-   SUMA_UpdateNodeLblField(ado);
 
    SUMA_RETURN(1);
 }
