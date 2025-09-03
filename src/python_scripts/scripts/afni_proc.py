@@ -1062,9 +1062,9 @@ g_eg_skip_opts = [
    '-surf_anat', '-surf_spec',
    '-tlrc_NL_warped_dsets', 
    # '-volreg_base_dset',   (not sure, so allow for now)
-   '-regress_censor_extern', '-regress_extra_stim_files', 
-   '-regress_extra_ortvec', '-regress_extra_ortvec_labels',
-   '-regress_motion_file', 
+   '-regress_censor_extern',  '-regress_extra_stim_files',
+   '-regress_extra_ortvec',   '-regress_extra_ortvec_labels',
+   '-regrss_per_run_ortvec',  '-regress_motion_file',
    '-regress_ppi_stim_files', '-regress_stim_files', '-regress_stim_times', 
    '-ricor_regs'
    ] 
@@ -1884,6 +1884,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_extra_ortvec_labels',
                                 -1, [], okdash=0,
                         helpstr="labels for extra -stim_files")
+        self.valid_opts.add_opt('-regress_per_run_ortvec', -2, [], okdash=0,
+                        helpstr="label and ortvecs for each run")
         self.valid_opts.add_opt('-regress_ppi_stim_files', -1, [], okdash=0,
                         helpstr="extra PPI -stim_files to apply")
         self.valid_opts.add_opt('-regress_ppi_stim_labels', -1, [], okdash=0,
@@ -3374,6 +3376,10 @@ class SubjProcSream:
             self.tlist.add_many(opt.parlist, 'ortvec', ftype='1D')
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
+
+        # do the same for per_run ortvecs, but need -pad_into_many_runs
+        # if self.user_opts.find_opt('-regress_per_run_ortvec'):
+        #    self.copy_per_run_ortvecs()
 
         if self.anat:
             oanat = self.anat.nice_input()

@@ -5766,8 +5766,6 @@ def db_mod_regress(block, proc, user_opts):
 
         block.opts.add_opt('-regress_extra_stim_files', -1, [])
         block.opts.add_opt('-regress_extra_stim_labels', -1, [])
-        block.opts.add_opt('-regress_extra_ortvec', -1, [])
-        block.opts.add_opt('-regress_extra_ortvec_labels', -1, [])
 
         block.opts.add_opt('-regress_opts_3dD', -1, [])
         block.opts.add_opt('-regress_opts_reml', -1, [])
@@ -5961,37 +5959,14 @@ def db_mod_regress(block, proc, user_opts):
 
     # check for extra ortvecs
     oname = '-regress_extra_ortvec'
-    uopt = user_opts.find_opt(oname)
-    bopt = block.opts.find_opt(oname)
-    if uopt and bopt:  # only check length against labels
-        bopt.parlist = uopt.parlist
-        # convert paths to the local stimulus directory
-        proc.extra_ortvec = []
-        proc.extra_ortvec_orig = bopt.parlist
-        for fname in bopt.parlist:
-            proc.extra_ortvec.append('stimuli/%s' % os.path.basename(fname))
+    apply_uopt_to_block(oname, user_opts, block)
+    apply_uopt_to_block('-regress_extra_ortvec_labels', user_opts, block)
+    if len(user_opts.find_all_opts(oname)) > 1:
+       print("** please include all ortvec with single %s opt" % oname)
+       errs += 1
 
-    oname = '-regress_extra_ortvec_labels'
-    uopt = user_opts.find_opt(oname)
-    bopt = block.opts.find_opt(oname)
-    if uopt and bopt:
-        bopt.parlist = uopt.parlist
-        proc.extra_ortvec_labs = uopt.parlist
-        nxlabs = len(proc.extra_ortvec_labs)
-        nxorts = len(proc.extra_ortvec)
-        if nxorts == 0:
-            print("** have -regress_extra_ortvec_labels without" + \
-                  " -regress_extra_ortvec")
-            errs += 1
-        elif nxorts != nxlabs:
-            print("** have %d extra ortvec but %d extra ort labels" % \
-                  (nxorts, nxlabs))
-            errs += 1
-    elif bopt and len(proc.extra_ortvec) > 0:
-        # no ortvec label option, so fashion some
-        print("-- auto-generating labels for extra ortvec files")
-        proc.extra_ortvec_labs = \
-              ['xort%02d'%ind for ind in range(len(proc.extra_ortvec))]
+    # and per-run ortvecs
+    # apply_uopt_list_to_block('-regress_per_run_ortvec',  user_opts, block)
 
     # --------------------------------------------------
     # if we are here, then we should have stimulus files
@@ -6393,6 +6368,10 @@ def db_cmd_regress(proc, block):
 
     # ----------------------------------------
     # user ortvecs, add vec/lab pairs to self.regress_orts list
+
+    if check_for_extra_ortvec(proc, block):
+       return
+
     nxort = len(proc.extra_ortvec)
     if nxort > 0:
         if len(proc.extra_ortvec_labs) != nxort:
@@ -7022,6 +7001,42 @@ def db_cmd_regress(proc, block):
     if bcmd: cmd += bcmd
 
     return cmd
+
+
+# process any -regress_extra_ortvec/_labels option
+# populate proc.extra_ortvec and extra_ortvec_labs
+# return 0 on success
+def check_for_extra_ortvec(proc, block):
+    # ----- first get ortvecs
+    oname = '-regress_extra_ortvec'
+    bopt = block.opts.find_opt(oname)
+    if bopt is None:
+       return 0
+
+    # set orvecs, convert paths to the local stimulus directory
+    ortvecs = bopt.parlist
+    for ind, fname in enumerate(ortvecs):
+        proc.extra_ortvec.append('stimuli/%s' % os.path.basename(fname))
+
+    # ----- then get labels
+    lname = '-regress_extra_ortvec_labels'
+    lopt = block.opts.find_opt(lname)
+    if lopt is None:
+       print("-- auto-generating labels for extra ortvec files")
+       labels = ['xort%02d' % ind for ind in range(len(ortvecs))]
+    else:
+       labels = lopt.parlist
+       if len(labels) != len(bopt.parlist):
+          print("** have %d extra ortvec but %d extra ort labels" % \
+                (len(bopt.parlist), len(labels)))
+          return 1
+
+    # and insert the labels
+    proc.extra_ortvec_labs.extend(labels)
+
+    # todo: check total length before processing
+
+    return 0
 
 # Run 3dTproject, akin to 3dDeconvolve.
 #
