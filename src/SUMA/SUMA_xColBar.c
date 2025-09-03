@@ -1422,29 +1422,13 @@ int SUMA_SwitchColPlaneIntensity(
          SUMA_OVERLAYS *colp,
          int ind, int setmen)
 {
-    // Changes Intensity (I) subbrick
    static char FuncName[]={"SUMA_SwitchColPlaneIntensity"};
    char srange[500];
    double range[2];
    int loc[2];
    SUMA_Boolean LocalHead = NOPE;
-   SUMA_Boolean AlphaOpacityFalloff;
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist, numSurfaceObjects;
-   SUMA_ALL_DO *otherAdo;
 
    SUMA_ENTRY;
-   
-   fprintf(stderr, "************* %s\n", FuncName);
-   
-   if (ado->do_type == SO_type) {
-      SO = (SUMA_SurfaceObject *)ado;
-      
-      // Temporarily turn off variable thresholding
-      AlphaOpacityFalloff = SO->SurfCont->curColPlane->AlphaOpacityFalloff;
-      fprintf(stderr, "AlphaOpacityFalloff = %d\n", AlphaOpacityFalloff);
-      SO->SurfCont->curColPlane->AlphaOpacityFalloff = 0;
-   }
 
    if (!SUMA_SwitchColPlaneIntensity_one(ado, colp, ind, setmen)) {
       SUMA_S_Err("Failed in _one");
@@ -1471,29 +1455,6 @@ int SUMA_SwitchColPlaneIntensity(
         SUMA_ColorizePlane (colpC);          
       }
    }
-      
-  // Restore variable thresholding
-  if (SO) SO->SurfCont->curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;
-   
-   fprintf(stderr, "************* %s: SO->SurfCont->BoxOutlineThresh = %d\n", FuncName, SO->SurfCont->BoxOutlineThresh);
-   if (SO->SurfCont->BoxOutlineThresh){
-        N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-        if (numSurfaceObjects != N_adolist) {
-            SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-            SUMA_RETURN(0);
-        }
-          
-       for (j=0; j<N_adolist; ++j){
-            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-            if (1 || otherAdo != ado){
-                if (otherAdo->do_type == SO_type){
-
-                   // Make variable opacity appear
-                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
-               }
-            }
-       }
-   }
 
    SUMA_RETURN(1);
 }
@@ -1514,8 +1475,6 @@ int SUMA_SwitchColPlaneIntensity_one (
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   SUMA_SurfaceObject *SO = NULL;
-   int BoxOutlineThresh = NOPE, AlphaOpacityFalloff = NOPE;
 
    SUMA_ENTRY;
 
@@ -1705,7 +1664,43 @@ int SUMA_SwitchColPlaneIntensity_one (
    if (colp->ShowMode < 0) { SUMA_RETURN(1); } /* nothing else to do */
 
    SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+      
+   // Restore variable opacity and threshold boundaries if necessar6y
+   if (curColPlane->AlphaOpacityFalloff || SurfCont->BoxOutlineThresh){
+       int numSurfaceObjects;
+       int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+       SUMA_Boolean AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff;
+       SUMA_ALL_DO *otherAdo;
+       
+      XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+                     &numSurfaceObjects, NULL);
+       N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+       if (numSurfaceObjects != N_adolist)
+       {
+            if (0) SUMA_S_Warn("Mismatch between # surface objects and "
+                        "# unique surface controllers"); 
+            SUMA_RETURNe;
+       }
+       for (j=0; j<N_adolist; ++j){
+           otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+           if (otherAdo->do_type == SO_type) {
+               curColPlane = SUMA_ADO_CurColPlane(otherAdo);
+               if ( !curColPlane )  {
+                  SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; 
+               }
 
+               curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;   
+           
+               if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo)){
+                       SUMA_S_Warn("Error toggling variable opacity for "
+                                   "current surface"); 
+                       SUMA_RETURNe;
+               }
+           }
+       }
+   }
+
+   
    if (!SUMA_ColorizePlane (colp)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
          SUMA_RETURN(0);
@@ -1717,20 +1712,6 @@ int SUMA_SwitchColPlaneIntensity_one (
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
    #endif
-   
-   if (SO && SO->SurfCont){
-        // Restore threshold boundary if necessary. // This is called when the 
-          // threshold slider is moved
-        SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-       
-        // Restore proper threshold contours when intensity (I) subbrick changed
-        restoreProperThresholdCcontours(ado);
-       
-        // Restore alpha opacity falloff if applicable
-        if (AlphaOpacityFalloff) XmToggleButtonSetState(SO->SurfCont->AlphaOpacityFalloff_tb, 1, 1);
-   }
-
-   SUMA_Remixedisplay(ado);
 
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
