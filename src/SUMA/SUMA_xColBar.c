@@ -1426,6 +1426,7 @@ int SUMA_SwitchColPlaneIntensity(
    char srange[500];
    double range[2];
    int loc[2];
+   SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -1454,6 +1455,13 @@ int SUMA_SwitchColPlaneIntensity(
 
         SUMA_ColorizePlane (colpC);          
       }
+   }
+      
+   // Restore variable opacity and threshold boundaries if necessar6y
+   SurfCont = SUMA_ADO_Cont(ado);
+   if (colp->AlphaOpacityFalloff || SurfCont->BoxOutlineThresh){
+    float val = colp->OptScl->ThreshRange[0];
+    SUMA_set_threshold(ado, colp, &val);
    }
 
    SUMA_RETURN(1);
@@ -1680,51 +1688,11 @@ int SUMA_SwitchColPlaneIntensity_one (
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
       
-   // Restore variable opacity and threshold boundaries if necessar6y
-   if (curColPlane->AlphaOpacityFalloff || SurfCont->BoxOutlineThresh){
-    float val = curColPlane->OptScl->ThreshRange[0];
-    SUMA_set_threshold(ado, curColPlane, &val);
-    // restoreProperThresholdCcontours(ado);
-   /*
-       int numSurfaceObjects;
-       int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
-       SUMA_Boolean AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff;
-       SUMA_ALL_DO *otherAdo;
-           
-       if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado)){
-               SUMA_S_Warn("Error toggling variable opacity for "
-                           "current surface"); 
-               SUMA_RETURNe;
-       }
-       
-      XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
-                     &numSurfaceObjects, NULL);
-       N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-       if (numSurfaceObjects != N_adolist)
-       {
-            if (0) SUMA_S_Warn("Mismatch between # surface objects and "
-                        "# unique surface controllers"); 
-            SUMA_RETURNe;
-       }
-       for (j=0; j<N_adolist; ++j){
-           otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-           if (otherAdo->do_type == SO_type) {
-               curColPlane = SUMA_ADO_CurColPlane(otherAdo);
-               if ( !curColPlane )  {
-                  SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; 
-               }
-
-               curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;   
-           
-               if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo)){
-                       SUMA_S_Warn("Error toggling variable opacity for "
-                                   "current surface"); 
-                       SUMA_RETURNe;
-               }
-           }
-       }
-       */
-   }
+//   // Restore variable opacity and threshold boundaries if necessar6y
+//   if (curColPlane->AlphaOpacityFalloff || SurfCont->BoxOutlineThresh){
+//    float val = curColPlane->OptScl->ThreshRange[0];
+//    SUMA_set_threshold(ado, curColPlane, &val);
+//   }
 
    SUMA_RETURN(1);
 }
