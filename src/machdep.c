@@ -200,6 +200,24 @@ char * GetAfniPDFViewer(void)
 }
 
 /*-------------------------------------------------------------------*/
+/* [PT: Sep 4, 2025] add in search for tool */
+
+char * GetAfniSpreadsheetViewer(void)
+{
+   static char *ate=NULL;
+   ate = my_getenv("AFNI_SPREADSHEET_VIEWER");
+
+   if( ate ) return ate;
+
+   /* else, hunt */
+   if( ate == NULL ) ate = THD_find_executable( "libreoffice" )   ;
+   if( ate == NULL ) ate = "open" ;    /* can work on macOS, Ubuntu, ... */
+   if( ate == NULL ) ate = GetAfniTextEditor()   ; /* last resort? */
+
+   return(ate);
+}
+
+/*-------------------------------------------------------------------*/
 
 char * GetAfniImageViewer(void)
 {
