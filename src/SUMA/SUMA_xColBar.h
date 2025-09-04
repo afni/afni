@@ -276,6 +276,9 @@ int SUMA_SwitchColPlaneIntensity_one (
          SUMA_ALL_DO *ado, 
          SUMA_OVERLAYS *colp, 
          int ind, int setmen);
+int restoreVarOpacityAndThreshOutlinesAfterISubBrick(SUMA_ALL_DO *ado, 
+    SUMA_OVERLAYS *colp);
+int restoreABButtonFunctionality_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp);
 void SUMA_cb_SwitchIntensity(Widget w, XtPointer clientData, XtPointer call);
 SUMA_MenuItem *SUMA_FreeMenuVector(SUMA_MenuItem *menu, int Nels);
 SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_ALL_DO *ado, 

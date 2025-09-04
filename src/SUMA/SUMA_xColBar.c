@@ -1460,9 +1460,105 @@ int SUMA_SwitchColPlaneIntensity(
    // Restore variable opacity and threshold boundaries if necessar6y
    SurfCont = SUMA_ADO_Cont(ado);
    if (colp->AlphaOpacityFalloff || SurfCont->BoxOutlineThresh){
-    float val = colp->OptScl->ThreshRange[0];
-    SUMA_set_threshold(ado, colp, &val);
+    if (!(restoreVarOpacityAndThreshOutlinesAfterISubBrick(ado, colp))){
+        SUMA_SL_Err("Error restoring variable opacity and thshold outlines");
+        SUMA_RETURN(0);
+    }
+    
+//    float val = colp->OptScl->ThreshRange[0];
+//    SUMA_set_threshold(ado, colp, &val);
    }
+
+   SUMA_RETURN(1);
+}
+
+int restoreVarOpacityAndThreshOutlinesAfterISubBrick(SUMA_ALL_DO *ado, 
+    SUMA_OVERLAYS *colp)
+{
+   static char FuncName[]={"restoreVarOpacityAndThreshOutlinesAfterISubBrick"};
+   SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
+   SUMA_OVERLAYS *colpC=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (!colp) colp = SUMA_ADO_CurColPlane(ado);
+   if (!colp) SUMA_RETURN(0);
+
+   // Refreshes in focus surface
+   if (!restoreABButtonFunctionality_one(ado, colp)) SUMA_RETURN(0);
+   
+   // Process contralateral surface
+   if (ado->do_type == SO_type) {
+      /* do we have a contralateral SO and overlay? */
+      SO = (SUMA_SurfaceObject *)ado;
+      colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+      if (colpC && SOC) {
+         SUMA_LHv("Found contralateral equivalent to:\n"
+                      " %s and %s in\n"
+                      " %s and %s\n",
+                      SO->Label, CHECK_NULL_STR(colp->Label),
+                      SOC->Label, CHECK_NULL_STR(colpC->Label));
+         if (!restoreABButtonFunctionality_one((SUMA_ALL_DO *)SOC, colpC)) {
+            SUMA_S_Warn("Failed in contralateral");
+            SUMA_RETURN(0);
+         }
+      }
+   }
+
+   SUMA_RETURN(1);
+}
+
+// Restores variable opacity and threshold outlines
+int restoreABButtonFunctionality_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp)
+{
+   static char FuncName[]={"restoreABButtonFunctionality_one"};
+   int setmen = 1, redisplay = 1;
+   SUMA_ALL_DO *curDO = NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+   int cv=0;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   int BoxOutlineThresh = 0;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   // Temporarily suspend threshold outline.  This appears to resolve the 
+   // problem of the color map changing with the threshold slider
+   if (ado->do_type == SO_type) {
+       SO = (SUMA_SurfaceObject *)ado;
+       BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+       SO->SurfCont->BoxOutlineThresh = 0;
+   }
+
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (colp && colp != curColPlane) SUMA_RETURN(0);
+
+   // If this is left out, the variable opacity goes away when the user hovers
+   // over the diplay window
+   SUMA_LH("Colorize");
+   if (!SUMA_ColorizePlane (curColPlane)) {
+      SUMA_SLP_Err("Failed to colorize plane.\n");
+      SUMA_RETURN(0);
+   }
+
+   if (SO && SO->SurfCont) {
+       // Restore threshold boundary if necessary.  This is called when the 
+       //   threshold slider is moved
+       SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+
+       // Restore threshold boundary if necessary
+       if (SO->SurfCont->BoxOutlineThresh ){
+            XtPointer clientData = (XtPointer)ado;
+            SUMA_RestoreThresholdContours(clientData, YUP);
+
+           // Refresh display to get threshold outlines on all surfaces
+           SUMA_Remixedisplay(ado);
+           SUMA_UpdateNodeLblField(ado);
+       }
+    }
 
    SUMA_RETURN(1);
 }
@@ -1688,12 +1784,6 @@ int SUMA_SwitchColPlaneIntensity_one (
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
       
-//   // Restore variable opacity and threshold boundaries if necessar6y
-//   if (curColPlane->AlphaOpacityFalloff || SurfCont->BoxOutlineThresh){
-//    float val = curColPlane->OptScl->ThreshRange[0];
-//    SUMA_set_threshold(ado, curColPlane, &val);
-//   }
-
    SUMA_RETURN(1);
 }
 
@@ -2516,6 +2606,7 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
    
+   /* Temporarily set box outline to false */
    SO = (SUMA_SurfaceObject *)ado;
    BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
    SO->SurfCont->BoxOutlineThresh = 0;
@@ -2524,7 +2615,9 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    
    if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
         curColPlane->SymIrange, NOPE)){
-    SUMA_S_Warn("Error toggling sym I for current surface"); SUMA_RETURNe;
+    SUMA_S_Warn("Error toggling sym I for current surface"); 
+    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+    SUMA_RETURNe;
    }
 
    // Set sym range for other surfaces
@@ -2535,6 +2628,7 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    {
         if (0) SUMA_S_Warn("Mismatch between # surface objects and "
                     "# unique surface controllers"); 
+        SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
         SUMA_RETURNe;
    }
    for (j=0; j<N_adolist; ++j){
@@ -2544,12 +2638,13 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
             if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(otherAdo, 
                 curColPlane->SymIrange, YUP)){
                     SUMA_S_Warn("Error toggling sym I for current surface"); 
+                    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
                     SUMA_RETURNe;
             }
         }
    }
    
-   if (SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh){
+   if ((SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh) != 0) {
           
        for (j=0; j<N_adolist; ++j){
             otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
