@@ -1380,7 +1380,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-show_process_changes', 0, [],
                         helpstr="show afni_proc.py changes that affect results")
         self.valid_opts.add_opt('-show_tracked_files', 1, [],
-                        helpstr="show tracked files of given type")
+                        helpstr="show tracked files of given 'desc' or ALL")
         self.valid_opts.add_opt('-show_valid_opts', 0, [],
                         helpstr="show all valid options")
         self.valid_opts.add_opt('-todo', 0, [],
@@ -3348,7 +3348,7 @@ class SubjProcSream:
               tstr += 'timing_tool.py -add_offset %g -timing %s \\\n'   \
                       '               -write_timing %s/%s\n'            \
                       % (val, oldfile, self.od_var, newfile)
-              self.tlist.add(oldfile, newfile, 'stim')
+              self.tlist.add(oldfile, newfile, 'stim', ftype='text')
 
           # otherwise, have either regular timing files or no offset
           else:
@@ -3356,7 +3356,8 @@ class SubjProcSream:
             for ind in range(len(self.stims)):
                 tstr += ' %s' % self.stims_orig[ind]
             tstr += ' %s/stimuli\n' % self.od_var
-            self.tlist.add_many(self.stims_orig, 'stim', pre='stimuli/')
+            self.tlist.add_many(self.stims_orig, 'stim', pre='stimuli/',
+                                ftype='text')
           self.write_text(add_line_wrappers(tstr))
           self.write_text("%s\n" % stat_inc)
 
@@ -3366,14 +3367,15 @@ class SubjProcSream:
                   (' '.join(self.extra_stims_orig), self.od_var)
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
-            self.tlist.add_many(self.extra_stims_orig, 'stim', pre='stimuli/')
+            self.tlist.add_many(self.extra_stims_orig, 'stim', pre='stimuli/',
+                                ftype='1D')
 
         opt = self.user_opts.find_opt('-regress_extra_ortvec')
         if opt and len(opt.parlist) > 0:
             tstr = '# copy external ortvec files into stimuli dir\n' \
                   'cp %s %s/stimuli\n' %                             \
                       (' '.join(quotize_list(opt.parlist,'')),self.od_var)
-            self.tlist.add_many(opt.parlist, 'ortvec', ftype='1D')
+            self.tlist.add_many(opt.parlist, 'ortvec',ftype='1D',pre='stimuli/')
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
@@ -3681,7 +3683,7 @@ class SubjProcSream:
             fnames = opt.parlist[1:]
             cstr += 'cp %s %s/stimuli\n' % \
                       (' '.join(quotize_list(fnames,'')),self.od_var)
-            self.tlist.add_many(fnames, 'ortvec', ftype='1D')
+            self.tlist.add_many(fnames, 'ortvec', ftype='1D', pre='stimuli/')
 
         self.write_text(add_line_wrappers(cstr+'\n'))
 
@@ -4769,7 +4771,7 @@ class TrackedFlist:
 
        # make sure ftype is valid
        if ftype not in ['dset', '1D', 'text', 'unknown']:
-          print("** TrackedFile: illegal ftype %s for infle %s" \
+          print("** TrackedFile: illegal ftype %s for infile %s" \
                 % (ftype, oldname))
           ftype = 'unknown'
 

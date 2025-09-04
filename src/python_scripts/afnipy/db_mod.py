@@ -360,7 +360,7 @@ def db_cmd_tcat(proc, block):
         cmd = cmd + "3dTcat -prefix %s/%s %s%s\n" \
                     % (proc.od_var, pre_form, dset.nice_input(), selstr)
 
-        proc.tlist.add(dset.nice_input(sel=1), pre_form, 'tcat', ftype='dset')
+        proc.tlist.add(dset.nice_input(sel=1), pre_form, 'epi', ftype='dset')
 
       if proc.have_me: cmd += '\n'
 
@@ -12491,8 +12491,6 @@ OPTIONS:  ~2~
 
         List the history of '-requires_afni_version' dates and reasons.
 
-    -show_valid_opts        : show all valid options (brief format)
-
     -show_example NAME      : display the given example command
 
             e.g. afni_proc.py -show_example 'example 6b'
@@ -12580,6 +12578,18 @@ OPTIONS:  ~2~
         Adding this option to an existing afni_proc.py command will result in
         displaying the command itself, but in a python list format that is
         helpful to me.
+
+    -show_tracked_files DESC : show tracked input files for the given desc
+
+            e.g. -show_tracked_files ALL
+            e.g. -show_tracked_files ortvec
+
+        Adding this option to an existing afni_proc.py command will show input
+        tracked input files and what is known about them.
+
+        File tracking might change...
+
+    -show_valid_opts        : show all valid options (brief format)
 
     -ver                    : show the version number
 
