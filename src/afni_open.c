@@ -82,6 +82,32 @@ int is_image(char *name)
    return(a);
 }
 
+int is_xls_pn(SUMA_PARSED_NAME *FN)
+{
+   int a = 0;
+   if (!FN) return(0);
+   if (!strcmp(FN->Ext,".xls")) {
+      a = 1; 
+   }
+   else if (!strcmp(FN->Ext,".xlsx")) {
+      a = 1; 
+   }
+   return(a);
+}
+
+int is_xls(char *name)
+{
+   int a;
+   SUMA_PARSED_NAME *pn;
+   if (!name) return(0);
+   if (!(pn = SUMA_ParseFname (name,NULL))) {
+      return(0);
+   }
+   a = is_xls_pn(pn);
+   SUMA_Free_Parsed_Name (pn);
+   return(a);
+}
+
 int is_url_pn(SUMA_PARSED_NAME *FN) 
 {
    int a = 0;
@@ -644,6 +670,8 @@ int main(int argc, char **argv)
          ao_with_pdf_viewer(FN->NameAsParsed);
       } else if (is_image_pn(FN)) {
          ao_with_image_viewer(FN->NameAsParsed);
+      } else if (is_xls_pn(FN)) {
+         ao_with_spreadsheet(FN->NameAsParsed);
       } else if (FN->StorageMode == STORAGE_BY_BRICK ||
                  FN->StorageMode == STORAGE_BY_MINC ||
                  FN->StorageMode == STORAGE_BY_VOLUMES ||
