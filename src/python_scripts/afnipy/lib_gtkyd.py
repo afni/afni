@@ -289,10 +289,12 @@ class GtkydInfo:
         return 0
 
     def make_outdir(self):
-        """make output directory, if needed"""
+        """make output directory, if needed; now using os.makedirs() instead
+        of os.mkdir() to be able to make multiple steps in the path at
+        once."""
 
         if not os.path.isdir(self.outdir) :
-            os.mkdir(self.outdir)
+            os.makedirs(self.outdir)
             return 0
         return 0
 
