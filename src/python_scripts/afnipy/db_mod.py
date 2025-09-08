@@ -7156,7 +7156,7 @@ def pad_per_run_ortvecs(proc, all_orts, use_final):
          if not use_final:
             nt0 = proc.rm_nfirst[oind]
             nt1 = proc.reps_all[oind] + proc.rm_nfirst[oind] - 1
-            select = '{%d..%d}' % (nt0, nt1)
+            select = "'{%d..%d}'" % (nt0, nt1)
          tcmd = "1d_tool.py -pad_into_many_runs %d %d \\\n"     \
                 "    -infile stimuli/%s%s -write stimuli/%s\n"    \
                 % (rind+1, len(ovecs), ovin, select, ovout)

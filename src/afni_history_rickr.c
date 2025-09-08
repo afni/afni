@@ -53,6 +53,15 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Sep, 2025, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -regress_per_run_ortvec, to process physio_calc.py volbase regs",
+   "The main outputs of physio_calc.py are *slibase.1D (for slice-based\n"
+   "regressors) and *volbase.1D (for spatially global regressors).\n"
+   "Keep using the -ricor options for *slibase.1D, but pass the *volbase.1D\n"
+   "files using -regress_per_run_ortvec, with a label and one file per run.\n"
+   "E.g.  -regress_per_run_ortvec Vphys resp_r1_volbase.1D resp_r2_volbase.1D"
+ } ,
+
  { 28, Aug, 2025, RCR, "gen_group_command.py", MINOR, TYPE_NEW_OPT,
    "try to detect BIDS; add option -sid_method",
    "This will also be incorporated in gen_ss_review_table.py."
