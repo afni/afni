@@ -1149,7 +1149,7 @@ Examples ~1~
         -resp_file           sub-005_ses-01_task-rest_run-1_physio-Resp.txt  \\
         -freq                50                                              \\
         -dset_tr             2.2                                             \\
-        -dset_nt             219                                             \\
+        -dset_nt             220                                             \\
         -dset_nslice         33                                              \\
         -dset_slice_pattern  alt+z                                           \\
         -do_fix_nan                                                          \\

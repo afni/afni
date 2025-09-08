@@ -12,6 +12,7 @@ from afnipy import option_list as OL
 
 # useful globals
 Z_COMP_OPS = ['ZLE', 'ZLT', 'ZGE', 'ZGT']
+V_COMP_OPS = ['VARY', 'VARY_PM']
 
 # ----------------------------------------------------------------------
 # globals
@@ -218,6 +219,7 @@ process options:
         COMP    : a comparison operator, one of:
                   SHOW  : (no VAL) show the value, for any output subject
                   VARY  : (no VAL) show any value that varies from first subj
+                  VARY_PM : like VARY, but uses a plus/minus tolerance VAL
                   EQ    : equals (outlier if subject value equals VAL)
                   LT    : less than
                   LE    : less than or equal to
@@ -239,6 +241,22 @@ process options:
                   The translated threshold is reported in the outlier
                   report. This only applies to LABELs with scalar, numerical
                   values.
+
+                  The VARY_PM operator is implemented as follows for a given
+                  label:
+                  This operator really only applies to numerical LABEL types. 
+                  In this case, the variability is not checked for strict
+                  equality, but with respect to the absolute difference 
+                  between the current subject's value and that of the first 
+                  subject being less than the provided VAL. That is:
+                           is abs(V_i - V_0) > VAL ?
+                  This might be most helpful for checking consistency among
+                  floating point values to a specified tolerance. For example,
+                  voxel dimensions might be 2.49999, 2.5000 and 2.50002 mm;
+                  therefore, using 'VARY' would lead to outliers, whereas
+                  something like 'VARY_PM 0.001' would not. Either might be
+                  appropriate, depending on the situation. The choice
+                  is yours!
 
         VAL     : a comparison value (if needed, based on COMP)
 
@@ -356,9 +374,11 @@ g_history = """
    1.6  Aug 31, 2022   - [pt] added -infiles_json and JSON-reading support
    1.7  Mar 21, 2024   - allow ANY or ANY0 for a field choice
    1.8  Aug 07, 2024   - [pt] new opt -join_values, for JG-C
+   1.9  Aug 06, 2025   - [pt] new operator VARY_PM, for "plus/minus" equality
+   2.0  Aug 22, 2025   - [pt] VARY and VARY_PM show comparand in label row
 """
 
-g_version = "gen_ss_review_table.py version 1.8, Aug 07, 2024"
+g_version = "gen_ss_review_table.py version 2.0, Aug 22, 2025"
 
 
 class MyInterface:
@@ -388,7 +408,7 @@ class MyInterface:
       self.report_outliers = 0
       self.ro_tablefile    = '-'
       self.ro_list         = [] # list of [LABEL, COMPARE, VAL,...]
-      self.ro_valid_comps  = ['SHOW', 'VARY', 'EQ', 'NE',
+      self.ro_valid_comps  = ['SHOW', 'VARY', 'VARY_PM', 'EQ', 'NE',
                               'LT', 'LE', 'GT', 'GE',
                               'ZLT', 'ZLE', 'ZGT', 'ZGE']
       self.ro_valid_fills  = ['blank', 'na', 'value']
@@ -1016,13 +1036,13 @@ class MyInterface:
                continue
 
             # avoid 'SHOW' and 'VARY', to be sure [2] exists
-            if check != 'VARY':
+            if not(check in V_COMP_OPS) :
                baseval = otest[2]
 
             # the main purpose: look for errors
             for repind in range(nchecks):
                # if VARY, comparison is against first row
-               if check == 'VARY':
+               if check in V_COMP_OPS :
                   baseval = varyrow[posn]
                elif check in Z_COMP_OPS :
                   tmp, val = self.apply_Z_transform(float(baseval), label,
@@ -1030,7 +1050,11 @@ class MyInterface:
                   if tmp :  return 1, []
                   baseval = str(val)
                testval = table[rind][posn]
-               outlier = self.ro_val_is_outlier(testval, check, baseval)
+               if check == 'VARY_PM' :
+                  pm = otest[2]
+                  outlier = self.ro_val_is_outlier(testval, check, baseval, pm)
+               else:
+                  outlier = self.ro_val_is_outlier(testval, check, baseval)
                # failure to run test
                if outlier < 0: return 1, []
 
@@ -1084,10 +1108,15 @@ class MyInterface:
       # otherwise, no change
       return test
 
-   def ro_val_is_outlier(self, tval, comp, bval):
+   def ro_val_is_outlier(self, tval, comp, bval, pm=''):
       """return whether "tval comp bval" seems true, e.g.
                          0.82 GE   1.0
-         comp_list: ['SHOW', 'VARY', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE',
+
+         pm is an optional plus/minus value for the comparison,
+         which can be either a percentile or simple value
+         
+         comp_list: ['SHOW', 'VARY', 'VARY_PM',
+                     'EQ', 'NE', 'LT', 'LE', 'GT', 'GE',
                      'ZLT', 'ZLE', 'ZGT', 'ZGE']
 
          all numerical tests are as floats
@@ -1123,6 +1152,15 @@ class MyInterface:
          if fcomp == 0:  return 0
          else:           return 1
          
+      # VARY_PM is like above, but with a plus/minus 
+      if comp == 'VARY_PM' :
+         if not(len(pm)) : return -1   # error case: need a pm value
+         if scomp:         return 0    # equal strings
+
+         fcomp_pm = self.ro_float_compare_pm(tval, bval, pm)
+         if fcomp_pm == 0: return 0
+         else:             return 1
+
       # for case of empty string, allow for equality as strings
       # if strings are equal, we do not need float tests
       if scomp:
@@ -1202,6 +1240,71 @@ class MyInterface:
       if f1 > f2: return  1
       return 0
 
+   def ro_float_compare_pm(self, v1, v2, pm):
+      """try to compare v1 and v2 as floats, for equality within a 
+         tolerance of pm (which can be parsed as a percent of f2 or 
+         as a simple value)
+         return  0 on ~equality (within tolerance) 
+         return  1 on ~inequality (outside tolerance)
+         return -2 on "failure to convert": both bad
+         return -3 on "failure to convert": only first is bad
+         return -4 on "failure to convert": only second is bad
+      """
+      okay1 = 1
+      okay2 = 1
+      # check individually as float
+      try:    f1 = float(v1)
+      except: okay1 = 0
+      try:    f2 = float(v2)
+      except: okay2 = 0
+
+      # if either is bad, return some failure (both bad or only one)
+      if not okay1 or not okay2:
+         if okay1 == okay2:
+            return -2
+         if not okay1:
+            return -3
+         return -4
+
+      # parse pm
+      check, fpm = self.parse_pm(pm, f2)
+      if check :
+         return check
+
+      # have floats, perform comparison
+      return int(abs(f2-f1) > fpm)
+
+   def parse_pm(self, x, f2=None):
+       """Parse string x for being a plus/minus value, which may be relative
+       to a float f2.
+
+       Check if x can either directly converted to a float, or, if f2 is
+       given and the string pm ends with '%', then the output pm value
+       can be derived as a percent of f2.
+
+       return a status check (0=success, else failure) and the pm value
+       """
+       
+       y = x.strip()
+       
+       # see if we have a percentile to deal with
+       if y.endswith('%') :
+          if f2 is None :
+             return -5, 0
+          try: 
+             # treat as percent and apply
+             pm = float(y.rstrip('%')) * 0.01 * f2
+             return 0, pm
+          except:
+             return -6, 0
+
+       # treat as straightup value
+       try: 
+          pm = float(y)
+          return 0, pm
+       except:
+          return -7, 0
+
    def ro_insert_test_labels(self, table, test_list):
       """replace table[1] value entries with test info
       """
@@ -1224,7 +1327,7 @@ class MyInterface:
       for otest in test_list:
          label = otest[0]
          check = otest[1]
-         if check == 'SHOW' or check == 'VARY':
+         if check == 'SHOW' :
             newlab = check
          elif check in Z_COMP_OPS :
             # [PT: Sep 2, 2024] new label format for Z-score comparisons
@@ -1233,6 +1336,8 @@ class MyInterface:
             if check : return -1
             thr = UTIL.round_int_or_nsig(val, 3, stringify=True)
             newlab = '%s:%s (=%s)' % (check, otest[2], str(thr))
+         elif check in V_COMP_OPS :
+            newlab = '%s:%s' % (check, table[2][posn])
          else:
             newlab = '%s:%s' % (check, otest[2])
 

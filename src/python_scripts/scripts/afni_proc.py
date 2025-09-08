@@ -816,9 +816,11 @@ g_history = """
     7.91 May  6, 2025: set ROI_import view in case of no volreg block
     7.92 May 16, 2025: add help for m_tedort combine methods
     7.93 Jun 17, 2025: pass blur_size uvar to PT for APQC
+    8.00 Aug  6, 2025: run gtkyd and report outliers (basic start for now)
+    8.01 Aug  6, 2025: add -volreg_warp_master_box, to base dxyz on EPI
 """
 
-g_version = "version 7.93, June 17, 2025"
+g_version = "version 8.01, August 18, 2025"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -895,6 +897,7 @@ interesting milestones for afni_proc.py:
    2024.04 : ap_run_simple_rest_me.tcsh: low-option afni_proc.py for multiecho
    2024.05 : enable output of BIDS derivative tree
    2024.08 : input external distortion warp dataset
+   2025.08 : GTKYD - outlier check from: getting to know your data
 """
 
 
@@ -1134,6 +1137,7 @@ class SubjProcSream:
         self.vr_int_name= ''            # other internal volreg dset name
         self.vr_base_dset = None        # afni_name for applied volreg base
         self.vr_warp_mast = None        # local -volreg_warp_master dset
+        self.vr_warp_mbox = 0           # is the warp master just for the box?
         self.vr_wmast_in  = None        # input dset for warp_master
         self.vr_warp_fint = ''          # final interpolation for warped dsets
         self.vr_base_MO   = 0           # using MIN_OUTLIER volume for VR base
@@ -1652,6 +1656,8 @@ class SubjProcSream:
                         helpstr='final interpolation used when apply warps')
         self.valid_opts.add_opt('-volreg_warp_master', 1, [],
                         helpstr='grid master applied to volreg warp')
+        self.valid_opts.add_opt('-volreg_warp_master_box', 1, [],
+                        helpstr='grid bounding box applied to volreg warp')
         self.valid_opts.add_opt('-volreg_method', 1, [],
                         acplist=['3dvolreg','3dAllineate'],
                         helpstr='specify program for EPI volume registration')

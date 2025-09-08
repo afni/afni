@@ -395,6 +395,43 @@ def db_cmd_tcat(proc, block):
        if rv: return
        if tcmd != '': cmd += tcmd
 
+    # QC: run gtkyd.py
+    gcmd = run_gtkyd(proc, block)
+    if gcmd != '':
+       cmd += gcmd
+
+    return cmd
+
+def run_gtkyd(proc, block):
+    """run gtkyd_check.py, and check for any errors or warnings
+
+        basic command: gtkyd_check.py -infiles pb00.*.HEAD -outdir gtkyd
+
+        Then run any commands to possibly produce a warnings file, or to
+        have the script fail outright.
+
+**** todo: datum, same_all_grid (obliquity might need to be linient)
+
+
+    """
+
+    # basic, for now (add blip, warp, etc.)
+    cmd = '# -------------------------------------------------------\n'     \
+          '# QC - GTKYD: get to know your data: generate attribute files\n' \
+          'gtkyd_check.py -infiles pb00.*.HEAD -outdir gtkyd\n\n'
+
+    gbase = 'gen_ss_review_table.py -infiles gtkyd/dset*.txt -outlier_sep space'
+
+    gtests = [ 'datum VARY', 'orient VARY', 'av_space VARY' ]
+    tstr   = ' \\\n    -report_outliers '.join(gtests)
+
+    cmd += '# -------------------------------------------------------\n'   \
+           '# QC - GTKYD: check for varying data type across EPI inputs\n' \
+           '%s \\\n'                                                       \
+           '    -report_outliers %s \\\n'                                  \
+           '    |& tee out.gtkyd.outliers.txt\n\n'                         \
+           % (gbase, tstr)
+
     return cmd
 
 def tcat_make_blip_in_for(proc, block):
@@ -1343,9 +1380,16 @@ def dset_is_oblique(aname, verb):
       print('== dset_is_oblique cmd: %s' % cmd)
       print('       st = %s, so = %s, se = %s' % (st, so, se))
 
-   if len(so) < 1:    return 0
-   elif so[0] == '1': return 1
-   else:              return 0
+
+   if len(so) < 1:
+      return 0
+   elif so[0] == '1':
+      return 1
+   elif so[0] == 'NO-DSET':
+      print("** warning: failed obliquity check for '%s'" % aname.rel_input())
+      return 0
+   else:
+      return 0
 
 def blip_warp_command(proc, warp, source, prefix, interp=' -quintic',
                       oblset=None, indent=''):
@@ -1831,6 +1875,8 @@ def db_cmd_ricor(proc, block):
         print("** ERROR: failed to read '%s' as Afni1D" % proc.ricor_regs[0])
         return
     nsr_labs = adata.labs_matching_str('s0.')
+    # might have zero-padded labels now
+    if len(nsr_labs) == 0: nsr_labs = adata.labs_matching_str('s000.')
     nsliregs = adata.nvec // nslices
     nlab = len(nsr_labs)
     if nlab > 0: nrslices = adata.nvec//nlab
@@ -1848,11 +1894,11 @@ def db_cmd_ricor(proc, block):
               % (nrslices, nslices))
         return
 
-    if nlab > 0 and nlab != 13:
-        print("** WARNING: have %d regressors per slice (13 is typical)" % nlab)
+    # do not expect 13 sliregs anymore - remove warning
 
-    if proc.verb > 1: print('-- ricor: nsliregs = %d, # slice 0 labels = %d' \
-                            % (nsliregs, len(nsr_labs)))
+    if proc.verb > 0:
+       print('-- ricor: nsliregs = %d, nslices = %d, # slice 0 labels = %d' \
+             % (nsliregs, nslices, len(nsr_labs)))
     if proc.verb > 2: print('-- ricor: slice 0 labels: %s' % ' '.join(nsr_labs))
 
     # check reps against adjusted NT
@@ -2571,6 +2617,7 @@ def db_mod_volreg(block, proc, user_opts):
     #   - would be nice to also allow -volreg_warp_dxyz, but as that is an
     #     isotropic voxels size, it should not be applied without user request
     #     (i.e. be able to use -master without -dxyz)
+    #     ** these options are allowed together, as is -volreg_warp_master_box
     #   - could simply require user to be sure it is appropriate
     #     (for now, and account for issues as they arise, e.g. check space)
     #   - what if oblique? even allowed? can 3dAllin/NwA output be oblique?
@@ -2587,15 +2634,24 @@ def db_mod_volreg(block, proc, user_opts):
     block.valid = 1
 
 def vr_prep_for_warp_master(proc, user_opts):
-    """check for -volreg_warp_master option and prep for processing"""
+    """check for -volreg_warp_master or _box option and prep for processing"""
 
-    # if no such option, bail
+    # check for either option, starting with master
     oname = '-volreg_warp_master'
     warp_master, rv = user_opts.get_string_opt(oname)
+    mbox = 0
+    # if no master, check for master_box
+    if warp_master is None or warp_master == '':
+       mbox = 1
+       oname = '-volreg_warp_master_box'
+       warp_master, rv = user_opts.get_string_opt(oname)
+
+    # if neither was used, we are done
     if warp_master is None or warp_master == '':
        return 0
 
     proc.vr_wmast_in = warp_master
+    proc.vr_warp_mbox = mbox    # flag to use EPI to set voxel size
     view = UTIL.dset_view(warp_master)
     if view == '':
        print("** failed to get view from -volreg_warp_master, %s" % warp_master)
@@ -2906,6 +2962,7 @@ def db_cmd_volreg(proc, block):
           "           -prefix %s\n"                                         \
           % (prev_prefix, all1_input.prefix)
 
+    # ------------------------------------------------------------
     # if warping to new grid, note dimensions
     dim = 0
     if doadwarp or dowarp or doe2a:
@@ -2915,16 +2972,21 @@ def db_cmd_volreg(proc, block):
         proc.delta = [dim, dim, dim]
 
         opt = block.opts.find_opt('-volreg_warp_dxyz')
+        get_dim = 1
         if opt:
            dim = opt.parlist[0]
            proc.delta = [dim, dim, dim]
-        elif proc.vr_warp_mast is not None:
+           get_dim = 0
+        # else if warp master but not a _box (if _box, still get_dim from EPI)
+        elif proc.vr_warp_mast is not None and proc.vr_warp_mbox == 0:
             dims = UTIL.get_3dinfo_val_list(proc.vr_wmast_in, "d3", float)
             if dims is None or len(dims) != 3:
                print("** failed to get dimensions of -volreg_warp_master")
                return
             proc.delta = dims
-        else:
+            get_dim = 0
+
+        if get_dim:
             # truncate min dimension, but scale up slightly
             dim = UTIL.get_truncated_grid_dim(proc.dsets[0].rel_input(),
                                               scale=1.0001)
@@ -2936,6 +2998,7 @@ def db_cmd_volreg(proc, block):
         if proc.verb > 2: print("++ volreg: setting delta = %s" % proc.delta)
 
 
+    # ------------------------------------------------------------
     # create EPI warp list, outer to inner
     epi_warps      = []
     allinbase      = None       # master grid for warp
@@ -13719,7 +13782,7 @@ OPTIONS:  ~2~
         Without this option, the first TRs of the first input EPI time
         series would be used as the forward blip dataset.
 
-        See also -blip_revers_dset.
+        See also -blip_reverse_dset.
 
         Please see '3dQwarp -help' for more information, and the -plusminus
         option in particular.

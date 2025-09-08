@@ -5538,8 +5538,9 @@ void check_for_valid_inputs
       } else if( stim_length[is] > nt*nptr[is] ){ /* 02 Jul 2009 */
 
         WARNING_message(
-          "-stim_file %d: file length is %d, longer than expected %d (from dataset)",
-          is+1 , stim_length[is] , nt*nptr[is] ) ;
+          "input stimulus time series file %s (%d) is too long:\n"
+          "            length = %d, longer than expected %d (from dataset)",
+          option_data->stim_filename[is], is+1, stim_length[is], nt*nptr[is] );
       }
     }
 #ifdef ALLOW_EXTEND

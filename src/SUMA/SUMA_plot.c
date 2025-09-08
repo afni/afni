@@ -674,7 +674,7 @@ SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
       Sover->rowgraph_mtd = SUMA_memplot_to_topshell(
                                        SUMAg_CF->X->DPY_controller1,
                                        mp,
-                                       SUMA_rowgraph_mtdkill ) ;
+                                       (void_func *)SUMA_rowgraph_mtdkill ) ;
 
       if( Sover->rowgraph_mtd == NULL ){
          delete_memplot( mp );

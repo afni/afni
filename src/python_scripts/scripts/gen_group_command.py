@@ -1034,9 +1034,12 @@ g_history = """
         - no require on restricted subjects
    1.3  Jul 30, 2019 - sphinx help update
    1.4  Oct  4, 2024 - datatable creation
+   1.5  Aug 28, 2026
+        - try to detect BIDS inputs
+        - added option -sid_method (to allow one to revert)
 """
 
-g_version = "gen_group_command.py version 1.4 October 4, 2024"
+g_version = "gen_group_command.py version 1.5 August 28, 2026"
 
 g_todo = """
   - add option to output in 'shell' format, with quoted selectors and line wrap
@@ -1073,6 +1076,7 @@ class CmdInterface:
 
       self.subj_prefix     = ''         # prefix for each subject ID
       self.subj_suffix     = ''         # suffix for each subject ID
+      self.sid_method      = 'default'  # for set_ids_from_dsets()
       self.dent_pre        = 2          # flag: keep dir entry prefix (if subj)
       self.verb            = verb
 
@@ -1165,6 +1169,9 @@ class CmdInterface:
                       helpstr='specify output prefix for the command')
       self.valid_opts.add_opt('-set_labels', -1, [], okdash=0,
                       helpstr='list of labels for each set of subjects')
+      self.valid_opts.add_opt('-sid_method', 1, [],
+                      acplist=['bids', 'vary', 'default'],
+                      helpstr='specify method for getting SIDs from files')
       self.valid_opts.add_opt('-subj_prefix', 1, [], 
                       helpstr='specify prefix for each subject ID')
       self.valid_opts.add_opt('-subj_suffix', 1, [], 
@@ -1327,6 +1334,12 @@ class CmdInterface:
             self.lablist = val
             continue
 
+         if opt.name == '-sid_method':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return 1
+            self.sid_method = val
+            continue
+
          if opt.name == '-subj_prefix':
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return 1
@@ -1453,7 +1466,8 @@ class CmdInterface:
                                      suffix=self.subj_suffix,
                                      hpad=self.hpad,
                                      tpad=self.tpad,
-                                     dpre=self.dent_pre):
+                                     dpre=self.dent_pre,
+                                     method=self.sid_method):
             print('** cannot set subject IDs from datasets')
             return 1
          scount = [len(slist.subjects)]     # total

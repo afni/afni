@@ -818,6 +818,18 @@ runGLMM <- function(myData, DM, tag) {
             try(fm <-glmmTMB_t(lop$model, DM, c(9,30,50)), silent=TRUE)
       }
 
+      is_model_ok <- function(fm) {
+        ll <- suppressWarnings(logLik(fm))
+        coefs <- suppressWarnings(unlist(coef(fm))) #coefs <- suppressWarnings(coef(fm)$cond[[1]])
+        is.finite(ll) && all(is.finite(coefs))
+      }
+      if(!is_model_ok(fm)) {
+        if(is.null(lop$family))
+          try(fm <- glmmTMB(lop$model, data=DM, control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))), silent=TRUE) else {
+         if(lop$family=='student.t') 
+            try(fm <-glmmTMB_t(lop$model, DM, c(9,30,50), control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))), silent=TRUE)
+      }
+      }         
       if(!is.null(fm)) {
          Stat <- Anova(fm, type=lop$SS_type)[,1]
          if(length(lop$level) > 0) for(ii in 1:length(lop$level)) {
@@ -1095,6 +1107,7 @@ if(any(!is.na(lop$vQV))) {
 }
 
 while(is.null(fm)) {
+  if(mean(na.omit(inData[ii, jj, kk,1:nrow(lop$dataStr)]) != 0) >= 0.75) {
    lop$dataStr$yy <- inData[ii, jj, kk,1:nrow(lop$dataStr)]
    options(warn=-1)
    if(is.null(lop$family)) try(fm <- glmmTMB(lop$model, data=lop$dataStr), silent=TRUE) else 
@@ -1105,40 +1118,40 @@ while(is.null(fm)) {
       chisq.df <- (Anova(fm, type=lop$SS_type))[,'Df']
       lop$n.t <- 0; t.df <- NULL
       if(length(lop$level) > 0) {
-         for(ii in 1:length(lop$level)) {
-            glt  <- suppressMessages(emmeans(fm, lop$level.pair[[ii]], at=lop$level.fix[ii]))
+         for(ll in 1:length(lop$level)) {
+            glt  <- suppressMessages(emmeans(fm, lop$level.pair[[ll]], at=lop$level.fix[ll]))
             lop$n.t <- lop$n.t + 2*nrow(as.data.frame(glt$emmeans))
             t.df <- c(t.df, as.data.frame(glt$emmeans)[,'df'])
-            if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.', as.data.frame(glt$emmeans)[,1]),
-                                  paste0(lop$level.LAB[ii],'.', as.data.frame(glt$emmeans)[,1], ' z'))) else
-            brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.', as.data.frame(glt$emmeans)[,1]),
-                                  paste0(lop$level.LAB[ii],'.', as.data.frame(glt$emmeans)[,1], ' t')))
+            if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ll],'.', as.data.frame(glt$emmeans)[,1]),
+                                  paste0(lop$level.LAB[ll],'.', as.data.frame(glt$emmeans)[,1], ' z'))) else
+            brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ll],'.', as.data.frame(glt$emmeans)[,1]),
+                                  paste0(lop$level.LAB[ll],'.', as.data.frame(glt$emmeans)[,1], ' t')))
             if(!any(is.na(as.data.frame(glt$contrasts)['SE']))) {
                lop$n.t <- lop$n.t + 2*nrow(as.data.frame(glt$contrasts))
                t.df <- c(t.df, as.data.frame(glt$contrasts)[,'df'])
-               if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1]),
-                                  paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1], ' z'))) else
-               brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1]),
-                                  paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1], ' t')))
+               if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ll],'.', as.data.frame(glt$contrast)[,1]),
+                                  paste0(lop$level.LAB[ll],'.', as.data.frame(glt$contrast)[,1], ' z'))) else
+               brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ll],'.', as.data.frame(glt$contrast)[,1]),
+                                  paste0(lop$level.LAB[ll],'.', as.data.frame(glt$contrast)[,1], ' t')))
             }
          }
       }
       if(length(lop$slope) > 0) {
-         for(ii in 1:length(lop$slope)) {
-            glt  <- suppressMessages(emtrends(fm, lop$slope.pair[[ii]], at=lop$slope.fix[ii], var=lop$slope.slp[ii]))
+         for(ss in 1:length(lop$slope)) {
+            glt  <- suppressMessages(emtrends(fm, lop$slope.pair[[ss]], at=lop$slope.fix[ss], var=lop$slope.slp[ss]))
             lop$n.t <- lop$n.t + 2*nrow(as.data.frame(glt$emtrends))
             t.df <- c(t.df, as.data.frame(glt$emtrends)[,'df'])
-            if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.', as.data.frame(glt$emtrends)[,1]),
-                 paste0(lop$level.LAB[ii],'.', as.data.frame(glt$emtrends)[,1], ' z'))) else
-            brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.',as.data.frame(glt$emtrends)[,1]),
-                 paste0(lop$level.LAB[ii],'.', as.data.frame(glt$emtrends)[,1], ' t')))
+            if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ss],'.', as.data.frame(glt$emtrends)[,1]),
+                 paste0(lop$level.LAB[ss],'.', as.data.frame(glt$emtrends)[,1], ' z'))) else
+            brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ss],'.',as.data.frame(glt$emtrends)[,1]),
+                 paste0(lop$level.LAB[ss],'.', as.data.frame(glt$emtrends)[,1], ' t')))
             if(!any(is.na(as.data.frame(glt$contrasts)['SE']))) {
                lop$n.t <-lop$n.t + 2*nrow(as.data.frame(glt$contrasts))
                t.df <- c(t.df, as.data.frame(glt$contrasts)[,'df'])
-               if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1]),
-                  paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1], ' z'))) else
-               brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1]),
-                  paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1], ' t')))
+               if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ss],'.', as.data.frame(glt$contrast)[,1]),
+                  paste0(lop$level.LAB[ss],'.', as.data.frame(glt$contrast)[,1], ' z'))) else
+               brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ss],'.', as.data.frame(glt$contrast)[,1]),
+                  paste0(lop$level.LAB[ss],'.', as.data.frame(glt$contrast)[,1], ' t')))
             }             
          }
       }
@@ -1146,7 +1159,7 @@ while(is.null(fm)) {
       if(any(is.infinite(t.df))) lop$z <- 1 else lop$z <- 0
       #fail <- FALSE
    }  
- 
+  } else fm <- NULL
    if(!is.null(fm))  {
       print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
    } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {

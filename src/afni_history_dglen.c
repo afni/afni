@@ -53,6 +53,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 19, AUG, 2025, DRG, "3dXYZcat",
+     MICRO, TYPE_BUG_FIX,
+    "3dXYZcat generated extra empty volume in X direction"
+},
 { 14, FEB, 2024, DRG, "whereami",
      MICRO, TYPE_NEW_OPT,
     "whereami -index_to_label to show label for an index",
