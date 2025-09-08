@@ -7033,18 +7033,39 @@ def process_per_run_ortvec(proc, block):
    if len(optlist) < 1:
       return 0, ''
 
+   # just store all option lists together
+   all_orts = [opt.parlist for opt in optlist]
+
+   # do PROVs use final NT per run, or original
+   use_final = per_run_ortvecs_use_final_nt(proc, all_orts)
+   if use_final < 0:
+      return 1, ''
+
+   rv, cmd = pad_per_run_ortvecs(proc, all_orts, use_final)
+   if rv < 0:
+      return 1, ''
+
+   return 0, cmd
+
+
+def per_run_ortvecs_use_final_nt(proc, all_orts):
+   """check all per_run_ortvec opts for consistent lengths
+
+      - all files should use either the final NT per run or the originals
+      - original NT means to apply -tcat_remove_first/last_trs
+
+      - return 1 to use final NT, 0 to use original, -1 on error
+   """
+
    # note initial and applied NT per run
    reps_apply = proc.reps_all       # final NT per run, after any removal
    reps_init = proc.reps_all[:]     # copy to modify, and add back removed
    for run0 in range(proc.runs):
       reps_init[run0] = reps_init[run0] + proc.rm_nfirst[run0] + proc.rm_nlast
 
-   # just store all option lists together
-   all_orts = [opt.parlist for opt in optlist]
-
    # set orvecs, convert paths to the local stimulus directory
    errs = 0                 # count problems
-   use_rm = -1              # do we truncate input (-1 means need to init)
+   use_final = -1           # do we truncate input (-1 means need to init)
    for oind, ortparm in enumerate(all_orts):
       olabel = ortparm[0]   # current ort label
       ovecs = ortparm[1:]   # current ortvec files (one per run)
@@ -7060,22 +7081,23 @@ def process_per_run_ortvec(proc, block):
          if adata == None:
             errs += 1   # errors are printed
             continue
-         # possibly init use_rm
-         if use_rm < 0:
+         # possibly init use_final
+         if use_final < 0:
             if adata.nrows == reps_apply[rind]:
-               use_rm = 0
+               use_final = 1
                reps_final = reps_apply  # reps match any post-TR removal
             else:
-               use_rm = 1
+               use_final = 0
                reps_final = reps_init   # reps match pre-TR removal
 
-         # check for consistency of use_rm and run lengths
+         # check for consistency of use_final and run lengths
+         # - use_final should match use of reps_apply
          if adata.nrows == reps_apply[rind]:
-            if use_rm == 1:
+            if use_final == 0:
                overrs = 1
                errs += 1
          elif adata.nrows == reps_init[rind]:
-            if use_rm == 0:
+            if use_final == 1:
                overrs = 1
                errs += 1
          else:
@@ -7085,7 +7107,7 @@ def process_per_run_ortvec(proc, block):
                   % (reps_apply[rind], reps_init[rind]))
             errs += 1
 
-         # if inconsistent use_rm, whine
+         # if inconsistent use_final, whine
          if overrs:
             print("** per-run ortvecs are inconsistent for removing TRs")
             print(" - ortvec %s (%s run %d) differs from first" \
@@ -7096,37 +7118,53 @@ def process_per_run_ortvec(proc, block):
 
          del(adata)
 
-   if use_rm == -1:
+   if use_final == -1:
       print("** missing per-run ortvecs?")
-      return 1, ''
+      return -1
 
    if errs:
-      return 1, ''
+      return -1
 
-   # ----------------------------------------------------------------------
-   # we have all files and their lengths are consistent with use_rm
-   #
-   # - pad into many runs
-   # - work under stimuli
-   # - populate proc.extra_ortvec and extra_ortvec_labs
-   # ----------------------------------------------------------------------
+   return use_final
+
+def pad_per_run_ortvecs(proc, all_orts, use_final):
+   """run 1d_tool.py -pad_into_many_runs on each per run ortvec
+
+      - input files are as original, but under stimuli
+      - use_final: if set, files use final NT (so no selection)
+                   else, apply -tcat_remove_first/last_trs
+
+      return status (0=success) and command string
+   """
+
+   # verify that input exists
+   if len(all_orts) == 0: return 0, ''
 
    cmd = "# pad per-run regressors with zeros for the other runs\n"
 
-   for ortparm in all_orts:
+   # if use_final, select nothing
+   # else, skip rm_nfirst an take up to reps[run]+nfirst[run]-1
+   select = ''
+
+   for oind, ortparm in enumerate(all_orts):
       olabel = ortparm[0]
       ovecs = ortparm[1:]
       for rind, ovec in enumerate(ovecs):
-         ovin = os.path.basename(ovec)
-         ovout = 'PROV_%s_r%02d.1D' % (olabel, rind+1)
+         ovin = os.path.basename(ovec)          # infile
+         ovlab = '%s_r%02d' % (olabel, rind+1)  # file label
+         ovout = 'PROV_%s.1D' % ovlab           # out file
+         if not use_final:
+            nt0 = proc.rm_nfirst[oind]
+            nt1 = proc.reps_all[oind] + proc.rm_nfirst[oind] - 1
+            select = '{%d..%d}' % (nt0, nt1)
          tcmd = "1d_tool.py -pad_into_many_runs %d %d \\\n"     \
-                "    -infile stimuli/%s -write stimuli/%s\n"    \
-                % (rind+1, len(ovecs), ovin, ovout)
+                "    -infile stimuli/%s%s -write stimuli/%s\n"    \
+                % (rind+1, len(ovecs), ovin, select, ovout)
          cmd += tcmd
 
          # and add ortvec and label to main list
          proc.extra_ortvec.append('stimuli/%s' % ovout)
-         proc.extra_ortvec_labs.append('%s_r%02d' % (olabel, rind+1))
+         proc.extra_ortvec_labs.append(ovlab)
 
    return 0, cmd+'\n'
 
