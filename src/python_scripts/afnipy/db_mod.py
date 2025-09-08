@@ -7071,7 +7071,7 @@ def per_run_ortvecs_use_final_nt(proc, all_orts):
       ovecs = ortparm[1:]   # current ortvec files (one per run)
       if len(ovecs) != proc.runs:
          print("** %s %s : have %d files, but %d runs" \
-               % (oname, olabel, len(ovecs), proc.runs))
+               % (olabel, olabel, len(ovecs), proc.runs))
          errs += 1
 
       # for each file, verify length and whether nfirst/last will be applied
