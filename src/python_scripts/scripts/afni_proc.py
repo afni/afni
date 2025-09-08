@@ -1250,6 +1250,8 @@ class SubjProcSream:
         self.runs       = 0             # number of runs
         self.reps_all   = []            # number of TRs in each run
         self.reps_vary  = 0             # do the repetitions vary
+        self.rm_nfirst  = []            # NT to remove from start of each run
+        self.rm_nlast   = 0             # constant NT to remove from run ends
         self.orig_delta = [0, 0, 0]     # dataset voxel size (initial)
         self.delta      = [0, 0, 0]     # dataset voxel size
         self.datatype   = -1            # 1=short, 3=float, ..., -1=uninit
