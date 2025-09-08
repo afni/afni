@@ -2392,7 +2392,7 @@ num : int
         ulay_comm = ''
         dset_comm = qci
     elif qci == "EPI_variance":   
-        qci_comm  = 'EPI variance'
+        qci_comm  = 'EPI variance pattern'
         ulay_comm = ' (scaled)'
         dset_comm = 'from pb00*r01*tcat*'
     else:
