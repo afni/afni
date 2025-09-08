@@ -1408,8 +1408,9 @@ D : dict
 
     D = copy.deepcopy(ap_ssdict)
 
-    # no errts to blur (somehow? not sure this can happen, in reality)
-    if not(check_dep(ap_ssdict, ['errts_dset'])) :
+    # no errts to blur (somehow? not sure this can happen, in reality) and/or
+    # no tcat_dset (again, not sure this can actually happen)
+    if not(check_dep(ap_ssdict, ['errts_dset', 'tcat_dset'])) :
         return False, D
 
     # data are already blurred; nothing to do
@@ -1420,19 +1421,28 @@ D : dict
         print("++ APQC create: blurred errts for IC"); sys.stdout.flush() 
     do_cap = True
 
-    # get olay prefix and voxel volume
+    # get olay prefix
     olay   = ap_ssdict['errts_dset']
-    cmd    = '3dinfo -prefix -voxvol ' + olay
+    cmd    = '3dinfo -prefix ' + olay
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
     lll    = com.so[0].split()
     olay_pref = lll[0]
-    voxvol    = float(lll[1])
 
+    # get voxel volume *of input data* to decide errts blur size
+    olay   = ap_ssdict['tcat_dset']
+    cmd    = '3dinfo -voxvol ' + olay
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    lll    = com.so[0].split()
+    voxvol = float(lll[0])
+
+    # calc the blur size, and then round it to a nicer number
     if check_dep(ap_ssdict, ['combine_method']) :
-        errts_blur_size = 1.1 * (voxvol**0.3334)
+        val = 1.1 * (voxvol**0.3334)
     else:
-        errts_blur_size = 1.5 * (voxvol**0.3334)
+        val = 1.75 * (voxvol**0.3334)
+    errts_blur_size = au.truncate_to_N_bits(val, 5, method='round')
 
     # new blurred errts dset, and add to dict if we are here
     errts_blur = olay_pref + '_blur_for_qc' + '.nii.gz'
@@ -2373,15 +2383,27 @@ num : int
     com.run()
 
     # minor tweaks/formatting/expanding
-    if qci == "EPI":   ulay_comm = ' (volreg base)'
-    else:              ulay_comm = ''
-    if qci == "anat":  qci_comm = 'Anatomical'
-    else:              qci_comm = qci
+    if qci == "EPI":   
+        qci_comm  = 'EPI'
+        ulay_comm = ' (volreg base)'
+        dset_comm = qci
+    elif qci == "anat":   
+        qci_comm  = 'Anatomical'
+        ulay_comm = ''
+        dset_comm = qci
+    elif qci == "EPI_variance":   
+        qci_comm  = 'EPI variance'
+        ulay_comm = ' (scaled)'
+        dset_comm = 'from pb00*r01*tcat*'
+    else:
+        qci_comm  = qci
+        ulay_comm = ''
+        dset_comm = qci
 
     # text above images
     otoptxt = []
     otoptxt.append('{} in original space{}'.format( qci_comm, ulay_comm ))
-    otoptxt.append('dset: {} ({})'.format( ulay_pref, qci ))
+    otoptxt.append('dset: {} ({})'.format( ulay_pref, dset_comm ))
 
     # Make info above images
     otopdict = {

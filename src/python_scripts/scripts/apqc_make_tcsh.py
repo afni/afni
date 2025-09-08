@@ -495,6 +495,19 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------
 
     # QC block: "vorig"
+    # item    : EPI variance in orig (should exist in vlines*/ subdir)
+
+    ldep = ["vlines_tcat_dir"]
+    ulay = ap_ssdict[ldep[0]] + '/' + 'var.1.scale.r01.nii.gz'
+    if lat.check_dep(ap_ssdict, ldep) and os.path.isfile(ulay) :
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_vorig_all( ap_ssdict, obase, "vorig", "EPI_variance", 
+                                       ulay=ulay )
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "vorig"
     # item    : anat in orig
 
     ldep  = ['copy_anat']
