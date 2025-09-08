@@ -15024,6 +15024,8 @@ void SUMA_cb_ColPlane_NewDimFact (void *data)
    SUMA_RETURNe;
 }
 
+// Called when dimness chenged.  ("Dim" arrows and checkbox on the surface 
+//  control panel)
 int SUMA_ColPlane_NewDimFact (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                               float newdimfact, int cb_direct)
 {
@@ -15035,6 +15037,8 @@ int SUMA_ColPlane_NewDimFact (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   fprintf(stderr, "++++%s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -15077,6 +15081,20 @@ int SUMA_ColPlane_NewDimFact (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                       SO->Label, CHECK_NULL_STR(colp->Label));
       }
    }
+   
+   if (colp->AlphaOpacityFalloff || SurfCont->BoxOutlineThresh){
+        if (!restoreABButtonFunctionality_one(ado, colp)){
+              fprintf(stderr,  "Error restoring A and B button functionality.\n ");
+              SUMA_RETURN(0);
+        }
+        SO = (SUMA_SurfaceObject *)ado;
+        colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+         if (!restoreABButtonFunctionality_one((SUMA_ALL_DO *)SOC, colpC)) {
+            SUMA_S_Warn("Failed in contralateral");
+            SUMA_RETURN(0);
+         }
+        }
+   
    SUMA_RETURN(1);
 }
 
@@ -17639,7 +17657,7 @@ char * SUMA_WriteStringToFile(char *fname, char *s, int over, int view)
          SUMA_RETURN(NULL);
       }
       snprintf(cmd,250*sizeof(char),"%s %s &", viewer, fused);
-      system(cmd);
+      int debug = system(cmd);
    }
 
    SUMA_RETURN(fused);
