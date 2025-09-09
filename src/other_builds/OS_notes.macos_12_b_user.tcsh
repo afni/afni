@@ -72,7 +72,7 @@ echo "++ setting up user dotfiles"
                              -do_updates path apsearch -dir_bin ~/abin
 
 # put AFNI in PATH, if not already there
-`which init_user_dotfiles.py` >& /dev/null
+which init_user_dotfiles.py >& /dev/null
 if ( $status ) then
    source ~/.cshrc
 endif
