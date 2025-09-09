@@ -312,6 +312,10 @@ def db_cmd_tcat(proc, block):
     if val == None: rmlast = 0
     else: rmlast = val
 
+    # store first (list) and last (value) in class instance
+    proc.rm_nfirst = flist
+    proc.rm_nlast  = rmlast
+
     if proc.have_sels: selstr = "while applying volume selectors"
     else:              selstr = "while removing the first %d TRs" % first
 
@@ -360,7 +364,7 @@ def db_cmd_tcat(proc, block):
         cmd = cmd + "3dTcat -prefix %s/%s %s%s\n" \
                     % (proc.od_var, pre_form, dset.nice_input(), selstr)
 
-        proc.tlist.add(dset.nice_input(sel=1), pre_form, 'tcat', ftype='dset')
+        proc.tlist.add(dset.nice_input(sel=1), pre_form, 'epi', ftype='dset')
 
       if proc.have_me: cmd += '\n'
 
@@ -5766,8 +5770,6 @@ def db_mod_regress(block, proc, user_opts):
 
         block.opts.add_opt('-regress_extra_stim_files', -1, [])
         block.opts.add_opt('-regress_extra_stim_labels', -1, [])
-        block.opts.add_opt('-regress_extra_ortvec', -1, [])
-        block.opts.add_opt('-regress_extra_ortvec_labels', -1, [])
 
         block.opts.add_opt('-regress_opts_3dD', -1, [])
         block.opts.add_opt('-regress_opts_reml', -1, [])
@@ -5961,37 +5963,14 @@ def db_mod_regress(block, proc, user_opts):
 
     # check for extra ortvecs
     oname = '-regress_extra_ortvec'
-    uopt = user_opts.find_opt(oname)
-    bopt = block.opts.find_opt(oname)
-    if uopt and bopt:  # only check length against labels
-        bopt.parlist = uopt.parlist
-        # convert paths to the local stimulus directory
-        proc.extra_ortvec = []
-        proc.extra_ortvec_orig = bopt.parlist
-        for fname in bopt.parlist:
-            proc.extra_ortvec.append('stimuli/%s' % os.path.basename(fname))
+    apply_uopt_to_block(oname, user_opts, block)
+    apply_uopt_to_block('-regress_extra_ortvec_labels', user_opts, block)
+    if len(user_opts.find_all_opts(oname)) > 1:
+       print("** please include all ortvec with single %s opt" % oname)
+       errs += 1
 
-    oname = '-regress_extra_ortvec_labels'
-    uopt = user_opts.find_opt(oname)
-    bopt = block.opts.find_opt(oname)
-    if uopt and bopt:
-        bopt.parlist = uopt.parlist
-        proc.extra_ortvec_labs = uopt.parlist
-        nxlabs = len(proc.extra_ortvec_labs)
-        nxorts = len(proc.extra_ortvec)
-        if nxorts == 0:
-            print("** have -regress_extra_ortvec_labels without" + \
-                  " -regress_extra_ortvec")
-            errs += 1
-        elif nxorts != nxlabs:
-            print("** have %d extra ortvec but %d extra ort labels" % \
-                  (nxorts, nxlabs))
-            errs += 1
-    elif bopt and len(proc.extra_ortvec) > 0:
-        # no ortvec label option, so fashion some
-        print("-- auto-generating labels for extra ortvec files")
-        proc.extra_ortvec_labs = \
-              ['xort%02d'%ind for ind in range(len(proc.extra_ortvec))]
+    # and per-run ortvecs
+    apply_uopt_list_to_block('-regress_per_run_ortvec',  user_opts, block)
 
     # --------------------------------------------------
     # if we are here, then we should have stimulus files
@@ -6393,6 +6372,16 @@ def db_cmd_regress(proc, block):
 
     # ----------------------------------------
     # user ortvecs, add vec/lab pairs to self.regress_orts list
+
+    if check_for_extra_ortvec(proc, block):
+       return
+
+    # convert per-run ortvec to across run ortvec
+    if block.opts.find_opt('-regress_per_run_ortvec'):
+        err, newcmd = process_per_run_ortvec(proc, block)
+        if err: return
+        if newcmd: cmd = cmd + newcmd
+
     nxort = len(proc.extra_ortvec)
     if nxort > 0:
         if len(proc.extra_ortvec_labs) != nxort:
@@ -7022,6 +7011,197 @@ def db_cmd_regress(proc, block):
     if bcmd: cmd += bcmd
 
     return cmd
+
+
+def process_per_run_ortvec(proc, block):
+   """process any -regress_per_run_ortvec options
+      - for each option
+        - be sure there are NRUNS+1 parameters, and so NRUNS PROV files
+        - NT should be consistent across options
+        - for each PROV
+          - check whether first or last time points need to be removed
+          - convert to across run regressors
+          - populate proc.extra_ortvec and extra_ortvec_labs
+
+      return 0 on success, and command string
+   """
+   # ----- first process options and evaluate NT
+
+   # get a list of all such options
+   oname = '-regress_per_run_ortvec'
+   optlist = block.opts.find_all_opts(oname)
+   if len(optlist) < 1:
+      return 0, ''
+
+   # just store all option lists together
+   all_orts = [opt.parlist for opt in optlist]
+
+   # do PROVs use final NT per run, or original
+   use_final = per_run_ortvecs_use_final_nt(proc, all_orts)
+   if use_final < 0:
+      return 1, ''
+
+   rv, cmd = pad_per_run_ortvecs(proc, all_orts, use_final)
+   if rv < 0:
+      return 1, ''
+
+   return 0, cmd
+
+
+def per_run_ortvecs_use_final_nt(proc, all_orts):
+   """check all per_run_ortvec opts for consistent lengths
+
+      - all files should use either the final NT per run or the originals
+      - original NT means to apply -tcat_remove_first/last_trs
+
+      - return 1 to use final NT, 0 to use original, -1 on error
+   """
+
+   # note initial and applied NT per run
+   reps_apply = proc.reps_all       # final NT per run, after any removal
+   reps_init = proc.reps_all[:]     # copy to modify, and add back removed
+   for run0 in range(proc.runs):
+      reps_init[run0] = reps_init[run0] + proc.rm_nfirst[run0] + proc.rm_nlast
+
+   # set orvecs, convert paths to the local stimulus directory
+   errs = 0                 # count problems
+   use_final = -1           # do we truncate input (-1 means need to init)
+   for oind, ortparm in enumerate(all_orts):
+      olabel = ortparm[0]   # current ort label
+      ovecs = ortparm[1:]   # current ortvec files (one per run)
+      if len(ovecs) != proc.runs:
+         print("** %s %s : have %d files, but %d runs" \
+               % (olabel, olabel, len(ovecs), proc.runs))
+         errs += 1
+
+      # for each file, verify length and whether nfirst/last will be applied
+      for rind, ovec in enumerate(ovecs):
+         overrs = 0
+         adata = LD.AfniData(ovec)
+         if adata == None:
+            errs += 1   # errors are printed
+            continue
+         # possibly init use_final
+         if use_final < 0:
+            if adata.nrows == reps_apply[rind]:
+               use_final = 1
+               reps_final = reps_apply  # reps match any post-TR removal
+            else:
+               use_final = 0
+               reps_final = reps_init   # reps match pre-TR removal
+
+         # check for consistency of use_final and run lengths
+         # - use_final should match use of reps_apply
+         if adata.nrows == reps_apply[rind]:
+            if use_final == 0:
+               overrs = 1
+               errs += 1
+         elif adata.nrows == reps_init[rind]:
+            if use_final == 1:
+               overrs = 1
+               errs += 1
+         else:
+            print("** bad length %d for per-run ortvec '%s' %s" \
+                  % (adata.nrows, olabel, ovec))
+            print(" - should be either %d or %d" \
+                  % (reps_apply[rind], reps_init[rind]))
+            errs += 1
+
+         # if inconsistent use_final, whine
+         if overrs:
+            print("** per-run ortvecs are inconsistent for removing TRs")
+            print(" - ortvec %s (%s run %d) differs from first" \
+                  % (olabel, ovec, rind+1))
+            print(" - current reps = %d, should be %d" \
+                  % (adata.nrows, reps_final[rind]))
+            print(" - check lengths vs -tcat_remove_first/last_trs params")
+
+         del(adata)
+
+   if use_final == -1:
+      print("** missing per-run ortvecs?")
+      return -1
+
+   if errs:
+      return -1
+
+   return use_final
+
+def pad_per_run_ortvecs(proc, all_orts, use_final):
+   """run 1d_tool.py -pad_into_many_runs on each per run ortvec
+
+      - input files are as original, but under stimuli
+      - use_final: if set, files use final NT (so no selection)
+                   else, apply -tcat_remove_first/last_trs
+
+      return status (0=success) and command string
+   """
+
+   # verify that input exists
+   if len(all_orts) == 0: return 0, ''
+
+   cmd = "# pad per-run regressors with zeros for the other runs\n"
+
+   # if use_final, select nothing
+   # else, skip rm_nfirst an take up to reps[run]+nfirst[run]-1
+   select = ''
+
+   for oind, ortparm in enumerate(all_orts):
+      olabel = ortparm[0]
+      ovecs = ortparm[1:]
+      for rind, ovec in enumerate(ovecs):
+         ovin = os.path.basename(ovec)          # infile
+         ovlab = '%s_r%02d' % (olabel, rind+1)  # file label
+         ovout = 'PROV_%s.1D' % ovlab           # out file
+         if not use_final:
+            nt0 = proc.rm_nfirst[oind]
+            nt1 = proc.reps_all[oind] + proc.rm_nfirst[oind] - 1
+            select = "'{%d..%d}'" % (nt0, nt1)
+         tcmd = "1d_tool.py -pad_into_many_runs %d %d \\\n"     \
+                "    -infile stimuli/%s%s -write stimuli/%s\n"    \
+                % (rind+1, len(ovecs), ovin, select, ovout)
+         cmd += tcmd
+
+         # and add ortvec and label to main list
+         proc.extra_ortvec.append('stimuli/%s' % ovout)
+         proc.extra_ortvec_labs.append(ovlab)
+
+   return 0, cmd+'\n'
+
+# process any -regress_extra_ortvec/_labels option
+# populate proc.extra_ortvec and extra_ortvec_labs
+# return 0 on success
+def check_for_extra_ortvec(proc, block):
+    # ----- first get ortvecs
+    oname = '-regress_extra_ortvec'
+    bopt = block.opts.find_opt(oname)
+    if bopt is None:
+       return 0
+
+    # set orvecs, convert paths to the local stimulus directory
+    ortvecs = bopt.parlist
+    for ind, fname in enumerate(ortvecs):
+        proc.extra_ortvec.append('stimuli/%s' % os.path.basename(fname))
+
+    # ----- then get labels
+    lname = '-regress_extra_ortvec_labels'
+    lopt = block.opts.find_opt(lname)
+    if lopt is None:
+       print("-- auto-generating labels for extra ortvec files")
+       labels = ['xort%02d' % ind for ind in range(len(ortvecs))]
+    else:
+       labels = lopt.parlist
+       if len(labels) != len(bopt.parlist):
+          print("** have %d extra ortvec but %d extra ort labels" % \
+                (len(bopt.parlist), len(labels)))
+          return 1
+
+    # and insert the labels
+    proc.extra_ortvec_labs.extend(labels)
+
+    # todo: check total length before processing
+
+    return 0
 
 # Run 3dTproject, akin to 3dDeconvolve.
 #
@@ -12476,8 +12656,6 @@ OPTIONS:  ~2~
 
         List the history of '-requires_afni_version' dates and reasons.
 
-    -show_valid_opts        : show all valid options (brief format)
-
     -show_example NAME      : display the given example command
 
             e.g. afni_proc.py -show_example 'example 6b'
@@ -12565,6 +12743,18 @@ OPTIONS:  ~2~
         Adding this option to an existing afni_proc.py command will result in
         displaying the command itself, but in a python list format that is
         helpful to me.
+
+    -show_tracked_files DESC : show tracked input files for the given desc
+
+            e.g. -show_tracked_files ALL
+            e.g. -show_tracked_files ortvec
+
+        Adding this option to an existing afni_proc.py command will show input
+        tracked input files and what is known about them.
+
+        File tracking might change...
+
+    -show_valid_opts        : show all valid options (brief format)
 
     -ver                    : show the version number
 
