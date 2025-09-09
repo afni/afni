@@ -270,8 +270,14 @@ auth = 'PA Taylor'
 # [PT] make+use errts_blur for in QC, to make it easier to evaluate
 #      seedbased corr (non-task) and IC (all FMRI)
 #
-ver = '6.3' ; date = 'June 18, 2025'
+#ver = '6.3' ; date = 'June 18, 2025'
 # [PT] when thresholding is applied, pbars use the alpha/thr info
+#
+ver = '6.4' ; date = 'Sep 9, 2025'
+# [PT] expand datasets to which not-blurred-during-processing considerations
+#      apply 
+#      + add -can_add_blur opt to allow user control of applying those
+#        extra features (which are on by default, and probably quite useful)
 #
 #########################################################################
 
@@ -355,8 +361,14 @@ if __name__ == "__main__":
     # add main dset name for ulays: main_dset
     ap_ssdict = lat.set_apqc_main_dset(ap_ssdict)
 
-    # add errts_blur* uvars, _if_ no blur was applied during proc
-    do_blur, ap_ssdict = lat.set_apqc_errts_blur(ap_ssdict)
+    # add corr_brain name as uvar (maybe)
+    ap_ssdict = lat.set_apqc_corr_brain(ap_ssdict)
+
+    # add 'proc_had_blur' uvar. Also add 'errts_blur*' uvars _if_ no
+    # blur was applied during proc; 
+    # user has cmd line opt to disable this (-can_add_blur)
+    proc_had_blur, ap_ssdict = lat.set_apqc_errts_blur(ap_ssdict, 
+                                            can_add_blur=iopts.can_add_blur)
 
     # add censoring info: numbers ranges and text blocks
     # Q: what about RUN_STYLE=='none'?
@@ -888,32 +900,18 @@ if __name__ == "__main__":
 
     # QC block: "regr"
     # item    : corr brain:  corr of errts WB mask ave with each voxel
+    #           -> could also be corr_brain_blur now
 
-    # Q: make uvar for this?
-
-    ldep     = ['errts_dset', 'final_anat']
-    ldep2    = ['template']                                # 2ary consid
-    alt_ldep = ['errts_dset', 'vr_base_dset']              # elif to ldep
-    ldep3    = ['user_stats']                              # 3ary consid
-    ldep4    = ['mask_dset']                               # 4ary consid
-
-    if lat.check_dep(ap_ssdict, ldep) :
-        DO_REGR_CORR_ERRTS = 1
+    ldep  = ['corr_brain', 'main_dset']
+    ldep2 = ['corr_brain_blur', 'main_dset']
+    if lat.check_dep(ap_ssdict, ldep) or lat.check_dep(ap_ssdict, ldep2) :
         ulay     = ap_ssdict['main_dset']
         focusbox = ap_ssdict['main_dset']
-    elif lat.check_dep(ap_ssdict, alt_ldep) :
-        DO_REGR_CORR_ERRTS = 1
-        ulay     = ap_ssdict['vr_base_dset']
-        focusbox = 'AMASK_FOCUS_ULAY' 
-
-    list_corr_brain = glob.glob('corr_brain+*.HEAD')
-    if len(list_corr_brain) == 1 and DO_REGR_CORR_ERRTS :
-        corr_brain = list_corr_brain[0]
 
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_regr_corr_errts( ap_ssdict, obase, "regr", 
                                              "corr_errts",
-                                             ulay, focusbox, corr_brain )
+                                             ulay, focusbox )
         idx     += 1
 
     # --------------------------------------------------------------------

@@ -280,7 +280,9 @@ if too many get used up during processing (careful with bandpassing!).
 
 The "corr_brain" plot shows correlation of each voxel with the errts
 average within the whole brain mask (what could be called the 'global
-signal').
+signal').  If the data weren't blurred during processing, the displayed
+corr_brain might come from a temporarily created errts with blurring 
+applied, to facilitate QC interpretation.
 
 Two TSNR dsets can be shown.  In each case, voxelwise TSNR is shown
 throughout the full FOV, and any brain mask dset is just used for

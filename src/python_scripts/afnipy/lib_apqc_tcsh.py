@@ -1044,6 +1044,35 @@ ap_ssdict : dict
 
     return ap_ssdict
 
+def set_apqc_corr_brain(ap_ssdict):
+    """Look for the corr_brain* dset, and set a uvar for it if it
+exists. We should already be in the correct dir (results dir) and the
+file name should be constant except for the av_space part.
+
+Parameters
+----------
+ap_ssdict : dict
+    dictionary of subject uvars
+
+Returns
+----------
+ap_ssdict : dict
+    updated dictionary of subject uvars
+
+    """
+
+    list_corr_brain = glob.glob('corr_brain+*.HEAD')
+    nfound = len(list_corr_brain)
+
+    if not(nfound) :
+        print("+* Found no corr_brain+*.HEAD dset, but continuing")
+    elif nfound == 1 :
+        ap_ssdict['corr_brain'] = list_corr_brain[0]
+    else:
+        print("+* Found >1 corr_brain+*.HEAD dset; confused and exiting")
+        sys.exit(3)
+
+    return ap_ssdict
 
 def set_apqc_censor_info_INIT(ap_ssdict):
     """Make the initial pieces for censoring info that are used
@@ -1369,7 +1398,8 @@ ap_ssdict : dict
 
 # ---------
 
-def set_apqc_errts_blur(ap_ssdict, make_dset_if_not_existing=True):
+def set_apqc_errts_blur(ap_ssdict, can_add_blur=laio.DEF_can_add_blur,
+                        make_dset_if_not_existing=True):
     """When no blur is applied during processing, we will (likely) make a
 temp errts dset that has blur applied, for easier QC
 evaluation---esp. for seedbased correlation maps and IC.  This
@@ -1381,7 +1411,10 @@ This function will *create* the errts_blur dset now, when
 make_dset_if_not_existing is true. Note that if the errts_blur dset
 exists already, then it will *not* overwrite it.
 
-This function will update the ap_ssdict with the new errts_blur dset.
+This function will update the ap_ssdict with the new uvar key
+'proc_had_blur', whose value is either True or False.  If True, it
+will create two more uvars: 'errts_blur' (the name of the new blurred
+errts dset) and 'errts_blur_size' (the radius of added blur).
 
 If the errts_dset uvar is not present, this function does nothing.
 If the blur_size uvar is present, this function does nothing.
@@ -1392,6 +1425,9 @@ Parameters
 ----------
 ap_ssdict : dict
     dictionary of subject uvars
+can_add_blur : bool
+    option to turn off any checking; if this is True, then the program
+    just returns False and the input dictionary; else, the check proceeds
 make_dset_if_not_existing : bool
     if the blurred errts dset doesn't exist already, make it if this
     kwarg is set to True; otherwise, don't even try
@@ -1415,10 +1451,19 @@ D : dict
 
     # data are already blurred; nothing to do
     if check_dep(ap_ssdict, ['blur_size']) :
-        return False, D
+        D['proc_had_blur'] = True
+        return D['proc_had_blur'], D
+
+    D['proc_had_blur'] = False
+
+    # user option to disable even checking about this
+    if not(can_add_blur) :
+        print("++ proc had no blur, but adding blur in QC images -> disabled")
+        return D['proc_had_blur'], D
 
     if 1 :
-        print("++ APQC create: blurred errts for IC"); sys.stdout.flush() 
+        print("++ APQC create: blurred errts for IC & corr_brain"); 
+        sys.stdout.flush() 
     do_cap = True
 
     # get olay prefix
@@ -1445,9 +1490,11 @@ D : dict
     errts_blur_size = au.truncate_to_N_bits(val, 5, method='round')
 
     # new blurred errts dset, and add to dict if we are here
-    errts_blur = olay_pref + '_blur_for_qc' + '.nii.gz'
+    errts_blur      = olay_pref + '_blur_for_qc' + '.nii.gz'
+    corr_brain_blur = 'corr_brain_blur_for_qc.nii.gz'
     D['errts_blur']      = errts_blur
     D['errts_blur_size'] = errts_blur_size
+    D['corr_brain_blur'] = corr_brain_blur
 
     # only create this dset once
     if not(os.path.isfile(errts_blur)) and make_dset_if_not_existing :
@@ -1464,10 +1511,24 @@ D : dict
         stat = com.run()
         print("     ", errts_blur); sys.stdout.flush() 
     else:
-        print("   -> already exists"); sys.stdout.flush() 
+        print("   -> blurred errts already exists"); sys.stdout.flush() 
 
+    # only create this dset once
+    if not(os.path.isfile(corr_brain_blur)) and make_dset_if_not_existing :
+        cmd = '''
+        3dTcorr1D                                                        \
+            -prefix {corr_brain_blur}                                    \
+            {errts_blur}                                                 \
+            mean.errts.1D
+        '''.format( corr_brain_blur=corr_brain_blur, 
+                    errts_blur=errts_blur )
+        com  = ab.shell_com(cmd, capture=do_cap)
+        stat = com.run()
+        print("     ", corr_brain_blur); sys.stdout.flush() 
+    else:
+        print("   -> blurred errts already exists"); sys.stdout.flush() 
 
-    return True, D
+    return ['proc_had_blur'], D
 
 def set_alternate_seed_locs(ap_ssdict):
 
@@ -3134,9 +3195,9 @@ num : int
     return 0
 
 
-# complicated/tiered dependencies...
+# ['corr_brain', 'main_dset']
 def apqc_regr_corr_errts( ap_ssdict, obase, qcb, qci, 
-                          ulay, focusbox, corr_brain ):
+                          ulay, focusbox ):
     """Make images of the correlation map of the average residual signal
 (corr_errts), which complements GCOR information. Also create text for
 above/below images.
@@ -3156,9 +3217,6 @@ ulay : str
 focusbox : str
     filename of dataset to use to focus in on part of the dataset
     (i.e., to ignore empty slices)
-corr_brain : str
-    filename of the correlation map of the average errts (error 
-    time series, AKA residual)
 
 Returns
 ----------
@@ -3188,6 +3246,19 @@ num : int
     cbar    = 'Reds_and_Blues_Inv'
     pbar_cr = 'Pearson r'
     pbar_tr = 'alpha+boxed on' 
+
+    # figure out whether to use corr_brain or (if it exists) corr_brain_blur
+    if check_dep(ap_ssdict, ['corr_brain_blur']) :
+        corr_brain = ap_ssdict['corr_brain_blur']
+        ebs        = ap_ssdict['errts_blur_size']
+        blur_note  = 'with {:0.2f} mm blur: '.format(ebs)
+
+    elif check_dep(ap_ssdict, ['corr_brain']) :
+        corr_brain = ap_ssdict['corr_brain']
+        blur_note  = ''
+    else:  # should not happen
+        print("** ERROR: could not find any 'corr_brain*' uvar")
+        sys.exit(9)
 
     # get ulay prefix (name from arg)
     cmd    = '3dinfo -prefix ' + ulay
@@ -3244,7 +3315,7 @@ num : int
 
     # text above images
     otoptxt = "olay: corr of WB-average errts "
-    otoptxt+= "with each voxel ({})".format(olay_pref)
+    otoptxt+= "with each voxel ({}{})".format(blur_note, olay_pref)
 
     # Make info above images
     otopdict = {
@@ -4523,11 +4594,16 @@ num : int
     stat   = com.run()
 
     # Some TSNR warn level values differ, based on whether blurring
-    # was applied during proc; set what to use here.  If this key
-    # exists, then no blur had been applied.
-    ldep = ['errts_blur']
-    if check_dep(ap_ssdict, ldep) :  had_blur = 'No'
-    else:                            had_blur = 'Yes'
+    # was applied during proc; set what to use here.
+    ldep = ['proc_had_blur']
+    if not(check_dep(ap_ssdict, ldep)) :  
+        print("** ERROR: cannot find uvar: proc_had_blur")
+        sys.exit(15)
+    # ... and apply the info for option usage and text reporting
+    if ap_ssdict['proc_had_blur'] :
+        had_blur = 'Yes'
+    else:
+        had_blur = 'No'
 
     # calculate HTML formatting for table, and output in QC dir
     cmd    = '''roi_stats_warnings.py -input {}'''.format(fname)
