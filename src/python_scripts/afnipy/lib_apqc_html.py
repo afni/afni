@@ -162,6 +162,24 @@ qc_link_final       = [ "FINAL",
 qcb_helps           = coll.OrderedDict()
 qcb_helps["vorig"]  = '''
 Volumetric mages of data (EPI and anat) in original/native space.
+
+The EPI volume shown is the one used for motion estimation and for
+alignment to the anatomical.  Additionally, a variance map of the first
+run of input EPI data is shown, because it often provides a lot of 
+context about the variability of the EPI data.  It can also inform
+about potential artifacts, such as slicewise ones, and in particular
+about variance line artifacts, which have their own subsection in the
+'warns' QC block.
+
+The anatomical is shown for reference of coverage and quality.  Another
+image shows the relative EPI-anatomical overlap: if there are large
+translational or rotational differences to start, the alignment of those
+two datasets might go awry.  So, this can be important to troubleshoot
+poor EPI-anatomical alignment.  When obliquity in at least one of the 
+input EPI or anatomical is present, it is the image with obliquity 
+*applied* that matters most for judging alignment.  (Ideally, the 
+anatomical dataset would not have obliquity, and it is fine for the EPI
+to have obliquity.)
 '''
 
 qcb_helps["ve2a" ]  = '''
