@@ -1782,8 +1782,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   */
                   SUMAg_CF->ClipPlaneType[SUMAg_CF->N_ClipPlanes] =
                                     (SUMA_CLIP_PLANE_TYPES)EngineData->i;
-                  snprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes],
-                                          8*sizeof(char), "%s", EngineData->s);
+                  if (snprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes],
+                                          8*sizeof(char), "%s", EngineData->s) < 0){
+                    WARNING_message("Error copying engine data string");
+                  }
+                                          
                   SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes  ] =
                                                    (GLdouble)EngineData->fv15[0];
                   SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes+1] =
@@ -1797,8 +1800,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   /* Replace an existing one */
                   SUMAg_CF->ClipPlaneType[iplane] =
                                           (SUMA_CLIP_PLANE_TYPES)EngineData->i;
-                  snprintf(SUMAg_CF->ClipPlanesLabels[iplane],
-                                          8*sizeof(char), "%s", EngineData->s);
+                  if (snprintf(SUMAg_CF->ClipPlanesLabels[iplane],
+                                          8*sizeof(char), "%s", EngineData->s)  < 0){
+                    WARNING_message("Error replacing engine data string");
+                  }
+                                          
                   SUMAg_CF->ClipPlanes[4*iplane  ] =
                                           (GLdouble)EngineData->fv15[0];
                   SUMAg_CF->ClipPlanes[4*iplane+1] =
@@ -4017,6 +4023,32 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         
                      newMin = SurfCont->curColPlane->OptScl->IntRange[0];
                      newMax = SurfCont->curColPlane->OptScl->IntRange[1];
+                     
+                     // Process contralateral surface
+                     SO = (SUMA_SurfaceObject *)ado;
+                     SUMA_SurfaceObject *SOC = NULL;
+                     SUMA_OVERLAYS *colp = SUMA_ADO_CurColPlane(ado);
+                     SUMA_OVERLAYS *colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+                     colpC->OptScl->IntRange[0] = newMin;
+                     colpC->OptScl->IntRange[1] = newMax;
+                     SOC->SurfCont->curColPlane->SymIrange = SurfCont->curColPlane->SymIrange;
+                     XmToggleButtonSetState (SOC->SurfCont->SymIrange_tb, 
+                        SurfCont->curColPlane->SymIrange, 1);
+                    if (!SUMA_ColorizePlane (SOC->SurfCont->curColPlane)) {
+                       SUMA_SLP_Err("Failed to colorize plane.\n");
+                    } else {
+                       SUMA_Remixedisplay((SUMA_ALL_DO *)SOC);
+                       SUMA_UpdateNodeValField((SUMA_ALL_DO *)SOC);
+                       SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SOC);
+                    }
+                    if (colp->AlphaOpacityFalloff || SurfCont->BoxOutlineThresh){
+                        if (!restoreABButtonFunctionality_one((SUMA_ALL_DO *)SOC, colpC)){
+                              fprintf(stderr,  "Error restoring A and B button functionality.\n ");
+                              SUMA_RETURN(0);
+                        }
+                    }
+
+                     #if 0  // DEBUG
                      XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
                      N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
                      if (numSurfaceObjects != N_adolist) {
@@ -4045,6 +4077,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                             }
                          }
                       }
+                      #endif
                   }
                   SUMA_free(stmp); stmp = NULL;
                }
@@ -5924,7 +5957,6 @@ int SUMA_ADOs_WithUniqueSurfCont (SUMA_DO *dov, int N_dov, int *dov_IDs)
    static char FuncName[]={"SUMA_ADOs_WithUniqueSurfCont"};
    SUMA_SurfaceObject *SO=NULL;
    int i, j, k = 0, surfContPtrCnt=0, unique;
-   int  ;
    SUMA_NIDO *SDO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_X_SurfCont *SurfConts[SUMA_MAX_DISPLAYABLE_OBJECTS], *SurfCont;
