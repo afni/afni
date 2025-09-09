@@ -53,6 +53,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Sep, 2025, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "mac install: if brew is not initialized, do so",
+   "Run 'brew shellenv' from OS_notes.macos_12_*_b_user.tcsh if need be.\n"
+   "This if for JAMF, but can apply without."
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "mac install: remove inappropriate backticks around 'which' command",
+   NULL
+ } ,
+
  {  8, Sep, 2025, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -regress_per_run_ortvec, to process physio_calc.py volbase regs",
    "The main outputs of physio_calc.py are *slibase.1D (for slice-based\n"
