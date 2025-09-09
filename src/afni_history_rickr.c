@@ -53,6 +53,41 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "look for AFNI_data7; better units evaluation on available disk space",
+   NULL
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "flask and flask_cors are now required",
+   NULL
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "add 'ceil' option to truncate_to_N_bits; and removed repeated scaling",
+   NULL
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "mac install: if brew is not initialized, do so",
+   "Run 'brew shellenv' from OS_notes.macos_12_*_b_user.tcsh if need be.\n"
+   "This if for JAMF, but can apply without."
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "mac install: remove inappropriate backticks around 'which' command",
+   NULL
+ } ,
+
+ {  8, Sep, 2025, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -regress_per_run_ortvec, to process physio_calc.py volbase regs",
+   "The main outputs of physio_calc.py are *slibase.1D (for slice-based\n"
+   "regressors) and *volbase.1D (for spatially global regressors).\n"
+   "Keep using the -ricor options for *slibase.1D, but pass the *volbase.1D\n"
+   "files using -regress_per_run_ortvec, with a label and one file per run.\n"
+   "E.g.  -regress_per_run_ortvec Vphys resp_r1_volbase.1D resp_r2_volbase.1D"
+ } ,
+
  { 28, Aug, 2025, RCR, "gen_group_command.py", MINOR, TYPE_NEW_OPT,
    "try to detect BIDS; add option -sid_method",
    "This will also be incorporated in gen_ss_review_table.py."
