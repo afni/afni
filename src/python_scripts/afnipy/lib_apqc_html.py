@@ -309,7 +309,9 @@ recognized spaces, or user-provided). Warning levels increase as shape
 properties become potentially more problematic, such as: containing a
 large number of empty voxels; becoming thinner and more unstable to
 alignment imperfections and partial voluming; having strong
-gradients/variability in TSNR; having low overall TSNR. The table
+gradients/variability in TSNR; having low overall TSNR.  Some TSNR warn
+level values differ, based on whether the data had blurring or not during
+processing; the 'had_blur=..' title text references that.  The table
 contains the following information, with warning coloration applied to
 highlight potential issues within each ROI:
   ROI  : the integer value in the input atlas/map region

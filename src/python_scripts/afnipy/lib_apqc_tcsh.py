@@ -3420,7 +3420,7 @@ num : int
         # we will use the blurred dset for the corr maps
         corr_dset = ap_ssdict['errts_blur']
         ebs       = ap_ssdict['errts_blur_size']
-        blur_note = ', adding {:0.2f} mm blur'.format(ebs)
+        blur_note = ', with {:0.2f} mm blur'.format(ebs)
 
     else:
         corr_dset = ap_ssdict['errts_dset']
@@ -4522,9 +4522,18 @@ num : int
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
 
+    # Some TSNR warn level values differ, based on whether blurring
+    # was applied during proc; set what to use here.  If this key
+    # exists, then no blur had been applied.
+    ldep = ['errts_blur']
+    if check_dep(ap_ssdict, ldep) :  had_blur = 'No'
+    else:                            had_blur = 'Yes'
+
     # calculate HTML formatting for table, and output in QC dir
-    cmd    = '''roi_stats_warnings.py -input {} -prefix {}'''.format(fname, 
-                                                                     odat)
+    cmd    = '''roi_stats_warnings.py -input {}'''.format(fname)
+    cmd   += ''' -prefix {}'''.format(odat)
+    cmd   += ''' -had_blur {}'''.format(had_blur)
+
     if qcb == 'warns' :
         cmd+= ''' -disp_max_warn'''
     com    = ab.shell_com(cmd, capture=do_cap)
@@ -4539,7 +4548,8 @@ num : int
                 warn_level = ttt
 
     # text above data
-    otoptxt = "ROI shape and TSNR stats ({})".format(fname)
+    partxt  = "{}, had_blur={}".format(fname, had_blur)
+    otoptxt = "ROI shape and TSNR stats ({})".format(partxt)
 
     # Make info below images 
     if qcb == 'regr' :
