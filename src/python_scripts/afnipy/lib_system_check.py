@@ -1363,7 +1363,7 @@ class SysInfo:
 
       return 0
 
-   def test_python_lib(self, pylib, fmesg='', showver=0, verb=2):
+   def test_python_lib(self, pylib, fmesg='', required=0, showver=0, verb=2):
       """try to import the given pylib library
 
          pylib      : (string) library name
@@ -1374,12 +1374,15 @@ class SysInfo:
       # actual lib test
       rv = MT.simple_import_test(pylib, verb=verb)
 
-      if fmesg : pmesg = fmesg
-      else:      pmesg = 'not required, but is desirable'
+      if fmesg:      pmesg = fmesg
+      elif required: pmesg = 'required'
+      else:          pmesg = 'not required, but is desirable'
 
-      # if failure, no biggie, but warn
+      # if failure, warn, and if required, add to comments
       if rv:
          print('-- %s is %s' % (pylib, pmesg))
+         if required:
+            self.comments.append('python library %s is required' % pylib)
          return 1
 
       if showver:
@@ -1420,8 +1423,9 @@ class SysInfo:
    def show_python_lib_info(self, header=1):
 
       # any extra libs to test beyond main ones
-      # (empty for now, since matplotlib got its own function)
-      extralibs = ['flask', 'flask_cors']
+      # reqlibs are required, extras are not
+      reqlibs = ['flask', 'flask_cors']
+      extralibs = []
       verb = 3
 
       if header: print(UTIL.section_divider('python libs', hchar='-'))
@@ -1434,7 +1438,12 @@ class SysInfo:
       self.test_python_lib_matplotlib(verb=verb)
       print('')
 
-      # then go after any others
+      # go after any other required libs
+      for plib in reqlibs:
+         self.test_python_lib(plib, required=1, showver=1, verb=verb)
+         print('')
+
+      # go after any other non-required libs
       for plib in extralibs:
          self.test_python_lib(plib, showver=1, verb=verb)
          print('')

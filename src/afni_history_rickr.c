@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "flask and flask_cors are now required",
+   NULL
+ } ,
+
  {  9, Sep, 2025, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
    "add 'ceil' option to truncate_to_N_bits; and removed repeated scaling",
    NULL
