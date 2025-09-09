@@ -54,6 +54,11 @@
 afni_history_struct rickr_history[] = {
 
  {  9, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "look for AFNI_data7; better units evaluation on available disk space",
+   NULL
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
    "flask and flask_cors are now required",
    NULL
  } ,

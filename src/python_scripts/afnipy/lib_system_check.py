@@ -364,6 +364,7 @@ class SysInfo:
       if s:
          cmd = 'df -h %s' % dname
          s, so, se = UTIL.limited_shell_exec(cmd, nlines=3)
+         m = 0
          hsearch = 'Avail'
       if s: return 0, ''
     
@@ -384,18 +385,36 @@ class SysInfo:
       astr = alist[0]
 
       # if 'm' and this is an int, check for insufficient space
+      # (but still report result in GB)
       status = 0
+      unit = 'M'
       if m and m_min >= 0:
          try:
             nmeg = int(astr)
          except:
             nmeg = -1
-         # failure
-         if nmeg >= 0 and nmeg < m_min:
-            status = 1
+
+         # if something useful, check space and possibly format
+         if nmeg >= 0:
+            # insufficient space
+            if nmeg < m_min:
+               status = 1
+
+            # set the unit more usefully: M, G, T
+            if nmeg < 2000:
+               pass
+            elif nmeg < 2000000:
+               nmeg = nmeg // 1000
+               unit = 'G'
+            else:
+               nmeg = nmeg // 1000000
+               unit = 'T'
+
+            astr = '%s' % nmeg
+
       # if m, append a unit
       if m:
-         astr = '%sM' % astr
+         astr = '%s%s' % (astr, unit)
             
       return status, astr
 
@@ -413,6 +432,7 @@ class SysInfo:
       # locate various data trees, and possibly show recent history
       rv = 0
       rv += self.show_data_dir_info('AFNI_data6', 'history.txt')
+      rv += self.show_data_dir_info('AFNI_data7', 'history.txt')
       rv += self.show_data_dir_info('AFNI_demos', 'history.txt')
       rv += self.show_data_dir_info('suma_demo', 'README.archive_creation')
       rv += self.show_data_dir_info('afni_handouts')
