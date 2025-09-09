@@ -217,7 +217,8 @@ void memplot_to_X11_sef( Display *dpy , Window w , MEM_plotdata *mp ,
    if( memplot_to_X11_substitute_function != NULL ){
      addto_xdlist( (XID)w , (void *)memplot_to_X11_substitute_function ) ;
 /* ININFO_message("calling substitute") ; */
-     memplot_to_X11_substitute_function(dpy,w,mp,start,end,mask) ;
+     ((void (*)(Display *, Window, MEM_plotdata *, int, int, int)) /* cast fptr */
+        memplot_to_X11_substitute_function)(dpy,w,mp,start,end,mask) ;
      /* XSync(dpy,False) ; */
      memplot_to_X11_substitute_function = NULL ;
      return ;
@@ -226,7 +227,8 @@ void memplot_to_X11_sef( Display *dpy , Window w , MEM_plotdata *mp ,
    if( xdf != NULL ){
      void (*fp)() = (void (*)())xdf ;
 /* ININFO_message("re-calling substitute") ; */
-     fp(dpy,w,mp,start,end,mask) ;
+     ((void (*)(Display *, Window, MEM_plotdata *, int, int, int)) /* cast fptr */
+        fp)(dpy,w,mp,start,end,mask) ;
      return ;
    }
 
@@ -454,11 +456,15 @@ for( ii=0 ; ii < nseg ; ii++ )
             xpt[ii+1].x = xseg[jbot+ii].x2 ; xpt[ii+1].y = xseg[jbot+ii].y2 ;
          }
          if( memplot_XDrawLines_substitute_function != NULL ){  /* 30 Aug 2021 */
+           /*
            memplot_XDrawLines_substitute_function(
              old_dpy,old_w,old_GC , xpt,nj+1 , CoordModeOrigin , 4 ) ;
+           */
+           fprintf(stderr,"== rcr - you were never here");
+           XDrawLines( old_dpy,old_w,old_GC , xpt,nj+1 , CoordModeOrigin ) ;
          } else {
            XDrawLines( old_dpy,old_w,old_GC , xpt,nj+1 , CoordModeOrigin ) ;
-        }
+         }
 
 #if 0
 fprintf(stderr,"draw_xseg: XDrawLines for %d\n",nj) ;

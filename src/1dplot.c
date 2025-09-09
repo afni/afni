@@ -1649,7 +1649,7 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId *id )
    ng = (sep) ? (-nts) : (nts) ;
    ngx = (sepscl) ? (-nx) : (nx) ;
    plot_ts_lab( dc->display , ngx , xar , ng , yar ,
-                xlabel , ylabel , title , yname , killfunc ) ;
+                xlabel , ylabel , title , yname , (void_func *)killfunc ) ;
 
    return ;
 }

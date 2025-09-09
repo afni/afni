@@ -71,8 +71,9 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*-- set titles and call point --*/
 
-   plint = PLUTO_new_interface( "3D Cluster" , "Dataset Clustering" , helpstring ,
-                                 PLUGIN_CALL_VIA_MENU , CLUST_main  ) ;
+   plint = PLUTO_new_interface("3D Cluster", "Dataset Clustering", helpstring,
+                               PLUGIN_CALL_VIA_MENU ,
+                               (cptr_func *)CLUST_main) ;
 
    PLUTO_add_hint( plint , "Dataset Clustering" ) ;
 

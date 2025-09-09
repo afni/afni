@@ -34,7 +34,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*---------------- set titles and call point ----------------*/
 
    plint = PLUTO_new_interface( "PlaceHolder" , "PlaceHolder" , NULL ,
-                                PLUGIN_CALL_IMMEDIATELY , JUNK_main ) ;
+                                PLUGIN_CALL_IMMEDIATELY ,
+                                (cptr_func *)JUNK_main ) ;
 
    PLUTO_set_sequence( plint , "A:funcs:junk" ) ;
 

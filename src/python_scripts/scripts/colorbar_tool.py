@@ -62,9 +62,11 @@ auth = PA Taylor (SSCC, NIMH, NIH, USA)
 Usage ~1~
 
 -in_cbar CBAR  :(req) name of the cbar file, which can be in one of the
-                following formats: JPG, PNG, TIF
+                following formats: jpg, png, tif
 
--prefix PREFIX :(req) name of output file, including file extension
+-prefix PREFIX :(req) name of output file, including file extension. 
+                Possible extensions (likely) include:
+                  {list_ext_str}
 
 -in_cbar_name NAME  
                :alternative way to provide input colorbar, by specifying
@@ -86,7 +88,7 @@ Usage ~1~
                 thresholding.  Must be one of the following values:
                   {all_alpha}
 
--thr_val TVAL  :threshold value, applied as an absolute value
+-thr_val TVAL  :threshold value, applied as an absolute value (def: {thr_val})
 
 -thr_width TWID :when displaying the threshold line in the output cbar,
                 this controls the width, as an integer number of pixels
@@ -330,18 +332,28 @@ cbar (see 'JSONs' in the Notes above).
         -thr_val       3                                         \\
         -alpha         Linear                                          
 
+    8) Make a colorbar from the name within the known AFNI list, with
+       orthogonal fading.
+
+    colorbar_tool.py                                             \\
+        -in_cbar_name  Reds_and_Blues_Inv                        \\
+        -prefix        CBAR_RaBI_orth.png                        \\
+        -alpha         Yes                                       \\
+        -orth_on
 
 """.format(all_alpha=lct.list_alpha_str, thr_wid=lct.DOPTS['thr_width'],
            thr_no=lct.DOPTS['thr_num_osc'], tick_ni=lct.DOPTS['tick_num_int'],
            tick_frac=lct.DOPTS['tick_frac'], orth_frac=lct.DOPTS['orth_frac'],
-           outwid=lct.DOPTS['outline_width'], 
-           bkgd_color=lct.DOPTS['bkgd_color'])
+           outwid=lct.DOPTS['outline_width'], list_ext_str=lct.list_ext_str,
+           bkgd_color=lct.DOPTS['bkgd_color'], thr_val=lct.DOPTS['thr_val'])
 
 g_history = """
   gtkyd_check.py history:
 
   0.1   Jan 26, 2025 :: started this command line interface for lib_cbar_tool
   0.2   Jan 30, 2025 :: beta version complete (with options)
+  0.3   May 21, 2025 :: better prioritizing within JSON (cbar/pbar_fname)
+  0.3   Jun 17, 2025 :: checks about extension when failing to write
 """
 
 g_ver     = g_history.split("\n")[-2].split("::")[0].strip()
@@ -469,7 +481,7 @@ See lct.CbarPbar() for the set of things that are populated for the actual
       self.valid_opts.add_opt('-orth_on', 0, [], 
                       helpstr="orthogonal fade: on (=fade perp to color grad)")
 
-      self.valid_opts.add_opt('-orth_frac', 0, [], 
+      self.valid_opts.add_opt('-orth_frac', 1, [], 
                       helpstr="orthogonal fade: fraction at which to start")
 
       self.valid_opts.add_opt('-outline_width', 1, [], 
@@ -684,42 +696,60 @@ See lct.CbarPbar() for the set of things that are populated for the actual
        D     = lct.read_json(self.in_json)
        dkeys = D.keys()
 
-       if 'cbar' in dkeys :
-           # this dual condition check here is unique for cbar, bc it
+       
+       if 'pbar_fname' in dkeys and 'cbar' in dkeys and self.verb :
+           BASE.IP("JSON has both pbar_fname and cbar; "
+                   "priority goes to pbar_fname ")
+
+       # this first if/elif branch check is the most complicated,
+       # because the input pbar can come from either a name or a file.
+       # We give preference to the file itself, because that is easier
+       # for user-created pbars whose name is unknown within AFNI in
+       # general
+       if 'pbar_fname' in dkeys :
+           # this dual condition check here is semi-unique for pbar_fname, bc it
+           # can come from either in_cbar_name or in_cbar
+           if self.in_cbar_name == None and self.in_cbar == None :
+               self.in_cbar = D['pbar_fname']
+           elif self.verb :
+               BASE.WP("Using user-specified value of '{}', rather than JSON's "
+                       "'{}'".format('in_cbar', 'pbar_fname'))
+       elif 'cbar' in dkeys :
+           # this dual condition check here is semi-unique for cbar, bc it
            # can come from either in_cbar_name or in_cbar
            if self.in_cbar_name == None and self.in_cbar == None :
                self.in_cbar_name = D['cbar']
            elif self.verb :
-               ab.WP("Using user-specified value of '{}', rather than JSON's "
-                     "'{}'".format('in_cbar_name', 'cbar'))
+               BASE.WP("Using user-specified value of '{}', rather than JSON's "
+                       "'{}'".format('in_cbar_name', 'cbar'))
 
        if 'pbar_bot' in dkeys :
            if self.cbar_min == None :
                self.cbar_min = float(D['pbar_bot'])
            elif self.verb :
-               ab.WP("Using user-specified value of '{}', rather than JSON's "
-                     "'{}'".format('cbar_min', 'pbar_bot'))
+               BASE.WP("Using user-specified value of '{}', rather than JSON's "
+                       "'{}'".format('cbar_min', 'pbar_bot'))
 
        if 'pbar_top' in dkeys :
            if self.cbar_max == None :
                self.cbar_max = float(D['pbar_top'])
            elif self.verb :
-               ab.WP("Using user-specified value of '{}', rather than JSON's "
-                     "'{}'".format('cbar_max', 'pbar_top'))
+               BASE.WP("Using user-specified value of '{}', rather than JSON's "
+                       "'{}'".format('cbar_max', 'pbar_top'))
 
        if 'vthr' in dkeys :
            if self.thr_val == None :
                self.thr_val = float(D['vthr'])
            elif self.verb :
-               ab.WP("Using user-specified value of '{}', rather than JSON's "
-                     "'{}'".format('thr_val', 'vthr'))
+               BASE.WP("Using user-specified value of '{}', rather than JSON's "
+                       "'{}'".format('thr_val', 'vthr'))
 
        if 'olay_alpha' in dkeys :
            if self.alpha == None :
                self.alpha   = D['olay_alpha']
            elif self.verb :
-               ab.WP("Using user-specified value of '{}', rather than JSON's "
-                     "'{}'".format('thr_val', 'vthr'))
+               BASE.WP("Using user-specified value of '{}', rather than JSON's "
+                       "'{}'".format('alpha', 'olay_alpha'))
 
        return 0
 

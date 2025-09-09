@@ -1472,7 +1472,7 @@ Bring them back after testing. */
                           0 ,                    /* ignore count  */
                           1 ,                   /* linear detrend */
                           2 ,                   /* number of briks */
-                          RP_tsfunc,          /* timeseries processor */
+          (generic_func *)RP_tsfunc,          /* timeseries processor */
                           (void *)(&rpud),    /* data for tsfunc */
                           mmm,
                           0   /* Allow auto scaling of output */
@@ -1496,7 +1496,7 @@ Bring them back after testing. */
                              0 ,                    /* ignore count  */
                              1 ,                   /* linear detrend */
                              2 ,                   /* number of briks */
-                             DEL_tsfunc,          /* timeseries processor */
+             (generic_func *)DEL_tsfunc,          /* timeseries processor */
                              (void *)(&rpud),    /* data for tsfunc */
                              mmm,
                              0   /* Allow auto scaling of output */

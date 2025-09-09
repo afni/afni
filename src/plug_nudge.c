@@ -60,7 +60,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "Nudge Dataset" ,
                                 "Move bricks around" ,
                                 NULL ,
-                                PLUGIN_CALL_IMMEDIATELY , NUD_main  ) ;
+                                PLUGIN_CALL_IMMEDIATELY ,
+                                (cptr_func *)NUD_main  ) ;
 
    PLUTO_add_hint( plint , "Move bricks around" ) ;
 
@@ -398,9 +399,9 @@ static void NUD_make_widgets(void)
                           0 ,                     /* initial selection */
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* decimal shift */
-                          NUD_brick_av_CB ,       /* callback when changed */
+              (gen_func *)NUD_brick_av_CB ,       /* callback when changed */
                           NULL ,                  /* data for above */
-                          MCW_av_substring_CB ,   /* text creation routine */
+              (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                           NUD_dummy_av_label      /* data for above */
                         ) ;
    MCW_reghelp_children( brick_av->wrowcol ,
@@ -425,7 +426,7 @@ static void NUD_make_widgets(void)
                         0 ,                     /* decimal shift */
                         NULL ,                  /* callback when changed */
                         NULL ,                  /* data for above */
-                        MCW_av_substring_CB ,   /* text creation routine */
+            (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                         REG_resam_strings       /* data for above */
                       ) ;
    MCW_reghint_children( interp_av->wrowcol , "Set interpolation method" ) ;
@@ -443,7 +444,7 @@ static void NUD_make_widgets(void)
                         0 ,                     /* decimal shift */
                         NULL ,                  /* callback when changed */
                         NULL ,                  /* data for above */
-                        MCW_av_substring_CB ,   /* text creation routine */
+            (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                         YESNO_strings           /* data for above */
                       ) ;
    MCW_reghint_children( clip_av->wrowcol , "Clip after interpolation?" ) ;
@@ -1178,7 +1179,7 @@ static void NUD_choose_CB( Widget w, XtPointer client_data, XtPointer call_data 
    sprintf( label , "AFNI Dataset from\nthe %s" , VIEW_typestr[vv] ) ;
 
    MCW_choose_strlist( w , label , ndsl , -1 , strlist ,
-                       NUD_finalize_dset_CB , NULL     ) ;
+                       (gen_func *)NUD_finalize_dset_CB , NULL     ) ;
 
    return ;
 }
@@ -1282,7 +1283,7 @@ static void NUD_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
                       DSET_NVALS(dset)-1 ,      /* new maxval */
                       dset_ival ,               /* new inival */
                       0 ,                       /* new decim? */
-                      NUD_brick_av_label_CB ,   /* text routine */
+          (str_func *)NUD_brick_av_label_CB ,   /* text routine */
                       dset                      /* text data */
                     ) ;
 

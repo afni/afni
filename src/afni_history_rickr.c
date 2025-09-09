@@ -53,6 +53,99 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Sep, 2025, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "mac install: if brew is not initialized, do so",
+   "Run 'brew shellenv' from OS_notes.macos_12_*_b_user.tcsh if need be.\n"
+   "This if for JAMF, but can apply without."
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "mac install: remove inappropriate backticks around 'which' command",
+   NULL
+ } ,
+
+ {  8, Sep, 2025, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -regress_per_run_ortvec, to process physio_calc.py volbase regs",
+   "The main outputs of physio_calc.py are *slibase.1D (for slice-based\n"
+   "regressors) and *volbase.1D (for spatially global regressors).\n"
+   "Keep using the -ricor options for *slibase.1D, but pass the *volbase.1D\n"
+   "files using -regress_per_run_ortvec, with a label and one file per run.\n"
+   "E.g.  -regress_per_run_ortvec Vphys resp_r1_volbase.1D resp_r2_volbase.1D"
+ } ,
+
+ { 28, Aug, 2025, RCR, "gen_group_command.py", MINOR, TYPE_NEW_OPT,
+   "try to detect BIDS; add option -sid_method",
+   "This will also be incorporated in gen_ss_review_table.py."
+ } ,
+
+ { 18, Aug, 2025, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -volreg_warp_master_box",
+   "This is like -volreg_warp_master, but dxyz will come from EPI.\n"
+   "If -volreg_warp_dxyz is given, _master is the same as _master_box."
+ } ,
+
+ { 15, Aug, 2025, RCR, "@compute_OC_weights", MINOR, TYPE_NEW_OPT,
+   "add -prefix_combine, to combine the echoes using computed weights",
+   "Added for P Molfese."
+ } ,
+
+ { 15, Aug, 2025, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
+   "add -fast_log_commands and -fast_log_messages",
+   NULL
+ } ,
+
+ {  6, Aug, 2025, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add basic GTKYD (getting to know your data) and outlier check",
+   "This will grow, including with user control."
+ } ,
+
+ { 29, Jul, 2025, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -force_write_type, to force output of simple, AM, DM or AM/DM",
+   NULL
+ } ,
+
+ { 25, Jul, 2025, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "gcc-15 : code updates under the SUMA tree",
+   "This hopefully finalizes the June 12, 2025 update, including SUMA."
+ } ,
+
+ { 22, Jul, 2025, RCR, "@update.afni.binaries", MICRO, TYPE_NEW_OPT,
+   "add option -binary_source, to supersede -build_afni and -overwrite_build",
+   NULL
+ } ,
+
+ {  3, Jul, 2025, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix test of atr_flt2 when setting TAXIS_FLOATS",
+   "Thanks to C Rorden for noting the problem."
+ } ,
+
+ { 18, Jun, 2025, RCR, "build_afni.py", MICRO, TYPE_ENHANCE,
+   "check that build_root is not at or under install dir",
+   NULL
+ } ,
+
+ { 17, Jun, 2025, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "pass blur_size uvar to PT and APQC",
+   NULL
+ } ,
+
+ { 12, Jun, 2025, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "gcc-15 : code updates for building",
+   "This is a partial update for building using gcc-15.\n"
+   "The main change is that gcc-15 defaults to -std=gnu23 instead of\n"
+   "  -std=gnu17.  The main change between those standards being that\n"
+   "  empty function parameter lists are now taken as (void), so use of\n"
+   "  generic function pointers now needs casting to avoid errors of\n"
+   "  -Wincompatible-pointer-types.  Similarly, some K&R parameter styles\n"
+   "  must be updated to ANSI.\n"
+   "This affects 135 files so far, and the SUMA tree is still to be done."
+ } ,
+
+ {  5, Jun, 2025, RCR, "APMULTI_Demo2_realtime", MINOR, TYPE_ENHANCE,
+   "add rt.22.py2py, to generally test client to server communication",
+   "Added for S Fede."
+ } ,
+
  {  2, Jun, 2025, RCR, "build_afni.py", MICRO, TYPE_ENHANCE,
    "display full make command before compiling",
    NULL

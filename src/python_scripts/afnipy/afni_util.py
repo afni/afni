@@ -1654,7 +1654,7 @@ def truncate_to_N_bits(val, bits, method='trunc', scale=1, verb=1):
     # if r_then_t, start by rounding to 2*bits, then continue to truncate
     meth = method
     if method == 'r_then_t':
-        fval = truncate_to_N_bits(val, 2*bits, method='round', scale=scale,
+        fval = truncate_to_N_bits(fval, 2*bits, method='round', scale=scale,
                                   verb=verb)
         meth = 'trunc'
 

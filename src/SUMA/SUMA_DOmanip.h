@@ -215,7 +215,7 @@ typedef struct {
    SUMA_ENGINE_SOURCE trigger_source; /*!< A flag indicating who turned the
                                            pending flag on */
    char FunctionName[128];
-   void  (*FunctionPtr)();
+   void  (*FunctionPtr)(void *);      /* 25 Jul 2025 [rickr] */
    NI_group *FunctionInput;
 }  SUMA_CALLBACK;  
 

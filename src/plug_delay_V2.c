@@ -266,7 +266,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "Hilbert Delay98" ,
                "Time delay between FMRI and reference time series" ,
                helpstring ,
-               PLUGIN_CALL_VIA_MENU , DELAY_main  ) ;
+               PLUGIN_CALL_VIA_MENU , (cptr_func *)DELAY_main  ) ;
 
    global_plint = plint ;  /* make global copy */
 
@@ -703,7 +703,7 @@ static char * DELAY_main( PLUGIN_interface * plint )
           ud->ignore ,               /* ignore count */
           1 ,   /* detrend = ON Let BOB do it*/
           NBUCKETS,					/*Number of values at each voxel*/
-			 DELAY_tsfuncV2 ,         /* timeseries processor (bucket version)*/
+(generic_func *)DELAY_tsfuncV2 , /* timeseries processor (bucket version)*/
 			 (void *)ud,          /* data for tsfunc */
 			 NULL, 0							) ; 
 										 

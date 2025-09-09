@@ -53,7 +53,7 @@ DOPTS = {
     'cbar_max'      : None,
     'alpha'         : 'No',
     'thr_on'        : True,
-    'thr_val'       : None,
+    'thr_val'       : 0.0,
     'thr_width'     : 4,
     'thr_num_osc'   : 4,
     'thr_colors'    : [zer, rez],
@@ -69,6 +69,9 @@ DOPTS = {
     'verb'          : 1,
 }
 
+# list of possible output extensions to check for
+list_ext     = ['svg', 'png', 'tif', 'tiff', 'jpg', 'jpeg', 'pdf', 'ps', 'raw']
+list_ext_str = ', '.join(list_ext)
 
 # ============================================================================
 
@@ -186,7 +189,25 @@ inobj : InOpts object
 
         # write the new cbar to disk
         if self.prefix :
-            plt.imsave(self.prefix, self.cbar_arr)
+            try:
+                plt.imsave(self.prefix, self.cbar_arr)
+            except:
+                out_ext = ''
+                HAS_EXT = False
+                for ext in list_ext :
+                    if (self.prefix).endswith('.' + ext) :
+                        out_ext = ext
+                        HAS_EXT = True
+                ab.WP("Could not save image")
+                if not(HAS_EXT) :
+                    ab.EP("Output prefix name may be missing an extension?")
+                elif out_ext == 'tif':
+                    # special case: odd that 'tif' doesn't always seem to work
+                    ab.EP("Maybe try a different extension type?  Sometimes "
+                          "'tiff' works, even if 'tif' does not.")
+                else:
+                    ab.EP("Maybe try a different extension type (see "
+                          "the help file, under '-prefix ..')?")
 
         # might have to clean up temp cbar
         if self.in_cbar_name :
@@ -329,7 +350,10 @@ inobj : InOpts object
 
         # make weight (wtN, vals in [0, 1]) so fading will be along grad
         for i in range(N):
-            rat = np.abs(allv[i] / self.thr_val)
+            if self.thr_val :
+                rat = np.abs(allv[i] / self.thr_val)
+            else:
+                rat = 1.0
             if self.alpha is None :
                 # no threshold: wtN[i] remains 1
                 continue

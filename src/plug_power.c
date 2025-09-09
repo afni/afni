@@ -111,7 +111,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "Power Spectrum" ,
                                 "Power Spectrum of a 3D+time Dataset" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , POWER_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)POWER_main  ) ;
 
    PLUTO_add_hint( plint , "Power Spectrum of a 3D+time Dataset" ) ;
 
@@ -764,7 +765,8 @@ PLUGIN_interface * TEST_init( void )
    plint = PLUTO_new_interface( "Testing" ,
                                 "Testing, Testing, 1-2-3 ..." ,
                                 NULL ,
-                                PLUGIN_CALL_VIA_MENU , TEST_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)TEST_main  ) ;
 
    PLUTO_add_hint( plint , "1-2-3, 1-2-3, ..." ) ;
 

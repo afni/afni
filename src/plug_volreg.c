@@ -116,7 +116,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "3D Registration" ,
                                 "3D Registration of a 3D+time Dataset" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , VOLREG_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)VOLREG_main  ) ;
 
    PLUTO_add_hint( plint , "3D Registration of a 3D+time Dataset" ) ;
 

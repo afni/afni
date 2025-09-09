@@ -78,7 +78,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    CHECK_IF_ALLOWED("GYRUSFINDER","Gyrus Finder") ;  /* 30 Sep 2016 */
 
    plint = PLUTO_new_interface( "Gyrus Finder" , NULL , NULL ,
-				PLUGIN_CALL_IMMEDIATELY , DRAW_main ) ;
+				PLUGIN_CALL_IMMEDIATELY , (cptr_func *)DRAW_main ) ;
 
    PLUTO_add_hint( plint , "Interactive Region of Interest Editor" ) ;
 
@@ -350,7 +350,7 @@ static void DRAW_make_widgets(void)
    value_av = new_MCW_arrowval( rowcol , "Drawing Value " ,
 				MCW_AV_downup , -32767,32767,value_int ,
 				MCW_AV_editext , 0 ,
-				DRAW_value_CB , NULL , NULL,NULL ) ;
+				(gen_func *)DRAW_value_CB , NULL , NULL,NULL ) ;
 
    MCW_reghelp_children( value_av->wrowcol ,
 			 "Use this to set the value that\n"
@@ -363,7 +363,7 @@ static void DRAW_make_widgets(void)
 
    color_av = new_MCW_colormenu( rowcol , "Drawing Color " , dc ,
 				 1 , dc->ovc->ncol_ov - 1 , color_index ,
-				 DRAW_color_CB , NULL ) ;
+				 (gen_func *)DRAW_color_CB , NULL ) ;
 
    MCW_reghelp_children( color_av->wrowcol ,
 			 "Use this to set the color that is\n"
@@ -381,8 +381,8 @@ static void DRAW_make_widgets(void)
 
    mode_av = new_MCW_optmenu( rowcol , "Drawing Mode  " ,
 			      0 , NUM_modes-1 , 0,0 ,
-			      DRAW_mode_CB , NULL ,
-			      MCW_av_substring_CB , mode_strings ) ;
+			      (gen_func *)DRAW_mode_CB , NULL ,
+			      (str_func *)MCW_av_substring_CB , mode_strings ) ;
 
    MCW_reghelp_children( mode_av->wrowcol ,
 			 "Use this to set the way in which\n"
@@ -5045,7 +5045,7 @@ static void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data
    sprintf( label , "AFNI Dataset from\nthe %s" , VIEW_typestr[vv] ) ;
 
    MCW_choose_strlist( w , label , ndsl , -1 , strlist ,
-		       DRAW_finalize_dset_CB , NULL     ) ;
+                       (gen_func *)DRAW_finalize_dset_CB , NULL     ) ;
 
    EXRETURN ;
 }
@@ -5097,7 +5097,8 @@ static void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs 
 
    if( ! recv_open ){
       recv_key = AFNI_receive_init( im3d, RECEIVE_DRAWING_MASK,
-                                    DRAW_receiver,NULL,"DRAW_receiver" ) ;
+                                    (gen_func *)DRAW_receiver,NULL,
+                                    "DRAW_receiver" ) ;
 
       if( recv_key < 0 ){
 	 (void) MCW_popup_message( im3d->vwid->top_shell ,

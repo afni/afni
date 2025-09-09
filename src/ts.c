@@ -16,8 +16,9 @@
 
 /*** free a time_series structure ***/
 
-void RWC_free_time_series(ts)
-     time_series *ts;
+/* K&R to ANSI (new unknown # args error) [6 Jun 2025 rickr] */
+
+void RWC_free_time_series(time_series *ts)
 {
    if( ts != NULL ){
       if( ts->fname != NULL ) free( ts->fname ) ;
@@ -30,8 +31,7 @@ void RWC_free_time_series(ts)
 
 /*** make a blank time_series ***/
 
-time_series * RWC_blank_time_series( npt )
-  int npt ;
+time_series * RWC_blank_time_series(int npt)
 {
    int ii ;
    time_series *vec ;
@@ -55,8 +55,7 @@ time_series * RWC_blank_time_series( npt )
 
 /*** median filter a time series ***/
 
-void RWC_medfilt_time_series( vec )
-   time_series * vec ;
+void RWC_medfilt_time_series(time_series * vec)
 {
    int ii , npt ;
    float aa , bb , cc , mtemp ;
@@ -85,8 +84,7 @@ void RWC_medfilt_time_series( vec )
 
 #define INC_TSARSIZE 256
 
-time_series * RWC_read_time_series(fname)
-     char *fname;
+time_series * RWC_read_time_series(char *fname)
 {
    int ii , used_tsar , alloc_tsar ;
    float ftemp ;
@@ -159,9 +157,7 @@ time_series * RWC_read_time_series(fname)
 
 /*** compute the L1 norm of a time_series ***/
 
-float RWC_norm_ts(nn, vec)
-     int nn;
-     time_series *vec;
+float RWC_norm_ts(int nn, time_series *vec)
 {
    int ii , itop = MIN(nn,vec->len) ;
    float *var = vec->ts ;
@@ -176,9 +172,7 @@ float RWC_norm_ts(nn, vec)
 
 /*** compute the max of a time_series ***/
 
-float RWC_max_ts(nn, vec)
-     int nn;
-     time_series *vec;
+float RWC_max_ts(int nn, time_series *vec)
 {
    int ii , itop = MIN(nn,vec->len) ;
    float *var = vec->ts ;
@@ -193,9 +187,7 @@ float RWC_max_ts(nn, vec)
 
 /*** compute the min of a time_series ***/
 
-float RWC_min_ts(nn, vec)
-     int nn;
-     time_series *vec;
+float RWC_min_ts(int nn, time_series *vec)
 {
    int ii , itop = MIN(nn,vec->len) ;
    float *var = vec->ts ;

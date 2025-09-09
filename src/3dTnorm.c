@@ -124,7 +124,7 @@ int main( int argc , char *argv[] )
                     0 ,                    /* ignore count  */
                     0 ,                    /* don't detrend */
                     nvals ,                /* number of briks in output */
-                    NORM_tsfunc ,          /* timeseries processor */
+    (generic_func *)NORM_tsfunc ,          /* timeseries processor */
                     NULL,                  /* data for tsfunc */
                     NULL,                  /* mask */
                     0   /* Allow auto scaling of output */

@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int swap4() ;
+int swap4(int n, int * ar) ;
 
 typedef struct { unsigned char a,b,c,d ; } fourbytes ;
 
@@ -72,9 +72,7 @@ int main( argc , argv )
    exit(0) ;
 }
 
-int swap4( n , ar )
-   int n ;
-   int * ar ;
+int swap4( int n, int * ar )
 {
    register int ii ;
    register fourbytes * tb = (fourbytes *) ar ;

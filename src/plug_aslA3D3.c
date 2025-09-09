@@ -98,7 +98,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "ASL a3/d3" ,
                                 "ASL a3/d3 of a 3D+time Dataset" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , POWER_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)POWER_main  ) ;
 
    PLUTO_add_hint( plint , "ASL a3/d3 of a 3D+time Dataset" ) ;
 

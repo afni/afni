@@ -57,7 +57,8 @@ typedef struct suma_menu_item {
     char         mnemonic;      /*!< mnemonic; NULL if none */
     char        *accelerator;   /*!< accelerator; NULL if none */
     char        *accel_text;    /*!< to be converted to compound string */
-    void       (*callback)();   /*!< routine to call; NULL if none */
+    XtCallbackProc callback;    /*!< routine to call; NULL if none */
+                                /*!  25 Jul 2025 [rickr] */
     XtPointer    callback_data; /*!< client_data for callback(). 
                         This ends up being the index
                         of the widget in the menu, in addition
@@ -80,7 +81,7 @@ typedef struct suma_menu_item {
 
 typedef struct {
    XtPointer callback_data; /*!< usually the item number in the menu */
-   void       (*callback)();/*!< routine to call; This is only used when
+   XtCallbackProc callback; /*!< routine to call; This is only used when
                                  and arrow field is usurping a menu's job */
    void *ContID; /*!< some identifier of the controller */
    SUMA_MENU_WIDGET *SMW; /*!< This is needed for handling arrow fields */

@@ -58,7 +58,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "Histogram: Multi" ,
                                 "Histogram of Dataset Bricks" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , MHIST_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)MHIST_main  ) ;
 
    PLUTO_add_hint( plint , "Histogram of Dataset Bricks" ) ;
 

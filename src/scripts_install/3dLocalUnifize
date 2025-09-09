@@ -20,6 +20,12 @@ set version   = "1.3";  set rev_dat   = "May 11, 2025"
 # [PT]  add -sharpen_with_phi, to possibly insert 3dSharpen into
 #       the processing stream
 #
+set version   = "1.4";  set rev_dat   = "July 2, 2025"
+# [PT]  add -automask_opts and -automask_tool options, to be able
+#       to be able to control automasking (which now also happens 
+#       as its own separate step) with more refinement, if 
+#       necessary
+#
 # ----------------------------------------------------------------
 
 set abbrev = "LocalUni"
@@ -38,6 +44,9 @@ set local_perc = 50
 set local_rad  = -3
 set local_mask = "-automask"
 set sharp_phi  = ""
+
+set amask_opts = ""
+set amask_tool = ""
 
 set filt_thr   = 1.5
 
@@ -99,6 +108,16 @@ while ( $ac <= $#argv )
         if ( "${local_mask}" == "None" ) then
             set local_mask = ""
         endif
+
+    else if ( "$argv[$ac]" == "-automask_opts" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set amask_opts = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-automask_tool" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set amask_tool = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-wdir_name" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -190,7 +209,7 @@ if ( "${nlm}" == "2" ) then
 
         # copy the dset
         3dTcat ${overwrite}                                         \
-            -prefix   "${wdir}/dset_mask.nii.gz"                    \
+            -prefix   "${wdir}/dset_00_mask.nii.gz"                 \
             "${mmm}"
 
         if ( $status ) then
@@ -199,7 +218,7 @@ if ( "${nlm}" == "2" ) then
         endif
             
         # edit the local_mask opt to use the local wdir mask name
-        set local_mask = "-mask dset_mask.nii.gz"
+        set local_mask = "-mask dset_00_mask.nii.gz"
     endif
 endif
 
@@ -215,7 +234,41 @@ set odset_cp = dset_00_cp.nii.gz
     -prefix   "${wdir}/${odset_cp}"                                 \
     "${idset}"
 
+# move into working dir
 cd "${wdir}"
+
+# if automasking, calculate separately first
+if ( "${local_mask}" == "-automask" ) then
+
+    3dAutomask ${overwrite}                                         \
+        ${amask_opts}                                               \
+        -prefix  "dset_00_mask.nii.gz"                              \
+        "${odset_cp}"
+
+    if ( $status ) then
+        echo "** ERROR when automasking"
+        goto BAD_EXIT
+    endif
+        
+    # edit the local_mask opt to use the local wdir mask name
+    set local_mask = "-mask dset_00_mask.nii.gz"
+
+    if ( "${amask_tool}" != "" ) then
+        3dmask_tool ${overwrite}                                  \
+            ${amask_tool}                                         \
+            -input     dset_00_mask.nii.gz                        \
+            -prefix    dset_00_maskB.nii.gz 
+
+        if ( $status ) then
+            echo "** ERROR when running 3dmask_tool on the automask"
+            goto BAD_EXIT
+        endif
+
+        # edit the local_mask opt to use the local wdir mask name
+        set local_mask = "-mask dset_00_maskB.nii.gz"
+    endif
+endif
+
 
 # Calc the smooth/median image
 
@@ -373,6 +426,18 @@ where the following options exist:
                        To remove any masking, put the special keyword
                        "None" as the option value.
                        (def: "${local_mask}")
+
+  -automask_opts 'AO ...' :when automasking is applied ('-local_mask -automask' 
+                       or, since that is the default, not adding any masking 
+                       opt), users can use this option to provide one or more
+                       options to 3dAutomask when it is run 
+                       (def: "${amask_opts}").
+
+  -automask_tool 'AT ...' :when automasking is applied ('-local_mask -automask' 
+                       or, since that is the default, not adding any masking 
+                       opt), users can use this option to run 3dmask_tool on that
+                       initial automask, providing one or more options to 
+                       3dmask_tool when it is run (def: "${amask_tool}").
 
   -sharpen_with_phi PHI :before possible filtering and output, apply 3dSharpen
                        to sharpen the locally unifized result.  The value of

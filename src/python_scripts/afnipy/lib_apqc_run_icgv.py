@@ -4,8 +4,10 @@
 # (IC) or Graph View (GV) driver script for the AP results directory.
 #
 auth = 'PA Taylor'
-ver = 2.0 
+#ver = 2.0 
 # [June 25, 2023] merged from earlier versions of script writing
+ver = 2.1
+# [June 10, 2025] remove the '-no1D' opt, so we can pick ideal time series
 #
 #########################################################################
 
@@ -740,7 +742,7 @@ set portnum = `afni -available_npb_quiet`
 
     otxt+= '''
 
-afni -q  -no1D -no_detach                                               \\
+afni -q  -no_detach                                                     \\
     -npb ${portnum}                                                     \\
     -com "SWITCH_UNDERLAY    ${dset_ulay}"                              \\
     -com "INSTACORR INIT                                                \\
@@ -861,7 +863,7 @@ set portnum = `afni -available_npb_quiet`
 
     otxt+= '''
 
-afni -q  -no1D -no_detach                                               \\
+afni -q  -no_detach                                                     \\
     -npb ${portnum}                                                     \\
     -com "SWITCH_UNDERLAY    ${dset_ulay}"                              \\
     -com "SET_DICOM_XYZ      ${coord}"                                  \\

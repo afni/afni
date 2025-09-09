@@ -68,7 +68,7 @@ MODEL_interface * initialize_model ()
   mi->min_constr[2] =      0.1;    mi->max_constr[2] =     0.15;
 
   /*----- function which implements the model -----*/
-  mi->call_func = &signal_model;
+  mi->call_func = (void_func *)&signal_model;
 
 
   /*----- return pointer to the model interface -----*/

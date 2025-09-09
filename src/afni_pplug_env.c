@@ -217,7 +217,7 @@ PLUGIN_interface * ENV_init(void)
         putenv(buf) ;
         ENV_add_string( "AFNI_CWD" ,
                         "Current working directory (gets output files)" ,
-                        0,NULL , ENV_cwd ) ;
+                        0,NULL , (generic_func *)ENV_cwd ) ;
      }
    }
 
@@ -237,11 +237,11 @@ PLUGIN_interface * ENV_init(void)
 
    ENV_add_string( "AFNI_LEFT_IS_LEFT" ,
                    "To show subject's left on image left (axial, coronal)?" ,
-                   NUM_yesno_list , yesno_list , ENV_leftisleft  ) ;
+                   NUM_yesno_list , yesno_list , (generic_func *)ENV_leftisleft  ) ;
 
    ENV_add_string( "AFNI_LEFT_IS_POSTERIOR" ,
                    "To show subject's posterior on image left (sagittal)?" ,
-                   NUM_yesno_list , yesno_list , ENV_leftisposterior  ) ;
+                   NUM_yesno_list , yesno_list , (generic_func *)ENV_leftisposterior  ) ;
 
    ENV_add_string( "AFNI_NO_SIDES_LABELS" ,
                    "Skip showing image window left-side label?" ,
@@ -257,15 +257,15 @@ PLUGIN_interface * ENV_init(void)
 
    ENV_add_string( "AFNI_ORIENT" ,
                    "Coordinate display orientation" ,
-                   NUM_cord_strings,cord_strings , ENV_coorder ) ;
+                   NUM_cord_strings,cord_strings , (generic_func *)ENV_coorder ) ;
 
    ENV_add_string( "AFNI_MARKERS_NOQUAL" ,
                    "Skip markers quality checking?" ,
-                   NUM_yesno_list , yesno_list , ENV_marksquality  ) ;
+                   NUM_yesno_list , yesno_list , (generic_func *)ENV_marksquality  ) ;
 
    ENV_add_string( "AFNI_COMPRESSOR" ,
                    "Output BRIK compression method" ,
-                   NUM_COMPRESS_elist,COMPRESS_elist , ENV_compressor ) ;
+                   NUM_COMPRESS_elist,COMPRESS_elist , (generic_func *)ENV_compressor ) ;
 
    ENV_add_string( "AFNI_AUTOGZIP" ,
                    "Use gzip on output if BRIK seems highly compressible" ,
@@ -274,7 +274,7 @@ PLUGIN_interface * ENV_init(void)
 #if 0
    ENV_add_string( "AFNI_BYTEORDER" ,
                    "Byte ordering for output BRIKs" ,
-                   NUM_byteorder_list , byteorder_list , ENV_byteorder ) ;
+                   NUM_byteorder_list , byteorder_list , (generic_func *)ENV_byteorder ) ;
 #endif
 
 #if 0
@@ -290,7 +290,7 @@ PLUGIN_interface * ENV_init(void)
 #ifdef USE_SESSTRAIL
    ENV_add_numeric( "AFNI_SESSTRAIL" ,
                     "# directory levels seen in Switch Session, etc." ,
-                    0,9,0,SESSTRAIL , ENV_sesstrail ) ;
+                    0,9,0,SESSTRAIL , (generic_func *)ENV_sesstrail ) ;
 #endif
 
    ENV_add_string( "AFNI_PBAR_IMXY" ,
@@ -303,7 +303,7 @@ PLUGIN_interface * ENV_init(void)
 
    ENV_add_string( "AFNI_TRUSTHOST" ,
                    "Name of host to trust for plugouts and realtime data" ,
-                   0,NULL , ENV_trusthost ) ;
+                   0,NULL , (generic_func *)ENV_trusthost ) ;
 
    ENV_add_string( "AFNI_IMAGE_LABEL_COLOR" ,
                    "Name of color for image overlay labels" , /* 21 Sep 2001 */
@@ -392,11 +392,11 @@ PLUGIN_interface * ENV_init(void)
 
    ENV_add_string( "AFNI_IMAGE_MINTOMAX" ,
                    "Set new image viewers to do min-to-max grayscaling?" ,
-                   NUM_yesno_list , yesno_list , ENV_redisplay  ) ;
+                   NUM_yesno_list , yesno_list , (generic_func *)ENV_redisplay  ) ;
 
    ENV_add_string( "AFNI_IMAGE_GLOBALRANGE" ,
    "Set image viewers to use 3D global data range by slice, volume or dataset min-max?",
-              NUM_globalrange_strings , globalrange_strings , ENV_globalrange_view  ) ;
+              NUM_globalrange_strings , globalrange_strings , (generic_func *)ENV_globalrange_view  ) ;
 
 
    /* 19 Nov 2003 */
@@ -419,7 +419,7 @@ PLUGIN_interface * ENV_init(void)
 
    ENV_add_string( "AFNI_THRESH_LOCK" ,                           /* 06 Feb 2004 */
                    "Lock Threshold slider values together?" ,
-                   NUM_threshlock_list , threshlock_list , ENV_thresh_lock  ) ;
+                   NUM_threshlock_list , threshlock_list , (generic_func *)ENV_thresh_lock  ) ;
 
    ENV_add_string( "AFNI_GRAPH_CX2R" ,                            /* 18 Apr 2011 */
                    "Graph display of complex time series" ,
@@ -456,13 +456,13 @@ PLUGIN_interface * ENV_init(void)
    /* 21 Dec 2004 [RWCox] */
    ENV_add_string( "AFNI_TITLE_LABEL2" ,
                    "Use 'label2' field for window titles?" ,
-                   NUM_yesno_list , yesno_list , ENV_redraw_titles ) ;
+                   NUM_yesno_list , yesno_list , (generic_func *)ENV_redraw_titles ) ;
 
 #if 0
    /* 21 Mar 2005 [RWCox] */
    ENV_add_string( "AFNI_EDGIZE_OVERLAY" ,
                    "Display color overlay as edges?" ,
-                   NUM_yesno_list , yesno_list , ENV_redisplay ) ;
+                   NUM_yesno_list , yesno_list , (generic_func *)ENV_redisplay ) ;
 #endif
 
    /* 11 Dec 2014 [RWCox] */
@@ -478,7 +478,7 @@ PLUGIN_interface * ENV_init(void)
    /* 20 Apr 2005 [RWCox] */
    ENV_add_string( "AFNI_OVERLAY_ZERO" ,
                    "Do 0 values get color in an Overlay?" ,
-                   NUM_yesno_list , yesno_list , ENV_redisplay ) ;
+                   NUM_yesno_list , yesno_list , (generic_func *)ENV_redisplay ) ;
 
    /* 20 Oct 2005 [RWCox] */
    ENV_add_yesno("AFNI_TTATLAS_CAUTION","Add caution to 'Where Am I' output?");
@@ -486,7 +486,7 @@ PLUGIN_interface * ENV_init(void)
    /* 10 May 2006 [drg] */
    ENV_add_numeric( "AFNI_JPEG_COMPRESS" ,
                     "JPEG compression quality %" ,
-                    1,100,0,95 , ENV_setjpegquality ) ;
+                    1,100,0,95 , (generic_func *)ENV_setjpegquality ) ;
 
    /* 21 Feb 2007 [RWCox] */
    ENV_add_yesno( "AFNI_DATASET_BROWSE" , "Switch datasets upon selection?" ) ;
@@ -497,15 +497,15 @@ PLUGIN_interface * ENV_init(void)
    /* 18 Sep 2007 [RWCox] */
    ENV_add_string( "AFNI_IMAGE_CLIPPED" ,
                    "Set new image viewers to do clipped grayscaling?" ,
-                   NUM_yesno_list , yesno_list , ENV_redisplay  ) ;
+                   NUM_yesno_list , yesno_list , (generic_func *)ENV_redisplay  ) ;
 
    ENV_add_numeric( "AFNI_IMAGE_CLIPBOT" ,
                     "Set clipped grayscale bottom = fraction of top default" ,
-                    0,50,2,25 , ENV_redisplay ) ;
+                    0,50,2,25 , (generic_func *)ENV_redisplay ) ;
 
    ENV_add_numeric( "AFNI_IMAGE_CLIPTOP" ,
                     "Set clipped grayscale top = fraction of default" ,
-                    60,190,2,100 , ENV_redisplay ) ;
+                    60,190,2,100 , (generic_func *)ENV_redisplay ) ;
 
    ENV_add_numeric( "AFNI_1DPLOT_THIK" ,
                     "Set 1dplot-style line thickness" ,
@@ -574,19 +574,19 @@ PLUGIN_interface * ENV_init(void)
                     0,4,0,0 , NULL ) ;
    ENV_add_numeric( "AFNI_WHEREAMI_MAX_FIND" ,
                     "Maximum limit for structures from an atlas for whereami_afni output" ,
-                    1,50,0,9 , ENV_wami_maxfind ) ;
+                    1,50,0,9 , (generic_func *)ENV_wami_maxfind ) ;
    ENV_add_string( "AFNI_WHEREAMI_MAX_SEARCH_RAD" ,
                 "Maximum radius for structures from an atlas for whereami_afni output" ,
-                 0, NULL, ENV_wami_maxrad ) ;
+                 0, NULL, (generic_func *)ENV_wami_maxrad ) ;
    /* 01 Jul 2011 [DRG] */
    ENV_add_string( "AFNI_ATLAS_COLORS" ,
           "Atlas to use in Atlas colors, Draw Dataset,  Go to atlas location" ,
-                 0, NULL, ENV_atlas_reset ) ;
+                 0, NULL, (generic_func *)ENV_atlas_reset ) ;
 
    /* 08 Nov 2011 [RWC] */
    ENV_add_string( "AFNI_IMAGE_COLORANGLE" ,
                    "Image view color scale angle" ,
-                   NUM_angle_strings,angle_strings , ENV_angle_string ) ;
+                   NUM_angle_strings,angle_strings , (generic_func *)ENV_angle_string ) ;
 
    /* 23 Dec 2011 [RWC] */
    ENV_add_string( "AFNI_IMAGE_LABEL_STRING" ,
@@ -608,7 +608,7 @@ PLUGIN_interface * ENV_init(void)
 
    ENV_add_string( "AFNI_JUMPTO_SPACE" ,
           "Space name to use in Jump to (spacename)" ,
-                 0, NULL, ENV_jumpspace_reset ) ;
+                 0, NULL, (generic_func *)ENV_jumpspace_reset ) ;
 
    /* 28 Feb 2017 [RWC] */
    ENV_add_yesno( "AFNI_IMAGE_LABEL_IJK" ,
@@ -649,7 +649,7 @@ PLUGIN_interface * ENV_init(void)
    plint = PLUTO_new_interface( "Environment" ,
                                 "Environment variables control" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , ENV_main  ) ;
+                                PLUGIN_CALL_VIA_MENU , (cptr_func *)ENV_main  ) ;
    free(helpstring) ;
 
    PLUTO_add_hint( plint , "Environment variables control" ) ;

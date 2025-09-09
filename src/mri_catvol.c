@@ -38,7 +38,9 @@ ENTRY("mri_catvol_1D_xx") ;
    }
    if( imin == NULL ) RETURN(NULL) ;
 
-   nyout = nyin = imin->ny ; nzout = nzin = imin->nz ; nxout = imin->nx ;
+   nyout = nyin = imin->ny ; nzout = nzin = imin->nz ;
+   /* start over to re-read list and skip NULLs  [20 Aug 2025 DRG/RR] */
+   nxout = 0;
    datum = imin->kind ;
    for( nn=na ; nn <= nb ; nn++ ){
      imin = IMARR_SUBIM(imar,nn) ; if( imin == NULL ) continue ;

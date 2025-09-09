@@ -60,8 +60,9 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*-- set titles and call point --*/
 
-   plint = PLUTO_new_interface( "ROI Average" , "Average Dataset over ROI" , helpstring ,
-                                 PLUGIN_CALL_VIA_MENU , MASKAVE_main  ) ;
+   plint = PLUTO_new_interface( "ROI Average" , "Average Dataset over ROI" ,
+                                helpstring , PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)MASKAVE_main  ) ;
 
    PLUTO_add_hint( plint , "Average Dataset over ROI" ) ;
 

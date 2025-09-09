@@ -609,7 +609,7 @@ int main( int argc , char * argv[] )
               0 ,                    /* ignore count  */
               0 ,                /* can't detrend in maker function  KRH 12/02*/
               nbriks ,               /* number of briks */
-              Max_tsfunc ,           /* timeseries processor */
+(generic_func *)Max_tsfunc ,         /* timeseries processor */
               NULL,                  /* data for tsfunc */
               NULL,                  /* mask */
               0                      /* Allow auto scaling of output */

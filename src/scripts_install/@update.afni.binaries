@@ -92,10 +92,12 @@ history for $prog :
   3.24  7 Dec 2023 : add -overwrite_build (required for that operation)
   3.25 30 Aug 2024 : now obsolete: linux_xorg7, linux_xorg7_64
   3.26 19 Sep 2024 : allow use of build_afni.py to compile a new package
-                   - add -build_afni (only to override current source)
+                   - add '-binary_source build' (to override current source)
                    - add -build_root and -built_opts for build_afni.py
   3.27  4 Feb 2025 : allow use in updating just anyos_text* packages
   3.28  6 May 2025 : [PT/RR] remove :h tcsh syntax
+  3.29 16 Jun 2025 : [PT/RR] if recur, use :q to quotize args
+  3.30 22 Jul 2025 : add -binary_source option
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -103,7 +105,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.27, February 4, 2025"
+set aub_version = "3.30, July 22, 2025"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -119,6 +121,8 @@ set obsolete_list = (                                           \
         macosx_10.8_gcc            macosx_10.8_icc              \
         )
 
+set binary_source_list = ( build default official )
+
 # ----------------------------------------------------------------------
 # apply any options
 
@@ -128,6 +132,8 @@ set abin = ""
 set flatdir = /opt/X11/lib/flat_namespace
 set package = ""
 set local_package = ""          # existing .tgz package to use (no download)
+set binary_source = 'default'   # default, build, official
+                                # (replace overwrite_build and build_afni)
 set overwrite_build = 0         # do we allow overwriting build_afni.py
 set prog_list = ()              # update programs or entire package
 set tmp_dir = ".tmp.install"    # should start with '.'
@@ -148,6 +154,7 @@ endif
 # ----------------------------------------------------------------------
 # other option-controlled variables
 set build_afni  = 0     # whether to use build_afni.py
+                        # replace with binary_source=build
 set build_opts = ( )    # if build_afni, include extra options
 set build_root = ~/afni_build # if build_afni, where to do it
 
@@ -192,6 +199,25 @@ while ( $ac <= $#argv )
         else
            set do_apsearch = 1
         endif
+    else if ( "$argv[$ac]" == "-binary_source" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-binary_source'"
+            exit 1
+        endif
+        set binary_source = $argv[$ac]
+        set bs_match = 0
+        foreach bsource ( $binary_source_list )
+           if ( $binary_source == $bsource ) then
+              set bs_match = 1
+              break
+           endif
+        end
+        if ( ! $bs_match ) then
+           echo "** -binary_source param '$binary_source' not in valid list:"
+           echo "   $binary_source_list"
+           exit 1
+        endif
     else if ( "$argv[$ac]" == "-bindir" ) then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -200,7 +226,8 @@ while ( $ac <= $#argv )
         endif
         set abin = $argv[$ac]
     else if ( "$argv[$ac]" == "-build_afni" ) then
-        set build_afni = 1
+        set binary_source = build
+        echo "-- applying '$argv[$ac]' as '-binary_source $binary_source'"
     else if ( "$argv[$ac]" == "-build_opts" ) then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -285,7 +312,9 @@ while ( $ac <= $#argv )
            set make_backup = 1
         endif
     else if ( "$argv[$ac]" == "-overwrite_build" ) then
-        set overwrite_build = 1
+        # replace overwrite_build=1 with binary_source=official
+        set binary_source = official
+        echo "-- applying '$argv[$ac]' as '-binary_source $binary_source'"
     else if ( "$argv[$ac]" == "-package" ) then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -477,14 +506,13 @@ examples: ~1~
                               -bindir /usr/local/AFNI/anyos_text_atlas
 
     4c. test running build_afni.py, but do not install it
-        (-build_afni is only needed if the current package was not made by it)
 
-        @update.afni.binaries -build_afni -build_root ~/afni_build \\
+        @update.afni.binaries -binary source build -build_root ~/afni_build \\
                               -build_opts "-do_install no"
 
     4d. use build_afni.py to replace the current "official" package
 
-        @update.afni.binaries -build_afni -build_root ~/afni_build
+        @update.afni.binaries -binary source build -build_root ~/afni_build
 
     4e. update the current package if it was made using build_afni.py,
         and run the apserach updates, for tab completion
@@ -528,17 +556,26 @@ options: ~1~
     -apsearch yes/no      : specify getting apsearch updates
     -bindir ABIN          : set AFNI binary directory to ABIN
 
-    -build_afni           : specify to use build_afni.py, regardless
+    -binary_source SOURCE : specify how to get updated binaries
 
-        This option will for the installation process to use build_afni.py.
-        That is to say, rather than downloading and installing a previously
-        compiled binary package from the AFNI website (an "official" release),
-        use build_afni.py to compile an AFNI package locally.
+        e.g. -binary_source build
+        e.g. -binary_source official
 
-        If the currently installed AFNI package was made using build_afni.py,
-        then this option is not necessary.
+        This option specifies how to get a new set of binaries.  Valid choices
+        for SOURCE are:
 
-        See also -build_root and -build_opts.
+            build    : compile binaries locally (source code from github)
+            official : download precompiled, official binaries
+            default  : (default) use the same method as for the current binaries
+
+        This option is most useful when initially installing the binaries, or
+        when switching to a different install source.
+
+        This option supersedes -build_afni and -overwrite_build.
+
+        Assuming 'build', see also -build_root and -build_opts.
+
+    -build_afni           : obsolete : use -binary_source build
 
     -build_opts "OPT LIST" : specify a list of options to pass to build_afni.py
 
@@ -607,6 +644,11 @@ options: ~1~
 
         This will be like running the script with "tcsh -x".
 
+    -local_package PACKAGE : install local PACKAGE.tgz package
+
+        This is a way to install an existing tgz file without needed
+        to download it.
+
     -make_backup yes/no   : make a backup of binaries before replacing
 
            default: no
@@ -632,17 +674,7 @@ options: ~1~
 
     -no_recur             : do not download and run new @uab script
 
-    -local_package PACKAGE : install local PACKAGE.tgz package
-
-        This is a way to install an existing tgz file without needed
-        to download it.
-
-    -prog_list PROGRAMS   : install given programs, not whole PACKAGE
-
-        With this option, the listed programs would be installed,
-        rather than the entire PACKAGE.
-
-        Note: directories are not allowed (e.g. meica.libs)
+    -overwrite_build      : obsolete : use -binary_source official
 
     -package PACKAGE      : install distribution package PACKAGE
                             (see also -local_package)
@@ -780,15 +812,22 @@ endif
 
 # warn if the current package was made by build_afni.py
 if ( $build_label == build ) then
-   if ( $overwrite_build ) then
-      echo "-- will overwrite local build_afni.py package at user's request"
+   if ( $binary_source == official ) then
+      echo "-- will overwrite local build_afni.py package at user request"
    else
       # plan to run build_afni.py
       echo "++ the current package was made by build_afni.py,"
       echo "   will use build_afni.py to update..."
-      set build_afni = 1
+      set binary_source = build
+   endif
+else if ( $build_label == official ) then
+   if ( $binary_source == build ) then
+      echo "-- will overwrite official AFNI package at user request"
+   else
+      set binary_source = official
    endif
 endif
+echo "++ updating build label from $build_label to $binary_source"
 
 # possibly apply default binary directory
 if ( $abin == "" ) then
@@ -1093,7 +1132,8 @@ if ( $do_recur ) then
       cd ..     # so we don't sit in deleted directory
 
       # if local_package, we need to change the path to the file
-      set args = ( $argv )
+      # (and quote args, since some could have special chars)
+      set args = ( $argv:q )
       if ( $local_package != "" ) then
          set ind = 1
          while ( $ind < $#args )
@@ -1107,8 +1147,10 @@ if ( $do_recur ) then
          end
       endif
 
+      # quote args, since special chars have already been processed
+      # [16 June 2025 rickr]
       echo "++ running: tcsh $temp_prog -no_recur $args"
-      tcsh $temp_prog -no_recur $args
+      tcsh $temp_prog -no_recur $args:q
       set ss = $status
       if ( ! $ss ) then
          echo "...finished, removing temp version, $temp_prog"
@@ -1236,7 +1278,7 @@ endif
 # revert to previous version, if requested
 if ( $revert ) then
    # not ready for build_afni.py
-   if ( $build_afni ) then
+   if ( $binary_source == "build" ) then
       echo "** not ready to apply -revert to -build_afni, sorry"
       exit 1
    endif
@@ -1266,15 +1308,15 @@ endif
 #    - skip package extraction
 #    - skip backup of current binaries
 #    - skip installation of official binaries
-if ( $build_afni ) then
+if ( $binary_source == build ) then
    goto DO_BUILD_AFNI
 endif
 
 # ----------------------------------------------------------------------
 # just download single afni binary and compare
 # (if prog_list, use first prog in list)
-# (skip if $build_afni)
-if ( ! $build_afni && $local_package == "" ) then
+# (skip if $binary_source == build)
+if ( $binary_source != build && $local_package == "" ) then
    if ( $#prog_list > 0 ) then
      set pp = $prog_list[1]:t
      # directories are not allowed (harder to download)
@@ -1502,7 +1544,7 @@ endif
 # possibly run build_afni.py
 
 DO_BUILD_AFNI:
-if ( $build_afni ) then
+if ( $binary_source == "build" ) then
     set build_cmd = ( build_afni.py -build_root $build_root -package $package \
                       $build_opts )
     echo "++ running: $build_cmd"

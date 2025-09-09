@@ -249,6 +249,28 @@ other options:
 
           See also -abin, -do_backup.
 
+      -fast_log_commands FILE   : do fast logging to given FILE
+
+          e.g. -fast_log_commands log_commands.txt
+          e.g. -fast_log_commands ~/afni_build/fast_log_commands.txt
+
+          Use this option to turn on immediate logging of shell commands
+          (executed by the program) to the given FILE.
+
+          The FILE will be named relative to the directory the user starts in.
+          So one might want to give it an absolute path name.
+
+      -fast_log_messages FILE   : do fast logging to given FILE
+
+          e.g. -fast_log_messages log_messages.txt
+          e.g. -fast_log_messages ~/afni_build/fast_log_messages.txt
+
+          Use this option to turn on immediate logging of screen messages
+          to the given FILE.
+
+          The FILE will be named relative to the directory the user starts in.
+          So one might want to give it an absolute path name.
+
       -git_branch BRANCH        : specify a branch to checkout in git
 
           default -git_branch master
@@ -422,11 +444,13 @@ g_history = """
         - else if LOCAL_CC_PATH does not exist, try to find alternate compiler
    0.14 Nov 17, 2024 - add -make_flags option
    0.15 Jun  2, 2025 - display full make command before compiling
+   0.16 Jun 18, 2025 - verify that build_root is not under install dir
+   0.17 Aug 14, 2025 - add -fast_log_commands and -fast_log_messages
 
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.15, June 2, 2025" % g_prog
+g_version = "%s, version 0.17, June 18, 2025" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
@@ -436,10 +460,36 @@ g_niivue_file = "niivue_afni.umd.js"    # file name
 g_niivue_html = "%s/pub/dist/bin/misc/%s" % (g_afni_site, g_niivue_file)
 
 g_mesg_log   = []   # message history/log (if None, do not log)
-
+g_fast_log_m = None # immediate log file for message
+g_fast_log_c = None # immediate log file for commands
 
 # ---------------------------------------------------------------------------
 # general functions
+
+def init_fast_log_file(ftype, fname):
+   """make sure the file does not exist, and set the global var
+      return 0 on success
+   """
+   global g_fast_log_c
+   global g_fast_log_m
+   if os.path.isfile(fname):
+      MESGe("-fast_log_%s file already exists, won't overwrite %s"
+            % (ftype, fname))
+      return 1
+
+   if ftype == 'commands':
+      g_fast_log_c = os.path.abspath(fname)
+   elif ftype == 'messages':
+      g_fast_log_m = os.path.abspath(fname)
+   else:
+      MESGe("invalid -fast_log type %s" % ftype)
+      return 1
+
+   if UTIL.write_text_to_file(fname, '\n'):
+      MESGe("failed to write to -fast_log_%s file, %s" % (ftype, fname))
+      return 1
+
+   return 0
 
 # message functions leaving room for control
 def MESG(mstr, disp=1):
@@ -448,6 +498,8 @@ def MESG(mstr, disp=1):
   if disp: print(mstr)
   if g_mesg_log is not None:
      g_mesg_log.append(mstr)
+  if g_fast_log_m is not None:
+     return UTIL.write_text_to_file(g_fast_log_m, mstr+'\n', mode='a')
 
 def MESGe(mstr, disp=1):
   """(possibly) display and log the message
@@ -663,6 +715,10 @@ class MyInterface:
       self.valid_opts.add_opt('-do_install', 1, [],
                       acplist=['yes','no'],
                       helpstr='install build results into abin (def=y)')
+      self.valid_opts.add_opt('-fast_log_commands', 1, [],
+                      helpstr='do fast logging of commands to given file')
+      self.valid_opts.add_opt('-fast_log_messages', 1, [],
+                      helpstr='do fast logging of messages to given file')
       self.valid_opts.add_opt('-git_branch', 1, [],
                       helpstr='the git branch to checkout (def=master)')
       self.valid_opts.add_opt('-git_tag', 1, [],
@@ -786,6 +842,18 @@ class MyInterface:
                self.run_install = 0
             else:
                self.run_install = 1
+
+         elif opt.name == '-fast_log_commands':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return -1
+            if init_fast_log_file('commands', val):
+               return -1
+
+         elif opt.name == '-fast_log_messages':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return -1
+            if init_fast_log_file('messages', val):
+               return -1
 
          elif opt.name == '-git_branch':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -2214,6 +2282,14 @@ class MyInterface:
 
       return 0
 
+   def append_to_cmd_hist(self, mesg):
+      """append to cmd_history file, and possible write to fast log file
+      """
+      global g_fast_log_c
+      if g_fast_log_c is not None:
+         return UTIL.write_text_to_file(g_fast_log_c, mesg+'\n', mode='a')
+      self.cmd_history.append(mesg)
+
    def run_cmd(self, cmd, params='', pc=0, strip=1, quiet=0):
       """main purpose is to store commands in history
             cmd     : a simple command or a full one
@@ -2241,7 +2317,7 @@ class MyInterface:
       # handle system commands first (non-python commands, pc=0)
       if not pc:
          if pstr != '': cmd += " %s" % pstr
-         self.cmd_history.append(cmd)
+         self.append_to_cmd_hist(cmd)
          st, otext = UTIL.exec_tcsh_command(cmd)
          if st:
             if not quiet:
@@ -2255,13 +2331,13 @@ class MyInterface:
       # now python commands
       if cmd == 'cd':
          cstr = "os.chdir('%s')" % pstr
-         self.cmd_history.append(cstr)
+         self.append_to_cmd_hist(cstr)
       elif cmd == 'mkdir':
          cstr = "os.makedirs('%s')" % pstr
-         self.cmd_history.append(cstr)
+         self.append_to_cmd_hist(cstr)
       elif cmd == 'cp':
          cstr = "shutil.copy('%s', '%s')" % (params[0], params[1])
-         self.cmd_history.append(cstr)
+         self.append_to_cmd_hist(cstr)
       elif cmd == 'mv':
          # fail here for a list of params
          try:
@@ -2270,14 +2346,14 @@ class MyInterface:
             if not quiet:
                MESGe("os.rename(%s) - missing params" % pstr)
             return 1, ''
-         self.cmd_history.append(cstr)
+         self.append_to_cmd_hist(cstr)
       elif cmd == 'rmtree':
          # allow this to be a file, to simplify and work like rm -fr
          if os.path.isfile(pstr):
             cstr = "os.remove('%s')" % pstr
          else:
             cstr = "shutil.rmtree('%s')" % pstr
-         self.cmd_history.append(cstr)
+         self.append_to_cmd_hist(cstr)
       else:
          MESGe("unknown run_cmd: %s %s" % (cmd, pstr))
          return 1, ''
@@ -2321,6 +2397,15 @@ class MyInterface:
       else:
          if self.verb > 1:
             MESGm("no %s in original PATH to set orig_abin from" % prog)
+
+      # and check that install dir does not happen to be build_root
+      do_dest = self.f_get_rsync_abin_do()
+      do_root = self.do_root
+      if do is not None and do_root is not None:
+         if do_root.abspath.startswith(do_dest.abspath):
+            MESGe("-build_root cannot be at or under install path")
+            MESGi("build root: %s" % do_root.abspath)
+            return 1
 
       return 0
 

@@ -93,8 +93,9 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_register_1D_function( "Fourier", fourier_1D );
 
 
-   plint = PLUTO_new_interface( "Fourier Stuff" , "Filtering, autocorrelation and other stuff done with FFTs" , helpstring ,
-                                 PLUGIN_CALL_VIA_MENU , Fourier_Main  ) ;
+   plint = PLUTO_new_interface( "Fourier Stuff" ,
+            "Filtering, autocorrelation and other stuff done with FFTs" ,
+            helpstring , PLUGIN_CALL_VIA_MENU , (cptr_func *)Fourier_Main  ) ;
 
    PLUTO_add_hint( plint , "Filtering, autocorrelation and other stuff done with FFTs" ) ;
 

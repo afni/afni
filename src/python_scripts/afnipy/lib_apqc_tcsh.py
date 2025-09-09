@@ -1288,7 +1288,22 @@ ap_ssdict : dict
     ldep_alt3 = ['copy_anat']
     ldep_alt4 = ['tcat_dset']
 
-    if check_dep(ap_ssdict, ldep) :         # --------- check for template
+    # [pt, rcr: June 16, 2025] for the case when the user has 'tlrc'
+    # block but is *not* using -volreg_tlrc_warp, then the final EPI
+    # stuff stays in EPI/+orig space, so we *don't* want the template
+    # to be the main dset. We check for that by asking if final_anat
+    # is +orig (which would be a proxy of that situation); this is
+    # expected to be a rare occurrence.
+    if check_dep(ap_ssdict, ldep_alt1) :
+        cmd  = '''3dinfo -av_space {}'''.format( ap_ssdict['final_anat'] )
+        com  = ab.shell_com(cmd, capture=do_cap)
+        stat = com.run()
+        view = com.so[0] # always produces output, even if no file exists
+        if view == '+orig' :
+            HAVE_MAIN = 1
+            ap_ssdict['main_dset'] = ap_ssdict['final_anat']
+
+    if not(HAVE_MAIN) and check_dep(ap_ssdict, ldep) :  # ----- check for template
         # pre-check, output might be used in a couple ways
         cmd  = '''basename {}'''.format( ap_ssdict['template'] )
         com  = ab.shell_com(cmd, capture=do_cap)

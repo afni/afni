@@ -190,7 +190,7 @@ int main( int argc , char *argv[] )
                     0 ,                    /* ignore count  */
                     1 ,                    /* detrend (yes) */
                     nbin ,                 /* number of briks in output */
-                    PGRAM_tsfunc ,         /* timeseries processor function */
+    (generic_func *)PGRAM_tsfunc ,         /* timeseries processor function */
                     NULL,                  /* extra data for tsfunc */
                     NULL,                  /* mask */
                     0                      /* Allow auto scaling of output */

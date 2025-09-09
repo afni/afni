@@ -54,7 +54,7 @@ typedef struct {
 	int gl_matchc;		/* count of paths matching pattern */
 	int gl_offs;		/* reserved at beginning of gl_pathv */
 	int gl_flags;		/* copy of flags parameter to glob() */
-	int (*gl_errfunc)();	/* copy of errfunc parameter to glob() */
+	int (*gl_errfunc)(char *, int);	/* copy of errfunc parameter to glob() */
 	char **gl_pathv;	/* list of paths matching pattern */
 } glob_t;
 

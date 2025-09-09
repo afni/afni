@@ -68,7 +68,7 @@ MODEL_interface * initialize_model ()
   mi->min_constr[1] =   -1.0;   mi->max_constr[1] =   1.0;
   
   /*----- function which implements the model -----*/
-  mi->call_func = noise_model;
+  mi->call_func = (void_func *)noise_model;
 
 
   /*----- return pointer to the model interface -----*/

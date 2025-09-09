@@ -92,7 +92,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   
   /*-- set titles and call point --*/
   plint = PLUTO_new_interface( "3D Edit" , "Dataset Editing" , helpstring ,
-			       PLUGIN_CALL_VIA_MENU , EDIT_main  ) ;
+			       PLUGIN_CALL_VIA_MENU , (cptr_func *)EDIT_main  ) ;
 
   PLUTO_add_hint( plint , "Edit Dataset Contents" ) ;
 
