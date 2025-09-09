@@ -53,6 +53,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "look for AFNI_data7; better units evaluation on available disk space",
+   NULL
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "flask and flask_cors are now required",
+   NULL
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "add 'ceil' option to truncate_to_N_bits; and removed repeated scaling",
+   NULL
+ } ,
+
  {  9, Sep, 2025, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "mac install: if brew is not initialized, do so",
    "Run 'brew shellenv' from OS_notes.macos_12_*_b_user.tcsh if need be.\n"

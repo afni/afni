@@ -1639,6 +1639,8 @@ def truncate_to_N_bits(val, bits, method='trunc', scale=1, verb=1):
        allow for any real val and positive integer bits
 
        method   trunc           - truncate to 'bits' significant bits
+                                  (floor: truncate downward)
+                ceil            - truncate UPWARD via ceil
                 round           - round to 'bits' significant bits
                 r_then_t        - round to 2*bits sig bits, then trunc to bits
     """
@@ -1652,9 +1654,10 @@ def truncate_to_N_bits(val, bits, method='trunc', scale=1, verb=1):
        print('T2NB: applying sign=%d, fval=%g, scale=%g' % (sign,fval,scale))
 
     # if r_then_t, start by rounding to 2*bits, then continue to truncate
+    # (do not apply any scalar to the initial round operation)
     meth = method
     if method == 'r_then_t':
-        fval = truncate_to_N_bits(fval, 2*bits, method='round', scale=scale,
+        fval = truncate_to_N_bits(fval, 2*bits, method='round', scale=1,
                                   verb=verb)
         meth = 'trunc'
 
@@ -1673,8 +1676,9 @@ def truncate_to_N_bits(val, bits, method='trunc', scale=1, verb=1):
 
     # then (round or) truncate to an actual integer in that range
     # and divide by 2^m (cannot be r_then_t here)
-    if meth == 'round': ival = round(pm * fval)
-    else:               ival = math.floor(pm * fval)
+    if meth == 'round':  ival = round(pm * fval)
+    elif meth == 'ceil': ival = math.ceil(pm * fval)
+    else:                ival = math.floor(pm * fval)
     retval = sign*float(ival)/pm
     
     if verb > 2:
