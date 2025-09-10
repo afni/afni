@@ -183,6 +183,8 @@ hstr_apqc_ow_modes = \
     '\n'.join(['{:12s} -> {}'.format(x, dict_apqc_ow_modes[x]) \
                for x in list_apqc_ow_modes])
 
+DEF_can_add_blur = 'Yes'
+
 # -------------------------------------------------------------------
 
 # helpfile for the plotting prog
@@ -2015,7 +2017,7 @@ Options:
 
 -review_style RS  :(opt) the 'style' of the APQC HTML output HTML.  Allowed
                    keywords are:
-                       {{{}}}
+                       {}
                    + Using 'pythonic' is the recommended way to go: the
                    1D images are the clearest and most informative.
                    It means you need the Python module Matplotlib
@@ -2041,6 +2043,24 @@ Options:
                    provided in this list. If not used, the program
                    uses default logic to pick up to 5 items to show.
 
+-can_add_blur CAB :(opt) if the FMRI processing did not use blurring, then
+                   the APQC HTML creation can add blurring to a couple steps
+                   within the QC generation that might be easier to interpret,
+                   such as the seedbased correlation maps, in the TSNR warns
+                   levels of any ROI TSNR tables, and in the corr_brain map.
+                   This program will check the uvars for whether blurring was
+                   used automatically, to know whether it would consider adding
+                   extra blur in the QC images; the TSNR warn levels will still
+                   be automatically adjusted based on blurring/not.
+                   These extra blurs *only* apply in the QC items, not in the
+                   final data; this program will check the uvars for whether
+                   blurring
+                   If you don't want this program to check to add any extra 
+                   blur for data processed without blurring, then disable that
+                   here.
+                   Allowed values of CAB are: Yes or 1, No or 0.
+                   (def: {})
+
 -ow_mode  OM      :(opt) set overwrite mode; choices are
                    {}
                    See also '-bup_dir ..' for additional backup dir 
@@ -2055,7 +2075,8 @@ Options:
                    is executed; mainly for debugging purposes, if 
                    necessary.
 
-'''.format( str_apqc_review_styles,
+'''.format( str_apqc_review_styles, 
+            DEF_can_add_blur,
             hstr_apqc_ow_modes.replace('\n', '\n'+ ' '*19 ))
 
 # -------------------------------------------------------------------
@@ -2072,6 +2093,7 @@ class apqc_tcsh_opts:
         self.bup_dir          = None
         self.do_mot_grayplot  = True
         self.vstat_label_list = []
+        self.can_add_blur     = DEF_can_add_blur # if no proc blur, can add in QC
         self.do_log           = False      # don't log by default
 
     # -------------------------
@@ -2091,6 +2113,16 @@ class apqc_tcsh_opts:
                   "   {}".format(ow_mode, str_apqc_ow_modes))
             sys.exit(11)
         self.ow_mode = ow_mode
+
+    def set_can_add_blur(self, cab):
+        if cab == 'Yes' or cab == '1' :
+            self.can_add_blur = True
+        elif cab == 'No' or cab == '0' :
+            self.can_add_blur = False
+        else:
+            print("** ERROR: illegal can_add_blur '{}', must be one of:\n"
+                  "   Yes or 1, No or 0")
+            sys.exit(13)
 
     def set_revstyle(self, revstyle):
         self.revstyle = revstyle
@@ -2146,6 +2178,7 @@ list_apqc_tcsh_opts = ['-help', '-h',
                        '-review_style',
                        '-mot_grayplot_off',
                        '-vstat_list',
+                       '-can_add_blur',
                        '-ow_mode',
                        '-bup_dir',
                        '-do_log',
@@ -2213,6 +2246,12 @@ def parse_tcsh_args(argv):
                 ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_ow_mode(argv[i])
+
+        elif argv[i] == "-can_add_blur":
+            if i >= Nargm1 :
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_can_add_blur(argv[i])
 
         elif argv[i] == "-bup_dir":
             if i >= Nargm1 :

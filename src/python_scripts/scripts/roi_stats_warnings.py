@@ -13,6 +13,12 @@ from afnipy import lib_roi_stats as LRS
 # ----------------------------------------------------------------------
 # globals
 
+# dictionary of all option defaults, primarily to populate help text
+all_defs = {
+    'had_blur' : int(LRS.DEF_had_blur),
+    'verb' : LRS.DEF_verb,
+}
+
 g_help_string = """
 =============================================================================
 roi_stats_warnings.py - evaluate the output of compute_ROI_stats.tcsh
@@ -38,14 +44,19 @@ main parameters:
       -input  INPUT             : input ROI stats text file
       -prefix PREFIX            : prefix for output HTML version
       -disp_max_warn            : display max warning level string
+      -had_blur HB              : state whether blurring was used during 
+                                  processing, which sets TSNR warn levels;
+                                  allowed values: Yes or 1, No or 0
+                                  (def: {had_blur})
 
 other options:
       -verb LEVEL               : set the verbosity level
+                                  (def: {verb})
 
 -----------------------------------------------------------------------------
 R Reynolds    March 2024
 =============================================================================
-"""
+""".format(**all_defs)
 
 g_history = """
    roi_stats_warnings.py history:
@@ -53,14 +64,15 @@ g_history = """
    0.0  Mar  7, 2024    - ...
    0.1  Mar  8, 2024    - tweak in usage, in case no prefix provided
    0.2  Jun 18, 2024    - add -disp_max_warn opt
+   0.3  Sep  9, 2025    - add -had_blur opt
 """
 
-g_version = "roi_stats_warnings.py version 0.2, June 18, 2024"
+g_version = "roi_stats_warnings.py version 0.3,  Sep  9, 2025"
 
 
 class MyInterface:
    """interface class for MyLibrary"""
-   def __init__(self, verb=1):
+   def __init__(self, verb=LRS.DEF_verb):
       # main variables
       self.status          = 0                       # exit value
       self.valid_opts      = None
@@ -70,6 +82,7 @@ class MyInterface:
       self.input           = None
       self.prefix          = None
       self.disp_max_warn   = False
+      self.had_blur        = LRS.DEF_had_blur
 
       # general variables
       self.verb            = verb
@@ -100,6 +113,9 @@ class MyInterface:
       # optional parameters
       self.valid_opts.add_opt('-disp_max_warn', 0, [], 
                       helpstr='display max warning level string')
+
+      self.valid_opts.add_opt('-had_blur', 1, [], 
+                      helpstr='was blurring used? sets TSNR warn levels')
 
       # general options
       self.valid_opts.add_opt('-verb', 1, [], 
@@ -168,6 +184,17 @@ class MyInterface:
          elif opt.name == '-disp_max_warn':
             self.disp_max_warn = True
 
+         elif opt.name == '-had_blur':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val is None or err: return -1
+            if val == 'Yes' or val == '1' :
+                self.had_blur = True
+            elif val == 'No' or val == '0' :
+                self.had_blur = False
+            else:
+                print("** ERROR: after had_blur, use: Yes, No, 1, or 0")
+                return -1
+
          # general options
 
          elif opt.name == '-verb':
@@ -193,7 +220,9 @@ class MyInterface:
       # create HTML table
       self.roi_table = LRS.all_comp_roi_dset_table(self.text_lines,
                                            disp_max_warn=self.disp_max_warn,
-                                                   fname=self.input)
+                                           had_blur=self.had_blur,
+                                           fname=self.input,
+                                           verb=self.verb)
 
       # if we have no prefix, base it on input
       if self.prefix is None or self.prefix == '':
