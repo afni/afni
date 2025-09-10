@@ -183,7 +183,14 @@ hstr_apqc_ow_modes = \
     '\n'.join(['{:12s} -> {}'.format(x, dict_apqc_ow_modes[x]) \
                for x in list_apqc_ow_modes])
 
+# defaults for some apqc_make_tcsh.py opts
 DEF_can_add_blur = 'Yes'
+# technically, these defaults are for some required opts, but if you
+# run apqc_make_tcsh.py *in* the results dir, then these are the
+# values you would use. Since some folks (= the author) do _that_ so
+# frequently, this will save valuable time+energy.
+DEF_uvar_json    = 'out.ss_review_uvars.json'
+DEF_subj_dir     = '.'
 
 # -------------------------------------------------------------------
 
@@ -2075,6 +2082,11 @@ Options:
                    is executed; mainly for debugging purposes, if 
                    necessary.
 
+-run              :(opt) a trivial option that does nothing, but means you can
+                   execute this program, rather than display the help text,
+                   when using default -uvar_json and -subj_dir values (which
+                   mean running this in the current dir)
+
 '''.format( str_apqc_review_styles, 
             DEF_can_add_blur,
             hstr_apqc_ow_modes.replace('\n', '\n'+ ' '*19 ))
@@ -2084,8 +2096,8 @@ Options:
 class apqc_tcsh_opts:
 
     def __init__(self):
-        self.json             = ""
-        self.subjdir          = ""
+        self.json             = DEF_uvar_json
+        self.subjdir          = DEF_subj_dir
         self.revstyle         = "pythonic"
         self.pythonic2basic   = 0
 
@@ -2095,13 +2107,22 @@ class apqc_tcsh_opts:
         self.vstat_label_list = []
         self.can_add_blur     = DEF_can_add_blur # if no proc blur, can add in QC
         self.do_log           = False      # don't log by default
+        self.run              = True       # a non-used value, allowing simple opt
 
     # -------------------------
 
     def set_json(self, json):
+        if not(os.path.isfile(json)) :
+            print("** ERROR: entere uvar_json '{}' does not seem to exist."
+                  "".format(json))
+            sys.exit(12)
         self.json = json
 
     def set_subjdir(self, subjdir):
+        if not(os.path.isdir(subjdir)) :
+            print("** ERROR: entere subj_dir '{}' does not seem to exist."
+                  "".format(subjdir))
+            sys.exit(12)
         self.subjdir = subjdir
 
     def set_bup_dir(self, bup_dir):
@@ -2134,6 +2155,12 @@ class apqc_tcsh_opts:
     def set_log(self, tf):
         if tf :   self.do_log = True
         else:     self.do_log = False
+
+    def set_run(self, tf):
+        """This is just a place holder, to allow a simple option to run this
+        program when using default other inputs."""
+        if tf :   self.run = True
+        else:     self.run = False
 
     def add_vstat_label(self, label):
         # keep list unique; checking if label is valid in the
@@ -2182,6 +2209,7 @@ list_apqc_tcsh_opts = ['-help', '-h',
                        '-ow_mode',
                        '-bup_dir',
                        '-do_log',
+                       '-run',
                        ]
 
 
@@ -2266,6 +2294,9 @@ def parse_tcsh_args(argv):
 
         elif argv[i] == "-do_log":
             iopts.set_log(True)
+
+        elif argv[i] == "-run":
+            iopts.set_run(True)
 
         # get a list of labels 
         elif argv[i] == "-vstat_list":
