@@ -7396,6 +7396,15 @@ void SUMA_cb_SetRangeValue (void *data)
    }
    
    if (SO->SurfCont->BoxOutlineThresh){
+       int numSurfaceObjects;
+       XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+                     &numSurfaceObjects, NULL);
+       N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+       if (numSurfaceObjects != N_adolist)
+       {
+            SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+            SUMA_RETURNe;
+       }
           
        for (j=0; j<N_adolist; ++j){
             otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
