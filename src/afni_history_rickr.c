@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Sep, 2025, RCR, "test_ARMA_REML.tcsh", MICRO, TYPE_GENERAL,
+   "extract the script from the end of 3dDeconvolve.c",
+   "Having it in the .c file produce compile warnings."
+ } ,
+
  {  9, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
    "look for AFNI_data7; better units evaluation on available disk space",
    NULL
