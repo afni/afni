@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Sep, 2025, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_NEW_OPT,
+   "add -blur_size; have default come from voxel sizes",
+   "The default is now 1.6 times the geometric mean dim, ceiling rounded."
+ } ,
+
+ { 10, Sep, 2025, RCR, "ap_run_simple_rest_me.tcsh", MINOR, TYPE_NEW_OPT,
+   "add -blur_size; have default come from voxel sizes",
+   "The default is now 1.1 times the geometric mean dim, ceiling rounded."
+ } ,
+
  { 10, Sep, 2025, RCR, "test_ARMA_REML.tcsh", MICRO, TYPE_GENERAL,
    "extract the script from the end of 3dDeconvolve.c",
    "Having it in the .c file produce compile warnings."
