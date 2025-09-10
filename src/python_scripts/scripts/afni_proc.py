@@ -819,9 +819,10 @@ g_history = """
     8.00 Aug  6, 2025: run gtkyd and report outliers (basic start for now)
     8.01 Aug  6, 2025: add -volreg_warp_master_box, to base dxyz on EPI
     8.02 Sep  8, 2025: add -regress_per_run_ortvec, for physio volbase regs
+    8.03 Sep 10, 2025: do not create a script on -show_tracked_files
 """
 
-g_version = "version 8.02, September 8, 2025"
+g_version = "version 8.03, September 10, 2025"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -2076,6 +2077,7 @@ class SubjProcSream:
         
         if opt_list.find_opt('-show_tracked_files'):
             self.show_tfiles,rv = opt_list.get_string_opt('-show_tracked_files')
+            self.make_main_script = 0      # do not create a script
         
         if opt_list.find_opt('-todo'):     # print "todo" list
             print(g_todo_str)
@@ -5024,6 +5026,8 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
 
        proc.tlist.show(order='sort', rfield=rfield, rval=rval, dfields=dfields)
                        # dfields = ['ftype', 'short_in'])
+
+       return 0, None
 
     return 0, proc
 

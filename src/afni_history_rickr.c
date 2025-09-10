@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Sep, 2025, RCR, "afni_proc.tcsh", MICRO, TYPE_MODIFY,
+   "do not create a proc script on -show_tracked_files",
+   NULL
+ } ,
+
  { 10, Sep, 2025, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_NEW_OPT,
    "add -blur_size; have default come from voxel sizes",
    "The default is now 1.6 times the geometric mean dim, ceiling rounded."
