@@ -1,7 +1,6 @@
 #include "SUMA_suma.h"
 #include "coxplot.h"
 #include "SUMA_plot.h"
-#include <sys/time.h> // For struct timeval and gettimeofday
 
 extern int selenium_close(void) ;
 
@@ -15083,10 +15082,6 @@ int SUMA_ColPlane_NewDimFact (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
       }
    }
    
-   struct timeval startTime, stopTime;
-   
-   gettimeofday(&startTime, NULL);
-   
    // Restore A and B checkbox functionality
    if (colp->AlphaOpacityFalloff || SurfCont->BoxOutlineThresh){
         if (!restoreABButtonFunctionality_one(ado, colp)){
@@ -15095,18 +15090,17 @@ int SUMA_ColPlane_NewDimFact (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
         }
         SO = (SUMA_SurfaceObject *)ado;
         colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
-         if (!restoreABButtonFunctionality_one((SUMA_ALL_DO *)SOC, colpC)) {
+    
+        if (!restoreABButtonFunctionality_one((SUMA_ALL_DO *)SOC, colpC)) {
             SUMA_S_Warn("Failed in contralateral");
             SUMA_RETURN(0);
          }
     }
-    
-   gettimeofday(&stopTime, NULL);
    
-   long runTume = stopTime.tv_usec - startTime.tv_usec;
-    fprintf(stderr, "TTTTTTTTTTTT Block ran for %ld microseconds\n", runTume);
+   /* need to colorize plane */
+//   SUMA_ColorizePlane(colp);
+//   SUMA_ColorizePlane(colpC);
 
-   
    SUMA_RETURN(1);
 }
 
@@ -15145,7 +15139,9 @@ int SUMA_ColPlane_NewDimFact_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_UpdateColPlaneShellAsNeeded(ado); /* update other open ColPlaneShells */
 
    /* need to colorize plane */
-   SUMA_ColorizePlane(curColPlane);
+   if (!(curColPlane->AlphaOpacityFalloff) && !(SurfCont->BoxOutlineThresh) ){
+    SUMA_ColorizePlane(curColPlane);
+  }
 
    /* a good remix and redisplay */
    SUMA_Remixedisplay (ado);

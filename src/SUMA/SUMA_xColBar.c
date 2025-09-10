@@ -4,6 +4,7 @@ xim.c display.c and pbar.c*/
 
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
+#include <sys/time.h> // For struct timeval and gettimeofday
 
 /*!
    \brief Reads a ppm image and turns i into an rgba vector for ease of
@@ -1525,6 +1526,11 @@ int restoreABButtonFunctionality_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp)
 
    SUMA_ENTRY;
    
+   struct timeval startTime, stopTime;
+   long runTume;
+   
+   gettimeofday(&startTime, NULL);
+   
    // Temporarily suspend threshold outline.  This appears to resolve the 
    // problem of the color map changing with the threshold slider
    if (ado->do_type == SO_type) {
@@ -1536,6 +1542,11 @@ int restoreABButtonFunctionality_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp)
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (colp && colp != curColPlane) SUMA_RETURN(0);
 
+   gettimeofday(&stopTime, NULL); 
+   runTume = stopTime.tv_usec - startTime.tv_usec;
+   fprintf(stderr, "1: TTTTTTTTTTTT Block ran for %ld microseconds\n", runTume);
+   startTime.tv_usec = stopTime.tv_usec;
+
    // If this is left out, the variable opacity goes away when the user hovers
    // over the diplay window
    SUMA_LH("Colorize");
@@ -1543,6 +1554,11 @@ int restoreABButtonFunctionality_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp)
       SUMA_SLP_Err("Failed to colorize plane.\n");
       SUMA_RETURN(0);
    }
+
+   gettimeofday(&stopTime, NULL); 
+   runTume = stopTime.tv_usec - startTime.tv_usec;
+   fprintf(stderr, "2: TTTTTTTTTTTT Block ran for %ld microseconds\n", runTume);
+   startTime.tv_usec = stopTime.tv_usec;
 
    if (SO && SO->SurfCont) {
        // Restore threshold boundary if necessary.  This is called when the 
@@ -1556,7 +1572,16 @@ int restoreABButtonFunctionality_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp)
 
            // Refresh display to get threshold outlines on all surfaces
            SUMA_Remixedisplay(ado);
+           gettimeofday(&stopTime, NULL); 
+           runTume = stopTime.tv_usec - startTime.tv_usec;
+           fprintf(stderr, "3: TTTTTTTTTTTT Block ran for %ld microseconds\n", runTume);
+           startTime.tv_usec = stopTime.tv_usec;
+
            SUMA_UpdateNodeLblField(ado);
+           gettimeofday(&stopTime, NULL); 
+           runTume = stopTime.tv_usec - startTime.tv_usec;
+           fprintf(stderr, "4: TTTTTTTTTTTT Block ran for %ld microseconds\n", runTume);
+           startTime.tv_usec = stopTime.tv_usec;
        }
     }
 
