@@ -1465,9 +1465,6 @@ int SUMA_SwitchColPlaneIntensity(
         SUMA_SL_Err("Error restoring variable opacity and thshold outlines");
         SUMA_RETURN(0);
     }
-    
-//    float val = colp->OptScl->ThreshRange[0];
-//    SUMA_set_threshold(ado, colp, &val);
    }
 
    SUMA_RETURN(1);
@@ -1794,11 +1791,12 @@ int SUMA_SwitchColPlaneIntensity_one (
 
    SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
    
-   if (!SUMA_ColorizePlane (colp)) {
-         SUMA_SLP_Err("Failed to colorize plane.\n");
-         SUMA_RETURN(0);
+   if (!(colp->AlphaOpacityFalloff) && !(SurfCont->BoxOutlineThresh) ){
+       if (!SUMA_ColorizePlane (colp)) {
+             SUMA_SLP_Err("Failed to colorize plane.\n");
+             SUMA_RETURN(0);
+       }
    }
-
 
    SUMA_Remixedisplay(ado);
 

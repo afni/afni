@@ -15097,10 +15097,6 @@ int SUMA_ColPlane_NewDimFact (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
          }
     }
    
-   /* need to colorize plane */
-//   SUMA_ColorizePlane(colp);
-//   SUMA_ColorizePlane(colpC);
-
    SUMA_RETURN(1);
 }
 
