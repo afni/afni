@@ -2027,12 +2027,12 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    SUMA_RETURNe;
 }
 
+// Called when B subbrick option changed
 int SUMA_SwitchColPlaneBrightness(
          SUMA_ALL_DO *ado,
          SUMA_OVERLAYS *colp,
          int ind, int setmen)
 {
-   // Called when B subbrick option changed
    static char FuncName[]={"SUMA_SwitchColPlaneBrightness"};
    char srange[500];
    double range[2];
@@ -2075,8 +2075,22 @@ int SUMA_SwitchColPlaneBrightness(
       }
    }
    
-   // Restore proper threshold contours when bright (B) subbrick switched
-   restoreProperThresholdCcontours(ado);
+   // Restore A and B checkbox functionality
+   SUMA_X_SurfCont *SurfCont = SUMA_ADO_Cont(ado);
+   if (colp->AlphaOpacityFalloff || SurfCont->BoxOutlineThresh){
+         
+        SUMA_SurfaceObject *SOC=NULL;
+        SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+         if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado)){
+              fprintf(stderr,  "Error restoring A and B button functionality.\n ");
+              SUMA_RETURN(0);
+        }
+         colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+         if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject((SUMA_ALL_DO *)SOC)){
+              fprintf(stderr,  "Error restoring A and B button functionality.\n ");
+              SUMA_RETURN(0);
+        }
+    }
 
    SUMA_RETURN(1);
 }

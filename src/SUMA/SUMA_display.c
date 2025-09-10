@@ -1,6 +1,7 @@
 #include "SUMA_suma.h"
 #include "coxplot.h"
 #include "SUMA_plot.h"
+#include <sys/time.h> // For struct timeval and gettimeofday
 
 extern int selenium_close(void) ;
 
@@ -15082,6 +15083,11 @@ int SUMA_ColPlane_NewDimFact (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
       }
    }
    
+   struct timeval startTime, stopTime;
+   
+   gettimeofday(&startTime, NULL);
+   
+   // Restore A and B checkbox functionality
    if (colp->AlphaOpacityFalloff || SurfCont->BoxOutlineThresh){
         if (!restoreABButtonFunctionality_one(ado, colp)){
               fprintf(stderr,  "Error restoring A and B button functionality.\n ");
@@ -15093,7 +15099,13 @@ int SUMA_ColPlane_NewDimFact (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
             SUMA_S_Warn("Failed in contralateral");
             SUMA_RETURN(0);
          }
-        }
+    }
+    
+   gettimeofday(&stopTime, NULL);
+   
+   long runTume = stopTime.tv_usec - startTime.tv_usec;
+    fprintf(stderr, "TTTTTTTTTTTT Block ran for %ld microseconds\n", runTume);
+
    
    SUMA_RETURN(1);
 }
