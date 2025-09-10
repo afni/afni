@@ -32,15 +32,16 @@ set reg_echo   = 2  # registration echo
 
 # ----------------------------------------------------------------------
 # other user-controllable parameters
-set nt_rm    = 2        # number of time points to remove
+set nt_rm     = 2       # number of time points to remove
                         # rcr - make def to compute from TR?
-set subjid   = 'SUBJ'   # rcr - make def to guess from BIDS?
+set subjid    = 'SUBJ'  # rcr - make def to guess from BIDS?
                         # rcr - rewrite this in python?  (or subsume in AP)
-set run_ap   = 0        # do we run afni_proc.py?
-set run_proc = 0        # do we run the resulting proc script?
+set run_ap    = 0       # do we run afni_proc.py?
+set run_proc  = 0       # do we run the resulting proc script?
 
-set template = MNI152_2009_template_SSW.nii.gz
-set verb     = 1
+set blur_size = 0
+set template  = MNI152_2009_template_SSW.nii.gz
+set verb      = 1
 
 # run_clustsim is not relevant for rest
 
@@ -189,6 +190,14 @@ while ( $ac <= $narg )
       endif
       set template = $argv[$ac]
 
+   else if ( "$argv[$ac]" == '-blur_size' ) then
+      @ ac ++
+      if ( $ac > $narg ) then
+         echo "** -blur_size requires 1 parameter"
+         exit 1
+      endif
+      set blur_size = $argv[$ac]
+
    else if ( "$argv[$ac]" == '-compressor' ) then
       @ ac ++
       if ( $ac > $narg ) then
@@ -250,6 +259,7 @@ cat << EOF
    epi_list    = $epi_list
    nt_rm       = $nt_rm
    reg_echo    = $reg_echo
+   blur_size   = $blur_size
    run_ap      = $run_ap
    run_proc    = $run_proc
    subjid      = $subjid
@@ -260,7 +270,7 @@ endif
 
 
 # ===========================================================================
-# prepare afni_proc.py command script
+# check for missing inputs and set main variables
 
 # are expect processing files already here?
 set script_ap   = run_ap_$subjid
@@ -289,6 +299,19 @@ if ( $#echo_times == 0 ) then
 else if ( $#echo_times != $necho ) then
    echo "** have $#echo_times echo times but $necho echoes per run"
    exit 1
+endif
+
+# ===========================================================================
+# apply any defaults (after validating input) if the user has not specified
+
+if ( $blur_size == 0 ) then
+   set blur_size = `afni_python_wrapper.py -print \
+         "get_def_blur_from_dims('$epi_list[1]',scale=1.1)" |& tail -n 1`
+   if ( $blur_size == "0" ) then
+      echo "** failed to get blur size from dims of $epi_list[1]"
+      exit 1
+   endif
+   echo "++ setting blur from voxel sizes: $blur_size"
 endif
 
 # ===========================================================================
@@ -346,7 +369,7 @@ afni_proc.py                                                        \
     -volreg_warp_final_interp  wsinc5                               \
     -volreg_compute_tsnr       yes                                  \
     -mask_epi_anat             yes                                  \
-    -blur_size                 4                                    \
+    -blur_size                 $blur_size                           \
     -regress_censor_motion     0.25                                 \
     -regress_censor_outliers   0.05                                 \
     -regress_motion_per_run                                         \
@@ -398,7 +421,7 @@ afni_proc.py                                                        \
     -tshift_interp             -wsinc9                              \
     -volreg_align_to           MIN_OUTLIER                          \
     -volreg_compute_tsnr       yes                                  \
-    -blur_size                 4                                    \
+    -blur_size                 $blur_size                           \
     -regress_censor_motion     0.25                                 \
     -regress_censor_outliers   0.05                                 \
     -regress_motion_per_run                                         \
