@@ -1486,8 +1486,10 @@ D : dict
     if check_dep(ap_ssdict, ['combine_method']) :
         val = 1.1 * (voxvol**0.3334)
     else:
-        val = 1.75 * (voxvol**0.3334)
-    errts_blur_size = au.truncate_to_N_bits(val, 5, method='round')
+        val = 1.6 * (voxvol**0.3334)
+    # the 'ceil' method here was added in AFNI_25.2.10; same rule
+    # applied here as in ap_run_simple_rest*.tcsh
+    errts_blur_size = au.truncate_to_N_bits(val, 4, method='ceil')
 
     # new blurred errts dset, and add to dict if we are here
     errts_blur      = olay_pref + '_blur_for_qc' + '.nii.gz'
