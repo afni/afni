@@ -732,7 +732,7 @@ void MCW_popup_message_once( Widget w, char *msg, char *expiry, char *codestring
      char da[16],db[16],dc[16] ;  int emon=-1,eday=-1,eyear=-1 , ii ;
      da[0] = db[0] = dc[0] = '\0' ;
      sscanf( expiry , "%5s%5s%5s" , da,db,dc ) ;
-     if( da[0] != '\0' && db[0] != '\0' && dc != '\0' ){ /* got 3 sub-strings */
+     if( da[0] != '\0' && db[0] != '\0' && dc[0] != '\0' ){ /* got 3 sub-strings */
        if( isalpha(da[0]) ){ /* month is first */
          for( ii=0; ii < 12 && strcasecmp(da,monthlist[ii]); ii++ ) ; /*nada*/
          emon = ii ;
@@ -988,9 +988,12 @@ void MCW_register_hint( Widget w , char *msg )
                                           RES_CONVERT(XtNfontSet,cfont) ,
                                        NULL);
       if( !RWC_liteclue_has_fontset(liteClue) ){   /* Failed :( */
+/* removing warning for Macs */
+#ifndef DARWIN
         INFO_message("\n") ;
         INFO_message("\n Hints disabled: X11 failure to create LiteClue window") ;
         INFO_message("\n") ;
+#endif
         clueless = 1 ;
         return ;
       }
