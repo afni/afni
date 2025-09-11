@@ -2874,8 +2874,8 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggled"};
    SUMA_ALL_DO *ado = NULL, *otherAdo=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL;
-   SUMA_SurfaceObject *SO = NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *colpC=NULL;
+   SUMA_SurfaceObject *SO = NULL,  *SOC=NULL;
    SUMA_TABLE_FIELD *TF=NULL;
    SUMA_Boolean AlphaOpacityFalloff, BoxOutlineThresh;
    int numSurfaceObjects;
@@ -2905,8 +2905,16 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
     // Default opacity model
     if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
 
+    // Temporarily suspend threshold outline.  This appears to resolve the 
+    // problem of the color map changing with the threshold slider
+    if (ado->do_type == SO_type) {
+       SO = (SUMA_SurfaceObject *)ado;
+       BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+       SO->SurfCont->BoxOutlineThresh = 0;
+    }
+
     // Make variable opacity appear
-    SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado);
+    // SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado);
 
    // Create colorized plane
    if (!SUMA_ColorizePlane (curColPlane)) {
@@ -2916,6 +2924,25 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
 
    // REFRESH DISPLAY
    SUMA_Remixedisplay(ado);
+
+    if (SO && SO->SurfCont) {
+       // Restore threshold boundary if necessary.  This is called when the 
+       //   threshold slider is moved
+       SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+
+       // Restore threshold boundary if necessary
+       if (SO->SurfCont->BoxOutlineThresh ){
+            XtPointer clientData = (XtPointer)ado;
+            SUMA_RestoreThresholdContours(clientData, NOPE);
+       }
+    }
+
+   // REFRESH DISPLAY
+   SUMA_Remixedisplay(ado);
+   
+   // Process contralateral surface
+   // colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
+   
     
     #if 0
 
