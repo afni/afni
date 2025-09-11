@@ -53,6 +53,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Sep, 2025, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "OS_notes.macos_12_ARM_b_user.tcsh : also update .zshrc",
+   "Some installs set PATH without updates, so update in each shell."
+ } ,
+
+ { 11, Sep, 2025, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "minor updates",
+   "- suggest a new default blur (but still use 4.0), if none is given\n"
+   "- suggest open_apqc.py instead of afni_open\n"
+   "- allow verb only to show tracked files and create proc script\n"
+   "- add example class do_21, to match that in AFNI_data7"
+ } ,
+
  { 11, Sep, 2025, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
    "add get_def_blur_from_dims() to report a hopefully useful blur size",
    "Set gmean = geometric mean(deltas), scale by 1.6 and take the ceiling,\n"
@@ -60,7 +73,7 @@ afni_history_struct rickr_history[] = {
    "    truncate_to_N_bits(gmean, bits=4, method='ceil', scale=1.6)\n"
  } ,
 
- { 10, Sep, 2025, RCR, "afni_proc.tcsh", MICRO, TYPE_MODIFY,
+ { 10, Sep, 2025, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "do not create a proc script on -show_tracked_files",
    NULL
  } ,
