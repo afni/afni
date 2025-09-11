@@ -11,6 +11,7 @@ curl -O https://raw.githubusercontent.com/afni/afni/master/src/other_builds/OS_n
 if ( ! $?HOMEBREW_PREFIX ) then
    # set for any login shell (users might need a logout/login to apply)
    (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"')      >> $HOME/.zprofile
+   (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"')      >> $HOME/.zshrc
    (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv bash)"') >> $HOME/.bashrc
    (echo; echo 'eval `/opt/homebrew/bin/brew shellenv tcsh`')    >> $HOME/.login
 
