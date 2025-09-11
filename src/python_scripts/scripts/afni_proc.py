@@ -3910,9 +3910,9 @@ class SubjProcSream:
         cmd = add_line_wrappers(cmd)
 
         if self.out_dir:
-           ocmd = 'afni_open -b %s/QC_$subj/index.html' % self.out_dir
+           ocmd = 'open_apqc.py -infiles %s/QC_$subj/index.html' % self.out_dir
         else:
-           ocmd = 'afni_open -b QC_$subj/index.html'
+           ocmd = 'open_apqc.py -infiles QC_$subj/index.html'
 
         cmd += '%secho "\\nconsider running: \\n"\n' \
                '%secho "   %s"\n'                    \
