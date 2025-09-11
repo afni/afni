@@ -819,13 +819,19 @@ g_history = """
     8.00 Aug  6, 2025: run gtkyd and report outliers (basic start for now)
     8.01 Aug  6, 2025: add -volreg_warp_master_box, to base dxyz on EPI
     8.02 Sep  8, 2025: add -regress_per_run_ortvec, for physio volbase regs
-    8.03 Sep 10, 2025: do not create a script on -show_tracked_files
+    8.03 Sep 11, 2025:
+       - do not create a script on -show_tracked_files
+       - add example class do_21, to match that in AFNI_data7
+       - suggest a new default blur (but still use 4.0), if none is given
+       - suggest open_apqc.py instead of afni_open
+       - allow verb only to show tracked files and create proc script
 """
 
-g_version = "version 8.03, September 10, 2025"
+g_version = "version 8.03, September 11, 2025"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ "10 Sep 2025",  "afni_util.py get_def_blur_from_dims" ],
       [ "24 Apr 2025",  "find_variance_lines.tcsh -ignore_edges" ],
       [ " 7 Mar 2024",  "3dTto1D -method 4095_warn" ],
       [ "15 Feb 2024",  "compute_ROI_stats.tcsh, whereami -index_to_label" ],
