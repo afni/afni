@@ -2853,9 +2853,6 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado)
       SUMA_RETURN(0);
    }
 
-   SUMA_LH("Remix redisplay");
-   SUMA_Remixedisplay(ado);
-
     if (SO && SO->SurfCont) {
        // Restore threshold boundary if necessary.  This is called when the 
        //   threshold slider is moved
@@ -2901,6 +2898,26 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    SO = (SUMA_SurfaceObject *)ado;
    AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = 
     XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
+    
+    XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
+                          SO->SurfCont->curColPlane->AlphaOpacityFalloff, NOPE);
+
+    // Default opacity model
+    if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
+
+    // Make variable opacity appear
+    SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado);
+
+   // Create colorized plane
+   if (!SUMA_ColorizePlane (curColPlane)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURNe;
+   }
+
+   // REFRESH DISPLAY
+   SUMA_Remixedisplay(ado);
+    
+    #if 0
 
    // Process all surface objects
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
@@ -2944,6 +2961,8 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
        SUMA_UpdateNodeLblField(ado);
     }
 
+    #endif
+    
    SUMA_RETURNe;
 }
 
