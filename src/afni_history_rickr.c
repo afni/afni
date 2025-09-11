@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Sep, 2025, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "add get_def_blur_from_dims() to report a hopefully useful blur size",
+   "Set gmean = geometric mean(deltas), scale by 1.6 and take the ceiling,\n"
+   "truncating to 4 significant bits.  So return:\n\n"
+   "    truncate_to_N_bits(gmean, bits=4, method='ceil', scale=1.6)\n"
+ } ,
+
  { 10, Sep, 2025, RCR, "afni_proc.tcsh", MICRO, TYPE_MODIFY,
    "do not create a proc script on -show_tracked_files",
    NULL
