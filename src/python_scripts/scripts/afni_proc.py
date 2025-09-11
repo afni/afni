@@ -5027,7 +5027,9 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
        proc.tlist.show(order='sort', rfield=rfield, rval=rval, dfields=dfields)
                        # dfields = ['ftype', 'short_in'])
 
-       return 0, None
+       # if not making a script (e.g. with -show_tracked_files), terminate here
+       if not proc.make_main_script:
+           return 0, None
 
     return 0, proc
 
