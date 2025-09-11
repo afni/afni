@@ -1634,6 +1634,32 @@ def get_truncated_grid_dim(dset, scale=1, verb=1):
 
     return truncate_to_N_bits(md, 3, method='r_then_t', scale=scale, verb=verb)
 
+def get_def_blur_from_dims(dset, bits=4, method='ceil', scale=1.6, verb=1):
+    """return what we might use for a default blur size based on voxel dims
+
+       The lost function.  <sniff!>
+
+       - set gm = geometric mean(DELTAS)
+       - return truncate_to_N_bits(gm, ...)
+
+       - return 0 on failure
+    """
+
+    err, dims = get_typed_dset_attr_list(dset, 'DELTA', float)
+    if err: return 0
+    if len(dims) != 3:
+       if verb > 1: print("-- GDBFD: dims = %s" % dims)
+       return 0
+
+    # geometric mean and blur size
+    gmean = math.pow(abs(dims[0]*dims[1]*dims[2]), 1.0/3)
+    bsize = truncate_to_N_bits(gmean, bits=bits, method=method,
+                               scale=scale, verb=verb)
+    if verb > 1:
+       print("-- GDBFD: dims = %s, gmean = %g, blur %g" % (dims, gmean, bsize))
+
+    return bsize
+
 def truncate_to_N_bits(val, bits, method='trunc', scale=1, verb=1):
     """truncate the real value to most significant N bits
        allow for any real val and positive integer bits
