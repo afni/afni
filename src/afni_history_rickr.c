@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Sep, 2025, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "OS_notes.macos_12_ARM_b_user.tcsh : also update .zshrc",
+   "Some installs set PATH without updates, so update in each shell."
+ } ,
+
  { 11, Sep, 2025, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "minor updates",
    "- suggest a new default blur (but still use 4.0), if none is given\n"
