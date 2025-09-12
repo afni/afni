@@ -2850,7 +2850,7 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado,
        SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
 
        // Restore threshold boundary if necessary
-       if (0 && SO->SurfCont->BoxOutlineThresh ){
+       if (SO->SurfCont->BoxOutlineThresh ){
             XtPointer clientData = (XtPointer)ado;
             SUMA_RestoreThresholdContours(clientData, NOPE);
        }
