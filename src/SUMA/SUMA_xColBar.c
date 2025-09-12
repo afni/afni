@@ -2893,110 +2893,14 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = 
     XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
 
+   // Process current hemisphaere
    SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado, curColPlane);
-//   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
-//      SUMA_S_Warn("NULL input"); SUMA_RETURNe;
-//   }
-//   curColPlane = SUMA_ADO_CurColPlane(ado);
-//   if ( !curColPlane ) {
-//      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; 
-//   }
-//
-//   SO = (SUMA_SurfaceObject *)ado;
-//   AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = 
-//    XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
-//    
-//    XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
-//                          SO->SurfCont->curColPlane->AlphaOpacityFalloff, NOPE);
-//
-//    // Default opacity model
-//    if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
-//
-//    // Temporarily suspend threshold outline.  This appears to resolve the 
-//    // problem of the color map changing with the threshold slider
-//    if (ado->do_type == SO_type) {
-//       SO = (SUMA_SurfaceObject *)ado;
-//       BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
-//       SO->SurfCont->BoxOutlineThresh = 0;
-//    }
-//
-//    // Make variable opacity appear
-//    // SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado);
-//
-//   // Create colorized plane
-//   if (!SUMA_ColorizePlane (curColPlane)) {
-//         SUMA_SLP_Err("Failed to colorize plane.\n");
-//         SUMA_RETURNe;
-//   }
-//
-//   // REFRESH DISPLAY
-//   // SUMA_Remixedisplay(ado);
-//
-//    if (SO && SO->SurfCont) {
-//       // Restore threshold boundary if necessary.  This is called when the 
-//       //   threshold slider is moved
-//       SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-//
-//       // Restore threshold boundary if necessary
-//       if (0 && SO->SurfCont->BoxOutlineThresh ){
-//            XtPointer clientData = (XtPointer)ado;
-//            SUMA_RestoreThresholdContours(clientData, NOPE);
-//       }
-//    }
-//
-//   // REFRESH DISPLAY
-//   SUMA_Remixedisplay(ado);
    
    // Process contralateral surface
-   // colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
-   
-    
-    #if 0
-
-   // Process all surface objects
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
-                 &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   if (numSurfaceObjects != N_adolist)
-   {
-        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-        SUMA_RETURNe;
-   }
+   colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
+   colpC->AlphaOpacityFalloff = AlphaOpacityFalloff;
+   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject((SUMA_ALL_DO *)SOC, colpC);
       
-   for (j=0; j<N_adolist; ++j){
-        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        if (otherAdo != ado){
-            if (otherAdo->do_type == SO_type){
-               SO = (SUMA_SurfaceObject *)otherAdo;
-        
-               // AlphaOpacityFalloff = !AlphaOpacityFalloff;
-               SO->SurfCont->curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;
-               
-               BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh ;
-               
-               XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
-                                          SO->SurfCont->curColPlane->AlphaOpacityFalloff, NOPE);
-
-               // Default opacity model
-               if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
-
-               // Make variable opacity appear
-               SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
-
-               SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-           }
-        }
-   }
-
-   // If this part is left out, outlines are only restored to one of two surfaces unless
-   //
-   if (SO->SurfCont->BoxOutlineThresh ){
-       SUMA_Remixedisplay(ado);
-       SUMA_UpdateNodeLblField(ado);
-    }
-
-    #endif
-    
    SUMA_RETURNe;
 }
 
