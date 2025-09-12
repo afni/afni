@@ -2081,12 +2081,12 @@ int SUMA_SwitchColPlaneBrightness(
          
         SUMA_SurfaceObject *SOC=NULL;
         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-         if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado)){
+         if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado, colp)){
               fprintf(stderr,  "Error restoring A and B button functionality.\n ");
               SUMA_RETURN(0);
         }
          colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
-         if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject((SUMA_ALL_DO *)SOC)){
+         if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject((SUMA_ALL_DO *)SOC, colpC)){
               fprintf(stderr,  "Error restoring A and B button functionality.\n ");
               SUMA_RETURN(0);
         }
@@ -2512,7 +2512,7 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
                 if (otherAdo->do_type == SO_type){
 
                    // Make variable opacity appear
-                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
+                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo, curColPlane);
                }
             }
        }
@@ -2666,7 +2666,7 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
                 if (otherAdo->do_type == SO_type){
 
                    // Make variable opacity appear
-                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
+                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo, curColPlane);
                }
             }
        }
@@ -2791,7 +2791,7 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
                 if (otherAdo->do_type == SO_type){
 
                    // Make variable opacity appear
-                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
+                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo, curColPlane);
                }
             }
        }
@@ -2800,35 +2800,49 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
-int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado)
+int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado,
+                    SUMA_OVERLAYS *curColPlane)
 {
    static char FuncName[]={"SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject"};
    SUMA_SurfaceObject *SO = NULL;
-   SUMA_OVERLAYS *curColPlane = NULL/*, *colp = NULL*/;
    SUMA_Boolean BoxOutlineThresh;
 
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
    
+   if (!ado) {
+      SUMA_S_Warn("NULL input"); SUMA_RETURN(0);
+   }
    curColPlane = SUMA_ADO_CurColPlane(ado);
-   if (!ado || !curColPlane) SUMA_RETURN(0);
+   if ( !curColPlane ) {
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURN(0); 
+   }
+
    SO = (SUMA_SurfaceObject *)ado;
+    
+    XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
+                          SO->SurfCont->curColPlane->AlphaOpacityFalloff, NOPE);
+
+    // Default opacity model
+    if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
 
     // Temporarily suspend threshold outline.  This appears to resolve the 
-   // problem of the color map changing with the threshold slider
-   if (ado->do_type == SO_type) {
+    // problem of the color map changing with the threshold slider
+    if (ado->do_type == SO_type) {
        SO = (SUMA_SurfaceObject *)ado;
        BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
        SO->SurfCont->BoxOutlineThresh = 0;
+    }
+
+   // Create colorized plane
+   if (!SUMA_ColorizePlane (curColPlane)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURN(0);
    }
-   
-   // curColPlane->N_NodeDef changed here to reflect the variable opacity nodes
-   SUMA_LH("Colorize");
-   if (!SUMA_ScaleToMap_Interactive2 (curColPlane)) {
-      SUMA_SLP_Err("Failed to colorize plane.\n");
-      SUMA_RETURN(0);
-   }
+
+   // REFRESH DISPLAY
+   // SUMA_Remixedisplay(ado);
 
     if (SO && SO->SurfCont) {
        // Restore threshold boundary if necessary.  This is called when the 
@@ -2836,11 +2850,14 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado)
        SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
 
        // Restore threshold boundary if necessary
-       if (SO->SurfCont->BoxOutlineThresh ){
+       if (0 && SO->SurfCont->BoxOutlineThresh ){
             XtPointer clientData = (XtPointer)ado;
             SUMA_RestoreThresholdContours(clientData, NOPE);
        }
     }
+
+   // REFRESH DISPLAY
+   SUMA_Remixedisplay(ado);
 
    SUMA_RETURN(1);
 }
@@ -2864,58 +2881,71 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    SUMA_LH("Called");
 
    ado = (SUMA_ALL_DO *)data;
-   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+   if (!ado) {
       SUMA_S_Warn("NULL input"); SUMA_RETURNe;
    }
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if ( !curColPlane ) {
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; 
    }
-
+   
    SO = (SUMA_SurfaceObject *)ado;
    AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = 
     XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
-    
-    XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
-                          SO->SurfCont->curColPlane->AlphaOpacityFalloff, NOPE);
 
-    // Default opacity model
-    if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
-
-    // Temporarily suspend threshold outline.  This appears to resolve the 
-    // problem of the color map changing with the threshold slider
-    if (ado->do_type == SO_type) {
-       SO = (SUMA_SurfaceObject *)ado;
-       BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
-       SO->SurfCont->BoxOutlineThresh = 0;
-    }
-
-    // Make variable opacity appear
-    // SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado);
-
-   // Create colorized plane
-   if (!SUMA_ColorizePlane (curColPlane)) {
-         SUMA_SLP_Err("Failed to colorize plane.\n");
-         SUMA_RETURNe;
-   }
-
-   // REFRESH DISPLAY
-   // SUMA_Remixedisplay(ado);
-
-    if (SO && SO->SurfCont) {
-       // Restore threshold boundary if necessary.  This is called when the 
-       //   threshold slider is moved
-       SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-
-       // Restore threshold boundary if necessary
-       if (0 && SO->SurfCont->BoxOutlineThresh ){
-            XtPointer clientData = (XtPointer)ado;
-            SUMA_RestoreThresholdContours(clientData, NOPE);
-       }
-    }
-
-   // REFRESH DISPLAY
-   SUMA_Remixedisplay(ado);
+   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado, curColPlane);
+//   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+//      SUMA_S_Warn("NULL input"); SUMA_RETURNe;
+//   }
+//   curColPlane = SUMA_ADO_CurColPlane(ado);
+//   if ( !curColPlane ) {
+//      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; 
+//   }
+//
+//   SO = (SUMA_SurfaceObject *)ado;
+//   AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = 
+//    XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
+//    
+//    XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
+//                          SO->SurfCont->curColPlane->AlphaOpacityFalloff, NOPE);
+//
+//    // Default opacity model
+//    if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
+//
+//    // Temporarily suspend threshold outline.  This appears to resolve the 
+//    // problem of the color map changing with the threshold slider
+//    if (ado->do_type == SO_type) {
+//       SO = (SUMA_SurfaceObject *)ado;
+//       BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+//       SO->SurfCont->BoxOutlineThresh = 0;
+//    }
+//
+//    // Make variable opacity appear
+//    // SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado);
+//
+//   // Create colorized plane
+//   if (!SUMA_ColorizePlane (curColPlane)) {
+//         SUMA_SLP_Err("Failed to colorize plane.\n");
+//         SUMA_RETURNe;
+//   }
+//
+//   // REFRESH DISPLAY
+//   // SUMA_Remixedisplay(ado);
+//
+//    if (SO && SO->SurfCont) {
+//       // Restore threshold boundary if necessary.  This is called when the 
+//       //   threshold slider is moved
+//       SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+//
+//       // Restore threshold boundary if necessary
+//       if (0 && SO->SurfCont->BoxOutlineThresh ){
+//            XtPointer clientData = (XtPointer)ado;
+//            SUMA_RestoreThresholdContours(clientData, NOPE);
+//       }
+//    }
+//
+//   // REFRESH DISPLAY
+//   SUMA_Remixedisplay(ado);
    
    // Process contralateral surface
    // colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
@@ -7437,7 +7467,7 @@ void SUMA_cb_SetRangeValue (void *data)
                 if (otherAdo->do_type == SO_type){
 
                    // Make variable opacity appear
-                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
+                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo, curColPlane);
                }
             }
        }
@@ -11001,7 +11031,8 @@ void SUMA_optmenu_EV( Widget w , XtPointer cd ,
                 if (otherAdo->do_type == SO_type){
 
                    // Make variable opacity appear
-                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo);
+                   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo,
+                            SUMA_ADO_CurColPlane(ado));
                }
             }
        }

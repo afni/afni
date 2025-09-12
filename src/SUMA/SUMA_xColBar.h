@@ -499,7 +499,8 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
                                      SUMA_SurfaceViewer *sv);
 XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w, 
                                  char *fontname, char *tag);
-int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado);
+int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, 
+    SUMA_OVERLAYS *curColPlane);
 
 
 /* the help strings */
