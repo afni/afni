@@ -1032,7 +1032,6 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
    float *bckupColorMap, *onesVector;
    int i, j, returnVal;   
    float *overlayBackup; 
-   float *CMapBackup; 
    static SUMA_DRAWN_ROI **OutlineContours = NULL;
    static int N_OutlineContours = 0;
    static SUMA_DRAWN_ROI **OriginalContours = NULL;
@@ -1069,40 +1068,30 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
              over2->Contours = NULL;
              
            // Back up overlay color map
-           size_t bytes2Copy = over2->N_NodeDef*sizeof(float);
-           size_t bytes2Copy2 = 3*over2->N_NodeDef*sizeof(float);
-           if (!(overlayBackup=(float *)malloc(bytes2Copy)) ||
-                !(CMapBackup=(float *)malloc(bytes2Copy2))){
-                if (overlayBackup) free(overlayBackup);
+           size_t bytes2CopyScalar = over2->N_V*sizeof(float);
+           if (!(overlayBackup=(float *)malloc(bytes2CopyScalar))){
                 fprintf(stderr, "*** %s: Error allocating memory\n", FuncName);
                 SUMA_RETURN (NOPE);
            }
-           for (i=0; i<over2->N_NodeDef; ++i){
-                overlayBackup[i] = over2->V[over2->NodeDef[i]];
-           }
-           memcpy((void *)CMapBackup, (void *)(over2->ColVec), bytes2Copy2);
            
            // Threshold based on relationship to superthreshold regions
            for (i=0; i<over2->N_V; ++i){
+                overlayBackup[i] = over2->V[i];
                 over2->V[i] = (float)(over2->V[i] >= over2->IntRange[0]);  
            }
-           
-//            fprintf(stderr, "SV->N_VCont = %d\n", SV->N_VCont);
-//            fprintf(stderr, "cp->N_NodeDef = %d\n", cp->N_NodeDef);
-           
+
             if (!SUMA_MakeThresholdOutlines (over2)) {
                  SUMA_SL_Err("Failed in SUMA_ScaleToMap_Interactive.");
                  SUMA_RETURN(0);
               }
-            
+
            // Restore overlay colormap
-           for (i=0; i<over2->N_NodeDef; ++i){
-                over2->V[over2->NodeDef[i]] = overlayBackup[i];
+           for (i=0; i<over2->N_V; ++i){
+                over2->V[i]  = overlayBackup[i];
            }
-           memcpy((void *)(over2->ColVec), (void *)CMapBackup, bytes2Copy2);
-           free(CMapBackup);
+
            free(overlayBackup);
-        
+
             // Make contours black
             if (over2->Contours){
                 for (i=0; i<over2->N_Contours; ++i){
@@ -1161,38 +1150,26 @@ void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
      
    // Apply threshold contours
-    for (i=0; i<SO->N_Overlays; ++i){
-        if (SO->SurfCont->curColPlane == SO->Overlays[i]){
-           colorplaneIndex = i;
-
-           // Get colorplane overlay
-           over2 = SO->Overlays[colorplaneIndex];
-           
-           // Don't process if threshold zero
-           if (over2->OptScl->ThreshRange[0] == 0) continue;
-            
-           if (!over2){
-                fprintf(stderr, "+++++ WARNING: %s: Required overlay unavailable\n",
-                    FuncName);
-                SUMA_RETURNe;
-           }
-          
-           // Determine whether threshold changed
-           thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
-
-           // Set up outlines for thresholded regions
-           setBoxOutlineForThresh(SO, over2, thresholdChanged);   
-           
-           break;
-        }
-    }   
+   
+   over2 = SUMA_ADO_CurColPlane(ado); // Get colorplane overlay    
+   if (!over2){
+        fprintf(stderr, "+++++ WARNING: %s: Required overlay unavailable\n",
+            FuncName);
+        SUMA_RETURNe;
+   }
   
+   // Determine whether threshold changed
+   thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
+
+   // Set up outlines for thresholded regions
+   setBoxOutlineForThresh(SO, over2, thresholdChanged);   
+/*  
    // Refresh display
    if (refreshDisplay){
        SUMA_Remixedisplay(ado);
        SUMA_UpdateNodeLblField(ado);
    }
-
+*/
    SUMA_RETURNe;   
 }
 
@@ -2923,7 +2900,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    }
 
    // REFRESH DISPLAY
-   SUMA_Remixedisplay(ado);
+   // SUMA_Remixedisplay(ado);
 
     if (SO && SO->SurfCont) {
        // Restore threshold boundary if necessary.  This is called when the 
@@ -2931,7 +2908,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
        SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
 
        // Restore threshold boundary if necessary
-       if (SO->SurfCont->BoxOutlineThresh ){
+       if (0 && SO->SurfCont->BoxOutlineThresh ){
             XtPointer clientData = (XtPointer)ado;
             SUMA_RestoreThresholdContours(clientData, NOPE);
        }
@@ -3026,6 +3003,8 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    // Get box outline threshold status from checkbox
    BoxOutlineThresh = XmToggleButtonGetState(w); 
    
+   applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE);
+/*   
    // Process all surface objects
    int numSurfaceObjects;
    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
@@ -3042,7 +3021,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
             applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE);
         }
    }
-
+/**/
    // Refresh display
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
