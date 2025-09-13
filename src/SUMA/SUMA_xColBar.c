@@ -2880,12 +2880,18 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    }
    
    // Get state from check box
-   SO = (SUMA_SurfaceObject *)ado;
+   if (!(SO = (SUMA_SurfaceObject *)ado)){
+    SUMA_S_Warn("Failure to apply threshold outlines to current hemisphere");
+    SUMA_RETURNe;
+   }
    AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = 
     XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
 
    // Process current hemisphaere
-   SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado, curColPlane);
+   if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado, curColPlane)){
+    SUMA_S_Warn("Failure to apply threshold outlines to current hemisphere");
+    SUMA_RETURNe;
+   }
    
    // Process contralateral surface
    colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
@@ -2902,8 +2908,9 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *over2 = NULL;
+   SUMA_OVERLAYS *over2 = NULL, *colpC=NULL;
    static int BoxOutlineThresh = 0;
+   SUMA_SurfaceObject *SOC=NULL, *SO = NULL;
    static float threshold;
    int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
    SUMA_Boolean    thresholdChanged;
@@ -2922,39 +2929,24 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    // Get box outline threshold status from checkbox
    BoxOutlineThresh = XmToggleButtonGetState(w);    
       
-
-//   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-//   if (!(SO->SurfCont)){
-//        fprintf(stderr, "ERROR %s: Cannot have surface threshold outline.  No surface\n", 
-//            FuncName);
-//        XmToggleButtonSetState(w, 0, 0);
-//        SUMA_RETURNe;
-//   }
-//
-//   // Set widget state without calling callback
-//   w = SO->SurfCont->BoxOutlineThresh_tb;   
-//   XmToggleButtonSetState(w, BoxOutlineThresh, 0);
-//   
-//   // Record threshold contour status for this surface object
-//   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-//     
-//   // Apply threshold contours
-//   
-//   over2 = SUMA_ADO_CurColPlane(ado); // Get colorplane overlay    
-//   if (!over2){
-//        fprintf(stderr, "+++++ WARNING: %s: Required overlay unavailable\n",
-//            FuncName);
-//        SUMA_RETURNe;
-//   }
-//  
-//   // Determine whether threshold changed
-//   thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
-//
-//   // Set up outlines for thresholded regions
-//   setBoxOutlineForThresh(SO, over2, thresholdChanged);   
-//
-   
+   // Process for current hemisphere
    applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE);
+      
+   // Process for contralateral hemisphere
+   SO = (SUMA_SurfaceObject *)ado;
+   over2 = SUMA_ADO_CurColPlane(ado);
+   if (!SO || !over2){
+    fprintf(stderr, "ERROR %s: NULL point to surface and/or colormap\n", 
+        FuncName);
+    SUMA_RETURNe;
+   }
+   colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
+   if (!SOC || !over2){
+    fprintf(stderr, "ERROR %s: NULL point to surface and/or colormap\n", 
+        FuncName);
+    SUMA_RETURNe;
+   }
+   applyBoxOutlineThreshStatusToSurfaceObject((SUMA_ALL_DO *)SOC, BoxOutlineThresh, NOPE);
 /*   
    // Process all surface objects
    int numSurfaceObjects;
