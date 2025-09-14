@@ -368,6 +368,16 @@ the directory name are used for the display. If AFNI_SESSTRAIL
 is not set, then it is equivalent to setting it to 0 (which
 was the old method).
 
+---------------------------
+Variable: AFNI_SESSION_SORT
+---------------------------
+This is a string to set the sort order within the dataset choosers
+in the afni GUI. The allowed values are
+ALPHA    = alphabetical, case insensitive (A=a)
+REVALPHA = reverse alphabetical
+MRITYPE  = dataset type - anatomical, functional
+NONE     = previous default sorting of MRI type, then NIFTI, other types
+
 --------------------
 Variable: AFNI_HINTS
 --------------------

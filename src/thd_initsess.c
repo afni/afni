@@ -7,12 +7,22 @@
 #include "mrilib.h"
 #include "thd.h"
 
+typedef enum { SORT_NONE = 0, SORT_ALPHA = 1,  SORT_REVALPHA = 2,  
+               SORT_ANAT = 3, NOTSET = 4 } SORT_order;
+static SORT_order dsrow_sortorder = NOTSET;
+
+static int compare_qsort_dsrows(const void *dsr1, const void *dsr2);
+static int compare_real_strings (char *a, char *b );
+static SORT_order get_dsrow_sortorder(void);
+static void set_dsrow_sortorder(SORT_order sortorder);
+
 /*---------------------------------------------------------------------
    Given a directory name, read in all the datasets and make
    a session data structure from them.
 
    [28 Jul 2003] Modified to use new THD_session struct, wherein all
                  datasets are in one array (no anat/func distinction).
+   [12 Sep 2025] DRG Now sorts datasets in sessions alphabetically by default
 -----------------------------------------------------------------------*/
 
 THD_session * THD_init_session( char *sessname )
@@ -124,7 +134,7 @@ fprintf(stderr, "blanking session\n");
           THD_delete_3dim_dataset( dset , False ) ;
         } else {
 #ifdef DEBUG_SESSIONS
-fprintf(stderr,"\nputting datasets into initial view \n");
+fprintf(stderr,"\Inputting datasets into initial view \n");
 #endif
           SET_SESSION_DSET(dset, sess, nds, iview);  /* should always happen */
         }
@@ -664,7 +674,37 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
 
 void THD_order_session( THD_session *sess )
 {
-   THD_3dim_dataset *qset[THD_MAX_SESSION_SIZE][LAST_VIEW_TYPE+1] ;
+#ifndef oldsessions
+   int nrows;
+   THD_dsarr *dsrow;  /* individual dataset row pointer */
+
+ENTRY("THD_order_session") ;
+
+   if( sess == NULL || sess->num_dsset <= 1 ) EXRETURN ;
+
+   /* put anats into qset */
+/* qset is a temporary array of datasets for sorting, 
+   like the dsrow dataset rows of a session.
+
+   note the original sorting is a very simple extraction of the 
+   anat type datasets first followed by funcs (not really a sort)
+
+   the original sort checks across all views/spaces for an anat
+   dataset and puts that early in the list; otherwise all
+   datasets are added to end
+*/
+
+   if(get_dsrow_sortorder()==SORT_NONE)
+      EXRETURN;
+   dsrow = sess->dsrow[0];
+   nrows = sess->num_dsset;
+   qsort(sess->dsrow, nrows, sizeof(THD_dsarr **), compare_qsort_dsrows); 
+EXRETURN;
+
+
+#else
+/* previous way to sort a session *//
+    THD_3dim_dataset *qset[THD_MAX_SESSION_SIZE][LAST_VIEW_TYPE+1] ;
    THD_3dim_dataset *dset=NULL ;
    int iview , ids , nds ;
 
@@ -719,6 +759,8 @@ ENTRY("THD_order_session") ;
         SET_SESSION_DSET(qset[ids][iview], sess, ids, iview);
    sess->num_dsset = nds ;  /* shouldn't change */
    EXRETURN ;
+/* end of old anatomical sorting */
+#endif
 }
 
 /*---------------------------------------------------------------------*/
@@ -928,4 +970,102 @@ ENTRY("THD_init_session_bysub") ;
    }
 
    RETURN(sess) ;
+}
+
+
+/* comparison function for sorting datasets - called by qsort */
+static int compare_qsort_dsrows(const void *dsr1, const void *dsr2)
+{
+   int sort_flag, i;
+   THD_3dim_dataset *dset1, *dset2;
+   THD_dsarr *dsrow1, *dsrow2;
+
+
+   dsrow1 = *(THD_dsarr **) dsr1;
+   dsrow2 = *(THD_dsarr **) dsr2;
+
+/* could sort datasets on alphabetical, case insensitive alphabetical, 
+   space names available, view in dataset name, dataset types (anat, func,...)
+   storage file types 
+   default here is to sort on case insensitive A=a alphabetic  */
+   /* find first dset in space row that exists - orig,acpc,tlrc */
+   for (i=0;i<dsrow1->nds;i++) {
+      dset1 = dsrow1->ds[i];
+      if(dset1) break;
+   }
+   for (i=0;i<dsrow2->nds;i++) {
+      dset2 = dsrow2->ds[i];
+      if(dset2) break;
+   }
+
+   switch(get_dsrow_sortorder()){
+      /* anatomicals first, then all others */
+      case SORT_ANAT:
+         sort_flag = compare_real_strings(DSET_TYPESTR(dset1),
+                                          DSET_TYPESTR(dset2));
+         if(sort_flag == 0)
+         sort_flag = compare_real_strings(DSET_PREFIX(dset1),
+                                          DSET_PREFIX(dset2));
+         break;
+      /* reverse alphabetic sort */
+      case SORT_REVALPHA:
+         sort_flag = compare_real_strings(DSET_PREFIX(dset2),
+                                          DSET_PREFIX(dset1));
+         break;
+      /* alphabetic sort */
+      default:
+      case SORT_ALPHA:
+         sort_flag = compare_real_strings(DSET_PREFIX(dset1),
+                                          DSET_PREFIX(dset2));
+         break;
+   }
+   return(sort_flag);
+}
+
+/* from compare_string() in cs_qmed.c */
+static int compare_real_strings (char *a, char *b )
+{/* compare_real_string*/
+
+   if (!a && !b) return(0);
+   if (!a) return(-1);
+   if (!b) return(1);
+   return (strcasecmp(a, b));
+}
+
+/* set the sortorder of rows of datasets in sessions (for dataset choosers) */
+/* could allow resetting sort order in GUI, maybe through environment */
+static void set_dsrow_sortorder(SORT_order sortorder)
+{
+   dsrow_sortorder = sortorder;
+}
+
+/* get sort order for rows of datasets */
+static SORT_order get_dsrow_sortorder()
+{
+   char *sort_str = NULL;
+
+   /* check sort order only once and set it in static variable */
+   if(dsrow_sortorder == NOTSET){ 
+      dsrow_sortorder = SORT_ALPHA;
+      sort_str = getenv("AFNI_SESSION_SORT");   
+      if(sort_str){
+         if(strcmp(sort_str, "ALPHA")==0){
+            return(SORT_ALPHA);
+         }
+         if(strcmp(sort_str, "REVALPHA")==0){
+            dsrow_sortorder = SORT_REVALPHA;
+            return(dsrow_sortorder);
+         }
+         if(strcmp(sort_str, "MRITYPE")==0){
+            dsrow_sortorder = SORT_ANAT;
+            return(dsrow_sortorder);
+         }
+         if(strcmp(sort_str, "NONE")==0){
+            dsrow_sortorder = SORT_NONE;
+            return(dsrow_sortorder);
+         }
+      }
+   }
+
+   return(dsrow_sortorder);
 }
