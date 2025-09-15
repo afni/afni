@@ -338,6 +338,10 @@ void AFNI_make_wid3 (Three_D_View *) ;
 static Widget wtemp ;
 static char jumpstring[128];                  /* 13 Jun 2014 */
 
+static int get_crosshair_gap();               /* 15 Sep 2025 */
+static int crosshair_gap = -2;
+static int MAX_GAP = 19;
+
 /*--------------------------------------------------------------------*/
 
 void AFNI_make_widgets( Three_D_View *im3d )
@@ -6431,7 +6435,7 @@ ENTRY("new_AFNI_controller") ;
 
    last_color = im3d->dc->ovc->ncol_ov - 1 ;
 
-   im3d->vinfo->crosshair_gap     = INIT_crosshair_gap ;
+   im3d->vinfo->crosshair_gap     = get_crosshair_gap();
    im3d->vinfo->crosshair_gap_old = 0 ;
    im3d->vinfo->crosshair_visible = True ;                /* show crosshairs */
    im3d->vinfo->crosshair_ovcolor = MIN(last_color,INIT_crosshair_color) ;
@@ -8190,4 +8194,27 @@ void reset_mnito(struct Three_D_View *im3d)
 
    MCW_set_widget_label( im3d->vwid->imag->pop_mnito_pb, jumpstring ) ;
    XtManageChild( im3d->vwid->imag->pop_mnito_pb ) ;
+}
+
+/* set the size of the gap in the crosshairs */
+static int get_crosshair_gap()
+{
+   int tempgap;
+
+   if(crosshair_gap>=-1)
+      return(crosshair_gap);
+   else {
+      /* get crosshair gap from environment if it exists - 
+         catch not set because we want to distinguish 0's */
+      tempgap = (int) AFNI_numenv_def("AFNI_CROSSHAIR_GAP",
+                                      (double) INIT_crosshair_gap);
+      /* make sure it's legit. For now limit to -1 voxels (closed) to max=19*/
+      if((tempgap>=-1) && (tempgap<MAX_GAP))
+         crosshair_gap =tempgap;
+      else
+         crosshair_gap = INIT_crosshair_gap ; /* default=5 in pbardefs */
+   }
+
+   return(crosshair_gap);
+
 }
