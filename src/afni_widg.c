@@ -8212,7 +8212,7 @@ static int get_crosshair_gap()
       if((tempgap>=-1) && (tempgap<MAX_GAP))
          crosshair_gap =tempgap;
       else
-         crosshair_gap = INIT_crosshair_gap ; /* default=5 in pbardefs */
+         crosshair_gap = INIT_crosshair_gap ; /* default=5 pbar_color_defs.c */
    }
 
    return(crosshair_gap);

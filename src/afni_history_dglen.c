@@ -53,6 +53,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 15, SEP, 2025, DRG, "afni",
+     MICRO, TYPE_NEW_ENV,
+    "AFNI_XHAIR_GAP can be set to specify crosshair gap"
+},
 { 19, AUG, 2025, DRG, "3dXYZcat",
      MICRO, TYPE_BUG_FIX,
     "3dXYZcat generated extra empty volume in X direction"
