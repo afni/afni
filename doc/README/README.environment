@@ -373,10 +373,10 @@ Variable: AFNI_SESSION_SORT
 ---------------------------
 This is a string to set the sort order within the dataset choosers
 in the afni GUI. The allowed values are
-ALPHA    = alphabetical, case insensitive (A=a) (order=numeric,alpha,underscore)
-REVALPHA = reverse alphabetical
+ALPHA    = alphabetical, case insensitive (A=a) (numeric,alpha Aa-Zz,underscore)
+REVALPHA = reverse alphabetical (reverse of ALPHA:underscore,zZ-aA,numeric)
 MRITYPE  = dataset type - anatomical, functional
-NONE     = previous default sorting of MRI type, then NIFTI, other types
+NONE     = no sorting at all, but order of filling is AFNI then NIFTI
 
 --------------------
 Variable: AFNI_HINTS
