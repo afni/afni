@@ -15195,7 +15195,7 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
             /* draw them */
             for (ic=0; ic<colplane->N_Contours; ++ic) {
                D_ROI = (SUMA_DRAWN_ROI *)colplane->Contours[ic];
-               SUMA_LHv("Dset Contouring %d\n", ic);
+               SUMA_LHv("ic = %d\n", ic);
 
                if (D_ROI->CE && D_ROI->N_CE) {
                   /* Draw the contour */

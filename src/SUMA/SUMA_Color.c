@@ -3905,7 +3905,7 @@ SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
    } else {
       Opt->ColsContMode = 0;
    }
-
+   
    // This is totally necessary.  Program crashes w/o it.   
    SV = SUMA_Create_ColorScaledVect(SDSET_VECFILLED(Sover->dset_link),
                                     Opt->ColsContMode);
@@ -3922,7 +3922,7 @@ SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
                  SV->isMasked[i] = YUP; /* Mask */
        }
    }
-
+   
    /* setup nodedef so that it can be used along with Sover->V
       for clusterinzing. Sover->V will get modified in subsequent
       calls so got to do it now */
@@ -3934,7 +3934,7 @@ SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
       }
    }
    nd = SUMA_GetNodeDef(Sover->dset_link);
-    
+   
    if (nd) {
       cnt = 0;
       for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
@@ -3955,6 +3955,8 @@ SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
       }
    }
    Sover->FullList = NOPE;
+   
+   // #if 0
 
    /* colorizing */
   SUMA_LHv("Scaling a la SUMA %f %f\n", Opt->IntRange[0], Opt->IntRange[1]);
@@ -3965,6 +3967,8 @@ SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
      SUMA_SL_Err("Failed in  SUMA_ScaleToMap");
      SUMA_RETURN(NOPE);
   }
+   
+   // #if 0
 
    /* Do we need to create contours */
    if (Opt->ColsContMode) {
@@ -3973,6 +3977,8 @@ SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
       else
          SUMA_ContourateDsetOverlay(Sover, SV, SO);
    }
+   
+   #if 0
 
    /* update remix ID */
    ++Sover->RemixOID;
@@ -3982,7 +3988,7 @@ SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
    if (B) SUMA_free(B); B = NULL;
    if (SV)  SUMA_Free_ColorScaledVect (SV); SV = NULL;
    
-   // #endif
+   #endif
 
    SUMA_RETURN(YUP);
 }
@@ -7964,6 +7970,8 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
 
    SUMA_ENTRY;
    
+   #if 0
+   
    el = dlist_head(SUMAg_CF->DsetList);
    while (el) {
       dd = (SUMA_DSET*)el->data;
@@ -8146,7 +8154,7 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
       }
       el = dlist_next(el);
    }
-
+#endif
    SUMA_RETURN(YUP);
 }
 
@@ -12456,6 +12464,9 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
    if (!cp) SUMA_RETURN(NOPE);
    if (!cp->dset_link) SUMA_RETURN(NOPE);
 
+    cp->Contours = NULL;
+    cp->N_Contours = 0;
+   
   if (!SV) {
       if (SUMA_is_Label_dset(cp->dset_link,NULL) ||
           SUMA_is_Label_dset_col(cp->dset_link, cp->OptScl->find)) {
@@ -12505,20 +12516,28 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
          }
          ind = cp->NodeDef;
          key = SV->VCont;
+         
+         // #if 0
 
          numContours = (SO->SurfCont->BoxOutlineThresh)? SV->N_VCont :
             cp->N_NodeDef;
          // numContours = cp->N_NodeDef;   // DEBUG
-         cp->Contours = 
-            SUMA_MultiColumnsToDrawnROI( numContours,
-                  (void *)ind, SUMA_int,
-                  (void *)key, SUMA_int,
-                  NULL, SUMA_notypeset,
-                  NULL, SUMA_notypeset,
-                  NULL, SUMA_notypeset,
-                  SUMA_FindNamedColMap (cp->cmapname), 1,
-                  cp->Label, SDSET_IDMDOM(cp->dset_link),
-                  &(cp->N_Contours), 1, 1);
+         
+         if (numContours > 0){
+             cp->Contours = 
+                SUMA_MultiColumnsToDrawnROI( numContours,
+                      (void *)ind, SUMA_int,
+                      (void *)key, SUMA_int,
+                      NULL, SUMA_notypeset,
+                      NULL, SUMA_notypeset,
+                      NULL, SUMA_notypeset,
+                      SUMA_FindNamedColMap (cp->cmapname), 1,
+                      cp->Label, SDSET_IDMDOM(cp->dset_link),
+                      &(cp->N_Contours), 1, 1);
+         } else {
+            cp->Contours = NULL;
+            cp->N_Contours = 0;
+         }
          if (LocalHead) SUMA_Show_ColorOverlayPlanes(&cp, 1, 0);
       }
    }
