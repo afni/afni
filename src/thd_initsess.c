@@ -15,6 +15,7 @@ static int compare_qsort_dsrows(const void *dsr1, const void *dsr2);
 static int compare_real_strings (char *a, char *b );
 static SORT_order get_dsrow_sortorder(void);
 static void set_dsrow_sortorder(SORT_order sortorder);
+static int strucasecmp(const char *s1, const char *s2);
 
 /*---------------------------------------------------------------------
    Given a directory name, read in all the datasets and make
@@ -1029,7 +1030,7 @@ static int compare_real_strings (char *a, char *b )
    if (!a && !b) return(0);
    if (!a) return(-1);
    if (!b) return(1);
-   return (strcasecmp(a, b));
+   return (strucasecmp(a, b));
 }
 
 /* set the sortorder of rows of datasets in sessions (for dataset choosers) */
@@ -1068,4 +1069,17 @@ static SORT_order get_dsrow_sortorder()
    }
 
    return(dsrow_sortorder);
+}
+
+/* use uppercase version of strcasecmp for comparison (vs lower case)
+ * mostly to avoid __tt... datasets appearing before alphabetic */
+static int strucasecmp(const char *s1, const char *s2)
+{
+    int c1, c2;
+
+    do {
+        c1 = toupper(*s1++);
+        c2 = toupper(*s2++);
+    } while (c1 == c2 && c1 != 0);
+    return c1 - c2;
 }
