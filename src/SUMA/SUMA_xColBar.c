@@ -1121,7 +1121,7 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
    SUMA_RETURN (YUP);
 }
 
-void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado, 
+int applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado, 
         int BoxOutlineThresh, SUMA_Boolean refreshDisplay)
 {
    static char FuncName[]={"applyBoxOutlineThreshStatusToSurfaceObject"};
@@ -1139,7 +1139,7 @@ void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
         fprintf(stderr, "ERROR %s: Cannot have surface threshold outline.  No surface\n", 
             FuncName);
         XmToggleButtonSetState(w, 0, 0);
-        SUMA_RETURNe;
+        SUMA_RETURN(0);;
    }
    
    // Set widget state without calling callback
@@ -1154,7 +1154,7 @@ void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
    if (!over2){
         fprintf(stderr, "+++++ WARNING: %s: Required overlay unavailable\n",
             FuncName);
-        SUMA_RETURNe;
+        SUMA_RETURN(0);;
    }
   
    // Determine whether threshold changed
@@ -1163,7 +1163,7 @@ void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
    // Set up outlines for thresholded regions
    setBoxOutlineForThresh(SO, over2, thresholdChanged);   
 
-   SUMA_RETURNe;   
+   SUMA_RETURN(1);;   
 }
 
 void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay)
@@ -2930,7 +2930,11 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    BoxOutlineThresh = XmToggleButtonGetState(w);    
       
    // Process for current hemisphere
-   applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE);
+   if (!applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE)){
+        fprintf(stderr, "%s: ERROR applying threshold contours to current hemisphere\n", 
+            FuncName);
+        SUMA_RETURNe;
+   }
       
    // Process for contralateral hemisphere
    SO = (SUMA_SurfaceObject *)ado;
@@ -2942,11 +2946,15 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    }
    colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
    if (!SOC || !over2){
-    fprintf(stderr, "ERROR %s: NULL point to surface and/or colormap\n", 
+    fprintf(stderr, "ERROR %s: NULL pointer to surface and/or colormap\n", 
         FuncName);
     SUMA_RETURNe;
    }
-   applyBoxOutlineThreshStatusToSurfaceObject((SUMA_ALL_DO *)SOC, BoxOutlineThresh, NOPE);
+   if (!applyBoxOutlineThreshStatusToSurfaceObject((SUMA_ALL_DO *)SOC, BoxOutlineThresh, NOPE)){
+        fprintf(stderr, "%s: ERROR applying threshold contours to contralateral hemisphere\n", 
+            FuncName);
+        SUMA_RETURNe;
+   }
 /*   
    // Process all surface objects
    int numSurfaceObjects;

@@ -501,7 +501,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
                                  char *fontname, char *tag);
 int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, 
     SUMA_OVERLAYS *curColPlane);
-void applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado, 
+int applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado, 
         int BoxOutlineThresh, SUMA_Boolean refreshDisplay);
     
 
