@@ -1128,7 +1128,6 @@ int applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
    SUMA_SurfaceObject *SO = NULL;
    SUMA_OVERLAYS *over2 = NULL;
    Widget w = NULL;
-   int i, colorplaneIndex = -1;
    Bool  thresholdChanged;
    static float threshold;
 
@@ -2911,8 +2910,6 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    SUMA_OVERLAYS *over2 = NULL, *colpC=NULL;
    static int BoxOutlineThresh = 0;
    SUMA_SurfaceObject *SOC=NULL, *SO = NULL;
-   static float threshold;
-   int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
    SUMA_Boolean    thresholdChanged;
 
    SUMA_ENTRY;
@@ -2955,24 +2952,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
             FuncName);
         SUMA_RETURNe;
    }
-/*   
-   // Process all surface objects
-   int numSurfaceObjects;
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   if (numSurfaceObjects != N_adolist)
-   {
-        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-        SUMA_RETURNe;
-   }
-  
-   for (j=0; j<N_adolist; ++j){
-        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        if (ado->do_type == SO_type){
-            applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE);
-        }
-   }
-/**/
+
    // Refresh display
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
