@@ -8209,7 +8209,7 @@ static int get_crosshair_gap()
       tempgap = (int) AFNI_numenv_def("AFNI_CROSSHAIR_GAP",
                                       (double) INIT_crosshair_gap);
       /* make sure it's legit. For now limit to -1 voxels (closed) to max=19*/
-      if((tempgap>=-1) && (tempgap<MAX_GAP))
+      if((tempgap>=-1) && (tempgap<=MAX_GAP))
          crosshair_gap =tempgap;
       else
          crosshair_gap = INIT_crosshair_gap ; /* default=5 pbar_color_defs.c */
