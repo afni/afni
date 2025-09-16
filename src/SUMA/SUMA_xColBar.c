@@ -1170,8 +1170,9 @@ void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay)
     // Called when B checkbox toggled
    static char FuncName[]={"SUMA_RestoreThresholdContours"};
    SUMA_ALL_DO *ado=NULL;
+   SUMA_SurfaceObject *SO = NULL, *SOC=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *over2 = NULL;
+   SUMA_OVERLAYS *over2 = NULL, *colpC=NULL;
    Bool  thresholdChanged;
    static int BoxOutlineThresh = 0;
    static float threshold;
@@ -1190,22 +1191,15 @@ void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay)
    // Get box outline threshold status from checkbox
    BoxOutlineThresh = XmToggleButtonGetState(SurfCont->BoxOutlineThresh_tb); 
    
-    // Process all surface objects
-   int numSurfaceObjects;
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   if (numSurfaceObjects != N_adolist)
-   {
-        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-        SUMA_RETURNe;
-   }
-   for (j=0; j<N_adolist; ++j){
-        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        if (ado->do_type == SO_type){
-            applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE);
-        }
-   }
+   // Process current hemisphere
+   applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE);
    
+   // Process contralateral hemisphere
+   SO = (SUMA_SurfaceObject *)ado;
+   over2 = SUMA_ADO_CurColPlane(ado);
+   colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
+   applyBoxOutlineThreshStatusToSurfaceObject((SUMA_ALL_DO *)SOC, BoxOutlineThresh, NOPE);
+
    SUMA_RETURNe;
 }
 
