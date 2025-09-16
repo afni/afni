@@ -116,6 +116,7 @@
 // AFNI_IMAGE_LABEL_SIZE      = 2     // size of labels in Image windows
 // AFNI_IMAGE_LABEL_COLOR     = white // color of labels in Image windows
 // AFNI_IMAGE_LABEL_SETBACK   = 0.01  // distance from edges for labels
+// AFNI_CROSSHAIRGAP          = 5     // gap in crosshair in voxels
 // AFNI_CROSSHAIR_LINES       = YES   // draw crosshairs with lines, not voxels
 // AFNI_CROP_ZOOMSAVE         = NO    // how to save zoomed Image windows
 // AFNI_IMAGE_ZEROCOLOR       = white // color of 0 voxels in Image window

@@ -1679,6 +1679,12 @@ range is 0 .. 0.05 (which will be very thick lines, I assure you).
 This variable was introduced in March 2015 for Corianne (if there is
 such a person).
 
+----------------------------------
+Variable: AFNI_CROSSHAIRGAP
+----------------------------------
+This numeric variable lets you set the gap between the image viewer crosshairs.
+The default value is 5 voxels. Allowable range is from -1 (closed) to 19 voxels.
+
 -----------------------------
 Variable: AFNI_CROSSHAIRS_OFF
 -----------------------------
