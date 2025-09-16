@@ -2896,6 +2896,9 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
    colpC->AlphaOpacityFalloff = AlphaOpacityFalloff;
    SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject((SUMA_ALL_DO *)SOC, colpC);
+
+   // REFRESH DISPLAY
+   SUMA_Remixedisplay(ado);
       
    SUMA_RETURNe;
 }
@@ -2954,8 +2957,8 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    }
 
    // Refresh display
-   SUMA_Remixedisplay(ado);
-   SUMA_UpdateNodeLblField(ado);
+//   SUMA_Remixedisplay(ado);
+//   SUMA_UpdateNodeLblField(ado);
 
    SUMA_RETURNe;
 }
