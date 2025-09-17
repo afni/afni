@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Sep, 2025, RCR, "afni", MICRO, TYPE_GENERAL,
+   "add comment list of NAME2-enabled environment variables for grepping",
+   "Done to appease the mighty D Glen."
+ } ,
+
  { 11, Sep, 2025, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "OS_notes.macos_12_ARM_b_user.tcsh : also update .zshrc",
    "Some installs set PATH without updates, so update in each shell."
