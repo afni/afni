@@ -143,7 +143,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                              THIS handling here is TEMPORARY */
     int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
     int numSurfaceObjects, j;
-    int newMin, newMax;
+    float newMin, newMax;
    SUMA_Boolean LocalHead = NOPE;
 
 
