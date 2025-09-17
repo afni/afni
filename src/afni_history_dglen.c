@@ -53,6 +53,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 12, SEP, 2025, DRG, "afni",
+     MINOR, TYPE_ENHANCE,
+    "afni GUI can now sort datasets in chooser alphabetically",
+    "Previously, sessions were sorted by anatomical, func, then NIFTI.\n"
+    "Now the user has options to set alphabetic, reverse alphabetic,\n"
+    "mri type (data type including NIFTI) or no re-sorting (original \n"
+    "mri type then NIFTI) using AFNI environment variables."
+},
 { 19, AUG, 2025, DRG, "3dXYZcat",
      MICRO, TYPE_BUG_FIX,
     "3dXYZcat generated extra empty volume in X direction"
