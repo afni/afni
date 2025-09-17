@@ -1134,7 +1134,7 @@ int applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
    SUMA_ENTRY;
    
    if (!ado){
-        fprintf(stderr, "+++++ ERROR: %s: NULL ADO pointer\n",
+        fprintf(stderr, "** ERROR: %s: NULL ADO pointer\n",
             FuncName);
         SUMA_RETURN(0);;
    }
@@ -1145,12 +1145,12 @@ int applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
    SO = (SUMA_SurfaceObject *)ado;
    fprintf(stderr, "%s: SO = %p\n\n", FuncName, SO);
    if (!SO){
-        fprintf(stderr, "+++++ ERROR: %s: NULL surface object pointer\n",
+        fprintf(stderr, "** ERROR: %s: NULL surface object pointer\n",
             FuncName);
         SUMA_RETURN(0);;
    }
    if (!(SO->SurfCont)){
-        fprintf(stderr, "ERROR %s: Cannot have surface threshold outline.  No surface\n", 
+        fprintf(stderr, "** ERROR %s: Cannot have surface threshold outline.  No surface\n", 
             FuncName);
         XmToggleButtonSetState(w, 0, 0);
         SUMA_RETURN(0);;
@@ -7915,7 +7915,7 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
 // TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "B", '\0', YUP, SwitchBrt_Menu,
-                           "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
+                           "B", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
                            (void *)ado,
 // TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "SurfCont->Dset_Mapping->B",
                            "SurfCont->Dset_Mapping->_",  // TEMPORARY FOR MERGE WITH MASTER
@@ -8577,7 +8577,7 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
 // TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "B", '\0', YUP, SwitchBrt_Menu,
-                           "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
+                           "B", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
                            (void *)ado,
                            "VolCont->Dset_Mapping->B",
                "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
@@ -9209,7 +9209,7 @@ void SUMA_set_cmap_options_GLDO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
 // TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "B", '\0', YUP, SwitchBrt_Menu,
-                           "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
+                           "B", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
                            (void *)ado,
 // TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "GraphCont->GDset_Mapping->B",
                            "GraphCont->GDset_Mapping->_",  // TEMPORARY FOR MERGE WITH MASTER
