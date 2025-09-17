@@ -1132,8 +1132,23 @@ int applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
    static float threshold;
 
    SUMA_ENTRY;
+   
+   if (!ado){
+        fprintf(stderr, "+++++ ERROR: %s: NULL ADO pointer\n",
+            FuncName);
+        SUMA_RETURN(0);;
+   }
+   
+   fprintf(stderr, "%s: OK 1\n", FuncName);
 
+   fprintf(stderr, "%s: ado = %p\n\n", FuncName, ado);
    SO = (SUMA_SurfaceObject *)ado;
+   fprintf(stderr, "%s: SO = %p\n\n", FuncName, SO);
+   if (!SO){
+        fprintf(stderr, "+++++ ERROR: %s: NULL surface object pointer\n",
+            FuncName);
+        SUMA_RETURN(0);;
+   }
    if (!(SO->SurfCont)){
         fprintf(stderr, "ERROR %s: Cannot have surface threshold outline.  No surface\n", 
             FuncName);
@@ -1141,13 +1156,19 @@ int applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
         SUMA_RETURN(0);;
    }
    
+   fprintf(stderr, "%s: OK 2\n", FuncName);
+
    // Set widget state without calling callback
    w = SO->SurfCont->BoxOutlineThresh_tb;   
    XmToggleButtonSetState(w, BoxOutlineThresh, 0);
    
+   fprintf(stderr, "%s: OK 3\n", FuncName);
+
    // Record threshold contour status for this surface object
    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
      
+   fprintf(stderr, "%s: OK 4\n", FuncName);
+
    // Apply threshold contours   
    over2 = SUMA_ADO_CurColPlane(ado); // Get colorplane overlay    
    if (!over2){
@@ -1156,8 +1177,12 @@ int applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
         SUMA_RETURN(0);;
    }
   
+   fprintf(stderr, "%s: OK 5\n", FuncName);
+
    // Determine whether threshold changed
    thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
+
+   fprintf(stderr, "%s: OK 6\n", FuncName);
 
    // Set up outlines for thresholded regions
    setBoxOutlineForThresh(SO, over2, thresholdChanged);   
