@@ -13671,7 +13671,7 @@ ENTRY("AFNI_load_defaults") ;
    NAME2INT("ovmarkssecondary" , INIT_marks2_color   ,0,INIT_ncolovr) ;
    NAME2INT("markssize"        , INIT_marks_size     ,2,MAXOVSIZE   ) ;
    NAME2INT("marksgap"         , INIT_marks_gap      ,0,MAXOVSIZE-1 ) ;
-   NAME2INT("crosshairgap"     , INIT_crosshair_gap  ,0,MAXOVSIZE   ) ;
+   NAME2INT("crosshairgap"     , INIT_crosshair_gap  ,-1,MAXOVSIZE   ) ;
    NAME2INT("bigscroll"        , INIT_bigscroll      ,1,MAXOVSIZE   ) ;
 
    NAME2INT("graph_boxes_color" ,INIT_GR_boxes_color ,BLUEST_COLOR,INIT_ncolovr) ;
@@ -13741,7 +13741,7 @@ ENTRY("AFNI_load_defaults") ;
        if( strcmp(cpt,RESAM_shortstr[ii]) == 0 ) break ;
 
      if( ii <= LAST_RESAM_TYPE ) INIT_resam_func = ii ;
-     (char*)myXtFree(cpt) ;
+     myXtFree(cpt) ;
    }
 
    cpt = NULL ;
