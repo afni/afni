@@ -916,6 +916,7 @@ def make_outlier_commands(proc, block):
         polort = proc.regress_polort
         if polort < 0 :
             print("** ERROR: Using -regress_polort for 3dToutcount, but is <0")
+            print("   Perhaps consider using the '-outlier_polort' option?")
             return -1, ''
 
     # use Legendre polynomials?
