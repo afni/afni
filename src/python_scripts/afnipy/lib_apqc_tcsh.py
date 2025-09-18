@@ -256,8 +256,11 @@ auth = 'PA Taylor'
 #ver = '6.0' ; date = 'Mar 19, 2024'
 # [PT] use new chauffeur functionality where run_* scripts have 1x1 mont
 #
-ver = '6.1' ; date = 'Feb 7, 2025'
+#ver = '6.1' ; date = 'Feb 7, 2025'
 # [PT] expand functionality when part of analysis has not been done in AP
+#
+ver = '6.2' ; date = 'Sep 18, 2025'
+# [PT] fix vstat_seedcorr when processing has not included blurring
 #
 #########################################################################
 
@@ -3462,29 +3465,6 @@ num : int
     stat   = com.run()
     ulay_pref = com.so[0].strip()
 
-    # get olay prefix and voxel volume
-    olay   = ap_ssdict['errts_dset']
-    cmd    = '3dinfo -prefix -voxvol ' + olay
-    com    = ab.shell_com(cmd, capture=do_cap)
-    stat   = com.run()
-    lll    = com.so[0].split()
-    olay_pref = lll[0]
-    voxvol    = float(lll[1])
-    seed_rad  = 2 * (voxvol**0.3334)
-
-    # Make ave time series
-    cmd    = '''
-    3dmaskave                                                                \
-        -quiet                                                               \
-        -dball  {sx} {sy} {sz} {seed_rad}                                    \
-        {errts_dset}                                                         \
-        > {t1dfile}
-    '''.format( sx=seed.xyz[0], sy=seed.xyz[1], sz=seed.xyz[2], 
-                seed_rad=seed_rad, errts_dset=ap_ssdict['errts_dset'],
-                t1dfile=t1dfile )
-    com    = ab.shell_com(cmd, capture=do_cap)
-    stat   = com.run()
-
     # [PT: Jun 18, 2025] start checking if blurring was applied during
     # processing; if it *wasn't*, then we will apply some just before
     # this 3dTcorr1D command, for QC purpose
@@ -3498,6 +3478,29 @@ num : int
     else:
         corr_dset = ap_ssdict['errts_dset']
         blur_note = ''
+
+    # get olay prefix and voxel volume
+    olay   = corr_dset
+    cmd    = '3dinfo -prefix -voxvol ' + olay
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    lll    = com.so[0].split()
+    olay_pref = lll[0]
+    voxvol    = float(lll[1])
+    seed_rad  = 2 * (voxvol**0.3334)
+
+    # Make ave time series
+    cmd    = '''
+    3dmaskave                                                                \
+        -quiet                                                               \
+        -dball  {sx} {sy} {sz} {seed_rad}                                    \
+        {corr_dset}                                                          \
+        > {t1dfile}
+    '''.format( sx=seed.xyz[0], sy=seed.xyz[1], sz=seed.xyz[2], 
+                seed_rad=seed_rad, corr_dset=corr_dset,
+                t1dfile=t1dfile )
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
 
     # Make corr map with ave time series
     cmd    = '''
