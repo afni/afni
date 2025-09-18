@@ -521,9 +521,9 @@ them.
                 self.list_plobj[ii].mec = self.list_plobj[ii].color
 
         if len(self.figsize) == 0 :
-            self.figsize_use = (7, 1.0+self.n_subplots_per_fig*1.0)
+            self.figsize_use = (14, 1.0+self.n_subplots_per_fig*1.0)
             # for plot of 'remainder' lines, if applicable
-            self.figsize_rem = (7, 0.5+self.n_subplots_per_fig_rem*1.0)
+            self.figsize_rem = (14, 0.5+self.n_subplots_per_fig_rem*1.0)
         else:
             self.figsize_use = copy.deepcopy(self.figsize)
             # for plot of 'remainder' lines, if applicable
@@ -828,7 +828,7 @@ them.
 
 def makefig_phobj_peaks_troughs(phobj, peaks=[], troughs=[],
                                 phases = [],
-                                upper_env=[], lower_env=[], rvt=[],
+                                upper_env=[], lower_env=[], rvt=[], hr=[],
                                 title='', fname='', retobj=None,
                                 add_ibandT = False, add_ibandB = False,
                                 do_graypatch_bnds = True,
@@ -864,6 +864,9 @@ lower_env : np.ndarray
 rvt : np.ndarray
     (opt) 1D array of RVT values to include in plot; has
     same number of time points as the phobj.ts_orig
+hr : np.ndarray
+    (opt) 1D array of HR values to include in plot; has
+    same number of time points as the phobj.list_slice_sel_volbase (EPI ts)
 title : str
     string to include as title for the plot
 fname : str
@@ -1039,15 +1042,35 @@ Returns
         maxrvt     = np.max(rvt)
         minrvt     = np.min(rvt)
         diff_rvt   = maxrvt - minrvt
-        mints = np.min(ts)
+        mints      = np.min(ts)
         diff_ts    = np.max(ts) - mints
-        scale_rvt  = (rvt - minrvt)/diff_rvt*diff_ts + mints
-        ret_plobj4 = RetroPlobj(phobj.tvalues[::istep], scale_rvt[::istep], 
-                                label='RVT (scaled)',
+        scl        = diff_ts / diff_rvt
+        scale_rvt  = (rvt - minrvt)*scl + mints
+        ret_plobj6 = RetroPlobj(phobj.tvalues[::istep], scale_rvt[::istep], 
+                                label='RVT (scaled: {:0.2e}; offset)'.format(scl),
                                 alpha=1.0,
                                 lw=DEF_lw*1.5,
                                 color='green')
-        fff.add_plobj(ret_plobj4)
+        fff.add_plobj(ret_plobj6)
+
+    # add hr (maybe)
+    if len(hr) :
+        all_idx    = phobj.list_slice_sel_volbase  # indices of EPI TR locs
+        # scale hr for plotting
+        maxhr      = np.max(hr)
+        minhr      = np.min(hr)
+        diff_hr    = maxhr - minhr
+        mints      = np.min(ts)
+        diff_ts    = np.max(ts) - mints
+        scl        = diff_ts / diff_hr
+        scale_hr   = (hr - minhr)*scl + mints
+        ret_plobj7 = RetroPlobj(phobj.tvalues[all_idx], scale_hr, 
+                                label='ave HR (scaled: {:0.2e}; offset)'.format(scl),
+                                alpha=1.0,
+                                lw=DEF_lw*1.5,
+                                color='lightcoral')
+        fff.add_plobj(ret_plobj7)
+
 
     # run plot, possibly in interactive mode to get new peak/trough
     # xcoords (which would need to be translated to indices
@@ -1279,6 +1302,182 @@ def plot_regressors_rvt(retobj, label, ext='svg'):
     return 0
 
 # ---------------------------------------------------------------------------
+
+def plot_regressors_rvtrrf(retobj, label, ext='svg'):
+    """
+
+
+"""
+
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+    nvol   = retobj.vol_nv
+    verb   = retobj.verb
+    nnn    = phobj.n_regress_rvtrrf
+    
+    # make the filename (final image)
+    fname = 'regressors_rvtrrf_' + label + '.{}'.format(ext)
+    if prefix  :  fname = prefix + '_' + fname
+    if odir :     fname = odir + '/' + fname
+
+    # make the data file (temporary file)
+    ftmp = '__tmp' + label + '_rvtrrf_regressors.dat'
+    if prefix  :  ftmp = prefix + '_' + ftmp
+    if odir :     ftmp = odir + '/' + ftmp
+
+    title = 'Process {} data: RVTRRF regressors'.format(label)
+
+    # put data+labels into simple forms for writing; initialize objs
+    data_shape = (nvol, nnn)
+    data_arr   = np.zeros(data_shape, dtype=float)
+    data_lab   = ['LABEL'] * nnn
+
+    # process any/all RVTRRF regressors
+    for ii in range(nnn):
+        key  = phobj.regress_rvtrrf_keys[ii]
+        ylab = key 
+
+        data_lab[ii] = ylab
+        data_arr[:,ii] = phobj.regress_dict_rvtrrf[key]
+
+    # --------------------- write tmp data file ---------------------
+
+    # open the file and write the header/start
+    fff = open(ftmp, 'w')
+    # write data
+    for ii in range(data_shape[0]):
+        for jj in range(data_shape[1]):
+            fff.write(" {:6.4f} ".format(data_arr[ii,jj]))
+        fff.write('\n')
+    # le fin: close and finish
+    fff.close()
+
+    # --------------------- make image of the data -----------------------
+
+    par_dict = {
+        'ftmp'    : ftmp,
+        'fname'   : fname,
+        'title'   : title,
+        'all_lab' : ' '.join(['\''+lab+'\'' for lab in data_lab])
+    }
+
+    cmd = '''
+    1dplot.py                                                            \
+        -reverse_order                                                   \
+        -infiles        {ftmp}                                           \
+        -ylabels        {all_lab}                                        \
+        -xlabel         "vol index"                                      \
+        -title          "{title}"                                        \
+        -prefix         "{fname}"
+    '''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    # --------------- clean up tmp file
+    cmd    = '''\\rm {ftmp}'''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    print("++ Made plot of {}-based RVTRRF regressors: {}".format(label, fname))
+
+
+    return 0
+
+
+
+def plot_regressors_hrcrf(retobj, label, ext='svg'):
+    """
+
+
+"""
+
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+    nvol   = retobj.vol_nv
+    verb   = retobj.verb
+    nnn    = phobj.n_regress_hrcrf
+    
+    # make the filename (final image)
+    fname = 'regressors_hrcrf_' + label + '.{}'.format(ext)
+    if prefix  :  fname = prefix + '_' + fname
+    if odir :     fname = odir + '/' + fname
+
+    # make the data file (temporary file)
+    ftmp = '__tmp' + label + '_hrcrf_regressors.dat'
+    if prefix  :  ftmp = prefix + '_' + ftmp
+    if odir :     ftmp = odir + '/' + ftmp
+
+    title = 'Process {} data: HRCRF regressors'.format(label)
+
+    # put data+labels into simple forms for writing; initialize objs
+    data_shape = (nvol, nnn)
+    data_arr   = np.zeros(data_shape, dtype=float)
+    data_lab   = ['LABEL'] * nnn
+
+    # process any/all HRCRF regressors
+    for ii in range(nnn):
+        key  = phobj.regress_hrcrf_keys[ii]
+        ylab = key 
+
+        data_lab[ii] = ylab
+        data_arr[:,ii] = phobj.regress_dict_hrcrf[key]
+
+    # --------------------- write tmp data file ---------------------
+
+    # open the file and write the header/start
+    fff = open(ftmp, 'w')
+    # write data
+    for ii in range(data_shape[0]):
+        for jj in range(data_shape[1]):
+            fff.write(" {:6.4f} ".format(data_arr[ii,jj]))
+        fff.write('\n')
+    # le fin: close and finish
+    fff.close()
+
+    # --------------------- make image of the data -----------------------
+
+    par_dict = {
+        'ftmp'    : ftmp,
+        'fname'   : fname,
+        'title'   : title,
+        'all_lab' : ' '.join(['\''+lab+'\'' for lab in data_lab])
+    }
+
+    cmd = '''
+    1dplot.py                                                            \
+        -reverse_order                                                   \
+        -infiles        {ftmp}                                           \
+        -ylabels        {all_lab}                                        \
+        -xlabel         "vol index"                                      \
+        -title          "{title}"                                        \
+        -prefix         "{fname}"
+    '''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    # --------------- clean up tmp file
+    cmd    = '''\\rm {ftmp}'''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    print("++ Made plot of {}-based HRCRF regressors: {}".format(label, fname))
+
+
+    return 0
+
+
+
+# ---------------------------------------------------------------------------
 # dump a temp text file and plot phys regressors, if being used
 
 def plot_regressors_phys(retobj, ext='svg'):
@@ -1322,6 +1521,11 @@ def plot_regressors_phys(retobj, ext='svg'):
         nreg += phobj.n_regress_rvt
         nreg += phobj.n_regress_phys
 
+    if nreg == 0 :
+        if verb :
+            print("++ No phys-based retro regressors to plot")
+        return 0
+
     # put data+labels into simple forms for writing; initialize objs
     data_shape = (nvol, nreg)
     data_arr   = np.zeros(data_shape, dtype=float)
@@ -1337,7 +1541,7 @@ def plot_regressors_phys(retobj, ext='svg'):
         phobj = retobj.data[label]        # simplify coding below
         # process any/all phys regressors
         for ii in range(phobj.n_regress_phys):
-            keyA = phobj.regress_rvt_phys[ii]
+            keyA = phobj.regress_phys_keys[ii]
             keyB = phobj.regress_dict_phys[keyA][idx_sli][0]
             data_lab[cc]   = keyB.split('.')[-1] + '\\n' + keyA
             data_arr[:,cc] = phobj.regress_dict_phys[keyA][idx_sli][1]
@@ -1355,7 +1559,7 @@ def plot_regressors_phys(retobj, ext='svg'):
     # le fin: close and finish
     fff.close()
 
-    # --------------------- make image of rvt data -----------------------
+    # ------------------ make image of phys/retro data -------------------
 
     par_dict = {
         'ftmp'    : ftmp,
@@ -1381,7 +1585,7 @@ def plot_regressors_phys(retobj, ext='svg'):
     com    = BASE.shell_com(cmd, capture=1)
     stat   = com.run()
 
-    print("++ Made plot of {}-based RVT regressors: {}".format(label, fname))
+    print("++ Made plot of {}-based retro regressors: {}".format(label, fname))
 
 
     return 0
