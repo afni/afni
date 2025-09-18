@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "report afnipy version",
+   NULL
+ } ,
+
  { 17, Sep, 2025, RCR, "afni", MICRO, TYPE_GENERAL,
    "add comment list of NAME2-enabled environment variables for grepping",
    "Done to appease the mighty D Glen."
