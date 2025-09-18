@@ -1667,7 +1667,7 @@ class SysInfo:
    def show_main_progs_and_paths(self):
 
       self.afni_dir = get_prog_dir('afni_system_check.py')
-      check_list = ['afni', 'afni label', 'afnipy', 'AFNI_version.txt',
+      check_list = ['afni', 'afni label', 'AFNI_version.txt', 'afnipy',
                     'python', 'R']
       nfound = self.check_for_progs(check_list, show_missing=1)
       if nfound < len(check_list):
