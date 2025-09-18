@@ -14,6 +14,7 @@ if MT.num_import_failures(testlibs):
    sys.exit(1)
 
 import platform, glob
+import afnipy
 from afnipy import afni_base as BASE
 from afnipy import afni_util as UTIL
 
@@ -1087,6 +1088,13 @@ class SysInfo:
             print('%-20s : %s' % ('', self.afni_label))
             continue
 
+         # afnipy version is internal
+         elif prog == 'afnipy':
+            show_comment = 0 # no comments.append()
+            nfound += 1   # do not call this an error yet
+            print('%-20s : %s' % (prog+' version', afnipy.__version__))
+            continue
+
          # XQuartz/X11?
          elif prog in ['XQuartz', 'X11']:
             s, v = self.get_prog_version(prog)
@@ -1659,7 +1667,8 @@ class SysInfo:
    def show_main_progs_and_paths(self):
 
       self.afni_dir = get_prog_dir('afni_system_check.py')
-      check_list = ['afni', 'afni label', 'AFNI_version.txt', 'python', 'R']
+      check_list = ['afni', 'afni label', 'afnipy', 'AFNI_version.txt',
+                    'python', 'R']
       nfound = self.check_for_progs(check_list, show_missing=1)
       if nfound < len(check_list):
          self.comments.append('failure under initial ' \

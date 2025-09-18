@@ -366,9 +366,10 @@ g_history = """
    1.41 Feb 26, 2025 - note if afni is owned by root or not user
    1.42 Feb 27, 2025 - add a more detailed get_macos_mdls_val()
    1.43 Sep  9, 2025 - flask and flask_cors are now required, AFNI_data7
+   1.44 Sep 18, 2025 - report afnipy version
 """
 
-g_version = "afni_system_check.py version 1.43, September 9, 2025"
+g_version = "afni_system_check.py version 1.44, September 18, 2025"
 
 
 class CmdInterface:
