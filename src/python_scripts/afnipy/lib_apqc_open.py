@@ -14,12 +14,14 @@ import glob
 import copy
 import socket
 
+from afnipy       import afni_base     as BASE
 
 # ==========================================================================
 
 # default parameter settings
 DEF = {
     'infiles' : [],             # list of */index.html files to open
+    'find_infiles' : None,      # list of */index.html files via `find ..`
     'portnum' : 5000,           # port number to start trying
     'nsearch' : 500,            # number of ports to search for an open one
     'host'    : '127.0.0.1',    # hostname
@@ -200,10 +202,9 @@ for jumping, which is stored in extra_info.
 
 """
     
-    # bc of how argparse works, if no infiles are input, then:
-    # all_inpath == [[]].  So, it is never an empty list, and check
-    # len of zeroth element to see if none were input
-    if not(len(all_inpath[0])) :
+    
+
+    if not(len(all_inpath)) :
         print("** ERROR: no index.html files were input, so I cannot list "
               "any IDs.\n"
               "   Please use '-infiles ..' to input at least one index.html "
@@ -613,6 +614,47 @@ def verify_all_paths_to_html( inp_path_list ):
 
     return 1
 
+def find_infiles_from_topdir( topdir, verb=0 ):
+    """Starting from the provided topdir name, search downwards with
+shell's "find" command for any index.html files.  Return the list of
+paths to index.html
+
+NB: this could return a lot of things!
+
+Parameters
+----------
+topdir : str
+    directory, from which to search downwards for any+all index.html files
+
+Return
+-------
+all_findpath : list (of str)
+    a sorted list of all filepaths found to index.html
+
+    """
+
+    RETURN_IF_BAD = 0, []
+
+    if not(os.path.isdir(topdir)) :
+        print("** ERROR: topdir must be a valid directory")
+        return RETURN_IF_BAD
+
+    cmd  = 'find {} -type f -name "index.html"'.format(topdir)
+    com  = BASE.shell_com(cmd, capture=1)
+    stat = com.run()
+    all_findpath = com.so
+
+    all_findpath.sort()
+    npath = len(all_findpath)
+
+    if verb :
+        print("++ Found {} paths:".format(npath))
+        print("   {}".format("\n   ".join(all_findpath)))
+
+    if npath == 0 :
+        print("+* WARN: no index.html files found from topdir: {}".topdir)
+
+    return npath, all_findpath
 
 # =========================================================================
 # =========================================================================
