@@ -3968,8 +3968,6 @@ SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
      SUMA_RETURN(NOPE);
   }
    
-   // #if 0
-
    /* Do we need to create contours */
    if (Opt->ColsContMode) {
       if (SUMA_is_Label_dset(Sover->dset_link,NULL))
@@ -3978,7 +3976,7 @@ SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
          SUMA_ContourateDsetOverlay(Sover, SV, SO);
    }
    
-   #if 0
+   // #if 0
 
    /* update remix ID */
    ++Sover->RemixOID;
@@ -3988,7 +3986,7 @@ SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover )
    if (B) SUMA_free(B); B = NULL;
    if (SV)  SUMA_Free_ColorScaledVect (SV); SV = NULL;
    
-   #endif
+   // #endif
 
    SUMA_RETURN(YUP);
 }
@@ -7970,7 +7968,7 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
 
    SUMA_ENTRY;
    
-   #if 0
+   // #if 0
    
    el = dlist_head(SUMAg_CF->DsetList);
    while (el) {
@@ -8154,7 +8152,7 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
       }
       el = dlist_next(el);
    }
-#endif
+// #endif
    SUMA_RETURN(YUP);
 }
 

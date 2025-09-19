@@ -4021,9 +4021,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      XmToggleButtonSetState (SurfCont->SymIrange_tb, 
                         SurfCont->curColPlane->SymIrange, 1);
                         
+                    fprintf(stderr, "OK 1\n");
+                        
                      newMin = SurfCont->curColPlane->OptScl->IntRange[0];
                      newMax = SurfCont->curColPlane->OptScl->IntRange[1];
                      
+                    fprintf(stderr, "OK 2\n");
+                        
                      // Process contralateral surface
                      SO = (SUMA_SurfaceObject *)ado;
                      SUMA_SurfaceObject *SOC = NULL;
@@ -4034,13 +4038,20 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SOC->SurfCont->curColPlane->SymIrange = SurfCont->curColPlane->SymIrange;
                      XmToggleButtonSetState (SOC->SurfCont->SymIrange_tb, 
                         SurfCont->curColPlane->SymIrange, 1);
-                    if (!SUMA_ColorizePlane (SOC->SurfCont->curColPlane)) {
+                     
+                     fprintf(stderr, "OK 3\n");
+                        
+                   if (!SUMA_ColorizePlane (SOC->SurfCont->curColPlane)) {
                        SUMA_SLP_Err("Failed to colorize plane.\n");
                     } else {
                        SUMA_Remixedisplay((SUMA_ALL_DO *)SOC);
                        SUMA_UpdateNodeValField((SUMA_ALL_DO *)SOC);
                        SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SOC);
                     }
+                    
+                    fprintf(stderr, "OK 4\n");
+                        
+                        
                     if (colp->AlphaOpacityFalloff || SurfCont->BoxOutlineThresh){
                         if (!restoreABButtonFunctionality_one((SUMA_ALL_DO *)SOC, colpC)){
                               fprintf(stderr,  "Error restoring A and B button functionality.\n ");
@@ -4048,7 +4059,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         }
                     }
                   }
+                    fprintf(stderr, "OK 5\n");
                   SUMA_free(stmp); stmp = NULL;
+                                      fprintf(stderr, "OK 6\n");
+
                }
             }
 

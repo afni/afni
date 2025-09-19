@@ -1077,7 +1077,7 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
            // Threshold based on relationship to superthreshold regions
            for (i=0; i<over2->N_V; ++i){
                 overlayBackup[i] = over2->V[i];
-                over2->V[i] = (float)(over2->V[i] >= over2->IntRange[0]);  
+                over2->V[i] = (float)(over2->V[i] > over2->IntRange[1]);  
            }
 
             if (!SUMA_MakeThresholdOutlines (over2)) {
@@ -1139,11 +1139,7 @@ int applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
         SUMA_RETURN(0);;
    }
    
-   fprintf(stderr, "%s: OK 1\n", FuncName);
-
-   fprintf(stderr, "%s: ado = %p\n\n", FuncName, ado);
    SO = (SUMA_SurfaceObject *)ado;
-   fprintf(stderr, "%s: SO = %p\n\n", FuncName, SO);
    if (!SO){
         fprintf(stderr, "** ERROR: %s: NULL surface object pointer\n",
             FuncName);
@@ -1156,19 +1152,13 @@ int applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
         SUMA_RETURN(0);;
    }
    
-   fprintf(stderr, "%s: OK 2\n", FuncName);
-
    // Set widget state without calling callback
    w = SO->SurfCont->BoxOutlineThresh_tb;   
    XmToggleButtonSetState(w, BoxOutlineThresh, 0);
    
-   fprintf(stderr, "%s: OK 3\n", FuncName);
-
    // Record threshold contour status for this surface object
    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
      
-   fprintf(stderr, "%s: OK 4\n", FuncName);
-
    // Apply threshold contours   
    over2 = SUMA_ADO_CurColPlane(ado); // Get colorplane overlay    
    if (!over2){
@@ -1177,12 +1167,8 @@ int applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado,
         SUMA_RETURN(0);;
    }
   
-   fprintf(stderr, "%s: OK 5\n", FuncName);
-
    // Determine whether threshold changed
    thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
-
-   fprintf(stderr, "%s: OK 6\n", FuncName);
 
    // Set up outlines for thresholded regions
    setBoxOutlineForThresh(SO, over2, thresholdChanged);   
@@ -1208,22 +1194,42 @@ void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay)
 
    // Get relevant overlay (overlay showing thresholded region)
    ado = (SUMA_ALL_DO *)data;
-   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURNe;
-   //  SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+    fprintf(stderr, "** %s: NUL ADO pointer for current hemisphere\n", 
+        FuncName);
+    SUMA_RETURNe;
+   }   
    
    // Get box outline threshold status from checkbox
    BoxOutlineThresh = XmToggleButtonGetState(SurfCont->BoxOutlineThresh_tb); 
    
    // Process current hemisphere
-   applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE);
+   if (!applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE)){
+    fprintf(stderr, "** %s: Error restoring threshold contours for current hemisphere\n", 
+        FuncName);
+    SUMA_RETURNe;
+   }
    
    // Process contralateral hemisphere
-   SO = (SUMA_SurfaceObject *)ado;
-   over2 = SUMA_ADO_CurColPlane(ado);
+   if (!(SO = (SUMA_SurfaceObject *)ado)){
+    fprintf(stderr, "** %s: NUL surface object pointer\n", FuncName);
+    SUMA_RETURNe;
+   }
+   if (!(over2 = SUMA_ADO_CurColPlane(ado))){
+    fprintf(stderr, "** %s: NUL overlay pointer\n", FuncName);
+    SUMA_RETURNe;
+   }
    colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
-   applyBoxOutlineThreshStatusToSurfaceObject((SUMA_ALL_DO *)SOC, BoxOutlineThresh, NOPE);
+   if (!SOC){
+    fprintf(stderr, "** %s: NUL ADO pointer for contralateral hemisphere\n", 
+        FuncName);
+    SUMA_RETURNe;
+   }
+   if (!applyBoxOutlineThreshStatusToSurfaceObject((SUMA_ALL_DO *)SOC, BoxOutlineThresh, NOPE)){
+    fprintf(stderr, "** %s: Error restoring threshold contours for contralateral hemisphere\n", 
+        FuncName);
+    SUMA_RETURNe;
+   }
 
    SUMA_RETURNe;
 }
@@ -1529,7 +1535,6 @@ int restoreABButtonFunctionality_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp)
 
    gettimeofday(&stopTime, NULL); 
    runTume = stopTime.tv_usec - startTime.tv_usec;
-   fprintf(stderr, "1: TTTTTTTTTTTT Block ran for %ld microseconds\n", runTume);
    startTime.tv_usec = stopTime.tv_usec;
 
    // If this is left out, the variable opacity goes away when the user hovers
@@ -1539,11 +1544,6 @@ int restoreABButtonFunctionality_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp)
       SUMA_SLP_Err("Failed to colorize plane.\n");
       SUMA_RETURN(0);
    }
-
-   gettimeofday(&stopTime, NULL); 
-   runTume = stopTime.tv_usec - startTime.tv_usec;
-   fprintf(stderr, "2: TTTTTTTTTTTT Block ran for %ld microseconds\n", runTume);
-   startTime.tv_usec = stopTime.tv_usec;
 
    if (SO && SO->SurfCont) {
        // Restore threshold boundary if necessary.  This is called when the 
@@ -1559,13 +1559,11 @@ int restoreABButtonFunctionality_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp)
            SUMA_Remixedisplay(ado);
            gettimeofday(&stopTime, NULL); 
            runTume = stopTime.tv_usec - startTime.tv_usec;
-           fprintf(stderr, "3: TTTTTTTTTTTT Block ran for %ld microseconds\n", runTume);
            startTime.tv_usec = stopTime.tv_usec;
 
            SUMA_UpdateNodeLblField(ado);
            gettimeofday(&stopTime, NULL); 
            runTume = stopTime.tv_usec - startTime.tv_usec;
-           fprintf(stderr, "4: TTTTTTTTTTTT Block ran for %ld microseconds\n", runTume);
            startTime.tv_usec = stopTime.tv_usec;
        }
     }
@@ -2974,10 +2972,6 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
             FuncName);
         SUMA_RETURNe;
    }
-
-   // Refresh display
-//   SUMA_Remixedisplay(ado);
-//   SUMA_UpdateNodeLblField(ado);
 
    SUMA_RETURNe;
 }
