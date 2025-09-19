@@ -53,6 +53,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 12, SEP, 2025, DRG, "afni",
+     MINOR, TYPE_ENHANCE,
+    "afni GUI can now sort datasets in chooser alphabetically",
+    "Previously, sessions were sorted by anatomical, func, then NIFTI.\n"
+    "Now the user has options to set alphabetic, reverse alphabetic,\n"
+    "mri type (data type including NIFTI) or no re-sorting (original \n"
+    "mri type then NIFTI) using AFNI environment variables."
+},
 { 18, SEP, 2025, DRG, "@MakeLabelTable",
      MICRO, TYPE_BUG_FIX,
     "@MakeLabelTable accepts leading 0 index values",
@@ -63,7 +71,7 @@ afni_history_struct dglen_history[] = {
      MINOR, TYPE_ENHANCE,
     "whereami functionality uses new Julich v3.1 brain atlases",
     "Julich v3.1 atlases for MNI 2009c and N27 spaces are available.\n"
-    "Default atlas is now MNI_2009c for Atlas Colors, Goto location.\n"
+    "Default atlas is now Julich_MNI2009c_v3.1 for Atlas Colors, Goto location.\n"
 },
 { 19, AUG, 2025, DRG, "3dXYZcat",
      MICRO, TYPE_BUG_FIX,
