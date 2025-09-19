@@ -627,7 +627,9 @@
  dset_name="Brodmann.nii.gz"
  template_space="MNI_N27"
  description="Brodmann atlas MNI N27 - Pijnenburg"
- comment="Pijnenburg, R., et al (2021). Myelo- and cytoarchitectonic microstructural and functional human cortical atlases reconstructed in common MRI space. NeuroImage, 239, 118274."
+ comment="Pijnenburg, R., et al (2021). Myelo- and cytoarchitectonic microstructural
+     and functional human cortical atlases reconstructed in common MRI space.
+     NeuroImage, 239, 118274."
 ></ATLAS>
 
 <ATLAS
@@ -657,20 +659,19 @@
       Julich-Brain Atlas, cytoarchitectonic maps (v3.1) [Data set].
       DOI: 10.25493/KNSN-XB4
     Evans, AC, Janke, AL, Collins, DL, Baillet, S (2012).
-      Brain templates and atlases. NeuroImage, 62(2), 911–922.
+      Brain templates and atlases. NeuroImage, 62(2), 911922.
       DOI: 10.1016/j.neuroimage.2012.01.024
     Eickhoff, SB, Stephan, KE, Mohlberg, H, Grefkes, C, Fink, GR, Amunts, K,
       Zilles, K. (2005).
       A new SPM toolbox for combining probabilistic cytoarchitectonic maps and
-      functional imaging data. NeuroImage, 25(4), 1325–1335.
+      functional imaging data. NeuroImage, 25(4), 13251335.
       DOI: 10.1016/j.neuroimage.2004.12.034
 
     For the overall scientific concept and methodology of the Julich-Brain, please cite:
       Amunts, K, Mohlberg, H, Bludau, S, & Zilles, K (2020).
-      Julich-Brain: A 3D probabilistic atlas of the human brain’s cytoarchitecture.
-      Science, 369(6506), 988–992.
-      DOI: 10.1126/science.abb4588
-"
+      Julich-Brain: A 3D probabilistic atlas of the human brain's cytoarchitecture.
+      Science, 369(6506), 988992.
+      DOI: 10.1126/science.abb4588"
 ></ATLAS>
 
 <ATLAS
@@ -688,14 +689,13 @@
       Julich-Brain Atlas, cytoarchitectonic maps (v3.1) [Data set].
       DOI: 10.25493/KNSN-XB4
     Evans, AC, Janke, AL, Collins, DL, Baillet, S (2012).
-      Brain templates and atlases. NeuroImage, 62(2), 911–922.
+      Brain templates and atlases. NeuroImage, 62(2), 911922.
       DOI: 10.1016/j.neuroimage.2012.01.024
     Eickhoff, SB, Stephan, KE, Mohlberg, H, Grefkes, C, Fink, GR, Amunts, K,
       Zilles, K. (2005).
       A new SPM toolbox for combining probabilistic cytoarchitectonic maps and
-      functional imaging data. NeuroImage, 25(4), 1325–1335.
-      DOI: 10.1126/science.abb4588
-"
+      functional imaging data. NeuroImage, 25(4), 13251335.
+      DOI: 10.1126/science.abb4588"
 ></ATLAS>
 
 <ATLAS
@@ -712,20 +712,19 @@
       Julich-Brain Atlas, cytoarchitectonic maps (v3.0.3) [Data set].
       DOI: 10.25493/56EM-75H
     Evans, AC, Janke, AL, Collins, DL, Baillet, S (2012).
-      Brain templates and atlases. NeuroImage, 62(2), 911–922.
+      Brain templates and atlases. NeuroImage, 62(2), 911922.
       DOI: 10.1016/j.neuroimage.2012.01.024
     Eickhoff, SB, Stephan, KE, Mohlberg, H, Grefkes, C, Fink, GR, Amunts, K,
       Zilles, K. (2005).
       A new SPM toolbox for combining probabilistic cytoarchitectonic maps and
-      functional imaging data. NeuroImage, 25(4), 1325–1335.
+      functional imaging data. NeuroImage, 25(4), 13251335.
       DOI: 10.1016/j.neuroimage.2004.12.034
 
     For the overall scientific concept and methodology of the Julich-Brain, please cite:
       Amunts, K, Mohlberg, H, Bludau, S, & Zilles, K (2020).
-      Julich-Brain: A 3D probabilistic atlas of the human brain’s cytoarchitecture.
-      Science, 369(6506), 988–992.
-      DOI: 10.1126/science.abb4588
-"
+      Julich-Brain: A 3D probabilistic atlas of the human brain's cytoarchitecture.
+      Science, 369(6506), 988992.
+      DOI: 10.1126/science.abb4588"
 ></ATLAS>
 
 <ATLAS
@@ -742,19 +741,19 @@
       Julich-Brain Atlas, cytoarchitectonic maps (v3.0.3) [Data set].
       DOI: 10.25493/56EM-75H
     Evans, AC, Janke, AL, Collins, DL, Baillet, S (2012).
-      Brain templates and atlases. NeuroImage, 62(2), 911–922.
+      Brain templates and atlases. NeuroImage, 62(2), 911922.
       DOI: 10.1016/j.neuroimage.2012.01.024
     Eickhoff, SB, Stephan, KE, Mohlberg, H, Grefkes, C, Fink, GR, Amunts, K,
       Zilles, K. (2005).
       A new SPM toolbox for combining probabilistic cytoarchitectonic maps and
-      functional imaging data. NeuroImage, 25(4), 1325–1335.
+      functional imaging data. NeuroImage, 25(4), 1325-1335.
       DOI: 10.1016/j.neuroimage.2004.12.034
 
     For the overall scientific concept and methodology of the Julich-Brain, please cite:
       Amunts, K, Mohlberg, H, Bludau, S, & Zilles, K (2020).
-      Julich-Brain: A 3D probabilistic atlas of the human brain’s cytoarchitecture.
-      Science, 369(6506), 988–992.
-      DOI: 10.1126/science.abb4588
+      Julich-Brain: A 3D probabilistic atlas of the human brain's cytoarchitecture.
+      Science, 369(6506), 988992.
+      DOI: 10.1126/science.abb4588"
 ></ATLAS>
 
 <XFORM
