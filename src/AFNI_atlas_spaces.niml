@@ -643,6 +643,62 @@
 ></ATLAS>
 
 <ATLAS
+  atlas_name="Julich_MNI2009c_v3.1"
+  dset_name="Julich_MNI2009c_v3.1.nii.gz"
+  template_space="MNI_2009c_asym"
+  description="JulichBrain v3.1 for MNI 2009c asymmetric space"
+  comment="From EBRAINS3.0 website, v3.1 available here:
+    https://search.kg.ebrains.eu/instances/f1fe19e8-99bd-44bc-9616-a52850680777
+
+    Please cite this dataset version and the original research publication:
+
+    Amunts, K, Mohlberg, H, Bludau, S, Caspers, S, Lewis, LB, Eickhoff, SB, 
+      Pieperhoff, P (2023). 
+      Julich-Brain Atlas, cytoarchitectonic maps (v3.1) [Data set].
+      DOI: 10.25493/KNSN-XB4
+    Evans, AC, Janke, AL, Collins, DL, Baillet, S (2012).
+      Brain templates and atlases. NeuroImage, 62(2), 911–922.
+      DOI: 10.1016/j.neuroimage.2012.01.024
+    Eickhoff, SB, Stephan, KE, Mohlberg, H, Grefkes, C, Fink, GR, Amunts, K,
+      Zilles, K. (2005).
+      A new SPM toolbox for combining probabilistic cytoarchitectonic maps and
+      functional imaging data. NeuroImage, 25(4), 1325–1335.
+      DOI: 10.1016/j.neuroimage.2004.12.034
+
+    For the overall scientific concept and methodology of the Julich-Brain, please cite:
+      Amunts, K, Mohlberg, H, Bludau, S, & Zilles, K (2020).
+      Julich-Brain: A 3D probabilistic atlas of the human brain’s cytoarchitecture.
+      Science, 369(6506), 988–992.
+      DOI: 10.1126/science.abb4588
+"
+></ATLAS>
+
+<ATLAS
+  atlas_name="Julich_MNI_N27_v3.1"
+  dset_name="Julich_MNI_N27_v3.1.nii.gz"
+  template_space="MNI_N27"
+  description="JulichBrain v3.1 for MNI N27 space"
+  comment="From EBRAINS3.0 website, v3.1 available here:
+    https://search.kg.ebrains.eu/instances/f1fe19e8-99bd-44bc-9616-a52850680777
+
+    Please cite this dataset version and the original research publication:
+
+    Amunts, K, Mohlberg, H, Bludau, S, Caspers, S, Lewis, LB, Eickhoff, SB, 
+      Pieperhoff, P (2023). 
+      Julich-Brain Atlas, cytoarchitectonic maps (v3.1) [Data set].
+      DOI: 10.25493/KNSN-XB4
+    Evans, AC, Janke, AL, Collins, DL, Baillet, S (2012).
+      Brain templates and atlases. NeuroImage, 62(2), 911–922.
+      DOI: 10.1016/j.neuroimage.2012.01.024
+    Eickhoff, SB, Stephan, KE, Mohlberg, H, Grefkes, C, Fink, GR, Amunts, K,
+      Zilles, K. (2005).
+      A new SPM toolbox for combining probabilistic cytoarchitectonic maps and
+      functional imaging data. NeuroImage, 25(4), 1325–1335.
+      DOI: 10.1126/science.abb4588
+"
+></ATLAS>
+
+<ATLAS
   atlas_name="Julich_MNI2009c"
   dset_name="Julich_MNI2009c.nii.gz"
   template_space="MNI_2009c_asym"
