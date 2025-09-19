@@ -61,6 +61,18 @@ afni_history_struct dglen_history[] = {
     "mri type (data type including NIFTI) or no re-sorting (original \n"
     "mri type then NIFTI) using AFNI environment variables."
 },
+{ 18, SEP, 2025, DRG, "@MakeLabelTable",
+     MICRO, TYPE_BUG_FIX,
+    "@MakeLabelTable accepts leading 0 index values",
+    "Accepts leading zeros but converts them to simple integers\n"
+    "In order to avoid octal conversion errors in printf (008->error)\n"
+},
+{ 18, SEP, 2025, DRG, "afni",
+     MINOR, TYPE_ENHANCE,
+    "whereami functionality uses new Julich v3.1 brain atlases",
+    "Julich v3.1 atlases for MNI 2009c and N27 spaces are available.\n"
+    "Default atlas is now Julich_MNI2009c_v3.1 for Atlas Colors, Goto location.\n"
+},
 { 19, AUG, 2025, DRG, "3dXYZcat",
      MICRO, TYPE_BUG_FIX,
     "3dXYZcat generated extra empty volume in X direction"
