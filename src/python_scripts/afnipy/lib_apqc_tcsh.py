@@ -305,6 +305,8 @@ all_font = [ 'FiraCode-Bold.woff2',
              'FiraCode-Regular.woff2',
 ]
 
+blur_label = 'blur_for_qc'
+
 # ----------------------------------------------------------------------
 
 coord_opp = { 'R' : 'L',
@@ -1495,11 +1497,15 @@ D : dict
     errts_blur_size = au.truncate_to_N_bits(val, 4, method='ceil')
 
     # new blurred errts dset, and add to dict if we are here
-    errts_blur      = olay_pref + '_blur_for_qc' + '.nii.gz'
-    corr_brain_blur = 'corr_brain_blur_for_qc.nii.gz'
-    D['errts_blur']      = errts_blur
-    D['errts_blur_size'] = errts_blur_size
-    D['corr_brain_blur'] = corr_brain_blur
+    errts_blur      = olay_pref + '_' + blur_label + '.nii.gz'
+    corr_brain_blur = 'corr_brain' + '_' + blur_label + '.nii.gz'
+    D['errts_blur']        = errts_blur
+    if olay_pref.startswith('errts') :
+        D['errts_blur_abbrev'] = 'errts*' + blur_label + '*'
+    else:
+        D['errts_blur_abbrev'] = olay_pref + '_' + blur_label + '*'
+    D['errts_blur_size']   = errts_blur_size
+    D['corr_brain_blur']   = corr_brain_blur
 
     # only create this dset once
     if not(os.path.isfile(errts_blur)) and make_dset_if_not_existing :
@@ -1531,7 +1537,7 @@ D : dict
         stat = com.run()
         print("     ", corr_brain_blur); sys.stdout.flush() 
     else:
-        print("   -> blurred errts already exists"); sys.stdout.flush() 
+        print("   -> blurred corr_brain already exists"); sys.stdout.flush() 
 
     return ['proc_had_blur'], D
 
@@ -3266,14 +3272,14 @@ num : int
         sys.exit(9)
 
     # get ulay prefix (name from arg)
-    cmd    = '3dinfo -prefix ' + ulay
-    com    = ab.shell_com(cmd, capture=do_cap)
-    stat   = com.run()
-    ulay_pref = com.so[0].strip()
+    #cmd    = '3dinfo -prefix ' + ulay
+    #com    = ab.shell_com(cmd, capture=do_cap)
+    #stat   = com.run()
+    #ulay_pref = com.so[0].strip()
 
     # get olay prefix
     olay   = corr_brain
-    cmd    = '3dinfo -prefix ' + olay
+    cmd    = '3dinfo -prefix_noext ' + olay
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
     olay_pref = com.so[0].strip()
@@ -3489,6 +3495,13 @@ num : int
     voxvol    = float(lll[1])
     seed_rad  = 2 * (voxvol**0.3334)
 
+    # for string label above image, keep text short-ish
+    ldep = ['errts_blur', 'errts_blur_size']
+    if check_dep(ap_ssdict, ldep) :
+        corr_pref = ap_ssdict['errts_blur_abbrev']
+    else:
+        corr_pref = olay_pref
+
     # Make ave time series
     cmd    = '''
     3dmaskave                                                                \
@@ -3579,7 +3592,7 @@ num : int
     # text above images
     otoptxt = []
     otoptxt.append('olay: {} (in {}{})'.format('seed-based corr map', 
-                                               olay_pref,
+                                               corr_pref,
                                                blur_note))
     otoptxt.append('seed: {}, {}'.format(netw_str, loc_str))
 
