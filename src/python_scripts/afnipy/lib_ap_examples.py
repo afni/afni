@@ -2091,7 +2091,7 @@ def egs_class():
         ['-copy_anat',               ['anatSS.sub-000.nii']],
         ['-anat_has_skull',          ['no']],
         ['-anat_follower',           ['anat_w_skull', 'anat',
-                                      'anatSS.sub-000.nii']],
+                                      'anatU.sub-000.nii']],
         ['-blocks',                  ['tshift', 'align', 'tlrc', 'volreg',
                                       'mask', 'blur', 'scale', 'regress']],
         ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
