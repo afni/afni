@@ -65,9 +65,10 @@ g_history = """
    0.1  Mar  8, 2024    - tweak in usage, in case no prefix provided
    0.2  Jun 18, 2024    - add -disp_max_warn opt
    0.3  Sep  9, 2025    - add -had_blur opt
+   0.4  Sep 22, 2025    - fix -had_blur behavior
 """
 
-g_version = "roi_stats_warnings.py version 0.3,  Sep  9, 2025"
+g_version = "roi_stats_warnings.py version 0.4,  Sep 22, 2025"
 
 
 class MyInterface:
@@ -115,7 +116,7 @@ class MyInterface:
                       helpstr='display max warning level string')
 
       self.valid_opts.add_opt('-had_blur', 1, [], 
-                      helpstr='was blurring used? sets TSNR warn levels')
+                      helpstr='did proc include blurring? sets TSNR warn levels')
 
       # general options
       self.valid_opts.add_opt('-verb', 1, [], 

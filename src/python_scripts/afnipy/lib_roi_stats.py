@@ -19,7 +19,7 @@ warn2q = {
     'severe'    : 'x',
 }
 
-DEF_had_blur = True
+DEF_had_blur = True         # was blurring used during AP?
 DEF_verb = 1
 
 # ============================================================================
@@ -40,7 +40,7 @@ This contains a *set* of one or more tables."""
         self.fname             = fname           # str, input filename
         self.write_out         = write_out       # bool, make output file?
         self.disp_max_warn     = disp_max_warn   # bool, show max warn str?
-        self.had_blur          = had_blur        # bool, levels for unblurred
+        self.had_blur          = had_blur        # bool, switch levels for unblurred
 
         # attributes defined by parsing self.ftext
         self.all_tables_raw    = []              # list of comp_roi_dset* text
@@ -179,7 +179,7 @@ Probably the major products of interest from creating this object are:
         self.table_values_html  = []             # table_values + HTML colors
         self.table_maxwarn      = []             # list of max warn per item
         self.disp_max_warn      = disp_max_warn  # do display max warning lev?
-        self.had_blur            = had_blur        # data had no blurring?
+        self.had_blur           = had_blur       # data had blurring during AP?
 
         # ----- start doing work
         _tmp = is_comp_roi_str_list_ok(self.table)
@@ -524,9 +524,11 @@ def warn_roi_stats_tsnr_value_75(t75p, had_blur=DEF_had_blur, verb=0):
     """For a given value of the 75%ile of TSNR in the ROI, determine
 warning level. This increasingly warns as this TSNR value decreases.
 
-The value of had_blur determines the levels of warning: if had_blur,
-then the levels are lowered to about 2/3rds or 70 percent of what they
-would be if blurring had been applied during processing.
+The value of had_blur determines the levels of warning: if
+had_blur=False, then the levels are lowered to about 2/3rds or 70
+percent of what they would be if blurring _had_ been applied during
+processing. The ratio of approx 2/3rds was set from testing across
+several single echo FMRI datasets.
 
 Parameters
 ----------
@@ -547,20 +549,21 @@ wlevel : str
 
     if verb > 1 :  ab.IP("t75p: {}".format(t75p))
 
-    if t75p < 0:
+    if t75p < 0 :
         ab.EP("Can't have negative t75p ({})".format(t75p))
 
     if t75p == 0 :     return 'none'   # no vox; gets flagged elsewhere
 
+    # higher warn thresholds if proc had blurring, bc expect higher TSNR
     if had_blur :
-        if   t75p >=  70 :  return 'none'
-        elif t75p >=  55 :  return 'mild'
-        elif t75p >=  35 :  return 'medium'
-        else:               return 'severe'
-    else:
         if   t75p >= 100 :  return 'none'
         elif t75p >=  80 :  return 'mild'
         elif t75p >=  50 :  return 'medium'
+        else:               return 'severe'
+    else:
+        if   t75p >=  70 :  return 'none'
+        elif t75p >=  55 :  return 'mild'
+        elif t75p >=  35 :  return 'medium'
         else:               return 'severe'
 
 def warn_roi_stats_nvox(nvox, verb=0):
