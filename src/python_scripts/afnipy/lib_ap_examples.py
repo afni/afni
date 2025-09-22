@@ -2064,7 +2064,7 @@ def egs_class():
    examples.append( APExample('AP class do_21',
      source='task_demo_ap',
      descrip='do_21_ap_affine.tcsh - basic task analysis',
-     moddate='2025.09.11',
+     moddate='2025.09.22',
      keywords=['task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -2088,7 +2088,10 @@ def egs_class():
         ['-dsets',                   ['sub-000_task-av_run-01_bold.nii.gz',
                                       'sub-000_task-av_run-02_bold.nii.gz',
                                       'sub-000_task-av_run-03_bold.nii.gz']],
-        ['-copy_anat',               ['${sdir_ssw}/anatSS.sub-000.nii']],
+        ['-copy_anat',               ['anatSS.sub-000.nii']],
+        ['-anat_has_skull',          ['no']],
+        ['-anat_follower',           ['anat_w_skull', 'anat',
+                                      'anatSS.sub-000.nii']],
         ['-blocks',                  ['tshift', 'align', 'tlrc', 'volreg',
                                       'mask', 'blur', 'scale', 'regress']],
         ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
