@@ -1074,8 +1074,13 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
                 SUMA_RETURN (NOPE);
            }
            
+           fprintf(stderr, "++++++ %s: over2->OptScl->find = %d\n", FuncName, over2->OptScl->find);
+           
+           SUMA_Boolean threshold = over2->OptScl->find != 1 && 
+            over2->OptScl->find != 4 && over2->OptScl->find != 7;
+           
            // Threshold based on relationship to superthreshold regions
-           for (i=0; i<over2->N_V; ++i){
+           if (threshold) for (i=0; i<over2->N_V; ++i){
                 overlayBackup[i] = over2->V[i];
                 over2->V[i] = (float)(over2->V[i] > over2->IntRange[1]);  
            }
@@ -1084,13 +1089,23 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
                  SUMA_SL_Err("Failed in SUMA_ScaleToMap_Interactive.");
                  SUMA_RETURN(0);
               }
+              
+//            fprintf(stderr, "A: over2->N_Contours = %d\n", over2->N_Contours);
+//            fprintf(stderr, "A: over2->Contours[0]->N_CE = %d\n", over2->Contours[0]->N_CE);
+//            fprintf(stderr, "A: over2->Contours[0]->CE[0].n1 = %d\n", over2->Contours[0]->CE[0].n1);
+//            fprintf(stderr, "A: over2->Contours[0]->CE[0].n2 = %d\n", over2->Contours[0]->CE[0].n2);
 
            // Restore overlay colormap
-           for (i=0; i<over2->N_V; ++i){
+           if (threshold) for (i=0; i<over2->N_V; ++i){
                 over2->V[i]  = overlayBackup[i];
            }
 
            free(overlayBackup);
+              
+//            fprintf(stderr, "B: over2->N_Contours = %d\n", over2->N_Contours);
+//            fprintf(stderr, "B: over2->Contours[0]->N_CE = %d\n", over2->Contours[0]->N_CE);
+//            fprintf(stderr, "B: over2->Contours[0]->CE[0].n1 = %d\n", over2->Contours[0]->CE[0].n1);
+//            fprintf(stderr, "B: over2->Contours[0]->CE[0].n2 = %d\n", over2->Contours[0]->CE[0].n2);
 
             // Make contours black
             if (over2->Contours){
@@ -1425,7 +1440,9 @@ int SUMA_SwitchColPlaneIntensity(
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   
+   // NB: ind is the number of the subbrick
+   
    if (!SUMA_SwitchColPlaneIntensity_one(ado, colp, ind, setmen)) {
       SUMA_S_Err("Failed in _one");
       SUMA_RETURN(0);
@@ -1589,6 +1606,8 @@ int SUMA_SwitchColPlaneIntensity_one (
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   // NB: ind is the number of the subbrick
 
 
    SurfCont = SUMA_ADO_Cont(ado);
