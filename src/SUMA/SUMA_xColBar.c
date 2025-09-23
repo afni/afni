@@ -1074,6 +1074,9 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
                 SUMA_RETURN (NOPE);
            }
            
+           // Backup colormap
+           for (i=0; i<over2->N_V; ++i) overlayBackup[i] = over2->V[i];
+           
            fprintf(stderr, "++++++ %s: over2->OptScl->find = %d\n", FuncName, over2->OptScl->find);
            
            SUMA_Boolean threshold = over2->OptScl->find != 1 && 
@@ -1081,21 +1084,21 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
            
            // Threshold based on relationship to superthreshold regions
            if (threshold) for (i=0; i<over2->N_V; ++i){
-                overlayBackup[i] = over2->V[i];
+                // overlayBackup[i] = over2->V[i];
                 over2->V[i] = (float)(over2->V[i] > over2->IntRange[1]);  
            }
            
            if (over2->OptScl->find == 2 || over2->OptScl->find == 4  || over2->OptScl->find == 5){
                 for (i=0; i<over2->N_V; ++i){
-                overlayBackup[i] = over2->V[i];
+                // overlayBackup[i] = over2->V[i];
                 over2->V[i] = (fabs((float)(over2->V[i])) > over2->IntRange[1]);  
             }
            }
            
            if (over2->OptScl->find == 8){
                 for (i=0; i<over2->N_V; ++i){
-                overlayBackup[i] = over2->V[i];
-                over2->V[i] = (((float)(over2->V[i])) > over2->IntRange[0]);  
+                // overlayBackup[i] = over2->V[i];
+                over2->V[i] = (fabs((float)(over2->V[i])) >= over2->IntRange[1]);  
             }
            }
 
