@@ -2308,7 +2308,7 @@ Variable: AFNI_THRESH_BIGSTEP
 -----------------------------
 The AFNI threshold sliders (in the Define Overlay control panels and
 the Render Dataset plugins) are divided into 10000 steps from bottom
-to top. If you click in the through or use the PageUp/PageDown keys,
+to top. If you click in the trough or use the PageUp/PageDown keys,
 the default action is to move the slider 10 of the steps at once.
 (The up and down arrow keys move 1 step at a time.)  You can change
 this big step from the default of 10 to any value between 1 and 1000
@@ -3135,7 +3135,7 @@ Variable: AFNI_SELENIUM
 --------------------------
 If this YES/NO variable is set to YES, then the Selenium webdriver
 will be used to open a browser window in the places where AFNI uses
-webpages (whereami, help,...) The AFNI_WEB_BROWSER should be set to
+webpages (whereami_afni, help,...) The AFNI_WEB_BROWSER should be set to
 the browser of choice (Chrome,Firefox,Safari). The default browser
 will be chrome if the AFNI_WEB_BROWSER variable is not set. If
 AFNI_SELENIUM is not set or set to NO, AFNI will open the standard
@@ -3321,7 +3321,7 @@ than your monitor, and that would be hard to deal with.
 Variable: AFNI_CLUSTER_WAMIMAX (editable)
 ------------------------------
 This variable should be set to a number indicating the maximum number
-of clusters to get a 'whereami' report when the 'WamI' button is
+of clusters to get a 'whereami_afni' report when the 'WamI' button is
 pressed. Since the querying the diverse atlas datasets is slow,
 increasing this value much past its default value of 20 is not usually
 a good plan.
@@ -4290,7 +4290,7 @@ this purpose. Or just look at your data (please!).
 ###  ATLAS and WHEREAMI env variables   ###
 ###########################################
 
-N.B.: These variables control how AFNI and whereami make use of
+N.B.: These variables control how AFNI and whereami_afni make use of
       various atlases and template spaces. The variables may also
       affect how other AFNI programs use atlases as input datasets.
 
@@ -4299,8 +4299,8 @@ Variable: AFNI_ATLAS_LIST
 -------------------------
 This list contains the names of the atlases that should be queried
 when no specific atlas has been requested. For example, the afni GUI
-and whereami, by default, do not load all the atlases specified in the
-AFNI_atlas_spaces.niml file. If this variable is not set, the
+and whereami_afni, by default, do not load all the atlases specified in
+the AFNI_atlas_spaces.niml file. If this variable is not set, the
 TT_Daemon atlas and the cytoarchitectonic Eickhoff-Zilles in MNI_ANAT
 space are loaded. If the variable is set to a list like
 "TT_Daemon,DD_Desai_PM", then only these two atlases are loaded. The
@@ -4312,7 +4312,7 @@ be loaded.
 Variable: AFNI_TEMPLATE_SPACE_LIST
 ----------------------------------
 This list contains the names of the template spaces that are shown
-when whereami reports the coordinates among various spaces. By
+when whereami_afni reports the coordinates among various spaces. By
 default, the list contains "TLRC,MNI,MNI_ANAT". As with
 AFNI_ATLAS_LIST, this list may also be set to "ALL".
 
@@ -4328,7 +4328,7 @@ Variable: AFNI_JUMPTO_SPACE (editable)
 ----------------------------
 This variable sets which space to use in the AFNI GUI for "Jump to
 (spacename)" function where this would default to "MNI". Choose a
-valid spacename from the current list of spaces in "whereami
+valid spacename from the current list of spaces in "whereami_afni
 -show_spaces". The jump function transforms the user input coordinates
 from that space to the space of the dataset.
 
@@ -4346,12 +4346,12 @@ AFNI_ATLAS_PATH, the AFNI_PLUGINPATH or the standard PATH values.
 Variable: AFNI_PLUGINPATH
 -------------------------
 Described above, this variable is used for several purposes. For
-whereami, this variable sets the directory to load atlases and NIML
+whereami_afni, this variable sets the directory to load atlases and NIML
 files if not in the current directory. If this variable does not exist
 or the referred file does not exist, then the atlas is searched in the
 user's current PATH setting. If this is set, atlases will be found
 more quickly than searching all the directories of the entire
-PATH. Searches of the PATH variable for whereami usage stop at the
+PATH. Searches of the PATH variable for whereami_afni usage stop at the
 first occurrence of the searched file, so placing the AFNI directory
 earlier in the PATH will dramatically increase the speed that the file
 is found.
@@ -4359,7 +4359,7 @@ is found.
 ----------------------------------
 Variable: AFNI_WHEREAMI_DEC_PLACES (editable)
 ----------------------------------
-Sets precision for whereami output. Higher field data and animal
+Sets precision for whereami_afni output. Higher field data and animal
 atlases require higher precision. The default value used for focus
 point among template spaces is still 0 decimal places (closest mm),
 but animal data requires three decimal places. Value may range from 0
@@ -4371,7 +4371,7 @@ Variable: AFNI_WAMI_DEBUG
 This variable controls the output of detailed messages about various
 tasks involved in loading atlases, transformations and composing query
 results. By default, this information is not shown. This integer sets
-the debugging level in whereami routines. Currently used values range
+the debugging level in whereami_afni routines. Currently used values range
 from 0 to 3.
 
 ------------------------------
@@ -4384,7 +4384,7 @@ is not set.
 -------------------------------
 Variable: AFNI_WHEREAMI_NO_WARN
 -------------------------------
-Turns off warnings about various whereami features - like queries that
+Turns off warnings about various whereami_afni features - like queries that
 have reached their limit of returned results. By default, warnings are
 displayed only the first time a particular message is encountered.
 
@@ -4393,13 +4393,13 @@ Variable: AFNI_WHEREAMI_MAX_FIND (editable)
 --------------------------------
 By default, only the first nine structures are displayed within a
 particular atlas. You may increase or decrease this to show more or
-fewer structures in the whereami results.
+fewer structures in the whereami_afni results.
 
 -------------------------------
 Variable: AFNI_WHEREAMI_MAX_SEARCH_RAD (editable)
 -------------------------------
 
-By default, whereami searches a radius of 7.5 mm. Set a radius up to
+By default, whereami_afni searches a radius of 7.5 mm. Set a radius up to
 9.5 mm.
 
 -------------------------------
@@ -4411,20 +4411,21 @@ Minimum probability AFNI considers in probabilistic atlases
 Variable: AFNI_DEFAULT_STD_SPACE
 --------------------------------
 The default template space is assumed to be TLRC. This is used for
-coordinate input to whereami, the whereami GUI and for TLRC view
-datasets without a template space explicitly set in the dataset
-header.
+coordinate input to whereami_afni, the whereami functionality in the GUI 
+and for TLRC view datasets without a template space explicitly set in the 
+dataset header.
 
 --------------------------------
 Variable: AFNI_NIFTI_VIEW
 --------------------------------
 The default view extension used for output when creating AFNI format
-datasets from NIFTI datasets.This variable is only applicable for
+datasets from NIFTI datasets. This variable is only applicable for
 sform and qform codes that do not have clearly defined views
 (sform/qform code = 2). Set to "tlrc" or "orig". See also
 AFNI_DEFAULT_STD_SPACE and AFNI_NIFTI_PRIORITY. Note sform/qform code=5
 can be used for spaces other than MNI or TLRC including MNI_ANAT or D99
 spaces.
+If unset, the default is 'orig'.
 
 --------------------------------
 Variable: AFNI_NIFTI_PRIORITY
@@ -4476,12 +4477,13 @@ Variable: AFNI_ATLAS_NAME_TYPE
 -------------------------------
 Atlas region labels can be shown as either as a short name or with a
 longer, more descriptive name. Note that most atlases have only the
-short name available. The whereami GUI and command line can show either
-or both labels with this variable set to "longname", "both" or "name",
-where "name" is only the short, standard version. The overlay panel
-and image viewers can show this label too. The names are separated by
-a vertical pipe symbol if both are in the atlas header.
-The default is to show both names if they are available.
+short name available. The whereami GUI functionality and whereami_afni
+command line program can show either or both labels with this variable
+set to "longname", "both" or "name", where "name" is only the short,
+standard version. The overlay panel and image viewers can show this
+label too. The names are separated by a vertical pipe symbol if both
+are in the atlas header.  The default is to show both names if they
+are available.
 
 -------------------------
 Variable: AFNI_WEBBY_WAMI
