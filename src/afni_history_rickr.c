@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Sep, 2025, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
+   "store FreeSurfer version in SUMA/version_fs.txt",
+   NULL
+ } ,
+
  { 18, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "report afnipy version",
    NULL
