@@ -1085,7 +1085,7 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
                 over2->V[i] = (float)(over2->V[i] > over2->IntRange[1]);  
            }
            
-           if (over2->OptScl->find == 2 || over2->OptScl->find == 4  || over2->OptScl->find == 5  || over2->OptScl->find == 6){
+           if (over2->OptScl->find == 2 || over2->OptScl->find == 4  || over2->OptScl->find == 5){
                 for (i=0; i<over2->N_V; ++i){
                 overlayBackup[i] = over2->V[i];
                 over2->V[i] = (fabs((float)(over2->V[i])) > over2->IntRange[1]);  
@@ -1107,8 +1107,8 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
                 over2->V[i]  = overlayBackup[i];
            }
            
-           if (over2->OptScl->find == 2 || over2->OptScl->find == 4  || over2->OptScl->find == 5  || over2->OptScl->find == 6){
-               if (threshold) for (i=0; i<over2->N_V; ++i){
+           if (over2->OptScl->find == 2 || over2->OptScl->find == 4  || over2->OptScl->find == 5){
+               for (i=0; i<over2->N_V; ++i){
                     over2->V[i]  = overlayBackup[i];
                }
            }
