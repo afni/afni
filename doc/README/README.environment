@@ -1689,11 +1689,30 @@ range is 0 .. 0.05 (which will be very thick lines, I assure you).
 This variable was introduced in March 2015 for Corianne (if there is
 such a person).
 
-----------------------------------
+---------------------------
 Variable: AFNI_CROSSHAIRGAP
-----------------------------------
-This numeric variable lets you set the gap between the image viewer crosshairs.
-The default value is 5 voxels. Allowable range is from -1 (closed) to 19 voxels.
+---------------------------
+This numeric variable lets you set the gap between the image viewer
+crosshairs.  The default value is 5 voxels. Allowable range is from -1
+(closed) to 19 voxels.
+
+--------------------------
+Variable: AFNI_OVCROSSHAIR
+--------------------------
+This variable controls the color of the crosshair in the image windows
+in Ye Olde Style: users provide an integer that maps to a color.  The
+color-by-number mapping is as follows:
+
+ 1: yellow     11: blue-cyan  21: rbgyr20_01  31: rbgyr20_11  41: salmon
+ 2: yell-oran  12: cyan       22: rbgyr20_02  32: rbgyr20_12  42: navy
+ 3: oran-yell  13: green      23: rbgyr20_03  33: rbgyr20_13  
+ 4: orange     14: limegreen  24: rbgyr20_04  34: rbgyr20_14  
+ 5: oran-red   15: violet     25: rbgyr20_05  35: rbgyr20_15  
+ 6: red        16: hotpink    26: rbgyr20_06  36: rbgyr20_16  
+ 7: dk-blue    17: white      27: rbgyr20_07  37: rbgyr20_17  
+ 8: blue       18: gry-dd     28: rbgyr20_08  38: rbgyr20_18  
+ 9: lt-blue1   19: gry-bb     29: rbgyr20_09  39: rbgyr20_19  
+10: lt-blue2   20: black      30: rbgyr20_10  40: rbgyr20_20  
 
 -----------------------------
 Variable: AFNI_CROSSHAIRS_OFF
