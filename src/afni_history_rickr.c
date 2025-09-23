@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Sep, 2025, RCR, "afni", MICRO, TYPE_MODIFY,
+   "change default crosshair gap from 5 to 1",
+   "This is controlled by AFNI_CROSSHAIRGAP."
+ } ,
+
  { 23, Sep, 2025, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
    "store FreeSurfer version in SUMA/version_fs.txt",
    NULL
