@@ -1050,6 +1050,17 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
         // NB.  This is the basis of the C&C option of the Dsp control on the
         // surface control menu
         over2->ShowMode = SW_SurfCont_DsetViewCaC; 
+        
+        // No contours with zero threshold
+        fprintf(stderr, "**************** over2->IntRange[0] = %f\n", over2->IntRange[0]);
+        fprintf(stderr, "**************** over2->IntRange[1] = %f\n", over2->IntRange[1]);
+        fprintf(stderr, "**************** over2->OptScl->ThreshRange[0] = %f\n", over2->OptScl->ThreshRange[0]);
+        fprintf(stderr, "**************** over2->OptScl->ThreshRange[1] = %f\n", over2->OptScl->ThreshRange[1]);
+        if (over2->OptScl->ThreshRange[0] == 0){
+             SUMA_KillOverlayContours(over2);
+             over2->Contours = NULL;
+             SUMA_RETURN (YUP);
+        }
 
         if (OutlineContours && !thresholdChanged){ // If threshold outline
                                 // contours exist and threshold unchanged
