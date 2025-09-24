@@ -1052,10 +1052,6 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
         over2->ShowMode = SW_SurfCont_DsetViewCaC; 
         
         // No contours with zero threshold
-        fprintf(stderr, "**************** over2->IntRange[0] = %f\n", over2->IntRange[0]);
-        fprintf(stderr, "**************** over2->IntRange[1] = %f\n", over2->IntRange[1]);
-        fprintf(stderr, "**************** over2->OptScl->ThreshRange[0] = %f\n", over2->OptScl->ThreshRange[0]);
-        fprintf(stderr, "**************** over2->OptScl->ThreshRange[1] = %f\n", over2->OptScl->ThreshRange[1]);
         if (over2->OptScl->ThreshRange[0] == 0){
              SUMA_KillOverlayContours(over2);
              over2->Contours = NULL;
@@ -1115,11 +1111,6 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
                  SUMA_RETURN(0);
               }
               
-//            fprintf(stderr, "A: over2->N_Contours = %d\n", over2->N_Contours);
-//            fprintf(stderr, "A: over2->Contours[0]->N_CE = %d\n", over2->Contours[0]->N_CE);
-//            fprintf(stderr, "A: over2->Contours[0]->CE[0].n1 = %d\n", over2->Contours[0]->CE[0].n1);
-//            fprintf(stderr, "A: over2->Contours[0]->CE[0].n2 = %d\n", over2->Contours[0]->CE[0].n2);
-
            // Restore overlay colormap
            if (threshold) for (i=0; i<over2->N_V; ++i){
                 over2->V[i]  = overlayBackup[i];
@@ -1139,11 +1130,6 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
 
            free(overlayBackup);
               
-//            fprintf(stderr, "B: over2->N_Contours = %d\n", over2->N_Contours);
-//            fprintf(stderr, "B: over2->Contours[0]->N_CE = %d\n", over2->Contours[0]->N_CE);
-//            fprintf(stderr, "B: over2->Contours[0]->CE[0].n1 = %d\n", over2->Contours[0]->CE[0].n1);
-//            fprintf(stderr, "B: over2->Contours[0]->CE[0].n2 = %d\n", over2->Contours[0]->CE[0].n2);
-
             // Make contours black
             if (over2->Contours){
                 for (i=0; i<over2->N_Contours; ++i){
