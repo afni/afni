@@ -53,6 +53,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 24, SEP, 2025, DRG, "afni",
+     MINOR, TYPE_BUG_FIX,
+    "Clusterize plugin wami command fix",
+    "Temporary dataset deleted before getting name for whereami overlap omask."
+},
 { 12, SEP, 2025, DRG, "afni",
      MINOR, TYPE_ENHANCE,
     "afni GUI can now sort datasets in chooser alphabetically",

@@ -1988,7 +1988,7 @@ ENTRY("AFNI_clus_action_CB") ;
      }
      THD_force_ok_overwrite(1) ;
      INFO_message("Writing mask dataset %s",DSET_BRIKNAME(mset)) ;
-     DSET_write(mset) ; DSET_delete(mset) ;
+     DSET_write(mset) ;
      THD_force_ok_overwrite(0) ;
      ININFO_message("%s",cmd) ;
 
@@ -1999,6 +1999,7 @@ ENTRY("AFNI_clus_action_CB") ;
        SHOW_AFNI_PAUSE ;
        MCW_invert_widget(cwid->whermask_pb) ; inv = 1 ;
        wout = (char *)malloc(sizeof(char)*WSIZ) ;
+printf("\n******Mask DSET_HEADNAME is %s\n",DSET_HEADNAME(mset)); 
        sprintf(wout,"%s -omask %s",wherprog,DSET_HEADNAME(mset)) ;
        if( jtop >= clar->num_clu ) strcpy (ct," ") ;
        else                        sprintf(ct," [first %d clusters]",jtop) ;
@@ -2024,6 +2025,7 @@ ENTRY("AFNI_clus_action_CB") ;
        SHOW_AFNI_READY ;
      }
 
+     DSET_delete(mset) ; /* moved down-whereami needs name 24 Sep 2025 DRG*/
      EXRETURN ;
    }
 
