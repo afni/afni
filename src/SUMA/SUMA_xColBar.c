@@ -1038,8 +1038,6 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
    static int N_OriginalContours = 0;
 
    SUMA_ENTRY;
-
-   fprintf(stderr, "+++++ %s\n", FuncName);
    
    if (!over2) SUMA_RETURN (YUP);
 
