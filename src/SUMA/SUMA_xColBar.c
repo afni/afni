@@ -1084,26 +1084,29 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
            // Backup colormap
            for (i=0; i<over2->N_V; ++i) overlayBackup[i] = over2->V[i];
            
-           fprintf(stderr, "++++++ %s: over2->OptScl->find = %d\n", FuncName, over2->OptScl->find);
-           
-           SUMA_Boolean threshold = over2->OptScl->find != 1 && 
-            over2->OptScl->find != 4 && over2->OptScl->find != 5 && over2->OptScl->find != 7;
-           
-           // Threshold based on relationship to superthreshold regions
-           if (threshold) for (i=0; i<over2->N_V; ++i){
-                over2->V[i] = (float)(over2->V[i] > over2->IntRange[1]);  
-           }
-           
-           if (over2->OptScl->find == 4  || over2->OptScl->find == 5){
+           // Threshold colormap based on I subbrick setting
+           switch (over2->OptScl->find){
+            case 0:
+            case 3:
+            case 6:
+            case 9:
                 for (i=0; i<over2->N_V; ++i){
-                over2->V[i] = (fabs((float)(over2->V[i])) > over2->IntRange[1]);  
-            }
-           }
-           
-           if (over2->OptScl->find == 2 || over2->OptScl->find == 8){
+                    over2->V[i] = (float)(over2->V[i] >= over2->IntRange[1]);  
+                }
+                break;
+            case 1:
+            case 4:
+            case 5:
                 for (i=0; i<over2->N_V; ++i){
-                over2->V[i] = (fabs((float)(over2->V[i])) >= over2->IntRange[1]);  
-            }
+                    over2->V[i] = (fabs((float)(over2->V[i])) > over2->IntRange[1]);  
+                }
+                break;
+            case 2:
+            case 8:
+                for (i=0; i<over2->N_V; ++i){
+                    over2->V[i] = (fabs((float)(over2->V[i])) >= over2->IntRange[1]);  
+                }
+                break;           
            }
 
             if (!SUMA_MakeThresholdOutlines (over2)) {
@@ -1111,21 +1114,9 @@ SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO,
                  SUMA_RETURN(0);
               }
               
-           // Restore overlay colormap
-           if (threshold) for (i=0; i<over2->N_V; ++i){
+          // Restore overlay colormap
+          for (i=0; i<over2->N_V; ++i){
                 over2->V[i]  = overlayBackup[i];
-           }
-           
-           if (over2->OptScl->find == 2 || over2->OptScl->find == 4  || over2->OptScl->find == 5){
-               for (i=0; i<over2->N_V; ++i){
-                    over2->V[i]  = overlayBackup[i];
-               }
-           }
-           
-           if (over2->OptScl->find == 8){
-               for (i=0; i<over2->N_V; ++i){
-                    over2->V[i]  = overlayBackup[i];
-               }
            }
 
            free(overlayBackup);
