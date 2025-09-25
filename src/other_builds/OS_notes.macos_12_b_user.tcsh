@@ -57,7 +57,9 @@ defaults write com.apple.Terminal FocusFollowsMouse -string YES
 # install under initial abin (relevant if we -do_extras)
 
 # install AFNI's anyos_text_atlas package if nothing appears to be installed
-if ( ! -f $HOME/abin/init_user_dotfiles.py ) then
+# if ( ! -f $HOME/abin/init_user_dotfiles.py ) then
+# -- RCR: temp change to afni, to force re-download on failure
+if ( ! -f $HOME/abin/afni ) then
    echo "++ installing AFNI anyos_text_atlas"
    curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/@update.afni.binaries
    tcsh @update.afni.binaries -no_recur -package anyos_text_atlas \
