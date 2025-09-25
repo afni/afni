@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "remove fix message regarding our code examples using 'tcsh'",
+   "On the orders of PT."
+ } ,
+
  { 25, Sep, 2025, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "OS_notes.macos_12_intel_b_user.tcsh : build_afni.py -fast_log_messages",
    "Do immediate message logging, in case of early user termination."

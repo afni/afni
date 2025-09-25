@@ -128,9 +128,11 @@ class SysInfo:
       if logshell == curshell: note = ''
       else:                    note = '  (current shell is %s)' % curshell
 
-      if logshell not in ['csh', 'tcsh']:
-         self.comments.append("just be aware: login shell '%s', but our code" \
-                              " examples use 'tcsh'" % logshell)
+      # exclude fix comment: 25 Sep, 2025
+      # if logshell not in ['csh', 'tcsh']:
+      if self.verb > 1:
+         print("-- note: login shell '%s', but our code" \
+               " examples use 'tcsh'" % logshell)
 
       print('apparent login shell: %s%s' % (logshell, note))
 

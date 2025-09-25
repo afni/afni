@@ -367,9 +367,10 @@ g_history = """
    1.42 Feb 27, 2025 - add a more detailed get_macos_mdls_val()
    1.43 Sep  9, 2025 - flask and flask_cors are now required, AFNI_data7
    1.44 Sep 18, 2025 - report afnipy version
+   1.45 Sep 25, 2025 - remove fix message about examples using 'tcsh'
 """
 
-g_version = "afni_system_check.py version 1.44, September 18, 2025"
+g_version = "afni_system_check.py version 1.45, September 25, 2025"
 
 
 class CmdInterface:
