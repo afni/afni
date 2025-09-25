@@ -53,9 +53,15 @@
 
 afni_history_struct rickr_history[] = {
 
- { 25, Sep, 2025, RCR, "build_afni.py", MICRO, TYPE_BUG_FIX,
-   "add missing return 0 at end of f_get_extras, plus a little debug",
-   NULL
+ { 25, Sep, 2025, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "OS_notes.macos_12_intel_b_user.tcsh : build_afni.py -fast_log_messages",
+   "Do immediate message logging, in case of early user termination."
+ } ,
+
+ { 25, Sep, 2025, RCR, "build_afni.py", MICRO, TYPE_ENHANCE,
+   "add debug, a return at end of f_get_extras, and flush buffers",
+   "Flush buffers any time we ask user to be patient.\n"
+   "This helps with installs when scripts pipe (and so buffer) through tee."
  } ,
 
  { 23, Sep, 2025, RCR, "afni", MICRO, TYPE_MODIFY,

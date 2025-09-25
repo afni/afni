@@ -446,8 +446,9 @@ g_history = """
    0.15 Jun  2, 2025 - display full make command before compiling
    0.16 Jun 18, 2025 - verify that build_root is not under install dir
    0.17 Aug 14, 2025 - add -fast_log_commands and -fast_log_messages
-   0.18 Sep 25, 2025 - add missing return 0 at end of f_get_extras
-
+   0.18 Sep 25, 2025
+        - add missing return 0 at end of f_get_extras
+        - flush buffers any place we print "please be patient"
 """
 
 g_prog = "build_afni.py"
@@ -1544,6 +1545,10 @@ class MyInterface:
       MESGi("    # use ctrl-c to terminate 'tail' command (not the build)")
       MESGm("building (cmake) (please be patient)...")
 
+      # flush buffers, in case of pipes
+      sys.stdout.flush()
+      sys.stderr.flush()
+
       # -----------------------------------------------------------------
       # actually run the build (this is why we are here!)
       st, ot = self.run_cmd('tcsh', '-xe %s' % sfile)
@@ -1678,6 +1683,10 @@ class MyInterface:
       MESGi("    tail -f %s/%s" % (buildpath, logfile))
       MESGi("    # use ctrl-c to terminate 'tail' command (not the build)")
       MESGp("building (please be patient)...")
+
+      # flush buffers, in case of pipes
+      sys.stdout.flush()
+      sys.stderr.flush()
 
       # -----------------------------------------------------------------
       # actually run the main build
@@ -2187,6 +2196,11 @@ class MyInterface:
 
          MESGm("running 'git clone' on afni repo ...")
          MESGi("(please be patient)")
+
+         # flush buffers, in case of pipes
+         sys.stdout.flush()
+         sys.stderr.flush()
+
          st, ot = self.run_cmd('git', 'clone %s' % g_git_html)
          if st: return st
          st, ot = self.run_cmd('cd', 'afni', pc=1)
