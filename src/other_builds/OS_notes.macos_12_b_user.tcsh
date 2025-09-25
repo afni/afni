@@ -92,6 +92,7 @@ endif
 echo "++ compiling AFNI package $package"
 echo "++ running: build_afni.py -build_root ~/afni_build -package $package"
 # specify -cc_path until current homebrew gcc-15 is working
+\rm -f afni_build_messages.txt
 build_afni.py -build_root ~/afni_build -package $package \
     -cc_path /usr/bin/gcc -fast_log_messages afni_build_messages.txt
 
