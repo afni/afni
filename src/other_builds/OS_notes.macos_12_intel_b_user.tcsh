@@ -18,6 +18,5 @@ if ( ! $?HOMEBREW_PREFIX ) then
    eval "$(/usr/local/bin/brew shellenv)"
 endif
 
-\rm -f out.mac_12_b_user.txt
 tcsh -xef OS_notes.macos_12_b_user.tcsh |& tee out.mac_12_b_user.txt
 
