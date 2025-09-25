@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Sep, 2025, RCR, "build_afni.py", MICRO, TYPE_BUG_FIX,
+   "add missing return 0 at end of f_get_extras, plus a little debug",
+   NULL
+ } ,
+
  { 23, Sep, 2025, RCR, "afni", MICRO, TYPE_MODIFY,
    "change default crosshair gap from 5 to 1",
    "This is controlled by AFNI_CROSSHAIRGAP."

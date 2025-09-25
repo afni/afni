@@ -446,11 +446,12 @@ g_history = """
    0.15 Jun  2, 2025 - display full make command before compiling
    0.16 Jun 18, 2025 - verify that build_root is not under install dir
    0.17 Aug 14, 2025 - add -fast_log_commands and -fast_log_messages
+   0.18 Sep 25, 2025 - add missing return 0 at end of f_get_extras
 
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.17, June 18, 2025" % g_prog
+g_version = "%s, version 0.18, September 25, 2025" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
@@ -1430,6 +1431,8 @@ class MyInterface:
       sys.stdout.flush()
       sys.stderr.flush()
 
+      if self.verb > 2: MESGm("root is prepared, ready to build")
+
       # build source - the main purpose of this program
       if self.run_make:
          if self.f_build_via_make():
@@ -1983,6 +1986,8 @@ class MyInterface:
 
          return 0 on success
       """
+      if self.verb > 2: MESGm("getting extras...")
+
       # be sure to start from the root dir
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
@@ -1992,6 +1997,11 @@ class MyInterface:
 
       st = self.f_get_niivue()
       if st: return st
+
+      if self.verb > 2: MESGm("finished getting extras...")
+
+      return 0
+
 
    def f_get_atlases(self):
       """if no afni_atlases_dist dir, download
@@ -2135,8 +2145,9 @@ class MyInterface:
             if st: return st
          else:
             MESGi("(no NiiVue backup to restore from)")
-
       # call anything else success
+      elif self.verb > 2:
+         MESGm("successful download of NiiVue")
 
       return 0
 
