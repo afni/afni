@@ -92,7 +92,8 @@ endif
 echo "++ compiling AFNI package $package"
 echo "++ running: build_afni.py -build_root ~/afni_build -package $package"
 # specify -cc_path until current homebrew gcc-15 is working
-build_afni.py -build_root ~/afni_build -package $package -cc_path /usr/bin/gcc
+build_afni.py -build_root ~/afni_build -package $package \
+    -cc_path /usr/bin/gcc -fast_log_messages afni_build_messages.txt
 
 # and make sure we can see the new programs
 rehash
