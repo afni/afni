@@ -336,10 +336,14 @@ endif
 # ----- finished with table, so copy the output to final spot
 \cp "${opref}" ../.
 
+# exit wdir, to odir
+cd ..
+
 # ---------------------------------------------------------------------
 
 if ( $DO_CLEAN == 1 ) then
-    \rm -rf ${odir}/${wdir}
+    # should be _in_ odir right now, so wdir is just here to be removed
+    \rm -rf ${wdir}
 else
     echo "++ NOT removing temporary axialization working dir: ${odir}/${wdir}"
 endif
