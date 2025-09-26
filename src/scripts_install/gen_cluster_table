@@ -6,8 +6,11 @@
 # + program for making cluster table of ROI overlap, a la Highlight
 #   Don't Hide paper
 #
-set version   = "1.0";  set rev_dat   = "Apr 05, 2024"
+#set version   = "1.0";  set rev_dat   = "Apr 05, 2024"
 # + add help desc, rename some inputs
+#
+set version   = "1.1";  set rev_dat   = "Sep 26, 2025"
+# + fix errors with 'seq' when there were no overlaps or other cases
 #
 # ----------------------------------------------------------------
 
@@ -190,11 +193,20 @@ endif
 
 # ----- get list of clust regions
 
-set all_pos  = `3dROIstats -quiet                                     \
-                    -mask "3dcalc( -a ${dset_clust} -expr a*step(a)"  \
-                    "${dset_clust}"`
+# see if we have positive and/or negative clusters
+set brickmm = `3dBrickStat -slow -min -max "${dset_clust}"`
+set minval  = ${brickmm[1]}
+set maxval  = ${brickmm[2]}
 
-set minval = `3dBrickStat -slow -min "${dset_clust}"`
+if ( `echo "${maxval} > 0" | bc` ) then
+    set all_pos = `3dROIstats -quiet                                     \
+                        -mask "3dcalc( -a ${dset_clust} -expr a*step(a)"  \
+                        "${dset_clust}"`
+else
+    set all_pos = ( )
+endif
+set npos = ${#all_pos}
+
 if ( `echo "${minval} < 0" | bc` ) then
     set all_neg = `3dROIstats -quiet                                     \
                         -mask "3dcalc( -a ${dset_clust} -expr a*step(-a)" \
@@ -202,20 +214,26 @@ if ( `echo "${minval} < 0" | bc` ) then
 else
     set all_neg = ( )
 endif
+set nneg = ${#all_neg}
 
 # build list of values: 1, 2, 3, ... N, -1, -2, -3, ..., M (can have gaps)
 set all_clust = ( )
-foreach ii ( `seq 1 1 ${#all_pos}` ) 
-    set vvv = ${all_pos[$ii]}
-    # add each value to list as an int (should just be chopping of .00000...)
-    set all_clust = ( ${all_clust} `echo "scale=0; ${vvv}/1.0" | bc` )
-end
-foreach ii ( `seq ${#all_neg} -1 1` ) 
-    set vvv = ${all_neg[$ii]}
-    # add each value to list as an int (should just be chopping of .00000...)
-    set all_clust = ( ${all_clust} `echo "scale=0; ${vvv}/1.0" | bc` )
-end
-
+if ( ${npos} ) then
+    foreach ii ( `seq 1 1 ${#all_pos}` ) 
+        set vvv = ${all_pos[$ii]}
+        # add each value to list as an int (should just be chopping off
+        # .00000...)
+        set all_clust = ( ${all_clust} `echo "scale=0; ${vvv}/1.0" | bc` )
+    end
+endif
+if ( ${nneg} ) then
+    foreach ii ( `seq ${#all_neg} -1 1` ) 
+        set vvv = ${all_neg[$ii]}
+        # add each value to list as an int (should just be chopping off
+        # .00000...)
+        set all_clust = ( ${all_clust} `echo "scale=0; ${vvv}/1.0" | bc` )
+    end
+endif
 set nclust = ${#all_clust}
 
 # ----- start the output file and formatting
@@ -234,6 +252,9 @@ printf "%5s  %5s   %7s   %s\n"                      \
 
 set tfile  = __tmp_file_olap.txt
 
+# store a list of unfound clusters
+set all_unfound = ()
+
 # go through the dset, int by int, to parse a bit
 foreach ii ( `seq 1 1 ${nclust}` )
     set nn   = ${all_clust[$ii]}
@@ -249,43 +270,68 @@ foreach ii ( `seq 1 1 ${nclust}` )
         > "${tfile}"
 
     set nrow = `cat "${tfile}" | wc -l`
+    
+    # if nrow=0, that means this cluster had no overlap with any atlas
+    # region, so we skip it in the table
+    if ( ${nrow} ) then
+        set NEED_ONE = 1
+        foreach rr ( `seq 1 1 ${nrow}` )
+            set line = `cat "${tfile}" | sed -n ${rr}p`
+            set perc = `echo "${line}" | awk '{print $1}'`
 
-    set NEED_ONE = 1
-    foreach rr ( `seq 1 1 ${nrow}` )
-        set line = `cat "${tfile}" | sed -n ${rr}p`
-        set perc = `echo "${line}" | awk '{print $1}'`
+            set roi = `echo "${line}"                           \
+                        | awk -F'% overlap with' '{print $2}'   \
+                        | awk -F, '{print $1}'`
 
-        set roi = `echo "${line}"                           \
-                    | awk -F'% overlap with' '{print $2}'   \
-                    | awk -F, '{print $1}'`
+            # is this perc above min_olap_perc?
+            set is_ge_min = `echo "${perc} >= ${min_olap_perc}" | bc`
 
-        # is this perc above min_olap_perc?
-        set is_ge_min = `echo "${perc} >= ${min_olap_perc}" | bc`
-
-        if ( ${NEED_ONE} && ! ${is_ge_min} && $DO_STRICT ) then
-            # overlap below min chosen val, AND we will be strict
-            # about not showing it
-            set fff = `printf "<%2.1f" "${min_olap_perc}"`
-            printf "%5d  %5d %8s%%   %s\n"               \
-                "${nn}" "${nvox}" "${fff}"  "-"         \
-                |& tee -a "${ofile}"
-            set NEED_ONE = 0
-        else if ( ${NEED_ONE} ) then
-            printf "%5d  %5d  %7.1f%%   %s\n"               \
-                "${nn}" "${nvox}" "${perc}"  "${roi}"       \
-                |& tee -a "${ofile}"
-            set NEED_ONE = 0
-        else if ( ${is_ge_min} ) then
-            printf "%5s  %5s  %7.1f%%   %s\n"               \
-                "" "" "${perc}"  "${roi}"                   \
-                |& tee -a "${ofile}"
-        endif
-    end
+            if ( ${NEED_ONE} && ! ${is_ge_min} && $DO_STRICT ) then
+                # overlap below min chosen val, AND we will be strict
+                # about not showing it
+                set fff = `printf "<%2.1f" "${min_olap_perc}"`
+                printf "%5d  %5d %8s%%   %s\n"               \
+                    "${nn}" "${nvox}" "${fff}"  "-"         \
+                    |& tee -a "${ofile}"
+                set NEED_ONE = 0
+            else if ( ${NEED_ONE} ) then
+                printf "%5d  %5d  %7.1f%%   %s\n"               \
+                    "${nn}" "${nvox}" "${perc}"  "${roi}"       \
+                    |& tee -a "${ofile}"
+                set NEED_ONE = 0
+            else if ( ${is_ge_min} ) then
+                printf "%5s  %5s  %7.1f%%   %s\n"               \
+                    "" "" "${perc}"  "${roi}"                   \
+                    |& tee -a "${ofile}"
+            endif
+        end
+    else 
+        # keep a record of clusters with no olap
+        set all_unfound = ( ${all_unfound} ${ii} )
+    endif
 end
 
 cat <<EOF
 --------------------------------------------------------------------------
 EOF
+
+# in case there were cases of no overlap, warn about those
+if ( ${#all_unfound} ) then
+    # grammarize
+    if ( `echo "${#all_unfound} > 2" | bc` ) then
+        # plural
+        set sss = "There were ${#all_unfound} clusters"
+    else
+        # singular"
+        set sss = "There was ${#all_unfound} cluster"
+    endif
+cat <<EOF
+
++* WARNING: ${sss} without any input_atlas overlap:
+            ${all_unfound}
+
+EOF
+endif
 
 # ----- finished with table, so copy the output to final spot
 \cp "${opref}" ../.
