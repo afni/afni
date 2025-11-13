@@ -42,11 +42,11 @@ set dir_dat = .
 
     # sampling info
     samp_freq = 50.0                  # Hz
-    samp_rate = 1./samp_freq          # s
+    samp_delt = 1./samp_freq          # s
     start     = 0.0                   # s
     T         = 200.0                 # s
     N         = int(T * samp_freq)
-    t         = np.arange(start, start+T, samp_rate)
+    t         = np.arange(start, start+T, samp_delt)
 
     # card 
     fcard = 0.5
@@ -103,7 +103,6 @@ physio_calc.py                                                               \\
     -img_figsize         8.5 10                                              \\
     -img_line_time       60                                                  \\
     -img_fig_line        10                                                  \\
-    -do_extend_bp_resp                                                       \\
     -volbase_types_resp  rvt rvtrrf                                          \\
     -volbase_types_card  hrcrf                                               \\
     |& tee log_{exnum}.txt
@@ -122,11 +121,11 @@ physio_calc.py                                                               \\
 
     # sampling info
     samp_freq = 25.0                  # Hz
-    samp_rate = 1./samp_freq          # s
+    samp_dlet = 1./samp_freq          # s
     start     = 0.0                   # s
     T         = 200.0                 # s
     N         = int(T * samp_freq)
-    t         = np.arange(start, start+T, samp_rate)
+    t         = np.arange(start, start+T, samp_delt)
 
     # card 
     fcard = 0.5
@@ -183,7 +182,6 @@ physio_calc.py                                                               \\
     -img_figsize         8.5 10                                              \\
     -img_line_time       60                                                  \\
     -img_fig_line        10                                                  \\
-    -do_extend_bp_resp                                                       \\
     -volbase_types_resp  rvt rvtrrf                                          \\
     -volbase_types_card  hrcrf                                               \\
     |& tee log_{exnum}.txt
@@ -203,11 +201,11 @@ physio_calc.py                                                               \\
 
     # sampling info
     samp_freq = 50.0                  # Hz
-    samp_rate = 1./samp_freq          # s
+    samp_delt = 1./samp_freq          # s
     start     = 0.0                   # s
     T         = 200.0                 # s
     N         = int(T * samp_freq)
-    t         = np.arange(start, start+T, samp_rate)
+    t         = np.arange(start, start+T, samp_delt)
 
     # card 
     fcard = 0.5
@@ -270,7 +268,6 @@ physio_calc.py                                                               \\
     -img_figsize         8.5 10                                              \\
     -img_line_time       60                                                  \\
     -img_fig_line        10                                                  \\
-    -do_extend_bp_resp                                                       \\
     -volbase_types_resp  rvt rvtrrf                                          \\
     -volbase_types_card  hrcrf                                               \\
     |& tee log_{exnum}.txt

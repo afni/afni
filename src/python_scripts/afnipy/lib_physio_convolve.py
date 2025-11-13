@@ -202,8 +202,8 @@ Parameters
 x : array (of floats)
     values to convolve with RRF
 delt : float
-    delta time, the sampling rate (in s), likely the TR of FMRI data;
-    this value must be >0
+    delta time, the sampling interval (in s), likely the TR of FMRI 
+    data; this value must be >0
 kernel : str
     label of potential response functions, which are listed in
     all_kernel_trange.keys()

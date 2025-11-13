@@ -5,7 +5,9 @@ import os
 import json
 import gzip
 import copy
-import numpy          as np
+import numpy  as np
+
+from   afnipy import  afni_base          as ab
 from   afnipy import  lib_physio_opts    as lpo
 from   afnipy import  lib_physio_funcs   as lpf
 from   afnipy import  lib_physio_util    as lpu
@@ -23,7 +25,7 @@ ALL_fix_method = [
 
 # ==========================================================================
 
-class phys_ts_obj:
+class ts_obj:
     """An object for holding physio time series (e.g., card and resp) and
 derived data.
 
@@ -34,9 +36,10 @@ derived data.
                  min_bps = 0.0, max_bps = sys.float_info.max, 
                  start_time = 0.0, img_dot_freq = lpo.DEF_img_dot_freq,
                  prefilt_init_freq = None, prefilt_mode = None, 
-                 prefilt_win = None, do_interact = False,
+                 prefilt_win = None, do_interact = False, 
+                 do_slibase_out=False,
                  duration_vol = None, vol_tr = None,
-                 extend_bp=False,
+                 bp_sig_fac=1.0,
                  verb=0):
         """Create object holding a physio time series data.
         
@@ -55,7 +58,7 @@ derived data.
         self.ts_unfilt  = np.array(ts_unfilt) # arr, store raw ts
         self.ts_orig_bp = np.zeros(0, dtype=float) # arr, orig ts post-bandpass
         self.bp_idx_freq_mode = 0.           # flt, peak freq idx in bandpass
-        self.extend_bp  = extend_bp          # bool, more generous bandpass?
+        self.bp_sig_fac = bp_sig_fac         # float, scale sigma in bandpass
 
         self.duration_vol = duration_vol     # float, length of MRI in sec
         self.vol_tr       = vol_tr           # float, MRI TR in sec
@@ -92,8 +95,8 @@ derived data.
         # regressor stuff: lists of labels and the actual values
         # NB: at present, rvt likely only for resp (but doesn't matter deeply)
         #     and hr only for card
-        self.regress_dict_phys = {}      # dict of list, (lab, value)
-        self.regress_dict_rvt  = {}      # dict of list, (lab, value)
+        self.regress_dict_retro  = {}    # dict of list, (lab, value)
+        self.regress_dict_rvt    = {}    # dict of list, (lab, value)
         self.regress_dict_rvtrrf = {}    # dict of list, (lab, value)
         self.regress_dict_hr     = {}    # dict of list, (lab, value)
         self.regress_dict_hrcrf  = {}    # dict of list, (lab, value)
@@ -103,13 +106,15 @@ derived data.
         self.prefilt_mode      = prefilt_mode   # str, method of prefilt
         self.prefilt_win       = prefilt_win    # flt, size (s) of prefilt win
 
+        self.do_slibase_out    = do_slibase_out # bool, output old *.slibase.1D
+
         self.do_interact       = do_interact    # bool, turn on user-interact
         self.ndiff_inter_peaks = 0              # int, Npeak differing
         self.ndiff_inter_troughs = 0            # int, Ntrough differing
 
         # array of time values, has physical units
         self.tvalues = self.start_time + \
-            np.arange(self.n_ts_orig)*self.samp_rate
+            np.arange(self.n_ts_orig)*self.samp_delt
 
         # list of 2 ints: indices in ts_orig that represent the first
         # and last indices where the MRI volume occurs: [A, B)
@@ -164,7 +169,7 @@ derived data.
                                           max_idx=max_idx)
 
         all_stat = \
-            lpu.calc_interval_stats_perc(kind_list, samp_rate=self.samp_rate,
+            lpu.calc_interval_stats_perc(kind_list, samp_delt=self.samp_delt,
                                          all_perc=all_perc)
         return all_stat
 
@@ -183,7 +188,7 @@ derived data.
                                           max_idx=max_idx)
 
         all_stat = \
-            lpu.calc_interval_stats_mmms(kind_list, samp_rate=self.samp_rate)
+            lpu.calc_interval_stats_mmms(kind_list, samp_delt=self.samp_delt)
         return all_stat
 
     def stats_count_pt(self, kind=None,
@@ -234,19 +239,19 @@ derived data.
         return len(self.ts_orig)
 
     @property
-    def samp_rate(self):
-        """The physical sampling rate (in sec)."""
+    def samp_delt(self):
+        """The physical sampling interval, delta t (in sec)."""
         try:
-            rate = 1.0/self.samp_freq
+            delt = 1.0/self.samp_freq
         except:
-            print("+* WARNING: undefined sampling rate")
-            rate = np.nan
-        return rate
+            print("+* WARNING: undefined sampling interval")
+            delt = np.nan
+        return delt
 
     @property
     def duration_ts_orig(self):
         """The total amount of time (in sec) in the original time series."""
-        return self.n_ts_orig * self.samp_rate
+        return self.n_ts_orig * self.samp_delt
 
     @property
     def end_time(self):
@@ -258,7 +263,7 @@ derived data.
     def start_phys_idx(self):
         """The integer index for selecting the window of physio data due to
         having a nonzero start_time.  Note: we think of this as:
-           start_time / samp_rate
+           start_time / samp_delt
         but mechanically accomplish this by multiplication with samp_freq.
         """
         if self.start_time < 0 :
@@ -290,9 +295,9 @@ derived data.
         return len(self.list_slice_sel_phys)
 
     @property
-    def n_regress_phys(self):
-        """The number of plain ol' physio regressors (probably 4)."""
-        return len(self.regress_dict_phys)
+    def n_regress_retro(self):
+        """The number of plain ol' retroicor regressors (probably 4)."""
+        return len(self.regress_dict_retro)
 
     @property
     def n_regress_rvt(self):
@@ -316,9 +321,9 @@ derived data.
         return len(self.regress_dict_hrcrf)
 
     @property
-    def regress_phys_keys(self):
-        """The keys of the physio regressors (like c1, s1, c2, s2, ...)."""
-        return list(self.regress_dict_phys.keys())
+    def regress_retro_keys(self):
+        """The keys of the retroicor regressors (like c1, s1, c2, s2, ...)."""
+        return list(self.regress_dict_retro.keys())
 
     @property
     def regress_rvt_keys(self):
@@ -379,11 +384,11 @@ derived data.
 
 # -------------------------------------------------------------------------
 
-class retro_obj:
-    """An object for starting the retroicor process for making physio
-regressors for MRI data.
+class pcalc_obj:
+    """An object for starting the physio_calc.py processing for making
+physio regressors for MRI data (RETROICOR, RVT, RV, HR*, etc.).
 
-Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
+Each ts_obj is now held as a value to the data[LABEL] dictionary here
 
     """
 
@@ -408,6 +413,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.phys_jdict      = None    # dict from JSON file, maybe col labels
         self.phys_file       = None    # phys file, might contain cardio/resp
 
+        self.do_slibase_out  = False   # only modern slice/vol regressor *.1D
         self.do_interact     = False   # only automatic peak/trough est
         self.exit_on_rag     = True    # exit if raggedness in data files?
         self.exit_on_nan     = True    # exit if NaN values in data files?
@@ -430,7 +436,11 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
             'resp' : 0.,               # float, size (s) of window if downsamp
         }
 
-        self.do_extend_bp_resp = False # bool, do less strict BP for resp
+        # bandpassing opt
+        self.bp_sig_fac = {            # float, scale sigma during bandpass
+            'card' : 1.0,
+            'resp' : 2.0,
+            }
 
         # MRI EPI volumetric info
         self.vol_slice_times = []      # list of floats for slice timing
@@ -442,6 +452,9 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.verb         = verb       # int, verbosity level
         self.out_dir      = None       # str, name of output dir
         self.prefix       = None       # str, prefix of output filenames
+        self.extras_dir   = None       # str, dir for extra/intermed text items
+        self.images_dir   = None       # str, dir for QC/final images items
+
         self.do_calc_rvt    = True     # bool, flag
         self.do_calc_rvtrrf = False    # bool, flag
         self.do_out_rvt     = True     # bool, flag (might calc but not write)
@@ -654,7 +667,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
             # create physio object
             if label == 'resp' :
-                self.data['resp'] = phys_ts_obj(arr_fixed,
+                self.data['resp'] = ts_obj(arr_fixed,
                                      samp_freq = samp_freq,
                                      label=label, fname=fname, 
                                      ts_unfilt = ts_unfilt,
@@ -668,10 +681,10 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                                      do_interact = AD['do_interact'],
                                      duration_vol = self.duration_vol,
                                      vol_tr = self.vol_tr,
-                                     extend_bp = self.do_extend_bp_resp,
+                                     bp_sig_fac = self.bp_sig_fac['resp'],
                                      verb=self.verb)
             elif label == 'card' :
-                self.data['card'] = phys_ts_obj(arr_fixed,
+                self.data['card'] = ts_obj(arr_fixed,
                                      samp_freq = samp_freq,
                                      label=label, fname=fname, 
                                      ts_unfilt = ts_unfilt,
@@ -685,13 +698,14 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                                      do_interact = AD['do_interact'],
                                      duration_vol = self.duration_vol,
                                      vol_tr = self.vol_tr,
+                                     bp_sig_fac = self.bp_sig_fac['card'],
                                      verb=self.verb)
         return 0
 
     def apply_cmd_line_args(self):
         """The main way to populate object fields at present.  The main thing
         utilized is the object's args_dict, which should be a
-        dictionary from lib_retro_opts of checked+verified items input
+        dictionary from lib_physio_opts of checked+verified items input
         from the command line."""
 
         # just give shorter label! don't use this to change args_dict
@@ -715,10 +729,11 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.prefilt_win['card'] = AD['prefilt_win_card'] 
         self.prefilt_win['resp'] = AD['prefilt_win_resp'] 
 
-        self.do_extend_bp_resp = AD['do_extend_bp_resp']
-
         self.out_dir             = AD['out_dir']
         self.prefix              = AD['prefix']
+        self.extras_dir          = self.set_extras_dir()
+        self.images_dir          = self.set_images_dir()
+
         # turn on and off lots of calcs and outputs
         self.do_calc_rvt         = AD['do_calc_rvt']
         self.do_calc_rvtrrf      = AD['do_calc_rvtrrf']
@@ -759,7 +774,30 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.remove_val_list  = copy.deepcopy(AD['remove_val_list'])
         self.rvt_shift_list   = copy.deepcopy(AD['rvt_shift_list'])
         self.do_interact      = AD['do_interact']
+        self.do_slibase_out   = AD['do_slibase_out']
     # -----------------------
+
+    def set_extras_dir(self):
+        """Make name for extras dir, based on out_dir and prefix."""
+        if not(self.out_dir):
+            ab.EP("Cannot set extras dir, no out_dir defined")
+        if not(self.prefix):
+            ab.EP("Cannot set extras dir, no prefix defined")
+
+        oname = (self.out_dir).rstrip('/') + '/' + self.prefix
+        oname+= '_physio_extras'
+        return oname
+
+    def set_images_dir(self):
+        """Make name for images dir, based on out_dir and prefix."""
+        if not(self.out_dir):
+            ab.EP("Cannot set images dir, no out_dir defined")
+        if not(self.prefix):
+            ab.EP("Cannot set images dir, no prefix defined")
+
+        oname = (self.out_dir).rstrip('/') + '/' + self.prefix
+        oname+= '_physio_images'
+        return oname
 
     def run_prefilter_physio(self, x, label):
         """Downsample and/or filter the time series. The modes for 
@@ -849,12 +887,21 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         # our object to populate, with key=label and value=time_series info
         data_dict = {}
 
+        # for resp check, added second keyword bc it appeared in an
+        # openneuro collection
         if 'respiratory' in D['Columns'] :
             if self.verb:
                 print("++ Reading resp data from:\n   {}".format(fname))
 
             # read in data
             idx = D["Columns"].index('respiratory')
+            data_dict['resp'] = self.extract_list_col(all_col, idx)
+        elif 'respiration' in D['Columns'] :
+            if self.verb:
+                print("++ Reading resp data from:\n   {}".format(fname))
+
+            # read in data
+            idx = D["Columns"].index('respiration')
             data_dict['resp'] = self.extract_list_col(all_col, idx)
 
         if 'cardiac' in D['Columns'] :
