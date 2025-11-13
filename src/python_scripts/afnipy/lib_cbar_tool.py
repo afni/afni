@@ -65,7 +65,8 @@ DOPTS = {
     'outline_width' : 0,
     'outline_color' : zer,
     'bkgd_color'    : abc,
-    'do_autorotate' : True,
+    'do_autorotate' : 'Yes',
+    'do_clean'      : 'Yes',
     'verb'          : 1,
 }
 
@@ -137,6 +138,7 @@ inobj : InOpts object
 
         # general variables
         self.verb            = DOPTS['verb']
+        self.do_clean        = DOPTS['do_clean']
 
         # ----- do methods
         
@@ -167,14 +169,15 @@ inobj : InOpts object
         # create output fname, which becomes the in_cbar
         odir  = self.outdir
         rnd   = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
-        oname = '__tmp_' + rnd + '_' + self.in_cbar_name + '.png'
+        temp  = make_safe_string_from_name(self.in_cbar_name)
+        oname = '__tmp_' + rnd + '_' + temp + '.png'
         self.in_cbar = odir + '/' + oname
 
         if self.verb :
             ab.IP("Creating temporary cbar file: " + self.in_cbar)
 
         # do the writing
-        cmd    = 'adjunct_cbar_out -cbar ' + self.in_cbar_name
+        cmd    = 'adjunct_cbar_out -cbar "{}" '.format(self.in_cbar_name)
         cmd   += '  -pbar_saveim ' + self.in_cbar
         com    = ab.shell_com(cmd, capture=1)
         stat   = com.run()
@@ -210,7 +213,7 @@ inobj : InOpts object
                           "the help file, under '-prefix ..')?")
 
         # might have to clean up temp cbar
-        if self.in_cbar_name :
+        if self.in_cbar_name and self.do_clean :
             ab.IP("Cleaning up temp cbar: " + self.in_cbar)
             cmd    = '''\\rm {fff}'''.format(fff = self.in_cbar)
             com    = ab.shell_com(cmd, capture=1)
@@ -423,7 +426,13 @@ inobj : InOpts object
     def read_cbar_file(self):
         """Read in the cbar from a file to an array of uint8 RGB values."""
 
-        self.cbar_arr = read_cbar(self.in_cbar)
+        if self.in_cbar_name :
+            DO_WARN_4COL = False
+        else:
+            DO_WARN_4COL = True
+
+        self.cbar_arr = read_cbar(self.in_cbar, warn_4col = DO_WARN_4COL, 
+                                  verb=self.verb)
 
         # do we need to rotate it? record status to unrotate at end, too
         if self.do_autorotate :
@@ -598,6 +607,67 @@ inobj : InOpts object
 
 # -----------------------------------------------------------------------
 
+def make_bool_from_near_bool(val, verb=0):
+    """Sometimes, there can be various ways to specify a boolean response,
+using Yes, No, 1, 0, etc. This function translates all of those into
+an actual bool, or whines.
+
+Parameters
+----------
+val : string, int
+    item to be translated, likely a string but we make allowance for
+    int form
+
+Returns
+-------
+iii : int
+    0 means successful translation, and nonzero means failure
+bbb : bool
+    the translation of the input (if iii signal success)
+
+    """
+
+    if val in ['Yes', '1', 1] :
+        return 0, True
+    elif val in ['No', '0', 0] :
+        return 0, False
+    else:
+        msg = '''Cannot translate '{}' into a bool.\n'''.format(val)
+        msg+= 'Its value must be one of: Yes, 1, No, 0'
+        ab.EP1(msg)
+        return -1, False
+
+
+def make_safe_string_from_name(sss, verb=0):
+    """Colorbar names might have non-alphanumeric parts to them, like a
+':' or a ' ', like if "FLIP" is used.  Because the cbar name can get
+turned into intermediate file names, this function makes a safe
+version of the input string sss, primarily by replacing potential odd
+chars with safe ones like an underscore.
+
+Parameters
+----------
+sss : string
+    name of colorbar
+
+Returns
+-------
+uuu : string
+    name of colorbar in a "safe" form to use in filenames.
+    """
+
+    # remove outer whitespace, and split for any inner whitespace
+    ttt = sss.strip().split()
+    # ... replacing any inner whitespace with a single '_'
+    uuu = '_'.join(ttt)
+
+    # start looking for chars to replace (list might grow over time)
+    if ':' in uuu :
+        uuu = uuu.replace(':', '_')
+    
+    return uuu
+
+
 def autorotate_cbar(X, verb=1):
     """Check if input array X should be rotated for processing.  Will
 likely be un-autorotated at the end.  Rotates clockwise by 90deg.
@@ -629,7 +699,7 @@ Y: np.array
 
     return DID_ROTATE, Y
 
-def read_cbar(fname):
+def read_cbar(fname, warn_4col=True, verb=0):
 
     """Read in colorbar (JPG, PNG, etc.), via filename fname. 
 
@@ -646,6 +716,8 @@ Parameters
 ----------
 fname : str
     filename of colorbar
+warn_4col : bool
+    do warn about having 4 cols (bc only 3 get used)
 
 Returns
 -------
@@ -668,11 +740,16 @@ arr : np.array
         if C == 3 :
             pass
         elif C == 4 :
-            ttt = "Input cbar appears to have RGBA info, not just RGB. \n"
-            ttt+= "Just note that we will ignore the 'A', effectively \n"
-            ttt+= "reading it in as A=1 throughout.\n"
-            ttt+= "-> Not sure these are always dealt with correctly!"
-            ab.WP(ttt)
+            if warn_4col :
+                ttt = "Input cbar appears to have RGBA info, not just RGB. \n"
+                ttt+= "Just note that we will ignore the 'A', effectively \n"
+                ttt+= "reading it in as A=1 throughout.\n"
+                ttt+= "-> Not sure these are always dealt with correctly!"
+                ab.WP(ttt)
+                if verb > 5 :
+                    ab.IP("The first few rows of the cbar are:")
+                    ab.IP("arr[0,0,:] : " + str(arr[0,0,:]))
+                    ab.IP("arr[1,0,:] : " + str(arr[1,0,:]))
             arr = copy.deepcopy(arr[:,:,:3])
         else:
             ab.EP("""The third dimension of the input cbar is neither\n
