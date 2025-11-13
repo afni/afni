@@ -277,6 +277,10 @@ combined stimulus plots are generated (with any censoring also shown).
 
 The degrees of freedom (DF) summary is also provided, so one can check
 if too many get used up during processing (careful with bandpassing!).
+The summary table lines can include counts for: regressors (regs) of
+interest, the number used for censoring, baseline estimation with
+orthogonal polynomials ("polort"), motion regressors, bandpassing,
+other regressors of no interest (RONI), and others.
 
 The "corr_brain" plot shows correlation of each voxel with the errts
 average within the whole brain mask (what could be called the 'global
