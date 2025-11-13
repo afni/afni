@@ -1497,7 +1497,7 @@ def APRINT( S, ptype=None, indent=True):
     '''Print Error/Warn/Info for string S
 
     This function is not meant to be used directly, in general; use
-    {W|E|I}PRINT(), instead.
+    {W|E|I}P(), instead.
 
     '''
 
