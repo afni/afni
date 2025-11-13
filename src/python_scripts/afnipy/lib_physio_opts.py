@@ -918,7 +918,7 @@ syntax:
 
 {ddashline}
 
-Notes and recommentations on prefiltering the physio time series ~1~
+Notes and recommendations on prefiltering the physio time series ~1~
 
 Many physio time series contain noisy spikes or occasional blips.
 Since most physio processing algorithms rely on peak-/trough-finding,
@@ -1191,7 +1191,7 @@ regression must be done before any other processing, rather than as
 part of the main regress block processing.  So, the present program
 outputs separate files for slice-based and volume-wise regressors, so
 that as many as possible volumetric regressors can be applied more
-approriately in the regress block stage.
+appropriately in the regress block stage.
 
 *If* you would like the older format of all-physio-regressors-in-a-single-
 slicewise-file, you can add an option here for that:
