@@ -1,5 +1,7 @@
 #!/bin/tcsh
 
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
 set version   = "0.0";  set rev_dat   = "Feb 1, 2023"
 # + better template for scripting
 #
@@ -7,20 +9,19 @@ set version   = "0.0";  set rev_dat   = "Feb 1, 2023"
 
 set this_prog = "THIS_PROG"
 set prog_abbr = "TP"
-#set tpname    = "${this_prog:gas///}"
 set here      = $PWD
 
 # ----------------------- set defaults --------------------------
 
-set input   = ""
-set prefix  = ""
+set input     = ""
+set prefix    = ""
 
-set odir    = $here
-set opref   = ""
+set odir      = $here
+set opref     = ""
 
-set wdir    = ""
+set wdir      = ""
 
-set DO_CLEAN  = 1                       # default: keep working dir
+set DO_CLEAN  = 1           
 
 # ------------------- process options, a la rr ----------------------
 
@@ -116,7 +117,7 @@ endif
 # =========================== ** Main work ** ===========================
 # =======================================================================
 
-
+# ***
 
 
 
@@ -128,10 +129,9 @@ set whereout = $PWD
 
 if ( $DO_CLEAN == 1 ) then
     echo "++ Clean working dir"
-    # ***** clean
-    #\rm -rf ${wdir}
+    \rm -rf ${wdir}
 else
-    echo "++ NOT removing temporary axialization working dir: ${wdir}"
+    echo "++ NOT removing temporary working dir: ${wdir}"
 endif
 
 cat <<EOF
@@ -149,8 +149,45 @@ goto GOOD_EXIT
 SHOW_HELP:
 cat << EOF
 -------------------------------------------------------------------------
+Overview ~1~
 
+This program ****
 
+auth    : PA Taylor (SSCC, NIMH, NIH, USA)
+ver     : ${version}
+revdate : ${rev_dat}
+
+-------------------------------------------------------------------------
+Options ~1~
+
+-input       III    :(req) input dataset
+
+-prefix      PPP   :(req) output name 
+
+***
+
+-workdir     WWW   :specify the name of the temporary working directory
+                    (which is created as a new subdirectory of the output
+                    file location---do not include path info here, just a
+                    simple name)
+
+-no_clean          :do not remove working directory (def: remove it)
+
+-echo              :very verbose output when running (for troubleshooting)
+
+-help, -h          :display this meager help info
+
+-ver               :display this program version
+
+-------------------------------------------------------------------------
+Notes ~1~
+
+*****
+
+-------------------------------------------------------------------------
+Examples ~1~
+
+*****
 
 EOF
 
