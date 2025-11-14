@@ -1045,6 +1045,9 @@ typedef struct {
    char T_identifier[32+SUMA_IDCODE_LENGTH];
    float *Tperc;
    int N_Tperc;
+   
+   SUMA_Boolean *boxOutlineMask;    /*!<  Mask updated for threshold for box outline functionality 
+                                    Must be the same length as T.  Updated with threshold. */
 
 
    float GlobalOpacity; /*!< Opacity factor between 0 and 1 to apply to
