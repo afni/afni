@@ -910,8 +910,18 @@ def make_outlier_commands(proc, block):
     # set polort level
     val, err = proc.user_opts.get_type_opt(int, '-outlier_polort')
     if err: return
-    elif val != None and val >= 0: polort = val
-    else: polort = proc.regress_polort
+    elif val != None :
+        if val >= 0: 
+            polort = val
+        else: 
+            print("** ERROR: -outlier_polort must be >=0")
+            return -1, ''
+    else: 
+        polort = proc.regress_polort
+        if polort < 0 :
+            print("** ERROR: Using -regress_polort for 3dToutcount, but is <0")
+            print("   Perhaps consider using the '-outlier_polort' option?")
+            return -1, ''
 
     # use Legendre polynomials?
     opt = proc.user_opts.find_opt('-outlier_legendre')
@@ -4772,7 +4782,16 @@ def db_cmd_blur(proc, block):
         size = val
         havesize = 1
     else:
-        size = 4.0
+        dsize = 4.0
+        size = UTIL.get_def_blur_from_dims(proc.dsets[0].nice_input())
+        mesg = "** no -blur_size: using old default of %g" % dsize
+        if size > 0.0 and size != dsize:
+           mesg += ", but consider new default of %g\n" % size
+        mesg += "   (preferably, specify -blur_size directly)"
+        print(mesg)
+
+        # stick with current default
+        size = dsize
         havesize = 0
 
     # pass blur_size to APQC

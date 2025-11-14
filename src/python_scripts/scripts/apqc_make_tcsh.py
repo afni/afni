@@ -256,15 +256,28 @@ auth = 'PA Taylor'
 #ver = '6.01' ; date = 'May 23, 2025'
 # [PT] the mecho QC block now applies to all MEICA group tedana methods
 #
-ver = '6.02' ; date = 'May 23, 2025'
+#ver = '6.02' ; date = 'May 23, 2025'
 # [PT] ... even m_tedort will be recognized for the mecho QC block
 #
-# [PT] ... even m_tedort will be recognized for the mecho QC blockver = '6.1' ; date = 'June 16, 2025'
+# [PT] ... even m_tedort will be recognized for the mecho QC block
+#ver = '6.1' ; date = 'June 16, 2025'
 # [PT, RCR] introduce a series of changes in logic to deal with a
 #      situation of the "tlrc" being used but the -volreg_tlrc_warp is
 #      *not* included.
 #      + this involves a new main_dset check, as well as newer 
 #        if-conditions around what the final space is
+#ver = '6.2' ; date = 'June 18, 2025'
+# [PT] make+use errts_blur for in QC, to make it easier to evaluate
+#      seedbased corr (non-task) and IC (all FMRI)
+#
+#ver = '6.3' ; date = 'June 18, 2025'
+# [PT] when thresholding is applied, pbars use the alpha/thr info
+#
+ver = '6.4' ; date = 'Sep 9, 2025'
+# [PT] expand datasets to which not-blurred-during-processing considerations
+#      apply 
+#      + add -can_add_blur opt to allow user control of applying those
+#        extra features (which are on by default, and probably quite useful)
 #
 #########################################################################
 
@@ -347,6 +360,15 @@ if __name__ == "__main__":
 
     # add main dset name for ulays: main_dset
     ap_ssdict = lat.set_apqc_main_dset(ap_ssdict)
+
+    # add corr_brain name as uvar (maybe)
+    ap_ssdict = lat.set_apqc_corr_brain(ap_ssdict)
+
+    # add 'proc_had_blur' uvar. Also add 'errts_blur*' uvars _if_ no
+    # blur was applied during proc; 
+    # user has cmd line opt to disable this (-can_add_blur)
+    proc_had_blur, ap_ssdict = lat.set_apqc_errts_blur(ap_ssdict, 
+                                            can_add_blur=iopts.can_add_blur)
 
     # add censoring info: numbers ranges and text blocks
     # Q: what about RUN_STYLE=='none'?
@@ -480,6 +502,19 @@ if __name__ == "__main__":
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_vorig_all( ap_ssdict, obase, "vorig", "EPI-tcat", 
                                        ulay=ap_ssdict[ldep2[0]] )
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "vorig"
+    # item    : EPI variance in orig (should exist in vlines*/ subdir)
+
+    ldep = ["vlines_tcat_dir"]
+    ulay = ap_ssdict[ldep[0]] + '/' + 'var.1.scale.r01.nii.gz'
+    if lat.check_dep(ap_ssdict, ldep) and os.path.isfile(ulay) :
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_vorig_all( ap_ssdict, obase, "vorig", "EPI_variance", 
+                                       ulay=ulay )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -865,32 +900,18 @@ if __name__ == "__main__":
 
     # QC block: "regr"
     # item    : corr brain:  corr of errts WB mask ave with each voxel
+    #           -> could also be corr_brain_blur now
 
-    # Q: make uvar for this?
-
-    ldep     = ['errts_dset', 'final_anat']
-    ldep2    = ['template']                                # 2ary consid
-    alt_ldep = ['errts_dset', 'vr_base_dset']              # elif to ldep
-    ldep3    = ['user_stats']                              # 3ary consid
-    ldep4    = ['mask_dset']                               # 4ary consid
-
-    if lat.check_dep(ap_ssdict, ldep) :
-        DO_REGR_CORR_ERRTS = 1
+    ldep  = ['corr_brain', 'main_dset']
+    ldep2 = ['corr_brain_blur', 'main_dset']
+    if lat.check_dep(ap_ssdict, ldep) or lat.check_dep(ap_ssdict, ldep2) :
         ulay     = ap_ssdict['main_dset']
         focusbox = ap_ssdict['main_dset']
-    elif lat.check_dep(ap_ssdict, alt_ldep) :
-        DO_REGR_CORR_ERRTS = 1
-        ulay     = ap_ssdict['vr_base_dset']
-        focusbox = 'AMASK_FOCUS_ULAY' 
-
-    list_corr_brain = glob.glob('corr_brain+*.HEAD')
-    if len(list_corr_brain) == 1 and DO_REGR_CORR_ERRTS :
-        corr_brain = list_corr_brain[0]
 
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_regr_corr_errts( ap_ssdict, obase, "regr", 
                                              "corr_errts",
-                                             ulay, focusbox, corr_brain )
+                                             ulay, focusbox )
         idx     += 1
 
     # --------------------------------------------------------------------

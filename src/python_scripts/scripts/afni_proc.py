@@ -819,12 +819,19 @@ g_history = """
     8.00 Aug  6, 2025: run gtkyd and report outliers (basic start for now)
     8.01 Aug  6, 2025: add -volreg_warp_master_box, to base dxyz on EPI
     8.02 Sep  8, 2025: add -regress_per_run_ortvec, for physio volbase regs
+    8.03 Sep 11, 2025:
+       - do not create a script on -show_tracked_files
+       - add example class do_21, to match that in AFNI_data7
+       - suggest a new default blur (but still use 4.0), if none is given
+       - suggest open_apqc.py instead of afni_open
+       - allow verb only to show tracked files and create proc script
 """
 
-g_version = "version 8.02, September 8, 2025"
+g_version = "version 8.03, September 11, 2025"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ "10 Sep 2025",  "afni_util.py get_def_blur_from_dims" ],
       [ "24 Apr 2025",  "find_variance_lines.tcsh -ignore_edges" ],
       [ " 7 Mar 2024",  "3dTto1D -method 4095_warn" ],
       [ "15 Feb 2024",  "compute_ROI_stats.tcsh, whereami -index_to_label" ],
@@ -2076,6 +2083,7 @@ class SubjProcSream:
         
         if opt_list.find_opt('-show_tracked_files'):
             self.show_tfiles,rv = opt_list.get_string_opt('-show_tracked_files')
+            self.make_main_script = 0      # do not create a script
         
         if opt_list.find_opt('-todo'):     # print "todo" list
             print(g_todo_str)
@@ -3908,9 +3916,9 @@ class SubjProcSream:
         cmd = add_line_wrappers(cmd)
 
         if self.out_dir:
-           ocmd = 'afni_open -b %s/QC_$subj/index.html' % self.out_dir
+           ocmd = 'open_apqc.py -infiles %s/QC_$subj/index.html' % self.out_dir
         else:
-           ocmd = 'afni_open -b QC_$subj/index.html'
+           ocmd = 'open_apqc.py -infiles QC_$subj/index.html'
 
         cmd += '%secho "\\nconsider running: \\n"\n' \
                '%secho "   %s"\n'                    \
@@ -5024,6 +5032,10 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
 
        proc.tlist.show(order='sort', rfield=rfield, rval=rval, dfields=dfields)
                        # dfields = ['ftype', 'short_in'])
+
+       # if not making a script (e.g. with -show_tracked_files), terminate here
+       if not proc.make_main_script:
+           return 0, None
 
     return 0, proc
 

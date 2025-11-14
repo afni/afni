@@ -353,7 +353,8 @@ g_history = """
   0.1   Jan 26, 2025 :: started this command line interface for lib_cbar_tool
   0.2   Jan 30, 2025 :: beta version complete (with options)
   0.3   May 21, 2025 :: better prioritizing within JSON (cbar/pbar_fname)
-  0.3   Jun 17, 2025 :: checks about extension when failing to write
+  0.4   Jun 17, 2025 :: checks about extension when failing to write
+  0.5   Jun 18, 2025 :: use json path to find local cbar
 """
 
 g_ver     = g_history.split("\n")[-2].split("::")[0].strip()
@@ -383,6 +384,7 @@ See lct.CbarPbar() for the set of things that are populated for the actual
       # the JSON from @chauffeur_afni, or all the keys that can be in it;
       # see method combine_chauffeur_json_opts()
       self.in_json         = None
+      self.in_json_path    = None    # may be needed to find cbar
       self.cbar_min        = None
       self.cbar_max        = None
       self.thr_val         = None
@@ -577,6 +579,7 @@ See lct.CbarPbar() for the set of things that are populated for the actual
             if val is None or err:
                 BASE.EP1(err_base + opt.name)
             self.in_json = val
+            self.in_json_path = os.path.dirname(val)
 
          elif opt.name == '-cbar_min':
             val, err = uopts.get_type_opt(float, '', opt=opt)
@@ -710,7 +713,11 @@ See lct.CbarPbar() for the set of things that are populated for the actual
            # this dual condition check here is semi-unique for pbar_fname, bc it
            # can come from either in_cbar_name or in_cbar
            if self.in_cbar_name == None and self.in_cbar == None :
-               self.in_cbar = D['pbar_fname']
+               # might have to prepend path to json file to find pbar named in it
+               if self.in_json_path :
+                   self.in_cbar = self.in_json_path + '/' + D['pbar_fname']
+               else:
+                   self.in_cbar = D['pbar_fname']
            elif self.verb :
                BASE.WP("Using user-specified value of '{}', rather than JSON's "
                        "'{}'".format('in_cbar', 'pbar_fname'))

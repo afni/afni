@@ -53,6 +53,97 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "remove fix message regarding our code examples using 'tcsh'",
+   "On the orders of PT."
+ } ,
+
+ { 25, Sep, 2025, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "OS_notes.macos_12_intel_b_user.tcsh : build_afni.py -fast_log_messages",
+   "Do immediate message logging, in case of early user termination."
+ } ,
+
+ { 25, Sep, 2025, RCR, "build_afni.py", MICRO, TYPE_ENHANCE,
+   "add debug, a return at end of f_get_extras, and flush buffers",
+   "Flush buffers any time we ask user to be patient.\n"
+   "This helps with installs when scripts pipe (and so buffer) through tee."
+ } ,
+
+ { 23, Sep, 2025, RCR, "afni", MICRO, TYPE_MODIFY,
+   "change default crosshair gap from 5 to 1",
+   "This is controlled by AFNI_CROSSHAIRGAP."
+ } ,
+
+ { 23, Sep, 2025, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
+   "store FreeSurfer version in SUMA/version_fs.txt",
+   NULL
+ } ,
+
+ { 18, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "report afnipy version",
+   NULL
+ } ,
+
+ { 17, Sep, 2025, RCR, "afni", MICRO, TYPE_GENERAL,
+   "add comment list of NAME2-enabled environment variables for grepping",
+   "Done to appease the mighty D Glen."
+ } ,
+
+ { 11, Sep, 2025, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "OS_notes.macos_12_ARM_b_user.tcsh : also update .zshrc",
+   "Some installs set PATH without updates, so update in each shell."
+ } ,
+
+ { 11, Sep, 2025, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "minor updates",
+   "- suggest a new default blur (but still use 4.0), if none is given\n"
+   "- suggest open_apqc.py instead of afni_open\n"
+   "- allow verb only to show tracked files and create proc script\n"
+   "- add example class do_21, to match that in AFNI_data7"
+ } ,
+
+ { 11, Sep, 2025, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "add get_def_blur_from_dims() to report a hopefully useful blur size",
+   "Set gmean = geometric mean(deltas), scale by 1.6 and take the ceiling,\n"
+   "truncating to 4 significant bits.  So return:\n\n"
+   "    truncate_to_N_bits(gmean, bits=4, method='ceil', scale=1.6)\n"
+ } ,
+
+ { 10, Sep, 2025, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "do not create a proc script on -show_tracked_files",
+   NULL
+ } ,
+
+ { 10, Sep, 2025, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_NEW_OPT,
+   "add -blur_size; have default come from voxel sizes",
+   "The default is now 1.6 times the geometric mean dim, ceiling rounded."
+ } ,
+
+ { 10, Sep, 2025, RCR, "ap_run_simple_rest_me.tcsh", MINOR, TYPE_NEW_OPT,
+   "add -blur_size; have default come from voxel sizes",
+   "The default is now 1.1 times the geometric mean dim, ceiling rounded."
+ } ,
+
+ { 10, Sep, 2025, RCR, "test_ARMA_REML.tcsh", MICRO, TYPE_GENERAL,
+   "extract the script from the end of 3dDeconvolve.c",
+   "Having it in the .c file produce compile warnings."
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "look for AFNI_data7; better units evaluation on available disk space",
+   NULL
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "flask and flask_cors are now required",
+   NULL
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "add 'ceil' option to truncate_to_N_bits; and removed repeated scaling",
+   NULL
+ } ,
+
  {  9, Sep, 2025, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "mac install: if brew is not initialized, do so",
    "Run 'brew shellenv' from OS_notes.macos_12_*_b_user.tcsh if need be.\n"

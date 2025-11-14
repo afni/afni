@@ -242,7 +242,7 @@ if ( $DO_CLEAN == 1 ) then
     echo "++ Clean working dir"
     \rm -rf ${wdir}
 else
-    echo "++ NOT removing temporary axialization working dir: ${wdir}"
+    echo "++ NOT removing temporary deobliquing working dir: ${wdir}"
 endif
 
 DONE_MSG: 
@@ -279,9 +279,9 @@ Options ~1~
 
 -input                 : (req) input volumetric dataset name
 -prefix                : (req) output dataset name
--oblique_origin        : style of preserving origin, via 3drefit (def)
+-oblique_origin        : style of preserving origin, via 3drefit 
 -oblique_recenter      : style of preserving origin, via 3drefit (def)
--oblique_recenter_raw  : style of preserving origin, via 3drefit (def)
+-oblique_recenter_raw  : style of preserving origin, via 3drefit 
 -write_aff_mats        : write out affine matrix that would send output 
                          dset here to same place `3dWarp -deoblique ..` 
                          would send input (see Notes -> Affine Matrix)

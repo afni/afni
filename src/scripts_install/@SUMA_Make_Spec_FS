@@ -44,6 +44,7 @@
 #      need, just the way we were viewing it...
 # [Jul 16, 2024] DRG : before adding all possible surface
 #      attributes to a spec file, check which are actually available 
+# [Sep 23, 2025] RCR : put FreeSurfer version into SUMA/version_fs.txt
 
 set ver = 2.2.4
 
@@ -867,6 +868,10 @@ goto L_LOOK_FOR_SURF_DONE
 # convert to ascii via mris_convert (found earlier)
 
 L_CONVERT_SURFACES:
+
+    if ( $?FREESURFER_HOME ) then
+       echo $FREESURFER_HOME:t > $start_dir/$suma_dir/version_fs.txt
+    endif
 
     cd $surf_dir
     foreach surf ( $list_lh $list_rh )

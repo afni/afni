@@ -256,8 +256,11 @@ auth = 'PA Taylor'
 #ver = '6.0' ; date = 'Mar 19, 2024'
 # [PT] use new chauffeur functionality where run_* scripts have 1x1 mont
 #
-ver = '6.1' ; date = 'Feb 7, 2025'
+#ver = '6.1' ; date = 'Feb 7, 2025'
 # [PT] expand functionality when part of analysis has not been done in AP
+#
+ver = '6.2' ; date = 'Sep 18, 2025'
+# [PT] fix vstat_seedcorr when processing has not included blurring
 #
 #########################################################################
 
@@ -301,6 +304,8 @@ all_logo = [ 'apqc_logo_main.svg',
 all_font = [ 'FiraCode-Bold.woff2',
              'FiraCode-Regular.woff2',
 ]
+
+blur_label = 'blur_for_qc'
 
 # ----------------------------------------------------------------------
 
@@ -1044,6 +1049,35 @@ ap_ssdict : dict
 
     return ap_ssdict
 
+def set_apqc_corr_brain(ap_ssdict):
+    """Look for the corr_brain* dset, and set a uvar for it if it
+exists. We should already be in the correct dir (results dir) and the
+file name should be constant except for the av_space part.
+
+Parameters
+----------
+ap_ssdict : dict
+    dictionary of subject uvars
+
+Returns
+----------
+ap_ssdict : dict
+    updated dictionary of subject uvars
+
+    """
+
+    list_corr_brain = glob.glob('corr_brain+*.HEAD')
+    nfound = len(list_corr_brain)
+
+    if not(nfound) :
+        print("+* Found no corr_brain+*.HEAD dset, but continuing")
+    elif nfound == 1 :
+        ap_ssdict['corr_brain'] = list_corr_brain[0]
+    else:
+        print("+* Found >1 corr_brain+*.HEAD dset; confused and exiting")
+        sys.exit(3)
+
+    return ap_ssdict
 
 def set_apqc_censor_info_INIT(ap_ssdict):
     """Make the initial pieces for censoring info that are used
@@ -1303,7 +1337,7 @@ ap_ssdict : dict
             HAVE_MAIN = 1
             ap_ssdict['main_dset'] = ap_ssdict['final_anat']
 
-    if not(HAVE_MAIN) and check_dep(ap_ssdict, ldep) :  # ----- check for template
+    if not(HAVE_MAIN) and check_dep(ap_ssdict, ldep) :  # --- check for template
         # pre-check, output might be used in a couple ways
         cmd  = '''basename {}'''.format( ap_ssdict['template'] )
         com  = ab.shell_com(cmd, capture=do_cap)
@@ -1367,7 +1401,148 @@ ap_ssdict : dict
 
     return ap_ssdict
 
+# ---------
+
+def set_apqc_errts_blur(ap_ssdict, can_add_blur=laio.DEF_can_add_blur,
+                        make_dset_if_not_existing=True):
+    """When no blur is applied during processing, we will (likely) make a
+temp errts dset that has blur applied, for easier QC
+evaluation---esp. for seedbased correlation maps and IC.  This
+function checks if we should apply blurring, and then how much,
+according to the following rule: for SE-FMRI, 1.5 times the geometric
+mean of errts vox dim; for ME-FMRI, 1.1 time the geom mean.
+
+This function will *create* the errts_blur dset now, when
+make_dset_if_not_existing is true. Note that if the errts_blur dset
+exists already, then it will *not* overwrite it.
+
+This function will update the ap_ssdict with the new uvar key
+'proc_had_blur', whose value is either True or False.  If True, it
+will create two more uvars: 'errts_blur' (the name of the new blurred
+errts dset) and 'errts_blur_size' (the radius of added blur).
+
+If the errts_dset uvar is not present, this function does nothing.
+If the blur_size uvar is present, this function does nothing.
+
+This should only be applied for volumetric data.
+
+Parameters
+----------
+ap_ssdict : dict
+    dictionary of subject uvars
+can_add_blur : bool
+    option to turn off any checking; if this is True, then the program
+    just returns False and the input dictionary; else, the check proceeds
+make_dset_if_not_existing : bool
+    if the blurred errts dset doesn't exist already, make it if this
+    kwarg is set to True; otherwise, don't even try
+
+Returns
+----------
+do_blur : bool
+    will blurring be done?
+D : dict
+    copy of updated ap_ssdict, now including errts_blur dset name and
+    the errts_blur_size (amount of blurring applied)
+
+    """
+
+    D = copy.deepcopy(ap_ssdict)
+
+    # no errts to blur (somehow? not sure this can happen, in reality) and/or
+    # no tcat_dset (again, not sure this can actually happen)
+    if not(check_dep(ap_ssdict, ['errts_dset', 'tcat_dset'])) :
+        return False, D
+
+    # data are already blurred; nothing to do
+    if check_dep(ap_ssdict, ['blur_size']) :
+        D['proc_had_blur'] = True
+        return D['proc_had_blur'], D
+
+    D['proc_had_blur'] = False
+
+    # user option to disable even checking about this
+    if not(can_add_blur) :
+        print("++ proc had no blur, but adding blur in QC images -> disabled")
+        return D['proc_had_blur'], D
+
+    if 1 :
+        print("++ APQC create: blurred errts for IC & corr_brain"); 
+        sys.stdout.flush() 
+    do_cap = True
+
+    # get olay prefix
+    olay   = ap_ssdict['errts_dset']
+    cmd    = '3dinfo -prefix ' + olay
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    lll    = com.so[0].split()
+    olay_pref = lll[0]
+
+    # get voxel volume *of input data* to decide errts blur size
+    olay   = ap_ssdict['tcat_dset']
+    cmd    = '3dinfo -voxvol ' + olay
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    lll    = com.so[0].split()
+    voxvol = float(lll[0])
+
+    # calc the blur size, and then round it to a nicer number
+    if check_dep(ap_ssdict, ['combine_method']) :
+        val = 1.1 * (voxvol**0.3334)
+    else:
+        val = 1.6 * (voxvol**0.3334)
+    # the 'ceil' method here was added in AFNI_25.2.10; same rule
+    # applied here as in ap_run_simple_rest*.tcsh
+    errts_blur_size = au.truncate_to_N_bits(val, 4, method='ceil')
+
+    # new blurred errts dset, and add to dict if we are here
+    errts_blur      = olay_pref + '_' + blur_label + '.nii.gz'
+    corr_brain_blur = 'corr_brain' + '_' + blur_label + '.nii.gz'
+    D['errts_blur']        = errts_blur
+    if olay_pref.startswith('errts') :
+        D['errts_blur_abbrev'] = 'errts*' + blur_label + '*'
+    else:
+        D['errts_blur_abbrev'] = olay_pref + '_' + blur_label + '*'
+    D['errts_blur_size']   = errts_blur_size
+    D['corr_brain_blur']   = corr_brain_blur
+
+    # only create this dset once
+    if not(os.path.isfile(errts_blur)) and make_dset_if_not_existing :
+        cmd = '''
+        3dmerge                                                          \
+            -1blur_fwhm  {errts_blur_size}                               \
+            -doall                                                       \
+            -prefix      {errts_blur}                                    \
+            {errts_dset}
+        '''.format( errts_blur_size=errts_blur_size, 
+                    errts_blur=errts_blur,
+                    errts_dset=ap_ssdict['errts_dset'] )
+        com  = ab.shell_com(cmd, capture=do_cap)
+        stat = com.run()
+        print("     ", errts_blur); sys.stdout.flush() 
+    else:
+        print("   -> blurred errts already exists"); sys.stdout.flush() 
+
+    # only create this dset once
+    if not(os.path.isfile(corr_brain_blur)) and make_dset_if_not_existing :
+        cmd = '''
+        3dTcorr1D                                                        \
+            -prefix {corr_brain_blur}                                    \
+            {errts_blur}                                                 \
+            mean.errts.1D
+        '''.format( corr_brain_blur=corr_brain_blur, 
+                    errts_blur=errts_blur )
+        com  = ab.shell_com(cmd, capture=do_cap)
+        stat = com.run()
+        print("     ", corr_brain_blur); sys.stdout.flush() 
+    else:
+        print("   -> blurred corr_brain already exists"); sys.stdout.flush() 
+
+    return ['proc_had_blur'], D
+
 def set_alternate_seed_locs(ap_ssdict):
+
     """When the final space is ORIG or a non-seed-specified TLRC space,
 then we have a script to find a couple useful seed locations.  Return
 seed info in the same format as UTIL.read_afni_seed_file(...)
@@ -2280,15 +2455,27 @@ num : int
     com.run()
 
     # minor tweaks/formatting/expanding
-    if qci == "EPI":   ulay_comm = ' (volreg base)'
-    else:              ulay_comm = ''
-    if qci == "anat":  qci_comm = 'Anatomical'
-    else:              qci_comm = qci
+    if qci == "EPI":   
+        qci_comm  = 'EPI'
+        ulay_comm = ' (volreg base)'
+        dset_comm = qci
+    elif qci == "anat":   
+        qci_comm  = 'Anatomical'
+        ulay_comm = ''
+        dset_comm = qci
+    elif qci == "EPI_variance":   
+        qci_comm  = 'EPI variance pattern'
+        ulay_comm = ' (scaled)'
+        dset_comm = 'from pb00*r01*tcat*'
+    else:
+        qci_comm  = qci
+        ulay_comm = ''
+        dset_comm = qci
 
     # text above images
     otoptxt = []
     otoptxt.append('{} in original space{}'.format( qci_comm, ulay_comm ))
-    otoptxt.append('dset: {} ({})'.format( ulay_pref, qci ))
+    otoptxt.append('dset: {} ({})'.format( ulay_pref, dset_comm ))
 
     # Make info above images
     otopdict = {
@@ -3019,9 +3206,9 @@ num : int
     return 0
 
 
-# complicated/tiered dependencies...
+# ['corr_brain', 'main_dset']
 def apqc_regr_corr_errts( ap_ssdict, obase, qcb, qci, 
-                          ulay, focusbox, corr_brain ):
+                          ulay, focusbox ):
     """Make images of the correlation map of the average residual signal
 (corr_errts), which complements GCOR information. Also create text for
 above/below images.
@@ -3041,9 +3228,6 @@ ulay : str
 focusbox : str
     filename of dataset to use to focus in on part of the dataset
     (i.e., to ignore empty slices)
-corr_brain : str
-    filename of the correlation map of the average errts (error 
-    time series, AKA residual)
 
 Returns
 ----------
@@ -3074,15 +3258,28 @@ num : int
     pbar_cr = 'Pearson r'
     pbar_tr = 'alpha+boxed on' 
 
+    # figure out whether to use corr_brain or (if it exists) corr_brain_blur
+    if check_dep(ap_ssdict, ['corr_brain_blur']) :
+        corr_brain = ap_ssdict['corr_brain_blur']
+        ebs        = ap_ssdict['errts_blur_size']
+        blur_note  = 'with {:0.2f} mm blur: '.format(ebs)
+
+    elif check_dep(ap_ssdict, ['corr_brain']) :
+        corr_brain = ap_ssdict['corr_brain']
+        blur_note  = ''
+    else:  # should not happen
+        print("** ERROR: could not find any 'corr_brain*' uvar")
+        sys.exit(9)
+
     # get ulay prefix (name from arg)
-    cmd    = '3dinfo -prefix ' + ulay
-    com    = ab.shell_com(cmd, capture=do_cap)
-    stat   = com.run()
-    ulay_pref = com.so[0].strip()
+    #cmd    = '3dinfo -prefix ' + ulay
+    #com    = ab.shell_com(cmd, capture=do_cap)
+    #stat   = com.run()
+    #ulay_pref = com.so[0].strip()
 
     # get olay prefix
     olay   = corr_brain
-    cmd    = '3dinfo -prefix ' + olay
+    cmd    = '3dinfo -prefix_noext ' + olay
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
     olay_pref = com.so[0].strip()
@@ -3104,6 +3301,7 @@ num : int
         -pbar_saveim       "{opbarrt}.jpg"                                   \
         -pbar_comm_range   "{pbar_cr}"                                       \
         -pbar_comm_thr     "{pbar_tr}"                                       \
+        -pbar_thr_alpha    Yes                                               \
         -prefix            "{opref}"                                         \
         -save_ftype        JPEG                                              \
         -blowup            2                                                 \
@@ -3128,7 +3326,7 @@ num : int
 
     # text above images
     otoptxt = "olay: corr of WB-average errts "
-    otoptxt+= "with each voxel ({})".format(olay_pref)
+    otoptxt+= "with each voxel ({}{})".format(blur_note, olay_pref)
 
     # Make info above images
     otopdict = {
@@ -3273,8 +3471,22 @@ num : int
     stat   = com.run()
     ulay_pref = com.so[0].strip()
 
+    # [PT: Jun 18, 2025] start checking if blurring was applied during
+    # processing; if it *wasn't*, then we will apply some just before
+    # this 3dTcorr1D command, for QC purpose
+    ldep = ['errts_blur', 'errts_blur_size']
+    if check_dep(ap_ssdict, ldep) :
+        # we will use the blurred dset for the corr maps
+        corr_dset = ap_ssdict['errts_blur']
+        ebs       = ap_ssdict['errts_blur_size']
+        blur_note = ', with {:0.2f} mm blur'.format(ebs)
+
+    else:
+        corr_dset = ap_ssdict['errts_dset']
+        blur_note = ''
+
     # get olay prefix and voxel volume
-    olay   = ap_ssdict['errts_dset']
+    olay   = corr_dset
     cmd    = '3dinfo -prefix -voxvol ' + olay
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
@@ -3283,15 +3495,22 @@ num : int
     voxvol    = float(lll[1])
     seed_rad  = 2 * (voxvol**0.3334)
 
+    # for string label above image, keep text short-ish
+    ldep = ['errts_blur', 'errts_blur_size']
+    if check_dep(ap_ssdict, ldep) :
+        corr_pref = ap_ssdict['errts_blur_abbrev']
+    else:
+        corr_pref = olay_pref
+
     # Make ave time series
     cmd    = '''
     3dmaskave                                                                \
         -quiet                                                               \
         -dball  {sx} {sy} {sz} {seed_rad}                                    \
-        {errts_dset}                                                         \
+        {corr_dset}                                                          \
         > {t1dfile}
     '''.format( sx=seed.xyz[0], sy=seed.xyz[1], sz=seed.xyz[2], 
-                seed_rad=seed_rad, errts_dset=ap_ssdict['errts_dset'],
+                seed_rad=seed_rad, corr_dset=corr_dset,
                 t1dfile=t1dfile )
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
@@ -3301,9 +3520,9 @@ num : int
     3dTcorr1D                                                                \
         -overwrite                                                           \
         -prefix       {tcorrvol}                                             \
-        {errts_dset}                                                         \
+        {corr_dset}                                                          \
         {t1dfile}
-    '''.format( tcorrvol=tcorrvol, errts_dset=ap_ssdict['errts_dset'],
+    '''.format( tcorrvol=tcorrvol, corr_dset=corr_dset,
                 t1dfile=t1dfile )
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
@@ -3335,6 +3554,7 @@ num : int
         -pbar_saveim       "{opbarrt}.jpg"                                   \
         -pbar_comm_range   "{pbar_cr}"                                       \
         -pbar_comm_thr     "{pbar_tr}"                                       \
+        -pbar_thr_alpha    Yes                                               \
         -prefix            "{opref}"                                         \
         -save_ftype        JPEG                                              \
         -blowup            2                                                 \
@@ -3371,7 +3591,9 @@ num : int
 
     # text above images
     otoptxt = []
-    otoptxt.append('olay: {} (in {})'.format('seed-based corr map', olay_pref))
+    otoptxt.append('olay: {} (in {}{})'.format('seed-based corr map', 
+                                               corr_pref,
+                                               blur_note))
     otoptxt.append('seed: {}, {}'.format(netw_str, loc_str))
 
     # Make info above images
@@ -3690,6 +3912,7 @@ num : int
         -pbar_saveim       "{opbarrt}.jpg"                                   \
         -pbar_comm_range   "{pbar_comm_range}"                               \
         -pbar_comm_thr     "{pbar_comm_thr}"                                 \
+        -pbar_thr_alpha    Yes                                               \
         -prefix            "{opref}"                                         \
         -save_ftype        JPEG                                              \
         -blowup            2                                                 \
@@ -4388,9 +4611,23 @@ num : int
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
 
+    # Some TSNR warn level values differ, based on whether blurring
+    # was applied during proc; set what to use here.
+    ldep = ['proc_had_blur']
+    if not(check_dep(ap_ssdict, ldep)) :  
+        print("** ERROR: cannot find uvar: proc_had_blur")
+        sys.exit(15)
+    # ... and apply the info for option usage and text reporting
+    if ap_ssdict['proc_had_blur'] :
+        had_blur = 'Yes'
+    else:
+        had_blur = 'No'
+
     # calculate HTML formatting for table, and output in QC dir
-    cmd    = '''roi_stats_warnings.py -input {} -prefix {}'''.format(fname, 
-                                                                     odat)
+    cmd    = '''roi_stats_warnings.py -input {}'''.format(fname)
+    cmd   += ''' -prefix {}'''.format(odat)
+    cmd   += ''' -had_blur {}'''.format(had_blur)
+
     if qcb == 'warns' :
         cmd+= ''' -disp_max_warn'''
     com    = ab.shell_com(cmd, capture=do_cap)
@@ -4405,7 +4642,8 @@ num : int
                 warn_level = ttt
 
     # text above data
-    otoptxt = "ROI shape and TSNR stats ({})".format(fname)
+    partxt  = "{}, had_blur={}".format(fname, had_blur)
+    otoptxt = "ROI shape and TSNR stats ({})".format(partxt)
 
     # Make info below images 
     if qcb == 'regr' :
@@ -5940,6 +6178,7 @@ num : int
             -pbar_saveim       "{opbarrt}.jpg"                               \
             -pbar_comm_range   "{pbar_cr}"                                   \
             -pbar_comm_thr     "{pbar_tr}"                                   \
+            -pbar_thr_alpha    Yes                                           \
             -prefix            "{opref}"                                     \
             -save_ftype        JPEG                                          \
             -blowup            2                                             \

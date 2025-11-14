@@ -215,11 +215,11 @@ MAKE_TABLE:
       else
          # add long name if it exists to entry
          if ("$ln" != "") then
-            printf '"%d" "%s" "%s"\n' $llistmin[$cnt] "$ll" "$ln" \
+            printf '"%s" "%s" "%s"\n' $llistmin[$cnt] "$ll" "$ln" \
                >> ${tmpdir}/${RNS}.___lt.txt
         else
             # the more usual case of no long names - just name and number
-             printf '"%d" "%s"\n' $llistmin[$cnt] "$ll" \
+             printf '"%s" "%s"\n' $llistmin[$cnt] "$ll" \
                >> ${tmpdir}/${RNS}.___lt.txt
           endif
             if ($status) then
@@ -228,7 +228,7 @@ MAKE_TABLE:
                echo ""
                goto BEND
             endif
-         printf '%d\n' $llistmin[$cnt] >> ${tmpdir}/${RNS}.___kk.txt
+         printf '%s\n' $llistmin[$cnt] >> ${tmpdir}/${RNS}.___kk.txt
          printf '%s\n' "$ll" >> ${tmpdir}/${RNS}.___ll.txt
       endif
       @ cnt ++
@@ -324,10 +324,10 @@ MAKE_ATLAS_TABLE:
       else
          set ln_len = `echo $ln |wc -c`
          if ("$ln_len" == "1") then
-             printf '"%d" "%s" ""\n' $llistmin[$cnt] "$ll" \
+             printf '"%s" "%s" ""\n' $llistmin[$cnt] "$ll" \
                >> ${tmpdir}/${RNS}.___lt.txt
          else
-            printf '"%d" "%s" "%s"\n' $llistmin[$cnt] "$ll" "$ln" \
+            printf '"%s" "%s" "%s"\n' $llistmin[$cnt] "$ll" "$ln" \
                >> ${tmpdir}/${RNS}.___lt.txt
          endif
          if ($status) then
@@ -337,7 +337,7 @@ MAKE_ATLAS_TABLE:
             echo ""
             goto BEND
          endif
-         printf '%d\n' $llistmin[$cnt] >> ${tmpdir}/${RNS}.___kk.txt
+         printf '%s\n' $llistmin[$cnt] >> ${tmpdir}/${RNS}.___kk.txt
          printf '%s\n' "$ll" >> ${tmpdir}/${RNS}.___ll.txt
       endif
       @ cnt ++
@@ -866,7 +866,7 @@ PARSE:
                 $llistmin[$#llistmin] == 0 ||   \
                 $llistmin[$#llistmin] > $llistmax[$#llistmax]) then
                if (! $quiet_death) \
-                  printf "Bad range values of [%d %d] for label '%s'\n" \
+                  printf "Bad range values of [%s %s] for label '%s'\n" \
                    $llistmin[$#llistmin] $llistmax[$#llistmax] \
                    `sed -n ${N_llist}p ${tmpdir}/TMPLIST_${RNS}_`
                goto BEND
@@ -1165,6 +1165,8 @@ HELP:
    echo "                          cLAB is the index of column containing labels"
    echo "                          vVAL is the index of column containing keys"
    echo "                          (1st column is indexed at 0)"
+   echo "                          index can have leading zeros now, but they will"
+   echo "                          be converted to non-leading zeros (e.g. 001->1)"
    echo "   -longnames cLONGNAME: Additionally, allow for another column of long"
    echo "                names for regions, e.g. amygdala for AMY"
    echo "                cLONGNAME is the starting column for the longname continuing"
@@ -1191,7 +1193,7 @@ HELP:
    echo "   When redundancies occur, the script preserves just one entry."
    echo ""
    echo "   Example:"
-   echo "      @MakeLabelTable   -lab_r CSF 1 3 -lab_r GM 5 7 -lab_v WM 8  \"
+   echo "      @MakeLabelTable   -lab_r CSF 1 3 -lab_r GM 5 7 -lab_v WM 8  \\"
    echo "                        -labeltable example1"
    echo ""
    echo "Usage mode 2: Get information about an existing labeltable"
@@ -1255,9 +1257,9 @@ HELP:
    echo "   Example:"
    echo "      @MakeLabelTable -atlasize_labeled_dset SOME_LABELED_ROI_DSET"
    echo " or you can specify the keys in a file:"
-   echo "      @MakeLabelTable -lab_file FILE cLAB cVAL \"
-   echo "                      -atlas_pointlist apl \"
-   echo "                      -dset target_dset \"
+   echo "      @MakeLabelTable -lab_file FILE cLAB cVAL \\"
+   echo "                      -atlas_pointlist apl \\"
+   echo "                      -dset target_dset \\"
    echo "                      -atlas_file SessionAtlases.niml"
    echo ""
    echo "            -------------------------"

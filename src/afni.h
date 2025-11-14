@@ -2517,7 +2517,7 @@ extern int AFNI_find_session( char *dname ) ; /* 04/06/2020 discoraj */
 
 #define DEFAULT_MARK_SIZE     8
 #define DEFAULT_MARK_GAP      3
-#define DEFAULT_CROSSHAIR_GAP 5
+#define DEFAULT_CROSSHAIR_GAP 1
 
 /** initialization values (static values are used in afni.c only) **/
 

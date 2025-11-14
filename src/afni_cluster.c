@@ -1988,7 +1988,7 @@ ENTRY("AFNI_clus_action_CB") ;
      }
      THD_force_ok_overwrite(1) ;
      INFO_message("Writing mask dataset %s",DSET_BRIKNAME(mset)) ;
-     DSET_write(mset) ; DSET_delete(mset) ;
+     DSET_write(mset) ;
      THD_force_ok_overwrite(0) ;
      ININFO_message("%s",cmd) ;
 
@@ -2024,6 +2024,7 @@ ENTRY("AFNI_clus_action_CB") ;
        SHOW_AFNI_READY ;
      }
 
+     DSET_delete(mset) ; /* moved down-whereami needs name 24 Sep 2025 DRG*/
      EXRETURN ;
    }
 

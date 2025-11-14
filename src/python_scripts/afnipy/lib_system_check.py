@@ -14,6 +14,7 @@ if MT.num_import_failures(testlibs):
    sys.exit(1)
 
 import platform, glob
+import afnipy
 from afnipy import afni_base as BASE
 from afnipy import afni_util as UTIL
 
@@ -127,9 +128,11 @@ class SysInfo:
       if logshell == curshell: note = ''
       else:                    note = '  (current shell is %s)' % curshell
 
-      if logshell not in ['csh', 'tcsh']:
-         self.comments.append("just be aware: login shell '%s', but our code" \
-                              " examples use 'tcsh'" % logshell)
+      # exclude fix comment: 25 Sep, 2025
+      # if logshell not in ['csh', 'tcsh']:
+      if self.verb > 1:
+         print("-- note: login shell '%s', but our code" \
+               " examples use 'tcsh'" % logshell)
 
       print('apparent login shell: %s%s' % (logshell, note))
 
@@ -364,6 +367,7 @@ class SysInfo:
       if s:
          cmd = 'df -h %s' % dname
          s, so, se = UTIL.limited_shell_exec(cmd, nlines=3)
+         m = 0
          hsearch = 'Avail'
       if s: return 0, ''
     
@@ -384,18 +388,36 @@ class SysInfo:
       astr = alist[0]
 
       # if 'm' and this is an int, check for insufficient space
+      # (but still report result in GB)
       status = 0
+      unit = 'M'
       if m and m_min >= 0:
          try:
             nmeg = int(astr)
          except:
             nmeg = -1
-         # failure
-         if nmeg >= 0 and nmeg < m_min:
-            status = 1
+
+         # if something useful, check space and possibly format
+         if nmeg >= 0:
+            # insufficient space
+            if nmeg < m_min:
+               status = 1
+
+            # set the unit more usefully: M, G, T
+            if nmeg < 2000:
+               pass
+            elif nmeg < 2000000:
+               nmeg = nmeg // 1000
+               unit = 'G'
+            else:
+               nmeg = nmeg // 1000000
+               unit = 'T'
+
+            astr = '%s' % nmeg
+
       # if m, append a unit
       if m:
-         astr = '%sM' % astr
+         astr = '%s%s' % (astr, unit)
             
       return status, astr
 
@@ -413,6 +435,7 @@ class SysInfo:
       # locate various data trees, and possibly show recent history
       rv = 0
       rv += self.show_data_dir_info('AFNI_data6', 'history.txt')
+      rv += self.show_data_dir_info('AFNI_data7', 'history.txt')
       rv += self.show_data_dir_info('AFNI_demos', 'history.txt')
       rv += self.show_data_dir_info('suma_demo', 'README.archive_creation')
       rv += self.show_data_dir_info('afni_handouts')
@@ -1067,6 +1090,13 @@ class SysInfo:
             print('%-20s : %s' % ('', self.afni_label))
             continue
 
+         # afnipy version is internal
+         elif prog == 'afnipy':
+            show_comment = 0 # no comments.append()
+            nfound += 1   # do not call this an error yet
+            print('%-20s : %s' % (prog+' version', afnipy.__version__))
+            continue
+
          # XQuartz/X11?
          elif prog in ['XQuartz', 'X11']:
             s, v = self.get_prog_version(prog)
@@ -1363,7 +1393,7 @@ class SysInfo:
 
       return 0
 
-   def test_python_lib(self, pylib, fmesg='', showver=0, verb=2):
+   def test_python_lib(self, pylib, fmesg='', required=0, showver=0, verb=2):
       """try to import the given pylib library
 
          pylib      : (string) library name
@@ -1374,12 +1404,15 @@ class SysInfo:
       # actual lib test
       rv = MT.simple_import_test(pylib, verb=verb)
 
-      if fmesg : pmesg = fmesg
-      else:      pmesg = 'not required, but is desirable'
+      if fmesg:      pmesg = fmesg
+      elif required: pmesg = 'required'
+      else:          pmesg = 'not required, but is desirable'
 
-      # if failure, no biggie, but warn
+      # if failure, warn, and if required, add to comments
       if rv:
          print('-- %s is %s' % (pylib, pmesg))
+         if required:
+            self.comments.append('python library %s is required' % pylib)
          return 1
 
       if showver:
@@ -1420,8 +1453,9 @@ class SysInfo:
    def show_python_lib_info(self, header=1):
 
       # any extra libs to test beyond main ones
-      # (empty for now, since matplotlib got its own function)
-      extralibs = ['flask', 'flask_cors']
+      # reqlibs are required, extras are not
+      reqlibs = ['flask', 'flask_cors']
+      extralibs = []
       verb = 3
 
       if header: print(UTIL.section_divider('python libs', hchar='-'))
@@ -1434,7 +1468,12 @@ class SysInfo:
       self.test_python_lib_matplotlib(verb=verb)
       print('')
 
-      # then go after any others
+      # go after any other required libs
+      for plib in reqlibs:
+         self.test_python_lib(plib, required=1, showver=1, verb=verb)
+         print('')
+
+      # go after any other non-required libs
       for plib in extralibs:
          self.test_python_lib(plib, showver=1, verb=verb)
          print('')
@@ -1630,7 +1669,8 @@ class SysInfo:
    def show_main_progs_and_paths(self):
 
       self.afni_dir = get_prog_dir('afni_system_check.py')
-      check_list = ['afni', 'afni label', 'AFNI_version.txt', 'python', 'R']
+      check_list = ['afni', 'afni label', 'AFNI_version.txt', 'afnipy',
+                    'python', 'R']
       nfound = self.check_for_progs(check_list, show_missing=1)
       if nfound < len(check_list):
          self.comments.append('failure under initial ' \

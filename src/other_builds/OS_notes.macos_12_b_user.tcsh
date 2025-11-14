@@ -57,7 +57,9 @@ defaults write com.apple.Terminal FocusFollowsMouse -string YES
 # install under initial abin (relevant if we -do_extras)
 
 # install AFNI's anyos_text_atlas package if nothing appears to be installed
-if ( ! -f $HOME/abin/init_user_dotfiles.py ) then
+# if ( ! -f $HOME/abin/init_user_dotfiles.py ) then
+# -- RCR: temp change to afni, to force re-download on failure
+if ( ! -f $HOME/abin/afni ) then
    echo "++ installing AFNI anyos_text_atlas"
    curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/@update.afni.binaries
    tcsh @update.afni.binaries -no_recur -package anyos_text_atlas \
@@ -90,7 +92,9 @@ endif
 echo "++ compiling AFNI package $package"
 echo "++ running: build_afni.py -build_root ~/afni_build -package $package"
 # specify -cc_path until current homebrew gcc-15 is working
-build_afni.py -build_root ~/afni_build -package $package -cc_path /usr/bin/gcc
+\rm -f afni_build_messages.txt
+build_afni.py -build_root ~/afni_build -package $package \
+    -cc_path /usr/bin/gcc -fast_log_messages afni_build_messages.txt
 
 # and make sure we can see the new programs
 rehash
