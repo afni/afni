@@ -136,6 +136,14 @@ Usage ~1~
 -bkgd_color BC :background color that appears when thresholding is
                 applied (def: '{bkgd_color}')
 
+-do_autorotate DA :state whether to autorotate input cbar, to try to 
+                guess along which axis the color gradient is
+                (def: '{do_autorotate}')
+
+-do_clean DC   :state whether to clean up any intermediate files;
+                allowed values are:  Yes, 1, No, 0
+                (def: '{do_clean}')
+
 -help, -h      :display program help file
 
 -hist          :display program history
@@ -332,7 +340,18 @@ cbar (see 'JSONs' in the Notes above).
         -thr_val       3                                         \\
         -alpha         Linear                                          
 
-    8) Make a colorbar from the name within the known AFNI list, with
+    8) Same as #7, but flipping (= inverting) the color bar; note the
+       use of quotation marks around cbar name and keyword:
+
+    colorbar_tool.py                                             \\
+        -in_cbar_name  "Viridis FLIP"                            \\
+        -prefix        CBAR_ViridisInv.jpg                       \\
+        -cbar_min      -5                                        \\
+        -cbar_max      5                                         \\
+        -thr_val       3                                         \\
+        -alpha         Linear                                          
+
+    9) Make a colorbar from the name within the known AFNI list, with
        orthogonal fading.
 
     colorbar_tool.py                                             \\
@@ -345,7 +364,9 @@ cbar (see 'JSONs' in the Notes above).
            thr_no=lct.DOPTS['thr_num_osc'], tick_ni=lct.DOPTS['tick_num_int'],
            tick_frac=lct.DOPTS['tick_frac'], orth_frac=lct.DOPTS['orth_frac'],
            outwid=lct.DOPTS['outline_width'], list_ext_str=lct.list_ext_str,
-           bkgd_color=lct.DOPTS['bkgd_color'], thr_val=lct.DOPTS['thr_val'])
+           bkgd_color=lct.DOPTS['bkgd_color'], thr_val=lct.DOPTS['thr_val'],
+           do_clean=lct.DOPTS['do_clean'], 
+           do_autorotate=lct.DOPTS['do_autorotate'])
 
 g_history = """
   gtkyd_check.py history:
@@ -355,6 +376,7 @@ g_history = """
   0.3   May 21, 2025 :: better prioritizing within JSON (cbar/pbar_fname)
   0.4   Jun 17, 2025 :: checks about extension when failing to write
   0.5   Jun 18, 2025 :: use json path to find local cbar
+  0.6   Sep 30, 2025 :: new -do_clean opt, and add ability to FLIP cbar
 """
 
 g_ver     = g_history.split("\n")[-2].split("::")[0].strip()
@@ -414,6 +436,7 @@ See lct.CbarPbar() for the set of things that are populated for the actual
 
       # general variables
       self.verb            = None
+      self.do_clean        = True
 
       # initialize valid_opts
       tmp1 = self.init_options()
@@ -495,6 +518,9 @@ See lct.CbarPbar() for the set of things that are populated for the actual
       self.valid_opts.add_opt('-bkgd_color', 1, [], 
                       helpstr="background: specify color")
 
+      self.valid_opts.add_opt('-do_clean', 1, [], 
+                      helpstr="turn on/off removal of intermediate files")
+
       self.valid_opts.add_opt('-overwrite', 0, [], 
                       helpstr='overwrite preexisting outputs')
 
@@ -557,13 +583,13 @@ See lct.CbarPbar() for the set of things that are populated for the actual
          if opt.name == '-in_cbar':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err:
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.in_cbar = val
 
          elif opt.name == '-prefix':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err:
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.prefix = val
 
          # general options
@@ -571,56 +597,56 @@ See lct.CbarPbar() for the set of things that are populated for the actual
          if opt.name == '-in_cbar_name':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err:
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.in_cbar_name = val
 
          elif opt.name == '-in_json':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err:
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.in_json = val
             self.in_json_path = os.path.dirname(val)
 
          elif opt.name == '-cbar_min':
             val, err = uopts.get_type_opt(float, '', opt=opt)
             if val is None or err: 
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.cbar_min = val
 
          elif opt.name == '-cbar_max':
             val, err = uopts.get_type_opt(float, '', opt=opt)
             if val is None or err: 
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.cbar_max = val
 
          elif opt.name == '-thr_val':
             val, err = uopts.get_type_opt(float, '', opt=opt)
             if val is None or err: 
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.thr_val = val
 
          elif opt.name == '-alpha':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err: 
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.alpha = val
 
          elif opt.name == '-thr_width':
             val, err = uopts.get_type_opt(int, '', opt=opt)
             if val is None or err: 
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.thr_width = val
 
          elif opt.name == '-thr_num_osc':
             val, err = uopts.get_type_opt(int, '', opt=opt)
             if val is None or err:
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.thr_num_osc = val
 
          elif opt.name == '-thr_colors':
             val, err = uopts.get_string_list('', opt=opt)
             if val is None or err:
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.thr_colors = val
 
          elif opt.name == '-thr_off':
@@ -629,19 +655,19 @@ See lct.CbarPbar() for the set of things that are populated for the actual
          elif opt.name == '-tick_num_int':
             val, err = uopts.get_type_opt(int, '', opt=opt)
             if val is None or err: 
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.tick_num_int = val
 
          elif opt.name == '-tick_frac':
             val, err = uopts.get_type_opt(float, '', opt=opt)
             if val is None or err: 
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.tick_frac = val
 
          elif opt.name == '-tick_color':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err: 
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.tick_color = val
 
          elif opt.name == '-orth_on':
@@ -650,26 +676,48 @@ See lct.CbarPbar() for the set of things that are populated for the actual
          elif opt.name == '-orth_frac':
             val, err = uopts.get_type_opt(float, '', opt=opt)
             if val is None or err: 
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.orth_frac = val
 
          elif opt.name == '-outline_width':
             val, err = uopts.get_type_opt(int, '', opt=opt)
             if val is None or err: 
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.outline_width = val
 
          elif opt.name == '-outline_color':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err: 
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.outline_color = val
 
          elif opt.name == '-bkgd_color':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err: 
-                BASE.EP1(err_base + opt.name)
+                BASE.EP(err_base + opt.name)
             self.bkgd_color = val
+
+         elif opt.name == '-do_clean':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val is None or err: 
+                BASE.EP(err_base + opt.name)
+            is_fail, bbb = lct.make_bool_from_near_bool(val)
+            if not(is_fail) :
+                self.do_clean = bbb
+            else:
+                msg = err_base + opt.name 
+                BASE.EP(msg)
+
+         elif opt.name == '-do_autorotate':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val is None or err: 
+                BASE.EP(err_base + opt.name)
+            is_fail, bbb = lct.make_bool_from_near_bool(val)
+            if not(is_fail) :
+                self.do_autorotate = bbb
+            else:
+                msg = err_base + opt.name 
+                BASE.EP(msg)
 
          elif opt.name == '-overwrite':
             self.do_ow = True
@@ -759,35 +807,6 @@ See lct.CbarPbar() for the set of things that are populated for the actual
                        "'{}'".format('alpha', 'olay_alpha'))
 
        return 0
-
-   def execute(self):
-
-      if not self.ready_for_action(): return 1
-
-      if self.verb > 1:
-         BASE.IP("Begin processing options")
-
-      # all work and writing is basically done here
-      # ... in other objects, but not here
-
-      return 0
-
-   def ready_for_action(self):
-
-       """perform any final tests before execution"""
-
-       # require -input
-       if self.infiles is None :
-           print("** missing -infiles option")
-           return 0
-
-       if self.outdir is None:
-           print("** missing -outdir option")
-           return 0
-
-       ready = 1
-
-       return ready
 
    def test(self, verb=3):
       """one might want to be able to run internal tests,
