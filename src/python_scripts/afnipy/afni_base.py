@@ -570,12 +570,12 @@ class shell_com(object):
       # behavior is not performed.
       false_vals = ['no','n','f','false',"0"]
       mod_request = os.environ.get("NO_CMD_MOD")
-      no_cmd_modiifcation_requested = bool(
+      no_cmd_modification_requested = bool(
          mod_request and mod_request.lower() not in false_vals
       )
       #If command line is long, trim it, if possible
       l1 = len(self.com)
-      if no_cmd_modiifcation_requested:
+      if no_cmd_modification_requested:
          # does not modify command to help provide more predictable output
          self.trimcom = self.com
       elif (l1 > 80):
