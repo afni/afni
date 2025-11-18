@@ -87,7 +87,9 @@ static char * wans(void)
 # define MEMORY_CHECK(mm)  show_malloc_stats(mm) ;
 # define MEMORY_SHORT     "\0"
 
-#if defined(__FreeBSD__)
+#if defined(__linux__)
+  #include <malloc.h>
+#elif defined(__FreeBSD__)
   #include <stdlib.h>
   #include <malloc_np.h>
 #endif

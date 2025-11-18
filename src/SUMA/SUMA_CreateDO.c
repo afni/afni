@@ -13692,7 +13692,7 @@ SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
                glGetFloatv(GL_POLYGON_MODE, polymode);
                SUMA_SET_GL_RENDER_MODE(SRM_Points);
             } else if (!strcmp(atr,"Hide")) {
-               SUMA_RETURN(NULL);
+               SUMA_RETURN(NOPE);
             } else if (!strcmp(atr,"Viewer")) {
                glGetFloatv(GL_POLYGON_MODE, polymode);
                SUMA_SET_GL_RENDER_MODE(sv->PolyMode);

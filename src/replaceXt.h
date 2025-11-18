@@ -22,7 +22,7 @@ typedef   void*           RwcPointer ;
 # define  RwcNew(t)       ((t *)calloc(1,sizeof(t)))
 # define  RwcNewString(s) (strcpy(malloc(1+strlen(s)),s))
 
-typedef   unsigned char   RwcBoolean ;  /* 07 Jul 2020 */
+typedef   char   RwcBoolean ;  /* 07 Jul 2020 */
 #undef  True
 #undef  False
 #define True  1

@@ -1,4 +1,7 @@
 #include "SUMA_suma.h"
+#include <GL/glext.h>
+extern void glWindowPos2s (GLshort x, GLshort y);
+
 
 extern SUMA_CommonFields *SUMAg_CF;
 extern SUMA_DO *SUMAg_DOv;

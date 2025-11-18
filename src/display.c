@@ -6,6 +6,7 @@
 
 #include "display.h"
 #include "mrilib.h"
+#include "coxplot.h"
 
 static char *x11_vcl[] =  { "StaticGray"  , "GrayScale" , "StaticColor" ,
                             "PseudoColor" , "TrueColor" , "DirectColor"  } ;

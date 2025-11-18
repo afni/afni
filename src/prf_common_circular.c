@@ -320,6 +320,7 @@ static int show_malloc_stats(char * mesg)
       fprintf(stderr,"\n----- malloc stats: %s\n", mesg);
 /* apply FreeBSD patch from J Bacon [10 Jun 2019 rickr] */
 #if defined(__linux__)
+      #include <malloc.h>
       malloc_stats();
 #elif defined(__FreeBSD__)
       #include <stdlib.h>

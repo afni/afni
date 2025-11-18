@@ -2277,20 +2277,6 @@ extern void AFNI_replace_timeseries( MRI_IMAGE * ) ; /* 10 May 2009 */
 /*----------------------------------------------------------------*/
 /*----- stuff for dataset drawing, etc. (see afni_receive.c) -----*/
 
-/* coordinate converters */
-
-extern void AFNI_ijk_to_xyz( THD_3dim_dataset * ,
-                             int,int,int, float *,float *,float *) ;
-
-extern void AFNI_xyz_to_ijk( THD_3dim_dataset * ,
-                             float,float,float , int *,int *,int *) ;
-
-extern void AFNI_xyz_to_dicomm( THD_3dim_dataset * ,
-                                float,float,float , float *,float *,float *) ;
-
-extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
-                                float,float,float , float *,float *,float *) ;
-
 /* masks for input to AFNI_receive_init */
 
 #define RECEIVE_DRAWING_MASK     1
