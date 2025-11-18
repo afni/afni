@@ -10151,11 +10151,13 @@ int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                       I1d = I[2]*VO->VE[ive]->Ni*VO->VE[ive]->Nj +
                             I[1]*VO->VE[ive]->Ni+I[0];
                       Irw = SUMA_GetNodeRow_FromNodeIndex_eng(dset, I1d,-1);
-                      if (!colplane->V) {
+                      /* ray-trace volume voxel select, threshold with T, not V,
+                       * noted by ZS on MB (dupe) [18 Nov 2025 rickr] */
+                      if (!colplane->T) {
                         SUMA_S_Err("Need SUMA_GetDsetValInCol to get vals");
                         SUMA_RETURN(NOPE);
                       } else {
-                        val = colplane->V[Irw];
+                        val = colplane->T[Irw];
                       }
                       SUMA_LH("Have intersection on ive %d inside VE %s\n"
                               "IJK [%d %d %d], I1d=%d, Irw=%d, \n"
@@ -10349,11 +10351,14 @@ int SUMA_ComputeLineVOvrIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                       I1d = I[2]*VO->VE[ive]->Ni*VO->VE[ive]->Nj +
                             I[1]*VO->VE[ive]->Ni+I[0];
                       Irw = SUMA_GetNodeRow_FromNodeIndex_eng(dset, I1d,-1);
-                      if (!colplane->V) {
+                      /* ray-trace volume voxel select, threshold with T, not V,
+                       * noted by ZS on MB (Voxel selection in SUMA)
+                       * [18 Nov 2025 rickr] */
+                      if (!colplane->T) {
                         SUMA_S_Err("Need SUMA_GetDsetValInCol to get vals");
                         SUMA_RETURN(NOPE);
                       } else {
-                        val = colplane->V[Irw];
+                        val = colplane->T[Irw];
                       }
                       SUMA_LH("Have intersection on ive %d inside VE %s\n"
                               "IJK [%d %d %d], I1d=%d, Irw=%d, \n"
