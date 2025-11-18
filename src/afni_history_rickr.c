@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Nov, 2025, RCR, "suma", MICRO, TYPE_BUG_FIX,
+   "fix volume ray-trace voxel selection thresholding",
+   "Thanks to Z Saad for bringing up the issue and cause :\n"
+   "   https://discuss.afni.nimh.nih.gov/t/voxel-selection-in-suma/9206"
+ } ,
+
  { 25, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
    "remove fix message regarding our code examples using 'tcsh'",
    "On the orders of PT."
