@@ -48,28 +48,27 @@ Usage ~1~
          '-heir_*' options must be included to specify their output
          naming:
 
--heir_prefixes HP :when '-heir_dsets ..' is used, then this is an
-                option for specifying the output path+name for each
-                one. So, the number of entries here must match number
-                of heir dsets.  This canNOT be combined with
-                '-heir_outdir' or '-heir_suffix'
+-heir_prefixes HP1 [HP2 HP3 ...] 
+               :when using '-heir_dsets ..', users can specify the
+                output path+name for each heir dset here. The number 
+                of entries here must match number of heir dsets.  
+                This option canNOT be combined with '-heir_outdir' 
+                or '-heir_suffix'
 
--heir_outdir HO :when '-heir_dsets ..' is used, users can specify a
+-heir_outdir HO :when using '-heir_dsets ..', users can specify a
                 single output directory for all output heirs.  If
                 '-heir_suffix ..' is not also provided, then the each
                 output file will have the same name as its input (and
-                in such a case, the heir_outdir should be different
-                than each heir dset's directory, unless '-overwrite'
-                is used)
+                in such a case, the HO should differ from each heir 
+                dset's original directory, unless '-overwrite' is used)
 
--heir_suffix HS :when '-heir_dsets ..' is used, users can specify a
-                suffix to be inserted just before each file's
+-heir_suffix HS :when using '-heir_dsets ..', users can specify a
+                suffix to be inserted just before each output heir's file
                 extension.  Typically, uses will want to start the
                 suffix with '_'.
-                Users can simultaneously use '-heir_outdir ..' to
-                specify a single output dir for all heir dsets;
-                otherwise, each heir will be output in each of the
-                original heir_dset's directories
+                This option can be used along with '-heir_outdir ..';
+                otherwise, each heir will be output in same directory as
+                its original heir dset
 
 -do_qc DQ      :state whether to make QC images when using '-heir_dsets ..',
                 which means showing the overlap of each heir dset with the
@@ -123,9 +122,49 @@ Removing obliquity from the dataset header ~2~
 
 Examples ~1~
 
- ****
+ 1) Remove obliquity from a dset:
 
+    obliquity_tool.py                                                     \\
+        -inset            sub-017_T1w.nii.gz                              \\
+        -purge_obliquity                                                  \\
+        -prefix           sub-017_T1w_DEOB.nii.gz
+
+ 2) Remove obliquity from a dset, and pass it along to its associated 
+    EPI datasets:
+
+    obliquity_tool.py                                                     \\
+        -inset            anat/sub-017_T1w.nii.gz                         \\
+        -purge_obliquity                                                  \\
+        -prefix           anat/sub-017_T1w_DEOB.nii.gz                    \\
+        -heir_dsets       func/sub-017_task-rest_run-01_bold.nii.gz       \\
+                          func/sub-017_task-rest_run-02_bold.nii.gz       \\
+                          func/sub-017_task-rest_run-03_bold.nii.gz       \\
+        -heir_prefixes    func/sub-017_task-rest_run-01_bold_DEOB.nii.gz  \\
+                          func/sub-017_task-rest_run-02_bold_DEOB.nii.gz  \\
+                          func/sub-017_task-rest_run-03_bold_DEOB.nii.gz
+
+ 3) Same as #2, but with a succinct method of adding a suffix to each heir:
            
+    obliquity_tool.py                                                     \\
+        -inset            anat/sub-017_T1w.nii.gz                         \\
+        -purge_obliquity                                                  \\
+        -prefix           anat/sub-017_T1w_DEOB.nii.gz                    \\
+        -heir_dsets       func/sub-017_task-rest_run-01_bold.nii.gz       \\
+                          func/sub-017_task-rest_run-02_bold.nii.gz       \\
+                          func/sub-017_task-rest_run-03_bold.nii.gz       \\
+        -heir_suffix      _DEOB
+
+ 3) Same as #3, but putting each output heir into a new dir:
+
+    obliquity_tool.py                                                     \\
+        -inset            anat/sub-017_T1w.nii.gz                         \\
+        -purge_obliquity                                                  \\
+        -prefix           anat/sub-017_T1w_DEOB.nii.gz                    \\
+        -heir_dsets       func/sub-017_task-rest_run-01_bold.nii.gz       \\
+                          func/sub-017_task-rest_run-02_bold.nii.gz       \\
+                          func/sub-017_task-rest_run-03_bold.nii.gz       \\
+        -heir_suffix      _DEOB                                           \\
+        -heir_outdir      func_deob
 
 """.format(**LOT.DOPTS)
 
