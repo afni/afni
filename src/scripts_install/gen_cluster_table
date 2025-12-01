@@ -9,10 +9,13 @@
 #set version   = "1.0";  set rev_dat   = "Apr 05, 2024"
 # + add help desc, rename some inputs
 #
-set version   = "1.1";  set rev_dat   = "Sep 26, 2025"
+#set version   = "1.1";  set rev_dat   = "Sep 26, 2025"
 # + fix errors with 'seq' when there were no overlaps or other cases
 #
-# ----------------------------------------------------------------
+set version   = "1.2";  set rev_dat   = "Dec 1, 2025"
+# + add -input_dat and -dat_column_as_sign opts
+#
+ ----------------------------------------------------------------
 
 set this_prog = "gen_cluster_table"
 set prog_abbr = "gen_clust_tab"
@@ -23,6 +26,12 @@ set here      = $PWD
 
 set input_clust = ""               # dset, cluster map
 set prefix      = ""
+
+set input_dat     = ""             # dset to know mean value (and sign) of data
+set nsign         = 1              # def table label-col width, for no sign data
+set lsign         = " "            # def table col label, for no sign data
+set vsign         = " "            # def table col value, for no sign data
+set DO_SIGN_TEXT  = 0              # if using input_dat, report pos/neg text
 
 set min_olap_perc = 10             # perc, min overlap for reporting
 set tab_type      = olap           # in theory, could have other types
@@ -73,6 +82,14 @@ while ( $ac <= $#argv )
 
     # --------- opt
 
+    else if ( "$argv[$ac]" == "-input_dat" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set input_dat = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-dat_column_as_sign" ) then
+        set DO_SIGN_TEXT = 1
+
     else if ( "$argv[$ac]" == "-min_olap_perc" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -109,6 +126,7 @@ end
 
 setenv AFNI_WHEREAMI_NO_WARN YES
 
+echo "++ Start processing options for: gen_clust_table"
 
 if ( "${prefix}" == "" ) then
     echo "** ERROR: need to provide output name with '-prefix ..'"
@@ -123,6 +141,31 @@ endif
 if ( "${ref_atl}" == "" ) then
     echo "** ERROR: need to provide input atlas with '-input_atlas ..'"
     goto BAD_EXIT
+endif
+
+# make sure any dset_sign and input_clust dsets are on same grid; also set vars
+if ( "${input_dat}" != "" ) then
+    set is_same = `3dinfo -same_grid "${input_clust}" "${input_dat}"`
+    if ( ! ${is_same[1]} ) then
+        echo "** ERROR: input_clust and input_dat dsets must be on same grid"
+        goto BAD_EXIT
+    endif
+
+    # ... and set vars for string display of mean value in table
+    set nsign = 12        # number of spaces
+    set lsign = "Mean"    # label for col
+
+    # ... or report simple pos/neg text string, instead of mean
+    if ( $DO_SIGN_TEXT ) then
+        set nsign = 5         # number of spaces
+        set lsign = "Sign"    # label for col
+    endif
+else
+    if ( $DO_SIGN_TEXT ) then
+        echo "** ERROR: to use '-dat_column_as_sign', you must also "
+        echo "          provide an extra dataset via '-input_dat ..'"
+        goto BAD_EXIT
+    endif
 endif
 
 # make workdir name, if nec
@@ -157,9 +200,13 @@ echo "++ Make table for: ${tab_type}"
 set dset_clust = clust_map.nii.gz
 set pref_atlas = ref_atlas
 set dset_atlas = ${pref_atlas}.nii.gz
+set dset_dat   = dset_dat.nii.gz
 
 3dcalc -a "${input_clust}" -expr 'a' -prefix "${odir}/${wdir}/${dset_clust}"
 3dcalc -a "${ref_atl}"     -expr 'a' -prefix "${odir}/${wdir}/${dset_atlas}"
+if ( "${input_dat}" != "" ) then
+    3dcalc -a "${input_dat}"  -expr 'a' -prefix "${odir}/${wdir}/${dset_dat}"
+endif
 
 # propagate table/header info
 3drefit -copytables "${ref_atl}" "${odir}/${wdir}/${dset_atlas}"
@@ -193,7 +240,7 @@ endif
 
 # ----- get list of clust regions
 
-# see if we have positive and/or negative clusters
+# see if we have positive and/or negative cluster labels (= int indices)
 set brickmm = `3dBrickStat -slow -min -max "${dset_clust}"`
 set minval  = ${brickmm[1]}
 set maxval  = ${brickmm[2]}
@@ -246,8 +293,8 @@ EOF
 
 set ofile  = "${opref}"
 printf "" > "${ofile}"
-printf "%5s  %5s   %7s   %s\n"                      \
-        "Clust" "Nvox" "Overlap"  "ROI location"    \
+printf "%5s  %5s %${nsign}s  %7s   %s\n"                      \
+        "Clust" "Nvox" "${lsign}" "Overlap"  "ROI location"    \
     |& tee -a "${ofile}"
 
 set tfile  = __tmp_file_olap.txt
@@ -269,8 +316,35 @@ foreach ii ( `seq 1 1 ${nclust}` )
         | grep --color=never '% overlap with'         \
         > "${tfile}"
 
+    if ( $status ) then
+        echo "** ERROR: whereami_afni exited with nonzero status"
+        goto BAD_EXIT
+    endif
+
     set nrow = `cat "${tfile}" | wc -l`
     
+    # calculate+format the mean value of extra data within each ROI (-> vsign)
+    if ( "${input_dat}" != "" ) then
+        # it's easier to format here and then display as str below
+        set vvv   = `3dROIstats -quiet                     \
+                    -mask "clust_map.nii.gz<${nn}>"        \
+                    "${dset_dat}[0]"`
+        if ( $DO_SIGN_TEXT ) then
+          # report string: pos, neg, zero
+          if ( `echo "${vvv} > 0.0" | bc` ) then
+            set vsign = "pos"
+          else if ( `echo "${vvv} < 0.0" | bc` ) then
+            set vsign = "neg"
+          else 
+            # should not happen...
+            set vsign = "zero"
+          endif
+        else
+            # report value, as scientific notation
+            set vsign = `printf "%.3e" ${vvv}`
+        endif
+    endif
+
     # if nrow=0, that means this cluster had no overlap with any atlas
     # region, so we skip it in the table
     if ( ${nrow} ) then
@@ -290,18 +364,18 @@ foreach ii ( `seq 1 1 ${nclust}` )
                 # overlap below min chosen val, AND we will be strict
                 # about not showing it
                 set fff = `printf "<%2.1f" "${min_olap_perc}"`
-                printf "%5d  %5d %8s%%   %s\n"               \
-                    "${nn}" "${nvox}" "${fff}"  "-"         \
+                printf "%5d  %5d %${nsign}s %8s%%   %s\n"               \
+                    "${nn}" "${nvox}" "${vsign}" "${fff}"  "-"          \
                     |& tee -a "${ofile}"
                 set NEED_ONE = 0
             else if ( ${NEED_ONE} ) then
-                printf "%5d  %5d  %7.1f%%   %s\n"               \
-                    "${nn}" "${nvox}" "${perc}"  "${roi}"       \
+                printf "%5d  %5d %${nsign}s %7.1f%%   %s\n"               \
+                    "${nn}" "${nvox}" "${vsign}" "${perc}"  "${roi}"      \
                     |& tee -a "${ofile}"
                 set NEED_ONE = 0
             else if ( ${is_ge_min} ) then
-                printf "%5s  %5s  %7.1f%%   %s\n"               \
-                    "" "" "${perc}"  "${roi}"                   \
+                printf "%5s  %5s %${nsign}s %7.1f%%   %s\n"               \
+                    "" "" "" "${perc}" "${roi}"                           \
                     |& tee -a "${ofile}"
             endif
         end
@@ -409,6 +483,24 @@ Options ~1~
                     use this option, however, to strictly apply the threshold,
                     so no ROI would be shown.
 
+-input_dat  ID     :by default, there is no info about the mean or sign of
+                    a given cluster. With this option, users provide an extra
+                    input dataset for that info. The ID dataset must be
+                    on the same grid as the `-input_clust ..` dset.
+                    Using this opt will add a column of mean values of the ID
+                    data per cluster written using scientific notation
+                    (see '-dat_column_as_sign' for alternative reporting).
+                    NB: there is no check that the sign of values are
+                    constant across each cluster, though that likely
+                    should be the case.
+
+-dat_column_as_sign :when adding an '-input_dat ..' dset, the added column 
+                    has signed mean values of the extra dataset within each 
+                    each cluster. This option changes the reporting to merely
+                    be a text string reporting whether the cluster is positive 
+                    ('pos'), negative ('neg') or zero ('zero', which shouldn't
+                    actually happen, typically).
+
 -workdir     WWW   :specify the name of the temporary working directory
                     (which is created as a new subdirectory of the output
                     file location---do not include path info here, just a
@@ -450,6 +542,25 @@ Examples ~1~
         -input_atlas   MNI_Glasser_HCP_v1.0.nii.gz    \
         -min_olap_perc 5                              \
         -prefix        table_cluster_olap _glasser.txt
+
+3) Add in a supplementary dataset of data values, and report the values of
+   its voxels within each cluster
+   gen_cluster_table                                   \
+        -input_clust   Clust_mask+tlrc.HEAD            \
+        -input_atlas   MNI_Glasser_HCP_v1.0.nii.gz     \
+        -min_olap_perc 5                               \
+        -prefix        table_cluster_olap _glasser.txt \
+        -input_dat     EffectEstimateData.nii.gz
+
+4) Same as #3, but report just the sign of the extra data's mean values within
+   each cluster:
+   gen_cluster_table                                   \
+        -input_clust   Clust_mask+tlrc.HEAD            \
+        -input_atlas   MNI_Glasser_HCP_v1.0.nii.gz     \
+        -min_olap_perc 5                               \
+        -prefix        table_cluster_olap _glasser.txt \
+        -input_dat     EffectEstimateData.nii.gz       \
+        -dat_column_as_sign
 
 EOF
 
