@@ -143,6 +143,7 @@ DEF = {
     'img_bp_max_f'      : DEF_img_bp_max_f,  # (float) xaxis max for bp plot
     'save_proc_peaks'   : False,     # (bool) dump peaks to text file
     'save_proc_troughs' : False,     # (bool) dump troughs to text file
+    'save_proc_filtered_ts' : False,  # (bool) dump filtered times series to text file
     'load_proc_peaks_card'   : None,        # (str) file of troughs to read in 
     'load_proc_peaks_resp'   : None,        # (str) file of peaks to read in 
     'load_proc_troughs_resp' : None,        # (str) file of peaks to read in 
@@ -1019,6 +1020,11 @@ respectively.  These options tell the program to write *.1D files that
 contain the integer indices of the peaks or troughts within the
 processed time series.
 
+It is also possible to save the filtered times series (used to detect peaks and
+troughs) to text files using 'save_proc_filtered_ts'.  This option tells the
+program to write *.1D files that contain the times series values at each sample 
+point.
+
 It is now possible to re-load those text files of integer indices back
 into the program, which might be useful when further editing of
 peaks/troughs is necessary, for example, via '-do_interact'.  
@@ -1108,6 +1114,16 @@ OUT_DIR/PREFIX_physio_extras outputs ~2~
                                 corresponding to resp*final_peaks*svg image.
     PREFIX_resp_troughs_00.1D : 1D column file of trough indices for resp data,
                                 corresponding to resp*final_peaks*svg image.
+                                
+  The following files are only output when using the 'save_proc_filtered_ts'
+  option flag.
+
+    PREFIX_card_filtered_ts_00.1D   : 1D column file of filtered time series for 
+                                card data, corresponding to the RKG values at
+                                each sample point.
+    PREFIX_resp_filtered_ts_00.1D   : 1D column file of filtered time series for 
+                                respiraroty data, corresponding to the 
+                                plethysmograph values at each sample point.
 
 OUT_DIR/PREFIX_physio_images outputs ~2~
 
@@ -1605,6 +1621,15 @@ PREFIX_LABEL_proc_troughs_00.1D ('LABEL' is 'card', 'resp', etc.), which
 is a single column of the integer values (def: don't write them
 out). The file is only output for LABEL types where troughs were
 estimated (e.g., resp).'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
+
+opt = '''save_proc_filtered_ts'''
+hlp = '''Write out the filtered times series values (cardiac and respiratory) 
+to a text file called PREFIX_LABEL_proc_filtered_ts_00.1D ('LABEL' is 'card', 
+'resp', etc.), which is a single column of the ECG or plethysmograph values 
+(def: don't write them out).'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")

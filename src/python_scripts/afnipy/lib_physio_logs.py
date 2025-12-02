@@ -313,7 +313,12 @@ def save_cmd_orig(pcobj, verb=1):
     cmd    = '''afni -ver'''
     com    = BASE.shell_com(cmd, capture=1)
     stat   = com.run()
-    vlist  = com.so[0].split(':')
+    # Temporary fix to stop program crashing in Spyder
+    if len(com.so) > 0: vlist  = com.so[0].split(':')
+    else:
+        vlist = [0,0]
+        vlist[0] = 'Operating system not obtained'
+        vlist[1] = "AFNI version not obtained')"
 
     aver_str = '# AFNI ver : '
     pad      = ' ' * (len(aver_str) - 2)
@@ -426,6 +431,33 @@ is_bad : int
     
         if verb :
             print("++ Saved integer {} trough indices to file: {}"
+                  "".format(label, fname))
+            
+    # If save filtered time series if they esist
+    if pcobj.save_proc_filtered_ts and hasattr(pcobj, 'ts_orig_bp') :
+
+        # !!! later, check about overwriting!!!
+
+        # make the filename
+        fname = '{}_{}_{}.1D'.format(label, 'filtered_ts', '00')
+        if prefix :
+            fname = prefix + '_' + fname
+        if edir :
+            fname = edir + '/' + fname
+        elif odir :
+            fname = odir + '/' + fname
+
+        # make str: one column of all values
+        ostr = '\n'.join([str(val) for val in pcobj.ts_orig_bp[label]])
+        ostr+= '\n'
+
+        # write the file
+        fff = open(fname, 'w')
+        fff.write(ostr)
+        fff.close()
+    
+        if verb :
+            print("++ Saved integer {} filtered times series to file: {}"
                   "".format(label, fname))
 
     return 0

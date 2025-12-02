@@ -98,6 +98,7 @@ physio_calc.py                                                               \\
     -verb                6                                                   \\
     -save_proc_peaks                                                         \\
     -save_proc_troughs                                                       \\
+    -save_proc_filtered_ts                                                   \\
     -prefilt_max_freq    50                                                  \\
     -prefilt_mode        median                                              \\
     -img_figsize         8.5 10                                              \\
@@ -177,6 +178,7 @@ physio_calc.py                                                               \\
     -verb                3                                                   \\
     -save_proc_peaks                                                         \\
     -save_proc_troughs                                                       \\
+    -save_proc_filtered_ts                                                   \\
     -prefilt_max_freq    50                                                  \\
     -prefilt_mode        median                                              \\
     -img_figsize         8.5 10                                              \\
@@ -263,6 +265,7 @@ physio_calc.py                                                               \\
     -verb                6                                                   \\
     -save_proc_peaks                                                         \\
     -save_proc_troughs                                                       \\
+    -save_proc_filtered_ts                                                   \\
     -prefilt_max_freq    50                                                  \\
     -prefilt_mode        median                                              \\
     -img_figsize         8.5 10                                              \\

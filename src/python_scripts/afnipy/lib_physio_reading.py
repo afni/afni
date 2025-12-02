@@ -473,6 +473,7 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         }
         self.save_proc_peaks = False   # bool, flag to write proc peaks to file
         self.save_proc_troughs = False # bool, flag to write proc trou to file
+        self.save_proc_filtered_ts = False # bool, flag to write filt ts to file
         self.load_proc = {
             'card' : [],               # list of files (will be 1 for card)
             'resp' : [],               # list of files (will be 2 for resp)
@@ -749,6 +750,8 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_out_phys['resp'] = AD['do_out_retro-resp']
         self.save_proc_peaks     = AD['save_proc_peaks']
         self.save_proc_troughs   = AD['save_proc_troughs']
+        self.save_proc_filtered_ts   = AD['save_proc_filtered_ts']
+        
         
         # read in earlier processed peak indices
         if AD['load_proc_peaks_card'] :

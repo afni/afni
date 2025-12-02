@@ -667,6 +667,10 @@ is_ok : int
     if len(troughs) :
         tsobj.troughs = troughs
     tsobj.proc_count+= count
+    
+    # Record filtered time series for this label
+    if (not hasattr(pcobj, 'ts_orig_bp')): pcobj.ts_orig_bp = {}
+    pcobj.ts_orig_bp[label] = tsobj.ts_orig_bp
 
     return 0
 
