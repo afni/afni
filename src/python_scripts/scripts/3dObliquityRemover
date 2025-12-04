@@ -16,11 +16,18 @@ from afnipy import lib_obl_tool  as LOT
 
 g_help_string = """Overview ~1~
 
-This program is for dealing with obliquity in datasets.  This includes:
-+ purging it in various ways (without regridding/interpolating data),
-+ applying it (hence, regridding/interpolating data), 
-+ transferring it between datasets, 
-+ extracting and displaying it,
+This program is primarily for removing oblquity from an input
+dataset's header, with the two important properties:
+
++ **not** regridding (= smoothing/interpolating) the data itself
+
++ preserving the coordinate origin, (x, y, z) = (0, 0, 0).
+
+As an added bonus, the removed obliquity can also be **transferred**
+to other datasets, which are called "child" datasets.  Doing this
+preserves the relative overlap of the datasets in the real terms of
+considering where they are in space when obliquity is taken into
+account.
 and more.
 
 auth = PA Taylor (SSCC, NIMH, NIH, USA)
@@ -33,45 +40,38 @@ Usage ~1~
 
 -prefix PREFIX :(req) name of output dset
 
--purge_obliquity : purge (= remove) obliquity from inset's header,
-                using the following 2 key properties: 
-                _without_ regridding the data, and _with_ preserving
-                the coordinate origin, (x, y, z) = (0, 0, 0).
-                NB: Using this option is a primary purpose function of 
-                this program.
-
--heir_dsets HD1 [HD2 HD3 ...] 
+-child_dsets CD1 [CD2 CD3 ...] 
                :one or more datasets that can inherit the obliquity 
                 that gets purged from the inset.
 
-     ... and if using '-heir_dsets', at least one of the following
-         '-heir_*' options must be included to specify their output
+     ... and if using '-child_dsets', at least one of the following
+         '-child_*' options must be included to specify their output
          naming:
 
--heir_prefixes HP1 [HP2 HP3 ...] 
-               :when using '-heir_dsets ..', users can specify the
-                output path+name for each heir dset here. The number 
-                of entries here must match number of heir dsets.  
-                This option canNOT be combined with '-heir_outdir' 
-                or '-heir_suffix'
+-child_prefixes CP1 [CP2 CP3 ...] 
+               :when using '-child_dsets ..', users can specify the
+                output path+name for each child dset here. The number 
+                of entries here must match number of child dsets.  
+                This option canNOT be combined with '-child_outdir' 
+                or '-child_suffix'
 
--heir_outdir HO :when using '-heir_dsets ..', users can specify a
-                single output directory for all output heirs.  If
-                '-heir_suffix ..' is not also provided, then the each
+-child_outdir CO :when using '-child_dsets ..', users can specify a
+                single output directory for all output childs.  If
+                '-child_suffix ..' is not also provided, then the each
                 output file will have the same name as its input (and
-                in such a case, the HO should differ from each heir 
+                in such a case, the CO should differ from each child 
                 dset's original directory, unless '-overwrite' is used)
 
--heir_suffix HS :when using '-heir_dsets ..', users can specify a
-                suffix to be inserted just before each output heir's file
+-child_suffix CS :when using '-child_dsets ..', users can specify a
+                suffix to be inserted just before each output child's file
                 extension.  Typically, uses will want to start the
                 suffix with '_'.
-                This option can be used along with '-heir_outdir ..';
-                otherwise, each heir will be output in same directory as
-                its original heir dset
+                This option can be used along with '-child_outdir ..';
+                otherwise, each child will be output in same directory as
+                its original child dset
 
--do_qc DQ      :state whether to make QC images when using '-heir_dsets ..',
-                which means showing the overlap of each heir dset with the
+-do_qc DQ      :state whether to make QC images when using '-child_dsets ..',
+                which means showing the overlap of each child dset with the
                 main inset both before and after obliquity changes;
                 allowed values are:  Yes, 1, No, 0
                 (def: '{do_qc}')
@@ -124,47 +124,55 @@ Examples ~1~
 
  1) Remove obliquity from a dset:
 
-    obliquity_tool.py                                                     \\
+    3dObliquityRemover                                                    \\
         -inset            sub-017_T1w.nii.gz                              \\
-        -purge_obliquity                                                  \\
         -prefix           sub-017_T1w_DEOB.nii.gz
 
  2) Remove obliquity from a dset, and pass it along to its associated 
     EPI datasets:
 
-    obliquity_tool.py                                                     \\
+    3dObliquityRemover                                                    \\
         -inset            anat/sub-017_T1w.nii.gz                         \\
-        -purge_obliquity                                                  \\
         -prefix           anat/sub-017_T1w_DEOB.nii.gz                    \\
-        -heir_dsets       func/sub-017_task-rest_run-01_bold.nii.gz       \\
+        -child_dsets      func/sub-017_task-rest_run-01_bold.nii.gz       \\
                           func/sub-017_task-rest_run-02_bold.nii.gz       \\
                           func/sub-017_task-rest_run-03_bold.nii.gz       \\
-        -heir_prefixes    func/sub-017_task-rest_run-01_bold_DEOB.nii.gz  \\
+        -child_prefixes   func/sub-017_task-rest_run-01_bold_DEOB.nii.gz  \\
                           func/sub-017_task-rest_run-02_bold_DEOB.nii.gz  \\
                           func/sub-017_task-rest_run-03_bold_DEOB.nii.gz
 
- 3) Same as #2, but with a succinct method of adding a suffix to each heir:
+ 3) Same as #2, but with a succinct method of adding a suffix to each child:
            
-    obliquity_tool.py                                                     \\
+    3dObliquityRemover                                                    \\
         -inset            anat/sub-017_T1w.nii.gz                         \\
-        -purge_obliquity                                                  \\
         -prefix           anat/sub-017_T1w_DEOB.nii.gz                    \\
-        -heir_dsets       func/sub-017_task-rest_run-01_bold.nii.gz       \\
+        -child_dsets      func/sub-017_task-rest_run-01_bold.nii.gz       \\
                           func/sub-017_task-rest_run-02_bold.nii.gz       \\
                           func/sub-017_task-rest_run-03_bold.nii.gz       \\
-        -heir_suffix      _DEOB
+        -child_suffix      _DEOB
 
- 3) Same as #3, but putting each output heir into a new dir:
+ 4) Same as #3, but putting each output child into a new dir:
 
-    obliquity_tool.py                                                     \\
+    3dObliquityRemover                                                    \\
         -inset            anat/sub-017_T1w.nii.gz                         \\
-        -purge_obliquity                                                  \\
         -prefix           anat/sub-017_T1w_DEOB.nii.gz                    \\
-        -heir_dsets       func/sub-017_task-rest_run-01_bold.nii.gz       \\
+        -child_dsets      func/sub-017_task-rest_run-01_bold.nii.gz       \\
                           func/sub-017_task-rest_run-02_bold.nii.gz       \\
                           func/sub-017_task-rest_run-03_bold.nii.gz       \\
-        -heir_suffix      _DEOB                                           \\
-        -heir_outdir      func_deob
+        -child_suffix     _DEOB                                           \\
+        -child_outdir     func_deob
+
+ 5) Same as #4, but renaming in the outputs in a particular way: all
+    output datasets have the same filenames but different paths. This
+    might be quite useful when doing group processing in a way that
+    each major step outputs the data in parallel directory trees:
+
+    3dObliquityRemover                                                    \\
+        -inset            p1/anat/sub-017_T1w.nii.gz                      \\
+        -prefix           p2/anat/sub-017_T1w.nii.gz                      \\
+        -child_dsets      p1/func/sub-017_task-rest_run-*_bold.nii.gz     \\
+        -child_outdir     p2/func
+
 
 """.format(**LOT.DOPTS)
 
@@ -175,7 +183,7 @@ g_history = """
 """
 
 g_ver     = g_history.split("\n")[-2].split("::")[0].strip()
-g_version = "obliquity_tool.py version " + g_ver
+g_version = "3dObliquityRemover version " + g_ver
 
 class InOpts:
    """Object for storing any/all command line inputs, and just checking
@@ -205,10 +213,10 @@ See lct.CbarPbar() for the set of things that are populated for the actual
       self.inset           = None
       self.prefix          = None
 
-      self.heir_dsets      = []
-      self.heir_prefixes   = None
-      self.heir_outdir     = None
-      self.heir_suffix     = None
+      self.child_dsets     = []
+      self.child_prefixes  = None
+      self.child_outdir    = None
+      self.child_suffix    = None
 
       # control variables
       self.workdir         = None
@@ -249,23 +257,20 @@ See lct.CbarPbar() for the set of things that are populated for the actual
 
       # optional parameters
 
-      self.valid_opts.add_opt('-purge_obliquity', 0, [], 
-                      helpstr='remove obliquity: *no* blur, *keep* XYZ origin')
+      self.valid_opts.add_opt('-child_dsets', -1, [], 
+                      helpstr='dset(s) to inherit obliquity removed from inset')
 
-      self.valid_opts.add_opt('-heir_dsets', -1, [], 
-                      helpstr='dset(s) to inherit trimmed obliquity')
+      self.valid_opts.add_opt('-child_prefixes', 1, [], 
+                      helpstr='child output method: direct prefix for each')
 
-      self.valid_opts.add_opt('-heir_prefixes', 1, [], 
-                      helpstr='heir output method: direct prefix for each')
+      self.valid_opts.add_opt('-child_outdir', 1, [], 
+                      helpstr='child output method: output dir to hold all')
 
-      self.valid_opts.add_opt('-heir_outdir', 1, [], 
-                      helpstr='heir output method: output dir to hold all')
-
-      self.valid_opts.add_opt('-heir_suffix', 1, [], 
-                      helpstr='heir output method: suffix to add for all')
+      self.valid_opts.add_opt('-child_suffix', 1, [], 
+                      helpstr='child output method: suffix to add for all')
 
       self.valid_opts.add_opt('-do_qc', 1, [], 
-                      helpstr="turn on/off QC images for heir dsets")
+                      helpstr="turn on/off QC images for child dsets")
 
       self.valid_opts.add_opt('-workdir', 1, [], 
                       helpstr='name of workdir (no path)')
@@ -352,32 +357,29 @@ See lct.CbarPbar() for the set of things that are populated for the actual
 
          # optional parameters
 
-         elif opt.name == '-purge_obliquity':
-            self.do_purge_obl = True
-
-         elif opt.name == '-heir_dsets':
+         elif opt.name == '-child_dsets':
             val, err = uopts.get_string_list('', opt=opt)
             if val is None or err:
                 BASE.EP(err_base + opt.name)
-            self.heir_dsets = val
+            self.child_dsets = val
 
-         elif opt.name == '-heir_prefixes':
+         elif opt.name == '-child_prefixes':
             val, err = uopts.get_string_list('', opt=opt)
             if val is None or err:
                 BASE.EP(err_base + opt.name)
-            self.heir_prefixes = val
+            self.child_prefixes = val
 
-         elif opt.name == '-heir_outdir':
+         elif opt.name == '-child_outdir':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err:
                 BASE.EP(err_base + opt.name)
-            self.heir_outdir = val
+            self.child_outdir = val
 
-         elif opt.name == '-heir_suffix':
+         elif opt.name == '-child_suffix':
             val, err = uopts.get_string_opt('', opt=opt)
             if val is None or err:
                 BASE.EP(err_base + opt.name)
-            self.heir_suffix = val
+            self.child_suffix = val
 
          elif opt.name == '-do_qc':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -427,18 +429,11 @@ See lct.CbarPbar() for the set of things that are populated for the actual
          BASE.EP1("missing -prefix option")
          return -1
 
-      # check various requirements/restrictions on -heir_* opts
-      if self.nheirs :
-          tmp = LOT.check_heir_opt_usage(self.nheirs, self.heir_prefixes,
-                                         self.heir_outdir, self.heir_suffix)
+      # check various requirements/restrictions on -child_* opts
+      if self.nchilds :
+          tmp = LOT.check_child_opt_usage(self.nchilds, self.child_prefixes,
+                                          self.child_outdir, self.child_suffix)
           return tmp
-
-      ### only using one default method now; disabling this
-      #if not(self.remove_obl in LOT.LIST_remove_obl_header_keys + ['']) :
-      #   txt = "Invalid arg after '-purge_obl': " + self.remove_obl
-      #   txt+= '\n Valid args are:\n ' + LOT.STR_remove_obl_header_keys
-      #   BASE.EP1(txt)
-      #   return -1
 
       return 0
 
@@ -460,9 +455,9 @@ See lct.CbarPbar() for the set of things that are populated for the actual
    # ----- decorators
 
    @property
-   def nheirs(self):
-       """number of heir_dsets"""
-       return len(self.heir_dsets)
+   def nchild(self):
+       """number of child_dsets"""
+       return len(self.child_dsets)
 
 
 # ----------------------------------------------------------------------------
@@ -499,7 +494,7 @@ def main():
    # write out log/history of what has been done (not done by default, to
    # save some time, bc this takes a mini-while)
    if inobj.do_log :
-      olog = 'log_obliquity_tool.txt'
+      olog = 'log_obliquity_remover.txt'
       UTIL.write_afni_com_log(olog)
 
    return 0, mainobj

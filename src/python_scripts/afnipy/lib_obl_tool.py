@@ -12,7 +12,7 @@ import sys, os, copy, glob
 from   afnipy import afni_base          as ab
 from   afnipy import afni_util          as au
 from   afnipy import lib_format_cmd_str as lfcs
-from   afnipy import lib_obl_heir       as LOH
+from   afnipy import lib_obl_child      as LOC
 from   afnipy import lib_obl_name       as LON
 
 # ============================================================================
@@ -22,12 +22,11 @@ DOPTS = {
     'user_opts'       : [],                    # copy of cmd the user ran
     'inset'           : '',
     'prefix'          : '',
-    'heir_dsets'      : '',
-    'heir_prefixes'   : None,
-    'heir_outdir'     : None,
-    'heir_suffix'     : None,
+    'child_dsets'      : '',
+    'child_prefixes'   : None,
+    'child_outdir'     : None,
+    'child_suffix'     : None,
     'workdir'         : '',
-    'purge_obliquity' : False,
     'purge_obl_meth'  : 'keep_origin_raw',     # just name of a def val
     'overwrite'       : '',
     'do_qc'           : 'Yes',                 # below, Yes|No -> True|False
@@ -87,10 +86,10 @@ inobj : InOpts object
         self.prefix          = DOPTS['prefix']
         self.prefix_nobj     = None                    # NameObj for prefix
 
-        self.heir_dsets      = DOPTS['heir_dsets']     # None or list
-        self.heir_prefixes   = DOPTS['heir_prefixes']  # None or list
-        self.heir_outdir     = DOPTS['heir_outdir']    # None or str
-        self.heir_suffix     = DOPTS['heir_suffix']    # None or list
+        self.child_dsets      = DOPTS['child_dsets']     # None or list
+        self.child_prefixes   = DOPTS['child_prefixes']  # None or list
+        self.child_outdir     = DOPTS['child_outdir']    # None or str
+        self.child_suffix     = DOPTS['child_suffix']    # None or list
 
         # control variables
         self.workdir         = DOPTS['workdir']
@@ -117,10 +116,10 @@ inobj : InOpts object
             # add a note to the main output dset header about this cmd
             tmp4 = self.attach_history_to_prefix()
 
-            # ... and let any heirs inherit the purged obliquity
-            if self.nheirs :
-                tmp4 = self.construct_heir_prefixes()
-                tmp5 = self.distribute_obliquity_to_all_heirs()
+            # ... and let any childs inherit the purged obliquity
+            if self.nchild :
+                tmp4 = self.construct_child_prefixes()
+                tmp5 = self.distribute_obliquity_to_all_childs()
 
 
     # ----- methods
@@ -136,29 +135,29 @@ inobj : InOpts object
 
         return stat
         
-    def construct_heir_prefixes(self):
-        """Go through a triage of generating a list of heir_prefixes to match
-        the list of heir_dsets that has been input; can be either
+    def construct_child_prefixes(self):
+        """Go through a triage of generating a list of child_prefixes to match
+        the list of child_dsets that has been input; can be either
         direct, or by construction of pieces.
         """
 
-        if not(self.nheirs) :
-            txt = "No heir dsets, "
-            txt+= "so it is erroneous to try to construct heir prefixes"
+        if not(self.nchild) :
+            txt = "No child dsets, "
+            txt+= "so it is erroneous to try to construct child prefixes"
             ab.EP(txt)
 
         # ----- check about prefixes already existing; if so, just use them
 
-        if not(self.heir_prefixes is None) :
+        if not(self.child_prefixes is None) :
             if self.verb > 1 :
-                ab.IP("Generate heir_prefixes using: heir_prefixes")
-            nheir_prefs = len(self.heir_prefixes)
-            if nheir_prefs == self.nheirs :
+                ab.IP("Generate child_prefixes using: child_prefixes")
+            nchild_prefs = len(self.child_prefixes)
+            if nchild_prefs == self.nchild :
                 # good to go
                 return 0
             else:
-                txt = "Mismatch: we have {} heir dsets ".format(self.nheirs)
-                txt+= "but {} heir prefixes".format(nheir_prefs)
+                txt = "Mismatch: we have {} child dsets ".format(self.nchild)
+                txt+= "but {} child prefixes".format(nchild_prefs)
                 ab.EP(txt)
 
         # ----- if we get here, we need to construct prefixes
@@ -166,97 +165,97 @@ inobj : InOpts object
         # verify at least one of these methods was run
         NMETH = 0
 
-        # first, do any heir_suffix
-        if not(self.heir_suffix is None) :
+        # first, do any child_suffix
+        if not(self.child_suffix is None) :
             if self.verb > 1 :
-                ab.IP("Generate heir_prefixes using: heir_suffix")
+                ab.IP("Generate child_prefixes using: child_suffix")
             NMETH+= 1
-            L = self.apply_heir_suffix()
+            L = self.apply_child_suffix()
         else:
-            L = copy.deepcopy(self.heir_dsets)
+            L = copy.deepcopy(self.child_dsets)
 
-        # then apply any heir_outdir 
-        if not(self.heir_outdir is None) :
+        # then apply any child_outdir 
+        if not(self.child_outdir is None) :
             if self.verb > 1 :
-                ab.IP("Generate heir_prefixes using: heir_outdir")
+                ab.IP("Generate child_prefixes using: child_outdir")
             NMETH+= 1
-            L = self.apply_heir_outdir(L)
+            L = self.apply_child_outdir(L)
 
         if not(NMETH) :
-            txt = "We have {} heir_dsets, ".format(self.nheirs)
-            txt+= "but used none of heir_prefixes, heir_suffix or heir_outdir"
+            txt = "We have {} child_dsets, ".format(self.nchild)
+            txt+= "but used none of child_prefixes, child_suffix or child_outdir"
             ab.EP(txt)
 
-        self.heir_prefixes = copy.deepcopy(L)
+        self.child_prefixes = copy.deepcopy(L)
 
         return 0
 
 
-    def apply_heir_outdir(self, L):
+    def apply_child_outdir(self, L):
         """L is a list of file prefixes, which may/may not have path info,
         which will be made to have outdir as their attached directory. The 
         returned list M has the same length as L.
         Because other steps might happen, this intermediate function
-        does _not_ update the heir_prefixes attribute directly.
+        does _not_ update the child_prefixes attribute directly.
         """
 
-        if not(self.heir_outdir) :
-            ab.EP("Cannot apply heir_outdir if none was provided!")
-        if not(self.heir_dsets) :
-            ab.EP("Cannot apply heir_suffix; no heir_dsets were provided!")
+        if not(self.child_outdir) :
+            ab.EP("Cannot apply child_outdir if none was provided!")
+        if not(self.child_dsets) :
+            ab.EP("Cannot apply child_suffix; no child_dsets were provided!")
 
         M = []
         for dset in L:
             # build output name from input dirname, base and possibly ext
             nobj = LON.NameObj(dset)
-            name = (self.heir_outdir).rstrip('/') + '/' 
+            name = (self.child_outdir).rstrip('/') + '/' 
             name+= nobj.bname
             M.append(name)
 
         return M
 
 
-    def apply_heir_suffix(self):
-        """Insert the specified suffix into the name of heir_dsets, generating
+    def apply_child_suffix(self):
+        """Insert the specified suffix into the name of child_dsets, generating
         a new list of names that has the same length.  
         Because other steps might happen, this intermediate function
-        does _not_ update the heir_prefixes attribute directly.
+        does _not_ update the child_prefixes attribute directly.
         """
         
-        if not(self.heir_suffix) :
-            ab.EP("Cannot apply heir_suffix if none was provided!")
-        if not(self.heir_dsets) :
-            ab.EP("Cannot apply heir_suffix if no heir_dsets were provided!")
+        if not(self.child_suffix) :
+            ab.EP("Cannot apply child_suffix if none was provided!")
+        if not(self.child_dsets) :
+            ab.EP("Cannot apply child_suffix if no child_dsets were provided!")
 
         L = []
-        for dset in self.heir_dsets:
+        for dset in self.child_dsets:
             # build output name from input dirname, base and possibly ext
             nobj = LON.NameObj(dset)
             name = nobj.dname + '/' 
-            name+= nobj.bname_noext + self.heir_suffix 
+            name+= nobj.bname_noext + self.child_suffix 
             name+= nobj.add_ext_for_nifti              # adds '' for AFNI type
             L.append(name)
 
         return L
                 
 
-    def distribute_obliquity_to_all_heirs(self):
-        """Loop over all heir dsets, and call the function that applies the
+    def distribute_obliquity_to_all_childs(self):
+        """Loop over all child dsets, and call the function that applies the
         obliquity matrix to each."""
 
-        for nn in range(self.nheirs):
-            dset  = self.heir_dsets[nn]
+        for nn in range(self.nchilds):
+            dset  = self.child_dsets[nn]
             nobj  = LON.NameObj(dset)
             dset_full = nobj.name_full
-            opref = self.heir_prefixes[nn]
+            opref = self.child_prefixes[nn]
 
-            tmp1  = self.distribute_obliquity_to_heir(dset_full, opref)
+            tmp1  = self.distribute_obliquity_to_child(dset_full, opref)
 
         return 0
 
 
-    def distribute_obliquity_to_heir(self, dset, opref):
-        """Run the processing to pass along obliquity info to each heir dset.
+    def distribute_obliquity_to_child(self, dset, opref):
+        """Run the processing to pass along obliquity info to each child dset.
         """
     
         # shorter name of obj used to get path/names to obl matr
@@ -275,7 +274,7 @@ inobj : InOpts object
             ab.EP(txt)
 
         # set up the obliquity info and dset names
-        heir_obj = LOH.HeirObj( heir_dset=dset, heir_prefix=opref, 
+        child_obj = LOC.ChildObj( child_dset=dset, child_prefix=opref, 
                                 mat_obl=mat_obl, 
                                 do_qc=self.do_qc, inset_raw=self.inset, 
                                 inset_proc=inset_proc,
@@ -283,7 +282,7 @@ inobj : InOpts object
                                 do_clean=self.do_clean, verb=self.verb )
 
         # ... and actually do the proc (make wdir, generate outputs, etc.)
-        heir_obj.proc_heir()
+        child_obj.proc_child()
 
         return 0
 
@@ -321,14 +320,14 @@ inobj : InOpts object
             self.inset = io.inset
         if io.prefix is not None :
             self.prefix = io.prefix
-        if io.heir_dsets is not None :
-            self.heir_dsets = copy.deepcopy(io.heir_dsets)
-        if io.heir_prefixes is not None :
-            self.heir_prefixes = io.heir_prefixes
-        if io.heir_outdir is not None :
-            self.heir_outdir = io.heir_outdir
-        if io.heir_suffix is not None :
-            self.heir_suffix = io.heir_suffix
+        if io.child_dsets is not None :
+            self.child_dsets = copy.deepcopy(io.child_dsets)
+        if io.child_prefixes is not None :
+            self.child_prefixes = io.child_prefixes
+        if io.child_outdir is not None :
+            self.child_outdir = io.child_outdir
+        if io.child_suffix is not None :
+            self.child_suffix = io.child_suffix
 
         # control variables
         if io.do_purge_obl is not None :
@@ -365,24 +364,17 @@ inobj : InOpts object
         if not(self.prefix) : 
             ab.EP("Need to provide a prefix")
 
-        ### only using one default method now; disabling this
-        # if removing obl from header, verify keyword
-        #if not(self.purge_obl in LIST_purge_obl_header_keys + ['']) :
-        #    txt = "Invalid arg after '-purge_obl': " + self.purge_obl
-        #    txt+= '\n Valid args are:\n ' + STR_purge_obl_header_keys
-        #    ab.EP(txt)
-
-        # check various requirements/restrictions on -heir_* opts
-        if self.nheirs :
-            tmp = check_heir_opt_usage(self.nheirs, self.heir_prefixes,
-                                       self.heir_outdir, self.heir_suffix)
+        # check various requirements/restrictions on -child_* opts
+        if self.nchild :
+            tmp = check_child_opt_usage(self.nchilds, self.child_prefixes,
+                                       self.child_outdir, self.child_suffix)
             if tmp : sys.exit(-1)
 
-            # check existence of heir_dsets
-            nfail = au.check_all_dsets_exist(self.heir_dsets, label='heir',
+            # check existence of child_dsets
+            nfail = au.check_all_dsets_exist(self.child_dsets, label='child',
                                              verb=self.verb)
             if nfail :
-                ab.EP("Failed to load at least one heir_dset")
+                ab.EP("Failed to load at least one child_dset")
       
         # generate basic items
 
@@ -408,9 +400,9 @@ inobj : InOpts object
     # ----- decorators
 
     @property
-    def nheirs(self):
-        """number of heir_dsets"""
-        return len(self.heir_dsets)
+    def nchild(self):
+        """number of child_dsets"""
+        return len(self.child_dsets)
 
     @property
     def argv_str(self):
@@ -535,8 +527,8 @@ txt : str
 
 # ----------------------------------------------------------------------------
 
-def check_heir_opt_usage(nheirs, heir_prefixes, heir_outdir, heir_suffix):
-   """Check that the input and output specification for heir dsets is
+def check_child_opt_usage(nchild, child_prefixes, child_outdir, child_suffix):
+   """Check that the input and output specification for child dsets is
 valid.
 
 This function exists so we can run the same ~nontrivial checks in a
@@ -545,13 +537,13 @@ method in one object, but the variables were duplicated in a second one.)
 
 Parameters
 ----------
-nheirs : int
-    number of heir_dsets input
-heir_prefixes : list (or None)
+nchild : int
+    number of child_dsets input
+child_prefixes : list (or None)
     list of output dset names
-heir_outdir : str (or None)
+child_outdir : str (or None)
     name of output dir
-heir_suffix : str (or None)
+child_suffix : str (or None)
     name of suffix to include to output files
 
 Returns
@@ -560,23 +552,23 @@ ok : int
     ok is 0 for valid, and nonzero for invalid usage
    """
 
-   if nheirs :
-      if heir_prefixes is None and \
-         heir_outdir is None and \
-         heir_suffix is None :
-         BASE.EP1("must use an -heir_* output opt when using -heir_dsets")
+   if nchild :
+      if child_prefixes is None and \
+         child_outdir is None and \
+         child_suffix is None :
+         BASE.EP1("must use an -child_* output opt when using -child_dsets")
          return -1
-      elif heir_prefixes is not None and \
-         not(heir_outdir is None and heir_suffix is None) :
-         BASE.EP1("cannot use -heir_prefixes with other -heir_* output opts")
+      elif child_prefixes is not None and \
+         not(child_outdir is None and child_suffix is None) :
+         BASE.EP1("cannot use -child_prefixes with other -child_* output opts")
          return -1
-      elif heir_prefixes is not None and len(heir_prefixes) != nheirs :
-         BASE.EP1("if using -heir_prefixes, must match number of heir dsets")
+      elif child_prefixes is not None and len(child_prefixes) != nchilds :
+         BASE.EP1("if using -child_prefixes, must match number of child dsets")
          return -1
    else:
-       if not(heir_prefixes is None and heir_outdir is None and \
-              heir_suffix is None) :
-         BASE.EP1("cannot use any -heir_* output opt without -heir_dsets")
+       if not(child_prefixes is None and child_outdir is None and \
+              child_suffix is None) :
+         BASE.EP1("cannot use any -child_* output opt without -child_dsets")
          return -1
 
    return 0

@@ -4,7 +4,7 @@
 # datasets.
 #
 # Here, we store an object that contains functionality for working
-# with heir_dsets when processing obliquity.
+# with child_dsets when processing obliquity.
 #
 # auth : PA Taylor (SSCC, NIMH, NIH, USA)
 # ============================================================================
@@ -17,27 +17,27 @@ from   afnipy import lib_obl_name as LON
 
 # ============================================================================
 
-class HeirObj:
-    """Object for setting up the processing of an heir_dset.
+class ChildObj:
+    """Object for setting up the processing of an child_dset.
 
 After running this object to initialize and check things:
   
-    hobj = HeirObj(...)
+    cobj = ChildObj(...)
 
-execute the proc_heir() method to actually generate datasets:
+execute the proc_child() method to actually generate datasets:
 
-    hobj.proc_heir()
+    cobj.proc_child()
 
 Then hopefully check your well-created results.
 
 Parameters
 ----------
-heir_dset : str 
-    (req to run) name of heir_dset being input for processing
-heir_prefix : str 
-    (req to run) name of heir_prefix for outputting results
+child_dset : str 
+    (req to run) name of child_dset being input for processing
+child_prefix : str 
+    (req to run) name of child_prefix for outputting results
 mat_obl : str
-    (req to run) name of matrix with obliquity to apply to heir_dset,
+    (req to run) name of matrix with obliquity to apply to child_dset,
     which must be in ONELINE format; likely created earlier in
     obliquity_tool.py's processing
 do_qc : bool
@@ -53,7 +53,7 @@ inset_proc : str
     """
 
     def __init__(self, 
-                 heir_dset=None, heir_prefix=None, mat_obl=None, 
+                 child_dset=None, child_prefix=None, mat_obl=None, 
                  do_qc=True, inset_raw=None, inset_proc=None,
                  overwrite='',
                  do_clean=True, verb=1):
@@ -61,10 +61,10 @@ inset_proc : str
         # ----- set up attributes
 
         # main input variables
-        self.heir_dset          = heir_dset     # input heir_dset
-        self.heir_prefix        = heir_prefix   # output prefix of heir
-        self.heir_avsp          = ''            # 3dinfo -av_space HEIR_DSET
-        self.heir_nobj          = None          # name obj for heir prefix
+        self.child_dset         = child_dset    # input child_dset
+        self.child_prefix       = child_prefix  # output prefix of child
+        self.child_avsp         = ''            # 3dinfo -av_space CHILD_DSET
+        self.child_nobj         = None          # name obj for child prefix
         self.mat_obl            = mat_obl       # obliquity matr to use
 
         # for QC images
@@ -78,12 +78,12 @@ inset_proc : str
         self.ok_to_proc         = False         # True after init is done
         self.wdir               = ''            # basename of working dir
         self.wdir_full          = ''            # full path of working dir
-        self.heir_00_dset       = ''            # name of dset_heir in wdir
+        self.child_00_dset      = ''            # name of dset_child in wdir
         self.mat_00             = 'mat_obl.aff12.1D'        # mat_obl in wdir
-        self.heir_00_aform      = 'heir_00_aform.aff12.1D'  # heir aform matr
-        self.heir_01_aform      = 'heir_01_aform.aff12.1D'
-        self.heir_01_ijk2dicom  = 'heir_01_ijk2dicom.aff12.1D' # calc+create
-        self.heir_01_origin     = 'heir_01_origin.1D'          # calc+create
+        self.child_00_aform     = 'child_00_aform.aff12.1D'  # child aform matr
+        self.child_01_aform     = 'child_01_aform.aff12.1D'
+        self.child_01_ijk2dicom = 'child_01_ijk2dicom.aff12.1D' # calc+create
+        self.child_01_origin    = 'child_01_origin.1D'          # calc+create
 
         self.verb               = verb          # verbosity level
         self.overwrite          = overwrite     # string to overwrite or not
@@ -91,8 +91,8 @@ inset_proc : str
 
         # ----- take action(s)
 
-        if not(self.heir_dset is None) and \
-           not(self.heir_prefix is None) and \
+        if not(self.child_dset is None) and \
+           not(self.child_prefix is None) and \
            not(self.mat_obl is None) :
             tmp1 = self.basic_setup()
             tmp2 = self.make_wdir()
@@ -102,39 +102,39 @@ inset_proc : str
 
     # ----- methods
 
-    def proc_heir(self):
-        """Do main processing of applying obliquity matrix to heir_dset"""
+    def proc_child(self):
+        """Do main processing of applying obliquity matrix to child_dset"""
 
         if not(self.ok_to_proc) :
             txt = "Not enough inputs provided to run setup and prepare "
-            txt+= "for main processing.  Please check HeirObj help and "
+            txt+= "for main processing.  Please check ChildObj help and "
             txt+= "try again"
             ab.EP(txt)
 
         if self.verb:
-            ab.IP("Process heir dset: " + self.heir_dset)
+            ab.IP("Process child dset: " + self.child_dset)
 
         # present dir
         cwd = os.getcwd()
 
         # copy dset to wdir as BRIK/HEAD
-        cmd  = '3dTcat -overwrite -prefix {}/heir_00 '.format(self.wdir_full)
-        cmd += '"{}"'.format(self.heir_dset)
+        cmd  = '3dTcat -overwrite -prefix {}/child_00 '.format(self.wdir_full)
+        cmd += '"{}"'.format(self.child_dset)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
         if stat : 
-            ab.EP("Failed in proc_heir: 3dTcat")
+            ab.EP("Failed in proc_child: 3dTcat")
 
         # fine the full name to the output (probably has +orig, but not sure)
-        sss = '{}/heir_00{}.HEAD'.format(self.wdir_full, self.heir_avsp)
-        self.heir_00_dset = glob.glob(sss)
-        if len(self.heir_00_dset) != 1 :
-            txt = "Should have 1 heir_00_dset "
-            txt+= "but actually have {}:\n".format(len(self.heir_00_dset))
-            txt+= "{}".format('\n'.join(self.heir_00_dset))
+        sss = '{}/child_00{}.HEAD'.format(self.wdir_full, self.child_avsp)
+        self.child_00_dset = glob.glob(sss)
+        if len(self.child_00_dset) != 1 :
+            txt = "Should have 1 child_00_dset "
+            txt+= "but actually have {}:\n".format(len(self.child_00_dset))
+            txt+= "{}".format('\n'.join(self.child_00_dset))
             ab.EP(txt)
         # ... and store just the basename
-        self.heir_00_dset = os.path.basename(glob.glob(sss)[0])
+        self.child_00_dset = os.path.basename(glob.glob(sss)[0])
             
         # get obl mat: cp into wdir
         cmd  = '\\cp {} '.format(self.mat_obl)
@@ -142,12 +142,12 @@ inset_proc : str
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
         if stat : 
-            ab.EP("Failed in proc_heir: cp")
+            ab.EP("Failed in proc_child: cp")
         
         if self.do_qc :
-            # inset_raw under heir_raw (all obl applied)
+            # inset_raw under child_raw (all obl applied)
             ulay = self.inset_raw
-            olay = self.heir_dset
+            olay = self.child_dset
             oimg = '{}/{}'.format(self.wdir_full, self.qc_img_00)
 
             # make the image
@@ -156,56 +156,56 @@ inset_proc : str
         # jump to wdir, simpler proc
         os.chdir(self.wdir_full)
         
-        # get heir aform (= IJK_TO_DICOM_REAL)
-        cmd  = '3dinfo -aform_real_oneline {} '.format(self.heir_00_dset)
-        cmd += '> {}'.format(self.heir_00_aform)
+        # get child aform (= IJK_TO_DICOM_REAL)
+        cmd  = '3dinfo -aform_real_oneline {} '.format(self.child_00_dset)
+        cmd += '> {}'.format(self.child_00_aform)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
         if stat : 
-            ab.EP("Failed in proc_heir: 3dinfo")
+            ab.EP("Failed in proc_child: 3dinfo")
 
-        # main calc for new matrix: apply obl mat to heir aform
+        # main calc for new matrix: apply obl mat to child aform
         cmd  = 'cat_matvec -ONELINE '
-        cmd += '{} {} '.format(self.heir_00_aform, self.mat_00)
-        cmd += '> {}'.format(self.heir_01_aform)
+        cmd += '{} {} '.format(self.child_00_aform, self.mat_00)
+        cmd += '> {}'.format(self.child_01_aform)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
         if stat : 
-            ab.EP("Failed in proc_heir: cat_matvec")
+            ab.EP("Failed in proc_child: cat_matvec")
 
         # ----- read in extra info for attribute resetting
 
         # 1) read in mat: new aform (= IJK_TO_DICOM_REAL)
-        cmd  = 'cat {}'.format(self.heir_01_aform)
+        cmd  = 'cat {}'.format(self.child_01_aform)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
         if stat : 
-            ab.EP("Failed in proc_heir: cat new aform")
-        heir_mat_aform = [float(x) for x in com.so[0].strip().split()]
+            ab.EP("Failed in proc_child: cat new aform")
+        child_mat_aform = [float(x) for x in com.so[0].strip().split()]
 
         # 2) read in mat: current IJK_TO_DICOM, which we will edit
-        cmd  = 'cat_matvec -ONELINE {}::IJK_TO_DICOM'.format(self.heir_00_dset)
+        cmd  = 'cat_matvec -ONELINE {}::IJK_TO_DICOM'.format(self.child_00_dset)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
         if stat : 
-            ab.EP("Failed in proc_heir: cat_matvec IJK_TO_DICOM")
-        heir_mat_ijk2dicom = [float(x) for x in com.so[0].strip().split()]
+            ab.EP("Failed in proc_child: cat_matvec IJK_TO_DICOM")
+        child_mat_ijk2dicom = [float(x) for x in com.so[0].strip().split()]
         # ... and update origin/offset part from new aform
-        heir_mat_ijk2dicom[3]  = heir_mat_aform[3]
-        heir_mat_ijk2dicom[7]  = heir_mat_aform[7]
-        heir_mat_ijk2dicom[11] = heir_mat_aform[11]
+        child_mat_ijk2dicom[3]  = child_mat_aform[3]
+        child_mat_ijk2dicom[7]  = child_mat_aform[7]
+        child_mat_ijk2dicom[11] = child_mat_aform[11]
 
         # ----- calc+write out new info 
 
         # write out mat: new IJK_TO_DICOM
-        fff = open(self.heir_01_ijk2dicom, 'w')
-        ttt = '  '.join([str(x) for x in heir_mat_ijk2dicom])
+        fff = open(self.child_01_ijk2dicom, 'w')
+        ttt = '  '.join([str(x) for x in child_mat_ijk2dicom])
         fff.write(ttt + '\n')
         fff.close()
 
         # write out file: new ORIGIN
-        fff = open(self.heir_01_origin, 'w')
-        ttt = '  '.join([str(x) for x in heir_mat_aform[3::4]])
+        fff = open(self.child_01_origin, 'w')
+        ttt = '  '.join([str(x) for x in child_mat_aform[3::4]])
         fff.write(ttt + '\n')
         fff.close()
 
@@ -213,52 +213,52 @@ inset_proc : str
 
         # attach new aform to dset
         cmd  = '3drefit -atrfloat IJK_TO_DICOM_REAL '
-        cmd += '{} '.format(self.heir_01_aform)
-        cmd += '{}'.format(self.heir_00_dset)
+        cmd += '{} '.format(self.child_01_aform)
+        cmd += '{}'.format(self.child_00_dset)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
         if stat : 
-            ab.EP("Failed in proc_heir: 3drefit IJK_TO_DICOM_REAL")
+            ab.EP("Failed in proc_child: 3drefit IJK_TO_DICOM_REAL")
 
         # attach new IJK_TO_DICOM to dset
         cmd  = '3drefit -atrfloat IJK_TO_DICOM '
-        cmd += '{} '.format(self.heir_01_ijk2dicom)
-        cmd += '{}'.format(self.heir_00_dset)
+        cmd += '{} '.format(self.child_01_ijk2dicom)
+        cmd += '{}'.format(self.child_00_dset)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
         if stat : 
-            ab.EP("Failed in proc_heir: 3drefit IJK_TO_DICOM")
+            ab.EP("Failed in proc_child: 3drefit IJK_TO_DICOM")
 
         # attach new origin to dset
         cmd  = '3drefit -atrfloat ORIGIN '
-        cmd += '{} '.format(self.heir_01_origin)
-        cmd += '{}'.format(self.heir_00_dset)
+        cmd += '{} '.format(self.child_01_origin)
+        cmd += '{}'.format(self.child_00_dset)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
         if stat : 
-            ab.EP("Failed in proc_heir: 3drefit ORIGIN")
+            ab.EP("Failed in proc_child: 3drefit ORIGIN")
 
         # ----- finalize
 
         # put dset in output location (just up)
         cmd  = '3dcopy {} '.format(self.overwrite)
-        cmd += '{} ../{}'.format(self.heir_00_dset, self.heir_nobj.bname)
+        cmd += '{} ../{}'.format(self.child_00_dset, self.child_nobj.bname)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
         if stat : 
-            ab.EP("Failed in proc_heir: 3dcopy")
+            ab.EP("Failed in proc_child: 3dcopy")
 
         # ... and jump back to prior location
         os.chdir(cwd)
 
         if self.do_qc :
-            # inset_proc under heir_proc (all obl applied)
+            # inset_proc under child_proc (all obl applied)
             ulay = self.inset_proc
             if not(os.path.isfile(ulay)):
                 txt  = "For QC, cannot find ulay dset: " + ulay
                 tmp1 = ab.EP1(txt)
                 return -1
-            olay = '{}/{}'.format(self.wdir_full, self.heir_00_dset)
+            olay = '{}/{}'.format(self.wdir_full, self.child_00_dset)
             oimg = '{}/{}'.format(self.wdir_full, self.qc_img_01)
 
             # make the image
@@ -274,7 +274,7 @@ inset_proc : str
     def make_qc_image(self, ulay, olay, oimg, label=''):
         """Make a QC image and put it into the final spot"""
 
-        msg = "heir olap '{}'".format(label)
+        msg = "child olap '{}'".format(label)
         if self.verb:
             ab.IP("Make QC image, " + msg)
 
@@ -294,7 +294,7 @@ inset_proc : str
             txt = 'Cannot find any QC image: {}*'.format(oimg)
             ab.WP(txt)
         else:
-            fimg = self.heir_nobj.name_full_noext
+            fimg = self.child_nobj.name_full_noext
             fimg+= '_olap_' + label + '.jpg'
             cmd  = '\\cp {} {}'.format(gimg[0], fimg)
             com  = ab.shell_com(cmd, capture=1)
@@ -311,18 +311,18 @@ inset_proc : str
 
         # required inputs to run
 
-        if self.heir_dset is None :
-            ab.EP("No heir_dset entered")
+        if self.child_dset is None :
+            ab.EP("No child_dset entered")
 
         # get AFNI view of inset
-        cmd  = '3dinfo -av_space ' + self.heir_dset
+        cmd  = '3dinfo -av_space ' + self.child_dset
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
         avsp = com.so[0].strip()
-        self.heir_avsp = avsp
+        self.child_avsp = avsp
 
-        if self.heir_prefix is None :
-            ab.EP("No heir_prefix entered")
+        if self.child_prefix is None :
+            ab.EP("No child_prefix entered")
 
         if self.mat_obl is None :
             ab.EP("No mat_obl entered")
@@ -331,25 +331,25 @@ inset_proc : str
 
         if self.do_qc :
             if self.inset_raw is None :
-                ab.EP("For the heir dset QC, must provide inset_raw")
+                ab.EP("For the child dset QC, must provide inset_raw")
             if self.inset_proc is None :
-                ab.EP("For the heir dset QC, must provide inset_proc")
+                ab.EP("For the child dset QC, must provide inset_proc")
 
         # create object with pieces of names
-        self.heir_nobj = LON.NameObj(self.heir_prefix)
+        self.child_nobj = LON.NameObj(self.child_prefix)
         if self.verb > 5 :
-            (self.heir_nobj).print_dict()
+            (self.child_nobj).print_dict()
 
         return 0
 
     def make_wdir(self):
         """Make working dir name and full path"""
 
-        # heir output basename, for wdir name
-        bname_ne = self.heir_nobj.bname_noext
+        # child output basename, for wdir name
+        bname_ne = self.child_nobj.bname_noext
 
-        # heir output path dirname, for wdir_full
-        dname = self.heir_nobj.dname
+        # child output path dirname, for wdir_full
+        dname = self.child_nobj.dname
 
         # random str for wdir name
         cmd  = '3dnewid -fun11'
@@ -358,7 +358,7 @@ inset_proc : str
         rstr = com.so[0].strip()
 
         # build wdir, name and full path
-        self.wdir      = '__wdir_heir_' + bname_ne + '_' + rstr
+        self.wdir      = '__wdir_child_' + bname_ne + '_' + rstr
         self.wdir_full = dname + '/' + self.wdir
 
         # make dir (if nec)
@@ -366,7 +366,7 @@ inset_proc : str
             try:
                 os.makedirs(self.wdir_full, exist_ok=True)
             except:
-                ab.EP("Could not make heir's wdir_full: " + self.wdir_full)
+                ab.EP("Could not make child's wdir_full: " + self.wdir_full)
 
         return 0
 
