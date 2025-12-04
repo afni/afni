@@ -29,7 +29,8 @@
  *
  *              -rmode RESAM      : one of {"NN", "Li", "Cu", "Bk"}
  *
- *              -bound_type TYPE  : one of {"FOV", "SLAB"}
+ *              -bound_type TYPE  : one of {"FOV", "SLAB", "PRES", "PRES_RAI"}
+ *                                  todo: PRES_RAI
  *
  *    examples:
  *      3dresample -orient "asl" -rmode NN -prefix asl.dset -input inset+orig
@@ -165,7 +166,7 @@ int init_options ( options_t * opts, int argc, char * argv [] )
         {
             if ( (ac+1) >= argc )
             {
-                fputs( "option usage: -bound_type FOV/SLAB\n", stderr );
+                fputs( "option usage: -bound_type FOV/SLAB/PRES\n", stderr );
                 usage( argv[0], USE_SHORT );
                 return FAIL;
             }
@@ -528,22 +529,64 @@ int usage ( char * progg, int level )
             "    -version         : show version information\n"
             "\n"
             "    -bound_type TYPE : specify which boundary is preserved\n"
-            "          e.g.  -bound_type SLAB\n"
-            "          default is FOV (field of view)\n"
+            "          e.g.     -bound_type SLAB\n"
+            "          default: -bound_type FOV\n"
+            "\n"
+            "      FOV : field of view (see 'to3d -help')\n"
+            "          : half a voxel outside of bounding centers (SLAB)\n"
             "\n"
             "          The default and original use preserves the field of\n"
-            "          of view when resampling, allowing the extents (SLABs)\n"
+            "          view when resampling, allowing the extents (SLABs)\n"
             "          to grow or shrink by half of the difference in the\n"
             "          dimension size (big voxels to small will cause the\n"
             "          extents to expand, for example, while small to big\n"
             "          will cause them to shrink).\n"
             "\n"
-            "          Using -bound_type SLAB will have the opposite effect.\n"
+            "      SLAB: bounding centers (see 'to3d -help')\n"
+            "          : voxel center at one side to the center on the other side\n"
+            "\n"
+            "          Using -bound_type SLAB will have the opposite effect as FOV.\n"
             "          The extents should be unchanged, while the FOV will\n"
             "          grow or shrink in the opposite way as above).\n"
             "\n"
             "          Note that when using SLAB, edge voxels should be\n"
             "          mostly unaffected by the interpolation.\n"
+            "\n"
+            "      PRES: preserve voxel centers (not in to3d)\n"
+            "\n"
+            "          Try to preserve voxel centers when resampling.  If scaling\n"
+            "          the voxels (up or down) by an integer, output voxels should\n"
+            "          be on the original grid, as much as possible.\n"
+            "\n"
+            "       ** The user should be sure the new dxyz values scale correctly.\n"
+            "          Otherwise consider the 'rcr' option.\n"
+            "\n"
+            "          upsample (by a scale factor of S):\n"
+            "\n"
+            "            The result should have approximately S times the number of\n"
+            "            voxels (in each direction), and be 1/S times as large.\n"
+            "\n"
+            "            method: find maximum SLAB strictly inside original FOV\n"
+            "\n"
+            "        *   This result will include all original voxel centers, and\n"
+            "            additionly (S-1) inner centers, plus floor((S-e)/2) centers\n"
+            "            per side, for some epsilon, e.\n"
+            "\n"
+            "          downsample (by a scale factor of S):\n"
+            "\n"
+            "            The result should have approximately 1/S times the number\n"
+            "            of voxels (in each direction), and be S times as large.\n"
+            "\n"
+            "            method: find maximum SLAB strictly inside original SLAB\n"
+            "\n"
+            "        *   This result will include only original voxel centers, and\n"
+            "            fewer of them.  The origin will be offset by\n"
+            "            [floor((nvox-e) modulo S) // 2] voxels. \n"
+            "\n"
+            "          ... rcr ...\n"
+            "\n"
+            "\n"
+            "\n"
             "\n"
             "    -dxyz DX DY DZ   : resample to new dx, dy and dz\n"
             "          e.g.  -dxyz 1.0 1.0 0.9\n"
