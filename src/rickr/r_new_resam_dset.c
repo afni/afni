@@ -111,7 +111,7 @@ static int daxis_resam_preserve( double dold, double dnew, int nold,
    float tmpf;
    int   nsi;           /* num shifted voxels, always an int */
 
-   if ( dold <= 0 || dnew <= 0 || !nnew || !oshift ) {
+   if ( dold == 0 || dnew == 0 || (dold*dnew < 0.0) || !nnew || !oshift ) {
       fprintf(stderr,"** daxis_resam_preserve: invalid args\n");
       return 1;
    }
@@ -501,13 +501,13 @@ int r_dxyz_mod_dataxes( double dx, double dy, double dz,
        daxout->nxx = nvox;
        daxout->xxorg = daxin->xxorg + oshift;
 
-       rv = daxis_resam_preserve(daxin->yydel, rex, daxin->nyy,
+       rv = daxis_resam_preserve(daxin->yydel, rey, daxin->nyy,
                                  &nvox, &oshift, 0);
        if( rv ) return -1;
        daxout->nyy = nvox;
        daxout->yyorg = daxin->yyorg + oshift;
 
-       rv = daxis_resam_preserve(daxin->zzdel, rex, daxin->nzz,
+       rv = daxis_resam_preserve(daxin->zzdel, rez, daxin->nzz,
                                  &nvox, &oshift, 0);
        if( rv ) return -1;
        daxout->nzz = nvox;
