@@ -124,14 +124,14 @@ Examples ~1~
 
  1) Remove obliquity from a dset:
 
-    3dObliquityRemover                                                    \\
+    obliquity_remover.py                                                  \\
         -inset            sub-017_T1w.nii.gz                              \\
         -prefix           sub-017_T1w_DEOB.nii.gz
 
  2) Remove obliquity from a dset, and pass it along to its associated 
     EPI datasets:
 
-    3dObliquityRemover                                                    \\
+    obliquity_remover.py                                                  \\
         -inset            anat/sub-017_T1w.nii.gz                         \\
         -prefix           anat/sub-017_T1w_DEOB.nii.gz                    \\
         -child_dsets      func/sub-017_task-rest_run-01_bold.nii.gz       \\
@@ -143,7 +143,7 @@ Examples ~1~
 
  3) Same as #2, but with a succinct method of adding a suffix to each child:
            
-    3dObliquityRemover                                                    \\
+    obliquity_remover.py                                                  \\
         -inset            anat/sub-017_T1w.nii.gz                         \\
         -prefix           anat/sub-017_T1w_DEOB.nii.gz                    \\
         -child_dsets      func/sub-017_task-rest_run-01_bold.nii.gz       \\
@@ -153,7 +153,7 @@ Examples ~1~
 
  4) Same as #3, but putting each output child into a new dir:
 
-    3dObliquityRemover                                                    \\
+    obliquity_remover.py                                                  \\
         -inset            anat/sub-017_T1w.nii.gz                         \\
         -prefix           anat/sub-017_T1w_DEOB.nii.gz                    \\
         -child_dsets      func/sub-017_task-rest_run-01_bold.nii.gz       \\
@@ -167,7 +167,7 @@ Examples ~1~
     might be quite useful when doing group processing in a way that
     each major step outputs the data in parallel directory trees:
 
-    3dObliquityRemover                                                    \\
+    obliquity_remover.py                                                  \\
         -inset            p1/anat/sub-017_T1w.nii.gz                      \\
         -prefix           p2/anat/sub-017_T1w.nii.gz                      \\
         -child_dsets      p1/func/sub-017_task-rest_run-*_bold.nii.gz     \\
@@ -183,7 +183,7 @@ g_history = """
 """
 
 g_ver     = g_history.split("\n")[-2].split("::")[0].strip()
-g_version = "3dObliquityRemover version " + g_ver
+g_version = "obliquity_remover.py version " + g_ver
 
 class InOpts:
    """Object for storing any/all command line inputs, and just checking
