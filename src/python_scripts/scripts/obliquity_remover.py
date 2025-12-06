@@ -23,12 +23,19 @@ dataset's header, with the two important properties:
 
 + preserving the coordinate origin, (x, y, z) = (0, 0, 0).
 
-As an added bonus, the removed obliquity can also be **transferred**
-to other datasets, which are called "child" datasets.  Doing this
-preserves the relative overlap of the datasets in the real terms of
-considering where they are in space when obliquity is taken into
-account.
-and more.
+**Also** note this important bonus feature: the removed obliquity can
+also be transferred to other datasets (called "child" datasets).
+Doing this preserves the relative overlap of the main input and child
+datasets, in the real terms of where they are in real/scanner space
+when obliquity is taken into account.
+
+This program makes a convenient step in preparing FMRI data
+collections to be processed (e.g., before sswarper2, FreeSurfer,
+afni_proc.py, etc.).  Users can provide the T1w anatomical reference
+as the inset to have its obliquity removed, *while also* providing the
+EPIs from the same session as child datasets.  In this way, the
+relative overlap of the EPI and anatomical will be preserved during
+processing.
 
 auth = PA Taylor (SSCC, NIMH, NIH, USA)
 
@@ -102,7 +109,7 @@ Usage ~1~
 
 Notes ~1~
 
-Dealing with obliquity can take take several forms:
+Obliquity in general ~2~
 
 + Some involve changing header information, without regridding (and
   therefore interpolating and smoothing) the data itself but
@@ -114,9 +121,34 @@ Dealing with obliquity can take take several forms:
 
 Each can have its own use cases.
 
-Removing obliquity from the dataset header ~2~
+Why do we recommend removing anatomical dataset's obliquity like this? ~2~
 
-****
+It is generally convenient for the anatomical dataset to have its
+obliquity removed in the way this program does it.
+
++ First, after removing obliquity like this, the anatomical should
+  overlap better with any reference template dataset (since it will
+  "sit more squarely" within the FOV).
+
++ Second, different software deal with obliquity differently (e.g.,
+  ignoring or applying it), and so when integrating different tools
+  (like FS, SUMA and AFNI), this can be minorly annoying.  
+
++ Third, *applying* obliquity leads to resampling and interpolation,
+  and hence blurring of the anatomical dataset. So, *purging* it
+  before processing can remove an unnecessary
+  resampling/interpolation/blur procedure.
+
++ Fourth, transferring the anatomical's removed obliquity to the child
+  datasets (like, EPI or other volumes acquired in the same session)
+  will help preserve the relative angle of overlap.  While in many
+  cases AFNI alignment programs can overcome a fair bit of relative
+  rotation, some cases are more extreme (looking at you, slab EPI
+  datasets!) and so really benefit from maintaining original
+  overlap. Also, the stability of all alignment procedures (AFNI's or
+  other tools') benefits from closer starting overlap of datasets, and
+  who needs to add more uncertainity into data processing?
+
 
 ------------------------------------------------------------------------
 
