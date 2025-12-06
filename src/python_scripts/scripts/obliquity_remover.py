@@ -147,7 +147,7 @@ obliquity removed in the way this program does it.
   datasets!) and so really benefit from maintaining original
   overlap. Also, the stability of all alignment procedures (AFNI's or
   other tools') benefits from closer starting overlap of datasets, and
-  who needs to add more uncertainity into data processing?
+  who needs to add more uncertainty into data processing?
 
 
 ------------------------------------------------------------------------
