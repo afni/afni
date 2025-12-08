@@ -2,8 +2,11 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-set version   = "1.0";  set rev_dat   = "Feb 22, 2024"
+#set version   = "1.0";  set rev_dat   = "Feb 22, 2024"
 # + script to do deobliquing while preserving the coord origin
+#
+set version   = "1.1";  set rev_dat   = "Dec 08, 2025"
+# + fix case of no obliquity for output
 #
 # ----------------------------------------------------------------
 
@@ -129,7 +132,7 @@ if ( "${is_obl}" == "0" ) then
     endif
 
     if ( $DO_MATS ) then
-        set ppp    = `3dinfo -prefix_noext "{prefix}"`
+        set ppp    = `3dinfo -prefix_noext "${prefix}"`
         set omat   = "${odir}/${ppp}_${pmat}"
         set omat_I = "${odir}/${ppp}_${pmat_I}"
         echo " 1 0 0 0  0 1 0 0  0 0 1 0" > "${omat}"
