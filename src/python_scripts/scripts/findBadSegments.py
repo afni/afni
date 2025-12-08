@@ -126,9 +126,17 @@ def cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, rankVector,
     secondary_low_end_outliers = secondary_low_end_outliers[i not in low_end_outliers]
     
     # Get outlier peak indices
-    outlier_peak_indices = rankVector[-len(low_end_outliers):]
-    secondary_outlier_start = -(len(low_end_outliers)+len(secondary_low_end_outliers))
-    secondary_outlier_peak_indices = rankVector[secondary_outlier_start:-len(low_end_outliers)]
+    num_outliers = len(low_end_outliers)
+    if len(low_end_outliers)>0:
+        outlier_peak_indices = rankVector[-len(low_end_outliers):]
+    else: outlier_peak_indices = []
+    num_secondary_outliers = len(secondary_low_end_outliers)
+    secondary_outlier_start = -(num_outliers+num_secondary_outliers)
+    if secondary_outlier_start < 0:
+        if num_outliers > 0:
+            secondary_outlier_peak_indices = rankVector[secondary_outlier_start:-num_outliers]
+        else:
+            secondary_outlier_peak_indices = rankVector[secondary_outlier_start:]
     
     # Get outlier time series indices
     # limit = len(cardiacPeaks)-1
@@ -426,109 +434,110 @@ def compute_respiratory_peaks(
         out_ranges
     )
 
+# Get modified peaks (original peaks minus the mean of the adjacent peaks)
 resp_peak_indices, resp_peak_values, resp_outliers = compute_respiratory_peaks(respiratoryTimeSeries, 
     respiratoryPeaks, respiratoryTroughs)
 
+# Build an array of vecs, one for each peak.
+vec = np.column_stack([
+    resp_peak_values - np.roll(resp_peak_values, 1),
+    np.roll(resp_peak_values, -1) - resp_peak_values,
+    resp_peak_indices - np.roll(resp_peak_indices, 1),
+    np.roll(resp_peak_indices, -1) - resp_peak_indices
+])
+vec[0] = vec[1]
+vec[-1] = vec[0]
 
-# The remainder of the process is the same as for cardiac peaks.
+# Normalize time differences to be in the same range as the value differences
+scaleFactor = (vec[:,0:1].max()-vec[:,0:1].min())/(vec[:,2:3].max()-vec[:,2:3].min())
+vec[:,2:4] =vec[:,2:4]*scaleFactor
 
+# Make NxN matrix where N is the number of segments
+# Fill the matrix with the weights
+weights = squareform(pdist(vec, metric='euclidean'))
+weights = 1/(weights+1)
 
+# Merge clusters, starting with merginging into the cluster (initially single
+# vertex) with the highest sum of weights with other vertices and working down
+# towards the vertex with the lowest cumulative weights.
+vectorWeightSums = np.sum(weights,axis=1)
+rankVector = np.argsort(vectorWeightSums)[::-1]
 
+# Identify outliers on low end of the cumulatives weights
+outlier_ts_ranges, secondary_ts_outlier_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
+                                                rankVector, resp_peak_indices)
+num_anomalies = len(outlier_ts_ranges)
 
+# Example data
+y = respiratoryTimeSeries              # length ~24,199
+x = np.arange(len(y))             # continuous index
 
+points_per_row = 3000
+num_rows = int(np.ceil(len(y) / points_per_row))
 
+fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
 
-
-
-
-
-
-
-
-
-
-
-
-# Show anomalous regions on cardiac time series
-if len(outlier_ts_indices) > 0:
-    x = []    
-    end = len(cardiacTimeSeries)
-    for i in range(0,end): x.append(i)
-    plt.subplot(211)
-    plt.plot(x, cardiacTimeSeries, "black", linewidth=0.2) #Lines connecting peaks and troughs
-    if len(cardiacPeaks) > 0:
-        peakVals = []
-        for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
-        plt.xlim(0,3000)  # Zoom in on plot
-        plt.plot(cardiacPeaks, peakVals, "go") # Peaks
-        plt.plot(1908, cardiacTimeSeries[1908], "ro") # Peaks
-        # plt.savefig('%s/Outlier1.pdf' % (OutDir))
-
-
-
-
-
-
-
-
-# Find smallest clusters
-cluster_sizes = [len(sublist) for sublist in final_clusters]
-
-
-# Manually save example of what were observed as the smallest clusters in the
-# final clusters set
-OutDir = "."
-
-# Plot cardiac peaks on cardiac time series
-x = []    
-end = len(cardiacTimeSeries)
-for i in range(0,end): x.append(i)
-plt.subplot(211)
-plt.plot(x, cardiacTimeSeries, "gray") #Lines connecting peaks and troughs
-if len(cardiacPeaks) > 0:
-    peakVals = []
-    for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
-    plt.xlim(1608,2208)  # Zoom in on plot
-    plt.plot(cardiacPeaks, peakVals, "go") # Peaks
-    plt.plot(1908, cardiacTimeSeries[1908], "ro") # Peaks
-    plt.savefig('%s/Outlier1.pdf' % (OutDir))
-
-# Plot cardiac peaks on cardiac time series
-x = []    
-end = len(cardiacTimeSeries)
-for i in range(0,end): x.append(i)
-plt.subplot(211)
-plt.plot(x, cardiacTimeSeries, "gray") #Lines connecting peaks and troughs
-if len(cardiacPeaks) > 0:
-    peakVals = []
-    for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
-    plt.xlim(4774,5304)  # Zoom in on plot
-    plt.plot(cardiacPeaks, peakVals, "go") # Peaks
-    plt.plot(5074, cardiacTimeSeries[5074], "ro") # Peaks
-    plt.savefig('%s/Outlier2.pdf' % (OutDir))
-
-# Plot cardiac peaks on cardiac time series
-x = []    
-end = len(cardiacTimeSeries)
-for i in range(0,end): x.append(i)
-plt.subplot(211)
-plt.plot(x, cardiacTimeSeries, "gray") #Lines connecting peaks and troughs
-if len(cardiacPeaks) > 0:
-    peakVals = []
-    for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
-    plt.xlim(1000,1800)  # Zoom in on plot
-    plt.plot(cardiacPeaks, peakVals, "go") # Peaks
-    plt.plot(1400, cardiacTimeSeries[1400], "ro") # Peaks
-    plt.savefig('%s/Outlier3.pdf' % (OutDir))
-
+if num_rows == 1:
+    axes = [axes]  # ensure iterable
     
+peakVals = []
+for i in respiratoryPeaks: peakVals.append(respiratoryTimeSeries[i])
+troughVals = []
+for i in respiratoryTroughs: troughVals.append(respiratoryTimeSeries[i])
+for row in range(num_rows):
+    start = row * points_per_row
+    end = min((row + 1) * points_per_row, len(y))
+    
+    ax = axes[row]
+    ax.plot(
+        x[start:end],
+        y[start:end],
+        linewidth=0.5,
+        solid_capstyle='butt',
+        solid_joinstyle='miter',
+        color="black"
+    )
+    ax.plot(np.array(respiratoryPeaks), peakVals, "ro") # Peaks
+    ax.plot(np.array(respiratoryTroughs), troughVals, "bo") # Peaks
+    # ax.plot(cardiacPeaks[outlier_ts_ranges], 
+    #         cardiacTimeSeries[cardiacPeaks[peak_outliers]], "ro") # Peak outliers
+    # ax.plot(cardiacPeaks[secondaryPeakOutliers], 
+    #         cardiacTimeSeries[cardiacPeaks[secondaryPeakOutliers]], "o", color="pink") # 2ary peak outliers
+    
+    # Outliers: Draw band only if the band intersects this row’s x-range
+    for band_start, band_end in outlier_ts_ranges:
+        if band_end <= start or band_start >= end:
+            continue
 
-# Remove adopted clusters from the list of lists.
+        ax.axvspan(
+            max(band_start, start),
+            min(band_end, end),
+            color='red',
+            alpha=0.15,
+            zorder=1
+        )
+    
+    # Secondary outliers: Draw band only if the band intersects this row’s x-range
+    for band_start, band_end in secondary_ts_outlier_ranges:
+        if band_end <= start or band_start >= end:
+            continue
 
-# Move through each cluster and merge with each of the other clusters where 
-# doing so increases MOD.
+        ax.axvspan(
+            max(band_start, start),
+            min(band_end, end),
+            color='yellow',
+            alpha=0.75,
+            zorder=1
+        )
 
-# When MOD no longer increases beyond a predefined threshold, stop.
+    ax.set_xlim(x[start], x[end - 1])
+    ax.set_ylabel(f"ECG Amplitude")
+    ax.set_ylabel(f"Time Sample")
 
-# The smallest clusters, or clusters less than a certain size, are flagged as 
-# cardiac outliers.
+axes[-1].set_xlabel("Sample index")
+plt.tight_layout()
+OutDir = "."
+plt.savefig('%s/respOutliersWithPeaks.pdf' % (OutDir))
+plt.show()
+
+
