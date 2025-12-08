@@ -114,6 +114,9 @@ inobj : InOpts object
                               overwrite       = self.overwrite,
                               verb            = self.verb )
 
+            if tmp3 :
+                ab.EP("Error when dealing with (=removing) obliquity in inset")
+
             # add a note to the main output dset header about this cmd
             tmp4 = self.attach_history_to_prefix()
 
