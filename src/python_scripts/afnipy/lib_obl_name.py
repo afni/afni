@@ -141,7 +141,7 @@ avsp : str
 
             if (self.name).endswith('.nii') :
                 self.bname_type  = 'NIFTI'
-                self.bname_noext = self.bname[:-3]
+                self.bname_noext = self.bname[:-4]
             elif (self.name).endswith('.nii.gz') :
                 self.bname_type  = 'NIFTI_GZ'
                 self.bname_noext = self.bname[:-7]
