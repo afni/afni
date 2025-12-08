@@ -105,7 +105,8 @@ avsp : str
 
         print('-'*60)
         for key in all_keys:
-            print("{:<{:d}s} : {:<s}".format(key, maxlen, self.__dict__[key]))
+            print("{:<{:d}s} : {:<s}".format(str(key), maxlen, 
+                                             str(self.__dict__[key])))
         print('-'*60)
 
     def set_bname_info(self):
