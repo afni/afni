@@ -462,8 +462,8 @@ See lct.CbarPbar() for the set of things that are populated for the actual
          return -1
 
       # check various requirements/restrictions on -child_* opts
-      if self.nchilds :
-          tmp = LOT.check_child_opt_usage(self.nchilds, self.child_prefixes,
+      if self.nchild :
+          tmp = LOT.check_child_opt_usage(self.nchild, self.child_prefixes,
                                           self.child_outdir, self.child_suffix)
           return tmp
 

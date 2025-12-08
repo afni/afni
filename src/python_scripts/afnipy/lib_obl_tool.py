@@ -243,7 +243,7 @@ inobj : InOpts object
         """Loop over all child dsets, and call the function that applies the
         obliquity matrix to each."""
 
-        for nn in range(self.nchilds):
+        for nn in range(self.nchild):
             dset  = self.child_dsets[nn]
             nobj  = LON.NameObj(dset)
             dset_full = nobj.name_full
@@ -366,7 +366,7 @@ inobj : InOpts object
 
         # check various requirements/restrictions on -child_* opts
         if self.nchild :
-            tmp = check_child_opt_usage(self.nchilds, self.child_prefixes,
+            tmp = check_child_opt_usage(self.nchild, self.child_prefixes,
                                        self.child_outdir, self.child_suffix)
             if tmp : sys.exit(-1)
 
@@ -562,7 +562,7 @@ ok : int
          not(child_outdir is None and child_suffix is None) :
          BASE.EP1("cannot use -child_prefixes with other -child_* output opts")
          return -1
-      elif child_prefixes is not None and len(child_prefixes) != nchilds :
+      elif child_prefixes is not None and len(child_prefixes) != nchild :
          BASE.EP1("if using -child_prefixes, must match number of child dsets")
          return -1
    else:
