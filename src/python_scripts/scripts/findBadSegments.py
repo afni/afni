@@ -139,10 +139,56 @@ def cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, rankVector,
     
     return outlier_ts_indices, secondary_outliers
 
+def getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks):
+
+    # Calculate Q1 and Q3
+    q1, q3 = np.percentile(cardiacTimeSeries[cardiacPeaks], [25, 75])
+    
+    # Calculate IQR
+    iqr = q3 - q1
+    
+    # Define lower bound
+    lower_bound = q1 - 2 * iqr
+    upper_bound = q3 + 2 * iqr
+    
+    low_outliers = [
+    i
+    for i in range(len(cardiacPeaks))
+    if cardiacTimeSeries[cardiacPeaks[i]] < lower_bound
+    ]
+    high_outliers = [
+    i
+    for i in range(len(cardiacPeaks))
+    if cardiacTimeSeries[cardiacPeaks[i]] > upper_bound
+    ]
+    outliers = low_outliers + high_outliers    
+    
+    # Define lower bound
+    lower_bound = q1 - 1.9 * iqr
+    upper_bound = q3 + 1.9 * iqr
+    
+    low_outliers = [
+    i
+    for i in range(len(cardiacPeaks))
+    if cardiacTimeSeries[cardiacPeaks[i]] < lower_bound
+    ]
+    high_outliers = [
+    i
+    for i in range(len(cardiacPeaks))
+    if cardiacTimeSeries[cardiacPeaks[i]] > upper_bound
+    ]
+    secondaryOutliers = low_outliers + high_outliers
+    secondaryOutliers = list(set(secondaryOutliers) - set(outliers))
+    
+    return outliers, secondaryOutliers
+
 # Hard code filenames which will subsequently be entered as arguments
 directory = '/home/peterlauren/retroicor/retro_2025-12-01-21-20-51/physio_physio_extras/'
 cardiacTimeSeriesFile = directory + 'physio_card_filtered_ts_00.1D'
 cardiacPeaksFile = directory + 'physio_card_peaks_00.1D'
+respiratoryTimeSeriesFile = directory + 'physio_resp_filtered_ts_00.1D'
+respiratoryPeaksFile = directory + 'physio_resp_peaks_00.1D'
+respiratoryTroughsFile = directory + 'physio_resp_troughs_00.1D'
 
 #Whether to use clustering which tends to be slow
 useClustering = False
@@ -217,6 +263,13 @@ outlier_ts_ranges, secondary_ts_outlier_ranges = cumulatives_weights_low_end_out
                                                 rankVector, cardiacPeaks)
 num_anomalies = len(outlier_ts_ranges)
 
+# Find peak outliers
+peakVals = []
+for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
+peakRankVector = np.argsort(peakVals)[::-1]
+peak_outliers, secondaryPeakOutliers = getCardiacPeaktPeakOutliers(cardiacTimeSeries, 
+                                                                   cardiacPeaks)
+
 
 # Example data
 y = cardiacTimeSeries              # length ~24,199
@@ -230,6 +283,8 @@ fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
 if num_rows == 1:
     axes = [axes]  # ensure iterable
     
+peakVals = []
+for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
 for row in range(num_rows):
     start = row * points_per_row
     end = min((row + 1) * points_per_row, len(y))
@@ -243,6 +298,11 @@ for row in range(num_rows):
         solid_joinstyle='miter',
         color="black"
     )
+    ax.plot(cardiacPeaks, peakVals, "bo") # Peaks
+    ax.plot(cardiacPeaks[peak_outliers], 
+            cardiacTimeSeries[cardiacPeaks[peak_outliers]], "ro") # Peak outliers
+    ax.plot(cardiacPeaks[secondaryPeakOutliers], 
+            cardiacTimeSeries[cardiacPeaks[secondaryPeakOutliers]], "o", color="pink") # 2ary peak outliers
     
     # Outliers: Draw band only if the band intersects this row’s x-range
     for band_start, band_end in outlier_ts_ranges:
@@ -277,10 +337,100 @@ for row in range(num_rows):
 axes[-1].set_xlabel("Sample index")
 plt.tight_layout()
 OutDir = "."
-plt.savefig('%s/cardiacOutliers.pdf' % (OutDir))
+plt.savefig('%s/cardiacOutliersWithPeaks.pdf' % (OutDir))
 plt.show()
 
 
+# Load respiratory time series
+with open(respiratoryTimeSeriesFile) as f:
+    for line in f:
+        respiratoryTimeSeries=[float(line.strip()) for line in f if line.strip()]
+        
+# Load respiratory peaks
+with open(respiratoryPeaksFile) as f:
+    for line in f:
+        respiratoryPeaks = [int(line.strip()) for line in f if line.strip()]
+
+# Load respiratory troughs
+with open(respiratoryTroughsFile) as f:
+    for line in f:
+        respiratoryTroughs = [int(line.strip()) for line in f if line.strip()]
+
+
+# Consider each peak and each trough as a vertex while recording whether each is a peak into a Boolean list
+
+
+# If there are more than one peak between two troughs then the region, between the troughs is marked as anomalous.
+
+
+# If there are more than one trough between two peaks then the region, between the peaks is marked as anomalous. 
+
+
+# Assign the vertex values according to equation \ref{respiratoryV2}.
+
+
+# Build an array of $vec$s, one for each peak, according to equation \ref{vdisttdist2}.
+
+def compute_respiratory_peaks(
+    respiratoryTimeSeriesFile,
+    respiratoryPeaksFile,
+    respiratoryTroughsFile
+):
+    # ts = respiratoryTimeSeriesFile
+    # peaks = np.asarray(respiratoryPeaksFile)
+    # troughs = np.asarray(respiratoryTroughsFile)
+    ts = np.asarray(respiratoryTimeSeriesFile)
+    peaks = np.asarray(respiratoryPeaksFile)
+    troughs = np.asarray(respiratoryTroughsFile)
+
+    out_peak_indices = []
+    out_peak_values  = []
+    out_ranges       = []
+
+    # Ensure sorted
+    peaks.sort()
+    troughs.sort()
+
+    # Iterate trough-to-trough
+    for t0, t1 in zip(troughs[:-1], troughs[1:]):
+
+        # Peaks inside this trough interval
+        mask = (peaks > t0) & (peaks < t1)
+        seg_peaks = peaks[mask]
+
+        if len(seg_peaks) == 0:
+            continue  # no peak in this respiratory cycle
+
+        # ---- Peak aggregation ----
+        if len(seg_peaks) == 1:
+            peak_idx = seg_peaks[0]
+            peak_val = ts[peak_idx]
+        else:
+            peak_idx = int(np.round(seg_peaks.mean()))
+            peak_val = ts[seg_peaks].mean()
+            out_ranges.append((t0, t1))  # ✅ only ambiguous cycles logged
+
+        # ---- Trough values (handle multiple troughs implicitly) ----
+        trough_vals = ts[[t0, t1]]
+        trough_mean = trough_vals.mean()
+
+        # ---- Adjusted peak height ----
+        adjusted_peak = peak_val - trough_mean
+
+        out_peak_indices.append(peak_idx)
+        out_peak_values.append(adjusted_peak)
+
+    return (
+        np.array(out_peak_indices),
+        np.array(out_peak_values),
+        out_ranges
+    )
+
+resp_peak_indices, resp_peak_values, resp_outliers = compute_respiratory_peaks(respiratoryTimeSeries, 
+    respiratoryPeaks, respiratoryTroughs)
+
+
+# The remainder of the process is the same as for cardiac peaks.
 
 
 
