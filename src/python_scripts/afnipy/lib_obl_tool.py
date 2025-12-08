@@ -27,6 +27,7 @@ DOPTS = {
     'child_outdir'     : None,
     'child_suffix'     : None,
     'workdir'         : '',
+    'purge_obliquity' : True,
     'purge_obl_meth'  : 'keep_origin_raw',     # just name of a def val
     'overwrite'       : '',
     'do_qc'           : 'Yes',                 # below, Yes|No -> True|False

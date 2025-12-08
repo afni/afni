@@ -209,9 +209,10 @@ Examples ~1~
 """.format(**LOT.DOPTS)
 
 g_history = """
-  gtkyd_check.py history:
+  obliquity_remover.py history:
 
   0.1   Sep 25, 2025 :: started this command line interface 
+  1.01  Dec 08, 2025 :: fully functional first version, with first fixes
 """
 
 g_ver     = g_history.split("\n")[-2].split("::")[0].strip()
@@ -254,6 +255,7 @@ See lct.CbarPbar() for the set of things that are populated for the actual
       self.workdir         = None
       self.remove_obl      = None
       self.do_qc           = None
+      self.do_purge_obl    = True                    # now const
 
       # initialize valid_opts
       tmp1 = self.init_options()
