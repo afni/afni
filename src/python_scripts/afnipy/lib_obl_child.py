@@ -156,6 +156,9 @@ inset_proc : str
         # jump to wdir, simpler proc
         os.chdir(self.wdir_full)
         
+        if self.verb :
+            ab.IP("Applying obliquity")
+
         # get child aform (= IJK_TO_DICOM_REAL)
         cmd  = '3dinfo -aform_real_oneline {} '.format(self.child_00_dset)
         cmd += '> {}'.format(self.child_00_aform)
@@ -277,6 +280,13 @@ inset_proc : str
         msg = "child olap '{}'".format(label)
         if self.verb:
             ab.IP("Make QC image, " + msg)
+
+        # for speed up (just copy 0th vol, if subbrick selectors
+        # aren't being used already)
+        if not("[" in ulay) :
+            ulay+= "[0]"
+        if not("[" in olay) :
+            olay+= "[0]"
 
         cmd  = '@djunct_overlap_check '
         cmd += '-ulay "{}" '.format(ulay)
