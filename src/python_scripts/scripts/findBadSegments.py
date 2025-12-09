@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from scipy.spatial.distance import pdist, squareform
 import copy
 from collections import defaultdict
+import sys
 
 def getMOD(weights, clusters):
     
@@ -190,6 +191,68 @@ def getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks):
     
     return outliers, secondaryOutliers
 
+def compute_respiratory_peaks(
+    respiratoryTimeSeriesFile,
+    respiratoryPeaksFile,
+    respiratoryTroughsFile
+):
+    # ts = respiratoryTimeSeriesFile
+    # peaks = np.asarray(respiratoryPeaksFile)
+    # troughs = np.asarray(respiratoryTroughsFile)
+    ts = np.asarray(respiratoryTimeSeriesFile)
+    peaks = np.asarray(respiratoryPeaksFile)
+    troughs = np.asarray(respiratoryTroughsFile)
+
+    out_peak_indices = []
+    out_peak_values  = []
+    out_ranges       = []
+
+    # Ensure sorted
+    peaks.sort()
+    troughs.sort()
+
+    # Iterate trough-to-trough
+    for t0, t1 in zip(troughs[:-1], troughs[1:]):
+
+        # Peaks inside this trough interval
+        mask = (peaks > t0) & (peaks < t1)
+        seg_peaks = peaks[mask]
+
+        if len(seg_peaks) == 0:
+            continue  # no peak in this respiratory cycle
+
+        # ---- Peak aggregation ----
+        if len(seg_peaks) == 1:
+            peak_idx = seg_peaks[0]
+            peak_val = ts[peak_idx]
+        else:
+            peak_idx = int(np.round(seg_peaks.mean()))
+            peak_val = ts[seg_peaks].mean()
+            out_ranges.append((t0, t1))  # ✅ only ambiguous cycles logged
+
+        # ---- Trough values (handle multiple troughs implicitly) ----
+        trough_vals = ts[[t0, t1]]
+        trough_mean = trough_vals.mean()
+
+        # ---- Adjusted peak height ----
+        adjusted_peak = peak_val - trough_mean
+
+        out_peak_indices.append(peak_idx)
+        out_peak_values.append(adjusted_peak)
+
+    return (
+        np.array(out_peak_indices),
+        np.array(out_peak_values),
+        out_ranges
+    )
+
+for i in range(0, len(sys.argv)):
+    match sys.argv[i]:
+        case "-directory":
+            i = i + 1
+            directory = sys.argv[i]
+        # Code to execute if subject_string matches "pattern1":
+
 # Hard code filenames which will subsequently be entered as arguments
 directory = '/home/peterlauren/retroicor/retro_2025-12-01-21-20-51/physio_physio_extras/'
 cardiacTimeSeriesFile = directory + 'physio_card_filtered_ts_00.1D'
@@ -344,7 +407,7 @@ for row in range(num_rows):
 
 axes[-1].set_xlabel("Sample index")
 plt.tight_layout()
-OutDir = "."
+OutDir = directory
 plt.savefig('%s/cardiacOutliersWithPeaks.pdf' % (OutDir))
 plt.show()
 
@@ -378,61 +441,6 @@ with open(respiratoryTroughsFile) as f:
 
 
 # Build an array of $vec$s, one for each peak, according to equation \ref{vdisttdist2}.
-
-def compute_respiratory_peaks(
-    respiratoryTimeSeriesFile,
-    respiratoryPeaksFile,
-    respiratoryTroughsFile
-):
-    # ts = respiratoryTimeSeriesFile
-    # peaks = np.asarray(respiratoryPeaksFile)
-    # troughs = np.asarray(respiratoryTroughsFile)
-    ts = np.asarray(respiratoryTimeSeriesFile)
-    peaks = np.asarray(respiratoryPeaksFile)
-    troughs = np.asarray(respiratoryTroughsFile)
-
-    out_peak_indices = []
-    out_peak_values  = []
-    out_ranges       = []
-
-    # Ensure sorted
-    peaks.sort()
-    troughs.sort()
-
-    # Iterate trough-to-trough
-    for t0, t1 in zip(troughs[:-1], troughs[1:]):
-
-        # Peaks inside this trough interval
-        mask = (peaks > t0) & (peaks < t1)
-        seg_peaks = peaks[mask]
-
-        if len(seg_peaks) == 0:
-            continue  # no peak in this respiratory cycle
-
-        # ---- Peak aggregation ----
-        if len(seg_peaks) == 1:
-            peak_idx = seg_peaks[0]
-            peak_val = ts[peak_idx]
-        else:
-            peak_idx = int(np.round(seg_peaks.mean()))
-            peak_val = ts[seg_peaks].mean()
-            out_ranges.append((t0, t1))  # ✅ only ambiguous cycles logged
-
-        # ---- Trough values (handle multiple troughs implicitly) ----
-        trough_vals = ts[[t0, t1]]
-        trough_mean = trough_vals.mean()
-
-        # ---- Adjusted peak height ----
-        adjusted_peak = peak_val - trough_mean
-
-        out_peak_indices.append(peak_idx)
-        out_peak_values.append(adjusted_peak)
-
-    return (
-        np.array(out_peak_indices),
-        np.array(out_peak_values),
-        out_ranges
-    )
 
 # Get modified peaks (original peaks minus the mean of the adjacent peaks)
 resp_peak_indices, resp_peak_values, resp_outliers = compute_respiratory_peaks(respiratoryTimeSeries, 
@@ -536,7 +544,7 @@ for row in range(num_rows):
 
 axes[-1].set_xlabel("Sample index")
 plt.tight_layout()
-OutDir = "."
+OutDir = directory
 plt.savefig('%s/respOutliersWithPeaks.pdf' % (OutDir))
 plt.show()
 
