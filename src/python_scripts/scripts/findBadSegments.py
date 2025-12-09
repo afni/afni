@@ -254,7 +254,7 @@ for i in range(0, len(sys.argv)):
         # Code to execute if subject_string matches "pattern1":
 
 # Hard code filenames which will subsequently be entered as arguments
-directory = '/home/peterlauren/retroicor/retro_2025-12-01-21-20-51/physio_physio_extras/'
+# directory = '/home/peterlauren/retroicor/retro_2025-12-01-21-20-51/physio_physio_extras/'
 cardiacTimeSeriesFile = directory + 'physio_card_filtered_ts_00.1D'
 cardiacPeaksFile = directory + 'physio_card_peaks_00.1D'
 respiratoryTimeSeriesFile = directory + 'physio_resp_filtered_ts_00.1D'
