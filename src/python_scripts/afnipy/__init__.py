@@ -1,2 +1,2 @@
-__version__ = "AFNI_25.3.02"
+__version__ = "AFNI_25.3.03"
 
