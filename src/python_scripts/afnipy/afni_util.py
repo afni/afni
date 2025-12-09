@@ -6303,6 +6303,89 @@ nfail : int
 
     return nfail
 
+
+def simple_type(x):
+    """When printing the type(...) of something, the format is annoyingly:
+    <class 'TYPE'>.  This returns the simple string 'TYPE', unless
+    something weird happens, in which case it will just return the
+    standard-but-likely-annoying format.
+
+Parameters
+----------
+x : any object type
+    some object whose type you want to have as a simple str
+
+Returns
+-------
+xtype : str
+    simple string of the type of x
+
+    """
+
+    a = type(x)
+    # get extended type info as str
+    b = "{}".format(a)
+    # remove: <class ', and: '>
+    if len(b) > 10 :
+        c = b[8:-2]
+        return c
+    else:
+        return b
+
+
+def try_convert_bool_float_int_str(x, exit_on_error=False):
+    """For input string x, see how it might convert to a numerical value
+and output one of those (in descending order of bool, then float, then
+int), or if none of those work, just output the str itself.
+
+If an error on input occurs, this program will by default return a
+value of None, plus the type of the item input (its supposed to be a
+str, folks!). But users can change this behavior with the exit_on_error kwarg.
+
+Parameters
+----------
+x : str
+    a string to consider converting to a numerical type
+exit_on_error: bool
+    toggle whether to exit totally on input error, or to just whine vociferously
+
+Returns
+-------
+y : bool or float or int or str
+    one of a descending list of types to try converting to, with str being
+    the last
+ytype : str
+    the simple-string-format type of the item returned
+
+    """
+
+    if not(isinstance(x, str)) :
+        xtype = simple_type(x)
+        msg   = "Input must be of type 'str', not '{}'".format(xtype)
+        if exit_on_error :
+            BASE.EP(msg)
+        else:
+            BASE.WP(msg)
+            return None, xtype
+
+    # bool
+    if x == 'True' :   return True, 'bool'
+    if x == 'False' :  return False, 'bool'
+        
+    # int, else float
+    try:
+        y = float(x)
+        if y.is_integer() and not('.' in x) :
+            y = int(y)
+    except:
+        # str
+        y = x
+
+    # just the type as a simple str
+    ytype = simple_type(y)
+
+    return y, ytype
+
 # ----------------------------------------------------------------------
 
 if __name__ == '__main__':
