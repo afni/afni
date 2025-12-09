@@ -328,7 +328,7 @@ def main():
     # write out log/history of what has been done (not done by default, to
     # save some time, bc this takes a mini-while)
     if inobj.do_log :
-        olog = 'log_obliquity_tool.txt'
+        olog = 'log_template_tool.txt'
         UTIL.write_afni_com_log(olog)
 
     return 0, mainobj
