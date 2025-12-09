@@ -7,8 +7,8 @@
 
 set progname = asymm_report
 
-set version   = "0.90";   set rev_dat   = "Jun 12, 2025"
-#     + [DRG] 
+set version   = "0.91";   set rev_dat   = "Jun 12, 2025"
+#     + [DRG] adding in right_list, left_list options
 
 
 # start with cerebellum regions from HCA_lr_v0.9.nii.gz
@@ -32,13 +32,16 @@ set make_isosurfs = ""
 set right_range = ""
 set left_range = ""
 set reportfile = /dev/stdout
+set use_left_labels = ""
 
 set patch_areas = ""
 set fullatlas_surf = ""
 set make_patch_surf = ""
 set patch_labels = ""
 set patchsurf = "fullpatchsurf.gii"
-
+set patchprefix = "roi_proj"
+set patchsmooth = "2"
+ 
 if ("$#" <  "1") then
    goto HELP
 endif
@@ -95,6 +98,27 @@ while ($ac <= $#argv)
         set leftmax =  $argv[$ac]
         set left_range = `count_afni -digits 3 $leftmin $leftmax`
 
+    else if ("$argv[$ac]" == "-right_list") then
+        set this_opt = "$argv[$ac]"
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '${this_opt}'"
+            exit 1
+        endif
+        set right_range = `1dcat $argv[$ac]`
+
+    else if ("$argv[$ac]" == "-left_list") then
+        set this_opt = "$argv[$ac]"
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '${this_opt}'"
+            exit 1
+        endif
+        set left_range = `1dcat $argv[$ac]`
+
+    else if ("$argv[$ac]" == "-use_left_labels") then
+        set use_left_labels = "1"
+
     else if ("$argv[$ac]" == "-isosurf_dir") then
         set this_opt = "$argv[$ac]"
         @ ac ++
@@ -138,6 +162,22 @@ while ($ac <= $#argv)
         endif
         set fullatlas_surf =  $argv[$ac]
         set patch_areas = 1
+    else if ("$argv[$ac]" == "-surf_patch_prefix") then
+        set this_opt = "$argv[$ac]"
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '${this_opt}'"
+            exit 1
+        endif
+        set patchprefix =  $argv[$ac]
+    else if ("$argv[$ac]" == "-surf_patch_smooth") then
+        set this_opt = "$argv[$ac]"
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '${this_opt}'"
+            exit 1
+        endif
+        set patchsmooth =  $argv[$ac]
 
     else if ("$argv[$ac]" == "-reportfile") then
         set this_opt = "$argv[$ac]"
@@ -183,9 +223,11 @@ endif
 # may allow for making new patch surface if specified one doesn't exist
 if ($patch_areas == "1") then
    set patch_labels = "   right_patch_area left_patch_area rpa/lpa_asymm"
-   if (($make_patch_surf == "1") && ($fullatlas_surf != "")) then
-      echo "Cannot specify both surf_patch_surface and make_patch_surface"
-      exit 1
+#   if (($make_patch_surf == "1") && ($fullatlas_surf != "")) then
+#      echo "Cannot specify both surf_patch_surface and make_patch_surface"
+#      exit 1
+   else 
+      set fullatlas_surf = $patchsurf
    endif
    if (($make_patch_surf == "") && ($fullatlas_surf == "")) then
       echo "Neither surf_patch_surface nor make_patch_surf specified"
@@ -194,6 +236,9 @@ if ($patch_areas == "1") then
       set fullatlas_surf = $patchsurf
       set make_patch_surf = 1
    endif
+   if ($fullatlas_surf == "") then
+      set fullatlas_surf = $patchsurf
+   endif
 endif
 
 # make isosurfaces for all the individual regions
@@ -201,7 +246,8 @@ if ($make_isosurfs == "1") then
    mkdir -p $isosurf_dir 
    cp $inset $isosurf_dir/
    cd $isosurf_dir
-   IsoSurface -isorois+dsets -input $inset -o $isosurf_base.gii -Tsmooth 0.1 1000
+   IsoSurface -isorois+dsets -input $inset -o $isosurf_base.gii \
+      -Tsmooth 0.1 1000 -overwrite
    cd -
 endif
 
@@ -216,29 +262,39 @@ if ($patch_areas == "1") then
       -grid_parent $inset -gp_index 0 -map_func nzmode     \
       -f_steps 5 -f_index nodes -use_norms -norm_len 5     \
       -oob_value 0 -reverse_norm_dir                       \
-      -out_niml roi_proj.niml.dset -overwrite
-   SurfLocalstat  -hood 2 -stat mode                       \
-           -i_gii $fullatlas_surf                          \
-           -input roi_proj.niml.dset                       \
-           -prefix roi_proj_smooth.niml.dset
-   ConvertDset -i roi_proj_smooth.niml.dset -o roi_proj_smooth.1D.dset
+      -out_niml ${patchprefix}.niml.dset -overwrite
+   # smooth the projected data with modal smoothing on the surface
+   # this can take a much larger radius than the voxel size on the surface
+   # Also depends on surface and data qualities
+   SurfLocalstat  -hood $patchsmooth -stat mode                       \
+      -i_gii $fullatlas_surf                          \
+      -input ${patchprefix}.niml.dset                 \
+      -prefix ${patchprefix}_smooth.niml.dset -overwrite
+   ConvertDset -i ${patchprefix}_smooth.niml.dset \
+      -o ${patchprefix}_smooth.1D.dset -overwrite
 
 endif
 
 # -cmask '-a HCA_lr_v0.9.nii.gz+tlrc[0] -expr astep(a,0.000000)'
 
-echo "#index label right_vol left_vol r/l_asymm $isosurf_labels $patch_labels" > $reportfile
+echo "#index label right_vol left_vol r/l_asymm   $isosurf_labels    $patch_labels" > $reportfile
 foreach roi (`count -digits 2 1 $#right_range`)
    set righti = $right_range[$roi] 
    set lefti  = $left_range[$roi] 
 
-   set resultline = $righti
 
    # get the label of the roi, stripping off any leading Right_
-   set roilab = \
-   `whereami -DAFNI_ATLAS_NAME_TYPE=name \
-    -dset $inset -index_to_label $righti |sed 's/Right_//'` 
-
+   if($use_left_labels == "1") then
+      set resultline = $lefti
+      set roilab = \
+      `whereami -DAFNI_ATLAS_NAME_TYPE=name \
+      -dset $inset -index_to_label $lefti |sed 's/Left_//'` 
+   else
+      set resultline = $righti
+      set roilab = \
+      `whereami -DAFNI_ATLAS_NAME_TYPE=name \
+      -dset $inset -index_to_label $righti |sed 's/Right_//'`    
+   endif 
    set resultline = "$resultline $roilab"
 
    # compute right and left volumes
@@ -250,7 +306,7 @@ foreach roi (`count -digits 2 1 $#right_range`)
 
    set rightv = `ccalc -form "%.1f" $rightv`
    set leftv = `ccalc -form "%.1f" $leftv`
-   set asymm = `ccalc -form "%.3f" $asymm`
+   set asymm = `ccalc -form "%.3f" -expr "min(100,$asymm)"`
 
    set resultline = "$resultline $rightv $leftv $asymm"
 
@@ -268,7 +324,7 @@ foreach roi (`count -digits 2 1 $#right_range`)
    
       set righta = `ccalc -form "%.1f" $righta`
       set lefta = `ccalc -form "%.1f" $lefta`
-      set surf_asymm = `ccalc -form "%.3f" $surf_asymm`
+      set surf_asymm = `ccalc -form "%.3f" -expr "min(100,$surf_asymm)"`
       set resultline = "$resultline     $righta $lefta $surf_asymm"
    endif
 
@@ -295,12 +351,12 @@ foreach roi (`count -digits 2 1 $#right_range`)
    
       set rightparea = `ccalc -form "%.1f" $rightparea`
       set leftparea = `ccalc -form "%.1f" $leftparea`
-      set parea_asymm = `ccalc -form "%.3f" $parea_asymm`
+      set parea_asymm = `ccalc -form "%.3f" -expr "min(100,$parea_asymm)"`
 
       set resultline = "$resultline     $rightparea $leftparea $parea_asymm"
    endif
 
-   echo $resultline >> $reportfile
+   echo "$resultline" >> $reportfile
 
 end
 
@@ -313,7 +369,8 @@ cat << SCRIPT_HELP_STRING
 
 Overview ~1~
 
-This is a script to compute volumes and asymmetry ratios between
+This is a script to compute volumes, surface areas, patch
+surface areas and asymmetry ratios between
 left and right regions from labeled datasets. These can be in a 
 native subject space or in a standard template space, as for an atlas.
 
@@ -333,20 +390,34 @@ Usage Example ~1~
 Options ~1~
 
   -input input_dset    :required input dataset for relative region sizes
+
+  Provide index values either by range or by list files:
   -right_range min max :minimum and maximum index values for right regions
   -left_range  min max :minimum and maximum index values for left regions
-  -isosurf_dir dir     :directory with gifti surface files for regions 
-                        (default current directory)
-  -isosurf_base prefix :beginning part of gifti file names shared across regions   
-  -make_isosurfs       :make isosurfaces from all regions in input volume
-                        uses isosurf_dir for directory and isosurf_base for
-                        prefix for output, e.g. isosurf_base.gii
-  -surf_patch          :compute areas of patches on surfaces
-  -surf_patch_surface  surfdset :use one isosurface from labeled volume for patches
-                        (different than isosurfaces for individual regions)
-  -make_patch_surface  :generate new surface for patch area computations
-  -reportfile textout  :specify filename for text output (default is stdout)
 
+  with list files (columns or rows of numbers)
+  -right_list rightlist.1D : list of index values for right regions
+  -left_list  leftlist.1D : list of index values for left regions
+
+  -isosurf_dir dir      :directory with gifti surface files for regions 
+                         (default current directory)
+  -isosurf_base prefix  :beginning part of gifti file names shared across 
+                         regions   
+  -make_isosurfs        :make isosurfaces from all regions in input volume
+                         uses isosurf_dir for directory and isosurf_base for
+                         prefix for output, e.g. isosurf_base.gii
+  -surf_patch           :compute areas of patches on surfaces
+  -surf_patch_surface surfdset :use one isosurface from labeled volume 
+                         for patches (different than isosurfaces for 
+                         individual regions)
+  -make_patch_surface   :generate new surface for patch area computations
+  -reportfile textout   :specify filename for text output (default is stdout)
+  -use_left_labels      :default is to get labels from right index regions.
+                         this option switches to use left labels
+  -surf_patch_prefix ppp:prefix for output labelled patch dset prefix.niml.dset
+  -surf_patch_smooth nn :neighborhood size for modal smoothing on surface 
+                         (2mm default). Check surface with smoothed data for
+                         reasonableness
 SCRIPT_HELP_STRING
 
    exit 0
