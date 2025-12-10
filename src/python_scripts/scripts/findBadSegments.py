@@ -141,8 +141,24 @@ def cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, rankVector,
     
     # Get outlier time series indices
     # limit = len(cardiacPeaks)-1
-    outlier_ts_indices = [[cardiacPeaks[i-1], cardiacPeaks[i+2]]  
+    outlier_ts_indices = []
+    if 0 in outlier_peak_indices: 
+        outlier_ts_indices += [[cardiacPeaks[0], cardiacPeaks[2]]]
+        outlier_peak_indices = outlier_peak_indices[outlier_peak_indices != 0]
+    last = len(cardiacPeaks) - 1
+    lastM2 = last - 2
+    if any(item > lastM2 for item in outlier_peak_indices):
+        outlier_ts_indices += [[cardiacPeaks[last-1], cardiacPeaks[last]]]
+        outlier_peak_indices = outlier_peak_indices[outlier_peak_indices <= last-2]
+    outlier_ts_indices += [[cardiacPeaks[i-1], cardiacPeaks[i+2]]  
         for i in outlier_peak_indices]
+    secondary_outliers = []
+    if 0 in secondary_outlier_peak_indices: 
+        secondary_outliers += [[cardiacPeaks[0], cardiacPeaks[2]]]
+        secondary_outlier_peak_indices = secondary_outlier_peak_indices[secondary_outlier_peak_indices != 0]
+    if any(item > lastM2 for item in secondary_outlier_peak_indices):
+        secondary_outliers += [[cardiacPeaks[last-1], cardiacPeaks[last]]]
+        secondary_outlier_peak_indices = secondary_outlier_peak_indices[secondary_outlier_peak_indices <= last-2]
     secondary_outliers = [[cardiacPeaks[i-1], cardiacPeaks[i+2]]  
         for i in secondary_outlier_peak_indices]
     
