@@ -107,6 +107,59 @@ def cumulatives_weights_low_end_outlier_indices(vectorWeightSums, rankVector,
     
     return outlier_ts_indices
 
+
+def best_lower_multiplier(data, k_values=np.linspace(1.0, 1.6, 601)):
+    q1, q3 = np.percentile(data, [25, 75])
+    iqr = q3 - q1
+
+    best_k = None
+    best_gap = -np.inf
+
+    # Sort values below Q1
+    below_q1 = np.sort(data[data < q1])
+
+    for k in k_values:
+        cutoff = q1 - k * iqr
+
+        # distance between cutoff and the nearest remaining point
+        diffs = below_q1 - cutoff
+        diffs = diffs[diffs > 0]  # points above cutoff
+        if len(diffs) == 0:
+            continue
+        smallest_gap = diffs.min()
+
+        # maximize the margin → avoid unstable boundaries
+        if smallest_gap > best_gap:
+            best_gap = smallest_gap
+            best_k = k
+
+    return best_k
+
+def gap_based_multiplier(gaps, base_multiplier=1.4):
+    # Ensure gaps is a NumPy array
+    gaps = np.asarray(gaps)
+
+    # If no gaps or only one gap, fall back to base multiplier
+    if gaps.size < 2:
+        return float(base_multiplier)
+
+    # Identify unusually large gaps
+    median_gap = np.median(gaps)
+    if median_gap == 0:
+        return float(base_multiplier)
+
+    ratio = gaps / median_gap
+    large_gaps = ratio[ratio > 2.0]  # example threshold
+
+    # If no large gaps, keep baseline
+    if large_gaps.size == 0:
+        return float(base_multiplier)
+
+    # Compute extra factor from the size of the largest gap
+    extra = min(np.max(large_gaps) / 5.0, 1.0)  # clip to avoid extremes
+
+    return float(base_multiplier + extra)
+
 def cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, rankVector, 
                                          cardiacPeaks):
 
@@ -116,9 +169,12 @@ def cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, rankVector,
     # Calculate IQR
     iqr = q3 - q1
     
+    # k_opt = best_lower_multiplier(vectorWeightSums)
+    k_opt = gap_based_multiplier(vectorWeightSums)
+    
     # Define lower bound
-    lower_bound = q1 - 1.5 * iqr
-    secondary_lower_bound = q1 - 1.4 * iqr
+    lower_bound = q1 - k_opt * iqr
+    secondary_lower_bound = q1 - (k_opt-0.01) * iqr
     
     # Identify low-end outliers
     low_end_outliers = vectorWeightSums[vectorWeightSums < lower_bound]
@@ -262,12 +318,32 @@ def compute_respiratory_peaks(
         out_ranges
     )
 
-for i in range(0, len(sys.argv)):
+# Read arguments
+i = 1
+while i < len(sys.argv):
     match sys.argv[i]:
         case "-directory":
-            i = i + 1
+            i += 1
+            if i >= len(sys.argv):
+                print("Error: -directory requires an argument")
+                exit(1)
             directory = sys.argv[i]
-        # Code to execute if subject_string matches "pattern1":
+            i += 1
+
+        case "-help":
+            print("Usage:\n python ./findBadSegments.py -directory [directory]\n")
+            print('where "directory" is the "physio_physio_extras/" directory ') 
+            print('produced by physio_calc.py') 
+            exit()
+
+        case "-h":
+            print("-h not recognized.  Did you mean -help?")
+            exit()
+
+        case _:
+            print(f"Unrecognized option: {sys.argv[i]}")
+            print('Use "-help" for correct usage.')
+            exit(1)
 
 # Hard code filenames which will subsequently be entered as arguments
 # directory = '/home/peterlauren/retroicor/retro_2025-12-01-21-20-51/physio_physio_extras/'
@@ -321,7 +397,7 @@ vec[:,2:4] =vec[:,2:4]*scaleFactor
 # Make NxN matrix where N is the number of segments
 # Fill the matrix with the weights
 weights = squareform(pdist(vec, metric='euclidean'))
-weights = 1/(weights+1)
+weights = np.exp(1/(weights+1))
 
 # Each vertex is initially regarded as a community or cluster.
 numPeaks = len(cardiacTimeSeries)
@@ -479,7 +555,7 @@ vec[:,2:4] =vec[:,2:4]*scaleFactor
 # Make NxN matrix where N is the number of segments
 # Fill the matrix with the weights
 weights = squareform(pdist(vec, metric='euclidean'))
-weights = 1/(weights+1)
+weights = np.exp(1/(weights+1))
 
 # Merge clusters, starting with merginging into the cluster (initially single
 # vertex) with the highest sum of weights with other vertices and working down
