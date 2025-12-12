@@ -22,8 +22,7 @@ import numpy as np
 # https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nifti/main_toc.html
 #
 # ============================================================================
-
-# dictionaries of the full nifti1 header
+# nifti1 header: dictionaries
 
 # this section includes subsets of values with relevant properties to
 # be aware of (officially unused keys, ones not mapped in practice
@@ -88,6 +87,7 @@ dict_nifti1_unused = {
 }
 
 # which keys in the nifti1 header dict are unmapped from AFNI header?
+# *** candidates (may change...)
 dict_nifti1_unmapped = {
     'intent_p1'       : 0.0,      ## float
     'intent_p2'       : 0.0,      ## float
@@ -108,8 +108,7 @@ list_nifti1_recalc_from_data = [
 ]
 
 # ============================================================================
-
-# dictionaries, lists and strings relevant for the AFNI header
+# AFNI header: useful dictionaries, lists and strings
 
 # list of known av_space values (though only +orig and +tlrc are common)
 LIST_allowed_av_space = [
@@ -123,10 +122,10 @@ LIST_allowed_av_space = [
 STR_allowed_av_space = ', '.join(LIST_allowed_av_space)
 
 # ============================================================================
-
 # calculate nifti fields: 
 # + qform_code - short
 # + sform_code - short
+
 # throughout the code, these are collectively referred to as: qsform_code
 
 def calc_nifti_qsform_code( Adict, fname=None, verb=1 ):
@@ -350,7 +349,112 @@ av_space :
     return 0, av_space
 
 # ============================================================================
+# calculate nifti fields: 
+# + srow_x - float [4]
+# + srow_y - float [4]
+# + srow_z - float [4]
 
+def calc_nifti_srow_xyz( Adict, verb=1 ):
+    """Given the dictionary of AFNI header attributes Adict, calculate
+what the corresponding srow_{x,y,z} values.
+
+This first checks for an AFNI header attribute IJK_TO_DICOM_REAL, but
+then will fall back on IJK_TO_DICOM if necessary.
+
+Parameters
+----------
+Adict : dict
+    dictionary of AFNI header attributes
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+srow_x : 
+    the 1x4 array floating point srow_x values
+srow_y : 
+    the 1x4 array floating point srow_y values
+srow_z : 
+    the 1x4 array floating point srow_z values
+    """
+
+    zarr = np.zeros(4, dtype=float)
+    BAD_RETURN = (-1, zarr, zarr, zarr)
+
+    # check for this attribute first
+    if 'IJK_TO_DICOM_REAL' in Adict.keys() :
+        aff12 = Adict['IJK_TO_DICOM_REAL']
+    elif 'IJK_TO_DICOM' in Adict.keys() :
+        aff12 = Adict['IJK_TO_DICOM']
+    else:
+        # no information to judge this attribute, which is bad
+        return BAD_RETURN
+
+    is_fail, srow_x, srow_y, srow_z = \
+        translate_aff12_to_srow_xyz(aff12, verb=verb)
+
+    if is_fail :
+        sys.exit(-1)
+
+    return 0, srow_x, srow_y, srow_z 
+
+
+def translate_aff12_to_srow_xyz(aff12, verb=1):
+    """For a given aff12 ('IJK_TO_DICOM_REAL' or 'IJK_TO_DICOM' value from
+AFNI header), state what the srow_{x,y,z} values should be. 
+
+As a first step, these 12 float values in aff12 are unpacked into a
+'mat44' form, which, despite its name, is a 3x4 affine matrix: a 3x3
+scale+rotation matrix, plus a 3x1 shift or offset value.
+
+This function mainly just converts the sign conventions for
+orientation systems.  In AFNI, the orientation string specifies which
+axis sides have *negative* signs.  So, this function converts from
+AFNI's default RAI-DICOM (i.e., right/anterior/inferior all have
+negative signs) to nibabel's LPI system (i.e., left/posterior/inferior
+all have negative signs.  Note that nibabel refers to the latter
+convention as RAS+, that is the right/anterior/superior all have
+positive signs.
+
+Most AFNI BRIK/HEAD dsets should have both IJK_TO_DICOM and
+IJK_TO_DICOM_REAL nowadays. But older dsets might only have the
+former.
+
+Parameters
+----------
+aff12: array of 12 floats
+    value of one of AFNI header's IJK_TO_DICOM* attribute
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+srow_x : 
+    the 1x4 array floating point srow_x values
+srow_y : 
+    the 1x4 array floating point srow_y values
+srow_z : 
+    the 1x4 array floating point srow_z values
+
+    """
+
+    zarr = np.zeros(4, dtype=float)
+    BAD_RETURN = (-1, zarr, zarr, zarr)
+
+    if len(aff12) != 12 :
+        print("** Error: aff12 must have 12 values, not:", len(aff12))
+        return BAD_RETURN
+
+    # convert DICOM-RAI to LPS (and nibabel calls RAS+)
+    srow_x = -1.0 * np.array(aff12[0:4], dtype=float)
+    srow_y = -1.0 * np.array(aff12[4:8], dtype=float)
+    srow_z =  1.0 * np.array(aff12[8:12], dtype=float)
+
+    return 0, srow_x, srow_y, srow_z
 
 # ============================================================================
 
