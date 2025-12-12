@@ -330,10 +330,20 @@ while i < len(sys.argv):
             directory = sys.argv[i]
             i += 1
 
+        case "-freq":
+            i += 1
+            if i >= len(sys.argv):
+                print("Error: -freq requires an argument")
+                exit(1)
+            samp_freq = float(sys.argv[i])
+            i += 1
+
         case "-help":
-            print("Usage:\n python ./findBadSegments.py -directory [directory]\n")
+            print("Usage:\n python ./findBadSegments.py -directory <directory>")
+            print("\t[-freq <samp_freq>]\n")
             print('where "directory" is the "physio_physio_extras/" directory ') 
-            print('produced by physio_calc.py') 
+            print('produced by physio_calc.py.  samp_freq is the sampling frequency') 
+            print('in Hertz') 
             exit()
 
         case "-h":
@@ -434,70 +444,78 @@ peak_outliers, secondaryPeakOutliers = getCardiacPeaktPeakOutliers(cardiacTimeSe
                                                                    cardiacPeaks)
 
 
-# Example data
-y = cardiacTimeSeries              # length ~24,199
-x = np.arange(len(y))             # continuous index
+# Plot cardiac results
+y = cardiacTimeSeries              # length 
+x = np.arange(len(y))             # original index
+x_scaled = x / samp_freq          # scaled index
+cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
 
 points_per_row = 3000
 num_rows = int(np.ceil(len(y) / points_per_row))
 
 fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
-
 if num_rows == 1:
-    axes = [axes]  # ensure iterable
-    
-peakVals = []
-for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
+    axes = [axes]
+
+peakVals = cardiacTimeSeries[cardiacPeaks]
+
 for row in range(num_rows):
     start = row * points_per_row
     end = min((row + 1) * points_per_row, len(y))
-    
+
     ax = axes[row]
+
+    # --- plot scaled x ---
     ax.plot(
-        x[start:end],
+        x_scaled[start:end],
         y[start:end],
         linewidth=0.5,
         solid_capstyle='butt',
         solid_joinstyle='miter',
         color="black"
     )
-    ax.plot(cardiacPeaks, peakVals, "bo") # Peaks
-    ax.plot(cardiacPeaks[peak_outliers], 
-            cardiacTimeSeries[cardiacPeaks[peak_outliers]], "ro") # Peak outliers
-    ax.plot(cardiacPeaks[secondaryPeakOutliers], 
-            cardiacTimeSeries[cardiacPeaks[secondaryPeakOutliers]], "o", color="pink") # 2ary peak outliers
-    
-    # Outliers: Draw band only if the band intersects this row’s x-range
+
+    # Peaks
+    ax.plot(cardiacPeaks_scaled, peakVals, "bo")
+
+    # Main outlier peaks
+    ax.plot(cardiacPeaks_scaled[peak_outliers],
+            cardiacTimeSeries[cardiacPeaks[peak_outliers]],
+            "ro")
+
+    # 2ary outlier peaks
+    ax.plot(cardiacPeaks_scaled[secondaryPeakOutliers],
+            cardiacTimeSeries[cardiacPeaks[secondaryPeakOutliers]],
+            "o", color="pink")
+
+    # --- Draw bands (also scaled) ---
     for band_start, band_end in outlier_ts_ranges:
         if band_end <= start or band_start >= end:
             continue
-
         ax.axvspan(
-            max(band_start, start),
-            min(band_end, end),
+            max(band_start, start) / samp_freq,
+            min(band_end, end) / samp_freq,
             color='red',
-            alpha=0.15,
-            zorder=1
+            alpha=0.15
         )
-    
-    # Secondary outliers: Draw band only if the band intersects this row’s x-range
+
     for band_start, band_end in secondary_ts_outlier_ranges:
         if band_end <= start or band_start >= end:
             continue
-
         ax.axvspan(
-            max(band_start, start),
-            min(band_end, end),
+            max(band_start, start) / samp_freq,
+            min(band_end, end) / samp_freq,
             color='yellow',
-            alpha=0.75,
-            zorder=1
+            alpha=0.75
         )
 
-    ax.set_xlim(x[start], x[end - 1])
-    ax.set_ylabel(f"ECG Amplitude")
-    ax.set_ylabel(f"Time Sample")
+    # --- scaled x-limits ---
+    ax.set_xlim(x_scaled[start], x_scaled[end - 1])
+    ax.set_ylabel("ECG Amplitude")
 
-axes[-1].set_xlabel("Sample index")
+ax.set_xlabel(f"Time (seconds)")
+
+axes[-1].set_xlabel("Time (s)")
 plt.tight_layout()
 OutDir = directory
 plt.savefig('%s/cardiacOutliersWithPeaks.pdf' % (OutDir))
@@ -571,70 +589,70 @@ num_anomalies = len(outlier_ts_ranges)
 # Example data
 y = respiratoryTimeSeries              # length ~24,199
 x = np.arange(len(y))             # continuous index
+x_scaled = x / samp_freq          # scaled index
+cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
+respiratoryPeaks_scaled = np.array(respiratoryPeaks) / samp_freq
+respiratoryTroughs_scaled = np.array(respiratoryTroughs) / samp_freq
 
 points_per_row = 3000
 num_rows = int(np.ceil(len(y) / points_per_row))
 
 fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
-
 if num_rows == 1:
-    axes = [axes]  # ensure iterable
-    
-peakVals = []
-for i in respiratoryPeaks: peakVals.append(respiratoryTimeSeries[i])
-troughVals = []
-for i in respiratoryTroughs: troughVals.append(respiratoryTimeSeries[i])
+    axes = [axes]
+
+respiratoryTimeSeries = np.array(respiratoryTimeSeries)
+respiratoryPeaks = np.array(respiratoryPeaks)
+peakVals = respiratoryTimeSeries[respiratoryPeaks]
+respiratoryTroughs = np.array(respiratoryTroughs)
+troughVals = respiratoryTimeSeries[respiratoryTroughs]
+
 for row in range(num_rows):
     start = row * points_per_row
     end = min((row + 1) * points_per_row, len(y))
-    
+
     ax = axes[row]
+
+    # --- plot scaled x ---
     ax.plot(
-        x[start:end],
+        x_scaled[start:end],
         y[start:end],
         linewidth=0.5,
         solid_capstyle='butt',
         solid_joinstyle='miter',
         color="black"
     )
-    ax.plot(np.array(respiratoryPeaks), peakVals, "ro") # Peaks
-    ax.plot(np.array(respiratoryTroughs), troughVals, "bo") # Peaks
-    # ax.plot(cardiacPeaks[outlier_ts_ranges], 
-    #         cardiacTimeSeries[cardiacPeaks[peak_outliers]], "ro") # Peak outliers
-    # ax.plot(cardiacPeaks[secondaryPeakOutliers], 
-    #         cardiacTimeSeries[cardiacPeaks[secondaryPeakOutliers]], "o", color="pink") # 2ary peak outliers
-    
-    # Outliers: Draw band only if the band intersects this row’s x-range
+
+    # Peaks and troughs
+    ax.plot(respiratoryPeaks_scaled, peakVals, "ro")
+    ax.plot(respiratoryTroughs_scaled, troughVals, "bo")
+
+    # --- Draw bands (also scaled) ---
     for band_start, band_end in outlier_ts_ranges:
         if band_end <= start or band_start >= end:
             continue
-
         ax.axvspan(
-            max(band_start, start),
-            min(band_end, end),
+            max(band_start, start) / samp_freq,
+            min(band_end, end) / samp_freq,
             color='red',
-            alpha=0.15,
-            zorder=1
+            alpha=0.15
         )
-    
-    # Secondary outliers: Draw band only if the band intersects this row’s x-range
+
     for band_start, band_end in secondary_ts_outlier_ranges:
         if band_end <= start or band_start >= end:
             continue
-
         ax.axvspan(
-            max(band_start, start),
-            min(band_end, end),
+            max(band_start, start) / samp_freq,
+            min(band_end, end) / samp_freq,
             color='yellow',
-            alpha=0.75,
-            zorder=1
+            alpha=0.75
         )
 
-    ax.set_xlim(x[start], x[end - 1])
-    ax.set_ylabel(f"ECG Amplitude")
-    ax.set_ylabel(f"Time Sample")
+    # --- scaled x-limits ---
+    ax.set_xlim(x_scaled[start], x_scaled[end - 1])
+    ax.set_ylabel("Respiratory Amplitude")
 
-axes[-1].set_xlabel("Sample index")
+ax.set_xlabel(f"Time (seconds)")
 plt.tight_layout()
 OutDir = directory
 plt.savefig('%s/respOutliersWithPeaks.pdf' % (OutDir))
