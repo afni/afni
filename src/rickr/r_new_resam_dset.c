@@ -44,7 +44,7 @@ static int apply_orientation ( THD_3dim_dataset * dset, FD_brick * fdb,
 static int valid_resam_inputs( THD_3dim_dataset * , THD_3dim_dataset *,
                                double, double, double, char [], int );
 static int daxis_resam_preserve( double dold, double dnew, int nold, int *nnew,
-                                 double *oshift, int method);
+                                 double *oshift, int btype);
 
 #define LR_RESAM_IN_FAIL        -1
 #define LR_RESAM_IN_NONE         0
@@ -75,9 +75,10 @@ int resam_str2mode ( char * modestr )
 /* we can get more fancy later, but convert string to bound_type value */
 int resam_str2bound ( char * str )
 {
-    if( ! strcasecmp( str, "FOV"  ) ) return 0;
-    if( ! strcasecmp( str, "SLAB" ) ) return 1;
-    if( ! strcasecmp( str, "PRES" ) ) return 2;
+    if( ! strcasecmp( str, "FOV"       ) ) return 0;
+    if( ! strcasecmp( str, "SLAB"      ) ) return 1;
+    if( ! strcasecmp( str, "CENT_ORIG" ) ) return 2;
+    if( ! strcasecmp( str, "CENT"      ) ) return 3;
 
     fprintf(stderr,"** illegal bound_type string '%s'\n", str);
 
@@ -86,13 +87,18 @@ int resam_str2bound ( char * str )
 
 /* ---------------------------------------------------------------------------
  * get resample parameters: compute num new voxels and origin shift
+ *                        - this is CENTROID-preserving when dnew/dold or
+ *                          dold/dnew is an integer
  *
  *    given: dold    - old delta (signed)
  *           dnew    - new delta (signed)
  *           nold    - old nvox
- *           method  - method for shifting origin
- *                     0 : truncate toward origin
- *                     1 : rcr - todo for pt, truncate toward RAI?
+ *           btype   - bound_type for shifting origin
+ *                     2 : truncate toward origin
+ *                     3 : truncate toward RAI, to be orientation agnostic
+ *
+ * Note: here we treat the origin as 0.0, since we only care about offsets
+ *       from it.  We don't even know what the origin is.
  *
  *    compute:
  *           nnew    - new nvox
@@ -102,17 +108,26 @@ int resam_str2bound ( char * str )
  *
  *   downsample, |dnew| < |dold| : find max SLAB strictly inside original FOV
  *   upsample,   |dnew| > |dold| : find max SLAB strictly inside original SLAB
+ *
+ * todo: consider new FOV within half a new vox of old FOV, rather than the
+ *       above logic (for "preserve FOV").
+ *       Fnew = new FOV = nnew*dnew.
+ *       Find nnew such that |Fnew-Fold| <= |dnew/2|
  * ---------------------------------------------------------------------------
  */
 static int daxis_resam_preserve( double dold, double dnew, int nold,
-                                 int * nnew, double * oshift, int method)
+                                 int * nnew, double * oshift, int btype)
 {
-   float e = 0.0001;    /* epsilon, for ratio adjustments */
-   float tmpf;
-   int   nsi;           /* num shifted voxels, always an int */
+   double e = 0.0001;   /* epsilon, for ratio adjustments */
+   int    nsi;          /* num shifted voxels, always an int */
 
    if ( dold == 0 || dnew == 0 || (dold*dnew < 0.0) || !nnew || !oshift ) {
       fprintf(stderr,"** daxis_resam_preserve: invalid args\n");
+      return 1;
+   }
+
+   if ( btype != 2 && btype != 3 ) {
+      fprintf(stderr,"** daxis_resam_preserve: invalid btype %d\n", btype);
       return 1;
    }
 
@@ -149,6 +164,23 @@ static int daxis_resam_preserve( double dold, double dnew, int nold,
       /*             = floor(1/2 * old_slab - new_slab)                   */
       nsi = floor( 0.5 * ((nold-1)*fabs(dold) - (*nnew-1)*fabs(dnew)) + e);
       *oshift = nsi*dold;
+   }
+
+   /* handle CENT (bound type 3), instead of CENT_ORIG (bound type 2) */
+   if( btype == 3 ) {
+      /* Currently, oshift truncates towards origin (CENT_ORIG).  Handle the
+         CENT method to truncate towards RAI.  To do so, use the current oshift,
+         but possibly apply it at the opposite end of the segment.
+            - do this if dnew < 0 (negative delta means L, P or S orientation)
+            - instead of origin+oshift start from endpoint-oshift,
+              and then find new origin
+            - new endpoint is old endpoint - oshift = (nold-1)*dold - oshift
+            - then new origin (offset) is
+                [ new endpoint ]           - (nnew-1)*dnew
+              = [ (nold-1)*dold - oshift ] - (nnew-1)*dnew
+      */
+      if( dnew < 0 )
+         *oshift = (nold - 1)*dold - *oshift - (*nnew - 1)*dnew;
    }
 
    return 0;
@@ -210,6 +242,7 @@ THD_3dim_dataset * r_new_resam_dset_eng
         int                get_data,    /* do we include data with dset */
         int                killwarpinfo,/* kill default warp field values */
         int                bound_type   /* 0=FOV, 1=SLAB boundardy limit  */
+                                        /* 2=CENT, 3=CENT_ORIG            */
     )
 {
     THD_3dim_dataset * dout;
@@ -441,7 +474,11 @@ int r_fill_resampled_data_brick( THD_3dim_dataset * dset, int resam )
  * bound_type   0 : FOV-style boundary limits, which is the
  *                  THD_edit_dataxes() method
  *              1 : SLAB-style limits, to preserve outer coordinates
- *              1 : PRES-style limits, to preserve voxel centers
+ *              2 : CENT-style limits, to preserve voxel centroids
+ *                  - with truncation starting from origin
+ *              3 : CENT_ORIG-style limits, to preserve voxel centroids
+ *                  - with truncation starting from R, A, I
+ *                    (this makes the resampling orientation agnostic)
  *----------------------------------------------------------------------
 */
 int r_dxyz_mod_dataxes( double dx, double dy, double dz,
@@ -490,25 +527,25 @@ int r_dxyz_mod_dataxes( double dx, double dy, double dz,
 
        daxout->zzorg = daxin->zzorg + 0.5*(daxin->nzz -1)*daxin->zzdel
                                     - 0.5*(daxout->nzz-1)*rez;
-    } else if( bound_type == 2 ) {
-       /* optional way, PRES, preserve original voxel centers */
+    } else if( bound_type == 2 || bound_type == 3 ) {
+       /* optional way, CENT, preserve original voxel centers */
 
        /* get updated voxel counts and origin shifts for each axis */
 
        rv = daxis_resam_preserve(daxin->xxdel, rex, daxin->nxx,
-                                 &nvox, &oshift, 0);
+                                 &nvox, &oshift, bound_type);
        if( rv ) return -1;
        daxout->nxx = nvox;
        daxout->xxorg = daxin->xxorg + oshift;
 
        rv = daxis_resam_preserve(daxin->yydel, rey, daxin->nyy,
-                                 &nvox, &oshift, 0);
+                                 &nvox, &oshift, bound_type);
        if( rv ) return -1;
        daxout->nyy = nvox;
        daxout->yyorg = daxin->yyorg + oshift;
 
        rv = daxis_resam_preserve(daxin->zzdel, rez, daxin->nzz,
-                                 &nvox, &oshift, 0);
+                                 &nvox, &oshift, bound_type);
        if( rv ) return -1;
        daxout->nzz = nvox;
        daxout->zzorg = daxin->zzorg + oshift;

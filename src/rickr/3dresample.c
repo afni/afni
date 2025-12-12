@@ -29,8 +29,11 @@
  *
  *              -rmode RESAM      : one of {"NN", "Li", "Cu", "Bk"}
  *
- *              -bound_type TYPE  : one of {"FOV", "SLAB", "PRES", "PRES_RAI"}
- *                                  todo: PRES_RAI
+ *              -bound_type TYPE  : one of {"FOV", "SLAB", "CENT_ORIG", "CENT"}
+ *                                  - field of view
+ *                                  - slab (preserve outer centroids)
+ *                                  - preserve centroids, trunc towards origin
+ *                                  - preserve centroids, trunc towards RAI
  *
  *    examples:
  *      3dresample -orient "asl" -rmode NN -prefix asl.dset -input inset+orig
@@ -166,7 +169,8 @@ int init_options ( options_t * opts, int argc, char * argv [] )
         {
             if ( (ac+1) >= argc )
             {
-                fputs( "option usage: -bound_type FOV/SLAB/PRES\n", stderr );
+                fputs( "option usage: -bound_type FOV/SLAB/CENT/CENT_ORIG\n",
+                       stderr );
                 usage( argv[0], USE_SHORT );
                 return FAIL;
             }
