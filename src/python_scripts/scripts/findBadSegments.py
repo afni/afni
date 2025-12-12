@@ -13,6 +13,7 @@ import copy
 from collections import defaultdict
 import sys
 
+# Get cluster modulatity (MOD)
 def getMOD(weights, clusters):
     
     # Determine m, the normalization factor
@@ -24,6 +25,7 @@ def getMOD(weights, clusters):
     numVertices = np.shape(weights)[0]
     numClusters = len(clusters)
     
+    # Build MOD from clusters
     mod = 0
     for i in range(0,numClusters):
         insum = 0
@@ -43,6 +45,7 @@ def clusters_from_labels(labels):
         d[c].append(v)
     return list(d.values())
 
+# Use MOD as basis to merge clusters
 def merge_clusters_by_MOD(weights, clusters, rankVector, getMOD):
     numVertices = len(clusters)
 
@@ -232,6 +235,7 @@ def getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks):
     lower_bound = q1 - 2 * iqr
     upper_bound = q3 + 2 * iqr
     
+    # Get true outliers
     low_outliers = [
     i
     for i in range(len(cardiacPeaks))
@@ -248,6 +252,7 @@ def getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks):
     lower_bound = q1 - 1.9 * iqr
     upper_bound = q3 + 1.9 * iqr
     
+    # Get marginal (just missed out) outliers
     low_outliers = [
     i
     for i in range(len(cardiacPeaks))
@@ -450,7 +455,8 @@ x = np.arange(len(y))             # original index
 x_scaled = x / samp_freq          # scaled index
 cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
 
-points_per_row = 3000
+# Limit length of each row for clarity
+points_per_row = 3000             
 num_rows = int(np.ceil(len(y) / points_per_row))
 
 fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
@@ -499,6 +505,7 @@ for row in range(num_rows):
             alpha=0.15
         )
 
+    # Shade anomalous temporal bands
     for band_start, band_end in secondary_ts_outlier_ranges:
         if band_end <= start or band_start >= end:
             continue
@@ -513,14 +520,13 @@ for row in range(num_rows):
     ax.set_xlim(x_scaled[start], x_scaled[end - 1])
     ax.set_ylabel("ECG Amplitude")
 
+# Set axes and save plot to file
 ax.set_xlabel(f"Time (seconds)")
-
 axes[-1].set_xlabel("Time (s)")
 plt.tight_layout()
 OutDir = directory
 plt.savefig('%s/cardiacOutliersWithPeaks.pdf' % (OutDir))
 plt.show()
-
 
 # Load respiratory time series
 with open(respiratoryTimeSeriesFile) as f:
@@ -538,18 +544,11 @@ with open(respiratoryTroughsFile) as f:
         respiratoryTroughs = [int(line.strip()) for line in f if line.strip()]
 
 
-# Consider each peak and each trough as a vertex while recording whether each is a peak into a Boolean list
-
-
-# If there are more than one peak between two troughs then the region, between the troughs is marked as anomalous.
-
-
-# If there are more than one trough between two peaks then the region, between the peaks is marked as anomalous. 
-
-
-# Assign the vertex values according to equation \ref{respiratoryV2}.
-
-
+# Consider each peak and each trough as a vertex while recording whether each is 
+# a peak into a Boolean list If there are more than one peak between two troughs 
+# then the region, between the troughs is marked as anomalous. If there are more 
+# than one trough between two peaks then the region, between the peaks is marked 
+# as anomalous. Assign the vertex values according to equation \ref{respiratoryV2}.
 # Build an array of $vec$s, one for each peak, according to equation \ref{vdisttdist2}.
 
 # Get modified peaks (original peaks minus the mean of the adjacent peaks)
@@ -586,7 +585,7 @@ outlier_ts_ranges, secondary_ts_outlier_ranges = cumulatives_weights_low_end_out
                                                 rankVector, resp_peak_indices)
 num_anomalies = len(outlier_ts_ranges)
 
-# Example data
+# PLot respiratory results
 y = respiratoryTimeSeries              # length ~24,199
 x = np.arange(len(y))             # continuous index
 x_scaled = x / samp_freq          # scaled index
@@ -594,6 +593,7 @@ cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
 respiratoryPeaks_scaled = np.array(respiratoryPeaks) / samp_freq
 respiratoryTroughs_scaled = np.array(respiratoryTroughs) / samp_freq
 
+#Limit row width for clarity
 points_per_row = 3000
 num_rows = int(np.ceil(len(y) / points_per_row))
 
