@@ -75,7 +75,7 @@ or sform_code value would be.
 
 This first checks for an AFNI header attribute TEMPLATE_SPACE, but
 then will fall back on the file name if necessary. At present, the
-fname should always be given, for compatability with older dsets.
+fname should always be given, for compatibility with older dsets.
 
 See here for more info
 https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nifti/qsform_code.html
