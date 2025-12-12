@@ -10866,6 +10866,33 @@ static void fixscale( XtPointer client_data , XtIntervalId *id )
 
 /*------------------------------------------------------------------------*/
 
+/* drg/rcr - to redraw after resize */
+void forceExpose(Widget w, int depth) {
+   static int cc = 0;
+   // fprintf(stderr,"== expose %p, depth %d, cc %d\n", w, depth, cc);
+   if(!w) { /* fprintf(stderr,"** bail on NULL\n"); */ return; }
+   if(!XtIsRealized(w)){/* fprintf(stderr,"** bail unrealized\n"); */ return; }
+   if(!XtIsWidget(w)){/* fprintf(stderr,"** bail on non-widget\n"); */ return; }
+   cc++;
+
+   // fprintf(stderr,"-- isw %d\n", XtIsWidget(w));
+   // fprintf(stderr,"-- display %p\n", XtDisplay(w));
+   // fprintf(stderr,"-- XtWindow %ld\n", XtWindow(w));
+
+   /* redraw */
+   XClearArea(XtDisplay(w), XtWindow(w), 0, 0, 0, 0, True);
+
+   if (XtIsComposite(w)) {
+      WidgetList children;
+      Cardinal num_children;
+      XtVaGetValues(w, XmNchildren, &children, XmNnumChildren, &num_children,
+                    NULL);
+      for (int i = 0; i < num_children; ++i)
+         forceExpose(children[i], depth+1);
+   }
+}
+
+
 void AFNI_define_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
    Three_D_View *im3d = (Three_D_View *)client_data ;
@@ -11016,6 +11043,12 @@ STATUS("unmanaging children") ;
 
 STATUS("opening panel") ;
          OPEN_PANEL(im3d,func) ;
+
+/* drg/rcr - playing with resize fixing... */
+forceExpose(im3d->vwid->top_form, 0);
+forceExpose(im3d->s123->wtop, 0);
+forceExpose(im3d->s231->wtop, 0);
+forceExpose(im3d->s312->wtop, 0);
 
 #ifdef REMANAGE_FUNC
 STATUS("remanaging children") ;
