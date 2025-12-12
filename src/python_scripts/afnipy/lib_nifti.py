@@ -38,10 +38,10 @@ dict_nifti1 = {
     'regular'         : None,     ## char
     'dim_info'        : None,     # char 
     'dim'             : None,     # short [8]
-    'intent_p1'       : None,     ## float
-    'intent_p2'       : None,     ## float
-    'intent_p3'       : None,     ## float
-    'intent_code'     : None,     ## short
+    'intent_p1'       : None,     # float
+    'intent_p2'       : None,     # float
+    'intent_p3'       : None,     # float
+    'intent_code'     : None,     # short
     'datatype'        : None,     # short
     'bitpix'          : None,     # short
     'slice_start'     : None,     # short
@@ -62,16 +62,16 @@ dict_nifti1 = {
     'aux_file'        : None,     ## char [24]
     'qform_code'      : None,     ## short
     'sform_code'      : None,     ## short
-    'quatern_b'       : None,     # float
-    'quatern_c'       : None,     # float
-    'quatern_d'       : None,     # float
-    'qoffset_x'       : None,     # float
-    'qoffset_y'       : None,     # float
-    'qoffset_z'       : None,     # float
-    'srow_x'          : None,     # float [4]
-    'srow_y'          : None,     # float [4]
-    'srow_z'          : None,     # float [4]
-    'intent_name'     : None,     ## char [16]
+    'quatern_b'       : None,     ## float
+    'quatern_c'       : None,     ## float
+    'quatern_d'       : None,     ## float
+    'qoffset_x'       : None,     ## float
+    'qoffset_y'       : None,     ## float
+    'qoffset_z'       : None,     ## float
+    'srow_x'          : None,     ## float [4]
+    'srow_y'          : None,     ## float [4]
+    'srow_z'          : None,     ## float [4]
+    'intent_name'     : None,     # char [16]
     'magic'           : None,     # char [4]
 }
 
@@ -89,15 +89,10 @@ dict_nifti1_unused = {
 # which keys in the nifti1 header dict are unmapped from AFNI header?
 # *** candidates (may change...)
 dict_nifti1_unmapped = {
-    'intent_p1'       : 0.0,      ## float
-    'intent_p2'       : 0.0,      ## float
-    'intent_p3'       : 0.0,      ## float
-    'intent_code'     : 0,        ## short
     'cal_max'         : 0.0,      ## float
     'cal_min'         : 0.0,      ## float
     'descrip'         : '',       ## char [80]
     'aux_file'        : '',       ## char [24]
-    'intent_name'     : '',       ## char [16]
 }
 
 # which keys in the nifti1 header dict should come from the data
@@ -455,6 +450,166 @@ srow_z :
     srow_z =  1.0 * np.array(aff12[8:12], dtype=float)
 
     return 0, srow_x, srow_y, srow_z
+
+# ============================================================================
+# calculate nifti fields: 
+# + quatern_b - float
+# + quatern_c - float
+# + quatern_d - float
+# + qoffset_x - float
+# + qoffset_y - float
+# + qoffset_z - float
+
+# here, just translate the srow_x, srow_y and srow_z info directly;
+# basically do what the nifti_dmat44_to_quatern(...) function in in
+# nifti/nifti2/nifti2_io.c does
+
+def calc_nifti_quatern_and_qoffset( srow_x, srow_y, srow_z, verb=1 ):
+    """Given the NIFTI header srow_{x,y,z} arrays that have already been
+calculated from AFNI header, calculate the corresponding quaternion
+values (quatern_b, quatern_c, and quatern_d) and offsets (qoffset_x,
+qoffset_y and qoffset_z).
+
+The calculations here follow NIFTI library C code for this procedure,
+just mapped over to Python.
+
+*** NB: at present we assume the input matrix from which srow_* were
+    generated, and therefore the srow_* values themselves, was/were
+    properly orthogonal.  We can add in other functionality to
+    internally orthogonalize, like the AFNI function does, at some
+    point.  That has *not* been done at present.
+
+Parameters
+----------
+srow_x : 
+    the 1x4 array floating point srow_x values of the NIFTI header
+srow_y : 
+    the 1x4 array floating point srow_y values of the NIFTI header
+srow_z : 
+    the 1x4 array floating point srow_z values of the NIFTI header
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+quatern_b : 
+    quaternion element
+quatern_c : 
+    quaternion element
+quatern_d : 
+    quaternion element
+qoffset_x : 
+    quaternion offset
+qoffset_y : 
+    quaternion offset
+qoffset_z : 
+    quaternion offset
+
+    """
+
+    BAD_RETURN = (-1, 0.0, 0.0, 0.0)
+
+    # verify lengths
+    srow_all = [srow_x, srow_y, srow_z]
+    name_all = ['srow_x', 'srow_y', 'srow_z']
+    for ii in range(len(srow_all)) :
+        nrow = len(srow_all[ii])
+        if nrow != 4 :
+            msg = "** Error: srow lengths must be 4, but "
+            msg+= " {} has len = {}".format(name_all[ii], nrow)
+            print(msg)
+
+    # ----- calc quaternion offsets
+
+    # these are straightforward to read directly from matrix
+    qoffset_x = srow_x[3]
+    qoffset_y = srow_y[3]
+    qoffset_z = srow_z[3]
+
+    # ----- do background calcs for quaternions
+
+    # define local variables
+    r11 = srow_x[0] ; r12 = srow_x[1] ; r13 = srow_x[2] 
+    r21 = srow_y[0] ; r22 = srow_y[1] ; r23 = srow_y[2] 
+    r31 = srow_z[0] ; r32 = srow_z[1] ; r33 = srow_z[2] 
+
+    # compute lengths of each column; these determine grid spacings
+    xd = np.sqrt( r11*r11 + r21*r21 + r31*r31 ) 
+    yd = np.sqrt( r12*r12 + r22*r22 + r32*r32 ) 
+    zd = np.sqrt( r13*r13 + r23*r23 + r33*r33 ) 
+
+    # if a column length is zero, patch the trouble
+    if xd == 0.0 :
+        r11 = 1.0 ; r21 = 0.0; r31 = 0.0 ; xd = 1.0 
+    if yd == 0.0 :
+        r22 = 1.0 ; r12 = 0.0; r32 = 0.0 ; yd = 1.0
+    if zd == 0.0 :
+        r33 = 1.0 ; r13 = 0.0; r23 = 0.0 ; zd = 1.0
+
+    # assign the output lengths
+    dx = xd ; dy = yd ; dz = zd
+    
+    # normalize the columns
+    r11 /= xd ; r21 /= xd ; r31 /= xd ;
+    r12 /= yd ; r22 /= yd ; r32 /= yd ;
+    r13 /= zd ; r23 /= zd ; r33 /= zd ;
+
+    # *** for now, skip the orthogonalization step, assume original
+    # *** input matrix was properly affine
+
+    # compute the determinant to determine if it is proper:
+    # zd should be -1 or 1
+    # [Q]: should this be 'zd' again, which was defined above?
+    zd = r11*r22*r33 - r11*r32*r23 - r21*r12*r33 + \
+         r21*r32*r13 + r31*r12*r23 - r31*r22*r13 
+    if zd > 0 :                          # proper
+        qfac = 1.0
+    else :                               # improper ==> flip 3rd column
+        qfac = -1.0
+        r13  = -r13 ; r23 = -r23 ; r33 = -r33
+
+    # ----- now, compute quaternion parameters
+
+    a = r11 + r22 + r33 + 1.0
+
+    if a > 0.5 :                         # simplest case
+        a = 0.50 * np.sqrt(a) 
+        b = 0.25 * (r32-r23) / a 
+        c = 0.25 * (r13-r31) / a 
+        d = 0.25 * (r21-r12) / a 
+    else:                                # trickier case 
+        xd = 1.0 + r11 - (r22+r33)       #  4*b*b 
+        yd = 1.0 + r22 - (r11+r33)       #  4*c*c
+        zd = 1.0 + r33 - (r11+r22)       #  4*d*d 
+        if xd > 1.0 :
+            b = 0.50 * np.sqrt(xd) 
+            c = 0.25 * (r12+r21) / b 
+            d = 0.25 * (r13+r31) / b 
+            a = 0.25 * (r32-r23) / b 
+        elif yd > 1.0 :
+            c = 0.50 * np.sqrt(yd)
+            b = 0.25 * (r12+r21) / c
+            d = 0.25 * (r23+r32) / c
+            a = 0.25 * (r13-r31) / c
+        else:
+            d = 0.50 * np.sqrt(zd)
+            b = 0.25 * (r13+r31) / d
+            c = 0.25 * (r23+r32) / d
+            a = 0.25 * (r21-r12) / d
+        # to be mathematically consistent, this would include a = -a
+        if a < 0.0 :
+            b = -b ; c = -c ; d = -d
+
+    # finalize
+    quatern_b = b
+    quatern_c = c
+    quatern_d = d
+
+    return 0, quatern_b, quatern_c, quatern_d, \
+        qoffset_x, qoffset_y, qoffset_z
+
 
 # ============================================================================
 
