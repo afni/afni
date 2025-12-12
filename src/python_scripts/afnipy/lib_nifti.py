@@ -3,26 +3,46 @@
 import sys
 import numpy as np
 
-# ====================================================================================
+# ============================================================================
+# 
+# A library of functions and data objects for mapping a dictionary of
+# AFNI header file attributes to NIFTI-1 standard (Cox et al., 2004)
+# attributes. These functions do _not_make use of AFNI programs but
+# instead perform all mapping from just the HEAD file contents and
+# file name itself.  While it would be simpler and more convenient to
+# use AFNI programs (e.g., via shell commands), these functions could
+# be used on systems without AFNI installed.
+#
+# For reference, the NIFTI header fields are listed, defined and
+# described here:
+# https://github.com/NIFTI-Imaging/nifti_clib/blob/master/nifti2/nifti1.h
+#
+# This webpage also includes useful information about some NIFTI and
+# AFNI header features:
+# https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nifti/main_toc.html
+#
+# ============================================================================
 
-# AFNI header: OBJ.header.info
+# dictionaries of the full nifti1 header
 
-# ------------------------------------- NIFTI ----------------------------------------
+# this section includes subsets of values with relevant properties to
+# be aware of (officially unused keys, ones not mapped in practice
+# from the AFNI header, etc.)
 
 # dict of NIFTI-1 header fields
 dict_nifti1 = {
-    'sizeof_hdr'      : 348,      # int
-    'data_type'       : '',       # char [10]
-    'db_name'         : '',       # char [18]
-    'extents'         : 0,        # int
-    'session_error'   : 0,        # short
-    'regular'         : 'r',      # char
+    'sizeof_hdr'      : 348,      ## int
+    'data_type'       : None,     ## char [10]
+    'db_name'         : None,     ## char [18]
+    'extents'         : None,     ## int
+    'session_error'   : None,     ## short
+    'regular'         : None,     ## char
     'dim_info'        : None,     # char 
     'dim'             : None,     # short [8]
-    'intent_p1'       : None,     # float
-    'intent_p2'       : None,     # float
-    'intent_p3'       : None,     # float
-    'intent_code'     : None,     # short
+    'intent_p1'       : None,     ## float
+    'intent_p2'       : None,     ## float
+    'intent_p3'       : None,     ## float
+    'intent_code'     : None,     ## short
     'datatype'        : None,     # short
     'bitpix'          : None,     # short
     'slice_start'     : None,     # short
@@ -33,16 +53,16 @@ dict_nifti1 = {
     'slice_end'       : None,     # short
     'slice_code'      : None,     # char
     'xyzt_units'      : None,     # char
-    'cal_max'         : None,     # float
-    'cal_min'         : None,     # float
+    'cal_max'         : None,     ## float
+    'cal_min'         : None,     ## float
     'slice_duration'  : None,     # float
     'toffset'         : None,     # float
-    'glmax'           : 0,        # int
-    'glmin'           : 0,        # int
-    'descrip'         : None,     # char [80]
-    'aux_file'        : None,     # char [24]
-    'qform_code'      : None,     # short
-    'sform_code'      : None,     # short
+    'glmax'           : None,     ## int
+    'glmin'           : None,     ## int
+    'descrip'         : None,     ## char [80]
+    'aux_file'        : None,     ## char [24]
+    'qform_code'      : None,     ## short
+    'sform_code'      : None,     ## short
     'quatern_b'       : None,     # float
     'quatern_c'       : None,     # float
     'quatern_d'       : None,     # float
@@ -52,21 +72,62 @@ dict_nifti1 = {
     'srow_x'          : None,     # float [4]
     'srow_y'          : None,     # float [4]
     'srow_z'          : None,     # float [4]
-    'intent_name'     : None,     # char [16]
+    'intent_name'     : None,     ## char [16]
     'magic'           : None,     # char [4]
 }
 
 # which keys in the nifti1 header dict are unused?
-list_nifti1_unused = [
-    'data_type',
-    'db_name',
-    'extents',
-    'session_error',
-    'regular',
-    'glmax',
-    'glmin', 
+dict_nifti1_unused = {
+    'data_type'       : '',       ## char [10]
+    'db_name'         : '',       ## char [18]
+    'extents'         : 0,        ## int
+    'session_error'   : 0,        ## short
+    'regular'         : 'r',      ## char
+    'glmax'           : 0,        ## int
+    'glmin'           : 0,        ## int
+}
+
+# which keys in the nifti1 header dict are unmapped from AFNI header?
+dict_nifti1_unmapped = {
+    'intent_p1'       : 0.0,      ## float
+    'intent_p2'       : 0.0,      ## float
+    'intent_p3'       : 0.0,      ## float
+    'intent_code'     : 0,        ## short
+    'cal_max'         : 0.0,      ## float
+    'cal_min'         : 0.0,      ## float
+    'descrip'         : '',       ## char [80]
+    'aux_file'        : '',       ## char [24]
+    'intent_name'     : '',       ## char [16]
+}
+
+# which keys in the nifti1 header dict should come from the data
+# array, when applying/copying the header to a new set?
+list_nifti1_recalc_from_data = [
+    'datatype',                   # short
+    'bitpix',                     # short
 ]
 
+# ============================================================================
+
+# dictionaries, lists and strings relevant for the AFNI header
+
+# list of known av_space values (though only +orig and +tlrc are common)
+LIST_allowed_av_space = [
+    '+orig',
+    '+tlrc',
+    '+acpc',                      # mostly unused nowadays
+    '+mni',                       # mostly unused nowadays
+]
+
+# string version of the av_space list
+STR_allowed_av_space = ', '.join(LIST_allowed_av_space)
+
+# ============================================================================
+
+# calculate nifti fields: 
+# + qform_code - short
+# + sform_code - short
+# throughout the code, these are collectively referred to as: qsform_code
 
 def calc_nifti_qsform_code( Adict, fname=None, verb=1 ):
     """Given the dictionary of AFNI header attributes Adict (and/or
@@ -183,6 +244,7 @@ qsform_code :
     # we assume everything else is an unknown template, hence this code
     return 0, 5
 
+
 def translate_av_space_to_qform_code(av_space, verb=1):
     """For a given av_space (from dset name), state what best guess of
 qsform_code value is.
@@ -226,16 +288,6 @@ qsform_code :
     return -1, 0
 
 # -----------------------------------------------------------------------------
-
-# list of known av_space values (though only +orig and +tlrc are common)
-LIST_allowed_av_space = [
-    '+orig',
-    '+tlrc',
-    '+acpc',
-    '+mni',
-]
-
-STR_allowed_av_space = ', '.join(LIST_allowed_av_space)
 
 def get_dset_av_space(fname, verb=1):
     """For a BRIK/HEAD dset with filename fname (which can include path),
@@ -296,6 +348,9 @@ av_space :
         return BAD_RETURN
 
     return 0, av_space
+
+# ============================================================================
+
 
 # ============================================================================
 
