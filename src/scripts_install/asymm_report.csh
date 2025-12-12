@@ -41,7 +41,10 @@ set patch_labels = ""
 set patchsurf = "fullpatchsurf.gii"
 set patchprefix = "roi_proj"
 set patchsmooth = "2"
- 
+
+# default method for computing asymmetry is right to left ratio
+set asymm_method == "RL"
+
 if ("$#" <  "1") then
    goto HELP
 endif
@@ -187,6 +190,14 @@ while ($ac <= $#argv)
             exit 1
         endif
         set reportfile = $argv[$ac]
+    else if ("$argv[$ac]" == "-method") then
+        set this_opt = "$argv[$ac]"
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '${this_opt}'"
+            exit 1
+        endif
+        set asymm_method = $argv[$ac]
 
    
    # ---------- fin ------------------
@@ -216,13 +227,27 @@ if (($isosurfs == "1") && ($isosurf_base == "")) then
 endif
 
 if ($isosurfs == "1") then
-   set isosurf_labels = "  right_area left_area ra/la_asymm"
+   # set output type
+   if ($asymm_method == "LI") then
+       set asymm_label = "LI_area"
+   else
+       set asymm_label = "ra/la_asymm"
+   endif
+  
+   set isosurf_labels = "  right_area left_area $asymm_label"
 endif
 
 # check if making patches or using patches
 # may allow for making new patch surface if specified one doesn't exist
 if ($patch_areas == "1") then
-   set patch_labels = "   right_patch_area left_patch_area rpa/lpa_asymm"
+   # set output type
+   if ($asymm_method == "LI") then
+       set asymm_label = "LI_parea"
+   else
+       set asymm_label = "rpa/lpa_asymm"
+   endif
+  
+   set patch_labels = "   right_patch_area left_patch_area $asymm_label"
 #   if (($make_patch_surf == "1") && ($fullatlas_surf != "")) then
 #      echo "Cannot specify both surf_patch_surface and make_patch_surface"
 #      exit 1
@@ -277,7 +302,14 @@ endif
 
 # -cmask '-a HCA_lr_v0.9.nii.gz+tlrc[0] -expr astep(a,0.000000)'
 
-echo "#index label right_vol left_vol r/l_asymm   $isosurf_labels    $patch_labels" > $reportfile
+# set output type
+if ($asymm_method == "LI") then
+    set asymm_label = "LI_vol"
+else
+    set asymm_label = "r/l_asymm"
+endif
+
+echo "#index label right_vol left_vol $asymm_label   $isosurf_labels    $patch_labels" > $reportfile
 foreach roi (`count -digits 2 1 $#right_range`)
    set righti = $right_range[$roi] 
    set lefti  = $left_range[$roi] 
@@ -302,8 +334,11 @@ foreach roi (`count -digits 2 1 $#right_range`)
    set leftv  = `3dBrickStat -volume -non-zero $inset"<$lefti>"`
 
    # compute asymmetry as ratio of right to left volumes
-   set asymm = `ccalc "$rightv/$leftv"`
-
+   if ($asymm_method == "LI") then
+      set asymm = `ccalc "($leftv-$rightv)/($leftv+$rightv)"`
+   else
+      set asymm = `ccalc "$rightv/$leftv"`
+   endif
    set rightv = `ccalc -form "%.1f" $rightv`
    set leftv = `ccalc -form "%.1f" $leftv`
    set asymm = `ccalc -form "%.3f" -expr "min(100,$asymm)"`
@@ -319,9 +354,13 @@ foreach roi (`count -digits 2 1 $#right_range`)
       SurfaceMetrics -area -prefix temp.1D -overwrite \
         -i ${isosurf_dir}/${isosurf_base}*.k${lefti_1d}.gii > /dev/null
       set lefta = `3dTstat -sum  -prefix stdout temp.1D.area'[1]'\' `
-      # compute asymmetry as ratio of right to left volumes
-      set surf_asymm = `ccalc "$righta/$lefta"`
-   
+      # compute asymmetry as ratio of right to left volumes or Laterality Index
+      if ($asymm_method == "LI") then
+         set surf_asymm = `ccalc "($lefta-$righta)/($lefta+$righta)"`
+      else
+         set surf_asymm = `ccalc "$righta/$lefta"`
+      endif
+
       set righta = `ccalc -form "%.1f" $righta`
       set lefta = `ccalc -form "%.1f" $lefta`
       set surf_asymm = `ccalc -form "%.3f" -expr "min(100,$surf_asymm)"`
@@ -347,8 +386,13 @@ foreach roi (`count -digits 2 1 $#right_range`)
             -cmask "-a roi_proj_smooth.1D.dset[0] -expr equals(a,$lefti)"  \
             -out        temppatch_leftarea.1D.dset -overwrite                        
       set leftparea = `3dBrickStat -sum temppatch_leftarea.1D.dset'[1]'`
-      set parea_asymm = `ccalc "$rightparea/$leftparea"`
-   
+      # use ratio or laterality index
+      if ($asymm_method == "LI") then
+         set parea_asymm = \
+            `ccalc "($leftparea-$rightparea)/($leftparea+$rightparea)"`
+      else
+         set parea_asymm = `ccalc "$rightparea/$leftparea"`
+      endif
       set rightparea = `ccalc -form "%.1f" $rightparea`
       set leftparea = `ccalc -form "%.1f" $leftparea`
       set parea_asymm = `ccalc -form "%.3f" -expr "min(100,$parea_asymm)"`
@@ -412,12 +456,20 @@ Options ~1~
                          individual regions)
   -make_patch_surface   :generate new surface for patch area computations
   -reportfile textout   :specify filename for text output (default is stdout)
-  -use_left_labels      :default is to get labels from right index regions.
-                         this option switches to use left labels
+  -use_left_labels      :default is to use labels from right index regions in
+                         output report. This option switches to use left labels
   -surf_patch_prefix ppp:prefix for output labelled patch dset prefix.niml.dset
   -surf_patch_smooth nn :neighborhood size for modal smoothing on surface 
                          (2mm default). Check surface with smoothed data for
                          reasonableness
+  -method LI            :use method for comparison
+                         LI (laterality index) = (L-R)/(L+R)
+                         (negative values have right symmetry, 
+                          positive values have left symmetry
+                          zero values are symmetric)
+                         or 
+                         RL (right to left ratio) = R/L (Default)
+
 SCRIPT_HELP_STRING
 
    exit 0
