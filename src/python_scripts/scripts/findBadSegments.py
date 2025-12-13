@@ -323,6 +323,92 @@ def compute_respiratory_peaks(
         out_ranges
     )
 
+def outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
+                       peak_outliers, secondaryPeakOutliers,
+                       outlier_ts_ranges, secondary_ts_outlier_ranges,
+                       output_file_name):
+    print('Plot cardiac results')
+    y = cardiacTimeSeries              # length 
+    x = np.arange(len(y))             # original index
+    x_scaled = x / samp_freq          # scaled index
+    cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
+
+    # Limit length of each row for clarity
+    print('Limit length of each row for clarity')
+    points_per_row = 3000             
+    num_rows = int(np.ceil(len(y) / points_per_row))
+
+    fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
+    if num_rows == 1:
+        axes = [axes]
+
+    peakVals = cardiacTimeSeries[cardiacPeaks]
+
+    for row in range(num_rows):
+        start = row * points_per_row
+        end = min((row + 1) * points_per_row, len(y))
+
+        ax = axes[row]
+
+        # --- plot scaled x ---
+        ax.plot(
+            x_scaled[start:end],
+            y[start:end],
+            linewidth=0.5,
+            solid_capstyle='butt',
+            solid_joinstyle='miter',
+            color="black"
+        )
+
+        # Peaks
+        ax.plot(cardiacPeaks_scaled, peakVals, "bo")
+
+        # Main outlier peaks
+        ax.plot(cardiacPeaks_scaled[peak_outliers],
+                cardiacTimeSeries[cardiacPeaks[peak_outliers]],
+                "ro")
+
+        # 2ary outlier peaks
+        ax.plot(cardiacPeaks_scaled[secondaryPeakOutliers],
+                cardiacTimeSeries[cardiacPeaks[secondaryPeakOutliers]],
+                "o", color="pink")
+
+        # --- Draw bands (also scaled) ---
+        for band_start, band_end in outlier_ts_ranges:
+            if band_end <= start or band_start >= end:
+                continue
+            ax.axvspan(
+                max(band_start, start) / samp_freq,
+                min(band_end, end) / samp_freq,
+                color='red',
+                alpha=0.15
+            )
+
+        # Shade anomalous temporal bands
+        for band_start, band_end in secondary_ts_outlier_ranges:
+            if band_end <= start or band_start >= end:
+                continue
+            ax.axvspan(
+                max(band_start, start) / samp_freq,
+                min(band_end, end) / samp_freq,
+                color='yellow',
+                alpha=0.75
+            )
+
+        # --- scaled x-limits ---
+        ax.set_xlim(x_scaled[start], x_scaled[end - 1])
+        ax.set_ylabel("ECG Amplitude")
+
+    # Set axes and save plot to file
+    print('Set axes and save plot to file')
+    ax.set_xlabel(f"Time (seconds)")
+    axes[-1].set_xlabel("Time (s)")
+    plt.tight_layout()
+    OutDir = directory
+    plt.savefig('%s/cardiacOutliersWithPeaks.pdf' % (OutDir))
+    plt.show()
+
+
 # Read arguments
 print('Read arguments')
 i = 1
@@ -478,86 +564,15 @@ peak_outliers, secondaryPeakOutliers = getCardiacPeaktPeakOutliers(cardiacTimeSe
 
 
 # Plot cardiac results
-print('Plot cardiac results')
-y = cardiacTimeSeries              # length 
-x = np.arange(len(y))             # original index
-x_scaled = x / samp_freq          # scaled index
-cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
-
-# Limit length of each row for clarity
-print('Limit length of each row for clarity')
-points_per_row = 3000             
-num_rows = int(np.ceil(len(y) / points_per_row))
-
-fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
-if num_rows == 1:
-    axes = [axes]
-
-peakVals = cardiacTimeSeries[cardiacPeaks]
-
-for row in range(num_rows):
-    start = row * points_per_row
-    end = min((row + 1) * points_per_row, len(y))
-
-    ax = axes[row]
-
-    # --- plot scaled x ---
-    ax.plot(
-        x_scaled[start:end],
-        y[start:end],
-        linewidth=0.5,
-        solid_capstyle='butt',
-        solid_joinstyle='miter',
-        color="black"
-    )
-
-    # Peaks
-    ax.plot(cardiacPeaks_scaled, peakVals, "bo")
-
-    # Main outlier peaks
-    ax.plot(cardiacPeaks_scaled[peak_outliers],
-            cardiacTimeSeries[cardiacPeaks[peak_outliers]],
-            "ro")
-
-    # 2ary outlier peaks
-    ax.plot(cardiacPeaks_scaled[secondaryPeakOutliers],
-            cardiacTimeSeries[cardiacPeaks[secondaryPeakOutliers]],
-            "o", color="pink")
-
-    # --- Draw bands (also scaled) ---
-    for band_start, band_end in outlier_ts_ranges:
-        if band_end <= start or band_start >= end:
-            continue
-        ax.axvspan(
-            max(band_start, start) / samp_freq,
-            min(band_end, end) / samp_freq,
-            color='red',
-            alpha=0.15
-        )
-
-    # Shade anomalous temporal bands
-    for band_start, band_end in secondary_ts_outlier_ranges:
-        if band_end <= start or band_start >= end:
-            continue
-        ax.axvspan(
-            max(band_start, start) / samp_freq,
-            min(band_end, end) / samp_freq,
-            color='yellow',
-            alpha=0.75
-        )
-
-    # --- scaled x-limits ---
-    ax.set_xlim(x_scaled[start], x_scaled[end - 1])
-    ax.set_ylabel("ECG Amplitude")
-
-# Set axes and save plot to file
-print('Set axes and save plot to file')
-ax.set_xlabel(f"Time (seconds)")
-axes[-1].set_xlabel("Time (s)")
-plt.tight_layout()
-OutDir = directory
-plt.savefig('%s/cardiacOutliersWithPeaks.pdf' % (OutDir))
-plt.show()
+if directory[-1] == '/':
+    OutDir = directory[:-1]
+else:
+    OutDir = directory
+output_file_name = OutDir + '/cardiacOutliersWithPeaks.pdf'
+outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
+                       peak_outliers, secondaryPeakOutliers,
+                       outlier_ts_ranges, secondary_ts_outlier_ranges,
+                       output_file_name)
 
 # Load respiratory time series
 print('Load respiratory time series')
@@ -695,7 +710,8 @@ print('Make respiratory axes')
 ax.set_xlabel(f"Time (seconds)")
 plt.tight_layout()
 OutDir = directory
-plt.savefig('%s/respOutliersWithPeaks.pdf' % (OutDir))
+#plt.savefig('%s/respOutliersWithPeaks.pdf' % (OutDir))
+plt.savefig(output_file_name)
 plt.show()
 
 
