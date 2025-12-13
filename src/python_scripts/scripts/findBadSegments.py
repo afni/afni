@@ -324,6 +324,7 @@ def compute_respiratory_peaks(
     )
 
 # Read arguments
+print('Read arguments')
 i = 1
 while i < len(sys.argv):
     match sys.argv[i]:
@@ -333,6 +334,22 @@ while i < len(sys.argv):
                 print("Error: -directory requires an argument")
                 exit(1)
             directory = sys.argv[i]
+            i += 1
+            
+        case "-card_file":
+            i += 1
+            if i >= len(sys.argv):
+                print("Error: -card_file requires an argument")
+                exit(1)
+            cardiacTimeSeriesFile = sys.argv[i]
+            i += 1
+
+        case "-resp_file":
+            i += 1
+            if i >= len(sys.argv):
+                print("Error: -resp_file requires an argument")
+                exit(1)
+            respiratoryTimeSeriesFile = sys.argv[i]
             i += 1
 
         case "-freq":
@@ -360,28 +377,29 @@ while i < len(sys.argv):
             print('Use "-help" for correct usage.')
             exit(1)
 
-# Hard code filenames which will subsequently be entered as arguments
-# directory = '/home/peterlauren/retroicor/retro_2025-12-01-21-20-51/physio_physio_extras/'
-cardiacTimeSeriesFile = directory + 'physio_card_filtered_ts_00.1D'
+print('Get cardiac peaks file and respiratory peaks and troughs file')
 cardiacPeaksFile = directory + 'physio_card_peaks_00.1D'
-respiratoryTimeSeriesFile = directory + 'physio_resp_filtered_ts_00.1D'
 respiratoryPeaksFile = directory + 'physio_resp_peaks_00.1D'
 respiratoryTroughsFile = directory + 'physio_resp_troughs_00.1D'
 
 #Whether to use clustering which tends to be slow
+print('Set clustering to false')
 useClustering = False
 
 # Load cardiac time series
+print('Load cardiac time series')
 with open(cardiacTimeSeriesFile) as f:
     for line in f:
         cardiacTimeSeries=[float(line.strip()) for line in f if line.strip()]
         
 # Load cardiac peaks
+print('Load cardiac peaks')
 with open(cardiacPeaksFile) as f:
     for line in f:
         cardiacPeaks = [int(line.strip()) for line in f if line.strip()]
 
 # Plot cardiac peaks on cardiac time series
+print('Plot cardiac peaks on cardiac time series')
 x = []    
 end = len(cardiacTimeSeries)
 for i in range(0,end): x.append(i)
@@ -394,6 +412,7 @@ if len(cardiacPeaks) > 0:
     plt.plot(cardiacPeaks, peakVals, "ro") # Peaks
 
 # Build an array of vecs, one for each peak.
+print('Build an array of vecs, one for each peak')
 cardiacPeaks = np.asarray(cardiacPeaks)
 cardiacTimeSeries = np.asarray(cardiacTimeSeries)
 vec = np.column_stack([
@@ -406,42 +425,51 @@ vec[0] = vec[1]
 vec[-1] = vec[0]
 
 # Normalize time differences to be in the same range as the value differences
+print('Normalize time differences to be in the same range as the value differences')
 scaleFactor = (vec[:,0:1].max()-vec[:,0:1].min())/(vec[:,2:3].max()-vec[:,2:3].min())
 vec[:,2:4] =vec[:,2:4]*scaleFactor
 
 # Make NxN matrix where N is the number of segments
 # Fill the matrix with the weights
+print('Make weights matrix')
 weights = squareform(pdist(vec, metric='euclidean'))
 weights = np.exp(1/(weights+1))
 
 # Each vertex is initially regarded as a community or cluster.
+print('Each vertex is initially regarded as a community or cluster')
 numPeaks = len(cardiacTimeSeries)
 clusters = [[i] for i in range(0,numPeaks)]
 
 # Make an array of clusters where each cluster is an array of members containing 
 # the iindices of the cluster members. 
+print('Make an array of clusters where each cluster is an array of members containing ')
 numPeaks = len(cardiacPeaks)
 clusters = [[i] for i in range(0,numPeaks)]
-
-# Starting with the first cluster (vertex) merge in other clusters only in cases 
-# where MOD is increased by doing so.
-clusters = [[i] for i in range(numPeaks)]
-
-# Merge clusters, starting with merginging into the cluster (initially single
-# vertex) with the highest sum of weights with other vertices and working down
-# towards the vertex with the lowest cumulative weights.
+    
+# make vector of weight sums and get vector of their ranks starting with the highest weight sum
+print('Make weight sum and rank vectors')
 vectorWeightSums = np.sum(weights,axis=1)
 rankVector = np.argsort(vectorWeightSums)[::-1]
 
 if useClustering:
+    print('clustering')
+    # Starting with the first cluster (vertex) merge in other clusters only in cases 
+    # where MOD is increased by doing so.
+    clusters = [[i] for i in range(numPeaks)]
+
+    # Merge clusters, starting with merginging into the cluster (initially single
+    # vertex) with the highest sum of weights with other vertices and working down
+    # towards the vertex with the lowest cumulative weights.
     final_clusters, bestMOD = merge_clusters_by_MOD(weights, clusters, rankVector, getMOD)
 
 # Identify outliers on low end of the cumulatives weights
+print('Identify outliers on low end of the cumulatives weights')
 outlier_ts_ranges, secondary_ts_outlier_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
                                                 rankVector, cardiacPeaks)
 num_anomalies = len(outlier_ts_ranges)
 
 # Find peak outliers
+print('Find peak outliers')
 peakVals = []
 for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
 peakRankVector = np.argsort(peakVals)[::-1]
@@ -450,12 +478,14 @@ peak_outliers, secondaryPeakOutliers = getCardiacPeaktPeakOutliers(cardiacTimeSe
 
 
 # Plot cardiac results
+print('Plot cardiac results')
 y = cardiacTimeSeries              # length 
 x = np.arange(len(y))             # original index
 x_scaled = x / samp_freq          # scaled index
 cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
 
 # Limit length of each row for clarity
+print('Limit length of each row for clarity')
 points_per_row = 3000             
 num_rows = int(np.ceil(len(y) / points_per_row))
 
@@ -521,6 +551,7 @@ for row in range(num_rows):
     ax.set_ylabel("ECG Amplitude")
 
 # Set axes and save plot to file
+print('Set axes and save plot to file')
 ax.set_xlabel(f"Time (seconds)")
 axes[-1].set_xlabel("Time (s)")
 plt.tight_layout()
@@ -529,16 +560,19 @@ plt.savefig('%s/cardiacOutliersWithPeaks.pdf' % (OutDir))
 plt.show()
 
 # Load respiratory time series
+print('Load respiratory time series')
 with open(respiratoryTimeSeriesFile) as f:
     for line in f:
         respiratoryTimeSeries=[float(line.strip()) for line in f if line.strip()]
         
 # Load respiratory peaks
+print('Load respiratory peaks')
 with open(respiratoryPeaksFile) as f:
     for line in f:
         respiratoryPeaks = [int(line.strip()) for line in f if line.strip()]
 
 # Load respiratory troughs
+print('Load respiratory troughs')
 with open(respiratoryTroughsFile) as f:
     for line in f:
         respiratoryTroughs = [int(line.strip()) for line in f if line.strip()]
@@ -552,10 +586,12 @@ with open(respiratoryTroughsFile) as f:
 # Build an array of $vec$s, one for each peak, according to equation \ref{vdisttdist2}.
 
 # Get modified peaks (original peaks minus the mean of the adjacent peaks)
+print('Get modified peaks (original peaks minus the mean of the adjacent peaks)')
 resp_peak_indices, resp_peak_values, resp_outliers = compute_respiratory_peaks(respiratoryTimeSeries, 
     respiratoryPeaks, respiratoryTroughs)
 
 # Build an array of vecs, one for each peak.
+print('Build an array of vecs, one for each peak')
 vec = np.column_stack([
     resp_peak_values - np.roll(resp_peak_values, 1),
     np.roll(resp_peak_values, -1) - resp_peak_values,
@@ -566,26 +602,29 @@ vec[0] = vec[1]
 vec[-1] = vec[0]
 
 # Normalize time differences to be in the same range as the value differences
+print('Normalize time differences to be in the same range as the value differences')
 scaleFactor = (vec[:,0:1].max()-vec[:,0:1].min())/(vec[:,2:3].max()-vec[:,2:3].min())
 vec[:,2:4] =vec[:,2:4]*scaleFactor
 
 # Make NxN matrix where N is the number of segments
 # Fill the matrix with the weights
+print('Make respiratory weights vector')
 weights = squareform(pdist(vec, metric='euclidean'))
 weights = np.exp(1/(weights+1))
 
-# Merge clusters, starting with merginging into the cluster (initially single
-# vertex) with the highest sum of weights with other vertices and working down
-# towards the vertex with the lowest cumulative weights.
+# Get weight sum vectors and rank indices
+print('Get weight sum vectors and rank indices')
 vectorWeightSums = np.sum(weights,axis=1)
 rankVector = np.argsort(vectorWeightSums)[::-1]
 
 # Identify outliers on low end of the cumulatives weights
+print('Identify outliers on low end of the cumulatives weights')
 outlier_ts_ranges, secondary_ts_outlier_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
                                                 rankVector, resp_peak_indices)
 num_anomalies = len(outlier_ts_ranges)
 
 # PLot respiratory results
+print('PLot respiratory results')
 y = respiratoryTimeSeries              # length ~24,199
 x = np.arange(len(y))             # continuous index
 x_scaled = x / samp_freq          # scaled index
@@ -652,6 +691,7 @@ for row in range(num_rows):
     ax.set_xlim(x_scaled[start], x_scaled[end - 1])
     ax.set_ylabel("Respiratory Amplitude")
 
+print('Make respiratory axes')
 ax.set_xlabel(f"Time (seconds)")
 plt.tight_layout()
 OutDir = directory
