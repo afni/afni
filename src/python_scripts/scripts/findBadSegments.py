@@ -12,6 +12,7 @@ from scipy.spatial.distance import pdist, squareform
 import copy
 from collections import defaultdict
 import sys
+import statistics
 
 # Get cluster modulatity (MOD)
 def getMOD(weights, clusters):
@@ -407,7 +408,9 @@ def outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
     OutDir = directory
     plt.savefig('%s/cardiacOutliersWithPeaks.pdf' % (OutDir))
     plt.show()
-
+    
+# Defaults
+expand_factor = 1 # Reverses the rudtion cause by -prefilt_max_freq in physio_calc
 
 # Read arguments
 print('Read arguments')
@@ -445,6 +448,14 @@ while i < len(sys.argv):
                 exit(1)
             samp_freq = float(sys.argv[i])
             i += 1
+            
+        case '-expand_factor':
+            i += 1
+            if i >= len(sys.argv):
+                print("Error: -expand_factor requires an argument")
+                exit(1)
+            expand_factor = int(sys.argv[i])
+            i += 1
 
         case "-help":
             print("Usage:\n python ./findBadSegments.py -directory <directory>")
@@ -477,6 +488,17 @@ print('Load cardiac time series')
 with open(cardiacTimeSeriesFile) as f:
     for line in f:
         cardiacTimeSeries=[float(line.strip()) for line in f if line.strip()]
+
+# Median shrink cardiac time series to match cardiac peaks        
+if expand_factor > 1:
+    num_blocks = int(len(cardiacTimeSeries)/expand_factor)
+    inc = 0
+    temp = np.array([])
+    for i in range(0,num_blocks):
+        start = i * expand_factor
+        end = start + expand_factor
+        temp = np.append(temp, statistics.median(cardiacTimeSeries[start:end]))
+    cardiacTimeSeries = temp
         
 # Load cardiac peaks
 print('Load cardiac peaks')
@@ -568,18 +590,47 @@ if directory[-1] == '/':
     OutDir = directory[:-1]
 else:
     OutDir = directory
-output_file_name = OutDir + '/cardiacOutliersWithPeaks.pdf'
-outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
+pageLimit = 1000000
+if len(cardiacTimeSeries) <= pageLimit:
+    output_file_name = OutDir + '/cardiacOutliersWithPeaks.pdf'
+    outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
                        peak_outliers, secondaryPeakOutliers,
                        outlier_ts_ranges, secondary_ts_outlier_ranges,
                        output_file_name)
+else:
+    num_files = int(len(cardiacTimeSeries)/pageLimit)
+    peak_outliers = np.array(peak_outliers)
+    secondaryPeakOutliers = np.array(secondaryPeakOutliers)
+    peak_outliers = np.array(peak_outliers)
+    secondary_ts_outlier_ranges = np.array(secondary_ts_outlier_ranges)
+    for i in range(0,num_files):
+        start = pageLimit * i
+        end = start + pageLimit
+        cardPeaks = cardiacPeaks[(cardiacPeaks >= start) & (cardiacPeaks < end)]-start
+        output_file_name = OutDir + '/cardiacOutliersWithPeaks_'+str(i)+'.pdf'
+        outputCardiacPlots(cardiacTimeSeries[start:end], 
+                       cardPeaks, 
+                       samp_freq, peak_outliers-start, secondaryPeakOutliers-start,
+                       outlier_ts_ranges-start, secondary_ts_outlier_ranges-start,
+                       output_file_name+'_'+str(i))
 
 # Load respiratory time series
 print('Load respiratory time series')
 with open(respiratoryTimeSeriesFile) as f:
     for line in f:
         respiratoryTimeSeries=[float(line.strip()) for line in f if line.strip()]
-        
+
+# Median shrink respiratory time series to match respiratory peaks and troughs
+if expand_factor > 1:
+    num_blocks = int(len(respiratoryTimeSeries)/expand_factor)
+    inc = 0
+    temp = np.array([])
+    for i in range(0,num_blocks):
+        start = i * expand_factor
+        end = start + expand_factor
+        temp = np.append(temp, statistics.median(respiratoryTimeSeries[start:end]))
+    respiratoryTimeSeries = temp
+                
 # Load respiratory peaks
 print('Load respiratory peaks')
 with open(respiratoryPeaksFile) as f:
@@ -710,8 +761,8 @@ print('Make respiratory axes')
 ax.set_xlabel(f"Time (seconds)")
 plt.tight_layout()
 OutDir = directory
-#plt.savefig('%s/respOutliersWithPeaks.pdf' % (OutDir))
-plt.savefig(output_file_name)
+plt.savefig('%s/respOutliersWithPeaks.pdf' % (OutDir))
+# plt.savefig(output_file_name)
 plt.show()
 
 
