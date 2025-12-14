@@ -214,7 +214,6 @@ def getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks):
     
     # Define lower bound
     lower_bound = q1 - 2 * iqr
-    upper_bound = q3 + 2 * iqr
     
     # Get true outliers
     low_outliers = [
@@ -222,27 +221,16 @@ def getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks):
     for i in range(len(cardiacPeaks))
     if cardiacTimeSeries[cardiacPeaks[i]] < lower_bound
     ]
-    high_outliers = [
-    i
-    for i in range(len(cardiacPeaks))
-    if cardiacTimeSeries[cardiacPeaks[i]] > upper_bound
-    ]
-    outliers = low_outliers + high_outliers    
+    outliers = low_outliers    
     
     # Define lower bound
     lower_bound = q1 - 1.9 * iqr
-    upper_bound = q3 + 1.9 * iqr
     
     # Get marginal (just missed out) outliers
     low_outliers = [
     i
     for i in range(len(cardiacPeaks))
     if cardiacTimeSeries[cardiacPeaks[i]] < lower_bound
-    ]
-    high_outliers = [
-    i
-    for i in range(len(cardiacPeaks))
-    if cardiacTimeSeries[cardiacPeaks[i]] > upper_bound
     ]
     
     return outliers
@@ -543,9 +531,7 @@ print('Find peak outliers')
 peakVals = []
 for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
 peakRankVector = np.argsort(peakVals)[::-1]
-peak_outliers = getCardiacPeaktPeakOutliers(cardiacTimeSeries, 
-                                                                   cardiacPeaks)
-
+peak_outliers = getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks)
 
 # Plot cardiac results
 if directory[-1] == '/':
