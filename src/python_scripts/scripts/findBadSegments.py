@@ -178,26 +178,15 @@ def cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, rankVector,
     
     # Define lower bound
     lower_bound = q1 - k_opt * iqr
-    secondary_lower_bound = q1 - (k_opt-0.01) * iqr
     
     # Identify low-end outliers
     low_end_outliers = vectorWeightSums[vectorWeightSums < lower_bound]
-    secondary_low_end_outliers = vectorWeightSums[vectorWeightSums < 
-            secondary_lower_bound] 
-    secondary_low_end_outliers = secondary_low_end_outliers[i not in low_end_outliers]
     
     # Get outlier peak indices
     num_outliers = len(low_end_outliers)
     if len(low_end_outliers)>0:
         outlier_peak_indices = rankVector[-len(low_end_outliers):]
     else: outlier_peak_indices = []
-    num_secondary_outliers = len(secondary_low_end_outliers)
-    secondary_outlier_start = -(num_outliers+num_secondary_outliers)
-    if secondary_outlier_start < 0:
-        if num_outliers > 0:
-            secondary_outlier_peak_indices = rankVector[secondary_outlier_start:-num_outliers]
-        else:
-            secondary_outlier_peak_indices = rankVector[secondary_outlier_start:]
     
     # Get outlier time series indices
     # limit = len(cardiacPeaks)-1
@@ -212,17 +201,8 @@ def cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, rankVector,
         outlier_peak_indices = outlier_peak_indices[outlier_peak_indices <= last-2]
     outlier_ts_indices += [[cardiacPeaks[i-1], cardiacPeaks[i+2]]  
         for i in outlier_peak_indices]
-    secondary_outliers = []
-    if 0 in secondary_outlier_peak_indices: 
-        secondary_outliers += [[cardiacPeaks[0], cardiacPeaks[2]]]
-        secondary_outlier_peak_indices = secondary_outlier_peak_indices[secondary_outlier_peak_indices != 0]
-    if any(item > lastM2 for item in secondary_outlier_peak_indices):
-        secondary_outliers += [[cardiacPeaks[last-1], cardiacPeaks[last]]]
-        secondary_outlier_peak_indices = secondary_outlier_peak_indices[secondary_outlier_peak_indices <= last-2]
-    secondary_outliers = [[cardiacPeaks[i-1], cardiacPeaks[i+2]]  
-        for i in secondary_outlier_peak_indices]
     
-    return outlier_ts_indices, secondary_outliers
+    return outlier_ts_indices
 
 def getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks):
 
@@ -264,10 +244,8 @@ def getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks):
     for i in range(len(cardiacPeaks))
     if cardiacTimeSeries[cardiacPeaks[i]] > upper_bound
     ]
-    secondaryOutliers = low_outliers + high_outliers
-    secondaryOutliers = list(set(secondaryOutliers) - set(outliers))
     
-    return outliers, secondaryOutliers
+    return outliers
 
 def compute_respiratory_peaks(
     respiratoryTimeSeriesFile,
@@ -325,8 +303,8 @@ def compute_respiratory_peaks(
     )
 
 def outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
-                       peak_outliers, secondaryPeakOutliers,
-                       outlier_ts_ranges, secondary_ts_outlier_ranges,
+                       peak_outliers, 
+                       outlier_ts_ranges, 
                        output_file_name):
     print('Plot cardiac results')
     y = cardiacTimeSeries              # length 
@@ -369,11 +347,6 @@ def outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
                 cardiacTimeSeries[cardiacPeaks[peak_outliers]],
                 "ro")
 
-        # 2ary outlier peaks
-        ax.plot(cardiacPeaks_scaled[secondaryPeakOutliers],
-                cardiacTimeSeries[cardiacPeaks[secondaryPeakOutliers]],
-                "o", color="pink")
-
         # --- Draw bands (also scaled) ---
         for band_start, band_end in outlier_ts_ranges:
             if band_end <= start or band_start >= end:
@@ -383,17 +356,6 @@ def outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
                 min(band_end, end) / samp_freq,
                 color='red',
                 alpha=0.15
-            )
-
-        # Shade anomalous temporal bands
-        for band_start, band_end in secondary_ts_outlier_ranges:
-            if band_end <= start or band_start >= end:
-                continue
-            ax.axvspan(
-                max(band_start, start) / samp_freq,
-                min(band_end, end) / samp_freq,
-                color='yellow',
-                alpha=0.75
             )
 
         # --- scaled x-limits ---
@@ -572,7 +534,7 @@ if useClustering:
 
 # Identify outliers on low end of the cumulatives weights
 print('Identify outliers on low end of the cumulatives weights')
-outlier_ts_ranges, secondary_ts_outlier_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
+outlier_ts_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
                                                 rankVector, cardiacPeaks)
 num_anomalies = len(outlier_ts_ranges)
 
@@ -581,7 +543,7 @@ print('Find peak outliers')
 peakVals = []
 for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
 peakRankVector = np.argsort(peakVals)[::-1]
-peak_outliers, secondaryPeakOutliers = getCardiacPeaktPeakOutliers(cardiacTimeSeries, 
+peak_outliers = getCardiacPeaktPeakOutliers(cardiacTimeSeries, 
                                                                    cardiacPeaks)
 
 
@@ -594,15 +556,13 @@ pageLimit = 1000000
 if len(cardiacTimeSeries) <= pageLimit:
     output_file_name = OutDir + '/cardiacOutliersWithPeaks.pdf'
     outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
-                       peak_outliers, secondaryPeakOutliers,
-                       outlier_ts_ranges, secondary_ts_outlier_ranges,
+                       peak_outliers,
+                       outlier_ts_ranges, 
                        output_file_name)
 else:
     num_files = int(len(cardiacTimeSeries)/pageLimit)
     peak_outliers = np.array(peak_outliers)
-    secondaryPeakOutliers = np.array(secondaryPeakOutliers)
     peak_outliers = np.array(peak_outliers)
-    secondary_ts_outlier_ranges = np.array(secondary_ts_outlier_ranges)
     for i in range(0,num_files):
         start = pageLimit * i
         end = start + pageLimit
@@ -610,8 +570,8 @@ else:
         output_file_name = OutDir + '/cardiacOutliersWithPeaks_'+str(i)+'.pdf'
         outputCardiacPlots(cardiacTimeSeries[start:end], 
                        cardPeaks, 
-                       samp_freq, peak_outliers-start, secondaryPeakOutliers-start,
-                       outlier_ts_ranges-start, secondary_ts_outlier_ranges-start,
+                       samp_freq, peak_outliers-start,
+                       outlier_ts_ranges-start, 
                        output_file_name+'_'+str(i))
 
 # Load respiratory time series
@@ -685,7 +645,7 @@ rankVector = np.argsort(vectorWeightSums)[::-1]
 
 # Identify outliers on low end of the cumulatives weights
 print('Identify outliers on low end of the cumulatives weights')
-outlier_ts_ranges, secondary_ts_outlier_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
+outlier_ts_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
                                                 rankVector, resp_peak_indices)
 num_anomalies = len(outlier_ts_ranges)
 
@@ -741,16 +701,6 @@ for row in range(num_rows):
             min(band_end, end) / samp_freq,
             color='red',
             alpha=0.15
-        )
-
-    for band_start, band_end in secondary_ts_outlier_ranges:
-        if band_end <= start or band_start >= end:
-            continue
-        ax.axvspan(
-            max(band_start, start) / samp_freq,
-            min(band_end, end) / samp_freq,
-            color='yellow',
-            alpha=0.75
         )
 
     # --- scaled x-limits ---
