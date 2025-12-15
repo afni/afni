@@ -12,6 +12,9 @@
   [PT: Nov 5, 2018] Don't know why this is only happening *now*, but
   am moving the lpa/lpc cost functions into the main list under '-cost
   ccc' in the help; they are no longer classified as "experimental"
+
+  [PT: Dec 15, 2025] quiet warnings about not using -cmass when
+  _applying_ a transform (leave on for useful cases when estimating it)
  */
 
 /*----------------------------------------------------------------------------*/
@@ -4630,10 +4633,15 @@ STATUS("zeropad weight dataset") ;
    }
 
    if( !do_cmass ){         /* 26 Feb 2020 */
-     if( CMbad > 0 && CMbad < 100 ){
+     /* 15 Dec 2025, pt: when apply_1D is not NULL, we will _not_ warn
+        about not using -cmass, because it is irrelevant (since we are
+        applying, not calculating a shift); the shift itself is still
+        displayed, below.
+      */
+     if( CMbad > 0 && CMbad < 100 && apply_1D == NULL ){
        WARNING_message("center of mass shifts (-cmass) are turned off, but would be large") ;
        WARNING_message("  - at least one is more than 20%% of search range") ;
-     } else if( CMbad >= 100 ){
+     } else if( CMbad >= 100 && apply_1D == NULL ){
        WARNING_message("center of mass shifts (-cmass) are turned off, but would be TERRIBLY large!") ;
        WARNING_message("  - at least one is more than 50%% of search range") ;
      }
@@ -6781,7 +6789,7 @@ mri_genalign_set_pgmat(1) ;
    if( verb ){
       INFO_message("###########################################################");
    }
-   if( !do_cmass && CMbad > 0 ){ /* 26 Feb 2020 */
+   if( !do_cmass && CMbad > 0 && apply_1D == NULL ){ /* 26 Feb 2020; 15 Dec 2025 */
      ININFO_message (" ") ;
      INFO_message   ("***********************************************************") ;
      WARNING_message("-cmass was turned off, but might have been needed :("       ) ;
