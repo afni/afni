@@ -538,27 +538,70 @@ if directory[-1] == '/':
     OutDir = directory[:-1]
 else:
     OutDir = directory
-pageLimit = 1000000
-if len(cardiacTimeSeries) <= pageLimit:
-    output_file_name = OutDir + '/cardiacOutliersWithPeaks.pdf'
-    outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
+    
+output_file_name = OutDir + '/cardiacOutliersWithPeaks.pdf'
+outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
                        peak_outliers,
                        outlier_ts_ranges, 
                        output_file_name)
-else:
-    num_files = int(len(cardiacTimeSeries)/pageLimit)
-    peak_outliers = np.array(peak_outliers)
-    peak_outliers = np.array(peak_outliers)
-    for i in range(0,num_files):
-        start = pageLimit * i
-        end = start + pageLimit
-        cardPeaks = cardiacPeaks[(cardiacPeaks >= start) & (cardiacPeaks < end)]-start
-        output_file_name = OutDir + '/cardiacOutliersWithPeaks_'+str(i)+'.pdf'
-        outputCardiacPlots(cardiacTimeSeries[start:end], 
-                       cardPeaks, 
-                       samp_freq, peak_outliers-start,
-                       outlier_ts_ranges-start, 
-                       output_file_name+'_'+str(i))
+
+# Replace peak indices, in anomalous regions, with peaks with roughly the median
+# spacing
+
+# Sort anomalous bands in  order of location
+sorted_ts_ranges = sorted(outlier_ts_ranges, key=lambda item: item[0])
+
+# Merge overlapping ranges
+num_ranges = len(sorted_ts_ranges)
+i = 0
+merged_ranges = []
+
+while i < num_ranges:
+    start, end = sorted_ts_ranges[i]
+
+    j = i + 1
+    while j < num_ranges and sorted_ts_ranges[j][0] <= end:
+        end = max(end, sorted_ts_ranges[j][1])
+        j += 1
+
+    merged_ranges.append([start, end])
+    i = j
+    
+# Reverse the orders of the merged ranges
+merged_ranges = merged_ranges[::-1]
+
+# Get median cardiac peak spacing
+median_peak_spacing = int(np.median([b - a for a, b in zip(cardiacPeaks[:-1], cardiacPeaks[1:])]))
+
+# Replace cardiac peaks in ranges with peaks spaced at roughly the median psacing
+num_ranges = len(merged_ranges)
+i = 0
+while i < num_ranges:
+    width = merged_ranges[i][1] - merged_ranges[i][0]
+    num_peaks = int(np.round(width/median_peak_spacing))
+    new_peaks = []
+    for j in range(1,num_peaks): new_peaks.append(merged_ranges[i][0] + 
+                                                  (j*median_peak_spacing))
+    
+    start, end = merged_ranges[i]
+
+    mask = (cardiacPeaks < start) | (cardiacPeaks > end)
+    cardiacPeaks = np.concatenate([cardiacPeaks[mask], new_peaks])
+    cardiacPeaks.sort()  
+    
+    i = i + 1
+
+# Write corrected cardiac peaks to file.
+np.savetxt(OutDir + '/correctedCardiacPeaks.1D', cardiacPeaks, fmt="%.2f")
+    
+        
+
+
+
+
+
+
+
 
 # Load respiratory time series
 print('Load respiratory time series')
