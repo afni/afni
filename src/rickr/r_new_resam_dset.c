@@ -155,14 +155,14 @@ static int daxis_resam_preserve( double dold, double dnew, int nold,
          Here lengths are in SLABS, (n-1)*delta
             nnew = floor(old_length / dnew + e) + 1
                  = floor((nold-1)*dold/dnew + e) + 1
-            NS = floor(0.5 * (oldlen-newlen) + e)
+            NS = floor(0.5 * (oldlen-newlen)/dold + e)
        */
       /* first set nsi = new num intervals, then set nnew */
       nsi = floor((nold-1)*dold/dnew + e);
       *nnew = nsi + 1;
       /* now set nsi = number of side intervals (of old (smaller) length) */
-      /*             = floor(1/2 * old_slab - new_slab)                   */
-      nsi = floor( 0.5 * ((nold-1)*fabs(dold) - (*nnew-1)*fabs(dnew)) + e);
+      /*             = floor(1/2 * (old_slab - new_slab) / dold)          */
+      nsi = floor( 0.5 * ((nold-1)*fabs(dold)-(*nnew-1)*fabs(dnew)) / fabs(dold) + e);
       *oshift = nsi*dold;
    }
 
