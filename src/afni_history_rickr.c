@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Dec, 2025, RCR, "3dcalc", MICRO, TYPE_MODIFY,
+   "quiet some warnings",
+   "If expr is 0 (or maybe 1), do not warn about all zeros or unused var." 
+ } ,
+
  {  5, Dec, 2025, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "warn if the 'phia' R library has version 0.3.1",
    NULL
