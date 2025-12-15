@@ -19,6 +19,20 @@
  *              -debug LEVEL      : spit out info
  *              -version          : print version info
  *
+ *              -bound_type BTYPE : control how new bounding box is defined
+ *
+ *                 Use -bound_type to specify how the new SLAB/FOV are computed.
+ *                 The orientation and voxel size can be controlled using
+ *                 options -orient and -dxyz.
+ *                 The -bound_type will affect the origin and number of voxels,
+ *                 which is to say the voxel centroids.
+ *
+ *                   BTYPE: one of {"FOV", "SLAB", "CENT_ORIG", "CENT"}
+ *                      FOV         : field of view
+ *                      SLAB        : slab (preserve outer centroids)
+ *                      CENT_ORIG   : preserve centroids, trunc towards origin
+ *                      CENT        : preserve centroids, trunc towards RAI
+ *
  *              -dxyz DX DY DZ    : resample to a new grid
  *                                      (DX, DY, DZ are real numbers in mm)
  *              -orient OR_CODE   : reorient to new orientation code
@@ -29,16 +43,53 @@
  *
  *              -rmode RESAM      : one of {"NN", "Li", "Cu", "Bk"}
  *
- *              -bound_type TYPE  : one of {"FOV", "SLAB", "CENT_ORIG", "CENT"}
- *                                  - field of view
- *                                  - slab (preserve outer centroids)
- *                                  - preserve centroids, trunc towards origin
- *                                  - preserve centroids, trunc towards RAI
+ *              -upsample FAC     : upsample the voxels by factor FAC
+ *
+ *                Upsampling the voxels makes them smaller.  This convenience
+ *                option is equivalent to using:
+ *
+ *                   -dxyz old_dx/FAC old_dy/FAC old_dz/FAC    \\
+ *                   -bound_type CENT                          \\
+ *
+ *                Specifying -bount_type BBB afterwards will override the
+ *                default 'CENT' for this option.
+ *
+ *              -downsample FAC   : downsample the voxels by factor FAC
+ *
+ *                Downsampling the voxels makes them larger.  This convenience
+ *                option is equivalent to using:
+ *
+ *                   -dxyz old_dx*FAC old_dy*FAC old_dz*FAC    \\
+ *                   -bound_type CENT                          \\
+ *
+ *                Specifying -bount_type BBB afterwards will override the
+ *                default 'CENT' for this option.
+ *
+ *              -delta_scale FAC  : rescale voxels sizes by factor FAC
+ *
+ *                This is a generalized version of -upsample/-downsample,
+ *                included since it is actually how -upsample and -downsample
+ *                are applied, and they are not allowed factors < 1.0.
+ *                The weirdness is just that upsample FAC > 1 means the voxels
+ *                get smaller, as 1.0/FAC.
+ *
+ *                Using           :    -upsample FAC
+ *                is equivalent to:    -delta_scale 1.0/FAC
+ *
+ *                Using           :    -downsample FAC
+ *                is equivalent to:    -delta_scale FAC
+ *
+ *
+ *                         FAC <= 0.0    : illegal
+ *                   0.0 < FAC <  1.0    : upsample (smaller voxels)
+ *                         FAC == 1.0    : no change in voxel size
+ *                   1.0 < FAC           : downsample (larger voxels)
  *
  *    examples:
  *      3dresample -orient "asl" -rmode NN -prefix asl.dset -input inset+orig
  *      3dresample -dxyz 1.0 1.0 0.9 -prefix 119.dset -input some.input+tlrc
  *      3dresample -master master+orig -prefix new.copy -input old.copy+orig
+ *      3dresample -downsample 2 -prefix new.down2 -input inset+orig
  *----------------------------------------------------------------------
 */
 
@@ -88,6 +139,7 @@ typedef struct
     THD_3dim_dataset * dset;
     THD_3dim_dataset * mset;
     double             dx, dy, dz;
+    double             dscale;
     char             * orient;
     char             * prefix;
     int                resam;
@@ -142,8 +194,9 @@ int init_options ( options_t * opts, int argc, char * argv [] )
 
     /* clear out the options structure, and explicitly set pointers */
     memset( opts, 0, sizeof(options_t) );
-    opts->orient = opts->prefix = NULL; /* laziness with proper conversions */
-    opts->dset   = opts->mset   = NULL;  
+    opts->orient = opts->prefix  = NULL; /* laziness with proper conversions */
+    opts->dset   = opts->mset    = NULL;
+    opts->dscale = 0.0;
 
     /* show help if there are no arguments */
     if ( argc < 2 ) { usage( argv[0], USE_LONG ); return 1; }
@@ -248,6 +301,60 @@ int init_options ( options_t * opts, int argc, char * argv [] )
                 return FAIL;
             }
         }
+        else if ( ! strncmp(argv[ac], "-upsample", 6) )     /* upsample */
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -upsample FAC\n", stderr );
+                usage( argv[0], USE_SHORT );
+                return FAIL;
+            }
+
+            opts->dscale = atof(argv[++ac]);
+            opts->bound_type = resam_str2bound("CENT");
+
+            /* test before inverting */
+            if ( opts->dscale < 1.0 ) {
+                fprintf( stderr, "upsample factor must be >= 1.0\n" );
+                return FAIL;
+            }
+            /* and take reciprocal, upsampling scales deltas downward */
+            opts->dscale = 1.0/opts->dscale;
+        }
+        else if ( ! strncmp(argv[ac], "-downsample", 8) )     /* downsample */
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -downsample FAC\n", stderr );
+                usage( argv[0], USE_SHORT );
+                return FAIL;
+            }
+
+            opts->dscale = atof(argv[++ac]);
+            opts->bound_type = resam_str2bound("CENT");
+
+            if ( opts->dscale < 1.0 ) {
+                fprintf( stderr, "downsample factor must be >= 1.0\n" );
+                return FAIL;
+            }
+        }
+        else if ( ! strncmp(argv[ac], "-delta_scale", 6) )     /* upsample */
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -delta_scale FAC\n", stderr );
+                usage( argv[0], USE_SHORT );
+                return FAIL;
+            }
+
+            opts->dscale = atof(argv[++ac]);
+            opts->bound_type = resam_str2bound("CENT");
+
+            if ( opts->dscale <= 0.0 ) {
+                fprintf( stderr, "delta_scale factor must be > 0.0\n" );
+                return FAIL;
+            }
+        }
         else if ( ! strncmp(argv[ac], "-zeropad", 5) )  /* zeropad */
         {
             fputs("warning: '-zeropad' is no longer a valid option\n", stderr);
@@ -315,6 +422,17 @@ int init_options ( options_t * opts, int argc, char * argv [] )
         fprintf( stderr, "missing prefix or input dset, exiting...\n" );
         usage( argv[0], USE_SHORT );
         return FAIL;
+    }
+
+    /* any dscale option is applied as -dxyz, and requires the input dset */
+    if( opts->dscale > 0.0 ) {
+        if( opts->dx != 0.0 ) {
+           fprintf(stderr,"** cannot use -dxyz with -dscale/up/downsample\n");
+           return FAIL;
+        }
+        opts->dx = opts->dscale * fabs(opts->dset->daxes->xxdel);
+        opts->dy = opts->dscale * fabs(opts->dset->daxes->yydel);
+        opts->dz = opts->dscale * fabs(opts->dset->daxes->zzdel);
     }
 
     if ( opts->debug >= RL_DEBUG_LOW )
