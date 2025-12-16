@@ -15,6 +15,7 @@
 
   [PT: Dec 15, 2025] quiet warnings about not using -cmass when
   _applying_ a transform (leave on for useful cases when estimating it)
+  ... and now also when the -allcostX* opts are used, because no dset is output
  */
 
 /*----------------------------------------------------------------------------*/
@@ -2428,13 +2429,13 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strcmp(argv[iarg],"-norefinal") == 0 ){ /* 14 Nov 2007 */
-       do_refinal = 0 ; iarg++ ; continue ;      /* SECRET OPTION */
+       do_refinal = 0 ; iarg++ ; continue ;      /* unSECRET OPTION */
      }
 
      /*-----*/
 
      if( strcmp(argv[iarg],"-allcost") == 0 ){   /* 19 Sep 2007 */
-       do_allcost = 1 ; iarg++ ; continue ;      /* SECRET OPTIONS */
+       do_allcost = 1 ; iarg++ ; continue ;      /* unSECRET OPTIONS */
      }
      if( strcmp(argv[iarg],"-allcostX") == 0 ){
        do_allcost = -1 ; iarg++ ; continue ;
@@ -4637,11 +4638,13 @@ STATUS("zeropad weight dataset") ;
         about not using -cmass, because it is irrelevant (since we are
         applying, not calculating a shift); the shift itself is still
         displayed, below.
+        ... and also, we might not likely need to apply these if 
+        an -allcostX* opt is being used, so we now also disable warn then
       */
-     if( CMbad > 0 && CMbad < 100 && apply_1D == NULL ){
+     if( CMbad > 0 && CMbad < 100 && apply_1D == NULL && !(do_allcost<0) ){
        WARNING_message("center of mass shifts (-cmass) are turned off, but would be large") ;
        WARNING_message("  - at least one is more than 20%% of search range") ;
-     } else if( CMbad >= 100 && apply_1D == NULL ){
+     } else if( CMbad >= 100 && apply_1D == NULL && !(do_allcost<0) ){
        WARNING_message("center of mass shifts (-cmass) are turned off, but would be TERRIBLY large!") ;
        WARNING_message("  - at least one is more than 50%% of search range") ;
      }
@@ -4899,9 +4902,12 @@ STATUS("zeropad weight dataset") ;
    /*****------ create shell of output dataset ------*****/
 
    if( prefix == NULL ){
-     WARNING_message("No output dataset will be calculated") ;
-     if( dxyz_mast > 0.0 )
-       WARNING_message("-mast_dxyz %g option was meaningless :-(",dxyz_mast) ;
+     /* 15 Dec 2025: do no warn if allcostX* is used */
+     if( !(do_allcost < 0) ) {
+       WARNING_message("No output dataset will be calculated") ;
+       if( dxyz_mast > 0.0 )
+         WARNING_message("-mast_dxyz %g option was meaningless :-(",dxyz_mast) ;
+     }
    } else {
      if( dset_mast == NULL ){ /* pick a master dataset to control output grid */
        if( dset_base != NULL ){
@@ -6789,7 +6795,8 @@ mri_genalign_set_pgmat(1) ;
    if( verb ){
       INFO_message("###########################################################");
    }
-   if( !do_cmass && CMbad > 0 && apply_1D == NULL ){ /* 26 Feb 2020; 15 Dec 2025 */
+   if( !do_cmass && CMbad > 0 && apply_1D == NULL && !(do_allcost<0) ){ 
+     /* conditions to warn updated on dates: 26 Feb 2020; 15 Dec 2025 */
      ININFO_message (" ") ;
      INFO_message   ("***********************************************************") ;
      WARNING_message("-cmass was turned off, but might have been needed :("       ) ;
