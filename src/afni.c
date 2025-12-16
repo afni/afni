@@ -10866,7 +10866,15 @@ static void fixscale( XtPointer client_data , XtIntervalId *id )
 
 /*------------------------------------------------------------------------*/
 
-/* drg/rcr - to redraw after resize */
+/* drg/rcr - to redraw after resize
+ *
+ * - main work so far (GUI and Image windows)
+      forceExpose(im3d->vwid->top_form, 0);
+      foreach s123,s231,s312,  g123,g231,g312
+         if( im3d->s123 ) forceExpose(im3d->s123->wtop, 0);
+         if( im3d->g123 ) forceExpose(im3d->g123->fdw_graph, 0);
+ * - actual graph plotting areaa seems to be handled differently
+ */
 void forceExpose(Widget w, int depth) {
    static int cc = 0;
    // fprintf(stderr,"== expose %p, depth %d, cc %d\n", w, depth, cc);
@@ -11046,9 +11054,14 @@ STATUS("opening panel") ;
 
 /* drg/rcr - playing with resize fixing... */
 forceExpose(im3d->vwid->top_form, 0);
-forceExpose(im3d->s123->wtop, 0);
-forceExpose(im3d->s231->wtop, 0);
-forceExpose(im3d->s312->wtop, 0);
+
+if( im3d->s123 ) forceExpose(im3d->s123->wtop, 0);
+if( im3d->s231 ) forceExpose(im3d->s231->wtop, 0);
+if( im3d->s312 ) forceExpose(im3d->s312->wtop, 0);
+
+if( im3d->g123 ) forceExpose(im3d->g123->fdw_graph, 0);
+if( im3d->g231 ) forceExpose(im3d->g231->fdw_graph, 0);
+if( im3d->g312 ) forceExpose(im3d->g312->fdw_graph, 0);
 
 #ifdef REMANAGE_FUNC
 STATUS("remanaging children") ;
