@@ -130,21 +130,114 @@ def make_neater_3dinfo_dict(dd) :
 
 # -------------------------------------
 
-def get_all_3dinfo_dset_neatly(fname) :
+def get_all_3dinfo_dset_neatly(fname, numberize_values=False, 
+                               remove_dash_in_keys=True) :
+    """
+
+"""
+
     DD     = get_all_3dinfo_dset_basic(fname)
     DD_new = make_neater_3dinfo_dict(DD)
+
+    if numberize_values :
+        DD_new = make_number_values(DD_new)
+
+    if remove_dash_in_keys :
+        DD_new = make_keys_dashless(DD_new)
+
     return DD_new
 
 
+def make_keys_dashless(DD):
+    """Go through all keys in the dictionary DD remove any leading dash in
+the [0]th element of a key.  This is useful since many keys here are
+option names in 3dinfo.
+
+Parameters
+----------
+DD : dict
+    dictionary to have each value or element of values numerified
+
+Returns
+-------
+EE : dict
+    processed version of DD; should be same number of keys and values
+
+    """
+
+    EE = {}
+
+    # go through all keys, and remove any '-' at start of str
+    for key in DD.keys():
+        val = DD[key]
+
+        if isinstance(key, str) :
+            if len(key) and key[0] == '-' :
+                EE[key[1:]] = val
+            else:
+                EE[key] = val
+        else:
+            EE[key] = val
+
+    return EE
 
 
+def make_number_values(DD):
+    """Go through all values in the dictionary DD and convert any that can
+to simple numerical types (bool for True and False; float; int);
+otherwise, leave as a string.  If the value is a list, go through each
+element.
 
+Parameters
+----------
+DD : dict
+    dictionary to have each value or element of values numerified
 
+Returns
+-------
+EE : dict
+    processed version of DD; should be same number of keys and values
 
+    """
 
+    EE = {}
 
+    # go through all values, and see what values (or their elements,
+    # if a list) can be converted
+    for key in DD.keys():
+        val = DD[key]
 
+        # when the values are a list, check each one to convert
+        if isinstance(val, list) :
+            L = []
+            for vv in val:
+                # get each element as either a numerical version or
+                # just the str itself...
+                ww, wtype = UTIL.try_convert_bool_float_int_str(vv)
+                if ww is not None :
+                    L.append(ww)
+                else:
+                    # ... or whatever it was originally
+                    L.append(vv)
+            EE[key] = L
 
+        # 
+        else:
+            ww, wtype = UTIL.try_convert_bool_float_int_str(val)
+            if ww is not None :
+                EE[key] = ww
+            else:
+                EE[key] = val
+
+    return EE
+            
+
+# ============================================================================
+
+if __name__ == "__main__" :
+
+    # an example use case
+    print("++ No example")
 
 
 

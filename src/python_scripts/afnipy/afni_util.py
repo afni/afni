@@ -6114,10 +6114,281 @@ num : int
 
     return 0
 
+def convert_to_bool_yn10(X):
+    """Many command line program options take Yes/No/1/0 as args.  Convert
+any of these to simple bool values.
+
+    Rules for mapping X
+    -------------------
+    True  : 'Yes', '1', 1
+    False : 'No', '0', 0
+
+    ... and all other X values produce an error.
+
+Parameters
+----------
+X : str (or int)
+    a value like 'Yes', 'No', '1', '0', 1 or 0.
+
+Returns
+-------
+B : bool
+    interpret X as either representing True or False, and return the bool
+"""
+
+    if X in ['Yes', '1', 1] :
+        B = True
+    elif X in ['No', '0', 0] : 
+        B = False
+    else:
+        BASE.EP("I don't know how to convert '{}' to bool".format(X))
+        
+    return B
+        
+def get_dirname_from_prefix(prefix):
+    """Many times, we want to know the directory name separately from
+the prefix. This function generates that piece.  For current
+directory, the result will be '.'; if prefix uses relative or absolute
+paths, the format of outdir will match.
+
+This function *assumes* that prefix ends in a filename, and isn't just
+purely a directory path; it will treat the final part of the prefix
+string as a file, to be stripped away.  And the input prefix need not
+exist on the disk.
+
+This function also tries to clean up stray or repeated '/' chars.
+
+Parameters
+----------
+prefix : str
+    prefix string
+
+Returns
+-------
+dname : str
+    directory name part of string
+
+    """
+
+    if not isinstance(prefix, str):
+        BASE.EP("input must be of type str")
+
+    if '/' not in prefix :
+        dname = '.'
+    else:
+        lll = os.path.dirname(prefix)
+        count = 0
+        while ('//' in lll) and count<100 : 
+            lll = lll.replace('//', '/')
+            count+= 1
+        dname = lll.rstrip('/')
+
+    return dname
+
+def info_dset_exists(dset):
+    """Because of heterogeneity of ways to refer to a dset name within
+AFNI, use this func to generically verify if the filename string dset
+can be loaded.  Return 1 if loadable, and 0 otherwise.
+
+Parameters
+----------
+dset : str
+    name of a single dset
+
+Returns
+-------
+exists : int
+    1 if dset can be loaded in AFNI, otherwise 0
+"""
+
+    if not isinstance(dset, str):
+        BASE.EP("input dset must be of type str")
+
+    cmd  = '3dinfo -exists ' + dset
+    com  = BASE.shell_com(cmd, capture=1)
+    stat = com.run()
+    lcom = com.so[0].split()
+    exists = int(lcom[0].strip())
+
+    if stat or not(exists):
+        return 0
+    return 1
+
+def info_dset_exists_with_names(dset):
+    """Same as info_dset_exists(dset), but with more returned items,
+including:
+    -is_nifti
+    -prefix_noext
+    -header_name
+
+Parameters
+----------
+dset : str
+    name of a single dset
+
+Returns
+-------
+exists : int
+    1 if dset can be loaded in AFNI, otherwise 0
+is_nifti : int
+    1 if dset is NIFTI, otherwise 0
+prefix_noext : str
+    the -prefix_noext output from 3dinfo
+header_name : str
+    full path of full dset name (*.HEAD if AFNI format)
+
+    """
+
+    if not isinstance(dset, str):
+        BASE.EP("input dset must be of type str")
+
+    cmd  = '3dinfo -exists -is_nifti -prefix_noext -header_name ' + dset
+    com  = BASE.shell_com(cmd, capture=1)
+    stat = com.run()
+    lcom = com.so[0].split()
+    exists = int(lcom[0].strip())
+
+    if stat or not(exists):
+        return 0, -1, 'NO-DSET', 'NO-DSET'
+
+    is_nifti     = int(lcom[1].strip())
+    prefix_noext = lcom[2].strip()
+    header_name  = lcom[3].strip()
+    return 1, is_nifti, prefix_noext, header_name
+
+
+def check_all_dsets_exist(all_dset, label='', verb=1) :
+    """For a list of dsets all_dset, check if each is loadable within
+AFNI. Return the number of failures. Hence, if this returns 0 then
+each dset in all_dset exists (= success, likely).
+
+The optional string 'label' can be used when reporting verbosely about
+what kind of dset is being checked.
+
+Parameters
+----------
+all_dset : list (of str)
+    a list of dataset names
+label : str
+    string label when reporting verbosely
+verb : int
+    verbosity level
+
+Returns
+-------
+nfail : int
+    number of failures
+
+    """
+
+    if not(isinstance(all_dset, list)):
+        BASE.EP("Must provide a list of dsets to this function.")
+
+    # minor adjustment for spacing
+    if label :
+        label+= ' '
+
+    nfail = 0
+
+    for dset in all_dset:
+        exists = info_dset_exists(dset)
+        if verb > 1 :
+            txt = "Existence check for {}dset {}: ".format(label, dset)
+            txt+= " {}".format(exists)
+            BASE.IP(txt)
+        if not(exists) :
+            msg = " Cannot load {}dset {} ".format(label, dset)
+            BASE.EP1(msg)
+            nfail+= 1
+
+    return nfail
+
+
+def simple_type(x):
+    """When printing the type(...) of something, the format is annoyingly:
+    <class 'TYPE'>.  This returns the simple string 'TYPE', unless
+    something weird happens, in which case it will just return the
+    standard-but-likely-annoying format.
+
+Parameters
+----------
+x : any object type
+    some object whose type you want to have as a simple str
+
+Returns
+-------
+xtype : str
+    simple string of the type of x
+
+    """
+
+    a = type(x)
+    # get extended type info as str
+    b = "{}".format(a)
+    # remove: <class ', and: '>
+    if len(b) > 10 :
+        c = b[8:-2]
+        return c
+    else:
+        return b
+
+
+def try_convert_bool_float_int_str(x, exit_on_error=False):
+    """For input string x, see how it might convert to a numerical value
+and output one of those (in descending order of bool, then float, then
+int), or if none of those work, just output the str itself.
+
+If an error on input occurs, this program will by default return a
+value of None, plus the type of the item input (its supposed to be a
+str, folks!). But users can change this behavior with the exit_on_error kwarg.
+
+Parameters
+----------
+x : str
+    a string to consider converting to a numerical type
+exit_on_error: bool
+    toggle whether to exit totally on input error, or to just whine vociferously
+
+Returns
+-------
+y : bool or float or int or str
+    one of a descending list of types to try converting to, with str being
+    the last
+ytype : str
+    the simple-string-format type of the item returned
+
+    """
+
+    if not(isinstance(x, str)) :
+        xtype = simple_type(x)
+        msg   = "Input must be of type 'str', not '{}'".format(xtype)
+        if exit_on_error :
+            BASE.EP(msg)
+        else:
+            BASE.WP(msg)
+            return None, xtype
+
+    # bool
+    if x == 'True' :   return True, 'bool'
+    if x == 'False' :  return False, 'bool'
+        
+    # int, else float
+    try:
+        y = float(x)
+        if y.is_integer() and not('.' in x) :
+            y = int(y)
+    except:
+        # str
+        y = x
+
+    # just the type as a simple str
+    ytype = simple_type(y)
+
+    return y, ytype
+
 # ----------------------------------------------------------------------
 
 if __name__ == '__main__':
    print('afni_util.py: not intended as a main program')
    print('              (consider afni_python_wrapper.py)')
    sys.exit(1)
-

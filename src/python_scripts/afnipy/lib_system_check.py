@@ -1912,6 +1912,19 @@ class SysInfo:
       check_list = ['tcsh', 'Xvfb']
       nfound = self.check_for_progs(check_list, show_missing=1)
 
+   def get_R_lib_ver(self, package):
+      """return the packageVersion output from R"""
+      # too many quotes for UTIL.exec_tcsh_command...
+      cmd = """Rscript -e "packageVersion('%s')" """ % package
+      st, so, se = BASE.shell_exec2(cmd, capture=1)
+      sl = so[0].split()
+      # if we have the expected 2 args, strip of outer chars, the quotes
+      if len(sl) == 2:
+         vstr = sl[1][1:-1]
+      else:
+         vstr = ''
+      return vstr
+
    def check_R_libs(self):
       print('checking for R packages...')
 
@@ -1943,6 +1956,15 @@ class SysInfo:
          print(g_indent + indn.join(se))
          self.comments.append('missing R packages (see rPkgsInstall)')
       print('')
+
+      # worry about phia version 0.3.1
+      pver = self.get_R_lib_ver('phia')
+      pstr = 'R phia library version : %s' % pver
+      bad_pver = '0.3.1'
+      if self.verb > 1 or pver == bad_pver:
+         print(pstr)
+      if pver == bad_pver:
+         self.comments.append('please update from bad %s ' % pstr)
 
       status, cout = UTIL.exec_tcsh_command("R RHOME")
       print('R RHOME : %s' % cout.strip())

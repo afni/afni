@@ -154,7 +154,7 @@ inobj : InOpts object
     #@property
     def ninset(self):
         """number of insets"""
-        return len(self.insets)
+        return len(self.inset)
 
 # ============================================================================
 
