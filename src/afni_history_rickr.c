@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Dec, 2025, RCR, "3dresample", MICRO, TYPE_MODIFY,
+   "allow resampling to stay on current voxel grid, as much as possible",
+   "Add -bound_type CENT/CENT_ORIG, add -up/downsample, -delta_scale.\n"
+   "Done for PT."
+ } ,
+
  {  5, Dec, 2025, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "warn if the 'phia' R library has version 0.3.1",
    NULL
