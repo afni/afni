@@ -1348,7 +1348,7 @@ void THD_check_vectim( MRI_vectim *mv , char *fname )
      if( ii == nvals ) nbad++ ;
    }
    if( nbad > 0 && nvals > 1 ){
-     /* 16 Dec 2025: now be more discreet about warnings, with some
+     /* 16 Dec 2025: be quieter about warnings, with some
         cases moved to "just" info msgs. We start warns-> info for
         3dTproject usage, but might expand further.
      */
