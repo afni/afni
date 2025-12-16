@@ -131,6 +131,7 @@ static int daxis_resam_preserve( double dold, double dnew, int nold,
       return 1;
    }
 
+   /* initially process as CENT_ORIG */
    if( fabs(dnew) <= fabs(dold) ) {
       /* upsample: get biggest SLAB inside FOV
                    from origin, move out toward FOV edge
@@ -162,7 +163,8 @@ static int daxis_resam_preserve( double dold, double dnew, int nold,
       *nnew = nsi + 1;
       /* now set nsi = number of side intervals (of old (smaller) length) */
       /*             = floor(1/2 * (old_slab - new_slab) / dold)          */
-      nsi = floor( 0.5 * ((nold-1)*fabs(dold)-(*nnew-1)*fabs(dnew)) / fabs(dold) + e);
+      nsi = floor( 0.5 * ((nold-1)*fabs(dold)-(*nnew-1)*fabs(dnew))
+                       / fabs(dold) + e );
       *oshift = nsi*dold;
    }
 

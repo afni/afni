@@ -51,7 +51,7 @@
  *                   -dxyz old_dx/FAC old_dy/FAC old_dz/FAC    \\
  *                   -bound_type CENT                          \\
  *
- *                Specifying -bount_type BBB afterwards will override the
+ *                Specifying -bound_type BBB afterwards will override the
  *                default 'CENT' for this option.
  *
  *              -downsample FAC   : downsample the voxels by factor FAC
@@ -62,7 +62,7 @@
  *                   -dxyz old_dx*FAC old_dy*FAC old_dz*FAC    \\
  *                   -bound_type CENT                          \\
  *
- *                Specifying -bount_type BBB afterwards will override the
+ *                Specifying -bound_type BBB afterwards will override the
  *                default 'CENT' for this option.
  *
  *              -delta_scale FAC  : rescale voxels sizes by factor FAC
@@ -78,7 +78,6 @@
  *
  *                Using           :    -downsample FAC
  *                is equivalent to:    -delta_scale FAC
- *
  *
  *                         FAC <= 0.0    : illegal
  *                   0.0 < FAC <  1.0    : upsample (smaller voxels)
@@ -194,12 +193,14 @@ int main( int argc , char * argv[] )
 int init_options ( options_t * opts, int argc, char * argv [] )
 {
     int ac;
+    int opt_btype = -1; /* start with invalid */
 
     /* clear out the options structure, and explicitly set pointers */
     memset( opts, 0, sizeof(options_t) );
     opts->orient = opts->prefix  = NULL; /* laziness with proper conversions */
     opts->dset   = opts->mset    = NULL;
     opts->dscale = 0.0;
+    opts->bound_type = resam_str2bound("FOV"); /* set, but override with opt */
 
     /* show help if there are no arguments */
     if ( argc < 2 ) { usage( argv[0], USE_LONG ); return 1; }
@@ -231,7 +232,7 @@ int init_options ( options_t * opts, int argc, char * argv [] )
                 return FAIL;
             }
 
-            if ( (opts->bound_type = resam_str2bound(argv[++ac])) < 0 )
+            if ( (opt_btype = resam_str2bound(argv[++ac])) < 0 )
             {
                 fprintf( stderr, "invalid -bound_type <%s>\n", argv[ac] );
                 return FAIL;
@@ -427,6 +428,11 @@ int init_options ( options_t * opts, int argc, char * argv [] )
         return FAIL;
     }
 
+    /* if user specified bound_type, override default */
+    /* (since default can change based on options) */
+    if( opt_btype >= 0 )
+        opts->bound_type = opt_btype;
+
     /* any dscale option is applied as -dxyz, and requires the input dset */
     if( opts->dscale > 0.0 ) {
         if( opts->dx != 0.0 ) {
@@ -600,29 +606,27 @@ int usage ( char * progg, int level )
     "\n"
     "%s - reorient and/or resample a dataset\n"
     "\n"
-    "    This program can be used to change the orientation of a\n"
-    "    dataset (via the -orient option), or the dx,dy,dz\n"
-    "    grid spacing (via the -dxyz option), or change them\n"
-    "    both to match that of a master dataset (via the -master\n"
-    "    option).\n"
+    "    This program can be used to change the orientation of a dataset (via\n"
+    "    -orient), or the dx,dy,dz grid spacing (via -dxyz or any of\n"
+    "    -upsample, -downsample or -delta_scale), or change them both to\n"
+    "    match that of a master dataset (via the -master option).\n"
     "\n"
-    "    Note: if both -master and -dxyz are used, the dxyz values\n"
-    "          will override those from the master dataset.\n"
+    "    Note: if both -master and -dxyz are used, the dxyz values will\n"
+    "          override those from the master dataset.\n"
     "\n"
-    " ** It is important to note that once a dataset of a certain\n"
-    "    grid is created (i.e. orientation, dxyz, field of view),\n"
-    "    if other datasets are going to be resampled to match that\n"
-    "    first one, then using -master should be used, instead of\n"
-    "    -dxyz.  That will guarantee that all grids match.\n"
+    " ** It is important to note that once a dataset of a certain grid is\n"
+    "    created (i.e. orientation, dxyz, field of view), if other datasets\n"
+    "    are going to be resampled to match that first one, then -master\n"
+    "    should be used, rather than repeating -dxyz.  That will guarantee\n"
+    "    that all grids match.\n"
     "\n"
-    "    Otherwise, even using both -orient and -dxyz, one may not\n"
-    "    be sure that the fields of view will identical, for example.\n"
+    "    Otherwise, even using both -orient and -dxyz, one may not be sure\n"
+    "    that the origin and voxel counts will match, as the are computed.\n"
     "\n"
-    " ** Warning: this program is not meant to transform datasets\n"
-    "             between view types (such as '+orig' and '+tlrc').\n"
+    " ** Warning: this program is not meant to transform datasets between\n"
+    "             view types (such as '+orig' and '+tlrc') or spaces.\n"
     "\n"
-    "             For that purpose, please see '3dfractionize -help'\n"
-    "             or 'adwarp -help'.\n"
+    "             For that purpose, please see 3dAllineate or 3dNwarpApply.\n"
     "\n"
     "------------------------------------------------------------\n"
     "\n"
@@ -630,50 +634,51 @@ int usage ( char * progg, int level )
     "\n"
     "  examples:\n"
     "\n"
-    "    %s -orient asl -rmode NN -prefix asl.dset -input in+orig\n"
-    "    %s -dxyz 1.0 1.0 0.9 -prefix 119.dset -input in+tlrc\n"
-    "    %s -master master+orig -prefix new.dset -input old+orig\n"
+    "    %s -orient asl         -prefix new.asl.dset  -input old+orig\n"
+    "    %s -dxyz 1.0 1.0 0.9   -prefix new.119.dset  -input old+tlrc\n"
+    "    %s -master master+orig -prefix new.dset      -input old+orig\n"
+    "    %s -downsample 3       -prefix new.down2.nii -input old.nii\n"
+    "    %s -upsample   3       -prefix new.up2.nii   -input old.nii\n"
     "\n"
     "  note:\n"
     "\n"
-    "    Information about a dataset's voxel size and orientation\n"
-    "    can be found in the output of program 3dinfo\n"
+    "    Information about a dataset's voxel size and orientation can be\n"
+    "    found via program 3dinfo.\n"
     "\n"
     "------------------------------------------------------------\n"
     "\n"
-    "  options: \n"
+    "  terminal options: \n"
     "\n"
     "    -help            : show this help information\n"
     "\n"
     "    -hist            : output the history of program changes\n"
     "\n"
-    "    -debug LEVEL     : print debug info along the way\n"
-    "          e.g.  -debug 1\n"
-    "          default level is 0, max is 2\n"
-    "\n"
     "    -version         : show version information\n"
+    "\n"
+    "  main options\n"
     "\n"
     "    -bound_type TYPE : specify which boundary is preserved\n"
     "          e.g.     -bound_type SLAB\n"
     "          default: -bound_type CENT  (for delta_scale operations)\n"
     "          default: -bound_type FOV   (for other operations)\n"
     "\n"
+    "      TYPE\n"
+    "      ----\n"
     "      FOV : field of view (see 'to3d -help')\n"
     "          : half a voxel outside of bounding centers (SLAB)\n"
     "\n"
-    "          The default and original use preserves the field of\n"
-    "          view when resampling, allowing the extents (SLABs)\n"
-    "          to grow or shrink by half of the difference in the\n"
-    "          dimension size (big voxels to small will cause the\n"
-    "          extents to expand, for example, while small to big\n"
-    "          will cause them to shrink).\n"
+    "          The default and original use preserves the field of view when\n"
+    "          resampling, allowing the extents (SLABs) to grow or shrink by\n"
+    "          half of the difference in the dimension size (big voxels to\n"
+    "          small will cause the extents to expand, for example, while\n"
+    "          small to big will cause them to shrink).\n"
     "\n"
     "      SLAB : extents or bounding centers (see 'to3d -help')\n"
     "           : from outer voxel center to outer voxel center\n"
     "\n"
-    "          Using -bound_type SLAB will have the opposite effect as FOV.\n"
-    "          The extents should be unchanged, while the FOV will grow\n"
-    "          or shrink in the opposite way as above).\n"
+    "          SLAB will have the opposite effect as FOV.  The extents should\n"
+    "          be unchanged (subject to voxel size truncation), while the FOV\n"
+    "          will grow or shrink in the opposite way as above.\n"
     "\n"
     "          Note that when using SLAB, edge voxels should be mostly\n"
     "          unaffected by the interpolation.\n"
@@ -681,12 +686,12 @@ int usage ( char * progg, int level )
     "      CENT_ORIG: preserve voxel centroids (not in to3d)\n"
     "\n"
     "          Try to preserve voxel centers when resampling.  If scaling the\n"
-    "          voxels (up or down) by an integer, output voxels should be on\n"
-    "          the original grid as much as possible.\n"
+    "          voxel sizes (up or down) by an integer, output voxels should\n"
+    "          be on the original grid as much as possible.\n"
     "\n"
-    "       ** With -dxyz, the user should be sure the new dxyz values scale\n"
-    "          correctly.  Otherwise consider -upsample, -downsample or\n"
-    "          -delta_scale.\n"
+    "       ** If directly using -dxyz, the user should be sure the new dxyz\n"
+    "          values scale correctly.  Otherwise consider using -upsample,\n"
+    "          -downsample or -delta_scale.\n"
     "\n"
     "          When upsampling (by a scale factor of S):\n"
     "\n"
@@ -708,75 +713,126 @@ int usage ( char * progg, int level )
     "\n"
     "        *   For integer S, this result will include only original voxel\n"     "            centers, and fewer of them.  The origin will be offset by\n"
     "            half of the missing slab :\n"
-    "            floor(1/2 * (old_slab-new_slab)/dold + e)\n"
+    "               floor(1/2 * (old_slab-new_slab)/dold + e)\n"
     "\n"
     "          For either upsample or downsample (by an integer scalar S),\n"
     "          the origin shift will be a multiple of the smaller voxel size\n"
     "          (dold or dnew).\n"
     "\n"
     "      CENT : preserve voxel centroids (not in to3d)\n"
+    "           : be orientation agnostic\n"
     "\n"
     "          This is the same as CENT_ORIG, except that CENT_ORIG truncates\n"
     "          toward the origin in each direction.  CENT will truncate\n"
     "          towards R,A,I, making it orientation agnostic (the result\n"
     "          should be independent of the orientation on disk).\n"
     "\n"
-    "          This is the default bound_type when rescaling voxles with\n"
-    "          -upsample, -downsample or -delta_scale.\n"
+    "          This is the default bound_type when rescaling voxels with\n"
+    "          -upsample, -downsample or -delta_scale (unless -bound_type\n"
+    "          is applied).\n"
+    "\n"
+    "    -debug LEVEL     : print debug info along the way\n"
+    "          e.g.  -debug 1\n"
+    "          default level is 0, max is 2\n"
     "\n"
     "    -dxyz DX DY DZ   : resample to new dx, dy and dz\n"
     "          e.g.  -dxyz 1.0 1.0 0.9\n"
     "          default is to leave unchanged\n"
     "\n"
-    "          Each of DX,DY,DZ must be a positive real number,\n"
-    "          and will be used for a voxel delta in the new\n"
-    "          dataset (according to any new orientation).\n"
+    "          Each of DX,DY,DZ must be a positive real number, and will be\n"
+    "          used for a voxel delta in the new dataset (according to any\n"
+    "          new orientation).\n"
+    "\n"
+    "    -input IN_DSET   : required input dataset to reorient\n"
+    "          e.g.  -input old.dset+orig\n"
+    "\n"
+    "          Specify the input dataset.\n"
+    "\n"
+    "    -inset IN_DSET   : alternative to -input\n"
+    "\n"
+    "    -master MAST_DSET: align dataset grid to that of MAST_DSET\n"
+    "          e.g.  -master master.dset+orig\n"
+    "\n"
+    "          Get dxyz and orient from a master dataset.  The resulting grid\n"
+    "          will match that of the master.  This option can be used with\n"
+    "          -dxyz, but not with -orient.\n"
     "\n"
     "    -orient OR_CODE  : reorient to new axis order.\n"
     "          e.g.  -orient asl\n"
     "          default is to leave unchanged\n"
     "\n"
-    "          The orientation code is a 3 character string,\n"
-    "          where the characters come from the respective\n"
-    "          sets {A,P}, {I,S}, {L,R}.\n"
+    "          The orientation code is a 3 character string, where the\n"
+    "          characters come from the respective sets:\n"
+       "          {A,P}, {I,S}, {L,R}\n"
     "\n"
-    "          For example OR_CODE = LPI is the standard\n"
-    "          'neuroscience' orientation, where the x-axis is\n"
-    "          Left-to-Right, the y-axis is Posterior-to-Anterior,\n"
-    "          and the z-axis is Inferior-to-Superior.\n"
+    "          For example OR_CODE = LPI is the standard 'neurological'\n"
+    "          orientation, where the x-axis runs Left-to-Right, the y-axis\n"
+    "          runs Posterior-to-Anterior, and the z-axis runs\n"
+    "          Inferior-to-Superior.\n"
+    "\n"
+    "    -prefix OUT_DSET : required prefix for output dataset\n"
+    "          e.g.  -prefix reori.asl.pickle\n"
+    "\n"
+    "          Specify the name of the output data.  To get NIFTI, simply\n"
+    "          include a .nii or .nii.gz suffix, as with most AFNI programs.\n"
     "\n"
     "    -rmode RESAM     : use this resampling method\n"
     "          e.g.  -rmode Linear\n"
     "          default is NN (nearest neighbor)\n"
     "\n"
-    "          The resampling method string RESAM should come\n"
-    "          from the set {'NN', 'Li', 'Cu', 'Bk'}.  These\n"
-    "          are for 'Nearest Neighbor', 'Linear', 'Cubic'\n"
-    "          and 'Blocky' interpolation, respectively.\n"
+    "          The resampling method string RESAM should come from the set\n"
+    "          {'NN', 'Li', 'Cu', 'Bk'}.  These are for 'Nearest Neighbor',\n"
+    "          'Linear', 'Cubic' and 'Blocky' interpolation, respectively.\n"
     "\n"
-    "          For details, go to the 'Define Datamode' panel\n"
-    "          of the afni GUI, click BHelp and then the\n"
-    "          'ULay resam mode' menu.\n"
+    "          For details, go to the 'Define Datamode' panel of the afni\n"
+    "          GUI, click BHelp and then the 'ULay resam mode' menu.\n"
     "\n"
-    "    -master MAST_DSET: align dataset grid to that of MAST_DSET\n"
-    "          e.g.  -master master.dset+orig\n"
+    "    -upsample FAC    : upsample the voxels by factor FAC\n"
     "\n"
-    "          Get dxyz and orient from a master dataset.  The\n"
-    "          resulting grid will match that of the master.  This\n"
-    "          option can be used with -dxyz, but not with -orient.\n"
+    "          Upsampling the voxels makes them smaller.  This convenience\n"
+    "          option is equivalent to using:\n"
     "\n"
-    "    -prefix OUT_DSET : required prefix for output dataset\n"
-    "          e.g.  -prefix reori.asl.pickle\n"
+    "             -dxyz old_dx/FAC old_dy/FAC old_dz/FAC\n"
+    "             -bound_type CENT\n"
     "\n"
-    "    -input IN_DSET   : required input dataset to reorient\n"
-    "          e.g.  -input old.dset+orig\n"
+    "          Specifying -bound_type BBB afterwards will override the\n"
+    "          default 'CENT' for this option.\n"
     "\n"
-    "    -inset IN_DSET   : alternative to -input\n"
+    "    -downsample FAC   : downsample the voxels by factor FAC\n"
+    "\n"
+    "          Downsampling the voxels makes them larger.  This convenience\n"
+    "          option is equivalent to using:\n"
+    "\n"
+    "             -dxyz old_dx*FAC old_dy*FAC old_dz*FAC\n"
+    "             -bound_type CENT\n"
+    "\n"
+    "          Specifying -bound_type BBB afterwards will override the\n"
+    "          default 'CENT' for this option.\n"
+    "\n"
+    "    -delta_scale FAC  : rescale voxels sizes by factor FAC\n"
+    "\n"
+    "          This is a generalized version of -upsample/-downsample,\n"
+    "          included since it is actually how they are applied (and they\n"
+    "          are not allowed factors < 1.0).  The weirdness is since\n"
+    "          upsample FAC > 1 means the voxels get smaller, as 1.0/FAC.\n"
+    "\n"
+    "          -delta_scale is equivalent to -downsample, and equates to: \n"
+    "\n"
+    "             -dxyz old_dx*FAC old_dy*FAC old_dz*FAC\n"
+    "             -bound_type CENT\n"
+    "\n"
+    "          FAC overview:\n"
+    "\n"
+    "                   FAC <= 0.0    : illegal\n"
+    "             0.0 < FAC <  1.0    : upsample (smaller voxels)\n"
+    "                   FAC == 1.0    : no change in voxel size\n"
+    "             1.0 < FAC           : downsample (larger voxels)\n"
+    "\n"
     "------------------------------------------------------------\n"
     "\n"
     "  Author: R. Reynolds - %s\n"
     "\n",
-    prog, prog, prog, prog, prog, VERSION );
+    prog, prog, prog, prog, prog, prog, prog, VERSION );
 
         return 0;
     }
