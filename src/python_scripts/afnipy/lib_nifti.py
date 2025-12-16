@@ -16,6 +16,10 @@ import numpy as np
 # For reference, the NIFTI header fields are listed, defined and
 # described here:
 # https://github.com/NIFTI-Imaging/nifti_clib/blob/master/nifti2/nifti1.h
+# 
+# Additionally, attributes of the AFNI header are listed, defined and
+# described here:
+# https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.attributes.html
 #
 # This webpage also includes useful information about some NIFTI and
 # AFNI header features:
@@ -118,12 +122,214 @@ STR_allowed_av_space = ', '.join(LIST_allowed_av_space)
 
 # ============================================================================
 # calculate nifti fields: 
+# + dim - short [8]
+
+def calc_nifti_dim( Adict, verb=1 ):
+    """Given the dictionary of AFNI header attributes Adict (and/or
+provided file name fname), calculate what the corresponding array of
+dim values would be.
+
+This checks for several AFNI header attributes:
++ DATASET_RANK : describes dimensionality of the data; may be up to 8
+  values, but probably fewer nonzero in practice 
+    [0] number of spatial dimensions (must be 3)
+    [1] number of volumes (time points, nvals or nv)
++ DATASET_DIMENSIONS : 3 values of the spatial axes
+    [0] = number of voxels along the x-axis (nx)
+    [1] = number of voxels along the y-axis (ny)
+    [2] = number of voxels along the z-axis (nz)
+    The voxel with 3-index (i,j,k) in a sub-brick
+    is located at position (i+j*nx+k*nx*ny), for
+    i=0..nx-1, j=0..ny-1, k=0..nz-1.  Each axis must
+    have at least 2 points!
++ SCENE_DATA : has codes for whether dset is bucket or not
+
+On the NIFTI side, 
++ dim[0] : states how many dimensions are present; if dim[0] is not in [1,7],
+  the byte swapping is needed 
+  [Q] ***not sure what to do in case of value soutside this range***
++ dim[1], dim[2], dim[3] : spatial dimensions
++ dim[4] : time dimension
++ dim[5], dim[6], dim[7] : other, as needed
+... and it appears that empty/unused dim values are set to 1.
++ NB: a 4D time series might have 4 dims, while a bucket dataset (like of stats)
+  might have 5
+
+Parameters
+----------
+Adict : dict
+    dictionary of AFNI header attributes
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+dim : array of 8 int
+    dimensionality info
+
+    """
+
+    BAD_RETURN = (-1, np.zeros(8, dtype=int))
+
+    # def array; empty values get set to 1, so initialize like this
+    dim = np.ones(8, ftype=int)
+
+    # NB: 'translating' many of these AFNI header attributes means
+    # taking an array that has excess values on the end, and removing
+    # those excess values; typically those values are 0 or -999.
+
+    # get number of spatial and temporal dims
+    if 'DATASET_RANK' in Adict.keys() :
+        drank = Adict['DATASET_RANK']
+        is_fail, arr_rank = extract_first_n_int(drank, wall_value=0,
+                                                fail_if_no_find=True, 
+                                                verb=verb)
+        if is_fail :
+            sys.exit(-1)
+
+        # extra validity check for this array: zeroth element must be 3
+        if arr_rank[0] != 3 :
+            print("** Error: [0]th element of dataset_rank != 3:", drank)
+            return BAD_RETURN
+    else:
+        print("** ERROR: need to parse DATASET_RANK")
+        return BAD_RETURN
+
+    # get spatial matrix sizes
+    if 'DATASET_DIMENSIONS' in Adict.keys() :
+        ddims = Adict['DATASET_DIMENSIONS']
+        is_fail, arr_dims = extract_first_n_int(ddims, wall_value=0,
+                                                fail_if_no_find=True, 
+                                                verb=verb)
+        if is_fail :
+            sys.exit(-1)
+    else:
+        print("** ERROR: need to parse DATASET_DIMENSIONS")
+        return BAD_RETURN
+
+    # get info about whether dset is 'regular' or a 'bucket'. This
+    # determines whether the nifti is 4D (3 space, 1 time) or 5D (3
+    # space, 1 placeholder, 1 "time").
+    if 'SCENE_DATA' in Adict.keys() :
+        sdata = Adict['SCENE_DATA']
+        is_fail, arr_sdata = extract_first_n_int(sdata, wall_value=-999,
+                                                 fail_if_no_find=True, 
+                                                 verb=verb)
+        if is_fail :
+            sys.exit(-1)
+    else:
+        print("** ERROR: need to parse DATASET_DIMENSIONS")
+        return BAD_RETURN
+
+    # **** merge mini-dim arrays here
+    is_fail, *****translate_afni_arrays_to_dim(arr_rank, arr_dims, arr_sdata, verb=1)
+
+    return 0, dim
+
+def translate_afni_arrays_to_dim(arr_rank, arr_dims, arr_sdata, verb=1):
+    """For a given set of mini-arrays, originating with the DATASET_RANK,
+DATASET_DIMENSIONS and SCENE_DATA arrays in the AFNI header, figure
+out the NIFTI header's dim array.  Each attribute array here has been
+"precleaned" of excess/unused values it might have had in the AFNI header.
+
+**Order very much matters for inputting the correct arrays here.**
+
+Parameters
+----------
+arr_rank : array of int
+    array of int values taken from the AFNI header's DATASET_RANK attribute
+arr_dims : array of int
+    array of int values taken from the AFNI header's DATASET_DIMENSIONS 
+    attribute
+arr_sdata : array of int
+    array of int values taken from the AFNI header's SCENE_DATA attribute
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+dim : 
+    the NIFTI header dim array itself
+
+    """
+
+    BAD_RETURN = (-1, 0)
+
+    # initialize dim arr: we know it has 8 ints, and the unused
+    # elements have value = 1
+    dim = np.ones(8, dtype=int)
+
+    # **** ADD IN WORK HERE ****
+
+    # we assume everything else is an unknown template, hence this code
+    return 0, dim
+
+
+
+def extract_first_n_int(A, wall_value=0, fail_if_no_find=False, verb=1):
+    """Helper function. For an ordered collection (array, list or tuple)
+of ints A, get the first N values prior to hitting the wall_value, and
+return that object as an array.  That is, go through A until the first
+wall_value (or end) is reached, and return those values in an array.
+
+Parameters
+----------
+A : array, list or tuple of int values
+    some ordered collection of ints
+fail_if_no_find : bool
+    if True, consider it failure to find no values for the output; 
+    else, just return whatever is found, even if it is an empty array
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+B : array of ints
+    array of int values extracted from A, as described above
+
+    """
+
+    BAD_RETURN = (-1, np.zeros(1, dtype=int))
+
+    try:
+        N = len(A)
+    except:
+        print("** Error: must provide an array, list or tuple")
+        return BAD_RETURN
+
+    # make a list of all values until hitting the wall_value
+    L  = []
+    ii = 0
+    while ii < N :
+        if A[ii] != wall_value:  L.append(A[ii])
+        else:                    break
+        ii+= 1
+
+    # need some elements to have been found
+    if len(L) == 0 and fail_if_no_find :
+        print("** Error: found no nonzero vals in array:", A)
+        return BAD_RETURN
+
+    return np.array(L)
+
+# ============================================================================
+# calculate nifti fields: 
 # + qform_code - short
 # + sform_code - short
 
 # throughout the code, these are collectively referred to as: qsform_code
 
+# [Q] a note to come back to: the SCENE_DATA attribute contains a
+# couple numbers; the first integer code is view_type info, so we
+# might not actually need the file name if that exist
 def calc_nifti_qsform_code( Adict, fname=None, verb=1 ):
+
     """Given the dictionary of AFNI header attributes Adict (and/or
 provided file name fname), calculate what the corresponding qform_code
 or sform_code value would be.
@@ -237,7 +443,6 @@ qsform_code :
 
     # we assume everything else is an unknown template, hence this code
     return 0, 5
-
 
 def translate_av_space_to_qform_code(av_space, verb=1):
     """For a given av_space (from dset name), state what best guess of
