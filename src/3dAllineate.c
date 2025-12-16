@@ -4527,9 +4527,19 @@ STATUS("zeropad weight dataset") ;
          apply_1D,apply_nx);
 
      if( apply_ny < DSET_NVALS(dset_targ) )
-       WARNING_message(
-        "-1D*_apply '%s': %d isn't enough rows for source dataset -- last row will repeat",
-        apply_1D,apply_ny);
+       /* Dec 16, 2025: make info if there is only 1 vol in apply_ny,
+          as it might be common usage to apply a constant matrix
+          across multiple vols; only warn if apply_ny doesn't match
+          AND it isn't 1.
+       */
+       if( apply_ny == 1 )
+          INFO_message(
+            "-1D*_apply '%s': %d row for multivolume source dataset -- single row will repeat",
+            apply_1D,apply_ny);
+       else
+          WARNING_message(
+            "-1D*_apply '%s': %d isn't enough rows for source dataset -- last row will repeat",
+            apply_1D,apply_ny);
    }
 
    /*------------------------------------------------------------------------*/
@@ -5301,8 +5311,11 @@ STATUS("zeropad weight dataset") ;
        int rr=kk ;
        if( rr >= apply_ny ){  /* 19 Jul 2007 */
          rr = apply_ny-1 ;
-         WARNING_message("Reusing final row of -1D*_apply '%s' for sub-brick #%d",
-                         apply_1D , kk ) ;
+         /* Dec 16, 2025: make warns only apply in odd mismatch cases,
+            not just for single matrix to apply to multiple volumes */
+         if( apply_ny != 1 )
+           WARNING_message("Reusing final row of -1D*_apply '%s' for sub-brick #%d",
+                           apply_1D , kk ) ;
        }
        stup.interp_code = final_interp ;  /* this IS the final operation */
        stup.smooth_code = 0 ;
