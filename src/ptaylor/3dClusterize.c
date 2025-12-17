@@ -54,6 +54,10 @@
                  p=... syntax is used.  Thanks to AFNI user A Lynn
                  ("andrewlynnphd") for raising this question on the MB.
 
+   2025 12 15: + [PT] change a warning about not using a mask into an info
+                 message, since this program uses that functionality in scripts
+                 quite OK.
+
 */
 
 
@@ -1110,11 +1114,10 @@ int main(int argc, char *argv[]) {
       }
    }
    else {
-      WARNING_message("No mask being used? That *could* be OK, "
-                      "but thought I'd let you know...");
+      INFO_message("No mask being used? That *could* be OK, "
+                   "but thought I'd let you know...");
       if( CL_maskout ) {
-         WARNING_message("And ANOTHER warning, since you also apparently\n"
-                         "\tasked to output a mask volume, without providing\n"
+         WARNING_message("You asked to output a mask volume, without providing\n"
                          "\tany means to procure mask info.  See help file.");
          // ... and unset the masking output
          free(CL_maskout);

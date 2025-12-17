@@ -45,6 +45,7 @@ Removed the '-b3' type of input from the help menu
 static int                CALC_datum = ILLEGAL_TYPE ;
 static int                CALC_nvox  = -1 ;
 static PARSER_code *      CALC_code  = NULL ;
+static char *             CALC_expr  = NULL;
 static int                ntime[26] ;
 static int                ntime_max = 0 ;
 static int                CALC_fscale = 0 ;  /* 16 Mar 1998 */
@@ -476,6 +477,7 @@ void CALC_read_opts( int argc , char * argv[] )
          if( nopt >= argc )
             ERROR_exit("need argument after -expr!\n") ;
          PARSER_set_printout(1) ;  /* 21 Jul 2003 */
+         CALC_expr = argv[nopt] ;  /* store, to evaluate warnings */
          CALC_code = PARSER_generate_code( argv[nopt++] ) ;
          if( CALC_code == NULL )
             ERROR_exit("illegal expression -- see the help for details") ;
@@ -903,11 +905,13 @@ DSET_DONE: continue;  /*** target for various goto statements above ***/
                    or if an undefined symbol is used.   */
 
    for (ids=0; ids < 26; ids ++){
-      if( VAR_DEFINED(ids) && !CALC_has_sym[ids] )
-         WARNING_message("input '%c' is not used in the expression\n" ,
-                 abet[ids] ) ;
-
-      else if( !VAR_DEFINED(ids) && CALC_has_sym[ids] ){
+      if( VAR_DEFINED(ids) && !CALC_has_sym[ids] ) {
+         /* warn if non-trivial expression  [25 Dec 2025 rickr] */
+         if( CALC_expr &&
+             ( strcmp(CALC_expr, "0") && strcmp(CALC_expr, "1") ) )
+               WARNING_message("input '%c' is not used in the expression\n" ,
+                               abet[ids] ) ;
+      } else if( !VAR_DEFINED(ids) && CALC_has_sym[ids] ){
 
          if( ((1<<ids) & PREDEFINED_MASK) == 0 ){
             WARNING_message( "symbol %c is used but not defined\n" , abet[ids] ) ;
@@ -2285,8 +2289,11 @@ int main( int argc , char *argv[] )
            for( ii=0 ; ii < ntime_max ; ii++ ){
              gtemp = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
              gtop  = MAX( gtop , gtemp ) ;
-             if( gtemp == 0.0 )
-               WARNING_message("output sub-brick %d is all zeros!\n",ii) ;
+             if( gtemp == 0.0 ) {
+               /* warn if zero was not explicitly asked for [15 Dec 2025] */
+               if( CALC_expr && strcmp(CALC_expr, "0") )
+                  WARNING_message("output sub-brick %d is all zeros!\n",ii) ;
+             }
            }
          }
 
@@ -2303,8 +2310,11 @@ int main( int argc , char *argv[] )
 
            if( ! CALC_gscale ){
              gtop = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
-             if( gtop == 0.0 )
-               WARNING_message("output sub-brick %d is all zeros!\n",ii) ;
+             if( gtop == 0.0 ) {
+               /* warn if zero was not explicitly asked for [15 Dec 2025] */
+               if( CALC_expr && strcmp(CALC_expr, "0") )
+                  WARNING_message("output sub-brick %d is all zeros!\n",ii) ;
+             }
            }
 
            /* compute scaling factor for this brick into fimfac */
