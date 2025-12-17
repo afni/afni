@@ -448,18 +448,19 @@ dim :
 
 # throughout the code, these are collectively referred to as: qsform_code
 
-# [Q] a note to come back to: the SCENE_DATA attribute contains a
-# couple numbers; the first integer code is view_type info, so we
-# might not actually need the file name if that exist
 def calc_nifti_qsform_code( Adict, fname=None, verb=1 ):
-
     """Given the dictionary of AFNI header attributes Adict (and/or
 provided file name fname), calculate what the corresponding qform_code
 or sform_code value would be.
 
-This first checks for an AFNI header attribute TEMPLATE_SPACE, but
-then will fall back on the file name if necessary. At present, the
-fname should always be given, for compatibility with older dsets.
+This function first checks for an AFNI header attribute
+TEMPLATE_SPACE, which might not be present in all dsets, particularly
+older ones, but it would be the most informative attribute to map.
+Then, it checks for SCENE_DATA, which should be present in all
+dsets. As a last gasp, it can optionally fall back on the file name if
+necessary. Note that fname is no longer required, because the
+SCENE_DATA attribute should be a reliable second pass, even for much
+older dsets.
 
 See here for more info
 https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nifti/qsform_code.html
@@ -473,7 +474,7 @@ Parameters
 Adict : dict
     dictionary of AFNI header attributes
 fname : str
-    name of AFNI dset (can include path)
+    name of AFNI dset (can include path), optional as a fallback
 verb : int
     verbosity level for messages whilst working
 
@@ -488,23 +489,43 @@ qsform_code : int
 
     BAD_RETURN = (-1, 0)
 
-    if not(isinstance(fname, str)) :
-        print("** Error: must provide a fname of type str")
-        return BAD_RETURN
-
-    # check for this attribute first
+    # check for this attribute first; it might not be present in all
+    # datasets, esp. older ones, but it would be the most informative
     if 'TEMPLATE_SPACE' in Adict.keys() :
-        tspace = Adict['TEMPLATE_SPACE']
+        key = 'TEMPLATE_SPACE'
+        tspace = Adict[key]
         is_fail, qsform_code = translate_template_space_to_qform_code(tspace, 
                                                                       verb=verb)
         if is_fail :
+            print("** Error: failed to extract data for key " + key)
             sys.exit(-1)
 
+    # this attribute should be present in all dsets, has a short list
+    # of mappings to qsform_code values
+    elif 'SCENE_DATA' in Adict.keys() :
+        key = 'SCENE_DATA'
+        sdata = Adict[key]
+        is_fail, arr_sdata = extract_first_n_int(sdata, wall_value=-999,
+                                                 min_len=3, max_len=3,
+                                                 verb=verb)
+        if is_fail :
+            print("** Error: failed to extract data for key " + key)
+            sys.exit(-1)
+
+        is_fail, qsform_code = translate_scene_data_to_qform_code(arr_sdata, 
+                                                                  verb=verb)
+        if is_fail :
+            print("** Error: failed to convert data for key " + key)
+            sys.exit(-1)
+
+    # as a last resort, can try to parse the filename itself, for the
+    # '+orig', '+tlrc', etc. part of prefix
     elif fname is not None :
         is_fail1, av_space = get_dset_av_space(fname, verb=verb)
         is_fail2, qsform_code = translate_av_space_to_qform_code(av_space, 
                                                                  verb=verb)
         if is_fail1 or is_fail2 :
+            print("** Error: failed to information for fname " + fname)
             sys.exit(-2)
 
     else:
@@ -567,6 +588,72 @@ qsform_code :
     # we assume everything else is an unknown template, hence this code
     return 0, 5
 
+def translate_scene_data_to_qform_code(arr_sdata, verb=1):
+    """For a given array arr_sdata (from SCENE_DATA attribute), state what
+best guess of qsform_code value is.
+
+The arr_sdata[0] = SCENE_DATA[0] code is used here. This integer
+basically encodes view type (=av_space) as follows: 
+    0=+orig
+    1=+acpc
+    2=+tlrc
+
+Note that nowadays, essentially all non-original space dsets have
+av_space=='+tlrc', so from just the name alone, we can't know whether
+the dset is really TLRC specifically, or MNI or HaskinsPeds or
+something else. So, there is inherent degeneracy of this term; for
+more detailed information, one would want to be using the AFNI
+header's TEMPLATE_SPACE attribute, which should be present in modern
+dsets (though older ones might not have it).  
+
+So, this function returns a best guess, given limited info.
+
+Parameters
+----------
+arr_sdata : array of int values
+    ints, whose [0]th element maps onto the AFNI view space string, 
+    as noted above
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+qsform_code : 
+    the nifti code itself
+
+    """
+
+    BAD_RETURN = (-1, 0)
+
+    # make input is an array/list/tuple
+    try:
+        N = len(arr_sdata)
+    except:
+        print("** Error: must provide a arr_sdata of type array")
+        return BAD_RETURN
+
+    int_view = arr_sdata[0]
+    if int(int_view) != int_view :
+        print("** Error: must provide an array arr_sdata of int values")
+        return BAD_RETURN
+
+    # go through list of recognized codes
+
+    if int_view == 0 or int_view == 1 : 
+        # +orig or +acpc
+        return 0, 1
+
+    elif int_view == 2 : 
+        # +tlrc
+        return 0, 3
+
+    # case of unencoded int_view, should never happen
+    print("** Error: unencoded int at start of array:", int_view)
+    return BAD_RETURN
+
+
 def translate_av_space_to_qform_code(av_space, verb=1):
     """For a given av_space (from dset name), state what best guess of
 qsform_code value is.
@@ -597,16 +684,25 @@ qsform_code :
 
     """
 
+    BAD_RETURN = (-1, 0)
+
+    if not(isinstance(av_space, str)) :
+        print("** Error: must provide an av_space of type str")
+        return BAD_RETURN
+
+    # go through list of recognized strings
+
     if av_space == '+orig' or av_space == '+acpc' :
         return 0, 1
 
-    if av_space == '+tlrc' :
+    elif av_space == '+tlrc' :
         return 0, 3
 
-    if av_space == '+mni' :
+    elif av_space == '+mni' :
         return 0, 4
 
     # case of unknown av_space string, should never happen
+    print("** Error: unknown av_space string:", av_space)
     return -1, 0
 
 # -----------------------------------------------------------------------------
