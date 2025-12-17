@@ -55,7 +55,7 @@ dict_nifti1 = {
     'scl_inter'       : None,     # float
     'slice_end'       : None,     # short
     'slice_code'      : None,     # char
-    'xyzt_units'      : None,     # char
+    'xyzt_units'      : None,     ## char
     'cal_max'         : None,     ## float
     'cal_min'         : None,     ## float
     'slice_duration'  : None,     # float
@@ -163,7 +163,7 @@ Returns
 is_fail : int
     0 on success, nonzero on failure
 xyzt_units : int
-    code for spatial (and/or temporal) units
+    code for spatial (and maybe temporal) units
 
     """
 
