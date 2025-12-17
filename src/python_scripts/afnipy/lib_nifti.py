@@ -122,12 +122,99 @@ STR_allowed_av_space = ', '.join(LIST_allowed_av_space)
 
 # ============================================================================
 # calculate nifti fields: 
+# + xyzt_units : char
+
+def calc_nifti_xyzt_units( Adict, verb=1 ):
+    """Given the dictionary of AFNI header attributes Adict calculate what
+the corresponding physical units would be, as recorded with a
+numerical code in xyzt_units. It should basically always be: mm (for
+length); and s (for time), if the time axis is used.  For AFNI
+'bucket' datasets, time might not technically be used.
+
+Specifically, xyzt_units encodes the units of pixdim[1..4]. So, if the
+'time' axis isn't used (which might be the case on the AFNI side for
+'bucket' datasets), then only the spatial units are stored.
+
+The 'char' xyzt_units has the ability to store distance and/or
+time units using the magic of binary numbers. From the nifti1.h file:
+   Bits 0..2 of xyzt_units specify the units of pixdim[1..3]
+    (e.g., spatial units are values 1..7).
+   Bits 3..5 of xyzt_units specify the units of pixdim[4]
+    (e.g., temporal units are multiples of 8).
+
+This checks for these AFNI header attributes:
++ TAXIS_NUMS (might not exist, if dset does not have time, like if 3D
+  or just a 'bucket')
+  [2] code for units of time (nearly always seconds in AFNI)
+
+At present, we assume that the following is implicit when translating
+the AFNI header:
++ spatial units always exist, and that they are always 'mm'.
+
+Parameters
+----------
+Adict : dict
+    dictionary of AFNI header attributes
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+xyzt_units : int
+    code for spatial (and/or temporal) units
+
+    """
+
+    BAD_RETURN = (-1, 0)
+
+    # initialize default; 0="Unknown"
+    xyzt_units = 0
+
+    # we just *assume* this is always the case with a BRIK/HEAD dset
+    unit_space = 2
+
+    # initialize time unit value; BRIK/HEAD dset might not have a time axis
+    unit_time = 0 
+
+    # check for time axis, and parse if it exists
+    key = 'TAXIS_NUMS'
+    if key in Adict.keys() :
+        tnums = Adict[key]
+        is_fail, arr_tnums = extract_first_n_int(tnums, wall_value=-999,
+                                                 min_len=3, max_len=3,
+                                                 verb=verb)
+        if is_fail :
+            print("** Error: failed to extract array for key " + key)
+            sys.exit(-1)
+
+        # decode the short list of posisble TAXIS_NUMS[2] values,
+        # which doesn't seem worth putting into a separate function (but we could)
+        if arr_tnums[2] == 77001 :  # units: msec
+            unit_time = 16
+        elif arr_tnums[2] == 77002 :  # units: sec
+            unit_time = 8
+        elif arr_tnums[2] == 77003 :  # units: Hz
+            unit_time = 32
+        else:
+            print("** ERROR: unknown time code in TAXIS_NUMS[2]:", arr_tnums)
+            return BAD_RETURN
+    # else: there isn't a time axis, which is OK.
+
+    # combine space and time units codes
+    xyzt_units = unit_space + unit_time
+
+    return 0, xyzt_units
+
+
+# ============================================================================
+# calculate nifti fields: 
 # + dim - short [8]
 
 def calc_nifti_dim( Adict, verb=1 ):
-    """Given the dictionary of AFNI header attributes Adict (and/or
-provided file name fname), calculate what the corresponding array of
-dim values would be.
+    """Given the dictionary of AFNI header attributes Adict, calculate
+what the corresponding array of dim values would be.
 
 This checks for several AFNI header attributes:
 + DATASET_RANK : describes dimensionality of the data; may be up to 8
@@ -142,12 +229,18 @@ This checks for several AFNI header attributes:
     is located at position (i+j*nx+k*nx*ny), for
     i=0..nx-1, j=0..ny-1, k=0..nz-1.  Each axis must
     have at least 2 points!
-+ SCENE_DATA : has codes for whether dset is bucket or not
++ TAXIS_NUMS : (which might not exist, like for bucket dsets) contains
+               info about whether a time axis is present
+
+For the present calc, it appears we could get the info of 'is there a
+time axis?' from either TAXIS_NUMS (whether it exists or not) or
+SCENE_DATA (is the dset a bucket or not).  We will start by using
+TAXIS_NUMS.
 
 On the NIFTI side, 
 + dim[0] : states how many dimensions are present; if dim[0] is not in [1,7],
   the byte swapping is needed 
-  [Q] ***not sure what to do in case of value soutside this range***
+  [Q] ***not sure what to do in case of values outside this range***
 + dim[1], dim[2], dim[3] : spatial dimensions
 + dim[4] : time dimension
 + dim[5], dim[6], dim[7] : other, as needed
@@ -214,25 +307,18 @@ dim : array of 8 int
         print("** ERROR: need to parse " + key)
         return BAD_RETURN
 
-    # get info about whether dset is 'regular' or a 'bucket'. This
+    # check about whether TAXIS_NUMS exists in AFNI header. This
     # determines whether the nifti is 4D (3 space, 1 time) or 5D (3
-    # space, 1 placeholder, 1 "time").
-    key = 'SCENE_DATA'
+    # space, 1 placeholder, 1 "number of volumes").
+    key = 'TAXIS_NUMS'
     if key in Adict.keys() :
-        sdata = Adict[key]
-        is_fail, arr_sdata = extract_first_n_int(sdata, wall_value=-999,
-                                                 min_len=3, max_len=3,
-                                                 verb=verb)
-        if is_fail :
-            print("** Error: failed to extract array for key " + key)
-            sys.exit(-1)
+        has_time_axis = True
     else:
-        print("** ERROR: need to parse " + key)
-        return BAD_RETURN
+        has_time_axis = False
 
     # merge mini-dim arrays here
     is_fail, dim = translate_afni_arrays_to_dim(arr_rank, arr_dims, 
-                                                arr_sdata, verb=1)
+                                                has_time_axis, verb=1)
     if is_fail :
         print("** Error: failed to convert mini-dim arrays to dim")
         sys.exit(-1)
@@ -240,9 +326,9 @@ dim : array of 8 int
     return 0, dim
 
 
-def translate_afni_arrays_to_dim(arr_rank, arr_dims, arr_sdata, verb=1):
+def translate_afni_arrays_to_dim(arr_rank, arr_dims, has_time_axis, verb=1):
     """For a given set of mini-arrays, originating with the DATASET_RANK,
-DATASET_DIMENSIONS and SCENE_DATA arrays in the AFNI header, figure
+DATASET_DIMENSIONS and TAXIS_NUMS arrays in the AFNI header, figure
 out the NIFTI header's dim array.  Each attribute array here has been
 "precleaned" of excess/unused values it might have had in the AFNI header.
 
@@ -255,8 +341,8 @@ arr_rank : array of int
 arr_dims : array of int
     array of int values taken from the AFNI header's DATASET_DIMENSIONS 
     attribute
-arr_sdata : array of int
-    array of int values taken from the AFNI header's SCENE_DATA attribute
+has_time_axis : bool
+    is the dset 4D (has_time_axis=True) or 5D (has_time_axis=False)
 verb : int
     verbosity level for messages whilst working
 
@@ -288,10 +374,7 @@ dim :
     # dim[0] stores the total number of dimensions in the data, which
     # is determined by this choice, too, so we set it at the same time.
 
-    # Consideration #1: is dset a bucket? (-> nvals goes into dim[5])
-    is_bucket = (arr_sdata[1] == 11)
-
-    if is_bucket :
+    if has_time_axis :
         # dim[4] remains 1, as initialized above
         dim[5] = nvals
         dim[0] = 5
