@@ -59,7 +59,7 @@ dict_nifti1 = {
     'cal_max'         : None,     ## float
     'cal_min'         : None,     ## float
     'slice_duration'  : None,     # float
-    'toffset'         : None,     # float
+    'toffset'         : None,     ## float
     'glmax'           : None,     ## int
     'glmin'           : None,     ## int
     'descrip'         : None,     ## char [80]
