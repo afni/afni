@@ -41,7 +41,7 @@ dict_nifti1 = {
     'session_error'   : None,     ## short
     'regular'         : None,     ## char
     'dim_info'        : None,     # char 
-    'dim'             : None,     # short [8]
+    'dim'             : None,     ## short [8]
     'intent_p1'       : None,     # float
     'intent_p2'       : None,     # float
     'intent_p3'       : None,     # float
@@ -174,59 +174,71 @@ dim : array of 8 int
     BAD_RETURN = (-1, np.zeros(8, dtype=int))
 
     # def array; empty values get set to 1, so initialize like this
-    dim = np.ones(8, ftype=int)
+    dim = np.ones(8, dtype=int)
 
     # NB: 'translating' many of these AFNI header attributes means
     # taking an array that has excess values on the end, and removing
     # those excess values; typically those values are 0 or -999.
 
     # get number of spatial and temporal dims
-    if 'DATASET_RANK' in Adict.keys() :
-        drank = Adict['DATASET_RANK']
+    key = 'DATASET_RANK'
+    if key in Adict.keys() :
+        drank = Adict[key]
         is_fail, arr_rank = extract_first_n_int(drank, wall_value=0,
-                                                fail_if_no_find=True, 
+                                                min_len=2, max_len=2,
                                                 verb=verb)
         if is_fail :
+            print("** Error: failed to extract array for key " + key)
             sys.exit(-1)
 
-        # extra validity check for this array: zeroth element must be 3
+        # extra check for this array: zeroth element must have value 3
         if arr_rank[0] != 3 :
             print("** Error: [0]th element of dataset_rank != 3:", drank)
             return BAD_RETURN
     else:
-        print("** ERROR: need to parse DATASET_RANK")
+        print("** ERROR: need to parse " + key)
         return BAD_RETURN
 
     # get spatial matrix sizes
-    if 'DATASET_DIMENSIONS' in Adict.keys() :
-        ddims = Adict['DATASET_DIMENSIONS']
+    key = 'DATASET_DIMENSIONS'
+    if key in Adict.keys() :
+        ddims = Adict[key]
         is_fail, arr_dims = extract_first_n_int(ddims, wall_value=0,
-                                                fail_if_no_find=True, 
+                                                min_len=3, max_len=3,
                                                 verb=verb)
         if is_fail :
+            print("** Error: failed to extract array for key " + key)
             sys.exit(-1)
+
     else:
-        print("** ERROR: need to parse DATASET_DIMENSIONS")
+        print("** ERROR: need to parse " + key)
         return BAD_RETURN
 
     # get info about whether dset is 'regular' or a 'bucket'. This
     # determines whether the nifti is 4D (3 space, 1 time) or 5D (3
     # space, 1 placeholder, 1 "time").
-    if 'SCENE_DATA' in Adict.keys() :
-        sdata = Adict['SCENE_DATA']
+    key = 'SCENE_DATA'
+    if key in Adict.keys() :
+        sdata = Adict[key]
         is_fail, arr_sdata = extract_first_n_int(sdata, wall_value=-999,
-                                                 fail_if_no_find=True, 
+                                                 min_len=3, max_len=3,
                                                  verb=verb)
         if is_fail :
+            print("** Error: failed to extract array for key " + key)
             sys.exit(-1)
     else:
-        print("** ERROR: need to parse DATASET_DIMENSIONS")
+        print("** ERROR: need to parse " + key)
         return BAD_RETURN
 
-    # **** merge mini-dim arrays here
-    is_fail, *****translate_afni_arrays_to_dim(arr_rank, arr_dims, arr_sdata, verb=1)
+    # merge mini-dim arrays here
+    is_fail, dim = translate_afni_arrays_to_dim(arr_rank, arr_dims, 
+                                                arr_sdata, verb=1)
+    if is_fail :
+        print("** Error: failed to convert mini-dim arrays to dim")
+        sys.exit(-1)
 
     return 0, dim
+
 
 def translate_afni_arrays_to_dim(arr_rank, arr_dims, arr_sdata, verb=1):
     """For a given set of mini-arrays, originating with the DATASET_RANK,
@@ -259,64 +271,37 @@ dim :
 
     BAD_RETURN = (-1, 0)
 
-    # initialize dim arr: we know it has 8 ints, and the unused
-    # elements have value = 1
+    # initialize dim arr, which will be our main output: we know it
+    # has 8 ints, and the unused elements have value = 1
     dim = np.ones(8, dtype=int)
 
-    # **** ADD IN WORK HERE ****
+    # 3 spatial matrix dim values
+    dim[1] = arr_dims[0]
+    dim[2] = arr_dims[1]
+    dim[3] = arr_dims[2]
+
+    # number of volumes 
+    nvals = arr_rank[1]
+
+    # whether nvals goes into dim[4] or dim[5] is determined by the
+    # following considerations (might grow over time); additionally,
+    # dim[0] stores the total number of dimensions in the data, which
+    # is determined by this choice, too, so we set it at the same time.
+
+    # Consideration #1: is dset a bucket? (-> nvals goes into dim[5])
+    is_bucket = (arr_sdata[1] == 11)
+
+    if is_bucket :
+        # dim[4] remains 1, as initialized above
+        dim[5] = nvals
+        dim[0] = 5
+    else:
+        dim[4] = nvals
+        dim[0] = 4
 
     # we assume everything else is an unknown template, hence this code
     return 0, dim
 
-
-
-def extract_first_n_int(A, wall_value=0, fail_if_no_find=False, verb=1):
-    """Helper function. For an ordered collection (array, list or tuple)
-of ints A, get the first N values prior to hitting the wall_value, and
-return that object as an array.  That is, go through A until the first
-wall_value (or end) is reached, and return those values in an array.
-
-Parameters
-----------
-A : array, list or tuple of int values
-    some ordered collection of ints
-fail_if_no_find : bool
-    if True, consider it failure to find no values for the output; 
-    else, just return whatever is found, even if it is an empty array
-verb : int
-    verbosity level for messages whilst working
-
-Returns
--------
-is_fail : int
-    0 on success, nonzero on failure
-B : array of ints
-    array of int values extracted from A, as described above
-
-    """
-
-    BAD_RETURN = (-1, np.zeros(1, dtype=int))
-
-    try:
-        N = len(A)
-    except:
-        print("** Error: must provide an array, list or tuple")
-        return BAD_RETURN
-
-    # make a list of all values until hitting the wall_value
-    L  = []
-    ii = 0
-    while ii < N :
-        if A[ii] != wall_value:  L.append(A[ii])
-        else:                    break
-        ii+= 1
-
-    # need some elements to have been found
-    if len(L) == 0 and fail_if_no_find :
-        print("** Error: found no nonzero vals in array:", A)
-        return BAD_RETURN
-
-    return np.array(L)
 
 # ============================================================================
 # calculate nifti fields: 
@@ -814,6 +799,73 @@ qoffset_z :
 
     return 0, quatern_b, quatern_c, quatern_d, \
         qoffset_x, qoffset_y, qoffset_z
+
+
+# ============================================================================
+# generic helper functions
+
+def extract_first_n_int(A, wall_value=0, min_len=0, max_len=None, verb=1):
+    """Helper function. For an ordered collection (array, list or tuple)
+of ints A, get the first N values prior to hitting the wall_value, and
+return that object as an array.  That is, go through A until the first
+wall_value (or end) is reached, and return those values in an array.
+
+If the user has an expected minimum length of output array (which is a
+common expectation here), that can be specified with
+min_len. Similarly, a max_len can be specified. Used together these
+can be used to determine an exact value (i.e., if min_len=max_len).
+
+Parameters
+----------
+A : array, list or tuple of int values
+    some ordered collection of ints
+min_len : int
+    the minimum number of elements the output arr B can have, below which
+    it is considered a bad result
+max_len : None or int
+    the maximum number of elements the output arr B can have, above which
+    it is considered a bad result
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+B : array of ints
+    array of int values extracted from A, as described above
+
+    """
+
+    BAD_RETURN = (-1, np.zeros(1, dtype=int))
+
+    try:
+        N = len(A)
+    except:
+        print("** Error: must provide an array, list or tuple")
+        return BAD_RETURN
+
+    # make a list of all values until hitting the wall_value
+    L  = []
+    ii = 0
+    while ii < N :
+        if A[ii] != wall_value:  L.append(A[ii])
+        else:                    break
+        ii+= 1
+
+    M = len(L)
+
+    # check about length restrictions/expectations
+    if M < min_len :
+        print("** Error: too few array values: "
+              "{} < {}".format(M, min_len))
+        return BAD_RETURN
+    if max_len is not None and M > max_len :
+        print("** Error: too many array values: "
+              "{} > {}".format(M, max_len))
+        return BAD_RETURN
+
+    return 0, np.array(L)
 
 
 # ============================================================================
