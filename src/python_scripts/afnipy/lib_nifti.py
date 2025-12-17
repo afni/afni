@@ -40,7 +40,7 @@ dict_nifti1 = {
     'extents'         : None,     ## int
     'session_error'   : None,     ## short
     'regular'         : None,     ## char
-    'dim_info'        : None,     # char 
+    'dim_info'        : None,     ## char 
     'dim'             : None,     ## short [8]
     'intent_p1'       : None,     # float
     'intent_p2'       : None,     # float
@@ -97,6 +97,7 @@ dict_nifti1_unmapped = {
     'cal_min'         : 0.0,      ## float
     'descrip'         : '',       ## char [80]
     'aux_file'        : '',       ## char [24]
+    'dim_info'        : '',       ## char 
 }
 
 # which keys in the nifti1 header dict should come from the data
@@ -119,6 +120,95 @@ LIST_allowed_av_space = [
 
 # string version of the av_space list
 STR_allowed_av_space = ', '.join(LIST_allowed_av_space)
+
+# ============================================================================
+# calculate nifti fields: 
+# + datatype : short
+# + bitpix : short
+
+def calc_nifti_datatype_bitpix( Adict, verb=1 ):
+    """Given the dictionary of AFNI header attributes Adict calculate what
+the corresponding datatype and bitpix would be, that is, what category
+of datum or kind of numbers are stored in the data.
+
+This checks for these AFNI header attributes:
++ BRICK_TYPES : a set of values (one per nvals in the dataset)
+  - (in)famously, BRIK/HEAD allow different datatypes to be present in a 
+    dataset, though NIFTI does not allow this.
+
+Parameters
+----------
+Adict : dict
+    dictionary of AFNI header attributes
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+datatype : int
+    code for datatype
+bitpix : int
+    number of bits to store the datatype's data
+
+    """
+
+    BAD_RETURN = (-1, 0, 0)
+
+    # initialize default
+    datatype = 0
+    bitpix   = 0
+
+    # require this attribute, and parse if it exists
+    key = 'BRICK_TYPES'
+    if key in Adict.keys() :
+        btypes = Adict[key]
+        is_fail, arr_btypes = extract_first_n_int(btypes,
+                                                  min_len=0,
+                                                  verb=verb)
+        if is_fail :
+            print("** Error: failed to extract array for key " + key)
+            sys.exit(-1)
+        Nbtypes = len(btypes)
+    else:
+        print("** Error: failed to find key:", key)
+        return BAD_RETURN
+
+    # check for this optional attribute, which would be an array of
+    # floating point factors; if existing, verifying length is correct
+    key = 'BRICK_FLOAT_FACS'
+    if key in Adict.keys() :
+        bffacs  = Adict[key]
+        Nbffacs = len(bffacs)
+        
+        if Nbffacs != Nbtypes :
+            msg = "** Error: mismatched len:\n"
+            msg+= "   BRICK_BRICK_TYPES -> {}\n".format(Nbtypes)
+            msg+= "   BRICK_FLOAT_FACS  -> {}\n".format(Nbffacs)
+            print(msg)
+            return BAD_RETURN
+
+    # get the min/max of type codes
+    min_btype = min(arr_btypes)
+    max_btype = max(arr_btypes)
+    
+    # does the BRIK/HEAD dset have const type?
+    DTYPE_IS_CONST = (min_btype == max_btype)
+
+    # see if we have any float_facs that are also nonzero
+    try:
+        # could be True or False, or an error leading to the except branch
+        HAVE_NZ_FFAC = max(bffacs) > 0.0
+    except:
+        HAVE_NZ_FFAC = False
+
+    # *********** just work in progress to here ****************
+    #if not(DTYPE_IS_CONST) :
+        # dtat
+
+
+    return 0, datatype, bitpix
 
 # ============================================================================
 # calculate nifti fields: 
