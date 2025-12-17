@@ -122,6 +122,61 @@ STR_allowed_av_space = ', '.join(LIST_allowed_av_space)
 
 # ============================================================================
 # calculate nifti fields: 
+# + toffset : float
+
+def calc_nifti_toffset( Adict, verb=1 ):
+    """Given the dictionary of AFNI header attributes Adict calculate what
+the corresponding time offset would be, that is, a nonzero start point
+for the time axis.
+
+For datasets without a time axis, it will be 0.0.  For datasets
+created with to3d, it will likely also be 0.0.
+
+This checks for these AFNI header attributes:
++ TAXIS_FLOATS (might not exist, if dset does not have time, like if 3D
+  or just a 'bucket')
+  [0] Time origin (in units given by TAXIS_NUMS[2]).
+
+Parameters
+----------
+Adict : dict
+    dictionary of AFNI header attributes
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+toffset : float
+    value of temporal offset
+
+    """
+
+    BAD_RETURN = (-1, 0.0)
+
+    # initialize default
+    toffset = 0.0
+
+    # check for time floats, and parse if it exists
+    key = 'TAXIS_FLOATS'
+    if key in Adict.keys() :
+        tfloats = Adict[key]
+        is_fail, arr_tfloats = extract_first_n_int(tfloats, wall_value=-999999,
+                                                   min_len=5, max_len=5,
+                                                   verb=verb)
+        if is_fail :
+            print("** Error: failed to extract array for key " + key)
+            sys.exit(-1)
+
+        # simply get TAXIS_FLOATS[0] value,
+        toffset = arr_tfloats[0]
+    # else: there isn't a time axis, which is OK.
+
+    return 0, toffset
+
+# ============================================================================
+# calculate nifti fields: 
 # + xyzt_units : char
 
 def calc_nifti_xyzt_units( Adict, verb=1 ):
@@ -189,8 +244,8 @@ xyzt_units : int
             print("** Error: failed to extract array for key " + key)
             sys.exit(-1)
 
-        # decode the short list of posisble TAXIS_NUMS[2] values,
-        # which doesn't seem worth putting into a separate function (but we could)
+        # decode the short list of possible TAXIS_NUMS[2] values;
+        # (doesn't seem worth making a separate function, but we could)
         if arr_tnums[2] == 77001 :  # units: msec
             unit_time = 16
         elif arr_tnums[2] == 77002 :  # units: sec
