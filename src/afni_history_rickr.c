@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Dec, 2025, RCR, "3dresample", MICRO, TYPE_MODIFY,
+   "allow resampling to stay on current voxel grid, as much as possible",
+   "Add -bound_type CENT/CENT_ORIG, add -up/downsample, -delta_scale.\n"
+   "Done for PT."
+ } ,
+
  { 15, Dec, 2025, RCR, "3dcalc", MICRO, TYPE_MODIFY,
    "quiet some warnings",
    "If expr is 0 (or maybe 1), do not warn about all zeros or unused var." 
