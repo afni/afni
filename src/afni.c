@@ -10866,21 +10866,13 @@ static void fixscale( XtPointer client_data , XtIntervalId *id )
 
 /*------------------------------------------------------------------------*/
 
-/* drg/rcr - to redraw after resize
- *
- * - main work so far (GUI and Image windows)
-      forceExpose(im3d->vwid->top_form, 0);
-      foreach s123,s231,s312,  g123,g231,g312
-         if( im3d->s123 ) forceExpose(im3d->s123->wtop, 0);
-         if( im3d->g123 ) forceExpose(im3d->g123->fdw_graph, 0);
- * - actual graph plotting areaa seems to be handled differently
- */
-void forceExpose(Widget w, int depth) {
+/* drg/rcr - to redraw after resize */
+static void forceExpose(Widget w, int depth) {
    static int cc = 0;
-   // fprintf(stderr,"== expose %p, depth %d, cc %d\n", w, depth, cc);
-   if(!w) { /* fprintf(stderr,"** bail on NULL\n"); */ return; }
-   if(!XtIsRealized(w)){/* fprintf(stderr,"** bail unrealized\n"); */ return; }
-   if(!XtIsWidget(w)){/* fprintf(stderr,"** bail on non-widget\n"); */ return; }
+   fprintf(stderr,"== expose %p, depth %d, cc %d\n", w, depth, cc);
+   if(!w) { fprintf(stderr,"** bail on NULL\n");   return; }
+   if(!XtIsRealized(w)){ fprintf(stderr,"** bail unrealized\n");   return; }
+   if(!XtIsWidget(w)){ fprintf(stderr,"** bail on non-widget\n");   return; }
    cc++;
 
    // fprintf(stderr,"-- isw %d\n", XtIsWidget(w));
@@ -10891,12 +10883,11 @@ void forceExpose(Widget w, int depth) {
    XClearArea(XtDisplay(w), XtWindow(w), 0, 0, 0, 0, True);
 
    if (XtIsComposite(w)) {
-      WidgetList children;
-      Cardinal num_children;
-      XtVaGetValues(w, XmNchildren, &children, XmNnumChildren, &num_children,
-                    NULL);
-      for (int i = 0; i < num_children; ++i)
-         forceExpose(children[i], depth+1);
+      WidgetList kids;
+      Cardinal nkids;
+      XtVaGetValues(w, XmNchildren, &kids, XmNnumChildren, &nkids, NULL);
+      for (int i = 0; i < nkids; ++i)
+         forceExpose(kids[i], depth+1);
    }
 }
 

@@ -94,6 +94,13 @@ extern FD_brick * THD_3dim_dataset_to_brick( THD_3dim_dataset *dset ,
 extern MRI_IMAGE * FD_brick_to_series( int , FD_brick * br ) ;
 #endif
 
+#define DIRECT_DRAW
+#ifdef DIRECT_DRAW
+#  define DRAW_TARGET XtWindow(grapher->draw_fd)
+#else
+#  define DRAW_TARGET grapher->fd_pxWind
+#endif
+
 static int fade_color = 19 ;
 
 static char *startup_1D_transform = NULL ;
@@ -1276,10 +1283,12 @@ ENTRY("end_fd_graph_CB") ;
 
    grapher->valid = 0 ;  /* can't do anything with this anymore */
 
+#ifndef DIRECT_DRAW
    if( grapher->fd_pxWind != (Pixmap) 0 ){
 STATUS("freeing Pixmap") ;
      XFreePixmap( grapher->dc->display , grapher->fd_pxWind ) ;
    }
+#endif
 
 #ifdef USE_OPTMENUS
 STATUS("destroying optmenus") ;
@@ -1376,11 +1385,14 @@ ENTRY("erase_fdw") ;
 
    if( grapher->dont_redraw ) EXRETURN ;  /* 27 Jan 2004 */
 
+#ifdef DIRECT_DRAW
+EXRETURN;
+#endif
    DC_fg_color ( grapher->dc , BG_COLOR(grapher) ) ;
    DC_linewidth( grapher->dc , 0 ) ;
 
    XFillRectangle( grapher->dc->display ,
-                   grapher->fd_pxWind , grapher->dc->myGC ,
+                   DRAW_TARGET , grapher->dc->myGC ,
                    0 , 0 , grapher->fWIDE , grapher->fHIGH ) ;
 
    if( show_grapher_pixmap &&
@@ -1413,7 +1425,7 @@ ENTRY("rectangle_fdX") ;
    DC_fg_color ( grapher->dc , clr ) ;  /* changing color in myGC */
 
    XFillRectangle( grapher->dc->display ,
-                   grapher->fd_pxWind , grapher->dc->myGC , xb,yb , xw,yw ) ;
+                   DRAW_TARGET , grapher->dc->myGC , xb,yb , xw,yw ) ;
 
    EXRETURN ;
 }
@@ -1430,7 +1442,7 @@ void plot_fdX( MCW_grapher *grapher , int x , int y , int mod )
 
    if( mod > 0 )
      XDrawLine( grapher->dc->display ,
-                grapher->fd_pxWind , grapher->dc->myGC ,
+                DRAW_TARGET , grapher->dc->myGC ,
                 grapher->xFD , grapher->yFD , x , iy ) ;
 
    grapher->xFD = x ; grapher->yFD = iy ;
@@ -1444,15 +1456,19 @@ void plot_fdX( MCW_grapher *grapher , int x , int y , int mod )
 void fd_px_store( MCW_grapher * grapher )
 {
 ENTRY("fd_px_store") ;
+#ifndef DIRECT_DRAW
+EXRETURN;
+#endif
 
    if( ! MCW_widget_visible(grapher->draw_fd) ) EXRETURN ;  /* 03 Jan 1999 */
 
    XtVaSetValues( grapher->draw_fd ,
-                     XmNbackgroundPixmap , grapher->fd_pxWind ,
+                     XmNbackgroundPixmap , DRAW_TARGET ,
                   NULL ) ;
 
    XClearWindow( grapher->dc->display , XtWindow(grapher->draw_fd) ) ;
    XFlush( grapher->dc->display ) ;
+
    EXRETURN ;
 }
 
@@ -1500,7 +1516,7 @@ void GRA_small_circle( MCW_grapher *grapher, int xwin, int ywin, int filled )
    }
 
    /* just draws pixels */
-   XDrawPoints( grapher->dc->display, grapher->fd_pxWind,
+   XDrawPoints( grapher->dc->display, DRAW_TARGET,
                 grapher->dc->myGC, a, ncirc, CoordModeOrigin ) ;
    return ;
 }
@@ -1557,7 +1573,7 @@ void GRA_draw_disk( MCW_grapher *grapher , int xc , int yc , int rad )
 
    if( rad < 0 ) rad = 0 ;
    xb = xc-rad ; yb = yc-rad ; ww = 2*rad ;
-   XFillArc( grapher->dc->display , grapher->fd_pxWind ,
+   XFillArc( grapher->dc->display , DRAW_TARGET ,
              grapher->dc->myGC , xb,yb , ww,ww , 0,360*64 ) ;
    return ;
 }
@@ -1707,7 +1723,9 @@ void redraw_graph( MCW_grapher *grapher , int code )
 ENTRY("redraw_graph") ;
 
    if( ! GRA_REALZ(grapher) ){ STATUS("ILLEGAL ENTRY"); EXRETURN; }
+#ifndef DIRECT_DRAW
    if( grapher->fd_pxWind == (Pixmap) 0 ){ STATUS("ILLEGAL ENTRY"); EXRETURN; }
+#endif
    if( grapher->dont_redraw ) EXRETURN ;  /* 27 Jan 2004 */
 
    /*---- draw the graphs ----*/
@@ -1929,7 +1947,7 @@ ENTRY("redraw_graph") ;
 
 void fd_txt( MCW_grapher *grapher , int x , int y , char * str )
 {
-   XDrawString( grapher->dc->display, grapher->fd_pxWind,
+   XDrawString( grapher->dc->display, DRAW_TARGET,
                 grapher->dc->myGC , x , grapher->fHIGH-y ,
                 str , strlen(str) ) ;
    return ;
@@ -1947,7 +1965,7 @@ void fd_txt_upwards( MCW_grapher *grapher , int x , int y , char *str )
      if( isgraph(str[ii]) ){
        ad = DC_char_adscent(grapher->dc,str[ii]) ;
        y -= ad.j ;
-       XDrawString( grapher->dc->display, grapher->fd_pxWind,
+       XDrawString( grapher->dc->display, DRAW_TARGET,
                     grapher->dc->myGC , x , y , str+ii , 1 ) ;
        y -= ad.i+2 ;
      } else {
@@ -1976,7 +1994,7 @@ void overlay_txt( MCW_grapher *grapher , int x , int y , char *str )
 
 static void fd_line( MCW_grapher *grapher , int x1,int y1, int x2,int y2 )
 {
-   XDrawLine( grapher->dc->display , grapher->fd_pxWind ,
+   XDrawLine( grapher->dc->display , DRAW_TARGET ,
               grapher->dc->myGC , x1,grapher->fHIGH-y1,x2,grapher->fHIGH-y2 ) ;
    return ;
 }
@@ -2877,10 +2895,10 @@ STATUS("starting time series graph loop") ;
                 default:
                 case PMPLOT_CURVES: /* pretty much the olden way */
                   AFNI_XDrawLines( grapher->dc->display ,
-                                   grapher->fd_pxWind , grapher->dc->myGC ,
+                                   DRAW_TARGET , grapher->dc->myGC ,
                                    d_line , jnum , CoordModeOrigin , nupsam ) ;
                   AFNI_XDrawLines( grapher->dc->display ,
-                                   grapher->fd_pxWind , grapher->dc->myGC ,
+                                   DRAW_TARGET , grapher->dc->myGC ,
                                    e_line , jnum , CoordModeOrigin , nupsam ) ;
                 break ;
 
@@ -2889,7 +2907,7 @@ STATUS("starting time series graph loop") ;
                   for( i=0 ; i < jnum ; i++ ) f_line[i]          = d_line[i] ;
                   for( i=0 ; i < jnum ; i++ ) f_line[2*jnum-1-i] = e_line[i] ;
                   AFNI_XFillPolygon( grapher->dc->display ,
-                                     grapher->fd_pxWind , grapher->dc->myGC ,
+                                     DRAW_TARGET , grapher->dc->myGC ,
                                      f_line, 2*jnum, Complex, CoordModeOrigin, nupsam ) ;
                   free(f_line) ;
                 }
@@ -2907,7 +2925,7 @@ STATUS("starting time series graph loop") ;
                     q_line[4].x = d_line[i].x - dx ; q_line[4].y = d_line[i].y ;
                     q_line[5].x = d_line[i].x + dx ; q_line[5].y = d_line[i].y ;
                     AFNI_XDrawLines( grapher->dc->display ,
-                                     grapher->fd_pxWind , grapher->dc->myGC ,
+                                     DRAW_TARGET , grapher->dc->myGC ,
                                      q_line , 6 ,  CoordModeOrigin , 0 ) ;
                   }
                 }
@@ -2984,7 +3002,7 @@ STATUS("starting time series graph loop") ;
 
           if( DATA_LINES(grapher) ){          /* 01 Aug 1998 */
             AFNI_XDrawLines( grapher->dc->display ,
-                        grapher->fd_pxWind , grapher->dc->myGC ,
+                        DRAW_TARGET , grapher->dc->myGC ,
                         a_line , qnum ,  CoordModeOrigin , nupsam ) ;
           }
 
@@ -3031,7 +3049,7 @@ STATUS("starting time series graph loop") ;
               q_line[3].x = xt ; q_line[3].y = yoff ;               /* lower right */
 
               AFNI_XDrawLines( grapher->dc->display ,
-                          grapher->fd_pxWind , grapher->dc->myGC ,
+                          DRAW_TARGET , grapher->dc->myGC ,
                           q_line , 4 ,  CoordModeOrigin , 0 ) ;     /* draw box */
 
               if( labx >= 0 ){             /* if labels can be fit in box width */
@@ -3142,7 +3160,7 @@ STATUS("starting time series graph loop") ;
              if( DPLOT_LINES(grapher) ) {        /* 01 Aug 1998 */
                DC_linewidth( grapher->dc , DPLOT_THICK(grapher) ) ;
                AFNI_XDrawLines( grapher->dc->display ,
-                           grapher->fd_pxWind , grapher->dc->myGC ,
+                           DRAW_TARGET , grapher->dc->myGC ,
                            a_line , qnum ,  CoordModeOrigin , nupsam ) ;
              }
 
@@ -3165,7 +3183,7 @@ STATUS("starting time series graph loop") ;
                 if( ypfac == 0.0 ) ypfac =  1.0 ;
            else if( ypfac <  0.0 ) ypfac = -1.0 / ypfac ;
 
-           XDrawLine( grapher->dc->display , grapher->fd_pxWind , grapher->dc->myGC ,
+           XDrawLine( grapher->dc->display , DRAW_TARGET , grapher->dc->myGC ,
                       (int) xoff                , (int)(yoff + tsbot * ypfac) ,
                       (int)(xoff + grapher->gx) , (int)(yoff + tsbot * ypfac)  ) ;
 
@@ -3277,7 +3295,7 @@ STATUS("plotting extra graphs") ;
                   DC_fg_color( grapher->dc , excolor ) ;
                 DC_linewidth( grapher->dc , exthick ) ;
                 AFNI_XDrawLines( grapher->dc->display ,
-                            grapher->fd_pxWind , grapher->dc->myGC ,
+                            DRAW_TARGET , grapher->dc->myGC ,
                             a_line , qnum ,  CoordModeOrigin , nupsam ) ;
               } else {
                 for( i=pbot ; i < itop-1 ; i++ ){
@@ -3295,7 +3313,7 @@ STATUS("plotting extra graphs") ;
                   }
 
                   AFNI_XDrawLines( grapher->dc->display ,
-                              grapher->fd_pxWind , grapher->dc->myGC ,
+                              DRAW_TARGET , grapher->dc->myGC ,
                               a_line + (i-pbot) , 2 ,  CoordModeOrigin , 0 ) ;
                 }
                 if( grapher->mat < 4 &&
@@ -3330,7 +3348,7 @@ STATUS("plotting extra graphs") ;
        }
        DC_fg_color ( grapher->dc , IDEAL_COLOR(grapher) ) ;
        DC_linewidth( grapher->dc , IDEAL_THICK(grapher) ) ;
-       AFNI_XDrawLines( grapher->dc->display , grapher->fd_pxWind , grapher->dc->myGC ,
+       AFNI_XDrawLines( grapher->dc->display , DRAW_TARGET , grapher->dc->myGC ,
                    a_line , npt-pbot ,  CoordModeOrigin , 0 ) ;
      }
    } /* there is no code for showing the x-axis for pstep > 1, it's too hard */
@@ -3632,7 +3650,7 @@ STATUS(str) ; }
          XSync( XtDisplay(w) , False ) ;  /* 05 Feb 1999 */
 
          if( event->count == 0 ){
-            if( grapher->fd_pxWind == (Pixmap) 0 ){
+            if( DRAW_TARGET == (Window)NULL ){
                int width , height ;
                MCW_widget_geom( grapher->draw_fd , &width , &height , NULL,NULL ) ;
                GRA_new_pixmap( grapher , width , height , 1 ) ;
@@ -3660,7 +3678,7 @@ STATUS("KeyPress event") ;
 
          GRA_timer_stop( grapher ) ;  /* 04 Dec 2003 */
 
-         if( grapher->fd_pxWind != (Pixmap) 0 ){
+         if( DRAW_TARGET != (Window)NULL ){
             buf[0] = '\0' ;
             nbuf = XLookupString( event , buf , 32 , &ks , NULL ) ;
             if( nbuf == 0 ){   /* 24 Jan 2003: substitution for special keys */
@@ -3806,7 +3824,7 @@ STATUS("button press") ;
                          if it is actually a new center, that is,
                          and if graphing is enabled, and if not off left edge */
 
-         if( grapher->fd_pxWind != (Pixmap) 0 &&
+         if( DRAW_TARGET != (Window)NULL &&
              but == Button1                   && (bx > GL_DLX) &&
              ( (xloc != grapher->xpoint) || (yloc != grapher->ypoint) ) ){
 
@@ -3819,7 +3837,7 @@ STATUS("button press") ;
          /* 22 July 1996:
             button 1 in central graph of matrix causes jump to time_index */
 
-         else if( grapher->fd_pxWind != (Pixmap)0 &&
+         else if( DRAW_TARGET != (Window)NULL &&
                   NPTS(grapher) > 1               && !grapher->textgraph     &&
                   (but==Button1)                  && (bx > GL_DLX)           &&
                   (xloc == grapher->xpoint)       && yloc == grapher->ypoint &&
@@ -4021,6 +4039,7 @@ ENTRY("GRA_new_pixmap") ;
    grapher->gx_max = new_width  - (GL_DLX + GR_DLX) ;
    grapher->gy_max = new_height - (GT_DLY + GB_DLY) ;
 
+#ifndef DIRECT_DRAW
    if( grapher->fd_pxWind != (Pixmap) 0 ){
 STATUS("freeing old Pixmap") ;
       XFreePixmap( grapher->dc->display , grapher->fd_pxWind ) ;
@@ -4031,6 +4050,7 @@ STATUS("allocating new Pixmap") ;
                                        XtWindow(grapher->draw_fd) ,
                                        grapher->fWIDE , grapher->fHIGH,
                                        grapher->dc->planes ) ;
+#endif
 
    MCW_widget_geom( grapher->option_rowcol , &ww , &hh , NULL,NULL ) ;
    XtVaSetValues( grapher->option_rowcol ,
@@ -5637,8 +5657,10 @@ STATUS("replacing ort timeseries") ;
          }
          grapher->valid = 1 ;
 
+#ifndef DIRECT_DRAW
          if( grapher->fd_pxWind != (Pixmap) 0 )
             XFreePixmap( grapher->dc->display , grapher->fd_pxWind ) ;
+#endif
          RETURN( True ) ;
       }
 
@@ -7133,13 +7155,13 @@ void GRA_file_pixmap( MCW_grapher *grapher , char *fname )
 ENTRY("GRA_file_pixmap") ;
 
    if( ! GRA_REALZ(grapher) ) EXRETURN ;
-   if( grapher->fd_pxWind == (Pixmap) 0 ) EXRETURN ;
+   if( DRAW_TARGET != (Window)NULL ) EXRETURN ;
 
    ii = XGetGCValues( grapher->dc->display ,
                       grapher->dc->myGC , GCPlaneMask , &gcv ) ;
    if( ii == 0 ) EXRETURN ;
 
-   xim = XGetImage( grapher->dc->display , grapher->fd_pxWind ,
+   xim = XGetImage( grapher->dc->display , DRAW_TARGET ,
                     0 , 0 , grapher->fWIDE , grapher->fHIGH ,
                     gcv.plane_mask , ZPixmap ) ;
    if( xim == NULL ) EXRETURN ;
