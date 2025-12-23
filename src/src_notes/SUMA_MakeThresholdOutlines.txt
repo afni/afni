@@ -1,0 +1,58 @@
+﻿SUMA_MakeThresholdOutlines
+    • ado = SUMA_Overlay_OwnerADO(Sover);
+    • SO = (SUMA_SurfaceObject *)ado;
+    • Check that required pointers not NULL
+    • SUMA_Find_ColorMap
+        ◦ Ensure there are color maps.  If not, exit.
+        ◦ Cycle through maps to find required map
+        ◦ If found, return map.  Otherwise return failed to find map
+    • If colormap not found, return with error message.
+    • Create a scaled color vector
+    • If show mode Con or CaC
+        ◦ return = (SUMA_NeedsLinearizing(ColMap))
+            ▪ If there is no N_col x 1 vector containing the fraction of scale assigned to each color, (values shown on the right of the colorbar in AFNI) return 0
+            ▪ If number of colors in the color map x number of columns in M (where M is an N_Col x 3 matrix of R G B values (0..1)) return 0
+            ▪ If there is a hot spot in the color vector, return 1.  Otherwise, return 0
+    • else ColsContMode = 0
+    • Create color scale vector
+        ◦ Allocate memory to color scale vector
+        ◦ Allocate memory to its cv and isMasked components for the number of nodes. BiasCoordVec component nullified until it is determined whether it is needed.
+        ◦ If ColsContMode, vCont allocated for the number of nodes
+        ◦ if cv or isMasked allocation failed, return NULL
+        ◦ Otherwise, assign Nnode (number of nodes) to the output array and return the same.
+    • Fetch vectors from dataset.  Set element to masked if T value within  the threshold AND either variable thresholding false or threshold outlining true.  The condition is only possible when Opt->ThreshRange[0] > 0
+    • Setup nodedef so that it can be used along with Sover->V for clusterizing. Sover->V will get modified in subsequent calls so got to do it now
+    • nd = SUMA_GetNodeDef(dset)
+        ◦ ( (!dset || !dset->inel ||  !dset->inel->vec) ? NULL:(int*)(dset->inel->vec[0]) )
+            ▪ IOW get the vector, of 3D color vectors, at the first node of the dataset if it exists. Otherwise return NULL
+    • Iterate over the vectors that have been filled
+        ◦ if (nd)
+            ▪ copy nd into Sover→NodeDef
+        ◦ Otherwise
+            ▪ Fill Sover→NodeDef with 1s
+    • Sover->FullList = NOPE;
+    • Colorize
+        ◦ SUMA_ScaleToMap
+            ▪ Ensure there is an overlay, that it has a name and that a colormap can be built.
+            ▪ SUMAg_CF->scm = SUMA_Build_Color_maps();
+                • SUMA_Get_AFNI_Default_Color_Maps
+                    ◦ Initialize N_maps and N_cols to -1.  Set pthr[i] = 0.0; pov[i] = 0
+                    ◦ Cv = SUMA_Add_Color ("none", -1.0, -1.0, -1.0, 1.0, Cv, &N_cols);
+                        ▪ (r,g,b)==(-1.0,-1.0,-1.0) → “No color”
+                        ▪ Else return error if (r,g,b) outside [0,1] range
+                        ▪ Ensure color name not too long.  If it is, return with error.
+                        ▪ Check to see if color exists already.  If it does, replace color of that name with new color.
+                        ▪ Add new colormap.
+            ▪ icmap = SUMA_Find_ColorMap (Described above)
+            ▪ ColMap = SUMAg_CF→scm→CMv[icmap];
+            ▪ Create a scaled color vector
+                • if (show mode Con or Cac) 
+                    ◦ if SUMA_NeedsLinearizing(ColMap) (See description above)
+                        ▪ if (!nwarn)
+                            • "Cannot do contouring with colormaps that panes of unequal sizes.” "Notice shown once per session."
+                            • ++nwarn;
+                            • Opt->ColsContMode = 0;
+                    ◦ else Opt->ColsContMode = 1;
+                • else Opt->ColsContMode = 0;
+                • SUMA_Create_ColorScaledVect
+
