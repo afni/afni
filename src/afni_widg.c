@@ -15,7 +15,7 @@ extern SUMA_Boolean SUMA_Register_Widget_Help(Widget w, int type, char *name,
 #ifdef  USE_QQQQ
 /*--------------------------------------------------------------------*/
 
-static void AFNI_qqqq_CB( Widget w , XtPointer cd , XtPointer cbd )
+static void AFNI_qqqq_CB( Widget w, XtPointer cd , XtPointer cbd )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
 
@@ -362,6 +362,7 @@ ENTRY("AFNI_make_widgets") ;
    vwid->parent = im3d ;
 
    vwid->butx = vwid->buty = 9 ; /* 17 May 2005 */
+   vwid->top_form_height   = 0 ;
 
 #ifdef USING_LESSTIF
    /* In Lesstif, using form spacing, shifts the
@@ -395,7 +396,19 @@ STATUS("creating top_form") ;
                               NULL, s); s = NULL; /* Do not free s */
    vwid->file_dialog = NULL ; /* Mar 1997 */
 
-   /* create pixmaps, if desired */
+   /* handler for change of top_form shape [Dec 2025] */
+
+   if( isMacTahoe() ){
+     XtInsertEventHandler( vwid->top_form ,         /* handle events in top_form */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           AFNI_vwidtopform_EV ,    /* handler */
+                           (XtPointer) im3d ,       /* client data */
+                           XtListTail               /* last in queue */
+                         ) ;
+   }
+
+   /*--------- create pixmaps, if desired ---------*/
 
 #if defined(WANT_LOGO_BITMAP) || defined(WANT_AFNI_BITMAP)
    {  Pixel bg_pix=0  , fg_pix  ;  /* colors: from control window */
@@ -623,7 +636,7 @@ STATUS("WANT_AFNI_BITMAP") ;
 
 #endif  /* WANT_AFNI_BITMAP */
    }
-#endif  /* if WANT any of the BITMAPs */
+#endif  /*--------- if WANT any of the BITMAPs ---------*/
 
    if( afni16_pixmap[num_entry-1] != XmUNSPECIFIED_PIXMAP )
      XtVaSetValues( vwid->top_form , XmNbackgroundPixmap,afni16_pixmap[num_entry-1] , NULL ) ;
@@ -4713,7 +4726,7 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->fim_dset_label , "Dataset to be FIM-ed") ;
 #endif
 
-   /* 25 Jul 2001: a toggle box to show the Atlas regions set by 
+   /* 25 Jul 2001: a toggle box to show the Atlas regions set by
     * AFNI_ATLAS_COLORS */
 
    { char *see_ttatlas_label[1] = { "See Atlas Regions" } ;
@@ -6220,6 +6233,28 @@ STATUS("making prog->rowcol") ;
       MCW_set_widget_bg( prog->hidden_papers_pb,"#0044aa",0) ;
       MCW_set_widget_fg( prog->hidden_papers_pb,"#ffff00") ;
 
+      /*----------*/
+
+      (void) XtVaCreateManagedWidget(
+               "dialog" , xmSeparatorWidgetClass , prog->hidden_menu ,
+                  XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
+
+      /*----------*/
+
+      prog->hidden_redraw_pb =             /* 02 May 2014 */
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+               LABEL_ARG("*Redraw All Viewers*") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+      XtAddCallback( prog->hidden_redraw_pb , XmNactivateCallback ,
+                     AFNI_redraw_CB , im3d ) ;
+      MCW_set_widget_bg( prog->hidden_redraw_pb,"#882200",0) ;
+      MCW_set_widget_fg( prog->hidden_redraw_pb,"#ffffff") ;
+
 #ifdef  USE_QQQQ
       /*----------*/
       { Widget qqqb =
@@ -6308,6 +6343,47 @@ Three_D_View * AFNI_find_open_controller(void)
        return GLOBAL_library.controllers[ii] ;
 
    return NULL ;  /* should be impossible */
+}
+
+/*------------------------------------------------------------------------*/
+/* Redraw a controller and any of its open image/graph viewers. [Dec 2025]
+/*------------------------------------------------------------------------*/
+
+void AFNI_redraw_controller( Three_D_View *im3d ){
+
+ENTRY("AFNI_redraw_controller") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
+fprintf(stderr, "AFNI_redraw_controller\n") ;
+
+   /* redraw the controller from the very tippy top level widget */
+
+   forceExpose( im3d->vwid->top_form,0 ) ;
+
+   /* force an Expose on all image viewers (top level widgets) */
+
+   if( im3d->s123 ) forceExpose(im3d->s123->wtop, 0) ;
+   if( im3d->s231 ) forceExpose(im3d->s231->wtop, 0) ;
+   if( im3d->s312 ) forceExpose(im3d->s312->wtop, 0) ;
+
+   /* graph viewers */
+
+#if 1
+   /* this code works well with DIRECT_DRAW in afni_graph.c */
+   if( im3d->g123 ) forceExpose(im3d->g123->fdw_graph, 0) ;
+   if( im3d->g231 ) forceExpose(im3d->g231->fdw_graph, 0) ;
+   if( im3d->g312 ) forceExpose(im3d->g312->fdw_graph, 0) ;
+#else
+   /* this code is more brute force, but does work if forceExpose does not */
+   if( im3d->g123 ) GRA_handle_keypress( im3d->g123, " " , NULL ) ;
+   if( im3d->g231 ) GRA_handle_keypress( im3d->g231, " " , NULL ) ;
+   if( im3d->g312 ) GRA_handle_keypress( im3d->g312, " " , NULL ) ;
+#endif
+
+   /* How to redraw any plugins etc? Good question. Hope it's not needed! */
+
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------*/
@@ -8057,6 +8133,47 @@ ENTRY("AFNI_sesslab_EV") ;
 
    }
 
+   EXRETURN ;
+}
+
+/*-------------------------------------------------------------------------*/
+/* what to do when the topform of an AFNI controller is resized [Dec 2025] */
+/*-------------------------------------------------------------------------*/
+
+void AFNI_vwidtopform_EV( Widget w , XtPointer cd ,
+                               XEvent *ev , RwcBoolean *continue_to_dispatch )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   static int busy=0 ;
+
+ENTRY("AFNI_vwidtopform_EV") ;
+
+   if( busy || !IM3D_OPEN(im3d) ) EXRETURN ;
+
+   busy = 1 ;
+
+   switch( ev->type ){
+
+     case ConfigureNotify:{
+        forceExpose( im3d->vwid->top_form , 0 ) ;
+        int hold , hnew ;
+        forceExpose( im3d->vwid->top_form , 0 ) ;
+        XSync( XtDisplay(im3d->vwid->top_form) , False) ;
+
+        hold = im3d->vwid->top_form_height ;
+        MCW_widget_geom( im3d->vwid->top_form, NULL, &hnew, NULL, NULL) ;
+        if( hnew > hold+9 ){
+          FIX_TOPFORM_HEIGHT(im3d) ;
+          XSync( XtDisplay(im3d->vwid->top_form) , False) ;
+        }
+     }
+     break ;
+
+     /** No other event types (at this time) */
+
+   }
+
+   busy = 0 ;
    EXRETURN ;
 }
 

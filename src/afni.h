@@ -208,11 +208,11 @@ extern char AFNI_abohelp[1024] ;
 #   endif  /* MAIN */
 
 #   define RESET_AFNI_QUIT(iqqq) \
-     { AFNI_quit_CB(NULL,(XtPointer)(iqqq),NULL) ; RESET_sonnet() ; }
+     { AFNI_quit_CB(NULL,(XtPointer)(iqqq),NULL) ; RESET_sonnet() ; EXPOSEME((iqqq)->vwid->top_form,0); }
 
 #else  /* don't USE_SONNETS */
 
-#   define RESET_AFNI_QUIT(iqqq) AFNI_quit_CB(NULL,(XtPointer)(iqqq),NULL)
+#   define RESET_AFNI_QUIT(iqqq){ AFNI_quit_CB(NULL,(XtPointer)(iqqq),NULL); EXPOSEME((iqqq)->vwid->top_form,0); }
 
 #endif /* USE_SONNETS */
 /*------------------------------------------------------------------*/
@@ -665,6 +665,8 @@ extern void reset_mnito(struct Three_D_View *im3d);
          MCW_invert_widget( (iq)->vwid->view->define_ ## panel ## _pb ) ; \
          (iq)->vwid->view->  panel ## _pb_inverted = False ; } }
 
+extern void AFNI_vwidtopform_EV( Widget, XtPointer, XEvent *, RwcBoolean * ) ; /* Dec 2025 */
+
 /*---*/
 
 #define MARKS_MAXPOP (MARKS_MAXNUM+10)
@@ -973,6 +975,7 @@ typedef struct {
    Widget hidden_music_pb   ;  /* 07 Aug 2019 */
    Widget hidden_pvalue_pb  ;  /* 06 Mar 2014 */
    Widget hidden_papers_pb  ;  /* 02 May 2014 */
+   Widget hidden_redraw_pb  ;  /* 23 Dec 2025 */
 
 #endif  /* USE_HIDDEN */
 
@@ -1035,12 +1038,17 @@ typedef struct {
 
 /* Macro to reset size of the top_form in AFNI [04 Aug 2016] */
 
-#define FIX_TOPFORM_HEIGHT(iq)                                       \
- do{ if( (iq)->vwid->top_form_height > 99 )                          \
-       XtVaSetValues( (iq)->vwid->top_form ,                         \
-                      XmNheight,(iq)->vwid->top_form_height,NULL ) ; \
-       XtVaSetValues( (iq)->vwid->top_shell ,                        \
-                      XmNheight,(iq)->vwid->top_form_height+1,NULL); \
+#define FIX_TOPFORM_HEIGHT(iq)                                         \
+ do{ if( (iq)->vwid->top_form_height > 99 ){                           \
+       int hh ;                                                        \
+       MCW_widget_geom( (iq)->vwid->top_form, NULL,&hh,NULL,NULL ) ;   \
+       if( hh > (iq)->vwid->top_form_height ){                         \
+         XtVaSetValues( (iq)->vwid->top_form ,                         \
+                        XmNheight,(iq)->vwid->top_form_height,NULL ) ; \
+         XtVaSetValues( (iq)->vwid->top_shell ,                        \
+                        XmNheight,(iq)->vwid->top_form_height+1,NULL); \
+       }                                                               \
+     }                                                                 \
  } while(0)
 
 #define SET_TOPFORM_HEIGHT(iq)                               \
@@ -1555,6 +1563,7 @@ extern void AFNI_initialize_controller( Three_D_View * ) ;
 extern void AFNI_purge_dsets(int) ;
 extern void AFNI_purge_unused_dsets(void) ;
 extern int AFNI_controller_index( Three_D_View * ) ;
+extern void AFNI_redraw_controller( Three_D_View *im3d ) ; /* Dec 2025 */
 
 extern void AFNI_sigfunc_alrm(int sig) ;
 #undef  AFexit
@@ -2270,6 +2279,8 @@ extern void AFNI_pvalue_CB  ( Widget , XtPointer , XtPointer );
 
 extern void AFNI_papers_CB  ( Widget , XtPointer , XtPointer );
 extern void AFNI_list_papers( Widget w ) ; /* 02 May 2014 */
+
+extern void AFNI_redraw_CB  ( Widget , XtPointer , XtPointer ); /* Dec 2025 */
 
 extern void AFNI_add_timeseries( MRI_IMAGE * ) ;
 extern void AFNI_replace_timeseries( MRI_IMAGE * ) ; /* 10 May 2009 */

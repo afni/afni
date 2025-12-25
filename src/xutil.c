@@ -49,6 +49,94 @@ void MCW_expose_widget( Widget w )
    return ;
 }
 
+/*------------------------------------------------------------------------*/
+/* The following 2 functions are to force Expose events down an
+   entire hierarchy of Widgets [Dec 2025]
+--------------------------------------------------------------------------*/
+
+/* drg/rcr - to redraw after resize */
+
+void forceExpose(Widget w, int depth) {
+
+#if 0
+   static int cc = 0;
+   fprintf(stderr,"== expose %p, depth %d, cc %d\n", w, depth, cc);
+   if(!w) { fprintf(stderr,"** bail on NULL\n");   return; }
+   if(!XtIsRealized(w)){ fprintf(stderr,"** bail unrealized\n");   return; }
+   if(!XtIsWidget(w)){ fprintf(stderr,"** bail on non-widget\n");   return; }
+   cc++;
+#else
+   if( !w || !XtIsRealized(w) || !XtIsWidget(w) ) return ;
+#endif
+
+   // fprintf(stderr,"-- isw %d\n", XtIsWidget(w));
+   // fprintf(stderr,"-- display %p\n", XtDisplay(w));
+   // fprintf(stderr,"-- XtWindow %ld\n", XtWindow(w));
+
+   /* redraw */
+   XClearArea(XtDisplay(w), XtWindow(w), 0, 0, 0, 0, True);
+   XSync(XtDisplay(w),False) ;
+
+   /* recurse */
+   if (XtIsComposite(w)) {
+      WidgetList kids;
+      Cardinal nkids;
+      XtVaGetValues(w, XmNchildren, &kids, XmNnumChildren, &nkids, NULL);
+      for (int i = 0; i < nkids; ++i)
+         forceExpose(kids[i], depth+1);
+   }
+
+   return ;
+}
+
+/*----- RWC - another way to do the same-ish stuff -----*/
+/* The difference from above is that the Widget isn't   */
+/* cleared, so the redraw might not include background. */
+/*------------------------------------------------------*/
+
+void sendExpose( Widget w , int depth )
+{
+  XExposeEvent expose_event ;
+  int wout , hout ;
+
+#if 0
+  if(!w) { fprintf(stderr,"** Bail on NULL\n");   return; }
+  if(!XtIsRealized(w)){ fprintf(stderr,"** Bail unrealized\n");   return; }
+  if(!XtIsWidget(w)){ fprintf(stderr,"** Bail on non-widget\n");   return; }
+#else
+  if( !w || !XtIsRealized(w) || !XtIsWidget(w) ) return ;
+#endif
+
+  /* Clear the event structure */
+  memset (&expose_event, 0, sizeof(expose_event) ) ;
+
+  MCW_widget_geom( w, &wout, &hout , NULL,NULL ) ;  /* get width and height */
+
+  /* Populate the event structure */
+  expose_event.type       = Expose ;
+  expose_event.display    = XtDisplay(w) ;
+  expose_event.window     = XtWindow(w) ;
+  expose_event.x          = 0 ;
+  expose_event.y          = 0 ;
+  expose_event.width      = wout ;
+  expose_event.height     = hout ;
+  expose_event.count      = 0 ;    /* 0 => is last (or only) expose event in a sequence */
+  expose_event.send_event = True ; /* Indicates the event came from a SendEvent request */
+
+  /* Send the event ; The mask must be ExposureMask, not Expose ; Flush X11 output buffer */
+  XSendEvent( expose_event.display, expose_event.window, False, ExposureMask, (XEvent *)&expose_event) ;
+  XSync(expose_event.display,False) ;
+
+  if (XtIsComposite(w)) {
+    WidgetList kids;
+    Cardinal nkids;
+    XtVaGetValues(w, XmNchildren, &kids, XmNnumChildren, &nkids, NULL);
+    for (int i = 0; i < nkids; ++i)
+      sendExpose(kids[i],depth+1);
+  }
+
+}
+
 /*--------------------------------------------------------------------
   Get the Colormap for a widget -- 01 Sep 1998
 ----------------------------------------------------------------------*/
