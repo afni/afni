@@ -2416,6 +2416,8 @@ int main( int argc , char *argv[] )
    AFNI_prefilter_args( &argc , &argv ) ;  /* 11 Dec 2007 */
 /*** INFO_message("after prefilter: argc=%d argv=%p",argc,(void *)argv) ; ***/
 
+   /***** fprintf(stderr,"MacTahoe = %d\n",isMacTahoe()) ; *****/
+
    THD_load_datablock_verbose(1) ; /* 21 Aug 2002 */
 
    signal(SIGINT ,AFNI_sigfunc) ;  /* may be superseded by mainENTRY below */
@@ -7230,6 +7232,12 @@ ENTRY("AFNI_controller_panel_CB") ;
 
    if( XtIsManaged(im3d->vwid->view->frame) == True ){
 
+      /* Do the Tahoe fix [Dec 2025] */
+
+      if( isMacTahoe() && im3d->anat_now != NULL && im3d->fim_now != NULL ){
+        AFNI_redraw_controller(im3d) ;
+      }
+
       if( XtIsManaged(im3d->vwid->marks->frame) == True ){
          AFNI_marks_action_CB( NULL , (XtPointer) im3d , NULL ) ;
       }
@@ -10864,33 +10872,7 @@ static void fixscale( XtPointer client_data , XtIntervalId *id )
 }
 #endif
 
-/*------------------------------------------------------------------------*/
-
-/* drg/rcr - to redraw after resize */
-static void forceExpose(Widget w, int depth) {
-   static int cc = 0;
-   fprintf(stderr,"== expose %p, depth %d, cc %d\n", w, depth, cc);
-   if(!w) { fprintf(stderr,"** bail on NULL\n");   return; }
-   if(!XtIsRealized(w)){ fprintf(stderr,"** bail unrealized\n");   return; }
-   if(!XtIsWidget(w)){ fprintf(stderr,"** bail on non-widget\n");   return; }
-   cc++;
-
-   // fprintf(stderr,"-- isw %d\n", XtIsWidget(w));
-   // fprintf(stderr,"-- display %p\n", XtDisplay(w));
-   // fprintf(stderr,"-- XtWindow %ld\n", XtWindow(w));
-
-   /* redraw */
-   XClearArea(XtDisplay(w), XtWindow(w), 0, 0, 0, 0, True);
-
-   if (XtIsComposite(w)) {
-      WidgetList kids;
-      Cardinal nkids;
-      XtVaGetValues(w, XmNchildren, &kids, XmNnumChildren, &nkids, NULL);
-      for (int i = 0; i < nkids; ++i)
-         forceExpose(kids[i], depth+1);
-   }
-}
-
+/*---------------------------------------------------------------------------------*/
 
 void AFNI_define_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
@@ -11010,6 +10992,10 @@ STATUS("opening marks") ;
          }
       }
 
+      /* this will be taken care of in AFNI_vwidtopform_EV() when top_form is resized */
+#if 0
+      if( isMacTahoe() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
+#endif
       EXRETURN ;
    }
 
@@ -11043,17 +11029,6 @@ STATUS("unmanaging children") ;
 STATUS("opening panel") ;
          OPEN_PANEL(im3d,func) ;
 
-/* drg/rcr - playing with resize fixing... */
-forceExpose(im3d->vwid->top_form, 0);
-
-if( im3d->s123 ) forceExpose(im3d->s123->wtop, 0);
-if( im3d->s231 ) forceExpose(im3d->s231->wtop, 0);
-if( im3d->s312 ) forceExpose(im3d->s312->wtop, 0);
-
-if( im3d->g123 ) forceExpose(im3d->g123->fdw_graph, 0);
-if( im3d->g231 ) forceExpose(im3d->g231->fdw_graph, 0);
-if( im3d->g312 ) forceExpose(im3d->g312->fdw_graph, 0);
-
 #ifdef REMANAGE_FUNC
 STATUS("remanaging children") ;
          XtManageChild( im3d->vwid->func->thr_rowcol ) ;
@@ -11082,6 +11057,10 @@ STATUS("remanaging children") ;
 /***     XtManageChild( im3d->vwid->func->inten_bbox->wrowcol ) ; ***/
       }
 
+      /* this will be taken care of in AFNI_vwidtopform_EV() when top_form is resized */
+#if 0
+      if( isMacTahoe() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
+#endif
       EXRETURN ;
    }
 
@@ -11103,7 +11082,11 @@ STATUS("opening dmode" ) ;
          OPEN_PANEL(im3d,dmode) ;
       }
 
+      /* this will be taken care of in AFNI_vwidtopform_EV() when top_form is resized */
+#if 0
+      if( isMacTahoe() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
       EXRETURN ;
+#endif
    }
 
    RESET_AFNI_QUIT(im3d) ;
