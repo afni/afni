@@ -354,7 +354,6 @@ extern long   strtol() ;
 /* Mac OSX (Darwin) */
 
 extern int isMacTahoe(void) ;  /* in machdep.c [Dec 2025] */
-static int MacTahoe = 0 ;      /* set once and for all in machdep.c */
 
 #ifdef DARWIN
 # include <dirent.h>

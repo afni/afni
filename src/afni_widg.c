@@ -6347,7 +6347,7 @@ Three_D_View * AFNI_find_open_controller(void)
 
 /*------------------------------------------------------------------------*/
 /* Redraw a controller and any of its open image/graph viewers. [Dec 2025]
-/*------------------------------------------------------------------------*/
+ *------------------------------------------------------------------------*/
 
 void AFNI_redraw_controller( Three_D_View *im3d ){
 
@@ -8155,7 +8155,6 @@ ENTRY("AFNI_vwidtopform_EV") ;
    switch( ev->type ){
 
      case ConfigureNotify:{
-        forceExpose( im3d->vwid->top_form , 0 ) ;
         int hold , hnew ;
         forceExpose( im3d->vwid->top_form , 0 ) ;
         XSync( XtDisplay(im3d->vwid->top_form) , False) ;

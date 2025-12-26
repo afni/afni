@@ -9,6 +9,7 @@
 #include <time.h>
 
 int MRILIB_verb = 0 ;
+static int MacTahoe = 0 ;      /* set once and for all below */
 
 /*--------------------------------------------------------------------*/
 
