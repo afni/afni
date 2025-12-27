@@ -363,6 +363,7 @@ ENTRY("AFNI_make_widgets") ;
 
    vwid->butx = vwid->buty = 9 ; /* 17 May 2005 */
    vwid->top_form_height   = 0 ;
+   vwid->top_shell_height  = 0 ; /* Dec 2025 */
 
 #ifdef USING_LESSTIF
    /* In Lesstif, using form spacing, shifts the
@@ -6355,7 +6356,9 @@ ENTRY("AFNI_redraw_controller") ;
 
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
+#if 0
 fprintf(stderr, "AFNI_redraw_controller\n") ;
+#endif
 
    /* redraw the controller from the very tippy top level widget */
 
@@ -8156,15 +8159,14 @@ ENTRY("AFNI_vwidtopform_EV") ;
 
      case ConfigureNotify:{
         int hold , hnew ;
-        forceExpose( im3d->vwid->top_form , 0 ) ;
-        XSync( XtDisplay(im3d->vwid->top_form) , False) ;
-
         hold = im3d->vwid->top_form_height ;
         MCW_widget_geom( im3d->vwid->top_form, NULL, &hnew, NULL, NULL) ;
-        if( hnew > hold+9 ){
+        if( abs(hnew-hold) > 9 ){
           FIX_TOPFORM_HEIGHT(im3d) ;
-          XSync( XtDisplay(im3d->vwid->top_form) , False) ;
+        } else {
+          forceExpose( im3d->vwid->top_form , 0 ) ;
         }
+        XSync( XtDisplay(im3d->vwid->top_form) , False) ;
      }
      break ;
 

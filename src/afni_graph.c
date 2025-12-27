@@ -1720,7 +1720,7 @@ ENTRY("GRA_redraw_overlay") ;
 
    /* no more to do now */
 
-   XFlush( dis ) ;
+   XSync(dis,False) ;
    EXRETURN ;
 }
 

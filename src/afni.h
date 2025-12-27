@@ -1002,6 +1002,7 @@ struct PLUGIN_interface ; /* incomplete definition */
 typedef struct {
       Widget top_shell , top_form ;
       int top_form_height ;               /* 04 Aug 2016 */
+      int top_shell_height ;              /* Dec 2025 */
 
       AFNI_imaging_widgets  * imag ;
       AFNI_viewing_widgets  * view ;
@@ -1036,30 +1037,37 @@ typedef struct {
       int butx , buty ;        /* 17 May 2005 */
 } AFNI_widget_set ;
 
-/* Macro to reset size of the top_form in AFNI [04 Aug 2016] */
+/* Macro to reset size of the top_form in AFNI [04 Aug 2016] */ 
+/*                     and also the top_shell  [Dec 2025]    */
 
 #define FIX_TOPFORM_HEIGHT(iq)                                         \
  do{ if( (iq)->vwid->top_form_height > 99 ){                           \
-       int hh ;                                                        \
-       MCW_widget_geom( (iq)->vwid->top_form, NULL,&hh,NULL,NULL ) ;   \
-       if( hh > (iq)->vwid->top_form_height ){                         \
+       int hf, hs ;                                                    \
+       MCW_widget_geom( (iq)->vwid->top_form , NULL,&hf,NULL,NULL ) ;  \
+       MCW_widget_geom( (iq)->vwid->top_shell, NULL,&hs,NULL,NULL ) ;  \
+       if( hf != (iq)->vwid->top_form_height  &&                       \
+           hs != (iq)->vwid->top_shell_height   ){                     \
+       if( 0 )                                                               \
+         fprintf(stderr,"FIX_TOPFORM: orig %d %d  current %d %d\n",          \
+                 (iq)->vwid->top_form_height, (iq)->vwid->top_shell_height , \
+                 hf , hs ) ;                                                 \
          XtVaSetValues( (iq)->vwid->top_form ,                         \
-                        XmNheight,(iq)->vwid->top_form_height,NULL ) ; \
+                        XmNheight,(iq)->vwid->top_form_height ,NULL);  \
          XtVaSetValues( (iq)->vwid->top_shell ,                        \
-                        XmNheight,(iq)->vwid->top_form_height+1,NULL); \
+                        XmNheight,(iq)->vwid->top_shell_height,NULL);  \
        }                                                               \
-   /* note: the following would avoid the height growth on linux :     \
-       MCW_widget_geom( (iq)->vwid->top_form, NULL,&hh,NULL,NULL ) ;   \
-         XtVaSetValues( (iq)->vwid->top_shell ,                        \
-                        XmNheight,(iq)->vwid->top_form_height+1,NULL); \
-    */                                                                 \
      }                                                                 \
  } while(0)
 
-#define SET_TOPFORM_HEIGHT(iq)                               \
-     MCW_widget_geom( (iq)->vwid->top_form,                  \
-                      NULL, &((iq)->vwid->top_form_height),  \
-                      NULL, NULL )
+#define SET_TOPFORM_HEIGHT(iq)                                \
+ do{                                                          \
+     MCW_widget_geom( (iq)->vwid->top_form,                   \
+                      NULL, &((iq)->vwid->top_form_height),   \
+                      NULL, NULL ) ;                          \
+     MCW_widget_geom( (iq)->vwid->top_shell,                  \
+                      NULL, &((iq)->vwid->top_shell_height),  \
+                      NULL, NULL ) ;                          \
+ } while(0)
 
 #define TIPS_PLUS_SHIFT   2
 #define TIPS_MINUS_SHIFT -60
