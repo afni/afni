@@ -352,6 +352,9 @@ extern long   strtol() ;
 #endif
 
 /* Mac OSX (Darwin) */
+
+extern int isMacTahoe(void) ;  /* in machdep.c [Dec 2025] */
+
 #ifdef DARWIN
 # include <dirent.h>
 # define THD_MMAP_FLAG  MAP_SHARED

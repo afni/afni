@@ -9,6 +9,7 @@
 #include <time.h>
 
 int MRILIB_verb = 0 ;
+static int MacTahoe = 0 ;      /* set once and for all below */
 
 /*--------------------------------------------------------------------*/
 
@@ -54,9 +55,47 @@ void machdep()
        EDIT_set_index_prefix(*eee) ;
    }
 
+#ifdef DARWIN
+   (void) isMacTahoe() ;  /* Dec 2025 */
+#endif
+
    AFNI_do_nothing() ; /* 02 Oct 2012 */
    return ;
 }
+
+/*--------------------------------------------------------------------*/
+/* Check if running MacOS Tahoe [Dec 2025] */
+/*--------------------------------------------------------------------*/
+
+#ifndef DARWIN
+
+int isMacTahoe(void){ return 0 ; } /* that was easy */
+
+#else
+
+int isMacTahoe(void)
+{
+  static int firstcall=1;
+  char version[128];
+  FILE *fp ;
+
+  if( firstcall == 0 ) return MacTahoe ;
+
+  firstcall = 0; MacTahoe = 0;
+
+  fp = popen("sw_vers -productVersion", "r");
+  if( !fp ) return MacTahoe ;
+
+ /* Check if version starts with "26." */
+
+ if( fgets(version, sizeof(version), fp) != NULL ){
+   MacTahoe = ( strncmp(version, "26.", 3) == 0 );
+ }
+ pclose(fp); return MacTahoe;
+}
+
+#endif
+
 
 /*-------------------------------------------------------------------*/
 
