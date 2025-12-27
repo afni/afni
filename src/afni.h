@@ -1048,6 +1048,11 @@ typedef struct {
          XtVaSetValues( (iq)->vwid->top_shell ,                        \
                         XmNheight,(iq)->vwid->top_form_height+1,NULL); \
        }                                                               \
+   /* note: the following would avoid the height growth on linux :     \
+       MCW_widget_geom( (iq)->vwid->top_form, NULL,&hh,NULL,NULL ) ;   \
+         XtVaSetValues( (iq)->vwid->top_shell ,                        \
+                        XmNheight,(iq)->vwid->top_form_height+1,NULL); \
+    */                                                                 \
      }                                                                 \
  } while(0)
 
