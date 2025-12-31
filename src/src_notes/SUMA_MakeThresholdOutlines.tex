@@ -86,11 +86,11 @@
 \section*{SUMA\_MakeThresholdOutlines}
 
 \begin{itemize}
-	\item \texttt{ado = SUMA\_Overlay\_OwnerADO(Sover);}
+	\item \texttt{ado = {\bf SUMA\_Overlay\_OwnerADO}(Sover);}
 	\item \texttt{SO = (SUMA\_SurfaceObject *)ado;}
 	\item Check that required pointers are not \texttt{NULL}
 	
-	\item \texttt{SUMA\_Find\_ColorMap}
+	\item \texttt{{\bf SUMA\_Find\_ColorMap}}
 	\begin{itemize}
 		\item Ensure that color maps exist; if not, exit.
 		\item Cycle through maps to find the required map.
@@ -102,7 +102,7 @@
 	
 	\item If show mode is \texttt{Con} or \texttt{CaC}:
 	\begin{itemize}
-		\item \texttt{return = SUMA\_NeedsLinearizing(ColMap)}
+		\item \texttt{return = {\bf SUMA\_NeedsLinearizing}(ColMap)}
 		\begin{itemize}
 			\item If there is no $N_{\text{col}} \times 1$ vector containing the fraction of scale assigned to each color
 			(values shown on the right of the colorbar in AFNI), return 0.
@@ -132,7 +132,7 @@
 	\item Set up \texttt{nodedef} so it can be used with \texttt{Sover->V} for clusterizing.
 	Since \texttt{Sover->V} will be modified in subsequent calls, this must be done now.
 	
-	\item \texttt{nd = SUMA\_GetNodeDef(dset)}
+	\item \texttt{nd = {\bf SUMA\_GetNodeDef}(dset)}
 	\begin{itemize}
 		\item \texttt{((!dset || !dset->inel || !dset->inel->vec) ? NULL : (int*)(dset->inel->vec[0]))}
 		\item That is, get the vector of 3D color vectors at the first node of the dataset if it exists;
@@ -149,16 +149,16 @@
 	
 	\item Colorize:
 	\begin{itemize}
-		\item \texttt{SUMA\_ScaleToMap}
+		\item \texttt{{\bf SUMA\_ScaleToMap}}
 		\begin{itemize}
 			\item Ensure there is an overlay, that it has a name, and that a colormap can be built.
-			\item \texttt{SUMAg\_CF->scm = SUMA\_Build\_Color\_maps();}
+			\item \texttt{{\bf SUMAg\_CF->scm = SUMA\_Build\_Color\_maps}();}
 			\begin{itemize}
-				\item \texttt{SUMA\_Get\_AFNI\_Default\_Color\_Maps}
+				\item \texttt{{\bf SUMA\_Get\_AFNI\_Default\_Color\_Maps}}
 				\begin{enumerate}
 					\item Initialize \texttt{N\_maps} and \texttt{N\_cols} to $-1$.
 					Set \texttt{pthr[i] = 0.0} and \texttt{pov[i] = 0}.
-					\item \texttt{Cv = SUMA\_Add\_Color("none", -1.0, -1.0, -1.0, 1.0, Cv, \&N\_cols);}
+					\item \texttt{Cv = {\bf SUMA\_Add\_Color}("none", -1.0, -1.0, -1.0, 1.0, Cv, \&N\_cols);}
 					\begin{enumerate}
 						\item $(r,g,b)=(-1.0,-1.0,-1.0)$ denotes ``no color''.
 						\item Otherwise, return an error if $(r,g,b)$ is outside $[0,1]$.
@@ -169,7 +169,7 @@
 				\end{enumerate}
 			\end{itemize}
 			
-			\item \texttt{icmap = SUMA\_Find\_ColorMap}
+			\item \texttt{icmap = {\bf SUMA\_Find\_ColorMap}}
 			\item \texttt{ColMap = SUMAg\_CF->scm->CMv[icmap];}
 			
 			\item Create a scaled color vector:
@@ -188,7 +188,7 @@
 					\item Else, set \texttt{Opt->ColsContMode = 1}.
 				\end{enumerate}
 				\item Else, set \texttt{Opt->ColsContMode = 0}.
-				\item \texttt{SUMA\_Create\_ColorScaledVect}
+				\item \texttt{{\bf SUMA\_Create\_ColorScaledVect}}
 				\begin{enumerate}
 					\item Allocate color scaled vector, $s$
 					\item Allocate $S->cV$ and $S->masked$
@@ -210,29 +210,30 @@
 							\hspace*{0.25in} $\oplus$ if (!task) task = ``update''; /* Vanilla, recreate if necessary */\\
 							\hspace*{0.25in} $\oplus$ if (!Sover) return error\\
 							\hspace*{0.25in} $\oplus$ if (!Sover->dset\_link) return success\\
-							\hspace*{0.25in} $\oplus$ if (Sover->dset\_link->dnel \&\&
-							(attr=NI\_get\_attribute(Sover->dset\_link->dnel, "ResetOverlay\_Vecs")))\\
+							\hspace*{0.25in} $\oplus$ if (Sover->dset\_link->dnel \&\&\\
+							\hspace*{0.35in}(attr={\bf NI\_get\_attribute}(Sover->dset\_link->dnel,\\
+							 \hspace*{0.35in} "ResetOverlay\_Vecs")))\\
 								\hspace*{0.35in} $\dagger$ if (!strcmp(attr,"yes"))\\
 									\hspace*{0.45in} $\ddagger$ NI\_set\_attribute(Sover->dset\_link->dnel,"ResetOverlay\_Vecs", "nope");\\
-									\hspace*{0.45in} $\ddagger$ SUMA\_DSET\_ClearOverlay\_Vecs(Sover->dset\_link)\\
+									\hspace*{0.45in} $\ddagger$ {\bf SUMA\_DSET\_ClearOverlay\_Vecs}(Sover->dset\_link)\\
 										\hspace*{0.6in} $\cap$ if (!dset) return error\\
 										\hspace*{0.6in} $\cap$ for (i=0; i<SUMAg\_N\_DOv; ++i) \\
 										\hspace*{0.6in} $\cap$ ado = iDO\_ADO(i);\\
-										\hspace*{0.6in} $\cap$ if ((over = SUMA\_ADO\_Overlays(ado, \& N\_over)))\\
+										\hspace*{0.6in} $\cap$ if ((over = {\bf SUMA\_ADO\_Overlays}(ado, \& N\_over)))\\
 											\hspace*{0.75in} $\cup$  for (k=0; k<N\_over; ++k)\\
 												\hspace*{0.9in} $\bigtriangleup$  if (over[k]->dset\_link == dset)\\
-													\hspace*{1.0in} $\bigtriangledown$  SUMA\_SetOverlay\_Vecs(over[k],'A', -1, "clear", -1)\\
+													\hspace*{1.0in} $\bigtriangledown$  {\bf SUMA\_SetOverlay\_Vecs}(over[k],'A', -1, "clear", -1)\\
 										\hspace*{0.6in} $\cap$ return success\\
 						\hspace*{0.05in} $\ominus$ setting SV->isMasked[i] means the node overlay is not shown (if Alpha, nothing gets masked out here\\
 						\hspace*{0.05in} $\ominus$ Fetching Intensity column\\
 						\hspace*{0.05in} $\ominus$ setup nodedef so that it can be used along with Sover->V for clusterinzing. Sover->V will get modified in subsequent calls so got to do it now\\
 						\hspace*{0.05in} $\ominus$ Do we need clusterizing?  if (Opt->Clusterize)\\
 							\hspace*{0.25in} $\oplus$ if (Opt->RecomputeClust) (Clusterizing requested)\\
-								\hspace*{0.35in} $\dagger$ if (Sover->ClustList)  /* Clear old cluster list to make way for new one*/\\
+								\hspace*{0.35in} $\dagger$ if (Sover->ClustList) Clear old cluster list to make way for new one\\
 								\hspace*{0.35in} $\dagger$ if (!(SO = SUMA\_SO\_of\_ColPlane(Sover)))\\
 									\hspace*{0.45in} $\ddagger$	No clustering\\
 								\hspace*{0.35in} $\dagger$ else\\
-									\hspace*{0.45in} $\ddagger$	Opt->ClustOpt = SUMA\_create\_SurfClust\_Opt("InteractiveClust")\\
+									\hspace*{0.45in} $\ddagger$	Opt->ClustOpt = {\bf SUMA\_create\_SurfClust\_Opt}("InteractiveClust")\\
 										\hspace*{0.6in} $\cap$ Allocate output Opt\\
 										\hspace*{0.6in} $\cap$ Opt->out\_prefix = NULL;\\
 										\hspace*{0.6in} $\cap$ Opt->oform = SUMA\_ASCII\_NIML;\\
@@ -263,10 +264,40 @@
 											\hspace*{0.75in} $\cup$ Opt->DistLim = -1;\\
 											\hspace*{0.75in} $\cup$ Opt->SortMode = SUMA\_SORT\_CLUST\_BY\_AREA;\\
 										\hspace*{0.6in} $\cap$ else\\
-											\hspace*{0.75in} $\cup$ Don't know how to init for this. Returning with defaults for SurfClust program\\
-										\hspace*{0.6in} $\cap$ return Opt
-										
-								
+											\hspace*{0.75in} $\cup$ Don't know how to init for this. Returning with defaults for\\
+											 \hspace*{0.85in} SurfClust program\\
+										\hspace*{0.6in} $\cap$ return Opt\\
+									\hspace*{0.45in} $\ddagger$	Sover->ClustList = {\bf SUMA\_FindClusters} \\
+										\hspace*{0.6in} $\cap$ Ensure valid surface object, vertex count and node count\\
+										\hspace*{0.6in} $\cap$ If no node areas\\
+											\hspace*{0.75in} $\cup$ if (!SO->NodeAreas) SO->NodeAreas = {\bf SUMA\_CalculateNodeAreas}\\
+												\hspace*{0.9in} $\bigtriangleup$  If no valid surface object, return NULL\\
+												\hspace*{0.9in} $\bigtriangleup$ if (!SO->PolyArea || !SO->MF)\\
+													\hspace*{1.0in} $\bigtriangledown$ {\bf SUMA\_SurfaceMetrics\_eng}\\
+														\hspace*{1.2in} $\triangleleft$ DoMF = YUP;\\
+														\hspace*{1.2in} $\triangleleft$ if (SO->MF != NULL) return error while complaining\\ 
+															\hspace*{1.3in} about SO->MF being precomputed\\
+														\hspace*{1.2in} $\triangleleft$ if (SOinh)\\
+															\hspace*{1.4in} $\triangleright$ if (idcode mismatch)\\
+																\hspace*{1.6in} $\cdot$ Cannot inherit MemberFaceSet.  Independent\\ 
+																	\hspace*{1.8in} lists will be created.\\
+																\hspace*{1.6in} $\cdot$  SOinh = NULL;\\
+															\hspace*{1.4in} $\triangleright$ else if (Node number mismatch)\\
+																\hspace*{1.6in} $\cdot$ Cannot inherit MemberFaceSet.  Independent\\ 
+																	\hspace*{1.8in} lists will be created.\\
+																\hspace*{1.6in} $\cdot$  SOinh = NULL;\\
+														\hspace*{1.2in} $\triangleleft$ if (!SOinh)\\				
+															\hspace*{1.4in} $\triangleright$ determine the MemberFaceSets {\bf SUMA\_MemberFaceSets}\\
+																\hspace*{1.6in} $\cdot$ Allocate return variables\\
+																\hspace*{1.6in} $\cdot$ loop through all facesets and tag nodes that make\\
+																\hspace*{1.8in} up FaceSets\\
+																\hspace*{1.6in} $\cdot$ allocate just enough for returning variables\\
+																\hspace*{1.6in} $\cdot$ loop through all nodes, cp results into\\
+																\hspace*{1.8in} RetStrct->NodeMemberOfFaceSet and seal\\
+																 \hspace*{1.8in} with -1\\
+														\hspace*{1.2in} $\triangleleft$ else\\
+															\hspace*{1.4in} $\triangleright$ inherit the MemberFaceSets\\
+
 				\end{enumerate}					
 			\end{itemize}
 		\end{itemize}
