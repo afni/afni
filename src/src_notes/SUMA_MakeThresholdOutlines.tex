@@ -297,6 +297,96 @@
 																 \hspace*{1.8in} with -1\\
 														\hspace*{1.2in} $\triangleleft$ else\\
 															\hspace*{1.4in} $\triangleright$ inherit the MemberFaceSets\\
+												\hspace*{0.9in} $\bigtriangleup$ Allocate for NodeAreas\\
+												\hspace*{0.9in} $\bigtriangleup$ for (i=0; i<SO->N\_Node; ++i)\\
+													\hspace*{1.0in} $\bigtriangledown$ NodeAreas[i] = 0.0;\\
+													\hspace*{1.0in} $\bigtriangledown$ if (!mask || mask[i])\\
+														\hspace*{1.2in} $\triangleleft$ flist = SO->MF->NodeMemberOfFaceSet[i];\\
+														\hspace*{1.2in} $\triangleleft$ for (c = 0; c < SO->MF->N\_Memb[i]; c++)\\
+															\hspace*{1.4in} $\triangleright$ NodeAreas[i] += SO->PolyArea[flist[c]];\\
+														\hspace*{1.2in} $\triangleleft$ NodeAreas[i] /= 3.0;\\
+												\hspace*{0.9in} $\bigtriangleup$  return NodeAreas\\
+											\hspace*{0.75in} $\cup$ if (dothisnode == -1)\\			
+												\hspace*{0.9in} $\bigtriangleup$ initialize the list\\
+											\hspace*{0.75in} $\cup$ while there is not a vertex for each node ...\\
+												\hspace*{0.9in} $\bigtriangleup$ Identify unassigned nodes\\
+												\hspace*{0.9in} $\bigtriangleup$ {\bf SUMA\_Build\_Cluster\_From\_Node\_NoRec}\\
+													\hspace*{1.0in} $\bigtriangledown$ if (Opt->update < 0)\\
+														\hspace*{1.2in} $\triangleleft$ N\_Orig = *N\_TobeAssigned \\
+														\hspace*{1.2in} $\triangleleft$ Opt->update = -Opt->update\\
+													\hspace*{1.0in} $\bigtriangledown$ OffS = SUMA\_Initialize\_getoffsets (SO->N\_Node);\\
+													\hspace*{1.0in} $\bigtriangledown$ allocate Clust\\
+													\hspace*{1.0in} $\bigtriangledown$ Clust->N\_Node = 0;\\
+													\hspace*{1.0in} $\bigtriangledown$ Clust->totalarea = 0.0;\\
+													\hspace*{1.0in} $\bigtriangledown$ Clust->totalvalue = 0.0;\\
+													\hspace*{1.0in} $\bigtriangledown$ Clust->totalabsvalue = 0.0;\\  
+													\hspace*{1.0in} $\bigtriangledown$ Clust->minvalue = ToBeAssigned[dothisnode];\\
+													\hspace*{1.0in} $\bigtriangledown$ Clust->minnode = dothisnode;\\
+													\hspace*{1.0in} $\bigtriangledown$ Clust->maxvalue = ToBeAssigned[dothisnode];\\
+													\hspace*{1.0in} $\bigtriangledown$ Clust->maxnode = dothisnode;\\ 
+													\hspace*{1.0in} $\bigtriangledown$ Clust->minabsvalue = SUMA\_ABS(Clust->minvalue);\\ 
+													\hspace*{1.0in} $\bigtriangledown$ Clust->minabsnode = Clust->minnode;\\
+													\hspace*{1.0in} $\bigtriangledown$ Clust->maxabsvalue = SUMA\_ABS(Clust->maxvalue); \\
+													\hspace*{1.0in} $\bigtriangledown$ Clust->maxabsnode = Clust->maxnode;\\
+													\hspace*{1.0in} $\bigtriangledown$ Clust->varvalue = 0.0;\\
+													\hspace*{1.0in} $\bigtriangledown$ Clust->centralnode = 0; \\
+													\hspace*{1.0in} $\bigtriangledown$ Clust->weightedcentralnode = 0;\\
+													\hspace*{1.0in} $\bigtriangledown$ allocate Clust->NodeList\\
+													\hspace*{1.0in} $\bigtriangledown$ allocate Clust->ValueList\\
+													\hspace*{1.0in} $\bigtriangledown$ memset(Clust->com, 0, 3*sizeof(float));\\
+													\hspace*{1.0in} $\bigtriangledown$ memset(Clust->cen, 0, 3*sizeof(float));\\
+													\hspace*{1.0in} $\bigtriangledown$ Ensure Clust->NodeList, Clust->ValueList and OffS\\
+													 \hspace*{1.4in} allocated\\
+													\hspace*{1.0in} $\bigtriangledown$ Ensure visited and candlist allocated\\
+													\hspace*{1.0in} $\bigtriangledown$ {\bf SUMA\_ADD\_NODE\_TO\_CLUST}\\
+														\hspace*{1.2in} $\triangleleft$ Clust->NodeList[Clust->N\_Node] = dothisnode;\\
+														\hspace*{1.2in} $\triangleleft$ Clust->totalarea += NodeArea[dothisnode];\\
+														\hspace*{1.2in} $\triangleleft$ Clust->totalvalue += ToBeAssigned[dothisnode];\\
+														\hspace*{1.2in} $\triangleleft$ Clust->totalabsvalue += (float)fabs((float)ToBeAssigned[dothisnode]);\\
+														\hspace*{1.2in} $\triangleleft$ if (ToBeAssigned[dothisnode] < Clust->minvalue)\\
+															\hspace*{1.4in} $\triangleright$ Clust->minvalue = ToBeAssigned[dothisnode\\ 
+															\hspace*{1.4in} $\triangleright$ ToBeAssigned[dothisnode]\\
+															\hspace*{1.4in} Clust->minnode = dothisnode\\
+														\hspace*{1.2in} $\triangleleft$ if (ToBeAssigned[dothisnode] > Clust->maxvalue)\\
+															\hspace*{1.4in} $\triangleright$ Clust->maxvalue = ToBeAssigned[dothisnode]\\
+															\hspace*{1.4in} $\triangleright$  Clust->maxnode = dothisnode; \\
+														\hspace*{1.2in} $\triangleleft$ if (SUMA\_ABS(ToBeAssigned[dothisnode])\\
+														\hspace*{1.6in} < Clust->minabsvalue)\\			  		
+															\hspace*{1.4in} $\triangleright$ Clust->minabsvalue = SUMA\_ABS(ToBeAssigned[dothisnode]);\\
+															\hspace*{1.4in} $\triangleright$  Clust->minabsnode = dothisnode;\\
+														\hspace*{1.2in} $\triangleleft$ if (SUMA\_ABS(ToBeAssigned[dothisnode]) > \\
+														\hspace*{1.6in} Clust->maxabsvalue)\\
+															\hspace*{1.4in} $\triangleright$ Clust->maxabsvalue = SUMA\_ABS(ToBeAssigned[dothisnode]); \hspace*{1.4in} $\triangleright$ Clust->maxabsnode = dothisnode; \\
+														\hspace*{1.2in} $\triangleleft$ Clust->ValueList[Clust->N\_Node] = ToBeAssigned[dothisnode];\\
+														\hspace*{1.2in} $\triangleleft$ nnn = SO->NodeDim*dothisnode;\\
+														\hspace*{1.2in} $\triangleleft$ for (kkk = 0; kkk<SO->NodeDim; ++kkk) \\
+															\hspace*{1.4in} $\triangleright$ Clust->com[kkk] += ToBeAssigned[dothisnode] * \\
+															 \hspace*{1.6in} SO->NodeList[nnn+kkk];\\
+															\hspace*{1.4in} $\triangleright$ Clust->cen[kkk] += SO->NodeList[nnn+kkk];\\
+														\hspace*{1.2in} $\triangleleft$ ++Clust->N\_Node;\\
+													\hspace*{1.0in} $\bigtriangledown$ mark it as assigned, an reduce the number of nodes left\\
+													 \hspace*{1.2in} to assign\\
+													\hspace*{1.0in} $\bigtriangledown$ While nodes to be assigned and $\exists$ candidate list\\
+														\hspace*{1.2in} $\triangleleft$ look in its vicinity\\
+														\hspace*{1.2in} $\triangleleft$ remove node from candidate list\\	
+														\hspace*{1.2in} $\triangleleft$ search to see if any are to be assigned\\
+															\hspace*{1.4in} $\triangleright$ if (Opt->DistLim >= 0.0)\\
+																\hspace*{1.6in} $\cdot$ For each layer ...\\
+																	\hspace*{1.8in} $\longrightarrow$ starting at layer 1, layer 0 is the node itself\\
+																		\hspace*{2.0in} $\rightarrow$ take that node into the cluster\\
+																		\hspace*{2.0in} $\rightarrow$ mark it as assigned, an reduce the\\
+																		\hspace*{2.2in}  number of nodes left to assign\\
+																		\hspace*{2.0in} $\rightarrow$  mark it as a candidate if it has not been\\
+																		\hspace*{2.2in}  visited as a candidate before\\
+															\hspace*{1.4in} $\triangleright$ else (accept nodes connected by up to -((int)Opt->DistLim) edges)
+																\hspace*{1.6in} $\cdot$ For each unassigned node ...\\
+																	\hspace*{1.8in} $\longrightarrow$ take that node into the cluster\\
+																	\hspace*{1.8in} $\longrightarrow$ mark it as assigned, an reduce the number of nodes left to assign\\
+																	\hspace*{1.8in} $\longrightarrow$ mark it as a candidate if it has not been visited as a candidate before\\
+															\hspace*{1.4in} $\triangleright$ {\bf SUMA\_Recycle\_getoffsets}\\
+																\hspace*{1.6in} $\cdot$ For each layer, \\
+																	\hspace*{1.8in} $\longrightarrow$ reset the layer index of used nodes in LayerVect\\
+																	\hspace*{1.8in} $\longrightarrow$ reset number of nodes in each layer\\
 
 				\end{enumerate}					
 			\end{itemize}
