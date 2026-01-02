@@ -509,7 +509,7 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
       # create inner_clust laster, either avoid edges or using full clust
       set inner_clust = $clust_pre.inner.r$ind02.nii.gz
       # store edge cluster (restricted to edges) and inner clusters
-      echo "++ check for edge clusters to remove (OK to make brick of 0s)..."
+      echo "-- check for edge clusters to remove (OK to make brick of 0s)..."
       set edge_clust = $clust_pre.edge.r$ind02.nii.gz
       3dcalc -a $clust_mask -b $edge_mask -expr 'a*b' -prefix $edge_clust
       # use 3dRank to get badlist: non-zero values in $edge_clust
