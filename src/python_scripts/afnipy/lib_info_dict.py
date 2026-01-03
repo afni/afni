@@ -1,9 +1,12 @@
-
+#!/usr/bin/env python
 
 # Make a dictionary of the 3dinfo props of a dset
 
-ver='1.0' ; date='Sept 16, 2019'
-# + [PT] 
+#ver='1.0' ; date='Sept 16, 2019'
+# + [PT] start
+#
+ver='1.1' ; date='Dec 10, 2025'
+# + [PT] update some of the neater formatting parts
 #
 ###############################################################################
 
@@ -12,41 +15,73 @@ import json
 from afnipy import afni_base as BASE
 from afnipy import afni_util as UTIL
 
-list_3dinfo_ignore = [ '-hview', '-h_view',
-                       '-hweb',  '-h_web', 
-                       '-help',  '-HELP',
-                       '-h_aspx', '-h_spx', 
-                       '-h_find', '-h_raw', '-h',
-                       '-all_opts',
-                       '-echo_edu',         # shouldn't happen-- just in case
-                       '-atr_delim', '-sb_delim',
-                       '-NA_flag', 
-                       '-sval_diff', '-val_diff', # require 2 dsets
-                       '-same_all_grid',    # these '-same*' require 2 dsets
-                       '-same_center',
-                       '-same_delta',
-                       '-same_dim',
-                       '-same_grid',
-                       '-same_obl',
-                       '-same_orient',
-                       '-n[i|j|k',          # woe; luckily, covered under '-n4'
+# list of 3dinfo opts not to use (reasons shown)
+list_3dinfo_ignore = [ \
+    '-HELP',              # show help
+    '-NA_flag',           # modifier
+    '-VERB',              # modifier
+    '-all_opts',          # show opts
+    '-atr_delim',         # modifier
+    '-echo_edu',          # show cmd (shouldn't happen)
+    '-h',                 # show help
+    '-h_aspx',            # show help
+    '-h_find',            # show help
+    '-h_raw',             # show help
+    '-h_spx',             # show help
+    '-h_view',            # show help
+    '-h_web',             # show help
+    '-hdr',               # modifier
+    '-header_line',       # modifier
+    '-help',              # show help
+    '-hview',             # show help
+    '-hweb',              # show help
+    '-monog_pairs',       # req 2+ dsets
+    '-n[i|j|k',           # existed at some point
+    '-no_hist',           # modifier
+    '-same_all_grid',     # req 2+ dsets
+    '-same_center',       # req 2+ dsets
+    '-same_delta',        # req 2+ dsets
+    '-same_dim',          # req 2+ dsets
+    '-same_grid',         # req 2+ dsets
+    '-same_obl',          # req 2+ dsets
+    '-same_orient',       # req 2+ dsets
+    '-sb_delim',          # modifier opt
+    '-short',             # modifier
+    '-sval_diff',         # req 2+ dsets
+    '-val_diff',          # req 2+ dsets
+    '-verb',              # modifier
 ]
 
+# ============================================================================
 
 #fname = 'MNI152_2009_template_SSW.nii.gz'
-
 def get_all_3dinfo_dset_basic(fname) :
-    '''Input: a volume 'pon which to run 3dinfo.
+    '''Input: a dset name 'pon which to run 3dinfo. This function makes a
+simple dictionary of all of single-dset attributes. 
 
-    Output: dictionary whose keys are 3dinfo opt names relevant for a
-    single volume (not helpy ones or comparison ones like -same*); the
-    '-' part is part of the key here, at the moment.
+The '-' part of opt name is part of each key here.
 
-    There is no filtering of empty fields here-- the bog standard
-    outputs are all returned; each value in the dictionary is a list
-    of string(s), which may be null.  See
-    "get_all_3dinfo_dset_neatly()" for some filtering/proc'ing of
-    opts.
+Helpy opts or comparison ones like -same* are _not_ included (see
+list_3dinfo_ignore for reference of excluded opts)
+
+There is no filtering of empty fields here-- the bog standard outputs
+are all returned; each value in the dictionary is a list of string(s),
+which may be null.  
+
+See the possibly more helpful "get_all_3dinfo_dset_neatly()" function
+for similar functionality but with additional filtering/proc'ing of
+keys and values.
+
+Parameters
+----------
+fname : str
+    name of a dataset
+
+Returns
+-------
+dict_info : dict
+    dictionary whose keys are 3dinfo option flags (with leading '-') and
+    values are associated dset values for each
 
     '''
 
@@ -85,16 +120,29 @@ def get_all_3dinfo_dset_basic(fname) :
 # -------------------------------------
 
 def make_neater_3dinfo_dict(dd) :
-    '''
-    Input: dict dd
+    '''Make a "neater" version of a simple dictionary of 3dinfo
+attributes, such as was created by get_all_3dinfo_dset_basic().
 
-    Output: a "neater" version of the values in dd. Specifically:
-    + single line strings are processed as follows
-      + try splitting at whitespace; 
-      + if nothing split, try splitting at |
-      + and attach either a list of str (if something split) or else
-        just the str itself 
-'''
+The "neater" version of the values in dd specifically means that
+single line strings are processed as follows:
++ try splitting at whitespace; 
++ if nothing split, try splitting at |
++ and attach either a list of str (if something split) or else just
+  the str itself
+
+Parameters
+----------
+dd : dict
+    dictionary whose keys are 3dinfo option flags (with leading '-')
+    and simple values are associated dset values for each
+
+Returns
+-------
+dd_new : dict
+    dictionary whose keys are 3dinfo option flags (with leading '-')
+    and a "neatened" form of values, as described above
+
+    '''
 
     dd_new = {}
 
@@ -132,9 +180,37 @@ def make_neater_3dinfo_dict(dd) :
 
 def get_all_3dinfo_dset_neatly(fname, numberize_values=False, 
                                remove_dash_in_keys=True) :
-    """
+    '''For a dset fname, this function makes a dictionary of all
+single-dset attributes; it also neatens the values, using
+make_neater_3dinfo_dict().
 
-"""
+When numberize_values is True, values that are just a single number
+will be converted to a numerical type (rather than a string), and a
+list of numbers will have each element converted.
+
+When remove_dash_in_keys is True, each key will have the leading '-'
+removed from it (which exist by default because each is just an opt of
+3dinfo).
+
+Parameters
+----------
+fname : str
+    name of a dataset
+numberize_values : bool
+    for values that are a single number or just a set of numbers, 
+    convert the value item(s) to an number type (rather than str)
+remove_dash_in_keys: bool
+    remove the leading '-' from each key's name (which is there by 
+    default)
+
+Returns
+-------
+DD_new : dict
+    dictionary whose keys are 3dinfo option flags and values are
+    associated dset values for each; both keys and values can get
+    neatened in various ways here (see kwargs)
+
+    '''
 
     DD     = get_all_3dinfo_dset_basic(fname)
     DD_new = make_neater_3dinfo_dict(DD)
@@ -221,7 +297,9 @@ EE : dict
                     L.append(vv)
             EE[key] = L
 
-        # 
+        # the only other type of values should be simply be str; see
+        # if any of those convert gracefully to numerical types,
+        # otherwise, keep the string as the value
         else:
             ww, wtype = UTIL.try_convert_bool_float_int_str(val)
             if ww is not None :
