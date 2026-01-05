@@ -660,10 +660,17 @@ PARSE:
       set ref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`${ref_view}"
    endif
    # use the template space for the transformed dataset
+   # also set the AFNI view (+orig or +tlrc) simultaneously
    if ($out_space == "" ) then
       set ref_space = `3dinfo -space ${ref_in}` 
+      set ref_aview = `3dinfo -av_space ${ref_in}` 
    else
       set ref_space = $out_space
+      if ( "${out_space}" == "ORIG" ) then
+         set ref_aview = "+orig"
+      else
+         set ref_aview = "+tlrc"
+      endif
    endif
 
 IN_CHECK:
@@ -1209,7 +1216,7 @@ AUTO_TLRC_MODE:
       UP:       
 
    # set the space of the output to match the template space
-   3drefit -space $ref_space ${tt_prefupad}${anat_view}
+   3drefit -space $ref_space -view ${ref_aview} ${tt_prefupad}${anat_view}
 
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]"   \
@@ -1299,6 +1306,7 @@ AUTO_TLRC_MODE:
          3drefit -space "ACPC" -view ${ref_view} ${out_pref}.Xat.rigid${anat_view}.HEAD
       else
          # reset the space of the output to be ACPC
+         # [PT] the view here be +tlrc, then, right?  
          3drefit  -space "ACPC" ${rigid_inprefix}
       endif
 #      3drefit  -space "ACPC" ${out_pref}.Xat.rigid${anat_view}
@@ -1429,7 +1437,7 @@ APAR_MODE:
    endif
    
    # reset the space of the output to match the template space
-   3drefit -space $ref_space ${tmp_out_pref}${anat_view}
+   3drefit -space $ref_space -view ${ref_aview} ${tmp_out_pref}${anat_view}
 
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]" \
