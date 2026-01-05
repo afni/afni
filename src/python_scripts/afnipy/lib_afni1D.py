@@ -2145,6 +2145,58 @@ class Afni1D:
             print(ps, end='')
          print("")
 
+   def make_xmat_warnings_string(self, fname='', level=1):
+      """make a string for any xmatrix warnings (non-correlation)
+
+         ...
+
+         return error code (0=success) and 'warnings' string"""
+
+      if self.verb > 2: print("-- make_xmat_warn_str for '%s'" % fname)
+
+      err, errstr, wlist = self.list_xmat_warnings(level=level)
+      if err: return err, errstr
+
+      wlen = len(wlist)
+
+      # ****************
+      print("===== xmat warnings: %d" % wlen)
+      wstr = '\n'.join(wlist)
+
+      return err, wstr
+
+   def list_xmat_warnings(self, level=1):
+      """return an error code, error string and a list of warnings
+      """
+
+      if not self.ready:
+         return 1, '** no X-matrix to warn about', []
+
+      if len(self.groups) > 0 and len(self.groups) == self.nvec:
+         ilist = [i for i in range(self.nvec) if self.groups[i] > 0]
+         if self.verb > 1:
+            print("== have %d regs of interest: %s" \
+                  % (len(ilist), ', '.join(ilist)))
+      else:
+         ilist = list(self.nvec)
+         if self.verb > 1:
+            print("== using all %d regs" % len(list))
+
+      # list of all warnings
+      wlist = []
+
+      limit = 0.99999
+      havelabs = len(self.labels) == self.nvec
+      badmax_l = [i for i in ilist if UTIL.maxabs(self.mat[i]) > limit]
+      ll = badmax_l
+      for bind in badmax_l:
+         if havelabs: label = self.labels[bind]
+         else:        label = 'vector %02d' % bind
+         wlist.append('maxabs for regressor %s : %g' \
+                      % (label, UTIL.maxabs(self.mat[bind])))
+
+      return 0, '', wlist
+
    def make_cormat_warnings_string(self, cutoff=0.4, name='',
                                    skip_expected=1):
       """make a string for any entries at or above cutoffs:

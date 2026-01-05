@@ -1603,6 +1603,7 @@ class A1DInterface:
       self.show_trs_to_zero= 0          # show iresp length
       self.show_xmat_stim_info = ''     # show xmat stimulus information
       self.show_xmat_stype_cols = []    # show columns of given stim types
+      self.show_xmat_warn  = 0          # show xmat regressor warnings
       self.slice_order_to_times = 0     # re-sort slices indices to times
       self.slice_pattern_to_times = []  # slice time parameters (pat, NS, MB)
       self.sort            = 0          # sort data over time
@@ -1942,11 +1943,14 @@ class A1DInterface:
       self.valid_opts.add_opt('-show_trs_to_zero', 0, [], 
                    helpstr='show length of data until constant zero')
 
-      self.valid_opts.add_opt('-show_xmat_stype_cols', -1, [], 
+      self.valid_opts.add_opt('-show_xmat_stype_cols', -1, [],
                       helpstr='display xmat cols for given stim types')
 
-      self.valid_opts.add_opt('-show_xmat_stim_info', 1, [], 
+      self.valid_opts.add_opt('-show_xmat_stim_info', 1, [],
                       helpstr='display xmat stim class info for class')
+
+      self.valid_opts.add_opt('-show_xmat_warnings', 0, [],
+                      helpstr='display warnings for the regression matrix')
 
       self.valid_opts.add_opt('-slice_order_to_times', 0, [], 
                    helpstr='convert slice indices to slice times')
@@ -2375,6 +2379,9 @@ class A1DInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if err: return 1
             self.show_xmat_stim_info = val
+
+         elif opt.name == '-show_xmat_warnings':
+            self.show_xmat_warn = 1
 
          elif opt.name == '-show_indices_baseline':
             self.show_indices |= 1
@@ -2805,6 +2812,10 @@ class A1DInterface:
       if self.show_corwarnfull:
          err, wstr = self.adata.make_cormat_warnings_string(self.cormat_cutoff,
                                             name=self.infile, skip_expected=0)
+         print(wstr)
+      if self.show_xmat_warn:
+         err, wstr = self.adata.make_xmat_warnings_string(fname=self.infile,
+                                                          level=self.verb)
          print(wstr)
 
       # ---- possibly write: last option -----
