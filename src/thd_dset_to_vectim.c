@@ -1359,6 +1359,7 @@ void THD_check_vectim( MRI_vectim *mv , char *fname )
        WARNING_message("%s :: %d vector%s constant",
                      fname , nbad , (nbad==1) ? " is" : "s are" ) ;
    }
+
    /* scan each time point for constancy */
 
    for( nbad=ii=0 ; ii < nvals ; ii++ ){
@@ -1368,9 +1369,15 @@ void THD_check_vectim( MRI_vectim *mv , char *fname )
      }
      if( jj == nvec ) nbad++ ;
    }
-   if( nbad > 0 && nvec > 1 )
-     WARNING_message("%s :: %d volume%s constant",
+   if( nbad > 0 && nvec > 1 ){
+     /* 5 Jan 2026: less warns (3dTproject now, may expand later) */
+     if (strcmp(fname,"3dTproject input data") == 0)
+       INFO_message("%s :: %d volume%s constant",
                      fname , nbad , (nbad==1) ? " is" : "s are" ) ;
+     else
+       WARNING_message("%s :: %d volume%s constant",
+                     fname , nbad , (nbad==1) ? " is" : "s are" ) ;
+   }
    return ;
 }
 
