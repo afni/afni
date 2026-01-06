@@ -5756,6 +5756,14 @@ if(PRINT_TRACING)
 #if 1
         switch( cbs->key ){  /* 05 Mar 2007: keys that AFNI needs */
                                        /* to process, not imseq.c */
+
+          case ' ':{   /* redraw image viewers [06 Jan 2025] */
+            if( im3d->s123 ) forceExpose(im3d->s123->wtop, 0) ;
+            if( im3d->s231 ) forceExpose(im3d->s231->wtop, 0) ;
+            if( im3d->s312 ) forceExpose(im3d->s312->wtop, 0) ;
+          }
+          break ;
+
           case 'U':
           case 'u':{
             int uu = im3d->vinfo->underlay_type ; /* toggle Overlay as Underlay */
@@ -7237,9 +7245,11 @@ ENTRY("AFNI_controller_panel_CB") ;
 
       /* Do the Tahoe fix [Dec 2025] */
 
+#if 0
       if( isMacTahoe() && im3d->anat_now != NULL && im3d->fim_now != NULL ){
         AFNI_redraw_controller(im3d) ;
       }
+#endif
 
       if( XtIsManaged(im3d->vwid->marks->frame) == True ){
          AFNI_marks_action_CB( NULL , (XtPointer) im3d , NULL ) ;

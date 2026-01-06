@@ -54,7 +54,10 @@
    DO NOT say "I'm not going to" -- December 2025
      It looks like it needs to be rewritten to draw directly into the
      Window due to the obstinate and oblivious developments in MacOS Tahoe.
-     See the DIRECT_DRAW macro below.
+     The DRAW_TARGET macro was written for that purpose. However, in this
+     version, we still draw into the Pixmap and then forcibly draw the
+     Pixmap into the window rather than just make it the background. See
+     macro REDRAW_PIXMAP below.
 *//*----------------------------------------------------------------------*/
 
 /*------------------------------------------------------------------------*/
@@ -100,12 +103,8 @@ extern MRI_IMAGE * FD_brick_to_series( int , FD_brick * br ) ;
 #endif
 
 /*------------------------------------------------------------------*/
-#define DIRECT_DRAW  /* draw directly into Window instead of Pixmap */
-#ifdef DIRECT_DRAW
-#  define DRAW_TARGET XtWindow(grapher->draw_fd)
-#else
-#  define DRAW_TARGET grapher->fd_pxWind
-#endif
+#define REDRAW_PIXMAP /* force copy of pixmap every time */
+#define DRAW_TARGET    grapher->fd_pxWind
 /*------------------------------------------------------------------*/
 
 static int fade_color = 19 ;
@@ -1292,13 +1291,11 @@ ENTRY("end_fd_graph_CB") ;
 
    grapher->valid = 0 ;  /* can't do anything with this anymore */
 
-#ifndef DIRECT_DRAW
    if( grapher->fd_pxWind != (Pixmap)0 ){
 STATUS("freeing Pixmap") ;
      XFreePixmap( grapher->dc->display , grapher->fd_pxWind ) ;
      grapher->fd_pxWind = (Pixmap)0 ;
    }
-#endif
 
 #ifdef USE_OPTMENUS
 STATUS("destroying optmenus") ;
@@ -1395,20 +1392,16 @@ ENTRY("erase_fdw") ;
 
    if( grapher->dont_redraw ) EXRETURN ;  /* 27 Jan 2004 */
 
-#if 0
-#ifdef DIRECT_DRAW
-EXRETURN;
-#endif
-#endif
-
    DC_fg_color ( grapher->dc , BG_COLOR(grapher) ) ;
    DC_linewidth( grapher->dc , 0 ) ;
+
+   /* empty the drawing target (fd_pxWind) */
 
    XFillRectangle( grapher->dc->display ,
                    DRAW_TARGET , grapher->dc->myGC ,
                    0 , 0 , grapher->fWIDE , grapher->fHIGH ) ;
 
-/** Does this work with DIRECT_DRAW ?? **/
+   /* copy the logo pixmap into the drawing target */
 
    if( show_grapher_pixmap &&
        grapher->glogo_pixmap != XmUNSPECIFIED_PIXMAP &&
@@ -1472,17 +1465,25 @@ void fd_px_store( MCW_grapher * grapher )
 {
 ENTRY("fd_px_store") ;
 
-#ifdef DIRECT_DRAW  /* this function is pointless if there is no Pixmap! */
-EXRETURN;
-#endif
-
    if( ! MCW_widget_visible(grapher->draw_fd) ) EXRETURN ;  /* 03 Jan 1999 */
 
+#ifndef REDRAW_PIXMAP
+   /* just make the pixmap be the background of the window [the olden way] */
    XtVaSetValues( grapher->draw_fd ,
                      XmNbackgroundPixmap , grapher->fd_pxWind ,
                   NULL ) ;
-
+#else
    XClearWindow( grapher->dc->display , XtWindow(grapher->draw_fd) ) ;
+   /* directly copy the pixmap into the window */
+   XCopyArea( grapher->dc->display ,
+              grapher->fd_pxWind   ,
+              XtWindow(grapher->draw_fd) ,
+              grapher->dc->myGC ,
+              0,0 ,                             /* (x,y) in fd_pxWind */
+              grapher->fWIDE , grapher->fHIGH , /* size of rectangle */
+              0,0 ) ;                           /* (x,y) in window */
+#endif
+
    XSync( grapher->dc->display , False ) ;
 
    EXRETURN ;
@@ -1629,8 +1630,11 @@ ENTRY("GRA_redraw_overlay") ;
 
    dis = grapher->dc->display ;
    win = XtWindow(grapher->draw_fd) ;
-#ifndef DIRECT_DRAW
-   XClearWindow( dis , win ) ;
+
+#ifdef REDRAW_PIXMAP
+   fd_px_store(grapher) ;       /* force redraw of pixmap into window [06 Jan 2025] */
+#else
+   XClearWindow( dis , win ) ;  /* the Pixmap is the background we clear to */
 #endif
 
    EXRONE(grapher) ;  /* 22 Sep 2000 */
@@ -1937,7 +1941,9 @@ ENTRY("redraw_graph") ;
 
    /*** flush the pixmap to the screen ***/
 
+#ifndef REDRAW_PIXMAP
    fd_px_store( grapher ) ;
+#endif
 
    /*** draw any overlay stuff ***/
 
@@ -3671,11 +3677,8 @@ STATUS(str) ; }
              06 Jan 1999: check event count
          **/
 
-#ifdef DIRECT_DRAW  /* draw everything directly into Window [Dec 2025 - Tahoe] */
 
-         GRA_new_pixmap( grapher , width , height , 1 ) ; /* redraws directly */
-
-#else  /* draw indirectly into Pixmap (most of image, but not the "overlay") */
+         /* draw indirectly into Pixmap (most of image, but not the "overlay") */
 
          if( event->count == 0 ){
             if( grapher->fd_pxWind == (Pixmap)0 ||  /* need new Pixmap */
@@ -3692,7 +3695,6 @@ STATUS(str) ; }
                GRA_redraw_overlay( grapher ) ;   /* redraw only overlay stuff */
             }
          }
-#endif /* DIRECT_DRAW */
 
 #if 1
 #ifdef DISCARD_EXCESS_EXPOSES
@@ -3751,9 +3753,7 @@ STATUS("KeyPress event") ;
          }
       }
 
-#ifndef DIRECT_DRAW
       /** grapher->force_redraw = 1 ; sendExpose( grapher->top_form , 0 ) ; **/
-#endif
 
       XSync( XtDisplay(w) , False ) ;
       break ;
@@ -4038,9 +4038,7 @@ STATUS("button press") ;
          }
       }
 
-#ifndef DIRECT_DRAW
       /** grapher->force_redraw = 1 ; sendExpose( grapher->top_form , 0 ) ; **/
-#endif
 
       XSync( XtDisplay(w) , False ) ;
       break ;
@@ -4105,7 +4103,6 @@ ENTRY("GRA_new_pixmap") ;
    grapher->gx_max = new_width  - (GL_DLX + GR_DLX) ;
    grapher->gy_max = new_height - (GT_DLY + GB_DLY) ;
 
-#ifndef DIRECT_DRAW  /*------------------------------*/
    if( grapher->fd_pxWind != (Pixmap)0 ){
 STATUS("freeing old Pixmap") ;
       XFreePixmap( grapher->dc->display , grapher->fd_pxWind ) ;
@@ -4116,7 +4113,6 @@ STATUS("allocating new Pixmap") ;
                                        XtWindow(grapher->draw_fd) ,
                                        grapher->fWIDE , grapher->fHIGH,
                                        grapher->dc->planes ) ;
-#endif  /*-------------------------------------------*/
 
    MCW_widget_geom( grapher->option_rowcol , &ww , &hh , NULL,NULL ) ;
    XtVaSetValues( grapher->option_rowcol ,
@@ -4533,8 +4529,8 @@ STATUS(str); }
       break ;
 
       case ' ':{   /* Resize window by 1 pixel [Dec 2025 - Tahoe] */
-#ifdef DIRECT_DRAW
-        forceExpose( grapher->fdw_graph , 0 ) ;  /* this should work */
+#ifdef REDRAW_PIXMAP
+        GRA_redraw_overlay( grapher ) ;
 #else
         int ww,hh , dw,dh ;
         dw = 2*(lrand48()%2)-1 ; /* +1 or -1 */
@@ -5737,11 +5733,9 @@ STATUS("replacing ort timeseries") ;
          }
          grapher->valid = 1 ;
 
-#ifndef DIRECT_DRAW
          if( grapher->fd_pxWind != (Pixmap)0 )
             XFreePixmap( grapher->dc->display , grapher->fd_pxWind ) ;
          grapher->fd_pxWind = (Pixmap)0 ;
-#endif
          RETURN( True ) ;
       }
 

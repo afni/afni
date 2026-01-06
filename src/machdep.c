@@ -9,7 +9,6 @@
 #include <time.h>
 
 int MRILIB_verb = 0 ;
-static int MacTahoe = 0 ;      /* set once and for all below */
 
 /*--------------------------------------------------------------------*/
 
@@ -67,6 +66,8 @@ void machdep()
 /* Check if running MacOS Tahoe [Dec 2025] */
 /*--------------------------------------------------------------------*/
 
+static int MacTahoe = 0 ;      /* set once and for all below */
+
 #ifndef DARWIN
 
 int isMacTahoe(void){ return 0 ; } /* that was easy */
@@ -79,7 +80,7 @@ int isMacTahoe(void)
   char version[128];
   FILE *fp ;
 
-  if( firstcall == 0 ) return MacTahoe ;
+  if( firstcall == 0 ) return MacTahoe ;  /* we know already */
 
   firstcall = 0; MacTahoe = 0;
 
