@@ -1045,7 +1045,7 @@ typedef struct {
        int hf, hs ;                                                    \
        MCW_widget_geom( (iq)->vwid->top_form , NULL,&hf,NULL,NULL ) ;  \
        MCW_widget_geom( (iq)->vwid->top_shell, NULL,&hs,NULL,NULL ) ;  \
-       if( hf != (iq)->vwid->top_form_height  &&                       \
+       if( hf != (iq)->vwid->top_form_height  ||                       \
            hs != (iq)->vwid->top_shell_height   ){                     \
        if( 0 )                                                               \
          fprintf(stderr,"FIX_TOPFORM: orig %d %d  current %d %d\n",          \
@@ -1055,6 +1055,11 @@ typedef struct {
                         XmNheight,(iq)->vwid->top_form_height ,NULL);  \
          XtVaSetValues( (iq)->vwid->top_shell ,                        \
                         XmNheight,(iq)->vwid->top_shell_height,NULL);  \
+         /* reset values simultaneously, appease linux win managers */ \
+         MCW_widget_geom( (iq)->vwid->top_form , &hf,&hs,NULL,NULL ) ; \
+         XtVaSetValues( (iq)->vwid->top_shell ,                        \
+                        XmNwidth,hf+1,                                 \
+                        XmNheight,hs+1,NULL);                          \
        }                                                               \
      }                                                                 \
  } while(0)
