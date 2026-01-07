@@ -455,10 +455,26 @@ if ( ! -f "$Adataset" ) then
   endif
 endif
 
+# obliquity of input dset
+set obl_adataset = `3dinfo -is_oblique "${Adataset}"`
+echo "++ Is input dataset oblique? -> ${obl_adataset}"
+
 if ( $HAVE_MASK_SS && $HAVE_MASK_APPLY ) then
   echo "** ERROR: can only use one of: -mask_ss or -trusted_mask"
   goto BAD_EXIT
 endif
+
+# check that there is not obliquity difference with input and mask
+if ( $HAVE_MASK_SS || $HAVE_MASK_APPLY ) then
+   set obl_mask_ss = `3dinfo -is_oblique "${mask_ss}"`
+   echo "++ Is mask dataset oblique?  -> ${obl_mask_ss}"
+
+   if ( ${obl_mask_ss} != ${obl_adataset} ) then
+      echo "** ERROR: cannot have mismatch of obliquity between input and mask"
+      goto BAD_EXIT
+   endif
+endif
+
 
 if( "$SubID" == "" )then
   echo "***** ${this_prog} -- no subject ID entered with -subid? :("
