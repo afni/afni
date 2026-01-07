@@ -2168,7 +2168,7 @@ class Afni1D:
       else:        wstr = ''
       if self.verb > 1 or (self.verb > 0 and wlen > 0):
          wstr = ("== xmat maxabs warnings: %d\n" % wlen) \
-                + wstr                                    \
+                + wstr                                   \
                 + "\n-- betas will inversely scale with regressors\n"
 
       wall_str += wstr
@@ -2239,7 +2239,7 @@ class Afni1D:
       else:
          ilist = list(range(self.nvec))
          if self.verb > 1:
-            print("== using all %d regs" % len(list))
+            print("== using all %d regs" % len(ilist))
 
       # list of warnings
       wlist = []
