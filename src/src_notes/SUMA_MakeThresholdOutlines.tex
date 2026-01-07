@@ -125,32 +125,19 @@
 	\end{itemize}
 	
 	\item Fetch vectors from the dataset.  
-	Set an element to masked if the $T$ value is within the threshold and either
-	variable thresholding is false or threshold outlining is true.
-	This condition is only possible when \texttt{Opt->ThreshRange[0] > 0}.
-	
-	\item Set up \texttt{nodedef} so it can be used with \texttt{Sover->V} for clusterizing.
-	Since \texttt{Sover->V} will be modified in subsequent calls, this must be done now.
-	
-	\item \texttt{nd = {\bf SUMA\_GetNodeDef}(dset)}
-	\begin{itemize}
-		\item \texttt{((!dset || !dset->inel || !dset->inel->vec) ? NULL : (int*)(dset->inel->vec[0]))}
-		\item That is, get the vector of 3D color vectors at the first node of the dataset if it exists;
-		otherwise return \texttt{NULL}.
-	\end{itemize}
-	
-	\item Iterate over the filled vectors:
-	\begin{itemize}
-		\item If \texttt{nd} exists, copy \texttt{nd} into \texttt{Sover->NodeDef}.
-		\item Otherwise, fill \texttt{Sover->NodeDef} with ones.
-	\end{itemize}
-	
-	\item \texttt{Sover->FullList = NOPE;}
-	
+	\item Set element to masked if T value within $\pm$	the threshold AND either variable thresholding false or threshold outlining true.  The condition is only possible when	Opt->ThreshRange[0] > 0*
+	\item Setup nodedef so that it can be used along with Sover->V for clusterinzing. Sover->V will get modified in subsequent calls so got to do it now
+	\item nd = SUMA\_GetNodeDef(Sover->dset\_link);
+	\item If node indices (nd) are available, assign them to each surface node.  Otherwise, assign, to each surface node, its order in the dset\_link array.
+	\item Sover->FullList = NOPE;	
 	\item Colorize:
 	\begin{itemize}
 		\item \texttt{{\bf SUMA\_ScaleToMap}}
 		\begin{itemize}
+			\item If colormap sign negative, proceed, in SUMA options were given to the user to make the range symmetric about 0. They can shoot themselves in the foot if they want to
+			\item Find the values to be masked out
+			\item Refuse to deal with top\_frac here, SUMA does not allow for colormaps to have a top != 1 First pass at implementing top != 1 does exist below but is now turned off. I don't feel like testing it..
+			\item go through and clip values in V to those specified in the range
 			\item Ensure there is an overlay, that it has a name, and that a colormap can be built.
 			\item \texttt{{\bf SUMAg\_CF->scm = SUMA\_Build\_Color\_maps}();}
 			\begin{itemize}
@@ -165,8 +152,56 @@
 						\item Ensure the color name is not too long; otherwise return an error.
 						\item If the color already exists, replace it with the new color.
 						\item Add the new colormap.
+						\item If apply clip ... Applying Clip (This one's not used in interactive mode anymore  because clipping is handled in the colormapping part)
+							\hspace*{0.05in} $\ominus$  if (top\_frac > 0.0f) )Not fully tested)\\
+								\hspace*{0.25in} $\oplus$ Multiply threshold range by top\_frac\\
+							\hspace*{0.05in} $\ominus$  For each node\\
+								\hspace*{0.25in} $\oplus$ if masked, clip to Opt->IntRange.\\
+							\hspace*{0.05in} $\ominus$ Vmin = Opt->IntRange[0];\\
+							\hspace*{0.05in} $\ominus$ Vmax = Opt->IntRange[1];\\
+							\hspace*{0.05in} $\ominus$ if top\_frac positive, divide threshold range by top\_frac\\
+							\hspace*{0.05in} $\ominus$ Otherwise set Vmin and Vmax to top\_frac\\
+							\hspace*{0.05in} $\ominus$ Add any coord bias\\
+							\hspace*{0.05in} $\ominus$ if ({\bf SUMA\_NeedsLinearizing}(ColMap))\\
+								\hspace*{0.25in} $\oplus$ if (Opt->interpmode == SUMA\_NO\_INTERP || Opt->interpmode == SUMA\_INTERP)\\
+									\hspace*{0.35in} $\dagger$ linearize color map
+								\hspace*{0.25in} $\oplus$ else if (Opt->interpmode != SUMA\_DIRECT)\\
+									\hspace*{0.35in} $\dagger$ Do nothing to the colormap, direct mapping mode in gear\\
+							\hspace*{0.05in} $\ominus$  else NO Linearizing of colormap deemed necessary\\
+						\item if brightness factor is given, apply it to color map and mask color
+							\hspace*{0.05in} $\ominus$ if (Opt->BrightFact <= 0 || Opt->BrightFact > 2) Opt->BrightFact = 1.0;\\
+							\hspace*{0.05in} $\ominus$ if (Opt->BrightFact != 1.0)\\
+								\hspace*{0.25in} $\oplus$ Modulate brightness of map\\
+									\hspace*{0.35in} $\dagger$ Clip ColMap->M to rbg = (1.0, 1.0, 1.0)\\
+									\hspace*{0.35in} $\dagger$ Clip Opt->MaskColor to rbg = (1.0, 1.0, 1.0)\\
+						\item Check whether Opt->interpmode is correctly specified
+						\item if (Opt->interpmode == SUMA\_NO\_INTERP || Opt->interpmode == SUMA\_INTERP)
+							\hspace*{0.05in} $\ominus$ go through values and interpolate onto index of colormap \\
+							\hspace*{0.05in} $\ominus$ if (Opt->interpmode == SUMA\_NO\_INTERP) (no interpolation between colours)\\
+								\hspace*{0.25in} $\oplus$ For each node\\
+									\hspace*{0.35in} $\dagger$ if Min--Max are within the boundaries of the data's (V[i]) min to max\\
+										\hspace*{0.45in} $\ddagger$ Vscl = ColMap->N\_M[0];\\
+							\hspace*{0.05in} $\ominus$ else (interpolation mode)\\ 
+								\hspace*{0.25in} $\oplus$ copy masked values from Opt->MaskColor to SV->cV\\
+								\hspace*{0.25in} $\oplus$ Unmasked values blended with neighbors\\
+						\item else (direct color mapping)
+							\hspace*{0.05in} $\ominus$ ColMap->M or Opt->MaskColor (depending on masking) RGB values copied into SV->cV\\ 
+						\item change range for coord bias						
+								
+					\end{enumerate}
+					\item get the rgb, floats of each color defined DEFAULT\_NCOLOVR
+					\item create the afni color maps with more than 10 panes (excerpts from afni.c
+					\begin{enumerate}
+						\item start with positive panes
+						\item initialize signed pbar panes
+						\item create AFNI's colormaps
+						\item perhaps someday include the continuous color maps from AFNI too
+						\item load whatever's lurking in the .afnirc files passing NULL for dc (the last parameter) because I am not using the continuous color maps yet
 					\end{enumerate}
 				\end{enumerate}
+				\item add SUMA's colormaps
+				\item load cmaps from user's directory
+				\item load cmaps from current directory
 			\end{itemize}
 			
 			\item \texttt{icmap = {\bf SUMA\_Find\_ColorMap}}
@@ -204,15 +239,16 @@
 					\item return s
 				\end{enumerate}
 				\item Fetch vectors from dset
+				
 				\begin{enumerate}
 					\item Thresholding if (Opt->tind >= 0 \&\& Opt->UseThr)\\
-						\hspace*{0.05in} $\ominus$ Fetch Threshold column SUMA\_SetOverlay\_Vecs\\
+						\hspace*{0.05in} $\ominus$ Fetch Threshold column {\em SUMA\_SetOverlay\_Vecs}\\
 							\hspace*{0.25in} $\oplus$ if (!task) task = ``update''; /* Vanilla, recreate if necessary */\\
 							\hspace*{0.25in} $\oplus$ if (!Sover) return error\\
 							\hspace*{0.25in} $\oplus$ if (!Sover->dset\_link) return success\\
 							\hspace*{0.25in} $\oplus$ if (Sover->dset\_link->dnel \&\&\\
 							\hspace*{0.35in}(attr={\bf NI\_get\_attribute}(Sover->dset\_link->dnel,\\
-							 \hspace*{0.35in} "ResetOverlay\_Vecs")))\\
+							\hspace*{0.35in} "ResetOverlay\_Vecs")))\\
 								\hspace*{0.35in} $\dagger$ if (!strcmp(attr,"yes"))\\
 									\hspace*{0.45in} $\ddagger$ NI\_set\_attribute(Sover->dset\_link->dnel,"ResetOverlay\_Vecs", "nope");\\
 									\hspace*{0.45in} $\ddagger$ {\bf SUMA\_DSET\_ClearOverlay\_Vecs}(Sover->dset\_link)\\
@@ -378,17 +414,37 @@
 																		\hspace*{2.2in}  number of nodes left to assign\\
 																		\hspace*{2.0in} $\rightarrow$  mark it as a candidate if it has not been\\
 																		\hspace*{2.2in}  visited as a candidate before\\
-															\hspace*{1.4in} $\triangleright$ else (accept nodes connected by up to -((int)Opt->DistLim) edges)
+															\hspace*{1.4in} $\triangleright$ else (accept nodes connected by up to\\
+															 \hspace*{1.8in} -((int)Opt->DistLim) edges)\\
 																\hspace*{1.6in} $\cdot$ For each unassigned node ...\\
 																	\hspace*{1.8in} $\longrightarrow$ take that node into the cluster\\
-																	\hspace*{1.8in} $\longrightarrow$ mark it as assigned, an reduce the number of nodes left to assign\\
-																	\hspace*{1.8in} $\longrightarrow$ mark it as a candidate if it has not been visited as a candidate before\\
+																	\hspace*{1.8in} $\longrightarrow$ mark it as assigned, an reduce the number\\
+																	\hspace*{2.0in} of nodes left to assign\\
+																	\hspace*{1.8in} $\longrightarrow$ mark it as a candidate if it has not been\\
+																	\hspace*{2.0in} visited as a candidate before\\
 															\hspace*{1.4in} $\triangleright$ {\bf SUMA\_Recycle\_getoffsets}\\
 																\hspace*{1.6in} $\cdot$ For each layer, \\
-																	\hspace*{1.8in} $\longrightarrow$ reset the layer index of used nodes in LayerVect\\
+																	\hspace*{1.8in} $\longrightarrow$ reset the layer index of used nodes\\
+																	\hspace*{2.0in} in LayerVect\\
 																	\hspace*{1.8in} $\longrightarrow$ reset number of nodes in each layer\\
-
+												\hspace*{0.9in} $\bigtriangleup$ if ( (Opt->AreaLim > 0 \&\& Clust->totalarea < Opt->AreaLim)  ||\\ 
+												\hspace*{1.2in} (Opt->NodeLim > 0 \&\& Clust->N\_Node < Opt->NodeLim) ||\\
+												\hspace*{1.2in} (Opt->NodeLim < 0 \&\& Opt->AreaLim < 0 \&\& \\
+												\hspace*{1.2in} Clust->N\_Node < -Opt->AreaLim) \\	
+													\hspace*{1.0in} $\bigtriangledown$ Allow users to use a negative area in the interface to have the effect of limiting by number of nodes	\\
+												\hspace*{0.9in} $\bigtriangleup$ else\\
+													\hspace*{1.0in} $\bigtriangledown$ Find node mean\\
+													\hspace*{1.0in} $\bigtriangledown$ Find node variance\\
+													\hspace*{1.0in} $\bigtriangledown$ find the central node \\
+									\hspace*{0.45in} $\ddagger$					
 				\end{enumerate}					
+			\end{itemize}
+			\item create contour
+			\begin{itemize}
+				\item if ({\bf SUMA\_is\_Label\_dset}(Sover->dset\_link,NULL))
+				\begin{enumerate}
+					\item 
+				\end{enumerate}
 			\end{itemize}
 		\end{itemize}
 	\end{itemize}
