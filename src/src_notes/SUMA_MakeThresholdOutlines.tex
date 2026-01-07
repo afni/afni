@@ -439,11 +439,38 @@
 									\hspace*{0.45in} $\ddagger$					
 				\end{enumerate}					
 			\end{itemize}
-			\item create contour
+			\item if (Opt->ColsContMode) (Do we need to create contours)
 			\begin{itemize}
 				\item if ({\bf SUMA\_is\_Label\_dset}(Sover->dset\_link,NULL))
 				\begin{enumerate}
-					\item 
+					\item if (!dset)  return false
+					\item if (SUMA\_isVolDataset(dset)) and {\bf SUMA\_GetAtlasLabelTable}(dset)
+					\begin{enumerate}
+						\item return {\bf SUMA\_FindDsetAttributeElement}(dset, "ATLAS\_LABEL\_TABLE")
+							\hspace*{0.05in} $\ominus$ if (!dset || !dset->ngr) return NULL\\
+							\hspace*{0.05in} return {\bf SUMA\_FindNgrAttributeElement}(dset->ngr, attname)\\
+								\hspace*{0.25in} $\oplus$ if (!ngr || !attname) return NULL\\
+								\hspace*{0.25in} $\oplus$ now read the elements in this group and return the element with\\
+								\hspace*{0.30in} the given attribute name\\
+								\hspace*{0.25in} $\oplus$ Return this element if found.  Otherwise, return NULL\\
+					\end{enumerate}
+					or {\bf SUMA\_GetValueLabelTable}(dset)) return true
+						\hspace*{0.05in} $\ominus$ return SUMA\_FindDsetAttributeElement (dset, "VALUE\_LABEL\_DTABLE") return true
+					\item Check on the dset\_type attribute.  This check is needed to tell the difference between NODE\_ROI datasets that are treated as regular datasets, and NODE\_LABEL which are rendered differently. Both types have a dset column that is of type SUMA\_NODE\_ILABEL
+				\end{enumerate}
+				\begin{enumerate}
+					\item {\bf SUMA\_ContourateDsetOverlay}(Sover, NULL, SO)
+					\begin{enumerate}
+						\item Ensure cp and cp->dset\_link not NULL
+						\item if (!SV) 
+							\hspace*{0.05in} $\ominus$ if (SUMA\_is\_Label\_dset(cp->dset\_link,NULL) || \\
+							\hspace*{0.15in} SUMA\_is\_Label\_dset\_col(cp->dset\_link, cp->OptScl->find))\\
+								\hspace*{0.25in} $\oplus$ Remove existing contours if any\\
+								\hspace*{0.25in} $\oplus$ Get node index column\\
+								\hspace*{0.25in} $\oplus$ Get key\\
+								\hspace*{0.25in} $\oplus$ cp->Contours = {\bf SUMA\_MultiColumnsToDrawnROI}SUMA\_MultiColumnsToDrawnROI(SDSET\_VECLEN(cp->dset\_link)\\
+									\hspace*{0.35in} $\dagger$ 
+					\end{enumerate}
 				\end{enumerate}
 			\end{itemize}
 		\end{itemize}
