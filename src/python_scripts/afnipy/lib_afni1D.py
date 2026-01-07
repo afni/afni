@@ -2169,9 +2169,9 @@ class Afni1D:
       if self.verb > 1 or (self.verb > 0 and wlen > 0):
          wstr = ("== xmat maxabs warnings: %d\n" % wlen) \
                 + wstr                                   \
-                + "\n-- betas will inversely scale with regressors\n"
+                + "\n-- betas will inversely scale with regressors"
 
-      wall_str += wstr
+      wall_str += wstr + '\n'
 
       # ------------------------------------------------------------
       # warn on all-zero regressors
@@ -2184,9 +2184,9 @@ class Afni1D:
       else:        wstr = ''
       if self.verb > 1 or (self.verb > 0 and wlen > 0):
          wstr = ("\n== xmat allzero warnings: %d\n" % wlen) \
-                + wstr + "\n"
+                + wstr
 
-      wall_str += wstr
+      wall_str += wstr + '\n'
 
       # and returned combined string
       return err, wall_str
@@ -2213,7 +2213,7 @@ class Afni1D:
       for bind in zero_l:
          if havelabs: label = self.labels[bind]
          else:        label = 'vector %02d' % bind
-         wlist.append('empty regressor %s' % label)
+         wlist.append('all zero regressor %s' % label)
 
       return 0, '', wlist
 

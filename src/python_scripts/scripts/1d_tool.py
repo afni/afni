@@ -211,6 +211,10 @@ examples (very basic for now): ~1~
 
          1d_tool.py -infile X.xmat.1D -show_cormat_warnings_full
 
+   Example 6d.  Show warnings for zero or small-valued regressors. ~2~
+
+         1d_tool.py -infile X.xmat.1D -show_xmat_warnings
+
    Example 7a. Output temporal derivative of motion regressors. ~2~
 
        There are 9 runs in dfile_rall.1D, and derivatives are applied per run.
@@ -1076,6 +1080,7 @@ general options: ~2~
    -show_cormat                 : display correlation matrix
    -show_cormat_warnings        : display correlation matrix warnings
                                   (this does not include baseline terms)
+                                  see also: -show_xmat_warnings
    -show_cormat_warnings_full   : display correlation matrix warnings
                                   (this DOES include baseline terms)
    -show_distmat                : display distance matrix
@@ -1213,6 +1218,10 @@ general options: ~2~
 
         See example 5e.
         See also -show_regs_style.
+
+   -show_xmat_warnings          : display matrix warnings for all zero or
+                                  small-valued regressors
+                                  see also: -show_cormat_warnings
 
    -show_group_labels           : display group and label, per column
 
@@ -1508,9 +1517,10 @@ g_history = """
    2.21 Mar 12, 2025 - allow auto-reading of TSV as -infile
    2.22 Mar 20, 2025 - add -select_cols_via_TSV_table
    2.23 Apr 25, 2025 - allow float read retry for na values
+   2.24 Jan  7, 2026 - add -show_xmat_warnings
 """
 
-g_version = "1d_tool.py version 2.23, April 25, 2025"
+g_version = "1d_tool.py version 2.24, January 7, 2026"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
