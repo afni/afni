@@ -2145,6 +2145,119 @@ class Afni1D:
             print(ps, end='')
          print("")
 
+   def make_xmat_warnings_string(self, fname='', level=1):
+      """make a string for any xmatrix warnings (non-correlation)
+
+         ...
+
+         return error code (0=success) and 'warnings' string"""
+
+      if self.verb > 2: print("-- make_xmat_warn_str for '%s'" % fname)
+
+      wall_str = ''
+      indent = '   ' # indentation for the actual warnings
+
+      # ------------------------------------------------------------
+      # warn on small maxabs
+      err, errstr, wlist = self.list_xmat_warns_maxabs(level=level)
+      if err: return err, errstr
+      wlen = len(wlist)
+
+      jstr = '\n%s' % indent
+      if wlen > 0: wstr = indent + jstr.join(wlist)
+      else:        wstr = ''
+      if self.verb > 1 or (self.verb > 0 and wlen > 0):
+         wstr = ("== xmat maxabs warnings: %d\n" % wlen) \
+                + wstr                                   \
+                + "\n-- betas will inversely scale with regressors"
+
+      wall_str += wstr + '\n'
+
+      # ------------------------------------------------------------
+      # warn on all-zero regressors
+      err, errstr, wlist = self.list_xmat_warns_allzero(level=level)
+      if err: return err, errstr
+      wlen = len(wlist)
+
+      jstr = '\n%s' % indent
+      if wlen > 0: wstr = indent + jstr.join(wlist)
+      else:        wstr = ''
+      if self.verb > 1 or (self.verb > 0 and wlen > 0):
+         wstr = ("\n== xmat allzero warnings: %d\n" % wlen) \
+                + wstr
+
+      wall_str += wstr + '\n'
+
+      # and returned combined string
+      return err, wall_str
+
+   def list_xmat_warns_allzero(self, level=1):
+      """return an error code, error string and a list of warnings
+
+         warn on regressors that are all zero
+
+            level       : verbosity warning level
+      """
+
+      if not self.ready:
+         return 1, '** no X-matrix to warn about', []
+
+      # stick with column selection, in case we apply it later
+      ilist = list(range(self.nvec))
+
+      # list of warnings
+      wlist = []
+
+      havelabs = len(self.labels) == self.nvec
+      zero_l = [i for i in ilist if UTIL.maxabs(self.mat[i]) == 0]
+      for bind in zero_l:
+         if havelabs: label = self.labels[bind]
+         else:        label = 'vector %02d' % bind
+         wlist.append('all zero regressor %s' % label)
+
+      return 0, '', wlist
+
+   def list_xmat_warns_maxabs(self, minmax=0.1, groups=1, level=1):
+      """return an error code, error string and a list of warnings
+
+         warn on maxabs() value less than minmax limit
+
+            minmax      : minimum limit for maxabs
+            groups      : limit results to columns of non-basline groups
+                          (if they exist, baseline groups are 0, -1)
+            level       : verbosity warning level
+      """
+
+      if not self.ready:
+         return 1, '** no X-matrix to warn about', []
+
+      # if non-baseline groups are wanted and defined
+      if groups and len(self.groups) == self.nvec and self.nvec > 0:
+         ilist = [i for i in range(self.nvec) if self.groups[i] > 0]
+         if self.verb > 1:
+            print("== have %d regs of interest: %s" % (len(ilist), ilist))
+      else:
+         ilist = list(range(self.nvec))
+         if self.verb > 1:
+            print("== using all %d regs" % len(ilist))
+
+      # list of warnings
+      wlist = []
+
+      havelabs = len(self.labels) == self.nvec
+      zero_l = [i for i in ilist if UTIL.maxabs(self.mat[i]) == 0]
+      badmax_l = [i for i in ilist if UTIL.maxabs(self.mat[i]) < minmax]
+      ll = badmax_l
+      for bind in badmax_l:
+         # all-zero regressors are separate, do not warn here
+         if bind in zero_l: continue
+         if havelabs: label = self.labels[bind]
+         else:        label = 'vector %02d' % bind
+         wlist.append('maxabs for regressor %s : %g' \
+                      % (label, UTIL.maxabs(self.mat[bind])))
+
+      return 0, '', wlist
+
    def make_cormat_warnings_string(self, cutoff=0.4, name='',
                                    skip_expected=1):
       """make a string for any entries at or above cutoffs:
