@@ -109,7 +109,7 @@ $progname    - install AFNI bootcamp data packages   ~1~
             default: -hash_prog $hash_prog
             example: -hash_prog sha1hmac
 
-         Use this option to specify an alternate hashing prgram.
+         Use this option to specify an alternate hashing program.
 
       -install_root  IDIR  : specify where to install the packages
 
@@ -277,7 +277,7 @@ endif
 echo "-- getting hash file, $hash_file"
 \rm -f $hash_file
 curl -O $web_data_root/$hash_file >& /dev/null
-# check whether this suceeded
+# check whether this succeeded
 if ( $status ) then
    echo "** failed to download $hash_file"
    exit 1
