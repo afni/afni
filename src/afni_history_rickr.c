@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Jan, 2026, RCR, "install_bootcamp_data.tcsh", MAJOR, TYPE_NEW_PROG,
+   "new program to install the AFNI bootcamp data",
+   "Download and install all packages in the checksum file."
+ } ,
+
  {  7, Jan, 2026, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add -show_xmat_warnings",
    "Warn on all-zero regressors or ones with small magnitudes."
