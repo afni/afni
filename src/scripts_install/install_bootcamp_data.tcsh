@@ -17,19 +17,19 @@ else if ( -d CD ) then
    echo "-- already in valid data root"
 else
    echo "-- no $topdir directory yet, will create and work in one"
-   mkdir -p $topdir
+   \mkdir -p $topdir
    cd $topdir
 endif
 
 # make sure there is a CD directory
-mkdir -p CD
+\mkdir -p CD
 
 # ------------------------------------------------------------
 # get checksum file and list to check
 
 # always get the current shasum file
 echo "-- getting checksum file, $checkfile"
-rm -f $checkfile
+\rm -f $checkfile
 curl -O $web_data_root/$checkfile >& /dev/null
 set st = $status
 echo ""
