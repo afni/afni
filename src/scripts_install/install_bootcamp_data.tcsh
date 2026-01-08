@@ -4,12 +4,13 @@
 
 # main variables
 set topdir = afni_boot_packages
-set hash_prog = sha256sum
-set checkfile = afni_boot_$hash_prog.txt
 set web_data_root = 'https://afni.nimh.nih.gov/pub/dist/edu/data'
 set progname = `basename $0`
 
 # user controlled variables
+set hash_prog = sha256sum
+set hash_file = afni_boot_$hash_prog.txt
+
 set do_download = yes
 set do_install = no
 set install_root = "$HOME"
@@ -22,18 +23,18 @@ SHOW_HELP:
 
 $progname    - install AFNI bootcamp data packages   ~1~
 
-   Make installing the AFNI bootcamp data slightly more simple.
-   The files will be based on the contents of the relevant checksum file.
+   An interface for installing the AFNI bootcamp data.  The install files
+   will be based on the contents of the relevant hash file.
 
    1. create a new data directory to hold tgz files ($topdir)
       if it does not exist
 
    2. download a list of data files needed for the bootcamp
-      into $topdir
+      into $topdir, this list is contained in the downloaded hash file
       - use "-do_download no" to skip the download step
 
    3. for each needed package that does not exist or is not current :
-          download that (usually tgz) file into $topdir
+         - download that (usually tgz) file into $topdir
 
    4. if requested, extract the tgz packages under the -install_root directory
       - use "-do_install yes" to extract the tgz packages
@@ -60,6 +61,11 @@ $progname    - install AFNI bootcamp data packages   ~1~
 
             install_bootcamp_data.tcsh -do_download no -do_install yes
 
+      5. specify an alternate hash file and an alternate hash program
+
+            install_bootcamp_data.tcsh -hash_prog sha1hmac \\
+                                       -hash_file boot_hash_sha1hmac.txt
+
    ----------------------------------------------------------------------
    terminal options:                                                 ~1~
 
@@ -67,11 +73,11 @@ $progname    - install AFNI bootcamp data packages   ~1~
       -hist                : show the program modification history
       -ver                 : show the program version
 
-   main options:                                                     ~1~
+   main options:
 
       -do_download yes/no  : specify whether to download new packages
 
-            default: -do_download yes
+            default: -do_download $do_download
             example: -do_download no
 
          Use this option to control whether package (tgz) files are
@@ -79,13 +85,31 @@ $progname    - install AFNI bootcamp data packages   ~1~
 
       -do_install  yes/no  : specify whether to install new packages
 
-            default: -do_install no
+            default: -do_install $do_install
             example: -do_install yes
 
          Use this option to control whether package (tgz) files are
          extracted into the install_root directory.
 
          See -install_root.
+
+      -hash_file HFILE     : specify an alternate hash file
+
+            default: -hash_file $hash_file
+            example: -hash_file bootcamp_alternate_hash.txt
+
+         Use this option to specify an alternate file with checksums.
+         The file has 2 columns, check sums (hash values) and corresponding
+         file names.  This hash file must exist under:
+
+            $web_data_root
+
+      -hash_prog PROG     : specify an alternate hash program
+
+            default: -hash_prog $hash_prog
+            example: -hash_prog sha1hmac
+
+         Use this option to specify an alternate hashing prgram.
 
       -install_root  IDIR  : specify where to install the packages
 
@@ -109,14 +133,14 @@ SHOW_HIST:
   cat << EOF
 
   history:
-     0.0   8 Jan 2026 - initial work
+     0.1   8 Jan 2026 - initial revision
 
 EOF
 exit
 SKIP_HIST:
 
 # ----- corresponding version
-set VERSION = "0.0 January 8, 2026"
+set VERSION = "0.1 January 8, 2026"
 
 
 # ===========================================================================
@@ -145,7 +169,15 @@ while ( $ac <= $#argv )
 
    # main options
 
-   # without this, nothing happens
+   else if ( "$arg" == "-hash_file" ) then
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-hash_file'"
+         exit 1
+      endif
+
+      @ ac += 1
+      set hash_file = "$argv[$ac]"
+
    else if ( "$arg" == "-do_download" ) then
       if ( $ac > $#argv ) then
          echo "** missing parameter for option '-do_download'"
@@ -171,6 +203,15 @@ while ( $ac <= $#argv )
          echo "** -do_install requires yes/no, have $argv[$ac]"
          exit 1
       endif
+
+   else if ( "$arg" == "-hash_prog" ) then
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-hash_prog'"
+         exit 1
+      endif
+
+      @ ac += 1
+      set hash_prog = "$argv[$ac]"
 
    else if ( "$arg" == "-install_root" ) then
       if ( $ac > $#argv ) then
@@ -209,7 +250,7 @@ endif
 # for a different one
 which $hash_prog >& /dev/null
 if ( $status ) then
-   echo "** missing executable $hash_prog, cannot proceed"
+   echo "** missing hash program $hash_prog, cannot proceed"
    exit 1
 endif
 
@@ -230,25 +271,31 @@ endif
 \mkdir -p CD
 
 # ------------------------------------------------------------
-# get checksum file and list to check
+# get hash_file file and list to check
 
 # always get the current shasum file
-echo "-- getting checksum file, $checkfile"
-\rm -f $checkfile
-curl -O $web_data_root/$checkfile >& /dev/null
+echo "-- getting hash file, $hash_file"
+\rm -f $hash_file
+curl -O $web_data_root/$hash_file >& /dev/null
+# check whether this suceeded
 if ( $status ) then
-   echo "** failed to download $checkfile"
+   echo "** failed to download $hash_file"
    exit 1
 endif
-if ( ! -f $checkfile ) then
-   echo "** missing download file $checkfile"
+if ( ! -f $hash_file ) then
+   echo "** missing download file $hash_file"
+   exit 1
+endif
+\grep '404 Not Found' $hash_file >& /dev/null
+if ( ! $status ) then
+   echo "** error: 404 Not Found"
    exit 1
 endif
 
 echo ""
 
-#  get list of files to run the checksum on
-set flist = ( `awk '{print $2}' $checkfile` )
+#  get list of files to run the hash on
+set flist = ( `awk '{print $2}' $hash_file` )
 echo "-- will check $#flist files"
 echo ""
 
@@ -261,7 +308,7 @@ foreach file ( $flist )
 
    # only check if file exists, just for visual cleanliness
    if ( -f $file ) then
-      \grep $file $checkfile | $hash_prog --status -c -
+      \grep $file $hash_file | $hash_prog --status -c -
       if ( ! $status ) then
          continue
       endif
@@ -330,15 +377,15 @@ echo "-- installing all data packages under:"
 echo "   $install_root"
 echo ""
 
-# just verify that we have the $checkfile
-if ( ! -f $checkfile ) then
-   echo "** missing $checkfile, consider '-do_download yes'"
+# just verify that we have the hash file
+if ( ! -f $hash_file ) then
+   echo "** missing $hash_file, consider '-do_download yes'"
    echo ""
    exit 1
 endif
 
 # note the packages - we will install only tgz packages
-set packlist = ( `awk '/tgz/ {print $2}' $checkfile` )
+set packlist = ( `awk '/tgz/ {print $2}' $hash_file` )
 
 # note the directory root for all tgz packages
 set packagedir = `pwd`
