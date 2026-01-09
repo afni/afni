@@ -2416,6 +2416,8 @@ int main( int argc , char *argv[] )
    AFNI_prefilter_args( &argc , &argv ) ;  /* 11 Dec 2007 */
 /*** INFO_message("after prefilter: argc=%d argv=%p",argc,(void *)argv) ; ***/
 
+   /***** fprintf(stderr,"MacTahoe = %d\n",isMacTahoe()) ; *****/
+
    THD_load_datablock_verbose(1) ; /* 21 Aug 2002 */
 
    signal(SIGINT ,AFNI_sigfunc) ;  /* may be superseded by mainENTRY below */
@@ -5727,10 +5729,13 @@ if(PRINT_TRACING)
 
          LOAD_DSET_VIEWS(im3d) ;  /* 20 Nov 2003 */
          daxes = CURRENT_DAXES(im3d->anat_now) ;
+
               if( id.ijk[0] <  0          ) id.ijk[0] += daxes->nxx ;
          else if( id.ijk[0] >= daxes->nxx ) id.ijk[0] -= daxes->nxx ;
+
               if( id.ijk[1] <  0          ) id.ijk[1] += daxes->nyy ;
          else if( id.ijk[1] >= daxes->nyy ) id.ijk[1] -= daxes->nyy ;
+
               if( id.ijk[2] <  0          ) id.ijk[2] += daxes->nzz ;
          else if( id.ijk[2] >= daxes->nzz ) id.ijk[2] -= daxes->nzz ;
 
@@ -5751,6 +5756,14 @@ if(PRINT_TRACING)
 #if 1
         switch( cbs->key ){  /* 05 Mar 2007: keys that AFNI needs */
                                        /* to process, not imseq.c */
+
+          case ' ':{   /* redraw image viewers [06 Jan 2025] */
+            if( im3d->s123 ) forceExpose(im3d->s123->wtop, 0) ;
+            if( im3d->s231 ) forceExpose(im3d->s231->wtop, 0) ;
+            if( im3d->s312 ) forceExpose(im3d->s312->wtop, 0) ;
+          }
+          break ;
+
           case 'U':
           case 'u':{
             int uu = im3d->vinfo->underlay_type ; /* toggle Overlay as Underlay */
@@ -7230,6 +7243,14 @@ ENTRY("AFNI_controller_panel_CB") ;
 
    if( XtIsManaged(im3d->vwid->view->frame) == True ){
 
+      /* Do the Tahoe fix [Dec 2025] */
+
+#if 0
+      if( isMacTahoe() && im3d->anat_now != NULL && im3d->fim_now != NULL ){
+        AFNI_redraw_controller(im3d) ;
+      }
+#endif
+
       if( XtIsManaged(im3d->vwid->marks->frame) == True ){
          AFNI_marks_action_CB( NULL , (XtPointer) im3d , NULL ) ;
       }
@@ -7254,6 +7275,8 @@ ENTRY("AFNI_controller_panel_CB") ;
       SHIFT_TIPS( im3d , TIPS_TOTAL_SHIFT ) ;
       SHIFT_NEWS( im3d , TIPS_TOTAL_SHIFT ) ;
 
+      FIX_TOPFORM_HEIGHT(im3d) ;
+
    } else {  /** open the view frame (but not its children) **/
 
       XtManageChild(im3d->vwid->view->frame) ;
@@ -7265,11 +7288,12 @@ ENTRY("AFNI_controller_panel_CB") ;
       XtManageChild(im3d->vwid->phelp_pb) ;
       XtManageChild(im3d->vwid->ytube_pb) ;
 
-
       SHIFT_TIPS( im3d , (im3d->vwid->view->marks_enabled) ? TIPS_MINUS_SHIFT
                                                            : TIPS_PLUS_SHIFT ) ;
       SHIFT_NEWS( im3d , (im3d->vwid->view->marks_enabled) ? TIPS_MINUS_SHIFT
                                                            : TIPS_PLUS_SHIFT ) ;
+
+      FIX_TOPFORM_HEIGHT(im3d) ;
    }
 
    RESET_AFNI_QUIT(im3d) ;
@@ -8113,7 +8137,11 @@ void AFNI_redisplay_func_ignore( int ig ){ ignore_redisplay_func = ig ; }
 void AFNI_redisplay_func( Three_D_View *im3d )  /* 05 Mar 2002 */
 {
 ENTRY("AFNI_redisplay_func") ;
-   if( !ignore_redisplay_func && IM3D_OPEN(im3d) && IM3D_IMAGIZED(im3d) ){
+   if( !ignore_redisplay_func    &&
+       IM3D_OPEN(im3d)           &&
+       IM3D_IMAGIZED(im3d)       &&
+       im3d->vinfo->func_visible    /* Dec 2025 */ ){
+
      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
      AFNI_process_funcdisplay( im3d ) ;
    }
@@ -10864,7 +10892,7 @@ static void fixscale( XtPointer client_data , XtIntervalId *id )
 }
 #endif
 
-/*------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------------*/
 
 void AFNI_define_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
@@ -10953,7 +10981,7 @@ STATUS("opening marks") ;
 
 #if 1
 #if 0
-         XFlush( XtDisplay(marks->rowcol) ) ; XSync( XtDisplay(marks->rowcol),False ) ;
+         XSync( XtDisplay(marks->rowcol),False ) ;
 #endif
          if( im3d->anat_now->markers != NULL ){  /* Oct 1998 */
             XtManageChild( marks->tog_rowcol ) ;
@@ -10984,6 +11012,12 @@ STATUS("opening marks") ;
          }
       }
 
+      /* this will be taken care of in AFNI_vwidtopform_EV() when top_form is resized */
+#if 0
+      if( isMacTahoe() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
+#else
+      FIX_TOPFORM_HEIGHT(im3d) ;
+#endif
       EXRETURN ;
    }
 
@@ -11045,6 +11079,12 @@ STATUS("remanaging children") ;
 /***     XtManageChild( im3d->vwid->func->inten_bbox->wrowcol ) ; ***/
       }
 
+      /* forceExpose will be taken care of in AFNI_vwidtopform_EV() when top_form is resized */
+#if 0
+      if( isMacTahoe() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
+#else
+      FIX_TOPFORM_HEIGHT(im3d) ;
+#endif
       EXRETURN ;
    }
 
@@ -11066,6 +11106,12 @@ STATUS("opening dmode" ) ;
          OPEN_PANEL(im3d,dmode) ;
       }
 
+      /* this will be taken care of in AFNI_vwidtopform_EV() when top_form is resized */
+#if 0
+      if( isMacTahoe() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
+#else
+      FIX_TOPFORM_HEIGHT(im3d) ;
+#endif
       EXRETURN ;
    }
 
@@ -14136,9 +14182,10 @@ void AFNI_fix_scale_size_direct( Three_D_View *im3d )
                   XmNheight , &sel_aaa , NULL ) ;
    sel_actual = (int)sel_aaa ;
 
+   /**** fprintf(stderr,"fix_scale_size_direct: orig %d  actual %d\n",sel_height,sel_actual) ; ****/
    /**** INFO_message("actual = %d  nominal = %d",sel_actual,sel_height) ; ****/
 
-   if( sel_actual == sel_height ) return ;  /* it's OK */
+   if( abs(sel_actual-sel_height) < 4 ) return ;  /* it's OK */
 
    /* do the work */
 

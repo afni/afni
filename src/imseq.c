@@ -6326,18 +6326,14 @@ DPRI(" .. Expose; count=",event->count) ;
                                                             /* so let's un-hide it! */
                   XConfigureEvent nev ;
 
-STATUS(" .. really a hidden resize") ;
-
-#if 0
-INFO_message("convert Expose to ConfigureNotify") ;
-#endif
+                  STATUS(" .. really a hidden resize") ;
+                  STATUS("convert Expose to ConfigureNotify") ;
                   nev.type = ConfigureNotify ; nev.width = nx ; nev.height = ny ;
                   ISQ_drawing_EV( w, client_data, (XEvent *) &nev, continue_to_dispatch ) ;
 
                } else
-#if 0
-INFO_message("Expose") ;
-#endif
+
+                  STATUS("Expose") ;
                   ISQ_show_image( seq ) ;
             }
             else if( w == seq->wbar )
@@ -6708,6 +6704,7 @@ else fprintf(stderr,"  -- too soon to enforce aspect!\n") ;
 INFO_message("ConfigureNotify") ;
 #endif
                ISQ_show_image( seq ) ;
+               forceExpose(seq->wform,0) ; /* 06 Jan 2025 */
             } else {
 #if 0
 INFO_message("reject image ConfigureNotify") ;
