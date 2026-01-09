@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Jan, 2026, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "if -prog_list given, have -build_source default to 'official'",
+   NULL
+ } ,
+
  {  8, Jan, 2026, RCR, "install_bootcamp_data.tcsh", MAJOR, TYPE_NEW_PROG,
    "new program to install the AFNI bootcamp data",
    "Download and install all packages in the checksum file."
