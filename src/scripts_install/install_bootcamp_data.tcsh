@@ -370,7 +370,7 @@ if ( $do_install != yes ) then
    echo "------------------------------------------------------------"
    echo "-- no actual install of downloaded tgz packages requested"
    echo ""
-   exit 0
+   goto EXIT
 endif
 
 echo "-- installing all data packages under:"
@@ -422,5 +422,10 @@ foreach tgzfile ( $packlist )
    echo "   extracting $tgzfile ..."
    tar xfz $packagedir/$tgzfile
 end
+echo ""
+
+
+EXIT:
+echo "-- tgz packages are under $topdir"
 echo ""
 
