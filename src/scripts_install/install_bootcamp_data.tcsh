@@ -8,12 +8,17 @@ set web_data_root = 'https://afni.nimh.nih.gov/pub/dist/edu/data'
 set progname = `basename $0`
 
 # user controlled variables
-set hash_prog = sha256sum
-set hash_file = afni_boot_$hash_prog.txt
+set hash_prog     = sha256sum
+set hash_file     = afni_boot_$hash_prog.txt
 
-set do_download = yes
-set do_install = no
-set install_root = "$HOME"
+set do_clean      = no        # remove downloaded files at the end?
+set do_download   = yes       # try to download new files?
+set do_install    = no        # extract the tgz packages?
+set install_root  = "$HOME"   # where to put extracted tgz packages
+set verbosity     = 1         # how much chit-chat
+
+# processed variables
+set toppath = afni_boot_packages # (eventual) full path to tgz files
 
 # ===========================================================================
 # help - can only reach via goto SHOW_HELP
@@ -28,18 +33,23 @@ $progname    - install AFNI bootcamp data packages   ~1~
 
    1. create a new data directory to hold tgz files ($topdir)
       if it does not exist
+      - $topdir can be deleted at the end using "-do_clean yes"
 
-   2. download a list of data files needed for the bootcamp
-      into $topdir, this list is contained in the downloaded hash file
+   2. download a list of data files needed for the bootcamp into:
+         $topdir
+      this list is contained in the downloaded hash file
       - use "-do_download no" to skip the download step
 
    3. for each needed package that does not exist or is not current :
-         - download that (usually tgz) file into $topdir
+         - download that (usually tgz) file into '$topdir'
 
    4. if requested, extract the tgz packages under the -install_root directory
       - use "-do_install yes" to extract the tgz packages
       - use -install_root to specify where to install the packages
         default: -install_root \$HOME
+
+   5. if requested, remove the $topdir download directory tree
+      - use "-do_clean yes" to remove the download directory
 
    ----------------------------------------------------------------------
    terminal options:                                                 ~1~
@@ -68,6 +78,20 @@ $progname    - install AFNI bootcamp data packages   ~1~
 
          See -install_root.
 
+      -do_clean yes/no     : remove downloaded files afterward
+
+            default: -do_clean $do_clean
+            example: -do_clean yes
+
+         Specify whether to remove the download directory tree:
+            $topdir
+         Any new execution would require downloading new packages.
+
+      -echo                : set echo in the script
+
+         Use this to become very verbose, as if the script were run (continued)
+         with "tcsh -x".  Each shell command is output for it is executed.
+
       -hash_file HFILE     : specify an alternate hash file
 
             default: -hash_file $hash_file
@@ -79,7 +103,7 @@ $progname    - install AFNI bootcamp data packages   ~1~
 
             $web_data_root
 
-      -hash_prog PROG     : specify an alternate hash program
+      -hash_prog PROG      : specify an alternate hash program
 
             default: -hash_prog $hash_prog
             example: -hash_prog sha1hmac
@@ -94,27 +118,42 @@ $progname    - install AFNI bootcamp data packages   ~1~
          Use this option to control which directory packages are extracted
          into.  By default, it is the users \$HOME directory.
 
+      -verb LEVEL          : specify a verbosity level
+
+            default: -verb $verbosity
+            example: -verb 2
+
+         Use this option to specify an alternate hashing program.
+
    ----------------------------------------------------------------------
    examples:                                                         ~1~
 
-      1. do everything (download packages and install them)
+      1. download and install (download packages and install them)
          ('-do_download yes' is set by default)
 
             install_bootcamp_data.tcsh -do_install yes
 
-      2. do everything, but install them under ~/my_data
+      2. ... and clean up afterwards (remove downloaded tgz files)
+
+            install_bootcamp_data.tcsh -do_install yes -do_clean yes
+
+      3. download and install, but install them under ~/my_data
 
             install_bootcamp_data.tcsh -do_install yes -install_root ~/my_data
 
-      3. only download the packages (anything that is not already current)
+      4. only download the packages (anything that is not already current)
 
             install_bootcamp_data.tcsh -do_download yes
 
-      4. only install pre-downloaded packages
+      5. only install pre-downloaded packages
 
             install_bootcamp_data.tcsh -do_download no -do_install yes
 
-      5. specify an alternate hash file and an alternate hash program
+      6. specify an alternate hash file
+
+            install_bootcamp_data.tcsh -hash_file short_sha256sum.txt
+
+      7. specify an alternate hash file and an alternate hash program
 
             install_bootcamp_data.tcsh             \\
                -hash_prog sha1hmac                 \\
@@ -171,7 +210,7 @@ while ( $ac <= $#argv )
    # main options
 
    else if ( "$arg" == "-hash_file" ) then
-      if ( $ac > $#argv ) then
+      if ( $ac >= $#argv ) then
          echo "** missing parameter for option '-hash_file'"
          exit 1
       endif
@@ -179,8 +218,21 @@ while ( $ac <= $#argv )
       @ ac += 1
       set hash_file = "$argv[$ac]"
 
+   else if ( "$arg" == "-do_clean" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter for option '-do_clean'"
+         exit 1
+      endif
+
+      @ ac += 1
+      set do_clean = "$argv[$ac]"
+      if ( "$do_clean" != yes && "$do_clean" != no ) then
+         echo "** -do_clean requires yes/no, have $argv[$ac]"
+         exit 1
+      endif
+
    else if ( "$arg" == "-do_download" ) then
-      if ( $ac > $#argv ) then
+      if ( $ac >= $#argv ) then
          echo "** missing parameter for option '-do_download'"
          exit 1
       endif
@@ -193,7 +245,7 @@ while ( $ac <= $#argv )
       endif
 
    else if ( "$arg" == "-do_install" ) then
-      if ( $ac > $#argv ) then
+      if ( $ac >= $#argv ) then
          echo "** missing parameter for option '-do_install'"
          exit 1
       endif
@@ -206,7 +258,7 @@ while ( $ac <= $#argv )
       endif
 
    else if ( "$arg" == "-hash_prog" ) then
-      if ( $ac > $#argv ) then
+      if ( $ac >= $#argv ) then
          echo "** missing parameter for option '-hash_prog'"
          exit 1
       endif
@@ -214,8 +266,12 @@ while ( $ac <= $#argv )
       @ ac += 1
       set hash_prog = "$argv[$ac]"
 
+   else if ( "$arg" == "-echo" ) then
+
+      set echo
+
    else if ( "$arg" == "-install_root" ) then
-      if ( $ac > $#argv ) then
+      if ( $ac >= $#argv ) then
          echo "** missing parameter for option '-install_root'"
          exit 1
       endif
@@ -227,6 +283,20 @@ while ( $ac <= $#argv )
          exit 1
       endif
 
+   else if ( "$arg" == "-verb" ) then
+      if ( $ac >= $#argv ) then
+         echo "** missing parameter for option '-verb'"
+         exit 1
+      endif
+
+      @ ac += 1
+      set verbosity = "$argv[$ac]"
+      set vval = `ccalc -i "int($verbosity)"`
+      if ( "$vval" <= 0 && "$verbosity" != 0 ) then
+         echo "** -verb requires an integer argument, have $argv[$ac]"
+         exit 1
+      endif
+
    else
       echo "** unknown option $ac : '$argv[$ac]'"
       exit 1
@@ -235,6 +305,20 @@ while ( $ac <= $#argv )
 
    @ ac += 1
 end
+
+
+# ------------------------------------------------------------
+# before anything else (since we might goto), note the full path
+# of the download directory, either `pwd` or `pwd`/$topdir
+if ( $PWD:t == $topdir ) then
+   set toppath = `pwd`
+else
+   set toppath = `pwd`/$topdir
+endif
+
+if ( $verbosity > 1 ) then
+   echo "-- have tgz path $toppath"
+endif
 
 # ------------------------------------------------------------
 # install downloaded data where we are sitting, but look for
@@ -255,12 +339,16 @@ if ( $status ) then
    exit 1
 endif
 
+if ( $verbosity > 1 ) then
+   echo "-- found hash program $hash_prog"
+endif
+
 # ------------------------------------------------------------
 # create or enter $topdir, under which CD should be located
 if ( -d $topdir ) then
    echo "-- entering $topdir"
    cd $topdir
-else if ( -d CD ) then
+else if ( $PWD:t == $topdir ) then
    echo "-- already in valid data root"
 else
    echo "-- no $topdir directory yet, will create and work in one"
@@ -269,7 +357,9 @@ else
 endif
 
 # make sure there is a CD directory
-\mkdir -p CD
+if ( ! -d CD ) then
+   \mkdir -p CD
+endif
 
 # ------------------------------------------------------------
 # get hash_file file and list to check
@@ -371,7 +461,7 @@ if ( $do_install != yes ) then
    echo "------------------------------------------------------------"
    echo "-- no actual install of downloaded tgz packages requested"
    echo ""
-   goto EXIT
+   goto DO_CLEAN
 endif
 
 echo "-- installing all data packages under:"
@@ -426,7 +516,31 @@ end
 echo ""
 
 
-EXIT:
-echo "-- tgz packages are under $topdir"
+# ------------------------------------------------------------
+# clean up after ourselves
+DO_CLEAN:
+
+if ( $do_clean != yes ) then
+   echo "------------------------------------------------------------"
+   echo "-- no cleanup of tgz packages requested"
+   echo ""
+   goto DO_EXIT
+endif
+
+if ( $do_install != yes ) then
+   echo "-- cleaning but not installing, as you wish..."
+   echo ""
+endif
+
+echo "-- will remove install directory:"
+echo "   $toppath"
 echo ""
+
+\rm -fr $toppath
+
+DO_EXIT:
+if ( $do_clean != yes ) then
+   echo "-- tgz packages are under $topdir"
+   echo ""
+endif
 
