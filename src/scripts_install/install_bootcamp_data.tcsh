@@ -42,31 +42,6 @@ $progname    - install AFNI bootcamp data packages   ~1~
         default: -install_root \$HOME
 
    ----------------------------------------------------------------------
-   examples:                                                         ~1~
-
-      1. do everything (download packages and install them)
-         ('-do_download yes' is set by default)
-
-            install_bootcamp_data.tcsh -do_install yes
-
-      2. do everything, but install them under ~/my_data
-
-            install_bootcamp_data.tcsh -do_install yes -install_root ~/my_data
-
-      3. only download the packages (anything that is not already current)
-
-            install_bootcamp_data.tcsh -do_download yes
-
-      4. only install pre-downloaded packages
-
-            install_bootcamp_data.tcsh -do_download no -do_install yes
-
-      5. specify an alternate hash file and an alternate hash program
-
-            install_bootcamp_data.tcsh -hash_prog sha1hmac \\
-                                       -hash_file boot_hash_sha1hmac.txt
-
-   ----------------------------------------------------------------------
    terminal options:                                                 ~1~
 
       -help                : show this help
@@ -118,6 +93,32 @@ $progname    - install AFNI bootcamp data packages   ~1~
 
          Use this option to control which directory packages are extracted
          into.  By default, it is the users \$HOME directory.
+
+   ----------------------------------------------------------------------
+   examples:                                                         ~1~
+
+      1. do everything (download packages and install them)
+         ('-do_download yes' is set by default)
+
+            install_bootcamp_data.tcsh -do_install yes
+
+      2. do everything, but install them under ~/my_data
+
+            install_bootcamp_data.tcsh -do_install yes -install_root ~/my_data
+
+      3. only download the packages (anything that is not already current)
+
+            install_bootcamp_data.tcsh -do_download yes
+
+      4. only install pre-downloaded packages
+
+            install_bootcamp_data.tcsh -do_download no -do_install yes
+
+      5. specify an alternate hash file and an alternate hash program
+
+            install_bootcamp_data.tcsh             \\
+               -hash_prog sha1hmac                 \\
+               -hash_file boot_hash_sha1hmac.txt
 
    ----------------------------------------------------------------------
    R Reynolds, Jan, 2026
