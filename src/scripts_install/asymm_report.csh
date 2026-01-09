@@ -43,7 +43,7 @@ set patchprefix = "roi_proj"
 set patchsmooth = "2"
 
 # default method for computing asymmetry is right to left ratio
-set asymm_method == "RL"
+set asymm_method = "RL"
 
 if ("$#" <  "1") then
    goto HELP
