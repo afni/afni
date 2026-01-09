@@ -825,12 +825,14 @@ g_history = """
        - suggest a new default blur (but still use 4.0), if none is given
        - suggest open_apqc.py instead of afni_open
        - allow verb only to show tracked files and create proc script
+    8.04 Jan  9, 2026: add -show_xmat_warnings after -show_cormat_warnings
 """
 
-g_version = "version 8.03, September 11, 2025"
+g_version = "version 8.04, January 9, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 7 Jan 2026",  "1d_tool.py -show_xmat_warnings" ],
       [ "10 Sep 2025",  "afni_util.py get_def_blur_from_dims" ],
       [ "24 Apr 2025",  "find_variance_lines.tcsh -ignore_edges" ],
       [ " 7 Mar 2024",  "3dTto1D -method 4095_warn" ],

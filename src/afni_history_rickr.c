@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Jan, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "add -show_xmat_warnings after -show_cormat_warnings",
+   "Warn about all-zero regressors or those with small maximum magnitudes."
+ } ,
+
  {  9, Jan, 2026, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "if -prog_list given, have -build_source default to 'official'",
    NULL

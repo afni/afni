@@ -6836,6 +6836,11 @@ def db_cmd_regress(proc, block):
                "1d_tool.py -show_cormat_warnings -infile %s"                  \
                " |& tee out.cormat_warn.txt\n\n" % proc.xmat
         cmd = cmd + rcmd
+        # also warn on small max magnitudes or empty regressors
+        rcmd = "# warn on small or all-zero regressors in X-matrix\n" \
+               "1d_tool.py -show_xmat_warnings -infile %s"            \
+               " |& tee out.xmat_warn.txt\n\n" % proc.xmat
+        cmd = cmd + rcmd
 
     # make a file with df_info
     if not block.opts.have_no_opt('-regress_show_df_info'):
