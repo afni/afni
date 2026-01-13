@@ -300,6 +300,12 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
+ { 15, May, 2025, RCR, "suma", MAJOR, TYPE_MODIFY,
+   "rewrite Alpha transparency thresholding to follow suma design",
+   "These updates went into a new PR and do not show me as the owner.\n"
+   "See PR #794."
+ } ,
+
  { 25, Apr, 2025, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
    "automatically replace n/a values with 0.0 when reading TSV",
    "And allow wildcard matching for column selectors."
