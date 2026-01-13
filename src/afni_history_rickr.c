@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Jan, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "create enorm time series even if no volreg or censoring",
+   "This is needed for APQC generation, so do it regardless.\n"
+   "Thanks to Lauren_L on MB for the reminder."
+ } ,
+
  {  9, Jan, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "add -show_xmat_warnings after -show_cormat_warnings",
    "Warn about all-zero regressors or those with small maximum magnitudes."

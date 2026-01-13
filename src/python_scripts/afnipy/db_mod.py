@@ -3194,25 +3194,7 @@ def db_cmd_volreg(proc, block):
 
     # if not censoring motion, make a generic motion file
     if not proc.user_opts.find_opt('-regress_censor_motion'):
-        cmd = cmd +                                                         \
-            "# compute motion magnitude time series: the Euclidean norm\n"  \
-            "# (sqrt(sum squares)) of the motion parameter derivatives\n"
-
-        proc.mot_enorm = 'motion_${subj}_enorm.1D'
-        if proc.reps_vary :     # use -set_run_lengths aot -set_nruns
-           cmd = cmd +                                                      \
-               "1d_tool.py -infile %s \\\n"                                 \
-               "           -set_run_lengths %s \\\n"                        \
-               "           -derivative -collapse_cols euclidean_norm \\\n"  \
-               "           -write %s\n\n"                                   \
-               % (proc.mot_file, UTIL.int_list_string(proc.reps_all),
-                  proc.mot_enorm)
-        else:                   # stick with -set_nruns
-           cmd = cmd +                                                      \
-               "1d_tool.py -infile %s -set_nruns %d \\\n"                   \
-               "           -derivative  -collapse_cols euclidean_norm \\\n" \
-               "           -write %s\n\n"                                   \
-               % (proc.mot_file, proc.runs, proc.mot_enorm)
+        cmd = cmd + create_enorm(proc)
 
     if do_extents:
         proc.mask_extents = gen_afni_name('mask_epi_extents' + proc.view)
@@ -3370,6 +3352,37 @@ def db_cmd_volreg(proc, block):
 
     return cmd
 
+def create_enorm(proc):
+    """create an enorm dataset from motion
+
+       return the sub-command string to do so
+    """
+    # do not repeat this operation
+    if proc.mot_enorm != '':
+       if proc.verb > 1: print("-- already have enorm dset")
+       return ''
+
+    cmd =                                                               \
+        "# compute motion magnitude time series: the Euclidean norm\n"  \
+        "# (sqrt(sum squares)) of the motion parameter derivatives\n"
+
+    proc.mot_enorm = 'motion_${subj}_enorm.1D'
+    if proc.reps_vary :     # use -set_run_lengths aot -set_nruns
+       cmd = cmd +                                                      \
+           "1d_tool.py -infile %s \\\n"                                 \
+           "           -set_run_lengths %s \\\n"                        \
+           "           -derivative -collapse_cols euclidean_norm \\\n"  \
+           "           -write %s\n\n"                                   \
+           % (proc.mot_file, UTIL.int_list_string(proc.reps_all),
+              proc.mot_enorm)
+    else:                   # stick with -set_nruns
+       cmd = cmd +                                                      \
+           "1d_tool.py -infile %s -set_nruns %d \\\n"                   \
+           "           -derivative -collapse_cols euclidean_norm \\\n"  \
+           "           -write %s\n\n"                                   \
+           % (proc.mot_file, proc.runs, proc.mot_enorm)
+
+    return cmd
 
 def clear_grid_dependent_vars(proc, block):
     """clear any generic proc variables that depend on the current grid,
@@ -8808,6 +8821,7 @@ def db_cmd_regress_mot_types(proc, block):
 
     # handle 3 cases of motion parameters: 'basic', 'demean' and 'deriv'
     # (regardless of possible 'none')
+    # but always create enorm time series (if it was not already created)
 
     # 1. update mot_regs for 'basic' case
     if 'basic' in apply_types:
@@ -8859,6 +8873,9 @@ def db_cmd_regress_mot_types(proc, block):
                % (proc.mot_file, ropt, mopt, motfile)
        proc.mot_deriv = motfile
        cmd += pcmd
+
+    # 4. if not done already (volreg), create enorm file
+    cmd = cmd + create_enorm(proc)
 
     return 0, cmd
 
