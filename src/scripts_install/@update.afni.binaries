@@ -98,7 +98,7 @@ history for $prog :
   3.28  6 May 2025 : [PT/RR] remove :h tcsh syntax
   3.29 16 Jun 2025 : [PT/RR] if recur, use :q to quotize args
   3.30 22 Jul 2025 : add -binary_source option
-  3.31  9 Jan 2026 : -prog_list makes -binary source default to official
+  3.31  9 Jan 2026 : -prog_list makes -binary_source default to official
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -508,12 +508,12 @@ examples: ~1~
 
     4c. test running build_afni.py, but do not install it
 
-        @update.afni.binaries -binary source build -build_root ~/afni_build \\
+        @update.afni.binaries -binary_source build -build_root ~/afni_build \\
                               -build_opts "-do_install no"
 
     4d. use build_afni.py to replace the current "official" package
 
-        @update.afni.binaries -binary source build -build_root ~/afni_build
+        @update.afni.binaries -binary_source build
 
     4e. update the current package if it was made using build_afni.py,
         and run the apserach updates, for tab completion
