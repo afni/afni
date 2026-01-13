@@ -8782,6 +8782,9 @@ def db_cmd_regress_motion_stuff(proc, block):
         err, newcmd = db_cmd_regress_censor_motion(proc, block)
         if err: return 1, ''
         if newcmd: cmd = cmd + newcmd
+    else:
+        # if not done already (volreg), create enorm file
+        cmd = cmd + create_enorm(proc)
 
     if cmd != '': return 0, '\n' + cmd
     else: return 0, cmd
@@ -8821,7 +8824,6 @@ def db_cmd_regress_mot_types(proc, block):
 
     # handle 3 cases of motion parameters: 'basic', 'demean' and 'deriv'
     # (regardless of possible 'none')
-    # but always create enorm time series (if it was not already created)
 
     # 1. update mot_regs for 'basic' case
     if 'basic' in apply_types:
@@ -8873,9 +8875,6 @@ def db_cmd_regress_mot_types(proc, block):
                % (proc.mot_file, ropt, mopt, motfile)
        proc.mot_deriv = motfile
        cmd += pcmd
-
-    # 4. if not done already (volreg), create enorm file
-    cmd = cmd + create_enorm(proc)
 
     return 0, cmd
 
