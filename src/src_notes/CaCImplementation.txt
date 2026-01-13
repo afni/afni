@@ -1,0 +1,181 @@
+﻿CaC Implementation
+
+SUMA
+    • SUMA_cb_SetDsetViewMode (SUMA_display.c)
+        ◦ get the surface object that the setting belongs to 
+        ◦ SUMA_SetDsetViewMode(ado, imenu, 0)
+            ▪ make a call to SUMA_Engine
+            ▪ SUMA_CreateList
+                • list = (DList *)SUMA_calloc(1,sizeof(DList));
+                • Initialize list
+            ▪ SUMA_RegisterEngineListCommand
+            ▪ SUMA_RegisterEngineListCommand
+            ▪ SUMA_Engine
+                • SUMA_CommandString
+                • SUMA_FindNamedColMap
+                    ◦ SUMA_Find_ColorMap
+                • SUMA_NeedsLinearizing
+                • SUMA_ColorizePlane
+                    ◦ SUMA_ScaleToMap_Interactive
+                        ▪ SUMA_Find_ColorMap
+                        ▪ SUMA_NeedsLinearizing
+                        ▪ SUMA_Create_ColorScaledVect
+                        ▪ SUMA_SetOverlay_Vecs
+                            • SUMA_sdset_id
+                        ▪ SUMA_SetOverlay_Vecs
+                            • SUMA_sdset_id
+                        ▪ SUMA_GetNodeDef
+                        ▪ SUMA_ScaleToMap
+                            • SUMA_NeedsLinearizing
+                            • SUMA_allocate2D
+                            • SUMA_free2D
+                        ▪ SUMA_Overlay_OwnerADO
+                            • SUMA_find_any_object
+                                ◦ SUMA_FindDset_eng
+                                ◦ SUMA_findSOp_inDOv
+                                ◦ SUMA_Overlay_OwnerADO
+                        ▪ SUMA_is_Label_dset
+                            • SUMA_GetDatasetDimensions
+                                ◦ SUMA_FindDsetAttributeElement
+                                ◦ SUMA_FindNgrAttributeElement
+                            • SUMA_is_AllConsistentColType_dset
+                                ◦ SUMA_TypeOfDsetColNumb
+                                    ▪ SUMA_FindDsetAttributeElement
+                                    ▪ SUMA_FindNgrAttributeElement
+                                    ▪ SUMA_Get_Sub_String 
+                                        • SUMA_NI_get_ith_string
+                                    ▪ SUMA_Col_Type
+                        ▪ SUMA_ContourateDsetOverlay
+                            • SUMA_sdset_idmdom
+                            • SUMA_FindNamedColMap
+                                ◦ SUMA_Find_ColorMap
+                            • SUMA_MultiColumnsToDrawnROI
+                                ◦ SUMA_z_dqsort
+                                ◦ SUMA_ParseFname_eng
+                                    ▪ SUMA_getcwd
+                                    ▪ SUMA_copy_string
+                                    ▪ SUMA_copy_string
+                                    ▪ SUMA_append_replace_string_eng
+                                    ▪ SUMA_append_string
+                                    ▪ SUMA_copy_string
+                                    ▪ SUMA_append_replace_string_eng
+                                    ▪ SUMA_append_replace_string_eng
+                                    ▪ storage_mode_from_prefix
+                                        • storage_mode_from_filename
+                                    ▪ SUMA_append_replace_string_eng (x9)
+                                    ▪ find_filename_extension
+                                    ▪ SUMA_copy_string (x4)
+                                    ▪ SUMA_append_string (x2)
+                                    ▪ SUMA_append_replace_string_eng (x3)
+                                ◦ SUMA_append_string
+                                ◦ SUMA_1DROI_to_DrawnROI
+                                    ▪ SUMA_AllocateDrawnROI
+                                        • SUMA_findSOp_inDOv
+                                        • SUMA_append_string
+                                        • SUMA_CreateActionStack
+                                    ▪ SUMA_AllocROIDatum
+                                    ▪ SUMA_UniqueInt
+                                    ▪ SUMA_NodesInROI 
+                                    ▪ SUMA_findSOp_inDOv
+                                    ▪ SUMA_GetContour
+                                        • SUMA_getPatch
+                                        • SUMA_Make_Edge_List_eng
+                                        1. SUMA_allocate2D (x4)
+                                        • SUMA_free_Edge_List
+                                        • SUMA_freePatch
+                                ◦ SUMA_EmptyDestroyList
+                                    ▪ SUMA_FreeROIDatum
+                                ◦ SUMA_DestroyActionStack
+                                ◦ SUMA_Free_Parsed_Name
+                                ◦ SUMA_ParseFname_eng
+                                    ▪ SUMA_getcwd
+                                    ▪ SUMA_copy_string (x2)
+                                    ▪ SUMA_append_replace_string_eng
+                                    ▪ SUMA_append_string
+                                    ▪ SUMA_copy_string
+                                    ▪ SUMA_append_replace_string_eng (x2)
+                                    ▪ SUMA_append_string
+                                    ▪ SUMA_copy_string
+                                    ▪ SUMA_append_replace_string_eng (x2)
+                                    ▪ storage_mode_from_prefix
+                                        • storage_mode_from_filename
+                                    ▪ SUMA_append_replace_string_eng (x7)
+                                    ▪ find_filename_extension
+                                    ▪ SUMA_copy_string (x4)
+                                    ▪ SUMA_append_string (x2)
+                                    ▪ SUMA_append_replace_string_eng (x3)
+                                ◦ SUMA_append_string
+                                ◦ SUMA_1DROI_to_DrawnROI 
+                                    ▪ SUMA_AllocateDrawnROI
+                                        • SUMA_findSOp_inDOv
+                                        • SUMA_append_string
+                                        • SUMA_CreateActionStack
+                                ◦ SUMA_AllocROIDatum
+                                ◦ SUMA_UniqueInt (x2)
+                                ◦ SUMA_NodesInROI
+                                ◦ SUMA_findSOp_inDOv
+                                ◦ SUMA_GetContour
+                                    ▪ SUMA_getPatch
+                                    ▪ SUMA_freePatch
+                                ◦ SUMA_EmptyDestroyList
+                                    ▪ SUMA_FreeROIDatum
+                                ◦ SUMA_DestroyActionStack
+                                ◦ SUMA_Free_Parsed_Name
+                                ◦ SUMA_ParseFname_eng
+                                    ▪ SUMA_getcwd
+                                    ▪ SUMA_copy_string
+                                    ▪ SUMA_copy_string
+                                    ▪ SUMA_append_replace_string_eng
+                                    ▪ SUMA_append_string
+                                    ▪ SUMA_copy_string
+                                    ▪ SUMA_append_replace_string_eng (x2)
+                                    ▪ storage_mode_from_prefix
+                                        • SUMA_ParseFname_eng
+                                        1. storage_mode_from_prefix (x2)
+                                    ▪ SUMA_append_replace_string_eng (x4)
+                                    ▪ find_filename_extension
+                                    ▪ SUMA_copy_string (x4)
+                                    ▪ SUMA_append_string (x2)
+                                    ▪ SUMA_append_replace_string_eng (x4)
+                                ◦ SUMA_append_string
+                                ◦ SUMA_1DROI_to_DrawnROI
+                                    ▪ SUMA_AllocateDrawnROI
+                                        • SUMA_findSOp_inDOv
+                                        • SUMA_append_string
+                                        • SUMA_CreateActionStack
+                                    ▪ SUMA_AllocROIDatum
+                                    ▪ SUMA_UniqueInt
+                                    ▪ SUMA_NodesInROI
+                                    ▪ SUMA_findSOp_inDOv
+                                    ▪ SUMA_GetContour
+                                        • SUMA_getPatch
+                                        • SUMA_freePatch
+                                ◦ SUMA_EmptyDestroyList
+                                    ▪ SUMA_FreeROIDatum
+                                ◦ SUMA_DestroyActionStack
+                                ◦ SUMA_Free_Parsed_Name
+                                ◦ SUMA_ParseFname_eng
+                                    ▪ SUMA_getcwd
+                                    ▪ SUMA_copy_string (x2)
+                                    ▪ SUMA_append_replace_string_eng
+                                    ▪ SUMA_append_string
+                                    ▪ SUMA_copy_string
+                                    ▪ SUMA_append_replace_string_eng (x3)
+                                    ▪ storage_mode_from_prefix
+                                        • storage_mode_from_filename
+                                    ▪ SUMA_append_replace_string_eng (x5)
+                                    ▪ SUMA_copy_string (x4)
+                                    ▪ SUMA_append_string (x2)
+                                    ▪ SUMA_append_replace_string_eng (x3)
+                                ◦ SUMA_1DROI_to_DrawnROI
+                                    ▪ SUMA_AllocateDrawnROI
+                                        • SUMA_findSOp_inDOv
+                                    ▪ SUMA_append_string
+                                    ▪ SUMA_CreateActionStack
+                                    ▪ SUMA_AllocROIDatum
+                                    ▪ SUMA_UniqueInt
+                                    ▪ SUMA_NodesInROI
+                                    ▪ SUMA_findSOp_inDOv
+                                    ▪ SUMA_GetContour
+                                        • SUMA_getPatch
+                                        • SUMA_freePatch
