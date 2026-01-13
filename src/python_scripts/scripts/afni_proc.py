@@ -907,6 +907,7 @@ interesting milestones for afni_proc.py:
    2024.04 : ap_run_simple_rest_me.tcsh: low-option afni_proc.py for multiecho
    2024.05 : enable output of BIDS derivative tree
    2024.08 : input external distortion warp dataset
+   2025.03 : add tedort combine methods OC_m_tedort and m_tedana_OC_tedort
    2025.08 : GTKYD - outlier check from: getting to know your data
    2025.09 : handle physio_calc.py slibase and volbase regressors
 """
