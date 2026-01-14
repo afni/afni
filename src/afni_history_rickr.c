@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Jan, 2026, RCR, "install_bootcamp_data.tcsh", MICRO, TYPE_BUG_FIX,
+   "handle -install_root as absolute path",
+   "Thanks to P Taylor for noting this."
+ } ,
+
  { 13, Jan, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "create enorm time series even if no volreg or censoring",
    "This is needed for APQC generation, so do it regardless.\n"
