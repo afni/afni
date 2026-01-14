@@ -174,13 +174,14 @@ SHOW_HIST:
 
   history:
      0.1   8 Jan 2026 - initial revision
+     0.2  14 Jan 2026 - handle install_root as a relative path
 
 EOF
 exit
 SKIP_HIST:
 
 # ----- corresponding version
-set VERSION = "0.1 January 8, 2026"
+set VERSION = "0.2 January 14, 2026"
 
 
 # ===========================================================================
@@ -282,6 +283,10 @@ while ( $ac <= $#argv )
          echo "** -install_root does not seem to be a directory: $argv[$ac]"
          exit 1
       endif
+      # force install_root to be absolute
+      cd "$install_root"
+      set install_root = `pwd`
+      cd -
 
    else if ( "$arg" == "-verb" ) then
       if ( $ac >= $#argv ) then
