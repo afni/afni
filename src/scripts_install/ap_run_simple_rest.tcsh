@@ -1,5 +1,7 @@
 #!/usr/bin/env tcsh
 
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
 # ===========================================================================
 # Run a simple afni_proc.py resting state analysis, possibly to get QC output.
 #
