@@ -6386,6 +6386,42 @@ ytype : str
 
     return y, ytype
 
+def get_vol_name_noext(fname):
+    """Get the equivalent of a prefix_noext from a general volumetric
+filename fname, removing any extensions (.nii, .gz, .HEAD, .BRIK,
++orig, +tlrc).  This leaves any path information intact.  There need
+not be any volumetric extensions present, in which case the output
+should match the input.
+
+Importantly, this function works whether or not the file exists, even
+if the file doesn't actually exist. This makes it useful for working
+with potential '-prefix ..' strings the user has entered, but we want
+to commandeer the non-extension part for other outputs.
+
+Parameters
+----------
+fname : str
+    filename (can include path) of a potential volumetric output.
+
+Returns
+-------
+fname_noext : str
+    string that either matches fname or has extension piece(s) removed
+
+    """
+
+    fname_noext = fname
+    if fname_noext.endswith('.gz'):
+        fname_noext = fname_noext[:-3]
+    if fname_noext.endswith('.nii'):
+        fname_noext = fname_noext[:-4]
+    if fname_noext.endswith('.HEAD') or fname_noext.endswith('.BRIK') :
+        fname_noext = fname_noext[:-5]
+    if fname_noext.endswith('+orig') or fname_noext.endswith('+tlrc') :
+        fname_noext = fname_noext[:-5]
+
+    return fname_noext
+
 # ----------------------------------------------------------------------
 
 if __name__ == '__main__':
