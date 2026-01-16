@@ -148,6 +148,18 @@ class afni_name(object):
 
       return retval
 
+   def noext_input(self):
+      """remove view and ext from input (even NIFTI), leaving path info as is.
+         - Ex 1: these inputs all return '/qwer/asdf' :
+           '/qwer/asdf+orig.HEAD', '/qwer/asdf+tlrc.', '/qwer/asdf.nii'
+         - Ex 2: these inputs all return 'qwer/asdf' :
+           'qwer/asdf+orig, 'qwer/asdf+tlrc.BRIK.gz', 'qwer/asdf.nii.gz'
+      """
+      if self.initname.startswith('/') :
+         return self.pp()
+      else:
+         return self.rel_dir() + self.prefix
+
    def rel_input(self, head=0, sel=0):
       """relative path to dataset in 'input' format
          e.g. +orig, but no .HEAD
