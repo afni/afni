@@ -69,10 +69,6 @@ void forceExpose(Widget w, int depth) {
    if( !w || !XtIsRealized(w) || !XtIsWidget(w) ) return ;
 #endif
 
-   // fprintf(stderr,"-- isw %d\n", XtIsWidget(w));
-   // fprintf(stderr,"-- display %p\n", XtDisplay(w));
-   // fprintf(stderr,"-- XtWindow %ld\n", XtWindow(w));
-
    /* redraw */
    XClearArea(XtDisplay(w), XtWindow(w), 0, 0, 0, 0, True);
    XSync(XtDisplay(w),False) ;

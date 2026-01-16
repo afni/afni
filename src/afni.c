@@ -2416,7 +2416,7 @@ int main( int argc , char *argv[] )
    AFNI_prefilter_args( &argc , &argv ) ;  /* 11 Dec 2007 */
 /*** INFO_message("after prefilter: argc=%d argv=%p",argc,(void *)argv) ; ***/
 
-   /***** fprintf(stderr,"MacTahoe = %d\n",isMacTahoe()) ; *****/
+   /***** fprintf(stderr,",needsX11Redraw = %d\n", needsX11Redraw()) ; *****/
 
    THD_load_datablock_verbose(1) ; /* 21 Aug 2002 */
 
@@ -7246,7 +7246,7 @@ ENTRY("AFNI_controller_panel_CB") ;
       /* Do the Tahoe fix [Dec 2025] */
 
 #if 0
-      if( isMacTahoe() && im3d->anat_now != NULL && im3d->fim_now != NULL ){
+      if( needsX11Redraw() && im3d->anat_now != NULL && im3d->fim_now != NULL ){
         AFNI_redraw_controller(im3d) ;
       }
 #endif
@@ -11014,7 +11014,7 @@ STATUS("opening marks") ;
 
       /* this will be taken care of in AFNI_vwidtopform_EV() when top_form is resized */
 #if 0
-      if( isMacTahoe() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
+      if( needsX11Redraw() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
 #else
       FIX_TOPFORM_HEIGHT(im3d) ;
 #endif
@@ -11081,7 +11081,7 @@ STATUS("remanaging children") ;
 
       /* forceExpose will be taken care of in AFNI_vwidtopform_EV() when top_form is resized */
 #if 0
-      if( isMacTahoe() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
+      if( needsX11Redraw() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
 #else
       FIX_TOPFORM_HEIGHT(im3d) ;
 #endif
@@ -11108,7 +11108,7 @@ STATUS("opening dmode" ) ;
 
       /* this will be taken care of in AFNI_vwidtopform_EV() when top_form is resized */
 #if 0
-      if( isMacTahoe() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
+      if( needsX11Redraw() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
 #else
       FIX_TOPFORM_HEIGHT(im3d) ;
 #endif

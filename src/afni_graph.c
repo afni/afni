@@ -3703,7 +3703,7 @@ STATUS(str) ; }
 #endif
 #endif
 
-        if( isMacTahoe() ){                       /* Dec 2025 - Tahoe */
+        if( needsX11Redraw() ){                    /* Dec 2025 - Tahoe Redraw */
           forceExpose( grapher->opt_cbut , 0 ) ;
           forceExpose( grapher->fmenu->fim_cbut , 0 ) ;
         }

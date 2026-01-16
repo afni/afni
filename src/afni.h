@@ -1002,7 +1002,6 @@ struct PLUGIN_interface ; /* incomplete definition */
 typedef struct {
       Widget top_shell , top_form ;
       int top_form_height ;               /* 04 Aug 2016 */
-      int top_shell_height ;              /* Dec 2025 */
 
       AFNI_imaging_widgets  * imag ;
       AFNI_viewing_widgets  * view ;
@@ -1046,16 +1045,17 @@ typedef struct {
        MCW_widget_geom( (iq)->vwid->top_form , NULL,&hf,NULL,NULL ) ;  \
        MCW_widget_geom( (iq)->vwid->top_shell, NULL,&hs,NULL,NULL ) ;  \
        if( hf != (iq)->vwid->top_form_height  ||                       \
-           hs != (iq)->vwid->top_shell_height   ){                     \
-       if( 0 )                                                               \
-         fprintf(stderr,"FIX_TOPFORM: orig %d %d  current %d %d\n",          \
-                 (iq)->vwid->top_form_height, (iq)->vwid->top_shell_height , \
+           hs != ((iq)->vwid->top_form_height+1) )                     \
+       {                                                               \
+         if( 0 )                                                             \
+             fprintf(stderr,"FIX_TOPFORM: orig %d %d  current %d %d\n",      \
+                 (iq)->vwid->top_form_height, (iq)->vwid->top_form_height+1, \
                  hf , hs ) ;                                                 \
+         /* todo: SetValues generates expose events, might restrict */ \
          XtVaSetValues( (iq)->vwid->top_form ,                         \
                         XmNheight,(iq)->vwid->top_form_height ,NULL);  \
-         XtVaSetValues( (iq)->vwid->top_shell ,                        \
-                        XmNheight,(iq)->vwid->top_shell_height,NULL);  \
-         /* reset values simultaneously, appease linux win managers */ \
+         /* reset top_shell values simultaneously for linux */         \
+         /* - use top_form size to set top_shell */                    \
          MCW_widget_geom( (iq)->vwid->top_form , &hf,&hs,NULL,NULL ) ; \
          XtVaSetValues( (iq)->vwid->top_shell ,                        \
                         XmNwidth,hf+1,                                 \
@@ -1064,14 +1064,11 @@ typedef struct {
      }                                                                 \
  } while(0)
 
-#define SET_TOPFORM_HEIGHT(iq)                                \
- do{                                                          \
-     MCW_widget_geom( (iq)->vwid->top_form,                   \
-                      NULL, &((iq)->vwid->top_form_height),   \
-                      NULL, NULL ) ;                          \
-     MCW_widget_geom( (iq)->vwid->top_shell,                  \
-                      NULL, &((iq)->vwid->top_shell_height),  \
-                      NULL, NULL ) ;                          \
+#define SET_TOPFORM_HEIGHT(iq)                               \
+ do{                                                         \
+     MCW_widget_geom( (iq)->vwid->top_form,                  \
+                      NULL, &((iq)->vwid->top_form_height),  \
+                      NULL, NULL ) ;                         \
  } while(0)
 
 #define TIPS_PLUS_SHIFT   2

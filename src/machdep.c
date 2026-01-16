@@ -55,7 +55,7 @@ void machdep()
    }
 
 #ifdef DARWIN
-   (void) isMacTahoe() ;  /* Dec 2025 */
+   (void) needsX11Redraw() ;  /* Dec 2025 */
 #endif
 
    AFNI_do_nothing() ; /* 02 Oct 2012 */
@@ -74,7 +74,7 @@ int isMacTahoe(void){ return 0 ; } /* that was easy */
 
 #else
 
-int isMacTahoe(void)
+static int isMacTahoe(void)
 {
   static int firstcall=1;
   char version[128];
@@ -96,6 +96,12 @@ int isMacTahoe(void)
 }
 
 #endif
+
+int needsX11Redraw(void)
+{
+   /* currently, the only reason */
+   return isMacTahoe();
+}
 
 
 /*-------------------------------------------------------------------*/

@@ -353,7 +353,7 @@ extern long   strtol() ;
 
 /* Mac OSX (Darwin) */
 
-extern int isMacTahoe(void) ;  /* in machdep.c [Dec 2025] */
+extern int needsX11Redraw(void) ;  /* in machdep.c [Dec 2025] */
 
 #ifdef DARWIN
 # include <dirent.h>

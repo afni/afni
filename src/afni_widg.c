@@ -363,7 +363,6 @@ ENTRY("AFNI_make_widgets") ;
 
    vwid->butx = vwid->buty = 9 ; /* 17 May 2005 */
    vwid->top_form_height   = 0 ;
-   vwid->top_shell_height  = 0 ; /* Dec 2025 */
 
 #ifdef USING_LESSTIF
    /* In Lesstif, using form spacing, shifts the
@@ -399,7 +398,7 @@ STATUS("creating top_form") ;
 
    /* handler for change of top_form shape [Dec 2025] */
 
-   if( isMacTahoe() ){
+   if( needsX11Redraw() ){
      XtInsertEventHandler( vwid->top_form ,         /* handle events in top_form */
                            StructureNotifyMask ,    /* resizes (Configure events) */
                            FALSE ,                  /* nonmaskable events? */
