@@ -55,6 +55,8 @@ void MCW_expose_widget( Widget w )
 --------------------------------------------------------------------------*/
 
 /* drg/rcr - to redraw after resize */
+/* only do these if requested at compile time */
+#ifdef MACOS_FORCE_EXPOSE
 
 void forceExpose(Widget w, int depth) {
 
@@ -132,6 +134,12 @@ void sendExpose( Widget w , int depth )
   }
 
 }
+
+#else /* MACOS_FORCE_EXPOSE */
+/* not requested, do nothing */
+void forceExpose(Widget w, int depth) { return ; }
+void sendExpose(Widget w , int depth) { return ; }
+#endif /* MACOS_FORCE_EXPOSE */
 
 /*--------------------------------------------------------------------
   Get the Colormap for a widget -- 01 Sep 1998

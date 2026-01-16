@@ -1036,8 +1036,11 @@ typedef struct {
       int butx , buty ;        /* 17 May 2005 */
 } AFNI_widget_set ;
 
+
+#ifdef LINUX2
 /* Macro to reset size of the top_form in AFNI [04 Aug 2016] */ 
 /*                     and also the top_shell  [Dec 2025]    */
+/* (only in the case of LINUX2)                              */
 
 #define FIX_TOPFORM_HEIGHT(iq)                                         \
  do{ if( (iq)->vwid->top_form_height > 99 ){                           \
@@ -1063,6 +1066,12 @@ typedef struct {
        }                                                               \
      }                                                                 \
  } while(0)
+
+#else /* mac, probably */
+
+#define FIX_TOPFORM_HEIGHT(iq) /* nada */
+
+#endif
 
 #define SET_TOPFORM_HEIGHT(iq)                               \
  do{                                                         \
