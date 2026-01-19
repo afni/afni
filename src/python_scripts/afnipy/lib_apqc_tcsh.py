@@ -1054,6 +1054,8 @@ def set_apqc_corr_brain(ap_ssdict):
 exists. We should already be in the correct dir (results dir) and the
 file name should be constant except for the av_space part.
 
+If the analysis is on a surface, do nothing here (just return the dict).
+
 Parameters
 ----------
 ap_ssdict : dict
@@ -1065,6 +1067,11 @@ ap_ssdict : dict
     updated dictionary of subject uvars
 
     """
+
+    # errts is not volumetric (nothing to do)
+    if not(is_volumetric(ap_ssdict['errts_dset'])) :
+        print("++ Surface analysis, so no corr_brain dset")
+        return ap_ssdict
 
     list_corr_brain = glob.glob('corr_brain+*.HEAD')
     nfound = len(list_corr_brain)
@@ -1452,6 +1459,10 @@ D : dict
     # no errts to blur (somehow? not sure this can happen, in reality) and/or
     # no tcat_dset (again, not sure this can actually happen)
     if not(check_dep(ap_ssdict, ['errts_dset', 'tcat_dset'])) :
+        return False, D
+
+    # errts is not volumetric (nothing to do)
+    if not(is_volumetric(ap_ssdict['errts_dset'])) :
         return False, D
 
     # data are already blurred; nothing to do
