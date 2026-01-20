@@ -2869,19 +2869,12 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int
 
    SO = (SUMA_SurfaceObject *)ado;
    
-   fprintf(stderr, "SO = %p\n", SO);
-   fprintf(stderr, "SO->SurfCont = %p\n", SO->SurfCont);
-   fprintf(stderr, "SO->SurfCont->curColPlane->AlphaOpacityFalloff = %d\n", SO->SurfCont->curColPlane->AlphaOpacityFalloff);
-    
     XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
                           SO->SurfCont->curColPlane->AlphaOpacityFalloff, NOPE);
 
     // Default opacity model
-   fprintf(stderr, "SO->SurfCont->alphaOpacityModel = %d\n", SO->SurfCont->alphaOpacityModel);
     if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
     
-    fprintf(stderr, "OK 1\n");
-
     // Temporarily suspend threshold outline.  This appears to resolve the 
     // problem of the color map changing with the threshold slider
     if (ado->do_type == SO_type) {
@@ -2894,11 +2887,7 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int
     SO = (SUMA_SurfaceObject *)ado;
     XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, state, notify);
   
-    fprintf(stderr, "OK 2\n");
-
    SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
-
-    fprintf(stderr, "OK 3\n");
 
    // Create colorized plane
    if (!SUMA_ColorizePlane (curColPlane)) {
@@ -2908,8 +2897,6 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int
 
    // REFRESH DISPLAY
    // SUMA_Remixedisplay(ado);
-
-    fprintf(stderr, "OK 4\n");
 
     if (SO && SO->SurfCont) {
        // Restore threshold boundary if necessary.  This is called when the 
@@ -2922,8 +2909,6 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int
             SUMA_RestoreThresholdContours(clientData, NOPE);
        }
     }
-
-    fprintf(stderr, "OK 5\n");
 
    // REFRESH DISPLAY
    SUMA_Remixedisplay(ado);
