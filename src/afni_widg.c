@@ -6242,7 +6242,7 @@ STATUS("making prog->rowcol") ;
 
       /*----------*/
 
-      prog->hidden_redraw_pb =             /* 02 May 2014 */
+      prog->hidden_redraw_pb =             /* 25 Dec 2025 */
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
                LABEL_ARG("*Redraw All Viewers*") ,

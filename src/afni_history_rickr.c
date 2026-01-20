@@ -53,6 +53,20 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Jan, 2026, RCR, "afni", MAJOR, TYPE_BUG_FIX,
+   "on macos 26, fully redraw any resized windows",
+   "The major updates were from RW Cox.\n"
+   "If using macos 26, have top-level windows call XClearArea() and XSync(),\n"
+   "and recursively do so on all children.\n"
+   "RW Cox rewrote AFNI graphs to continue drawing into fd_pxWind, but to\n"
+   "then copy this into the windows, rather than just having it as the\n"
+   "background.\n"
+   "Applying these 2 changes requires building with MACOS_FORCE_EXPOSE set,\n"
+   "currently done for both official mac systems.\n"
+   "RW Cox also added FIX_TOPFORM_HEIGHT to control window sizing in Linux.\n"
+   "These updates were also done with D Glen, who is now working on suma."
+ } ,
+
  { 14, Jan, 2026, RCR, "install_bootcamp_data.tcsh", MICRO, TYPE_BUG_FIX,
    "handle -install_root as absolute path",
    "Thanks to P Taylor for noting this."

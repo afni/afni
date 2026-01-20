@@ -5757,7 +5757,7 @@ if(PRINT_TRACING)
         switch( cbs->key ){  /* 05 Mar 2007: keys that AFNI needs */
                                        /* to process, not imseq.c */
 
-          case ' ':{   /* redraw image viewers [06 Jan 2025] */
+          case ' ':{   /* redraw image viewers [06 Jan 2026] */
             if( needsX11Redraw() ) {
                if( im3d->s123 ) forceExpose(im3d->s123->wtop, 0) ;
                if( im3d->s231 ) forceExpose(im3d->s231->wtop, 0) ;
