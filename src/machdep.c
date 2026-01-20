@@ -97,6 +97,8 @@ static int isMacTahoe(void)
 
 /* do the X11 windows need to be redrawn upon resize?
  *
+ * Redraw on resize if DARWIN and MACOS_FORCE_EXPOSE and macos 26.
+ *
  * see https://github.com/afni/afni/pull/857
  */
 int needsX11Redraw(void)
@@ -106,7 +108,7 @@ int needsX11Redraw(void)
 #ifdef MACOS_FORCE_EXPOSE
    static int have_FE=1;      /* is the MACOS_FORCE_EXPOSE flag set? */
 #else
-   static int have_FE=2;      /* is the MACOS_FORCE_EXPOSE flag set? */
+   static int have_FE=0;      /* is the MACOS_FORCE_EXPOSE flag set? */
 #endif
 
    if( firstcall == 0 ) return needsit;   /* we have already decided */
