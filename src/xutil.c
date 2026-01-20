@@ -59,9 +59,12 @@ void MCW_expose_widget( Widget w )
 #ifdef MACOS_FORCE_EXPOSE
 
 void forceExpose(Widget w, int depth) {
+   static int cc = 0;   /* count occurances */
+
+   /* know whether this ever happens on a system */
+   if( cc == 0 ) { fprintf(stderr,"== have forceExpose()\n"); cc++; }
 
 #if 0
-   static int cc = 0;
    fprintf(stderr,"== expose %p, depth %d, cc %d\n", w, depth, cc);
    if(!w) { fprintf(stderr,"** bail on NULL\n");   return; }
    if(!XtIsRealized(w)){ fprintf(stderr,"** bail unrealized\n");   return; }

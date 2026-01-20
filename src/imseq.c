@@ -6704,7 +6704,8 @@ else fprintf(stderr,"  -- too soon to enforce aspect!\n") ;
 INFO_message("ConfigureNotify") ;
 #endif
                ISQ_show_image( seq ) ;
-               forceExpose(seq->wform,0) ; /* 06 Jan 2025 */
+               if( needsX11Redraw() )
+                  forceExpose(seq->wform,0) ; /* 06 Jan 2025 */
             } else {
 #if 0
 INFO_message("reject image ConfigureNotify") ;

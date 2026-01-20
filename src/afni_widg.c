@@ -6355,6 +6355,9 @@ ENTRY("AFNI_redraw_controller") ;
 
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
+   /* if we don't need to do this, bail */
+   if( ! needsX11Redraw() ) EXRETURN ;
+
 #if 0
 fprintf(stderr, "AFNI_redraw_controller\n") ;
 #endif

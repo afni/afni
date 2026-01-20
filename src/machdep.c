@@ -99,6 +99,15 @@ static int isMacTahoe(void)
 
 int needsX11Redraw(void)
 {
+#ifdef MACOS_FORCE_EXPOSE
+   static int firstcall=1;
+   if( firstcall ) {
+      fprintf(stderr, "++ have MACOS_FORCE_EXPOSE: needsX11Redraw = %d\n",
+                      isMacTahoe());
+      firstcall = 0;
+   }
+#endif
+
    /* currently, the only reason */
    return isMacTahoe();
 }
