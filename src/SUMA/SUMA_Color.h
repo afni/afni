@@ -145,6 +145,7 @@ SUMA_Boolean SUMA_ScaleToMap_alaHASH ( float *V, int N_V,
                                        SUMA_SCALE_TO_MAP_OPT *Opt, 
                                        SUMA_COLOR_SCALED_VECT * SV);
 SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover );
+SUMA_Boolean SUMA_MakeThresholdOutlines (   SUMA_OVERLAYS *Sover );
 SUMA_Boolean SUMA_DSET_ClearOverlay_Vecs(SUMA_DSET *dset);
 SUMA_Boolean SUMA_SetOverlay_Vecs(SUMA_OVERLAYS *Sover, char vec, 
                                   int colind, char *task, int perc);
@@ -165,7 +166,7 @@ void SUMA_Flip_Color_Map (SUMA_COLOR_MAP *CM);
 int SUMA_Rotate_Color_Map (SUMA_COLOR_MAP *CM, float frac);
 int SUMA_ColorizePlane (SUMA_OVERLAYS *cp);
 SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
-                                        SUMA_COLOR_SCALED_VECT * SV);
+        SUMA_COLOR_SCALED_VECT * SV, SUMA_SurfaceObject *SO);
 SUMA_AFNI_COLORS *SUMA_Build_Color_maps(void);
 char *SUMA_ScaleToMapOpt_Info (SUMA_SCALE_TO_MAP_OPT *OptScl, int detail);
 SUMA_Boolean SUMA_ShowScaleToMapOpt(SUMA_SCALE_TO_MAP_OPT *OptScl, FILE *Out, 
@@ -205,6 +206,7 @@ NI_group * SUMA_CreateCmapForLabelDset(SUMA_DSET *dset,
                                        SUMA_COLOR_MAP *ThisCmap, int alaa) ;
 SUMA_Boolean SUMA_IsCmapOKForLabelDset(SUMA_DSET *dset, SUMA_COLOR_MAP *cmap);
 int SUMA_dset_to_Label_dset_cmap(SUMA_DSET *dset, SUMA_COLOR_MAP *cmap); 
+SUMA_Boolean SUMA_ScaleToMap_Interactive2 (   SUMA_OVERLAYS *Sover );
 
 
 

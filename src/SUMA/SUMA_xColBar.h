@@ -1667,3 +1667,9 @@ SUMA_SHPINX_BREAK \
    "threshold will not get colored."
    
 #endif
+
+int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state, 
+        Boolean notify);
+int restoreVarOpacityAndThreshOutlinesAfterISubBrick(SUMA_ALL_DO *ado, 
+    SUMA_OVERLAYS *colp);
+int restoreABButtonFunctionality_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp);

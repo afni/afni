@@ -4,6 +4,7 @@ xim.c display.c and pbar.c*/
 
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
+#include <sys/time.h> // For struct timeval and gettimeofday
 
 /*!
    \brief Reads a ppm image and turns i into an rgba vector for ease of
@@ -945,7 +946,7 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
     SUMA_SL_Err("NULL SurfCont"); SUMA_RETURN(0); }
 
    curColPlane = SUMA_ADO_CurColPlane(ado);
-   if (curColPlane->OptScl<0x20)
+   if ((long)(curColPlane->OptScl)<0x20)
       { SUMA_SL_Err("Invalid curColPlane->OptScl"); SUMA_RETURN(0); }
    
    switch (curColPlane->OptScl->ThrMode) {
@@ -1024,6 +1025,244 @@ void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call)
    SUMA_RETURNe;
 }
 
+SUMA_Boolean setBoxOutlineForThresh(SUMA_SurfaceObject *SO, 
+    SUMA_OVERLAYS *over2, Bool thresholdChanged)
+{
+   static char FuncName[]={"setBoxOutlineForThresh"};
+   float *bckupColorMap, *onesVector;
+   int i, j, returnVal;   
+   float *overlayBackup; 
+   static SUMA_DRAWN_ROI **OutlineContours = NULL;
+   static int N_OutlineContours = 0;
+   static SUMA_DRAWN_ROI **OriginalContours = NULL;
+   static int N_OriginalContours = 0;
+
+   SUMA_ENTRY;
+   
+   fprintf(stderr, "%s\n", FuncName);
+   
+   if (!over2) SUMA_RETURN (YUP);
+
+   if (over2){ // If there are at least three overlay levels (as teh thrid has
+                // the colored region that the threshold relates to)
+    if (SO->SurfCont->BoxOutlineThresh){    // If B box checked
+        // Show threshold outline on topt of color overlay
+        // NB.  This is the basis of the C&C option of the Dsp control on the
+        // surface control menu
+        over2->ShowMode = SW_SurfCont_DsetViewCaC; 
+        
+        // No contours with zero threshold
+        if (over2->OptScl->ThreshRange[0] == 0){
+             SUMA_KillOverlayContours(over2);
+             over2->Contours = NULL;
+             SUMA_RETURN (YUP);
+        }
+
+        if (OutlineContours && !thresholdChanged){ // If threshold outline
+                                // contours exist and threshold unchanged
+            over2->Contours = OutlineContours;  // Used existing contuors
+            over2->N_Contours = N_OutlineContours;
+        } else {    // Need new contours
+            // Free contours from different threshold
+            if (0 && OutlineContours){
+                free(OutlineContours);
+                OutlineContours = NULL;
+            }
+            
+             /* kill current contours */
+             // Remove existing conours which will be replaced
+             SUMA_KillOverlayContours(over2);
+             over2->Contours = NULL;
+             
+           // Back up overlay color map
+           size_t bytes2CopyScalar = over2->N_V*sizeof(float);
+           if (!(overlayBackup=(float *)malloc(bytes2CopyScalar))){
+                fprintf(stderr, "*** %s: Error allocating memory\n", FuncName);
+                SUMA_RETURN (NOPE);
+           }
+           
+           // Backup colormap
+           for (i=0; i<over2->N_V; ++i) overlayBackup[i] = over2->V[i];
+           
+           // Threshold colormap based on I subbrick setting
+           switch (over2->OptScl->find){
+            case 0:
+            case 3:
+            case 6:
+            case 9:
+                for (i=0; i<over2->N_V; ++i){
+                    over2->V[i] = (float)(over2->V[i] >= over2->IntRange[1]);  
+                }
+                break;
+            case 1:
+            case 4:
+            case 5:
+                for (i=0; i<over2->N_V; ++i){
+                    over2->V[i] = (fabs((float)(over2->V[i])) > over2->IntRange[1]);  
+                }
+                break;
+            case 2:
+            case 8:
+                for (i=0; i<over2->N_V; ++i){
+                    over2->V[i] = (fabs((float)(over2->V[i])) >= over2->IntRange[1]);  
+                }
+                break;           
+           }
+
+            if (!SUMA_MakeThresholdOutlines (over2)) {
+                 SUMA_SL_Err("Failed in SUMA_ScaleToMap_Interactive.");
+                 SUMA_RETURN(0);
+              }
+              
+          // Restore overlay colormap
+          for (i=0; i<over2->N_V; ++i){
+                over2->V[i]  = overlayBackup[i];
+           }
+
+           free(overlayBackup);
+              
+            // Make contours black
+            if (over2->Contours){
+                for (i=0; i<over2->N_Contours; ++i){
+                    for (j=0; j<4; ++j){
+                        over2->Contours[i]->FillColor[j] = 0.0f;
+                    }
+                    over2->Contours[i]->EdgeThickness = 8;
+                }
+
+                // Save threshold outline contours
+                OutlineContours = over2->Contours;
+                N_OutlineContours = over2->N_Contours;
+            } else {
+                fprintf(stderr, "over2 = %p\n", over2);
+                if (over2) fprintf(stderr, "over2->N_Contours = %d\n", over2->N_Contours);
+                SUMA_SL_Err("ERROR: No contours found\n");
+                SUMA_RETURN (NOPE);
+            }
+        }
+    } else {    // Don't show threshold contours
+        over2->ShowMode = SW_SurfCont_DsetViewCol;
+        over2->Contours = OriginalContours;
+        over2->N_Contours = N_OriginalContours;
+    }
+   }
+   
+   SUMA_RETURN (YUP);
+}
+
+int applyBoxOutlineThreshStatusToSurfaceObject(SUMA_ALL_DO *ado, 
+        int BoxOutlineThresh, SUMA_Boolean refreshDisplay)
+{
+   static char FuncName[]={"applyBoxOutlineThreshStatusToSurfaceObject"};
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_OVERLAYS *over2 = NULL;
+   Widget w = NULL;
+   Bool  thresholdChanged;
+   static float threshold;
+
+   SUMA_ENTRY;
+   
+   if (!ado){
+        fprintf(stderr, "** ERROR: %s: NULL ADO pointer\n",
+            FuncName);
+        SUMA_RETURN(0);;
+   }
+   
+   SO = (SUMA_SurfaceObject *)ado;
+   if (!SO){
+        fprintf(stderr, "** ERROR: %s: NULL surface object pointer\n",
+            FuncName);
+        SUMA_RETURN(0);;
+   }
+   if (!(SO->SurfCont)){
+        fprintf(stderr, "** ERROR %s: Cannot have surface threshold outline.  No surface\n", 
+            FuncName);
+        XmToggleButtonSetState(w, 0, 0);
+        SUMA_RETURN(0);;
+   }
+   
+   // Set widget state without calling callback
+   w = SO->SurfCont->BoxOutlineThresh_tb;   
+   XmToggleButtonSetState(w, BoxOutlineThresh, 0);
+   
+   // Record threshold contour status for this surface object
+   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+     
+   // Apply threshold contours   
+   over2 = SUMA_ADO_CurColPlane(ado); // Get colorplane overlay    
+   if (!over2){
+        fprintf(stderr, "+++++ WARNING: %s: Required overlay unavailable\n",
+            FuncName);
+        SUMA_RETURN(0);;
+   }
+  
+   // Determine whether threshold changed
+   thresholdChanged = (threshold != over2->OptScl->ThreshRange[0]);
+
+   // Set up outlines for thresholded regions
+   setBoxOutlineForThresh(SO, over2, thresholdChanged);   
+
+   SUMA_RETURN(1);;   
+}
+
+void SUMA_RestoreThresholdContours(XtPointer data, SUMA_Boolean refreshDisplay)
+{
+    // Called when B checkbox toggled
+   static char FuncName[]={"SUMA_RestoreThresholdContours"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_SurfaceObject *SO = NULL, *SOC=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *over2 = NULL, *colpC=NULL;
+   Bool  thresholdChanged;
+   static int BoxOutlineThresh = 0;
+   static float threshold;
+   int colorplaneIndex = -1;
+   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+
+   SUMA_ENTRY;
+
+   // Get relevant overlay (overlay showing thresholded region)
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+    fprintf(stderr, "** %s: NUL ADO pointer for current hemisphere\n", 
+        FuncName);
+    SUMA_RETURNe;
+   }   
+   
+   // Get box outline threshold status from checkbox
+   BoxOutlineThresh = XmToggleButtonGetState(SurfCont->BoxOutlineThresh_tb); 
+   
+   // Process current hemisphere
+   if (!applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE)){
+    fprintf(stderr, "** %s: Error restoring threshold contours for current hemisphere\n", 
+        FuncName);
+    SUMA_RETURNe;
+   }
+   
+   // Process contralateral hemisphere
+   if (!(SO = (SUMA_SurfaceObject *)ado)){
+    fprintf(stderr, "** %s: NUL surface object pointer\n", FuncName);
+    SUMA_RETURNe;
+   }
+   if (!(over2 = SUMA_ADO_CurColPlane(ado))){
+    fprintf(stderr, "** %s: NUL overlay pointer\n", FuncName);
+    SUMA_RETURNe;
+   }
+   colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
+   if (!SOC){
+    fprintf(stderr, "** %s: NUL ADO pointer for contralateral hemisphere\n", 
+        FuncName);
+    SUMA_RETURNe;
+   }
+   if (!applyBoxOutlineThreshStatusToSurfaceObject((SUMA_ALL_DO *)SOC, BoxOutlineThresh, NOPE)){
+    fprintf(stderr, "** %s: Error restoring threshold contours for contralateral hemisphere\n", 
+        FuncName);
+    SUMA_RETURNe;
+   }
+
+   SUMA_RETURNe;
+}
+
 int SUMA_set_threshold(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                            float *val)
 {
@@ -1038,6 +1277,10 @@ int SUMA_set_threshold(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    if (!colp) colp = SUMA_ADO_CurColPlane(ado);
    if (!colp) SUMA_RETURN(0);
 
+   // Refreshes variable opacity with threshold outlines
+   if (!SUMA_SetScaleThr_one(ado, colp, val, 1, 1)) SUMA_RETURN(0);
+
+   // Process other surfaces
    if (ado->do_type == SO_type) {
       /* do we have a contralateral SO and overlay? */
       SO = (SUMA_SurfaceObject *)ado;
@@ -1079,6 +1322,27 @@ int SUMA_set_threshold(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_RETURN(1);
 }
 
+void restoreProperThresholdCcontours(SUMA_ALL_DO *ado)
+{
+   static char FuncName[]={"restoreProperThresholdCcontours"};
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   XtPointer clientData = (XtPointer)ado;
+
+   SUMA_ENTRY;
+   
+   if (!SO || !(SO->SurfCont)){
+    fprintf(stderr, "WARNING: %s: No surface available", FuncName);
+    SUMA_RETURNe;
+   }
+   
+   if (SO->SurfCont->BoxOutlineThresh ){
+        SUMA_RestoreThresholdContours(clientData, NOPE);
+   }
+
+   SUMA_RETURNe;
+}
+
+/* Called when sliding bar dragged */
 int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                            float *valp)
 {
@@ -1135,6 +1399,10 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
    SUMA_UpdatePvalueField (ado, colp->OptScl->ThreshRange[0]);
+   
+   // Restore proper threshold contours if required when Alpha opacity 
+   //   checkbox toggled
+   restoreProperThresholdCcontours(ado);
 
    SUMA_RETURN(1);
 }
@@ -1171,10 +1439,13 @@ int SUMA_SwitchColPlaneIntensity(
    char srange[500];
    double range[2];
    int loc[2];
+   SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   
+   // NB: ind is the number of the subbrick
+   
    if (!SUMA_SwitchColPlaneIntensity_one(ado, colp, ind, setmen)) {
       SUMA_S_Err("Failed in _one");
       SUMA_RETURN(0);
@@ -1200,6 +1471,122 @@ int SUMA_SwitchColPlaneIntensity(
         SUMA_ColorizePlane (colpC);          
       }
    }
+      
+   // Restore variable opacity and threshold boundaries if necessar6y
+   SurfCont = SUMA_ADO_Cont(ado);
+   if (colp->AlphaOpacityFalloff || SurfCont->BoxOutlineThresh){
+    if (!(restoreVarOpacityAndThreshOutlinesAfterISubBrick(ado, colp))){
+        SUMA_SL_Err("Error restoring variable opacity and thshold outlines");
+        SUMA_RETURN(0);
+    }
+   }
+
+   SUMA_RETURN(1);
+}
+
+int restoreVarOpacityAndThreshOutlinesAfterISubBrick(SUMA_ALL_DO *ado, 
+    SUMA_OVERLAYS *colp)
+{
+   static char FuncName[]={"restoreVarOpacityAndThreshOutlinesAfterISubBrick"};
+   SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
+   SUMA_OVERLAYS *colpC=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (!colp) colp = SUMA_ADO_CurColPlane(ado);
+   if (!colp) SUMA_RETURN(0);
+
+   // Refreshes in focus surface
+   if (!restoreABButtonFunctionality_one(ado, colp)) SUMA_RETURN(0);
+   
+   // Process contralateral surface
+   if (ado->do_type == SO_type) {
+      /* do we have a contralateral SO and overlay? */
+      SO = (SUMA_SurfaceObject *)ado;
+      colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+      if (colpC && SOC) {
+         SUMA_LHv("Found contralateral equivalent to:\n"
+                      " %s and %s in\n"
+                      " %s and %s\n",
+                      SO->Label, CHECK_NULL_STR(colp->Label),
+                      SOC->Label, CHECK_NULL_STR(colpC->Label));
+         if (!restoreABButtonFunctionality_one((SUMA_ALL_DO *)SOC, colpC)) {
+            SUMA_S_Warn("Failed in contralateral");
+            SUMA_RETURN(0);
+         }
+      }
+   }
+
+   SUMA_RETURN(1);
+}
+
+// Restores variable opacity and threshold outlines
+int restoreABButtonFunctionality_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp)
+{
+   static char FuncName[]={"restoreABButtonFunctionality_one"};
+   int setmen = 1, redisplay = 1;
+   SUMA_ALL_DO *curDO = NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+   int cv=0;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   int BoxOutlineThresh = 0;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   struct timeval startTime, stopTime;
+   long runTume;
+   
+   gettimeofday(&startTime, NULL);
+   
+   // Temporarily suspend threshold outline.  This appears to resolve the 
+   // problem of the color map changing with the threshold slider
+   if (ado->do_type == SO_type) {
+       SO = (SUMA_SurfaceObject *)ado;
+       BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+       SO->SurfCont->BoxOutlineThresh = 0;
+   }
+
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (colp && colp != curColPlane) SUMA_RETURN(0);
+
+   gettimeofday(&stopTime, NULL); 
+   runTume = stopTime.tv_usec - startTime.tv_usec;
+   startTime.tv_usec = stopTime.tv_usec;
+
+   // If this is left out, the variable opacity goes away when the user hovers
+   // over the diplay window
+   SUMA_LH("Colorize");
+   if (!SUMA_ColorizePlane (curColPlane)) {
+      SUMA_SLP_Err("Failed to colorize plane.\n");
+      SUMA_RETURN(0);
+   }
+
+   if (SO && SO->SurfCont) {
+       // Restore threshold boundary if necessary.  This is called when the 
+       //   threshold slider is moved
+       SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+
+       // Restore threshold boundary if necessary
+       if (SO->SurfCont->BoxOutlineThresh ){
+            XtPointer clientData = (XtPointer)ado;
+            SUMA_RestoreThresholdContours(clientData, YUP);
+
+           // Refresh display to get threshold outlines on all surfaces
+           SUMA_Remixedisplay(ado);
+           gettimeofday(&stopTime, NULL); 
+           runTume = stopTime.tv_usec - startTime.tv_usec;
+           startTime.tv_usec = stopTime.tv_usec;
+
+           SUMA_UpdateNodeLblField(ado);
+           gettimeofday(&stopTime, NULL); 
+           runTume = stopTime.tv_usec - startTime.tv_usec;
+           startTime.tv_usec = stopTime.tv_usec;
+       }
+    }
 
    SUMA_RETURN(1);
 }
@@ -1222,6 +1609,8 @@ int SUMA_SwitchColPlaneIntensity_one (
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   // NB: ind is the number of the subbrick
 
 
    SurfCont = SUMA_ADO_Cont(ado);
@@ -1409,12 +1798,13 @@ int SUMA_SwitchColPlaneIntensity_one (
    if (colp->ShowMode < 0) { SUMA_RETURN(1); } /* nothing else to do */
 
    SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
-
-   if (!SUMA_ColorizePlane (colp)) {
-         SUMA_SLP_Err("Failed to colorize plane.\n");
-         SUMA_RETURN(0);
+   
+   if (!(colp->AlphaOpacityFalloff) && !(SurfCont->BoxOutlineThresh) ){
+       if (!SUMA_ColorizePlane (colp)) {
+             SUMA_SLP_Err("Failed to colorize plane.\n");
+             SUMA_RETURN(0);
+       }
    }
-
 
    SUMA_Remixedisplay(ado);
 
@@ -1506,6 +1896,9 @@ int SUMA_SwitchColPlaneThreshold_one(
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL;
+   int BoxOutlineThresh = NOPE, AlphaOpacityFalloff = NOPE;
+   char *Label=NULL;
 
    SUMA_ENTRY;
 
@@ -1514,6 +1907,22 @@ int SUMA_SwitchColPlaneThreshold_one(
    if (!ado || !SurfCont || !curColPlane ||
        !colp || ind < -1 || !colp->dset_link) { SUMA_RETURN(0); }
 
+   if (  !ado || !SurfCont ||
+         !curColPlane ||
+         !colp || !colp->dset_link || !colp->OptScl) { SUMA_RETURN(0); }
+   
+   // Temporarily suspend threshold outline.  This appears to resolve the 
+   // problem of the color map changing with the threshold slider
+   if  (ado->do_type == SO_type) {
+       SO = (SUMA_SurfaceObject *)ado;
+       if (SO->SurfCont){
+           BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+           AlphaOpacityFalloff = SO->SurfCont->curColPlane->AlphaOpacityFalloff;
+           SO->SurfCont->BoxOutlineThresh = 0;
+           SO->SurfCont->curColPlane->AlphaOpacityFalloff = 0;
+           XmToggleButtonSetState(SO->SurfCont->AlphaOpacityFalloff_tb, 0, 1);
+       }
+   }
 
    if (LocalHead) {
       fprintf(SUMA_STDERR, "%s:\n request to switch threshold to col. %d\n",
@@ -1587,6 +1996,23 @@ int SUMA_SwitchColPlaneThreshold_one(
             { SUMA_SL_Err("Error in SUMA_set_threshold_one"); SUMA_RETURN(0); }
       }
    }
+   
+   if (SO && SO->SurfCont){
+        // Restore threshold boundary if necessary. // This is called when the 
+          // threshold slider is moved
+        SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+       
+        // Restore proper threshold contours when intensity (I) subbrick changed
+        restoreProperThresholdCcontours(ado);
+       
+        // Restore alpha opacity falloff if applicable
+        if (AlphaOpacityFalloff) XmToggleButtonSetState(SO->SurfCont->AlphaOpacityFalloff_tb, 1, 1);
+   }
+
+   SUMA_Remixedisplay(ado);
+
+   SUMA_UpdateNodeValField(ado);
+   SUMA_UpdateNodeLblField(ado);
 
    SUMA_RETURN(1);
 }
@@ -1632,6 +2058,7 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    SUMA_RETURNe;
 }
 
+// Called when B subbrick option changed
 int SUMA_SwitchColPlaneBrightness(
          SUMA_ALL_DO *ado,
          SUMA_OVERLAYS *colp,
@@ -1678,6 +2105,25 @@ int SUMA_SwitchColPlaneBrightness(
          }
       }
    }
+   
+   if (ado->do_type == SO_type) {
+      SUMA_SurfaceObject *SOC=NULL;
+      SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
+      /* do we have a contralateral SO and overlay? */
+      colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+      if (colpC && SOC) {
+         SUMA_LHv("Found contralateral equivalent to:\n"
+                      " %s and %s in\n"
+                      " %s and %s\n",
+                      SO->Label, CHECK_NULL_STR(colp->Label),
+                      SOC->Label, CHECK_NULL_STR(colpC->Label));
+         if (!SUMA_SwitchColPlaneBrightness_one((SUMA_ALL_DO *)SOC,
+                                                 colpC, ind, 1)) {
+            SUMA_S_Warn("Failed in contralateral");
+         }
+      }
+   }
+
    SUMA_RETURN(1);
 }
 
@@ -1822,6 +2268,9 @@ void SUMA_cb_SwitchBrightness(Widget w, XtPointer client_data, XtPointer call)
 
    SUMA_UpdateNodeLblField(ado);
    #endif
+   
+   // Restore proper threshold contours when bright (B) subbrick switched
+   restoreProperThresholdCcontours(ado);
 
    SUMA_RETURNe;
 }
@@ -1903,6 +2352,7 @@ int SUMA_SwitchCmap(SUMA_ALL_DO *ado,
          }
       }
    }
+
    SUMA_RETURN(1);
 }
 
@@ -1926,6 +2376,10 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
    CM = (SUMA_COLOR_MAP *)datap->callback_data;
 
    SUMA_SwitchCmap(ado, CM, 0);
+
+   // Restore proper threshold contours when colormap chosen from
+   //   pulldown menu instead of by right-clicking on Cmp label
+   restoreProperThresholdCcontours(ado);
 
    SUMA_RETURNe;
 }
@@ -2031,6 +2485,7 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   SUMA_SurfaceObject *SO = NULL;
    int AbsThresh;
 
    SUMA_ENTRY;
@@ -2046,6 +2501,7 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
          !curColPlane->OptScl )  {
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
+   SO = (SUMA_SurfaceObject *)ado;
    
    /* Get state of |T| check box */
    AbsThresh = XmToggleButtonGetState (SurfCont->AbsThresh_tb);
@@ -2079,6 +2535,24 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
                     SUMA_RETURNe;
             }
         }
+   }
+   
+   if (SO->SurfCont->BoxOutlineThresh){
+          
+       for (j=0; j<N_adolist; ++j){
+            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+            if (otherAdo != ado){
+                if (otherAdo->do_type == SO_type){
+
+                    // Make variable opacity appear
+                    if (!SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(otherAdo, 
+                        AbsThresh, YUP)){
+                            SUMA_S_Warn("Error toggling |T| for current surface"); 
+                            SUMA_RETURNe;
+                    }
+               }
+            }
+       }
    }
 
    SUMA_RETURNe;
@@ -2167,6 +2641,8 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    SUMA_Boolean LocalHead = NOPE;
    int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
    int numSurfaceObjects;
+   SUMA_SurfaceObject *SO;
+   SUMA_Boolean BoxOutlineThresh, AlphaOpacityFalloff;
 
    SUMA_ENTRY;
 
@@ -2180,12 +2656,19 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    if ( !curColPlane )  {
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
+   
+   /* Temporarily set box outline to false */
+   SO = (SUMA_SurfaceObject *)ado;
+   BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+   SO->SurfCont->BoxOutlineThresh = 0;
 
    curColPlane->SymIrange = XmToggleButtonGetState (SurfCont->SymIrange_tb);
    
    if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
         curColPlane->SymIrange, NOPE)){
-    SUMA_S_Warn("Error toggling sym I for current surface"); SUMA_RETURNe;
+    SUMA_S_Warn("Error toggling sym I for current surface"); 
+    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+    SUMA_RETURNe;
    }
 
    // Set sym range for other surfaces
@@ -2196,6 +2679,7 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    {
         if (0) SUMA_S_Warn("Mismatch between # surface objects and "
                     "# unique surface controllers"); 
+        SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
         SUMA_RETURNe;
    }
    for (j=0; j<N_adolist; ++j){
@@ -2209,6 +2693,20 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
             }
         }
    }
+   
+   if ((SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh) != 0) {
+          
+       for (j=0; j<N_adolist; ++j){
+            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+            if (otherAdo != ado){
+            if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(otherAdo, 
+                curColPlane->SymIrange, YUP)){
+                    SUMA_S_Warn("Error toggling sym I for current surface"); 
+                    SUMA_RETURNe;
+            }
+        }
+       }
+   }
 
    SUMA_RETURNe;
 }
@@ -2219,6 +2717,9 @@ int SUMA_cb_ShowZero_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int state,
    static char FuncName[]={"SUMA_cb_ShowZero_tb_toggledForSurfaceObject"};
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   int  j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist, numSurfaceObjects;
+   SUMA_ALL_DO *otherAdo;
 
    SUMA_ENTRY;
 
@@ -2274,6 +2775,7 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   SUMA_SurfaceObject *SO = NULL;
 
    SUMA_ENTRY;
 
@@ -2283,6 +2785,7 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+   SO = (SUMA_SurfaceObject *)ado;
 
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (  !curColPlane ||
@@ -2319,6 +2822,24 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
            }
         }
    }
+   
+   if (SO->SurfCont->BoxOutlineThresh){
+          
+       for (j=0; j<N_adolist; ++j){
+            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+            if (otherAdo != ado){
+                if (otherAdo->do_type == SO_type){
+
+                   // Make variable opacity appear
+                   if (!SUMA_cb_ShowZero_tb_toggledForSurfaceObject(otherAdo, 
+                        !curColPlane->OptScl->MaskZero, YUP)){
+                            SUMA_S_Warn("Error toggling show zero for current surface"); 
+                            SUMA_RETURNe;
+                   }
+               }
+            }
+       }
+   }
 
    SUMA_RETURNe;
 }
@@ -2331,31 +2852,80 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_TABLE_FIELD *TF=NULL;
    SUMA_SurfaceObject *SO = NULL;
+   SUMA_Boolean BoxOutlineThresh;
+
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   
+   if (!ado) {
+      SUMA_S_Warn("NULL input"); SUMA_RETURN(0);
+   }
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (  !curColPlane ||
          !curColPlane->OptScl )  {
       SUMA_S_Warn("NULL input 2"); SUMA_RETURN(0);
    }
 
-    // Set Alpha check box
-    SurfCont=SUMA_ADO_Cont(ado);
-    if ( !SurfCont || !SurfCont->ShowZero_tb )  {
-      SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
+   SO = (SUMA_SurfaceObject *)ado;
+   
+   fprintf(stderr, "SO = %p\n", SO);
+   fprintf(stderr, "SO->SurfCont = %p\n", SO->SurfCont);
+   fprintf(stderr, "SO->SurfCont->curColPlane->AlphaOpacityFalloff = %d\n", SO->SurfCont->curColPlane->AlphaOpacityFalloff);
+    
+    XmToggleButtonSetState ( SO->SurfCont->AlphaOpacityFalloff_tb,
+                          SO->SurfCont->curColPlane->AlphaOpacityFalloff, NOPE);
+
+    // Default opacity model
+   fprintf(stderr, "SO->SurfCont->alphaOpacityModel = %d\n", SO->SurfCont->alphaOpacityModel);
+    if (!(SO->SurfCont->alphaOpacityModel)) SO->SurfCont->alphaOpacityModel = QUADRATIC;
+    
+    fprintf(stderr, "OK 1\n");
+
+    // Temporarily suspend threshold outline.  This appears to resolve the 
+    // problem of the color map changing with the threshold slider
+    if (ado->do_type == SO_type) {
+       SO = (SUMA_SurfaceObject *)ado;
+       BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+       SO->SurfCont->BoxOutlineThresh = 0;
     }
+    SurfCont = SO->SurfCont;
     SurfCont->alphaOpacityModel = QUADRATIC; // Make quadratic fall-off default
     SO = (SUMA_SurfaceObject *)ado;
     XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, state, notify);
   
+    fprintf(stderr, "OK 2\n");
+
    SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
 
+    fprintf(stderr, "OK 3\n");
+
+   // Create colorized plane
    if (!SUMA_ColorizePlane (curColPlane)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
          SUMA_RETURN(0);
    }
-   
+
+   // REFRESH DISPLAY
+   // SUMA_Remixedisplay(ado);
+
+    fprintf(stderr, "OK 4\n");
+
+    if (SO && SO->SurfCont) {
+       // Restore threshold boundary if necessary.  This is called when the 
+       //   threshold slider is moved
+       SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+
+       // Restore threshold boundary if necessary
+       if (SO->SurfCont->BoxOutlineThresh ){
+            XtPointer clientData = (XtPointer)ado;
+            SUMA_RestoreThresholdContours(clientData, NOPE);
+       }
+    }
+
+    fprintf(stderr, "OK 5\n");
+
+   // REFRESH DISPLAY
    SUMA_Remixedisplay(ado);
    
    SUMA_UpdateNodeValField(ado);
@@ -2382,8 +2952,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    SUMA_LH("Called");
 
    ado = (SUMA_ALL_DO *)data;
-
-   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
+   if (!ado) {
       SUMA_S_Warn("NULL input"); SUMA_RETURNe;
    }
    curColPlane = SUMA_ADO_CurColPlane(ado);
@@ -2392,7 +2961,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    }
 
    SO = (SUMA_SurfaceObject *)ado;
-   AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
+   AlphaOpacityFalloff = XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
    
    if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(ado, 
         curColPlane->AlphaOpacityFalloff, NOPE)){
@@ -2436,22 +3005,58 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
 void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
                                    XtPointer client_data)
 {
+    // NB: w = SO->SurfCont->BoxOutlineThresh_tb
    static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *over2 = NULL, *colpC=NULL;
    static int BoxOutlineThresh = 0;
+   SUMA_SurfaceObject *SOC=NULL, *SO = NULL;
+   SUMA_Boolean    thresholdChanged;
 
    SUMA_ENTRY;
 
+   // Get relevant overlay (overlay showing thresholded region)
    ado = (SUMA_ALL_DO *)data;
-   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
-            || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (!ado || ado->do_type != SO_type || !(SurfCont=SUMA_ADO_Cont(ado))) {
+    fprintf(stderr, "ERROR %s: Cannot have surface threshold outline.  No surface\n", 
+        FuncName);
+    XmToggleButtonSetState(w, 0, 0);
+    SUMA_RETURNe;
+   }
 
-   BoxOutlineThresh = !BoxOutlineThresh;
-   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   // Get box outline threshold status from checkbox
+   BoxOutlineThresh = XmToggleButtonGetState(w);    
+      
+   // Process for current hemisphere
+   if (!applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE)){
+        fprintf(stderr, "%s: ERROR applying threshold contours to current hemisphere\n", 
+            FuncName);
+        SUMA_RETURNe;
+   }
+      
+   // Process for contralateral hemisphere
+   SO = (SUMA_SurfaceObject *)ado;
+   over2 = SUMA_ADO_CurColPlane(ado);
+   if (!SO || !over2){
+    fprintf(stderr, "ERROR %s: NULL point to surface and/or colormap\n", 
+        FuncName);
+    SUMA_RETURNe;
+   }
+   colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
+   if (!SOC || !over2){
+    fprintf(stderr, "ERROR %s: NULL pointer to surface and/or colormap\n", 
+        FuncName);
+    SUMA_RETURNe;
+   }
 
-   // Refresh display
+   if (!applyBoxOutlineThreshStatusToSurfaceObject((SUMA_ALL_DO *)SOC, BoxOutlineThresh, NOPE)){
+        fprintf(stderr, "%s: ERROR applying threshold contours to contralateral hemisphere\n", 
+            FuncName);
+        SUMA_RETURNe;
+   }
+
+   // REFRESH DISPLAY
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
 
@@ -2747,9 +3352,8 @@ SUMA_MenuItem LinkMode_Menu[] = {
 
    {NULL},
 };
-/**/
+
 SUMA_MenuItem AlphaMode_Menu[] = {
-/*
    {  "Threshol", &xmPushButtonWidgetClass,
       '\0', NULL, NULL,
       SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_None, NULL},
@@ -2767,9 +3371,7 @@ SUMA_MenuItem AlphaMode_Menu[] = {
       SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_Stat, NULL},
 
    {NULL},
-*/
 };
-/**/
 
 /*!
    \brief sets the colormap interpolation mode
@@ -2928,6 +3530,7 @@ void SUMA_cb_SetLinkMode(Widget widget, XtPointer client_data,
 void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data,
                            XtPointer call_data)
 {
+   // Called when the Bias field is changed
    static char FuncName[]={"SUMA_cb_SetCoordBias"};
    SUMA_MenuCallBackData *datap=NULL;
    int imenu;
@@ -2937,6 +3540,7 @@ void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data,
    SUMA_Boolean NewDisp = NOPE;
    SUMA_VIS_XFORM_DATUM *x0=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL;
 
    SUMA_ENTRY;
    /* get the surface object that the setting belongs to */
@@ -3023,6 +3627,13 @@ void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data,
    }
 
    SUMA_UpdateNodeNodeField(ado);
+
+   // Restore threshold boundary if necessary
+   if (ado->do_type == SO_type) SO = (SUMA_SurfaceObject *)ado;
+   if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh ){
+        XtPointer clientData = (XtPointer)ado;
+        SUMA_RestoreThresholdContours(clientData, YUP);
+   }
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
@@ -4049,9 +4660,15 @@ void SUMA_CreateTable(  Widget parent,
    if (!TF) { SUMA_SL_Err("NULL TF"); SUMA_RETURNe; }
    /* looks like wname is the "useless default"    17 Feb 2021 [rickr] */
    if (iwname) { /* override useless default */
-      snprintf(TF->wname,63,"%s", iwname);
+      if (snprintf(TF->wname,63,"%s", iwname) < 0){
+        fprintf(stderr, "Error writing entry to table\n");
+        SUMA_RETURNe;
+      }
    } else {
-      snprintf(TF->wname,63,"%s", wname);
+      if (snprintf(TF->wname,63,"%s", wname) < 0){
+        fprintf(stderr, "Error writing entry to table\n");
+        SUMA_RETURNe;
+      }
    }
    TF->Ni = Ni; TF->Nj = Nj; TF->editable = editable;
    TF->cwidth = (int *)SUMA_calloc(TF->Nj, sizeof(int));
@@ -4128,7 +4745,10 @@ void SUMA_CreateTable(  Widget parent,
       }
 
       /* Create what would become a table URI in the html help */
-      snprintf(wname, 63, "%s", TF->wname);
+      if (snprintf(wname, 63, "%s", TF->wname) < 0){
+        fprintf(stderr, "Error writing table URL for html help\n");
+        SUMA_RETURNe;
+      }
       SUMA_Register_Widget_Help(NULL, 2, wname, NULL, NULL);
 
       for (j=0; j<TF->Nj; ++j) { /* for each column */
@@ -4181,9 +4801,15 @@ void SUMA_CreateTable(  Widget parent,
                     Cannot use it before updating
                     help generating functions which now call for help on .c00,
                     .c01, or .r00 .r01, etc. */
-                  snprintf(wname, 63, "%s.%s", TF->wname, row_tit[i]);
+                  if (snprintf(wname, 63, "%s.%s", TF->wname, row_tit[i]) < 0){
+                    fprintf(stderr, "Error writing label to table\n");
+                    SUMA_RETURNe;
+                  }
                } else {
-                  snprintf(wname, 63, "%s.r%02d", TF->wname, i);
+                  if (snprintf(wname, 63, "%s.r%02d", TF->wname, i) < 0){
+                    fprintf(stderr, "Error writing label to table\n");
+                    SUMA_RETURNe;
+                  }
                }
                SUMA_Register_Widget_Help(TF->cells[n], 1, wname,
                                          row_hint?row_hint[i]:NULL,
@@ -4284,7 +4910,10 @@ void SUMA_CreateTable(  Widget parent,
                     .c01, or .r00 .r01, etc. */
                   snprintf(wname, 63, "%s.%s", TF->wname, col_tit[j]);
                } else {
-                  snprintf(wname, 63, "%s.c%02d", TF->wname, j);
+                  if (snprintf(wname, 63, "%s.c%02d", TF->wname, j) < 0){
+                    fprintf(stderr, "Error writing name to color table\n");
+                    SUMA_RETURNe;
+                  }
                }
                SUMA_Register_Widget_Help(TF->cells[n], 1, wname,
                                          col_hint?col_hint[j]:NULL,
@@ -4310,9 +4939,15 @@ void SUMA_CreateTable(  Widget parent,
                               SUMAg_CF->X->TableTextFontList, NULL);
                if (col_help || col_hint || row_help || row_hint)  {
                   if (TF->Ni>1) {
-                     snprintf(wname, 63, "%s[%d,%d]", TF->wname, i, j);
+                     if (snprintf(wname, 63, "%s[%d,%d]", TF->wname, i, j) < 0){
+                        fprintf(stderr, "Error writing label to table\n");
+                        SUMA_RETURNe;                        
+                     }
                   } else {
-                     snprintf(wname, 63, "%s[%d]", TF->wname, n);
+                     if (snprintf(wname, 63, "%s[%d]", TF->wname, n) < 0){
+                        fprintf(stderr, "Error writing label to table\n");
+                        SUMA_RETURNe;                        
+                     }
                   }
                   if (!row_tit && !col_tit && TF->Ni == 1 && TF->Nj == 1) {
                      char *shh=NULL, *sii=NULL;
@@ -4800,7 +5435,10 @@ void SUMA_CreateSliceFields(  Widget parent,
                            XmNfontList, SUMAg_CF->X->TableTextFontList,
                                      NULL);
    if (hint || help) {
-      snprintf(wname,63, "%s->%s", SF->wname, tit);
+      if (snprintf(wname,63, "%s->%s", SF->wname, tit) < 0){
+        fprintf(stderr, "Error writing label to table.\n");
+        SUMA_RETURNe;
+      }
       SUMA_Register_Widget_Help( SF->lab, 1, wname, hint, help);
    }
    mult = ((int)(SF->Nslc/20.0)/5)*5; if (mult < 1) mult = 1;
@@ -4845,7 +5483,10 @@ void SUMA_CreateSliceFields(  Widget parent,
                   SUMAg_CF->X->TableTextFontList, NULL);
 
    if (hint || help) {
-      snprintf(wname, 63, "%s->%s_text", SF->wname, tit);
+      if (snprintf(wname, 63, "%s->%s_text", SF->wname, tit) < 0){
+        fprintf(stderr, "Error writing label to table.\n");
+        SUMA_RETURNe;
+      }
       SUMA_Register_Widget_Help( SF->text, 1, wname, hint, help);
    }
    XtVaSetValues(SF->text, XmNcolumns, 3, NULL);
@@ -4879,7 +5520,10 @@ void SUMA_CreateSliceFields(  Widget parent,
                   SUMAg_CF->X->TableTextFontList, NULL);
 
    if (hint || help) {
-      snprintf(wname, 63, "%s->mont", SF->wname);
+      if (snprintf(wname, 63, "%s->mont", SF->wname)){
+        fprintf(stderr, "Error writing label to table.\n");
+        SUMA_RETURNe;
+      }
       SUMA_Register_Widget_Help( SF->mont, 1, wname, hint, help);
    }
    XtVaSetValues(SF->mont, XmNcolumns, 5, NULL);
@@ -4904,7 +5548,10 @@ void SUMA_CreateSliceFields(  Widget parent,
       xmToggleButtonWidgetClass, SF->rc, NULL);
    XtAddCallback (SF->tb,
          XmNvalueChangedCallback, shwslccb, ado);
-   snprintf(wname, 63, "%s->tb", SF->wname);
+   if (snprintf(wname, 63, "%s->tb", SF->wname)){
+        fprintf(stderr, "Error writing label to table.\n");
+        SUMA_RETURNe;
+      }
    SUMA_Register_Widget_Help(SF->tb, 1, wname,
                      "View (ON)/Hide Slice(s)",
                      SUMA_SurfContHelp_ShowSliceTgl);
@@ -5406,6 +6053,7 @@ void SUMA_SliceF_SetString (SUMA_SLICE_FIELD * SF)
 void SUMA_TableF_cb_label_change (  Widget w, XtPointer client_data,
                                     XtPointer call_data)
 {
+   // Called when the Col field changed
    static char FuncName[]={"SUMA_TableF_cb_label_change"};
    SUMA_TABLE_FIELD *TF=NULL;
    float val;
@@ -5721,10 +6369,20 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL;
+   int BoxOutlineThresh = 0;
 
    SUMA_ENTRY;
 
    SUMA_LH("Called");
+   
+   // Temporarily suspend threshold outline.  This appears to resolve the 
+   // problem of the color map changing with the threshold slider
+   if (ado->do_type == SO_type) {
+       SO = (SUMA_SurfaceObject *)ado;
+       BoxOutlineThresh = SO->SurfCont->BoxOutlineThresh;
+       SO->SurfCont->BoxOutlineThresh = 0;
+   }
 
    if (!(SurfCont=SUMA_ADO_Cont(ado)) ||
        !SurfCont->SetThrScaleTable) SUMA_RETURN(0);
@@ -5818,12 +6476,32 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_UpdateNodeLblField(ado);
    SUMA_UpdatePvalueField( ado,
                            curColPlane->OptScl->ThreshRange[0]);
+
+    if (SO && SO->SurfCont) {
+       // Restore threshold boundary if necessary.  This is called when the 
+       //   threshold slider is moved
+       SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+
+       // Restore threshold boundary if necessary
+       if (SO->SurfCont->BoxOutlineThresh ){
+            XtPointer clientData = (XtPointer)ado;
+            SUMA_RestoreThresholdContours(clientData, YUP);
+
+           // Refresh display to get threshold outlines on all surfaces
+           SUMA_Remixedisplay(ado);
+           SUMA_UpdateNodeLblField(ado);
+       }
+    }
+    
+    // SUMA_postRedisplay(w, clientData, call);
+
    SUMA_RETURN(1);
 }
 
 int SUMA_SetScaleThr(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                           float *val, int setmen, int redisplay)
 {
+    // Called when threshold edit box is edited
    static char FuncName[]={"SUMA_SetScaleThr"};
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
@@ -5858,6 +6536,7 @@ int SUMA_SetScaleThr(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                                     colpC, val, 1, redisplay)) SUMA_RETURN(0);
       }
    }
+
    SUMA_RETURN(1);
 }
 
@@ -6072,8 +6751,13 @@ void SUMA_NodeInput (void *data)
 
 
 void SUMA_IJKInput(void *data) {
+   static char FuncName[]={"SUMA_IJKInput"};
+
+   SUMA_ENTRY;
+
    SUMA_TpointInput (data);
-   return;
+   
+   SUMA_RETURNe;
 }
 /*!
    \brief Sends the node/datum flying when new value is entered
@@ -6303,6 +6987,7 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_TABLE_FIELD *TF=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL;
 
    SUMA_ENTRY;
 
@@ -6597,6 +7282,14 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
    }
    SUMA_UpdateNodeLblField(ado);
 
+   // Restore threshold boundary if necessary
+   if  (SO && SO->SurfCont){
+       if (SO->SurfCont->BoxOutlineThresh ){
+            XtPointer clientData = (XtPointer)ado;
+            SUMA_RestoreThresholdContours(clientData, YUP);
+       }
+   }  
+
    SUMA_RETURN(1);
 }
 
@@ -6646,6 +7339,8 @@ int SUMA_SetRangeValueNew (SUMA_ALL_DO *ado,
 
 void SUMA_cb_SetRangeValue (void *data)
 {
+    // Set threshold range values
+    // Search terms: imin imax mini maxi
    static char FuncName[]={"SUMA_cb_SetRangeValue"};
    SUMA_SRV_DATA srvdC, *srvd=NULL;
    SUMA_ALL_DO *ado=NULL, *otherAdo=NULL;
@@ -6656,6 +7351,8 @@ void SUMA_cb_SetRangeValue (void *data)
    SUMA_TABLE_FIELD *TF=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_Boolean BoxOutlineThresh, AlphaOpacityFalloff;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -6667,6 +7364,7 @@ void SUMA_cb_SetRangeValue (void *data)
    if (!(srvd = (SUMA_SRV_DATA *)data)) SUMA_RETURNe;
    ado = srvd->ado; colp = srvd->colp;
    if (!ado) SUMA_RETURNe;
+   SO = (SUMA_SurfaceObject *)ado;
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
 
@@ -6752,8 +7450,38 @@ void SUMA_cb_SetRangeValue (void *data)
                 SUMA_S_Err("Erriosity");
              }
           }
-          /**/
         }
+   }
+   
+   if (SO->SurfCont->BoxOutlineThresh){
+       SO = (SUMA_SurfaceObject *)ado;
+       AlphaOpacityFalloff = curColPlane->AlphaOpacityFalloff = XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
+       
+       int numSurfaceObjects;
+       XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+                     &numSurfaceObjects, NULL);
+       N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+       if (numSurfaceObjects != N_adolist)
+       {
+            SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+            SUMA_RETURNe;
+       }
+          
+       for (j=0; j<N_adolist; ++j){
+            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+            if (otherAdo != ado){
+                if (otherAdo->do_type == SO_type){
+
+                   // Make variable opacity appear
+                   if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo,
+                        AlphaOpacityFalloff, YUP)){
+                           SUMA_S_Warn("Error toggling variable opacity for "
+                                       "current surface"); 
+                           SUMA_RETURNe;
+                   }
+               }
+            }
+       }
    }
 
    SUMA_RETURNe;
@@ -7007,8 +7735,8 @@ void SUMA_TableF_cb_label_Modify (Widget w, XtPointer client_data,
                                   XtPointer call_data)
 {
    static char FuncName[]={"SUMA_TableF_cb_label_Modify"};
-   SUMA_TABLE_FIELD *TF=NULL;
-   int ud=0;
+   SUMA_TABLE_FIELD *TF=NULL,  *otherTF=NULL;
+   int ud=0, n;
    static int CurrentCell = -1;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -7274,11 +8002,9 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                SUMA_Alloc_Menu_Widget(N_items+1);
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
-// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "B", '\0', YUP, SwitchBrt_Menu,
-                           "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
+                           "B", '\0', YUP, SwitchBrt_Menu,
                            (void *)ado,
-// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "SurfCont->Dset_Mapping->B",
-                           "SurfCont->Dset_Mapping->_",  // TEMPORARY FOR MERGE WITH MASTER
+                           "SurfCont->Dset_Mapping->B",
                "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
                            SUMA_SurfContHelp_SelBrt,
                            SurfCont->SwitchBrtMenu );
@@ -7936,8 +8662,7 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                SUMA_Alloc_Menu_Widget(N_items+1);
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
-// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "B", '\0', YUP, SwitchBrt_Menu,
-                           "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
+                           "B", '\0', YUP, SwitchBrt_Menu,
                            (void *)ado,
                            "VolCont->Dset_Mapping->B",
                "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
@@ -8568,11 +9293,9 @@ void SUMA_set_cmap_options_GLDO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                SUMA_Alloc_Menu_Widget(N_items+1);
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
-// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "B", '\0', YUP, SwitchBrt_Menu,
-                           "_", '\0', YUP, SwitchBrt_Menu,  // TEMPORARY FOR MERGE WITH MASTER
+                           "B", '\0', YUP, SwitchBrt_Menu,
                            (void *)ado,
-// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER                           "GraphCont->GDset_Mapping->B",
-                           "GraphCont->GDset_Mapping->_",  // TEMPORARY FOR MERGE WITH MASTER
+                           "GraphCont->GDset_Mapping->B",
                "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
                            SUMA_SurfContHelp_SelBrt,
                            SurfCont->SwitchBrtMenu );
@@ -9789,8 +10512,6 @@ void SUMA_cb_CloseSwitchLst (Widget w, XtPointer client_data, XtPointer call)
 
    LW->isShaded = YUP;
 
-
-
    SUMA_RETURNe;
 }
 
@@ -10226,8 +10947,6 @@ void SUMA_cb_CloseSwitchCmap (Widget w, XtPointer client_data, XtPointer call)
 
    LW->isShaded = YUP;
 
-
-
    SUMA_RETURNe;
 }
 
@@ -10235,12 +10954,16 @@ void SUMA_cb_CloseSwitchCmap (Widget w, XtPointer client_data, XtPointer call)
 void SUMA_optmenu_EV( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch )
 {
+   // Called when one of the subbrick options (I, T or B), or Cmp menu, changed
    static char FuncName[]={"SUMA_optmenu_EV"};
    Dimension lw=0 ;
    Widget * children , wl = NULL;
    XButtonEvent * bev = (XButtonEvent *) ev ;
-   int  num_children , ic ;
-   SUMA_ALL_DO *ado = (SUMA_ALL_DO *)cd;
+   int  num_children , ic , j;
+   SUMA_ALL_DO *ado = (SUMA_ALL_DO *)cd, *otherAdo;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   SUMA_Boolean AlphaOpacityFalloff;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -10297,8 +11020,37 @@ void SUMA_optmenu_EV( Widget w , XtPointer cd ,
       SUMA_SLP_Err("wahtchyoutalkinaboutwillis?");
       SUMA_RETURNe;
    }
-   SUMA_RETURNe;
+   
+   /******** NB: Take a closer look at this.  *******/
+   if (SO->SurfCont->BoxOutlineThresh){
+        AlphaOpacityFalloff = XmToggleButtonGetState (SO->SurfCont->AlphaOpacityFalloff_tb);
+       int numSurfaceObjects;
+       XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+       N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+       if (numSurfaceObjects != N_adolist)
+       {
+            SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+            SUMA_RETURNe;
+       }
+          
+       for (j=0; j<N_adolist; ++j){
+            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+            if (otherAdo != ado){
+                if (otherAdo->do_type == SO_type){
 
+                   // Make variable opacity appear
+                   if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo,
+                        AlphaOpacityFalloff, YUP)){
+                           SUMA_S_Warn("Error toggling variable opacity for "
+                                       "current surface"); 
+                           SUMA_RETURNe;
+                   }
+               }
+            }
+       }
+   }
+
+   SUMA_RETURNe;
 }
 
 void SUMA_CreateXhairWidgets(Widget parent, SUMA_ALL_DO *ado)
@@ -11072,7 +11824,6 @@ void SUMA_CreateXhairWidgets_VO(Widget parent, SUMA_ALL_DO *ado)
    }
    XtManageChild(rcc);
    SUMA_RETURNe;
-
 }
 
 /* I suspect this will be a mixture of _VO and _SO */
@@ -11211,8 +11962,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
             SUMA_SET_SELECT_COLOR(SurfCont->AlphaOpacityFalloff_tb);
                     
             // create the "B" toggle checkbox 
-// TEMPORARY COMMENTED OUT TO MERGE WITH MASTER            SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("B",
-            SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("_",     // TEMPORARY FOR MERGE WITH MASTER
+            SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("B",
             xmToggleButtonWidgetClass, ABCheckBoxContainer,
             NULL);
             // Make hover help, and BHelp, for "B" checkbox
@@ -11224,6 +11974,12 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                                    SUMA_SurfContHelp_BoxOutlineThr );
 
             SUMA_SET_SELECT_COLOR(SurfCont->BoxOutlineThresh_tb);
+            
+            // Disable "A" and "B" checkboxes if not a surface object
+            if (ado->do_type != SO_type){
+                XtSetSensitive(SurfCont->AlphaOpacityFalloff_tb, 0);
+                XtSetSensitive(SurfCont->BoxOutlineThresh_tb, 0);
+            } 
 
             XtManageChild(ABCheckBoxContainer);
         }
@@ -11566,7 +12322,10 @@ SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_ALL_DO *ado,
             of sub-bricks. In any case, sub-brick labels are not that
             important here, this should be improved someday*/
          menu[i].label = (char*)malloc(13*sizeof(char));
-         snprintf(menu[i].label,11*sizeof(char), "sb%d", i-1);
+         if (snprintf(menu[i].label,11*sizeof(char), "sb%d", i-1) < 0){
+            fprintf(stderr, "Error writing  entry to switch color menu vector\n");
+            SUMA_RETURN(0);
+         }
       }
       menu[i].class = &xmPushButtonWidgetClass;
       menu[i].mnemonic = '\0';
@@ -11586,15 +12345,36 @@ SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_ALL_DO *ado,
    SUMA_RETURN (menu);
 }
 
-void SUMA_ShowMeTheChildren(Widget w) {
+void SUMA_ShowMeTheChildren(Widget w) 
+{
+   static char FuncName[]={"SUMA_ShowMeTheChildren"};
+
+   SUMA_ENTRY;
+   
    SUMA_DoForTheChildren(w,0, 0, 0);
+   
+   SUMA_RETURNe;
 }
 
-void SUMA_UnmanageTheChildren(Widget w) {
+void SUMA_UnmanageTheChildren(Widget w) 
+{
+   static char FuncName[]={"SUMA_UnmanageTheChildren"};
+
+   SUMA_ENTRY;
+   
    SUMA_DoForTheChildren(w, -1, 0, 0);
+   
+   SUMA_RETURNe;
 }
-void SUMA_ManageTheChildren(Widget w) {
+void SUMA_ManageTheChildren(Widget w) 
+{
+   static char FuncName[]={"SUMA_ManageTheChildren"};
+
+   SUMA_ENTRY;
+   
    SUMA_DoForTheChildren(w, 1, 0, 0);
+   
+   SUMA_RETURNe;
 }
 
 /*!
@@ -11817,8 +12597,14 @@ void SUMA_UpdatePvalueField (SUMA_ALL_DO *ado, float thresh)
          else {
            int dec = (int)(0.999 - log10(qval)) ;
            zval = qval * pow( 10.0 , (double)dec ) ;  /* between 1 and 10 */
-           if( dec < 10 ) sprintf( qbuf, " %3.1f-%1d",            zval, dec );
-           else           sprintf( qbuf, " %1d.-%2d" , (int)rint(zval), dec );
+           if( dec < 10 && snprintf( qbuf, 16, " %3.1f-%1d", zval, dec ) < 0){
+                fprintf(stderr, "Error updating p-value field.\n");
+                SUMA_RETURNe;
+           }
+           else if (sprintf( qbuf, " %1d.-%2d" , (int)rint(zval), dec ) < 0){
+                fprintf(stderr, "Error updating p-value field.\n");
+                SUMA_RETURNe;
+           }
          }
          strcat(buf,"\nq=") ; SUMA_strncat(buf,qbuf+1,99) ;
       } else {
@@ -12079,7 +12865,6 @@ SUMA_Boolean SUMA_UpdateXhairField(SUMA_SurfaceViewer *sv)
    }
 
    SUMA_RETURN(YUP);
-
 }
 
 SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado)
@@ -12277,8 +13062,8 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado)
                SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
          SUMA_RETURN(NOPE);
    }
+   
    SUMA_RETURN(YUP);
-
 }
 
 SUMA_Boolean SUMA_UpdatePointField(SUMA_ALL_DO*ado)
@@ -12805,6 +13590,7 @@ char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec)
    char **sar=NULL, stmp[64]={""};
    char *seps[3]={"I=", " T=", " B="};
    SUMA_Boolean LocalHead = NOPE;
+   
    SUMA_ENTRY;
 
    if (!ado) SUMA_RETURN(NULL);
@@ -12850,7 +13636,6 @@ char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec)
          el = dlist_next(el);
       }
    }
-
 
    if ((Sover = SUMA_ADO_CurColPlane(ado))) {
       if (SDSET_TYPE(Sover->dset_link) != SUMA_NODE_RGB ) {/* Have labels */
@@ -12995,7 +13780,6 @@ char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec)
       }/* Have labels */
 
       /* Some coord info for select few ? */
-
       if (ado->do_type == GRAPH_LINK_type) {
          SUMA_DSET *gset=NULL;
          char *stmp=NULL, *pref=NULL;
@@ -13202,26 +13986,28 @@ SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_UpdateNodeLblField"};
 
-   if (!ado) return(NOPE);
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NOPE);
    switch(ado->do_type) {
       case SO_type: {
-         return(SUMA_UpdateNodeLblField_ADO(ado));
+         SUMA_RETURN(SUMA_UpdateNodeLblField_ADO(ado));
          break; }
       case GDSET_type: {
          SUMA_S_Warn("Should I be updating this guy and not it GLDO?");
-         return(YUP);
+         SUMA_RETURN(YUP);
          break; }
       case CDOM_type:
       case VO_type:
       case TRACT_type:
       case MASK_type:
       case GRAPH_LINK_type: {
-         return(SUMA_UpdateNodeLblField_ADO(ado));
+         SUMA_RETURN(SUMA_UpdateNodeLblField_ADO(ado));
          break; }
       default:
          SUMA_S_Errv("Bad type %s for this function\n",
                   SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
-         return(NOPE);
+         SUMA_RETURN(NOPE);
    }
    return(NOPE);
 }
@@ -13453,7 +14239,6 @@ SUMA_Boolean SUMA_UpdateTriField(SUMA_SurfaceObject *SO)
    }
 
    SUMA_RETURN(YUP);
-
 }
 
 /*!
@@ -13715,7 +14500,6 @@ void SUMA_LoadCmapFile (char *filename, void *data)
       SUMA_UpdateNodeLblField(ado);
    }
 
-
    SUMA_RETURNe;
 }
 
@@ -13777,24 +14561,26 @@ SUMA_OVERLAYS * SUMA_ADO_CurColPlane(SUMA_ALL_DO *ado)
    static char FuncName[]={"SUMA_ADO_CurColPlane"};
    SUMA_Boolean LocalHead = NOPE;
 
-   if (!ado) return(NULL);
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NULL);
    SUMA_LHv("Have %d\n", ado->do_type);
    switch(ado->do_type) {
       case SO_type: {
          SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
-         if (!SO->SurfCont) return(NULL);
-         return(SO->SurfCont->curColPlane);
+         if (!SO->SurfCont) SUMA_RETURN(NULL);
+         SUMA_RETURN(SO->SurfCont->curColPlane);
          break; }
       case CDOM_type: {
          SUMA_CIFTI_SAUX *CSaux = SUMA_ADO_CSaux(ado);
-         if (!CSaux || !CSaux->DOCont) return(NULL);
-         return(CSaux->DOCont->curColPlane);
+         if (!CSaux || !CSaux->DOCont) SUMA_RETURN(NULL);
+         SUMA_RETURN(CSaux->DOCont->curColPlane);
          break; }
       case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          SUMA_GRAPH_SAUX *GSaux = SDSET_GSAUX(dset);
-         if (!GSaux) return(NULL);
-         return(GSaux->Overlay);
+         if (!GSaux) SUMA_RETURN(NULL);
+         SUMA_RETURN(GSaux->Overlay);
          break; }
       case GRAPH_LINK_type: {
          SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
@@ -13802,35 +14588,39 @@ SUMA_OVERLAYS * SUMA_ADO_CurColPlane(SUMA_ALL_DO *ado)
          if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
             SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
                         SUMA_ADO_Label(ado));
-            return(NULL);
+            SUMA_RETURN(NULL);
          }
-         return(SUMA_ADO_CurColPlane((SUMA_ALL_DO *)dset));
+         SUMA_RETURN(SUMA_ADO_CurColPlane((SUMA_ALL_DO *)dset));
          break; }
       case MASK_type: {
          SUMA_MASK_SAUX *MSaux = SUMA_ADO_MSaux(ado);
-         if (!MSaux || !MSaux->DOCont) return(NULL);
-         return(MSaux->DOCont->curColPlane);
+         if (!MSaux || !MSaux->DOCont) SUMA_RETURN(NULL);
+         SUMA_RETURN(MSaux->DOCont->curColPlane);
          break; }
       case TRACT_type: {
          SUMA_TRACT_SAUX *TSaux = SUMA_ADO_TSaux(ado);
-         if (!TSaux || !TSaux->DOCont) return(NULL);
-         return(TSaux->DOCont->curColPlane);
+         if (!TSaux || !TSaux->DOCont) SUMA_RETURN(NULL);
+         SUMA_RETURN(TSaux->DOCont->curColPlane);
          break; }
       case VO_type: {
          SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
-         if (!VSaux || !VSaux->DOCont) return(NULL);
-         return(VSaux->DOCont->curColPlane);
+         if (!VSaux || !VSaux->DOCont) SUMA_RETURN(NULL);
+         SUMA_RETURN(VSaux->DOCont->curColPlane);
          break; }
       default:
-         return(NULL);
+         SUMA_RETURN(NULL);
    }
-   return(NULL);
+
+   SUMA_RETURN(NULL);
 }
 
 SUMA_OVERLAYS * SUMA_ADO_Overlay0(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_ADO_Overlay0"};
-   return(SUMA_ADO_Overlay(ado, 0));
+
+   SUMA_ENTRY;
+
+   SUMA_RETURN(SUMA_ADO_Overlay(ado, 0));
 }
 
 SUMA_OVERLAYS * SUMA_ADO_Overlay(SUMA_ALL_DO *ado, int i)
@@ -13839,11 +14629,13 @@ SUMA_OVERLAYS * SUMA_ADO_Overlay(SUMA_ALL_DO *ado, int i)
    SUMA_OVERLAYS **overlays=NULL;
    int N_over=0;
 
-   if (!ado || i<0) return(NULL);
+   SUMA_ENTRY;
+
+   if (!ado || i<0) SUMA_RETURN(NULL);
    if ((overlays = SUMA_ADO_Overlays(ado, &N_over))) {
-      if (i < N_over) return(overlays[i]);
+      if (i < N_over) SUMA_RETURN(overlays[i]);
    }
-   return(NULL);
+   SUMA_RETURN(NULL);
 }
 
 SUMA_Boolean SUMA_ADO_Append_Overlay(SUMA_ALL_DO *ado, SUMA_OVERLAYS **over)
@@ -13947,7 +14739,9 @@ SUMA_OVERLAYS **  SUMA_ADO_Overlays(SUMA_ALL_DO *ado, int *N_over)
 {
    static char FuncName[]={"SUMA_ADO_Overlays"};
 
-   if (!ado) return(NULL);
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NULL);
 
    if (N_over) *N_over = -1;
 
@@ -13955,20 +14749,20 @@ SUMA_OVERLAYS **  SUMA_ADO_Overlays(SUMA_ALL_DO *ado, int *N_over)
       case SO_type: {
          SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
          if (N_over) *N_over = SO->N_Overlays;
-         return(SO->Overlays);
+         SUMA_RETURN(SO->Overlays);
          break; }
       case CDOM_type: {
          SUMA_CIFTI_SAUX *CSaux = SUMA_ADO_CSaux(ado);
-         if (!CSaux) return(NULL);
+         if (!CSaux) SUMA_RETURN(NULL);
          if (N_over) *N_over = CSaux->N_Overlays;
-         return(CSaux->Overlays);
+         SUMA_RETURN(CSaux->Overlays);
          break; }
       case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          SUMA_GRAPH_SAUX *GSaux = SDSET_GSAUX(dset);
-         if (!GSaux || !GSaux->Overlay) return(NULL);
+         if (!GSaux || !GSaux->Overlay) SUMA_RETURN(NULL);
          if (N_over) *N_over = 1;
-         return(&(GSaux->Overlay));
+         SUMA_RETURN(&(GSaux->Overlay));
          break; }
       case GRAPH_LINK_type: {
          int N_n;
@@ -13978,57 +14772,60 @@ SUMA_OVERLAYS **  SUMA_ADO_Overlays(SUMA_ALL_DO *ado, int *N_over)
          if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
             SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
                         SUMA_ADO_Label(ado));
-            return(NULL);
+            SUMA_RETURN(NULL);
          }
          if ((oo = SUMA_ADO_Overlays((SUMA_ALL_DO *)dset, &N_n))){
             if (N_over) *N_over = N_n;
-            return(oo);
+            SUMA_RETURN(oo);
          }
          break; }
       case TRACT_type: {
          SUMA_TRACT_SAUX *TSaux = SUMA_ADO_TSaux(ado);
-         if (!TSaux) return(NULL);
+         if (!TSaux) SUMA_RETURN(NULL);
          if (N_over) *N_over = TSaux->N_Overlays;
-         return(TSaux->Overlays);
+         SUMA_RETURN(TSaux->Overlays);
          break; }
       case MASK_type: {
          SUMA_MASK_SAUX *MSaux = SUMA_ADO_MSaux(ado);
-         if (!MSaux) return(NULL);
+         if (!MSaux) SUMA_RETURN(NULL);
          if (N_over) *N_over = MSaux->N_Overlays;
-         return(MSaux->Overlays);
+         SUMA_RETURN(MSaux->Overlays);
          break; }
       case VO_type: {
          SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
-         if (!VSaux) return(NULL);
+         if (!VSaux) SUMA_RETURN(NULL);
          if (N_over) *N_over = VSaux->N_Overlays;
-         return(VSaux->Overlays);
+         SUMA_RETURN(VSaux->Overlays);
          break; }
       default:
-         return(NULL);
+         SUMA_RETURN(NULL);
    }
-   return(NULL);
+   SUMA_RETURN(NULL);
 }
 
 
 int SUMA_ADO_N_Overlays(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_ADO_N_Overlays"};
-   if (!ado) return(-1);
+
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(-1);
    switch(ado->do_type) {
       case SO_type: {
          SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
-         return(SO->N_Overlays);
+         SUMA_RETURN(SO->N_Overlays);
          break; }
       case CDOM_type: {
          SUMA_CIFTI_SAUX *CSaux = SUMA_ADO_CSaux(ado);
-         if (!CSaux) return(-1);
-         return(CSaux->N_Overlays);
+         if (!CSaux) SUMA_RETURN(-1);
+         SUMA_RETURN(CSaux->N_Overlays);
          break; }
       case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          SUMA_GRAPH_SAUX *GSaux = SDSET_GSAUX(dset);
-         if (!GSaux) return(-1);
-         return(1);
+         if (!GSaux) SUMA_RETURN(-1);
+         SUMA_RETURN(1);
          break; }
       case GRAPH_LINK_type: {
          SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
@@ -14036,30 +14833,30 @@ int SUMA_ADO_N_Overlays(SUMA_ALL_DO *ado)
          if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
             SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
                         SUMA_ADO_Label(ado));
-            return(-1);
+            SUMA_RETURN(-1);
          }
-         return(SUMA_ADO_N_Overlays((SUMA_ALL_DO *)dset));
+         SUMA_RETURN(SUMA_ADO_N_Overlays((SUMA_ALL_DO *)dset));
          break; }
       case TRACT_type: {
          SUMA_TRACT_SAUX *TSaux = SUMA_ADO_TSaux(ado);
-         if (!TSaux) return(-1);
-         return(TSaux->N_Overlays);
+         if (!TSaux) SUMA_RETURN(-1);
+         SUMA_RETURN(TSaux->N_Overlays);
          break; }
       case MASK_type: {
          SUMA_MASK_SAUX *MSaux = SUMA_ADO_MSaux(ado);
-         if (!MSaux) return(-1);
-         return(MSaux->N_Overlays);
+         if (!MSaux) SUMA_RETURN(-1);
+         SUMA_RETURN(MSaux->N_Overlays);
          break; }
       case VO_type: {
          SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
-         if (!VSaux) return(-1);
-         return(VSaux->N_Overlays);
+         if (!VSaux) SUMA_RETURN(-1);
+         SUMA_RETURN(VSaux->N_Overlays);
          break; }
 
       default:
-         return(-1);
+         SUMA_RETURN(-1);
    }
-   return(-1);
+   SUMA_RETURN(-1);
 }
 
 /*!
@@ -14072,28 +14869,30 @@ int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado, void *extra, void *extra2)
    static char FuncName[]={"SUMA_ADO_SelectedDatum"};
    SUMA_Boolean LocalHead = NOPE;
 
-   if (!ado) return(-1);
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(-1);
    SUMA_LHv("Here with %d (%s), %s\n",
              ado->do_type, ADO_TNAME(ado), SUMA_ADO_Label(ado));
    switch(ado->do_type) {
       case SO_type: {
          SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
-         return(SO->SelectedNode);
+         SUMA_RETURN(SO->SelectedNode);
          break; }
       case CDOM_type: {
          SUMA_CIFTI_SAUX *CSaux = SUMA_ADO_CSaux(ado);
-         if (!CSaux) return(-1);
+         if (!CSaux) SUMA_RETURN(-1);
          /* Plenty of room to return extras, once we figure those out.
             Selections could be on surfaces or volumes so what needs
             to be filled out in the extras will depend on the type of
             domain over which the selection was made. */
-         return(CSaux->PR->datum_index);
+         SUMA_RETURN(CSaux->PR->datum_index);
          break; }
       case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          SUMA_GRAPH_SAUX *GSaux = SDSET_GSAUX(dset);
-         if (!GSaux) return(-1);
-         return(GSaux->PR->datum_index);
+         if (!GSaux) SUMA_RETURN(-1);
+         SUMA_RETURN(GSaux->PR->datum_index);
          break; }
       case GRAPH_LINK_type: {
          SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
@@ -14101,13 +14900,13 @@ int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado, void *extra, void *extra2)
          if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
             SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
                         SUMA_ADO_Label(ado));
-            return(-1);
+            SUMA_RETURN(-1);
          }
-         return(SUMA_ADO_SelectedDatum((SUMA_ALL_DO *)dset, extra, extra2));
+         SUMA_RETURN(SUMA_ADO_SelectedDatum((SUMA_ALL_DO *)dset, extra, extra2));
          break; }
       case TRACT_type: {
          SUMA_TRACT_SAUX *TSaux = SUMA_ADO_TSaux(ado);
-         if (!TSaux) return(-1);
+         if (!TSaux) SUMA_RETURN(-1);
          if (extra) {
             int *ivsel = (int *)extra;
             ivsel[SUMA_NET_BUN] = TSaux->PR->iAltSel[SUMA_NET_BUN];
@@ -14115,11 +14914,11 @@ int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado, void *extra, void *extra2)
             ivsel[SUMA_TRC_PNT] = TSaux->PR->iAltSel[SUMA_TRC_PNT];
             ivsel[SUMA_NET_TRC] = TSaux->PR->iAltSel[SUMA_NET_TRC];
          }
-         return(TSaux->PR->datum_index);
+         SUMA_RETURN(TSaux->PR->datum_index);
          break; }
       case VO_type: {
          SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
-         if (!VSaux) return(-1);
+         if (!VSaux) SUMA_RETURN(-1);
          if (extra) {
             int *ivsel = (int *)extra;
             ivsel[SUMA_VOL_I] = VSaux->PR->iAltSel[SUMA_VOL_I];
@@ -14135,19 +14934,19 @@ int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado, void *extra, void *extra2)
             fvsel[SUMA_VOL_SLC_EQ3] = VSaux->PR->dAltSel[SUMA_VOL_SLC_EQ3];
          }
 
-         return(VSaux->PR->datum_index);
+         SUMA_RETURN(VSaux->PR->datum_index);
          break; }
       case MASK_type: {
          static int ncnt=0;
          if (!ncnt) {
             SUMA_S_Warn("Not ready for mask objects, returning 0"); ++ncnt;
          }
-         return(0);
+         SUMA_RETURN(0);
          break; }
       default:
-         return(-1);
+         SUMA_RETURN(-1);
    }
-   return(-1);
+   SUMA_RETURN(-1);
 }
 
 /*!
@@ -14160,24 +14959,26 @@ int SUMA_ADO_SelectedSecondary(SUMA_ALL_DO *ado)
    static char FuncName[]={"SUMA_ADO_SelectedSecondary"};
    SUMA_Boolean LocalHead = NOPE;
 
-   if (!ado) return(-1);
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(-1);
    SUMA_LHv("Here with %d (%s), %s\n",
              ado->do_type, ADO_TNAME(ado), SUMA_ADO_Label(ado));
    switch(ado->do_type) {
       case SO_type: {
          SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
-         return(SO->SelectedFaceSet);
+         SUMA_RETURN(SO->SelectedFaceSet);
          break; }
       case CDOM_type: {
          SUMA_S_Err("What gets set will depend on  PR->primitive. \n"
                     "Consider SUMA_ADO_SelectedSecondary() and ponder away.");
-         return(-1);
+         SUMA_RETURN(-1);
          break; }
       case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          SUMA_GRAPH_SAUX *GSaux = SDSET_GSAUX(dset);
-         if (!GSaux) return(-1);
-         return(GSaux->PR->iAltSel[SUMA_ENODE_0]);
+         if (!GSaux) SUMA_RETURN(-1);
+         SUMA_RETURN(GSaux->PR->iAltSel[SUMA_ENODE_0]);
          break; }
       case GRAPH_LINK_type: {
          SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
@@ -14185,26 +14986,26 @@ int SUMA_ADO_SelectedSecondary(SUMA_ALL_DO *ado)
          if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
             SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
                         SUMA_ADO_Label(ado));
-            return(-1);
+            SUMA_RETURN(-1);
          }
-         return(SUMA_ADO_SelectedSecondary((SUMA_ALL_DO *)dset));
+         SUMA_RETURN(SUMA_ADO_SelectedSecondary((SUMA_ALL_DO *)dset));
          break; }
       case TRACT_type: {
          SUMA_LH("No secondary selections on tracts.");
-         return(-1);
+         SUMA_RETURN(-1);
          break; }
       case MASK_type: {
          SUMA_LH("No secondary selections on masks.");
-         return(-1);
+         SUMA_RETURN(-1);
          break; }
       case VO_type: {
          SUMA_LH("No secondary selections on volumes.");
-         return(-1);
+         SUMA_RETURN(-1);
          break; }
       default:
-         return(-1);
+         SUMA_RETURN(-1);
    }
-   return(-1);
+   SUMA_RETURN(-1);
 }
 
 /* Was what was selected a primitive of the DO that carries
@@ -14217,7 +15018,9 @@ SUMA_Boolean SUMA_is_ADO_Datum_Primitive(SUMA_ALL_DO *ado,
 {
    static char FuncName[]={"SUMA_is_ADO_Datum_Primitive"};
 
-   if (!ado || !codf) return(NOPE);
+   SUMA_ENTRY;
+
+   fprintf(stderr, "+++++ %s\n", FuncName);
 
    switch (ado->do_type) {
       case VO_type:
@@ -14229,7 +15032,7 @@ SUMA_Boolean SUMA_is_ADO_Datum_Primitive(SUMA_ALL_DO *ado,
       case GDSET_type:
       case GRAPH_LINK_type:
          if (codf->primitive && !strcmp(codf->primitive,"segments"))
-            return(YUP);
+            SUMA_RETURN(YUP);
          break;
       default:
          SUMA_S_Errv("Not ready to deal with type %s\n",
@@ -14237,20 +15040,23 @@ SUMA_Boolean SUMA_is_ADO_Datum_Primitive(SUMA_ALL_DO *ado,
          break;
    }
 
-   return(NOPE);
+   SUMA_RETURN(NOPE);
 }
 
 SUMA_Boolean SUMA_ADO_Set_SelectedDatum(SUMA_ALL_DO *ado, int sel,
                                         void *extra, void *extra2)
 {
    static char FuncName[]={"SUMA_ADO_Set_SelectedDatum"};
-   if (!ado) return(0);
+
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(0);
    switch(ado->do_type) {
       case SO_type: {
          SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
-         if (!SO->SurfCont) return(0);
+         if (!SO->SurfCont) SUMA_RETURN(0);
          SO->SelectedNode = sel;
-         return(1);
+         SUMA_RETURN(1);
          break; }
       case CDOM_type: {
          SUMA_CIFTI_DO *co = (SUMA_CIFTI_DO *)ado;
@@ -14266,9 +15072,9 @@ SUMA_Boolean SUMA_ADO_Set_SelectedDatum(SUMA_ALL_DO *ado, int sel,
       case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          SUMA_GRAPH_SAUX *GSaux = SDSET_GSAUX(dset);
-         if (!GSaux) return(0);
+         if (!GSaux) SUMA_RETURN(0);
          GSaux->PR->datum_index = sel;
-         return(1);
+         SUMA_RETURN(1);
          break; }
       case GRAPH_LINK_type: {
          SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
@@ -14276,9 +15082,9 @@ SUMA_Boolean SUMA_ADO_Set_SelectedDatum(SUMA_ALL_DO *ado, int sel,
          if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
             SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
                         SUMA_ADO_Label(ado));
-            return(0);
+            SUMA_RETURN(0);
          }
-         return(SUMA_ADO_Set_SelectedDatum((SUMA_ALL_DO *)dset, sel,
+         SUMA_RETURN(SUMA_ADO_Set_SelectedDatum((SUMA_ALL_DO *)dset, sel,
                                            extra, extra2));
          break; }
       case TRACT_type: {
@@ -14361,54 +15167,61 @@ SUMA_Boolean SUMA_ADO_Set_SelectedDatum(SUMA_ALL_DO *ado, int sel,
                }
             }
          }
-         return(0);
+         SUMA_RETURN(0);
          break; }
       case MASK_type: {
          SUMA_S_Warn("Not ready for mask type");
-         return(0);
+         SUMA_RETURN(0);
          break; }
       default:
-         return(0);
+         SUMA_RETURN(0);
    }
-   return(0);
+   SUMA_RETURN(0);
 }
 
 int SUMA_ADO_N_Datum(SUMA_ALL_DO *ado)
 {
-   return(SUMA_ADO_N_Datum_Lev(ado, SUMA_ELEM_DAT));
+   static char FuncName[]={"SUMA_ADO_N_Datum"};
+
+   SUMA_ENTRY;
+
+   SUMA_RETURN(SUMA_ADO_N_Datum_Lev(ado, SUMA_ELEM_DAT));
 }
 
 int SUMA_ADO_N_Datum_Lev(SUMA_ALL_DO *ado, SUMA_DATUM_LEVEL dtlvl)
 {
    static char FuncName[]={"SUMA_ADO_N_Datum_Lev"};
-   if (!ado) return(-1);
+
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(-1);
    switch(ado->do_type) {
       case SO_type: {
          SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
-         return(SO->N_Node);
+         SUMA_RETURN(SO->N_Node);
          break; }
       case VO_type: {
          SUMA_VolumeObject *VO = (SUMA_VolumeObject *)ado;
          SUMA_DSET *dset = SUMA_VE_dset(VO->VE, 0);
-         return(dset ? SDSET_NVOX(dset):-1);
+         SUMA_RETURN(dset ? SDSET_NVOX(dset):-1);
          break; }
       case MASK_type: {
          SUMA_MaskDO *MDO = (SUMA_MaskDO *)ado;
          if (MDO->SO &&
              (MDO_IS_SURF(MDO) || MDO_IS_BOX(MDO) || MDO_IS_SPH(MDO)) ) {
-            return(MDO->SO->N_Node);
+            SUMA_RETURN(MDO->SO->N_Node);
          } else if (MDO_IS_BOX(MDO)) {
-            return(MDO->N_obj*8);
+            SUMA_RETURN(MDO->N_obj*8);
          } else if (MDO_IS_SPH(MDO)) {
             SUMA_S_Err("No SO on spheres mask. Need to create your surfs");
-            return(-1);
+            SUMA_RETURN(-1);
          } else if (MDO_IS_SHADOW(MDO)){
-            return(0);
+            SUMA_RETURN(0);
          } else {
             SUMA_S_Err("Not ready for this combo type >%s<", MDO->mtype);
-            return(-1);
+            SUMA_RETURN(-1);
          }
-         return(-1);
+         SUMA_RETURN(-1);
          break; }
       case CDOM_type: {
          SUMA_CIFTI_DO *CO=(SUMA_CIFTI_DO *)ado;
@@ -14421,19 +15234,19 @@ int SUMA_ADO_N_Datum_Lev(SUMA_ALL_DO *ado, SUMA_DATUM_LEVEL dtlvl)
                for (i=0; i<CO->N_subdoms; ++i) {
                   nn += SUMA_ADO_N_Datum(SUMA_CIFTI_subdom_ado(CO,i));
                }
-               return(nn);
+               SUMA_RETURN(nn);
                break;
             default:
                SUMA_S_Err("Should not be here, not yet at least (dtlvl = %d)",
                           dtlvl);
-               return(-1);
+               SUMA_RETURN(-1);
                break;
          }
-         return(-1);
+         SUMA_RETURN(-1);
          break; }
       case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
-         return(SDSET_VECLEN(dset));
+         SUMA_RETURN(SDSET_VECLEN(dset));
          break; }
       case GRAPH_LINK_type: {
          SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
@@ -14441,9 +15254,9 @@ int SUMA_ADO_N_Datum_Lev(SUMA_ALL_DO *ado, SUMA_DATUM_LEVEL dtlvl)
          if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
             SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
                         SUMA_ADO_Label(ado));
-            return(-1);
+            SUMA_RETURN(-1);
          }
-         return(SUMA_ADO_N_Datum((SUMA_ALL_DO *)dset));
+         SUMA_RETURN(SUMA_ADO_N_Datum((SUMA_ALL_DO *)dset));
          break; }
       case TRACT_type: {
          SUMA_TractDO *tdo=(SUMA_TractDO *)ado;
@@ -14453,26 +15266,30 @@ int SUMA_ADO_N_Datum_Lev(SUMA_ALL_DO *ado, SUMA_DATUM_LEVEL dtlvl)
          switch(dtlvl) {
             default:
             case SUMA_ELEM_DAT:
-               return(tdo->N_datum);
+               SUMA_RETURN(tdo->N_datum);
                break;
             case SUMA_LEV1_DAT:
-               return(TDO_N_TRACTS(tdo));
+               SUMA_RETURN(TDO_N_TRACTS(tdo));
                break;
             case SUMA_LEV2_DAT:
-               return(TDO_N_BUNDLES(tdo));
+               SUMA_RETURN(TDO_N_BUNDLES(tdo));
                break;
          }
          break; }
       default:
-         return(-1);
+         SUMA_RETURN(-1);
    }
-   return(-1);
+   SUMA_RETURN(-1);
 }
 
 int SUMA_ADO_Max_Datum_Index(SUMA_ALL_DO *ado)
 {
-   if (!ado) return(-1);
-   return(SUMA_ADO_Max_Datum_Index_Lev(ado, SUMA_ELEM_DAT));
+   static char FuncName[]={"SUMA_ADO_Max_Datum_Index"};
+
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(-1);
+   SUMA_RETURN(SUMA_ADO_Max_Datum_Index_Lev(ado, SUMA_ELEM_DAT));
 }
 
 /*! This function needs revisiting for all objects.
@@ -14484,25 +15301,28 @@ int SUMA_ADO_Max_Datum_Index(SUMA_ALL_DO *ado)
 int SUMA_ADO_Max_Datum_Index_Lev(SUMA_ALL_DO *ado, SUMA_DATUM_LEVEL dtlvl)
 {
    static char FuncName[]={"SUMA_ADO_Max_Datum_Index_Lev"};
-   if (!ado) return(-1);
+
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(-1);
    switch(ado->do_type) {
       case SO_type: {
          SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
-         return(SO->N_Node-1);
+         SUMA_RETURN(SO->N_Node-1);
          break; }
       case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          if (SUMA_isGraphDset(dset)) {
             int mm;
             GDSET_MAX_EDGE_INDEX(dset,mm);
-            return(mm);
+            SUMA_RETURN(mm);
          } else {
-            return(SDSET_VECLEN(dset)-1);
+            SUMA_RETURN(SDSET_VECLEN(dset)-1);
          }
          break; }
       case CDOM_type: {
          SUMA_S_Err("Riddle me this");
-         return(-1);
+         SUMA_RETURN(-1);
          break; }
       case GRAPH_LINK_type: {
          SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
@@ -14510,9 +15330,9 @@ int SUMA_ADO_Max_Datum_Index_Lev(SUMA_ALL_DO *ado, SUMA_DATUM_LEVEL dtlvl)
          if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
             SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
                         SUMA_ADO_Label(ado));
-            return(-1);
+            SUMA_RETURN(-1);
          }
-         return(SUMA_ADO_Max_Datum_Index_Lev((SUMA_ALL_DO *)dset, dtlvl));
+         SUMA_RETURN(SUMA_ADO_Max_Datum_Index_Lev((SUMA_ALL_DO *)dset, dtlvl));
          break; }
       case TRACT_type: {
          SUMA_TractDO *tdo=(SUMA_TractDO *)ado;
@@ -14522,84 +15342,92 @@ int SUMA_ADO_Max_Datum_Index_Lev(SUMA_ALL_DO *ado, SUMA_DATUM_LEVEL dtlvl)
          switch(dtlvl) {
             default:
             case SUMA_ELEM_DAT:
-               return(tdo->N_datum-1);
+               SUMA_RETURN(tdo->N_datum-1);
                break;
             case SUMA_LEV1_DAT:
-               return(TDO_N_TRACTS(tdo)-1);
+               SUMA_RETURN(TDO_N_TRACTS(tdo)-1);
                break;
             case SUMA_LEV2_DAT:
-               return(TDO_N_BUNDLES(tdo)-1);
+               SUMA_RETURN(TDO_N_BUNDLES(tdo)-1);
                break;
          }
          break; }
       case VO_type: {
          SUMA_VolumeObject *VO = (SUMA_VolumeObject *)ado;
          SUMA_DSET *dset = SUMA_VE_dset(VO->VE, 0);
-         return(dset ? SDSET_NVOX(dset)-1:-1);
+         SUMA_RETURN(dset ? SDSET_NVOX(dset)-1:-1);
          }
       case MASK_type: {
          SUMA_MaskDO *MDO = (SUMA_MaskDO *)ado;
          if (MDO_IS_SURF(MDO) || MDO_IS_BOX(MDO) || MDO_IS_SPH(MDO)) {
             if (!MDO->SO) {
                SUMA_S_Err("Need my SO baby");
-               return(-1);
+               SUMA_RETURN(-1);
             }
-            return(MDO->SO->N_Node-1);
+            SUMA_RETURN(MDO->SO->N_Node-1);
          } else {
             SUMA_S_Warn("Not ready");
-            return(-1);
+            SUMA_RETURN(-1);
          }
          }
       default:
-         return(-1);
+         SUMA_RETURN(-1);
    }
-   return(-1);
-
+   SUMA_RETURN(-1);
 }
 
 
 char * SUMA_ADO_variant(SUMA_ALL_DO *ado) {
    static char FuncName[]={"SUMA_ADO_variant"};
-   if (!ado) return("");
+
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN("");
    switch(ado->do_type) {
       default: {
-         return("");
+         SUMA_RETURN("");
          break; }
       case GRAPH_LINK_type: {
          SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
          if (gldo->variant) {
-            return(gldo->variant);
+            SUMA_RETURN(gldo->variant);
          }
-         return("");
+         SUMA_RETURN("");
          break; }
    }
-   return("");
+   SUMA_RETURN("");
 }
 
 char * SUMA_ADO_Label(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_ADO_Label"};
-   if (!ado) return(NULL);
+
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NULL);
    switch(ado->do_type) {
       default: {
-         return(ado->private_Label);
+         SUMA_RETURN(ado->private_Label);
          break; }
       case GDSET_type:
       case MD_DSET_type:
       case ANY_DSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
-         return(SDSET_LABEL(dset));
+         SUMA_RETURN(SDSET_LABEL(dset));
          break; }
    }
-   return(NULL);
+   SUMA_RETURN(NULL);
 }
 
 /* Like ADO_Label, but return empty string in err */
 char *SUMA_ADO_sLabel(SUMA_ALL_DO *ado) {
    static char FuncName[]={"SUMA_ADO_sLabel"};
    char *cc = SUMA_ADO_Label(ado);
-   if (!cc) return("");
-   else return(cc);
+
+   SUMA_ENTRY;
+
+   if (!cc) SUMA_RETURN("");
+   else SUMA_RETURN(cc);
 }
 
 char * SUMA_ADO_CropLabel(SUMA_ALL_DO *ado, int len)
@@ -14609,23 +15437,25 @@ char * SUMA_ADO_CropLabel(SUMA_ALL_DO *ado, int len)
    static int icall=0;
    char *str=NULL;
 
+   SUMA_ENTRY;
+
    ++icall;
    if (icall > 9) icall = 0;
    s[icall][0]='\0';
 
-   if (!ado) { SUMA_S_Err("NULL input"); return(s[icall]); }
+   if (!ado) { SUMA_S_Err("NULL input"); SUMA_RETURN(s[icall]); }
    if (len > 127) {
       SUMA_S_Warn("Label max length is 128, will truncate");
       len = 128;
    }
 
    str = SUMA_truncate_string(SUMA_ADO_Label(ado), len);
-   if (!str) return(s[icall]);
+   if (!str) SUMA_RETURN(s[icall]);
 
    strcpy(s[icall], str);
    SUMA_ifree(str);
 
-   return(s[icall]);
+   SUMA_RETURN(s[icall]);
 }
 
 /* compare labels, NULL=NULL --> OK */
@@ -14634,14 +15464,16 @@ SUMA_Boolean SUMA_ADO_isLabel(SUMA_ALL_DO *ado, char *lbl)
    static char FuncName[]={"SUMA_ADO_isLabelSUMA_ALL_DO"};
    char *cc=NULL;
 
-   if (!ado) return(NOPE);
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NOPE);
    cc = SUMA_ADO_Label(ado);
    if (!cc) {
-      if (!lbl) return(YUP);
+      if (!lbl) SUMA_RETURN(YUP);
    } else {
-      if (!strcmp(cc, lbl)) return(YUP);
+      if (!strcmp(cc, lbl)) SUMA_RETURN(YUP);
    }
-   return(NOPE);
+   SUMA_RETURN(NOPE);
 }
 
 /* Because of the damned SUMA_DSET * object, which needs
@@ -14651,43 +15483,49 @@ instead*/
 char * SUMA_ADO_idcode(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_ADO_idcode"};
-   if (!ado) return(NULL);
+
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NULL);
    switch(ado->do_type) {
       default: {
-         return(ado->private_idcode_str);
+         SUMA_RETURN(ado->private_idcode_str);
          break; }
       case ANY_DSET_type:
       case MD_DSET_type:
       case GDSET_type: {/* The special beast */
          SUMA_DSET *dset=(SUMA_DSET *)ado;
-         return(SDSET_ID(dset));
+         SUMA_RETURN(SDSET_ID(dset));
          break; }
    }
-   return(NULL);
+   SUMA_RETURN(NULL);
 }
 
 char * SUMA_ADO_Parent_idcode(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_ADO_Parent_idcode"};
-   if (!ado) return(NULL);
+
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NULL);
    switch(ado->do_type) {
       case ANY_DSET_type:
       case MD_DSET_type:
       case GDSET_type: {/* The special beast, as a DO, it is its own parent*/
          SUMA_DSET *dset=(SUMA_DSET *)ado;
-         return(SDSET_ID(dset));
+         SUMA_RETURN(SDSET_ID(dset));
          break; }
       case GRAPH_LINK_type:
-         return(((SUMA_GraphLinkDO*)ado)->Parent_idcode_str);
+         SUMA_RETURN(((SUMA_GraphLinkDO*)ado)->Parent_idcode_str);
          break;
       case SP_type:
-         return(((SUMA_SphereDO*)ado)->Parent_idcode_str);
+         SUMA_RETURN(((SUMA_SphereDO*)ado)->Parent_idcode_str);
          break;
       case TRACT_type:
-         return(((SUMA_TractDO*)ado)->Parent_idcode_str);
+         SUMA_RETURN(((SUMA_TractDO*)ado)->Parent_idcode_str);
          break;
       case MASK_type:
-         return(((SUMA_MaskDO*)ado)->Parent_idcode_str);
+         SUMA_RETURN(((SUMA_MaskDO*)ado)->Parent_idcode_str);
          break;
       case NBLS_type:
       case NBOLS_type:
@@ -14695,34 +15533,34 @@ char * SUMA_ADO_Parent_idcode(SUMA_ALL_DO *ado)
       case ONBV_type:
       case NBSP_type:
       case NBT_type:
-         return(((SUMA_NB_DO*)ado)->Parent_idcode_str);
+         SUMA_RETURN(((SUMA_NB_DO*)ado)->Parent_idcode_str);
          break;
       case NIDO_type:
          if (((SUMA_NIDO*)ado)->ngr) {
-            return(NI_get_attribute(
+            SUMA_RETURN(NI_get_attribute(
                      ((SUMA_NIDO*)ado)->ngr, "Parent_idcode_str"));
-         } else return(NULL);
+         } else SUMA_RETURN(NULL);
          break;
       case SO_type:
-         return(((SUMA_SurfaceObject*)ado)->LocalDomainParentID);
+         SUMA_RETURN(((SUMA_SurfaceObject*)ado)->LocalDomainParentID);
          break;
       case ROIdO_type:
-         return(((SUMA_DRAWN_ROI*)ado)->Parent_idcode_str);
+         SUMA_RETURN(((SUMA_DRAWN_ROI*)ado)->Parent_idcode_str);
          break;
       case AO_type: /* those are their own parents */
       case PL_type:
       case CDOM_type:
       case VO_type:
-         return(ado->private_idcode_str);
+         SUMA_RETURN(ado->private_idcode_str);
          break;
       default: {
          SUMA_S_Errv("Not ready for parent of %s\n",
                SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
-         return(NULL);
+         SUMA_RETURN(NULL);
          break; }
 
    }
-   return(NULL);
+   SUMA_RETURN(NULL);
 }
 
 /*!
@@ -14733,25 +15571,27 @@ SUMA_X_SurfCont *SUMA_ADO_Cont(SUMA_ALL_DO *ado)
    static char FuncName[]={"SUMA_ADO_Cont"};
    SUMA_Boolean LocalHead = NOPE;
 
-   if (!ado) return(NULL);
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NULL);
    SUMA_LHv("Here with %d (%s), %s\n",
              ado->do_type, ADO_TNAME(ado), SUMA_ADO_Label(ado));
 
    switch(ado->do_type) {
       case SO_type: {
          SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
-         return(SO->SurfCont);
+         SUMA_RETURN(SO->SurfCont);
          break; }
       case CDOM_type: {
          SUMA_CIFTI_SAUX * CSaux = (SUMA_CIFTI_SAUX *)SUMA_ADO_Saux(ado);
-         if (CSaux) return(CSaux->DOCont);
-         else return(NULL);
+         if (CSaux) SUMA_RETURN(CSaux->DOCont);
+         else SUMA_RETURN(NULL);
          break; }
       case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          SUMA_GRAPH_SAUX *GSaux = SDSET_GSAUX(dset);
-         if (!GSaux) return(NULL);
-         return(GSaux->DOCont);
+         if (!GSaux) SUMA_RETURN(NULL);
+         SUMA_RETURN(GSaux->DOCont);
          break; }
       case GRAPH_LINK_type: {
          SUMA_DSET *dset=NULL;
@@ -14759,30 +15599,30 @@ SUMA_X_SurfCont *SUMA_ADO_Cont(SUMA_ALL_DO *ado)
             the controller pointer */
          if (!(dset = SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ado))) {
             SUMA_S_Err("No graph dset for GLDO???");
-            return(NULL);
+            SUMA_RETURN(NULL);
          }
-         return(SUMA_ADO_Cont((SUMA_ALL_DO *)dset));
+         SUMA_RETURN(SUMA_ADO_Cont((SUMA_ALL_DO *)dset));
          break; }
       case TRACT_type: {
          SUMA_TRACT_SAUX * TSaux = (SUMA_TRACT_SAUX *)SUMA_ADO_Saux(ado);
-         if (TSaux) return(TSaux->DOCont);
-         else return(NULL);
+         if (TSaux) SUMA_RETURN(TSaux->DOCont);
+         else SUMA_RETURN(NULL);
          break; }
       case MASK_type: {
          SUMA_MASK_SAUX * MSaux = (SUMA_MASK_SAUX *)SUMA_ADO_Saux(ado);
-         if (MSaux) return(MSaux->DOCont);
-         else return(NULL);
+         if (MSaux) SUMA_RETURN(MSaux->DOCont);
+         else SUMA_RETURN(NULL);
          break; }
       case VO_type: {
          SUMA_VOL_SAUX * VSaux = (SUMA_VOL_SAUX *)SUMA_ADO_Saux(ado);
          SUMA_LH("Have %p", VSaux);
-         if (VSaux) return(VSaux->DOCont);
-         else return(NULL);
+         if (VSaux) SUMA_RETURN(VSaux->DOCont);
+         else SUMA_RETURN(NULL);
          break; }
       default:
-         return(NULL);
+         SUMA_RETURN(NULL);
    }
-   return(NULL);
+   SUMA_RETURN(NULL);
 }
 
 SUMA_Boolean SUMA_ADO_ShowCurForeOnly(SUMA_ALL_DO *ado)
@@ -14790,27 +15630,35 @@ SUMA_Boolean SUMA_ADO_ShowCurForeOnly(SUMA_ALL_DO *ado)
    static char FuncName[]={"SUMA_ADO_ShowCurForeOnly"};
    SUMA_X_SurfCont *sc=NULL;
 
-   if (!ado || !(sc = SUMA_ADO_Cont(ado))) return(NOPE);
+   SUMA_ENTRY;
 
-   return(sc->ShowCurForeOnly);
+   if (!ado || !(sc = SUMA_ADO_Cont(ado))) SUMA_RETURN(NOPE);
+
+   SUMA_RETURN(sc->ShowCurForeOnly);
 }
 
 SUMA_ALL_DO *SUMA_Cont_ADO(SUMA_X_SurfCont *SurfCont)
 {
    static char FuncName[]={"SUMA_Cont_ADO"};
-   if (!SurfCont) return(NULL);
-   return(SUMA_SurfCont_GetcurDOp(SurfCont));
+
+   SUMA_ENTRY;
+
+   if (!SurfCont) SUMA_RETURN(NULL);
+   SUMA_RETURN(SUMA_SurfCont_GetcurDOp(SurfCont));
 }
 
 SUMA_SurfaceObject *SUMA_Cont_SO(SUMA_X_SurfCont *SurfCont)
 {
    static char FuncName[]={"SUMA_Cont_SO"};
    SUMA_ALL_DO *ado=NULL;
-   if (!SurfCont) return(NULL);
+
+   SUMA_ENTRY;
+
+   if (!SurfCont) SUMA_RETURN(NULL);
    ado = SUMA_SurfCont_GetcurDOp(SurfCont);
    if (ado->do_type == SO_type)
-      return((SUMA_SurfaceObject *)ado);
-   return(NULL);
+      SUMA_RETURN((SUMA_SurfaceObject *)ado);
+   SUMA_RETURN(NULL);
 }
 
 /*!
@@ -14826,33 +15674,42 @@ SUMA_SurfaceObject *SUMA_Cont_SO(SUMA_X_SurfCont *SurfCont)
 SUMA_Boolean SUMA_isCurColPlane(SUMA_OVERLAYS *cp, SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_isCurColPlane"};
-   if (!cp || !ado) return(NOPE);
-   if (cp == SUMA_ADO_CurColPlane(ado)) return(YUP);
-   return(NOPE);
+
+   SUMA_ENTRY;
+
+   if (!cp || !ado) SUMA_RETURN(NOPE);
+   if (cp == SUMA_ADO_CurColPlane(ado)) SUMA_RETURN(YUP);
+   SUMA_RETURN(NOPE);
 }
 
 SUMA_Boolean SUMA_isTopColPlane(SUMA_OVERLAYS *cp, SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_isTopColPlane"};
+
+   SUMA_ENTRY;
+
    SUMA_X_SurfCont *SurfCont=NULL;
-   if (!SUMAg_CF->X->UseSameSurfCont) return(SUMA_isCurColPlane(cp, ado));
+   if (!SUMAg_CF->X->UseSameSurfCont) SUMA_RETURN(SUMA_isCurColPlane(cp, ado));
    else if (SUMA_isCurColPlane(cp, ado) && (SurfCont = SUMA_ADO_Cont(ado))) {
       /* OK, so that plane is current in some fashion,
       is it the top page of the uber controller ? */
-      return(SUMA_isCurrentContPage(SUMAg_CF->X->SC_Notebook, SurfCont->Page));
+      SUMA_RETURN(SUMA_isCurrentContPage(SUMAg_CF->X->SC_Notebook, SurfCont->Page));
    }
-   return(NOPE);
+   SUMA_RETURN(NOPE);
 }
 
 /* Used to be MACRO  SUMA_SURFCONT_CREATED */
 SUMA_Boolean SUMA_isADO_Cont_Created(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_isADO_Cont_Created"};
+
+   SUMA_ENTRY;
+
    SUMA_X_SurfCont *SurfCont=NULL;
 
-   if ((SurfCont = SUMA_ADO_Cont(ado)) && SurfCont->TLS ) return(1);
+   if ((SurfCont = SUMA_ADO_Cont(ado)) && SurfCont->TLS ) SUMA_RETURN(1);
 
-   return(0);
+   SUMA_RETURN(0);
 }
 
 /* Used to be MACRO  SUMA_SURFCONT_REALIZED */
@@ -14862,9 +15719,9 @@ SUMA_Boolean SUMA_isADO_Cont_Realized(SUMA_ALL_DO *ado)
    SUMA_X_SurfCont *SurfCont=NULL;
 
    if ((SurfCont = SUMA_ADO_Cont(ado)) && SurfCont->TLS
-       && XtIsRealized(SurfCont->TLS)) return(1);
+       && XtIsRealized(SurfCont->TLS)) SUMA_RETURN(1);
 
-   return(0);
+   SUMA_RETURN(0);
 }
 
 #define NVALS_XYZ_NODE 3
@@ -15034,7 +15891,6 @@ SUMA_Boolean SUMA_VO_PointXYZ_eng(SUMA_VolumeObject *vo, int point,
    SUMA_DSET *dset=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
-
    SUMA_ENTRY;
 
 
@@ -15109,7 +15965,6 @@ SUMA_Boolean SUMA_MDO_PointXYZ_eng(SUMA_MaskDO *mo, int point,
    float I[3];
    int *dims;
    SUMA_Boolean LocalHead = NOPE;
-
 
    SUMA_ENTRY;
 
@@ -15220,7 +16075,7 @@ float *SUMA_GDSET_XYZ_Range(SUMA_DSET *dset,  char *variant, float *here)
    } else if (!strcmp(variant,"GMATRIX")) {
       /* This would be the range of the FrameSO */
       SUMA_SurfaceObject *SO = SUMA_GDSET_FrameSO(dset);
-      if (SO) {
+      if (SO && SO->SurfCont) {
          SUMA_LHv("%f -- %f, %f -- %f, %f -- %f\n",
                   SO->MinDims[0], SO->MaxDims[0],
                   SO->MinDims[1], SO->MaxDims[1],
@@ -15585,7 +16440,7 @@ float *SUMA_ADO_DatumXYZ(SUMA_ALL_DO *ado, int isel, char *variant)
          SUMA_S_Err("Not ready: 1- find domain from index.\n"
                     "           2- find index on domain\n"
                     "           3- return XYZ\n");
-         return(NULL);
+         SUMA_RETURN(NULL);
          break;
          }
       case GDSET_type: {
@@ -15593,7 +16448,7 @@ float *SUMA_ADO_DatumXYZ(SUMA_ALL_DO *ado, int isel, char *variant)
          if (!variant) {
             SUMA_S_Err("No XYZ without variant on dsets");
          } else {
-            return(SUMA_GDSET_EdgeXYZ(dset, isel, variant,
+            SUMA_RETURN(SUMA_GDSET_EdgeXYZ(dset, isel, variant,
                                       (float *)(&fv[icall])));
          }
          break; }
@@ -15606,7 +16461,7 @@ float *SUMA_ADO_DatumXYZ(SUMA_ALL_DO *ado, int isel, char *variant)
             SUMA_RETURN(fv[icall]);
          }
          if (!variant) variant = SUMA_ADO_variant(ado);
-         return(SUMA_GDSET_EdgeXYZ(dset, isel, variant, (float *)(&fv[icall])));
+         SUMA_RETURN(SUMA_GDSET_EdgeXYZ(dset, isel, variant, (float *)(&fv[icall])));
          break; }
       default:
          /* no coords */
@@ -15621,17 +16476,19 @@ char *SUMA_ADO_LDP(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_ADO_LDP"};
 
-   if (!ado) return(NULL);
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NULL);
    switch (ado->do_type) {
       case SO_type: {
          SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
-         return(SO->LocalDomainParentID);
+         SUMA_RETURN(SO->LocalDomainParentID);
          break; }
       case ANY_DSET_type:
       case MD_DSET_type:
       case GDSET_type: {
          SUMA_DSET *dset = (SUMA_DSET *)ado;
-         return(SDSET_ID(dset)); /* itself */
+         SUMA_RETURN(SDSET_ID(dset)); /* itself */
          break; }
       case GRAPH_LINK_type: {
          SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
@@ -15639,141 +16496,160 @@ char *SUMA_ADO_LDP(SUMA_ALL_DO *ado)
          if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
             SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
                         SUMA_ADO_Label(ado));
-            return(NULL);
+            SUMA_RETURN(NULL);
          }
-         return(SUMA_ADO_LDP((SUMA_ALL_DO *)dset));
+         SUMA_RETURN(SUMA_ADO_LDP((SUMA_ALL_DO *)dset));
          break; }
       case CDOM_type: {
          SUMA_S_Warn("Not sure if this will apply yet.");
-         return(NULL);
+         SUMA_RETURN(NULL);
          break; }
       default:
-         return(NULL);
+         SUMA_RETURN(NULL);
    }
-   return(NULL);
+   SUMA_RETURN(NULL);
 }
 
 SUMA_CIFTI_SAUX *SUMA_ADO_CSaux(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_ADO_CSaux"};
 
-   if (!ado) return(NULL);
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NULL);
    switch (ado->do_type) {
       case CDOM_type:
-         return((SUMA_CIFTI_SAUX *)SUMA_ADO_Saux(ado));
+         SUMA_RETURN((SUMA_CIFTI_SAUX *)SUMA_ADO_Saux(ado));
          break;
       default:
-         return(NULL);
+         SUMA_RETURN(NULL);
    }
-   return(NULL);
+   SUMA_RETURN(NULL);
 }
 
 SUMA_GRAPH_SAUX *SUMA_ADO_GSaux(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_ADO_GSaux"};
 
-   if (!ado) return(NULL);
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NULL);
    switch (ado->do_type) {
       case GDSET_type:
       case GRAPH_LINK_type:
-         return((SUMA_GRAPH_SAUX *)SUMA_ADO_Saux(ado));
+         SUMA_RETURN((SUMA_GRAPH_SAUX *)SUMA_ADO_Saux(ado));
          break;
       default:
-         return(NULL);
+         SUMA_RETURN(NULL);
    }
-   return(NULL);
+   SUMA_RETURN(NULL);
 }
 
 SUMA_TRACT_SAUX *SUMA_ADO_TSaux(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_ADO_TSaux"};
 
-   if (!ado) return(NULL);
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NULL);
    switch (ado->do_type) {
       case TRACT_type:
-         return((SUMA_TRACT_SAUX *)SUMA_ADO_Saux(ado));
+         SUMA_RETURN((SUMA_TRACT_SAUX *)SUMA_ADO_Saux(ado));
          break;
       default:
-         return(NULL);
+         SUMA_RETURN(NULL);
    }
-   return(NULL);
+   SUMA_RETURN(NULL);
 }
 
 SUMA_MASK_SAUX *SUMA_ADO_MSaux(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_ADO_MSaux"};
 
-   if (!ado) return(NULL);
+   SUMA_ENTRY;
+
+   fprintf(stderr, "+++++ %s\n", FuncName);
+
+   if (!ado) SUMA_RETURN(NULL);
    switch (ado->do_type) {
       case MASK_type:
-         return((SUMA_MASK_SAUX *)SUMA_ADO_Saux(ado));
+         SUMA_RETURN((SUMA_MASK_SAUX *)SUMA_ADO_Saux(ado));
          break;
       default:
-         return(NULL);
+         SUMA_RETURN(NULL);
    }
-   return(NULL);
+   SUMA_RETURN(NULL);
 }
 
 SUMA_SURF_SAUX *SUMA_ADO_SSaux(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_SURF_SAUX"};
 
-   if (!ado) return(NULL);
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NULL);
    switch (ado->do_type) {
       case SO_type:
-         return((SUMA_SURF_SAUX *)SUMA_ADO_Saux(ado));
+         SUMA_RETURN((SUMA_SURF_SAUX *)SUMA_ADO_Saux(ado));
          break;
       default:
-         return(NULL);
+         SUMA_RETURN(NULL);
    }
-   return(NULL);
+   SUMA_RETURN(NULL);
 }
 
 SUMA_VOL_SAUX *SUMA_ADO_VSaux(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_ADO_VSaux"};
 
-   if (!ado) return(NULL);
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NULL);
    switch (ado->do_type) {
       case VO_type:
-         return((SUMA_VOL_SAUX *)SUMA_ADO_Saux(ado));
+         SUMA_RETURN((SUMA_VOL_SAUX *)SUMA_ADO_Saux(ado));
          break;
       default:
-         return(NULL);
+         SUMA_RETURN(NULL);
    }
-   return(NULL);
+   SUMA_RETURN(NULL);
 }
 
 void *SUMA_ADO_Saux(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_ADO_Saux"};
 
-   if (!ado) return(NULL);
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NULL);
+   fprintf(stderr, "%s: ado->do_type = %d\n", FuncName, ado->do_type);
    switch (ado->do_type) {
       case SO_type:
-         return((void *)SDO_SSAUX((SUMA_SurfaceObject *)ado));
+         SUMA_RETURN((void *)SDO_SSAUX((SUMA_SurfaceObject *)ado));
          break;
       case CDOM_type:
-         return((void *)CDO_CSAUX((SUMA_CIFTI_DO *)ado));
+         SUMA_RETURN((void *)CDO_CSAUX((SUMA_CIFTI_DO *)ado));
          break;
       case GDSET_type:
-         return((void *)SDSET_GSAUX((SUMA_DSET *)ado));
+         SUMA_RETURN((void *)SDSET_GSAUX((SUMA_DSET *)ado));
          break;
       case GRAPH_LINK_type: {
          SUMA_DSET *dset = SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ado);
-         return((void *)SUMA_ADO_Saux((SUMA_ALL_DO *)dset));
+         SUMA_RETURN((void *)SUMA_ADO_Saux((SUMA_ALL_DO *)dset));
          break; }
       case TRACT_type: {
-         return((void *)TDO_TSAUX((SUMA_TractDO *)ado));
+         SUMA_RETURN((void *)TDO_TSAUX((SUMA_TractDO *)ado));
          break; }
       case MASK_type: {
-         return((void *)MDO_MSAUX((SUMA_MaskDO *)ado));
+         SUMA_RETURN((void *)MDO_MSAUX((SUMA_MaskDO *)ado));
          break; }
       case VO_type: {
-         return((void *)VDO_VSAUX((SUMA_VolumeObject *)ado));
+            SUMA_VolumeObject *vo = (SUMA_VolumeObject *)ado; 
+            SUMA_VOL_SAUX *vo1 = (SUMA_VOL_SAUX *)vo; 
+            SUMA_RETURN((void *)VDO_VSAUX((SUMA_VolumeObject *)ado));
          break; }
       default:
-         return(NULL);
+         SUMA_RETURN(NULL);
    }
    return(NULL);
 }
@@ -15782,10 +16658,12 @@ SUMA_DSET *SUMA_ADO_Dset(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_ADO_Dset"};
 
-   if (!ado) return(NULL);
+   SUMA_ENTRY;
+
+   if (!ado) SUMA_RETURN(NULL);
    switch (ado->do_type) {
       case SO_type:
-         return(NULL);
+         SUMA_RETURN(NULL);
          break;
       case CDOM_type:
          SUMA_S_Note("Decide what should be done here. A CDOM is created from a "
@@ -15793,18 +16671,18 @@ SUMA_DSET *SUMA_ADO_Dset(SUMA_ALL_DO *ado)
                      "is envisioned that multiple CIFTI datasets can share the "
                      "same CIFTI domain so then which dset to return in that "
                      "instance. For now, let us return NULL");
-         return(NULL);
+         SUMA_RETURN(NULL);
          break;
       case ANY_DSET_type:
       case MD_DSET_type:
       case GDSET_type:
-         return((SUMA_DSET *)ado);
+         SUMA_RETURN((SUMA_DSET *)ado);
          break;
       case GRAPH_LINK_type: {
-         return(SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ado));
+         SUMA_RETURN(SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ado));
          break; }
       default:
-         return(NULL);
+         SUMA_RETURN(NULL);
    }
    return(NULL);
 }
@@ -15818,6 +16696,8 @@ int SUMA_Anatomical_DOs(SUMA_DO *dov, int N_dov, int *rdov)
    SUMA_ALL_DO *ado=NULL;
    int ii, N=0;
 
+   SUMA_ENTRY;
+
    if (!dov) {
       dov = SUMAg_DOv;
       N_dov = SUMAg_N_DOv;
@@ -15830,6 +16710,5 @@ int SUMA_Anatomical_DOs(SUMA_DO *dov, int N_dov, int *rdov)
       }
    }
 
-   return(N);
-
+   SUMA_RETURN(N);
 }
