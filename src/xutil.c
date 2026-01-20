@@ -59,7 +59,7 @@ void MCW_expose_widget( Widget w )
 #ifdef MACOS_FORCE_EXPOSE
 
 void forceExpose(Widget w, int depth) {
-   static int cc = 0;   /* count occurances */
+   static int cc = 0;   /* count occurrences */
 
    /* know whether this ever happens on a system */
    if( cc == 0 ) { fprintf(stderr,"== have forceExpose()\n"); cc++; }
