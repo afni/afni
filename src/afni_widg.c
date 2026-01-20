@@ -399,12 +399,12 @@ STATUS("creating top_form") ;
    /* handler for change of top_form shape [Dec 2025] */
 
    if( needsX11Redraw() ){
-     XtInsertEventHandler( vwid->top_form ,         /* handle events in top_form */
-                           StructureNotifyMask ,    /* resizes (Configure events) */
-                           FALSE ,                  /* nonmaskable events? */
-                           AFNI_vwidtopform_EV ,    /* handler */
-                           (XtPointer) im3d ,       /* client data */
-                           XtListTail               /* last in queue */
+     XtInsertEventHandler( vwid->top_form ,      /* handle events in top_form */
+                           StructureNotifyMask , /* resize/Configure events */
+                           FALSE ,               /* nonmaskable events? */
+                           AFNI_vwidtopform_EV , /* handler */
+                           (XtPointer) im3d ,    /* client data */
+                           XtListTail            /* last in queue */
                          ) ;
    }
 
@@ -8166,7 +8166,8 @@ ENTRY("AFNI_vwidtopform_EV") ;
         if( abs(hnew-hold) > 9 ){
           FIX_TOPFORM_HEIGHT(im3d) ;
         } else {
-          forceExpose( im3d->vwid->top_form , 0 ) ;
+          if( needsX11Redraw() )
+             forceExpose( im3d->vwid->top_form , 0 ) ;
         }
         XSync( XtDisplay(im3d->vwid->top_form) , False) ;
      }

@@ -103,7 +103,10 @@ extern MRI_IMAGE * FD_brick_to_series( int , FD_brick * br ) ;
 #endif
 
 /*------------------------------------------------------------------*/
+#ifdef MACOS_FORCE_EXPOSE
 #define REDRAW_PIXMAP /* force copy of pixmap every time */
+#endif
+
 #define DRAW_TARGET    grapher->fd_pxWind
 /*------------------------------------------------------------------*/
 

@@ -54,9 +54,7 @@ void machdep()
        EDIT_set_index_prefix(*eee) ;
    }
 
-#ifdef DARWIN
    (void) needsX11Redraw() ;  /* Dec 2025 */
-#endif
 
    AFNI_do_nothing() ; /* 02 Oct 2012 */
    return ;
@@ -97,19 +95,35 @@ static int isMacTahoe(void)
 
 #endif
 
+/* do the X11 windows need to be redrawn upon resize?
+ *
+ * see https://github.com/afni/afni/pull/857
+ */
 int needsX11Redraw(void)
 {
+   static int firstcall=1;    /* is this the first time in the function? */
+   static int needsit=0;      /* is X11Redraw needed? */
 #ifdef MACOS_FORCE_EXPOSE
-   static int firstcall=1;
-   if( firstcall ) {
-      fprintf(stderr, "++ have MACOS_FORCE_EXPOSE: needsX11Redraw = %d\n",
-                      isMacTahoe());
-      firstcall = 0;
-   }
+   static int have_FE=1;      /* is the MACOS_FORCE_EXPOSE flag set? */
+#else
+   static int have_FE=2;      /* is the MACOS_FORCE_EXPOSE flag set? */
 #endif
 
-   /* currently, the only reason */
-   return isMacTahoe();
+   if( firstcall == 0 ) return needsit;   /* we have already decided */
+
+   /* not the first time, so figure things out */
+
+   /* set this only once */
+   needsit = isMacTahoe();
+   firstcall = 0;
+
+   /* only if DARWIN, say what's up */
+#ifdef DARWIN
+   fprintf(stderr, "++ MACOS_FORCE_EXPOSE = %d, needsX11Redraw = %d\n",
+                   have_FE, needsit);
+#endif
+
+   return needsit;
 }
 
 

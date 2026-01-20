@@ -207,12 +207,15 @@ extern char AFNI_abohelp[1024] ;
       extern void RESET_sonnet(void) ; /* prototype */
 #   endif  /* MAIN */
 
-#   define RESET_AFNI_QUIT(iqqq) \
-     { AFNI_quit_CB(NULL,(XtPointer)(iqqq),NULL) ; RESET_sonnet() ; EXPOSEME((iqqq)->vwid->top_form,0); }
+#   define RESET_AFNI_QUIT(iqqq)                                     \
+     { AFNI_quit_CB(NULL,(XtPointer)(iqqq),NULL) ; RESET_sonnet() ;  \
+       if(needsX11Redraw()) { EXPOSEME((iqqq)->vwid->top_form,0); } }
 
 #else  /* don't USE_SONNETS */
 
-#   define RESET_AFNI_QUIT(iqqq){ AFNI_quit_CB(NULL,(XtPointer)(iqqq),NULL); EXPOSEME((iqqq)->vwid->top_form,0); }
+#   define RESET_AFNI_QUIT(iqqq)                                     \
+     { AFNI_quit_CB(NULL,(XtPointer)(iqqq),NULL) ;                   \
+       if(needsX11Redraw()) { EXPOSEME((iqqq)->vwid->top_form,0); } }
 
 #endif /* USE_SONNETS */
 /*------------------------------------------------------------------*/
