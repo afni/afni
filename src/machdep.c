@@ -54,9 +54,80 @@ void machdep()
        EDIT_set_index_prefix(*eee) ;
    }
 
+   (void) needsX11Redraw() ;  /* Dec 2025 */
+
    AFNI_do_nothing() ; /* 02 Oct 2012 */
    return ;
 }
+
+/*--------------------------------------------------------------------*/
+/* Check if running MacOS Tahoe [Dec 2025] */
+/*--------------------------------------------------------------------*/
+
+static int MacTahoe = 0 ;      /* set once and for all below */
+
+#ifndef DARWIN
+
+int isMacTahoe(void){ return 0 ; } /* that was easy */
+
+#else
+
+static int isMacTahoe(void)
+{
+  static int firstcall=1;
+  char version[128];
+  FILE *fp ;
+
+  if( firstcall == 0 ) return MacTahoe ;  /* we know already */
+
+  firstcall = 0; MacTahoe = 0;
+
+  fp = popen("sw_vers -productVersion", "r");
+  if( !fp ) return MacTahoe ;
+
+ /* Check if version starts with "26." */
+
+ if( fgets(version, sizeof(version), fp) != NULL ){
+   MacTahoe = ( strncmp(version, "26.", 3) == 0 );
+ }
+ pclose(fp); return MacTahoe;
+}
+
+#endif
+
+/* do the X11 windows need to be redrawn upon resize?
+ *
+ * Redraw on resize if DARWIN and MACOS_FORCE_EXPOSE and macos 26.
+ *
+ * see https://github.com/afni/afni/pull/857
+ */
+int needsX11Redraw(void)
+{
+   static int firstcall=1;    /* is this the first time in the function? */
+   static int needsit=0;      /* is X11Redraw needed? */
+#ifdef MACOS_FORCE_EXPOSE
+   static int have_FE=1;      /* is the MACOS_FORCE_EXPOSE flag set? */
+#else
+   static int have_FE=0;      /* is the MACOS_FORCE_EXPOSE flag set? */
+#endif
+
+   if( firstcall == 0 ) return needsit;   /* we have already decided */
+
+   /* not the first time, so figure things out */
+
+   /* set this only once */
+   needsit = isMacTahoe();
+   firstcall = 0;
+
+   /* only if DARWIN, say what's up */
+#ifdef DARWIN
+   fprintf(stderr, "++ MACOS_FORCE_EXPOSE = %d, needsX11Redraw = %d\n",
+                   have_FE, needsit);
+#endif
+
+   return needsit;
+}
+
 
 /*-------------------------------------------------------------------*/
 

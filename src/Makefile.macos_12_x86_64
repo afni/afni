@@ -29,8 +29,8 @@ XLIBS = -lXm -ljpeg -lXt
 
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE \
-         -DDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
+CEXTRA = -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE           \
+         -DDONT_USE_MCW_MALLOC $(LESSTIF_DEFS) -DMACOS_FORCE_EXPOSE
 
 # allow an alternate compiler or just gcc version to be used
 LOCAL_CC_PATH ?= /usr/local/bin/gcc-13
