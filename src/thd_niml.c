@@ -2112,7 +2112,8 @@ char * unescape_unix_str(const char * ustr)
     newstr = (char *)malloc(len+1);
 
     for( c = 0, nind = 0; c < len; c++, nind++ ) {
-        if( ustr[c] == '\\' ) {
+        /* limit c+1: not necessary, but to appease linters */
+        if( ustr[c] == '\\' && c+1 < len) {
             switch(ustr[c+1]) {
                 case 'n':
                     newstr[nind] = '\n';

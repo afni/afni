@@ -1917,7 +1917,11 @@ class SysInfo:
       # too many quotes for UTIL.exec_tcsh_command...
       cmd = """Rscript -e "packageVersion('%s')" """ % package
       st, so, se = BASE.shell_exec2(cmd, capture=1)
-      sl = so[0].split()
+      # if no R pkgs are installed, can get empty list, so prevent error
+      if len(so) :
+         sl = so[0].split()
+      else:
+         return ''
       # if we have the expected 2 args, strip of outer chars, the quotes
       if len(sl) == 2:
          vstr = sl[1][1:-1]

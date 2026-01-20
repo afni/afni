@@ -109,90 +109,251 @@ Usage ~1~
 
 Notes ~1~
 
-Obliquity in general ~2~
+What is obliquity (and cardinality)? ~2~
 
-+ Some involve changing header information, without regridding (and
-  therefore interpolating and smoothing) the data itself but
-  effectively changing the coordinate locations of data.  
+When we acquire data in an MRI scanner, we define a field of view
+(FOV) box within which we get the data.  That box takes the form of a
+3D grid of voxels of a given size, each one a little tiny cube where
+information is stored (either a single value or a time series).  There
+is one particularly special corner of the FOV called the "dataset
+origin", which is where we start mapping data from on the disk.  The 3
+FOV edge lines that emanate from that corner define the major or
+primary axes of the FOV; these are referred to as "i-, j-, k-" axes if
+we are counting voxels along an edge, or "x-, y-, z-" axes if we are
+counting in physical units like mm along the edge.
 
-+ Others involve applying the obliquity to the data, thereby
-  regridding/smoothing the data, but preserving the locations of the 
-  data in the original scanner coordinates.  
+The scanner also has major axes.  Its z-axis is defined as the one
+that is along the scanner bore.  Then, there is an xy-plane
+perpendicular to that, where the x-axis is the same one that a person
+lying flat on their back in the scanner would use; and the y-axis is
+perpendicular to that, namely from the floor upwards through the
+scanner (from the perspective of a person lying on their back,
+effectively from the back of their head through their nose).
 
-Each can have its own use cases.
+The definitions of obliquity and cardinality refer to whether the
+major axes of these two FOV systems match up (that is, the z-axis of
+each is parallel, the y-axis of each is parallel, etc.; this is
+independent of consideration of coordinate origins), or not.
 
-Why do we recommend removing anatomical dataset's obliquity like this? ~2~
+**Cardinal** coordinates are those in which the 3 major FOV axes match
+those of the scanner (they are also sometimes called 'plumb').
+'Cardinality' describes being in such a situation.
+
+**Oblique** coordinates are those in which there is a relative
+rotation between 1 or more of the major FOV axes; since it is hard to
+move the scanner, typically that means that the FOV box was rotated
+during acquisition.  'Obliquity' describes being in such a situation.
+
+
+Why does obliquity matter? ~2~
+
+What does it matter whether the data's coordinates are oblique or not?
+
+Well, the presence of obliquity forces a choice when displaying the
+data volumetrically, since the GUI defines its own rectangular FOV,
+and *that* typically can't be rotated.
+
+* For cardinal data, life is easy because the GUI FOV's major axes
+  just match the dataset FOV axes naturally, and therefore clicking on
+  a coordinate and navigating 'upwards' through a slice is consistent
+  with scanner-based coordinates and directionality.  
+
+* For oblique data, life is challenging because the dataset FOV should
+  really be tilted to navigate in scanner-based coords, but the GUI 
+  FOV window(s) typically can't do this. So, they have to make a choice:
+
+  + Use the dataset 'as is' and ignore the obliquity, and treat the
+    local data FOV as the 'real' one, in term of coordinate locations
+    and moving around in slices; this does nothing to change any data
+    values, it's just that the coordinate values are only relative
+    within the data FOV and don't reflect the exact scanner
+    coordinates.  When there are multiple datasets involved, with
+    different grids and obliquity, then this can present a challenge
+    for really seeing the actual overlaps of the datasets in 'real'
+    scanner coordinates.
+
+  + Make a new dataset by applying the obliquity rotation, which
+    necessarily means regridding the data and slightly blurring it via
+    interpolation; this changes the values shown in the GUI and
+    smooths it, but the location of places will accurately reflect
+    scanner coordinates. When there are multiple datasets involved in
+    this scenario, since each of them has their obliquity applied, the
+    data of each is shown in scanner coordinates and the overlap their
+    should be represented in the same way here (though both dsets are
+    interpolated).
+
+Note that in surface renderings or non-slice-based viewers, the above
+issues are less of a major consideration, because the visualization
+FOV tends to not be locked to a grid with its own major axes in the
+same way.
+
+Different software deal with obliquity in different ways, choosing
+different sides of the above tradeoff (namely, data not interpolated,
+but the coordinates are local and not scanner coords; vs coordinates
+are global/scanner coords, but the data values are
+interpolated/smoothed).  The AFNI GUI chooses to not interpolate
+(which has particular benefits when using the Graph Viewer to view
+time series).  During processing, AFNI programs will tend to ignore
+obliquity, in order to avoid interpolation.  Some other software tools
+immediately apply obliquity at the start of processing, so that the
+data become slightly blurred, but again, the coordinates are
+consistent with those of the scanner. 
+
+
+What is "deobliquing"---and better terminology for it? ~2~
+
+The term "deoblique" is generally used to mean doing something to the
+dataset so that there isn't a separate obliquity rotation between the
+data and the original scanner coordinates to have to navigate.
+
+*However*, there are different ways deobliquing can be done, with very
+different consequences and trade-offs in each case; different
+programs/software perform that action differently; and the term is
+vague, not distinguishing the various methods.  Even within AFNI,
+3dWarp and 3drefit each have a '-deoblique' option, but it does *very*
+different things in each case.  Hence we try to avoid that term here,
+to improve clarity henceforth.
+
+Here are a couple of the main methods of deobliquing, which we label
+with a preferred, more specific term:
+
++ **purge** obliquity: remove the obliquity (=extra rotation)
+  information from the dataset header, without regridding (and
+  therefore interpolating and smoothing) the data itself, being aware
+  that this will effectively changing the coordinate locations of
+  data.
+  This is what '3drefit -deoblique ...' does (but we discuss better
+  ways of navigating this kind of procedure below).
+
++ **apply** obliquity: use the obliquity (=extra rotation) and create
+  a new dataset whose voxels and data locations are in original
+  locations defined by the scanner coordinates, so there is no longer
+  any extra rotation information in the header; this will necessarily
+  require interpolating/regridding the data, which is a
+  smoothing/blurring procedure.
+  This is what '3dWarp -deoblique ...' does (and we use this on
+  occasion to check/verify procedures).
+
+Each approach can have its own use cases.  The present
+obliquity_remover.py program purges obliquity from a primary input
+dataset.  It does so in a way to preserve the input data's coordinate
+origin.  It also outputs the value of the excised/purged obliquity
+transform, so that it can still be used later, if needed.  And quite
+usefully, it allows users to pass that removed obliquity (which again,
+is a relative rotation of coordinates) to other datasets, so that
+relative overlap can still be maintained, at a time when it is
+convenient and appropriate.
+
+
+Why purge obliquity (esp. with obliquity_remover.py specifically)? ~2~
 
 It is generally convenient for the anatomical dataset to have its
 obliquity removed in the way this program does it.
 
-+ First, after removing obliquity like this, the anatomical should
-  overlap better with any reference template dataset (since it will
-  "sit more squarely" within the FOV).
-
-+ Second, different software deal with obliquity differently (e.g.,
++ Different software deal with obliquity differently (e.g.,
   ignoring or applying it), and so when integrating different tools
   (like FS, SUMA and AFNI), this can be minorly annoying.  
 
-+ Third, *applying* obliquity leads to resampling and interpolation,
-  and hence blurring of the anatomical dataset. So, *purging* it
-  before processing can remove an unnecessary
-  resampling/interpolation/blur procedure.
++ *Purging* obliquity before processing (or pre-processing) can remove
+  an unnecessary resampling/interpolation/blur procedure during
+  processing itself.  In contrast, *applying* obliquity leads to
+  resampling and interpolation, and hence blurring of the anatomical
+  dataset.
 
-+ Fourth, transferring the anatomical's removed obliquity to the child
-  datasets (like, EPI or other volumes acquired in the same session)
-  will help preserve the relative angle of overlap.  While in many
-  cases AFNI alignment programs can overcome a fair bit of relative
-  rotation, some cases are more extreme (looking at you, slab EPI
-  datasets!) and so really benefit from maintaining original
++ When one has many different types of datasets in a given session
+  (like anatomical and EPI/phase/blip dsets), it is convenient to
+  retain relative overlap.  This program not only purges obliquity
+  from one dataset, but it can append that rotation to other relevant
+  datasets in that session, to preserve overlap and relative locations.
+
+  While in many cases AFNI alignment programs can overcome a fair bit
+  of relative rotation, some cases are more extreme (looking at you,
+  slab EPI datasets!) and so really benefit from maintaining original
   overlap. Also, the stability of all alignment procedures (AFNI's or
   other tools') benefits from closer starting overlap of datasets, and
   who needs to add more uncertainty into data processing?
+
+
+When should I remove obliquity from the *T1w/anatomical* dataset? ~2~
+
+We would recommend removing obliquity from the *anatomical* dataset in
+the following cases (which is the majority, in FMRI and MRI):
+
++ When processing anatomical data in isolation (i.e., for its own sake,
+  not just as a supplementary dataset for FMRI studies);
+
++ When processing FMRI data, and using either the participant's
+  anatomical or a reference template dataset for the final space. NB:
+  these are the majority of FMRI processing cases. 
+
+All the benefits of purging obliquity from the prior subsection apply.
+
+Additionally, after removing obliquity like this, the anatomical
+should overlap better with any reference template dataset (since it
+will "sit more squarely" within the FOV).
+
+In this case, the inset for obliquity_remover.py would be the
+anatomical data, and the child dsets would be accompanying FMRI,
+phase, or blip up/down datasets.
+
+
+When should I remove obliquity from the *EPI/functional* dataset? ~2~
+
+We would recommend removing obliquity from the *EPI* dataset in the
+following cases:
+
++ When processing FMRI data, and using the EPI dataset itself for the
+  final space, particularly in high-resolution functional studies.
+
+In this case, the inset for obliquity_remover.py would be the EPI
+data, and the child dset would be the anatomical.
 
 
 ------------------------------------------------------------------------
 
 Examples ~1~
 
- 1) Remove obliquity from a dset:
+ 1) Remove obliquity from a dset (making it cardinal):
 
     obliquity_remover.py                                                  \\
-        -inset            sub-017_T1w.nii.gz                              \\
-        -prefix           sub-017_T1w_DEOB.nii.gz
+        -inset           sub-017_T1w.nii.gz                               \\
+        -prefix          sub-017_T1w_CARD.nii.gz
 
  2) Remove obliquity from a dset, and pass it along to its associated 
-    EPI datasets:
+    EPI datasets; those EPI datasets might already have obliquity (in which
+    case they just end up with a new obliquity/rotational value), or not (in 
+    which case they go from being cardinal to oblique):
 
     obliquity_remover.py                                                  \\
-        -inset            anat/sub-017_T1w.nii.gz                         \\
-        -prefix           anat/sub-017_T1w_DEOB.nii.gz                    \\
-        -child_dsets      func/sub-017_task-rest_run-01_bold.nii.gz       \\
-                          func/sub-017_task-rest_run-02_bold.nii.gz       \\
-                          func/sub-017_task-rest_run-03_bold.nii.gz       \\
-        -child_prefixes   func/sub-017_task-rest_run-01_bold_DEOB.nii.gz  \\
-                          func/sub-017_task-rest_run-02_bold_DEOB.nii.gz  \\
-                          func/sub-017_task-rest_run-03_bold_DEOB.nii.gz
+        -inset           anat/sub-017_T1w.nii.gz                          \\
+        -prefix          anat/sub-017_T1w_CARD.nii.gz                     \\
+        -child_dsets     func/sub-017_task-rest_run-01_bold.nii.gz        \\
+                         func/sub-017_task-rest_run-02_bold.nii.gz        \\
+                         func/sub-017_task-rest_run-03_bold.nii.gz        \\
+        -child_prefixes  func/sub-017_task-rest_run-01_bold_NEWOBL.nii.gz \\
+                         func/sub-017_task-rest_run-02_bold_NEWOBL.nii.gz \\
+                         func/sub-017_task-rest_run-03_bold_NEWOBL.nii.gz
 
  3) Same as #2, but with a succinct method of adding a suffix to each child:
            
     obliquity_remover.py                                                  \\
-        -inset            anat/sub-017_T1w.nii.gz                         \\
-        -prefix           anat/sub-017_T1w_DEOB.nii.gz                    \\
-        -child_dsets      func/sub-017_task-rest_run-01_bold.nii.gz       \\
-                          func/sub-017_task-rest_run-02_bold.nii.gz       \\
-                          func/sub-017_task-rest_run-03_bold.nii.gz       \\
-        -child_suffix      _DEOB
+        -inset           anat/sub-017_T1w.nii.gz                          \\
+        -prefix          anat/sub-017_T1w_CARD.nii.gz                     \\
+        -child_dsets     func/sub-017_task-rest_run-01_bold.nii.gz        \\
+                         func/sub-017_task-rest_run-02_bold.nii.gz        \\
+                         func/sub-017_task-rest_run-03_bold.nii.gz        \\
+        -child_suffix    _NEWOBL
 
  4) Same as #3, but putting each output child into a new dir:
 
     obliquity_remover.py                                                  \\
-        -inset            anat/sub-017_T1w.nii.gz                         \\
-        -prefix           anat/sub-017_T1w_DEOB.nii.gz                    \\
-        -child_dsets      func/sub-017_task-rest_run-01_bold.nii.gz       \\
-                          func/sub-017_task-rest_run-02_bold.nii.gz       \\
-                          func/sub-017_task-rest_run-03_bold.nii.gz       \\
-        -child_suffix     _DEOB                                           \\
-        -child_outdir     func_deob
+        -inset           anat/sub-017_T1w.nii.gz                          \\
+        -prefix          anat/sub-017_T1w_CARD.nii.gz                     \\
+        -child_dsets     func/sub-017_task-rest_run-01_bold.nii.gz        \\
+                         func/sub-017_task-rest_run-02_bold.nii.gz        \\
+                         func/sub-017_task-rest_run-03_bold.nii.gz        \\
+        -child_suffix    _NEWOBL                                          \\
+        -child_outdir    func_newobl
 
  5) Same as #4, but renaming in the outputs in a particular way: all
     output datasets have the same filenames but different paths. This
@@ -213,6 +374,7 @@ g_history = """
 
   0.1   Sep 25, 2025 :: started this command line interface 
   1.01  Dec 08, 2025 :: fully functional first version, with first fixes
+  1.02  Jan 05, 2025 :: fix library name bug; update help naming
 """
 
 g_ver     = g_history.split("\n")[-2].split("::")[0].strip()

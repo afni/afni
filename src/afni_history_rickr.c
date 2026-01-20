@@ -53,6 +53,48 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Jan, 2026, RCR, "install_bootcamp_data.tcsh", MICRO, TYPE_BUG_FIX,
+   "handle -install_root as absolute path",
+   "Thanks to P Taylor for noting this."
+ } ,
+
+ { 13, Jan, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "create enorm time series even if no volreg or censoring",
+   "This is needed for APQC generation, so do it regardless.\n"
+   "Thanks to Lauren_L on MB for the reminder."
+ } ,
+
+ {  9, Jan, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "add -show_xmat_warnings after -show_cormat_warnings",
+   "Warn about all-zero regressors or those with small maximum magnitudes."
+ } ,
+
+ {  9, Jan, 2026, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "if -prog_list given, have -build_source default to 'official'",
+   NULL
+ } ,
+
+ {  8, Jan, 2026, RCR, "install_bootcamp_data.tcsh", MAJOR, TYPE_NEW_PROG,
+   "new program to install the AFNI bootcamp data",
+   "Download and install all packages in the checksum file."
+ } ,
+
+ {  7, Jan, 2026, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_xmat_warnings",
+   "Warn on all-zero regressors or ones with small magnitudes."
+ } ,
+
+ { 16, Dec, 2025, RCR, "3dresample", MICRO, TYPE_MODIFY,
+   "allow resampling to stay on current voxel grid, as much as possible",
+   "Add -bound_type CENT/CENT_ORIG, add -up/downsample, -delta_scale.\n"
+   "Done for PT."
+ } ,
+
+ { 15, Dec, 2025, RCR, "3dcalc", MICRO, TYPE_MODIFY,
+   "quiet some warnings",
+   "If expr is 0 (or maybe 1), do not warn about all zeros or unused var."
+ } ,
+
  {  5, Dec, 2025, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "warn if the 'phia' R library has version 0.3.1",
    NULL
@@ -267,6 +309,12 @@ afni_history_struct rickr_history[] = {
  { 16, May, 2025, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "add help for forgotten m_tedana_OC_tedort/OC_m_tedort combine methods",
    NULL
+ } ,
+
+ { 15, May, 2025, RCR, "suma", MAJOR, TYPE_MODIFY,
+   "rewrite Alpha transparency thresholding to follow suma design",
+   "These updates went into a new PR and do not show me as the owner.\n"
+   "See PR #794."
  } ,
 
  { 25, Apr, 2025, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
@@ -1400,12 +1448,12 @@ afni_history_struct rickr_history[] = {
    "If IM, warn if the user did not specify the timing type.\n"
    "Thanks to M Hoptman for letting us know of the problem."
  } ,
- 
+
  {  8, Feb, 2023, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "give error message when image writing fails on missing external program",
    "Warn on missing programs cjpeg and pnmtopng"
  } ,
- 
+
  {  7, Feb, 2023, RCR, "@RetinoProc", MICRO, TYPE_MODIFY,
    "as with afni_proc.py, get SurfSmooth parms from smrec file",
    NULL
@@ -2016,86 +2064,86 @@ afni_history_struct rickr_history[] = {
    "commit pull request and further clarify -nan help",
    "Thanks to L Anderson for the pull request."
  } ,
- 
+
  { 19, Dec, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "misc updates for circleCI build based on xcode 12.4.0",
    "Remove thd_incorrelate.o from cmake libmri, etc."
  } ,
- 
+
  { 19, Dec, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add -show_distmat",
    "Display nrows x nrows matrix of distances between all vector row pairs.\n"
    "Option added for jkblujus (AFNI MB)."
  } ,
- 
+
  {  9, Dec, 2021, RCR, "3dinfo", MINOR, TYPE_MODIFY,
    "further restrict -same_center",
    "Change def limit from 0.1*sum_vox_diags to 0.001*ave_vox_diag."
  } ,
- 
+
  {  9, Dec, 2021, RCR, "3dmaskdump", MINOR, TYPE_BUG_FIX,
    "balls were not verified to be entirely within dset bounds",
    "Thanks to aclyn11 (AFNI MB) for noting the problem."
  } ,
- 
+
  {  3, Dec, 2021, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add -combine_method m_tedana_tedort",
    "Now have MEICA group tedana methods:\n"
    "    m_tedana, m_tedana_OC, m_tedana_tedort"
  } ,
- 
+
  { 26, Nov, 2021, RCR, "3dGrayplot", MICRO, TYPE_BUG_FIX,
    "cs_pv.c: xt no longer malloc'd",
    NULL
  } ,
- 
+
  { 24, Nov, 2021, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "put space_to_NIFTI_code() into libmri",
    "To satisfy the evil designs of afni_proc.py."
  } ,
- 
+
  { 24, Nov, 2021, RCR, "3dmaskdump", MINOR, TYPE_BUG_FIX,
    "make boxes tight; scale radius to voxel counts",
    "Tighten boxes and balls to not include unrequested voxels.\n"
    "Scaling the radius allows for sub-mm voxels."
  } ,
- 
+
  { 21, Nov, 2021, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add updates for current tedana; add -help_tedana_files",
    NULL
  } ,
- 
+
  { 17, Nov, 2021, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "handle uninit and if block in debugtrace.c, suma_datasets.c",
    NULL
  } ,
- 
+
  { 15, Nov, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "pull THD_nifti_process_afni_ext() out of thd_niftiread.c:THD_open_nifti()",
    "This should have no effect.\n"
    "It is preparation for testing the AFNI extension in NIFTI against dset."
  } ,
- 
+
  {  8, Nov, 2021, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
    "add -milestones, to show interesting milestones for the program",
    NULL
  } ,
- 
+
  {  8, Nov, 2021, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
    "add -milestones",
    NULL
  } ,
- 
+
  {  7, Nov, 2021, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -regress_opts_fwhmx (for adding options to 3dFWHMx)",
    "Added on the authority of S Torrisi."
  } ,
- 
+
  { 29, Oct, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "on mac, check for standard R not in PATH",
    NULL
  } ,
- 
+
  { 28, Oct, 2021, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
    "remove 2-run polort 0 cormat IDENTICAL automatic warnings",
    "Done for P Taylor, as they were getting flagged in APQC."
@@ -2714,7 +2762,7 @@ afni_history_struct rickr_history[] = {
  {  1, Jun, 2020, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add -show_regs and -show_regs_style",
    "Show column indices or labels of an xmat.1D file with empty (all-zero)\n"
-   "regressors.  An index list can be space or comma-separeated, or encoded.\n" 
+   "regressors.  An index list can be space or comma-separeated, or encoded.\n"
    "Example 30 shows typical use cases.\n"
    "Added for S Haller."
  } ,
@@ -3458,7 +3506,7 @@ afni_history_struct rickr_history[] = {
 
  { 17, Jul, 2019, RCR, "NIFTI", MINOR, TYPE_BUG_FIX,
    "another fix for 32-64 bit NIFTI update for older xorg7 systems",
-   "In thd_niftiread.c, cast nim->nz as int for EDIT_dset_items().\n" 
+   "In thd_niftiread.c, cast nim->nz as int for EDIT_dset_items().\n"
    "Newer C libraries seem to handle the possibility of 8 bits better,\n"
    "but we are reading as 4.  Thanks again to R Birn."
  } ,
@@ -3472,7 +3520,7 @@ afni_history_struct rickr_history[] = {
 
  {  5, Jul, 2019, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "(useless) switch to 3dTcorr1D for dot product",
-   "Drops 2 commands down to 1 for computing corr_* volumes." 
+   "Drops 2 commands down to 1 for computing corr_* volumes."
  } ,
 
  {  3, Jul, 2019, RCR, "3dvolreg", MICRO, TYPE_BUG_FIX,
@@ -10041,7 +10089,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 20, JUL, 2010, RCR, "xmat_tool.py", MICRO, TYPE_MODIFY,
-   "made small improvement out text formatting for cormat and cosmat", 
+   "made small improvement out text formatting for cormat and cosmat",
    NULL
  } ,
 
@@ -10052,7 +10100,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 19, JUL, 2010, RCR, "@DriveAfni", MICRO, TYPE_NEW_OPT,
-   "added -help", 
+   "added -help",
    NULL
  } ,
 
@@ -12180,12 +12228,12 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 27, FEB, 2008, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
-   "fixed -regress_use_stim_files typo (was -regress_use_stim_times)", 
+   "fixed -regress_use_stim_files typo (was -regress_use_stim_times)",
    NULL
  } ,
 
  { 26, FEB, 2008, RCR, "afni_history", MICRO, TYPE_GENERAL,
-   "checked in initial afni_history files", 
+   "checked in initial afni_history files",
    NULL
  } ,
 
@@ -12248,7 +12296,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  20, DEC, 2006, RCR, "afni_proc.py", SUPER, TYPE_NEW_PROG,
-   "program to write complete single subject FMRI processing script", 
+   "program to write complete single subject FMRI processing script",
    NULL
  } ,
 
@@ -12258,7 +12306,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  22, OCT, 2006, RCR, "model_demri_3", MAJOR, TYPE_NEW_PROG,
-   "NLfim model for Dynamic Enhanced MRI", 
+   "NLfim model for Dynamic Enhanced MRI",
    NULL
  } ,
 
