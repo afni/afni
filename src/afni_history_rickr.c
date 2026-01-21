@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Jan, 2026, RCR, "afni", MICRO, TYPE_MODIFY,
+   "have AFNI_IMAGE_DATASETS default to NO",
+   "Set it to YES to see jpg files in a directory (env var or .afnirc).\n"
+   "   e.g. afni -DAFNI_IMAGE_DATASETS=Y ~/abin\n"
+   "Note that such files can be seen when directly passed on the command line."
+ } ,
+
  { 21, Jan, 2026, RCR, "afni", MINOR, TYPE_MODIFY,
    "can specify whether to redraw, even on non-macos26",
    "Have new options -x_needsX11Redraw() : do we redraw on resize?\n"
