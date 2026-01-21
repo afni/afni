@@ -69,6 +69,7 @@ int have_MACOS_FORCE_EXPOSE(void)
  * Override: redraw based on AFNI_DO_X11_REDRAW (Y/N).
  *
  * see https://github.com/afni/afni/pull/857
+ * see https://github.com/afni/afni/pull/872
  *----------------------------------------------------------------------*/
 int needsX11Redraw(void)
 {
