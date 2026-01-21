@@ -53,6 +53,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Jan, 2026, RCR, "afni", MICRO, TYPE_MODIFY,
+   "can specify whether to redraw, even on non-macos26",
+   "Have new options -x_needsX11Redraw() : do we redraw on resize?\n"
+   "                 -x_have_MACOS_FORCE_EXPOSE : is the compile flag set?\n"
+   "Use Y/N env var AFNI_DO_X11_REDRAW to force redrawing.  Else, default\n"
+   "is still based on macos 26 and compile flag."
+ } ,
+
  { 20, Jan, 2026, RCR, "afni", MAJOR, TYPE_BUG_FIX,
    "on macos 26, fully redraw any resized windows",
    "The major updates were from RW Cox.\n"
