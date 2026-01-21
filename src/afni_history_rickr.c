@@ -53,7 +53,7 @@
 
 afni_history_struct rickr_history[] = {
 
- { 21, Jan, 2026, RCR, "afni", MICRO, TYPE_MODIFY,
+ { 21, Jan, 2026, RCR, "afni", MINOR, TYPE_MODIFY,
    "can specify whether to redraw, even on non-macos26",
    "Have new options -x_needsX11Redraw() : do we redraw on resize?\n"
    "                 -x_have_MACOS_FORCE_EXPOSE : is the compile flag set?\n"
