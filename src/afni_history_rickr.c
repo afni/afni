@@ -53,11 +53,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Jan, 2026, RCR, "afni", MINOR, TYPE_MODIFY,
+   "can specify whether to redraw, even on non-macos26",
+   "Have new options -x_needsX11Redraw() : do we redraw on resize?\n"
+   "                 -x_have_MACOS_FORCE_EXPOSE : is the compile flag set?\n"
+   "Use Y/N env var AFNI_DO_X11_REDRAW to force redrawing.  Else, default\n"
+   "is still based on macos 26 and compile flag."
+ } ,
+
  { 20, Jan, 2026, RCR, "afni", MAJOR, TYPE_BUG_FIX,
    "on macos 26, fully redraw any resized windows",
    "The major updates were from RW Cox.\n"
-   "If using macos 26, have top-level windows call XClearArea() and XSync(),\n"
-   "and recursively do so on all children.\n"
+   "If using macos 26, resize events will have top-level windows call\n"
+   "XClearArea() and XSync(), and recursively on all children.\n"
    "RW Cox rewrote AFNI graphs to continue drawing into fd_pxWind, but to\n"
    "then copy this into the windows, rather than just having it as the\n"
    "background.\n"

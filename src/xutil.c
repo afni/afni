@@ -50,16 +50,65 @@ void MCW_expose_widget( Widget w )
 }
 
 /*------------------------------------------------------------------------*/
+/* add an interface to check needsX11Redraw and MACOS_FORCE_EXPOSE
+   - just for X11 interfaces, so put in libmrix [21 Jan 2026 rickr]
+--------------------------------------------------------------------------*/
+int have_MACOS_FORCE_EXPOSE(void)
+{
+#ifdef MACOS_FORCE_EXPOSE
+   return 1;
+#else
+   return 0;
+#endif
+}
+
+/*----------------------------------------------------------------------
+ * do we need or want the X11 windows to be redrawn upon resize?
+ *
+ * Redraw on resize if MACOS_FORCE_EXPOSE and macos 26.
+ * Override: redraw based on AFNI_DO_X11_REDRAW (Y/N).
+ *
+ * see https://github.com/afni/afni/pull/857
+ * see https://github.com/afni/afni/pull/872
+ *----------------------------------------------------------------------*/
+int needsX11Redraw(void)
+{
+   static int needsit=-1;      /* is X11Redraw needed? start as unknown */
+   char       *eptr;
+
+   if( needsit >= 0 ) return needsit;   /* we have already decided */
+
+   /* unknown, so set it this one time, default from compile flag */
+   needsit = have_MACOS_FORCE_EXPOSE() && isMacTahoe();
+
+   /* allow evil user to forcefully override the default */
+   eptr = my_getenv("AFNI_DO_X11_REDRAW");
+   if( eptr ) {
+      if( (*eptr == 'y') || (*eptr == 'Y') )
+         needsit = 1;
+      else if( (*eptr == 'n') || (*eptr == 'N') )
+         needsit = 0;
+      else
+         fprintf(stderr,"** invalid AFNI_DO_X11_REDRAW %s (should be yes/no)\n",
+                        eptr);
+   }
+
+   return needsit;
+}
+
+
+/*------------------------------------------------------------------------*/
 /* The following 2 functions are to force Expose events down an
    entire hierarchy of Widgets [Dec 2025]
 --------------------------------------------------------------------------*/
 
 /* drg/rcr - to redraw after resize */
-/* only do these if requested at compile time */
-#ifdef MACOS_FORCE_EXPOSE
 
 void forceExpose(Widget w, int depth) {
-   static int cc = 0;   /* count occurrences */
+   static int cc=0;     /* count occurrences */
+
+   /* if we don't need/want to do this, return */
+   if( ! needsX11Redraw() ) return;
 
    /* know whether this ever happens on a system */
    if( cc == 0 ) { fprintf(stderr,"== have forceExpose()\n"); cc++; }
@@ -71,7 +120,7 @@ void forceExpose(Widget w, int depth) {
    if(!XtIsWidget(w)){ fprintf(stderr,"** bail on non-widget\n");   return; }
    cc++;
 #else
-   if( !w || !XtIsRealized(w) || !XtIsWidget(w) ) return ;
+  if( !w || !XtIsRealized(w) || !XtIsWidget(w) ) return ;
 #endif
 
    /* redraw */
@@ -99,6 +148,9 @@ void sendExpose( Widget w , int depth )
 {
   XExposeEvent expose_event ;
   int wout , hout ;
+
+   /* if we don't need/want to do this, return */
+   if( ! needsX11Redraw() ) return;
 
 #if 0
   if(!w) { fprintf(stderr,"** Bail on NULL\n");   return; }
@@ -138,11 +190,6 @@ void sendExpose( Widget w , int depth )
 
 }
 
-#else /* MACOS_FORCE_EXPOSE */
-/* not requested, do nothing */
-void forceExpose(Widget w, int depth) { return ; }
-void sendExpose(Widget w , int depth) { return ; }
-#endif /* MACOS_FORCE_EXPOSE */
 
 /*--------------------------------------------------------------------
   Get the Colormap for a widget -- 01 Sep 1998

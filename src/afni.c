@@ -2382,6 +2382,21 @@ int main( int argc , char *argv[] )
       show_ports_list(); dienow++ ;
    }
 
+   /*----- -x_* redraw options [21 Jan 2026 rickr] -----*/
+   if( check_string("-x_have_MACOS_FORCE_EXPOSE", argc, argv) ) {
+      fprintf(stderr, "MACOS_FORCE_EXPOSE = %d\n", have_MACOS_FORCE_EXPOSE());
+      dienow++;
+   }
+
+   if( check_string("-x_needsX11Redraw", argc, argv) ) {
+      /* result depends on an env var, be sure they have been processed */
+      machdep();
+      AFNI_prefilter_args( &argc , &argv );
+      fprintf(stderr, "needsX11Redraw = %d\n", needsX11Redraw());
+      dienow++;
+   }
+
+
    /*** if ordered, die right now ***/
 
    if( dienow ) exit(0) ;  /* farewell, cruel world */
