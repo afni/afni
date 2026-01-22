@@ -106,6 +106,7 @@ int needsX11Redraw(void)
 
 void forceExpose(Widget w, int depth) {
    static int cc=0;     /* count occurrences */
+   int    i;            /* kid count */
 
    /* if we don't need/want to do this, return */
    if( ! needsX11Redraw() ) return;
@@ -132,7 +133,7 @@ void forceExpose(Widget w, int depth) {
       WidgetList kids;
       Cardinal nkids;
       XtVaGetValues(w, XmNchildren, &kids, XmNnumChildren, &nkids, NULL);
-      for (int i = 0; i < nkids; ++i)
+      for (i = 0; i < nkids; ++i)
          forceExpose(kids[i], depth+1);
    }
 
@@ -148,6 +149,7 @@ void sendExpose( Widget w , int depth )
 {
   XExposeEvent expose_event ;
   int wout , hout ;
+  int i;
 
    /* if we don't need/want to do this, return */
    if( ! needsX11Redraw() ) return;
@@ -184,7 +186,7 @@ void sendExpose( Widget w , int depth )
     WidgetList kids;
     Cardinal nkids;
     XtVaGetValues(w, XmNchildren, &kids, XmNnumChildren, &nkids, NULL);
-    for (int i = 0; i < nkids; ++i)
+    for (i = 0; i < nkids; ++i)
       sendExpose(kids[i],depth+1);
   }
 

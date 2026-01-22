@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Jan, 2026, RCR, "afni", MICRO, TYPE_BUG_FIX,
+   "lose the C99 variable declaration, add new options to afni -help",
+   NULL
+ } ,
+
  { 21, Jan, 2026, RCR, "afni", MICRO, TYPE_MODIFY,
    "have AFNI_IMAGE_DATASETS default to NO",
    "Set it to YES to see jpg files in a directory (env var or .afnirc).\n"
