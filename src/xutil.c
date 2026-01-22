@@ -88,6 +88,8 @@ int needsX11Redraw(void)
          needsit = 1;
       else if( (*eptr == 'n') || (*eptr == 'N') )
          needsit = 0;
+      else if( !strcmp(eptr, "REMANAGE") )
+         needsit = 4;
       else
          fprintf(stderr,"** invalid AFNI_DO_X11_REDRAW %s (should be yes/no)\n",
                         eptr);
@@ -104,11 +106,43 @@ int needsX11Redraw(void)
 
 /* drg/rcr - to redraw after resize */
 
-void forceExpose(Widget w, int depth) {
+
+
+void remanage_widget(Widget w)
+{
+   /* if we don't need/want to do this, return */
+
+   if( !w || !XtIsRealized(w) || !XtIsWidget(w) ) {
+      fprintf(stderr,"** remanage_widget, bad things, man\n");
+      return;
+   }
+   fprintf(stderr,"== remanage_widget...\n");
+
+   XtUnmanageChild(w);
+   XtManageChild(w);
+
+   return;
+}
+
+
+void forceExpose(Widget w, int method)
+{
    static int cc=0;     /* count occurrences */
 
    /* if we don't need/want to do this, return */
    if( ! needsX11Redraw() ) return;
+
+   /* method == 0 comes from main afni/suma GUI and image windows
+    * method == 1 comes from afni graph windows
+    *
+    * so for now, don't use remanage method on graph windows
+    */
+   if( method == 0 ) {
+      if( needsX11Redraw() == 4 ) {
+         remanage_widget(w);
+         return;
+      }
+   }
 
    /* know whether this ever happens on a system */
    if( cc == 0 ) { fprintf(stderr,"== have forceExpose()\n"); cc++; }
@@ -133,7 +167,7 @@ void forceExpose(Widget w, int depth) {
       Cardinal nkids;
       XtVaGetValues(w, XmNchildren, &kids, XmNnumChildren, &nkids, NULL);
       for (int i = 0; i < nkids; ++i)
-         forceExpose(kids[i], depth+1);
+         forceExpose(kids[i], method);
    }
 
    return ;
