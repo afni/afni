@@ -1533,14 +1533,19 @@ class SysInfo:
       self.check_home_afni_files()
 
       print(UTIL.section_divider('shell startup files', maxlen=40, hchar='-'))
+
       # start with a minimum list, then append for current and login shells
       # (is bash needed?)
-      shell_list = ['tcsh']
-
+      shell_list = []
       if self.cur_shell not in shell_list:
          shell_list.append(self.cur_shell)
       if self.login_shell not in shell_list:
          shell_list.append(self.login_shell)
+
+      # be sure there is something to check
+      if len(shell_list) == 0 :
+         shell_list.append('tcsh')
+
       cmd = 'init_user_dotfiles.py -test -shell_list %s' % ' '.join(shell_list)
       # if we do not need flat_namespace, prevent IUD.py from checking it
       if not self.need_flat:
