@@ -2442,16 +2442,48 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    static int BoxOutlineThresh = 0;
+   SUMA_SurfaceObject *SOC=NULL, *SO = NULL;
+   SUMA_OVERLAYS *over2 = NULL, *colpC=NULL;
 
    SUMA_ENTRY;
 
    ado = (SUMA_ALL_DO *)data;
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
             || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   SO = (SUMA_SurfaceObject *)ado;
 
-   BoxOutlineThresh = !BoxOutlineThresh;
+   // Get box outline threshold status from checkbox
+   BoxOutlineThresh = XmToggleButtonGetState(w);    
    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+/*      
+   // Process for current hemisphere
+   if (!applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE)){
+        fprintf(stderr, "%s: ERROR applying threshold contours to current hemisphere\n", 
+            FuncName);
+        SUMA_RETURNe;
+   }
+*/
+      
+   // Process for contralateral hemisphere
+   over2 = SUMA_ADO_CurColPlane(ado);
+   over2 = SUMA_ADO_CurColPlane(ado);
+   colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
+   if (colpC && SOC){
+       SOC->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+       XmToggleButtonSetState( SOC->SurfCont->BoxOutlineThresh_tb, 
+            SOC->SurfCont->BoxOutlineThresh, NOPE); // Set B checkbox to reflect box state
+   }
+//   } else SUMA_S_Warn("No surface overlay.\n"
+//                  "Contralateral hemisphere cannot be found\n");
+
+   // over2 = SUMA_ADO_CurColPlane(ado);
+//   if (!SO || !over2){
+//    fprintf(stderr, "ERROR %s: NULL point to surface and/or colormap\n", 
+//        FuncName);
+//    SUMA_RETURNe;
+//   }
+
+   // Process contralateral hemisphere
 
    // Refresh display
    SUMA_Remixedisplay(ado);
