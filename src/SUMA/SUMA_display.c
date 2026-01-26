@@ -4561,6 +4561,20 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       SUMA_SV_InitDrawAreaOffset(SUMAg_SVv+ic);
 
       SUMA_LH("Done with new window setup");
+
+      if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+        XtInsertEventHandler( Gmainw,  /* handle events in form */
+                              StructureNotifyMask, /* resize Configure events */
+                              FALSE,               /* nonmaskable events? */
+                              SUMA_expose_EV,      /* handler */
+                              (XtPointer)Gmainw,   /* client data - not used */
+                              XtListTail           /* last in queue */
+                            ) ;
+
+        if( g_needs_x11_redraw_verb )
+          printf("++ add event handler for resize of OpenGL surface window\n");
+      }
+
    } else {    /* widget already set up, just undo whatever
                   was done in SUMA_ButtClose_pushed */
 
@@ -6623,9 +6637,28 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
 {
    static char FuncName[]={"SUMA_OpenCloseSurfaceCont"};
    SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead=NOPE;
 
    SUMA_ENTRY;
+   
+   /* Surface controller */
+   SurfCont=SUMA_ADO_Cont(ado);
+   
+   /* Surface overlay */
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   
+   /* We do not want this block as the contour outlines are supposed to remain
+   on, until actively turned off for the dataset, even if the dataset is changed */
+   /* If surface controller has been created and B checkbox checked,
+      turn B check-box off (and turn threshold outlines off *//*
+   if (SurfCont){
+        curColPlane->BoxOutlineThresh = NOPE;
+        if (SurfCont->BoxOutlineThresh_tb) 
+            XmToggleButtonSetState( SurfCont->BoxOutlineThresh_tb, 
+                curColPlane->BoxOutlineThresh, YUP);
+   }
+   */
 
    if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
 
@@ -6655,7 +6688,6 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    }
    SUMA_LH("Initializing ColPaneShell");
    SUMA_InitializeColPlaneShell(ado, SUMA_ADO_CurColPlane(ado));
-
 
    /* Now close it quick. Maybe should put a delayed closing for nicer effect */
    if (!SUMAg_CF->X->UseSameSurfCont) { /* Don't minimize when using one surfcont
@@ -6854,7 +6886,6 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
 
    SUMA_ENTRY;
 
-
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_RETURN(0);
    }
@@ -6926,7 +6957,8 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
    if (SurfCont->PosRef != sv->X->TOPLEVEL) {
       SurfCont->PosRef = sv->X->TOPLEVEL;
       if (!SUMAg_CF->X->UseSameSurfCont ||
-          SUMA_NotebookLastPageNumber(SUMAg_CF->X->SC_Notebook) == 1) {
+          ((SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook &&
+          SUMA_NotebookLastPageNumber(SUMAg_CF->X->SC_Notebook) == 1))) {
          /* Only reposition if not using same surf cont, or if
          using same surf cont but have only 1 page in it */
          SUMA_PositionWindowRelative ( SurfCont->TLS,
@@ -7483,6 +7515,19 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
       XtManageChild (QuitFrame);
    }
 
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     XtInsertEventHandler( sv->X->ViewCont->Mainform ,
+                           StructureNotifyMask , /* resize Configure events */
+                           FALSE ,               /* nonmaskable events? */
+                           SUMA_mainform_EV ,    /* handler */
+                           (XtPointer) sv->X ,   /* client data */
+                           XtListTail            /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("++ add event handler for resizing of Main form\n");
+   }
+
    XtManageChild (rc_right);
    XtManageChild (rc_left);
    XtManageChild (rc_mamma);
@@ -7500,6 +7545,242 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
    XtRealizeWidget (sv->X->ViewCont->TopLevelShell);
 
    SUMA_RETURNe;
+}
+
+/*-------------------------------------------------------------------------*/
+/* what to do when the mainform of the SUMA window is resized [Dec 2025] */
+/*-------------------------------------------------------------------------*/
+
+/* simple version - just expose widget directly */
+void SUMA_expose_EV( Widget w , XtPointer cd ,
+                     XEvent *ev , RwcBoolean *continue_to_dispatch )
+{
+   static int busy=0 ;
+
+ENTRY("SUMA_expose_EV") ;
+
+   if( busy ) EXRETURN ;
+
+   busy = 1 ;
+
+   switch( ev->type ){
+
+     case ConfigureNotify:{
+        forceExpose( w , 0 ) ;
+
+        if( g_needs_x11_redraw_verb )
+           printf("++ add ConfigureNotify handler for object controller\n");
+     }
+     break ;
+
+     /** No other event types (at this time) */
+   }
+
+   busy = 0 ;
+   EXRETURN ;
+}
+
+
+/* expose widget with remanage/expose and enforce height - 
+ * consuming extra events */
+void SUMA_surfcont_expose_EV( Widget w , XtPointer cd ,
+                              XEvent *event , RwcBoolean *continue_to_dispatch )
+{
+   static int busy=0, hold=-1, hnew=-1 ;
+   XEvent ev;
+   XConfigureEvent last = event->xconfigure;
+   int iter=0;
+ENTRY("SUMA_surfcont_expose_EV") ;
+
+   if( g_needs_x11_redraw_verb )
+      printf("-- SUMA_surfcont_expose_EV\n");
+
+   if( busy ) EXRETURN ;
+
+   busy = 1 ;
+
+   /* try dpeterc's trick for flushing / waiting for ConfigureNotify events */ 
+   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w), ConfigureNotify,
+                                 &ev)){
+      if( g_needs_x11_redraw_verb )
+         printf("waiting for events to clear - iteration %d\n", iter);
+
+      last = ev.xconfigure;
+      NI_sleep(10);
+      iter++;
+   }
+
+   switch( event->type ){
+     /* fall through the MapNotify and UnmapNotify cases
+      * to force resize for testing */
+ 
+     case ConfigureNotify:{
+        /* try to force height to first detected height */
+        if (hold < 0) {
+           MCW_widget_geom( w , NULL,&hold,NULL,NULL ) ;  \
+           if( g_needs_x11_redraw_verb )
+               printf("-- SC: first hold height is %d\n",hold);
+        }
+        else {
+           MCW_widget_geom( w , NULL,&hnew,NULL,NULL ) ;  \
+
+            XtVaSetValues( w ,                         \
+                           XmNheight, hold ,NULL);
+
+            if( g_needs_x11_redraw_verb )
+               printf("-- SC: new height %d, reset to old %d\n",hnew,hold);
+        }
+
+        if( g_needs_x11_redraw_verb )
+           printf("-- ConfigureNotify event for resizing object controller2\n");
+
+        forceExpose( w , 0 ) ;
+     }
+     break ;
+ 
+     case MapNotify:{
+        if( g_needs_x11_redraw_verb ) printf("-- C2 evt: MapNotify\n");
+        break;
+     }
+     case UnmapNotify:{
+        if( g_needs_x11_redraw_verb ) printf("-- C2 evt: UnmapNotify\n");
+        break;
+     }
+
+     case CirculateNotify:{
+        if( g_needs_x11_redraw_verb ) printf("-- C2 evt: CirculateNotify\n");
+        break;
+     }
+     case DestroyNotify:{
+        if( g_needs_x11_redraw_verb ) printf("-- C2 evt: DestroyNotify\n");
+        break;
+     }
+     case GravityNotify:{
+        if( g_needs_x11_redraw_verb ) printf("-- C2 evt: GravityNotify\n");
+        break;
+     }
+     case ReparentNotify:{
+        if( g_needs_x11_redraw_verb ) printf("-- C2 evt: ReparentNotify\n");
+        break;
+     }
+
+     /** No other event types (at this time) */
+     default:
+        if( g_needs_x11_redraw_verb ) printf("-- C2 evt: other\n");
+   }
+
+   busy = 0 ;
+   EXRETURN ;
+}
+
+/* simple version - just expose widget directly */
+void SUMA_file_expose_EV( Widget w , XtPointer cd ,
+                          XEvent *event , RwcBoolean *continue_to_dispatch )
+{
+   static int busy=0, hold=-1, hnew=-1 ;
+   XEvent ev;
+   XConfigureEvent last = event->xconfigure;
+   int iter=0;
+ENTRY("SUMA_file_expose_EV") ;
+
+   if( g_needs_x11_redraw_verb ) printf("-- SUMA_file_expose_EV\n");
+   if( busy ) EXRETURN ;
+
+   busy = 1 ;
+
+   /* try dpeterc's trick for flushing / waiting for ConfigureNotify events */ 
+   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w), ConfigureNotify,
+                                 &ev)){
+      if( g_needs_x11_redraw_verb )
+         printf("... waiting for events to clear - iteration %d ...\n", iter);
+      last = ev.xconfigure;
+      /* NI_sleep(10); */
+      iter++;
+   }
+
+   switch( event->type ){
+     /* fall through the MapNotify and UnmapNotify cases to
+      * force resize for testing */
+ 
+     case ConfigureNotify:{
+     // file dialogs don't like remanagement. They fall up to corner at 0,0
+          forceExpose( w , 1 ) ;
+
+        if( g_needs_x11_redraw_verb )
+           printf("-- SC file: ConfigureNotify event\n");
+     }
+     break ;
+ 
+     case MapNotify:{
+        if( g_needs_x11_redraw_verb )
+           printf("-- SC file: MapNotify\n");
+        break;
+     }
+     case UnmapNotify:{
+        if( g_needs_x11_redraw_verb )
+           printf("-- SC file: UnmapNotify\n");
+        break;
+     }
+
+     case CirculateNotify:{
+        if( g_needs_x11_redraw_verb )
+           printf("-- SC file: CirculateNotify\n");
+        break;
+     }
+     case DestroyNotify:{
+        if( g_needs_x11_redraw_verb )
+           printf("-- SC file: DestroyNotify\n");
+        break;
+     }
+     case GravityNotify:{
+        if( g_needs_x11_redraw_verb )
+           printf("-- SC file: GravityNotify\n");
+        break;
+     }
+     case ReparentNotify:{
+        if( g_needs_x11_redraw_verb )
+           printf("-- SC file: ReparentNotify\n");
+        break;
+     }
+
+
+     /** No other event types (at this time) */
+     default:
+         if( g_needs_x11_redraw_verb )
+            printf("-- SC file: not ConfigureNotify event\n");
+   }
+
+   busy = 0 ;
+   EXRETURN ;
+}
+
+void SUMA_mainform_EV( Widget w , XtPointer cd ,
+                               XEvent *ev , RwcBoolean *continue_to_dispatch )
+{
+   SUMA_X *svX = (SUMA_X *)cd; /* widget pointer from suma viewer */
+   static int busy=0 ;
+
+ENTRY("SUMA_mainform_EV") ;
+
+   if( busy ) EXRETURN ;
+
+   busy = 1 ;
+
+   switch( ev->type ){
+
+     case ConfigureNotify:{
+        forceExpose( svX->ViewCont->Mainform , 0 ) ;
+
+        if( g_needs_x11_redraw_verb )
+            printf("-- SC main: ConfigureNotify event for viewer\n");
+     }
+     break ;
+
+     /** No other event types (at this time) */
+   }
+
+   busy = 0 ;
+   EXRETURN ;
 }
 
 /*!
@@ -7939,8 +8220,9 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
       if (SUMAg_CF->X->UseSameSurfCont) {
          Widget scroller;
          SUMAg_CF->X->CommonSurfContTLW = tls;
-         SUMAg_CF->X->SC_Notebook =
-            XtVaCreateWidget("ControllerBook", xmNotebookWidgetClass,
+         if (SUMAg_CF && SUMAg_CF->X)
+            SUMAg_CF->X->SC_Notebook =
+                XtVaCreateWidget("ControllerBook", xmNotebookWidgetClass,
                              SUMAg_CF->X->CommonSurfContTLW,
                              XmNbindingWidth, XmNONE,
                              XmNbackPageNumber, 0,
@@ -7957,8 +8239,10 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
          /* Kill the scroller from hell otherwise no keyboard input
             gets to the baby widgets. Better write my own scroller
             if need be in the future */
-         scroller = XtNameToWidget (SUMAg_CF->X->SC_Notebook, "PageScroller");
-         XtUnmanageChild (scroller);
+         if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook){
+            scroller = XtNameToWidget (SUMAg_CF->X->SC_Notebook, "PageScroller");
+            XtUnmanageChild (scroller);
+         }
       }
 
    }
@@ -7979,8 +8263,9 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
       Arg args[20];
       /* add the page */
       XtSetArg (args[0], XmNnotebookChildType, XmPAGE);
-      SurfCont->Page =
-         XmCreateRowColumn (SUMAg_CF->X->SC_Notebook,
+      if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+          SurfCont->Page =
+             XmCreateRowColumn (SUMAg_CF->X->SC_Notebook,
                      SUMA_ADO_Label(ado)?SUMA_ADO_Label(ado):"page",
                                               args, 1);
    }
@@ -8594,6 +8879,23 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
          XmStringFree (xmstmp);
       }
    }
+
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+      /* allow for code to resize the shell */
+
+      XtInsertEventHandler( SurfCont->Mainform,
+                            StructureNotifyMask,     /* resizes */
+                            FALSE,                   /* nonmaskable events? */
+                            SUMA_surfcont_expose_EV, /* handler */
+                            (XtPointer) SurfCont,    /* client data */
+                            XtListTail               /* last in queue */
+                          ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for SUMA object controller resize\n");
+   }
+
+
    SUMA_LHv("Management ...%p %p %p %p %p\n",
             rc_right, rc_left, rc_mamma, SurfCont->Mainform, SurfCont->Page);
 
@@ -8613,7 +8915,8 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
    #endif
 
    /* realize the widget */
-   if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SUMAg_CF->X->SC_Notebook);
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SUMAg_CF->X->SC_Notebook);
    XtRealizeWidget (SurfCont->TLS);
 
    SUMA_LH("%s",slabel);
@@ -8819,8 +9122,10 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
          /* Kill the scroller from hell otherwise no keyboard input
             gets to the baby widgets. Better write my own scroller
             if need be in the future */
+        if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook){
          scroller = XtNameToWidget (SUMAg_CF->X->SC_Notebook, "PageScroller");
-         XtUnmanageChild (scroller);
+         XtUnmanageChild (scroller);               
+        }
       }
    }
 
@@ -9547,6 +9852,21 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
       }
    }
 
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     /* allow for code to resize the shell */
+
+     XtInsertEventHandler( SurfCont->Mainform ,
+                           StructureNotifyMask ,    /* resizes */
+                           FALSE ,                  /* nonmaskable events? */
+                           SUMA_surfcont_expose_EV ,/* handler */
+                           (XtPointer) SurfCont ,   /* client data */
+                           XtListTail               /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for SUMA graph controller resize\n");
+   }
+
    SUMA_LHv("Management ...%p %p %p %p %p\n",
             rc_right, rc_left, rc_mamma, SurfCont->Mainform, SurfCont->Page);
 
@@ -9566,8 +9886,10 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
    #endif
 
    /* realize the widget */
-   if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SUMAg_CF->X->SC_Notebook);
-   XtRealizeWidget (SurfCont->TLS);
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook){
+       if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SUMAg_CF->X->SC_Notebook);
+       XtRealizeWidget (SurfCont->TLS);
+   }
 
    SUMA_LH("%s",slabel);
    SUMA_free (slabel);
@@ -9768,8 +10090,10 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
          /* Kill the scroller from hell otherwise no keyboard input
             gets to the baby widgets. Better write my own scroller
             if need be in the future */
-         scroller = XtNameToWidget (SUMAg_CF->X->SC_Notebook, "PageScroller");
-         XtUnmanageChild (scroller);
+            if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook){                
+                 scroller = XtNameToWidget (SUMAg_CF->X->SC_Notebook, "PageScroller");
+                 XtUnmanageChild (scroller);
+            }
       }
 
    }
@@ -9790,10 +10114,11 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
       Arg args[20];
       /* add the page */
       XtSetArg (args[0], XmNnotebookChildType, XmPAGE);
-      SurfCont->Page =
-         XmCreateRowColumn (SUMAg_CF->X->SC_Notebook,
-                     SUMA_ADO_Label(ado)?SUMA_ADO_Label(ado):"page",
-                                              args, 1);
+      if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+          SurfCont->Page =
+             XmCreateRowColumn (SUMAg_CF->X->SC_Notebook,
+                         SUMA_ADO_Label(ado)?SUMA_ADO_Label(ado):"page",
+                                                  args, 1);
    }
 
    /* create a form widget, manage it at the end ...*/
@@ -10369,6 +10694,21 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
       }
    }
 
+
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     /* allow for code to resize the shell */
+
+     XtInsertEventHandler( SurfCont->Mainform ,
+                           StructureNotifyMask ,      /* resizes */
+                           FALSE ,                    /* nonmaskable events? */
+                           SUMA_surfcont_expose_EV ,  /* handler */
+                           (XtPointer) SurfCont ,     /* client data */
+                           XtListTail                 /* last in queue */
+                         ) ;
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for SUMA tract controller resize\n");
+   }
+
    SUMA_LHv("Management ...%p %p %p %p %p\n",
             rc_right, rc_left, rc_mamma, SurfCont->Mainform, SurfCont->Page);
 
@@ -10388,8 +10728,10 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
    #endif
 
    /* realize the widget */
-   if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SUMAg_CF->X->SC_Notebook);
-   XtRealizeWidget (SurfCont->TLS);
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook){
+       if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SUMAg_CF->X->SC_Notebook);
+       XtRealizeWidget (SurfCont->TLS);
+   }
 
    SUMA_LH("%s",slabel);
    SUMA_free (slabel);
@@ -10600,8 +10942,10 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
          /* Kill the scroller from hell otherwise no keyboard input
             gets to the baby widgets. Better write my own scroller
             if need be in the future */
-         scroller = XtNameToWidget (SUMAg_CF->X->SC_Notebook, "PageScroller");
-         XtUnmanageChild (scroller);
+        if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook){
+             scroller = XtNameToWidget (SUMAg_CF->X->SC_Notebook, "PageScroller");
+             XtUnmanageChild (scroller);
+        }
       }
    }
 
@@ -10621,10 +10965,11 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
       Arg args[20];
       /* add the page */
       XtSetArg (args[0], XmNnotebookChildType, XmPAGE);
-      SurfCont->Page =
-         XmCreateRowColumn (SUMAg_CF->X->SC_Notebook,
-                     SUMA_ADO_Label(ado)?SUMA_ADO_Label(ado):"page",
-                                              args, 1);
+      if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+          SurfCont->Page =
+             XmCreateRowColumn (SUMAg_CF->X->SC_Notebook,
+                         SUMA_ADO_Label(ado)?SUMA_ADO_Label(ado):"page",
+                                                  args, 1);
    }
 
    /* create a form widget, manage it at the end ...*/
@@ -11299,6 +11644,23 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
       }
    }
 
+
+
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     /* allow for code to resize the shell */
+
+     XtInsertEventHandler( SurfCont->Mainform ,
+                           StructureNotifyMask ,      /* resizes */
+                           FALSE ,                    /* nonmaskable events? */
+                           SUMA_surfcont_expose_EV ,  /* handler */
+                           (XtPointer) SurfCont ,     /* client data */
+                           XtListTail                 /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for SUMA volume controller resize\n");
+   }
+
    SUMA_LHv("Management ...%p %p %p %p %p\n",
             rc_right, rc_left, rc_mamma, SurfCont->Mainform, SurfCont->Page);
 
@@ -11321,7 +11683,8 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
 
    /* realize the widget */
    if (SUMAg_CF->X->UseSameSurfCont) {
-      XtManageChild (SUMAg_CF->X->SC_Notebook);
+        if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+            XtManageChild (SUMAg_CF->X->SC_Notebook);
    }
    SUMA_LH("Realize TLS widget %p, closed %d",
             SurfCont->TLS, !SUMAg_CF->X->SameSurfContOpen);
@@ -11569,7 +11932,8 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_SO(SUMA_SurfaceObject *SO)
       SUMA_RETURN(NOPE);
    }
    if (!SameSurface ||
-       ( SUMAg_CF->X->UseSameSurfCont &&
+       ( SUMAg_CF->X->UseSameSurfCont && 
+            SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook &&
          !SUMA_isCurrentContPage(SUMAg_CF->X->SC_Notebook,
                                  SO->SurfCont->Page))) {
       /* initialize the title of the window */
@@ -11749,7 +12113,8 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_SO(SUMA_SurfaceObject *SO)
                      i,SUMAg_CF->X->ButtonDown);
             if (LocalHead) SUMA_DUMP_TRACE("You rang?");
             if (!SUMAg_CF->X->ButtonDown) {
-               SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook, i);
+                if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+                    SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook, i);
             }
          }
       }
@@ -11912,7 +12277,8 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_ADO(SUMA_ALL_DO *ado)
    }
 
    if (!SameObject ||
-       ( SUMAg_CF->X->UseSameSurfCont &&
+       ( SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && SUMAg_CF->X && 
+            SUMAg_CF->X->SC_Notebook &&
          !SUMA_isCurrentContPage(SUMAg_CF->X->SC_Notebook,
                                  SurfCont->Page))) {
       /* initialize the title of the window */
@@ -11994,7 +12360,8 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_ADO(SUMA_ALL_DO *ado)
 
 
       /* RAISE */
-      if (SUMAg_CF->X->UseSameSurfCont) {
+      if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && 
+		SUMAg_CF->X && SUMAg_CF->X->SC_Notebook) {
          if (!(i = SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook,
                                            SurfCont->Page))) {
             SUMA_S_Errv("Failed to find controller page for surface %s\n",
@@ -12121,6 +12488,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(
       SUMA_LH("Called with colPlane %p, ado %s", colPlane, ADO_LABEL(ado));
       SUMA_DUMP_TRACE("And who called that one?");
    }
+
    switch(ado->do_type) {
       case SO_type:
          SUMA_RETURN(SUMA_InitializeColPlaneShell_SO(
@@ -12182,8 +12550,8 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
       SUMA_S_Err("NULL input, what gives?");
       SUMA_RETURN(NOPE);
    }
-
-   if (!SO->SurfCont->ColPlane_fr) {
+   
+   if (!SO->SurfCont->ColPlane_fr) {    
       /* just set the curColPlane before returning ZSS  March 25 08*/
       if (ColPlane) SO->SurfCont->curColPlane = ColPlane;
       SUMA_RETURN(YUP);
@@ -12245,7 +12613,8 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
                                  1, 1, SOpar->Label);
       }
 
-      if (SUMAg_CF->X->UseSameSurfCont) {
+      if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && SUMAg_CF->X && 
+          SUMAg_CF->X->SC_Notebook) {
          SO->SurfCont->SurfContPage->value =
             SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook,
                                     SO->SurfCont->Page);
@@ -12270,7 +12639,6 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneDimFact->textfield, sbuf);
 
    }
-
 
    SO->SurfCont->curColPlane = ColPlane;
 
@@ -12405,7 +12773,8 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_GLDO (
    /* update the cross hair group */
    SUMA_Init_SurfCont_CrossHair(ado);
 
-   if (SUMAg_CF->X->UseSameSurfCont) {
+   if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && SUMAg_CF->X && 
+       SUMAg_CF->X->SC_Notebook) {
       SurfCont->SurfContPage->value =
          SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook,
                                  SurfCont->Page);
@@ -12678,7 +13047,8 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_VO (
    /* update the cross hair group */
    SUMA_Init_SurfCont_CrossHair(ado);
 
-   if (SUMAg_CF->X->UseSameSurfCont) {
+   if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && 
+      SUMAg_CF->X && SUMAg_CF->X->SC_Notebook) {
       SurfCont->SurfContPage->value =
          SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook,
                                  SurfCont->Page);
@@ -12794,7 +13164,8 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_MDO (
    /* update the cross hair group */
    SUMA_Init_SurfCont_CrossHair(ado);
 
-   if (SUMAg_CF->X->UseSameSurfCont) {
+   if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && SUMAg_CF->X && 
+       SUMAg_CF->X->SC_Notebook) {
       SurfCont->SurfContPage->value =
          SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook,
                                  SurfCont->Page);
@@ -13422,6 +13793,20 @@ SUMA_Register_Widget_Help( SUMAg_CF->X->DrawROI->AppShell , 0,
 
    /* manage frame */
    XtManageChild (SUMAg_CF->X->DrawROI->frame);
+
+
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     XtInsertEventHandler( SUMAg_CF->X->DrawROI->form,
+                           StructureNotifyMask ,    /* resizes */
+                           FALSE ,                  /* nonmaskable events? */
+                           SUMA_expose_EV ,         /* handler */
+                           (XtPointer) SUMAg_CF->X->DrawROI->form , /* cdata */
+                           XtListTail               /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for Draw ROI resize\n");
+   }
 
    /* manage form */
    XtManageChild (SUMAg_CF->X->DrawROI->form);
@@ -14156,7 +14541,8 @@ SUMA_Boolean SUMA_Set_Menu_Widget(SUMA_MENU_WIDGET *men, int i)
 
    SUMA_ENTRY;
 
-   if (i<1) { SUMA_S_Err("i must be >=1"); SUMA_RETURN(NOPE);   }
+   if (i<1) { SUMA_S_Err("i must be >=1"); 
+        SUMA_RETURN(NOPE);   }
    if (!men) { SUMA_DUMP_TRACE("NULL widget struct"); SUMA_RETURN(NOPE); }
    if(men->menu_type == SUMA_XmArrowFieldMenu) {
       if (!men->af || !men->af->textfield) {
@@ -14728,9 +15114,17 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
    curColPlane = SUMA_ADO_CurColPlane(ado);
 
    SUMA_LHv("About to change page to %d\n", (int)SurfCont->SurfContPage->value);
+
+   /* this should not happen, so let us know  [23 Mar 2026 rickr] */
+   if (!SUMAg_CF->X->UseSameSurfCont) {
+      fprintf(SUMA_STDERR,
+              "Error %s: UseSameSurfCont is not set\n", FuncName);
+      SUMA_RETURNe;
+   }
    
    // This if function causes the surface control menu to expand downwards.
-   if (!(SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook,
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook && 
+       (SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook,
                                     SurfCont->SurfContPage->value))) {
       /* revert to good value */
       SurfCont->SurfContPage->value =
@@ -14742,11 +15136,16 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
                (int)SurfCont->SurfContPage->value);
    }
 
-   // Set "A" check-box to reflect whether there should be variable overlay 
-   //   opacity for this object
-   if (SurfCont && SurfCont->AlphaOpacityFalloff_tb)
-       XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
-                      curColPlane->AlphaOpacityFalloff, YUP);
+   // Set "A" and "B" check-boxes to reflect whether there should be variable 
+   //   overlay opacity or box outlines for this object
+   if (SUMA_AB_Ready(ado) && SurfCont){
+       if (SurfCont->AlphaOpacityFalloff_tb)
+           XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+                          curColPlane->AlphaOpacityFalloff, YUP);
+       if (SurfCont->BoxOutlineThresh_tb)
+           XmToggleButtonSetState ( SurfCont->BoxOutlineThresh_tb,
+                          curColPlane->BoxOutlineThresh, 0);
+   }
 
    SUMA_RETURNe;
 }
@@ -14796,7 +15195,8 @@ void SUMA_cb_AllConts(Widget w, XtPointer data, XtPointer client_data)
    if (new > 10) { /* don't bother unless we have had too many newbies */
       XSync( XtDisplay(w) , True ) ; /* get rid of all pending events */
       /* Now repeat call to last ado's viewer to update its widgets */
-      if (new) SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook, 1);
+      if (new && SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook) 
+         SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook, 1);
    }
    SUMA_RETURNe;
 }
@@ -16036,7 +16436,7 @@ void SUMA_cb_ViewerCont_SwitchState (Widget w, XtPointer data,
 }
 
 /*!
-   \brief Callback for Switch Col Plane button
+   \brief Callback for Switch Col Plane (dset) button
    -Expects SO in data
 */
 void SUMA_cb_SurfCont_SwitchColPlane (Widget w, XtPointer data,
@@ -16045,9 +16445,11 @@ void SUMA_cb_SurfCont_SwitchColPlane (Widget w, XtPointer data,
    static char FuncName[]={"SUMA_cb_SurfCont_SwitchColPlane"};
    SUMA_Boolean LocalHead = NOPE;
    SUMA_ALL_DO *ado = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
 
    SUMA_ENTRY;
-
+   
    SUMA_LH("Called");
    ado = (SUMA_ALL_DO *)data;
 
@@ -16221,6 +16623,7 @@ int SUMA_SelectSwitchColPlane_one(SUMA_ALL_DO *ado,
                                   SUMA_LIST_WIDGET *LW,
                                   int ichoice, SUMA_Boolean CloseShop,
                                   int setmen)
+    /* This function is called for Switch Dset */
 {
    static char FuncName[]={"SUMA_SelectSwitchColPlane_one"};
    SUMA_OVERLAYS *ColPlane=NULL;
@@ -16243,7 +16646,9 @@ int SUMA_SelectSwitchColPlane_one(SUMA_ALL_DO *ado,
          if (LocalHead)
             fprintf (SUMA_STDERR,"%s: Retrieved ColPlane named %s\n",
                      FuncName, ColPlane->Name);
+           
          SUMA_InitializeColPlaneShell(ado, ColPlane);
+
          SUMA_UpdateColPlaneShellAsNeeded(ado); /* update other open
                                                    ColPlaneShells */
          SUMA_UpdateNodeField(ado);
@@ -16313,15 +16718,17 @@ int SUMA_SelectSwitchColPlane(SUMA_ALL_DO *ado,
 */
 void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
 {
+    /* Called for "Switch Dset */
    static char FuncName[] = {"SUMA_cb_SelectSwitchColPlane"};
    SUMA_LIST_WIDGET *LW = NULL;
    XmListCallbackStruct *cbs = (XmListCallbackStruct *) call_data;
    SUMA_Boolean CloseShop = NOPE, Found = NOPE;
    int ichoice = -1;
-   SUMA_OVERLAYS *ColPlane = NULL;
+   SUMA_OVERLAYS *ColPlane = NULL, *colpC=NULL;
    SUMA_ALL_DO *ado = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead=NOPE;
+   SUMA_SurfaceObject *SO = NULL, *SOC = NULL;
 
    SUMA_ENTRY;
 
@@ -16339,6 +16746,16 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
 
    if (!SUMA_SelectSwitchColPlane(ado, LW, ichoice, CloseShop, 1)) {
       SUMA_S_Err("I guess failure was an option.");
+   }
+   
+   /* Set A and B check boxes to the values for this existing dataset */
+   ColPlane = SUMA_ADO_CurColPlane(ado);
+   SurfCont = SUMA_ADO_Cont(ado);
+   if (SUMA_AB_Ready(ado)){
+        XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 
+                               ColPlane->AlphaOpacityFalloff, 1);
+        XmToggleButtonSetState(SurfCont->BoxOutlineThresh_tb, 
+                               ColPlane->BoxOutlineThresh, 0);
    }
 
    SUMA_RETURNe;
@@ -16671,7 +17088,7 @@ void SUMA_cb_createSumaCont(Widget ww, XtPointer ddata, XtPointer ccallData)
       XmInternAtom( SUMAg_CF->X->DPY_controller1 , "WM_DELETE_WINDOW" , False ) ,
       SUMA_cb_closeSumaCont, NULL) ;
 
-   /* create a form widget, manage it at the end ...*/
+   /* create form widget (multi-suma controller lock), manage at the end ...*/
    SUMAg_CF->X->SumaCont->form = XtVaCreateWidget ("dialog",
       xmFormWidgetClass, SUMAg_CF->X->SumaCont->AppShell,
       XmNborderWidth , 0 ,
@@ -16943,8 +17360,34 @@ void SUMA_cb_createSumaCont(Widget ww, XtPointer ddata, XtPointer ccallData)
 
    XtManageChild (SUMAg_CF->X->SumaCont->AppFrame);
 
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     XtInsertEventHandler( SUMAg_CF->X->SumaCont->form,
+                           StructureNotifyMask ,    /* resizes */
+                           FALSE ,                  /* nonmaskable events? */
+                           SUMA_expose_EV ,         /* handler */
+                           (XtPointer) Gmainw ,     /* client data */
+                           XtListTail               /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for locking window resize\n");
+   }
+
    /* manage the remaining widgets */
    XtManageChild (SUMAg_CF->X->SumaCont->form);
+
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     XtInsertEventHandler( SUMAg_CF->X->SumaCont->form,
+                           StructureNotifyMask ,    /* resizes */
+                           FALSE ,                  /* nonmaskable events? */
+                           SUMA_expose_EV ,         /* handler */
+                           (XtPointer) SUMAg_CF->X->SumaCont->form, /* cdata */
+                           XtListTail               /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for SUMA lock window resize\n");
+   }
 
    /* realize the widget */
    XtRealizeWidget (SUMAg_CF->X->SumaCont->AppShell);
@@ -17630,7 +18073,7 @@ char * SUMA_WriteStringToFile(char *fname, char *s, int over, int view)
          SUMA_RETURN(NULL);
       }
       snprintf(cmd,250*sizeof(char),"%s %s &", viewer, fused);
-      system(cmd);
+      int ret = system(cmd);
    }
 
    SUMA_RETURN(fused);
@@ -18030,6 +18473,18 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
                         XtParseTranslationTable(SUMA_TEXT_WIDGET_TRANSLATIONS),
                         NULL);
       */
+      if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+        XtInsertEventHandler( form ,
+                              StructureNotifyMask , /* resizes */
+                              FALSE ,               /* nonmaskable events? */
+                              SUMA_expose_EV ,      /* handler */
+                              (XtPointer) NULL ,    /* client data - not used */
+                              XtListTail            /* last in queue */
+                            ) ;
+
+        if( g_needs_x11_redraw_verb )
+           printf("-- Added event handler for SUMA usage help resize\n");
+      }
 
       XtManageChild (form);
 
@@ -18928,6 +19383,8 @@ int SUMA_SetDsetViewMode(SUMA_ALL_DO *ado, int imenu, int updatemenu)
 
    SUMA_ENTRY;
 
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
    ED = SUMA_InitializeEngineListData (SE_SetDsetViewMode);
@@ -18935,6 +19392,9 @@ int SUMA_SetDsetViewMode(SUMA_ALL_DO *ado, int imenu, int updatemenu)
                                          SEF_i, (void *)&imenu,
                                          SES_SumaWidget, NULL, NOPE,
                                          SEI_Head, NULL);
+
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+
    if (!SUMA_RegisterEngineListCommand ( list, ED,
                                          SEF_vp, (void *)ado,
                                          SES_SumaWidget, NULL, NOPE,
@@ -18945,11 +19405,15 @@ int SUMA_SetDsetViewMode(SUMA_ALL_DO *ado, int imenu, int updatemenu)
       SUMA_RETURN(NOPE);
    }
 
+   curColPlane = SUMA_ADO_CurColPlane(ado);
 
    if (!SUMA_Engine (&list)) {
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Engine.\n", FuncName);
       SUMA_RETURN(NOPE);
    }
+
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+
 
    if (updatemenu &&
        (SurfCont = SUMA_ADO_Cont(ado)) &&
@@ -18957,6 +19421,9 @@ int SUMA_SetDsetViewMode(SUMA_ALL_DO *ado, int imenu, int updatemenu)
       SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
                             curColPlane->ShowMode);
    }
+
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+
 
    SUMA_RETURN(YUP);
 }
@@ -18974,20 +19441,35 @@ void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data,
    SUMA_MenuCallBackData *datap=NULL;
    SUMA_ALL_DO *ado = NULL;
    int imenu = 0;
+   SUMA_SurfaceObject *SOC=NULL, *SO = NULL;
+   SUMA_OVERLAYS *over2 = NULL, *colpC=NULL;
 
    SUMA_ENTRY;
-
 
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
    ado = (SUMA_ALL_DO *)datap->ContID;
+
+   over2 = SUMA_ADO_CurColPlane(ado);
+
    imenu = (INT_CAST)datap->callback_data;
 
    if (!SUMA_SetDsetViewMode(ado, imenu, 0)) {
       SUMA_S_Err("Failed to set view mode");
       SUMA_RETURNe;
    }
-
+   
+   /* Apply change to other hemisphere */
+   SO = (SUMA_SurfaceObject *)ado;
+   over2 = SUMA_ADO_CurColPlane(ado);
+   colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
+   if (colpC && SOC){
+       ado = (SUMA_ALL_DO *)SOC;
+       if (!SUMA_SetDsetViewMode(ado, imenu, 1)) {
+          SUMA_S_Err("Failed to set view mode");
+          SUMA_RETURNe;
+       }
+   }
 
    SUMA_RETURNe;
 }
@@ -21718,6 +22200,19 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (
    XmStringFree (button);
    XmStringFree (title);
 
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     XtInsertEventHandler( dlg->dlg_w ,
+                           StructureNotifyMask ,   /* resizes */
+                           FALSE ,                 /* nonmaskable events? */
+                           SUMA_file_expose_EV ,   /* handler */
+                           (XtPointer) NULL ,      /* client data - not used */
+                           XtListTail              /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for SUMA load view menu resize\n");
+   }
+
    XtManageChild (dlg->dlg_w);
 
    /* make sure that dialog is raised to top of window stack */
@@ -22040,6 +22535,7 @@ void SUMA_cb_Dset_Load(Widget w, XtPointer data, XtPointer client_data)
       fprintf (SUMA_STDERR,
          "Error %s: Failed to register command.\n", FuncName);
    }
+   
    if (!SUMA_RegisterEngineListCommand (  list, ED,
                                           SEF_ip, (int *)w,
                                           SES_Suma, NULL, NOPE,
