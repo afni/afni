@@ -3618,6 +3618,11 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          SUMA_LH("Bias None");
          break;
    }
+   
+   /* Make threshold outlines if required */
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (SO->SurfCont->BoxOutlineThresh)
+    fprintf(stderr, "$$$$$$$$$$$$$$$$$$$$$$$$$$$$ B box checked\n");
 
 
    /* Do we need to create contours */
@@ -3627,7 +3632,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       else
          SUMA_ContourateDsetOverlay(Sover, SV);
    }
-
 
    if (LocalHead) {
       SUMA_LH("In Scale_Interactive\n**********************");

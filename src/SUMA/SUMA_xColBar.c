@@ -2455,6 +2455,10 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    // Get box outline threshold status from checkbox
    BoxOutlineThresh = XmToggleButtonGetState(w);    
    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+
+   // Process for current hemisphere
+   over2 = SUMA_ADO_CurColPlane(ado);
+   SUMA_ScaleToMap_Interactive(over2);
 /*      
    // Process for current hemisphere
    if (!applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE)){
@@ -2465,8 +2469,6 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
 */
       
    // Process for contralateral hemisphere
-   over2 = SUMA_ADO_CurColPlane(ado);
-   over2 = SUMA_ADO_CurColPlane(ado);
    colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
    if (colpC && SOC){
        SOC->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
