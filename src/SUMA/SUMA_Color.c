@@ -3622,8 +3622,13 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    /* Make threshold outlines if required */
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    if (SO->SurfCont->BoxOutlineThresh)
-    fprintf(stderr, "$$$$$$$$$$$$$$$$$$$$$$$$$$$$ B box checked\n");
-
+   {
+       SUMA_OVERLAYS *over2 = SUMA_ADO_CurColPlane(ado);
+        fprintf(stderr, "$$$$$$$$$$$$$$$$$$$$$$$$$$$$ B box checked\n");
+        for (i=0; i<over2->N_V; ++i){
+                over2->V[i] = (float)(over2->V[i] >= over2->IntRange[1]);  
+        }
+    }
 
    /* Do we need to create contours */
    if (Opt->ColsContMode) {
