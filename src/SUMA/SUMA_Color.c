@@ -3041,6 +3041,21 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    SUMA_LH("Finding ColorMap %s", Sover->cmapname);
    icmap = SUMA_Find_ColorMap (  Sover->cmapname,
                                  SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
+                                 
+   ado = SUMA_Overlay_OwnerADO(Sover);
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+
+
+    /* Make threshold outlines if required */
+   // SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   if (SO->SurfCont->BoxOutlineThresh)
+   {
+       SUMA_OVERLAYS *over2 = SUMA_ADO_CurColPlane(ado);
+        for (i=0; i<over2->N_V; ++i){
+                over2->V[i] = (float)(over2->V[i] >= over2->IntRange[1]);  
+        }
+    }
+
    if (icmap < 0) {
       SUMA_SL_Err("Failed to find ColMap");
       SUMA_S_Errv("Missing ColMap called %s\n", Sover->cmapname);
@@ -3171,7 +3186,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    /* Do we need clusterinzing ? */
    if (Opt->Clusterize) {
       if (Opt->RecomputeClust) {
-         SUMA_SurfaceObject *SO = NULL;
+         // SUMA_SurfaceObject *SO = NULL;
          SUMA_LH("Clusterizing requested");
          if (Sover->ClustList) { /* kill it, to make way for new one*/
             SUMA_LH("Clearing old clusterlist");
@@ -3180,6 +3195,15 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             if (Sover->ClustOfNode) SUMA_free(Sover->ClustOfNode);
             Sover->ClustOfNode = NULL;
          }
+
+//    /* Make threshold outlines if required */
+//   if (SO->SurfCont->BoxOutlineThresh)
+//   {
+//       SUMA_OVERLAYS *over2 = SUMA_ADO_CurColPlane(ado);
+//        for (i=0; i<over2->N_V; ++i){
+//                over2->V[i] = (float)(over2->V[i] >= over2->IntRange[1]);  
+//        }
+//    }
 
          if (!(SO = SUMA_SO_of_ColPlane(Sover))){
             SUMA_S_Errv("Can't find dset's domain parent(%s, %s).\n"
@@ -3411,7 +3435,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
 
    /* Do we need alpha from data (first used for Volume objects) ? */
    alphaval = NULL;
-   ado = SUMA_Overlay_OwnerADO(Sover);
    SUMA_LH("Have ado %s of type %s, AlphaVal %d",
          ADO_LABEL(ado), ADO_TNAME(ado), Sover->AlphaVal);
    if (ado && ado->do_type == VO_type) {
@@ -3483,6 +3506,17 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             break;
       }
    }
+//
+//    /* Make threshold outlines if required */
+//   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+//   if (SO->SurfCont->BoxOutlineThresh)
+//   {
+//       SUMA_OVERLAYS *over2 = SUMA_ADO_CurColPlane(ado);
+//        //fprintf(stderr, "$$$$$$$$$$$$$$$$$$$$$$$$$$$$ B box checked\n");
+//        for (i=0; i<over2->N_V; ++i){
+//                over2->V[i] = (float)(over2->V[i] >= over2->IntRange[1]);  
+//        }
+//    }
 
 
    /* finally copy results */
@@ -3618,17 +3652,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          SUMA_LH("Bias None");
          break;
    }
-   
-   /* Make threshold outlines if required */
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   if (SO->SurfCont->BoxOutlineThresh)
-   {
-       SUMA_OVERLAYS *over2 = SUMA_ADO_CurColPlane(ado);
-        fprintf(stderr, "$$$$$$$$$$$$$$$$$$$$$$$$$$$$ B box checked\n");
-        for (i=0; i<over2->N_V; ++i){
-                over2->V[i] = (float)(over2->V[i] >= over2->IntRange[1]);  
-        }
-    }
 
    /* Do we need to create contours */
    if (Opt->ColsContMode) {
