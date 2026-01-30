@@ -17139,7 +17139,19 @@ printf("Added event handler for Tahoe resizing of locking window\n");
 
    /* manage the remaining widgets */
    XtManageChild (SUMAg_CF->X->SumaCont->form);
-
+// tahoe fix
+//#if MACOS_FORCE_EXPOSE
+   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( SUMAg_CF->X->SumaCont->form,  /* handle events in Mainform */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           SUMA_expose_EV ,       /* handler */
+                           (XtPointer) SUMAg_CF->X->SumaCont->form ,      /* client data - X, sv or Mainform? */
+                           XtListTail               /* last in queue */
+                         ) ;
+printf("Added event handler for Tahoe resizing of OpenGL SUMA controller lock window\n");
+   }
+//#endif
    /* realize the widget */
    XtRealizeWidget (SUMAg_CF->X->SumaCont->AppShell);
 
