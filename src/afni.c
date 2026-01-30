@@ -8166,8 +8166,8 @@ ENTRY("AFNI_redisplay_func") ;
        IM3D_OPEN(im3d)           &&
        IM3D_IMAGIZED(im3d)       ){   
 /* o key/overlay toggle doesn't redisplay with func_visible check */
-// &&
-//       im3d->vinfo->func_visible    /* Dec 2025 */    ){
+/* && im3d->vinfo->func_visible  Dec 2025 */ 
+
      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
      AFNI_process_funcdisplay( im3d ) ;
    }
