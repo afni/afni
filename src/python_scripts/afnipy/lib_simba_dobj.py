@@ -142,7 +142,7 @@ fname_mask : str
         return 0
 
     def set_voxdim(self):
-        """Define the voxel dimesion of the dataset, for providing physical
+        """Define the voxel dimension of the dataset, for providing physical
         grid. Here, this is done by using the mask's NIFTI header (pixdim)."""
 
         try:
