@@ -3353,17 +3353,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          SUMA_RETURN(NOPE);
       }
    } else {
-
-        /* If threshold outlines required, make and point to thresholded data*/
-//       if (SO->SurfCont->BoxOutlineThresh)
-//       {
-//           box_mask = (float *)malloc(Sover->N_V*sizeof(float));
-//            for (i=0; i<Sover->N_V; ++i){
-//                    box_mask[i] = (float)(Sover->V[i] >= Sover->IntRange[1]);  
-//            }
-//            vSave = Sover->V;
-//            Sover->V = box_mask;
-//        }
       /* a la SUMA */
       SUMA_LHv("Scaling a la SUMA %f %f\n", Opt->IntRange[0], Opt->IntRange[1]);
       SUMA_X_SurfCont *surfContSave;
@@ -3371,9 +3360,23 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
         surfContSave = ColMap->SO->SurfCont;
         ColMap->SO->SurfCont = SO->SurfCont;
       }
-      if (SO->SurfCont->BoxOutlineThresh){
+
+      if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh){
+        box_mask = (float *)malloc(Sover->N_V*sizeof(float));
+        fprintf(stderr, "Sover->V = %p\n", Sover->V);
+        for (i=0; i<Sover->N_V; ++i){
+                box_mask[i] = (float)(Sover->V[i] >= Opt->ThreshRange[0]);  
+        }
+        vSave = Sover->V;
+        Sover->V = box_mask;
+
+        // Change DSet view mode to CaC
         Sover->ShowMode == SW_SurfCont_DsetViewCaC;
-      }
+        SUMA_Set_Menu_Widget( SO->SurfCont->DsetViewModeMenu, 
+            SUMA_ShowMode2ShowModeMenuItem(Sover->ShowMode));
+        SUMA_Remixedisplay (ado);
+       }
+
       if (!SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
                             Opt->IntRange[0], Opt->IntRange[1],
                             ColMap, Opt,
@@ -3381,6 +3384,24 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          SUMA_SL_Err("Failed in  SUMA_ScaleToMap");
          SUMA_RETURN(NOPE);
       }
+       if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh){
+            Sover->V = vSave;
+            free(box_mask);
+            
+              if (SUMA_is_Label_dset(Sover->dset_link,NULL))
+                 SUMA_ContourateDsetOverlay(Sover, NULL);
+              else
+                 SUMA_ContourateDsetOverlay(Sover, SV);
+
+            // Restore colors.  This restores colors but messes up the contours.
+          if (!SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
+                                Opt->IntRange[0], Opt->IntRange[1],
+                                ColMap, Opt,
+                                SV) ){
+             SUMA_SL_Err("Failed in  SUMA_ScaleToMap");
+             SUMA_RETURN(NOPE);
+          }
+       }
       if (ColMap && ColMap->SO){
         ColMap->SO->SurfCont = surfContSave;
       }
@@ -3508,18 +3529,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             break;
       }
    }
-//
-//    /* Make threshold outlines if required */
-//   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-//   if (SO->SurfCont->BoxOutlineThresh)
-//   {
-//       SUMA_OVERLAYS *over2 = SUMA_ADO_CurColPlane(ado);
-//        //fprintf(stderr, "$$$$$$$$$$$$$$$$$$$$$$$$$$$$ B box checked\n");
-//        for (i=0; i<over2->N_V; ++i){
-//                over2->V[i] = (float)(over2->V[i] >= over2->IntRange[1]);  
-//        }
-//    }
-
 
    /* finally copy results */
    SUMA_LH("Copying into NodeDef");
@@ -3657,7 +3666,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
 
    /* Do we need to create contours */
    /* This is where the contours are made */
-   if (Opt->ColsContMode) {
+   if (Opt->ColsContMode && !(SO->SurfCont->BoxOutlineThresh)) {
       if (SUMA_is_Label_dset(Sover->dset_link,NULL))
          SUMA_ContourateDsetOverlay(Sover, NULL);
       else
@@ -3666,8 +3675,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    
    // Contours have been made.  point back to original data
    if (SO->SurfCont->BoxOutlineThresh) {
-//        Sover->V = vSave;
-//              
     // Make contours black
     int j;
     drawThresholdOutline(SO, SV);
@@ -3678,16 +3685,20 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             }
             Sover->Contours[i]->EdgeThickness = 8;
         }
-
-        // Save threshold outline contours
-//            OutlineContours = Sover->Contours;
-//            N_OutlineContours = Sover->N_Contours;
     } else {
         SUMA_SL_Err("ERROR: No contours found\n");
         SUMA_RETURN (NOPE);
     }
-//
-//        free(box_mask);
+
+    // Restore colors
+    if (!SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
+                        Opt->IntRange[0], Opt->IntRange[1],
+                        ColMap, Opt,
+                        SV) ){
+     SUMA_SL_Err("Failed in  SUMA_ScaleToMap");
+     SUMA_RETURN(NOPE);
+    }
+
    }
 }
 
@@ -4685,7 +4696,7 @@ SUMA_Boolean SUMA_NeedsLinearizing(SUMA_COLOR_MAP *ColMap)
       +Values in Mask Range are applied BEFORE the clipping is done
          IF (Mask[0] <= V[i] <= Mask[1]) V[i] is masked
 */
-SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
+SUMA_Boolean SUMA_ScaleToMap(float *V, int N_V,
                               float Vmin, float Vmax,
                               SUMA_COLOR_MAP *ColMap,
                               SUMA_SCALE_TO_MAP_OPT *Opt,
@@ -4719,16 +4730,6 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
       SUMA_SL_Err("NULL V");
       SUMA_RETURN(NOPE);
    }
-//
-//   SO = ColMap->SO;
-//   if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh){
-//           box_mask = (float *)malloc(N_V*sizeof(float));
-//            for (i=0; i<N_V; ++i){
-//                    box_mask[i] = (float)(V[i] >= Vmin);  
-//            }
-//            vSave = V;
-//            V = box_mask;
-//   }
 
    SUMA_LHv("Input Vmin..Vmax=%f..%f\n", Vmin, Vmax);
    /* No negative colormaps here */
@@ -4928,17 +4929,6 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
       }
    }
 
-//   SO = ColMap->SO;
-//   if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh){
-//           box_mask = (float *)malloc(N_V*sizeof(float));
-//            for (i=0; i<N_V; ++i){
-//                    box_mask[i] = (float)(V[i] >= Vmin);  
-//            }
-//            vSave = V;
-//            V = box_mask;
-//   }
-//
-
    if (  Opt->interpmode != SUMA_DIRECT &&
          Opt->interpmode != SUMA_NO_INTERP &&
          Opt->interpmode != SUMA_INTERP) {
@@ -5000,15 +4990,15 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
                }
             }
          } else { /* interpolation mode */
-               SO = ColMap->SO;
-               if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh){
-                       box_mask = (float *)malloc(N_V*sizeof(float));
-                        for (i=0; i<N_V; ++i){
-                                box_mask[i] = (float)(V[i] >= Vmin);  
-                        }
-                        vSave = V;
-                        V = box_mask;
-               }
+//               SO = ColMap->SO;
+//               if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh){
+//                       box_mask = (float *)malloc(N_V*sizeof(float));
+//                        for (i=0; i<N_V; ++i){
+//                                box_mask[i] = (float)(V[i] >= Vmin);  
+//                        }
+//                        vSave = V;
+//                        V = box_mask;
+//               }
             SUMA_LHv("Interp Mode, Vmin %f, Vmax %f, Vrange %f\n",
                      Vmin, Vmax, Vrange);
             SV->N_VCont = 0;
@@ -5065,10 +5055,10 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
                }
             }
    
-           if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh){
-                V = vSave;
-                free(box_mask);
-           }
+//           if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh){
+//                V = vSave;
+//                free(box_mask);
+//           }
 
          }
       }else { /* all values are equal, use the middle color in the colormap */
