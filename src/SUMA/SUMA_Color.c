@@ -3363,7 +3363,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
 
       if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh){
         box_mask = (float *)malloc(Sover->N_V*sizeof(float));
-        fprintf(stderr, "Sover->V = %p\n", Sover->V);
         for (i=0; i<Sover->N_V; ++i){
                 box_mask[i] = (float)(Sover->V[i] >= Opt->ThreshRange[0]);  
         }
@@ -3388,10 +3387,11 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             Sover->V = vSave;
             free(box_mask);
             
-              if (SUMA_is_Label_dset(Sover->dset_link,NULL))
-                 SUMA_ContourateDsetOverlay(Sover, NULL);
-              else
-                 SUMA_ContourateDsetOverlay(Sover, SV);
+            // Make contours
+            if (SUMA_is_Label_dset(Sover->dset_link,NULL))
+             SUMA_ContourateDsetOverlay(Sover, NULL);
+            else
+             SUMA_ContourateDsetOverlay(Sover, SV);
 
             // Restore colors.  This restores colors but messes up the contours.
           if (!SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
@@ -3689,16 +3689,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
         SUMA_SL_Err("ERROR: No contours found\n");
         SUMA_RETURN (NOPE);
     }
-
-    // Restore colors
-    if (!SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
-                        Opt->IntRange[0], Opt->IntRange[1],
-                        ColMap, Opt,
-                        SV) ){
-     SUMA_SL_Err("Failed in  SUMA_ScaleToMap");
-     SUMA_RETURN(NOPE);
-    }
-
    }
 }
 

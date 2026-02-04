@@ -2459,14 +2459,6 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    // Process for current hemisphere
    over2 = SUMA_ADO_CurColPlane(ado);
    SUMA_ScaleToMap_Interactive(over2);
-/*      
-   // Process for current hemisphere
-   if (!applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE)){
-        fprintf(stderr, "%s: ERROR applying threshold contours to current hemisphere\n", 
-            FuncName);
-        SUMA_RETURNe;
-   }
-*/
       
    // Process for contralateral hemisphere
    colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
@@ -2475,17 +2467,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
        XmToggleButtonSetState( SOC->SurfCont->BoxOutlineThresh_tb, 
             SOC->SurfCont->BoxOutlineThresh, NOPE); // Set B checkbox to reflect box state
    }
-//   } else SUMA_S_Warn("No surface overlay.\n"
-//                  "Contralateral hemisphere cannot be found\n");
-
-   // over2 = SUMA_ADO_CurColPlane(ado);
-//   if (!SO || !over2){
-//    fprintf(stderr, "ERROR %s: NULL point to surface and/or colormap\n", 
-//        FuncName);
-//    SUMA_RETURNe;
-//   }
-
-   // Process contralateral hemisphere
+   SUMA_ScaleToMap_Interactive(colpC);
 
    // Refresh display
    SUMA_Remixedisplay(ado);
