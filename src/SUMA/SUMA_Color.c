@@ -3369,13 +3369,15 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
         vSave = Sover->V;
         Sover->V = box_mask;
 
-        // Change DSet view mode to CaC
-        Sover->ShowMode == SW_SurfCont_DsetViewCaC;
-        SUMA_Set_Menu_Widget( SO->SurfCont->DsetViewModeMenu, 
-            SUMA_ShowMode2ShowModeMenuItem(Sover->ShowMode));
-        SUMA_Remixedisplay (ado);
+//        // Change DSet view mode to CaC
+//        Sover->ShowMode == SW_SurfCont_DsetViewCaC;
+//        SUMA_Set_Menu_Widget( SO->SurfCont->DsetViewModeMenu, 
+//            SW_SurfCont_DsetViewCaC);
+//        SUMA_KillOverlayContours(Sover);
+        // SUMA_Remixedisplay (ado);
        }
 
+       // Get variables required to make contours and colorize overlay
       if (!SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
                             Opt->IntRange[0], Opt->IntRange[1],
                             ColMap, Opt,
@@ -3394,6 +3396,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
              SUMA_ContourateDsetOverlay(Sover, SV);
 
             // Restore colors.  This restores colors but messes up the contours.
+            //  which is why the contours are made before this step instead of afterward
           if (!SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
                                 Opt->IntRange[0], Opt->IntRange[1],
                                 ColMap, Opt,
