@@ -78,7 +78,7 @@ inobj : InOpts object
         self.workdir         = DEF.DOPTS['workdir']
 
         # general model quantities
-        self.model_name      = DEF.DOPTS['model_name']
+        self.model_pim       = DEF.DOPTS['model_pim']  # model post inf meth
         self.model_ls        = DEF.DOPTS['model_ls']   # model param
         self.model_nu        = DEF.DOPTS['model_nu']   # model param
         self.model_L         = DEF.DOPTS['model_L']
@@ -142,18 +142,18 @@ inobj : InOpts object
     # ----- methods
 
     def run_model_general(self):
-        """Use model_name to call appropriate model method"""
+        """Use model_pim to call appropriate model method"""
 
         if self.verb > 1 :
-            ab.IP("Start the model: " + self.model_name)
+            ab.IP("Start the model: " + self.model_pim)
 
-        if self.model_name == "VI" :
+        if self.model_pim == "VI" :
             tmp = self.run_model_VI()
-        elif self.model_name == "Gibbs" :
+        elif self.model_pim == "Gibbs" :
             tmp = self.run_model_Gibbs()
         else:
-            msg = "Unrecognized model {}, ".format(self.model_name)
-            msg+= "is not in known list:\n{}".format(STR_all_simba_model_name)
+            msg = "Unrecognized model {}, ".format(self.model_pim)
+            msg+= "is not in known list:\n{}".format(STR_all_simba_model_pim)
             ab.EP(msg)
 
         return 0
@@ -356,9 +356,9 @@ inobj : InOpts object
             ab.IP("Start PPC curves, N = {}".format(self.ppc_n_mcmc))
 
         # setup PPC and flatten chains
-        if self.model_name == 'VI' :
+        if self.model_pim == 'VI' :
             ppc = self.model.PPC(n_mcmc = self.ppc_n_mcmc)
-        elif self.model_name == 'Gibbs' :
+        elif self.model_pim == 'Gibbs' :
             ppc = self.model.PPC(n_samples = self.ppc_n_mcmc)
 
         ppc = ppc.reshape(-1, self.simdata.ndset, self.simdata.nvox)
@@ -371,7 +371,7 @@ inobj : InOpts object
         start_time = time_new
 
         # start new figure
-        plt.figure("PPC plot, model:" + self.model_name)
+        plt.figure("PPC plot, posterior inference meth:" + self.model_pim)
 
         # takes about 3 mins for 100 draws
         for i in range(ndraw):
@@ -493,8 +493,8 @@ inobj : InOpts object
             self.outdir = io.outdir
 
         # general model variables
-        if io.model_name is not None :
-            self.model_name = io.model_name
+        if io.model_pim is not None :
+            self.model_pim = io.model_pim
         if io.model_ls is not None :
             self.model_ls = io.model_ls
         if io.model_nu is not None :
@@ -545,7 +545,7 @@ inobj : InOpts object
 
         # check basic requirements
 
-        ab.IP("Start setup for SIMBA model: {}".format(self.model_name))
+        ab.IP("Start setup for SIMBA model: {}".format(self.model_pim))
 
         # must have at least some input 
         if not(self.infiles) and self.inset is None :
@@ -603,10 +603,10 @@ inobj : InOpts object
             if nfail :
                 ab.EP("Failed to load ulay")
 
-        # model_name must be an allowed one
-        if self.model_name not in DEF.LIST_all_simba_model_name :
-            msg = "Model '{}' not in allowed list:".format(self.model_name)
-            msg+= "\n{}".format(all_simba_model_name)
+        # model_pim must be an allowed one
+        if self.model_pim not in DEF.LIST_all_simba_model_pim :
+            msg = "Model PIM '{}' not in allowed list:".format(self.model_pim)
+            msg+= "\n{}".format(all_simba_model_pim)
             ab.EP(msg)
 
         # allowed range of model length scales
@@ -625,11 +625,12 @@ inobj : InOpts object
             com  = ab.shell_com(cmd, capture=1)
             stat = com.run()
             rstr = com.so[0].strip()
-            self.workdir = '__wdir_obliquity_' + rstr
+            self.workdir = DEF.STR_workdir_base + rstr
 
         # convert bool-ish opts to bools
-        self.do_clean       = au.convert_to_bool_yn10(self.do_clean)
-
+        self.do_clean           = au.convert_to_bool_yn10(self.do_clean)
+        self.do_log             = au.convert_to_bool_yn10(self.do_log)
+        self.model_VI_elbo_stop = au.convert_to_bool_yn10(self.model_VI_elbo_stop)
         return 0
 
 

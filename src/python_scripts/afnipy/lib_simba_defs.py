@@ -11,18 +11,18 @@ import sys, os, copy, glob
 # general program parameters
 do_clean      = 'Yes'
 verb          = 1
-do_log        = False
+do_log        = 'No'
 
 # general model parameters
-model_ls      = 5.0             # for Matern kernel; can have phys units of mm
+model_ls      = 8.0             # for Matern kernel; can have phys units of mm
 model_nu      = 1.5
-model_name    = 'VI'
+model_pim     = 'VI'
 model_L       = 1214
 
 # model-specific parameters
 model_VI_ELBO_diff_tol  = 1e-8
 model_VI_para_diff_tol  = 1e-8
-model_VI_elbo_stop      = True
+model_VI_elbo_stop      = 'Yes'
 model_VI_max_iter       = 50000
 model_VI_verbose        = 5000
 model_Gibbs_burnin      = 4000
@@ -41,9 +41,12 @@ fig_dpi       = 300
 
 # ============================================================================
 
-# available model names
-LIST_all_simba_model_name = ['Gibbs', 'VI']
-STR_all_simba_model_name  = ', '.join(LIST_all_simba_model_name)
+# base of default workdir name
+STR_workdir_base = '__wdir_simba_'
+
+# available model posterior inference methods (PIMs)
+LIST_all_simba_model_pim = ['Gibbs', 'VI']
+STR_all_simba_model_pim  = ', '.join(LIST_all_simba_model_pim)
 
 # lenscale parameter min and max values
 RANGE_model_ls = {
@@ -67,7 +70,7 @@ DOPTS = {
     'ulay'            : '',
     'outdir'          : None,
     'workdir'         : '',
-    'model_name'      : model_name,
+    'model_pim'       : model_pim,
     'model_L'         : model_L,
     'model_ls'        : model_ls,
     'model_nu'        : model_nu,

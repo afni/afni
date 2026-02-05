@@ -16,7 +16,8 @@ from   afnipy import lib_simba_defs  as DEF
 
 # combine all entries for help here
 g_help_dict   = {**DEF.DOPTS, 
-                 'STR_all_simba_model_name': DEF.STR_all_simba_model_name, 
+                 'STR_all_simba_model_pim': DEF.STR_all_simba_model_pim, 
+                 'STR_workdir_base': DEF.STR_workdir_base,
                  **DEF.RANGE_model_ls}
 
 g_help_string = """Overview ~1~
@@ -56,9 +57,6 @@ Option usage ~1~
 -ulay ULAY     :underlay dataset (for images within this program), must 
                 match grid of all inset data
 
--model_name MN :name of model to run, selected from among this list: 
-                 {STR_all_simba_model_name}
-
 -model_ls  MLS :length scale parameter for the SIMBA model, which must be 
                 in the range: {lsmin} < LS < {lsmax} 
                 *** might make this required, estimated from 3dFWHMx ***
@@ -66,15 +64,16 @@ Option usage ~1~
 
 -workdir WD    :working directory name, without path; the working dir
                 will be subdirectory of the output location
-                (def: name with random chars)
+                (def: '{STR_workdir_base}' + random chars)
 
 -do_clean DC   :state whether to clean up any intermediate files;
                 allowed values are:  Yes, 1, No, 0
                 (def: '{do_clean}')
 
--do_log        :add this opt to turn on making a text log of all the
-                shell commands that are run when this program is
-                executed. Mainly for debugging purposes.
+-do_log DL     :state whether to make a text log of all the shell commands
+                that are run when this program is executed (mainly for
+                debugging purposes); allowed values are: Yes, 1, No, 0
+                (def: '{do_log}')
 
 -help, -h      :display program help file
 
@@ -95,6 +94,11 @@ etc.).  In general, these exist as options primarily for testing, and
 we would not expect them to need to be used in typical applications.
 
 General SIMBA model parameters:
+
+-model_pim MPIM :the name of the posterior inference method (PIM) to run, 
+                selected from among this list: 
+                  {STR_all_simba_model_pim}
+                Generally, "VI" will be the fastest (def: {model_pim})
 
 -model_nu  MNU :parameter for the SIMBA model
                 (def: {model_nu})
@@ -179,7 +183,7 @@ Examples ~1~
         -infiles     group_results/stats.sub-*nii.gz                   \\
         -prefix      out_simba                                         \\
         -mask        group_mask.inter.nii.gz                           \\
-        -model_name  VI                                                \\
+        -model_pim   VI                                                \\
         -model_ls    8
 
  2) Same as Ex 1, but also providing an underlay 'ulay' dset for creating
@@ -189,7 +193,7 @@ Examples ~1~
         -infiles     group_results/stats.sub-*nii.gz                   \\
         -prefix      out_simba                                         \\
         -mask        group_mask.inter.nii.gz                           \\
-        -model_name  VI                                                \\
+        -model_pim   VI                                                \\
         -model_ls    8                                                 \\
         -ulay        MNI152_2009_template_SSW.nii.gz
 
@@ -197,9 +201,10 @@ Examples ~1~
 """.format(**g_help_dict)
 
 g_history = """
-  **TEMPLATE_tool.py** history:
+  simba.py history:
 
   0.1   Sep 25, 2025 :: started this command line interface 
+  0.2   Feb  5, 2026 :: update help
 """
 
 g_prog    = g_history.split()[0]
@@ -236,7 +241,7 @@ checks happen in a subsequent object.
         self.outdir          = None
 
         # general model variables
-        self.model_name      = None
+        self.model_pim       = None
         self.model_ls        = None
         self.model_nu        = None
         self.model_L         = None
@@ -311,8 +316,8 @@ checks happen in a subsequent object.
 
         # general model parameters
 
-        self.valid_opts.add_opt('-model_name', 1, [], 
-                        helpstr='name of the SIMBA model to run')
+        self.valid_opts.add_opt('-model_pim', 1, [], 
+                        helpstr='name of the posterior inference method (PIM)')
 
         self.valid_opts.add_opt('-model_ls', 1, [], 
                         helpstr='SIMBA model length scale, in range [0, 1]**')
@@ -377,7 +382,7 @@ checks happen in a subsequent object.
         self.valid_opts.add_opt('-do_clean', 1, [], 
                         helpstr="turn on/off removal of intermediate files")
 
-        self.valid_opts.add_opt('-do_log', 0, [], 
+        self.valid_opts.add_opt('-do_log', 1, [], 
                         helpstr="turn on/off logging shell cmd execution")
 
         self.valid_opts.add_opt('-overwrite', 0, [], 
@@ -481,11 +486,11 @@ checks happen in a subsequent object.
 
             # SIMBA model opts
 
-            elif opt.name == '-model_name':
+            elif opt.name == '-model_pim':
                 val, err = uopts.get_string_opt('', opt=opt)
                 if val is None or err:
                     BASE.EP(err_base + opt.name)
-                self.model_name = val
+                self.model_pim = val
 
             elif opt.name == '-model_ls':
                 val, err = uopts.get_type_opt(float, '', opt=opt)
@@ -520,8 +525,8 @@ checks happen in a subsequent object.
                 self.model_VI_max_iter = val
 
             elif opt.name == '-model_VI_elbo_stop':
-                val, err = uopts.get_type_opt(bool, '', opt=opt)
-                if val != None and err: 
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
                     BASE.EP(err_base + opt.name)
                 self.model_VI_elbo_stop = val
 
@@ -598,7 +603,10 @@ checks happen in a subsequent object.
                 self.do_clean = val
 
             elif opt.name == '-do_log':
-                self.do_log = True
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.do_log = val
 
             elif opt.name == '-overwrite':
                 self.overwrite = '-overwrite'
