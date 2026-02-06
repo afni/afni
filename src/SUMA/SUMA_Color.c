@@ -3057,7 +3057,11 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
 
    SUMA_LH("Creating a scaled color vect");
    if (Sover->ShowMode == SW_SurfCont_DsetViewCon ||
-       Sover->ShowMode == SW_SurfCont_DsetViewCaC ) {
+       Sover->ShowMode == SW_SurfCont_DsetViewCaC ||
+       SO->SurfCont->BoxOutlineThresh) 
+       /* Without this third item, no threshold outlines shown 
+       but extra colored outlines are shown. */
+       {
       if (SUMA_NeedsLinearizing(ColMap)) {
          if (!nwarn) {
             SUMA_SLP_Note("Cannot do contouring with colormaps\n"
@@ -3368,13 +3372,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
         }
         vSave = Sover->V;
         Sover->V = box_mask;
-
-//        // Change DSet view mode to CaC
-//        Sover->ShowMode == SW_SurfCont_DsetViewCaC;
-//        SUMA_Set_Menu_Widget( SO->SurfCont->DsetViewModeMenu, 
-//            SW_SurfCont_DsetViewCaC);
-//        SUMA_KillOverlayContours(Sover);
-        // SUMA_Remixedisplay (ado);
        }
 
        // Get variables required to make contours and colorize overlay
@@ -3390,14 +3387,15 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             free(box_mask);
             
             // Make contours
-            if (SUMA_is_Label_dset(Sover->dset_link,NULL))
-             SUMA_ContourateDsetOverlay(Sover, NULL);
-            else
-             SUMA_ContourateDsetOverlay(Sover, SV);
+            SUMA_ContourateDsetOverlay(Sover, SV);
+//            if (0 && SUMA_is_Label_dset(Sover->dset_link,NULL))
+//             SUMA_ContourateDsetOverlay(Sover, NULL);
+//            else
+//             SUMA_ContourateDsetOverlay(Sover, SV);
 
             // Restore colors.  This restores colors but messes up the contours.
             //  which is why the contours are made before this step instead of afterward
-          if (!SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
+          if (0 && !SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
                                 Opt->IntRange[0], Opt->IntRange[1],
                                 ColMap, Opt,
                                 SV) ){
@@ -3680,7 +3678,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    if (SO->SurfCont->BoxOutlineThresh) {
     // Make contours black
     int j;
-    drawThresholdOutline(SO, SV);
+    // drawThresholdOutline(SO, SV);
     if (Sover->Contours){
         for (i=0; i<Sover->N_Contours; ++i){
             for (j=0; j<4; ++j){
@@ -7578,7 +7576,7 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
          }
          /* any contours? */
          if ( (colplane->ShowMode == SW_SurfCont_DsetViewCon ||
-               colplane->ShowMode == SW_SurfCont_DsetViewCaC ) &&
+               colplane->ShowMode == SW_SurfCont_DsetViewCaC) &&
               colplane->Contours && colplane->N_Contours) {
             /* draw them */
             for (ic=0; ic<colplane->N_Contours; ++ic) {
@@ -7890,7 +7888,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    NshowOverlays_Back = 0;
    for (j=0; j < N_Overlays; ++j) {
       if ( (Overlays[j]->ShowMode == SW_SurfCont_DsetViewCol ||
-            Overlays[j]->ShowMode == SW_SurfCont_DsetViewCaC ) &&
+            Overlays[j]->ShowMode == SW_SurfCont_DsetViewCaC /* ||
+            SO->SurfCont->BoxOutlineThresh */) &&
            Overlays[j]->GlobalOpacity != 0) {
          if (Overlays[j]->isBackGrnd) {
             if (0) { /* There is no
@@ -12135,6 +12134,8 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
             SUMA_KillOverlayContours(cp);
          }
          if (SV->N_VCont != cp->N_NodeDef) {
+         fprintf(stderr, "SV->N_VCont = %d\n", SV->N_VCont);
+         fprintf(stderr, "cp->N_NodeDef = %d\n", cp->N_NodeDef);
             SUMA_S_Warn("I expected N_VCont and N_NodeDef to match!\n"
                         "Bad things might happen.");
          }

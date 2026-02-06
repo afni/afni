@@ -2459,13 +2459,14 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
 
    // Process for current hemisphere
    over2 = SUMA_ADO_CurColPlane(ado);
-   if (BoxOutlineThresh){
-    savedShowMode = over2->ShowMode;
-    over2->ShowMode = SW_SurfCont_DsetViewCaC;
-   }
-   else over2->ShowMode = savedShowMode;
-   SUMA_Set_Menu_Widget( SO->SurfCont->DsetViewModeMenu, 
-        over2->ShowMode);
+//   if (BoxOutlineThresh){
+//    savedShowMode = over2->ShowMode;
+//    over2->ShowMode = SW_SurfCont_DsetViewCaC;
+//   }
+//   else over2->ShowMode = savedShowMode;
+//   SUMA_Set_Menu_Widget( SO->SurfCont->DsetViewModeMenu, 
+//        over2->ShowMode);
+    SUMA_KillOverlayContours(over2);
    SUMA_ScaleToMap_Interactive(over2);
       
    // Process for contralateral hemisphere
@@ -2476,14 +2477,14 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
             SOC->SurfCont->BoxOutlineThresh, NOPE); // Set B checkbox to reflect box state
    }
    SOC->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-   if (BoxOutlineThresh){
-    colpC->ShowMode = SW_SurfCont_DsetViewCaC;
-   }
-   else colpC->ShowMode = savedShowMode;
-   SUMA_Set_Menu_Widget( SOC->SurfCont->DsetViewModeMenu, 
-        colpC->ShowMode);
+//   if (BoxOutlineThresh){
+//    colpC->ShowMode = SW_SurfCont_DsetViewCaC;
+//   }
+//   else colpC->ShowMode = savedShowMode;
+//   SUMA_Set_Menu_Widget( SOC->SurfCont->DsetViewModeMenu, 
+//        colpC->ShowMode);
    SUMA_ScaleToMap_Interactive(colpC);
-
+   
    // Refresh display
    SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
@@ -10146,11 +10147,13 @@ SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_ALL_DO *ado, SUMA_COLOR_MAP *CM)
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead = NOPE;
    static int nwarn=0;
+   SUMA_SurfaceObject *SO = NULL;
 
    SUMA_ENTRY;
 
    SUMA_LH("Called");
    if (!ado || !CM) { SUMA_RETURN(NOPE); }
+   SO = (SUMA_SurfaceObject *)ado;
 
    SurfCont = SUMA_ADO_Cont(ado);
 
@@ -10160,7 +10163,7 @@ SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_ALL_DO *ado, SUMA_COLOR_MAP *CM)
    if (!over) { SUMA_RETURN(NOPE); }
 
    if (over->ShowMode == SW_SurfCont_DsetViewCon ||
-       over->ShowMode == SW_SurfCont_DsetViewCaC ) { /* wants contours */
+       over->ShowMode == SW_SurfCont_DsetViewCaC) { /* wants contours */
       if (SUMA_NeedsLinearizing(CM)) {
          if (!nwarn) {
             SUMA_SLP_Note("Cannot do contouring with colormaps\n"

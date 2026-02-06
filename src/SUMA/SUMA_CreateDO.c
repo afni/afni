@@ -15190,7 +15190,8 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
          }
          /* any contours? */
          if ( (colplane->ShowMode == SW_SurfCont_DsetViewCon ||
-               colplane->ShowMode == SW_SurfCont_DsetViewCaC ) &&
+               colplane->ShowMode == SW_SurfCont_DsetViewCaC /*||
+               SO->SurfCont->BoxOutlineThresh */) && // Appears necessary to show contours
               colplane->Contours && colplane->N_Contours) {
             /* draw them */
             for (ic=0; ic<colplane->N_Contours; ++ic) {
@@ -15353,6 +15354,56 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                   }
                }
 
+            }
+         }
+         
+         /* If show threshold outlines only for current overlay for this surface object ... */
+         if (SO->SurfCont->BoxOutlineThresh && 
+            colplane == SUMA_ADO_CurColPlane((SUMA_ALL_DO *)SO)){
+            for (ic=0; ic<colplane->N_Contours; ++ic) {
+               D_ROI = (SUMA_DRAWN_ROI *)colplane->Contours[ic];
+               SUMA_LHv("Dset Contouring %d\n", ic);
+
+               if (D_ROI->CE && D_ROI->N_CE) {
+                  /* Draw the contour */
+                  if (!SO->patchNodeMask) {
+                     glLineWidth(sv->ContThick); /* Changed from horrible '6'
+                                 now that glPolygonOffset is used to
+                                 allow for proper coplanar line and
+                                 polygon rendering.  July 8th 2010 */
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE,
+                                  D_ROI->FillColor);
+                     SUMA_LH("Drawing contour ...");
+
+                     /* initialize first point down */
+                     glBegin(GL_LINE_STRIP);
+                     id1cont = 3 * D_ROI->CE[0].n1;
+                     glVertex3f(SO->NodeList[id1cont],
+                                SO->NodeList[id1cont+1],
+                                SO->NodeList[id1cont+2]);
+                     i2last = D_ROI->CE[0].n1;
+                     // #if 0
+                     for (icont = 0; icont < D_ROI->N_CE; ++icont) {
+                        id2cont = 3 * D_ROI->CE[icont].n2;
+                        if (i2last != D_ROI->CE[icont].n1) {
+                           /* break in loop*/
+                           glEnd(); /* end lines */
+                           glBegin(GL_LINE_STRIP); /* begin again */
+                           id1cont = 3 * D_ROI->CE[icont].n1;
+                           glVertex3f(SO->NodeList[id1cont],
+                                      SO->NodeList[id1cont+1],
+                                      SO->NodeList[id1cont+2]);
+                        }
+                        /* put down next vertex */
+                        glVertex3f(SO->NodeList[id2cont],
+                                   SO->NodeList[id2cont+1],
+                                   SO->NodeList[id2cont+2]);
+                        i2last = D_ROI->CE[icont].n2;
+                     }
+
+                     glEnd();
+                  } 
+               }
             }
          }
       }
