@@ -37,7 +37,7 @@ err : int
     try:
         N = len(X)
     except:
-        BASE.EP1("input should be an interable obj, like a list")
+        BASE.EP1("input should be an iterable obj, like a list")
         return BAD_RETURN
 
     try:
