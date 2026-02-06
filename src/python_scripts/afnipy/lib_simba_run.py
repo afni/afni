@@ -102,6 +102,7 @@ inobj : InOpts object
         self.ppc_alpha       = DEF.DOPTS['ppc_alpha']
         self.ppc_color       = DEF.DOPTS['ppc_color']
         self.ppc_label       = DEF.DOPTS['ppc_label']
+        self.ppc_xlim        = DEF.DOPTS['ppc_xlim']
 
         # figure quantities
         self.fig_ext         = DEF.DOPTS['fig_ext']
@@ -333,14 +334,15 @@ inobj : InOpts object
             if stat :
                 ab.EP("Cannot copy output dataset: {}".format(opre0))
 
-            # *** add history, subbrick labels, etc.
-            hist = ' '.join(self.user_inobj.argv)
+            # add subbrick labels
             cmd  = '3drefit {} {}'.format(opt_sublab, opre0)
             com  = ab.shell_com(cmd, capture=1)
             stat = com.run()
 
-            # *** add history, subbrick labels, etc.
-            hist = ' '.join(self.user_inobj.argv)
+            # add history
+            all_opt = copy.deepcopy(self.user_inobj.argv)
+            all_opt[0] = all_opt[0].split('/')[-1] # only name of prog
+            hist = ' '.join(all_opt)
             cmd  = '3dNotes -h "{}" {}'.format(hist, opre0)
             com  = ab.shell_com(cmd, capture=1)
             stat = com.run()
@@ -373,6 +375,19 @@ inobj : InOpts object
         # start new figure
         plt.figure("PPC plot, posterior inference meth:" + self.model_pim)
 
+        plt.axhline(0, color='0.75', lw=0.5)  
+
+        ### Notes on fastKDE.pdf() here:
+        # - unlike most online help descriptions, it returns 1 obj
+        #   here, a DataArray in xarray.core.dataarray
+        # - the domain of x-values to plot (or 'coords') just come
+        #   from the input data, so one would get the min and max of
+        #   that tensor to know; can also be extracted via: 
+        #   NAME.var0.to_numpy()
+        # - within the output obj, the 'data' attribute is what
+        #   contains our data of interest, and one can get the np
+        #   array via: NAME.data
+
         # takes about 3 mins for 100 draws
         for i in range(ndraw):
             # do density calcs (with flattening to vector)
@@ -402,11 +417,18 @@ inobj : InOpts object
         data_den.plot(alpha=1.0, color="black", label='Observed data')
 
         # have to make this adaptable, based on calcs of the curves
-        plt.xlim(-0.04, 0.04)  
+        if self.ppc_xlim is None :
+            self.ppc_xlim = (-0.04, 0.04)
+            xvals = data_den.var0.to_numpy()
+            yvals = data_den.data[:]
+            _tmp, self.ppc_xlim = calc_xlim_range(xvals, yvals)
+
+        plt.xlim(self.ppc_xlim[0], self.ppc_xlim[1])  
         plt.ylabel('')
         plt.xlabel('')
-        plt.xticks(np.linspace(-0.04, 0.04, 5), fontsize=18)
-        plt.yticks(np.linspace(0, 70, 6), fontsize=18)
+        plt.xticks(np.linspace(self.ppc_xlim[0], self.ppc_xlim[1], 5), 
+                   fontsize=18)
+        #plt.yticks(np.linspace(0, 70, 6), fontsize=18)
         plt.legend()
 
         fig_name = self.prefix_noext + '_ppc' + '.' + self.fig_ext
@@ -414,7 +436,6 @@ inobj : InOpts object
         plt.close()
 
         return 0
-
 
     def specify_kernel_function(self):
         """Use lengthscale and nu parameters to define kernel function"""
@@ -529,6 +550,8 @@ inobj : InOpts object
             self.ppc_color = io.ppc_color
         if io.ppc_label is not None :
             self.ppc_label = io.ppc_label
+        if io.ppc_xlim is not None :
+            self.ppc_xlim = io.ppc_xlim
 
         # figure variables
         if io.fig_ext is not None :
@@ -692,7 +715,50 @@ B : array
     return B
 
 
+def calc_xlim_range(xvals, yvals, tail_perc=1):
+    """For a given set of xvals and yvals, estimate a reasonable pair of
+xlim values (i.e., min and max values for x-axis when plotting). This
+is primarily based on the size desired tail distribution percentiles,
+given by the tail_perc kwarg
 
+    """
+    
+    BAD_RETURN = -1, []
+
+    # basic checks
+    try:
+        N = len(xvals)
+        M = len(yvals)
+        if N != M :
+            BASE.EP1("xvals and yvals must be equal length")
+            return BAD_RETURN
+    except:
+        BASE.EP1("xvals and yvals should each be iterable, like a list")
+        return BAD_RETURN
+
+    yabs = np.abs(yvals)
+    totsum = np.sum(yabs)
+
+    # check cumulative sums: left tail
+    lsum = 0.0
+    ll = 0
+    while ll < N :
+        lsum+= np.abs(yvabs[ll])
+        if lsum/totsum >= tail_perc :
+            break
+        ll+=1
+
+    # check cumulative sums: right tail
+    rsum = 0.0
+    rr = N-1
+    while rr >= 0 :
+        rsum+= np.abs(yvabs[rr])
+        if rsum/totsum >= tail_perc :
+            break
+        rr-=1
+
+    # **** ADJUST
+    return 0, [-0.04 0.04]
 
 # ============================================================================
 

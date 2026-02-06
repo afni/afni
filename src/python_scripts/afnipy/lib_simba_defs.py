@@ -34,6 +34,7 @@ ppc_n_mcmc    = 10 ###150 ****
 ppc_alpha     = 0.2
 ppc_color     = "#E69F00"
 ppc_label     = 'Posterior predictive'
+ppc_xlim      = None
 
 # figure plotting parameters
 fig_ext       = 'png'
@@ -86,6 +87,7 @@ DOPTS = {
     'ppc_alpha'       : ppc_alpha,
     'ppc_color'       : ppc_color,
     'ppc_label'       : ppc_label,
+    'ppc_xlim'        : ppc_xlim,
     'fig_ext'         : fig_ext,
     'fig_dpi'         : fig_dpi,
 }

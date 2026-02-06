@@ -11,6 +11,46 @@ from   afnipy import afni_util       as UTIL
 from   afnipy import afni_base       as BASE
 from   afnipy import lib_simba_defs  as DEF
 
+# ----------------------------------------------------------------------------
+# supplemental funcs
+
+def convert_list_str_to_float(X):
+    """Take a list of str X and return a list of the same length, where
+each str has been converted to a float. If an error occurs, return an
+empty list.  If X is empty, return an empty Y and no error message
+
+Parameters
+----------
+X : list
+    list of str
+
+Returns
+-------
+Y : list 
+    list of floats (same length as X)
+err : int 
+    error-bearing int: if 0, things are fine; else, nonzero
+    """
+
+    BAD_RETURN = [], -1
+
+    try:
+        N = len(X)
+    except:
+        BASE.EP1("input should be an interable obj, like a list")
+        return BAD_RETURN
+
+    try:
+        Y = [float(x) for x in X]
+    except:
+        msg = "each element of X should be float-ize-able; failed:"
+        msg+= "\n{}".format(X)
+        BASE.EP1(msg)
+        return BAD_RETURN
+
+    return Y, 0
+
+
 # ----------------------------------------------------------------------
 # globals
 
@@ -164,6 +204,12 @@ Posterior predictive checks (PPC) curve parameters:
                :label for PPC curve
                 (def: '{ppc_label}')
 
+-ppc_xlim   PPC_XLIM_MIN PPC_XLIM_MAX
+               :the min and max along the x-axis for the PPC plot;
+                if not provided, the code will automatically estimate
+                something that is hopefully reasonable
+                (def: {ppc_xlim})
+
 
 ------------------------------------------------------------------------
 
@@ -261,6 +307,7 @@ checks happen in a subsequent object.
         self.ppc_alpha     = None
         self.ppc_color     = None
         self.ppc_label     = None
+        self.ppc_xlim      = None
 
         # figure variables
         self.fig_ext       = None
@@ -364,6 +411,9 @@ checks happen in a subsequent object.
 
         self.valid_opts.add_opt('-ppc_label', 1, [], 
                         helpstr='label for PPC curve')
+
+        self.valid_opts.add_opt('-ppc_xlim', 2, [], 
+                        helpstr='min and max for x-axis of PPC plot')
 
         # figure parameters
 
@@ -580,6 +630,15 @@ checks happen in a subsequent object.
                     BASE.EP(err_base + opt.name)
                 self.ppc_label = val
 
+            elif opt.name == '-ppc_xlim':
+                val, err = uopts.get_string_list('', opt=opt)
+                if val != None and err: 
+                    BASE.EP(err_base + opt.name)
+                val2, err2 = convert_list_str_to_float(val)
+                if err2 :
+                    BASE.EP(err_base + opt.name)
+                self.ppc_xlim = val2
+
             # figure options
 
             elif opt.name == '-fig_ext':
@@ -664,7 +723,6 @@ checks happen in a subsequent object.
             return len(self.infiles)
         else:
             return 0
-
 
 # ----------------------------------------------------------------------------
 
