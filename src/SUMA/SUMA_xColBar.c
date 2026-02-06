@@ -2459,14 +2459,6 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
 
    // Process for current hemisphere
    over2 = SUMA_ADO_CurColPlane(ado);
-//   if (BoxOutlineThresh){
-//    savedShowMode = over2->ShowMode;
-//    over2->ShowMode = SW_SurfCont_DsetViewCaC;
-//   }
-//   else over2->ShowMode = savedShowMode;
-//   SUMA_Set_Menu_Widget( SO->SurfCont->DsetViewModeMenu, 
-//        over2->ShowMode);
-    SUMA_KillOverlayContours(over2);
    SUMA_ScaleToMap_Interactive(over2);
       
    // Process for contralateral hemisphere
@@ -2477,12 +2469,6 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
             SOC->SurfCont->BoxOutlineThresh, NOPE); // Set B checkbox to reflect box state
    }
    SOC->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-//   if (BoxOutlineThresh){
-//    colpC->ShowMode = SW_SurfCont_DsetViewCaC;
-//   }
-//   else colpC->ShowMode = savedShowMode;
-//   SUMA_Set_Menu_Widget( SOC->SurfCont->DsetViewModeMenu, 
-//        colpC->ShowMode);
    SUMA_ScaleToMap_Interactive(colpC);
    
    // Refresh display

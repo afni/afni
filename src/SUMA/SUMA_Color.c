@@ -3387,15 +3387,15 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             free(box_mask);
             
             // Make contours
-            SUMA_ContourateDsetOverlay(Sover, SV);
-//            if (0 && SUMA_is_Label_dset(Sover->dset_link,NULL))
-//             SUMA_ContourateDsetOverlay(Sover, NULL);
-//            else
-//             SUMA_ContourateDsetOverlay(Sover, SV);
+            // SUMA_ContourateDsetOverlay(Sover, SV);
+            if (0 && SUMA_is_Label_dset(Sover->dset_link,NULL))
+             SUMA_ContourateDsetOverlay(Sover, NULL);
+            else
+             SUMA_ContourateDsetOverlay(Sover, SV);
 
             // Restore colors.  This restores colors but messes up the contours.
             //  which is why the contours are made before this step instead of afterward
-          if (0 && !SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
+          if (!SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
                                 Opt->IntRange[0], Opt->IntRange[1],
                                 ColMap, Opt,
                                 SV) ){
