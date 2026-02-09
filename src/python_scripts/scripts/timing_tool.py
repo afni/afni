@@ -423,6 +423,29 @@ examples: ~1~
                         -nplaces 1 -mplaces 1 -write_as_married \\
                         -select_runs 0 0 1 2 0 -write_timing NEW.txt
 
+   Example 18e. Go the other direction: create FSL timing from AFNI.
+
+      Given AFNI formatted timing files afni_stim*.txt, convert them to
+      FSL timing format
+
+      1. without explicit duration (likely with AFNI duration mod timing files)
+
+          timing_tool.py -multi_timing afni_stim*.txt -write_simple_tsv fsl_stim
+
+      2. with constant duration (e.g. 4.2 seconds)
+
+          timing_tool.py -multi_timing afni_stim*.txt -multi_stim_dur 4.2 \\
+                         -write_simple_tsv fsl_stim
+
+      3. with a duration list, one per file
+         (careful, not listing files would mean alphabetical)
+
+          timing_tool.py -multi_timing     afni_stim*.txt  \\
+                         -multi_stim_dur   2  4.1  5.3  3  \\
+                         -write_simple_tsv fsl_stim
+
+      Consider also -write_tsv_cols_of_interest.
+
    Example 19a. convert TSV formatted timing files to AFNI timing format ~2~
 
       A tab separated value file contains events for all classes for a single
@@ -706,10 +729,11 @@ options with both single and multi versions (all single first): ~1~
         If some classes have modulators and some do not (or have fewer), the
         output will still be rectangular, with such modulators output as zeros.
 
-            Consider '-write_multi_timing'.
+        This can be used to convert the timing files from an AFNI format
+        to an FSL format.
 
-------------------------------------------
-action options (apply to multi timing elements, only): ~1~
+            Consider '-write_multi_timing' and '-write_tsv_cols_of_interest'.
+
 ------------------------------------------
 action options (apply to single timing element, only): ~1~
 
@@ -1116,6 +1140,9 @@ action options (apply to single timing element, only): ~1~
         Since the input TSV files often have many columns that make viewing
         difficult, this option can be used to extract only the relevant
         columns and write them to a new TSV file.
+
+        It is an alternate way to create FSL timng files, but this result
+        might be more general.
 
             Consider '-multi_timing_ncol_tsv'.
 
@@ -1765,9 +1792,10 @@ g_history = """
    3.24 Feb  6, 2025 - allow -multi_timing with -timing_to_1D
                      - add -timing_to_1D_method
    3.25 Jul 29, 2025 - add -force_write_type
+   3.26 Feb  9, 2026 - fix fname_prefix to return intended length
 """
 
-g_version = "timing_tool.py version 3.25, July 29, 2025"
+g_version = "timing_tool.py version 3.26, February 9, 2026"
 
 
 
@@ -2174,7 +2202,7 @@ class ATInterface:
             break
       # if we found a suffix, strip it
       if suffix != '':
-         return fname[:(len(suffix)+1)]
+         return fname[:-(len(suffix)+1)]
       return fname
 
    def init_options(self):
