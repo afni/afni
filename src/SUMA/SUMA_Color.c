@@ -3024,12 +3024,11 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    SUMA_ALL_DO *ado=NULL;
    SUMA_WIDGET_INDEX_COORDBIAS HoldBiasOpt;
    float *box_mask, *vSave;
+   int debugTempBBox;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "************************************** %s\n", FuncName);
-
    if (!Sover) { SUMA_SL_Err("NULL Sover"); SUMA_RETURN(NOPE); }
    if (!Sover->cmapname) {
       SUMA_SL_Err("NULL Colormap name"); SUMA_RETURN(NOPE);
@@ -3047,6 +3046,10 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                                  
    ado = SUMA_Overlay_OwnerADO(Sover);
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   
+   // DEBUG: Temporarily suspend threshold outline
+   debugTempBBox = SO->SurfCont->BoxOutlineThresh;
+   if (SO->SurfCont->alphaOpacityModel) SO->SurfCont->BoxOutlineThresh = 0;
 
    if (icmap < 0) {
       SUMA_SL_Err("Failed to find ColMap");
@@ -3694,6 +3697,8 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
     }
    }
 }
+
+    SO->SurfCont->BoxOutlineThresh = debugTempBBox;
 
    if (LocalHead) {
       SUMA_LH("In Scale_Interactive\n**********************");
