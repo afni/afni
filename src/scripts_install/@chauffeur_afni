@@ -3035,7 +3035,8 @@ COMMAND OPTIONS ~1~
                     colorscale filename; the file contains the name of
                     the colorbar in the first line, and then either 2
                     columns (values and colors) or 1 column (just
-                    colors; will be evenly spaced).  An example CF is:
+                    colors; will be evenly spaced, typically called a *.pal
+                    file, for loading a color palette).  An example CF is:
                           Yellow-Lime-Red-Blue
                             1.0 #ffff00
                             0.7 limegreen
