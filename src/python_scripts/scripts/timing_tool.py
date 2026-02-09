@@ -1141,7 +1141,7 @@ action options (apply to single timing element, only): ~1~
         difficult, this option can be used to extract only the relevant
         columns and write them to a new TSV file.
 
-        It is an alternate way to create FSL timng files, but this result
+        It is an alternate way to create FSL timing files, but this result
         might be more general.
 
             Consider '-multi_timing_ncol_tsv'.
