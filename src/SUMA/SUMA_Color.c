@@ -3027,6 +3027,8 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   fprintf(stderr, "************************************** %s\n", FuncName);
 
    if (!Sover) { SUMA_SL_Err("NULL Sover"); SUMA_RETURN(NOPE); }
    if (!Sover->cmapname) {
@@ -7844,7 +7846,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    SUMA_Boolean ShowForeground;
    SUMA_OVERLAYS *currentOverlay = SO->SurfCont->curColPlane;
    int numThresholdNodes = 0;
-   static int *outlinevector = NULL;
    byte *isColored_ForeTmp;
    SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */
 
@@ -8333,20 +8334,12 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          }
       }
    
-   if (SO->SurfCont->BoxOutlineThresh /* && outlinevector */){
-        drawThresholdOutline(SO, SV);
-   }
-
    /* free this mess and get out */
    if (isColored) SUMA_free(isColored);
    if (isColored_Back) SUMA_free(isColored_Back);
    if (glcolar_Back) SUMA_free(glcolar_Back);
    if (isColored_Fore) SUMA_free(isColored_Fore);
    if (glcolar_Fore) SUMA_free(glcolar_Fore);
-   if (SO->SurfCont->BoxOutlineThresh && outlinevector){
-    free(outlinevector);
-    outlinevector = NULL;
-   } 
    
    SUMA_RETURN (YUP);
 }
@@ -12258,8 +12251,6 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
       }
       /* cp->N_NodeDef is taken care of inside SUMA_ScaleToMap_Interactive */
    }
-
-
 
    if (LocalHead)  {
       SUMA_LH("Color Plane Post Colorizing");
