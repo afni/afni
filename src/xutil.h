@@ -52,8 +52,8 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #define   TEAROFFIZE(w) XtVaSetValues((w),XmNtearOffModel,XmTEAR_OFF_ENABLED ,NULL)
 #define UNTEAROFFIZE(w) XtVaSetValues((w),XmNtearOffModel,XmTEAR_OFF_DISABLED,NULL)
 
-extern void forceExpose(Widget w, int method) ;   /* Dec 2025 - for Mac Tahoe */
-extern void sendExpose (Widget w, int method) ;
+extern void forceExpose(Widget w, int source) ;   /* Dec 2025 - for Mac Tahoe */
+extern void sendExpose (Widget w, int source) ;
 extern int  have_MACOS_FORCE_EXPOSE(void) ;
 extern int  needsX11Redraw(void) ;
 
