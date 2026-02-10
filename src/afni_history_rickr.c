@@ -53,6 +53,22 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Feb, 2026, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
+   "fix labels in -write_simple_tsv (they were truncated)",
+   NULL
+ } ,
+
+ { 23, Jan, 2026, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "do not automatically include tcsh on check_list for init_user_dotfiles.py",
+   "This prevents unneeded whining about apsearch in tcsh.\n"
+   "Just let tcsh inherit variables when it is not the login shell."
+ } ,
+
+ { 22, Jan, 2026, RCR, "afni", MICRO, TYPE_BUG_FIX,
+   "lose the C99 variable declaration, add new options to afni -help",
+   NULL
+ } ,
+
  { 21, Jan, 2026, RCR, "afni", MICRO, TYPE_MODIFY,
    "have AFNI_IMAGE_DATASETS default to NO",
    "Set it to YES to see jpg files in a directory (env var or .afnirc).\n"

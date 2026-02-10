@@ -987,6 +987,14 @@ void AFNI_syntax(void)
      "                have one on your computer, right?).\n"
      "                Exit after display.\n"
      "\n"
+     "   -show        show the package name\n"
+     "\n"
+     "    -x_have_MACOS_FORCE_EXPOSE\n"
+     "                show whether compiled with MACOS_FORCE_EXPOSE\n"
+     "\n"
+     "    -x_needsX11Redraw\n"
+     "                show whether resize events will cause redraws\n"
+     "\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
      "      can be controlled by appropriate X11 resources.  See the\n"
@@ -8156,12 +8164,14 @@ void AFNI_redisplay_func( Three_D_View *im3d )  /* 05 Mar 2002 */
 ENTRY("AFNI_redisplay_func") ;
    if( !ignore_redisplay_func    &&
        IM3D_OPEN(im3d)           &&
-       IM3D_IMAGIZED(im3d)       &&
-       im3d->vinfo->func_visible    /* Dec 2025 */ ){
+       IM3D_IMAGIZED(im3d)       ){   
+/* o key/overlay toggle doesn't redisplay with func_visible check */
+/* && im3d->vinfo->func_visible  Dec 2025 */ 
 
      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
      AFNI_process_funcdisplay( im3d ) ;
    }
+
    EXRETURN ;
 }
 
