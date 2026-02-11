@@ -3385,6 +3385,8 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       
       // if (Sover->AlphaOpacityFalloff) SUMA_RETURN(1); //DEBUG
 
+      fprintf(stderr, "$$$$$$$$$$$$$$$$$$$ SO->SurfCont->BoxOutlineThresh = %d\n", SO->SurfCont->BoxOutlineThresh);
+      fprintf(stderr, "$$$$$$$$$$$$$$$$$$$ Sover->makeContours = %d\n", Sover->makeContours);
       if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh && Sover->makeContours){
         fprintf(stderr, "$$$$$$$$$$$$$$$$$$$ SO->SurfCont->BoxOutlineThresh && Sover->makeContours\n");
         // Threshold colormap

@@ -2358,7 +2358,7 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int
          SUMA_RETURN(0);
    }
    
-   curColPlane->makeContours = NOPE;
+   curColPlane->makeContours = !(curColPlane->AlphaOpacityFalloff);
    SUMA_Remixedisplay(ado);
    
    SUMA_UpdateNodeValField(ado);
