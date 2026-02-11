@@ -2,6 +2,9 @@
 #include "coxplot.h"
 #include "SUMA_plot.h"
 
+/* AFNI prototype */
+extern void machdep( void );
+
 extern int selenium_close(void) ;
 
 /*! Parts of the code in this file are based on code from the motif programming manual.
@@ -4561,6 +4564,21 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       SUMA_SV_InitDrawAreaOffset(SUMAg_SVv+ic);
 
       SUMA_LH("Done with new window setup");
+
+// Tahoe
+//Tahoe fix here for  SurfCont->Mainform (maybe  SurfCont->Page?)
+
+   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( Gmainw,  /* handle events in Mainform */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           SUMA_expose_EV ,       /* handler */
+                           (XtPointer) Gmainw ,      /* client data - X, sv or Mainform? */
+                           XtListTail               /* last in queue */
+                         ) ;
+printf("Added event handler for Tahoe resizing of OpenGL SUMA surface window\n");
+       }
+
    } else {    /* widget already set up, just undo whatever
                   was done in SUMA_ButtClose_pushed */
 
@@ -7234,7 +7252,7 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
 
    /* allow for code to resize the shell */
    XtVaSetValues (sv->X->ViewCont->TopLevelShell,
-         XmNresizePolicy , XmRESIZE_NONE , /* allow (?) childrent to resize */
+         XmNresizePolicy , XmRESIZE_NONE , /* allow (?) children to resize */
          XmNallowShellResize , True ,       /* let code resize shell */
          NULL);
 
@@ -7488,6 +7506,17 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
    XtManageChild (rc_mamma);
    XtManageChild (sv->X->ViewCont->Mainform);
 
+   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( sv->X->ViewCont->Mainform ,  /* handle events in Mainform */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           SUMA_mainform_EV ,       /* handler */
+                           (XtPointer) sv->X ,      /* client data - X, sv or Mainform? */
+                           XtListTail               /* last in queue */
+                         ) ;
+printf("Added event handler for Tahoe resizing of SUMA viewer controller window\n");
+   }
+
    #if SUMA_CONTROLLER_AS_DIALOG
    #else
    /** Feb 03/03: pop it up if it is a topLevelShellWidgetClass,
@@ -7500,6 +7529,126 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
    XtRealizeWidget (sv->X->ViewCont->TopLevelShell);
 
    SUMA_RETURNe;
+}
+
+/*-------------------------------------------------------------------------*/
+/* what to do when the mainform of the SUMA window is resized [Dec 2025] */
+/*-------------------------------------------------------------------------*/
+
+/* simple version - just expose widget directly */
+void SUMA_expose_EV( Widget w , XtPointer cd ,
+                               XEvent *ev , RwcBoolean *continue_to_dispatch )
+{
+//   Three_D_View *im3d = (Three_D_View *)cd ;
+
+   static int busy=0 ;
+
+ENTRY("SUMA_expose_EV") ;
+
+   if( busy ) EXRETURN ;
+
+   busy = 1 ;
+
+   switch( ev->type ){
+
+     case ConfigureNotify:{
+//            XtUnmanageChild(w);
+//            XtManageChild(w);
+        forceExpose( w , 0 ) ;
+
+//        XSync( XtDisplay(w) , False) ;
+
+printf("ConfigureNotify event for Tahoe resizing of object controller\n");
+     }
+     break ;
+
+     /** No other event types (at this time) */
+
+   }
+
+   busy = 0 ;
+   EXRETURN ;
+}
+
+
+/* simple version - just expose widget directly */
+void SUMA_surfcont_expose_EV( Widget w , XtPointer cd ,
+                               XEvent *ev , RwcBoolean *continue_to_dispatch )
+{
+//   Three_D_View *im3d = (Three_D_View *)cd ;
+
+   static int busy=0 ;
+
+ENTRY("SUMA_surfcont_expose_EV") ;
+
+   if( busy ) EXRETURN ;
+
+   busy = 1 ;
+
+   switch( ev->type ){
+
+     case ConfigureNotify:{
+//            XtUnmanageChild(w);
+//            XtManageChild(w);
+
+        forceExpose( w , 0 ) ;
+//        XSync( XtDisplay(w) , False) ;
+
+printf("ConfigureNotify event for Tahoe resizing of object controller2\n");
+     }
+     break ;
+
+     /** No other event types (at this time) */
+
+   }
+
+   busy = 0 ;
+   EXRETURN ;
+}
+
+void SUMA_mainform_EV( Widget w , XtPointer cd ,
+                               XEvent *ev , RwcBoolean *continue_to_dispatch )
+{
+//   Three_D_View *im3d = (Three_D_View *)cd ;
+   SUMA_X *svX = (SUMA_X *)cd; /* widget pointer from suma viewer */
+   static int busy=0 ;
+
+ENTRY("SUMA_mainform_EV") ;
+
+   if( busy ) EXRETURN ;
+
+   busy = 1 ;
+
+   switch( ev->type ){
+
+     case ConfigureNotify:{
+#if 0
+        int hold , hnew ;
+        hold = svX->ViewCont->height ;
+        MCW_widget_geom( svX->ViewCont->Mainform, NULL, &hnew, NULL, NULL) ;
+        if( abs(hnew-hold) > 9 ){
+          FIX_TOPFORM_HEIGHT(svX) ;
+        } else {
+          forceExpose( svX->ViewCont->Mainform , 0 ) ;
+        }
+#endif
+//            XtUnmanageChild(w);
+//            XtManageChild(w);
+
+        forceExpose( svX->ViewCont->Mainform , 0 ) ;
+
+//        XSync( XtDisplay(svX->ViewCont->Mainform) , False) ;
+
+printf("ConfigureNotify event for Tahoe resizing of main SUMA viewer controller window\n");
+     }
+     break ;
+
+     /** No other event types (at this time) */
+
+   }
+
+   busy = 0 ;
+   EXRETURN ;
 }
 
 /*!
@@ -7840,6 +7989,7 @@ SUMA_Boolean SUMA_Snap_AllCont(SUMA_DO_Types do_type, char *fname)
 */
 void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
 {
+// surface object controller menu, ctrl-s to get these in GUI
    static char FuncName[] = {"SUMA_cb_createSurfaceCont_SO"};
    Widget tl, pb, form,
           rc_left, rc_right, rc_mamma, rc_gmamma, tls=NULL;
@@ -8594,6 +8744,8 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
          XmStringFree (xmstmp);
       }
    }
+
+
    SUMA_LHv("Management ...%p %p %p %p %p\n",
             rc_right, rc_left, rc_mamma, SurfCont->Mainform, SurfCont->Page);
 
@@ -8676,6 +8828,19 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
    SUMA_LH("going home.");
 
    SUMA_MarkSurfContOpen(1, ado);
+//Tahoe fix here for  SurfCont->Mainform (maybe  SurfCont->Page?)
+   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+      /* allow for code to resize the shell */
+
+     XtInsertEventHandler( SurfCont->Mainform ,  /* handle events in Mainform */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           SUMA_surfcont_expose_EV ,       /* handler */
+                           (XtPointer) SurfCont ,      /* client data - X, sv or Mainform? */
+                           XtListTail               /* last in queue */
+                         ) ;
+printf("Added event handler for Tahoe resizing of SUMA object controller window\n");
+   }
 
    SUMA_RETURNe;
 }
@@ -8846,6 +9011,7 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                                               args, 1);
    }
 
+// tahoe - matrix graph controller
    /* create a form widget, manage it at the end ...*/
    SurfCont->Mainform = XtVaCreateWidget ("dialog",
       xmFormWidgetClass, SurfCont->Page ?
@@ -9797,7 +9963,8 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
    }
 
    /* create a form widget, manage it at the end ...*/
-   SurfCont->Mainform = XtVaCreateWidget ("dialog",
+//Tahoe note- tract controller 
+  SurfCont->Mainform = XtVaCreateWidget ("dialog",
       xmFormWidgetClass, SurfCont->Page ?
                               SurfCont->Page:SurfCont->TLS,
       XmNborderWidth , 0 ,
@@ -12987,6 +13154,7 @@ SUMA_Register_Widget_Help( SUMAg_CF->X->DrawROI->AppShell , 0,
 ":SPX:"
 "\n") ;
 
+// tahoe DrawROI
    /* create a form widget, manage it at the end ...*/
    SUMAg_CF->X->DrawROI->form = XtVaCreateWidget ("dialog",
       xmFormWidgetClass, SUMAg_CF->X->DrawROI->AppShell,
@@ -13422,6 +13590,19 @@ SUMA_Register_Widget_Help( SUMAg_CF->X->DrawROI->AppShell , 0,
 
    /* manage frame */
    XtManageChild (SUMAg_CF->X->DrawROI->frame);
+
+
+// tahoe - resizing
+   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( SUMAg_CF->X->DrawROI->form,  /* handle events in form */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           SUMA_expose_EV ,       /* handler */
+                           (XtPointer) SUMAg_CF->X->DrawROI->form ,      /* client data - X, sv or Mainform? */
+                           XtListTail               /* last in queue */
+                         ) ;
+printf("Added event handler for Tahoe resizing of Draw ROI window\n");
+       }
 
    /* manage form */
    XtManageChild (SUMAg_CF->X->DrawROI->form);
@@ -14472,7 +14653,7 @@ void SUMA_DrawROI_NewValue (void *data)
 
    if (AF->value == DrawnROI->iLabel) SUMA_RETURNe;
 
-   if (!DrawnROI->DrawStatus == SUMA_ROI_Finished) {
+   if ((!DrawnROI->DrawStatus) == SUMA_ROI_Finished) {
       if (LocalHead)
          fprintf (SUMA_STDERR,
                   "%s: Changing ROI value from %d to %d\n",
@@ -16671,6 +16852,7 @@ void SUMA_cb_createSumaCont(Widget ww, XtPointer ddata, XtPointer ccallData)
       XmInternAtom( SUMAg_CF->X->DPY_controller1 , "WM_DELETE_WINDOW" , False ) ,
       SUMA_cb_closeSumaCont, NULL) ;
 
+// tahoe multi-suma controller lock
    /* create a form widget, manage it at the end ...*/
    SUMAg_CF->X->SumaCont->form = XtVaCreateWidget ("dialog",
       xmFormWidgetClass, SUMAg_CF->X->SumaCont->AppShell,
@@ -16943,9 +17125,33 @@ void SUMA_cb_createSumaCont(Widget ww, XtPointer ddata, XtPointer ccallData)
 
    XtManageChild (SUMAg_CF->X->SumaCont->AppFrame);
 
+// tahoe - resizing
+  if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( SUMAg_CF->X->SumaCont->form,  /* handle events in form */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           SUMA_expose_EV ,       /* handler */
+                           (XtPointer) Gmainw ,      /* client data - X, sv or Mainform? */
+                           XtListTail               /* last in queue */
+                         ) ;
+printf("Added event handler for Tahoe resizing of locking window\n");
+       }
+
    /* manage the remaining widgets */
    XtManageChild (SUMAg_CF->X->SumaCont->form);
-
+// tahoe fix
+//#if MACOS_FORCE_EXPOSE
+   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( SUMAg_CF->X->SumaCont->form,  /* handle events in Mainform */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           SUMA_expose_EV ,       /* handler */
+                           (XtPointer) SUMAg_CF->X->SumaCont->form ,      /* client data - X, sv or Mainform? */
+                           XtListTail               /* last in queue */
+                         ) ;
+printf("Added event handler for Tahoe resizing of OpenGL SUMA controller lock window\n");
+   }
+//#endif
    /* realize the widget */
    XtRealizeWidget (SUMAg_CF->X->SumaCont->AppShell);
 
