@@ -2358,6 +2358,7 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int
          SUMA_RETURN(0);
    }
    
+   curColPlane->makeContours = NOPE;
    SUMA_Remixedisplay(ado);
    
    SUMA_UpdateNodeValField(ado);
@@ -2378,11 +2379,12 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    SUMA_Boolean AlphaOpacityFalloff;
    int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
    SUMA_SurfaceObject *SO = NULL;
+   char temp[8];
 
    SUMA_ENTRY;
 
    SUMA_LH("Called");
-
+   
    ado = (SUMA_ALL_DO *)data;
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
@@ -2431,7 +2433,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
            }
        }
    }
-
+   
    SUMA_RETURNe;
 }
 
@@ -2459,6 +2461,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
 
    // Process for current hemisphere
    over2 = SUMA_ADO_CurColPlane(ado);
+   over2->makeContours = YUP;
    SUMA_ScaleToMap_Interactive(over2);
       
    // Process for contralateral hemisphere
@@ -2469,6 +2472,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
             SOC->SurfCont->BoxOutlineThresh, NOPE); // Set B checkbox to reflect box state
    }
    SOC->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   colpC->makeContours = YUP;
    SUMA_ScaleToMap_Interactive(colpC);
    
    // Refresh display
