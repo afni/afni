@@ -28,6 +28,8 @@
    AFNI_GRAPH_TEXTLIMIT     = 20   // max number of rows shown in Graph popup
 // AFNI_GRAPH_BASELINE      = Individual // baseline type set in Graph windows
 // AFNI_GRAPH_GLOBALBASE    = 0    // Global baseline value in Graph windows
+   AFNI_IDEAL_COLORS        = red:blue:green:violet:orange:rbgyr20_03
+                                   // colors across graphed multi-column ideals
 
 // AFNI_montage_periodic    = True // allows periodic montage wraparound
 // AFNI_purge               = True // allows automatic dataset memory purge
