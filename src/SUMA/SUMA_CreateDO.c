@@ -15195,7 +15195,6 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
             colplane == SUMA_ADO_CurColPlane((SUMA_ALL_DO *)SO) ) && 
               colplane->Contours && colplane->N_Contours) {
               
-              fprintf(stderr, "++++++++++++++++++++ colplane->ShowMode = %d\n", colplane->ShowMode);
             /* draw them */
             for (ic=0; ic<colplane->N_Contours; ++ic) {
                D_ROI = (SUMA_DRAWN_ROI *)colplane->Contours[ic];

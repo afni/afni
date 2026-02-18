@@ -3025,11 +3025,10 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    SUMA_WIDGET_INDEX_COORDBIAS HoldBiasOpt;
    static float *box_mask, threshold;
    float *vSave;
-   int debugTempBBox;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    if (!Sover) { SUMA_SL_Err("NULL Sover"); SUMA_RETURN(NOPE); }
    if (!Sover->cmapname) {
       SUMA_SL_Err("NULL Colormap name"); SUMA_RETURN(NOPE);
@@ -3048,11 +3047,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    ado = SUMA_Overlay_OwnerADO(Sover);
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    
-   // DEBUG: Temporarily suspend threshold outline
-   debugTempBBox = SO->SurfCont->BoxOutlineThresh;
-   
-   // if (SO->SurfCont->AlphaOpacityFalloff) SUMA_RETURN(1); //DEBUG
-
    if (icmap < 0) {
       SUMA_SL_Err("Failed to find ColMap");
       SUMA_S_Errv("Missing ColMap called %s\n", Sover->cmapname);
@@ -3064,8 +3058,8 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
 
    SUMA_LH("Creating a scaled color vect");
    if ((Sover->ShowMode == SW_SurfCont_DsetViewCon ||
-       Sover->ShowMode == SW_SurfCont_DsetViewCaC ||
-       SO->SurfCont->BoxOutlineThresh))
+       Sover->ShowMode == SW_SurfCont_DsetViewCaC /**/ ||
+       SO->SurfCont->BoxOutlineThresh /**/  ) )
        /* Without this third item, no threshold outlines shown 
        but extra colored outlines are shown. */
        {
@@ -3090,6 +3084,11 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
 
    B = NULL;
    /* Thresholding ? */
+   int N_T = SDSET_VECFILLED(Sover->dset_link);
+   if (SO->SurfCont->BoxOutlineThresh){
+        box_mask = (float *)malloc(N_T*sizeof(float));
+        memset((void *)box_mask, 0, N_T*sizeof(float));
+   }
    if (Opt->tind >= 0 && Opt->UseThr) {
       SUMA_LH("Fetching Threshold column");
       if (  !SUMA_SetOverlay_Vecs(Sover, 'T', Opt->tind, "update", 0) ||
@@ -3099,13 +3098,16 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
       /* setting SV->isMasked[i] means the node overlay is not shown */
       /* (if Alpha, nothing gets masked out here) */
+      fprintf(stderr, "Opt->ThrMode = %d\n", Opt->ThrMode);
       switch (Opt->ThrMode) {
          case SUMA_NO_THRESH:
             break;
          case SUMA_LESS_THAN:
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
                if (Sover->T[i] < Opt->ThreshRange[0]) {
+                  /* box_mask has opposite logic from SV->isMasked */
                   if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
+                  else if (SO->SurfCont->BoxOutlineThresh) box_mask[i] = YUP; 
                }
             }
             break;
@@ -3114,6 +3116,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                if (Sover->T[i] < Opt->ThreshRange[0] &&
                    Sover->T[i] > -Opt->ThreshRange[0]) {
                   if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
+                  /* else */ if (SO->SurfCont->BoxOutlineThresh) box_mask[i] = YUP;
                }
             }
             break;
@@ -3122,6 +3125,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                if (Sover->T[i] >= Opt->ThreshRange[0] &&
                    Sover->T[i] <= Opt->ThreshRange[1]) {
                   if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
+                  else if (SO->SurfCont->BoxOutlineThresh) box_mask[i] = YUP;
                }
             }
             break;
@@ -3130,6 +3134,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                if (Sover->T[i] < Opt->ThreshRange[0] ||
                    Sover->T[i] > Opt->ThreshRange[1]) {
                   if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
+                  else if (SO->SurfCont->BoxOutlineThresh) box_mask[i] = YUP;
                }
             }
             break;
@@ -3139,6 +3144,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             break;
       }
    }
+
 
    SUMA_LH("Fetching Intensity column");
    if (Opt->find < 0) { SUMA_SL_Crit("Bad column index.\n"); SUMA_RETURN(NOPE); }
@@ -3187,7 +3193,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    /* Do we need clusterizing ? */
    if (Opt->Clusterize) {
       if (Opt->RecomputeClust) {
-         // SUMA_SurfaceObject *SO = NULL;
+         SUMA_SurfaceObject *SO = NULL;
          SUMA_LH("Clusterizing requested");
          if (Sover->ClustList) { /* kill it, to make way for new one*/
             SUMA_LH("Clearing old clusterlist");
@@ -3196,7 +3202,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             if (Sover->ClustOfNode) SUMA_free(Sover->ClustOfNode);
             Sover->ClustOfNode = NULL;
          }
-
 
          if (!(SO = SUMA_SO_of_ColPlane(Sover))){
             SUMA_S_Errv("Can't find dset's domain parent(%s, %s).\n"
@@ -3318,8 +3323,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    }
    /* nv is no longer needed, only needed for clustering. */
    if (nv) SUMA_free(nv); nv = NULL;
-   
-   // if (Sover->AlphaOpacityFalloff) SUMA_RETURN(1); //DEBUG
 
    /* Any need to mess with the range ? */
    switch(Opt->RangeUnits) {
@@ -3344,7 +3347,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          break;
    }
 
-   /* colorizing. Contours seem to be made here*/
+   /* colorizing */
    if ( (Opt->interpmode == SUMA_DIRECT)&&
         (SUMA_is_Label_dset(Sover->dset_link,NULL) ||
          SUMA_is_Label_dset_col(Sover->dset_link, Opt->find)) ) {
@@ -3368,13 +3371,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    } else {
       /* a la SUMA */
       SUMA_LHv("Scaling a la SUMA %f %f\n", Opt->IntRange[0], Opt->IntRange[1]);
-      SUMA_X_SurfCont *surfContSave;
-      if (ColMap && ColMap->SO){
-        surfContSave = ColMap->SO->SurfCont;
-        ColMap->SO->SurfCont = SO->SurfCont;
-      }
-
-       // Colorize overlay
       if (!SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
                             Opt->IntRange[0], Opt->IntRange[1],
                             ColMap, Opt,
@@ -3382,65 +3378,8 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          SUMA_SL_Err("Failed in  SUMA_ScaleToMap");
          SUMA_RETURN(NOPE);
       }
-      
-      // if (Sover->AlphaOpacityFalloff) SUMA_RETURN(1); //DEBUG
+   }
 
-      fprintf(stderr, "$$$$$$$$$$$$$$$$$$$ SO->SurfCont->BoxOutlineThresh = %d\n", SO->SurfCont->BoxOutlineThresh);
-      fprintf(stderr, "$$$$$$$$$$$$$$$$$$$ Sover->makeContours = %d\n", Sover->makeContours);
-      if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh && Sover->makeContours){
-        fprintf(stderr, "$$$$$$$$$$$$$$$$$$$ SO->SurfCont->BoxOutlineThresh && Sover->makeContours\n");
-        // Threshold colormap
-        box_mask = (float *)malloc(Sover->N_V*sizeof(float));
-        for (i=0; i<Sover->N_V; ++i){
-            box_mask[i] = (float)(Sover->V[i] >= Opt->ThreshRange[0]); 
-        }        
-        
-        // Use thresholded colormap
-        vSave = Sover->V;
-        Sover->V = box_mask;
-
-        // Get variables required to make contours
-        if (!SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
-                            Opt->IntRange[0], Opt->IntRange[1],
-                            ColMap, Opt,
-                            SV) ){
-         SUMA_SL_Err("Failed in  SUMA_ScaleToMap");
-         SUMA_RETURN(NOPE);
-        }
-        
-        // if (Sover->AlphaOpacityFalloff) SUMA_RETURN(1); //DEBUG
-
-        // Make contours
-        fprintf(stderr, "$$$$$$$$$$$$$$$$$$$ Sover->AlphaOpacityFalloff = %d\n\n", Sover->AlphaOpacityFalloff);
-        if (!(Sover->AlphaOpacityFalloff)){
-            fprintf(stderr, "$$$$$$$$$$$$$$$$$$$ Making contours\n");
-            if (SUMA_is_Label_dset(Sover->dset_link,NULL))
-             SUMA_ContourateDsetOverlay(Sover, NULL);
-            else
-             SUMA_ContourateDsetOverlay(Sover, SV);
-        }
-         
-        // if (Sover->AlphaOpacityFalloff) SUMA_RETURN(1); //DEBUG
-            
-        // Restore colors.  This restores colors but messes up the contours.
-        //  which is why the contours are made before this step instead of afterward
-        Sover->V = vSave;
-        if (!SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
-                            Opt->IntRange[0], Opt->IntRange[1],
-                            ColMap, Opt,
-                            SV) ){
-             SUMA_SL_Err("Failed in  SUMA_ScaleToMap");
-             SUMA_RETURN(NOPE);
-        }
-        
-        free(box_mask);
-       }
-       
-       // if (Sover->AlphaOpacityFalloff) SUMA_RETURN(1); //DEBUG
-       
-      if (ColMap && ColMap->SO){
-        ColMap->SO->SurfCont = surfContSave;
-      }
 
    if (Opt->bind >= 0 &&
        (Opt->UseBrt || Sover->AlphaVal == SW_SurfCont_DsetAlphaVal_B)) {
@@ -3701,38 +3640,43 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    }
 
    /* Do we need to create contours */
-   /* This is where the contours are made */
-   if (Opt->ColsContMode && !(SO->SurfCont->BoxOutlineThresh) &&
-         Sover->makeContours) {
+   if (Opt->ColsContMode) {
       if (SUMA_is_Label_dset(Sover->dset_link,NULL))
          SUMA_ContourateDsetOverlay(Sover, NULL);
       else
          SUMA_ContourateDsetOverlay(Sover, SV);
-   }
-   
-   // if (Sover->AlphaOpacityFalloff) SUMA_RETURN(NOPE); //DEBUG
-   
-   // Contours have been made.  Make contours black
-   fprintf(stderr, "********************************* Sover->makeContours = %d\n", Sover->makeContours);
-   if (SO->SurfCont->BoxOutlineThresh && Sover->makeContours) {
-    int j;
-    if (Sover->Contours){
-        for (i=0; i<Sover->N_Contours; ++i){
-            for (j=0; j<4; ++j){
-                Sover->Contours[i]->FillColor[j] = 0.0f;
-            }
-            Sover->Contours[i]->EdgeThickness = 8;
+         
+    if (SO->SurfCont->BoxOutlineThresh){
+        for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
+            box_mask = (Sover->T[i] > Opt->ThreshRange[0]);
         }
-    } else {
-        SUMA_SL_Err("ERROR: No contours found\n");
-        SUMA_RETURN (NOPE);
+         // SO->box_mask = box_mask;
+         float *tSave = Sover->T;
+         Sover->T = box_mask;
+         SUMA_ContourateDsetOverlay_Box(Sover, SV, SO);
+         Sover->T = tSave;
+         // Should include "Append to Sover->Contours"
+         // Uses box_mask
+       
+        /* Contours have been made.  Make contours black if threshold 
+        outline contours required */
+        if (SO->SurfCont->BoxOutlineThresh) {
+            int j;
+            fprintf(stderr, "XXXXXXXXXXXXXXXXXXXXXXXXXXXX Sover->Contours = %p\n", Sover->Contours);
+            if (Sover->Contours){
+                for (i=0; i<Sover->N_Contours; ++i){
+                    for (j=0; j<4; ++j){
+                        Sover->Contours[i]->FillColor[j] = 0.0f;
+                    }
+                    Sover->Contours[i]->EdgeThickness = 8;
+                }
+            } else {
+                SUMA_SL_Err("ERROR: No contours found\n");
+                // SUMA_RETURN (NOPE);
+            }
+      }
     }
    }
-}
-
-    // if (Sover->AlphaOpacityFalloff) SUMA_RETURN(NOPE); //DEBUG
-
-    SO->SurfCont->BoxOutlineThresh = debugTempBBox;
 
    if (LocalHead) {
       SUMA_LH("In Scale_Interactive\n**********************");
@@ -5165,16 +5109,6 @@ SUMA_Boolean SUMA_ScaleToMap(float *V, int N_V,
 
    }
 
-//   SO = ColMap->SO;
-//   if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh){
-//           box_mask = (float *)malloc(N_V*sizeof(float));
-//            for (i=0; i<N_V; ++i){
-//                    box_mask[i] = (float)(V[i] >= Vmin);  
-//            }
-//            vSave = V;
-//            V = box_mask;
-//   }
-
    /* change range for coord bias */
    Vrange = (Opt->CoordBiasRange[1] - Opt->CoordBiasRange[0]) / ColMap->N_M[0];
    if (SV->BiasCoordVec) {
@@ -5199,12 +5133,7 @@ SUMA_Boolean SUMA_ScaleToMap(float *V, int N_V,
       SUMA_LH("Freeing linearized colormap.");
       SUMA_Free_ColorMap (ColMap);
    }
-//   
-//   if (SO && SO->SurfCont && SO->SurfCont->BoxOutlineThresh){
-//        V = vSave;
-//        free(box_mask);
-//   }
-//
+
    SUMA_LH("Out");
    SUMA_RETURN (YUP);
 }
@@ -12109,6 +12038,100 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
 
    SUMA_RETURN (YUP);
 }
+
+SUMA_Boolean SUMA_ContourateDsetOverlay_Box(SUMA_OVERLAYS *cp,
+                                        SUMA_COLOR_SCALED_VECT *SV,
+                                        SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_ContourateDsetOverlay_Box"};
+   int kkk=0, *ind=NULL, *key=NULL;
+   double   threshold = cp->OptScl->ThreshRange[0];
+   SUMA_Boolean LocalHead = NOPE;
+
+
+   SUMA_ENTRY;
+   
+   fprintf(stderr, "threshold = %f\n", threshold);
+
+   if (!cp) SUMA_RETURN(NOPE);
+   if (!cp->dset_link) SUMA_RETURN(NOPE);
+   if (!(cp->makeContours)) SUMA_RETURN(NOPE);
+
+   if (!SV) {
+      if (SUMA_is_Label_dset(cp->dset_link,NULL) ||
+          SUMA_is_Label_dset_col(cp->dset_link, cp->OptScl->find)) {
+         SUMA_LHv("Creating contours for %s\n",SDSET_LABEL(cp->dset_link));
+         if (cp->Contours) {
+            /* this should only happen when users reload a label dset.
+            or maybe if it regenerated by a draw ROI move in the future.
+            Not it is worth noting this event, to be sure it is not
+            being done excessively.  So contours are NOT appended.  */
+            SUMA_S_Notev("Wiping out existing contours for label dset %s\n",
+                         SDSET_LABEL(cp->dset_link));
+            SUMA_KillOverlayContours(cp);
+         }
+
+         ind = SDSET_NODE_INDEX_COL(cp->dset_link);
+         key = SDSET_VEC(cp->dset_link, cp->OptScl->find);
+         cp->Contours =
+            SUMA_MultiColumnsToDrawnROI_Box( SDSET_VECLEN(cp->dset_link),
+                  (void *)ind, SUMA_int,
+                  (void *)key, SUMA_int,
+                  NULL, SUMA_notypeset,
+                  NULL, SUMA_notypeset,
+                  NULL, SUMA_notypeset,
+                  SUMA_FindNamedColMap (cp->cmapname), 1,
+                  cp->Label, SDSET_IDMDOM(cp->dset_link),
+                  &(cp->N_Contours), 1, 0, threshold);
+         if (LocalHead) SUMA_Show_ColorOverlayPlanes(&cp, 1, 0);
+      } else {
+         SUMA_S_Err("Cannot create contours non-label dset types without SV");
+         SUMA_RETURN(NOPE);
+      }
+   } else {
+         fprintf(stderr, "++++++++++++++++++++++++++++ %s: option 2\n", FuncName);
+     if (!SV->VCont || !SV->N_VCont) {
+            fprintf(stderr, "++++++++++++++++++++++++++++ %s: SV->VCont = %p\n", FuncName, SV->VCont);
+            fprintf(stderr, "++++++++++++++++++++++++++++ %s: SV->N_VCont = %d\n", FuncName, SV->N_VCont);
+         SUMA_RETURN(NOPE);
+      } else {
+         SUMA_LHv("Creating contours for %s\n",SDSET_LABEL(cp->dset_link));
+         if (cp->Contours) {
+            SUMA_LHv("Wiping out existing contours for label dset %s\n",
+                         SDSET_LABEL(cp->dset_link));
+            SUMA_KillOverlayContours(cp);
+         }
+         if (SV->N_VCont != cp->N_NodeDef) {
+         fprintf(stderr, "SV->N_VCont = %d\n", SV->N_VCont);
+         fprintf(stderr, "cp->N_NodeDef = %d\n", cp->N_NodeDef);
+            SUMA_S_Warn("I expected N_VCont and N_NodeDef to match!\n"
+                        "Bad things might happen.");
+            cp->makeContours = 0;
+         }
+         ind = cp->NodeDef;
+         key = SV->VCont;
+         /*for (kkk=0; kkk<cp->N_NodeDef; ++kkk)
+            fprintf(SUMA_STDERR,"%d-->%d\t", ind[kkk], key[kkk]);*/
+         // cp->Contours =
+            SUMA_MultiColumnsToDrawnROI_Box( cp->N_NodeDef,
+                  (void *)ind, SUMA_int,
+                  (void *)key, SUMA_int,
+                  NULL, SUMA_notypeset,
+                  NULL, SUMA_notypeset,
+                  NULL, SUMA_notypeset,
+                  SUMA_FindNamedColMap (cp->cmapname), 1,
+                  cp->Label, SDSET_IDMDOM(cp->dset_link),
+                  &(cp->N_Contours), &(cp->Contours), 1, 1, threshold);
+         if (LocalHead) SUMA_Show_ColorOverlayPlanes(&cp, 1, 0);
+      }
+   }
+   
+   fprintf(stderr, "%s end: cp->Contours = %p\n", FuncName, cp->Contours);
+   fprintf(stderr, "%s end: cp->N_Contours = %d\n", FuncName, cp->N_Contours);
+
+   SUMA_RETURN(YUP);
+}
+
 
 SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
                                         SUMA_COLOR_SCALED_VECT *SV)
