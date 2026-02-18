@@ -6279,7 +6279,6 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI_Box(
 
    // Allocate memory to countours
    ROIv = (SUMA_DRAWN_ROI **)SUMA_calloc(N_Labels,sizeof(SUMA_DRAWN_ROI*));
-   fprintf(stderr, "%s: ROIv = %p\n", FuncName, ROIv);
 
    for (i=0; i < N_Labels; ++i) {
       int Value, N_Node, *Node=NULL;
@@ -6358,7 +6357,6 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI_Box(
 
    *N_ROI = N_Labels;
    
-   fprintf(stderr, "%s end: ROIv = %p\n", FuncName, ROIv);
    *Contours = ROIv;
    SUMA_RETURN(ROIv);
 

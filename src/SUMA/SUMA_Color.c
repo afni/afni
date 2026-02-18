@@ -3098,7 +3098,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
       /* setting SV->isMasked[i] means the node overlay is not shown */
       /* (if Alpha, nothing gets masked out here) */
-      fprintf(stderr, "Opt->ThrMode = %d\n", Opt->ThrMode);
       switch (Opt->ThrMode) {
          case SUMA_NO_THRESH:
             break;
@@ -3116,7 +3115,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                if (Sover->T[i] < Opt->ThreshRange[0] &&
                    Sover->T[i] > -Opt->ThreshRange[0]) {
                   if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
-                  /* else */ if (SO->SurfCont->BoxOutlineThresh) box_mask[i] = YUP;
+                  /**/ else /**/ if (SO->SurfCont->BoxOutlineThresh) box_mask[i] = YUP;
                }
             }
             break;
@@ -3647,16 +3646,10 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          SUMA_ContourateDsetOverlay(Sover, SV);
          
     if (SO->SurfCont->BoxOutlineThresh){
-//        for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
-//            box_mask = (Sover->T[i] > Opt->ThreshRange[0]);
-//        }
-         // SO->box_mask = box_mask;
          float *tSave = Sover->T;
          Sover->T = box_mask;
          SUMA_ContourateDsetOverlay_Box(Sover, SV, SO);
          Sover->T = tSave;
-         // Should include "Append to Sover->Contours"
-         // Uses box_mask
        
         /* Contours have been made.  Make contours black if threshold 
         outline contours required */
@@ -12050,8 +12043,6 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(SUMA_OVERLAYS *cp,
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "threshold = %f\n", threshold);
-
    if (!cp) SUMA_RETURN(NOPE);
    if (!cp->dset_link) SUMA_RETURN(NOPE);
    if (!(cp->makeContours)) SUMA_RETURN(NOPE);
@@ -12119,9 +12110,6 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(SUMA_OVERLAYS *cp,
       }
    }
    
-   fprintf(stderr, "%s end: cp->Contours = %p\n", FuncName, cp->Contours);
-   fprintf(stderr, "%s end: cp->N_Contours = %d\n", FuncName, cp->N_Contours);
-
    SUMA_RETURN(YUP);
 }
 
@@ -12182,8 +12170,6 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
             SUMA_KillOverlayContours(cp);
          }
          if (SV->N_VCont != cp->N_NodeDef) {
-         fprintf(stderr, "SV->N_VCont = %d\n", SV->N_VCont);
-         fprintf(stderr, "cp->N_NodeDef = %d\n", cp->N_NodeDef);
             SUMA_S_Warn("I expected N_VCont and N_NodeDef to match!\n"
                         "Bad things might happen.");
             cp->makeContours = 0;
