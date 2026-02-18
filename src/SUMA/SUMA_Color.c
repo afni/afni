@@ -3647,9 +3647,9 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          SUMA_ContourateDsetOverlay(Sover, SV);
          
     if (SO->SurfCont->BoxOutlineThresh){
-        for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
-            box_mask = (Sover->T[i] > Opt->ThreshRange[0]);
-        }
+//        for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
+//            box_mask = (Sover->T[i] > Opt->ThreshRange[0]);
+//        }
          // SO->box_mask = box_mask;
          float *tSave = Sover->T;
          Sover->T = box_mask;
