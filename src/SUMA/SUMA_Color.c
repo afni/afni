@@ -3662,7 +3662,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
         outline contours required */
         if (SO->SurfCont->BoxOutlineThresh) {
             int j;
-            fprintf(stderr, "XXXXXXXXXXXXXXXXXXXXXXXXXXXX Sover->Contours = %p\n", Sover->Contours);
             if (Sover->Contours){
                 for (i=0; i<Sover->N_Contours; ++i){
                     for (j=0; j<4; ++j){
@@ -12076,7 +12075,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(SUMA_OVERLAYS *cp,
          cp->Contours =
             SUMA_MultiColumnsToDrawnROI_Box( SDSET_VECLEN(cp->dset_link),
                   (void *)ind, SUMA_int,
-                  (void *)key, SUMA_int,
+                  NULL, SUMA_int,
                   NULL, SUMA_notypeset,
                   NULL, SUMA_notypeset,
                   NULL, SUMA_notypeset,
@@ -12089,10 +12088,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(SUMA_OVERLAYS *cp,
          SUMA_RETURN(NOPE);
       }
    } else {
-         fprintf(stderr, "++++++++++++++++++++++++++++ %s: option 2\n", FuncName);
      if (!SV->VCont || !SV->N_VCont) {
-            fprintf(stderr, "++++++++++++++++++++++++++++ %s: SV->VCont = %p\n", FuncName, SV->VCont);
-            fprintf(stderr, "++++++++++++++++++++++++++++ %s: SV->N_VCont = %d\n", FuncName, SV->N_VCont);
          SUMA_RETURN(NOPE);
       } else {
          SUMA_LHv("Creating contours for %s\n",SDSET_LABEL(cp->dset_link));
@@ -12102,20 +12098,17 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(SUMA_OVERLAYS *cp,
             SUMA_KillOverlayContours(cp);
          }
          if (SV->N_VCont != cp->N_NodeDef) {
-         fprintf(stderr, "SV->N_VCont = %d\n", SV->N_VCont);
-         fprintf(stderr, "cp->N_NodeDef = %d\n", cp->N_NodeDef);
             SUMA_S_Warn("I expected N_VCont and N_NodeDef to match!\n"
                         "Bad things might happen.");
             cp->makeContours = 0;
          }
          ind = cp->NodeDef;
          key = SV->VCont;
-         /*for (kkk=0; kkk<cp->N_NodeDef; ++kkk)
-            fprintf(SUMA_STDERR,"%d-->%d\t", ind[kkk], key[kkk]);*/
+
          // cp->Contours =
             SUMA_MultiColumnsToDrawnROI_Box( cp->N_NodeDef,
                   (void *)ind, SUMA_int,
-                  (void *)key, SUMA_int,
+                  NULL, SUMA_int,
                   NULL, SUMA_notypeset,
                   NULL, SUMA_notypeset,
                   NULL, SUMA_notypeset,

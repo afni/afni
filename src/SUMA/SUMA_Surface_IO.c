@@ -5975,8 +5975,6 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI_Box(
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "++++++++++++++++++++++++++++ %s\n", FuncName);
-
    if (ind) ++nrow; // Whether (cp->dset_link)->inel->vec defined.  
                     // If so, (dset)((int *)(dset->inel->vec[0])).
    if (col0) ++nrow; // dset->dnel->vec[cp->OptScl->find]
@@ -6016,7 +6014,9 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI_Box(
       SUMA_RETURN(NULL);
    }
 
-    nrow = 1;
+    // nrow = 1;
+    /* Seems nrow MUST be 1 to get threshold outlines.  If 0, there are no 
+    contours.  If 2, we get topographical lines instead. */
    switch (nrow) {
       case 1:
          /* Node index only*/

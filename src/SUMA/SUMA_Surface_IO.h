@@ -92,6 +92,20 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
          char *name, char *Parent_idcode_str,
          int *N_ROI, SUMA_Boolean ForDisplay,
          SUMA_Boolean kkk);
+SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI_Box(
+         int N_Nodes,
+         void *ind, SUMA_VARTYPE ind_type,
+         void *col0, SUMA_VARTYPE col0_type,
+         void *col1, SUMA_VARTYPE col1_type,
+         void *col2, SUMA_VARTYPE col2_type,
+         void *col3, SUMA_VARTYPE col3_type,
+         SUMA_COLOR_MAP *cmap,
+         int edges_only,
+         char *name, char *Parent_idcode_str,
+         int *N_ROI, SUMA_DRAWN_ROI ***Contours,
+         SUMA_Boolean ForDisplay,
+         SUMA_Boolean LabelIsCmapIndex, 
+         double threshold);
 void SUMA_OpenDrawnROI (char *filename, void *data);
 SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, 
                                  char *Parent_idcode_str, int Pad_to, 
