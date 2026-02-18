@@ -3115,7 +3115,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                if (Sover->T[i] < Opt->ThreshRange[0] &&
                    Sover->T[i] > -Opt->ThreshRange[0]) {
                   if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
-                  /**/ else /**/ if (SO->SurfCont->BoxOutlineThresh) box_mask[i] = YUP;
+                  else if (SO->SurfCont->BoxOutlineThresh) box_mask[i] = YUP;
                }
             }
             break;
@@ -3667,6 +3667,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                 // SUMA_RETURN (NOPE);
             }
       }
+      free(box_mask);
     }
    }
 
