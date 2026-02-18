@@ -1094,6 +1094,7 @@ typedef struct {
    char *originalCMapName;
    double IntRange[2];
    SUMA_Boolean AlphaOpacityFalloff; /*!<  Variable opacity for sub-threshold colors */
+   SUMA_Boolean makeContours;
 } SUMA_OVERLAYS;
 
 

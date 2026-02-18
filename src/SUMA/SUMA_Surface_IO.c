@@ -5866,7 +5866,7 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
          break;
    }
 
-   // Allocate memory to countours
+   // Allocate memory to contours
    ROIv = (SUMA_DRAWN_ROI **)SUMA_calloc(N_Labels,sizeof(SUMA_DRAWN_ROI*));
 
    for (i=0; i < N_Labels; ++i) {
@@ -6277,7 +6277,7 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI_Box(
          break;
    }
 
-   // Allocate memory to countours
+   // Allocate memory to contours
    ROIv = (SUMA_DRAWN_ROI **)SUMA_calloc(N_Labels,sizeof(SUMA_DRAWN_ROI*));
 
    for (i=0; i < N_Labels; ++i) {
@@ -6305,7 +6305,7 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI_Box(
          Label = SUMA_append_string(stmp,NewName->FileName_NoExt);
       }
       /* SUMA_LH("Transforming to Drawn ROIs..."); */
-      Value = (int)(threshold + 0.5);
+      // Value = (int)(threshold + 0.5);
       if (!(ROIv[i] = SUMA_1DROI_to_DrawnROI( Node, N_Node ,
                                     Value, Parent_idcode_str,
                                     Label, NULL,
