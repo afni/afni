@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Feb, 2026, RCR, "SurfToSurf", MICRO, TYPE_ENHANCE,
+   "add an example usage",
+   "Inspired by P Molfese."
+ } ,
+
  {  9, Feb, 2026, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
    "fix labels in -write_simple_tsv (they were truncated)",
    NULL
