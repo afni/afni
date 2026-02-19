@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Feb, 2026, RCR, "make_random_timing.py", MICRO, TYPE_MODIFY,
+   "add -tr_locked to g_style_opts_old",
+   "Sorry about that, Catherine."
+ } ,
+
  { 19, Feb, 2026, RCR, "SurfToSurf", MICRO, TYPE_ENHANCE,
    "add an example usage",
    "Inspired by P Molfese."
