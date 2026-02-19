@@ -2466,7 +2466,6 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
       
    // Process for contralateral hemisphere
    over2 = SUMA_ADO_CurColPlane(ado);
-   over2 = SUMA_ADO_CurColPlane(ado);
    colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
    if (colpC && SOC){
        SOC->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
