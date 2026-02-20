@@ -18974,9 +18974,10 @@ void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data,
    SUMA_MenuCallBackData *datap=NULL;
    SUMA_ALL_DO *ado = NULL;
    int imenu = 0;
+   SUMA_SurfaceObject *SOC=NULL, *SO = NULL;
+   SUMA_OVERLAYS *over2 = NULL, *colpC=NULL;
 
    SUMA_ENTRY;
-
 
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
@@ -18988,6 +18989,17 @@ void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data,
       SUMA_RETURNe;
    }
 
+   /* Apply change to other hemisphere */
+   SO = (SUMA_SurfaceObject *)ado;
+   over2 = SUMA_ADO_CurColPlane(ado);
+   colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
+   if (colpC && SOC){
+       ado = (SUMA_ALL_DO *)SOC;
+       if (!SUMA_SetDsetViewMode(ado, imenu, 1)) {
+          SUMA_S_Err("Failed to set view mode");
+          SUMA_RETURNe;
+       }
+   }
 
    SUMA_RETURNe;
 }

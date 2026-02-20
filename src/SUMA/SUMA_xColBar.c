@@ -4,7 +4,6 @@ xim.c display.c and pbar.c*/
 
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
-#include <sys/time.h> // For struct timeval and gettimeofday
 
 /*!
    \brief Reads a ppm image and turns i into an rgba vector for ease of
@@ -1633,7 +1632,7 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    SUMA_RETURNe;
 }
 
-// Called when B subbrick option changed
+/* Called when B subbrick option changed */
 int SUMA_SwitchColPlaneBrightness(
          SUMA_ALL_DO *ado,
          SUMA_OVERLAYS *colp,
@@ -1649,7 +1648,7 @@ int SUMA_SwitchColPlaneBrightness(
 
    SUMA_ENTRY;
 
-   if (LocalHead) {
+   if (1 /* rcr */ || LocalHead) {
       fprintf(SUMA_STDERR,
          "%s:\n request to switch brightness to col. %d\n", FuncName, ind);
    }
@@ -2441,9 +2440,8 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   static int BoxOutlineThresh = 0;
-   SUMA_SurfaceObject *SOC=NULL, *SO = NULL;
-   SUMA_OVERLAYS *over2 = NULL, *colpC=NULL;
+   int BoxOutlineThresh = 0;
+   SUMA_SurfaceObject *SO = NULL;
 
    SUMA_ENTRY;
 
@@ -2455,35 +2453,10 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    // Get box outline threshold status from checkbox
    BoxOutlineThresh = XmToggleButtonGetState(w);    
    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-/*      
-   // Process for current hemisphere
-   if (!applyBoxOutlineThreshStatusToSurfaceObject(ado, BoxOutlineThresh, NOPE)){
-        fprintf(stderr, "%s: ERROR applying threshold contours to current hemisphere\n", 
-            FuncName);
-        SUMA_RETURNe;
+   if (1 /* rcr */ ) {
+      fprintf(SUMA_STDERR,
+         "%s:\n---- Box toggle, box %d\n", FuncName, BoxOutlineThresh);
    }
-*/
-      
-   // Process for contralateral hemisphere
-   over2 = SUMA_ADO_CurColPlane(ado);
-   over2 = SUMA_ADO_CurColPlane(ado);
-   colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
-   if (colpC && SOC){
-       SOC->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-       XmToggleButtonSetState( SOC->SurfCont->BoxOutlineThresh_tb, 
-            SOC->SurfCont->BoxOutlineThresh, NOPE); // Set B checkbox to reflect box state
-   }
-//   } else SUMA_S_Warn("No surface overlay.\n"
-//                  "Contralateral hemisphere cannot be found\n");
-
-   // over2 = SUMA_ADO_CurColPlane(ado);
-//   if (!SO || !over2){
-//    fprintf(stderr, "ERROR %s: NULL point to surface and/or colormap\n", 
-//        FuncName);
-//    SUMA_RETURNe;
-//   }
-
-   // Process contralateral hemisphere
 
    // Refresh display
    SUMA_Remixedisplay(ado);
@@ -11250,7 +11223,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                 XmNvalueChangedCallback, SUMA_cb_BoxOutlineThresh_tb_toggled, ado);
             SUMA_Register_Widget_Help(SurfCont->BoxOutlineThresh_tb , 1, 
                                    "SurfCont->BoxOutlineThresh_tb",
-                                   "'Boxes: outline threshold regions",
+                                   "Boxes: outline threshold regions",
                                    SUMA_SurfContHelp_BoxOutlineThr );
 
             SUMA_SET_SELECT_COLOR(SurfCont->BoxOutlineThresh_tb);
