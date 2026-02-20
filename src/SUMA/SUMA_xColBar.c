@@ -2459,6 +2459,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
 
    // Process for current hemisphere
    over2 = SUMA_ADO_CurColPlane(ado);
+   over2->makeContours = YUP;
    SUMA_ScaleToMap_Interactive(over2);
       
    // Process for contralateral hemisphere
@@ -2469,6 +2470,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
             SOC->SurfCont->BoxOutlineThresh, NOPE); // Set B checkbox to reflect box state
    }
    SOC->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+   colpC->makeContours = YUP;
    SUMA_ScaleToMap_Interactive(colpC);
    
    // Refresh display
@@ -10147,7 +10149,7 @@ SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_ALL_DO *ado, SUMA_COLOR_MAP *CM)
    if (!over) { SUMA_RETURN(NOPE); }
 
    if (over->ShowMode == SW_SurfCont_DsetViewCon ||
-       over->ShowMode == SW_SurfCont_DsetViewCaC ) { /* wants contours */
+       over->ShowMode == SW_SurfCont_DsetViewCaC) { /* wants contours */
       if (SUMA_NeedsLinearizing(CM)) {
          if (!nwarn) {
             SUMA_SLP_Note("Cannot do contouring with colormaps\n"

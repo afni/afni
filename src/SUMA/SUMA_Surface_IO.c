@@ -5567,8 +5567,11 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
 
    SUMA_ENTRY;
 
-   if (ind) ++nrow;
-   if (col0) ++nrow;
+   if (ind) ++nrow; // Whether (cp->dset_link)->inel->vec defined.  
+                    // If so, (dset)((int *)(dset->inel->vec[0])).
+   if (col0) ++nrow; // dset->dnel->vec[cp->OptScl->find]
+   // The following are NULL in the current version of SUMA_ContourateDsetOverlay
+   // This limits ncol to [0,2]
    if (col1) ++nrow;
    if (col2) ++nrow;
    if (col3) ++nrow;
@@ -5863,7 +5866,7 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
          break;
    }
 
-
+   // Allocate memory to contours
    ROIv = (SUMA_DRAWN_ROI **)SUMA_calloc(N_Labels,sizeof(SUMA_DRAWN_ROI*));
 
    for (i=0; i < N_Labels; ++i) {
@@ -5938,6 +5941,424 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
    if (RGB) SUMA_free(RGB); RGB = NULL;
 
    *N_ROI = N_Labels;
+   SUMA_RETURN(ROIv);
+
+}
+
+SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI_Box(
+         int N_Nodes,
+         void *ind, SUMA_VARTYPE ind_type,
+         void *col0, SUMA_VARTYPE col0_type,
+         void *col1, SUMA_VARTYPE col1_type,
+         void *col2, SUMA_VARTYPE col2_type,
+         void *col3, SUMA_VARTYPE col3_type,
+         SUMA_COLOR_MAP *cmap,
+         int edges_only,
+         char *name, char *Parent_idcode_str,
+         int *N_ROI, SUMA_DRAWN_ROI ***Contours,
+         SUMA_Boolean ForDisplay,
+         SUMA_Boolean LabelIsCmapIndex, 
+         double threshold)
+{
+   static char FuncName[]={"SUMA_MultiColumnsToDrawnROI"};
+   char smapflag[32];
+   int *iv=NULL;
+   float *fv=NULL;
+   int ncol=0, nc;
+   int nrow=0;
+   int *iLabel=NULL, *iNode = NULL, *isort=NULL,
+      i, N_Labels = 0, *iStart=NULL, *iStop=NULL,
+      cnt = 0, ilmax = 0;
+   float *r=NULL, *g=NULL, *b=NULL, *RGB=NULL, acol[4]={1.0, 0.0, 0.0, 1.0};
+   SUMA_DRAWN_ROI **ROIv=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (ind) ++nrow; // Whether (cp->dset_link)->inel->vec defined.  
+                    // If so, (dset)((int *)(dset->inel->vec[0])).
+   if (col0) ++nrow; // dset->dnel->vec[cp->OptScl->find]
+   // The following are NULL in the current version of SUMA_ContourateDsetOverlay
+   // This limits ncol to [0,2]
+   if (col1) ++nrow;
+   if (col2) ++nrow;
+   if (col3) ++nrow;
+   ncol = N_Nodes;
+
+   if (!ind || !N_Nodes) {
+      SUMA_S_Err("NULL index, or no nodes");
+      SUMA_RETURN(NULL);
+   }
+   if ( (ind_type != SUMA_float && ind_type != SUMA_int) ) {
+      SUMA_S_Err("Bad index type");
+      SUMA_RETURN(NULL);
+   }
+   if ( (col0 && col0_type != SUMA_float && col0_type != SUMA_int) ) {
+      SUMA_S_Err("Bad col0 type");
+      SUMA_RETURN(NULL);
+   }
+   if ( (col1 && col1_type != SUMA_float && col1_type != SUMA_int) ) {
+      SUMA_S_Err("Bad col1 type");
+      SUMA_RETURN(NULL);
+   }
+   if ( (col2 && col2_type != SUMA_float && col2_type != SUMA_int) ) {
+      SUMA_S_Err("Bad col2 type");
+      SUMA_RETURN(NULL);
+   }
+   if ( (col3 && col3_type != SUMA_float && col3_type != SUMA_int) ) {
+      SUMA_S_Err("Bad col3 type");
+      SUMA_RETURN(NULL);
+   }
+   if (nrow != 1 && nrow != 2 && nrow != 4 && nrow != 5) {
+      SUMA_S_Err("Bad number of input columns");
+      SUMA_RETURN(NULL);
+   }
+
+    // nrow = 1;
+    /* Seems nrow MUST be 1 to get threshold outlines.  If 0, there are no 
+    contours.  If 2, we get topographical lines instead. */
+   switch (nrow) {
+      case 1:
+         /* Node index only*/
+         SUMA_LH ("1D format: i");
+         iNode = (int *)SUMA_malloc(ncol*sizeof(int));
+         iLabel = (int *)SUMA_malloc(1*sizeof(int));
+         if (!iNode ||!iLabel) {
+            SUMA_SL_Err("Failed to allocate");
+            SUMA_RETURN(NULL);
+         }
+         if (ind_type == SUMA_float) {
+            fv = (float *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = (int)fv[i];
+         } else if (ind_type == SUMA_int) {
+            iv = (int *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = iv[i];
+         }
+
+         iLabel[0] = 0;
+         N_Labels = 1;
+         iStart = (int *)SUMA_malloc(1*sizeof(int));
+         iStop = (int *)SUMA_malloc(1*sizeof(int));
+         RGB = (float *)SUMA_malloc(3*1*sizeof(float));
+         iStart[0] = 0;
+         iStop[0] = ncol-1;
+         RGB[0] = 1.0; RGB[1] = 1.0; RGB[2] = 0;
+         break;
+      case 2:
+         /* Node index & Node Label */
+         SUMA_LH("1D format: i l");
+         /* copy the node indices and labels for cleanliness */
+         iLabel = (int *)SUMA_malloc(ncol*sizeof(int));
+         iNode = (int *)SUMA_malloc(ncol*sizeof(int));
+         if (!iNode || !iLabel) {
+            SUMA_SL_Err("Failed to allocate");
+            SUMA_RETURN(NULL);
+         }
+         if (col0_type == SUMA_float) {
+            fv = (float*)col0;
+            for (i=0; i < ncol; ++i) iLabel[i] = (int)fv[i];
+         } else if (col0_type == SUMA_int) {
+            iv = (int *)col0;
+            for (i=0; i < ncol; ++i) iLabel[i] = (int)iv[i];
+         }
+         /* sort the Labels and the iNode accordingly */
+         isort = SUMA_z_dqsort( iLabel, ncol);
+         if (ind_type == SUMA_float) {
+            fv = (float *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = (int)fv[isort[i]];
+         } else if (ind_type == SUMA_int) {
+            iv = (int *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = iv[isort[i]];
+         }
+
+         /* Count the number of distinct labels */
+         N_Labels = 1;
+         for (i=1; i < ncol; ++i) if (iLabel[i] != iLabel[i-1]) ++N_Labels;
+         sprintf(smapflag, "%d", N_Labels);
+         /* store where each label begins and ends */
+         iStart = (int *)SUMA_malloc(N_Labels*sizeof(int));
+         iStop = (int *)SUMA_malloc(N_Labels*sizeof(int));
+         RGB = (float *)SUMA_malloc(3*N_Labels*sizeof(float));
+         if (!iStart || !iStop) {
+            SUMA_SL_Err("Failed to allocate");
+            SUMA_RETURN(NULL);
+         }
+         cnt = 0;
+         iStart[cnt] = 0;
+         iStop[cnt] = ncol -1;
+         if (cmap) {
+            ilmax =  cmap->N_M[0]-1;
+            if (!LabelIsCmapIndex) {
+               nc = SUMA_ColMapKeyIndex(iLabel[0],cmap);
+            } else {
+               nc = SUMA_MIN_PAIR(iLabel[0], ilmax);
+            }
+            if (nc < 0) {
+               RGB[3*cnt] = -1.0; RGB[3*cnt+1] = -1.0; RGB[3*cnt+2] = -1.0;
+            } else {
+               RGB[3*cnt] = cmap->M[nc][0];
+               RGB[3*cnt+1] = cmap->M[nc][1];
+               RGB[3*cnt+2] = cmap->M[nc][2];
+            }
+            SUMA_LHv("cmap %p chd %p (%s), %d, ilabel %d at node %d,  \n"
+                     "           col %f %f %f\n",
+                     cmap, cmap->chd, cmap->Name,
+                     cnt, iLabel[0], iNode[0],
+                     RGB[3*cnt], RGB[3*cnt+1], RGB[3*cnt+2]);
+         } else {
+            SUMA_a_good_col(smapflag,iLabel[0], acol);
+            RGB[3*cnt] = acol[0]; RGB[3*cnt+1] = acol[1]; RGB[3*cnt+2] = acol[2];
+         }
+         for (i=1; i < ncol; ++i) {
+            if (iLabel[i] != iLabel[i-1]) {
+               iStop[cnt] = i-1;
+               ++cnt;
+               iStart[cnt] = i;
+               iStop[cnt] = ncol -1;
+               if (cmap) {
+                  if (!LabelIsCmapIndex) {
+                     nc = SUMA_ColMapKeyIndex(iLabel[i],cmap);
+                  } else {
+                     nc = SUMA_MIN_PAIR(iLabel[i], ilmax);
+                  }
+                  if ((nc) >= 0) {
+                     RGB[3*cnt] = cmap->M[nc][0];
+                     RGB[3*cnt+1] = cmap->M[nc][1];
+                     RGB[3*cnt+2] = cmap->M[nc][2];
+                  } else {
+                     RGB[3*cnt] = -1.0; RGB[3*cnt+1] = -1.0; RGB[3*cnt+2] = -1.0;
+                  }
+               } else {
+                  SUMA_a_good_col(smapflag, iLabel[i], acol);
+                  RGB[3*cnt] = acol[0]; RGB[3*cnt+1] = acol[1];
+                  RGB[3*cnt+2] = acol[2];
+
+               }
+            }
+         }
+         break;
+      case 4:
+         /* Node index, R G B */
+         SUMA_LH("1D format: i R G B");
+         iNode = (int *)SUMA_malloc(ncol*sizeof(int));
+         iLabel = (int *)SUMA_malloc(1*sizeof(int));
+         r = (float *)SUMA_malloc(ncol*sizeof(float));
+         g = (float *)SUMA_malloc(ncol*sizeof(float));
+         b = (float *)SUMA_malloc(ncol*sizeof(float));
+         if (!iNode || !iLabel || !r || !g || !b) {
+            SUMA_SL_Err("Failed to allocate");
+            SUMA_RETURN(NULL);
+         }
+
+         if (ind_type == SUMA_float) {
+            fv = (float *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = (int)fv[i];
+         } else if (ind_type == SUMA_int) {
+            iv = (int *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = iv[i];
+         }
+         if (col0_type == SUMA_float) {
+            fv = (float *)col0;
+            for (i=0; i < ncol; ++i) r[i] = fv[i];
+         } else {
+            iv = (int *)col0;
+            for (i=0; i < ncol; ++i) r[i] = (float)iv[i];
+         }
+         if (col1_type == SUMA_float) {
+            fv = (float *)col1;
+            for (i=0; i < ncol; ++i) g[i] = fv[i];
+         } else {
+            iv = (int *)col1;
+            for (i=0; i < ncol; ++i) g[i] = (float)iv[i];
+         }
+         if (col2_type == SUMA_float) {
+            fv = (float *)col2;
+            for (i=0; i < ncol; ++i) b[i] = fv[i];
+         } else {
+            iv = (int *)col2;
+            for (i=0; i < ncol; ++i) b[i] = (float)iv[i];
+         }
+
+
+         iLabel[0] = 0;
+         N_Labels = 1;
+         iStart = (int *)SUMA_malloc(1*sizeof(int));
+         iStop = (int *)SUMA_malloc(1*sizeof(int));
+         RGB = (float *)SUMA_malloc(3*1*sizeof(float));
+
+         iStart[0] = 0;
+         iStop[0] = ncol-1;
+         RGB[0] = r[0]; RGB[1] = g[0]; RGB[2] = b[0];
+         break;
+      case 5:
+         /* Node index, Node Label, R G B */
+         SUMA_LH("1D format: i l R G B");
+         /* copy the node indices and labels for cleanliness */
+         iLabel = (int *)SUMA_malloc(ncol*sizeof(int));
+         iNode = (int *)SUMA_malloc(ncol*sizeof(int));
+         r = (float *)SUMA_malloc(ncol*sizeof(float));
+         g = (float *)SUMA_malloc(ncol*sizeof(float));
+         b = (float *)SUMA_malloc(ncol*sizeof(float));
+         if (!iNode || !iLabel || !r || !g || !b) {
+            SUMA_SL_Err("Failed to allocate");
+            SUMA_RETURN(NULL);
+         }
+
+
+         if (col0_type == SUMA_float) {
+            fv = (float*)col0;
+            for (i=0; i < ncol; ++i) iLabel[i] = (int)fv[i];
+         } else if (col0_type == SUMA_int) {
+            iv = (int *)col0;
+            for (i=0; i < ncol; ++i) iLabel[i] = (int)iv[i];
+         }
+         /* sort the Labels and the iNode accordingly */
+         isort = SUMA_z_dqsort( iLabel, ncol);
+         if (ind_type == SUMA_float) {
+            fv = (float *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = (int)fv[isort[i]];
+         } else if (ind_type == SUMA_int) {
+            iv = (int *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = iv[isort[i]];
+         }
+
+
+         if (col1_type == SUMA_float) {
+            fv = (float *)col1;
+            for (i=0; i < ncol; ++i) r[i] = fv[isort[i]];
+         } else {
+            iv = (int *)col1;
+            for (i=0; i < ncol; ++i) r[i] = (float)iv[isort[i]];
+         }
+         if (col2_type == SUMA_float) {
+            fv = (float *)col2;
+            for (i=0; i < ncol; ++i) g[i] = fv[isort[i]];
+         } else {
+            iv = (int *)col2;
+            for (i=0; i < ncol; ++i) g[i] = (float)iv[isort[i]];
+         }
+         if (col3_type == SUMA_float) {
+            fv = (float *)col3;
+            for (i=0; i < ncol; ++i) b[i] = fv[isort[i]];
+         } else {
+            iv = (int *)col3;
+            for (i=0; i < ncol; ++i) b[i] = (float)iv[isort[i]];
+         }
+
+
+         /* Count the number of distinct labels */
+         N_Labels = 1;
+         for (i=1; i < ncol; ++i) if (iLabel[i] != iLabel[i-1]) ++N_Labels;
+         /* store where each label begins and ends */
+         iStart = (int *)SUMA_malloc(N_Labels*sizeof(int));
+         iStop = (int *)SUMA_malloc(N_Labels*sizeof(int));
+         RGB = (float *)SUMA_malloc(3*N_Labels*sizeof(float));
+         if (!iStart || !iStop || !RGB) {
+            SUMA_SL_Err("Failed to allocate");
+            SUMA_RETURN(NULL);
+         }
+         cnt = 0;
+         iStart[cnt] = 0;
+         iStop[cnt] = ncol -1;
+         RGB[3*cnt] = r[0]; RGB[3*cnt+1] = g[0]; RGB[3*cnt+2] = b[0];
+         for (i=1; i < ncol; ++i) {
+            if (iLabel[i] != iLabel[i-1]) {
+               iStop[cnt] = i-1;
+               ++cnt;
+               iStart[cnt] = i;
+               iStop[cnt] = ncol -1;
+               RGB[3*cnt] = r[i]; RGB[3*cnt+1] = g[i]; RGB[3*cnt+2] = b[i];
+            }
+         }
+         break;
+      default:
+         SUMA_S_Err("Bad function input. Have cols\n"
+                      "Accepting only 1, 2, 4, and 5\n");
+         break;
+   }
+
+   // Allocate memory to contours
+   ROIv = (SUMA_DRAWN_ROI **)SUMA_calloc(N_Labels,sizeof(SUMA_DRAWN_ROI*));
+
+   for (i=0; i < N_Labels; ++i) {
+      int Value, N_Node, *Node=NULL;
+      float fillcolor[3], edgecolor[3];
+      int edgethickness;
+      char stmp[200], *Label=NULL;
+      SUMA_PARSED_NAME *NewName=NULL;
+
+      edgethickness = 3;
+      fillcolor[0] = RGB[3*i];
+      fillcolor[1] = RGB[3*i+1];
+      fillcolor[2] = RGB[3*i+2];
+      edgecolor[0] = 0; edgecolor[1] = 0; edgecolor[2] = 1;
+      Value = iLabel[iStart[i]]; /* the index label of this ROI */
+      N_Node = iStop[i] - iStart[i] + 1; /* Number of Nodes in this ROI */
+      Node = &(iNode[iStart[i]]);
+                     /* pointer to location of first index in this ROI */
+      /* prepare a label for these ROIs */
+      NewName = SUMA_ParseFname (name, NULL);
+      if (!NewName) {
+         Label = SUMA_copy_string("BadLabel");
+      }else {
+         sprintf(stmp,"(%d)", Value);
+         Label = SUMA_append_string(stmp,NewName->FileName_NoExt);
+      }
+      /* SUMA_LH("Transforming to Drawn ROIs..."); */
+      // Value = (int)(threshold + 0.5);
+      if (!(ROIv[i] = SUMA_1DROI_to_DrawnROI( Node, N_Node ,
+                                    Value, Parent_idcode_str,
+                                    Label, NULL,
+                                    fillcolor, edgecolor, edgethickness,
+                                    SUMAg_DOv, SUMAg_N_DOv,
+                                    ForDisplay))) {
+         int kkk = 0;
+         SUMA_SL_Err("Failed to transform to Drawn ROI");
+         for (kkk=0; kkk<i; ++kkk) {
+            if (ROIv[kkk]) SUMA_freeDrawnROI(ROIv[kkk]);
+         }
+         SUMA_free(ROIv);ROIv=NULL;
+         *Contours = NULL;
+         SUMA_RETURN(NULL);
+      }
+
+      if (edges_only) { /* remove blob collection for less memory waste */
+         if (ROIv[i]->ROIstrokelist)
+            SUMA_EmptyDestroyList(ROIv[i]->ROIstrokelist);
+         ROIv[i]->ROIstrokelist = NULL;
+         if (ROIv[i]->ActionStack)
+            SUMA_EmptyDestroyActionStack(ROIv[i]->ActionStack);
+         ROIv[i]->ActionStack = NULL;
+      }
+
+      if (nrow == 5 || nrow == 4) {
+         SUMA_LH("Marking as color by fillcolor");
+         ROIv[i]->ColorByLabel = NOPE;
+      }
+      if (Label) SUMA_free(Label); Label = NULL;
+      if (NewName) SUMA_Free_Parsed_Name(NewName); NewName = NULL;
+      if (0 && LocalHead)
+         fprintf (SUMA_STDERR,   "%s: ROI->Parent_idcode_str %s\n",
+                                 FuncName, ROIv[i]->Parent_idcode_str);
+
+   }
+      
+   SUMA_LH("Freeing...");
+
+   if (iLabel) SUMA_free(iLabel); iLabel = NULL;
+   if (isort) SUMA_free(isort); isort = NULL;
+   if (iNode) SUMA_free(iNode); iNode = NULL;
+   if (iStart) SUMA_free(iStart); iStart = NULL;
+   if (iStop) SUMA_free(iStop); iStop = NULL;
+   if (r) SUMA_free(r); r = NULL;
+   if (g) SUMA_free(g); g = NULL;
+   if (b) SUMA_free(b); b = NULL;
+   if (RGB) SUMA_free(RGB); RGB = NULL;
+
+   *N_ROI = N_Labels;
+   
+   *Contours = ROIv;
+   fprintf(stderr, "************************** ROIv = %p\n", ROIv);
    SUMA_RETURN(ROIv);
 
 }
