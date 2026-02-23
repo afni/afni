@@ -63,9 +63,13 @@
 #     + [PT] remove -no_fs_prep opt and "DO_PREP_FS" behavior,
 #       which was neeever even needed, embarrassingly enough
 #
-set version   = "1.31";   set rev_dat   = "Sep 27, 2021"
+#set version   = "1.31";   set rev_dat   = "Sep 27, 2021"
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
+#
+set version   = "1.4";   set rev_dat   = "Feb 23, 2026"
+#     + [PT] add new opt so output transform+dset is T2w->T1w
+#            add new opt to turn off -cmass
 #
 # ---------------------------------------------------------------
 
@@ -103,6 +107,7 @@ set DO_SS_T1W  = 0
 
 set RES        = ""              # def: 1mm output res, or smallest vox dim
 set OUT_T2W_GRID = 0
+set OUT_T1W_GRID = 0             # if doing T2w->T1w
 
 set odir       = ""
 set opref      = ""
@@ -115,6 +120,9 @@ set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
 set warp_opt   = "-warp shift_rotate" # default, but can be changed
+
+set DO_T2W_TO_T1W = 0
+set do_use_cmass  = 1
 
 # ------------------- process options, a la rr ----------------------
 
@@ -130,9 +138,13 @@ while ( $ac <= $#argv )
         goto SHOW_VERSION
     endif
 
+    if ( "$argv[$ac]" == "-echo" ) then
+        set echo
+    
+
     # --------------- input dset(s) ----------------
 
-    if ( "$argv[$ac]" == "-in_t1w" ) then
+    else if ( "$argv[$ac]" == "-in_t1w" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set it1w = "$argv[$ac]"
@@ -169,6 +181,25 @@ while ( $ac <= $#argv )
 
     # ------------------- other opts ---------------
 
+    # invert default alignment dir for output
+    else if ( "$argv[$ac]" == "-align_t2w_to_t1w" ) then
+        set DO_T2W_TO_T1W = 1
+
+    else if ( "$argv[$ac]" == "-do_use_cmass" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set yn = "$argv[$ac]"
+        if ( "$yn" == "Yes" || "$yn" == "1" ) then
+            set do_use_cmass = 1
+        else if ( "$yn" == "No" || "$yn" == "0" ) then
+            set do_use_cmass = 0
+        else
+            echo "** ERROR, cannot interpret value after '-do_use_cmass':"
+            echo "      ${yn}"
+            echo "   It must be one of the following: Yes, 1, No, 0"
+            goto BAD_EXIT
+        endif
+
     else if ( "$argv[$ac]" == "-workdir" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -190,6 +221,10 @@ while ( $ac <= $#argv )
     # set output resolution by using t2w grid
     else if ( "$argv[$ac]" == "-out_t2w_grid" ) then
         set OUT_T2W_GRID = 1
+
+    # set output resolution by using t1w grid
+    else if ( "$argv[$ac]" == "-out_t1w_grid" ) then
+        set OUT_T1W_GRID = 1
 
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = "0"
@@ -280,6 +315,12 @@ else
     set DO_CLEAN = "0"
 endif
 
+if ( $do_use_cmass ) then
+    set cmass = "-cmass"
+else
+    set cmass = ""
+endif
+
 # --------------------- output res ---------------------------
 
 # If the user doesn't input a voxel resolution for output, then the
@@ -306,7 +347,7 @@ endif
 # ========================= output fnames ==========================
 
 set ocmd   = "${opref}_cmd.txt"      # name for output command
-set ot1w   = "${opref}.nii.gz"       # name for output t1w
+set oanat  = "${opref}.nii.gz"       # name for output anatomical
 set omtrx  = "${opref}_map_anat.aff12.1D" # save matrix with other files
 
 # =======================================================================
@@ -353,12 +394,15 @@ endif
 # copy the t1w file to wdir via resampling: match t2w-t1w orients
 set orient_t2w = `3dinfo -orient "$it2w"`
 set t1res      = $wdir/f00_t1res.nii
-set T1TOMAP    = $t1res                 # we will apply map to this
 3dresample                          \
     -overwrite                      \
     -prefix $t1res                  \
     -orient $orient_t2w             \
     -inset "$it1w"
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 # prep this side for aligning with a bit of unifizing and brightness
 # thresholding
@@ -380,16 +424,17 @@ echo ${v1[2]}
        -prefix $t1thr                       \
        -overwrite
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 set t1align   = $wdir/f05_t1align.nii
 if ( "$imtrx" == "" ) then
 
     echo "++ Calculating alignment (t2w -> t1w) matrix."
 
     set mt_t2_t1 = $wdir/map_t2w_to_t1w.aff12.1D
-    set mt_t1_t2 = $wdir/map_t1w_to_t2w.aff12.1D
-
-    set imtrx = $wdir/map_to_t2w.aff12.1D
-    
+    set mt_t1_t2 = $wdir/map_t1w_to_t2w.aff12.1D    
 
     # [PT: Feb 7, 2018] might need if T1w has lots of non-brain stuff
     if ( "$DO_SS_T1W" == "1" ) then
@@ -399,6 +444,10 @@ if ( "$imtrx" == "" ) then
             -orig_vol                          \
             -prefix $wdir/f03_t1w_ss.nii.gz    \
             -input "$t1thr"
+
+        if ( $status ) then
+            goto BAD_EXIT
+        endif
 
         set t1thr = "$wdir/f03_t1w_ss.nii.gz"
 
@@ -417,61 +466,125 @@ if ( "$imtrx" == "" ) then
         -base           "$t1thr"          \
         -twopass                          \
         -cost lpc                         \
-        -cmass                            \
+        $cmass                            \
         $warp_opt                         \
         $it2w_mask                        \
         -wtprefix      $wdir/wtvol.nii.gz \
         -autoweight                       \
         -final wsinc5                     \
         -overwrite
+    
+    if ( $status ) then
+        goto BAD_EXIT
+    endif
 
-    # get inverse
-    echo "++ Inverting alignment matrix (to get t1w -> t2w)."
     cat_matvec -ONELINE                   \
         $mt_t2_t1 -I                      \
         > $mt_t1_t2
-    
-    set imtrx = $mt_t1_t2
+
+    if ( $DO_T2W_TO_T1W ) then
+        echo "++ Calculated the alignment matrix (t2w -> t1w)."
+        set imtrx = $mt_t2_t1
+    else
+        # get inverse
+        echo "++ Calculated the alignment matrix (t1w -> t2w)."
+        cat_matvec -ONELINE                   \
+            $mt_t2_t1 -I                      \
+            > $mt_t1_t2
+        set imtrx = $mt_t1_t2
+    endif
 endif
 
 echo "++ Apply alignment matrix."
 
-set t1mapped = $wdir/f06_t1mapped.nii
-if ( $OUT_T2W_GRID == 1 ) then
-    echo "++ Outputting final image to t2w space"
-    3dAllineate   -echo_edu               \
-        -1Dmatrix_apply   $imtrx          \
-        -source           $T1TOMAP        \
-        -master           "$it2w"         \
-        -prefix           $t1mapped       \
-        -float                            \
-        -final wsinc5
+if ( $DO_T2W_TO_T1W ) then
+    # T2w -> T1w
 
+    set anat_mapped = $wdir/f06_t2mapped.nii
+    if ( $OUT_T1W_GRID == 1 ) then
+        echo "++ Outputting final image to t1w space"
+        3dAllineate   -echo_edu               \
+            -1Dmatrix_apply   $imtrx          \
+            -source           "$it2w"         \
+            -master           "$t1res"        \
+            -prefix           $anat_mapped    \
+            -float                            \
+            -final wsinc5
+        if ( $status ) then
+            goto BAD_EXIT
+        endif
+    else
+        echo "++ Outputting final image to $RES mm iso voxels"
+        3dAllineate   -echo_edu               \
+            -1Dmatrix_apply   $imtrx          \
+            -source           "$it2w"         \
+            -prefix           $anat_mapped    \
+            -base             "$t1res"        \
+            -float                            \
+            -newgrid         "$RES"           \
+            -final wsinc5
+        if ( $status ) then
+            goto BAD_EXIT
+        endif
+    endif
+
+    # prepare for making images: ulay=t2w, olay=t1w
+    set ulay = "$anat_mapped"
+    set olay = "$t1res"
 else
-    echo "++ Outputting final image to $RES mm iso voxels"
-    3dAllineate   -echo_edu               \
-        -1Dmatrix_apply   $imtrx          \
-        -source           $T1TOMAP        \
-        -prefix           $t1mapped       \
-        -base             "$it2w"         \
-        -float                            \
-        -newgrid         "$RES"           \
-        -final wsinc5
+    # T1w -> T2w
+
+    set anat_mapped = $wdir/f06_t1mapped.nii
+    if ( $OUT_T2W_GRID == 1 ) then
+        echo "++ Outputting final image to t2w space"
+        3dAllineate   -echo_edu               \
+            -1Dmatrix_apply   $imtrx          \
+            -source           "$t1res"        \
+            -master           "$it2w"         \
+            -prefix           $anat_mapped    \
+            -float                            \
+            -final wsinc5
+        if ( $status ) then
+            goto BAD_EXIT
+        endif
+    else
+        echo "++ Outputting final image to $RES mm iso voxels"
+        3dAllineate   -echo_edu               \
+            -1Dmatrix_apply   $imtrx          \
+            -source           "$t1res"        \
+            -prefix           $anat_mapped    \
+            -base             "$it2w"         \
+            -float                            \
+            -newgrid         "$RES"           \
+            -final wsinc5
+        if ( $status ) then
+            goto BAD_EXIT
+        endif
+    endif
+
+    # prepare for making images: ulay=t2w, olay=t1w
+    set ulay = "$it2w"
+    set olay = "$anat_mapped"
 endif
 
-set T1TOCOPY = $t1mapped
+# copy output matrix
 \cp $imtrx $odir/$omtrx
 
-set fdims = `3dinfo -n4 ${T1TOCOPY}`
-set fres  = `3dinfo -ad3 ${T1TOCOPY}`
+# get info to report below
+set fdims = `3dinfo -n4  ${anat_mapped}`
+set fres  = `3dinfo -ad3 ${anat_mapped}`
 
 echo "++ Done workin'.  Just need to copy the final dset."
 
 3dcalc                         \
     -overwrite                 \
-    -a $T1TOCOPY               \
-    -expr 'a'                  \
-    -prefix $odir/$ot1w
+    -a       $anat_mapped      \
+    -expr    'a'               \
+    -prefix  $odir/$oanat
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 if ( $DO_VIEWER == 1 ) then
 
@@ -481,7 +594,7 @@ if ( $DO_VIEWER == 1 ) then
     3dedge3                         \
         -overwrite                  \
         -prefix $vedge              \
-        -input  $odir/$ot1w
+        -input  $olay
 
     if ( $qc_prefix == "" ) then
         set vpref0 = ${opref}_qc_t2w_t1wE
@@ -492,11 +605,11 @@ if ( $DO_VIEWER == 1 ) then
     endif
 
     echo "\n\n"
-    echo "++ QC image 00 ($odir/$ot1w edges on $it2w): $vpref0"
+    echo "++ QC image 00 ($odir/$oanat edges on $it2w): $vpref0"
     echo "\n\n"
     # need to put '[0]' on $iref?
     $my_viewer                            \
-        -ulay "$it2w"                     \
+        -ulay "$ulay"                     \
         -ulay_range "2%" "98%"            \
         -olay "$vedge"                    \
         -func_range_perc_nz 50            \
@@ -510,13 +623,13 @@ if ( $DO_VIEWER == 1 ) then
         -do_clean 
 
     echo "\n\n"
-    echo "++ QC image 01 ($odir/$ot1w olay on $it2w): $vpref1"
+    echo "++ QC image 01 ($odir/$oanat olay on $it2w): $vpref1"
     echo "\n\n"
 
     $my_viewer                            \
-        -ulay "$it2w"                     \
+        -ulay "$ulay"                     \
         -ulay_range "2%" "98%"            \
-        -olay "$odir/$ot1w"               \
+        -olay "$olay"                     \
         -pbar_posonly                     \
         -opacity 4                        \
         -prefix "$odirqc/$vpref1"         \
@@ -537,7 +650,7 @@ endif
 
 # final messages
 echo ""
-echo "++ The final data set is here:  $odir/$ot1w"
+echo "++ The final data set is here:  $odir/$oanat"
 echo "++ The final spatial dims are:  $fdims[1] $fdims[2] $fdims[3]"
 echo "++ The spatial resolution is:   $fres[1] $fres[2] $fres[3]"
 echo ""
@@ -634,19 +747,35 @@ cat << EOF
    -newgrid RES   :specify output T1w volume's final resolution; will be
                    isotropic in this value (default: 1 mm, or smallest voxel
                    edge length of input T1W if that value is < 1 mm).
-   -out_t2w_grid  :final T1w volume is on the T2W volume's grid (with 
-                   possible addition of padding with a slice of zeros if
-                   prepping for FS).
+
+   -out_t2w_grid  :final T1w volume is on the T2w volume's grid
+
+   -out_t1w_grid  :when using '-align_t2w_to_t1w', one can use this opt
+                   so the final T2w volume is on the T1W volume's grid
 
    -in_t2w_mask MASK_T2W
                   :can input a mask to apply to the t2w volume for
                    alignment purposes; might help in times of aligning 
                    hardship.
 
+   -do_use_cmass DUC :should '-cmass' be used during the 3dAllineate's 
+                   alignment estimation?  Valid values for DUC are:
+                      Yes, 1 (to use -cmass)
+                      No, 0 (to not use -cmass)
+                   In many cases nowadays, it might make sense to disable
+                   using -cmass, esp. if the initial T1w-T2w overlap is good.
+                   (def: ${do_use_cmass})
+
    -do_ss_tmp_t1w :during an intermediate step, apply skullstripping
                    to the T1w volume-- final output is *not*
                    skullstripped.  This might be useful if there is
                    lots of non-brain tissue still in the T1w volume.
+
+   -align_t2w_to_t1w :by default, this program outputs the alignment between
+                   the anatomicals in the direction T1w->T2w.  Using this 
+                   option reverses that order, so T2w->T1w. Note that all
+                   QC images keep the T1w and T2w datasets in their same
+                   overlay/underlay roles even if this opt is used.
 
    -warp WAR      :can choose which of the possible affine degrees of freedom
                    are employed in the warping, selecting them in the same
@@ -656,6 +785,9 @@ cat << EOF
 
    -matrix MMM    :one can apply a pre-made matrix that has been made by
                    3dAllineate previously.  With this option.  If you want.
+                   Using this opt means that the alignment between the input
+                   T1w and T2w dsets is not calculated anew here, but instead
+                   MMM is used instead.                   
 
    -workdir WWW   :specify a working directory, which can be removed;
                    (default name = '$wdir')
@@ -666,24 +798,37 @@ cat << EOF
    -no_clean      :no not delete temporary working directory (default is to 
                    remove it to save disk space).
 
+   -echo          :run very, very verbosely
+
 # ----------------------------------------------------------------------
 
   EXAMPLE
 
-    # have isotropic 1x1x1 mm final anat:
+    # 1) have isotropic 1x1x1 mm final anat:
     $this_prog  \
         -in_t1w    MPRAGE.nii.gz        \
         -in_t2w    T2w_anat.nii.gz      \
         -newgrid   1.0                  \
         -prefix    t1w_alnd
 
-    # match the final anat resolution to that of the t2w dset:
+    # 2) match the final anat resolution to that of the t2w dset:
     $this_prog  \
         -in_t1w    MPRAGE.nii.gz        \
         -in_t2w    T2w_anat.nii.gz      \
         -out_t2w_grid                   \
         -prefix    t1w_alndb
 
+    # 3) instead of aligning the t1w dset to the t2w, have the t2w dset
+    #    align to the t1w one (and also match final resolution of the t1w);
+    #    also, disable using '-cmass' during the alignment, which assumes
+    #    and/or makes use of good initial alignment
+    $this_prog  \
+        -in_t1w    MPRAGE.nii.gz        \
+        -in_t2w    T2w_anat.nii.gz      \
+        -out_t1w_grid                   \
+        -align_t2w_to_t1w               \
+        -do_use_cmass  0                \
+        -prefix    t2w_alndb
 
 # -----------------------------------------------------------------------
 
