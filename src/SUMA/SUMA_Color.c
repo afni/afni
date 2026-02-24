@@ -10806,7 +10806,6 @@ void SUMA_LoadDsetOntoSO (char *filename, void *data)
 
    SUMA_ENTRY;
 
-
    if (!data || !filename) {
       SUMA_SLP_Err("Null data");
       SUMA_RETURNe;
@@ -12078,7 +12077,6 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(SUMA_OVERLAYS *cp,
                   1, 
                   0, 
                   threshold);
-           fprintf(stderr, "************************** cp->Contours = %p\n", cp->Contours);
 
          if (LocalHead) SUMA_Show_ColorOverlayPlanes(&cp, 1, 0);
       } else {
@@ -12120,7 +12118,6 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(SUMA_OVERLAYS *cp,
                   1, 
                   0, 
                   threshold);
-           fprintf(stderr, "************************** cp->Contours = %p\n", cp->Contours);
          if (LocalHead) SUMA_Show_ColorOverlayPlanes(&cp, 1, 0);
       }
    }
@@ -12306,7 +12303,6 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
       }
       /* cp->N_NodeDef is taken care of inside SUMA_ScaleToMap_Interactive */
    }
-
 
 
    if (LocalHead)  {

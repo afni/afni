@@ -6358,7 +6358,6 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI_Box(
    *N_ROI = N_Labels;
    
    *Contours = ROIv;
-   fprintf(stderr, "************************** ROIv = %p\n", ROIv);
    SUMA_RETURN(ROIv);
 
 }
