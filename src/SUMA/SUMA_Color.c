@@ -3144,7 +3144,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
    }
 
-
    SUMA_LH("Fetching Intensity column");
    if (Opt->find < 0) { SUMA_SL_Crit("Bad column index.\n"); SUMA_RETURN(NOPE); }
    else {
@@ -3505,6 +3504,8 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
    }
 
+//    if (SO->SurfCont->alphaOpacityModel) SUMA_RETURN(YUP);   // DEBUG
+//                                 
    /* finally copy results */
    SUMA_LH("Copying into NodeDef");
    if (nd) {
@@ -3543,6 +3544,9 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
    }
    Sover->N_NodeDef = cnt;
+   
+//       if (SO->SurfCont->alphaOpacityModel) SUMA_RETURN(YUP);   // DEBUG
+//                                
 
    /* Alpha needed, only for volumes at the moment ... */
    if (ado && ado->do_type == VO_type) {
@@ -3608,6 +3612,8 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
    }
 
+//       if (SO->SurfCont->alphaOpacityModel) SUMA_RETURN(YUP);   // DEBUG
+//                                
    /* Add any coord bias ? */
    switch (HoldBiasOpt) {
       case SW_CoordBias_X:
@@ -3638,38 +3644,42 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          SUMA_LH("Bias None");
          break;
    }
-
+    
    /* Do we need to create contours */
+   fprintf(stderr, "Opt->ColsContMode = %d\n", Opt->ColsContMode);
    if (Opt->ColsContMode) {
       if (SUMA_is_Label_dset(Sover->dset_link,NULL))
          SUMA_ContourateDsetOverlay(Sover, NULL);
       else
-         SUMA_ContourateDsetOverlay(Sover, SV);
+        SUMA_ContourateDsetOverlay(Sover, SV);
          
-    if (SO->SurfCont->BoxOutlineThresh){
-         float *tSave = Sover->T;
-         Sover->T = box_mask;
-         SUMA_ContourateDsetOverlay_Box(Sover, SV, SO);
-         Sover->T = tSave;
-       
-        /* Contours have been made.  Make contours black if threshold 
-        outline contours required */
-        int j;
-        if (Sover->Contours){
-            for (i=0; i<Sover->N_Contours; ++i){
-                for (j=0; j<4; ++j){
-                    Sover->Contours[i]->FillColor[j] = 0.0f;
+        if (SO->SurfCont->BoxOutlineThresh){
+             float *tSave = Sover->T;
+             Sover->T = box_mask;
+             SUMA_ContourateDsetOverlay_Box(Sover, SV, SO);
+             Sover->T = tSave;
+           
+            /* Contours have been made.  Make contours black if threshold 
+            outline contours required */
+            int j;
+            if (Sover->Contours){
+                fprintf(stderr, "Sover->N_Contours = %d\n", Sover->N_Contours);
+                fprintf(stderr, "Sover->Contours[0]->N_CE = %d\n", Sover->Contours[0]->N_CE);
+                
+                for (i=0; i<Sover->N_Contours; ++i){
+                    for (j=0; j<4; ++j){
+                        Sover->Contours[i]->FillColor[j] = 0.0f;
+                    }
+                    Sover->Contours[i]->EdgeThickness = 8;
                 }
-                Sover->Contours[i]->EdgeThickness = 8;
+            } else {
+                SUMA_SL_Err("ERROR: No contours found\n");
+                // SUMA_RETURN (NOPE);
             }
-        } else {
-            SUMA_SL_Err("ERROR: No contours found\n");
-            // SUMA_RETURN (NOPE);
-        }
 
-      // drawThresholdOutline(SO, SV);
-      free(box_mask);
-    }
+          // drawThresholdOutline(SO, SV);
+          free(box_mask);
+        }
    }
 
    if (LocalHead) {
@@ -12059,24 +12069,35 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(SUMA_OVERLAYS *cp,
 
          ind = SDSET_NODE_INDEX_COL(cp->dset_link);
          key = SDSET_VEC(cp->dset_link, cp->OptScl->find);  
-         
-         cp->Contours  =
-            SUMA_MultiColumnsToDrawnROI_Box( SDSET_VECLEN(cp->dset_link),
+
+         cp->Contours =
+            SUMA_MultiColumnsToDrawnROI( SDSET_VECLEN(cp->dset_link),
                   (void *)ind, SUMA_int,
                   NULL, SUMA_int,
                   NULL, SUMA_notypeset,
                   NULL, SUMA_notypeset,
                   NULL, SUMA_notypeset,
-                  
-                  SUMA_FindNamedColMap (cp->cmapname), 
-                  1,
-                  cp->Label, 
-                  SDSET_IDMDOM(cp->dset_link),
-                  &(cp->N_Contours), 
-                  &(cp->Contours),
-                  1, 
-                  0, 
-                  threshold);
+                  SUMA_FindNamedColMap (cp->cmapname), 1,
+                  cp->Label, SDSET_IDMDOM(cp->dset_link),
+                  &(cp->N_Contours), 1, 0);
+         
+//         cp->Contours  =
+//            SUMA_MultiColumnsToDrawnROI_Box( SDSET_VECLEN(cp->dset_link),
+//                  (void *)ind, SUMA_int,
+//                  NULL, SUMA_int,
+//                  NULL, SUMA_notypeset,
+//                  NULL, SUMA_notypeset,
+//                  NULL, SUMA_notypeset,
+//                  
+//                  SUMA_FindNamedColMap (cp->cmapname), 
+//                  1,
+//                  cp->Label, 
+//                  SDSET_IDMDOM(cp->dset_link),
+//                  &(cp->N_Contours), 
+//                  &(cp->Contours),
+//                  1, 
+//                  0, 
+//                  threshold);
 
          if (LocalHead) SUMA_Show_ColorOverlayPlanes(&cp, 1, 0);
       } else {
@@ -12100,24 +12121,35 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(SUMA_OVERLAYS *cp,
          }
          ind = cp->NodeDef;
          key = SV->VCont;
-
+         
          cp->Contours =
-            SUMA_MultiColumnsToDrawnROI_Box( cp->N_NodeDef,
+            SUMA_MultiColumnsToDrawnROI( cp->N_NodeDef,
                   (void *)ind, SUMA_int,
                   NULL, SUMA_int,
                   NULL, SUMA_notypeset,
                   NULL, SUMA_notypeset,
                   NULL, SUMA_notypeset,
-                  
-                  SUMA_FindNamedColMap (cp->cmapname), 
-                  1,
-                  cp->Label, 
-                  SDSET_IDMDOM(cp->dset_link),
-                  &(cp->N_Contours), 
-                  &(cp->Contours),
-                  1, 
-                  0, 
-                  threshold);
+                  SUMA_FindNamedColMap (cp->cmapname), 1,
+                  cp->Label, SDSET_IDMDOM(cp->dset_link),
+                  &(cp->N_Contours), 1, 1);
+
+//         cp->Contours =
+//            SUMA_MultiColumnsToDrawnROI_Box( cp->N_NodeDef,
+//                  (void *)ind, SUMA_int,
+//                  NULL, SUMA_int,
+//                  NULL, SUMA_notypeset,
+//                  NULL, SUMA_notypeset,
+//                  NULL, SUMA_notypeset,
+//                  
+//                  SUMA_FindNamedColMap (cp->cmapname), 
+//                  1,
+//                  cp->Label, 
+//                  SDSET_IDMDOM(cp->dset_link),
+//                  &(cp->N_Contours), 
+//                  &(cp->Contours),
+//                  1, 
+//                  0, 
+//                  threshold);
          if (LocalHead) SUMA_Show_ColorOverlayPlanes(&cp, 1, 0);
       }
    }

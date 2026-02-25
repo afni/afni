@@ -5606,6 +5606,9 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
       SUMA_RETURN(NULL);
    }
 
+    /* Seems nrow MUST be 1 to get threshold outlines.  If 0, there are no 
+    contours.  If 2, we get topographical lines instead. nrow constrained to
+    1 by parsing all the colx arguments as NULL. */
    switch (nrow) {
       case 1:
          /* Node index only*/
