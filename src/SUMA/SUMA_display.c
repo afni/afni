@@ -4722,6 +4722,7 @@ void SUMA_cb_FileLoadView (Widget w, XtPointer data, XtPointer calldata)
       fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
    }
 
+ 
    /*
    if (!SUMA_LoadVisualState(NULL, (void*)sv)) {
       SUMA_SLP_Err("Failed to load view.");
@@ -7571,7 +7572,8 @@ printf("ConfigureNotify event for Tahoe resizing of object controller\n");
 }
 
 
-/* simple version - just expose widget directly */
+/* expose widget with remanage/expose and enforce height - 
+ * consuming extra events */
 void SUMA_surfcont_expose_EV( Widget w , XtPointer cd ,
                                XEvent *event , RwcBoolean *continue_to_dispatch )
 {
@@ -7620,6 +7622,78 @@ printf("new height is %d trying to reset it to old height %d\n",hnew,hold);
 //        XSync( XtDisplay(w) , False) ;
 
 printf("ConfigureNotify event for Tahoe resizing of object controller2\n");
+     }
+     break ;
+ 
+     case MapNotify:{
+        printf("MapNotify\n");
+        break;
+     }
+     case UnmapNotify:{
+        printf("UnmapNotify\n");
+        break;
+     }
+
+     case CirculateNotify:{
+        printf("CirculateNotify\n");
+        break;
+     }
+     case DestroyNotify:{
+        printf("DestroyNotify\n");
+        break;
+     }
+     case GravityNotify:{
+        printf("GravityNotify\n");
+        break;
+     }
+     case ReparentNotify:{
+        printf("ReparentNotify\n");
+        break;
+     }
+
+
+     /** No other event types (at this time) */
+     default:
+         printf("not ConfigureNotify event\n");
+   }
+
+   busy = 0 ;
+   EXRETURN ;
+}
+
+/* simple version - just expose widget directly */
+void SUMA_file_expose_EV( Widget w , XtPointer cd ,
+                               XEvent *event , RwcBoolean *continue_to_dispatch )
+{
+//   Three_D_View *im3d = (Three_D_View *)cd ;
+
+   static int busy=0, hold=-1, hnew=-1 ;
+   XEvent ev;
+   XConfigureEvent last = event->xconfigure;
+   int iter=0;
+ENTRY("SUMA_file_expose_EV") ;
+
+printf("SUMA_file_expose_EV\n");
+   if( busy ) EXRETURN ;
+
+   busy = 1 ;
+
+   /* try dpeterc's trick for flushing / waiting for ConfigureNotify events */ 
+   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w), ConfigureNotify, &ev)){
+printf("waiting for events to clear - iteration %d\n", iter);
+      last = ev.xconfigure;
+//      NI_sleep(10);
+      iter++;
+   }
+
+   switch( event->type ){
+// fall through the MapNotify and UnmapNotify cases to force resize for testing
+ 
+     case ConfigureNotify:{
+     // file dialogs don't like remanagement. They fall up to corner at 0,0
+          forceExpose( w , 1 ) ;
+
+printf("ConfigureNotify event for Tahoe resizing file menu items\n");
      }
      break ;
  
@@ -18329,6 +18403,16 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
                         XtParseTranslationTable(SUMA_TEXT_WIDGET_TRANSLATIONS),
                         NULL);
       */
+      if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+        XtInsertEventHandler( form ,  /* handle events in form */
+                              StructureNotifyMask ,    /* resizes (Configure events) */
+                              FALSE ,                  /* nonmaskable events? */
+                              SUMA_expose_EV ,       /* handler */
+                              (XtPointer) NULL ,      /* client data - not used */
+                              XtListTail               /* last in queue */
+                            ) ;
+   printf("Added event handler for Tahoe resizing of SUMA usage help window\n");
+      }
 
       XtManageChild (form);
 
@@ -22016,6 +22100,16 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (
 
    XmStringFree (button);
    XmStringFree (title);
+   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( dlg->dlg_w ,  /* handle events in w */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           SUMA_file_expose_EV ,       /* handler */
+                           (XtPointer) NULL ,      /* client data - not used */
+                           XtListTail               /* last in queue */
+                         ) ;
+printf("Added event handler for Tahoe resizing of SUMA load view menu\n");
+   }
 
    XtManageChild (dlg->dlg_w);
 
