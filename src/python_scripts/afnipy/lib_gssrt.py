@@ -1327,21 +1327,28 @@ class MyInterface:
       for otest in test_list:
          label = otest[0]
          check = otest[1]
-         if check == 'SHOW' :
-            newlab = check
-         elif check in Z_COMP_OPS :
-            # [PT: Sep 2, 2024] new label format for Z-score comparisons
-            check, val = self.apply_Z_transform(float(otest[2]), label,
-                                                inverse=True)
-            if check : return -1
-            thr = UTIL.round_int_or_nsig(val, 3, stringify=True)
-            newlab = '%s:%s (=%s)' % (check, otest[2], str(thr))
-         elif check in V_COMP_OPS :
-            newlab = '%s:%s' % (check, table[2][posn])
-         else:
-            newlab = '%s:%s' % (check, otest[2])
-
+         # [PT: Feb 26, 2026] put this loop HERE, bc we have to
+         # edit/update the newval when we have multiple items per
+         # label, so we have to extract the correct value from
+         # table[2]
          for repind in range(self.maxcounts[label]):
+            if check == 'SHOW' :
+               newlab = check
+            elif check in Z_COMP_OPS :
+               # [PT: Sep 2, 2024] new label format for Z-score comparisons
+               # comment: at present, Z* operators do not operate on 
+               # items with multiple columns, like ad3, n3, etc., so 
+               # multi-indexing won't affect these.
+               check, val = self.apply_Z_transform(float(otest[2]), label,
+                                                   inverse=True)
+               if check : return -1
+               thr = UTIL.round_int_or_nsig(val, 3, stringify=True)
+               newlab = '%s:%s (=%s)' % (check, otest[2], str(thr))
+            elif check in V_COMP_OPS :
+               newlab = '%s:%s' % (check, table[2][posn])
+            else:
+               newlab = '%s:%s' % (check, otest[2])
+
             table[1][posn] = newlab
             posn += 1
 
@@ -1413,8 +1420,10 @@ class MyInterface:
          if label in sdict :
             n = len(sdict[label])
             if n > 1 :
+               # [PT] maybe examine this later, to run per-column
                print("** ERROR: too many values ({}) for Z-parameterizing "
-                     "label: {}, {}".format(n, label))
+                     "label: {}".format(n, label))
+               return 1
             try:
                x = float(sdict[label][0])
                vals.append(x)
