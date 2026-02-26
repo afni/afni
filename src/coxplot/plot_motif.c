@@ -4,6 +4,7 @@
 #include "mcw_malloc.h"    /* ZSS: Needed because SUMA_plot.c does 
                               allocate some pointers freed here Jan 09 */
 #include "Amalloc.h"
+#include "xutil.h"
 
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
@@ -42,6 +43,8 @@ typedef void vpfunc(char *,MEM_plotdata *) ;
 typedef struct { char *suf ; vpfunc *fun ; } saver_pair ;
 static int     num_spair = 0 ;
 static saver_pair *spair = NULL ;
+void plot_expose_EV( Widget w , XtPointer cd ,
+                     XEvent *event , RwcBoolean *continue_to_dispatch );
 
 void memplot_topshell_setsaver( char *suf, void (*fun)(char *,MEM_plotdata *) )
 {
@@ -634,6 +637,17 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
    XtAddCallback( drawing , XmNresizeCallback , pm_resize_CB , (XtPointer) mpcb ) ;
    XtAddCallback( drawing , XmNinputCallback  , pm_input_CB  , (XtPointer) mpcb ) ;
 
+   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( form ,  /* handle events in form */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           plot_expose_EV ,       /* handler */
+                           (XtPointer) mpcb ,      /* client data - not used */
+                           XtListTail               /* last in queue */
+                         ) ;
+printf("Added event handler for Tahoe resizing of SUMA plot window\n");
+   }
+
    /* finish the job */
 
    XtVaSetValues( form , BGCOLOR_ARG("white") , NULL ) ;
@@ -646,4 +660,70 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
 
    mpcb->valid = 1 ; mpcb->userdata = NULL ; mpcb->drawing = drawing ;
    return mpcb ;
+}
+
+
+/* simple version - just expose widget directly */
+void plot_expose_EV( Widget w , XtPointer cd ,
+                     XEvent *event , RwcBoolean *continue_to_dispatch )
+{
+   static int busy=0, hold=-1, hnew=-1 ;
+   XEvent ev;
+   XConfigureEvent last = event->xconfigure;
+   int iter=0;
+ENTRY("plot_expose_EV") ;
+
+printf("plot_expose_EV\n");
+   if( busy ) EXRETURN ;
+
+   busy = 1 ;
+
+   /* dpeterc's trick for flushing / waiting for ConfigureNotify events */ 
+   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w), ConfigureNotify, &ev)){
+printf("waiting for events to clear - iteration %d\n", iter);
+      last = ev.xconfigure;
+//      NI_sleep(10);
+      iter++;
+   }
+
+   switch( event->type ){
+     case ConfigureNotify:{
+          forceExpose( w , 1 ) ;
+printf("ConfigureNotify event for Tahoe resizing file menu items\n");
+     }
+     break ;
+ 
+     case MapNotify:{
+        printf("MapNotify\n");
+        break;
+     }
+     case UnmapNotify:{
+        printf("UnmapNotify\n");
+        break;
+     }
+
+     case CirculateNotify:{
+        printf("CirculateNotify\n");
+        break;
+     }
+     case DestroyNotify:{
+        printf("DestroyNotify\n");
+        break;
+     }
+     case GravityNotify:{
+        printf("GravityNotify\n");
+        break;
+     }
+     case ReparentNotify:{
+        printf("ReparentNotify\n");
+        break;
+     }
+
+     /** No other event types (at this time) */
+     default:
+         printf("not ConfigureNotify event\n");
+   }
+
+   busy = 0 ;
+   EXRETURN ;
 }
