@@ -645,7 +645,7 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
                            (XtPointer) mpcb ,      /* client data - not used */
                            XtListTail               /* last in queue */
                          ) ;
-printf("Added event handler for Tahoe resizing of SUMA plot window\n");
+printf("Added event handler for Tahoe resizing of 1dplot window\n");
    }
 
    /* finish the job */
