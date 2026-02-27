@@ -5620,11 +5620,13 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
             SUMA_RETURN(NULL);
          }
          if (ind_type == SUMA_float) {
-            fv = (float *)ind;
-            for (i=0; i < ncol; ++i) iNode[i] = (int)fv[i];
+            fv = (float *)ind; /* nodes over which the colors are defined (fp) */
+            for (i=0; i < ncol; ++i) iNode[i] = (int)fv[i]; /* nodes over which 
+                                                    the colors are defined (int */
          } else if (ind_type == SUMA_int) {
-            iv = (int *)ind;
-            for (i=0; i < ncol; ++i) iNode[i] = iv[i];
+            iv = (int *)ind; /* nodes over which the colors are defined (int) */
+            for (i=0; i < ncol; ++i) iNode[i] = iv[i];/* nodes over which 
+                                                    the colors are defined (int */
          }
 
          iLabel[0] = 0;
@@ -5963,7 +5965,7 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI_Box(
          SUMA_Boolean LabelIsCmapIndex, 
          double threshold)
 {
-   static char FuncName[]={"SUMA_MultiColumnsToDrawnROI"};
+   static char FuncName[]={"SUMA_MultiColumnsToDrawnROI_Box"};
    char smapflag[32];
    int *iv=NULL;
    float *fv=NULL;
@@ -6017,7 +6019,6 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI_Box(
       SUMA_RETURN(NULL);
    }
 
-    // nrow = 1;
     /* Seems nrow MUST be 1 to get threshold outlines.  If 0, there are no 
     contours.  If 2, we get topographical lines instead. */
    switch (nrow) {
