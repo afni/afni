@@ -3253,6 +3253,9 @@ typedef struct {
 
    SUMA_DRAW_MASKS *DW; /*!< A structure containing node masking information
                              for on the fly masking */
+   float *box_mask;        /*!< Box contour mask of length nnodes */
+   int    box_mask_size;   /*!< mask nnodes (== surf nnodes) */
+   int    box_mask_apply;  /*!< whether to apply the box_mask */
 } SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
                      \sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c
