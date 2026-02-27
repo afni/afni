@@ -12038,19 +12038,32 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(SUMA_OVERLAYS *cp,
                                         SUMA_COLOR_SCALED_VECT *SV,
                                         SUMA_SurfaceObject *SO)
 {
-   static char FuncName[]={"SUMA_ContourateDsetOverlay_Box"};
-   int kkk=0, *ind=NULL, *key=NULL;
-   double   threshold = cp->OptScl->ThreshRange[0];
-   SUMA_Boolean LocalHead = NOPE;
+    static char FuncName[]={"SUMA_ContourateDsetOverlay_Box"};
+    int kkk=0, *ind=NULL, *key=NULL;
+    double   threshold = cp->OptScl->ThreshRange[0];
+    SUMA_Boolean LocalHead = NOPE;
 
+    SUMA_ENTRY;
 
-   SUMA_ENTRY;
-   
-   if (!cp) SUMA_RETURN(NOPE);
-   if (!cp->dset_link) SUMA_RETURN(NOPE);
-   if (!(cp->makeContours)) SUMA_RETURN(NOPE);
+    if (!cp) SUMA_RETURN(NOPE);
+    if (!cp->dset_link) SUMA_RETURN(NOPE);
+    if (!(cp->makeContours)) SUMA_RETURN(NOPE);
 
-   if (!SV) {
+     /* This part is necessary for A and B check boxes to work together. 
+        cp->V is used because cp->T is all zero. */
+     int *thresh;
+     int numNodes = 0;
+     if (!(thresh = (int *)malloc(cp->N_NodeDef*sizeof(int)))){
+         SUMA_S_Err("Cannot create contours non-label dset types without SV");
+         SUMA_RETURN(NOPE);
+     }
+     for (int i=0; i<cp->N_NodeDef; ++i) if (cp->V[cp->NodeDef[i]] >= 
+            cp->OptScl->ThreshRange[0]){
+        thresh[numNodes++] = cp->NodeDef[i];
+     }
+     ind = thresh;
+
+    if (!SV) {
       if (SUMA_is_Label_dset(cp->dset_link,NULL) ||
           SUMA_is_Label_dset_col(cp->dset_link, cp->OptScl->find)) {
          SUMA_LHv("Creating contours for %s\n",SDSET_LABEL(cp->dset_link));
@@ -12064,11 +12077,8 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(SUMA_OVERLAYS *cp,
             SUMA_KillOverlayContours(cp);
          }
 
-         ind = SDSET_NODE_INDEX_COL(cp->dset_link);
-         key = SDSET_VEC(cp->dset_link, cp->OptScl->find);  
-
          cp->Contours =
-            SUMA_MultiColumnsToDrawnROI( SDSET_VECLEN(cp->dset_link),
+            SUMA_MultiColumnsToDrawnROI( numNodes,
                   (void *)ind, SUMA_int,
                   NULL, SUMA_int,
                   NULL, SUMA_notypeset,
@@ -12098,22 +12108,6 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(SUMA_OVERLAYS *cp,
                         "Bad things might happen.");
             cp->makeContours = 0;
          }
-         ind = cp->NodeDef;
-         key = SV->VCont;
-         
-         /* This part is necessary for A and B check boxes to work together. 
-            cp->V is used because cp->T is all zero. */
-         int *thresh;
-         int numNodes = 0;
-         if (!(thresh = (int *)malloc(cp->N_NodeDef*sizeof(int)))){
-             SUMA_S_Err("Cannot create contours non-label dset types without SV");
-             SUMA_RETURN(NOPE);
-         }
-         for (int i=0; i<cp->N_NodeDef; ++i) if (cp->V[cp->NodeDef[i]] >= 
-                cp->OptScl->ThreshRange[0]){
-            thresh[numNodes++] = cp->NodeDef[i];
-         }
-         ind = thresh;
          
          cp->Contours =
             SUMA_MultiColumnsToDrawnROI( numNodes,
