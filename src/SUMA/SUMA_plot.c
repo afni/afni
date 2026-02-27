@@ -437,6 +437,17 @@ MEM_topshell_data * SUMA_memplot_to_topshell( Display *dpy,
    XtAddCallback( drawing , XmNinputCallback  ,
                   SUMA_pm_input_CB  , (XtPointer) mpcb ) ;
 
+   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( form ,  /* handle events in form */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           SUMA_expose_EV ,       /* handler */
+                           (XtPointer) mpcb ,      /* client data - not used */
+                           XtListTail               /* last in queue */
+                         ) ;
+printf("Added event handler for Tahoe resizing of SUMA plot window\n");
+   }
+
    /* finish the job */
 
    XtVaSetValues( form , BGCOLOR_ARG("white") , NULL ) ;

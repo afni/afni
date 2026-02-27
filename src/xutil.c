@@ -88,6 +88,8 @@ int needsX11Redraw(void)
          needsit = 1;
       else if( (*eptr == 'n') || (*eptr == 'N') )
          needsit = 0;
+      else if( !strcmp(eptr, "REMANAGE") )
+         needsit = 4;
       else
          fprintf(stderr,"** invalid AFNI_DO_X11_REDRAW %s (should be yes/no)\n",
                         eptr);
@@ -104,15 +106,56 @@ int needsX11Redraw(void)
 
 /* drg/rcr - to redraw after resize */
 
-void forceExpose(Widget w, int depth) {
-   static int cc=0;     /* count occurrences */
-   int    i;            /* kid count */
+
+
+void remanage_widget(Widget w)
+{
+   /* if we don't need/want to do this, return */
+
+   if( !w || !XtIsRealized(w) || !XtIsWidget(w) ) {
+      fprintf(stderr,"** remanage_widget, bad things, man\n");
+      return;
+   }
+
+   XtUnmanageChild(w);
+   XtManageChild(w);
+
+   return;
+}
+
+
+void forceExpose(Widget w, int source)
+{
+   static int redraw_choice=-1;  /* how to perform redraw */
+   static int cc=0;              /* count occurrences */
+   int        i;                 /* kid count */
+
+   /* make note of what is wanted and store */
+   if( redraw_choice < 0 )
+      redraw_choice = needsX11Redraw();
 
    /* if we don't need/want to do this, return */
-   if( ! needsX11Redraw() ) return;
+   if( ! redraw_choice ) return;
 
-   /* know whether this ever happens on a system */
-   if( cc == 0 ) { fprintf(stderr,"== have forceExpose()\n"); cc++; }
+   /* note whether this ever happens on a system */
+   if( cc == 0 ) {
+      fprintf(stderr,"== have forceExpose %d, choice %d\n",
+              source, redraw_choice);
+      cc++;
+   }
+
+   /* source == 0 comes from main afni/suma GUI and image windows
+    * source == 1 comes from afni graph windows
+    *   - remanaging graph windows currently leads callback loop
+    *     so for now, don't use remanage source on graph windows
+    */
+   if( source == 0 ) {
+      if( redraw_choice == 4 ) {
+         fprintf(stderr,"== x11 : remanage_widget %d\n", source);
+         remanage_widget(w);
+         return;
+      }
+   }
 
 #if 0
    fprintf(stderr,"== expose %p, depth %d, cc %d\n", w, depth, cc);
@@ -134,7 +177,7 @@ void forceExpose(Widget w, int depth) {
       Cardinal nkids;
       XtVaGetValues(w, XmNchildren, &kids, XmNnumChildren, &nkids, NULL);
       for (i = 0; i < nkids; ++i)
-         forceExpose(kids[i], depth+1);
+         forceExpose(kids[i], source);
    }
 
    return ;
@@ -148,8 +191,7 @@ void forceExpose(Widget w, int depth) {
 void sendExpose( Widget w , int depth )
 {
   XExposeEvent expose_event ;
-  int wout , hout ;
-  int i;
+  int wout , hout , i;
 
    /* if we don't need/want to do this, return */
    if( ! needsX11Redraw() ) return;
@@ -190,6 +232,73 @@ void sendExpose( Widget w , int depth )
       sendExpose(kids[i],depth+1);
   }
 
+}
+
+/* widget to re-expose or remanage widget on resize
+ * made mostly for MacOS Tahoe bug with Xquartz that
+*  caused corrupted windows */
+void AFNI_widget_expose_EV( Widget w , XtPointer cd ,
+                     XEvent *event , RwcBoolean *continue_to_dispatch )
+{
+   static int busy=0 ;
+   XEvent ev;
+   XConfigureEvent last = event->xconfigure;
+   int iter=0;
+ENTRY("AFNI_widget_expose_EV") ;
+
+printf("AFNI_widget_expose_EV\n");
+   if( busy ) EXRETURN ;
+
+   busy = 1 ;
+
+   /* dpeterc's trick for flushing / waiting for ConfigureNotify events */ 
+   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w), ConfigureNotify, &ev)){
+printf("waiting for events to clear - iteration %d\n", iter);
+      last = ev.xconfigure;
+//      NI_sleep(10);
+      iter++;
+   }
+
+   switch( event->type ){
+     case ConfigureNotify:{
+          forceExpose( w , 1 ) ;
+printf("ConfigureNotify event for Tahoe resizing widgets\n");
+     }
+     break ;
+ 
+     case MapNotify:{
+        printf("MapNotify\n");
+        break;
+     }
+     case UnmapNotify:{
+        printf("UnmapNotify\n");
+        break;
+     }
+
+     case CirculateNotify:{
+        printf("CirculateNotify\n");
+        break;
+     }
+     case DestroyNotify:{
+        printf("DestroyNotify\n");
+        break;
+     }
+     case GravityNotify:{
+        printf("GravityNotify\n");
+        break;
+     }
+     case ReparentNotify:{
+        printf("ReparentNotify\n");
+        break;
+     }
+
+     /** No other event types (at this time) */
+     default:
+         printf("not ConfigureNotify event\n");
+   }
+
+   busy = 0 ;
+   EXRETURN ;
 }
 
 

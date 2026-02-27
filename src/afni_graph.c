@@ -3707,8 +3707,8 @@ STATUS(str) ; }
 #endif
 
         if( needsX11Redraw() ){                    /* Dec 2025 - Tahoe Redraw */
-          forceExpose( grapher->opt_cbut , 0 ) ;
-          forceExpose( grapher->fmenu->fim_cbut , 0 ) ;
+          forceExpose( grapher->opt_cbut , 1 ) ;
+          forceExpose( grapher->fmenu->fim_cbut , 1 ) ;
         }
 
         XSync( XtDisplay(w) , False ) ;  /* 05 Feb 1999 */
