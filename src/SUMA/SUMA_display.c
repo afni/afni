@@ -6615,7 +6615,8 @@ int SUMA_OpenSurfCont_if_other(Widget w,
    SUMA_RETURN(1);
 }
 
-/* Many times you need the surface controller created but not for
+/* Open or close surface object.
+Many times you need the surface controller created but not for
 display, create it if needed, then minimize it immediately afterwards*/
 int SUMA_OpenCloseSurfaceCont(Widget w,
                               SUMA_ALL_DO *ado,
@@ -6626,10 +6627,25 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    SUMA_Boolean LocalHead=NOPE;
 
    SUMA_ENTRY;
+   
+   /* Surface controller */
+   SurfCont=SUMA_ADO_Cont(ado);
+   
+   /* If surface controller has been created and B checkbox checked,
+      turn B check-box off (and turn threshold outlines off */
+   if (SurfCont){
+        SurfCont->BoxOutlineThresh = NOPE;
+        if (SurfCont->BoxOutlineThresh_tb) 
+            XmToggleButtonSetState( SurfCont->BoxOutlineThresh_tb, 
+                SurfCont->BoxOutlineThresh, YUP);
+   }
 
    if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
 
    if (SUMA_isADO_Cont_Realized(ado)) SUMA_RETURN(1); /* nothing to do */
+//   
+//   fprintf(stderr, "SurfCont = %p\n", SurfCont);
+//   fprintf(stderr, "SurfCont->BoxOutlineThresh_tb = %p\n", SurfCont->BoxOutlineThresh_tb);
 
    if (w) {
       SUMA_LH("nism");
@@ -6655,6 +6671,9 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    }
    SUMA_LH("Initializing ColPaneShell");
    SUMA_InitializeColPlaneShell(ado, SUMA_ADO_CurColPlane(ado));
+   
+   fprintf(stderr, "SurfCont = %p\n", SurfCont);
+   fprintf(stderr, "SurfCont->BoxOutlineThresh_tb = %p\n", SurfCont->BoxOutlineThresh_tb);
 
 
    /* Now close it quick. Maybe should put a delayed closing for nicer effect */
@@ -6669,6 +6688,9 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
       XIconifyWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SurfCont->TLS), 0);
       #endif
    }
+//   
+//   fprintf(stderr, "SurfCont = %p\n", SurfCont);
+//   fprintf(stderr, "SurfCont->BoxOutlineThresh_tb = %p\n", SurfCont->BoxOutlineThresh_tb);
 
    SUMA_LH("Returnism")
    SUMA_RETURN(1);
@@ -6853,7 +6875,6 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_RETURN(0);
@@ -12121,6 +12142,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(
       SUMA_LH("Called with colPlane %p, ado %s", colPlane, ADO_LABEL(ado));
       SUMA_DUMP_TRACE("And who called that one?");
    }
+
    switch(ado->do_type) {
       case SO_type:
          SUMA_RETURN(SUMA_InitializeColPlaneShell_SO(
@@ -18974,9 +18996,10 @@ void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data,
    SUMA_MenuCallBackData *datap=NULL;
    SUMA_ALL_DO *ado = NULL;
    int imenu = 0;
+   SUMA_SurfaceObject *SOC=NULL, *SO = NULL;
+   SUMA_OVERLAYS *over2 = NULL, *colpC=NULL;
 
    SUMA_ENTRY;
-
 
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
@@ -18987,7 +19010,18 @@ void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data,
       SUMA_S_Err("Failed to set view mode");
       SUMA_RETURNe;
    }
-
+   
+   /* Apply change to other hemisphere */
+   SO = (SUMA_SurfaceObject *)ado;
+   over2 = SUMA_ADO_CurColPlane(ado);
+   colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
+   if (colpC && SOC){
+       ado = (SUMA_ALL_DO *)SOC;
+       if (!SUMA_SetDsetViewMode(ado, imenu, 1)) {
+          SUMA_S_Err("Failed to set view mode");
+          SUMA_RETURNe;
+       }
+   }
 
    SUMA_RETURNe;
 }
@@ -22040,6 +22074,7 @@ void SUMA_cb_Dset_Load(Widget w, XtPointer data, XtPointer client_data)
       fprintf (SUMA_STDERR,
          "Error %s: Failed to register command.\n", FuncName);
    }
+   
    if (!SUMA_RegisterEngineListCommand (  list, ED,
                                           SEF_ip, (int *)w,
                                           SES_Suma, NULL, NOPE,
@@ -22048,7 +22083,7 @@ void SUMA_cb_Dset_Load(Widget w, XtPointer data, XtPointer client_data)
          "Error %s: Failed to register command.\n", FuncName);
    }
 
-   if (!SUMA_Engine (&list)) {
+    if (!SUMA_Engine (&list)) {
       fprintf(SUMA_STDERR,
          "Error %s: SUMA_Engine call failed.\n", FuncName);
    }
