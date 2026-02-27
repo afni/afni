@@ -1926,7 +1926,7 @@ cs_playsound.o:cs_playsound.c
 
 1dsigplot:libcoxplot.a 1dsigplot.o display.o
 	$(RM) $@
-	$(CC) -o 1dsigplot 1dsigplot.o display.o $(LFLAGS) -lcoxplot $(LLIBS_X11)
+	$(CC) -o 1dsigplot 1dsigplot.o display.o $(LFLAGS) -lcoxplot -lmrix $(LLIBS_X11)
 
 1dtranspose:1dtranspose.o
 	$(RM) $@

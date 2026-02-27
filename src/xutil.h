@@ -56,7 +56,8 @@ extern void forceExpose(Widget w, int source) ;   /* Dec 2025 - for Mac Tahoe */
 extern void sendExpose (Widget w, int source) ;
 extern int  have_MACOS_FORCE_EXPOSE(void) ;
 extern int  needsX11Redraw(void) ;
-
+void AFNI_widget_expose_EV( Widget w , XtPointer cd ,
+      XEvent *event , RwcBoolean *continue_to_dispatch );
 #if 1
 # define EXPOSEME forceExpose
 #else

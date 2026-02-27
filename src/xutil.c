@@ -234,6 +234,73 @@ void sendExpose( Widget w , int depth )
 
 }
 
+/* widget to re-expose or remanage widget on resize
+ * made mostly for MacOS Tahoe bug with Xquartz that
+*  caused corrupted windows */
+void AFNI_widget_expose_EV( Widget w , XtPointer cd ,
+                     XEvent *event , RwcBoolean *continue_to_dispatch )
+{
+   static int busy=0 ;
+   XEvent ev;
+   XConfigureEvent last = event->xconfigure;
+   int iter=0;
+ENTRY("AFNI_widget_expose_EV") ;
+
+printf("AFNI_widget_expose_EV\n");
+   if( busy ) EXRETURN ;
+
+   busy = 1 ;
+
+   /* dpeterc's trick for flushing / waiting for ConfigureNotify events */ 
+   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w), ConfigureNotify, &ev)){
+printf("waiting for events to clear - iteration %d\n", iter);
+      last = ev.xconfigure;
+//      NI_sleep(10);
+      iter++;
+   }
+
+   switch( event->type ){
+     case ConfigureNotify:{
+          forceExpose( w , 1 ) ;
+printf("ConfigureNotify event for Tahoe resizing widgets\n");
+     }
+     break ;
+ 
+     case MapNotify:{
+        printf("MapNotify\n");
+        break;
+     }
+     case UnmapNotify:{
+        printf("UnmapNotify\n");
+        break;
+     }
+
+     case CirculateNotify:{
+        printf("CirculateNotify\n");
+        break;
+     }
+     case DestroyNotify:{
+        printf("DestroyNotify\n");
+        break;
+     }
+     case GravityNotify:{
+        printf("GravityNotify\n");
+        break;
+     }
+     case ReparentNotify:{
+        printf("ReparentNotify\n");
+        break;
+     }
+
+     /** No other event types (at this time) */
+     default:
+         printf("not ConfigureNotify event\n");
+   }
+
+   busy = 0 ;
+   EXRETURN ;
+}
+
 
 /*--------------------------------------------------------------------
   Get the Colormap for a widget -- 01 Sep 1998
