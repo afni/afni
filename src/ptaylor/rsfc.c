@@ -104,7 +104,7 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
     else if( (sorted[m]==sorted[m-1]) && LENTIE>0 ) {
       LENTIE+= 1 ;
     }
-    else if( (sorted[m]!=sorted[m-1]) && LENTIE>0 ) {
+    if( ((sorted[m]!=sorted[m-1]) || (m == TDIM-1)) && LENTIE>0 ) {
       // end of tie: calc mean index
       TIERANK = 1.0*ISTIE; // where tie started
       TIERANK+= 0.5*(LENTIE-1); // make average rank
