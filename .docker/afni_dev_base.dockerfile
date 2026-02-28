@@ -66,7 +66,6 @@ RUN apt-get update && apt-get install -y eatmydata && \
     freeglut3-dev \
     git \
     libf2c2-dev \
-    libglew-dev \
     libglib2.0-dev \
     libglu1-mesa-dev \
     libglw1-mesa-dev \
