@@ -1020,7 +1020,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   if (!cmp) { SUMA_S_Err("Unexpected null colormap"); break;}
                   if (SUMA_NeedsLinearizing(cmp)) {
                      if (EngineData->i == SW_SurfCont_DsetViewCon   ||
-                         EngineData->i == SW_SurfCont_DsetViewCaC ) {
+                         EngineData->i == SW_SurfCont_DsetViewCaC) {
                         if (!nwarn) {
                            SUMA_SLP_Note("Cannot do contouring with colormaps\n"
                                          "that panes of unequal sizes.\n"
@@ -1051,7 +1051,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_LH("lam");
                   /* explicit colormap no need for all the complications above*/
                      if (EngineData->i == SW_SurfCont_DsetViewCon   ||
-                         EngineData->i == SW_SurfCont_DsetViewCaC ) {
+                         EngineData->i == SW_SurfCont_DsetViewCaC) {
                         if (!nwarn2) {
                            SUMA_SLP_Note("Cannot do contouring with explicitly\n"
                                          "colored datasets. \n"
