@@ -4,6 +4,86 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+/* Notes on X11/XQuartz changes for MacOS Tahoe 26 (03 March 2026)
+ * With the latest release of the MacOS, Tahoe v26, all X11 applications
+* began to have corrupted window displays, with usually blackened areas in
+* rectangles within each window. Tahoe introduced new "Liquid Glass"
+* effects that may be responsible for its effect on the X11 windows management.
+* On the Mac, XQuartz is the X11 server, and it has largely been abandoned
+* by Apple and developers.
+* 
+* The corruption of the windows almost always associated with a resizing
+* operation by dragging the lower right corner or with a programmatic
+* opening or closing of a panel.
+* Based on initial suggestions from the XQuartz github site,
+* we implemented changes that "reexposed" the windows to refresh the display.
+* 
+* Windows that needed attention in AFNI package
+* Panels that open and close in the AFNI GUI
+*   Overlay, Define Datamode, Etc
+* Graph display (uses pixmap buffering that needed specific attention (RWC))
+* Plot windows - all through coxplot functions
+*    (1dplot, underlay graymap plot, scatterplot,
+*    1dgraymap, histogram plugin plots)
+* suma windows - image display, surface object controller, 
+*    surface display locking controller, Draw ROI controller
+*    suma graph plot
+*    file dialogs - load view, save view, load Dset,
+*    dropdown list chooser menus (cmap, load, interpolation, subbrick selectors)
+*    usage help window, text windows (more, info from object controller)
+* AFNI image windows, aiv, to3d image window display - share same image window
+*    functions
+* AFNI atlas - Go to Atlas location (generic strchooser), Show Atlas Colors
+* to3d menu window
+* plugin windows - 
+*   Draw Dataset, Render Dataset, Nudge Dataset
+* Many plugins use a common interface with a common row-column interface 
+* from afni_plugin.c, so all these could be handled together
+*   ScatterPlot, Histogram, Histogram CC, Histogram Multi, Maxima,Vol2Surf
+*   Dataset#N, Dataset2, Tagset, Notes, SVM
+* 
+* All windows now have inserted callback functions for ConfigureNotify events
+* that call functions for redisplay of the window widgets. 
+* Almost all need no other information than just the widget pointer.
+* 
+* The reexpose function calls either forceExpose (a function posted by dpeterc)
+* or a remanage function that unmanages and then manages the widget.
+* Tested with -DAFNI_DO_X11_REDRAW=Y or REMANAGE but can set this in .afnirc.
+* For most windows, the remanage method works faster or seems less visually
+* annoying. Both methods cause some kind of flicker. Complicated windows like 
+* the ones in the suma object controller or the Render plugin are the slowest. 
+* The plotting functions, like 1dplot, are also quite slow, 
+* but they have always been slow.
+* 
+* There are functions that do variations like try to impose width, height for
+* windows that should not change height. Some wait for events to be flushed,
+* with or without extra short sleep delays between events.
+* 
+* Some windows, like the X11 HTML windows used by the whereami GUI and Tips,
+* do not seem to need these fixes, possibly because they already include
+* their own reexpose callbacks.
+* 
+* Dialog boxes that have no size control also do not need patching. 
+* Note, many kinds of widgets *should* not need a resizing control do not 
+* observe the no resize control on widget creation.
+* 
+* TODO: (Remaining tasks)
+* Redraw all viewers crash from Poetry menu with REMANAGE setting
+* Consolidate all miscellaneous functions around AFNI with only the ones here.
+* Replace callback insertion for all events with single function with options
+* for expose, remanage types, size control, flushing, sleep between flush events
+* Remove printf statements for debugging
+* Clusterize (dropdown for Aux dsets), InstaCorr, Instacalc
+* Small dialogs like jumpto's, paned colormap chooser
+* Other plugins - GyrusFinder (plug_roiedit), others that do not appear
+* by default.
+* SUMA's multiple object controllers - in an Xwindows "notebook" widget
+* is very, very slow with multiple objects. There are options for separate
+* widgets, which is also annoying for hundreds of widgets. See code for details
+* AFNI GUI Poetry hidden menu items - like US Constitution, Declaration of 
+* Independence,...
+* */
+
 #include "xutil.h"
 #include "afni_environ.h"
 #include "debugtrace.h"    /* 12 Mar 2001 */
