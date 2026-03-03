@@ -1250,7 +1250,7 @@ class AfniTiming(LD.AfniData):
          # frd_mmms : mmms for diffs of fr offsets, in [0,1]
          # fru_mmms : mmms for diffs of unique fr offsets, in [0,1]
          off_mmms, fr_mmms, frd_mmms, fru_mmms \
-            = self.get_offset_mmms_lists(self.data, tr)
+            = self.get_offset_mmms_lists(self.data, tr, verb=(self.verb>2))
 
          # if no events are found, we're outta here
          if len(off_mmms) == 0:
@@ -1403,7 +1403,7 @@ class AfniTiming(LD.AfniData):
          return 'const'
       return ''
 
-   def get_offset_mmms_lists(self, etimes, tr):
+   def get_offset_mmms_lists(self, etimes, tr, verb=0):
       """given a list (stimulus, presumably) event onset times per run and
          a TR, return four lists of : min, mean, max, stdev of
 
@@ -1411,6 +1411,8 @@ class AfniTiming(LD.AfniData):
                  - like (etime modulo TR)
                    e.g. etime 73.4, TR 1 -> offset 1.4
                  - an offset will real and in [0, tr)
+
+         verb: if > 0, show extra details
 
          per-run mmms lists to return:
 
@@ -1452,6 +1454,11 @@ class AfniTiming(LD.AfniData):
          doffsets = [foffsets[i+1]-foffsets[i] for i in range(len(foffsets)-1)]
          frd_mmms.append(list(UTIL.min_mean_max_stdev(doffsets)))
          # self._add_to_mmms_list(doffsets, frd_mmms)
+
+         # if verb, show all sorted fractional offsets
+         if verb > 0:
+            print("-- all fractional offsets: %s" \
+                  % ' '.join(['%g' % f for f in foffsets]))
 
          # same, but restricted to a list of unique foffsets
          uoffsets = UTIL.get_unique_sublist(foffsets)

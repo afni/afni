@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Mar, 2026, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
+   "add help for evaluating TR-offset stats for non-binary TRs, like 1.3",
+   NULL
+ } ,
+
  {  3, Mar, 2026, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
    "describe converting an HRF (long stimulus) to an IRF in the help",
    NULL
