@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Mar, 2026, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
+   "describe converting an HRF (long stimulus) to an IRF in the help",
+   NULL
+ } ,
+
  { 19, Feb, 2026, RCR, "make_random_timing.py", MICRO, TYPE_MODIFY,
    "add -tr_locked to g_style_opts_old",
    "Sorry about that, Catherine."
