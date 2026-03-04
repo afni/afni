@@ -69,6 +69,7 @@
 * 
 * TODO: (Remaining tasks)
 * Redraw all viewers crash from Poetry menu with REMANAGE setting
+* Try some of the plugin and fixed size menus with the size control options
 * Consolidate all miscellaneous functions around AFNI with only the ones here.
 * Replace callback insertion for all events with single function with options
 * for expose, remanage types, size control, flushing, sleep between flush events
@@ -77,7 +78,7 @@
 * Small dialogs like jumpto's, paned colormap chooser
 * Other plugins - GyrusFinder (plug_roiedit), others that do not appear
 * by default.
-* SUMA's multiple object controllers - in an Xwindows "notebook" widget
+* SUMA's multiple object controllers - in an X11 "notebook" widget
 * is very, very slow with multiple objects. There are options for separate
 * widgets, which is also annoying for hundreds of widgets. See code for details
 * AFNI GUI Poetry hidden menu items - like US Constitution, Declaration of 
