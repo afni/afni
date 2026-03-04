@@ -53,6 +53,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 30, JAN, 2026, DRG, "afni",
+     MINOR, TYPE_BUG_FIX,
+    "Overlay toggle fix",
+    "Overlay would not turn off properly with overlay 'o' key or Overlay button"
+},
 { 24, SEP, 2025, DRG, "afni",
      MINOR, TYPE_BUG_FIX,
     "Clusterize plugin wami command fix",
