@@ -1223,8 +1223,7 @@ int SUMA_SwitchColPlaneIntensity_one (
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-
+   
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
    Label = SUMA_ADO_Label(ado);
@@ -1267,18 +1266,22 @@ int SUMA_SwitchColPlaneIntensity_one (
                    ind, SDSET_VECNUM(colp->dset_link)-1);
       SUMA_RETURN(0);
    }
+
    if (ind != colp->OptScl->find &&
           colp->OptScl->Clusterize) {
          /* Need a new clusterizing effort*/
          colp->OptScl->RecomputeClust = 1;
    }
+
    colp->OptScl->find = ind;
+
    if (setmen && colp == curColPlane && SurfCont->SwitchIntMenu) {
       SUMA_LHv("Setting menu values, %d\n", colp->OptScl->find+1);
       SUMA_Set_Menu_Widget(SurfCont->SwitchIntMenu, colp->OptScl->find+1);
    }
 
    dset=colp->dset_link;
+   fprintf(stderr, "*********************** curColPlane->LinkMode = %d\n", curColPlane->LinkMode);
    switch(curColPlane->LinkMode) {/* corresponding threshold sb */
       case SW_LinkMode_Stat:
             {
@@ -1314,6 +1317,8 @@ int SUMA_SwitchColPlaneIntensity_one (
                         SUMA_LH("Setting threshold values");
                         SUMA_Set_Menu_Widget(SurfCont->SwitchThrMenu,
                                       colp->OptScl->tind+1);
+                        /* range is the range over which colp->OptScl->ThreshRange
+                            can be chosen */
                         if (SUMA_GetDsetColRange(colp->dset_link,
                                              colp->OptScl->tind, range, loc)) {
                            SUMA_SetScaleRange(ado, range );
@@ -1322,11 +1327,14 @@ int SUMA_SwitchColPlaneIntensity_one (
                         }else {
                            SUMA_S_Err("Failed to get range");
                         }
+                        fprintf(stderr, "%%%%%%%%%%%%%%%%%%%%%%%%  range = [%f, %f]\n", range[0], range[1]);
+                        fprintf(stderr, "%%%%%%%%%%%%%%%%%%%%%%%%  colp->OptScl->ThreshRange = [%f, %f]\n", colp->OptScl->ThreshRange[0], colp->OptScl->ThreshRange[1]);
                         if ((pp=SUMA_floatEnv("SUMA_pval_at_switch", -1.0))
                                                                         >= 0) {
                            pp = (float)SUMA_Pval2ThreshVal (ado, (double)pp);
                            /* This function will cause undue redisplays, but
                            keeps code clean */
+                           fprintf(stderr, "%%%%%%%%%%%%%%%%%%%%%%%%  pp = %f\n", pp);
                            if ( pp != 0.0) {
                               if (!(SUMA_set_threshold_one(ado, colp, &pp))) {
                                  SUMA_SL_Err("Error in SUMA_set_threshold_one");
@@ -1450,7 +1458,7 @@ void SUMA_cb_SwitchIntensity(Widget w, XtPointer client_data, XtPointer call)
    if (imenu-1 == curColPlane->OptScl->find) {
       SUMA_RETURNe; /* nothing to be done */
    }
-
+   
    SUMA_SwitchColPlaneIntensity(ado, curColPlane, imenu -1, 0);
 
    SUMA_RETURNe;

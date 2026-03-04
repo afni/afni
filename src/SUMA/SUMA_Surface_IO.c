@@ -5578,6 +5578,8 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
    ncol = N_Nodes;
 
    if (!ind || !N_Nodes) {
+        fprintf(stderr, "ind = %p\n", ind);
+        fprintf(stderr, "N_Nodes = %d\n", N_Nodes);
       SUMA_S_Err("NULL index, or no nodes");
       SUMA_RETURN(NULL);
    }

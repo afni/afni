@@ -3026,6 +3026,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    static float threshold;
    int *box_mask;
    float *vSave;
+   int findSave;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -12057,9 +12058,19 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(SUMA_OVERLAYS *cp,
          SUMA_S_Err("Cannot create contours non-label dset types without SV");
          SUMA_RETURN(NOPE);
      }
-     for (int i=0; i<cp->N_NodeDef; ++i) if (cp->V[cp->NodeDef[i]] >= 
-            cp->OptScl->ThreshRange[0]){
-        thresh[numNodes++] = cp->NodeDef[i];
+     if (1 || cp->OptScl->find == 0){
+         for (int i=0; i<cp->N_NodeDef; ++i) if (cp->V[cp->NodeDef[i]] >= 
+                threshold){
+            thresh[numNodes++] = cp->NodeDef[i];
+         }
+     }
+     else {
+         // for (int i=0; i<cp->N_NodeDef; ++i) fprintf(stderr, "%f, ", cp->V[i]);
+         // for (int i=0; i<cp->N_NodeDef; ++i) if (cp->V[cp->NodeDef[i]] >= cp->OptScl->ThreshRange[0]){
+         for (int i=0; i<cp->N_NodeDef; ++i) if (cp->V[cp->NodeDef[i]] >= 
+                threshold/15){
+            thresh[numNodes++] = cp->NodeDef[i];
+         }
      }
      ind = thresh;
 
@@ -12109,10 +12120,12 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(SUMA_OVERLAYS *cp,
             cp->makeContours = 0;
          }
          
+         // key = (cp->OptScl->find>0)? SDSET_VEC(cp->dset_link, cp->OptScl->find) : NULL;  
+         key = NULL;  
          cp->Contours =
             SUMA_MultiColumnsToDrawnROI( numNodes,
                   (void *)ind, SUMA_int,
-                  NULL, SUMA_float,
+                  key, SUMA_int,
                   NULL, SUMA_notypeset,
                   NULL, SUMA_notypeset,
                   NULL, SUMA_notypeset,
