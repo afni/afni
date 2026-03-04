@@ -4,6 +4,7 @@
 #include "mcw_malloc.h"    /* ZSS: Needed because SUMA_plot.c does 
                               allocate some pointers freed here Jan 09 */
 #include "Amalloc.h"
+#include "xutil.h"
 
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
@@ -42,6 +43,8 @@ typedef void vpfunc(char *,MEM_plotdata *) ;
 typedef struct { char *suf ; vpfunc *fun ; } saver_pair ;
 static int     num_spair = 0 ;
 static saver_pair *spair = NULL ;
+void plot_expose_EV( Widget w , XtPointer cd ,
+                     XEvent *event , RwcBoolean *continue_to_dispatch );
 
 void memplot_topshell_setsaver( char *suf, void (*fun)(char *,MEM_plotdata *) )
 {
@@ -633,6 +636,17 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
    XtAddCallback( drawing , XmNexposeCallback , pm_expose_CB , (XtPointer) mpcb ) ;
    XtAddCallback( drawing , XmNresizeCallback , pm_resize_CB , (XtPointer) mpcb ) ;
    XtAddCallback( drawing , XmNinputCallback  , pm_input_CB  , (XtPointer) mpcb ) ;
+
+   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( form ,  /* handle events in form */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           AFNI_widget_expose_EV ,       /* handler */
+                           (XtPointer) mpcb ,      /* client data - not used */
+                           XtListTail               /* last in queue */
+                         ) ;
+printf("Added event handler for Tahoe resizing of plot (1D,graymap,... window\n");
+   }
 
    /* finish the job */
 

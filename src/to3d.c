@@ -11,6 +11,8 @@ extern void mri_read_dicom_reset_obliquity();
 extern void mri_read_dicom_get_obliquity(float *);
 extern void Obliquity_to_coords(THD_3dim_dataset *);
 static void T3D_reverse_list(int, char **);
+void to3d_expose_EV( Widget w , XtPointer cd ,
+                     XEvent *event , RwcBoolean *continue_to_dispatch );
 
 #define LABEL_ARG(str) \
   XtVaTypedArg , XmNlabelString , XmRString , (str) , strlen(str)+1
@@ -1976,6 +1978,17 @@ ENTRY("T3D_create_widgets") ;
    printf(".");fflush(stdout);
 
    /*----- all done -----*/
+
+   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( wset.topform ,  /* handle events in form */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           to3d_expose_EV ,       /* handler */
+                           (XtPointer) NULL ,      /* client data - not used */
+                           XtListTail               /* last in queue */
+                         ) ;
+printf("Added event handler for Tahoe resizing of to3d window\n");
+   }
 
    XtManageChild( wset.topform ) ;
 
@@ -6293,4 +6306,72 @@ T3D_reverse_list(int gnim, char ** gname)
       gname[i] = strlist[i];
 
    free(strlist);      
+}
+
+
+/* expose widget with remanage/expose 
+ * consuming extra events */
+void to3d_expose_EV( Widget w , XtPointer cd ,
+                               XEvent *event , RwcBoolean *continue_to_dispatch )
+{
+
+   static int busy=0;
+   XEvent ev;
+   XConfigureEvent last = event->xconfigure;
+   int iter=0;
+ENTRY("to3d_expose_EV") ;
+
+printf("to3d_expose_EV\n");
+   if( busy ) EXRETURN ;
+
+   busy = 1 ;
+
+   /* try dpeterc's trick for flushing / waiting for ConfigureNotify events */ 
+   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w), ConfigureNotify, &ev)){
+printf("waiting for events to clear - iteration %d\n", iter);
+      last = ev.xconfigure;
+      NI_sleep(10);
+      iter++;
+   }
+
+   switch( event->type ){
+     case ConfigureNotify:{
+          forceExpose( w , 0 ) ;
+printf("ConfigureNotify event for Tahoe resizing of to3d menu\n");
+     }
+     break ;
+ 
+     case MapNotify:{
+        printf("MapNotify\n");
+        break;
+     }
+     case UnmapNotify:{
+        printf("UnmapNotify\n");
+        break;
+     }
+
+     case CirculateNotify:{
+        printf("CirculateNotify\n");
+        break;
+     }
+     case DestroyNotify:{
+        printf("DestroyNotify\n");
+        break;
+     }
+     case GravityNotify:{
+        printf("GravityNotify\n");
+        break;
+     }
+     case ReparentNotify:{
+        printf("ReparentNotify\n");
+        break;
+     }
+
+     /** No other event types (at this time) */
+     default:
+         printf("not ConfigureNotify event\n");
+   }
+
+   busy = 0 ;
+   EXRETURN ;
 }

@@ -639,6 +639,16 @@ void DRAW_make_widgets(void)
      AV_SENSITIZE( copy_mode_av , True ) ;
      AV_SENSITIZE( copy_type_av , True ) ;
      AV_SENSITIZE( copy_datum_av, True ) ;
+   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( rc  ,  /* handle events in form */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           AFNI_widget_expose_EV ,       /* handler */
+                           (XtPointer) NULL ,      /* client data - not used */
+                           XtListTail               /* last in queue */
+                         ) ;
+printf("Added event handler for Tahoe resizing of Draw Dataset window\n");
+   }
 
      XtManageChild(rc) ;
 
