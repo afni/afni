@@ -3023,11 +3023,12 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    static int nwarn=0;
    SUMA_ALL_DO *ado=NULL;
    SUMA_WIDGET_INDEX_COORDBIAS HoldBiasOpt;
-   static float threshold;
-   int *box_mask;
-   float *vSave;
-   int findSave;
    SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_SurfaceObject *SO;
+   static int * box_mask=NULL;    /* rcr */
+   static int     box_mask_size=0;
+   int            nnodes=0;
 
    SUMA_ENTRY;
 
@@ -3045,10 +3046,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    SUMA_LH("Finding ColorMap %s", Sover->cmapname);
    icmap = SUMA_Find_ColorMap (  Sover->cmapname,
                                  SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
-                                 
-   ado = SUMA_Overlay_OwnerADO(Sover);
-   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-   
    if (icmap < 0) {
       SUMA_SL_Err("Failed to find ColMap");
       SUMA_S_Errv("Missing ColMap called %s\n", Sover->cmapname);
@@ -3059,12 +3056,8 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    Opt = Sover->OptScl;
 
    SUMA_LH("Creating a scaled color vect");
-   if ((Sover->ShowMode == SW_SurfCont_DsetViewCon ||
-       Sover->ShowMode == SW_SurfCont_DsetViewCaC ||
-       SO->SurfCont->BoxOutlineThresh ) )
-       /* Without this third item, no threshold outlines shown 
-       but extra colored outlines are shown. */
-       {
+   if (Sover->ShowMode == SW_SurfCont_DsetViewCon ||
+       Sover->ShowMode == SW_SurfCont_DsetViewCaC) {
       if (SUMA_NeedsLinearizing(ColMap)) {
          if (!nwarn) {
             SUMA_SLP_Note("Cannot do contouring with colormaps\n"
@@ -3084,15 +3077,31 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
 
    SUMA_LH("Fetching vectors from dset");
 
+   ado = SUMA_Overlay_OwnerADO(Sover);
+   SO = (SUMA_SurfaceObject *)ado;
+
+fprintf(stderr,"==== S2MI, BOThr = %d\n", SO->SurfCont->BoxOutlineThresh);
+
    B = NULL;
    /* Thresholding ? */
-   int N_T = SDSET_VECFILLED(Sover->dset_link);
-   if (SO->SurfCont->BoxOutlineThresh){
-        box_mask = (int *)malloc(N_T*sizeof(int));
-        memset((void *)box_mask, 0, N_T*sizeof(int));
-   }
    if (Opt->tind >= 0 && Opt->UseThr) {
       SUMA_LH("Fetching Threshold column");
+      /* rcr (eventually delete) - prepare memory for box_mask */
+      /* allocate for minimum mask size and keep - might be okay */
+      nnodes = SDSET_VECFILLED(Sover->dset_link);
+      fprintf(stderr,"== rcr; BOT %d, nn %d\n",
+              SO->SurfCont->BoxOutlineThresh, nnodes);
+      if( nnodes > 0 && box_mask_size < nnodes ) {
+         box_mask = (int *)SUMA_realloc(box_mask, nnodes*sizeof(int));
+         if( !box_mask ) {
+            SUMA_S_Err("failed to alloc box_mask");
+            SUMA_RETURN(NOPE);
+         }
+         box_mask_size = nnodes;
+         memset(box_mask, '\0', nnodes*sizeof(int));
+      }
+      nnodes = 0; /* for box_mask */
+
       if (  !SUMA_SetOverlay_Vecs(Sover, 'T', Opt->tind, "update", 0) ||
             !Sover->T ) {
          SUMA_S_Err("Failed to get T");
@@ -3106,9 +3115,8 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          case SUMA_LESS_THAN:
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
                if (Sover->T[i] < Opt->ThreshRange[0]) {
-                  /* box_mask has opposite logic from SV->isMasked */
                   if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
-                  if (SO->SurfCont->BoxOutlineThresh) box_mask[i] = YUP; 
+                  if (SO->SurfCont->BoxOutlineThresh) box_mask[nnodes++] = i;
                }
             }
             break;
@@ -3117,7 +3125,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                if (Sover->T[i] < Opt->ThreshRange[0] &&
                    Sover->T[i] > -Opt->ThreshRange[0]) {
                   if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
-                  if (SO->SurfCont->BoxOutlineThresh) box_mask[i] = YUP;
+                  if (SO->SurfCont->BoxOutlineThresh) box_mask[nnodes++] = i;
                }
             }
             break;
@@ -3126,7 +3134,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                if (Sover->T[i] >= Opt->ThreshRange[0] &&
                    Sover->T[i] <= Opt->ThreshRange[1]) {
                   if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
-                  if (SO->SurfCont->BoxOutlineThresh) box_mask[i] = YUP;
+                  if (SO->SurfCont->BoxOutlineThresh) box_mask[nnodes++] = i;
                }
             }
             break;
@@ -3135,7 +3143,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                if (Sover->T[i] < Opt->ThreshRange[0] ||
                    Sover->T[i] > Opt->ThreshRange[1]) {
                   if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
-                  if (SO->SurfCont->BoxOutlineThresh) box_mask[i] = YUP;
+                  if (SO->SurfCont->BoxOutlineThresh) box_mask[nnodes++] = i;
                }
             }
             break;
@@ -3190,7 +3198,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    Sover->N_NodeDef = cnt;
    Sover->FullList = NOPE;
 
-   /* Do we need clusterizing ? */
+   /* Do we need clusterinzing ? */
    if (Opt->Clusterize) {
       if (Opt->RecomputeClust) {
          SUMA_SurfaceObject *SO = NULL;
@@ -3433,7 +3441,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
 
    /* Do we need alpha from data (first used for Volume objects) ? */
    alphaval = NULL;
-   // ado = SUMA_Overlay_OwnerADO(Sover);
+   ado = SUMA_Overlay_OwnerADO(Sover);
    SUMA_LH("Have ado %s of type %s, AlphaVal %d",
          ADO_LABEL(ado), ADO_TNAME(ado), Sover->AlphaVal);
    if (ado && ado->do_type == VO_type) {
@@ -3506,8 +3514,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
    }
 
-//    if (SO->SurfCont->alphaOpacityModel) SUMA_RETURN(YUP);   // DEBUG
-//                                 
+
    /* finally copy results */
    SUMA_LH("Copying into NodeDef");
    if (nd) {
@@ -3546,9 +3553,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
    }
    Sover->N_NodeDef = cnt;
-   
-//       if (SO->SurfCont->alphaOpacityModel) SUMA_RETURN(YUP);   // DEBUG
-//                                
 
    /* Alpha needed, only for volumes at the moment ... */
    if (ado && ado->do_type == VO_type) {
@@ -3614,8 +3618,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
    }
 
-//       if (SO->SurfCont->alphaOpacityModel) SUMA_RETURN(YUP);   // DEBUG
-//                                
    /* Add any coord bias ? */
    switch (HoldBiasOpt) {
       case SW_CoordBias_X:
@@ -3646,38 +3648,38 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          SUMA_LH("Bias None");
          break;
    }
-    
+
    /* Do we need to create contours */
    if (Opt->ColsContMode) {
-      if (SUMA_is_Label_dset(Sover->dset_link,NULL))
+      if (SO->SurfCont->BoxOutlineThresh &&
+            (Opt->interpmode != SUMA_DIRECT) ) {
+         fprintf(stderr,"== contourate, cmapname = %s, cmode %d\n",
+                 Sover->cmapname, Opt->ColsContMode);
+         fprintf(stderr,"-- nnodes %d, Label %p\n", nnodes, Sover->Label);
+         fprintf(stderr,"-- Opt->interpmode %d, DIR %d\n",
+                        Opt->interpmode, SUMA_DIRECT);
+
+            Sover->Contours =
+               SUMA_MultiColumnsToDrawnROI( nnodes,
+                     (void *)box_mask, SUMA_int,
+                     NULL, SUMA_notypeset,
+                     NULL, SUMA_notypeset,
+                     NULL, SUMA_notypeset,
+                     NULL, SUMA_notypeset,
+                     /* SUMA_FindNamedColMap (Sover->cmapname), 1, */
+                     NULL, 1,
+                     Sover->Label, SDSET_IDMDOM(Sover->dset_link),
+                     &(Sover->N_Contours), 1, 1);
+
+         if( Sover->Contours )
+            memset(Sover->Contours[0]->FillColor, '\0', 4*sizeof(float));
+
+         fprintf(stderr,"== contourate done, N = %d, C = %p, NE = %d\n",
+                 Sover->N_Contours, Sover->Contours, Sover->Contours[0]->N_CE);
+      } else if (SUMA_is_Label_dset(Sover->dset_link,NULL))
          SUMA_ContourateDsetOverlay(Sover, NULL);
       else
-        SUMA_ContourateDsetOverlay(Sover, SV);
-         
-        if (SO->SurfCont->BoxOutlineThresh){
-             int *tSave = Sover->T;
-             Sover->T = box_mask;
-             SUMA_ContourateDsetOverlay_Box(Sover, SV, SO);
-             Sover->T = tSave;
-           
-            /* Contours have been made.  Make contours black if threshold 
-            outline contours required */
-            int j;
-            if (Sover->Contours){
-                for (i=0; i<Sover->N_Contours; ++i){
-                    for (j=0; j<4; ++j){
-                        Sover->Contours[i]->FillColor[j] = 0.0f;
-                    }
-                    Sover->Contours[i]->EdgeThickness = 8;
-                }
-            } else {
-                SUMA_SL_Err("ERROR: No contours found\n");
-                // SUMA_RETURN (NOPE);
-            }
-
-          // drawThresholdOutline(SO, SV);
-          free(box_mask);
-        }
+         SUMA_ContourateDsetOverlay(Sover, SV);
    }
 
    if (LocalHead) {
