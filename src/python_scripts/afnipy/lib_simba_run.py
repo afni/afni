@@ -417,8 +417,8 @@ inobj : InOpts object
         data_den.plot(alpha=1.0, color="black", label='Observed data')
 
         # have to make this adaptable, based on calcs of the curves
+        self.ppc_xlim = (-0.04, 0.04)   # ***TO DO***: use the IF cond 
         if self.ppc_xlim is None :
-            self.ppc_xlim = (-0.04, 0.04)
             xvals = data_den.var0.to_numpy()
             yvals = data_den.data[:]
             _tmp, self.ppc_xlim = calc_xlim_range(xvals, yvals)
@@ -758,7 +758,7 @@ given by the tail_perc kwarg
         rr-=1
 
     # **** ADJUST
-    return 0, [-0.04 0.04]
+    return 0, [-0.04, 0.04]
 
 # ============================================================================
 
