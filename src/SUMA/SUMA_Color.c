@@ -3080,7 +3080,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    ado = SUMA_Overlay_OwnerADO(Sover);
    SO = (SUMA_SurfaceObject *)ado;
 
-fprintf(stderr,"==== S2MI, BOThr = %d\n", SO->SurfCont->BoxOutlineThresh);
+// fprintf(stderr,"==== S2MI, BOThr = %d\n", SO->SurfCont->BoxOutlineThresh);
 
    B = NULL;
    /* Thresholding ? */
@@ -3089,8 +3089,8 @@ fprintf(stderr,"==== S2MI, BOThr = %d\n", SO->SurfCont->BoxOutlineThresh);
       /* rcr (eventually delete) - prepare memory for box_mask */
       /* allocate for minimum mask size and keep - might be okay */
       nnodes = SDSET_VECFILLED(Sover->dset_link);
-      fprintf(stderr,"== rcr; BOT %d, nn %d\n",
-              SO->SurfCont->BoxOutlineThresh, nnodes);
+      // fprintf(stderr,"== rcr; BOT %d, nn %d\n",
+              // SO->SurfCont->BoxOutlineThresh, nnodes);
       if( nnodes > 0 && box_mask_size < nnodes ) {
          box_mask = (int *)SUMA_realloc(box_mask, nnodes*sizeof(int));
          if( !box_mask ) {

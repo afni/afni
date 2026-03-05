@@ -2460,14 +2460,20 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
             || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
    SO = (SUMA_SurfaceObject *)ado;
-
+   
    // Get box outline threshold status from checkbox
    BoxOutlineThresh = XmToggleButtonGetState(w);    
    SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-
    // Process for current hemisphere
    over2 = SUMA_ADO_CurColPlane(ado);
    over2->makeContours = YUP;
+   
+   // Set Dsp mode to C&C
+   over2->ShowMode = SW_SurfCont_DsetViewCaC;
+   SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
+                           SUMA_ShowMode2ShowModeMenuItem(over2->ShowMode));
+
+   // Get contours
    SUMA_ScaleToMap_Interactive(over2);
       
    // Process for contralateral hemisphere
@@ -2479,6 +2485,13 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    }
    SOC->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
    colpC->makeContours = YUP;
+   
+   // Set Dsp mode to C&C for contralateral hemisphere
+   colpC->ShowMode = SW_SurfCont_DsetViewCaC;
+   SUMA_Set_Menu_Widget( SOC->SurfCont->DsetViewModeMenu,
+                           SUMA_ShowMode2ShowModeMenuItem(colpC->ShowMode));
+
+   // Get contours for contralateral hemisphere
    SUMA_ScaleToMap_Interactive(colpC);
    
    // Refresh display
