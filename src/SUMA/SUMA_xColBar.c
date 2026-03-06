@@ -2468,8 +2468,14 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    over2 = SUMA_ADO_CurColPlane(ado);
    over2->makeContours = YUP;
    
-   // Set Dsp mode to C&C
-   over2->ShowMode = SW_SurfCont_DsetViewCaC;
+   // Set Dsp mode to C&C the appropriate mode
+   if (BoxOutlineThresh){
+       over2->ShowMode = (over2->ShowMode == SW_SurfCont_DsetViewCol)? 
+            SW_SurfCont_DsetViewCaC : SW_SurfCont_DsetViewCon;
+   } else {
+       over2->ShowMode = (over2->ShowMode == SW_SurfCont_DsetViewCon)? 
+            SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
+   }
    SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
                            SUMA_ShowMode2ShowModeMenuItem(over2->ShowMode));
 
@@ -2487,7 +2493,13 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    colpC->makeContours = YUP;
    
    // Set Dsp mode to C&C for contralateral hemisphere
-   colpC->ShowMode = SW_SurfCont_DsetViewCaC;
+   if (BoxOutlineThresh){
+       colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewCol)? 
+            SW_SurfCont_DsetViewCaC : SW_SurfCont_DsetViewCon;
+   } else {
+       colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewCon)? 
+            SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
+   }
    SUMA_Set_Menu_Widget( SOC->SurfCont->DsetViewModeMenu,
                            SUMA_ShowMode2ShowModeMenuItem(colpC->ShowMode));
 
