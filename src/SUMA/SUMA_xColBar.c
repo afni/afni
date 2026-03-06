@@ -2488,23 +2488,24 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
        SOC->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
        XmToggleButtonSetState( SOC->SurfCont->BoxOutlineThresh_tb, 
             SOC->SurfCont->BoxOutlineThresh, NOPE); // Set B checkbox to reflect box state
-   }
-   SOC->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-   colpC->makeContours = YUP;
-   
-   // Set Dsp mode to C&C for contralateral hemisphere
-   if (BoxOutlineThresh){
-       colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewCol)? 
-            SW_SurfCont_DsetViewCaC : SW_SurfCont_DsetViewCon;
-   } else {
-       colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewCon)? 
-            SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
-   }
-   SUMA_Set_Menu_Widget( SOC->SurfCont->DsetViewModeMenu,
-                           SUMA_ShowMode2ShowModeMenuItem(colpC->ShowMode));
 
-   // Get contours for contralateral hemisphere
-   SUMA_ScaleToMap_Interactive(colpC);
+       SOC->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+       colpC->makeContours = YUP;
+   
+       // Set Dsp mode to C&C for contralateral hemisphere
+       if (BoxOutlineThresh){
+           colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewCol)? 
+                SW_SurfCont_DsetViewCaC : SW_SurfCont_DsetViewCon;
+       } else {
+           colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewCon)? 
+                SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
+       }
+       SUMA_Set_Menu_Widget( SOC->SurfCont->DsetViewModeMenu,
+                               SUMA_ShowMode2ShowModeMenuItem(colpC->ShowMode));
+
+       // Get contours for contralateral hemisphere
+       SUMA_ScaleToMap_Interactive(colpC);
+   }
    
    // Refresh display
    SUMA_Remixedisplay(ado);

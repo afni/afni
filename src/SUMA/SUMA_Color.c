@@ -3670,12 +3670,12 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                      NULL, 1,
                      Sover->Label, SDSET_IDMDOM(Sover->dset_link),
                      &(Sover->N_Contours), 1, 1);
-
+                     
          if( Sover->Contours )
             memset(Sover->Contours[0]->FillColor, '\0', 4*sizeof(float));
 
-         fprintf(stderr,"== contourate done, N = %d, C = %p, NE = %d\n",
-                 Sover->N_Contours, Sover->Contours, Sover->Contours[0]->N_CE);
+//         fprintf(stderr,"== contourate done, N = %d, C = %p, NE = %d\n",
+//                 Sover->N_Contours, Sover->Contours, Sover->Contours[0]->N_CE);
       } else if (SUMA_is_Label_dset(Sover->dset_link,NULL))
          SUMA_ContourateDsetOverlay(Sover, NULL);
       else
