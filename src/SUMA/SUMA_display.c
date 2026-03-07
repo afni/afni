@@ -6643,9 +6643,6 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
 
    if (SUMA_isADO_Cont_Realized(ado)) SUMA_RETURN(1); /* nothing to do */
-//   
-//   fprintf(stderr, "SurfCont = %p\n", SurfCont);
-//   fprintf(stderr, "SurfCont->BoxOutlineThresh_tb = %p\n", SurfCont->BoxOutlineThresh_tb);
 
    if (w) {
       SUMA_LH("nism");
@@ -6671,10 +6668,6 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    }
    SUMA_LH("Initializing ColPaneShell");
    SUMA_InitializeColPlaneShell(ado, SUMA_ADO_CurColPlane(ado));
-   
-   fprintf(stderr, "SurfCont = %p\n", SurfCont);
-   fprintf(stderr, "SurfCont->BoxOutlineThresh_tb = %p\n", SurfCont->BoxOutlineThresh_tb);
-
 
    /* Now close it quick. Maybe should put a delayed closing for nicer effect */
    if (!SUMAg_CF->X->UseSameSurfCont) { /* Don't minimize when using one surfcont
@@ -6688,9 +6681,6 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
       XIconifyWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SurfCont->TLS), 0);
       #endif
    }
-//   
-//   fprintf(stderr, "SurfCont = %p\n", SurfCont);
-//   fprintf(stderr, "SurfCont->BoxOutlineThresh_tb = %p\n", SurfCont->BoxOutlineThresh_tb);
 
    SUMA_LH("Returnism")
    SUMA_RETURN(1);

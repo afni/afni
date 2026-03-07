@@ -1281,7 +1281,6 @@ int SUMA_SwitchColPlaneIntensity_one (
    }
 
    dset=colp->dset_link;
-   fprintf(stderr, "*********************** curColPlane->LinkMode = %d\n", curColPlane->LinkMode);
    switch(curColPlane->LinkMode) {/* corresponding threshold sb */
       case SW_LinkMode_Stat:
             {
@@ -1327,14 +1326,13 @@ int SUMA_SwitchColPlaneIntensity_one (
                         }else {
                            SUMA_S_Err("Failed to get range");
                         }
-                        fprintf(stderr, "%%%%%%%%%%%%%%%%%%%%%%%%  range = [%f, %f]\n", range[0], range[1]);
-                        fprintf(stderr, "%%%%%%%%%%%%%%%%%%%%%%%%  colp->OptScl->ThreshRange = [%f, %f]\n", colp->OptScl->ThreshRange[0], colp->OptScl->ThreshRange[1]);
+
                         if ((pp=SUMA_floatEnv("SUMA_pval_at_switch", -1.0))
                                                                         >= 0) {
                            pp = (float)SUMA_Pval2ThreshVal (ado, (double)pp);
                            /* This function will cause undue redisplays, but
                            keeps code clean */
-                           fprintf(stderr, "%%%%%%%%%%%%%%%%%%%%%%%%  pp = %f\n", pp);
+
                            if ( pp != 0.0) {
                               if (!(SUMA_set_threshold_one(ado, colp, &pp))) {
                                  SUMA_SL_Err("Error in SUMA_set_threshold_one");
