@@ -80,6 +80,8 @@ class SysInfo:
       self.warn_pyqt       = 0  # should we add PyQt(4?) message to 'comments'
       self.ok_openmp       = 0  # does 3dAllineate work, for example?
 
+      self.brew_path       = ''
+
       self.libs_missing    = [] # missing shared libraries
 
    def get_cpu_type(self):
@@ -116,7 +118,7 @@ class SysInfo:
       # check distributions by type - now all over the place
       self.os_dist = distribution_string(self.verb) # save for later
       print('distribution:         %s' % self.os_dist)
-         
+
       print('number of CPUs:       %s' % self.get_cpu_count())
 
       # note user and shell, and if we are not in login shell
@@ -183,9 +185,9 @@ class SysInfo:
          self.rc_file = fname
          if not os.path.isfile('%s/%s' % (self.home_dir,fname)):
             cc.append("shell sh : MISSING login shell setup file %s" % fname)
-         elif self.verb > 1: 
+         elif self.verb > 1:
             print("shell sh : good: found login shell setup file %s"%fname)
-         
+
       if 'zsh' in slist:
          # general env file: .zshenv
          # login shell file: .zprofile
@@ -195,9 +197,9 @@ class SysInfo:
          self.rc_file = fname
          if not os.path.isfile('%s/%s' % (self.home_dir,fname)):
             cc.append("shell zsh : MISSING env shell setup file %s" % fname)
-         elif self.verb > 1: 
+         elif self.verb > 1:
             print("shell zsh : good: found env shell setup file %s" %fname)
-         
+
 
       if 'bash' in slist:
          # non-login shell ref: .bashrc
@@ -370,7 +372,7 @@ class SysInfo:
          m = 0
          hsearch = 'Avail'
       if s: return 0, ''
-    
+
       if len(so) < 2: return 0, ''
 
       hstr = so[0]
@@ -418,7 +420,7 @@ class SysInfo:
       # if m, append a unit
       if m:
          astr = '%s%s' % (astr, unit)
-            
+
       return status, astr
 
    def show_data_info(self, header=1):
@@ -493,7 +495,7 @@ class SysInfo:
          hdir = self.data_root
          plist = [self.data_root]
          root_str = hdir
-      else: 
+      else:
          hdir = self.home_dir
          plist = [ hdir, '%s/Desktop'%hdir, '%s/*data*' % hdir]
          root_str = '$HOME'
@@ -525,7 +527,7 @@ class SysInfo:
       if self.verb > 3: print('-- found %s dirs %s' % (ddir, dlist))
       dlist = UTIL.get_unique_sublist(dlist)
       if self.verb > 2: print('-- found trimmed %s dirs %s' % (ddir, dlist))
-      
+
       if len(dlist) == 0: return None
       dlen = len(ddir)+1
       return dlist[0][0:-dlen]
@@ -569,7 +571,7 @@ class SysInfo:
          package = ''
          if repo in ['yum', 'dnf']: package = 'PyQt4'
          elif repo == 'apt-get': package = 'python-qt4'
-         
+
          if package != '':
             self.comments.append('consider running: %s install %s' \
                                  % (repo, package))
@@ -638,7 +640,7 @@ class SysInfo:
                print("** warning: %s" % cs)
                if self.warn_pyqt:
                   self.comments.append(cs)
-               
+
          elif self.repo_prog == 'fink':
             fcmd = 'sudo fink install pyqt4-mac-py27'
             print('-- for PyQt4 under %s, consider running:\n   %s' \
@@ -719,10 +721,22 @@ class SysInfo:
       # if we did not find anything, whine a bit
       if len(gnew) == 0 and os.path.isdir(bdir):
          print("** found no gcc-* under %s" % bdir)
+      gfiles = gnew
 
       # proceed with gcc-INTEGER list
-      gfiles = gnew
       print("brew gcc(s)          : %s" % jstr.join(gfiles))
+
+      # check that the CPU matches between the OS, gcc and repo_prog
+      if len(gfiles) > 0:
+         gftype = self.get_mac_file_type(gfiles[0])
+         if gftype and gftype != self.cpu:
+            self.comments.append('brew gcc file type does not match system')
+            print("** %s : file type %s != system %s" % \
+                  (gfiles[0], gftype, self.cpu))
+
+         if self.verb > 1:
+            print("%s : file type '%s', system '%s'" % \
+                  (gfiles[0], gftype, self.cpu))
 
       # and show the current CommandLineTools SDK
       sdklink = '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk'
@@ -732,20 +746,28 @@ class SysInfo:
 
       return 0
 
+   def get_mac_file_type(self, fname):
+      status, fout = UTIL.exec_tcsh_command("file %s" % fname)
+      flist = fout.split()
+      if status or len(flist) == 0 : return ''
+
+      return flist[-1]
+
    def hunt_for_homebrew(self):
       """assuming it was not found, just look for the file"""
       # if already found, do not bother
-      if self.repo_prog == 'brew': return 0 
+      if self.repo_prog == 'brew': return 0
 
       bdir = '/usr/local/bin'
       bfile = 'brew'
       bpath = '%s/%s' % (bdir,bfile)
       if os.path.isfile(bpath):
+         self.brew_path = '%s/%s' % (bdir,bfile)
          print("++ found '%s' at %s" % (bfile, bpath))
          return 1
 
       return 0
-            
+
    def check_for_pre_11_dylib(self):
       """in 10.X where 7 <= X <= 10, DYLD_FALLBACK_LIBRARY_PATH
          might be needed (unless homebrew is installed and 10.10?)
@@ -757,7 +779,7 @@ class SysInfo:
 
       # if 0 or 1 AFNI failures, we are gone
       if self.afni_fails < 2: return
-            
+
       # this check only applis to OS X 10.7 through 10.10 (and if that)
       maj, vmin = self.get_macos_ver()
       if maj != 10 or vmin < 7 or vmin > 10:
@@ -989,7 +1011,7 @@ class SysInfo:
       return 1
 
    def check_evar_path_for_val(self, evar, val, shell=''):
-    
+
       if shell == '':
          shell = self.cur_shell
          print("-- recent OS X, cheating to check %s in cur shell '%s'..." \
@@ -1158,7 +1180,7 @@ class SysInfo:
             # save some results
             if prog == 'afni': self.afni_ver = v
             if prog == 'python': self.python_prog = progpath
-               
+
             nfound += 1
          elif show_missing:
             self.comments.append("missing program: %s" % prog)
@@ -2097,7 +2119,7 @@ class SysInfo:
             if vstr == '': dstr = ''
 
          # some versions are not considered good
-         if self.check_xquartz_version(vstr, warn=1): 
+         if self.check_xquartz_version(vstr, warn=1):
             print("  ** for macos install instructions, see:\n\n    %s\n" \
                   % g_site_install_mac)
 
@@ -2347,7 +2369,7 @@ class SysInfo:
           return
 
       print(UTIL.section_divider(' summary, please fix: ', hchar='='))
-      for cc in self.comments: 
+      for cc in self.comments:
          if len(cc) == 0: print('')
          else:
             if cc[0] == ' ': print('  %s' % cc)
@@ -2416,7 +2438,7 @@ def make_R_version_string():
       return 0, '%s (%s)' % (v0, v1)
    else:
       return 0, so[0]
-         
+
 def tup_str(some_tuple):
    """just listify some string tuple"""
    return ' '.join(list(some_tuple))
@@ -2437,7 +2459,7 @@ def distribution_string(verb=1):
          dstr = tup_str(platform.linux_distribution())
          fail = 0
          label = 'L0 p.ld'
-      except: 
+      except:
          pass
 
       if fail:
@@ -2523,13 +2545,13 @@ def linux_dist_from_os_release():
          return dstr
 
    return 'LDFOR: bad pizza'
-   
+
 def linux_dist_from_rfile(rfile):
    """try to form a useful OS version string from given file,
       e.g., /etc/os-release
    """
    rv, td = UTIL.read_text_dictionary(rfile, mjdiv='=', mndiv='=', compact=1,
-                                      qstrip=1)  
+                                      qstrip=1)
    if rv:
       return ''
 
@@ -2540,7 +2562,7 @@ def linux_dist_from_rfile(rfile):
    for sname in singles:
       if sname in td:
          return td[sname]
-   
+
    # try to build something
    dstr = ''
    if 'NAME' in td:

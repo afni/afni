@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Mar, 2026, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "on macos, check CPU type for gcc vs that of system",
+   NULL
+ } ,
+
  {  3, Mar, 2026, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
    "add help for evaluating TR-offset stats for non-binary TRs, like 1.3",
    NULL
