@@ -3025,6 +3025,11 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    SUMA_WIDGET_INDEX_COORDBIAS HoldBiasOpt;
    SUMA_Boolean LocalHead = NOPE;
 
+   SUMA_SurfaceObject *SO;
+   static int * box_mask=NULL;    /* rcr */
+   static int     box_mask_size=0;
+   int            nnodes=0;
+
    SUMA_ENTRY;
 
    if (!Sover) { SUMA_SL_Err("NULL Sover"); SUMA_RETURN(NOPE); }
@@ -3052,7 +3057,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
 
    SUMA_LH("Creating a scaled color vect");
    if (Sover->ShowMode == SW_SurfCont_DsetViewCon ||
-       Sover->ShowMode == SW_SurfCont_DsetViewCaC ) {
+       Sover->ShowMode == SW_SurfCont_DsetViewCaC) {
       if (SUMA_NeedsLinearizing(ColMap)) {
          if (!nwarn) {
             SUMA_SLP_Note("Cannot do contouring with colormaps\n"
@@ -3072,10 +3077,31 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
 
    SUMA_LH("Fetching vectors from dset");
 
+   ado = SUMA_Overlay_OwnerADO(Sover);
+   SO = (SUMA_SurfaceObject *)ado;
+
+fprintf(stderr,"==== S2MI, BOThr = %d\n", SO->SurfCont->BoxOutlineThresh);
+
    B = NULL;
    /* Thresholding ? */
    if (Opt->tind >= 0 && Opt->UseThr) {
       SUMA_LH("Fetching Threshold column");
+      /* rcr (eventually delete) - prepare memory for box_mask */
+      /* allocate for minimum mask size and keep - might be okay */
+      nnodes = SDSET_VECFILLED(Sover->dset_link);
+      fprintf(stderr,"== rcr; BOT %d, nn %d\n",
+              SO->SurfCont->BoxOutlineThresh, nnodes);
+      if( nnodes > 0 && box_mask_size < nnodes ) {
+         box_mask = (int *)SUMA_realloc(box_mask, nnodes*sizeof(int));
+         if( !box_mask ) {
+            SUMA_S_Err("failed to alloc box_mask");
+            SUMA_RETURN(NOPE);
+         }
+         box_mask_size = nnodes;
+         memset(box_mask, '\0', nnodes*sizeof(int));
+      }
+      nnodes = 0; /* for box_mask */
+
       if (  !SUMA_SetOverlay_Vecs(Sover, 'T', Opt->tind, "update", 0) ||
             !Sover->T ) {
          SUMA_S_Err("Failed to get T");
@@ -3090,6 +3116,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
                if (Sover->T[i] < Opt->ThreshRange[0]) {
                   if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
+                  if (SO->SurfCont->BoxOutlineThresh) box_mask[nnodes++] = i;
                }
             }
             break;
@@ -3098,6 +3125,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                if (Sover->T[i] < Opt->ThreshRange[0] &&
                    Sover->T[i] > -Opt->ThreshRange[0]) {
                   if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
+                  if (SO->SurfCont->BoxOutlineThresh) box_mask[nnodes++] = i;
                }
             }
             break;
@@ -3106,6 +3134,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                if (Sover->T[i] >= Opt->ThreshRange[0] &&
                    Sover->T[i] <= Opt->ThreshRange[1]) {
                   if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
+                  if (SO->SurfCont->BoxOutlineThresh) box_mask[nnodes++] = i;
                }
             }
             break;
@@ -3114,6 +3143,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                if (Sover->T[i] < Opt->ThreshRange[0] ||
                    Sover->T[i] > Opt->ThreshRange[1]) {
                   if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
+                  if (SO->SurfCont->BoxOutlineThresh) box_mask[nnodes++] = i;
                }
             }
             break;
@@ -3622,12 +3652,36 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
 
    /* Do we need to create contours */
    if (Opt->ColsContMode) {
-      if (SUMA_is_Label_dset(Sover->dset_link,NULL))
+      if (SO->SurfCont->BoxOutlineThresh &&
+            (Opt->interpmode != SUMA_DIRECT) ) {
+         fprintf(stderr,"== contourate, cmapname = %s, cmode %d\n",
+                 Sover->cmapname, Opt->ColsContMode);
+         fprintf(stderr,"-- nnodes %d, Label %p\n", nnodes, Sover->Label);
+         fprintf(stderr,"-- Opt->interpmode %d, DIR %d\n",
+                        Opt->interpmode, SUMA_DIRECT);
+
+            Sover->Contours =
+               SUMA_MultiColumnsToDrawnROI( nnodes,
+                     (void *)box_mask, SUMA_int,
+                     NULL, SUMA_notypeset,
+                     NULL, SUMA_notypeset,
+                     NULL, SUMA_notypeset,
+                     NULL, SUMA_notypeset,
+                     /* SUMA_FindNamedColMap (Sover->cmapname), 1, */
+                     NULL, 1,
+                     Sover->Label, SDSET_IDMDOM(Sover->dset_link),
+                     &(Sover->N_Contours), 1, 1);
+
+         if( Sover->Contours )
+            memset(Sover->Contours[0]->FillColor, '\0', 4*sizeof(float));
+
+         fprintf(stderr,"== contourate done, N = %d, C = %p, NE = %d\n",
+                 Sover->N_Contours, Sover->Contours, Sover->Contours[0]->N_CE);
+      } else if (SUMA_is_Label_dset(Sover->dset_link,NULL))
          SUMA_ContourateDsetOverlay(Sover, NULL);
       else
          SUMA_ContourateDsetOverlay(Sover, SV);
    }
-
 
    if (LocalHead) {
       SUMA_LH("In Scale_Interactive\n**********************");
