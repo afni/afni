@@ -148,7 +148,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
 
    SUMA_ENTRY;
-
+   
    if (NI_TALK_MODE < 0) {
       if (AFNI_yesenv("SUMA_NI_TEXT_TALK_MODE")) {
          SUMA_S_Note("Talking in text mode");
@@ -193,6 +193,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
       }
       NextCom = SUMA_CommandString (NextComCode);
       SUMA_LH("->%s<-\t", NextCom);
+      fprintf(stderr, "NextComCode = %d\n", NextComCode);
       switch (NextComCode) {/* switch NextComCode */
          case SE_SendColorMapToAfni:
             /* expects in i the code of one of SUMA's standard colormaps */
@@ -3454,6 +3455,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                displayed last. This is similar in concept
                to SE_RedisplayNow_AllOtherVisible */
             {
+                fprintf(stderr, "viewerorder\n");
                int viewerorder[SUMA_MAX_SURF_VIEWERS], np = 0;
                /* set viewer order so that the one that
                last had the pointer gets displayed last */
@@ -3486,6 +3488,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_LHv("Returned redisplaying viewer %d.\n", ii);
                   }
                }
+                               fprintf(stderr, "End NextComCode = 50\n");
             }
             break;
 
@@ -4017,7 +4020,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         
                      newMin = SurfCont->curColPlane->OptScl->IntRange[0];
                      newMax = SurfCont->curColPlane->OptScl->IntRange[1];
-                     XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+                     if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+                        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
                      N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
                      if (numSurfaceObjects != N_adolist) {
                             SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
@@ -4134,18 +4138,14 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                 
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "y")){
                 fprintf(stderr, "Show alpha\n");
-                  // SurfCont->AlphaOpacityFalloff = 1;
-                  // if (!(SurfCont->AlphaOpacityFalloff))
                     XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
                       YUP, YUP);
 
                }
                else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "n"))
                {
-                  //if (SurfCont->AlphaOpacityFalloff)
                     XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
                       NOPE, YUP);
-                  // SurfCont->AlphaOpacityFalloff = 0;
                }
                else {
                   SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA, setting to 'y'\n",
@@ -4153,41 +4153,40 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                     XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
                       NOPE, YUP);
                }
-//               XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
-//                              SurfCont->AlphaOpacityFalloff, YUP);
             }
-
-            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE")) {
             
-             XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
-             N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-             if (numSurfaceObjects != N_adolist) {
-                    SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-                    SUMA_RETURN (NOPE);
-             }
-             for (j=0; j<N_adolist; ++j){
-                 SUMA_ALL_DO *ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-                 SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-                 SurfCont = SO->SurfCont;
-                   if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "L")){
-                      SurfCont->alphaOpacityModel = LINEAR;
-                   }
-                   else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "Q"))
-                   {
-                      SurfCont->alphaOpacityModel = QUADRATIC;
-                   }
-                   else {
-                      SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L/Q",
-                                  NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
-                   }
-                   if (!sv) sv = &(SUMAg_SVv[0]); 
-                   SO = SUMA_SV_Focus_SO(sv);
-                   SO->SurfCont->alphaOpacityModel = SurfCont->alphaOpacityModel;
-       
-                   // Refresh display
-                   SUMA_Remixedisplay(ado);
-                   SUMA_UpdateNodeLblField(ado);
-                }             
+            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE")) {
+                if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+                    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+                 N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+                 if (numSurfaceObjects != N_adolist) {
+                        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+                        SUMA_RETURN (NOPE);
+                 }
+
+                for (j=0; j<N_adolist; ++j){
+                     SUMA_ALL_DO *ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+                     SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+                     SurfCont = SO->SurfCont;
+                       if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "L")){
+                          SurfCont->alphaOpacityModel = LINEAR;
+                       }
+                       else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "Q"))
+                       {
+                          SurfCont->alphaOpacityModel = QUADRATIC;
+                       }
+                       else {
+                          SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L/Q",
+                                      NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
+                       }
+                       if (!sv) sv = &(SUMAg_SVv[0]); 
+                       SO = SUMA_SV_Focus_SO(sv);
+                       SO->SurfCont->alphaOpacityModel = SurfCont->alphaOpacityModel;
+           
+                       // Refresh display
+                       SUMA_Remixedisplay(ado);
+                       SUMA_UpdateNodeLblField(ado);
+                    }     
             }
 
             if (NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED")) {
@@ -5342,7 +5341,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             break;
 
       } /* switch NextComCode */
-
+      
       /* release used Element */
       if (LocalHead) fprintf (SUMA_STDERR, "\n%s: Releasing Engine Element.\n", FuncName);
       if (!SUMA_ReleaseEngineListElement (list, NextElem_CANT_TOUCH_THIS)) {
@@ -5377,7 +5376,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   
    if (!ngr) { SUMA_S_Err("NULL input"); SUMA_RETURN(Ret); }
    if (LocalHead) SUMA_ShowNel(ngr);
    if (strcmp(ngr->name, "EngineCommand")) {

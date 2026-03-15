@@ -2376,11 +2376,11 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    SUMA_Boolean AlphaOpacityFalloff;
    int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
    SUMA_SurfaceObject *SO = NULL;
-
+   
    SUMA_ENTRY;
 
    SUMA_LH("Called");
-
+   
    ado = (SUMA_ALL_DO *)data;
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
@@ -2400,7 +2400,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
     SUMA_RETURNe;
    }
 
-   // Set sym range for other surfaces
+   // Set sym range for contralateral hemisphere
    if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook){
        int numSurfaceObjects;
        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
