@@ -193,7 +193,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
       }
       NextCom = SUMA_CommandString (NextComCode);
       SUMA_LH("->%s<-\t", NextCom);
-      fprintf(stderr, "NextComCode = %d\n", NextComCode);
       switch (NextComCode) {/* switch NextComCode */
          case SE_SendColorMapToAfni:
             /* expects in i the code of one of SUMA's standard colormaps */
@@ -3455,7 +3454,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                displayed last. This is similar in concept
                to SE_RedisplayNow_AllOtherVisible */
             {
-                fprintf(stderr, "viewerorder\n");
                int viewerorder[SUMA_MAX_SURF_VIEWERS], np = 0;
                /* set viewer order so that the one that
                last had the pointer gets displayed last */
@@ -3488,7 +3486,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_LHv("Returned redisplaying viewer %d.\n", ii);
                   }
                }
-                               fprintf(stderr, "End NextComCode = 50\n");
             }
             break;
 

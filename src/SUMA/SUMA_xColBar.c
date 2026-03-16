@@ -1608,7 +1608,8 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
    /* ado = (SUMA_ALL_DO *)datap->ContID;*/
-    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+    if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                   &numSurfaceObjects, NULL);
     N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
     if (numSurfaceObjects != N_adolist) {
@@ -2057,7 +2058,8 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
 
    /* Process other surface objects */
    int numSurfaceObjects;
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                  &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist)
@@ -2183,13 +2185,14 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
 
    curColPlane->SymIrange = XmToggleButtonGetState (SurfCont->SymIrange_tb);
    
-   if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
+   if (!(curColPlane) || !(curColPlane->SymIrange) || !SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
         curColPlane->SymIrange, NOPE)){
     SUMA_S_Warn("Error toggling sym I for current surface"); SUMA_RETURNe;
    }
 
    // Set sym range for other surfaces
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                  &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist)
@@ -2299,7 +2302,8 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    
    // Set show zero for other surfaces
    int numSurfaceObjects;
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                  &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist)
@@ -2403,7 +2407,8 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    // Set sym range for contralateral hemisphere
    if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook){
        int numSurfaceObjects;
-       XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+       if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+            XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                      &numSurfaceObjects, NULL);
 
        N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
@@ -2478,7 +2483,8 @@ void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
 
    SUMA_LH("Called");
 
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                   &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist) {
@@ -2585,7 +2591,8 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
    UseThr = XmToggleButtonGetState (SurfCont->Thr_tb);
    curColPlane->OptScl->UseThr = UseThr;
 
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist) {
        if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
@@ -2665,7 +2672,8 @@ void SUMA_cb_SwitchBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
    UseBrt = XmToggleButtonGetState (SurfCont->Brt_tb);
    curColPlane->OptScl->UseBrt = UseBrt;
 
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                  &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist) {
@@ -6706,7 +6714,8 @@ void SUMA_cb_SetRangeValue (void *data)
    int numSurfaceObjects, j;
    float newValue = TF->num_value[n];
 
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist) {
        if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
@@ -14842,7 +14851,8 @@ SUMA_Boolean SUMA_isTopColPlane(SUMA_OVERLAYS *cp, SUMA_ALL_DO *ado)
    else if (SUMA_isCurColPlane(cp, ado) && (SurfCont = SUMA_ADO_Cont(ado))) {
       /* OK, so that plane is current in some fashion,
       is it the top page of the uber controller ? */
-      return(SUMA_isCurrentContPage(SUMAg_CF->X->SC_Notebook, SurfCont->Page));
+      if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+            return(SUMA_isCurrentContPage(SUMAg_CF->X->SC_Notebook, SurfCont->Page));
    }
    return(NOPE);
 }
