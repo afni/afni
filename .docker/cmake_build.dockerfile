@@ -7,9 +7,9 @@ ENV PATH=$DESTDIR/usr/local/bin:$PATH
 ARG AFNI_WITH_COVERAGE="0"
 
 # Copy AFNI source code. This will likely invalidate the build cache.
-COPY --chown=$CONTAINER_UID:$CONTAINER_GID . $AFNI_ROOT/
+COPY --chown=$CONTAINER_UID:$CONTAINER_GID . $AFNI_ROOT/src/
 
-WORKDIR $AFNI_ROOT/../build
+WORKDIR $AFNI_ROOT/build
 
 RUN \
     export CC=`which gcc`;\
@@ -26,7 +26,7 @@ RUN \
         -DCOMP_GUI=ON \
         -DCOMP_PLUGINS=ON \
         -DUSE_OMP=ON \
-        $AFNI_ROOT
+        $AFNI_ROOT/src
 
 RUN /bin/bash -oc pipefail \
 'ninja -v 2>&1 | tee verbose_build.log && test ${PIPESTATUS[0]} -eq 0'
