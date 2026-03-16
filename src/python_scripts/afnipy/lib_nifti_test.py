@@ -172,12 +172,103 @@ Ndict : dict
         val = nibhdr.get(key)
         # this next step occurs bc some values are ndim=0 arrays
         val_list, val_type = lnu.try_convert_list_float_int_str_arr(val)
-        Ndict[key] = val_list
+        Ndict[key] = val #*** val_list
 
         if verb > 1 :
             print("   {:<20s}  : {}".format(key, val_list))
 
     return 0, Ndict
+
+# --------------------------------------------------------------------------
+
+def make_nifti_from_brick(fname, name_nifti=None, clean_nifti=True, verb=1):
+    """For a given BRIK/HEAD dset, called fname, first use the command
+line to copy it to a temporary NIFTI dset. Then read in that new
+file's NIFTI header and return it as a dictionary.
+
+Users can optionally give a name to the temporary dset, as well clean
+(=purge) it.
+
+Parameters
+----------
+fname : str
+    AFNI BRIK/HEAD dset filename
+name_nifti : str
+    name of temporary NIFTI (def: make name with random chars)
+clean_nifti : bool
+    decide whether to remove the NIFTI (True -> remove)
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+name_nifti : str
+    name of temporary (or not) NIFTI file, in case it is useful
+Ndict : dict
+    dictionary of NIFTI header fields; each value is a list
+
+    """
+
+    BAD_RETURN = (-1, '', 0)
+
+    # initialize default
+    Ndict = {}
+
+    if name_nifti is None :
+        cmd  = '''3dnewid -fun11'''
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        sss  = com.so[0]
+        name_nifti = "_tmp_" + sss + ".nii.gz"
+
+        if verb > 1 :
+            ab.IP("Making temporary NIFTI file: " + name_nifti)
+
+    elif not isinstance(name_nifti, str) :
+        ab.EP("kwarg name_nifti must have type str, not {}"
+              "".format(ab.simple_type(name_nifti)))
+
+    # make tmp nifti
+    cmd  = '''3dcopy -overwrite {} {}'''.format(fname, name_nifti)
+    com  = ab.shell_com(cmd, capture=1)
+    stat = com.run()
+
+    # make the dictionary of tmp nifti dset
+    is_fail, Ndict = read_nifti_fields(name_nifti, verb=verb)
+    if is_fail :
+        ab.EP("Could not make dictionary from NIFTI file:", name_nifti)
+
+    if clean_nifti :
+        cmd  = '''\\rm {}'''.format(name_nifti)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        if verb > 1 :
+            ab.IP("Removed temp NIFTI file: " + name_nifti)
+
+    return 0, name_nifti, Ndict
+
+def compare_nifti_headers(all_Ndict, verb=1):
+    """For a given collection of NIFTI-header-dictionaries all_Ndict, go
+through and see where there are any differences.
+
+Parameters
+----------
+fname : str
+    AFNI BRIK/HEAD dset filename
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+report : dict
+    dictionary of NIFTI header fields; each value is a list
+
+    """
+
 
 
 
@@ -192,4 +283,4 @@ if __name__ == "__main__" :
     is_fail1A, Adict1 = read_brick_attributes(fname1A)
 
     fname1N = '~/AFNI_data6/FT_analysis/FT.results/stats.FT.nii.gz'
-    is_fail1A, Ndict1 = read_nifti_fields(fname1N, verb=2)
+    is_fail1N, tmp_nameN, Ndict1 = make_nifti_from_brick(fname1A, verb=2)

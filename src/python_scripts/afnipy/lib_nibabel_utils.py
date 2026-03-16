@@ -293,6 +293,11 @@ ytype : str
 
     """
 
+    # NB: in this function we use the .item() method a few times,
+    # because nibabel has made ndim=0 arrays, and that is a good way
+    # to get the value out and also convert it automatically to a
+    # reasonable/generic type.
+
     import numpy as np
 
     if not(isinstance(x, np.ndarray)) :
@@ -309,19 +314,14 @@ ytype : str
         y = list(x)
         ytype = au.simple_type(y)
 
-        return y, ytype
+        # ... and convert elements to either float or int:
+        z = [ele.item() for ele in y]
+
+        return z, ytype
     except:
         pass
 
-    # go through non-collection types
-    try:
-        # numerical values
-        y = float(x)
-        if y.is_integer() and not('.' in x) :
-            y = int(y)
-    except:
-        # str
-        y = str(x)
+    y = x.item()
 
     if listify_all :
         y = [y]
