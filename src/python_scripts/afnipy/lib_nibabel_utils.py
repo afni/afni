@@ -257,6 +257,81 @@ ecode : int
 
     return 0
 
+
+def try_convert_list_float_int_str_arr(x, exit_on_error=False, 
+                                       listify_all=True, verb=1):
+    """For input NumPy arr x, see how it can convert in the following
+descending order: if ndim>0, list; else, float, int, str.  If none of
+those work, return None. If listify_all=True, then all outputs will be
+of type list; that is, if a non-collection-type value VAL would be
+output, then [VAL] will be returned.
+
+If an error on input occurs, this program will by default return a
+value of None, plus the type of the item input (its supposed to be a
+np.ndarray, folks!). But users can change this behavior with the
+exit_on_error kwarg.
+
+This function was created primarily to navigate dealing with nibabel
+header field values.  Those are sometimes ndim=0 arrays.
+
+Parameters
+----------
+x : np.ndarray
+    a NumPy array to consider converting to various types (described above)
+exit_on_error: bool
+    toggle whether to exit totally on input error, or to just whine vociferously
+verb : int
+    amount of verbosity to use in general processing
+
+Returns
+-------
+y : list or float or int or str
+    one of a descending list of types to try converting to, with str being
+    the last
+ytype : str
+    the simple-string-format type of the item returned
+
+    """
+
+    import numpy as np
+
+    if not(isinstance(x, np.ndarray)) :
+        xtype = au.simple_type(x)
+        msg   = "Input must be of type 'str', not '{}'".format(xtype)
+        if exit_on_error :
+            ab.EP(msg)
+        else:
+            ab.WP(msg)
+            return None, xtype
+
+    # check first if x can be converted to a list
+    try:
+        y = list(x)
+        ytype = au.simple_type(y)
+
+        return y, ytype
+    except:
+        pass
+
+    # go through non-collection types
+    try:
+        # numerical values
+        y = float(x)
+        if y.is_integer() and not('.' in x) :
+            y = int(y)
+    except:
+        # str
+        y = str(x)
+
+    if listify_all :
+        y = [y]
+
+    # just the type as a simple str
+    ytype = au.simple_type(y)
+
+    return y, ytype
+
+
 # ============================================================================
 
 if __name__ == "__main__" :

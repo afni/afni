@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
-import sys, copy
-import numpy as np
+import os, sys, copy
+import numpy   as np
+import nibabel as nib
 
-from afnipy import afni_util as au
-from afnipy import afni_base as ab
-from afnipy import lib_nifti as NIF
+from afnipy import afni_util         as au
+from afnipy import afni_base         as ab
+from afnipy import lib_nifti         as NIF
+from afnipy import lib_nibabel_utils as lnu
 
 # ============================================================================
 # 
@@ -14,6 +16,8 @@ from afnipy import lib_nifti as NIF
 # ============================================================================
 
 DEF_ssep = ':::'
+
+ALL_nifti1_keys = NIF.dict_nifti1.keys()
 
 # ============================================================================
 
@@ -25,7 +29,7 @@ all attributes to a dictionary. This uses a shell command call to
 Parameters
 ----------
 fname : str
-    dset filename
+    BRIK/HEAD-format dset filename
 ssep : str
     string used as separator within attribute string lists shouldn't really
     ever need to change
@@ -37,7 +41,7 @@ Returns
 is_fail : int
     0 on success, nonzero on failure
 Adict : dict
-    dictionary of AFNI header attributes
+    dictionary of AFNI header attributes; each value is a list
 
     """
 
@@ -88,7 +92,7 @@ Returns
 is_fail : int
     0 on success, nonzero on failure
 Adict : dict
-    dictionary of AFNI header attributes
+    dictionary of AFNI header attributes; each value is a list
 
     """
 
@@ -134,8 +138,58 @@ Adict : dict
 
     return 0, Adict
 
+# ------------------------------------------------------------------------
+
+def read_nifti_fields(fname, verb=1):
+    """For a given NIFTI-formatted dset, called fname, read in all header
+fields (i.e., attributes) to a dictionary. This uses nibabel.
+
+Parameters
+----------
+fname : str
+    NIFTI dset filename
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+Ndict : dict
+    dictionary of NIFTI header fields; each value is a list
+
+    """
+
+    BAD_RETURN = (-1, 0)
+
+    # initialize default
+    Ndict = {}
+
+    nibobj = nib.load(os.path.expanduser(fname))
+    nibhdr = nibobj.header.copy()
+
+    for key in ALL_nifti1_keys :
+        val = nibhdr.get(key)
+        # this next step occurs bc some values are ndim=0 arrays
+        val_list, val_type = lnu.try_convert_list_float_int_str_arr(val)
+        Ndict[key] = val_list
+
+        if verb > 1 :
+            print("   {:<20s}  : {}".format(key, val_list))
+
+    return 0, Ndict
+
+
+
+
+
+# ==========================================================================
+
 if __name__ == "__main__" :
 
     # Ex. 1: stats file
-    fname1 = '~/AFNI_data6/FT_analysis/FT.results/stats.FT+tlrc.'
-    is_fail, Adict1 = read_brick_attributes(fname1)
+    fname1A = '~/AFNI_data6/FT_analysis/FT.results/stats.FT+tlrc.'
+    is_fail1A, Adict1 = read_brick_attributes(fname1A)
+
+    fname1N = '~/AFNI_data6/FT_analysis/FT.results/stats.FT.nii.gz'
+    is_fail1A, Ndict1 = read_nifti_fields(fname1N, verb=2)

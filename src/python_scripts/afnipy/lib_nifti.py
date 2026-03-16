@@ -139,7 +139,7 @@ This checks for these AFNI header attributes:
 Parameters
 ----------
 Adict : dict
-    dictionary of AFNI header attributes
+    dictionary of AFNI header attributes; each value is a list
 verb : int
     verbosity level for messages whilst working
 
@@ -230,7 +230,7 @@ This checks for these AFNI header attributes:
 Parameters
 ----------
 Adict : dict
-    dictionary of AFNI header attributes
+    dictionary of AFNI header attributes; each value is a list
 verb : int
     verbosity level for messages whilst working
 
@@ -299,7 +299,7 @@ the AFNI header:
 Parameters
 ----------
 Adict : dict
-    dictionary of AFNI header attributes
+    dictionary of AFNI header attributes; each value is a list
 verb : int
     verbosity level for messages whilst working
 
@@ -396,7 +396,7 @@ On the NIFTI side,
 Parameters
 ----------
 Adict : dict
-    dictionary of AFNI header attributes
+    dictionary of AFNI header attributes; each value is a list
 verb : int
     verbosity level for messages whilst working
 
@@ -562,7 +562,7 @@ the other applies, we would refer specifically to each separately.
 Parameters
 ----------
 Adict : dict
-    dictionary of AFNI header attributes
+    dictionary of AFNI header attributes; each value is a list
 fname : str
     name of AFNI dset (can include path), optional as a fallback
 verb : int
@@ -583,7 +583,7 @@ qsform_code : int
     # datasets, esp. older ones, but it would be the most informative
     if 'TEMPLATE_SPACE' in Adict.keys() :
         key = 'TEMPLATE_SPACE'
-        tspace = Adict[key]
+        tspace = Adict[key][0]
         is_fail, qsform_code = translate_template_space_to_qform_code(tspace, 
                                                                       verb=verb)
         if is_fail :
@@ -873,7 +873,7 @@ then will fall back on IJK_TO_DICOM if necessary.
 Parameters
 ----------
 Adict : dict
-    dictionary of AFNI header attributes
+    dictionary of AFNI header attributes; each value is a list
 verb : int
     verbosity level for messages whilst working
 
