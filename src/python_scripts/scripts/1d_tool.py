@@ -211,6 +211,10 @@ examples (very basic for now): ~1~
 
          1d_tool.py -infile X.xmat.1D -show_cormat_warnings_full
 
+   Example 6d.  Show warnings for zero or small-valued regressors. ~2~
+
+         1d_tool.py -infile X.xmat.1D -show_xmat_warnings
+
    Example 7a. Output temporal derivative of motion regressors. ~2~
 
        There are 9 runs in dfile_rall.1D, and derivatives are applied per run.
@@ -1076,6 +1080,7 @@ general options: ~2~
    -show_cormat                 : display correlation matrix
    -show_cormat_warnings        : display correlation matrix warnings
                                   (this does not include baseline terms)
+                                  see also: -show_xmat_warnings
    -show_cormat_warnings_full   : display correlation matrix warnings
                                   (this DOES include baseline terms)
    -show_distmat                : display distance matrix
@@ -1213,6 +1218,10 @@ general options: ~2~
 
         See example 5e.
         See also -show_regs_style.
+
+   -show_xmat_warnings          : display matrix warnings for all zero or
+                                  small-valued regressors
+                                  see also: -show_cormat_warnings
 
    -show_group_labels           : display group and label, per column
 
@@ -1508,9 +1517,10 @@ g_history = """
    2.21 Mar 12, 2025 - allow auto-reading of TSV as -infile
    2.22 Mar 20, 2025 - add -select_cols_via_TSV_table
    2.23 Apr 25, 2025 - allow float read retry for na values
+   2.24 Jan  7, 2026 - add -show_xmat_warnings
 """
 
-g_version = "1d_tool.py version 2.23, April 25, 2025"
+g_version = "1d_tool.py version 2.24, January 7, 2026"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
@@ -1603,6 +1613,7 @@ class A1DInterface:
       self.show_trs_to_zero= 0          # show iresp length
       self.show_xmat_stim_info = ''     # show xmat stimulus information
       self.show_xmat_stype_cols = []    # show columns of given stim types
+      self.show_xmat_warn  = 0          # show xmat regressor warnings
       self.slice_order_to_times = 0     # re-sort slices indices to times
       self.slice_pattern_to_times = []  # slice time parameters (pat, NS, MB)
       self.sort            = 0          # sort data over time
@@ -1942,11 +1953,14 @@ class A1DInterface:
       self.valid_opts.add_opt('-show_trs_to_zero', 0, [], 
                    helpstr='show length of data until constant zero')
 
-      self.valid_opts.add_opt('-show_xmat_stype_cols', -1, [], 
+      self.valid_opts.add_opt('-show_xmat_stype_cols', -1, [],
                       helpstr='display xmat cols for given stim types')
 
-      self.valid_opts.add_opt('-show_xmat_stim_info', 1, [], 
+      self.valid_opts.add_opt('-show_xmat_stim_info', 1, [],
                       helpstr='display xmat stim class info for class')
+
+      self.valid_opts.add_opt('-show_xmat_warnings', 0, [],
+                      helpstr='display warnings for the regression matrix')
 
       self.valid_opts.add_opt('-slice_order_to_times', 0, [], 
                    helpstr='convert slice indices to slice times')
@@ -2375,6 +2389,9 @@ class A1DInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if err: return 1
             self.show_xmat_stim_info = val
+
+         elif opt.name == '-show_xmat_warnings':
+            self.show_xmat_warn = 1
 
          elif opt.name == '-show_indices_baseline':
             self.show_indices |= 1
@@ -2805,6 +2822,10 @@ class A1DInterface:
       if self.show_corwarnfull:
          err, wstr = self.adata.make_cormat_warnings_string(self.cormat_cutoff,
                                             name=self.infile, skip_expected=0)
+         print(wstr)
+      if self.show_xmat_warn:
+         err, wstr = self.adata.make_xmat_warnings_string(fname=self.infile,
+                                                          level=self.verb)
          print(wstr)
 
       # ---- possibly write: last option -----

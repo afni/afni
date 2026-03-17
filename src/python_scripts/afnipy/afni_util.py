@@ -6293,16 +6293,78 @@ nfail : int
     for dset in all_dset:
         exists = info_dset_exists(dset)
         if verb > 1 :
-            txt = "Existence check for {}dset {}: ".format(label, dset)
+            txt = "Existence check for {}dset: {}: ".format(label, dset)
             txt+= " {}".format(exists)
             BASE.IP(txt)
         if not(exists) :
-            msg = " Cannot load {}dset {} ".format(label, dset)
+            msg = " Cannot load {}dset: {} ".format(label, dset)
             BASE.EP1(msg)
             nfail+= 1
 
     return nfail
 
+def check_all_dsets_same_grid(all_dset, label='', verb=1) :
+    """For a list of dsets all_dset, check if they have the same grid
+(according to '3dinfo -same_grid -prefix ...'). Return the number of
+non-grid-matches. Hence, if this returns 0 then each dset in all_dset
+is on the same grid (= success, likely).
+
+The optional string 'label' can be used when reporting verbosely about
+what kind of dset is being checked.
+
+Parameters
+----------
+all_dset : list (of str)
+    a list of dataset names
+label : str
+    string label when reporting verbosely
+verb : int
+    verbosity level
+
+Returns
+-------
+ndiff : int
+    number of failures (=non-matches)
+
+    """
+
+    BAD_RETURN = -1
+
+    if not(isinstance(all_dset, list)):
+        BASE.EP("Must provide a list of dsets to this function.")
+
+    # minor adjustment for spacing
+    if label :
+        label+= ' '
+
+    ndiff = 0
+
+    cmd  = '3dinfo -same_grid -prefix ' + ' '.join(all_dset)
+    com  = BASE.shell_com(cmd, capture=1)
+    stat = com.run()
+
+    # should match len of input dsets
+    ncom = len(com.so)
+
+    if stat or not(ncom) :
+        return BAD_RETURN
+
+    # split into list of sublists; sublist has 2 str:
+    #   '0' or '1'
+    #   filename
+    L = [x.split() for x in com.so]
+    
+    for nn in range(ncom):
+        x = L[nn]
+        if verb > 1 :
+            txt = "Grid sameness check for {}dset: {}".format(label, x[1])
+            BASE.IP(txt)
+        if x[0] == '0' :
+            msg = "Grid mismatch for {}dset: {}".format(label, x[1])
+            BASE.EP1(msg)
+            ndiff+= 1
+
+    return ndiff
 
 def simple_type(x):
     """When printing the type(...) of something, the format is annoyingly:

@@ -583,7 +583,7 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
 
    /*-- 02 Feb 2018: try to read .jpg and .png "datasets" --*/
 
-   if( !AFNI_noenv("AFNI_IMAGE_DATASETS") ){
+   if( AFNI_yesenv("AFNI_IMAGE_DATASETS") ){
      char *ename[4] , **fn_img ;
      int num_img , ii ;
 

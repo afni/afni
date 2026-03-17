@@ -678,7 +678,7 @@ int main( int argc , char *argv[] )
    if( nopt < argc )
      WARNING_message("Trailing datasets on command line ignored: %s ...",argv[nopt]) ;
 
-   if( DSET_NVALS(old_dset) == 1 ){
+   if( DSET_NVALS(old_dset) == 1 && do_tdiff ){
      WARNING_message("Input dataset has 1 sub-brick ==> -tdiff is turned off") ;
      do_tdiff = 0 ;
    }

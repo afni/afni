@@ -432,17 +432,29 @@ if ( ! -f "$Adataset" ) then
   endif
 endif
 
+# obliquity of input dset
+set obl_adataset = `3dinfo -is_oblique "${Adataset}"`
+echo "++ Is input dataset oblique? -> ${obl_adataset}"
+
 if ( "$SubID" == "" ) then
   echo "** ERROR ${this_prog} -- no subject ID entered with -subid? :("
   goto BAD_EXIT
 endif
 
 if ( "${mask_ss}" != "" ) then
-    set check = `3dinfo -prefix "${mask_ss}"`
-    if ( "$check" == "NO-DSET" ) then
-        echo "** ERROR: can't find inset file ${mask_ss}"
-        goto BAD_EXIT
-    endif
+   set check = `3dinfo -prefix "${mask_ss}"`
+   if ( "$check" == "NO-DSET" ) then
+       echo "** ERROR: can't find inset file ${mask_ss}"
+       goto BAD_EXIT
+   endif
+
+   set obl_mask_ss = `3dinfo -is_oblique "${mask_ss}"`
+   echo "++ Is mask dataset oblique?  -> ${obl_mask_ss}"
+
+   if ( ${obl_mask_ss} != ${obl_adataset} ) then
+      echo "** ERROR: cannot have mismatch of obliquity between input and mask"
+      goto BAD_EXIT
+   endif
 endif
 
 # edit SubID to remove any dataset suffixes [29 Mar 2019]

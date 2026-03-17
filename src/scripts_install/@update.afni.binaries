@@ -98,6 +98,7 @@ history for $prog :
   3.28  6 May 2025 : [PT/RR] remove :h tcsh syntax
   3.29 16 Jun 2025 : [PT/RR] if recur, use :q to quotize args
   3.30 22 Jul 2025 : add -binary_source option
+  3.31  9 Jan 2026 : -prog_list makes -binary_source default to official
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -105,7 +106,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.30, July 22, 2025"
+set aub_version = "3.31, January 9, 2025"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -435,37 +436,37 @@ examples: ~1~
 
     1a. When doing initial install, always specify a package.
 
-        @update.afni.binaries -package linux_ubuntu_24_64 -bindir ~/abin
+           @update.afni.binaries -package linux_ubuntu_24_64 -bindir ~/abin
 
     1b. Also initialize the dotfiles (.cshrc, .bashrc, etc).
 
-        @update.afni.binaries -package linux_ubuntu_24_64 -bindir ~/abin \\
-                              -do_dotfiles
+           @update.afni.binaries -package linux_ubuntu_24_64 -bindir ~/abin \\
+                                 -do_dotfiles
 
     1c. And possibly include extras like dotfile and apsearch initialization.
 
-        @update.afni.binaries -package linux_ubuntu_24_64 -bindir ~/abin \\
-                              -do_extras
+           @update.afni.binaries -package linux_ubuntu_24_64 -bindir ~/abin \\
+                                 -do_extras
 
     1d. Possibly just install a the non-binary text package with atlases,
         into the \$HOME/abin directory.
 
-        @update.afni.binaries -package anyos_text_atlas -bindir ~/abin
+           @update.afni.binaries -package anyos_text_atlas -bindir ~/abin
 
  2. root user: initial install ~2~
 
     2a. Install a specific package into a system directory.
         Such a command would apply to either an initial install or an update.
 
-        @update.afni.binaries -package linux_ubuntu_24_64 \\
-                              -bindir /usr/local/AFNIbin
+           @update.afni.binaries -package linux_ubuntu_24_64 \\
+                                 -bindir /usr/local/AFNIbin
 
     2b. Similar to 2a, but one can specify a path to a previously downloaded
         .tgz package file, so such a download would not need to be repeated.
         Use -local_package to specify the path to the tgz file.
 
-        @update.afni.binaries -local_package linux_ubuntu_24_64.tgz \\
-                              -bindir /usr/local/AFNIbin
+           @update.afni.binaries -local_package linux_ubuntu_24_64.tgz \\
+                                 -bindir /usr/local/AFNIbin
 
  3. individual user: basic updates ~2~
 
@@ -474,75 +475,84 @@ examples: ~1~
       * Note also that this would be appropriate for a locally compiled
         package as well, which would run build_afni.py.
 
-        @update.afni.binaries -apsearch yes
+           @update.afni.binaries -apsearch yes
 
     3b. Basic: also make a backup of the current binaries.
 
-        @update.afni.binaries -apsearch yes -make_backup yes
+           @update.afni.binaries -apsearch yes -make_backup yes
 
     3c. Basic: -defaults would do the same, but also try to update the dotfiles.
         Since that step should already be done, this should be the same as 3b.
 
-        @update.afni.binaries -defaults
-        @update.afni.binaries -d
+           @update.afni.binaries -defaults
+           @update.afni.binaries -d
 
     3d. Quick update, do nothing but update the current package.
 
-        @update.afni.binaries -quick
+           @update.afni.binaries -quick
 
     3e. Update only a specific list of programs (e.g. suma and 3dRSFC).
 
-        @update.afni.binaries -package linux_openmp_64 -programs suma 3dRSFC
+           @update.afni.binaries -package linux_openmp_64 -programs suma 3dRSFC
 
  4. other examples ~2~
 
     4a. install the small, text-only package in the directory of that same name
 
-        @update.afni.binaries -package anyos_text -bindir anyos_text
+           @update.afni.binaries -package anyos_text -bindir anyos_text
 
     4b. include atlases, and install in a system directory
 
-        @update.afni.binaries -package anyos_text_atlas \\
-                              -bindir /usr/local/AFNI/anyos_text_atlas
+           @update.afni.binaries -package anyos_text_atlas \\
+                                 -bindir /usr/local/AFNI/anyos_text_atlas
 
     4c. test running build_afni.py, but do not install it
 
-        @update.afni.binaries -binary source build -build_root ~/afni_build \\
-                              -build_opts "-do_install no"
+           @update.afni.binaries -binary_source build       \\
+                                 -build_root ~/afni_build   \\
+                                 -build_opts "-do_install no"
 
     4d. use build_afni.py to replace the current "official" package
+        (replace the "official" package with a local "build" version)
+        (consider -make_backup yes)
 
-        @update.afni.binaries -binary source build -build_root ~/afni_build
+           @update.afni.binaries -binary_source build
 
-    4e. update the current package if it was made using build_afni.py,
+    4e. use build_afni.py to replace the current "build" package
+        (replace the "build" package with an "official" version)
+        (consider -make_backup yes)
+
+           @update.afni.binaries -binary_source official
+
+    4f. update the current package if it was made using build_afni.py,
         and run the apserach updates, for tab completion
         (this is the same command that works for the official package)
 
-        @update.afni.binaries -apsearch yes
+           @update.afni.binaries -apsearch yes
 
-    4f. update the current package if it was made using build_afni.py,
+    4g. update the current package if it was made using build_afni.py,
         but do nothing else (just update the current package)
         (this is the same command that works for the official package)
 
-        @update.afni.binaries -quick
+           @update.afni.binaries -quick
 
-    4g. a quick build_afni.py update can be done in either of these ways
+    4h. a quick build_afni.py update can be done in either of these ways
         (these commands should effectively both run the latter)
 
-        @update.afni.binaries -quick
+           @update.afni.binaries -quick
 
-        build_afni.py -build_root ~/afni_build
+           build_afni.py -build_root ~/afni_build
 
  5. other "random" examples: ~2~
 
-       @update.afni.binaries -apsearch yes
-       @update.afni.binaries -d
-       @update.afni.binaries -defaults -package macos_10.12_local
-       @update.afni.binaries -package linux_openmp_64 -bindir ~/abin
-       @update.afni.binaries -package linux_openmp_64 \\
-                             -programs file_tool python_scripts/*.py
-       @update.afni.binaries -show_obsoletes
-       @update.afni.binaries -local_package macos_10.12_local.tgz
+          @update.afni.binaries -apsearch yes
+          @update.afni.binaries -d
+          @update.afni.binaries -defaults -package macos_10.12_local
+          @update.afni.binaries -package linux_openmp_64 -bindir ~/abin
+          @update.afni.binaries -package linux_openmp_64 \\
+                                -programs file_tool python_scripts/*.py
+          @update.afni.binaries -show_obsoletes
+          @update.afni.binaries -local_package macos_10.12_local.tgz
 
 
 ------------------------------------------------------------
@@ -572,6 +582,7 @@ options: ~1~
         when switching to a different install source.
 
         This option supersedes -build_afni and -overwrite_build.
+        If -prog_list is applied, -binary_source will default to official.
 
         Assuming 'build', see also -build_root and -build_opts.
 
@@ -685,6 +696,7 @@ options: ~1~
         rather than the entire PACKAGE.
 
         Note: directories are not allowed (e.g. meica.libs)
+        Note: this option applies to "-binary_source official"
 
         For example, consider:
 
@@ -806,7 +818,7 @@ if ( $cur_afni != "" && -f $vfile ) then
    set rv = $status
    if ( ! $rv && blab != "" ) then
       set build_label = $blab
-      echo "-- have current build label $build_label"
+      echo "-- have current build label '$build_label'"
    endif
 endif
 
@@ -814,6 +826,9 @@ endif
 if ( $build_label == build ) then
    if ( $binary_source == official ) then
       echo "-- will overwrite local build_afni.py package at user request"
+   else if ( $binary_source == default && $#prog_list > 0 ) then
+      echo "-- have prog_list, will get packages from 'official' build"
+      set binary_source = official
    else
       # plan to run build_afni.py
       echo "++ the current package was made by build_afni.py,"
@@ -827,7 +842,7 @@ else if ( $build_label == official ) then
       set binary_source = official
    endif
 endif
-echo "++ updating build label from $build_label to $binary_source"
+echo "++ updating build label from '$build_label' to '$binary_source'"
 
 # possibly apply default binary directory
 if ( $abin == "" ) then
@@ -968,7 +983,7 @@ endif
 # entire package or just prog_list (though prog_list requires package)
 echo "-- attempting to install package $package under"
 if ( $#prog_list > 0 ) echo "   (including only $#prog_list programs)"
-echo "   install dir: $abin..."
+echo "   install dir: $abin ..."
 
 # ----------------------------------------------------------------------
 # if the install dir does not exist, create it

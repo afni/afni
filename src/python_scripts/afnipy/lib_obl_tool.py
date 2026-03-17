@@ -560,19 +560,19 @@ ok : int
       if child_prefixes is None and \
          child_outdir is None and \
          child_suffix is None :
-         BASE.EP1("must use an -child_* output opt when using -child_dsets")
+         ab.EP1("must use an -child_* output opt when using -child_dsets")
          return -1
       elif child_prefixes is not None and \
          not(child_outdir is None and child_suffix is None) :
-         BASE.EP1("cannot use -child_prefixes with other -child_* output opts")
+         ab.EP1("cannot use -child_prefixes with other -child_* output opts")
          return -1
       elif child_prefixes is not None and len(child_prefixes) != nchild :
-         BASE.EP1("if using -child_prefixes, must match number of child dsets")
+         ab.EP1("if using -child_prefixes, must match number of child dsets")
          return -1
    else:
        if not(child_prefixes is None and child_outdir is None and \
               child_suffix is None) :
-         BASE.EP1("cannot use any -child_* output opt without -child_dsets")
+         ab.EP1("cannot use any -child_* output opt without -child_dsets")
          return -1
 
    return 0

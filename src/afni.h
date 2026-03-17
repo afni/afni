@@ -207,12 +207,15 @@ extern char AFNI_abohelp[1024] ;
       extern void RESET_sonnet(void) ; /* prototype */
 #   endif  /* MAIN */
 
-#   define RESET_AFNI_QUIT(iqqq) \
-     { AFNI_quit_CB(NULL,(XtPointer)(iqqq),NULL) ; RESET_sonnet() ; }
+#   define RESET_AFNI_QUIT(iqqq)                                     \
+     { AFNI_quit_CB(NULL,(XtPointer)(iqqq),NULL) ; RESET_sonnet() ;  \
+       if(needsX11Redraw()) { EXPOSEME((iqqq)->vwid->top_form,0); } }
 
 #else  /* don't USE_SONNETS */
 
-#   define RESET_AFNI_QUIT(iqqq) AFNI_quit_CB(NULL,(XtPointer)(iqqq),NULL)
+#   define RESET_AFNI_QUIT(iqqq)                                     \
+     { AFNI_quit_CB(NULL,(XtPointer)(iqqq),NULL) ;                   \
+       if(needsX11Redraw()) { EXPOSEME((iqqq)->vwid->top_form,0); } }
 
 #endif /* USE_SONNETS */
 /*------------------------------------------------------------------*/
@@ -665,6 +668,8 @@ extern void reset_mnito(struct Three_D_View *im3d);
          MCW_invert_widget( (iq)->vwid->view->define_ ## panel ## _pb ) ; \
          (iq)->vwid->view->  panel ## _pb_inverted = False ; } }
 
+extern void AFNI_vwidtopform_EV( Widget, XtPointer, XEvent *, RwcBoolean * ) ; /* Dec 2025 */
+
 /*---*/
 
 #define MARKS_MAXPOP (MARKS_MAXNUM+10)
@@ -973,6 +978,7 @@ typedef struct {
    Widget hidden_music_pb   ;  /* 07 Aug 2019 */
    Widget hidden_pvalue_pb  ;  /* 06 Mar 2014 */
    Widget hidden_papers_pb  ;  /* 02 May 2014 */
+   Widget hidden_redraw_pb  ;  /* 23 Dec 2025 */
 
 #endif  /* USE_HIDDEN */
 
@@ -1033,20 +1039,49 @@ typedef struct {
       int butx , buty ;        /* 17 May 2005 */
 } AFNI_widget_set ;
 
-/* Macro to reset size of the top_form in AFNI [04 Aug 2016] */
 
-#define FIX_TOPFORM_HEIGHT(iq)                                       \
- do{ if( (iq)->vwid->top_form_height > 99 )                          \
-       XtVaSetValues( (iq)->vwid->top_form ,                         \
-                      XmNheight,(iq)->vwid->top_form_height,NULL ) ; \
-       XtVaSetValues( (iq)->vwid->top_shell ,                        \
-                      XmNheight,(iq)->vwid->top_form_height+1,NULL); \
+#ifdef LINUX2
+/* Macro to reset size of the top_form in AFNI [04 Aug 2016] */ 
+/*                     and also the top_shell  [Dec 2025]    */
+/* (only in the case of LINUX2)                              */
+
+#define FIX_TOPFORM_HEIGHT(iq)                                         \
+ do{ if( (iq)->vwid->top_form_height > 99 ){                           \
+       int hf, hs ;                                                    \
+       MCW_widget_geom( (iq)->vwid->top_form , NULL,&hf,NULL,NULL ) ;  \
+       MCW_widget_geom( (iq)->vwid->top_shell, NULL,&hs,NULL,NULL ) ;  \
+       if( hf != (iq)->vwid->top_form_height  ||                       \
+           hs != ((iq)->vwid->top_form_height+1) )                     \
+       {                                                               \
+         if( 0 )                                                             \
+             fprintf(stderr,"FIX_TOPFORM: orig %d %d  current %d %d\n",      \
+                 (iq)->vwid->top_form_height, (iq)->vwid->top_form_height+1, \
+                 hf , hs ) ;                                                 \
+         /* todo: SetValues generates expose events, might restrict */ \
+         XtVaSetValues( (iq)->vwid->top_form ,                         \
+                        XmNheight,(iq)->vwid->top_form_height ,NULL);  \
+         /* reset top_shell values simultaneously for linux */         \
+         /* - use top_form size to set top_shell */                    \
+         MCW_widget_geom( (iq)->vwid->top_form , &hf,&hs,NULL,NULL ) ; \
+         XtVaSetValues( (iq)->vwid->top_shell ,                        \
+                        XmNwidth,hf+1,                                 \
+                        XmNheight,hs+1,NULL);                          \
+       }                                                               \
+     }                                                                 \
  } while(0)
 
+#else /* mac, probably */
+
+#define FIX_TOPFORM_HEIGHT(iq) /* nada */
+
+#endif
+
 #define SET_TOPFORM_HEIGHT(iq)                               \
+ do{                                                         \
      MCW_widget_geom( (iq)->vwid->top_form,                  \
                       NULL, &((iq)->vwid->top_form_height),  \
-                      NULL, NULL )
+                      NULL, NULL ) ;                         \
+ } while(0)
 
 #define TIPS_PLUS_SHIFT   2
 #define TIPS_MINUS_SHIFT -60
@@ -1555,6 +1590,7 @@ extern void AFNI_initialize_controller( Three_D_View * ) ;
 extern void AFNI_purge_dsets(int) ;
 extern void AFNI_purge_unused_dsets(void) ;
 extern int AFNI_controller_index( Three_D_View * ) ;
+extern void AFNI_redraw_controller( Three_D_View *im3d ) ; /* Dec 2025 */
 
 extern void AFNI_sigfunc_alrm(int sig) ;
 #undef  AFexit
@@ -2270,6 +2306,8 @@ extern void AFNI_pvalue_CB  ( Widget , XtPointer , XtPointer );
 
 extern void AFNI_papers_CB  ( Widget , XtPointer , XtPointer );
 extern void AFNI_list_papers( Widget w ) ; /* 02 May 2014 */
+
+extern void AFNI_redraw_CB  ( Widget , XtPointer , XtPointer ); /* Dec 2025 */
 
 extern void AFNI_add_timeseries( MRI_IMAGE * ) ;
 extern void AFNI_replace_timeseries( MRI_IMAGE * ) ; /* 10 May 2009 */

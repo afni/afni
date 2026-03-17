@@ -170,18 +170,20 @@ DEF_color_table = [
 
 # control overwriting/backing up any existing QC dirs
 dict_apqc_ow_modes = {
-    'shy'         : '(def) make new QC dir only if one does not exist',
+    'backup'      : '(def) move old QC dir to QC_<time>;' + \
+                    '\n' + ' '*16 + 'make new QC dir',
     'overwrite'   : 'purge old QC dir and make new QC/',
-    'backup'      : 'move old QC dir to QC_<time>; make new QC dir',
+    'shy'         : 'make new QC dir iff one does not exist',
 }
 
 list_apqc_ow_modes = list(dict_apqc_ow_modes.keys())
-list_apqc_ow_modes.sort()
-str_apqc_ow_modes = ', '.join([x for x in list_apqc_ow_modes])
+str_apqc_ow_modes  = ', '.join([x for x in list_apqc_ow_modes])
 
 hstr_apqc_ow_modes = \
     '\n'.join(['{:12s} -> {}'.format(x, dict_apqc_ow_modes[x]) \
                for x in list_apqc_ow_modes])
+
+DEF_apqc_ow_mode = 'backup'
 
 # defaults for some apqc_make_tcsh.py opts
 DEF_can_add_blur = 'Yes'
@@ -191,6 +193,8 @@ DEF_can_add_blur = 'Yes'
 # frequently, this will save valuable time+energy.
 DEF_uvar_json    = 'out.ss_review_uvars.json'
 DEF_subj_dir     = '.'
+
+DEF_apqc_log     = 'log_apqc_tcsh.txt'
 
 # -------------------------------------------------------------------
 
@@ -2005,18 +2009,28 @@ def parse_1dplot_args(full_argv):
 # ======================== for apqc_make_tcsh ============================
 
 help_string_apqc_make_tcsh = '''
+Overview ~1~
 
-This program creates the single subject (ss) HTML review script
-'@ss_review_html', which itself generates images and text that form
-the afni_proc.py quality control (APQC) HTML.
+This program generates images and text that form the afni_proc.py
+quality control (APQC) HTML.  It stores these in a directory called
+QC_<subj>, where <subj> is the subject ID of the data being processed.
 
-It is typically run by the afni_proc.py (AP) proc* script itself.
+This program is usually run by afni_proc.py's (AP's) processing
+script, but users can run it as well, as needed, to regerate the APQC
+HTML.
 
-Options:
+It is almost always followed by running apqc_make_html.py, to turn the
+images+text into the full APQC HTML doc.
+
+++ written by PA Taylor (SSCC, NIMH, NIH, USA)
+
+--------------------------------------------------------------------------
+Options ~1~
 
 -uvar_json  UJ    :(req) UJ is a text file of uvars ("user variables")
                    created by gen_ss_review.py that catalogues important
-                   files in the results directory, for the APQC.
+                   files in the results directory, for the APQC. This file
+                   is called:  {uvar_json}.
 
 -subj_dir   SD    :(req) location of AP results directory (often '.', as
                    this program is often run from within the AP results 
@@ -2024,7 +2038,7 @@ Options:
 
 -review_style RS  :(opt) the 'style' of the APQC HTML output HTML.  Allowed
                    keywords are:
-                       {}
+                       {review_style}
                    + Using 'pythonic' is the recommended way to go: the
                    1D images are the clearest and most informative.
                    It means you need the Python module Matplotlib
@@ -2066,10 +2080,13 @@ Options:
                    blur for data processed without blurring, then disable that
                    here.
                    Allowed values of CAB are: Yes or 1, No or 0.
-                   (def: {})
+                   (def: {can_add_blur})
 
--ow_mode  OM      :(opt) set overwrite mode; choices are
-                   {}
+-ow_mode  OM      :(opt) set overwrite mode; choices are:
+
+                     {ow_mode}
+
+                   (def: {def_ow_mode})
                    See also '-bup_dir ..' for additional backup dir 
                    naming.
 
@@ -2081,15 +2098,59 @@ Options:
                    shell commands that are run when apqc_make_tcsh.py
                    is executed; mainly for debugging purposes, if 
                    necessary.
+                   The name of the log file is: {apqc_log}.
 
 -run              :(opt) a trivial option that does nothing, but means you can
                    execute this program, rather than display the help text,
                    when using default -uvar_json and -subj_dir values (which
-                   mean running this in the current dir)
+                   mean running this in the current dir).
 
-'''.format( str_apqc_review_styles, 
-            DEF_can_add_blur,
-            hstr_apqc_ow_modes.replace('\n', '\n'+ ' '*19 ))
+-help             :(opt) display this help text
+
+-hview            :(opt) display this help text in a GUI text window
+
+--------------------------------------------------------------------------
+Examples ~1~
+
+Note that in every example below, a user would immediately run
+'apqc_make_html.py -qc_dir ..' to finalize the full APQC HTML.
+
+
+1) Consider having an AP results directory, for data with subject
+   ID sub-000. From that directory, run:
+
+     apqc_make_tcsh.py -run
+
+2) Same as #1, but make a text file log of everything that ran (for
+   troubleshooting purposes). From that directory, run:
+
+     apqc_make_tcsh.py -run -do_log
+
+
+3) Same as #1, but to use the older long form of options (no longer
+   necessary), run:
+
+     apqc_make_tcsh.py                                                \\
+         -subj_dir    .                                               \\
+         -uvar_json   out.ss_review_uvars.json
+
+4) Same as #1, but from some other location on the file system more
+   generally, run:
+
+     apqc_make_tcsh.py                                                \\
+         -subj_dir    path/to/AP_results                              \\
+         -uvar_json   path/to/AP_results/out.ss_review_uvars.json
+          
+
+   
+
+
+'''.format( uvar_json=DEF_uvar_json,
+            review_style=str_apqc_review_styles, 
+            can_add_blur=DEF_can_add_blur,
+            def_ow_mode=DEF_apqc_ow_mode,
+            apqc_log=DEF_apqc_log,
+            ow_mode=hstr_apqc_ow_modes.replace('\n', '\n'+ ' '*21 ))
 
 # -------------------------------------------------------------------
 
@@ -2101,7 +2162,7 @@ class apqc_tcsh_opts:
         self.revstyle         = "pythonic"
         self.pythonic2basic   = 0
 
-        self.ow_mode          = 'backup'   # overwrite mode 
+        self.ow_mode          = DEF_apqc_ow_mode # overwrite mode 
         self.bup_dir          = None
         self.do_mot_grayplot  = True
         self.vstat_label_list = []
@@ -2213,12 +2274,12 @@ list_apqc_tcsh_opts = ['-help', '-h',
                        ]
 
 
-def parse_tcsh_args(argv):
+def parse_tcsh_args(full_argv):
     '''Parse arguments for tcsh scripter.
 
     Input
     -----
-    argv : list of args (not including prog name)
+    argv : full list of args (including prog name)
 
     Return
     ------
@@ -2227,6 +2288,8 @@ def parse_tcsh_args(argv):
         self-"check_req()" method, as well.
     '''
 
+    # list of opts used
+    argv   = full_argv[1:]
     Narg   = len(argv)
     Nargm1 = Narg - 1     # to check if opt is missing par(s)
 
@@ -2247,6 +2310,12 @@ def parse_tcsh_args(argv):
 
         elif argv[i] == "-help" or argv[i] == "-h":
             print(help_string_apqc_make_tcsh)
+            sys.exit(0)
+
+        elif argv[i] == "-hview" :
+            prog = os.path.basename(full_argv[0])
+            cmd = 'apsearch -view_prog_help {}'.format( prog )
+            ab.simple_shell_exec(cmd)
             sys.exit(0)
 
         # ---------- req ---------------
@@ -2377,9 +2446,47 @@ def check_apqc_pythonic_ok():
 
 help_string_apqc_make_html = '''
 
-Help is here.
+This program converts the contents of a QC directory that were created
+by apqc_make_tcsh.py into the APQC HTML doc, readable with any
+browser.
 
--qc_dir
+This program is usually run by afni_proc.py's processing script, but
+users can run it as well, as needed, to regerate the APQC HTML.
+
+++ written by PA Taylor (SSCC, NIMH, NIH, USA)
+
+--------------------------------------------------------------------------
+Running ~1~
+
+To execute this program, run it like this, providing the name of the
+directory created by apqc_make_tcsh.py:
+
+   apqc_make_html.py -qc_dir QC_DIR
+
+--------------------------------------------------------------------------
+Options ~1~
+
+-qc_dir QC_DIR  : (req) the name of the QC directory that was created by
+                  apqc_make_tcsh.py (likely in the results directory from
+                  running afni_proc.py)
+
+-help           : display this (short) help
+
+-hview          : display this (short) help in a GUI text window
+
+--------------------------------------------------------------------------
+Example ~1~
+
+Note that in every example below, a user would probably have preceded
+this command with 'apqc_make_tcsh.py ...'.
+
+
+1) Consider final AP processing of a dataset with subject ID
+   sub-000.  Then, the following could be run in the AP results
+   directory (after afni_make_tcsh.py):
+
+     apqc_make_html.py -qc_dir QC_sub-000
+
 
 '''
 
@@ -2403,12 +2510,12 @@ class apqc_html_opts:
 
 # -------------------------------------------------------------------
 
-def parse_html_args(argv):
+def parse_html_args(full_argv):
     '''Parse arguments for html generator.
 
     Input
     -----
-    argv : list of args (not including prog name)
+    full_argv : list of args (including prog name, for hview)
 
     Return
     ------
@@ -2417,6 +2524,8 @@ def parse_html_args(argv):
         self-"check_req()" method, as well.
     '''
 
+    # list of opts used
+    argv = full_argv[1:]
     Narg = len(argv)
 
     if not(Narg):
@@ -2435,6 +2544,12 @@ def parse_html_args(argv):
 
         elif argv[i] == "-help" or argv[i] == "-h":
             print(help_string_apqc_make_html)
+            sys.exit(0)
+
+        elif argv[i] == "-hview" :
+            prog = os.path.basename(full_argv[0])
+            cmd = 'apsearch -view_prog_help {}'.format( prog )
+            ab.simple_shell_exec(cmd)
             sys.exit(0)
 
         # ---------- req ---------------

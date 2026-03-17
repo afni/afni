@@ -267,7 +267,7 @@ int main(int argc, char *argv[]) {
       ERROR_exit("Need both insetA and insetB to be input!");
    
    // check dataset fitting:
-   i = CompareSetDims(insetTIMEA, insetTIMEB, 4);
+   i = CompareSetDims(insetTIMEA, insetTIMEB, 3);
    
    if ( !MASK )
       WARNING_message("No mask input-- "

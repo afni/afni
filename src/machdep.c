@@ -54,9 +54,47 @@ void machdep()
        EDIT_set_index_prefix(*eee) ;
    }
 
+   (void) isMacTahoe() ;  /* Dec 2025 */
+
    AFNI_do_nothing() ; /* 02 Oct 2012 */
    return ;
 }
+
+/*--------------------------------------------------------------------*/
+/* Check if running MacOS Tahoe [Dec 2025] */
+/*--------------------------------------------------------------------*/
+
+#ifndef DARWIN
+
+int isMacTahoe(void){ return 0 ; } /* that was easy */
+
+#else
+
+int isMacTahoe(void)
+{
+  static int MacTahoe=-1;  /* init to unknown */
+  char version[128];
+  FILE *fp ;
+
+  if( MacTahoe >= 0 ) return MacTahoe ;  /* we know already */
+
+  /* figure it out from sw_vers */
+
+  MacTahoe = 0;
+
+  fp = popen("sw_vers -productVersion", "r");
+  if( !fp ) return MacTahoe ;
+
+  /* Check if version starts with "26." */
+
+  if( fgets(version, sizeof(version), fp) != NULL ){
+    MacTahoe = ( strncmp(version, "26.", 3) == 0 );
+  }
+  pclose(fp);
+  return MacTahoe;
+}
+
+#endif
 
 /*-------------------------------------------------------------------*/
 

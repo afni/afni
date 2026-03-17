@@ -2401,31 +2401,34 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    }
 
    // Set sym range for other surfaces
-   int numSurfaceObjects;
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
-                 &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   if (numSurfaceObjects != N_adolist)
-   {
-        if (0) SUMA_S_Warn("Mismatch between # surface objects and "
-                    "# unique surface controllers"); 
-        SUMA_RETURNe;
-   }
-   for (j=0; j<N_adolist; ++j){
-       otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-       if (otherAdo != ado && otherAdo->do_type == SO_type) {
-           curColPlane = SUMA_ADO_CurColPlane(otherAdo);
-           if ( !curColPlane )  {
-              SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; 
-           }
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook){
+       int numSurfaceObjects;
+       XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+                     &numSurfaceObjects, NULL);
 
-           curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;   
-       
-           if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo,
-                AlphaOpacityFalloff, YUP)){
-                   SUMA_S_Warn("Error toggling variable opacity for "
-                               "current surface"); 
-                   SUMA_RETURNe;
+       N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+       if (numSurfaceObjects != N_adolist)
+       {
+            if (0) SUMA_S_Warn("Mismatch between # surface objects and "
+                        "# unique surface controllers"); 
+            SUMA_RETURNe;
+       }
+       for (j=0; j<N_adolist; ++j){
+           otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+           if (otherAdo != ado && otherAdo->do_type == SO_type) {
+               curColPlane = SUMA_ADO_CurColPlane(otherAdo);
+               if ( !curColPlane )  {
+                  SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; 
+               }
+
+               curColPlane->AlphaOpacityFalloff = AlphaOpacityFalloff;   
+           
+               if (!SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(otherAdo,
+                    AlphaOpacityFalloff, YUP)){
+                       SUMA_S_Warn("Error toggling variable opacity for "
+                                   "current surface"); 
+                       SUMA_RETURNe;
+               }
            }
        }
    }

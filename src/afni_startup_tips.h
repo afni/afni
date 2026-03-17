@@ -348,9 +348,9 @@ static char *tip[] = {
    " * float (32 bit values)           * complex (pairs of floats)\n"
    " * RGB  (triples of bytes)"
  ,
-   "AFNI will read in .jpg and .png image files as 2D 'datasets'. Is this useful?\n"
-   "It depends on who you ask! If you don't like this, set Unix environment\n"
-   "variable AFNI_IMAGE_DATASETS to NO (in your ~/.afnirc file)."
+   "AFNI can read in .jpg and .png image files as 2D 'datasets'. Is this useful?\n"
+   "It depends on who you ask! If you like this, set Unix environment\n"
+   "variable AFNI_IMAGE_DATASETS to YES (in your ~/.afnirc file)."
  ,
    "The AFNI program 'aiv' (AFNI Image Viewer) can be used for a quick display\n"
    "of images in various formats (.jpg, .png, plus datasets). The interface\n"

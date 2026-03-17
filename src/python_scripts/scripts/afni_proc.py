@@ -825,12 +825,15 @@ g_history = """
        - suggest a new default blur (but still use 4.0), if none is given
        - suggest open_apqc.py instead of afni_open
        - allow verb only to show tracked files and create proc script
+    8.04 Jan  9, 2026: add -show_xmat_warnings after -show_cormat_warnings
+    8.05 Jan 13, 2026: create enorm time series even if no volreg or censoring
 """
 
-g_version = "version 8.03, September 11, 2025"
+g_version = "version 8.05, January 13, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 7 Jan 2026",  "1d_tool.py -show_xmat_warnings" ],
       [ "10 Sep 2025",  "afni_util.py get_def_blur_from_dims" ],
       [ "24 Apr 2025",  "find_variance_lines.tcsh -ignore_edges" ],
       [ " 7 Mar 2024",  "3dTto1D -method 4095_warn" ],
@@ -905,6 +908,7 @@ interesting milestones for afni_proc.py:
    2024.04 : ap_run_simple_rest_me.tcsh: low-option afni_proc.py for multiecho
    2024.05 : enable output of BIDS derivative tree
    2024.08 : input external distortion warp dataset
+   2025.03 : add tedort combine methods OC_m_tedort and m_tedana_OC_tedort
    2025.08 : GTKYD - outlier check from: getting to know your data
    2025.09 : handle physio_calc.py slibase and volbase regressors
 """
