@@ -46,13 +46,13 @@ dict_nifti1 = {
     'intent_p2'       : None,     ## float
     'intent_p3'       : None,     ## float
     'intent_code'     : None,     ## short
-    'datatype'        : None,     # short
-    'bitpix'          : None,     # short
+    'datatype'        : None,     ## short
+    'bitpix'          : None,     ## short
     'slice_start'     : None,     # short
     'pixdim'          : None,     # float [8]
     'vox_offset'      : None,     # float
-    'scl_slope'       : None,     # float
-    'scl_inter'       : None,     # float
+    'scl_slope'       : None,     ## float
+    'scl_inter'       : None,     ## float
     'slice_end'       : None,     # short
     'slice_code'      : None,     # char
     'xyzt_units'      : None,     ## char
@@ -103,6 +103,7 @@ dict_nifti1_unmapped = {
     'intent_p2'       : 0.0,      ## float
     'intent_p3'       : 0.0,      ## float
     'intent_code'     : 0,        ## short
+    'scl_inter'       : 0.0,      ## float
 }
 
 # which keys in the nifti1 header dict should come from the data
@@ -273,7 +274,8 @@ Ndict : dict
     Ndict = copy.deepcopy(dict_nifti1)
 
     # go through each conversion function
-    is_fail1, datatype, bitpix = calc_nifti_datatype_bitpix( Adict, verb=verb )
+    is_fail1, datatype, bitpix, scl_slope = \
+        calc_nifti_datatype_bitpix_scl_slope( Adict, verb=verb )
     is_fail2, toffset          = calc_nifti_toffset( Adict, verb=verb )
     is_fail3, xyzt_units       = calc_nifti_xyzt_units( Adict, verb=verb )
     is_fail4, dim              =  calc_nifti_dim( Adict, verb=verb )
@@ -288,6 +290,7 @@ Ndict : dict
     # apply all of those
     Ndict['datatype']   = [datatype]
     Ndict['bitpix']     = [bitpix]
+    Ndict['scl_slope']  = [scl_slope]
     Ndict['toffset']    = [toffset]
     Ndict['xyzt_units'] = [xyzt_units]
     Ndict['dim']        = [int(d) for d in dim]
@@ -320,11 +323,13 @@ Ndict : dict
 # calculate nifti fields: 
 # + datatype : short
 # + bitpix : short
+# + scl_slope : float
 
-def calc_nifti_datatype_bitpix( Adict, verb=1 ):
+def calc_nifti_datatype_bitpix_scl_slope( Adict, verb=1 ):
     """Given the dictionary of AFNI header attributes Adict calculate what
 the corresponding datatype and bitpix would be, that is, what category
-of datum or kind of numbers are stored in the data.
+of datum or kind of numbers are stored in the data. Because we have to
+read through the BRIK float factors, we also get the value of scl_slope here.
 
 This checks for these AFNI header attributes:
 + BRICK_TYPES : a set of values (one per nvals in the dataset)
@@ -355,14 +360,17 @@ datatype : int
     code for datatype
 bitpix : int
     number of bits to store the datatype's data
+scl_slope : float
+    floating point factor for scaling volume values
 
     """
 
-    BAD_RETURN = (-1, 0, 0)
+    BAD_RETURN = (-1, 0, 0, 0.0)
 
     # initialize default
-    datatype = 0
-    bitpix   = 0
+    datatype  = 0
+    bitpix    = 0
+    scl_slope = 0.0
 
     # require this attribute, and parse if it exists
     key = 'BRICK_TYPES'
@@ -418,6 +426,7 @@ bitpix : int
     if BTYPE_IS_CONST and FFAC_IS_CONST :
         is_fail, mri_type_name, datatype, bitpix = \
             translate_afni_type_int_to_nifti(max_btype)
+        scl_slope = max_ffacs
     else:
         if not(FFAC_IS_CONST) :
             print("**** AT PRESENT, CANNOT DEAL WITH VARIED FLOAT FACS ****"
@@ -429,7 +438,7 @@ bitpix : int
         sys.exit(-1)
 
 
-    return 0, datatype, bitpix
+    return 0, datatype, bitpix, scl_slope
 
 # ============================================================================
 # calculate nifti fields: 
