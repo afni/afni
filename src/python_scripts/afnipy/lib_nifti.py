@@ -127,6 +127,123 @@ LIST_allowed_av_space = [
 STR_allowed_av_space = ', '.join(LIST_allowed_av_space)
 
 # ============================================================================
+# global nifti types structure list (per type, ordered oldest to newest)
+# See afni/src/nifti/niftilib/nifti1_io.c
+# -> static const nifti_type_ele nifti_type_list
+# this is a dictionary of key=name and value=type
+DICT_nifti_type = {
+    "DT_UNKNOWN"              :    0,
+    "DT_NONE"                 :    0,
+    "DT_BINARY"               :    1,
+    "DT_UNSIGNED_CHAR"        :    2,
+    "DT_UINT8"                :    2,
+    "NIFTI_TYPE_UINT8"        :    2,
+    "DT_SIGNED_SHORT"         :    4,
+    "DT_INT16"                :    4,
+    "NIFTI_TYPE_INT16"        :    4,
+    "DT_SIGNED_INT"           :    8,
+    "DT_INT32"                :    8,
+    "NIFTI_TYPE_INT32"        :    8,
+    "DT_FLOAT"                :   16,
+    "DT_FLOAT32"              :   16,
+    "NIFTI_TYPE_FLOAT32"      :   16,
+    "DT_COMPLEX"              :   32,
+    "DT_COMPLEX64"            :   32,
+    "NIFTI_TYPE_COMPLEX64"    :   32,
+    "DT_DOUBLE"               :   64,
+    "DT_FLOAT64"              :   64,
+    "NIFTI_TYPE_FLOAT64"      :   64,
+    "DT_RGB"                  :  128,
+    "DT_RGB24"                :  128,
+    "NIFTI_TYPE_RGB24"        :  128,
+    "DT_ALL"                  :  255,
+    "DT_INT8"                 :  256,
+    "NIFTI_TYPE_INT8"         :  256,
+    "DT_UINT16"               :  512,
+    "NIFTI_TYPE_UINT16"       :  512,
+    "DT_UINT32"               :  768,
+    "NIFTI_TYPE_UINT32"       :  768,
+    "DT_INT64"                : 1024,
+    "NIFTI_TYPE_INT64"        : 1024,
+    "DT_UINT64"               : 1280,
+    "NIFTI_TYPE_UINT64"       : 1280,
+    "DT_FLOAT128"             : 1536,
+    "NIFTI_TYPE_FLOAT128"     : 1536,
+    "DT_COMPLEX128"           : 1792,
+    "NIFTI_TYPE_COMPLEX128"   : 1792,
+    "DT_COMPLEX256"           : 2048,
+    "NIFTI_TYPE_COMPLEX256"   : 2048,
+    "DT_RGBA32"               : 2304,
+    "NIFTI_TYPE_RGBA32"       : 2304,
+}
+
+# bits per pixel ("bitpix"), AKA bits per voxel
+DICT_nifti_bitpix = {
+    "DT_UNKNOWN"              :    0*8,
+    "DT_NONE"                 :    0*8,
+    "DT_BINARY"               :    0*8,
+    "DT_UNSIGNED_CHAR"        :    1*8,
+    "DT_UINT8"                :    1*8,
+    "NIFTI_TYPE_UINT8"        :    1*8,
+    "DT_SIGNED_SHORT"         :    2*8,
+    "DT_INT16"                :    2*8,
+    "NIFTI_TYPE_INT16"        :    2*8,
+    "DT_SIGNED_INT"           :    4*8,
+    "DT_INT32"                :    4*8,
+    "NIFTI_TYPE_INT32"        :    4*8,
+    "DT_FLOAT"                :    4*8,
+    "DT_FLOAT32"              :    4*8,
+    "NIFTI_TYPE_FLOAT32"      :    4*8,
+    "DT_COMPLEX"              :    8*8,
+    "DT_COMPLEX64"            :    8*8,
+    "NIFTI_TYPE_COMPLEX64"    :    8*8,
+    "DT_DOUBLE"               :    8*8,
+    "DT_FLOAT64"              :    8*8,
+    "NIFTI_TYPE_FLOAT64"      :    8*8,
+    "DT_RGB"                  :    3*8,
+    "DT_RGB24"                :    3*8,
+    "NIFTI_TYPE_RGB24"        :    3*8,
+    "DT_ALL"                  :    0*8,
+    "DT_INT8"                 :    1*8,
+    "NIFTI_TYPE_INT8"         :    1*8,
+    "DT_UINT16"               :    2*8,
+    "NIFTI_TYPE_UINT16"       :    2*8,
+    "DT_UINT32"               :    4*8,
+    "NIFTI_TYPE_UINT32"       :    4*8,
+    "DT_INT64"                :    8*8,
+    "NIFTI_TYPE_INT64"        :    8*8,
+    "DT_UINT64"               :    8*8,
+    "NIFTI_TYPE_UINT64"       :    8*8,
+    "DT_FLOAT128"             :   16*8,
+    "NIFTI_TYPE_FLOAT128"     :   16*8,
+    "DT_COMPLEX128"           :   16*8,
+    "NIFTI_TYPE_COMPLEX128"   :   16*8,
+    "DT_COMPLEX256"           :   32*8,
+    "NIFTI_TYPE_COMPLEX256"   :   32*8,
+    "DT_RGBA32"               :    4*8,
+    "NIFTI_TYPE_RGBA32"       :    4*8,
+}
+
+# AFNI BRIK/HEAD: Integer flags for different image types;
+# in afni/src/mrilib.h -> typedef enum MRI_TYPE.
+#
+# This dictionary maps the integer values stored in the BRICK_TYPES
+# attribute to string values that are used in a switch/case block in
+# afni/src/thd_niftiwrite.c.
+DICT_MRI_TYPE = {
+    0 : "MRI_byte", 
+    1 : "MRI_short",
+    2 : "MRI_int",
+    3 : "MRI_float",
+    4 : "MRI_double",
+    5 : "MRI_complex",
+    6 : "MRI_rgb",
+    7 : "MRI_rgba",
+    8 : "MRI_fvect",
+}
+
+
+# ============================================================================
 # overall conversion
 # convert AFNI brik/head dictionary to NIFTI field dictionary
 
@@ -213,6 +330,15 @@ This checks for these AFNI header attributes:
 + BRICK_TYPES : a set of values (one per nvals in the dataset)
   - (in)famously, BRIK/HEAD allow different datatypes to be present in a 
     dataset, though NIFTI does not allow this.
++ BRICK_FLOAT_FACS : a set of floating point "float factors" to scale
+  int, short or even float values.
+  - There should be nvals=DATASET_RANK[1] values here.  For the p-th
+    sub-brick, if f=BRICK_FLOAT_FACS[p] is positive, then the values
+    in the .BRIK should be scaled by f to give their "true" values.
+
+This function checks about BRICK_FLOAT_FACS, because AFNI BRIK/HEAD
+format allows these to be non-constant, which would have to be dealt
+with by changing the data to a float type from int or short.
 
 Parameters
 ----------
@@ -272,18 +398,35 @@ bitpix : int
     max_btype = max(arr_btypes)
     
     # does the BRIK/HEAD dset have const type?
-    DTYPE_IS_CONST = (min_btype == max_btype)
+    BTYPE_IS_CONST = (min_btype == max_btype)
 
-    # see if we have any float_facs that are also nonzero
+    # see if we have any float_facs that are also nonzero; if
+    # float_facs exist, also check and see if they are constant
     try:
-        # could be True or False, or an error leading to the except branch
-        HAVE_NZ_FFAC = max(bffacs) > 0.0
-    except:
-        HAVE_NZ_FFAC = False
+        min_ffacs = min(bffacs)
+        max_ffacs = max(bffacs)
 
-    # *********** just work in progress to here ****************
-    #if not(DTYPE_IS_CONST) :
-        # dtat
+        # could be True or False, or an error leading to the except branch
+        FFAC_IS_NZ    = max(bffacs) > 0.0
+        FFAC_IS_CONST = ( min_ffacs == max_ffacs )
+    except:
+        FFAC_IS_NZ    = False
+        FFAC_IS_CONST = True
+
+    # ----- now combine info from above
+
+    if BTYPE_IS_CONST and FFAC_IS_CONST :
+        is_fail, mri_type_name, datatype, bitpix = \
+            translate_afni_type_int_to_nifti(max_btype)
+    else:
+        if not(FFAC_IS_CONST) :
+            print("**** AT PRESENT, CANNOT DEAL WITH VARIED FLOAT FACS ****"
+                  "\n    {}".format(bffacs))
+        if not(BTYPE_IS_CONST) :
+            print("**** AT PRESENT, CANNOT DEAL WITH VARIED BRICK TYPES ****"
+                  "\n    {}".format(arr_btypes))
+
+        sys.exit(-1)
 
 
     return 0, datatype, bitpix
@@ -1273,6 +1416,82 @@ B : array of ints
 
     return 0, np.array(L)
 
+# ----------------------------------------------------------------------------
+
+def translate_afni_type_int_to_nifti(mri_type_int):
+    """The AFNI MRI_TYPE values (like MRI_byte, MRI_short, etc.) have a
+1:1 correspondence with integer values that are encoded within the
+BRICK_TYPES attribute of a HEAD file. This function takes one MRI_type
+int value, called mri_type_int, and returns the string form of its
+MRI_TYPE, as well as the corresponding NIFTI type name and bitpix
+value.
+
+The logic in this function comes directly from the AFNI codebase:
+afni/src/thd_niftiwrite.c -> set datatype, size, etc. -> 
+STATUS("set datatype").
+
+This is not a full calc_nifti_*() function, because checking has to be
+done about the consistency of type across volumes in the BRIK/HEAD dset.
+
+Parameters
+----------
+mri_type_int : int
+    integer code for an AFNI-style MRI_TYPE
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+mri_type : str
+    string name of MRI_TYPE in AFNI
+nifti_type : str
+    integer code of NIFTI type, from nifti_type_list in nifti1_io.c
+nifti_bitpix : int
+    bitpix value of NIFTI type, from nifti_type_list in nifti1_io.c
+
+    """
+
+    BAD_RETURN = (-1, '', '', 0)
+
+    if not(mri_type_int in DICT_MRI_TYPE.keys()) :
+        msg = "Input value not in DICT_MRI_TYPE keys: {}".format(mri_type_int)
+        print("** ERROR: " + msg)
+        return BAD_RETURN
+
+    # AFNI string name for MRI_TYPE
+    mri_type_name = DICT_MRI_TYPE[mri_type_int]
+
+    if mri_type_name == "MRI_byte" :
+        nifti_type   = DICT_nifti_type["DT_UNSIGNED_CHAR"]
+        nifti_bitpix = DICT_nifti_bitpix["DT_UNSIGNED_CHAR"]
+    elif mri_type_name == "MRI_short" :
+        nifti_type   = DICT_nifti_type["DT_SIGNED_SHORT"]
+        nifti_bitpix = DICT_nifti_bitpix["DT_SIGNED_SHORT"]
+    elif mri_type_name == "MRI_int" :
+        nifti_type   = DICT_nifti_type["DT_SIGNED_INT"]
+        nifti_bitpix = DICT_nifti_bitpix["DT_SIGNED_INT"]
+    elif mri_type_name == "MRI_float" :
+        nifti_type   = DICT_nifti_type["DT_FLOAT"]
+        nifti_bitpix = DICT_nifti_bitpix["DT_FLOAT"]
+    elif mri_type_name == "MRI_double" :
+        nifti_type   = DICT_nifti_type["DT_DOUBLE"]
+        nifti_bitpix = DICT_nifti_bitpix["DT_DOUBLE"]
+    elif mri_type_name == "MRI_complex" :
+        nifti_type   = DICT_nifti_type["DT_COMPLEX"]
+        nifti_bitpix = DICT_nifti_bitpix["DT_COMPLEX"]
+    elif mri_type_name == "MRI_rgb" :
+        nifti_type   = DICT_nifti_type["DT_RGB24"]
+        nifti_bitpix = DICT_nifti_bitpix["DT_RGB24"]
+    elif mri_type_name == "MRI_rgba" :
+        print("** ERROR: Cannot write NIfTI file since dataset is RGBA")
+        return BAD_RETURN
+    else:
+        msg = "Cannot write NIfTI file since datatype is unknown: "
+        msg+= mri_type_name
+        print("** ERROR: " + msg)
+        return BAD_RETURN
+
+    return 0, mri_type_name, nifti_type, nifti_bitpix
 
 # ============================================================================
 
