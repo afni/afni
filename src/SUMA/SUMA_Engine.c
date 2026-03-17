@@ -5338,7 +5338,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             break;
 
       } /* switch NextComCode */
-      
+
       /* release used Element */
       if (LocalHead) fprintf (SUMA_STDERR, "\n%s: Releasing Engine Element.\n", FuncName);
       if (!SUMA_ReleaseEngineListElement (list, NextElem_CANT_TOUCH_THIS)) {
@@ -5373,7 +5373,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    if (!ngr) { SUMA_S_Err("NULL input"); SUMA_RETURN(Ret); }
    if (LocalHead) SUMA_ShowNel(ngr);
    if (strcmp(ngr->name, "EngineCommand")) {

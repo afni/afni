@@ -6656,7 +6656,6 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    SUMA_LH("Initializing ColPaneShell");
    SUMA_InitializeColPlaneShell(ado, SUMA_ADO_CurColPlane(ado));
 
-
    /* Now close it quick. Maybe should put a delayed closing for nicer effect */
    if (!SUMAg_CF->X->UseSameSurfCont) { /* Don't minimize when using one surfcont
                                           it is more annoying than useful */
@@ -6854,7 +6853,6 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_RETURN(0);
@@ -11588,7 +11586,8 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_SO(SUMA_SurfaceObject *SO)
       SUMA_RETURN(NOPE);
    }
    if (!SameSurface ||
-       ( SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook &&
+       ( SUMAg_CF->X->UseSameSurfCont && 
+            SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook &&
          !SUMA_isCurrentContPage(SUMAg_CF->X->SC_Notebook,
                                  SO->SurfCont->Page))) {
       /* initialize the title of the window */
@@ -12015,7 +12014,8 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_ADO(SUMA_ALL_DO *ado)
 
 
       /* RAISE */
-      if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook) {
+      if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && 
+		SUMAg_CF->X && SUMAg_CF->X->SC_Notebook) {
          if (!(i = SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook,
                                            SurfCont->Page))) {
             SUMA_S_Errv("Failed to find controller page for surface %s\n",
@@ -12142,6 +12142,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(
       SUMA_LH("Called with colPlane %p, ado %s", colPlane, ADO_LABEL(ado));
       SUMA_DUMP_TRACE("And who called that one?");
    }
+
    switch(ado->do_type) {
       case SO_type:
          SUMA_RETURN(SUMA_InitializeColPlaneShell_SO(
@@ -12266,7 +12267,8 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
                                  1, 1, SOpar->Label);
       }
 
-      if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook) {
+      if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && SUMAg_CF->X && 
+          SUMAg_CF->X->SC_Notebook) {
          SO->SurfCont->SurfContPage->value =
             SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook,
                                     SO->SurfCont->Page);
@@ -12426,7 +12428,8 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_GLDO (
    /* update the cross hair group */
    SUMA_Init_SurfCont_CrossHair(ado);
 
-   if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook) {
+   if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && SUMAg_CF->X && 
+       SUMAg_CF->X->SC_Notebook) {
       SurfCont->SurfContPage->value =
          SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook,
                                  SurfCont->Page);
@@ -12699,7 +12702,8 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_VO (
    /* update the cross hair group */
    SUMA_Init_SurfCont_CrossHair(ado);
 
-   if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook) {
+   if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && 
+      SUMAg_CF->X && SUMAg_CF->X->SC_Notebook) {
       SurfCont->SurfContPage->value =
          SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook,
                                  SurfCont->Page);
@@ -12815,7 +12819,8 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_MDO (
    /* update the cross hair group */
    SUMA_Init_SurfCont_CrossHair(ado);
 
-   if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook) {
+   if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && SUMAg_CF->X && 
+       SUMAg_CF->X->SC_Notebook) {
       SurfCont->SurfContPage->value =
          SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook,
                                  SurfCont->Page);
@@ -14818,7 +14823,8 @@ void SUMA_cb_AllConts(Widget w, XtPointer data, XtPointer client_data)
    if (new > 10) { /* don't bother unless we have had too many newbies */
       XSync( XtDisplay(w) , True ) ; /* get rid of all pending events */
       /* Now repeat call to last ado's viewer to update its widgets */
-      if (new && SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook) SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook, 1);
+      if (new && SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook) 
+         SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook, 1);
    }
    SUMA_RETURNe;
 }
@@ -18999,7 +19005,6 @@ void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data,
 
    SUMA_ENTRY;
 
-
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
    ado = (SUMA_ALL_DO *)datap->ContID;
@@ -22062,6 +22067,7 @@ void SUMA_cb_Dset_Load(Widget w, XtPointer data, XtPointer client_data)
       fprintf (SUMA_STDERR,
          "Error %s: Failed to register command.\n", FuncName);
    }
+   
    if (!SUMA_RegisterEngineListCommand (  list, ED,
                                           SEF_ip, (int *)w,
                                           SES_Suma, NULL, NOPE,
