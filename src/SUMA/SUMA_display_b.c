@@ -142,8 +142,10 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
          /* Kill the scroller from hell otherwise no keyboard input
             gets to the baby widgets. Better write my own scroller
             if need be in the future */
-         scroller = XtNameToWidget (SUMAg_CF->X->SC_Notebook, "PageScroller");
-         XtUnmanageChild (scroller);
+            if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook){
+                 scroller = XtNameToWidget (SUMAg_CF->X->SC_Notebook, "PageScroller");
+                 XtUnmanageChild (scroller);
+            }
       }
    }
    
@@ -163,10 +165,11 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
       Arg args[20];
       /* add the page */
       XtSetArg (args[0], XmNnotebookChildType, XmPAGE);
-      SurfCont->Page = 
-         XmCreateRowColumn (SUMAg_CF->X->SC_Notebook,
-                     SUMA_ADO_Label(ado)?SUMA_ADO_Label(ado):"page",
-                                              args, 1);
+      if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+          SurfCont->Page = 
+             XmCreateRowColumn (SUMAg_CF->X->SC_Notebook,
+                         SUMA_ADO_Label(ado)?SUMA_ADO_Label(ado):"page",
+                                                  args, 1);
    }
    
    /* create a form widget, manage it at the end ...*/
@@ -553,7 +556,7 @@ SUMA_SHPINX_BREAK
    #endif
    
    /* realize the widget */
-   if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SUMAg_CF->X->SC_Notebook);
+   if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook) XtManageChild (SUMAg_CF->X->SC_Notebook);
    XtRealizeWidget (SurfCont->TLS);
    
    SUMA_LH("%s",slabel);
