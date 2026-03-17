@@ -306,7 +306,7 @@ Ndict : dict
     Ndict['qoffset_x']  = [qoffset_x]
     Ndict['qoffset_y']  = [qoffset_y]
     Ndict['qoffset_z']  = [qoffset_z]
-    Ndict['pixdim']     = [pixdim]
+    Ndict['pixdim']     = list(pixdim)
     # **** add the remaining ones here
 
     # ... and all the unmapped ones
@@ -388,11 +388,11 @@ pixdim : list of floats
 
     # spatial pixdim values
     for ii in range(3):
-        pixdim[ii+1] = np.abs(arr_delta[ii])
+        pixdim[ii+1] = float(np.abs(arr_delta[ii]))
 
     # (opt) temporal pixdim value
     if not(tr is None) :
-        pixdim[4] = tr
+        pixdim[4] = float(tr)
 
     return 0, pixdim
 
