@@ -276,7 +276,9 @@ Cdict_count : dict
     per key
 Cdict : dict of lists
     comparison results: dictionary of NIFTI header fields; each key is
-    a NIFTI field, and each value is a list
+    a NIFTI field, and each value is a list; within each comparison list, 
+    a None in the i-th list entry means that the i-th dset's value matched
+    that of the 0-th, and a non-None is a list of the differing value(s).
 
     """
 
