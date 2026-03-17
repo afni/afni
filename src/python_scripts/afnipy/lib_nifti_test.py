@@ -56,13 +56,17 @@ Adict : dict
     cmd = '''3dAttribute        \
     -all                        \
     -ssep "{ssep}"              \
-    "{fname}"                   \
-    | sort
+    "{fname}"
     '''.format( fname = fname, 
                 ssep = ssep )
     com  = ab.shell_com(cmd, capture=1)
     stat = com.run()
     L = copy.copy(com.so)
+    L.sort()
+
+    if stat :
+        ab.EP1("3dAttribute failed for dset: {}".format(fname))
+        return BAD_RETURN
 
     # convert list to dict
     is_fail, Adict = parse_attribute_list(L, ssep=ssep, verb=verb)
@@ -163,10 +167,16 @@ Ndict : dict
 
     BAD_RETURN = (-1, 0)
 
+    fname_full = os.path.expanduser(fname)
+
+    if not(os.path.exists(fname_full)) :
+        ab.EP1("Cannot find dset: {}".format(fname_full))
+        return BAD_RETURN
+
     # initialize default
     Ndict = {}
 
-    nibobj = nib.load(os.path.expanduser(fname))
+    nibobj = nib.load(fname_full)
     nibhdr = nibobj.header.copy()
 
     for key in ALL_nifti1_keys :
@@ -224,6 +234,10 @@ Ndict : dict
         sss  = com.so[0]
         name_nifti = "_tmp_" + sss + ".nii.gz"
 
+        if stat :
+            ab.EP1("3dnewid failed")
+            return BAD_RETURN
+
         if verb > 1 :
             ab.IP("Making temporary NIFTI file: " + name_nifti)
 
@@ -236,6 +250,10 @@ Ndict : dict
     com  = ab.shell_com(cmd, capture=1)
     stat = com.run()
 
+    if stat :
+        ab.EP1("3dcopy failed for dset: {}".format(fname))
+        return BAD_RETURN
+
     # make the dictionary of tmp nifti dset
     is_fail, Ndict = read_nifti_fields(name_nifti, verb=verb)
     if is_fail :
@@ -245,6 +263,10 @@ Ndict : dict
         cmd  = '''\\rm {}'''.format(name_nifti)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
+        if stat :
+            ab.EP1("'rm' failed for dset: {}".format(name_nifti))
+            return BAD_RETURN
+
         if verb > 1 :
             ab.IP("Removed temp NIFTI file: " + name_nifti)
 
@@ -394,14 +416,24 @@ if __name__ == "__main__" :
     fname1A = '~/AFNI_data6/FT_analysis/FT.results/stats.FT+tlrc.'
     is_fail1A, Adict1 = read_brick_attributes(fname1A)
 
+    if is_fail1A :    sys.exit(-1)
+
     fname1N = '~/AFNI_data6/FT_analysis/FT.results/stats.FT.nii.gz'
     is_fail1N, tmp_nameN, Ndict1 = make_nifti_from_brick(fname1A, verb=2)
 
+    if is_fail1N :    sys.exit(-1)
+
     fname2N = '~/AFNI_data7/task_demo_ap/sub-000.affine.results/stats.sub-000.affine.nii.gz'
-    is_fail1N, Ndict2 = read_nifti_fields(fname2N, verb=2)
+    is_fail2N, Ndict2 = read_nifti_fields(fname2N, verb=2)
+
+    if is_fail2N :    sys.exit(-1)
 
 
     is_failC, Cdict12_base, Cdict12_count, Cdict12 = \
         compare_nifti_headers([Ndict1, Ndict2])
 
+    if is_failC :    sys.exit(-1)
 
+
+    # now get part of NIFTI header from AFNI brik/head info
+    is_fail1b, Ndict1b = NIF.make_nifti_header_from_afni( Adict1 )

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys
+import sys, copy
 import numpy as np
 
 # ============================================================================
@@ -42,10 +42,10 @@ dict_nifti1 = {
     'regular'         : None,     ## char
     'dim_info'        : None,     ## char 
     'dim'             : None,     ## short [8]
-    'intent_p1'       : None,     # float
-    'intent_p2'       : None,     # float
-    'intent_p3'       : None,     # float
-    'intent_code'     : None,     # short
+    'intent_p1'       : None,     ## float
+    'intent_p2'       : None,     ## float
+    'intent_p3'       : None,     ## float
+    'intent_code'     : None,     ## short
     'datatype'        : None,     # short
     'bitpix'          : None,     # short
     'slice_start'     : None,     # short
@@ -75,17 +75,17 @@ dict_nifti1 = {
     'srow_x'          : None,     ## float [4]
     'srow_y'          : None,     ## float [4]
     'srow_z'          : None,     ## float [4]
-    'intent_name'     : None,     # char [16]
+    'intent_name'     : None,     ## char [16]
     'magic'           : None,     # char [4]
 }
 
 # which keys in the nifti1 header dict are unused?
 dict_nifti1_unused = {
-    'data_type'       : '',       ## char [10]
-    'db_name'         : '',       ## char [18]
+    'data_type'       : b'',      ## char [10]
+    'db_name'         : b'',      ## char [18]
     'extents'         : 0,        ## int
     'session_error'   : 0,        ## short
-    'regular'         : 'r',      ## char
+    'regular'         : b'r',     ## char
     'glmax'           : 0,        ## int
     'glmin'           : 0,        ## int
 }
@@ -95,9 +95,14 @@ dict_nifti1_unused = {
 dict_nifti1_unmapped = {
     'cal_max'         : 0.0,      ## float
     'cal_min'         : 0.0,      ## float
-    'descrip'         : '',       ## char [80]
-    'aux_file'        : '',       ## char [24]
-    'dim_info'        : '',       ## char 
+    'descrip'         : b'',      ## char [80]
+    'aux_file'        : b'',      ## char [24]
+    'dim_info'        : b'',      ## char 
+    'intent_name'     : b'',      ## char [16]
+    'intent_p1'       : 0.0,      ## float
+    'intent_p2'       : 0.0,      ## float
+    'intent_p3'       : 0.0,      ## float
+    'intent_code'     : 0,        ## short
 }
 
 # which keys in the nifti1 header dict should come from the data
@@ -120,6 +125,79 @@ LIST_allowed_av_space = [
 
 # string version of the av_space list
 STR_allowed_av_space = ', '.join(LIST_allowed_av_space)
+
+# ============================================================================
+# overall conversion
+# convert AFNI brik/head dictionary to NIFTI field dictionary
+
+def make_nifti_header_from_afni(Adict, verb=1 ):
+    """Given the dictionary of AFNI header attributes Adict, calculate all
+NIFTI header fields and return that information as a dictionary.
+
+Parameters
+----------
+Adict : dict
+    dictionary of AFNI header attributes; each value is a list
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+Ndict : dict
+    dictionary of NIFTI header attributes
+
+    """
+
+    BAD_RETURN = (-1, {})
+
+    # initialize with empty dictionary
+    Ndict = copy.deepcopy(dict_nifti1)
+
+    # go through each conversion function
+    is_fail1, datatype, bitpix = calc_nifti_datatype_bitpix( Adict, verb=verb )
+    is_fail2, toffset          = calc_nifti_toffset( Adict, verb=verb )
+    is_fail3, xyzt_units       = calc_nifti_xyzt_units( Adict, verb=verb )
+    is_fail4, dim              =  calc_nifti_dim( Adict, verb=verb )
+    is_fail4, qform_code, sform_code = calc_nifti_qsform_code( Adict, verb=verb )
+    is_fail5, srow_x, srow_y, srow_z = calc_nifti_srow_xyz( Adict, verb=verb )
+    is_fail6, quatern_b, quatern_c, quatern_d, \
+              qoffset_x, qoffset_y, qoffset_z = \
+                  calc_nifti_quatern_and_qoffset( srow_x, srow_y, srow_z, 
+                                                  verb=verb )
+    # **** add the remaining ones here
+
+    # apply all of those
+    Ndict['datatype']   = [datatype]
+    Ndict['bitpix']     = [bitpix]
+    Ndict['toffset']    = [toffset]
+    Ndict['xyzt_units'] = [xyzt_units]
+    Ndict['dim']        = [int(d) for d in dim]
+    Ndict['qform_code'] = [qform_code]
+    Ndict['sform_code'] = [sform_code]
+    Ndict['srow_x']     = [float(x) for x in srow_x]
+    Ndict['srow_y']     = [float(y) for y in srow_y]
+    Ndict['srow_z']     = [float(z) for z in srow_z]
+    Ndict['quatern_b']  = [quatern_b]
+    Ndict['quatern_c']  = [quatern_c]
+    Ndict['quatern_d']  = [quatern_d]
+    Ndict['qoffset_x']  = [qoffset_x]
+    Ndict['qoffset_y']  = [qoffset_y]
+    Ndict['qoffset_z']  = [qoffset_z]
+    # **** add the remaining ones here
+
+    # ... and all the unmapped ones
+    for key in dict_nifti1_unmapped.keys():
+        Ndict[key] = [dict_nifti1_unmapped[key]]
+
+    # ... and all the unused ones
+    for key in dict_nifti1_unused.keys():
+        Ndict[key] = [dict_nifti1_unused[key]]
+
+
+    return 0, Ndict
+
 
 # ============================================================================
 # calculate nifti fields: 
@@ -559,6 +637,8 @@ Note: in code and functions, we abbreviate the phrase 'qform_code
 and/or sform_code' as 'qsform_code', for brevity.  When only one or
 the other applies, we would refer specifically to each separately.
 
+Note 2: in all cases, the output qform_code and sform_code values will match
+
 Parameters
 ----------
 Adict : dict
@@ -572,12 +652,14 @@ Returns
 -------
 is_fail : int
     0 on success, nonzero on failure
-qsform_code : int
-    an integer value for allowed
+qform_code : int
+    an integer value
+sform_code : int
+    an integer value
 
     """
 
-    BAD_RETURN = (-1, 0)
+    BAD_RETURN = (-1, 0, 0)
 
     # check for this attribute first; it might not be present in all
     # datasets, esp. older ones, but it would be the most informative
@@ -622,7 +704,7 @@ qsform_code : int
         # no information to judge this attribute, which is bad
         return BAD_RETURN
 
-    return 0, qsform_code
+    return 0, qsform_code, qsform_code
 
 
 def translate_template_space_to_qform_code(tspace, verb=1):
@@ -1121,8 +1203,8 @@ qoffset_z :
     quatern_c = c
     quatern_d = d
 
-    return 0, quatern_b, quatern_c, quatern_d, \
-        qoffset_x, qoffset_y, qoffset_z
+    return 0, float(quatern_b), float(quatern_c), float(quatern_d), \
+        float(qoffset_x), float(qoffset_y), float(qoffset_z)
 
 
 # ============================================================================
