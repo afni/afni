@@ -278,13 +278,14 @@ Ndict : dict
         calc_nifti_datatype_bitpix_scl_slope( Adict, verb=verb )
     is_fail2, toffset          = calc_nifti_toffset( Adict, verb=verb )
     is_fail3, xyzt_units       = calc_nifti_xyzt_units( Adict, verb=verb )
-    is_fail4, dim              =  calc_nifti_dim( Adict, verb=verb )
+    is_fail4, dim              = calc_nifti_dim( Adict, verb=verb )
     is_fail4, qform_code, sform_code = calc_nifti_qsform_code( Adict, verb=verb )
     is_fail5, srow_x, srow_y, srow_z = calc_nifti_srow_xyz( Adict, verb=verb )
     is_fail6, quatern_b, quatern_c, quatern_d, \
               qoffset_x, qoffset_y, qoffset_z = \
                   calc_nifti_quatern_and_qoffset( srow_x, srow_y, srow_z, 
                                                   verb=verb )
+    is_fail7, pixdim           = calc_nifti_pixdim( Adict, verb=verb )
     # **** add the remaining ones here
 
     # apply all of those
@@ -305,6 +306,7 @@ Ndict : dict
     Ndict['qoffset_x']  = [qoffset_x]
     Ndict['qoffset_y']  = [qoffset_y]
     Ndict['qoffset_z']  = [qoffset_z]
+    Ndict['pixdim']     = [pixdim]
     # **** add the remaining ones here
 
     # ... and all the unmapped ones
@@ -318,12 +320,81 @@ Ndict : dict
 
     return 0, Ndict
 
-
 # ============================================================================
 # calculate nifti fields: 
-# + datatype : short
-# + bitpix : short
-# + scl_slope : float
+# + pixdim : float [8]
+
+def calc_nifti_pixdim( Adict, verb=1 ):
+    """Given the dictionary of AFNI header attributes Adict calculate what
+the corresponding pixdim would be, that is, what the voxel dimension
+info is. If the dset has a proper time axis (not just being >1 volume,
+but really a *time* axis), then that TR info is stored here, too.
+
+This checks for these AFNI header attributes:
++ DELTA : Three numbers giving the (x,y,z) voxel sizes, in the same
+  order as ORIENT_SPECIFIC.  That is, [0] = x-delta, [1] = y-delta,
+  and [2] = z-delta.
++ TAXIS_FLOATS (might not exist, if dset does not have time, like if 3D
+  or just a 'bucket')
+  [0] Time origin (in units given by TAXIS_NUMS[2]).
+
+Parameters
+----------
+Adict : dict
+    dictionary of AFNI header attributes; each value is a list
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+pixdim : list of floats
+    list of 8 floats, denoting pixel (or voxel) dimensions, and more
+
+    """
+
+    BAD_RETURN = (-1, [0]*8)
+
+    # require this attribute, and parse if it exists
+    key = 'DELTA'
+    if key in Adict.keys() :
+        arr_delta = np.array(Adict[key])
+        Ndelta    = len(arr_delta)
+        if Ndelta != 3 :
+            print("** Error: have {} delta values, not 3".format(Ndelta))
+            return BAD_RETURN
+    else:
+        print("** Error: failed to find key:", key)
+        return BAD_RETURN
+
+    # optional attribute, and parse if it exists
+    key = 'TAXIS_FLOATS'
+    tr  = None
+    if key in Adict.keys() :
+        arr_taxis = np.array(Adict[key])
+        try:
+            tr = arr_taxis[1]
+        except:
+            print("** Error: failed to parse TR in:", key)
+            return BAD_RETURN
+
+    # initialize 
+    pixdim = [0.0]*8
+
+    # storing the 'qfac' value, which can be 1 or -1
+    # **** not sure when it will ever be -1? ****
+    pixdim[0] = 1.0
+
+    # spatial pixdim values
+    for ii in range(3):
+        pixdim[ii+1] = np.abs(arr_delta[ii])
+
+    # (opt) temporal pixdim value
+    if not(tr is None) :
+        pixdim[4] = tr
+
+    return 0, pixdim
 
 def calc_nifti_datatype_bitpix_scl_slope( Adict, verb=1 ):
     """Given the dictionary of AFNI header attributes Adict calculate what
