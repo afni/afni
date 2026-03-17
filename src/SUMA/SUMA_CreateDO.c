@@ -15190,8 +15190,11 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
          }
          /* any contours? */
          if ( (colplane->ShowMode == SW_SurfCont_DsetViewCon ||
-               colplane->ShowMode == SW_SurfCont_DsetViewCaC ) &&
+               colplane->ShowMode == SW_SurfCont_DsetViewCaC ||
+               SO->SurfCont->BoxOutlineThresh && 
+            colplane == SUMA_ADO_CurColPlane((SUMA_ALL_DO *)SO) ) && 
               colplane->Contours && colplane->N_Contours) {
+              
             /* draw them */
             for (ic=0; ic<colplane->N_Contours; ++ic) {
                D_ROI = (SUMA_DRAWN_ROI *)colplane->Contours[ic];
@@ -15355,6 +15358,8 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
 
             }
          }
+         
+         /* If show threshold outlines only for current overlay for this surface object ... */
       }
       el = dlist_next(el);
    }
