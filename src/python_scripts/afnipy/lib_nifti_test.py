@@ -15,7 +15,8 @@ from afnipy import lib_nibabel_utils as lnu
 #
 # ============================================================================
 
-DEF_ssep = ':::'
+DEF_ssep = ':::'            # default string separator in 3dAttribute output
+DEF_fl_tol = 0.001          # default float tolerance in fl point comparisons
 
 ALL_nifti1_keys = NIF.dict_nifti1.keys()
 
@@ -172,7 +173,7 @@ Ndict : dict
         val = nibhdr.get(key)
         # this next step occurs bc some values are ndim=0 arrays
         val_list, val_type = lnu.try_convert_list_float_int_str_arr(val)
-        Ndict[key] = val #*** val_list
+        Ndict[key] = val_list
 
         if verb > 1 :
             print("   {:<20s}  : {}".format(key, val_list))
@@ -249,7 +250,7 @@ Ndict : dict
 
     return 0, name_nifti, Ndict
 
-def compare_nifti_headers(all_Ndict, verb=1):
+def compare_nifti_headers(all_Ndict, fl_tol=DEF_fl_tol, verb=1):
     """For a given collection of NIFTI-header-dictionaries all_Ndict, go
 through and see where there are any differences.
 
@@ -257,6 +258,8 @@ Parameters
 ----------
 fname : str
     AFNI BRIK/HEAD dset filename
+fl_tol : float
+    tolerance for differences of floating point values
 verb : int
     verbosity level for messages whilst working
 
@@ -264,13 +267,120 @@ Returns
 -------
 is_fail : int
     0 on success, nonzero on failure
-report : dict
-    dictionary of NIFTI header fields; each value is a list
+Cdict_base : dict
+    dictionary of how "base" values (i.e., the values from the first
+    list in the input all_Ndict, against which all others were compared)
+    for each key 
+Cdict_count : dict
+    dictionary of how many differences there are across NIFTI headers,
+    per key
+Cdict : dict of lists
+    comparison results: dictionary of NIFTI header fields; each key is
+    a NIFTI field, and each value is a list
 
     """
 
+    BAD_RETURN = (-1, {})
+
+    N = len(all_Ndict)
+
+    if not(N) :
+        ab.EP1("No dictionaries input for comparison")
+        return BAD_RETURN
+    elif N == 1 :
+        ab.EP1("Only 1 dictionary input for comparison---not enough")
+        return BAD_RETURN
+
+    # give a simpler name to the [0]th dict, against which others are comp'ed
+    base_dict = all_Ndict[0]
+
+    # initialize defaults
+    Cdict = {}                # store diffs for output report
+    Cdict_base = {}           # store base vals
+    Cdict_count = {}          # store count of diffs
+
+    for key in ALL_nifti1_keys :
+        # value and comparison result for base_dict
+        val_b = base_dict[key]
+        Cdict_base[key] = val_b
+        Cdict_count[key] = 0
+        L = [None]
+
+        for ii in range(1, N):
+            comp_dict = all_Ndict[ii]
+            val_c = comp_dict[key]
+
+            is_fail, is_same = is_same_nifti_field_values(val_b, val_c, 
+                                                          fl_tol=fl_tol)
+            if is_fail :
+                ab.EP1("Failed to compare values for key: " + key)
+                return BAD_RETURN
+
+            if is_same == True :
+                L.append(None)
+            else: 
+                L.append(val_c)
+                Cdict_count[key]+= 1
+
+            # ... and retain the list of possible diffs
+            Cdict[key] = copy.deepcopy(L)
+
+    return 0, Cdict_base, Cdict_count, Cdict
 
 
+def is_same_nifti_field_values(a, b, fl_tol=DEF_fl_tol):
+    """Compare two fields a and b from the NIFTI header dictionaries
+created here. Each of a and b will be lists, by definition, and so we
+compare element by element.
+
+There is a default tolerance for floating point diffs, given by the
+kwarg fl_tol.
+
+Parameters
+----------
+a: list
+    one of the NIFTI header field items to compare, necessarily a list
+b: list
+    one of the NIFTI header field items to compare, necessarily a list
+fl_tol : float
+    tolerance for differences of floating point values
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+is_same : bool
+    True for same, False for different
+
+    """
+
+    BAD_RETURN = (-1, False)
+
+    Na = len(a)
+    Nb = len(b)
+
+    # compare len of lists first
+    if Na != Nb :
+        return 0, False
+    
+    # go through all comparisons
+    is_same = True
+
+    for ii in range(Na):
+        if isinstance(a[ii], bytes) or isinstance(b[ii], bytes) or \
+           isinstance(a[ii], int) or isinstance(b[ii], int) :
+            if a[ii] != b[ii] :
+                is_same = False
+        elif isinstance(a[ii], float) or isinstance(b[ii], float) :
+            if np.abs(a[ii] - b[ii]) > fl_tol :
+                is_same = False
+        else:
+            msg = "Should not reach here. Comparison vals are: "
+            msg+= "{} and {}".format(a, b)
+            ab.WP(msg)
+            return BAD_RETURN
+
+    return 0, is_same
 
 
 
@@ -284,3 +394,12 @@ if __name__ == "__main__" :
 
     fname1N = '~/AFNI_data6/FT_analysis/FT.results/stats.FT.nii.gz'
     is_fail1N, tmp_nameN, Ndict1 = make_nifti_from_brick(fname1A, verb=2)
+
+    fname2N = '~/AFNI_data7/task_demo_ap/sub-000.affine.results/stats.sub-000.affine.nii.gz'
+    is_fail1N, Ndict2 = read_nifti_fields(fname2N, verb=2)
+
+
+    is_failC, Cdict12_base, Cdict12_count, Cdict12 = \
+        compare_nifti_headers([Ndict1, Ndict2])
+
+
