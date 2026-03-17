@@ -49,7 +49,7 @@ dict_nifti1 = {
     'datatype'        : None,     ## short
     'bitpix'          : None,     ## short
     'slice_start'     : None,     # short
-    'pixdim'          : None,     # float [8]
+    'pixdim'          : None,     ## float [8]
     'vox_offset'      : None,     # float
     'scl_slope'       : None,     ## float
     'scl_inter'       : None,     ## float
@@ -76,7 +76,7 @@ dict_nifti1 = {
     'srow_y'          : None,     ## float [4]
     'srow_z'          : None,     ## float [4]
     'intent_name'     : None,     ## char [16]
-    'magic'           : None,     # char [4]
+    'magic'           : None,     ## char [4]
 }
 
 # which keys in the nifti1 header dict are unused?
@@ -104,6 +104,7 @@ dict_nifti1_unmapped = {
     'intent_p3'       : 0.0,      ## float
     'intent_code'     : 0,        ## short
     'scl_inter'       : 0.0,      ## float
+    'magic'           : b'n+1',   ## char [4]
 }
 
 # which keys in the nifti1 header dict should come from the data
