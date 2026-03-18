@@ -1223,7 +1223,6 @@ int SUMA_SwitchColPlaneIntensity_one (
 
    SUMA_ENTRY;
 
-
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
    Label = SUMA_ADO_Label(ado);
@@ -1266,11 +1265,13 @@ int SUMA_SwitchColPlaneIntensity_one (
                    ind, SDSET_VECNUM(colp->dset_link)-1);
       SUMA_RETURN(0);
    }
+
    if (ind != colp->OptScl->find &&
           colp->OptScl->Clusterize) {
          /* Need a new clusterizing effort*/
          colp->OptScl->RecomputeClust = 1;
    }
+
    colp->OptScl->find = ind;
    if (setmen && colp == curColPlane && SurfCont->SwitchIntMenu) {
       SUMA_LHv("Setting menu values, %d\n", colp->OptScl->find+1);
@@ -1313,6 +1314,8 @@ int SUMA_SwitchColPlaneIntensity_one (
                         SUMA_LH("Setting threshold values");
                         SUMA_Set_Menu_Widget(SurfCont->SwitchThrMenu,
                                       colp->OptScl->tind+1);
+                        /* range is the range over which colp->OptScl->ThreshRange
+                            can be chosen */
                         if (SUMA_GetDsetColRange(colp->dset_link,
                                              colp->OptScl->tind, range, loc)) {
                            SUMA_SetScaleRange(ado, range );
@@ -1321,11 +1324,13 @@ int SUMA_SwitchColPlaneIntensity_one (
                         }else {
                            SUMA_S_Err("Failed to get range");
                         }
+
                         if ((pp=SUMA_floatEnv("SUMA_pval_at_switch", -1.0))
                                                                         >= 0) {
                            pp = (float)SUMA_Pval2ThreshVal (ado, (double)pp);
                            /* This function will cause undue redisplays, but
                            keeps code clean */
+
                            if ( pp != 0.0) {
                               if (!(SUMA_set_threshold_one(ado, colp, &pp))) {
                                  SUMA_SL_Err("Error in SUMA_set_threshold_one");
@@ -1608,7 +1613,8 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
    /* ado = (SUMA_ALL_DO *)datap->ContID;*/
-    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+    if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                   &numSurfaceObjects, NULL);
     N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
     if (numSurfaceObjects != N_adolist) {
@@ -1632,6 +1638,7 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    SUMA_RETURNe;
 }
 
+// Called when B subbrick option changed
 int SUMA_SwitchColPlaneBrightness(
          SUMA_ALL_DO *ado,
          SUMA_OVERLAYS *colp,
@@ -2057,7 +2064,8 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
 
    /* Process other surface objects */
    int numSurfaceObjects;
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                  &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist)
@@ -2183,13 +2191,15 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
 
    curColPlane->SymIrange = XmToggleButtonGetState (SurfCont->SymIrange_tb);
    
-   if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
+   if (!(curColPlane) || !(curColPlane->SymIrange) || 
+	!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
         curColPlane->SymIrange, NOPE)){
     SUMA_S_Warn("Error toggling sym I for current surface"); SUMA_RETURNe;
    }
 
    // Set sym range for other surfaces
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                  &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist)
@@ -2299,7 +2309,8 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    
    // Set show zero for other surfaces
    int numSurfaceObjects;
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                  &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist)
@@ -2400,10 +2411,11 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
     SUMA_RETURNe;
    }
 
-   // Set sym range for other surfaces
+   // Set sym range for contralateral hemisphere
    if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook){
        int numSurfaceObjects;
-       XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+       if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+            XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                      &numSurfaceObjects, NULL);
 
        N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
@@ -2478,7 +2490,8 @@ void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
 
    SUMA_LH("Called");
 
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                   &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist) {
@@ -2585,7 +2598,8 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
    UseThr = XmToggleButtonGetState (SurfCont->Thr_tb);
    curColPlane->OptScl->UseThr = UseThr;
 
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist) {
        if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
@@ -2665,7 +2679,8 @@ void SUMA_cb_SwitchBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
    UseBrt = XmToggleButtonGetState (SurfCont->Brt_tb);
    curColPlane->OptScl->UseBrt = UseBrt;
 
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                  &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist) {
@@ -2931,6 +2946,7 @@ void SUMA_cb_SetLinkMode(Widget widget, XtPointer client_data,
 void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data,
                            XtPointer call_data)
 {
+   // Called when the Bias field is changed
    static char FuncName[]={"SUMA_cb_SetCoordBias"};
    SUMA_MenuCallBackData *datap=NULL;
    int imenu;
@@ -5409,6 +5425,7 @@ void SUMA_SliceF_SetString (SUMA_SLICE_FIELD * SF)
 void SUMA_TableF_cb_label_change (  Widget w, XtPointer client_data,
                                     XtPointer call_data)
 {
+   // Called when the Col field changed
    static char FuncName[]={"SUMA_TableF_cb_label_change"};
    SUMA_TABLE_FIELD *TF=NULL;
    float val;
@@ -5827,6 +5844,7 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 int SUMA_SetScaleThr(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                           float *val, int setmen, int redisplay)
 {
+    // Called when threshold edit box is edited
    static char FuncName[]={"SUMA_SetScaleThr"};
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
@@ -5861,6 +5879,7 @@ int SUMA_SetScaleThr(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                                     colpC, val, 1, redisplay)) SUMA_RETURN(0);
       }
    }
+
    SUMA_RETURN(1);
 }
 
@@ -6649,6 +6668,8 @@ int SUMA_SetRangeValueNew (SUMA_ALL_DO *ado,
 
 void SUMA_cb_SetRangeValue (void *data)
 {
+    // Set threshold range values
+    // Search terms: imin imax mini maxi
    static char FuncName[]={"SUMA_cb_SetRangeValue"};
    SUMA_SRV_DATA srvdC, *srvd=NULL;
    SUMA_ALL_DO *ado=NULL, *otherAdo=NULL;
@@ -6706,7 +6727,8 @@ void SUMA_cb_SetRangeValue (void *data)
    int numSurfaceObjects, j;
    float newValue = TF->num_value[n];
 
-   XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    if (numSurfaceObjects != N_adolist) {
        if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
@@ -6755,7 +6777,6 @@ void SUMA_cb_SetRangeValue (void *data)
                 SUMA_S_Err("Erriosity");
              }
           }
-          /**/
         }
    }
 
@@ -9792,8 +9813,6 @@ void SUMA_cb_CloseSwitchLst (Widget w, XtPointer client_data, XtPointer call)
 
    LW->isShaded = YUP;
 
-
-
    SUMA_RETURNe;
 }
 
@@ -10132,7 +10151,7 @@ SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_ALL_DO *ado, SUMA_COLOR_MAP *CM)
    if (!over) { SUMA_RETURN(NOPE); }
 
    if (over->ShowMode == SW_SurfCont_DsetViewCon ||
-       over->ShowMode == SW_SurfCont_DsetViewCaC ) { /* wants contours */
+       over->ShowMode == SW_SurfCont_DsetViewCaC) { /* wants contours */
       if (SUMA_NeedsLinearizing(CM)) {
          if (!nwarn) {
             SUMA_SLP_Note("Cannot do contouring with colormaps\n"
@@ -10229,8 +10248,6 @@ void SUMA_cb_CloseSwitchCmap (Widget w, XtPointer client_data, XtPointer call)
 
    LW->isShaded = YUP;
 
-
-
    SUMA_RETURNe;
 }
 
@@ -10238,6 +10255,7 @@ void SUMA_cb_CloseSwitchCmap (Widget w, XtPointer client_data, XtPointer call)
 void SUMA_optmenu_EV( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch )
 {
+   // Called when one of the subbrick options (I, T or B), or Cmp menu, changed
    static char FuncName[]={"SUMA_optmenu_EV"};
    Dimension lw=0 ;
    Widget * children , wl = NULL;
@@ -12082,7 +12100,6 @@ SUMA_Boolean SUMA_UpdateXhairField(SUMA_SurfaceViewer *sv)
    }
 
    SUMA_RETURN(YUP);
-
 }
 
 SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado)
@@ -12280,8 +12297,8 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado)
                SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
          SUMA_RETURN(NOPE);
    }
+   
    SUMA_RETURN(YUP);
-
 }
 
 SUMA_Boolean SUMA_UpdatePointField(SUMA_ALL_DO*ado)
@@ -12808,6 +12825,7 @@ char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec)
    char **sar=NULL, stmp[64]={""};
    char *seps[3]={"I=", " T=", " B="};
    SUMA_Boolean LocalHead = NOPE;
+   
    SUMA_ENTRY;
 
    if (!ado) SUMA_RETURN(NULL);
@@ -12853,7 +12871,6 @@ char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec)
          el = dlist_next(el);
       }
    }
-
 
    if ((Sover = SUMA_ADO_CurColPlane(ado))) {
       if (SDSET_TYPE(Sover->dset_link) != SUMA_NODE_RGB ) {/* Have labels */
@@ -12998,7 +13015,6 @@ char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec)
       }/* Have labels */
 
       /* Some coord info for select few ? */
-
       if (ado->do_type == GRAPH_LINK_type) {
          SUMA_DSET *gset=NULL;
          char *stmp=NULL, *pref=NULL;
@@ -13456,7 +13472,6 @@ SUMA_Boolean SUMA_UpdateTriField(SUMA_SurfaceObject *SO)
    }
 
    SUMA_RETURN(YUP);
-
 }
 
 /*!
@@ -13717,7 +13732,6 @@ void SUMA_LoadCmapFile (char *filename, void *data)
       /* update Lbl fields */
       SUMA_UpdateNodeLblField(ado);
    }
-
 
    SUMA_RETURNe;
 }
@@ -14842,7 +14856,8 @@ SUMA_Boolean SUMA_isTopColPlane(SUMA_OVERLAYS *cp, SUMA_ALL_DO *ado)
    else if (SUMA_isCurColPlane(cp, ado) && (SurfCont = SUMA_ADO_Cont(ado))) {
       /* OK, so that plane is current in some fashion,
       is it the top page of the uber controller ? */
-      return(SUMA_isCurrentContPage(SUMAg_CF->X->SC_Notebook, SurfCont->Page));
+      if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+            return(SUMA_isCurrentContPage(SUMAg_CF->X->SC_Notebook, SurfCont->Page));
    }
    return(NOPE);
 }
