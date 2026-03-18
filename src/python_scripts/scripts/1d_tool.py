@@ -1580,9 +1580,10 @@ g_history = """
    2.22 Mar 20, 2025 - add -select_cols_via_TSV_table
    2.23 Apr 25, 2025 - allow float read retry for na values
    2.24 Jan  7, 2026 - add -show_xmat_warnings
+   2.25 Mar 18, 2026 - add -censor_to_spike_regs
 """
 
-g_version = "1d_tool.py version 2.24, January 7, 2026"
+g_version = "1d_tool.py version 2.25, March 18, 2026"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
