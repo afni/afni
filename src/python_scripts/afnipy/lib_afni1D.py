@@ -1284,7 +1284,7 @@ class Afni1D:
       if adcopy.nvec > 1:
          if self.verb > 1: print("-- convert to spikes: extra cols in mat")
 
-      # get indicies of zeros
+      # get indices of zeros
       vec = self.mat[0]
       zeros = [i for i in range(self.nt) if vec[i] == 0]
       nz = len(zeros)
