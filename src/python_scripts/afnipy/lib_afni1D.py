@@ -54,6 +54,7 @@ class Afni1D:
 
       # main variables
       self.mat     = None       # actual data (2-D array [[]])
+                                # (array of time series)
       self.name    = "NoName"   # more personal and touchy-feely...
       self.fname   = filename   # name of data file
       self.aname   = None       # afni_name, if parsing is useful
@@ -1253,6 +1254,53 @@ class Afni1D:
       if self.reduce_by_tlist(ilist): return 1
 
       return 0
+
+   def convert_to_censor_spikes(self):
+      """return a similar Afni1D instance with ncensor spike time series
+
+         self: is expected to be a censor file for 3dDeconvolve
+               - a single binary column, where 1 means keep and 0 means censor
+
+         return: a new instance of the same nt, but where:
+                    nvec == ncensor
+                    ncensor == number of 0's in self.mat[0]
+                    each vector is all 0, but with a 1 at a single censor index
+
+         note: for input, 0 means a censored time point,
+               for output, it is the opposite (since they are spike regs)
+      """
+      if not self.ready:
+         print('** pad into runs: Afni1D is not ready')
+         return 1
+
+      # first make holder for returned instance
+      adcopy = self.copy()
+      adcopy.name = 'Spikey'
+
+      if adcopy.nvec < 1 or adcopy.nt < 1:
+         if self.verb > 1: print("-- convert to spikes: empty mat")
+         return adcopy
+
+      if adcopy.nvec > 1:
+         if self.verb > 1: print("-- convert to spikes: extra cols in mat")
+
+      # get indices of zeros
+      vec = self.mat[0]
+      zeros = [i for i in range(self.nt) if vec[i] == 0]
+      nz = len(zeros)
+
+      # make spike regressors
+      newmat = []
+      for z in zeros:
+         reg = [0] * self.nt
+         reg[z] = 1
+         newmat.append(reg)
+
+      del(adcopy).mat
+      adcopy.mat = newmat
+      adcopy.nvec = nz
+
+      return adcopy
 
    def get_allzero_cols(self):
       """return a list of column indices for which the column is all zero
