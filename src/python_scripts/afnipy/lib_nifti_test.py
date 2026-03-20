@@ -259,9 +259,9 @@ Cdict_diffs : dict
     BAD_RETURN = (-1, {})
 
     # get NIFTI header from AFNI brik/head info
-    is_fail1, Adict = read_brick_attributes(fname)
+    is_fail1, Adict = read_brick_attributes(fname, verb=verb)
     if is_fail1 :    return BAD_RETURN
-    is_fail2, NdictA = NIF.make_nifti_header_from_afni( Adict )
+    is_fail2, NdictA = NIF.make_nifti_header_from_afni( Adict, verb=verb )
     if is_fail2 :    return BAD_RETURN
 
     # make the NIFTI dset and get its header for comparison
@@ -283,7 +283,10 @@ Cdict_diffs : dict
 
     is_fail4, Cdict_diffs = \
         compare_and_disp_two_nifti_headers(all_Ndict, fl_tol=fl_tol, 
-                                           do_disp_diffs=True, verb=verb)
+                                           do_disp_diffs=True, 
+                                           titleA='BRIK/HEAD',
+                                           titleB='NIFTI',
+                                           verb=verb)
     if is_fail4 :    return BAD_RETURN
 
 
@@ -460,7 +463,8 @@ Cdict : dict of lists
     return 0, Cdict_base, Cdict_count, Cdict
 
 def compare_and_disp_two_nifti_headers(all_Ndict, fl_tol=DEF_fl_tol, 
-                                       do_disp_diffs=True, verb=1):
+                                       do_disp_diffs=True, 
+                                       titleA='', titleB='', verb=1):
     """A special case of compare_nifti_headers(...), with
 len(all_Ndict)=2. This also adds the (optional, but likely useful)
 feature of displaying the diffs.
@@ -477,6 +481,10 @@ fl_tol : float
     tolerance for differences of floating point values
 do_disp_diffs : bool
     should the differences be displayed?
+titleA : str
+    provide a string to put a label over the first col of values
+titleB : str
+    provide a string to put a label over the second col of values
 verb : int
     verbosity level for messages whilst working
 
@@ -517,8 +525,8 @@ all_diff_Ndict : dict
     if do_disp_diffs :
         if count :
             is_fail = display_simple_dict_pair(all_diff_Ndict,
-                                               titleA='BRIK/HEAD',
-                                               titleB='NIFTI', 
+                                               titleA=titleA,
+                                               titleB=titleB, 
                                                verb=verb)
         else:
             msg = "++ No differences to display"
@@ -660,7 +668,6 @@ titleA : str
     provide a string to put a label over the first col of values
 titleB : str
     provide a string to put a label over the second col of values
-
 verb : int
     verbosity
 
@@ -831,7 +838,7 @@ if __name__ == "__main__" :
     fname1 = '~/AFNI_data6/FT_analysis/FT.results/stats.FT+tlrc.'
 
     is_fail1, Cdict_diffs1 = \
-        compare_nifti_from_brick_with_self_copy( fname1 )
+        compare_nifti_from_brick_with_self_copy( fname1, clean_nifti=False )
 
     print("\n----- Ex. 2: anat -----\n")
 
@@ -839,14 +846,14 @@ if __name__ == "__main__" :
     is_fail2, Adict2 = read_brick_attributes(fname2)
 
     is_fail2, Cdict_diffs2 = \
-        compare_nifti_from_brick_with_self_copy( fname2 )
+        compare_nifti_from_brick_with_self_copy( fname2, clean_nifti=False, verb=2)
 
     print("\n----- Ex. 3: time series -----\n")
 
     fname3 = '~/AFNI_data6/FT_analysis/FT.results/pb00.FT.r01.tcat+orig'
 
     is_fail3, Cdict_diffs3 = \
-        compare_nifti_from_brick_with_self_copy( fname3 )
+        compare_nifti_from_brick_with_self_copy( fname3, clean_nifti=False )
 
 
 

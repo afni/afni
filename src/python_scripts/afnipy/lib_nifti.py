@@ -98,7 +98,7 @@ dict_nifti1_unmapped = {
     'cal_min'         : 0.0,      ## float
     'descrip'         : b'',      ## char [80]
     'aux_file'        : b'',      ## char [24]
-    'dim_info'        : b'',      ## char 
+    'dim_info'        : 0,        ## char        # typically 0,1,2,3?
     'intent_name'     : b'',      ## char [16]
     'intent_p1'       : 0.0,      ## float
     'intent_p2'       : 0.0,      ## float
@@ -373,6 +373,8 @@ pixdim : list of floats
     # require this attribute, and parse if it exists
     key = 'DELTA'
     if key in Adict.keys() :
+        if verb > 1 :
+            print("   The value of key '{}' is: {}".format(key, Adict[key]))
         arr_delta = np.array(Adict[key])
         Ndelta    = len(arr_delta)
         if Ndelta != 3 :
@@ -386,6 +388,8 @@ pixdim : list of floats
     key = 'TAXIS_FLOATS'
     tr  = None
     if key in Adict.keys() :
+        if verb > 1 :
+            print("   The value of key '{}' is: {}".format(key, Adict[key]))
         arr_taxis = np.array(Adict[key])
         try:
             tr = arr_taxis[1]
@@ -460,6 +464,8 @@ scl_slope : float
     # require this attribute, and parse if it exists
     key = 'BRICK_TYPES'
     if key in Adict.keys() :
+        if verb > 1 :
+            print("   The value of key '{}' is: {}".format(key, Adict[key]))
         btypes = Adict[key]
         is_fail, arr_btypes = extract_first_n_int(btypes,
                                                   min_len=0,
@@ -476,6 +482,8 @@ scl_slope : float
     # floating point factors; if existing, verifying length is correct
     key = 'BRICK_FLOAT_FACS'
     if key in Adict.keys() :
+        if verb > 1 :
+            print("   The value of key '{}' is: {}".format(key, Adict[key]))
         bffacs  = Adict[key]
         Nbffacs = len(bffacs)
         
@@ -566,6 +574,8 @@ toffset : float
     # check for time floats, and parse if it exists
     key = 'TAXIS_FLOATS'
     if key in Adict.keys() :
+        if verb > 1 :
+            print("   The value of key '{}' is: {}".format(key, Adict[key]))
         tfloats = Adict[key]
         is_fail, arr_tfloats = extract_first_n_int(tfloats, wall_value=-999999,
                                                    min_len=5, max_len=5,
@@ -641,6 +651,8 @@ xyzt_units : int
     # check for time axis, and parse if it exists
     key = 'TAXIS_NUMS'
     if key in Adict.keys() :
+        if verb > 1 :
+            print("   The value of key '{}' is: {}".format(key, Adict[key]))
         tnums = Adict[key]
         is_fail, arr_tnums = extract_first_n_int(tnums, wall_value=-999,
                                                  min_len=3, max_len=3,
@@ -736,6 +748,8 @@ dim : array of 8 int
     # get number of spatial and temporal dims
     key = 'DATASET_RANK'
     if key in Adict.keys() :
+        if verb > 1 :
+            print("   The value of key '{}' is: {}".format(key, Adict[key]))
         drank = Adict[key]
         is_fail, arr_rank = extract_first_n_int(drank, wall_value=0,
                                                 min_len=2, max_len=2,
@@ -755,6 +769,8 @@ dim : array of 8 int
     # get spatial matrix sizes
     key = 'DATASET_DIMENSIONS'
     if key in Adict.keys() :
+        if verb > 1 :
+            print("   The value of key '{}' is: {}".format(key, Adict[key]))
         ddims = Adict[key]
         is_fail, arr_dims = extract_first_n_int(ddims, wall_value=0,
                                                 min_len=3, max_len=3,
@@ -836,11 +852,11 @@ dim :
 
     if has_time_axis :
         # dim[4] remains 1, as initialized above
-        dim[5] = nvals
-        dim[0] = 5
-    else:
         dim[4] = nvals
         dim[0] = 4
+    else:
+        dim[5] = nvals
+        dim[0] = 5
 
     # we assume everything else is an unknown template, hence this code
     return 0, dim
@@ -902,6 +918,8 @@ sform_code : int
     # datasets, esp. older ones, but it would be the most informative
     if 'TEMPLATE_SPACE' in Adict.keys() :
         key = 'TEMPLATE_SPACE'
+        if verb > 1 :
+            print("   The value of key '{}' is: {}".format(key, Adict[key]))
         tspace = Adict[key][0]
         is_fail, qsform_code = translate_template_space_to_qform_code(tspace, 
                                                                       verb=verb)
@@ -913,6 +931,8 @@ sform_code : int
     # of mappings to qsform_code values
     elif 'SCENE_DATA' in Adict.keys() :
         key = 'SCENE_DATA'
+        if verb > 1 :
+            print("   The value of key '{}' is: {}".format(key, Adict[key]))
         sdata = Adict[key]
         is_fail, arr_sdata = extract_first_n_int(sdata, wall_value=-999,
                                                  min_len=3, max_len=3,
