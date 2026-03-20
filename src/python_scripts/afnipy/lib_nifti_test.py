@@ -192,6 +192,83 @@ Ndict : dict
 
 # --------------------------------------------------------------------------
 
+def compare_nifti_from_brick_with_self_copy(fname, fl_tol=DEF_fl_tol, 
+                                            name_nifti=None, clean_nifti=True, 
+                                            verb=1):
+    """Start with a BRIK/HEAD file called fname, first do a direct mapping
+to a set of NIFTI header fields, and then compare that with the set of
+NIFTI fields arising from a real NIFTI dset created by 3dcopy'ing the
+original.
+
+The output is the same set of comparison items from
+compare_nifti_headers(), for the case of 2 headers.
+
+Parameters
+----------
+fname : str
+    AFNI BRIK/HEAD dset filename
+fl_tol : float
+    tolerance for differences of floating point values
+name_nifti : str
+    name of temporary NIFTI (def: make name with random chars)
+clean_nifti : bool
+    decide whether to remove the NIFTI (True -> remove)
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+Cdict_base : dict
+    dictionary of how "base" values (i.e., the values from the first
+    list in the input all_Ndict, against which all others were compared)
+    for each key 
+Cdict_count : dict
+    dictionary of how many differences there are across NIFTI headers,
+    per key
+Cdict : dict of lists
+    comparison results: dictionary of NIFTI header fields; each key is
+    a NIFTI field, and each value is a list; within each comparison list, 
+    a None in the i-th list entry means that the i-th dset's value matched
+    that of the 0-th, and a non-None is a list of the differing value(s).
+
+    """
+
+    BAD_RETURN = (-1, {}, {}, {})
+
+    # get NIFTI header from AFNI brik/head info
+    is_fail1, Adict = read_brick_attributes(fname)
+    if is_fail1 :    return BAD_RETURN
+    is_fail2, NdictA = NIF.make_nifti_header_from_afni( Adict )
+    if is_fail2 :    return BAD_RETURN
+
+    # make the NIFTI dset and get its header for comparison
+    is_fail3, name_nifti, NdictB = \
+        make_nifti_from_brick(fname, name_nifti=name_nifti, 
+                              clean_nifti=clean_nifti, verb=verb)
+    if is_fail3 :    return BAD_RETURN
+
+    # do the comparison of headers
+    both_Ndict = [ NdictA, NdictB ]
+
+    if verb > 2 :
+        ab.IP("About to compare headers:")
+        print("   Display NdictA:")
+        is_failA = display_simple_dict(NdictA)
+        print("   Display NdictB:")
+        is_failB = display_simple_dict(NdictB)
+
+    is_fail4, Cdict_base, Cdict_count, Cdict = \
+        compare_nifti_headers(both_Ndict, fl_tol=fl_tol, verb=verb)
+    if is_fail4 :    return BAD_RETURN
+
+
+    return is_fail4, Cdict_base, Cdict_count, Cdict
+    
+
+# --------------------------------------------------------------------------
+
 def make_nifti_from_brick(fname, name_nifti=None, clean_nifti=True, verb=1):
     """For a given BRIK/HEAD dset, called fname, first use the command
 line to copy it to a temporary NIFTI dset. Then read in that new
@@ -276,6 +353,9 @@ def compare_nifti_headers(all_Ndict, fl_tol=DEF_fl_tol, verb=1):
     """For a given collection of NIFTI-header-dictionaries all_Ndict, go
 through and see where there are any differences.
 
+Even if BOTH are false, we will consider this a mismatch, because None
+is not a valid NIFTI field value (just a Pythonic placeholder).
+
 Parameters
 ----------
 fname : str
@@ -304,7 +384,7 @@ Cdict : dict of lists
 
     """
 
-    BAD_RETURN = (-1, {})
+    BAD_RETURN = (-1, {}, {}, {})
 
     N = len(all_Ndict)
 
@@ -391,7 +471,12 @@ is_same : bool
     is_same = True
 
     for ii in range(Na):
-        if isinstance(a[ii], bytes) or isinstance(b[ii], bytes) or \
+        if a[ii] is None or b[ii] is None :
+            # even if BOTH are false, we will consider this a
+            # mismatch, because None is not a valid NIFTI field value
+            # (just a Pythonic placeholder).
+            is_same = False
+        elif isinstance(a[ii], bytes) or isinstance(b[ii], bytes) or \
            isinstance(a[ii], int) or isinstance(b[ii], int) :
             if a[ii] != b[ii] :
                 is_same = False
@@ -406,7 +491,75 @@ is_same : bool
 
     return 0, is_same
 
+def display_simple_dict(D, top_bot_lines=True, verb=1):
+    """For a dictionary D, display its contents in a reasonably nice way.
 
+We assume that each key is a string, and each value is a list.
+
+Parameters
+----------
+D : dict
+    dictionary
+top_bot_lines : bool
+    add lines at top and bot of list
+verb : int
+    verbosity
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+
+    """
+    
+    BAD_RETURN = -1
+
+    if not(isinstance(D, dict)):
+        st = au.simple_type(D)
+        ab.EP1("Input to display_dict() must be dict, not: {}".format(st))
+        return BAD_RETURN
+
+    # verify assumed key and value types
+    for key in D.keys():
+        if not(isinstance(key, str)):
+            st = au.simple_type(key)
+            ab.EP1("Each key here must be str, but '{}' is a {}".format(key, st))
+            return BAD_RETURN
+        val = D[key]
+        if not(isinstance(val, list)):
+            st = au.simple_type(val)
+            ab.EP1("Each value here must be list, but '{}' is a {}".format(val, st))
+            return BAD_RETURN
+
+    # prepare to make stringified version of D to display
+    SD = {}
+    all_len_key = []
+    all_len_val = []
+    for key in D.keys():
+        all_len_key.append( len(key) )
+        # prep values, including putting [] around actual lists
+        val  = D[key]
+        sval = ', '.join([str(x) for x in val])
+        if len(val)>1 :
+            sval = '[' + sval + ']'
+        all_len_val.append( len(sval) )
+        SD[key] = sval
+
+    # lens of pieces and total (= sum of pieces plus ' : ')
+    Lkey = max(all_len_key)
+    Lval = max(all_len_val)
+    ssep = ' : '
+    Ltot = Lkey + Lval + len(ssep)
+
+    # now, ready to display stringified dict
+    if top_bot_lines :
+        print('-' * Ltot)
+    for key in SD.keys():
+        print("{:<{}s}{}{:<{}s}".format(key, Lkey, ssep, SD[key], Lval))
+    if top_bot_lines :
+        print('-' * Ltot)
+
+    return 0
 
 # ==========================================================================
 
@@ -437,3 +590,8 @@ if __name__ == "__main__" :
 
     # now get part of NIFTI header from AFNI brik/head info
     is_fail1b, Ndict1b = NIF.make_nifti_header_from_afni( Adict1 )
+
+
+    
+    is_failD, Cdict12_baseD, Cdict12_countD, Cdict12D = \
+        compare_nifti_from_brick_with_self_copy(fname1A, verb=3 )

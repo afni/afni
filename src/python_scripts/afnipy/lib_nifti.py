@@ -34,7 +34,7 @@ import numpy as np
 
 # dict of NIFTI-1 header fields
 dict_nifti1 = {
-    'sizeof_hdr'      : 348,      ## int
+    'sizeof_hdr'      : None,     ## int
     'data_type'       : None,     ## char [10]
     'db_name'         : None,     ## char [18]
     'extents'         : None,     ## int
@@ -93,6 +93,7 @@ dict_nifti1_unused = {
 # which keys in the nifti1 header dict are unmapped from AFNI header?
 # *** candidates (may change...)
 dict_nifti1_unmapped = {
+    'sizeof_hdr'      : 348,      ## int
     'cal_max'         : 0.0,      ## float
     'cal_min'         : 0.0,      ## float
     'descrip'         : b'',      ## char [80]
@@ -105,6 +106,15 @@ dict_nifti1_unmapped = {
     'intent_code'     : 0,        ## short
     'scl_inter'       : 0.0,      ## float
     'magic'           : b'n+1',   ## char [4]
+}
+
+# ***** These are unknown for now, due to PT's ignorance. 
+TMP_dict_nifti1_unknown = {
+    'slice_start'     : None,     # short
+    'vox_offset'      : None,     # float
+    'slice_end'       : None,     # short
+    'slice_code'      : None,     # char
+    'slice_duration'  : None,     # float
 }
 
 # which keys in the nifti1 header dict should come from the data
@@ -318,6 +328,9 @@ Ndict : dict
     for key in dict_nifti1_unused.keys():
         Ndict[key] = [dict_nifti1_unused[key]]
 
+    # ... and all the unused ones ***will be mapped at some point****
+    for key in TMP_dict_nifti1_unknown.keys():
+        Ndict[key] = [TMP_dict_nifti1_unknown[key]]
 
     return 0, Ndict
 
