@@ -52,7 +52,10 @@ Adict : dict
     Adict = {}
 
     # read in attributes as a sorted list and convert to dict; make
-    # separator something unique and nonexistent within HEAD file
+    # separator something unique and nonexistent within HEAD file; NB:
+    # 3dAttribute output cannot be sorted, because annoyingly some
+    # attributes are actually multi-line, not just explicitly
+    # including a '\n' char
     cmd = '''3dAttribute        \
     -all                        \
     -ssep "{ssep}"              \
@@ -62,7 +65,6 @@ Adict : dict
     com  = ab.shell_com(cmd, capture=1)
     stat = com.run()
     L = copy.copy(com.so)
-    L.sort()
 
     if stat :
         ab.EP1("3dAttribute failed for dset: {}".format(fname))
@@ -78,6 +80,11 @@ Adict : dict
 def parse_attribute_list(L, ssep=DEF_ssep, verb=1):
     """Parse the list of terminal text lines dumped by 3dAttribute, which
 have been stored in a list L.
+
+Note: most attributes are a single line and contain explicit '\n'
+characters, but some like MARKS_XYZ and MARKS_HELP actually take up
+multiple lines. This complicates our life, by having to parse a bit
+more. Sigh.
 
 *** To decide at some point: do we care that BRICK_KEYWORDS can be
     '(null)', and should we treat that as more than a literal str?
@@ -106,9 +113,31 @@ Adict : dict
     # initialize default
     Adict = {}     # AFNI attribute dict
 
-    for line in L :
+    # go through list L first, because some attributes actually run
+    # over into multiple lines, rather than just containing '\n' in
+    # them; here, we concatenate those multilines with explicit '\n'
+    # values
+    N = len(L)
+    M = []
+    prev = L[0] # this one must have a '='
+    if not('=' in prev):
+        msg = "First Line in attribute in list must contain '=':\n" + prev
+        ab.EP1(msg)
+        return BAD_RETURN
+    for ii in range(1, N):
+        line = L[ii]
+        if '=' in line :
+            M.append(prev)
+            prev = line
+        else:
+            prev+= '\n' + line
+    M.append(prev)
+
+    # now, each line should have (at least) one '='
+    for line in M :
         row = line.split(" = ")
 
+        # should never happen, due to above creation of M
         if len(row) < 2 :
             msg = "Line in attribute list contained no ' = ', only:\n"
             msg+= line
@@ -121,8 +150,10 @@ Adict : dict
         # sign of val being a string; check for this specially, so we
         # preserve white space if a string
         if val.endswith(ssep) :
-            # remove ssep at end and listify
+            # remove ssep at end (there can be more than one) and listify
             vvv = val[:-len(ssep)]
+            while vvv.endswith(ssep) :
+                vvv = vvv[:-len(ssep)]
             www = vvv.split(ssep)
 
             # special case, of wanting to split at ';', too
@@ -794,35 +825,62 @@ is_simple : int
 
 if __name__ == "__main__" :
 
-    # Ex. 1: stats file
-    fname1A = '~/AFNI_data6/FT_analysis/FT.results/stats.FT+tlrc.'
-    is_fail1A, Adict1 = read_brick_attributes(fname1A)
 
-    if is_fail1A :    sys.exit(-1)
+    print("\n----- Ex. 1: stats file -----\n")
 
-    fname1N = '~/AFNI_data6/FT_analysis/FT.results/stats.FT.nii.gz'
-    is_fail1N, tmp_nameN, Ndict1 = make_nifti_from_brick(fname1A, verb=2)
+    fname1 = '~/AFNI_data6/FT_analysis/FT.results/stats.FT+tlrc.'
 
-    if is_fail1N :    sys.exit(-1)
+    is_fail1, Cdict_diffs1 = \
+        compare_nifti_from_brick_with_self_copy( fname1 )
 
-    fname2N = '~/AFNI_data7/task_demo_ap/sub-000.affine.results/stats.sub-000.affine.nii.gz'
-    is_fail2N, Ndict2 = read_nifti_fields(fname2N, verb=2)
+    print("\n----- Ex. 2: anat -----\n")
 
-    if is_fail2N :    sys.exit(-1)
+    fname2 = '~/AFNI_data6/FT_analysis/FT.results/FT_anat+orig.HEAD'
+    is_fail2, Adict2 = read_brick_attributes(fname2)
 
+    is_fail2, Cdict_diffs2 = \
+        compare_nifti_from_brick_with_self_copy( fname2 )
 
-    is_failC, Cdict12_base, Cdict12_count, Cdict12 = \
-        compare_nifti_headers([Ndict1, Ndict2])
+    print("\n----- Ex. 3: time series -----\n")
 
-    if is_failC :    sys.exit(-1)
+    fname3 = '~/AFNI_data6/FT_analysis/FT.results/pb00.FT.r01.tcat+orig'
 
-
-    # now get part of NIFTI header from AFNI brik/head info
-    is_fail1b, Ndict1b = NIF.make_nifti_header_from_afni( Adict1 )
+    is_fail3, Cdict_diffs3 = \
+        compare_nifti_from_brick_with_self_copy( fname3 )
 
 
-    
-    is_failD, Cdict12_diffsD = \
-        compare_nifti_from_brick_with_self_copy(fname1A, verb=3 )
+
+
+
+
+    sys.exit(0)
+
+    # older examples
+    if 0 :
+
+        # Ex. 1: stats file
+        fname1A = '~/AFNI_data6/FT_analysis/FT.results/stats.FT+tlrc.'
+        is_fail1A, Adict1 = read_brick_attributes(fname1A)
+
+        if is_fail1A :    sys.exit(-1)
+
+        fname1N = '~/AFNI_data6/FT_analysis/FT.results/stats.FT.nii.gz'
+        is_fail1N, tmp_nameN, Ndict1 = make_nifti_from_brick(fname1A, verb=2)
+
+        if is_fail1N :    sys.exit(-1)
+
+        fname2N = '~/AFNI_data7/task_demo_ap/sub-000.affine.results/stats.sub-000.affine.nii.gz'
+        is_fail2N, Ndict2 = read_nifti_fields(fname2N, verb=2)
+
+        if is_fail2N :    sys.exit(-1)
+
+
+        is_failC, Cdict12_base, Cdict12_count, Cdict12 = \
+            compare_nifti_headers([Ndict1, Ndict2])
+
+        if is_failC :    sys.exit(-1)
+
+        # now get part of NIFTI header from AFNI brik/head info
+        is_fail1b, Ndict1b = NIF.make_nifti_header_from_afni( Adict1 )
 
 
