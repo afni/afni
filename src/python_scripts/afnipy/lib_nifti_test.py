@@ -492,9 +492,15 @@ is_same : bool
     return 0, is_same
 
 def display_simple_dict(D, top_bot_lines=True, verb=1):
+
     """For a dictionary D, display its contents in a reasonably nice way.
 
 We assume that each key is a string, and each value is a list.
+
+This works best for displaying NIFTI header dictionaries.  It will
+work for AFNI BRIK/HEAD attribute dictionaries, but some of the values
+in them can be very long (like FDRCURVE* lists), so the formatting
+might be a bit odd.
 
 Parameters
 ----------
@@ -514,22 +520,9 @@ is_fail : int
     
     BAD_RETURN = -1
 
-    if not(isinstance(D, dict)):
-        st = au.simple_type(D)
-        ab.EP1("Input to display_dict() must be dict, not: {}".format(st))
+    # verify its simplicity
+    if not(is_simple_dict(D)):
         return BAD_RETURN
-
-    # verify assumed key and value types
-    for key in D.keys():
-        if not(isinstance(key, str)):
-            st = au.simple_type(key)
-            ab.EP1("Each key here must be str, but '{}' is a {}".format(key, st))
-            return BAD_RETURN
-        val = D[key]
-        if not(isinstance(val, list)):
-            st = au.simple_type(val)
-            ab.EP1("Each value here must be list, but '{}' is a {}".format(val, st))
-            return BAD_RETURN
 
     # prepare to make stringified version of D to display
     SD = {}
@@ -560,6 +553,48 @@ is_fail : int
         print('-' * Ltot)
 
     return 0
+
+def is_simple_dict(D):
+    """For a dictionary D to be a "simple dictionary" here, we mean that:
++ it is a dictionary
++ each key is a str
++ each value is a list.
+
+This function verifies that. It returns 1 if the dictionary is simple,
+and 0 if it ain't.
+
+Parameters
+----------
+D : dict
+    dictionary, a contender for being simple
+
+Returns
+-------
+is_simple : int
+    1 for being simple dict, 0 for not being so
+
+    """
+
+    BAD_RETURN = 0
+
+    if not(isinstance(D, dict)):
+        st = au.simple_type(D)
+        ab.EP1("Input to display_dict() must be dict, not: {}".format(st))
+        return BAD_RETURN
+
+    # verify assumed key and value types
+    for key in D.keys():
+        if not(isinstance(key, str)):
+            st = au.simple_type(key)
+            ab.EP1("Each key here must be str, but '{}' is a {}".format(key, st))
+            return BAD_RETURN
+        val = D[key]
+        if not(isinstance(val, list)):
+            st = au.simple_type(val)
+            ab.EP1("Each value here must be list, but '{}' is a {}".format(val, st))
+            return BAD_RETURN
+
+    return 1
 
 # ==========================================================================
 
