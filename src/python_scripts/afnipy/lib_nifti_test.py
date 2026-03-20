@@ -201,7 +201,7 @@ NIFTI fields arising from a real NIFTI dset created by 3dcopy'ing the
 original.
 
 The output is the same set of comparison items from
-compare_nifti_headers(), for the case of 2 headers.
+compare_and_disp_two_nifti_headers().
 
 Parameters
 ----------
@@ -220,22 +220,12 @@ Returns
 -------
 is_fail : int
     0 on success, nonzero on failure
-Cdict_base : dict
-    dictionary of how "base" values (i.e., the values from the first
-    list in the input all_Ndict, against which all others were compared)
-    for each key 
-Cdict_count : dict
-    dictionary of how many differences there are across NIFTI headers,
-    per key
-Cdict : dict of lists
-    comparison results: dictionary of NIFTI header fields; each key is
-    a NIFTI field, and each value is a list; within each comparison list, 
-    a None in the i-th list entry means that the i-th dset's value matched
-    that of the 0-th, and a non-None is a list of the differing value(s).
+Cdict_diffs : dict
+    dictionary of key-value pairs where values differed between the two inputs
 
     """
 
-    BAD_RETURN = (-1, {}, {}, {})
+    BAD_RETURN = (-1, {})
 
     # get NIFTI header from AFNI brik/head info
     is_fail1, Adict = read_brick_attributes(fname)
@@ -250,7 +240,7 @@ Cdict : dict of lists
     if is_fail3 :    return BAD_RETURN
 
     # do the comparison of headers
-    both_Ndict = [ NdictA, NdictB ]
+    all_Ndict = [ NdictA, NdictB ]
 
     if verb > 2 :
         ab.IP("About to compare headers:")
@@ -259,12 +249,14 @@ Cdict : dict of lists
         print("   Display NdictB:")
         is_failB = display_simple_dict(NdictB)
 
-    is_fail4, Cdict_base, Cdict_count, Cdict = \
-        compare_nifti_headers(both_Ndict, fl_tol=fl_tol, verb=verb)
+
+    is_fail4, Cdict_diffs = \
+        compare_and_disp_two_nifti_headers(all_Ndict, fl_tol=fl_tol, 
+                                           do_disp_diffs=True, verb=verb)
     if is_fail4 :    return BAD_RETURN
 
 
-    return is_fail4, Cdict_base, Cdict_count, Cdict
+    return is_fail4, Cdict_diffs
     
 
 # --------------------------------------------------------------------------
@@ -353,8 +345,13 @@ def compare_nifti_headers(all_Ndict, fl_tol=DEF_fl_tol, verb=1):
     """For a given collection of NIFTI-header-dictionaries all_Ndict, go
 through and see where there are any differences.
 
-Even if BOTH are false, we will consider this a mismatch, because None
+Note a special case: if any value is None, even if all of them are
+None for a given key, we will consider this a mismatch, because None
 is not a valid NIFTI field value (just a Pythonic placeholder).
+
+This function can also display the diffs, if do_disp_diffs is true.
+This is probably most useful only for the case len(all_Ndict) is
+small, like 2 or so, because the columns can get wide.
 
 Parameters
 ----------
@@ -400,7 +397,7 @@ Cdict : dict of lists
 
     # initialize defaults
     Cdict = {}                # store diffs for output report
-    Cdict_base = {}           # store base vals
+    Cdict_base  = {}          # store base vals
     Cdict_count = {}          # store count of diffs
 
     for key in ALL_nifti1_keys :
@@ -412,7 +409,7 @@ Cdict : dict of lists
 
         for ii in range(1, N):
             comp_dict = all_Ndict[ii]
-            val_c = comp_dict[key]
+            val_c     = comp_dict[key]
 
             is_fail, is_same = is_same_nifti_field_values(val_b, val_c, 
                                                           fl_tol=fl_tol)
@@ -431,6 +428,74 @@ Cdict : dict of lists
 
     return 0, Cdict_base, Cdict_count, Cdict
 
+def compare_and_disp_two_nifti_headers(all_Ndict, fl_tol=DEF_fl_tol, 
+                                       do_disp_diffs=True, verb=1):
+    """A special case of compare_nifti_headers(...), with
+len(all_Ndict)=2. This also adds the (optional, but likely useful)
+feature of displaying the diffs.
+
+Besides a fail/succeed int, this function returns a list with two
+items: copies of the input dictionaries, but only with the key-value
+pairs where there were value differences.
+
+Parameters
+----------
+fname : str
+    AFNI BRIK/HEAD dset filename
+fl_tol : float
+    tolerance for differences of floating point values
+do_disp_diffs : bool
+    should the differences be displayed?
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+all_diff_Ndict : dict
+    dictionary of 2
+
+    """
+
+    BAD_RETURN = (-1, []) 
+
+    num_dict = len(all_Ndict)
+    if num_dict != 2 :
+        ab.EP1("This function processes exactly 2 dicts, not {}".format(num_dict))
+        return BAD_RETURN
+
+    # do the comparison
+    is_fail, Cdict_base, Cdict_count, Cdict = \
+        compare_nifti_headers(all_Ndict, fl_tol=fl_tol, verb=verb)
+
+    # two dictionaries with same keys
+    DA = {}
+    DB = {}
+    count = 0
+
+    for key in Cdict_base.keys():
+        ndiff = Cdict_count[key]
+        if ndiff :
+            DA[key] = all_Ndict[0][key]
+            DB[key] = all_Ndict[1][key]
+            count+=1
+
+    all_diff_Ndict = [DA, DB]
+
+    if do_disp_diffs :
+        if count :
+            is_fail = display_simple_dict_pair(all_diff_Ndict,
+                                               titleA='BRIK/HEAD',
+                                               titleB='NIFTI', 
+                                               verb=verb)
+        else:
+            msg = "++ No differences to display"
+            print("-"*len(msg))
+            print(msg)
+            print("-"*len(msg))
+
+    return 0, all_diff_Ndict
 
 def is_same_nifti_field_values(a, b, fl_tol=DEF_fl_tol):
     """Compare two fields a and b from the NIFTI header dictionaries
@@ -491,8 +556,8 @@ is_same : bool
 
     return 0, is_same
 
-def display_simple_dict(D, top_bot_lines=True, verb=1):
 
+def display_simple_dict(D, top_bot_lines=True, verb=1):
     """For a dictionary D, display its contents in a reasonably nice way.
 
 We assume that each key is a string, and each value is a list.
@@ -520,7 +585,147 @@ is_fail : int
     
     BAD_RETURN = -1
 
-    # verify its simplicity
+    # verify simplicity of input
+    if not(is_simple_dict(D)):
+        return BAD_RETURN
+
+    # make stringified version of D to display -> SD
+    is_fail, SD, Lkey, Lval = convert_simple_dict_to_str_dict(D)
+
+    # total length (= sum of pieces plus ' : ')
+    ssep = ' : '
+    Ltot = Lkey + Lval + len(ssep)
+
+    # now, ready to display stringified dict
+    if top_bot_lines :
+        print('-' * Ltot)
+    for key in SD.keys():
+        print("{:<{}s}{}{:<{}s}".format(key, Lkey, ssep, SD[key], Lval))
+    if top_bot_lines :
+        print('-' * Ltot)
+
+    return 0
+
+def display_simple_dict_pair(all_Ndict, top_bot_lines=True, 
+                             titleA='', titleB='', verb=1):
+    """For a list of 2 dictionaries, which we assume have the same keys,
+the contents in a reasonably nice way.
+
+For the dictionaries, we assume that each key is a string, and each
+value is a list.
+
+See display_simple_dict_pair() for why this likely is best for NIFTI
+headers, but not AFNI BRIK/HEAD attributes.
+
+Parameters
+----------
+DA : dict
+    dictionary
+DB : dict
+    dictionary
+top_bot_lines : bool
+    add lines at top and bot of list
+titleA : str
+    provide a string to put a label over the first col of values
+titleB : str
+    provide a string to put a label over the second col of values
+
+verb : int
+    verbosity
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+
+    """
+    
+    BAD_RETURN = -1
+
+    ssep = ' : '
+    sdiv = '  '
+
+    num_dict = len(all_Ndict)
+    if num_dict != 2 :
+        ab.EP1("This function processes exactly 2 dicts, not {}".format(num_dict))
+        return BAD_RETURN
+
+    # just rename elements of input list, for simplicity
+    DA = all_Ndict[0]
+    DB = all_Ndict[1]
+
+    # verify simplicity of input
+    if not(is_simple_dict(DA)) or not(is_simple_dict(DB)):
+        return BAD_RETURN
+
+    # make stringified version of D to display -> SD
+    is_failA, SDA, LkeyA, LvalA = convert_simple_dict_to_str_dict(DA)
+    if is_failA :
+        return BAD_RETURN
+
+    is_failB, SDB, LkeyB, LvalB = convert_simple_dict_to_str_dict(DB)
+    if is_failB :
+        return BAD_RETURN
+
+    # ----- deal with titles, perhaps even extending the col width for printing
+
+    if len(titleA) > LvalA :
+        lvalA = len(titleA)
+    if len(titleB) > LvalB :
+        lvalB = len(titleB)
+
+    if titleA or titleB :
+        line = "{:<{}s}{}{:<{}s}".format("key", LkeyA, ' '*len(ssep), titleA, LvalA)
+        line+= "{}{:<{}s}".format(sdiv, titleB, LvalB)
+        print(line)
+
+    # total length (= sum of pieces plus ' : ' and '  ')
+    Ltot = LkeyA + LvalA + LvalB + len(ssep)+ len(sdiv)
+
+    # now, ready to display stringified dict
+    if top_bot_lines :
+        print('-' * Ltot)
+    for key in SDA.keys():
+        line = "{:<{}s}{}{:<{}s}".format(key, LkeyA, ssep, SDA[key], LvalA)
+        line+= "{}{:<{}s}".format(sdiv, SDB[key], LvalB)
+        print(line)
+    if top_bot_lines :
+        print('-' * Ltot)
+
+    return 0
+
+
+def convert_simple_dict_to_str_dict(D):
+    """For a dictionary D to be a "simple dictionary" here, we mean that:
++ it is a dictionary
++ each key is a str
++ each value is a list.
+
+This function converts the simple dict to a dict where the values are
+str forms of themselves (for display). Also return the max length of
+the keys (Lkey) and of the values (Lval).
+
+Parameters
+----------
+D : dict
+    dictionary, a contender for being simple
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+SD : dict
+    dictionary where keys and values are str
+Lkey : int
+    length of max key string
+Lval : int
+    length of max value string
+
+    """
+
+    BAD_RETURN = (-1, {}, 0, 0)
+
+    # verify simplicity of input
     if not(is_simple_dict(D)):
         return BAD_RETURN
 
@@ -538,21 +743,10 @@ is_fail : int
         all_len_val.append( len(sval) )
         SD[key] = sval
 
-    # lens of pieces and total (= sum of pieces plus ' : ')
     Lkey = max(all_len_key)
     Lval = max(all_len_val)
-    ssep = ' : '
-    Ltot = Lkey + Lval + len(ssep)
 
-    # now, ready to display stringified dict
-    if top_bot_lines :
-        print('-' * Ltot)
-    for key in SD.keys():
-        print("{:<{}s}{}{:<{}s}".format(key, Lkey, ssep, SD[key], Lval))
-    if top_bot_lines :
-        print('-' * Ltot)
-
-    return 0
+    return 0, SD, Lkey, Lval
 
 def is_simple_dict(D):
     """For a dictionary D to be a "simple dictionary" here, we mean that:
@@ -628,5 +822,7 @@ if __name__ == "__main__" :
 
 
     
-    is_failD, Cdict12_baseD, Cdict12_countD, Cdict12D = \
+    is_failD, Cdict12_diffsD = \
         compare_nifti_from_brick_with_self_copy(fname1A, verb=3 )
+
+
