@@ -531,6 +531,10 @@ scl_slope : float
         sys.exit(-1)
 
 
+    # apparently, this is the case for zero slope?
+    if not(scl_slope) :
+        scl_slope = np.nan
+
     return 0, datatype, bitpix, scl_slope
 
 # ============================================================================
@@ -856,7 +860,11 @@ dim :
         dim[0] = 4
     else:
         dim[5] = nvals
-        dim[0] = 5
+        # diff between being a 3D vol or a bucket (like stats)
+        if nvals > 1 :
+            dim[0] = 5
+        else:
+            dim[0] = 3
 
     # we assume everything else is an unknown template, hence this code
     return 0, dim

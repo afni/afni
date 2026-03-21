@@ -708,13 +708,14 @@ is_fail : int
     # ----- deal with titles, perhaps even extending the col width for printing
 
     if len(titleA) > LvalA :
-        lvalA = len(titleA)
+        LvalA = len(titleA)
     if len(titleB) > LvalB :
-        lvalB = len(titleB)
+        LvalB = len(titleB)
 
     if titleA or titleB :
-        line = "{:<{}s}{}{:<{}s}".format("key", LkeyA, ' '*len(ssep), titleA, LvalA)
-        line+= "{}{:<{}s}".format(sdiv, titleB, LvalB)
+        line = "{:<{}s}{}".format("key", LkeyA, ' '*len(ssep))
+        line+= "{:<{}s}{}".format(titleA, LvalA, sdiv)
+        line+= "{:<{}s}".format(titleB, LvalB)
         print(line)
 
     # total length (= sum of pieces plus ' : ' and '  ')
@@ -846,7 +847,7 @@ if __name__ == "__main__" :
     is_fail2, Adict2 = read_brick_attributes(fname2)
 
     is_fail2, Cdict_diffs2 = \
-        compare_nifti_from_brick_with_self_copy( fname2, clean_nifti=False, verb=2)
+        compare_nifti_from_brick_with_self_copy( fname2, clean_nifti=False )
 
     print("\n----- Ex. 3: time series -----\n")
 
