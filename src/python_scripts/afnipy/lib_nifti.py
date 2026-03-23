@@ -467,7 +467,9 @@ scl_slope : float
         if verb > 1 :
             print("   The value of key '{}' is: {}".format(key, Adict[key]))
         btypes = Adict[key]
+        # we take ALL values from the dictionary array here
         is_fail, arr_btypes = extract_first_n_int(btypes,
+                                                  wall_value=None,
                                                   min_len=0,
                                                   verb=verb)
         if is_fail :
@@ -1481,6 +1483,8 @@ of ints A, get the first N values prior to hitting the wall_value, and
 return that object as an array.  That is, go through A until the first
 wall_value (or end) is reached, and return those values in an array.
 
+If wall_value is set to None, then all values of A are included.
+
 If the user has an expected minimum length of output array (which is a
 common expectation here), that can be specified with
 min_len. Similarly, a max_len can be specified. Used together these
@@ -1516,13 +1520,18 @@ B : array of ints
         print("** Error: must provide an array, list or tuple")
         return BAD_RETURN
 
-    # make a list of all values until hitting the wall_value
-    L  = []
-    ii = 0
-    while ii < N :
-        if A[ii] != wall_value:  L.append(A[ii])
-        else:                    break
-        ii+= 1
+    if wall_value is None :
+        # simply a way to copy, making a list
+        L = [a for a in A]
+    else:
+        # make a list of all values until hitting the wall_value
+        L  = []
+        ii = 0
+        while ii < N :
+            if A[ii] != wall_value:  L.append(A[ii])
+            else:                    break
+            ii+= 1
+    
 
     M = len(L)
 
