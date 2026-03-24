@@ -1,0 +1,656 @@
+#!/usr/bin/env python
+
+import os, sys, copy
+
+### TO DO: it looks like some attribute names are populated by
+### default, even if they do not appear explicitly in HEAD file text.
+### These appear to be:
+#   BRICK_LABS = #0~
+#   BRICK_KEYWORDS = (null)
+#   TEMPLATE_SPACE = ORIG~
+#   INT_CMAP = 0 
+### ... so we must add defaults here for them.
+
+# ============================================================================
+# 
+# A library file for read HEAD files.
+#
+# We try to match the output of '3dAttribute -all ...' as closely as
+# possible. This includes keeping specific features (AKA quirks) of
+# the output, like: 
+# + adding an extra space at the end of numerical lists,
+# + replacing a long string-attribute value of '~' with '(null)'
+# + maintaining some apparently extraneous newline chars in some text fields
+# 
+# However, at present we have not gone after using the same numerical
+# rounding that 3dAttribute appears to impose. 
+# 
+# auth: PA Taylor (SSCC, NIMH, NIH, USA)
+#
+# ============================================================================
+
+# list of all known AFNI attribute "type = " values
+LIST_attribute_types = [
+    'float-attribute',
+    'integer-attribute',
+    'string-attribute',
+]
+STR_attribute_types = ', '.join(LIST_attribute_types)
+
+# character used to separate per-volume values in string-attributes
+ssep = '~'
+
+# what are keyword values that 'something' can take in helper function
+# below, appropriate for HEAD file
+LIST_something = [
+    'type', 
+    'name',
+    'count'
+]
+STR_something = ', '.join(LIST_something)
+
+# ============================================================================
+
+class HeadFile:
+    """Object for reading in a HEAD file from an AFNI BRIK/HEAD dset
+formatted volume.
+
+Parameters
+----------
+inset : str
+    filename for an input BRIK/HEAD file. Can be specified in any of
+    the usual AFNI ways: DSET+orig, DSET+orig., DSET+orig.BRIK,
+    DSET+orig.BRIK.gz, DSET+orig.HEAD, etc.
+verb : int
+    verbosity for terminal text whilst processing
+
+    """
+
+    def __init__(self, inset=None, verb=1):
+
+        # ----- set up attributes
+
+        # general variables
+        self.verb            = verb
+
+        # main filenames
+        self.inset           = inset
+        self.full_inset      = None           # inset with any ~ expanded
+        self.headset         = None           # *.HEAD file of any inset name
+
+        # main data
+        self.headtext        = []             # list of lines of *.HEAD files
+        self.all_attributes  = []             # list of all attributes
+
+        self.report          = []             # list of strings to write out
+
+        # ----- take action(s)
+
+        if not(inset is None) :
+            tmp1 = self.load_inset()
+            tmp2 = self.read_headset()
+            tmp3 = self.extract_attributes()
+            tmp4 = self.make_report()
+
+    # ----- methods
+
+    def load_inset(self):
+        """Verify that the infile exists, and load it as the headset
+        attribute. That means, identify the HEAD file specifically of
+        the BRIK/HEAD dset. This step allows the user to specify a
+        dset in any of the usual AFNI ways.
+        """
+
+        if self.verb > 1 :
+            print("++ Load inset: {}".format(self.inset))
+        
+        BAD_RETURN = -1
+
+        if not(self.inset) :
+            print("+* No inset? Nothing to do.")
+            return BAD_RETURN
+
+        self.full_inset = os.path.expanduser(self.inset)
+        # ... and for convenience
+        inset = self.full_inset
+
+        # derive potential headset filename
+        if inset.endswith('.HEAD') :
+            self.headset = inset
+        elif inset.endswith('.BRIK') :
+            self.headset = inset[:-4] + 'HEAD'
+        elif inset.endswith('.BRIK.gz') :
+            self.headset = inset[:-7] + 'HEAD'
+        elif inset.endswith('.') :
+            self.headset = inset + 'HEAD'
+        else:
+            self.headset = inset + '.HEAD'
+        
+        # verify proposed headset
+        if not(os.path.exists(self.headset)) :
+            print("** Cannot find supposed headset: {}".format(self.headset))
+            return BAD_RETURN
+
+        return 0
+
+
+    def read_headset(self):
+        """Read the headset, which should be a straightforward *.HEAD text
+        file, into a list of strings called headtext."""
+
+        if self.verb > 1 :
+            print("++ Read headset")
+
+        BAD_RETURN = -1
+
+        if self.headset is None :
+            print("** No headset supplied to read")
+            return BAD_RETURN
+
+        fff = open(self.headset, 'r')
+        self.headtext = fff.readlines()
+        fff.close()
+
+        if not(self.nlines_headtext) :
+            print("** No lines of text found from *.HEAD file")
+            return BAD_RETURN
+
+        return 0
+
+    def extract_attributes(self):
+        """Go through headtext line-by-line and extract attributes. Each is
+        attribute is stored as a HeadAttribute object, and these are
+        stored within the all_attributes list."""
+
+        if self.verb > 1 :
+            print("++ Extract attributes")
+
+        BAD_RETURN = -1 
+
+        # start with empty list
+        self.all_attributes = []
+
+        # initialize quantities
+        N    = self.nlines_headtext
+        ibot = -1
+        itop = 0
+
+        # loop through and find attributes, skipping first empty lines
+        while itop < N :
+            line = self.headtext[itop]
+            is_fail, is_something, something_val = \
+                is_line_SOMETHING(line, something='type')
+            if is_fail :
+                return BAD_RETURN
+            elif is_something :
+                if ibot >= 0 :
+                    # grab text from ibot through itop-1, and parse for attribute
+                    minitext = self.headtext[ibot:itop]
+                    attr = HeadAttribute(L=minitext, verb=self.verb)
+                    self.all_attributes.append(attr)
+                    # prepare for finding next attribute
+                ibot = itop
+            itop+= 1
+        # get final attribute
+        minitext = self.headtext[ibot:itop]
+        attr = HeadAttribute(L=minitext, verb=self.verb)
+        self.all_attributes.append(attr)
+        
+        if self.verb :
+            print("++ Number of attributes found: {}".format(self.nattr))
+
+        return 0
+
+    def disp_attr_names_and_values(self):
+        """Display the names and values of all attributes in the list,
+        mirroring '3dAttribute -all ...' output """
+
+        print('\n'.join(self.report))
+
+    def make_report(self):
+        """Make a list of text strings with the names and values of all
+        attributes in the list, mirroring '3dAttribute -all ...'
+        output.
+        """
+
+        self.report = []
+
+        for ii in range(self.nattr):
+            attr   = self.all_attributes[ii]
+            atype  = attr.type
+            aname  = attr.name
+            acount = attr.count
+            avalue = attr.value
+            
+            if atype in ['integer-attribute', 'float-attribute'] :
+                # match the spacing of '3dAttribute -all ...', even
+                # including an extra ' ' at the end of the line
+                str_val = ''
+                for val in avalue :
+                    str_val+= str(val) + ' '
+                txt = "{} = {}".format(aname, str_val)
+                self.report.append(txt)
+
+            elif atype == 'string-attribute' :
+                txt = "{} = {}".format(aname, avalue[0])
+                self.report.append(txt)
+                
+                # NB: for the purposes of matching the count value,
+                # explicit '\n' at the end of some lines was left
+                # earlier, but will be removed here for printing
+                for nn in range(1, len(avalue)):
+                    txt = "{}".format(avalue[nn])
+                    self.report.append(txt.rstrip())
+
+        return 0
+
+    def write_report(self, fname):
+        """Write the report to a text file, fname."""
+
+        fname_full = os.path.expanduser(fname)
+
+        fff = open(fname_full, 'w')
+        fff.write('\n'.join(self.report))
+        fff.close()
+
+        return 0
+
+    # ----- decorators
+
+    @property
+    def nlines_headtext(self):
+        """number of lines in headtext"""
+        return len(self.headtext)
+
+    @property
+    def nattr(self):
+        """number of attributes in the list"""
+        return len(self.all_attributes)
+
+    @property
+    def disp_attr_names(self):
+        """display the names of all attributes in the list"""
+        all_name = []
+        for ii in range(self.nattr):
+            all_name.append(self.all_attributes[ii].name)
+        print('\n'.join(all_name))
+
+
+
+# =============================================================================
+
+class HeadAttribute:
+    """Object for storing pieces of an AFNI attribute in a BRIK/HEAD file.
+
+After running this, one has the very useful object attributes to use:
+    .type
+    .name
+    .count
+    .value
+These will help for working with the AFNI attributes.
+
+Parameters
+----------
+L : list (of str)
+    list of text lines taken from within an AFNI *.HEAD file, that
+    contain the contents of an attribute.  May or may not have empty lines 
+    at start/finish
+
+    """
+
+    def __init__(self, L=[], verb=1):
+
+        # ----- set up attributes
+
+        # general variables
+        self.verb            = verb
+
+        # main input
+        self.L               = L              
+
+        # attributes storing header info
+        self.type            = None            # str, *-attribute type name
+        self.name            = None            # str, label for attr
+        self.count           = None            # int, str len or num of items
+        self.value           = None            # more useful/parsed value
+        self.raw_value       = None            # actual attribute value
+
+        # ----- take action(s)
+
+        if self.L :
+            tmp1 = self.check_L()
+            tmp2 = self.parse_L()
+            tmp3 = self.verify_attribute_ANY()
+
+    # ----- methods
+
+    def check_L(self):
+        """Verify that L has desired properties. Namely, that it is a list of
+        strings.
+        """
+
+        if self.verb > 1 : 
+            print("")
+            print("++ Checking input list L")
+
+        BAD_RETURN = -1 
+
+        if not(isinstance(self.L, list)) :
+            print("** Input L is not a list, so exiting")
+            return BAD_RETURN
+
+        if len(self.L) == 0 :
+            print("** Input list L has len=0, so exiting")
+            return BAD_RETURN
+
+        for line in self.L :
+            if type(line) != str :
+                print("** Input list L has non-string element, so exiting")
+                return BAD_RETURN
+
+        return 0
+
+
+    def parse_L(self):
+        """Go through list L and get necessary pieces.
+        """
+
+        if self.verb > 1 : 
+            print("++ Parsing input list L")
+
+        if self.verb > 2 :
+            print("++ list of text to parse is:")
+            print("-" * 20)
+            print('   ' + '   '.join(self.L))
+            print("-" * 20)
+
+        BAD_RETURN = -1 
+
+        # initialize properties
+        N  = len(self.L)
+        i0 = 0
+
+        # find: type
+        for ii in range(i0, N):
+            line = self.L[ii]
+            is_fail, is_something, something_val = \
+                is_line_SOMETHING(line, something='type')
+            if is_fail :
+                return BAD_RETURN
+            elif is_something :
+                self.type = something_val
+                i0 = ii + 1
+                break
+
+        # find: name
+        for ii in range(i0, N):
+            line = self.L[ii]
+            is_fail, is_something, something_val = \
+                is_line_SOMETHING(line, something='name')
+            if is_fail :
+                return BAD_RETURN
+            elif is_something :
+                self.name = something_val
+                i0 = ii + 1
+                break
+
+        # find: count
+        for ii in range(i0, N):
+            line = self.L[ii]
+            is_fail, is_something, something_val = \
+                is_line_SOMETHING(line, something='count')
+            if is_fail :
+                return BAD_RETURN
+            elif is_something :
+                self.count = int(something_val)
+                i0 = ii + 1
+                break
+
+        # find: raw_value
+        self.raw_value = self.L[i0:]
+
+        # ... and remove any empty line at the end of the value list
+        nvalue = len(self.raw_value)
+        for ii in range(nvalue):
+            jj   = ii + 1
+            line = self.raw_value[-jj]
+            if len(line.strip()) :
+                break
+        self.raw_value = self.raw_value[:nvalue-ii]
+        
+        return 0            
+
+    def verify_attribute_ANY(self):
+        """Do some consistency checks on the attribute. The sub-functions here
+        also should set the self.value attribute from self.raw_value"""
+
+        BAD_RETURN = -1
+
+        if not(self.type in LIST_attribute_types):
+            print("** ERROR: when parsing attr: {}".format(self.name))
+            print("   Unknown attribute type: {}".format(self.type))
+            print("   Not in recognized list of types:")
+            print("     {}".format(STR_attribute_types))
+            return BAD_RETURN
+
+        if self.type == 'integer-attribute' :
+            is_fail = self.verify_integer_attribute()
+        elif self.type == 'float-attribute' :
+            is_fail = self.verify_float_attribute()
+        elif self.type == 'string-attribute' :
+            is_fail = self.verify_string_attribute()
+        else:
+            print("** ERROR: should not reach this unknown type err")
+            return BAD_RETURN
+
+        return is_fail
+
+    def verify_integer_attribute(self):
+        """Do some consistency checks on the integer-attribute type. If all
+        goes well, this should set the value in a parsed/appropriate
+        way. Note that the values are not treated like integers, but
+        just left as str when put into the value attribute.
+        """
+
+        BAD_RETURN = -1
+        attr_type  = 'integer-attribute'
+
+        if self.verb > 2 :
+            print("++ Verify attr of type {}: {}".format(attr_type, self.name))
+
+        if self.type != attr_type :
+            print("** ERROR: when parsing attr: {}".format(self.name))
+            print("   the type is not actually " + attr_type)
+            return BAD_RETURN
+
+        all_val = []
+        for line in self.raw_value :
+            all_val.extend(line.split())
+
+        # leave values as str
+        self.value = [val for val in all_val]
+
+        nvalue = len(self.value)
+        if nvalue != self.count :
+            print("** ERROR: when parsing attr: {}".format(self.name))
+            print("   mismatch in attr count (= {})".format(self.count))
+            print("   and number of values (= {})".format(nvalue))
+            return BAD_RETURN
+
+        # verify int values: test 1
+        try:
+            tmp_value = [int(val) for val in all_val]
+        except:
+            print("** ERROR: when parsing attr: {}".format(self.name))
+            print("   fail to convert integer-attributes to int:")
+            print("   {}".format(' '.join(all_val)))
+            return BAD_RETURN
+
+        # verify int values: test 2
+        for ii in range(nvalue):
+            if tmp_value[ii] != float(all_val[ii]) :
+                print("** ERROR: when parsing attr: {}".format(self.name))
+                print("   integer-attribute is not int-valued:")
+                print("   {}".format(all_val[ii]))
+            return BAD_RETURN
+
+        return 0
+
+    def verify_float_attribute(self):
+        """Do some consistency checks on the float-attribute type. If all
+        goes well, this should set the value in a parsed/appropriate way."""
+
+        BAD_RETURN = -1
+        attr_type  = 'float-attribute'
+
+        if self.verb > 2 :
+            print("++ Verify attr of type {}: {}".format(attr_type, self.name))
+
+        if self.type != attr_type :
+            print("** ERROR: when parsing attr: {}".format(self.name))
+            print("   the type is not actually " + attr_type)
+            return BAD_RETURN
+
+        all_val = []
+        for line in self.raw_value :
+            all_val.extend(line.split())
+
+        # leave values as str
+        self.value = [val for val in all_val]
+
+        nvalue = len(self.value)
+        if nvalue != self.count :
+            print("** ERROR: when parsing attr: {}".format(self.name))
+            print("   mismatch in attr count (= {})".format(self.count))
+            print("   and number of values (= {})".format(nvalue))
+            return BAD_RETURN
+
+        # verify float values
+        try:
+            tmp_value = [float(val) for val in all_val]
+        except:
+            print("** ERROR: when parsing attr: {}".format(self.name))
+            print("   fail to convert float-attributes to float:")
+            print("   {}".format(' '.join(all_val)))
+            return BAD_RETURN
+
+        return 0
+
+    def verify_string_attribute(self):
+        """Do some consistency checks on the string-attribute type. If all
+        goes well, this should set the value in a parsed/appropriate way."""
+
+        BAD_RETURN = -1
+        attr_type  = 'string-attribute'
+
+        if self.verb > 2 :
+            print("++ Verify attr of type {}: {}".format(attr_type, self.name))
+
+        if self.type != attr_type :
+            print("** ERROR: when parsing attr: {}".format(self.name))
+            print("   the type is not actually " + attr_type)
+            return BAD_RETURN
+
+        nval_raw = len(self.raw_value)
+
+        if not(nval_raw) :
+            print("** ERROR: when parsing attr: {}".format(self.name))
+            print("   -> it appears empty")
+            return BAD_RETURN
+
+        # make a list of all strings, but remove the first ' and the
+        # last \n (and see note in self.make_report() method about
+        # where we do/don't use rstrip() here).
+        all_val = [self.raw_value[0][1:].rstrip()]
+        nchar   = len(all_val[0])
+        
+        # NB: a special case of replacement comes in, when the
+        # string-attribute has count=1 and the only char is '~'; in
+        # this case, '3dAttribute -all ...' replaces the '~' with
+        # '(null)', so we do so here.
+        if self.count == 1 and all_val[0] == '~' :
+            all_val[0] = '(null)'
+
+        for ii in range(1, nval_raw):
+            line  = self.raw_value[ii]
+            nchar+= len(line)
+            all_val.append(line)
+
+        self.value = copy.deepcopy(all_val)
+
+        if self.count != nchar :
+            print("** ERROR: when parsing attr: {}".format(self.name))
+            print("   count = {}, but nchar = {}".format(self.count, nchar))
+            return BAD_RETURN
+
+        return 0
+            
+# =============================================================================
+# useful helper functions
+
+def is_line_SOMETHING(line, something=None):
+    """Check if a given str line appears to be a line that defines a
+useful kind of 'something' in the *.HEAD file.  
+
+User must provide the name of 'something'.  Appropriate keywords at
+present include:  type, name, count.
+
+Parameters 
+----------
+line : str
+    one candidate line
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+is_something : bool
+    True for line is a 'something = ...' line; False for not.
+something_val : str
+    if is_something=True, the string that is the something's value;
+    else, return ''
+
+    """
+
+    is_something  = False
+    something_val = ''
+
+    BAD_RETURN = (-1, is_something, something_val)
+
+    if something is None :
+        print("** ERROR: need to provide a keyword for 'something'")
+        return BAD_RETURN
+    elif not(something in LIST_something) :
+        print("** ERROR: keyword for 'something' must be one of these items:")
+        print("   {}".format(STR_something))
+        print("   ... and that does not include: {}".format(something))
+        return BAD_RETURN
+
+    if not(isinstance(line, str)) :
+        print("** ERROR: input is not a str, but {}:".format(type(line)))
+        print("   {}".format(line))
+        return BAD_RETURN
+
+    line_clean = line.strip()
+    if len(line_clean):
+        line_split = line_clean.split()
+        if len(line_split) == 3 :
+            if line_split[0] == something and line_split[1] == '=' :
+                is_something  = True
+                something_val = line_split[2]
+
+    return 0, is_something, something_val
+
+# ================================================================================
+
+if __name__ == "__main__" :
+
+    x = HeadFile('~/AFNI_data6/FT_analysis/FT.results/FT_anat+orig.HEAD')
+    x.write_report('~/AFNI_data6/FT_analysis/FT.results/report_py_head.txt')
+
+    print("\n"
+    "-> Then run this in the command line:\n"
+    "\n"
+    "   cd ~/AFNI_data6/FT_analysis/FT.results \n"
+    "   3dAttribute -all FT_anat+orig.HEAD > report_3dAttr_head.txt \n"
+    "   meld report_3dAttr_head.txt report_py_head.txt\n")
