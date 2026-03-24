@@ -6623,6 +6623,7 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
 {
    static char FuncName[]={"SUMA_OpenCloseSurfaceCont"};
    SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead=NOPE;
 
    SUMA_ENTRY;
@@ -6630,13 +6631,16 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    /* Surface controller */
    SurfCont=SUMA_ADO_Cont(ado);
    
+   /* Surface overlay */
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   
    /* If surface controller has been created and B checkbox checked,
       turn B check-box off (and turn threshold outlines off */
    if (SurfCont){
-        SurfCont->BoxOutlineThresh = NOPE;
+        curColPlane->BoxOutlineThresh = NOPE;
         if (SurfCont->BoxOutlineThresh_tb) 
             XmToggleButtonSetState( SurfCont->BoxOutlineThresh_tb, 
-                SurfCont->BoxOutlineThresh, YUP);
+                curColPlane->BoxOutlineThresh, YUP);
    }
 
    if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
