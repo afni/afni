@@ -22,10 +22,11 @@ ALL_nifti1_keys = NIF.dict_nifti1.keys()
 
 # ============================================================================
 
-def read_brick_attributes(fname, ssep=DEF_ssep, verb=1):
+def read_brick_attributes_3dA(fname, ssep=DEF_ssep, verb=1):
     """For a given AFNI-formatted BRIK/HEAD dset, called fname, read in
-all attributes to a dictionary. This uses a shell command call to
-3dAttribute.
+all attributes to a dictionary. 
+
+This uses a shell command call to 3dAttribute.
 
 Parameters
 ----------
@@ -259,7 +260,7 @@ Cdict_diffs : dict
     BAD_RETURN = (-1, {})
 
     # get NIFTI header from AFNI brik/head info
-    is_fail1, Adict = read_brick_attributes(fname, verb=verb)
+    is_fail1, Adict = read_brick_attributes_3dA(fname, verb=verb)
     if is_fail1 :    return BAD_RETURN
     is_fail2, NdictA = NIF.make_nifti_header_from_afni( Adict, verb=verb )
     if is_fail2 :    return BAD_RETURN
@@ -844,7 +845,7 @@ if __name__ == "__main__" :
     print("\n----- Ex. 2: anat -----\n")
 
     fname2 = '~/AFNI_data6/FT_analysis/FT.results/FT_anat+orig.HEAD'
-    is_fail2, Adict2 = read_brick_attributes(fname2)
+    is_fail2, Adict2 = read_brick_attributes_3dA(fname2)
 
     is_fail2, Cdict_diffs2 = \
         compare_nifti_from_brick_with_self_copy( fname2, clean_nifti=False )
@@ -858,9 +859,6 @@ if __name__ == "__main__" :
 
 
 
-
-
-
     sys.exit(0)
 
     # older examples
@@ -868,7 +866,7 @@ if __name__ == "__main__" :
 
         # Ex. 1: stats file
         fname1A = '~/AFNI_data6/FT_analysis/FT.results/stats.FT+tlrc.'
-        is_fail1A, Adict1 = read_brick_attributes(fname1A)
+        is_fail1A, Adict1 = read_brick_attributes_3dA(fname1A)
 
         if is_fail1A :    sys.exit(-1)
 
