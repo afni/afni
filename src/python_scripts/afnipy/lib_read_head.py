@@ -63,6 +63,12 @@ class HeadFile:
     """Object for reading in a HEAD file from an AFNI BRIK/HEAD dset
 formatted volume.
 
+This class object can be used to write out a report to file (see the
+write_report() method).
+
+A useful object attribute will also likely be the Adict, which is the
+"attribute dictionary" for the BRIK/HEAD inset.
+
 Parameters
 ----------
 inset : str
@@ -93,8 +99,8 @@ verb : int
         # main data
         self.headtext        = []             # list of lines of *.HEAD files
         self.all_attributes  = []             # list of all attributes
-
         self.report          = []             # list of strings to write out
+        self.Adict           = {}             # attribute dictionary
 
         # ----- take action(s)
 
@@ -104,7 +110,8 @@ verb : int
             tmp3 = self.extract_attributes()
             if add_defaults : 
                 tmp3b = self.set_default_attributes()
-            tmp4 = self.make_report()
+            tmp4 = self.make_Adict()
+            tmp5 = self.make_report()
 
     # ----- methods
 
@@ -146,7 +153,6 @@ verb : int
             return BAD_RETURN
 
         return 0
-
 
     def read_headset(self):
         """Read the headset, which should be a straightforward *.HEAD text
@@ -220,6 +226,9 @@ verb : int
         attributes+values in the list of attributes, even if they don't 
         actually appear in the *.HEAD file itself."""
 
+        if self.verb > 1 :
+            print("++ Checking about adding default attributes")
+
         BAD_RETURN = -1
 
         for key in DICT_default_attributes.keys():
@@ -255,6 +264,9 @@ verb : int
         attributes in the list, mirroring '3dAttribute -all ...'
         output.
         """
+
+        if self.verb > 1 :
+            print("++ Make report")
 
         self.report = []
 
@@ -305,6 +317,28 @@ verb : int
         fff.write('\n'.join(self.report))
         fff.write('\n') # add final new line
         fff.close()
+
+        return 0
+
+    def make_Adict(self):
+        """Make the "attribute dictionary" (Adict) for AFNI's BRIK/HEAD file.
+        In the terminology of the attributes, within the dictionary
+        each attribute name is a key, and the value is, well, the
+        value of the attribute (NB: each value is a list, either of
+        ints, floats or strings).
+        """
+
+        if self.verb > 1 :
+            print("++ Make attribute dictionary (Adict)")
+
+        self.Adict = {}
+
+        for ii in range(self.nattr):
+            attr   = self.all_attributes[ii]
+            aname  = attr.name
+            avalue = attr.value
+
+            self.Adict[aname] = copy.deepcopy(avalue)
 
         return 0
 
