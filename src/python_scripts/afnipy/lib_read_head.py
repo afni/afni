@@ -290,6 +290,7 @@ verb : int
 
         fff = open(fname_full, 'w')
         fff.write('\n'.join(self.report))
+        fff.write('\n') # add final new line
         fff.close()
 
         return 0
