@@ -51,19 +51,25 @@ is_fail : int
 
     # ----- make reports
 
-    is_fail = create_report_3dAttribute(inset_full, pref_lrh_full)
+    is_fail = create_report_3dAttribute(inset_full, pref_lrh_full, 
+                                        verb=verb)
     if is_fail :
+        print("** ERROR: failed to create report with 3dAttribute")
         return BAD_RETURN
     
-    is_fail = create_report_read_head(inset_full, pref_3dA_full)
+    is_fail = create_report_read_head(inset_full, pref_3dA_full, 
+                                      verb=verb)
     if is_fail :
+        print("** ERROR: failed to create report with lib_read_head.py")
         return BAD_RETURN
 
     # ----- make differences
 
     is_fail = compare_report_files(pref_lrh_full, pref_3dA_full,
-                                      prefix_diff=pref_diff_full)
+                                   prefix_diff=pref_diff_full,
+                                   verb=verb)
     if is_fail :
+        print("** ERROR: failed to compare report files")
         return BAD_RETURN
 
     return 0    
@@ -107,8 +113,28 @@ is_fail : int
         cmd+= """ > {} """.format(prefix_diff_full)
     com  = AB.shell_com(cmd, capture=1)
     stat = com.run()
+    
+    # NB: diff has the following status values:
+    #     0 for successful run + no diff
+    #     1 for successful run + diff(s)
+    #     2 for unsuccessful
+    # ... so we take this into account when evaluating success/nonsuccess
+    is_fail = not(stat in [0, 1])
+    if is_fail :
+        print("** ERROR: diff command failed")
+        return BAD_RETURN
+
+    # with redirect, might need to cat file to get diff contents
+    if not(prefix_diff is None) :
+        cmd   = """cat {}""".format(prefix_diff_full)
+        com   = AB.shell_com(cmd, capture=1)
+        stat2 = com.run()
     text_list = com.so
     nlines = len(text_list)
+
+    if stat2 :
+        print("** ERROR: cat command to disp diff content failed")
+        return BAD_RETURN
 
     if verb :
         msg = "++ Comparison complete. "
@@ -118,10 +144,10 @@ is_fail : int
         print('\n'.join(text_list))
         print("-"*40)
 
-    if not(prefix_diff is None) and not(stat) :
+    if not(prefix_diff is None) :
         print("++ Please see saved diff file: {}".format(prefix_diff_full))
 
-    return stat
+    return 0
 
 
 def create_report_3dAttribute(inset, prefix, verb=1):
