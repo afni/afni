@@ -2357,7 +2357,7 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int
     if ( !SurfCont || !SurfCont->ShowZero_tb )  {
       SUMA_S_Warn("NULL control panel pointer"); SUMA_RETURN(0);
     }
-    SurfCont->alphaOpacityModel = QUADRATIC; // Make quadratic fall-off default
+    curColPlane->alphaOpacityModel = QUADRATIC; // Make quadratic fall-off default
     SO = (SUMA_SurfaceObject *)ado;
     XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, state, notify);
   
@@ -2455,7 +2455,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   static int BoxOutlineThresh = 0;
+   static int BoxOutlineThresh = 0;  
    SUMA_SurfaceObject *SOC=NULL, *SO = NULL;
    SUMA_OVERLAYS *over2 = NULL, *colpC=NULL;
    static int savedShowMode;
@@ -2467,12 +2467,29 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
             || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
    SO = (SUMA_SurfaceObject *)ado;
    
+   
    // Get box outline threshold status from checkbox
    BoxOutlineThresh = XmToggleButtonGetState(w);    
-   SO->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
-   // Process for current hemisphere
    over2 = SUMA_ADO_CurColPlane(ado);
+   over2->BoxOutlineThresh = BoxOutlineThresh;
+   // Process for current hemisphere
    over2->makeContours = YUP;
+   
+   /* Make sure box threshold outline true for only one colorplane/dataset */
+   if (over2->BoxOutlineThresh && SO->N_Overlays > 1){
+    int i;
+    
+   // over2->ShowMode = SW_SurfCont_DsetViewCaC;
+   for (i=0; i<SO->N_Overlays; ++i){
+        if (SO->Overlays[i] != over2){
+            fprintf(stderr, "%%%%%%%%%% Set box outline %d to false\n", i);
+            SO->Overlays[i]->BoxOutlineThresh = NOPE; 
+            SO->Overlays[i]->ShowMode = SW_SurfCont_DsetViewCol;      
+        }
+    }
+   }
+   
+   fprintf(stderr, "************* SO->N_Overlays = %d\n", SO->N_Overlays);
    
    // Set Dsp mode to C&C the appropriate mode
    if (BoxOutlineThresh){
@@ -2491,11 +2508,11 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    // Process for contralateral hemisphere
    colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
    if (colpC && SOC){
-       SOC->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+       colpC->BoxOutlineThresh = BoxOutlineThresh;
        XmToggleButtonSetState( SOC->SurfCont->BoxOutlineThresh_tb, 
-            SOC->SurfCont->BoxOutlineThresh, NOPE); // Set B checkbox to reflect box state
+            colpC->BoxOutlineThresh, NOPE); // Set B checkbox to reflect box state
 
-       SOC->SurfCont->BoxOutlineThresh = BoxOutlineThresh;
+       colpC->BoxOutlineThresh = BoxOutlineThresh;
        colpC->makeContours = YUP;
    
        // Set Dsp mode to C&C for contralateral hemisphere
@@ -7185,6 +7202,15 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
    }
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
+   
+   /* Ensure A and B check-box funtuionality set to false (0) */
+//   if (NewDset){
+//    XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 0, 1);
+//    XmToggleButtonSetState(SurfCont->BoxOutlineThresh_tb, 0, 1);
+//   } else {
+//    XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, curColPlane->AlphaOpacityFalloff, 1);
+//    XmToggleButtonSetState(SurfCont->BoxOutlineThresh_tb, curColPlane->BoxOutlineThresh, 1);
+//   }
 
    if (!SurfCont) SUMA_RETURNe;
    if (!SurfCont->opts_form || !SurfCont->opts_rc) SUMA_RETURNe;

@@ -1094,6 +1094,8 @@ typedef struct {
    char *originalCMapName;
    double IntRange[2];
    SUMA_Boolean AlphaOpacityFalloff; /*!<  Variable opacity for sub-threshold colors */
+   int alphaOpacityModel;   // Model used for the opacity falloff from the alpha threshold
+   int BoxOutlineThresh;
    SUMA_Boolean makeContours;
 } SUMA_OVERLAYS;
 
@@ -1773,8 +1775,8 @@ typedef struct {
    Widget AlphaOpacityFalloff_tb; /*!< alpha threshold */
    Widget BoxOutlineThresh_tb; /*!< box outline threshold */
    // int AlphaOpacityFalloff;
-   int alphaOpacityModel;   // Model used for the opacity falloff from the alpha threshold
-   int BoxOutlineThresh;
+//   int alphaOpacityModel;   // Model used for the opacity falloff from the alpha threshold
+//   int BoxOutlineThresh;
 }SUMA_X_SurfCont;
 
 typedef struct {

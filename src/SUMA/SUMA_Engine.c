@@ -4155,6 +4155,14 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE")) {
                 if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
                     XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
+                else {
+                    Widget w = (Widget) EngineData->ip;
+                    Widget tl = SUMA_GetTopShell(w); /* top level widget */
+                    fprintf(stderr, "%%%%%%%%%%%%%% w = %p\n", w);
+                    fprintf(stderr, "%%%%%%%%%%%%%% tl = %p\n", tl);
+                    fprintf(stderr, "%%%%%%%%%%%%%% SUMAg_CF->X->CommonSurfContTLW = %p\n", 
+                            SUMAg_CF->X->CommonSurfContTLW);
+                }
                  N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
                  if (numSurfaceObjects != N_adolist) {
                         SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
@@ -4165,12 +4173,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_ALL_DO *ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
                      SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
                      SurfCont = SO->SurfCont;
+                     curColPlane = SurfCont->curColPlane;
                        if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "L")){
-                          SurfCont->alphaOpacityModel = LINEAR;
+                          curColPlane->alphaOpacityModel = LINEAR;
                        }
                        else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "Q"))
                        {
-                          SurfCont->alphaOpacityModel = QUADRATIC;
+                          curColPlane->alphaOpacityModel = QUADRATIC;
                        }
                        else {
                           SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L/Q",
@@ -4178,7 +4187,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                        }
                        if (!sv) sv = &(SUMAg_SVv[0]); 
                        SO = SUMA_SV_Focus_SO(sv);
-                       SO->SurfCont->alphaOpacityModel = SurfCont->alphaOpacityModel;
+                       SO->SurfCont->curColPlane->alphaOpacityModel = curColPlane->alphaOpacityModel;
            
                        // Refresh display
                        SUMA_Remixedisplay(ado);
@@ -4187,20 +4196,22 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
 
             if (NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED")) {
+                curColPlane = SurfCont->curColPlane;
+                    fprintf(stderr, "curColPlane = %p\n", curColPlane);
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_BOXED", "y")){
-                  SurfCont->BoxOutlineThresh = 1;
+                  curColPlane->BoxOutlineThresh = 1;
                }
                else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_BOXED", "n"))
                {
-                  SurfCont->BoxOutlineThresh = 0;
+                  curColPlane->BoxOutlineThresh = 0;
                }
                else {
                   SUMA_S_Errv("Bad value of %s for SET_FUNC_BOXED, setting to 'y'\n",
                               NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED"));
-                  SurfCont->BoxOutlineThresh = NOPE;
+                  curColPlane->BoxOutlineThresh = NOPE;
                }
                XmToggleButtonSetState ( SurfCont->BoxOutlineThresh_tb,
-                              SurfCont->BoxOutlineThresh, YUP);
+                              curColPlane->BoxOutlineThresh, YUP);
             }
 
             if (NI_get_attribute(EngineData->ngr, "B_sb")) {

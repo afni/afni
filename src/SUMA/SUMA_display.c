@@ -16080,7 +16080,7 @@ void SUMA_cb_ViewerCont_SwitchState (Widget w, XtPointer data,
 }
 
 /*!
-   \brief Callback for Switch Col Plane button
+   \brief Callback for Switch Col Plane (dset) button
    -Expects SO in data
 */
 void SUMA_cb_SurfCont_SwitchColPlane (Widget w, XtPointer data,
@@ -16089,6 +16089,8 @@ void SUMA_cb_SurfCont_SwitchColPlane (Widget w, XtPointer data,
    static char FuncName[]={"SUMA_cb_SurfCont_SwitchColPlane"};
    SUMA_Boolean LocalHead = NOPE;
    SUMA_ALL_DO *ado = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
 
    SUMA_ENTRY;
 
@@ -16096,6 +16098,15 @@ void SUMA_cb_SurfCont_SwitchColPlane (Widget w, XtPointer data,
    ado = (SUMA_ALL_DO *)data;
 
    SUMA_RefreshDsetList (ado);
+   
+   /* Set A and B check boxes to the values for this existing dataset */
+   fprintf(stderr, "++++++++++++++++++++ Toggle check boxes\n");
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   SurfCont = SUMA_ADO_Cont(ado);
+    XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 
+                           curColPlane->AlphaOpacityFalloff, 0);
+    XmToggleButtonSetState(SurfCont->BoxOutlineThresh_tb, 
+                           curColPlane->BoxOutlineThresh, 0);
 
    SUMA_RETURNe;
 }
@@ -16384,6 +16395,19 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    if (!SUMA_SelectSwitchColPlane(ado, LW, ichoice, CloseShop, 1)) {
       SUMA_S_Err("I guess failure was an option.");
    }
+   
+   /* Set A and B check boxes to the values for this existing dataset */
+   fprintf(stderr, "XXXXXXXXXXXXXXXXXXXXXXXX Toggle check boxes\n");
+   ColPlane = SUMA_ADO_CurColPlane(ado);
+   fprintf(stderr, "ColPlane = %p\n", ColPlane);
+   fprintf(stderr, "ColPlane->BoxOutlineThresh = %d\n", ColPlane->BoxOutlineThresh);
+   SurfCont = SUMA_ADO_Cont(ado);
+    XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 
+                           ColPlane->AlphaOpacityFalloff, 1);
+    XmToggleButtonSetState(SurfCont->BoxOutlineThresh_tb, 
+                           ColPlane->BoxOutlineThresh, 1);
+    if (ColPlane->BoxOutlineThresh) ColPlane->ShowMode = SW_SurfCont_DsetViewCaC;
+    else ColPlane->ShowMode = SW_SurfCont_DsetViewCol;
 
    SUMA_RETURNe;
 }
