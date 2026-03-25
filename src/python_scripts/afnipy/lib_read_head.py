@@ -1,16 +1,5 @@
 #!/usr/bin/env python
 
-import os, sys, copy
-
-### TO DO: it looks like some attribute names are populated by
-### default, even if they do not appear explicitly in HEAD file text.
-### These appear to be:
-#   BRICK_LABS = #0~
-#   BRICK_KEYWORDS = (null)
-#   TEMPLATE_SPACE = ORIG~
-#   INT_CMAP = 0 
-### ... so we must add defaults here for them.
-
 # ============================================================================
 # 
 # A library file for read HEAD files.
@@ -28,6 +17,10 @@ import os, sys, copy
 # auth: PA Taylor (SSCC, NIMH, NIH, USA)
 #
 # ============================================================================
+
+import os, sys, copy
+
+# ----------------------------------------------------------------------------
 
 # list of all known AFNI attribute "type = " values
 LIST_attribute_types = [
@@ -201,7 +194,7 @@ verb : int
                 return BAD_RETURN
             elif is_something :
                 if ibot >= 0 :
-                    # grab text from ibot through itop-1, and parse for attribute
+                    # grab text from ibot through itop-1, and parse for attr
                     minitext = self.headtext[ibot:itop]
                     attr = HeadAttribute(L=minitext, verb=self.verb)
                     self.all_attributes.append(attr)
@@ -329,7 +322,7 @@ verb : int
 
 
 
-# =============================================================================
+# ============================================================================
 
 class HeadAttribute:
     """Object for storing pieces of an AFNI attribute in a BRIK/HEAD file.
@@ -637,7 +630,7 @@ L : list (of str)
 
         return 0
             
-# =============================================================================
+# ============================================================================
 # useful helper functions
 
 def is_line_SOMETHING(line, something=None):
@@ -761,7 +754,7 @@ M : list (of str)
 
 
 
-# ================================================================================
+# ============================================================================
 
 if __name__ == "__main__" :
 
