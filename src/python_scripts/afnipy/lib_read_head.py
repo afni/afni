@@ -11,14 +11,18 @@
 # + replacing a long string-attribute value of '~' with '(null)'
 # + maintaining some apparently extraneous newline chars in some text fields
 # 
-# However, at present we have not gone after using the same numerical
-# rounding that 3dAttribute appears to impose. 
+# We have now gone after more of the rounding logic that 3dAttribute
+# imposes on floating point values. However, even so, there can still
+# be some very tiny differences at truncation points. Such is life. We
+# don't take those as failures, just another reminder that one should
+# not try for strict equality with floating point numbers.
 # 
 # auth: PA Taylor (SSCC, NIMH, NIH, USA)
 #
 # ============================================================================
 
 import os, sys, copy
+import math
 
 # ----------------------------------------------------------------------------
 
@@ -261,13 +265,22 @@ verb : int
             acount = attr.count
             avalue = attr.value
             
-            if atype in ['integer-attribute', 'float-attribute'] :
+            if atype in ['integer-attribute'] :
                 # match the spacing of '3dAttribute -all ...', even
                 # including an extra ' ' at the end of the line
                 str_val = ''
                 for val in avalue :
                     str_val+= str(val) + ' '
                 txt = "{} = {}".format(aname, str_val)
+                self.report.append(txt)
+
+            elif atype in ['float-attribute'] :
+                # match the spacing of '3dAttribute -all ...', even
+                # including an extra ' ' at the end of the line
+                txt = "{} = ".format(aname)
+                for val in avalue :
+                    is_fail, ttt = MV_fval_to_char( val )
+                    txt+= ttt.strip() + ' '
                 self.report.append(txt)
 
             elif atype == 'string-attribute' :
@@ -494,8 +507,8 @@ L : list (of str)
     def verify_integer_attribute(self):
         """Do some consistency checks on the integer-attribute type. If all
         goes well, this should set the value in a parsed/appropriate
-        way. Note that the values are not treated like integers, but
-        just left as str when put into the value attribute.
+        way. Values here are now treated like ints.
+
         """
 
         BAD_RETURN = -1
@@ -513,8 +526,15 @@ L : list (of str)
         for line in self.raw_value :
             all_val.extend(line.split())
 
-        # leave values as str
-        self.value = [val for val in all_val]
+        # verify int values: test 1
+        # ... and this is also where the list of actual values is created
+        try:
+            self.value = [int(val) for val in all_val]
+        except:
+            print("** ERROR: when parsing attr: {}".format(self.name))
+            print("   fail to convert integer-attributes to int:")
+            print("   {}".format(' '.join(all_val)))
+            return BAD_RETURN
 
         nvalue = len(self.value)
         if nvalue != self.count :
@@ -523,18 +543,9 @@ L : list (of str)
             print("   and number of values (= {})".format(nvalue))
             return BAD_RETURN
 
-        # verify int values: test 1
-        try:
-            tmp_value = [int(val) for val in all_val]
-        except:
-            print("** ERROR: when parsing attr: {}".format(self.name))
-            print("   fail to convert integer-attributes to int:")
-            print("   {}".format(' '.join(all_val)))
-            return BAD_RETURN
-
         # verify int values: test 2
         for ii in range(nvalue):
-            if tmp_value[ii] != float(all_val[ii]) :
+            if self.value[ii] != float(all_val[ii]) :
                 print("** ERROR: when parsing attr: {}".format(self.name))
                 print("   integer-attribute is not int-valued:")
                 print("   {}".format(all_val[ii]))
@@ -561,23 +572,21 @@ L : list (of str)
         for line in self.raw_value :
             all_val.extend(line.split())
 
-        # leave values as str
-        self.value = [val for val in all_val]
+        # verify float values
+        # ... and this is also where the list of actual values is created
+        try:
+            self.value = [float(val) for val in all_val]
+        except:
+            print("** ERROR: when parsing attr: {}".format(self.name))
+            print("   fail to convert float-attributes to float:")
+            print("   {}".format(' '.join(all_val)))
+            return BAD_RETURN
 
         nvalue = len(self.value)
         if nvalue != self.count :
             print("** ERROR: when parsing attr: {}".format(self.name))
             print("   mismatch in attr count (= {})".format(self.count))
             print("   and number of values (= {})".format(nvalue))
-            return BAD_RETURN
-
-        # verify float values
-        try:
-            tmp_value = [float(val) for val in all_val]
-        except:
-            print("** ERROR: when parsing attr: {}".format(self.name))
-            print("   fail to convert float-attributes to float:")
-            print("   {}".format(' '.join(all_val)))
             return BAD_RETURN
 
         return 0
@@ -753,7 +762,150 @@ M : list (of str)
 
     return 0, M
 
+# ============================================================================
 
+def MV_fval_to_char( qval ):
+    """Follow the same atr_print -> MV_format_fval -> MV_fval_to_char
+(last one is in src/multivector.c) formatting used by 3dAttribute.
+
+Parameters
+----------
+qval : float (or str)
+    floating point value (if qval is a str, convert with float())
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for fail
+buf : str
+    formatted version of qval
+
+    """
+
+    BAD_RETURN = (-1, '')
+
+    # in case a string is input
+    if isinstance(qval, str):
+        qval = float(qval)
+
+    aval = abs(qval)
+
+    # ----- special case if the value is an integer
+
+    if qval == 0.0 :
+        buf = "0"
+        return 0, buf
+
+    if aval < 99999999.0 :
+        lv = int(qval)
+    else:
+        lv = 100000001
+
+    if qval == lv and abs(lv) < 100000000 :
+        buf = "{:d}".format(lv)
+        return 0, buf
+
+    # noninteger: choose floating format based on magnitude
+
+    lv = int(10.0001 + math.log10(aval))
+
+    if 6 <= lv and lv <= 10 :
+        # 0.0001-0.001, 0.001-0.01, 0.01-0.1, 0.1-1, 1-9.99
+        is_fail, buf = BSTRIP("{:-9.6f}".format(qval))
+        return 0, buf
+
+    elif lv == 11 :
+        # 10-99.9
+        is_fail, buf = BSTRIP("{:-9.5f}".format(qval))
+        return 0, buf
+
+    elif lv == 12 :
+        # 100-999.9
+        is_fail, buf = BSTRIP("{:-9.4f}".format(qval))
+        return 0, buf
+
+    elif lv == 13 :
+        # 1000-9999.9
+        is_fail, buf = BSTRIP("{:-9.3f}".format(qval))
+        return 0, buf
+
+    elif lv == 14 :
+        # 10000-99999.9 
+        is_fail, buf = BSTRIP("{:-9.2f}".format(qval))
+        return 0, buf
+
+    elif lv == 15 :
+        # 100000-999999.9 
+        is_fail, buf = BSTRIP("{:-9.1f}".format(qval))
+        return 0, buf
+
+    elif lv == 16 :
+        # 1000000-9999999.9
+        is_fail, buf = BSTRIP("{:-9.0f}".format(qval))
+        return 0, buf
+
+    elif qval > 0.0 :
+        buf = "{:-12.6e}".format(qval)
+        return 0, buf
+
+    else:
+        buf = "{:-12.5e}".format(qval)
+        return 0, buf
+
+def BSTRIP(x):
+    """Strip trailing zeros (or rightside whitespace) from str x.
+
+This is also a macro in src/multivector.c. 
+
+**WARNING** NB: I have added some checks+warnings in this version, but
+you should be very careful about using this widely. Within the
+confines of the conditional logic within MV_factor_fval() above, it
+should be pretty safe. But used incorrectly, this might wipe out 0s
+that carry real meaning!  For example, make sure this only operates on
+numbers like 100.0, and not 100!
+
+Parameters
+----------
+x : str
+    string (hopefully) representing a floating point number
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+y : str
+    processed string
+
+    """
+
+    BAD_RETURN = (-1, '')
+
+    # in case a string is input
+    if not(isinstance(x, str)) :
+        msg = "** ERROR: input to BSTRIP() must be a str, "
+        msg+= "not type: {}".format(type(x))
+        print(msg)
+        return BAD_RETURN
+
+    # warn if no decimal point, because removing 0 might be dangerous
+    if not('.' in x):
+        msg = "+* WARN: no decimal point in x. "
+        msg+= "Is it OK to remove '0' on the right side of: {}?".format(x)
+        print(msg)
+
+    # warn if using exponential notation, because removing 0 might be dangerous
+    if 'e' in x or 'E' in x :
+        msg = "+* WARN: have an e or E in x. "
+        msg+= "Is it OK to remove '0' on the right side of: {}?".format(x)
+        print(msg)
+
+    # remove whitespace at the right
+    y = x.rstrip()
+
+    # remove 0 at right; 
+    y = y.rstrip('0')
+
+    return 0, y
 
 # ============================================================================
 
