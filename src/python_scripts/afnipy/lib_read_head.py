@@ -49,6 +49,17 @@ LIST_something = [
 ]
 STR_something = ', '.join(LIST_something)
 
+# ----------------------------------------------------------------------------
+
+# these attributes are output by '3dAttribute -all ...', with these
+# values, even if they don't actually appear in the *.HEAD file
+DICT_default_attributes = {
+    'BRICK_LABS'     : ['string-attribute', '#0~'],
+    'BRICK_KEYWORDS' : ['string-attribute', '~'],
+    'TEMPLATE_SPACE' : ['string-attribute', 'ORIG~'],
+    'INT_CMAP'       : ['integer-attribute', '0'],
+}
+
 # ============================================================================
 
 class HeadFile:
@@ -61,12 +72,16 @@ inset : str
     filename for an input BRIK/HEAD file. Can be specified in any of
     the usual AFNI ways: DSET+orig, DSET+orig., DSET+orig.BRIK,
     DSET+orig.BRIK.gz, DSET+orig.HEAD, etc.
+add_defaults : bool
+    flag to imitate '3dAttribute -all ...' and include some extra BRIK/HEAD
+    attributes in the output, even if they don't appear in the *.HEAD file
+    itself
 verb : int
     verbosity for terminal text whilst processing
 
     """
 
-    def __init__(self, inset=None, verb=1):
+    def __init__(self, inset=None, add_defaults=True, verb=1):
 
         # ----- set up attributes
 
@@ -90,6 +105,8 @@ verb : int
             tmp1 = self.load_inset()
             tmp2 = self.read_headset()
             tmp3 = self.extract_attributes()
+            if add_defaults : 
+                tmp3b = self.set_default_attributes()
             tmp4 = self.make_report()
 
     # ----- methods
@@ -201,6 +218,35 @@ verb : int
 
         return 0
 
+    def set_default_attributes(self):
+        """To imitate '3dAttribute -all ...', include a set of default 
+        attributes+values in the list of attributes, even if they don't 
+        actually appear in the *.HEAD file itself."""
+
+        BAD_RETURN = -1
+
+        for key in DICT_default_attributes.keys():
+
+            if not(key in self.list_attr_names):
+                name  = key
+                attr_type = DICT_default_attributes[key][0]
+                value     = DICT_default_attributes[key][1:]
+
+                is_fail, M = \
+                    create_minitext_from_attr_info(name, value, attr_type)
+
+                if is_fail :
+                    print("** ERROR: failed for def attr: {}".format(name))
+                    return BAD_RETURN
+
+                attr = HeadAttribute(L=M, verb=self.verb)
+                self.all_attributes.append(attr)
+        
+        if self.verb :
+            print("++ Final number of attributes: {}".format(self.nattr))
+
+        return 0
+
     def disp_attr_names_and_values(self):
         """Display the names and values of all attributes in the list,
         mirroring '3dAttribute -all ...' output """
@@ -268,11 +314,17 @@ verb : int
         return len(self.all_attributes)
 
     @property
-    def disp_attr_names(self):
-        """display the names of all attributes in the list"""
+    def list_attr_names(self):
+        """return a list of the names of all attributes in the list"""
         all_name = []
         for ii in range(self.nattr):
             all_name.append(self.all_attributes[ii].name)
+        return all_name
+
+    @property
+    def disp_attr_names(self):
+        """display the names of all attributes in the list"""
+        all_name = self.list_attr_names
         print('\n'.join(all_name))
 
 
@@ -640,6 +692,74 @@ something_val : str
                 something_val = line_split[2]
 
     return 0, is_something, something_val
+
+def create_minitext_from_attr_info(name, value, attr_type):
+    """Create an list of strings from a minimal set of attribute
+information. The list of strings is made so that it can be provided as
+an input argument to the HeadAttribute class, for generating a full
+attribute with appropriate info.
+
+For integer-attribute or float-attribute, we assume
+
+Parameters
+----------
+name : str
+    the name portion of attribute
+value : list (of str)
+    the value portion of attribute; this could in general be a
+    multiline thing, so we all for that possibility as a list of str
+attr_type : str
+    the attribute portion of the attribute
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+M : list (of str)
+    minitext that imitates what the 
+    """
+
+    BAD_RETURN = (-1, [])
+
+    if not(attr_type in LIST_attribute_types) :
+        print("** ERROR:")
+        print("   Unknown attribute type: {}".format(self.type))
+        print("   Not in recognized list of types:")
+        print("     {}".format(STR_attribute_types))
+        return BAD_RETURN
+
+    M = []
+
+    # type and name are straightforward
+    txt_type = "type = {}".format(attr_type)
+    txt_name = "name = {}".format(name)
+    M.append(txt_type)
+    M.append(txt_name)
+
+    # determine count from value list
+    if attr_type in ['integer-attribute', 'float-attribute'] :
+        all_val = []
+        for line in value:
+            line_split = line.split()
+            all_val.extend(line_split)
+        count = len(all_val)
+    elif attr_type == 'string-attribute' :
+        count = 0
+        for line in value:
+            count+= len(line)
+    
+    txt_count = "count = {}".format(count)
+    M.append(txt_count)
+
+    # append values, with initial prepend of ' for str-attr
+    pre_text = "'"*int(attr_type == 'string-attribute')
+    M.append(pre_text + value[0])
+    for ii in range(1, len(value)):
+        M.append(value[ii])
+
+    return 0, M
+
+
 
 # ================================================================================
 
