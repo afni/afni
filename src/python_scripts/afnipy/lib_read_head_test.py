@@ -11,8 +11,8 @@
 
 import os, sys, copy
 
-from afnipy import lib_read_head as LRH
 from afnipy import afni_base     as AB
+from afnipy import lib_read_head as LRH
 
 # ============================================================================
 

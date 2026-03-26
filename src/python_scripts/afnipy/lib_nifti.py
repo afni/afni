@@ -265,7 +265,7 @@ DICT_MRI_TYPE = {
 # overall conversion
 # convert AFNI brik/head file to NIFTI field dictionary
 
-def make_nifti_header_from_brick(inset, verb=1 ):
+def make_nifti_header_from_brik(inset, verb=1 ):
     """Given AFNI-formatter BRIK/HEAD dataset inset, calculate all
 NIFTI header fields and return that information as a dictionary.
 
@@ -289,7 +289,7 @@ Ndict : dict
     BAD_RETURN = (-1, {})
 
     # read BRIK/HEAD dataset to make Adict
-    is_fail, Adict = LRH.read_brick_attributes(inset, verb=verb)
+    is_fail, Adict = LRH.read_brik_head_attributes(inset, verb=verb)
     if is_fail :
         print("** ERROR: failed to read BRIK/HEAD file: {}".format(inset))
         return BAD_RETURN

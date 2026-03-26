@@ -61,7 +61,7 @@ DICT_default_attributes = {
 # read AFNI brik/head file
 # produce 'attribute dictionary' (Adict), without any AFNI dependencies
 
-def read_brick_attributes(fname, verb=1):
+def read_brik_head_attributes(fname, verb=1):
     """For a given AFNI-formatted BRIK/HEAD dset, called fname, read in
 all attributes to a dictionary. 
 

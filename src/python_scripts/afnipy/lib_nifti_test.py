@@ -14,8 +14,8 @@ import nibabel as nib
 
 from afnipy import afni_util         as au
 from afnipy import afni_base         as ab
-from afnipy import lib_nifti         as NIF
 from afnipy import lib_nibabel_utils as lnu
+from afnipy import lib_nifti         as NIF
 
 # ============================================================================
 
@@ -264,13 +264,13 @@ Cdict_diffs : dict
     BAD_RETURN = (-1, {})
 
     # get NIFTI header from AFNI brik/head info
-    is_fail2, NdictA = NIF.make_nifti_header_from_brick( fname, verb=verb )
+    is_fail2, NdictA = NIF.make_nifti_header_from_brik( fname, verb=verb )
     if is_fail2 :    return BAD_RETURN
 
     # make the NIFTI dset and get its header for comparison
     is_fail3, name_nifti, NdictB = \
-        make_nifti_from_brick(fname, name_nifti=name_nifti, 
-                              clean_nifti=clean_nifti, verb=verb)
+        make_nifti_dset_from_brik(fname, name_nifti=name_nifti, 
+                                  clean_nifti=clean_nifti, verb=verb)
     if is_fail3 :    return BAD_RETURN
 
     # do the comparison of headers
@@ -298,7 +298,8 @@ Cdict_diffs : dict
 
 # --------------------------------------------------------------------------
 
-def make_nifti_from_brick(fname, name_nifti=None, clean_nifti=True, verb=1):
+def make_nifti_dset_from_brik(fname, name_nifti=None, clean_nifti=True, 
+                              verb=1):
     """For a given BRIK/HEAD dset, called fname, first use the command
 line to copy it to a temporary NIFTI dset. Then read in that new
 file's NIFTI header and return it as a dictionary.
@@ -822,12 +823,15 @@ is_simple : int
     for key in D.keys():
         if not(isinstance(key, str)):
             st = au.simple_type(key)
-            ab.EP1("Each key here must be str, but '{}' is a {}".format(key, st))
+            msg = "Each key here must be str, but '{}' is a {}".format(key, st)
+            ab.EP1(msg)
             return BAD_RETURN
         val = D[key]
         if not(isinstance(val, list)):
             st = au.simple_type(val)
-            ab.EP1("Each value here must be list, but '{}' is a {}".format(val, st))
+            msg = "Each value here must be list, "
+            msg+= "but '{}' is a {}".format(val, st)
+            ab.EP1(msg)
             return BAD_RETURN
 
     return 1
@@ -859,36 +863,4 @@ if __name__ == "__main__" :
     is_fail3, Cdict_diffs3 = \
         compare_nifti_from_brick_with_self_copy( fname3, clean_nifti=False )
 
-
-
     sys.exit(0)
-
-    # older examples
-    if 0 :
-
-        # Ex. 1: stats file
-        fname1A = '~/AFNI_data6/FT_analysis/FT.results/stats.FT+tlrc.'
-        is_fail1A, Adict1 = read_brick_attributes_3dA(fname1A)
-
-        if is_fail1A :    sys.exit(-1)
-
-        fname1N = '~/AFNI_data6/FT_analysis/FT.results/stats.FT.nii.gz'
-        is_fail1N, tmp_nameN, Ndict1 = make_nifti_from_brick(fname1A, verb=2)
-
-        if is_fail1N :    sys.exit(-1)
-
-        fname2N = '~/AFNI_data7/task_demo_ap/sub-000.affine.results/stats.sub-000.affine.nii.gz'
-        is_fail2N, Ndict2 = read_nifti_fields(fname2N, verb=2)
-
-        if is_fail2N :    sys.exit(-1)
-
-
-        is_failC, Cdict12_base, Cdict12_count, Cdict12 = \
-            compare_nifti_headers([Ndict1, Ndict2])
-
-        if is_failC :    sys.exit(-1)
-
-        # now get part of NIFTI header from AFNI brik/head info
-        is_fail1b, Ndict1b = NIF.make_nifti_header_from_Adict( Adict1 )
-
-
