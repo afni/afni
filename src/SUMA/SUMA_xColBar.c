@@ -2479,17 +2479,13 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    if (over2->BoxOutlineThresh && SO->N_Overlays > 1){
     int i;
     
-   // over2->ShowMode = SW_SurfCont_DsetViewCaC;
    for (i=0; i<SO->N_Overlays; ++i){
         if (SO->Overlays[i] != over2){
-            fprintf(stderr, "%%%%%%%%%% Set box outline %d to false\n", i);
             SO->Overlays[i]->BoxOutlineThresh = NOPE; 
             SO->Overlays[i]->ShowMode = SW_SurfCont_DsetViewCol;      
         }
     }
    }
-   
-   fprintf(stderr, "************* SO->N_Overlays = %d\n", SO->N_Overlays);
    
    // Set Dsp mode to C&C the appropriate mode
    if (BoxOutlineThresh){
@@ -2528,6 +2524,18 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
 
        // Get contours for contralateral hemisphere
        SUMA_ScaleToMap_Interactive(colpC);
+   
+       /* Make sure box threshold outline true for only one colorplane/dataset */
+       if (colpC->BoxOutlineThresh && SOC->N_Overlays > 1){
+        int i;
+        
+       for (i=0; i<SOC->N_Overlays; ++i){
+            if (SOC->Overlays[i] != colpC){
+                SOC->Overlays[i]->BoxOutlineThresh = NOPE; 
+                SOC->Overlays[i]->ShowMode = SW_SurfCont_DsetViewCol;      
+            }
+        }
+       }
    }
    
    // Refresh display

@@ -16100,13 +16100,12 @@ void SUMA_cb_SurfCont_SwitchColPlane (Widget w, XtPointer data,
    SUMA_RefreshDsetList (ado);
    
    /* Set A and B check boxes to the values for this existing dataset */
-   fprintf(stderr, "++++++++++++++++++++ Toggle check boxes\n");
-   curColPlane = SUMA_ADO_CurColPlane(ado);
-   SurfCont = SUMA_ADO_Cont(ado);
-    XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 
-                           curColPlane->AlphaOpacityFalloff, 0);
-    XmToggleButtonSetState(SurfCont->BoxOutlineThresh_tb, 
-                           curColPlane->BoxOutlineThresh, 0);
+//   curColPlane = SUMA_ADO_CurColPlane(ado);
+//   SurfCont = SUMA_ADO_Cont(ado);
+//    XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 
+//                           curColPlane->AlphaOpacityFalloff, 0);
+//    XmToggleButtonSetState(SurfCont->BoxOutlineThresh_tb, 
+//                           curColPlane->BoxOutlineThresh, 0);
 
    SUMA_RETURNe;
 }
@@ -16397,10 +16396,7 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    }
    
    /* Set A and B check boxes to the values for this existing dataset */
-   fprintf(stderr, "XXXXXXXXXXXXXXXXXXXXXXXX Toggle check boxes\n");
    ColPlane = SUMA_ADO_CurColPlane(ado);
-   fprintf(stderr, "ColPlane = %p\n", ColPlane);
-   fprintf(stderr, "ColPlane->BoxOutlineThresh = %d\n", ColPlane->BoxOutlineThresh);
    SurfCont = SUMA_ADO_Cont(ado);
     XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 
                            ColPlane->AlphaOpacityFalloff, 1);

@@ -4197,7 +4197,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
             if (NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED")) {
                 curColPlane = SurfCont->curColPlane;
-                    fprintf(stderr, "curColPlane = %p\n", curColPlane);
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_BOXED", "y")){
                   curColPlane->BoxOutlineThresh = 1;
                }

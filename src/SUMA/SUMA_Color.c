@@ -10833,7 +10833,6 @@ void SUMA_LoadDsetOntoSO (char *filename, void *data)
    }
    
     /* Ensure A and B check-box funtuionality set to false (0) */
-    fprintf(stderr, "&&&&&&&&&&&&&&& Ensure A and B check-box funtuionality set to false (0)\n");
     XmToggleButtonSetState(SO->SurfCont->AlphaOpacityFalloff_tb, 0, 1);
     XmToggleButtonSetState(SO->SurfCont->BoxOutlineThresh_tb, 0, 1);
 
