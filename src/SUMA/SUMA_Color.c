@@ -10793,8 +10793,6 @@ void SUMA_LoadDsetOntoSO (char *filename, void *data)
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "%s\n", FuncName);
-
    if (!data || !filename) {
       SUMA_SLP_Err("Null data");
       SUMA_RETURNe;

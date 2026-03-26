@@ -16098,14 +16098,6 @@ void SUMA_cb_SurfCont_SwitchColPlane (Widget w, XtPointer data,
    ado = (SUMA_ALL_DO *)data;
 
    SUMA_RefreshDsetList (ado);
-   
-   /* Set A and B check boxes to the values for this existing dataset */
-//   curColPlane = SUMA_ADO_CurColPlane(ado);
-//   SurfCont = SUMA_ADO_Cont(ado);
-//    XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 
-//                           curColPlane->AlphaOpacityFalloff, 0);
-//    XmToggleButtonSetState(SurfCont->BoxOutlineThresh_tb, 
-//                           curColPlane->BoxOutlineThresh, 0);
 
    SUMA_RETURNe;
 }

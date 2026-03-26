@@ -2368,6 +2368,17 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int
          SUMA_RETURN(0);
    }
    
+   /* Make sure box threshold outline true for only one colorplane/dataset */
+   if (curColPlane->AlphaOpacityFalloff && SO->N_Overlays > 1){
+    int i;
+    
+    for (i=0; i<SO->N_Overlays; ++i){
+        if (SO->Overlays[i] != curColPlane){
+            SO->Overlays[i]->AlphaOpacityFalloff = NOPE; 
+        }
+    }
+   }
+   
    SUMA_Remixedisplay(ado);
    
    SUMA_UpdateNodeValField(ado);
@@ -2479,7 +2490,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    if (over2->BoxOutlineThresh && SO->N_Overlays > 1){
     int i;
     
-   for (i=0; i<SO->N_Overlays; ++i){
+    for (i=0; i<SO->N_Overlays; ++i){
         if (SO->Overlays[i] != over2){
             SO->Overlays[i]->BoxOutlineThresh = NOPE; 
             SO->Overlays[i]->ShowMode = SW_SurfCont_DsetViewCol;      
