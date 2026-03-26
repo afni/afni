@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-import sys, copy
-import numpy as np
-
 # ============================================================================
 # 
 # A library of functions and data objects for mapping a dictionary of
@@ -25,6 +22,16 @@ import numpy as np
 # AFNI header features:
 # https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nifti/main_toc.html
 #
+# auth: PA Taylor (SSCC, NIMH, NIH, USA)
+#
+# ============================================================================
+
+import sys, copy
+import numpy as np
+
+# **eventually, change how this is imported when it is a module
+from afnipy import lib_read_head as LRH
+
 # ============================================================================
 # nifti1 header: dictionaries
 
@@ -254,12 +261,49 @@ DICT_MRI_TYPE = {
     8 : "MRI_fvect",
 }
 
-
 # ============================================================================
 # overall conversion
-# convert AFNI brik/head dictionary to NIFTI field dictionary
+# convert AFNI brik/head file to NIFTI field dictionary
 
-def make_nifti_header_from_afni(Adict, verb=1 ):
+def make_nifti_header_from_brick(inset, verb=1 ):
+    """Given AFNI-formatter BRIK/HEAD dataset inset, calculate all
+NIFTI header fields and return that information as a dictionary.
+
+Parameters
+----------
+inset : str
+    name of AFNI-formatted BRIK/HEAD dset (in standard, flexible
+    way of specifying used by AFNI programs)
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+Ndict : dict
+    dictionary of NIFTI header attributes
+
+    """
+
+    BAD_RETURN = (-1, {})
+
+    # read BRIK/HEAD dataset to make Adict
+    is_fail, Adict = LRH.read_brick_attributes(inset, verb=verb)
+    if is_fail :
+        print("** ERROR: failed to read BRIK/HEAD file: {}".format(inset))
+        return BAD_RETURN
+
+    # convert Adict to Ndict
+    is_fail, Ndict = make_nifti_header_from_Adict(Adict, verb=verb)
+    if is_fail :
+        print("** ERROR: failed to convert Adict to Ndict")
+        return BAD_RETURN
+
+    return 0, Ndict
+
+
+def make_nifti_header_from_Adict(Adict, verb=1 ):
     """Given the dictionary of AFNI header attributes Adict, calculate all
 NIFTI header fields and return that information as a dictionary.
 
@@ -286,17 +330,17 @@ Ndict : dict
 
     # go through each conversion function
     is_fail1, datatype, bitpix, scl_slope = \
-        calc_nifti_datatype_bitpix_scl_slope( Adict, verb=verb )
-    is_fail2, toffset          = calc_nifti_toffset( Adict, verb=verb )
-    is_fail3, xyzt_units       = calc_nifti_xyzt_units( Adict, verb=verb )
-    is_fail4, dim              = calc_nifti_dim( Adict, verb=verb )
-    is_fail4, qform_code, sform_code = calc_nifti_qsform_code( Adict, verb=verb )
-    is_fail5, srow_x, srow_y, srow_z = calc_nifti_srow_xyz( Adict, verb=verb )
-    is_fail6, quatern_b, quatern_c, quatern_d, \
+        calc_nifti_datatype_bitpix_scl_slope(Adict, verb=verb)
+    is_fail2, toffset      = calc_nifti_toffset(Adict, verb=verb)
+    is_fail3, xyzt_units   = calc_nifti_xyzt_units(Adict, verb=verb)
+    is_fail4, dim          = calc_nifti_dim(Adict, verb=verb)
+    is_fail5, qform_code, sform_code = calc_nifti_qsform_code(Adict, verb=verb)
+    is_fail6, srow_x, srow_y, srow_z = calc_nifti_srow_xyz(Adict, verb=verb)
+    is_fail7, quatern_b, quatern_c, quatern_d, \
               qoffset_x, qoffset_y, qoffset_z = \
-                  calc_nifti_quatern_and_qoffset( srow_x, srow_y, srow_z, 
-                                                  verb=verb )
-    is_fail7, pixdim           = calc_nifti_pixdim( Adict, verb=verb )
+                  calc_nifti_quatern_and_qoffset(srow_x, srow_y, srow_z, 
+                                                  verb=verb)
+    is_fail8, pixdim       = calc_nifti_pixdim(Adict, verb=verb)
     # **** add the remaining ones here
 
     # apply all of those

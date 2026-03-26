@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 
+# ============================================================================
+# 
+# A library file for testing the BRIK/HEAD -> NIFTI conversion goes.
+#
+# auth: PA Taylor (SSCC, NIMH, NIH, USA)
+# 
+# ============================================================================
+
 import os, sys, copy
 import numpy   as np
 import nibabel as nib
@@ -9,10 +17,6 @@ from afnipy import afni_base         as ab
 from afnipy import lib_nifti         as NIF
 from afnipy import lib_nibabel_utils as lnu
 
-# ============================================================================
-# 
-# A library file for testing the BRIK/HEAD -> NIFTI conversion goes.
-#
 # ============================================================================
 
 DEF_ssep = ':::'            # default string separator in 3dAttribute output
@@ -260,9 +264,7 @@ Cdict_diffs : dict
     BAD_RETURN = (-1, {})
 
     # get NIFTI header from AFNI brik/head info
-    is_fail1, Adict = read_brick_attributes_3dA(fname, verb=verb)
-    if is_fail1 :    return BAD_RETURN
-    is_fail2, NdictA = NIF.make_nifti_header_from_afni( Adict, verb=verb )
+    is_fail2, NdictA = NIF.make_nifti_header_from_brick( fname, verb=verb )
     if is_fail2 :    return BAD_RETURN
 
     # make the NIFTI dset and get its header for comparison
@@ -887,6 +889,6 @@ if __name__ == "__main__" :
         if is_failC :    sys.exit(-1)
 
         # now get part of NIFTI header from AFNI brik/head info
-        is_fail1b, Ndict1b = NIF.make_nifti_header_from_afni( Adict1 )
+        is_fail1b, Ndict1b = NIF.make_nifti_header_from_Adict( Adict1 )
 
 

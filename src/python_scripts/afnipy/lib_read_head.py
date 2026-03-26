@@ -35,7 +35,7 @@ LIST_attribute_types = [
 STR_attribute_types = ', '.join(LIST_attribute_types)
 
 # character used to separate per-volume values in string-attributes
-ssep = '~'
+DEF_ssep = '~'
 
 # what are keyword values that 'something' can take in helper function
 # below, appropriate for HEAD file
@@ -56,6 +56,40 @@ DICT_default_attributes = {
     'TEMPLATE_SPACE' : ['string-attribute', 'ORIG~'],
     'INT_CMAP'       : ['integer-attribute', '0'],
 }
+
+# ============================================================================
+# read AFNI brik/head file
+# produce 'attribute dictionary' (Adict), without any AFNI dependencies
+
+def read_brick_attributes(fname, verb=1):
+    """For a given AFNI-formatted BRIK/HEAD dset, called fname, read in
+all attributes to a dictionary. 
+
+The fname may be specified in any of the usual AFNI ways: DSET+orig,
+DSET+orig., DSET+orig.BRIK, DSET+orig.BRIK.gz, DSET+orig.HEAD, etc.
+
+Parameters
+----------
+fname : str
+    BRIK/HEAD-format dset filename
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+Adict : dict
+    dictionary of AFNI header attributes; each value is a list
+
+    """
+
+    BAD_RETURN = (-1, 0)
+
+    x = HeadFile(fname, verb=verb)
+    Adict = x.Adict
+
+    return 0, Adict
 
 # ============================================================================
 
@@ -335,8 +369,13 @@ verb : int
 
         for ii in range(self.nattr):
             attr   = self.all_attributes[ii]
+            atype  = attr.type
             aname  = attr.name
             avalue = attr.value
+
+            if atype == 'string-attribute' :
+                is_fail, avalue = parse_string_attribute(aname, avalue, 
+                                                         verb=self.verb)
 
             self.Adict[aname] = copy.deepcopy(avalue)
 
@@ -368,7 +407,70 @@ verb : int
         all_name = self.list_attr_names
         print('\n'.join(all_name))
 
+# ----------------------------------------------------------------------------
 
+def parse_string_attribute(name, A, verb=1):
+    """Parse the string-attribute type attributes. A is a list of one or
+more strings, and name is its name.
+
+A lot of the work here is about dealing with separation and
+end-of-line characters.  These are often '~'.
+
+Note: most attributes are a single line and contain explicit '\n'
+characters, but some like MARKS_XYZ and MARKS_HELP actually take up
+multiple lines. This complicates our life, by having to parse a bit
+more. Sigh.
+
+*** To decide at some point: do we care that BRICK_KEYWORDS can be
+    '(null)', and should we treat that as more than a literal str?
+
+Parameters
+----------
+name : str
+    name of attribute (bc some special behavior for specific attr)
+A : list (of str)
+    a single string-attribute, present here as a list of one or more str
+verb : int
+    verbosity level for messages whilst working
+
+Returns
+-------
+is_fail : int
+    0 on success, nonzero on failure
+B : list (of str)
+    a potentially updated version of A with improved/removed formatting
+
+    """
+
+    # this is just hardwired here at the moment; maybe someday it
+    # would become a kwarg, but that day has not arrived
+    ssep = DEF_ssep
+
+    BAD_RETURN = (-1, [])
+
+    B = []
+
+    N = len(A)
+
+    for ii in range(N):
+        val = A[ii]
+
+        if val.endswith(ssep) :
+            # remove ssep at end (there can be more than one) and listify
+            vvv = val[:-len(ssep)]
+            while vvv.endswith(ssep) :
+                vvv = vvv[:-len(ssep)]
+            www = vvv.split(ssep)
+
+            # special case, of wanting to split at ';', too
+            if name == 'BRICK_STATSYM' :
+                # add the '[0]' to not get a list of lists
+                www = [w.split(';') for w in www][0]
+            B.extend(www)
+        else:
+            B.append(val)
+
+    return 0, B
 
 # ============================================================================
 
