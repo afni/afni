@@ -58,6 +58,9 @@ extern int  have_MACOS_FORCE_EXPOSE(void) ;
 extern int  needsX11Redraw(void) ;
 void AFNI_widget_expose_EV( Widget w , XtPointer cd ,
       XEvent *event , RwcBoolean *continue_to_dispatch );
+/* global variable for needsX11Redraw verbosity, also in xutil.c */
+extern int g_needs_x11_redraw_verb;
+
 #if 1
 # define EXPOSEME forceExpose
 #else

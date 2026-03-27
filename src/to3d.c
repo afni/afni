@@ -1979,15 +1979,17 @@ ENTRY("T3D_create_widgets") ;
 
    /*----- all done -----*/
 
-   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
-     XtInsertEventHandler( wset.topform ,  /* handle events in form */
-                           StructureNotifyMask ,    /* resizes (Configure events) */
-                           FALSE ,                  /* nonmaskable events? */
+   if( needsX11Redraw() ){   /* macos 26 fix */
+     XtInsertEventHandler( wset.topform ,
+                           StructureNotifyMask ,  /* resizes */
+                           FALSE ,                /* nonmaskable events? */
                            to3d_expose_EV ,       /* handler */
-                           (XtPointer) NULL ,      /* client data - not used */
-                           XtListTail               /* last in queue */
+                           (XtPointer) NULL ,     /* client data - not used */
+                           XtListTail             /* last in queue */
                          ) ;
-printf("Added event handler for Tahoe resizing of to3d window\n");
+
+     if( g_needs_x11_redraw_verb )
+        printf("Added event handler for to3d window resize\n");
    }
 
    XtManageChild( wset.topform ) ;
@@ -6319,16 +6321,22 @@ void to3d_expose_EV( Widget w , XtPointer cd ,
    XEvent ev;
    XConfigureEvent last = event->xconfigure;
    int iter=0;
+
 ENTRY("to3d_expose_EV") ;
 
-printf("to3d_expose_EV\n");
+   if( g_needs_x11_redraw_verb )
+      printf("to3d_expose_EV\n");
+
    if( busy ) EXRETURN ;
 
    busy = 1 ;
 
    /* try dpeterc's trick for flushing / waiting for ConfigureNotify events */ 
-   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w), ConfigureNotify, &ev)){
-printf("waiting for events to clear - iteration %d\n", iter);
+   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w),
+                                 ConfigureNotify, &ev)){
+      if( g_needs_x11_redraw_verb )
+         printf("-- waiting for events to clear - iteration %d\n", iter);
+
       last = ev.xconfigure;
       NI_sleep(10);
       iter++;
@@ -6337,39 +6345,40 @@ printf("waiting for events to clear - iteration %d\n", iter);
    switch( event->type ){
      case ConfigureNotify:{
           forceExpose( w , 0 ) ;
-printf("ConfigureNotify event for Tahoe resizing of to3d menu\n");
+          if( g_needs_x11_redraw_verb )
+             printf("ConfigureNotify event for resizing of to3d menu\n");
      }
      break ;
  
      case MapNotify:{
-        printf("MapNotify\n");
+        if( g_needs_x11_redraw_verb ) printf("MapNotify\n");
         break;
      }
      case UnmapNotify:{
-        printf("UnmapNotify\n");
+        if( g_needs_x11_redraw_verb ) printf("UnmapNotify\n");
         break;
      }
 
      case CirculateNotify:{
-        printf("CirculateNotify\n");
+        if( g_needs_x11_redraw_verb ) printf("CirculateNotify\n");
         break;
      }
      case DestroyNotify:{
-        printf("DestroyNotify\n");
+        if( g_needs_x11_redraw_verb ) printf("DestroyNotify\n");
         break;
      }
      case GravityNotify:{
-        printf("GravityNotify\n");
+        if( g_needs_x11_redraw_verb ) printf("GravityNotify\n");
         break;
      }
      case ReparentNotify:{
-        printf("ReparentNotify\n");
+        if( g_needs_x11_redraw_verb ) printf("ReparentNotify\n");
         break;
      }
 
      /** No other event types (at this time) */
      default:
-         printf("not ConfigureNotify event\n");
+         if( g_needs_x11_redraw_verb ) printf("not ConfigureNotify event\n");
    }
 
    busy = 0 ;

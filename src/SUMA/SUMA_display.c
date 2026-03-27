@@ -2,9 +2,6 @@
 #include "coxplot.h"
 #include "SUMA_plot.h"
 
-/* AFNI prototype */
-extern void machdep( void );
-
 extern int selenium_close(void) ;
 
 /*! Parts of the code in this file are based on code from the motif programming manual.
@@ -4565,19 +4562,18 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
 
       SUMA_LH("Done with new window setup");
 
-// Tahoe
-//Tahoe fix here for  SurfCont->Mainform (maybe  SurfCont->Page?)
+      if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+        XtInsertEventHandler( Gmainw,  /* handle events in form */
+                              StructureNotifyMask, /* resize Configure events */
+                              FALSE,               /* nonmaskable events? */
+                              SUMA_expose_EV,      /* handler */
+                              (XtPointer)Gmainw,   /* client data - not used */
+                              XtListTail           /* last in queue */
+                            ) ;
 
-   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
-     XtInsertEventHandler( Gmainw,  /* handle events in Mainform */
-                           StructureNotifyMask ,    /* resizes (Configure events) */
-                           FALSE ,                  /* nonmaskable events? */
-                           SUMA_expose_EV ,       /* handler */
-                           (XtPointer) Gmainw ,      /* client data - X, sv or Mainform? */
-                           XtListTail               /* last in queue */
-                         ) ;
-printf("Added event handler for Tahoe resizing of OpenGL SUMA surface window\n");
-       }
+        if( g_needs_x11_redraw_verb )
+          printf("++ add event handler for resize of OpenGL surface window\n");
+      }
 
    } else {    /* widget already set up, just undo whatever
                   was done in SUMA_ButtClose_pushed */
@@ -7502,15 +7498,17 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
       XtManageChild (QuitFrame);
    }
 
-   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
-     XtInsertEventHandler( sv->X->ViewCont->Mainform ,  /* handle events in Mainform */
-                           StructureNotifyMask ,    /* resizes (Configure events) */
-                           FALSE ,                  /* nonmaskable events? */
-                           SUMA_mainform_EV ,       /* handler */
-                           (XtPointer) sv->X ,      /* client data - X, sv or Mainform? */
-                           XtListTail               /* last in queue */
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     XtInsertEventHandler( sv->X->ViewCont->Mainform ,
+                           StructureNotifyMask , /* resize Configure events */
+                           FALSE ,               /* nonmaskable events? */
+                           SUMA_mainform_EV ,    /* handler */
+                           (XtPointer) sv->X ,   /* client data */
+                           XtListTail            /* last in queue */
                          ) ;
-printf("Added event handler for Tahoe resizing of SUMA viewer controller window\n");
+
+     if( g_needs_x11_redraw_verb )
+        printf("++ add event handler for resizing of Main form\n");
    }
 
    XtManageChild (rc_right);
@@ -7538,10 +7536,8 @@ printf("Added event handler for Tahoe resizing of SUMA viewer controller window\
 
 /* simple version - just expose widget directly */
 void SUMA_expose_EV( Widget w , XtPointer cd ,
-                               XEvent *ev , RwcBoolean *continue_to_dispatch )
+                     XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
-//   Three_D_View *im3d = (Three_D_View *)cd ;
-
    static int busy=0 ;
 
 ENTRY("SUMA_expose_EV") ;
@@ -7553,18 +7549,14 @@ ENTRY("SUMA_expose_EV") ;
    switch( ev->type ){
 
      case ConfigureNotify:{
-//            XtUnmanageChild(w);
-//            XtManageChild(w);
         forceExpose( w , 0 ) ;
 
-//        XSync( XtDisplay(w) , False) ;
-
-printf("ConfigureNotify event for Tahoe resizing of object controller\n");
+        if( g_needs_x11_redraw_verb )
+           printf("++ add ConfigureNotify handler for object controller\n");
      }
      break ;
 
      /** No other event types (at this time) */
-
    }
 
    busy = 0 ;
@@ -7575,86 +7567,89 @@ printf("ConfigureNotify event for Tahoe resizing of object controller\n");
 /* expose widget with remanage/expose and enforce height - 
  * consuming extra events */
 void SUMA_surfcont_expose_EV( Widget w , XtPointer cd ,
-                               XEvent *event , RwcBoolean *continue_to_dispatch )
+                              XEvent *event , RwcBoolean *continue_to_dispatch )
 {
-//   Three_D_View *im3d = (Three_D_View *)cd ;
-
    static int busy=0, hold=-1, hnew=-1 ;
    XEvent ev;
    XConfigureEvent last = event->xconfigure;
    int iter=0;
 ENTRY("SUMA_surfcont_expose_EV") ;
 
-printf("SUMA_surfcont_expose_EV\n");
+   if( g_needs_x11_redraw_verb )
+      printf("-- SUMA_surfcont_expose_EV\n");
+
    if( busy ) EXRETURN ;
 
    busy = 1 ;
 
    /* try dpeterc's trick for flushing / waiting for ConfigureNotify events */ 
-   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w), ConfigureNotify, &ev)){
-printf("waiting for events to clear - iteration %d\n", iter);
+   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w), ConfigureNotify,
+                                 &ev)){
+      if( g_needs_x11_redraw_verb )
+         printf("waiting for events to clear - iteration %d\n", iter);
+
       last = ev.xconfigure;
       NI_sleep(10);
       iter++;
    }
 
    switch( event->type ){
-// fall through the MapNotify and UnmapNotify cases to force resize for testing
+     /* fall through the MapNotify and UnmapNotify cases
+      * to force resize for testing */
  
      case ConfigureNotify:{
         /* try to force height to first detected height */
         if (hold < 0) {
            MCW_widget_geom( w , NULL,&hold,NULL,NULL ) ;  \
-printf("first hold height is %d\n",hold); 
+           if( g_needs_x11_redraw_verb )
+               printf("-- SC: first hold height is %d\n",hold);
         }
         else {
            MCW_widget_geom( w , NULL,&hnew,NULL,NULL ) ;  \
 
             XtVaSetValues( w ,                         \
                            XmNheight, hold ,NULL);
-printf("new height is %d trying to reset it to old height %d\n",hnew,hold);
+
+            if( g_needs_x11_redraw_verb )
+               printf("-- SC: new height %d, reset to old %d\n",hnew,hold);
         }
 
-//            XtUnmanageChild(w);
-//            XtManageChild(w);
+        if( g_needs_x11_redraw_verb )
+           printf("-- ConfigureNotify event for resizing object controller2\n");
 
-          forceExpose( w , 0 ) ;
-//        XSync( XtDisplay(w) , False) ;
-
-printf("ConfigureNotify event for Tahoe resizing of object controller2\n");
+        forceExpose( w , 0 ) ;
      }
      break ;
  
      case MapNotify:{
-        printf("MapNotify\n");
+        if( g_needs_x11_redraw_verb ) printf("-- C2 evt: MapNotify\n");
         break;
      }
      case UnmapNotify:{
-        printf("UnmapNotify\n");
+        if( g_needs_x11_redraw_verb ) printf("-- C2 evt: UnmapNotify\n");
         break;
      }
 
      case CirculateNotify:{
-        printf("CirculateNotify\n");
+        if( g_needs_x11_redraw_verb ) printf("-- C2 evt: CirculateNotify\n");
         break;
      }
      case DestroyNotify:{
-        printf("DestroyNotify\n");
+        if( g_needs_x11_redraw_verb ) printf("-- C2 evt: DestroyNotify\n");
         break;
      }
      case GravityNotify:{
-        printf("GravityNotify\n");
+        if( g_needs_x11_redraw_verb ) printf("-- C2 evt: GravityNotify\n");
         break;
      }
      case ReparentNotify:{
-        printf("ReparentNotify\n");
+        if( g_needs_x11_redraw_verb ) printf("-- C2 evt: ReparentNotify\n");
         break;
      }
 
-
      /** No other event types (at this time) */
      default:
-         printf("not ConfigureNotify event\n");
+        if( g_needs_x11_redraw_verb ) printf("-- C2 evt: other\n");
    }
 
    busy = 0 ;
@@ -7663,70 +7658,79 @@ printf("ConfigureNotify event for Tahoe resizing of object controller2\n");
 
 /* simple version - just expose widget directly */
 void SUMA_file_expose_EV( Widget w , XtPointer cd ,
-                               XEvent *event , RwcBoolean *continue_to_dispatch )
+                          XEvent *event , RwcBoolean *continue_to_dispatch )
 {
-//   Three_D_View *im3d = (Three_D_View *)cd ;
-
    static int busy=0, hold=-1, hnew=-1 ;
    XEvent ev;
    XConfigureEvent last = event->xconfigure;
    int iter=0;
 ENTRY("SUMA_file_expose_EV") ;
 
-printf("SUMA_file_expose_EV\n");
+   if( g_needs_x11_redraw_verb ) printf("-- SUMA_file_expose_EV\n");
    if( busy ) EXRETURN ;
 
    busy = 1 ;
 
    /* try dpeterc's trick for flushing / waiting for ConfigureNotify events */ 
-   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w), ConfigureNotify, &ev)){
-printf("waiting for events to clear - iteration %d\n", iter);
+   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w), ConfigureNotify,
+                                 &ev)){
+      if( g_needs_x11_redraw_verb )
+         printf("... waiting for events to clear - iteration %d ...\n", iter);
       last = ev.xconfigure;
-//      NI_sleep(10);
+      /* NI_sleep(10); */
       iter++;
    }
 
    switch( event->type ){
-// fall through the MapNotify and UnmapNotify cases to force resize for testing
+     /* fall through the MapNotify and UnmapNotify cases to
+      * force resize for testing */
  
      case ConfigureNotify:{
      // file dialogs don't like remanagement. They fall up to corner at 0,0
           forceExpose( w , 1 ) ;
 
-printf("ConfigureNotify event for Tahoe resizing file menu items\n");
+        if( g_needs_x11_redraw_verb )
+           printf("-- SC file: ConfigureNotify event\n");
      }
      break ;
  
      case MapNotify:{
-        printf("MapNotify\n");
+        if( g_needs_x11_redraw_verb )
+           printf("-- SC file: MapNotify\n");
         break;
      }
      case UnmapNotify:{
-        printf("UnmapNotify\n");
+        if( g_needs_x11_redraw_verb )
+           printf("-- SC file: UnmapNotify\n");
         break;
      }
 
      case CirculateNotify:{
-        printf("CirculateNotify\n");
+        if( g_needs_x11_redraw_verb )
+           printf("-- SC file: CirculateNotify\n");
         break;
      }
      case DestroyNotify:{
-        printf("DestroyNotify\n");
+        if( g_needs_x11_redraw_verb )
+           printf("-- SC file: DestroyNotify\n");
         break;
      }
      case GravityNotify:{
-        printf("GravityNotify\n");
+        if( g_needs_x11_redraw_verb )
+           printf("-- SC file: GravityNotify\n");
         break;
      }
      case ReparentNotify:{
-        printf("ReparentNotify\n");
+        if( g_needs_x11_redraw_verb )
+           printf("-- SC file: ReparentNotify\n");
         break;
      }
 
 
      /** No other event types (at this time) */
      default:
-         printf("not ConfigureNotify event\n");
+         if( g_needs_x11_redraw_verb )
+            printf("-- SC file: not ConfigureNotify event\n");
    }
 
    busy = 0 ;
@@ -7736,7 +7740,6 @@ printf("ConfigureNotify event for Tahoe resizing file menu items\n");
 void SUMA_mainform_EV( Widget w , XtPointer cd ,
                                XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
-//   Three_D_View *im3d = (Three_D_View *)cd ;
    SUMA_X *svX = (SUMA_X *)cd; /* widget pointer from suma viewer */
    static int busy=0 ;
 
@@ -7749,20 +7752,14 @@ ENTRY("SUMA_mainform_EV") ;
    switch( ev->type ){
 
      case ConfigureNotify:{
-//            XtUnmanageChild(w);
-//            XtManageChild(w);
-
-        
         forceExpose( svX->ViewCont->Mainform , 0 ) ;
 
-//        XSync( XtDisplay(svX->ViewCont->Mainform) , False) ;
-
-printf("ConfigureNotify event for Tahoe resizing of main SUMA viewer controller window\n");
+        if( g_needs_x11_redraw_verb )
+            printf("-- SC main: ConfigureNotify event for viewer\n");
      }
      break ;
 
      /** No other event types (at this time) */
-
    }
 
    busy = 0 ;
@@ -8105,10 +8102,10 @@ SUMA_Boolean SUMA_Snap_AllCont(SUMA_DO_Types do_type, char *fname)
                                     XtPointer callData);
    \param data (XtPointer) to SO (NOT sv)
 
+   - surface object controller menu, ctrl-s to get these in GUI
 */
 void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
 {
-// surface object controller menu, ctrl-s to get these in GUI
    static char FuncName[] = {"SUMA_cb_createSurfaceCont_SO"};
    Widget tl, pb, form,
           rc_left, rc_right, rc_mamma, rc_gmamma, tls=NULL;
@@ -8864,18 +8861,19 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
       }
    }
 
-//Tahoe fix here for  SurfCont->Mainform (maybe  SurfCont->Page?)
-   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
       /* allow for code to resize the shell */
 
-     XtInsertEventHandler( SurfCont->Mainform ,  /* handle events in Mainform */
-                           StructureNotifyMask ,    /* resizes (Configure events) */
-                           FALSE ,                  /* nonmaskable events? */
-                           SUMA_surfcont_expose_EV ,       /* handler */
-                           (XtPointer) SurfCont ,      /* client data - X, sv or Mainform? */
-                           XtListTail               /* last in queue */
-                         ) ;
-printf("Added event handler for Tahoe resizing of SUMA object controller window\n");
+      XtInsertEventHandler( SurfCont->Mainform,
+                            StructureNotifyMask,     /* resizes */
+                            FALSE,                   /* nonmaskable events? */
+                            SUMA_surfcont_expose_EV, /* handler */
+                            (XtPointer) SurfCont,    /* client data */
+                            XtListTail               /* last in queue */
+                          ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for SUMA object controller resize\n");
    }
 
 
@@ -9131,7 +9129,8 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                                               args, 1);
    }
 
-// tahoe - matrix graph controller
+   /* matrix graph controller */
+
    /* create a form widget, manage it at the end ...*/
    SurfCont->Mainform = XtVaCreateWidget ("dialog",
       xmFormWidgetClass, SurfCont->Page ?
@@ -9833,18 +9832,19 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
       }
    }
 
-//Tahoe fix here for  SurfCont->Mainform (maybe  SurfCont->Page?)
-   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
-      /* allow for code to resize the shell */
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     /* allow for code to resize the shell */
 
-     XtInsertEventHandler( SurfCont->Mainform ,  /* handle events in Mainform */
-                           StructureNotifyMask ,    /* resizes (Configure events) */
+     XtInsertEventHandler( SurfCont->Mainform ,
+                           StructureNotifyMask ,    /* resizes */
                            FALSE ,                  /* nonmaskable events? */
-                           SUMA_surfcont_expose_EV ,       /* handler */
-                           (XtPointer) SurfCont ,      /* client data - X, sv or Mainform? */
+                           SUMA_surfcont_expose_EV ,/* handler */
+                           (XtPointer) SurfCont ,   /* client data */
                            XtListTail               /* last in queue */
                          ) ;
-printf("Added event handler for Tahoe resizing of SUMA graph controller window\n");
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for SUMA graph controller resize\n");
    }
 
    SUMA_LHv("Management ...%p %p %p %p %p\n",
@@ -10098,8 +10098,8 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
    }
 
    /* create a form widget, manage it at the end ...*/
-//Tahoe note- tract controller 
-  SurfCont->Mainform = XtVaCreateWidget ("dialog",
+   /* - tract controller */
+   SurfCont->Mainform = XtVaCreateWidget ("dialog",
       xmFormWidgetClass, SurfCont->Page ?
                               SurfCont->Page:SurfCont->TLS,
       XmNborderWidth , 0 ,
@@ -10672,18 +10672,18 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
    }
 
 
-//Tahoe fix here for  SurfCont->Mainform (maybe  SurfCont->Page?)
-   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
-      /* allow for code to resize the shell */
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     /* allow for code to resize the shell */
 
-     XtInsertEventHandler( SurfCont->Mainform ,  /* handle events in Mainform */
-                           StructureNotifyMask ,    /* resizes (Configure events) */
-                           FALSE ,                  /* nonmaskable events? */
-                           SUMA_surfcont_expose_EV ,       /* handler */
-                           (XtPointer) SurfCont ,      /* client data - X, sv or Mainform? */
-                           XtListTail               /* last in queue */
+     XtInsertEventHandler( SurfCont->Mainform ,
+                           StructureNotifyMask ,      /* resizes */
+                           FALSE ,                    /* nonmaskable events? */
+                           SUMA_surfcont_expose_EV ,  /* handler */
+                           (XtPointer) SurfCont ,     /* client data */
+                           XtListTail                 /* last in queue */
                          ) ;
-printf("Added event handler for Tahoe resizing of SUMA tract controller window\n");
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for SUMA tract controller resize\n");
    }
 
    SUMA_LHv("Management ...%p %p %p %p %p\n",
@@ -11618,19 +11618,19 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
 
 
 
-//Tahoe fix here for  SurfCont->Mainform (maybe  SurfCont->Page?)
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     /* allow for code to resize the shell */
 
-   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
-      /* allow for code to resize the shell */
-
-     XtInsertEventHandler( SurfCont->Mainform ,  /* handle events in Mainform */
-                           StructureNotifyMask ,    /* resizes (Configure events) */
-                           FALSE ,                  /* nonmaskable events? */
-                           SUMA_surfcont_expose_EV ,       /* handler */
-                           (XtPointer) SurfCont ,      /* client data - X, sv or Mainform? */
-                           XtListTail               /* last in queue */
+     XtInsertEventHandler( SurfCont->Mainform ,
+                           StructureNotifyMask ,      /* resizes */
+                           FALSE ,                    /* nonmaskable events? */
+                           SUMA_surfcont_expose_EV ,  /* handler */
+                           (XtPointer) SurfCont ,     /* client data */
+                           XtListTail                 /* last in queue */
                          ) ;
-printf("Added event handler for Tahoe resizing of SUMA volume controller window\n");
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for SUMA volume controller resize\n");
    }
 
    SUMA_LHv("Management ...%p %p %p %p %p\n",
@@ -13321,8 +13321,8 @@ SUMA_Register_Widget_Help( SUMAg_CF->X->DrawROI->AppShell , 0,
 ":SPX:"
 "\n") ;
 
-// tahoe DrawROI
-   /* create a form widget, manage it at the end ...*/
+   /* create a form widget (DrawROI), manage it at the end ...*/
+
    SUMAg_CF->X->DrawROI->form = XtVaCreateWidget ("dialog",
       xmFormWidgetClass, SUMAg_CF->X->DrawROI->AppShell,
       XmNborderWidth , 0 ,
@@ -13759,17 +13759,18 @@ SUMA_Register_Widget_Help( SUMAg_CF->X->DrawROI->AppShell , 0,
    XtManageChild (SUMAg_CF->X->DrawROI->frame);
 
 
-// tahoe - resizing
-   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
-     XtInsertEventHandler( SUMAg_CF->X->DrawROI->form,  /* handle events in form */
-                           StructureNotifyMask ,    /* resizes (Configure events) */
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     XtInsertEventHandler( SUMAg_CF->X->DrawROI->form,
+                           StructureNotifyMask ,    /* resizes */
                            FALSE ,                  /* nonmaskable events? */
-                           SUMA_expose_EV ,       /* handler */
-                           (XtPointer) SUMAg_CF->X->DrawROI->form ,      /* client data - X, sv or Mainform? */
+                           SUMA_expose_EV ,         /* handler */
+                           (XtPointer) SUMAg_CF->X->DrawROI->form , /* cdata */
                            XtListTail               /* last in queue */
                          ) ;
-printf("Added event handler for Tahoe resizing of Draw ROI window\n");
-       }
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for Draw ROI resize\n");
+   }
 
    /* manage form */
    XtManageChild (SUMAg_CF->X->DrawROI->form);
@@ -17019,8 +17020,7 @@ void SUMA_cb_createSumaCont(Widget ww, XtPointer ddata, XtPointer ccallData)
       XmInternAtom( SUMAg_CF->X->DPY_controller1 , "WM_DELETE_WINDOW" , False ) ,
       SUMA_cb_closeSumaCont, NULL) ;
 
-// tahoe multi-suma controller lock
-   /* create a form widget, manage it at the end ...*/
+   /* create form widget (multi-suma controller lock), manage at the end ...*/
    SUMAg_CF->X->SumaCont->form = XtVaCreateWidget ("dialog",
       xmFormWidgetClass, SUMAg_CF->X->SumaCont->AppShell,
       XmNborderWidth , 0 ,
@@ -17292,33 +17292,35 @@ void SUMA_cb_createSumaCont(Widget ww, XtPointer ddata, XtPointer ccallData)
 
    XtManageChild (SUMAg_CF->X->SumaCont->AppFrame);
 
-// tahoe - resizing
-  if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
-     XtInsertEventHandler( SUMAg_CF->X->SumaCont->form,  /* handle events in form */
-                           StructureNotifyMask ,    /* resizes (Configure events) */
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     XtInsertEventHandler( SUMAg_CF->X->SumaCont->form,
+                           StructureNotifyMask ,    /* resizes */
                            FALSE ,                  /* nonmaskable events? */
-                           SUMA_expose_EV ,       /* handler */
-                           (XtPointer) Gmainw ,      /* client data - X, sv or Mainform? */
+                           SUMA_expose_EV ,         /* handler */
+                           (XtPointer) Gmainw ,     /* client data */
                            XtListTail               /* last in queue */
                          ) ;
-printf("Added event handler for Tahoe resizing of locking window\n");
-       }
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for locking window resize\n");
+   }
 
    /* manage the remaining widgets */
    XtManageChild (SUMAg_CF->X->SumaCont->form);
-// tahoe fix
-//#if MACOS_FORCE_EXPOSE
-   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
-     XtInsertEventHandler( SUMAg_CF->X->SumaCont->form,  /* handle events in Mainform */
-                           StructureNotifyMask ,    /* resizes (Configure events) */
+
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     XtInsertEventHandler( SUMAg_CF->X->SumaCont->form,
+                           StructureNotifyMask ,    /* resizes */
                            FALSE ,                  /* nonmaskable events? */
-                           SUMA_expose_EV ,       /* handler */
-                           (XtPointer) SUMAg_CF->X->SumaCont->form ,      /* client data - X, sv or Mainform? */
+                           SUMA_expose_EV ,         /* handler */
+                           (XtPointer) SUMAg_CF->X->SumaCont->form, /* cdata */
                            XtListTail               /* last in queue */
                          ) ;
-printf("Added event handler for Tahoe resizing of OpenGL SUMA controller lock window\n");
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for SUMA lock window resize\n");
    }
-//#endif
+
    /* realize the widget */
    XtRealizeWidget (SUMAg_CF->X->SumaCont->AppShell);
 
@@ -18403,15 +18405,17 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
                         XtParseTranslationTable(SUMA_TEXT_WIDGET_TRANSLATIONS),
                         NULL);
       */
-      if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
-        XtInsertEventHandler( form ,  /* handle events in form */
-                              StructureNotifyMask ,    /* resizes (Configure events) */
-                              FALSE ,                  /* nonmaskable events? */
-                              SUMA_expose_EV ,       /* handler */
-                              (XtPointer) NULL ,      /* client data - not used */
-                              XtListTail               /* last in queue */
+      if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+        XtInsertEventHandler( form ,
+                              StructureNotifyMask , /* resizes */
+                              FALSE ,               /* nonmaskable events? */
+                              SUMA_expose_EV ,      /* handler */
+                              (XtPointer) NULL ,    /* client data - not used */
+                              XtListTail            /* last in queue */
                             ) ;
-   printf("Added event handler for Tahoe resizing of SUMA usage help window\n");
+
+        if( g_needs_x11_redraw_verb )
+           printf("-- Added event handler for SUMA usage help resize\n");
       }
 
       XtManageChild (form);
@@ -22100,15 +22104,18 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (
 
    XmStringFree (button);
    XmStringFree (title);
-   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
-     XtInsertEventHandler( dlg->dlg_w ,  /* handle events in w */
-                           StructureNotifyMask ,    /* resizes (Configure events) */
-                           FALSE ,                  /* nonmaskable events? */
-                           SUMA_file_expose_EV ,       /* handler */
+
+   if( needsX11Redraw() ){   /* macos 26 x11 workaround */
+     XtInsertEventHandler( dlg->dlg_w ,
+                           StructureNotifyMask ,   /* resizes */
+                           FALSE ,                 /* nonmaskable events? */
+                           SUMA_file_expose_EV ,   /* handler */
                            (XtPointer) NULL ,      /* client data - not used */
-                           XtListTail               /* last in queue */
+                           XtListTail              /* last in queue */
                          ) ;
-printf("Added event handler for Tahoe resizing of SUMA load view menu\n");
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for SUMA load view menu resize\n");
    }
 
    XtManageChild (dlg->dlg_w);

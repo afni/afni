@@ -555,17 +555,18 @@ SUMA_SHPINX_BREAK
    /* realize the widget */
    if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SUMAg_CF->X->SC_Notebook);
 
-// tahoe - resizing
-   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
-     XtInsertEventHandler( SurfCont->Mainform,  /* handle events in form */
-                           StructureNotifyMask ,    /* resizes (Configure events) */
+   if( needsX11Redraw() ){   /* macos 26 fix */
+     XtInsertEventHandler( SurfCont->Mainform,
+                           StructureNotifyMask ,    /* resizes */
                            FALSE ,                  /* nonmaskable events? */
-                           SUMA_expose_EV ,       /* handler */
-                           (XtPointer) SurfCont->Mainform ,  /* client data - X, sv or Mainform? */
+                           SUMA_expose_EV ,         /* handler */
+                           (XtPointer) SurfCont->Mainform ,  /* client data */
                            XtListTail               /* last in queue */
                          ) ;
-printf("Added event handler for Tahoe resizing of Mask controller tractography window\n");
-       }
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for Mask ctrl tractography resize\n");
+   }
 
    XtRealizeWidget (SurfCont->TLS);
    

@@ -1817,15 +1817,17 @@ ENTRY( "RCREND_make_widgets" );
 
    XtManageChild(anat_rowcol) ;
    XtManageChild(anat_frame) ;
-  if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
-     XtInsertEventHandler( top_rowcol,  /* handle events in form */
-                           StructureNotifyMask ,    /* resizes (Configure events) */
+   if( needsX11Redraw() ){   /* macos 26 fix */
+     XtInsertEventHandler( top_rowcol,
+                           StructureNotifyMask ,    /* resizes */
                            FALSE ,                  /* nonmaskable events? */
                            AFNI_widget_expose_EV ,  /* handler */
                            (XtPointer) NULL ,       /* client data - not used */
                            XtListTail               /* last in queue */
                          ) ;
-printf("Added event handler for Tahoe resizing of render plugin window\n");
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for render plugin window resize\n");
    }
 
    XtManageChild(top_rowcol) ;

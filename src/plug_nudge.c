@@ -626,7 +626,9 @@ static void NUD_make_widgets(void)
                            (XtPointer) NULL ,       /* client data - not used */
                            XtListTail               /* last in queue */
                          ) ;
-printf("Added event handler for Tahoe resizing of nudge plugin window\n");
+
+     if( g_needs_x11_redraw_verb )
+        printf("Added event handler for nudge plugin window resize\n");
    }
 
    XtManageChild(rowcol) ;

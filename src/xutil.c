@@ -96,6 +96,9 @@
 #include "Amalloc.h"
 extern char * THD_find_executable( char * ) ;
 
+/* global verbosity for needsX11Redraw use */
+int g_needs_x11_redraw_verb = 0;
+
 /*--------------------------------------------------------------------
   force an immediate expose for the widget
 ----------------------------------------------------------------------*/
@@ -174,6 +177,12 @@ int needsX11Redraw(void)
       else
          fprintf(stderr,"** invalid AFNI_DO_X11_REDRAW %s (should be yes/no)\n",
                         eptr);
+   }
+
+   /* also init g_needs_x11_redraw_verb */
+   if( AFNI_yesenv("AFNI_X11_REDRAW_VERB") ) {
+      g_needs_x11_redraw_verb = 1;
+      fprintf(stderr,"++ have x11_redraw %d, with verbosity\n", needsit);
    }
 
    return needsit;
@@ -327,55 +336,70 @@ void AFNI_widget_expose_EV( Widget w , XtPointer cd ,
    int iter=0;
 ENTRY("AFNI_widget_expose_EV") ;
 
-printf("AFNI_widget_expose_EV\n");
+   if( g_needs_x11_redraw_verb )
+      printf("AFNI_widget_expose_EV\n");
+
    if( busy ) EXRETURN ;
 
    busy = 1 ;
 
    /* dpeterc's trick for flushing / waiting for ConfigureNotify events */ 
-   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w), ConfigureNotify, &ev)){
-printf("waiting for events to clear - iteration %d\n", iter);
+   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w),
+                                 ConfigureNotify, &ev)){
+      if( g_needs_x11_redraw_verb )
+         printf("waiting for events to clear - iteration %d\n", iter);
+
       last = ev.xconfigure;
-//      NI_sleep(10);
+      /* consider NI_sleep(10); */
+
       iter++;
    }
 
    switch( event->type ){
      case ConfigureNotify:{
-          forceExpose( w , 1 ) ;
-printf("ConfigureNotify event for Tahoe resizing widgets\n");
+        if( g_needs_x11_redraw_verb )
+           printf("ConfigureNotify event for Tahoe resizing widgets\n");
+
+        forceExpose( w , 1 ) ;
      }
      break ;
  
      case MapNotify:{
-        printf("MapNotify\n");
+        if( g_needs_x11_redraw_verb )
+           printf("MapNotify\n");
         break;
      }
      case UnmapNotify:{
-        printf("UnmapNotify\n");
+        if( g_needs_x11_redraw_verb )
+           printf("UnmapNotify\n");
         break;
      }
 
      case CirculateNotify:{
-        printf("CirculateNotify\n");
+        if( g_needs_x11_redraw_verb )
+           printf("CirculateNotify\n");
         break;
      }
      case DestroyNotify:{
-        printf("DestroyNotify\n");
+        if( g_needs_x11_redraw_verb )
+           printf("DestroyNotify\n");
         break;
      }
      case GravityNotify:{
-        printf("GravityNotify\n");
+        if( g_needs_x11_redraw_verb )
+           printf("GravityNotify\n");
         break;
      }
      case ReparentNotify:{
-        printf("ReparentNotify\n");
+        if( g_needs_x11_redraw_verb )
+           printf("ReparentNotify\n");
         break;
      }
 
      /** No other event types (at this time) */
      default:
-         printf("not ConfigureNotify event\n");
+        if( g_needs_x11_redraw_verb )
+           printf("not ConfigureNotify event\n");
    }
 
    busy = 0 ;
