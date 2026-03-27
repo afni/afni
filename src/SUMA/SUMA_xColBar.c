@@ -2367,7 +2367,8 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
     SUMA_RETURNe;
    }
 
-   /* set AlphaOpacityFalloff for other surfaces */
+   /* set AlphaOpacityFalloff for contralateral surface */
+   /* -- todo: this needs to be reworked */
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
    for (j=0; j<N_adolist; ++j){
        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);

@@ -5935,15 +5935,19 @@ int SUMA_ADOs_WithUniqueSurfCont (SUMA_DO *dov, int N_dov, int *dov_IDs)
       }
    }
 
-   /* verify consistency in Notebook? */
+   /* if "All Objs." has not been done, say, there might be many surfaces,
+      but most without rendered pages */
    if( SUMAg_CF->X->UseSameSurfCont ) {
       XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                     &numSurfaceObjects, NULL);
-      if (numSurfaceObjects != nfound)
-          SUMA_S_Warn("Mismatch between # surface objects and "
-                      "# unique surface controllers");
+      if (0 && numSurfaceObjects != nfound)
+          SUMA_S_Warn("Mismatch between # surface objects %d and "
+                      "# unique surface controllers %d ",
+                      numSurfaceObjects, nfound);
 
       /* return min(numSurfaceObjects, nfound) as a precaution */
+      /* rcr: this needs rethinking, maybe just return nfound
+            - it should be handled properly at higher level */
       if( numSurfaceObjects < nfound )
          nfound = numSurfaceObjects;
    }
