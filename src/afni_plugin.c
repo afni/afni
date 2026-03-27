@@ -2200,6 +2200,20 @@ STATUS("management") ;
       XtManageChild( wframe ) ;
       XtManageChild( wid->scrollw ) ;
    }
+
+   if( needsX11Redraw() ){   /* macos 26 fix */
+     XtInsertEventHandler( wid->form ,
+                           StructureNotifyMask ,   /* resizes */
+                           FALSE ,                 /* nonmaskable events? */
+                           AFNI_widget_expose_EV , /* handler */
+                           (XtPointer) NULL ,      /* client data - not used */
+                           XtListTail              /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for generic plugin window resize\n");
+   }
+
    XtManageChild( wid->form ) ;
 
 #if 0

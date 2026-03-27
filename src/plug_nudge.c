@@ -618,6 +618,18 @@ static void NUD_make_widgets(void)
    print_pb = (Widget) NUD_actor[7].data ;
 
    /*** that's all ***/
+  if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( rowcol,  /* handle events in form */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           AFNI_widget_expose_EV ,  /* handler */
+                           (XtPointer) NULL ,       /* client data - not used */
+                           XtListTail               /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("Added event handler for nudge plugin window resize\n");
+   }
 
    XtManageChild(rowcol) ;
    XtRealizeWidget(shell) ; NI_sleep(1) ; /* will not be mapped */
