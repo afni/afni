@@ -1,0 +1,337 @@
+#!/bin/tcsh
+
+set version   = "1.0";   set rev_dat   = "Sept 25, 2025"
+
+
+# ===========================================================================
+
+# regenerate everything from this file
+set dset = afni_refacer_shell_sym_1.0.nii.gz
+
+# ============================================================================
+# read in + interpret cmd line opts
+
+# don't allow this functionality, because this program takes no
+# options to run (at present)
+###if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # there really aren't any options to use here...
+
+    # -------------------------------------------------------
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        exit 2
+
+    endif
+    @ ac += 1
+end
+
+# ===========================================================================
+# checks for necessary data, and cleaning
+
+if ( ! -e ${dset} ) then
+    echo "** ERROR: can't find input dset: ${dset}"
+    exit -1
+endif
+
+set all_remove1 = `find . -name "__*.nii*" | cut -b3- | sort`
+set all_remove2 = `find . -name "TEST*.nii*" | cut -b3- | sort`
+set all_remove3 = `find . -name "DIFF_*.nii*" | cut -b3- | sort`
+
+if ( ${#all_remove1} ) then
+    echo "++ Clean up phase 1"
+    \rm ${all_remove1}
+endif
+
+if ( ${#all_remove2} ) then
+    echo "++ Clean up phase 2"
+    \rm ${all_remove2}
+endif
+
+if ( ${#all_remove3} ) then
+    echo "++ Clean up phase 3"
+    \rm ${all_remove3}
+endif
+
+# ============================================================================
+# start work
+
+# create everything from [0]th volume
+set dset = ${dset}'[0]'
+
+# signed maps of positive and negative regions
+3dcalc                                                                       \
+    -overwrite                                                               \
+    -a          "${dset}"                                                    \
+    -expr       '(-1)**(isnegative(a))*bool(a)'                              \
+    -prefix     __tmp_BOOLSIGN.nii.gz                                        \
+    -datum      float                                                        \
+    -nscale
+
+# where input=0
+3dcalc                                                                       \
+    -overwrite                                                               \
+    -a          "${dset}"                                                    \
+    -expr       'not(bool(a))'                                               \
+    -prefix     __tmp_NOTBOOL.nii.gz
+
+# full cluster map of input=0
+3dClusterize                                                                 \
+    -overwrite                                                               \
+    -clust_nvox  1                                                           \
+    -idat        0                                                           \
+    -ithr        0                                                           \
+    -NN          1                                                           \
+    -1sided      RIGHT_TAIL 0.5                                              \
+    -inset       __tmp_NOTBOOL.nii.gz                                        \
+    -pref_dat    __tmp_CLUST_ALL.nii.gz
+
+# cluster map of large middle/empty region
+3dClusterize                                                                 \
+    -overwrite                                                               \
+    -clust_nvox  10000                                                       \
+    -idat        0                                                           \
+    -ithr        0                                                           \
+    -NN          1                                                           \
+    -1sided      RIGHT_TAIL 0.5                                              \
+    -inset       __tmp_NOTBOOL.nii.gz                                        \
+    -pref_dat    __tmp_CLUST_BIG.nii.gz
+
+# cluster map of just tiny input=0 regions
+3dcalc                                                                       \
+    -overwrite                                                               \
+    -a          __tmp_CLUST_BIG.nii.gz                                       \
+    -b          __tmp_CLUST_ALL.nii.gz                                       \
+    -expr       'bool(b)-bool(a)'                                            \
+    -prefix     __tmp_CLUST_SMALL.nii.gz                                     \
+    -datum      short                                                        \
+    -nscale
+
+# try to get neighborhood sign everywhere
+3dLocalstat                                                                  \
+    -overwrite                                                               \
+    -nbhd       'SPHERE(-1.42)'                                              \
+    -stat       mean                                                         \
+    -prefix     __tmp_CLUST_SMALL_SIGN.nii.gz                                \
+    -datum      float __tmp_BOOLSIGN.nii.gz
+
+# local neighborhood means
+3dLocalstat                                                                  \
+    -overwrite                                                               \
+    -nbhd       'SPHERE(-1.42)'                                              \
+    -stat       max                                                          \
+    -prefix     __all_max.nii.gz                                             \
+    -datum      float                                                        \
+    "${dset}"
+
+# apply signs and give tiny zero regions new values
+3dcalc                                                                       \
+    -overwrite                                                               \
+    -a          __tmp_CLUST_SMALL.nii.gz                                     \
+    -b          __tmp_CLUST_SMALL_SIGN.nii.gz                                \
+    -c          "${dset}"                                                    \
+    -d           __all_max.nii.gz                                            \
+    -expr       'bool(a)*(isnegative(b)*(-1) + not(isnegative(b))*d) + \
+                 not(bool(a))*c'                                             \
+    -prefix     __tmp_OUT_FILL.nii.gz
+
+
+# first test for isolated bits of nonzero
+3dcalc                                                                       \
+    -overwrite                                                               \
+    -a          __tmp_OUT_FILL.nii.gz                                        \
+    -expr       'not(bool(a))'                                               \
+    -prefix     TESTNOTBOOL.nii.gz
+
+# second test for isolated bits of nonzero
+3dcalc                                                                       \
+    -overwrite                                                               \
+    -a          __tmp_OUT_FILL.nii.gz                                        \
+    -expr       'bool(a)'                                                    \
+    -prefix     TESTBOOL.nii.gz
+
+# ----- remap eyes that have value -1 to +1
+
+# signed maps of positive and negative regions
+3dcalc                                                                       \
+    -overwrite                                                               \
+    -a          __tmp_OUT_FILL.nii.gz                                        \
+    -expr       'isnegative(a)'                                              \
+    -prefix     __tmp2_NEG.nii.gz                                            \
+
+# full cluster map of input=0
+3dClusterize                                                                 \
+    -overwrite                                                               \
+    -clust_nvox  1                                                           \
+    -idat        0                                                           \
+    -ithr        0                                                           \
+    -NN          1                                                           \
+    -1sided      RIGHT_TAIL 0.5                                              \
+    -inset       __tmp2_NEG.nii.gz                                           \
+    -pref_dat    __tmp2_CLUST2_ALL.nii.gz
+
+# cluster map of large middle/empty region
+3dClusterize                                                                 \
+    -overwrite                                                               \
+    -clust_nvox  20000                                                       \
+    -idat        0                                                           \
+    -ithr        0                                                           \
+    -NN          1                                                           \
+    -1sided      RIGHT_TAIL 0.5                                              \
+    -inset       __tmp2_NEG.nii.gz                                           \
+    -pref_dat    __tmp2_CLUST2_BIG.nii.gz
+
+# cluster map of just eyes
+3dcalc                                                                       \
+    -overwrite                                                               \
+    -a          __tmp2_CLUST2_BIG.nii.gz                                     \
+    -b          __tmp2_CLUST2_ALL.nii.gz                                     \
+    -expr       'bool(b)-bool(a)'                                            \
+    -prefix     __tmp2_CLUST2_SMALL.nii.gz                                   \
+    -datum      short                                                        \
+    -nscale
+
+# remap eyes to be +1
+3dcalc                                                                       \
+    -overwrite                                                               \
+    -a          __tmp2_CLUST2_SMALL.nii.gz                                   \
+    -b          __tmp_OUT_FILL.nii.gz                                        \
+    -expr       'bool(a)+not(bool(a))*b'                                     \
+    -prefix     __tmp2_OUT_FILL_FINAL_A.nii.gz
+
+# ----- make [1]th volume
+
+# only use slices below a certain level; retain shell values
+3dcalc                                          \
+    -overwrite                                                               \
+    -a          __tmp2_OUT_FILL_FINAL_A.nii.gz     \
+    -expr       'a*isnegative(z+30)*ispositive(z+142)*isnegative(y-59)' \
+    -prefix     __tmp2_OUT_FILL_FINAL_B.nii.gz             \
+    -datum      short                                \
+    -nscale
+
+# ... and again for larger deface
+3dcalc                                          \
+    -overwrite                                                               \
+    -a          __tmp2_OUT_FILL_FINAL_A.nii.gz     \
+    -expr       'a*isnegative(z+30)*ispositive(z+142)*isnegative(y-59)' \
+    -prefix     __tmp2_OUT_FILL_FINAL_C.nii.gz             \
+    -datum      short                                \
+    -nscale
+# ... and trims away sub-brain stuff more
+3dcalc                                           \
+    -a       __tmp2_OUT_FILL_FINAL_C.nii.gz             \
+    -expr       'a-iszero(a)*isnegative(z+90)'         \
+    -prefix      __tmp2_OUT_FILL_FINAL_D.nii.gz             \
+    -datum short                                  \
+    -nscale
+
+# ----- finalize
+
+# v1.1 concatenate volumes
+3dTcat                                            \
+    -overwrite                                    \
+    -prefix afni_refacer_shell_sym_1.1.nii.gz     \
+    __tmp2_OUT_FILL_FINAL_A.nii.gz                  \
+    __tmp2_OUT_FILL_FINAL_B.nii.gz  
+
+# remove history, and give subbrick labels
+3drefit -denote                 afni_refacer_shell_sym_1.1.nii.gz
+3drefit -sublabel 0 "refacer"   afni_refacer_shell_sym_1.1.nii.gz
+3drefit -sublabel 1 "defacer"   afni_refacer_shell_sym_1.1.nii.gz
+
+3dNotes                                                                  \
+    -h "Created with adjunct_refacer_make_master_addendum2 v${version}"  \
+    afni_refacer_shell_sym_1.1.nii.gz
+
+# v2.1 concatenate volumes
+3dTcat                                            \
+    -overwrite                                    \
+    -prefix afni_refacer_shell_sym_2.1.nii.gz     \
+    __tmp2_OUT_FILL_FINAL_A.nii.gz                  \
+    __tmp2_OUT_FILL_FINAL_D.nii.gz  
+
+# remove history, and give subbrick labels
+3drefit -denote                 afni_refacer_shell_sym_2.1.nii.gz
+3drefit -sublabel 0 "refacer"   afni_refacer_shell_sym_2.1.nii.gz
+3drefit -sublabel 1 "defacer"   afni_refacer_shell_sym_2.1.nii.gz
+
+3dNotes                                                                  \
+    -h "Created with adjunct_refacer_make_master_addendum2 v${version}"  \
+    afni_refacer_shell_sym_2.1.nii.gz
+
+
+# -----------------------------------------------------------------------
+
+3dcalc \
+    -overwrite \
+    -a afni_refacer_shell_sym_2.1.nii.gz \
+    -b afni_refacer_shell_sym_2.0.nii.gz \
+    -expr 'bool(a-b)*(ispositive(a-b)-isnegative(a-b))'                    \
+    -prefix DIFF_sym_2.1_min_2.0.nii.gz
+
+3dcalc \
+    -overwrite \
+    -a afni_refacer_shell_sym_1.1.nii.gz \
+    -b afni_refacer_shell_sym_1.0.nii.gz \
+    -expr 'bool(a-b)*(ispositive(a-b)-isnegative(a-b))'                    \
+    -prefix DIFF_sym_1.1_min_1.0.nii.gz
+
+goto GOOD_EXIT
+
+# =============================================================================
+# =============================================================================
+
+SHOW_VERSION:
+
+    echo "$version"
+
+    goto GOOD_EXIT
+
+# ---------------------------------- 
+
+SHOW_HELP:
+
+cat <<EOF
+
+This is an adjunct program.  It actually takes no command line
+arguments to run.
+
+written by PA Taylor, the nearly anonymous
+---------------------------------------------------------------------
+Options
+
+-help
+-ver
+
+EOF
+
+    goto GOOD_EXIT
+ 
+# ---------------------------------- 
+
+FAIL_MISSING_ARG:
+    echo "** missing parameter for option $argv[$ac]"
+    goto BAD_EXIT
+
+# ---------------------------------- 
+
+BAD_EXIT:
+    exit 1
+
+# ---------------------------------- 
+
+GOOD_EXIT:
+    exit 0
