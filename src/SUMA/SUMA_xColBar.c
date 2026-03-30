@@ -2538,10 +2538,7 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
    curColPlane->OptScl->UseThr = UseThr;
 
    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   if (numSurfaceObjects != N_adolist) {
-       if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-       if (numSurfaceObjects != 1) SUMA_RETURNe;
-   }
+
    /* todo: probably change this to just cross hemisphere */
    for (j=0; j<N_adolist; ++j){
        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
