@@ -229,7 +229,7 @@ void forceExpose(Widget w, int source)
 
    /* note whether this ever happens on a system */
    if( cc == 0 ) {
-      fprintf(stderr,"== have forceExpose %d, choice %d\n",
+      fprintf(stderr,"== have forceExpose, source %d, choice %d\n",
               source, redraw_choice);
       cc++;
    }

@@ -2503,6 +2503,7 @@ void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
 
    Int_tb = XmToggleButtonGetState (SurfCont->Int_tb);
     
+   /* todo: probably change this to just cross hemisphere */
    for (j=0; j<numSurfaceObjects; ++j){
       ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
 
@@ -2512,6 +2513,9 @@ void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
       if ( !curColPlane )  {
          SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
       }
+
+      if( ! SurfCont->Int_tb )   /* might not have anything to set */
+         continue;
 
       /* make sure ok to turn on */
       if (curColPlane->OptScl->find < 0) {
@@ -2588,6 +2592,7 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
        if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
        if (numSurfaceObjects != 1) SUMA_RETURNe;
    }
+   /* todo: probably change this to just cross hemisphere */
    for (j=0; j<numSurfaceObjects; ++j){
        ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
 
@@ -2597,6 +2602,9 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
       if ( !curColPlane )  {
          SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
       }
+
+      if( ! SurfCont->Thr_tb )   /* might not have anything to set */
+         continue;
 
       /* make sure ok to turn on */
       if (curColPlane->OptScl->tind < 0) {

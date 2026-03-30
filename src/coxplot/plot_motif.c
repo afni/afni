@@ -637,15 +637,17 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
    XtAddCallback( drawing , XmNresizeCallback , pm_resize_CB , (XtPointer) mpcb ) ;
    XtAddCallback( drawing , XmNinputCallback  , pm_input_CB  , (XtPointer) mpcb ) ;
 
-   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+   if( needsX11Redraw() ){   /* macos 26 fix */
      XtInsertEventHandler( form ,  /* handle events in form */
-                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           StructureNotifyMask ,    /* resizes */
                            FALSE ,                  /* nonmaskable events? */
-                           AFNI_widget_expose_EV ,       /* handler */
-                           (XtPointer) mpcb ,      /* client data - not used */
+                           AFNI_widget_expose_EV ,  /* handler */
+                           (XtPointer) mpcb ,       /* client data - not used */
                            XtListTail               /* last in queue */
                          ) ;
-printf("Added event handler for Tahoe resizing of plot (1D,graymap,... window\n");
+
+     if( g_needs_x11_redraw_verb )
+        printf("Added event handler for plot resize (1D,graymap,... window\n");
    }
 
    /* finish the job */
