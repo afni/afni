@@ -305,6 +305,20 @@ examples: ~1~
 
              timing_tool.py -timing stim01_houses.txt -show_modulator_stats
 
+       g. verify that stim times are TR-locked (like in e), but the TR
+          is not exact on a computer (ratio denom is not power of 2)
+
+          Use -show_events and evaluate the offsets directly by showing
+          only the part of the fractions that are to the right of the
+          decimal.  So a TR-locked output should be numbers around 000 or
+          999 (or possibly not shown at all if there are no decimals).
+
+             timing_tool.py -multi_timing stim.*.1D              \\
+                -tr 1.3 -show_events                             \\
+                | grep -v '#' | awk '{print $3}'                 \\
+                | 1deval -a - -expr a/1.3 | awk -F. '{print $2}' \\
+                | sort -n | uniq
+
    Example 11.  test a file for local/global timing issues ~2~
 
        Test a timing file for timing issues, which currently means having
@@ -956,6 +970,8 @@ action options (apply to single timing element, only): ~1~
         Include -verb 0 to avoid per-run stats.
 
         Some comments may be made for the global results.
+
+        Also, use '-verb 3' to directly show all fractional offsets.
 
             See also '-show_tr_stats', '-warn_tr_stats'.
 
@@ -1793,9 +1809,10 @@ g_history = """
                      - add -timing_to_1D_method
    3.25 Jul 29, 2025 - add -force_write_type
    3.26 Feb  9, 2026 - fix fname_prefix to return intended length
+   3.27 Mar  3, 2026 - add help for tr_stats of non-binary TRs (like 1.3 s)
 """
 
-g_version = "timing_tool.py version 3.26, February 9, 2026"
+g_version = "timing_tool.py version 3.27, March 3, 2026"
 
 
 

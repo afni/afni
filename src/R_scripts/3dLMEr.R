@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.2, Jun 13, 2025
+Version 1.2.0, March 25, 2026
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1288,6 +1288,7 @@ if(lop$TRR) { # test-retest analysis
       # number of datasets need to be filled
       fill <- nSeg-dimx%%nSeg
       # pad with extra 0s
+      nF <- dim(inData)[2]
       inData <- rbind(inData, array(0, dim=c(fill, nF)))
       # break input multiple segments for parrel computation
       dim(inData) <- c(dimx_n, nSeg, nF)

@@ -53,6 +53,37 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Mar, 2026, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -censor_to_spike_regs",
+   "Use this option to convert a 3dDeconvolve-style censor file\n"
+   "to an equivalent multi-column spike regressor file."
+ } ,
+
+ {  9, Mar, 2026, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "on macos, check CPU type for gcc vs that of system",
+   NULL
+ } ,
+
+ {  3, Mar, 2026, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
+   "add help for evaluating TR-offset stats for non-binary TRs, like 1.3",
+   NULL
+ } ,
+
+ {  3, Mar, 2026, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
+   "describe converting an HRF (long stimulus) to an IRF in the help",
+   NULL
+ } ,
+
+ { 19, Feb, 2026, RCR, "make_random_timing.py", MICRO, TYPE_MODIFY,
+   "add -tr_locked to g_style_opts_old",
+   "Sorry about that, Catherine."
+ } ,
+
+ { 19, Feb, 2026, RCR, "SurfToSurf", MICRO, TYPE_ENHANCE,
+   "add an example usage",
+   "Inspired by P Molfese."
+ } ,
+
  {  9, Feb, 2026, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
    "fix labels in -write_simple_tsv (they were truncated)",
    NULL

@@ -6671,7 +6671,6 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    SUMA_LH("Initializing ColPaneShell");
    SUMA_InitializeColPlaneShell(ado, SUMA_ADO_CurColPlane(ado));
 
-
    /* Now close it quick. Maybe should put a delayed closing for nicer effect */
    if (!SUMAg_CF->X->UseSameSurfCont) { /* Don't minimize when using one surfcont
                                           it is more annoying than useful */
@@ -6868,7 +6867,6 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_RETURN(0);
@@ -8202,6 +8200,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
          XmInternAtom( dpy , "WM_DELETE_WINDOW" , False ) ,
          SUMA_cb_closeSurfaceCont, (XtPointer) ado) ;
 
+      /* SUMAg_CF->X->SC_Notebook is set only in the case of UseSameSurfCont */
       if (SUMAg_CF->X->UseSameSurfCont) {
          Widget scroller;
          SUMAg_CF->X->CommonSurfContTLW = tls;
@@ -15077,6 +15076,13 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
    curColPlane = SUMA_ADO_CurColPlane(ado);
 
    SUMA_LHv("About to change page to %d\n", (int)SurfCont->SurfContPage->value);
+
+   /* this should not happen, so let us know  [23 Mar 2026 rickr] */
+   if (!SUMAg_CF->X->UseSameSurfCont) {
+      fprintf(SUMA_STDERR,
+              "Error %s: UseSameSurfCont is not set\n", FuncName);
+      SUMA_RETURNe;
+   }
    
    // This if function causes the surface control menu to expand downwards.
    if (!(SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook,
