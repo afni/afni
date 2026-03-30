@@ -3373,6 +3373,19 @@ ENTRY("MCW_choose_multi_strlist") ;
      XtVaSetValues( wpop , XmNx , old_xx  , XmNy , old_yy-YDEL  , NULL ) ;  /* Apr 2013 */
    }
 
+   if( needsX11Redraw() ){   /* macos 26 fix */
+     XtInsertEventHandler( wrc ,
+                           StructureNotifyMask ,    /* resizes */
+                           FALSE ,                  /* nonmaskable events? */
+                           AFNI_widget_expose_EV ,  /* handler */
+                           (XtPointer) NULL ,       /* client data - not used */
+                           XtListTail               /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for generic choose_strlist resize\n");
+   }
+
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
 

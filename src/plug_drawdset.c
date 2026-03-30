@@ -640,6 +640,19 @@ void DRAW_make_widgets(void)
      AV_SENSITIZE( copy_type_av , True ) ;
      AV_SENSITIZE( copy_datum_av, True ) ;
 
+     if( needsX11Redraw() ){   /* macos 26 fix */
+        XtInsertEventHandler( rc  ,  /* handle events in form */
+                           StructureNotifyMask ,   /* resizes */
+                           FALSE ,                 /* nonmaskable events? */
+                           AFNI_widget_expose_EV , /* handler */
+                           (XtPointer) NULL ,      /* client data - not used */
+                           XtListTail              /* last in queue */
+                         ) ;
+
+        if( g_needs_x11_redraw_verb )
+           printf("-- Added event handler for Draw Dataset window resize\n");
+     }
+
      XtManageChild(rc) ;
 
    } /* end of Copy mode stuff */
