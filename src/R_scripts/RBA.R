@@ -29,7 +29,7 @@ intro <-
 	      Welcome to RBA ~1~
 Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.9, May 31, 2025 
+Version 1.2.0, April 2, 2025 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1269,7 +1269,7 @@ if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
    if(!is.null(lop$ridgePlot)) ridge(ps0, range(ps0), lop$qContrL[2*ii-1], lop$ridgePlot[1], lop$ridgePlot[2])
 }
 
-# for factor
+# for factors
 if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    lvl <- levels(as.factor(lop$dataTable[[lop$EOIc[ii]]]))  # levels
    nl <- nlevels(as.factor(lop$dataTable[[lop$EOIc[ii]]]))  # number of levels: last level is the reference in deviation coding
@@ -1279,8 +1279,8 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    ps[nl,,] <- psROI(aa, bb, 'Intercept') # Intercept: average effect 
    psa <- array(0, dim=c(nl, ns, nR)) # posterior samples adjusted
    for(jj in 1:(nl-1)) {
-      psa[jj,,] <- ps[nl,,]  + ps[jj,,]
-      psa[nl,,] <- psa[nl,,] + ps[jj,,] 
+      psa[jj,,] <- ps[nl,,]  + ps[jj,,]  # ps[jj,,]: jth level minus average (ps[nl,,])
+      psa[nl,,] <- psa[nl,,] + ps[jj,,]  # 
    }
    psa[nl,,] <- ps[nl,,] - psa[nl,,]  # reference level
    #dimnames(psa) <- list(NULL, NULL, dimnames(bb$ROI)[[2]]) # add ROI names for plotting
@@ -1316,9 +1316,12 @@ if(is.na(lop$mean)) {
    mm <- list()
    GLM <- as.formula(paste('Y ~', lop$model))
    if(lop$scale!=1) lop$dataTable$Y <- (lop$dataTable$Y)/lop$scale  # scale back for GLM
+   options(contrasts = c("contr.treatment", "contr.poly")) # change to treatment contrast for easy output
    for(ii in levels(lop$dat[[lop$ROI]])) mm[[ii]] = lm(GLM, data=lop$dat[lop$dat[[lop$ROI]]==ii,])
    nn <- lapply(mm, summary)
    ll <- lapply(nn, `[`, 'coefficients')
+
+   save.image(file=paste0(lop$outFN, ".RData"))
    
    sumGLM <- function(ll, tm, nR, DF, nd) {
       th <- qt(c(0.025, 0.05, 0.5, 0.95, 0.975), DF)
@@ -1358,7 +1361,9 @@ if(is.na(lop$mean)) {
       nl <- nlevels(lop$dataTable[[lop$EOIc[ii]]])  # number of levels: last level is the reference in deviation coding
       ss <- vector("list", length = nl-1) 
       for(jj in 1:(nl-1)) {
-         ss[[jj]] <- do.call(rbind,lapply(lapply(nn, `[[`, 'coefficients'), `[`,2,,drop=FALSE))
+         #ss[[jj]] <- do.call(rbind,lapply(lapply(nn, `[[`, 'coefficients'), `[`,2,,drop=FALSE))
+         # fix the bug '2' on the line above
+         ss[[jj]] <- do.call(rbind,lapply(lapply(nn, `[[`, 'coefficients'), `[`,paste0(lop$EOIc[ii], lvl[jj+1]),,drop=FALSE))
          rownames(ss[[jj]]) <- levels(lop$dat[[lop$ROI]])
       }
       #ss[[nl]] <- sumGLM(ll, '(Intercept)', nR, nn[[ii]]$df, 8)
@@ -1391,7 +1396,7 @@ if(is.na(lop$mean)) {
       
       cat(sprintf('===== Summary of region effects under GLM for %s comparisons (for reference only) =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       for(jj in 1:(nl-1)) {
-         cat(sprintf('----- level comparison: %i vs reference level', jj), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+         cat(sprintf('----- level comparison: %s vs %s', lvl[jj+1], lvl[1]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
          cat(capture.output(ss[[jj]]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
          cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       #for(jj in 1:(nl-1)) for(kk in (jj+1):nl) {
