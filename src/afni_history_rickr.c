@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Apr, 2026, RCR, "@diff.tree", MINOR, TYPE_ENHANCE,
+   "make more space-friendly, adding quote and :q for most variable access",
+   NULL
+ } ,
+
  { 18, Mar, 2026, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add -censor_to_spike_regs",
    "Use this option to convert a 3dDeconvolve-style censor file\n"
