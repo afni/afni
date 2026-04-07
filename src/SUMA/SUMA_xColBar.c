@@ -2524,8 +2524,8 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    
        // Set Dsp mode to C&C for contralateral hemisphere
        if (BoxOutlineThresh){
-           colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewCol)? 
-                SW_SurfCont_DsetViewCaC : SW_SurfCont_DsetViewCon;
+           colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewXXX)? 
+                SW_SurfCont_DsetViewCon : SW_SurfCont_DsetViewCaC;
        } else {
            colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewCon)? 
                 SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
