@@ -356,8 +356,15 @@ set progname = @animal_warper
 #set version   = "4.00";   set rev_dat   = "Aug 6, 2024"
 #     + [PT, DRG] fix application of shift shifting.
 #   
-set version   = "4.10";   set rev_dat   = "Mar 25, 2025"
+#set version   = "4.10";   set rev_dat   = "Mar 25, 2025"
 #     + [PT, DRG] avoid '-iwarp' in auto_warp.py
+#   
+set version   = "4.11";   set rev_dat   = "Apr 08, 2026"
+#     + [PT] in some cases, the name of auto_warp.py's output warp
+#            can be different than what was originally assumed and widely
+#            seen. This code generalizes the ability to get the WARP
+#            dset correctly. It also passes along the '-keep_temp' 
+#            functionality to auto_warp.py
 #   
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -1800,16 +1807,29 @@ if ( ($ok_to_exist == "1") && \
      (-f ${srcsh2_prefix}_WARP.nii.gz) ) then
    echo "++ Reusing nonlinear WARP dataset"
 else
+   # keep temporary files within auto_warp.py wdir, too?
+   if ( "${keep_temp}" == "1") then
+      set opt_krf = "-keep_rm_files"
+   else
+      set opt_krf = ""
+   endif
+
    # nonlinear warping via auto_warp script
    # [PT: 25-03-2025] removing '-iwarp' here; see 3dNwarpCat, just below
-   auto_warp.py  -overwrite                                      \
-      -base "${base_dset}"                                       \
+
+cat <<EOF > run_auto_warp.tcsh
+
+   auto_warp.py  -overwrite  ${opt_krf}                          \
+      -base "${base_dset}"  \
       -affine_input_xmat ID                                      \
       -qworkhard 0 2                                             \
       -input ${imed}/${srcsh2_prefix}_aff.nii.gz                 \
-      -output_dir ${awpy_dir}                                    \
+      -output_dir ${awpy_dir}  \
       -qw_opts -maxlev ${maxlev} ${nlcostoption}                 \
       $extra_qw_opts
+EOF
+
+   time tcsh run_auto_warp.tcsh |& tee log_auto_warp.txt
 
    if ( ${status} ) then
        echo "** ERROR: program failed (autowarp)"
@@ -1819,13 +1839,41 @@ else
    # [PT: 25-03-2025] adding next cmd to avoid using '-iwarp' in
    # auto_warp.py, above
    cd ${awpy_dir}
+
+   echo "++ make inverse warp"
+
+   # [PT: 2026-04-07] apparently, the name of the warp might not be
+   # constant. So, we do some work here to find warp dset. Thanks to
+   # AFNI user pavanjella for pointing this out, and helping to
+   # troubleshoot.
+    
+   # Want to find exactly 1 
+   set dset_warp = `find . -type f -name "*qw_WARP.nii*" | cut -b3-`
+   if ( ${#dset_warp} != 1 ) then
+      echo "** ERROR: should find exactly 1 warp dset, but instead found"
+      echo "   ${#dset_warp} of them: ${dset_warp}"
+      exit 1
+   endif
+   
+   # make invwarp name
+   set bbb = `3dinfo -prefix_noext ${dset_warp}`
+   # NB: do *not* put quotes around this next expression, as that
+   # changes its interpretation
+   set dset_iwarp = ${bbb:gas/qw\_WARP/qw\_WARPINV/}.nii
+    
    # need to propagate this explicitly in many cases
-   set aspace = `3dinfo -space anat.un.qw_WARP.nii`
+   set aspace = `3dinfo -space ${dset_warp}`
    3dNwarpCat                                                  \
       -overwrite                                               \
-      -warp1  'INV(anat.un.qw_WARP.nii)'                       \
-      -prefix  anat.un.qw_WARPINV.nii
-   3drefit -space ${aspace} anat.un.qw_WARPINV.nii
+      -warp1  "INV(${dset_warp})"                              \
+      -prefix "${dset_iwarp}"
+
+   if ( ${status} ) then
+       echo "** ERROR: program failed (inverse of autowarp)"
+       exit 1
+   endif
+
+   3drefit -space ${aspace} "${dset_iwarp}"
    cd -
 
    # the awpy has the result dataset, copy the warped data, the warp,
@@ -1835,12 +1883,12 @@ else
    # THIS is a major output
    # from orig+shft2+aff -> base
    3dcopy -overwrite                                \
-        ${awpy_dir}/anat.*.qw_WARP.nii*             \
+        "${awpy_dir}/${dset_warp}"                  \
         ${srcsh2_prefix}_WARP.nii.gz
 
    # from base -> orig+shft2+aff
    3dcopy -overwrite                                \
-        ${awpy_dir}/anat.*.qw_WARPINV.nii*          \
+        "${awpy_dir}/${dset_iwarp}"                 \
         ${srcsh2_prefix}_WARPINV.nii.gz
 
    if ( ${status} ) then
@@ -1904,11 +1952,26 @@ else
     # just be generic "TLRC)"
     set space = `3dinfo -space "${srcsh2_prefix}_WARPINV.nii.gz"`
 
+    # [PT: Apr 8, 2026] This is the concatenation of two transforms
+    # that have first been inverted and then concatenated; as noted in
+    # earlier changes, we will avoid this order of ops; now, first
+    # concatenate, then invert. While this will make very little diff
+    # in most cases, this order of ops is more generally appropriate
+    # to preserve diffeomorphic invertibility
+
     3dNwarpCat  -echo_edu                                          \
-        -warp1  "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
-        -warp2  "${srcsh2_prefix}_WARPINV.nii.gz"                  \
+        -iwarp                                                     \
+        -warp2  "${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D"     \
+        -warp1  "${srcsh2_prefix}_WARP.nii.gz"                     \
         -space  "${space}"                                         \
         -prefix "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz"
+
+    ### ... which replaces this OLD version:
+    #3dNwarpCat  -echo_edu                                          \
+    #    -warp1  "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
+    #    -warp2  "${srcsh2_prefix}_WARPINV.nii.gz"                  \
+    #    -space  "${space}"                                         \
+    #    -prefix "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz"
 
     if ( ${status} ) then
         echo "** ERROR: program failed (3dNwarpCat, base2osh)"
@@ -3458,6 +3521,16 @@ Outputs (we got plenty of 'em!) ~1~
     + Alignment data (TEM->INP)
       o INP_composite_linear_to_template_inv.1D - matrix, full affine part
       o INP_shft_WARPINV.nii.gz - NL part of warp (TEM grid)
+      o INP_base2osh_WARP.nii.gz - full warp (TEM grid)
+
+      NB: to warp from TEM->INP, it is better to _not_ concatenate two
+      previously inverted warps and use the result; instead, it is
+      better to concatenate the 'forward' TEM->INP warps and invert
+      the result. While the results should in general be similar, the
+      former will not necessarily preserve diffeomorphic invertibility
+      and in some cases could have undesirable oddities in the
+      resulting warp---the latter is safer. That is the method by which 
+      INP_base2osh_WARP.nii.gz was created, so that could be used.
 
   QC info ~2~
 
