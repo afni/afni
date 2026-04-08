@@ -3523,7 +3523,7 @@ Outputs (we got plenty of 'em!) ~1~
       o INP_shft_WARPINV.nii.gz - NL part of warp (TEM grid)
       o INP_base2osh_WARP.nii.gz - full warp (TEM grid)
 
-      NB: to warp from TEM-INP, it is better to _not_ concatenate two
+      NB: to warp from TEM->INP, it is better to _not_ concatenate two
       previously inverted warps and use the result; instead, it is
       better to concatenate the 'forward' TEM->INP warps and invert
       the result. While the results should in general be similar, the
