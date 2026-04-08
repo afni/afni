@@ -366,6 +366,11 @@ set version   = "4.11";   set rev_dat   = "Apr 08, 2026"
 #            dset correctly. It also passes along the '-keep_temp' 
 #            functionality to auto_warp.py
 #   
+set version   = "4.12";   set rev_dat   = "Apr 08, 2026"
+#     + [PT] swap out one last 3dNwarpCat action of two inverted warps
+#            in favor of first concatenating two warps, and inverting
+#            the result
+#
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -1950,11 +1955,26 @@ else
     # just be generic "TLRC)"
     set space = `3dinfo -space "${srcsh2_prefix}_WARPINV.nii.gz"`
 
+    # [PT: Apr 8, 2026] This is the concatenation of two transforms
+    # that have first been inverted and then concatenated; as noted in
+    # earlier changes, we will avoid this order of ops; now, first
+    # concatenate, then invert. While this will make very little diff
+    # in most cases, this order of ops is more generally appropriate
+    # to preserve diffeomorphic invertibility
+
     3dNwarpCat  -echo_edu                                          \
-        -warp1  "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
-        -warp2  "${srcsh2_prefix}_WARPINV.nii.gz"                  \
+        -iwarp                                                     \
+        -warp2  "${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D"     \
+        -warp1  "${srcsh2_prefix}_WARP.nii.gz"                     \
         -space  "${space}"                                         \
         -prefix "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz"
+
+    ### ... which replaces this OLD version:
+    #3dNwarpCat  -echo_edu                                          \
+    #    -warp1  "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
+    #    -warp2  "${srcsh2_prefix}_WARPINV.nii.gz"                  \
+    #    -space  "${space}"                                         \
+    #    -prefix "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz"
 
     if ( ${status} ) then
         echo "** ERROR: program failed (3dNwarpCat, base2osh)"
@@ -3504,6 +3524,16 @@ Outputs (we got plenty of 'em!) ~1~
     + Alignment data (TEM->INP)
       o INP_composite_linear_to_template_inv.1D - matrix, full affine part
       o INP_shft_WARPINV.nii.gz - NL part of warp (TEM grid)
+      o INP_base2osh_WARP.nii.gz - full warp (TEM grid)
+
+      NB: to warp from TEM-INP, it is better to _not_ concatenate two
+      previously inverted warps and use the result; instead, it is
+      better to concatenate the 'forward' TEM->INP warps and invert
+      the result. While the results should in general be similar, the
+      former will not necessarily preserve diffeomorphic invertibility
+      and in some cases could have undesirable oddities in the
+      resulting warp---the latter is safer. That is the method by which 
+      INP_base2osh_WARP.nii.gz was created, so that could be used.
 
   QC info ~2~
 
