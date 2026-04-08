@@ -366,11 +366,6 @@ set version   = "4.11";   set rev_dat   = "Apr 08, 2026"
 #            dset correctly. It also passes along the '-keep_temp' 
 #            functionality to auto_warp.py
 #   
-set version   = "4.12";   set rev_dat   = "Apr 08, 2026"
-#     + [PT] swap out one last 3dNwarpCat action of two inverted warps
-#            in favor of first concatenating two warps, and inverting
-#            the result
-#
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -1862,7 +1857,9 @@ EOF
    
    # make invwarp name
    set bbb = `3dinfo -prefix_noext ${dset_warp}`
-   set dset_iwarp = "${bbb:gas/qw\_WARP/qw\_WARPINV/}.nii"
+   # NB: do *not* put quotes around this next expression, as that
+   # changes its interpretation
+   set dset_iwarp = ${bbb:gas/qw\_WARP/qw\_WARPINV/}.nii
     
    # need to propagate this explicitly in many cases
    set aspace = `3dinfo -space ${dset_warp}`
