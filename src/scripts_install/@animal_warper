@@ -359,12 +359,17 @@ set progname = @animal_warper
 #set version   = "4.10";   set rev_dat   = "Mar 25, 2025"
 #     + [PT, DRG] avoid '-iwarp' in auto_warp.py
 #   
-set version   = "4.11";   set rev_dat   = "Apr 08, 2026"
+#set version   = "4.11";   set rev_dat   = "Apr 08, 2026"
 #     + [PT] in some cases, the name of auto_warp.py's output warp
 #            can be different than what was originally assumed and widely
 #            seen. This code generalizes the ability to get the WARP
 #            dset correctly. It also passes along the '-keep_temp' 
 #            functionality to auto_warp.py
+#   
+set version   = "4.12";   set rev_dat   = "Apr 10, 2026"
+#     + [PT] replace 'gas' in var name with separate 'sed' cmd
+#            -> might be more stable across OSs (looking at you, troublesome
+#            macOS...)
 #   
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -1857,9 +1862,9 @@ EOF
    
    # make invwarp name
    set bbb = `3dinfo -prefix_noext ${dset_warp}`
-   # NB: do *not* put quotes around this next expression, as that
-   # changes its interpretation
-   set dset_iwarp = ${bbb:gas/qw\_WARP/qw\_WARPINV/}.nii
+   # trying to do this substitution with 'gas' might not be stable across OSs
+   set ccc = `echo ${bbb} | sed 's/qw_WARP/qw_WARPINV/g'`
+   set dset_iwarp = ${ccc}.nii
     
    # need to propagate this explicitly in many cases
    set aspace = `3dinfo -space ${dset_warp}`
