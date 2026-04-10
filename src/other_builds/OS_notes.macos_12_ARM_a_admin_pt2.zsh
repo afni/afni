@@ -22,12 +22,12 @@ fi
 
 
 # ----------------------------------------------------------------------
-# install R - currently 4.3.1
+# install R - currently 4.5.2 (was 4.3.1)
 #
 # - this is separated since it requires a later password
 
-curl -O https://cran.r-project.org/bin/macosx/big-sur-arm64/base/R-4.3.1-arm64.pkg
-sudo installer -pkg R-4.3.1-arm64.pkg -target /
+curl -O https://cran.r-project.org/bin/macosx/big-sur-arm64/base/R-4.5.2-arm64.pkg
+sudo installer -pkg R-4.5.2-arm64.pkg -target /
 
 
 # ----------------------------------------------------------------------

@@ -53,8 +53,23 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Apr, 2026, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "update OS_notes.macos_12_*_a_admin_pt2.zsh to install R 4.5.2 (from 4.3.1)",
+   NULL
+ } ,
+
  {  3, Apr, 2026, RCR, "@diff.tree", MINOR, TYPE_ENHANCE,
    "make more space-friendly, adding quote and :q for most variable access",
+   NULL
+ } ,
+
+ { 30, Mar, 2026, RCR, "suma", MINOR, TYPE_BUG_FIX,
+   "apply D Glen macos 26 X11 fixes on the suma side",
+   NULL
+ } ,
+
+ { 27, Mar, 2026, RCR, "suma", MINOR, TYPE_BUG_FIX,
+   "fix problems causing crashes when using SUMA_SameSurfCont=NO",
    NULL
  } ,
 
