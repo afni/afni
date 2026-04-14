@@ -4158,10 +4158,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                 else {
                     Widget w = (Widget) EngineData->ip;
                     Widget tl = SUMA_GetTopShell(w); /* top level widget */
-                    fprintf(stderr, "%%%%%%%%%%%%%% w = %p\n", w);
-                    fprintf(stderr, "%%%%%%%%%%%%%% tl = %p\n", tl);
-                    fprintf(stderr, "%%%%%%%%%%%%%% SUMAg_CF->X->CommonSurfContTLW = %p\n", 
-                            SUMAg_CF->X->CommonSurfContTLW);
                 }
                  N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
                  if (numSurfaceObjects != N_adolist) {

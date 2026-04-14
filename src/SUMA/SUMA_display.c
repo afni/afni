@@ -6634,14 +6634,17 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    /* Surface overlay */
    curColPlane = SUMA_ADO_CurColPlane(ado);
    
+   /* We do not want this block as the contour outlines are supposed to remain
+   on, until actively turned off for the dataset, even if the dataset is changed */
    /* If surface controller has been created and B checkbox checked,
-      turn B check-box off (and turn threshold outlines off */
+      turn B check-box off (and turn threshold outlines off *//*
    if (SurfCont){
         curColPlane->BoxOutlineThresh = NOPE;
         if (SurfCont->BoxOutlineThresh_tb) 
             XmToggleButtonSetState( SurfCont->BoxOutlineThresh_tb, 
                 curColPlane->BoxOutlineThresh, YUP);
    }
+   */
 
    if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
 
@@ -14785,11 +14788,16 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
                (int)SurfCont->SurfContPage->value);
    }
 
-   // Set "A" check-box to reflect whether there should be variable overlay 
-   //   opacity for this object
-   if (SurfCont && SurfCont->AlphaOpacityFalloff_tb)
-       XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
-                      curColPlane->AlphaOpacityFalloff, YUP);
+   // Set "A" and "B" check-boxes to reflect whether there should be variable 
+   //   overlay opacity for this object
+   if (SurfCont){
+       if (SurfCont->AlphaOpacityFalloff_tb)
+           XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+                          curColPlane->AlphaOpacityFalloff, YUP);
+       if (SurfCont->BoxOutlineThresh_tb)
+           XmToggleButtonSetState ( SurfCont->BoxOutlineThresh_tb,
+                          curColPlane->BoxOutlineThresh, YUP);
+   }
 
    SUMA_RETURNe;
 }
@@ -16390,8 +16398,10 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    /* Set A and B check boxes to the values for this existing dataset */
    ColPlane = SUMA_ADO_CurColPlane(ado);
    SurfCont = SUMA_ADO_Cont(ado);
+    fprintf(stderr, "ColPlane->AlphaOpacityFalloff = %d\n", ColPlane->AlphaOpacityFalloff);
     XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 
                            ColPlane->AlphaOpacityFalloff, 1);
+    fprintf(stderr, "ColPlane->BoxOutlineThresh = %d\n", ColPlane->BoxOutlineThresh);
     XmToggleButtonSetState(SurfCont->BoxOutlineThresh_tb, 
                            ColPlane->BoxOutlineThresh, 1);
     if (ColPlane->BoxOutlineThresh) ColPlane->ShowMode = SW_SurfCont_DsetViewCaC;
