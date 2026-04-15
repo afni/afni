@@ -1,11 +1,47 @@
 ﻿SUMA Behavior
 
-For the most part, the behavior applies to both hemispheres when control panels
-are joined (when SUMA_SameSurfCont = YES in .sumarc).  To separate the behavior
-to separate hemispheres, set SUMA_SameSurfCont = NO in .sumarc.  Some behavior
-only applies to one dataset.  A dataset is represented by an overlay.  The
-SC_Notebook variable is a widget for the currently selected surface control
-panel.
+For the most part, the behavior applies to both hemispheres when
+control panels are joined (when SUMA_SameSurfCont = YES in .sumarc).
+To separate the behavior to separate hemispheres, set
+SUMA_SameSurfCont = NO in .sumarc.  Some behavior only applies to one
+dataset.
+
+A surface dataset is an object like a *.gii file, that has the mesh
+information.
+
+A dataset is represented by an overlay (like a *.niml.dset file, or
+within the code SO->Overlays), to be displayed on a surface dataset.
+
+The SC_Notebook variable is a widget for managing all surface objects
+currently loaded into SUMA. 
+* This notebook widget can encompass many different kinds of objects,
+  even beyond surfaces (graphs, tracts, etc.).
+* The children of the notebook widget at called pages.
+
+
+A table of object configurations. 
+  - : that this attribute/feature  does _not_ apply to multiple
+      things, and that it explicitly needs to be turned off for other 
+      objects when it is turned on for one
+  + : 
+  S : surface dataset
+  D : dataset (like overlay)
+The P and O columns are for reference, with existing functionality (and don't
+refer to the Ctrl+P and Ctrl+O cases).
+----------------------------------------------------------------------------
+                    A(alpha)  B(box)  T(threshold)  P(points)  O(opacity)
+1S Multi-D          -         -       -             +          +
+2Hemi-S, Multi-D    +         +       +             +          +
+Multi-S, Multi-D    -         -       - ^1
+Volumes             NA        NA      
+Tracts
+Graphs              NA        NA
+----------------------------------------------------------------------------
+^1: the T propagates from earlier values, _until_ it has been set, after which
+    it remains constant for the given surface.  
+
+
+
 
 A (Alpha) check box: When this is unchecked, subthreshold regions of the overlay
 are purely transparent.  When it is checked, the opacity falls off as the point 
@@ -20,11 +56,14 @@ above, from those that are below, the threshold. The function, SUMA_cb_BoxOutlin
 handles the clicking of the B chexckbox.  The BoxOutlineThresh_tb field of the surface controller 
 (SUMA_X_SurfCont) structure is the widget associated with the B checkbox.  When the B box is checked on, the Dsp setting (in the ShowMode field of the overlay) is changed either from Col to C&C or from XXX to Con.  These settings are represented by the SW_SurfCont_DsetViewCol, SW_SurfCont_DsetViewCaC, SW_SurfCont_DsetViewXXX and SW_SurfCont_DsetViewCon tokens respectively. When the B box is checked off, the Dsp setting is changed either from C&C to Col or from Con to XXX. 
 
-A and B check boxes may each be positive for no more than one dataset.  Each dataset has an associated overlay.  The number of overlays is given by SO->N_Overlays and the overlays are in SO→Overlays.
+A and B check boxes may each be positive for no more than one dataset.
+Each dataset has an associated overlay.  The number of overlays is
+given by SO->N_Overlays and the overlays are in SO->Overlays.
 
-The function, SUMA_LoadDsetOntoSO, is called when a dataset is loaded. When a
-new dataset is loaded, the A and B boxes are initialized to off, as are variable
-opacity and threshold outlining for the overlay associated with the dataset.
+The function, SUMA_LoadDsetOntoSO, is called when a dataset is
+loaded. When a new dataset is loaded, the A and B boxes are
+initialized to off, as are variable opacity and threshold outlining
+for the overlay associated with the dataset.
 
 The function, SUMA_cb_SelectSwitchColPlane, switches between two datasets that have already been loaded.  The A and B check boxes are set from the values associated with the overlay (dataset) that has just been selected.
 
