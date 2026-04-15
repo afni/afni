@@ -1,0 +1,73 @@
+﻿SUMA Behavior
+
+For the most part, the behavior applies to both hemispheres when control panels
+are joined (when SUMA_SameSurfCont = YES in .sumarc).  To separate the behavior
+to separate hemispheres, set SUMA_SameSurfCont = NO in .sumarc.  Some behavior
+only applies to one dataset.  A dataset is represented by an overlay.  The
+SC_Notebook variable is a widget for the currently selected surface control
+panel.
+
+A (Alpha) check box: When this is unchecked, subthreshold regions of the overlay
+are purely transparent.  When it is checked, the opacity falls off as the point 
+value falls below threshold.  This falloff may be quadratic (default) or linear.  
+The quadratic/linear model may not be chosen on the surface control panel.  It 
+must be selected with DriveSuma.  The function, SUMA_cb_AlphaOpacityFalloff_tb_toggled, 
+handles the clicking of the A checkbox.  The AlphaOpacityFalloff_tb field of the 
+surface controller (SUMA_X_SurfCont) structure is the widget associated with the A checkbox.
+
+B (Box) check box.  When this is checked, an outline separates regions that are 
+above, from those that are below, the threshold. The function, SUMA_cb_BoxOutlineThresh_tb_toggled, 
+handles the clicking of the B chexckbox.  The BoxOutlineThresh_tb field of the surface controller 
+(SUMA_X_SurfCont) structure is the widget associated with the B checkbox.  When the B box is checked on, the Dsp setting (in the ShowMode field of the overlay) is changed either from Col to C&C or from XXX to Con.  These settings are represented by the SW_SurfCont_DsetViewCol, SW_SurfCont_DsetViewCaC, SW_SurfCont_DsetViewXXX and SW_SurfCont_DsetViewCon tokens respectively. When the B box is checked off, the Dsp setting is changed either from C&C to Col or from Con to XXX. 
+
+A and B check boxes may each be positive for no more than one dataset.  Each dataset has an associated overlay.  The number of overlays is given by SO->N_Overlays and the overlays are in SO→Overlays.
+
+The function, SUMA_LoadDsetOntoSO, is called when a dataset is loaded. When a
+new dataset is loaded, the A and B boxes are initialized to off, as are variable
+opacity and threshold outlining for the overlay associated with the dataset.
+
+The function, SUMA_cb_SelectSwitchColPlane, switches between two datasets that have already been loaded.  The A and B check boxes are set from the values associated with the overlay (dataset) that has just been selected.
+
+notebook applies to surface controller 
+
+Section referencing where clipping planes located.  See “suma -help_clipping_planes”
+
+Checks:
+- Alpha and Box outline should only be true for at most one dataset.  Check that turning A/B on for the active dataset turns A/B off for all the other data sets. If A/B turned on for a dataset, and the user switches to another dataset and switches back to the original dataset without changing A/B, then the A/B settings of the original dataset are maintained.  For example, with
+suma $HOME/AFNI_data6/FT_analysis/FT.surf.results \
+        stats.FT.surf.lh.niml.dset \
+        -spec $HOME/AFNI_data6/FT_analysis/FT/SUMA/std.60.FT_both.spec \
+        -sv FT.surf_SurfVol_Alnd_Exp+orig
+do the following.
+- Set threshold to 21
+- Toggle B key on
+- Toggle A key on
+- Load pb03.FT.surf.lh.r01.surf.niml.dset
+- A and B should both be off
+- Raise threshold to 1583 
+- Switch Dset back to pb03.FT.surf.lh.r01.surf.niml.dset
+- A and B should both be off.  Threshold outlines may still be seen but not corresponding to the threshold boundaries of the current dataset.
+- Check A and B check boxes on.
+- Switch Dset back to fg:stats.FT.surf.lh.niml.dset
+- A and B should both be off.
+- Check A and B check boxes on.
+- Set alpha model to linear.  The subthreshold coloration should expand.
+- Set alpha model to quadratic.  The subthreshold coloration should contract.
+- Change threshold to 14.
+- Change intensity range to [0.5,1.4].
+- Switch I (Intensity sub-brick) to 1.
+- Check color hues don't change as threshold changes.
+- Switch I (Intensity sub-brick) to 2.
+- Check color hues don't change as threshold changes.
+- Switch I (Intensity sub-brick) to 3.
+- Check color hues don't change as threshold changes.
+- Switch T (Threshold sub-brick) to 4.
+- Check color hues don't change as threshold changes.
+- Switch I (Intensity sub-brick) to 4.
+- Check color hues don't change as threshold changes.
+- Switch T (Threshold sub-brick) to 5.
+- Check color hues don't change as threshold changes.
+- Turn "Sym I" on
+- Check color hues don't change as threshold changes.
+
+
