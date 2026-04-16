@@ -37,6 +37,9 @@ sidebar <- dashboardSidebar(
       
       selectInput('orderSel','Order By:',order.list),
       
+      selectInput('eoiSel',"Effect of Interest",NA,multiple=FALSE),
+      
+      
       br()
     ),   ## end main
     
