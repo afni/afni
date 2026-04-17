@@ -2043,6 +2043,12 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
 }
 
 /*---------------------------------------------------------------------------*/
+/* Compile with -DALLIN_DOWNSAMPLE_COARSE to enable experimental 2x coarse-pass
+   decimation. The macro guards three #ifdef blocks in main() (pre-coarse swap,
+   post-coarse restore) and the helper GA_downsample2x() in mri_genalign_util.c.
+   When undefined, the baseline code path compiles unchanged. See examples/README.md
+   for rationale and benchmarks. */
+/*---------------------------------------------------------------------------*/
 /*============================ Ye Olde Main Programme =======================*/
 /* Note the GA_setup struct 'stup' below.
    This struct contains all the alignment setup information,
@@ -5430,6 +5436,72 @@ STATUS("zeropad weight dataset") ;
      /*-------- do coarse resolution pass? --------*/
 
      didtwo = 0 ;
+#ifdef ALLIN_DOWNSAMPLE_COARSE
+     /* Run the coarse pass on a 2x-decimated copy for speed. Parameters in
+        tfparm[][] are world-coordinate, so they transfer to the fine pass
+        unchanged. Fine pass is forced to re-initialize with the full-res
+        images by clearing didtwo at the end of this block. */
+     MRI_IMAGE *allin_ds_bset_full = NULL , *allin_ds_wset_full = NULL ,
+               *allin_ds_targ_full = NULL ;
+     MRI_IMAGE *allin_ds_bset_ds   = NULL , *allin_ds_wset_ds   = NULL ,
+               *allin_ds_targ_ds   = NULL ;
+     int allin_ds_did   = 0 ;
+     int allin_ds_ntask_save = ntask ;
+     /* im_bset is only non-NULL on the first subbrick iteration (it is
+        nulled after mri_genalign_scalar_setup below and again in the fine
+        pass); skip decimation on later iterations so we don't burn a
+        Gaussian blur + stride pick on im_targ for nothing. */
+     if( twopass && (!twofirst || !tfdone) && im_bset != NULL ){
+       allin_ds_bset_ds = GA_downsample2x( im_bset ) ;
+       allin_ds_targ_ds = GA_downsample2x( im_targ ) ;
+       /* If a weight was supplied, require that it decimate too; otherwise
+          falling through with im_wset=NULL would silently change the cost
+          functional for the coarse pass. */
+       if( im_wset != NULL ){
+         allin_ds_wset_ds = GA_downsample2x( im_wset ) ;
+       }
+       if( allin_ds_bset_ds != NULL && allin_ds_targ_ds != NULL &&
+           (im_wset == NULL || allin_ds_wset_ds != NULL) ){
+         allin_ds_bset_full = im_bset ;
+         allin_ds_wset_full = im_wset ;
+         allin_ds_targ_full = im_targ ;
+         im_bset = allin_ds_bset_ds ;
+         im_wset = allin_ds_wset_ds ;
+         im_targ = allin_ds_targ_ds ;
+         /* Scale ntask to the decimated voxel count so stup.npt_match stays
+            at the intended fraction of the (now smaller) grid, not the full
+            grid (which would saturate to use_all=1 and sample every voxel). */
+         {
+           long long nv_full = (long long)allin_ds_bset_full->nx
+                             * allin_ds_bset_full->ny
+                             * allin_ds_bset_full->nz ;
+           long long nv_ds   = (long long)im_bset->nx
+                             * im_bset->ny * im_bset->nz ;
+           if( nv_full > 0 )
+             ntask = (int)((double)allin_ds_ntask_save * nv_ds / nv_full) ;
+           if( ntask < 1 ) ntask = 1 ;       /* guard against tiny inputs */
+         }
+         allin_ds_did = 1 ;
+         if( verb ) INFO_message(
+           "ALLIN_DOWNSAMPLE_COARSE: coarse pass on 2x-decimated grid "
+           "(%dx%dx%d @ %.2fx%.2fx%.2f mm); ntask %d -> %d" ,
+           im_bset->nx, im_bset->ny, im_bset->nz ,
+           im_bset->dx, im_bset->dy, im_bset->dz ,
+           allin_ds_ntask_save, ntask ) ;
+       } else {
+         /* Decimation aborted (some image too small, or weight failed to
+            decimate) — free any partial allocations and fall through to
+            the full-resolution coarse pass. */
+         if( allin_ds_bset_ds != NULL ) mri_free(allin_ds_bset_ds) ;
+         if( allin_ds_targ_ds != NULL ) mri_free(allin_ds_targ_ds) ;
+         if( allin_ds_wset_ds != NULL ) mri_free(allin_ds_wset_ds) ;
+         allin_ds_bset_ds = allin_ds_targ_ds = allin_ds_wset_ds = NULL ;
+         if( verb > 1 ) ININFO_message(
+           "ALLIN_DOWNSAMPLE_COARSE: volume too small for 2x decimation, "
+           "falling back to full-res coarse pass") ;
+       }
+     }
+#endif
      if( twopass && (!twofirst || !tfdone) ){
 
        int tb , ib , ccode , nrand ; char *eee ;
@@ -5694,6 +5766,21 @@ STATUS("zeropad weight dataset") ;
        didtwo = 1 ;   /* mark that we did the first pass */
 
      } /*------------- end of the coarse pass --------------------------------*/
+#ifdef ALLIN_DOWNSAMPLE_COARSE
+     /* If we decimated above, free the small copies and restore the full-res
+        pointers so the fine pass re-initializes stup with them. tfparm/tfdone
+        are already populated with world-coordinate transforms. */
+     if( allin_ds_did ){
+       if( allin_ds_bset_ds != NULL ) mri_free(allin_ds_bset_ds) ;
+       if( allin_ds_wset_ds != NULL ) mri_free(allin_ds_wset_ds) ;
+       if( allin_ds_targ_ds != NULL ) mri_free(allin_ds_targ_ds) ;
+       im_bset = allin_ds_bset_full ;
+       im_wset = allin_ds_wset_full ;
+       im_targ = allin_ds_targ_full ;
+       didtwo  = 0 ;                 /* force fine-pass setup with full-res */
+     }
+     ntask = allin_ds_ntask_save ;  /* defensive: not used past here, but restore */
+#endif
 
      /*-----------------------------------------------------------------------*/
      /*----------------------- do final resolution pass ----------------------*/
@@ -6556,9 +6643,10 @@ DUMP_MAT44("aff12_ijk",qmat) ;
 
      if( dset_out != NULL ){
        MRI_IMAGE *aim = (stup.ajimor != NULL) ? stup.ajimor : stup.ajim ;
-       /* lose obliquity if using 3dWarp for any transformation */
-       /* recompute Tc (Cardinal transformation matrix for new grid output */
-       THD_make_cardinal(dset_out);    /* needed for oblique NIFTI datasets - 07/03/14 drg */
+       /* Preserve obliquity from the master (base) dataset in the output.
+          THD_make_cardinal() was previously called here (07/03/14 drg) but
+          it incorrectly replaced the oblique sform with a cardinal matrix,
+          causing the output NIfTI to lose the base image's orientation. */
 
        if( verb > 1 ) INFO_message("Computing output image") ;
 #if 0
