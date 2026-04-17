@@ -68,9 +68,3 @@ AFNI_version.h
 
 #Cscope
 *cscope*
-
-# Claude Code workspace + local benchmarks (specific to the
-# ALLIN_DOWNSAMPLE_COARSE optimization work, out of scope for upstream)
-CLAUDE.md
-.claude/
-examples/
