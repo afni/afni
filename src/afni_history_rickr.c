@@ -53,7 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 10, Apr, 2026, RCR, "afni-general", MINOR, TYPE_MODIFY,
+ { 17, Apr, 2026, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
+   "add a help section, 'general rules for stimulus timing files'",
+   NULL
+ } ,
+
+ { 10, Apr, 2026, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "update OS_notes.macos_12_*_a_admin_pt2.zsh to install R 4.5.2 (from 4.3.1)",
    NULL
  } ,
