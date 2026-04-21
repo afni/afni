@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Apr, 2026, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "show data dir history from the left, to include date",
+   NULL
+ } ,
+
  { 17, Apr, 2026, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
    "add a help section, 'general rules for stimulus timing files'",
    NULL

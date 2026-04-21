@@ -371,9 +371,10 @@ g_history = """
    1.46 Dec  5, 2025 - warn if the 'phia' R library has version 0.3.1
    1.47 Jan 23, 2026 - do not automatically test tcsh
    1.48 Mar  9, 2026 - check mac CPU types for gcc vs system
+   1.49 Apr 21, 2026 - show data dir history from the left, to include date
 """
 
-g_version = "afni_system_check.py version 1.48, March 9, 2026"
+g_version = "afni_system_check.py version 1.49, April 21, 2026"
 
 
 class CmdInterface:

@@ -292,7 +292,7 @@ class SysInfo:
       else:              htxt = htxt[0]
       # possibly truncate to '...' and final 'last' characters
       if last > 0 and len(htxt) > last:
-         htxt = '...' + htxt[-last:]
+         htxt = htxt[:last] + ' ...'
       print('%s%s' % (prefix, htxt))
 
    def show_data_dir_info(self, ddir, histfile=''):
@@ -326,10 +326,10 @@ class SysInfo:
       # possibly show histfile
       if histfile == '': return 0
 
-      prefix = '           top history: '
+      prefix = '           history: '
       hname = '%s/%s/%s' % (droot, ddir, histfile)
       try:
-         self.show_top_line(hname, prefix=prefix, last=76-len(prefix))
+         self.show_top_line(hname, prefix=prefix, last=75-len(prefix))
       except UnicodeDecodeError:
          print("Unicode decoding error occurred when trying to read %s." \
                " No info retrieved"%hname)
