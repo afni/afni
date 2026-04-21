@@ -1908,6 +1908,9 @@ void DRAW_mode_CB( MCW_arrowval * av , XtPointer cd )
 
    ENABLE_rad_av ;
 
+   /* tahoe fix */
+   if( needsX11Redraw() ){ forceExpose(rowcol,0 ) ; }
+    
    return ;
 }
 
