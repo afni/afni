@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Apr, 2026, RCR, "model_conv_PRF", MICRO, TYPE_ENHANCE,
+   "be more descriptive of x and y, mapping stimulus orientation to results",
+   NULL
+ } ,
+
  { 21, Apr, 2026, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
    "show data dir history from the left, to include date",
    NULL
