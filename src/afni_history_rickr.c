@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Apr, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "if tedana masking, suggest -blur_in_mask yes",
+   NULL
+ } ,
+
  { 21, Apr, 2026, RCR, "model_conv_PRF", MICRO, TYPE_ENHANCE,
    "be more descriptive of x and y, mapping stimulus orientation to results",
    NULL
