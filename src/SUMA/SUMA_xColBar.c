@@ -2405,6 +2405,12 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    SUMA_LH("Called");
 
    ado = (SUMA_ALL_DO *)data;
+   
+   /* Ensure object type is handled by this operation */
+   if (ado->do_type != SO_type){
+    SUMA_S_Warn("Error: Operation not handled for this object type."); 
+    XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 0, 0); // Uncheck A box
+   }
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_S_Warn("NULL input"); SUMA_RETURNe;
