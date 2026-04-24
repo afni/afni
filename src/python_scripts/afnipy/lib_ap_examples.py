@@ -2064,7 +2064,7 @@ def egs_class():
    examples.append( APExample('AP class do_21',
      source='task_demo_ap',
      descrip='do_21_ap_affine.tcsh - basic task analysis',
-     moddate='2025.09.22',
+     moddate='2026.04.24',
      keywords=['task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -2097,7 +2097,7 @@ def egs_class():
         ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
         ['-tcat_remove_first_trs',   ['2']],
         ['-align_unifize_epi',       ['local']],
-        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-large_move',
                                       '-check_flip']],
         ['-tlrc_base',               ['MNI152_2009_template.nii.gz']],
         ['-volreg_align_to',         ['MIN_OUTLIER']],
