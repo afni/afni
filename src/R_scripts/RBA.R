@@ -29,7 +29,7 @@ intro <-
 	      Welcome to RBA ~1~
 Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.2.0, April 2, 2026 
+Version 1.2.1, April 24, 2026 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1246,16 +1246,46 @@ ridge <- function(dat, xlim, labx, wi, hi) {
 }
 
 # for Intercept and quantitative variables
-if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
-   cat(sprintf('===== Summary of region effects for %s (RBA results) =====', lop$EOIq[ii]), 
-      file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   ps0 <- psROI(aa, bb, lop$EOIq[ii])
-   gg <- sumROI(ps0, ns, 8)
-   cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   if(any(!is.na(lop$PDP) == TRUE)) plotPDP(lop$EOIq[ii], ps0, nR, lop$PDP[1], lop$PDP[2], 8)
-   if(!is.null(lop$ridgePlot)) ridge(ps0, range(ps0), lop$EOIq[ii], lop$ridgePlot[1], lop$ridgePlot[2])
+#if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
+#   cat(sprintf('===== Summary of region effects for %s (RBA results) =====', lop$EOIq[ii]), 
+#      file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+#   ps0 <- psROI(aa, bb, lop$EOIq[ii])
+#   gg <- sumROI(ps0, ns, 8)
+#   cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+#   cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+#   if(any(!is.na(lop$PDP) == TRUE)) plotPDP(lop$EOIq[ii], ps0, nR, lop$PDP[1], lop$PDP[2], 8)
+#   if(!is.null(lop$ridgePlot)) ridge(ps0, range(ps0), lop$EOIq[ii], lop$ridgePlot[1], lop$ridgePlot[2])
+#}
+
+# for Intercept and quantitative variables
+# initialize storage
+lop$EOIq_ps0 <- vector("list", length(lop$EOIq))
+names(lop$EOIq_ps0) <- lop$EOIq
+
+# for Intercept and quantitative variables
+if (any(!is.na(lop$EOIq))) {
+  for (ii in seq_along(lop$EOIq)) {
+
+    cat(sprintf('===== Summary of region effects for %s (RBA results) =====', lop$EOIq[ii]), 
+        file = paste0(lop$outFN, '.txt'), sep = '\n', append = TRUE)
+
+    ps0 <- psROI(aa, bb, lop$EOIq[ii])
+
+    # store ps0
+    lop$EOIq_ps0[[ii]] <- ps0
+
+    gg <- sumROI(ps0, ns, 8)
+    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append = TRUE)
+    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append = TRUE)
+
+    if (any(!is.na(lop$PDP))) 
+      plotPDP(lop$EOIq[ii], ps0, nR, lop$PDP[1], lop$PDP[2], 8)
+
+    if (!is.null(lop$ridgePlot)) 
+      ridge(ps0, range(ps0), lop$EOIq[ii], lop$ridgePlot[1], lop$ridgePlot[2])
+  }
 }
+
 
 # for contrasts among quantitative variables
 if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
@@ -1269,7 +1299,12 @@ if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
    if(!is.null(lop$ridgePlot)) ridge(ps0, range(ps0), lop$qContrL[2*ii-1], lop$ridgePlot[1], lop$ridgePlot[2])
 }
 
+
+
 # for factors
+lop$EOIc_psa <- vector("list", length(lop$EOIc))
+names(lop$EOIc_psa) <- lop$EOIc
+
 if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    lvl <- levels(as.factor(lop$dataTable[[lop$EOIc[ii]]]))  # levels
    nl <- nlevels(as.factor(lop$dataTable[[lop$EOIc[ii]]]))  # number of levels: last level is the reference in deviation coding
@@ -1279,12 +1314,14 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    ps[nl,,] <- psROI(aa, bb, 'Intercept') # Intercept: average effect 
    psa <- array(0, dim=c(nl, ns, nR)) # posterior samples adjusted
    for(jj in 1:(nl-1)) {
-      psa[jj,,] <- ps[nl,,]  + ps[jj,,]  # ps[jj,,]: jth level minus average (ps[nl,,])
+      psa[jj,,] <- ps[nl,,]  + ps[jj,,]  # ps[jj,,]: jj-th level minus average (ps[nl,,])
       psa[nl,,] <- psa[nl,,] + ps[jj,,]  # 
    }
    psa[nl,,] <- ps[nl,,] - psa[nl,,]  # reference level
    #dimnames(psa) <- list(NULL, NULL, dimnames(bb$ROI)[[2]]) # add ROI names for plotting
-   dimnames(psa) <- list(NULL, NULL, dimnames(bb[[lop$ROI]])[[2]]) # add ROI names for plotting
+   #dimnames(psa) <- list(NULL, NULL, dimnames(bb[[lop$ROI]])[[2]]) # add ROI names for plotting
+   dimnames(psa) <- list(lvl, NULL, dimnames(bb[[lop$ROI]])[[2]])
+   lop$EOIc_psa[[ii]] <- psa
    
    oo <- apply(psa, 1, sumROI, ns, 8)
    oo <-lapply(oo, 'rownames<-', dimnames(bb[[lop$ROI]])[[2]])
