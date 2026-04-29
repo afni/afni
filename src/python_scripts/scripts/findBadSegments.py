@@ -544,6 +544,27 @@ def correctCardiacPeaks(cardiacPeaks):
         i = i + 1
         
     return cardiacPeaks
+
+def writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, cardiacPeaks, samp_freq,
+                           peak_outliers, outlier_ts_ranges):
+    
+    print('Write cardiac results to files')
+
+    # Create output directory if it doesn't already exist
+    if OutDir[-1] == '/':
+        OutDir = OutDir[:-1]
+    Path(OutDir).mkdir(parents=True, exist_ok=True)
+    
+    # Write corrected cardiac peaks to file.
+    print('OutDir = '+OutDir)
+    np.savetxt(OutDir + '/correctedCardiacPeaks_1D.txt', cardiacPeaks, fmt="%.2f")
+        
+        
+    output_file_name = OutDir + '/cardiacOutliersWithPeaks.pdf'
+    outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
+                           peak_outliers,
+                           outlier_ts_ranges, 
+                           output_file_name)
     
 def analyzePeakTroughMismatches(troughPeakMismatchRanges, respiratoryPeaks,
     peakVals, respiratoryTroughs, troughVals, cardiacPeaks):
@@ -763,42 +784,24 @@ if useClustering:   # Not the default as it's very slow
 
 cardiacPeaks = correctCardiacPeaks(cardiacPeaks)
 
-# # Get median cardiac peak spacing
-# median_peak_spacing = int(np.median([b - a for a, b in zip(cardiacPeaks[:-1], cardiacPeaks[1:])]))
+writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, cardiacPeaks, samp_freq,
+                           peak_outliers, outlier_ts_ranges)
 
-# # Replace cardiac peaks in ranges with peaks spaced at roughly the median spacing
-# num_ranges = len(merged_ranges)
-# i = 0
-# while i < num_ranges:
-#     width = merged_ranges[i][1] - merged_ranges[i][0]
-#     num_peaks = int(np.round(width/median_peak_spacing))
-#     new_peaks = []
-#     for j in range(1,num_peaks): new_peaks.append(merged_ranges[i][0] + 
-#                                                   (j*median_peak_spacing))
-    
-#     start, end = merged_ranges[i]
+# # Create output directory if it doesn't already exist
+# if OutDir[-1] == '/':
+#     OutDir = OutDir[:-1]
+# Path(OutDir).mkdir(parents=True, exist_ok=True)
 
-#     mask = (cardiacPeaks < start) | (cardiacPeaks > end)
-#     cardiacPeaks = np.concatenate([cardiacPeaks[mask], new_peaks])
-#     cardiacPeaks.sort()  
-    
-#     i = i + 1
-
-# Create output directory if it doesn't already exist
-if OutDir[-1] == '/':
-    OutDir = OutDir[:-1]
-Path(OutDir).mkdir(parents=True, exist_ok=True)
-
-# Write corrected cardiac peaks to file.
-print('OutDir = '+OutDir)
-np.savetxt(OutDir + '/correctedCardiacPeaks_1D.txt', cardiacPeaks, fmt="%.2f")
+# # Write corrected cardiac peaks to file.
+# print('OutDir = '+OutDir)
+# np.savetxt(OutDir + '/correctedCardiacPeaks_1D.txt', cardiacPeaks, fmt="%.2f")
     
     
-output_file_name = OutDir + '/cardiacOutliersWithPeaks.pdf'
-outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
-                       peak_outliers,
-                       outlier_ts_ranges, 
-                       output_file_name)
+# output_file_name = OutDir + '/cardiacOutliersWithPeaks.pdf'
+# outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
+#                        peak_outliers,
+#                        outlier_ts_ranges, 
+#                        output_file_name)
         
 
 
