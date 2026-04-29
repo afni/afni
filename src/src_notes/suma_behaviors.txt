@@ -37,15 +37,21 @@ The P and O columns are for reference, with existing functionality (and don't
 refer to the Ctrl+P and Ctrl+O cases).
 ----------------------------------------------------------------------------
                     A(alpha)  B(box)  T(threshold)  P(points)  O(opacity)
-1S Multi-D          -         -       -             +          +
+1S, Multi-D         -         -       -             +          +
 2Hemi-S, Single-D   +         +       +             +          +
-Multi-S, Multi-D    /         /       - ^1
+Multi-S, Multi-D    /         /       / ^1
 Volumes             NA        NA      
 Tracts
 Graphs              NA        NA
 ----------------------------------------------------------------------------
 ^1: the T propagates from earlier values, _until_ it has been set, after which
     it remains constant for the given surface.  
+
+SUMA has some preexisting functionality to propagate the left-right
+properties, and that should probably be used to deal with the
+"2Hemi-S, Single-D" cases.  That magical function is:
+SUMA_Contralateral_overlay.  It should be used in place of the newer
+SUMA_ADOs_WithUniqueSurfCont().
 
 
 A (Alpha) check box: When this is unchecked, subthreshold regions of the overlay
