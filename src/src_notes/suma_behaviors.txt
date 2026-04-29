@@ -6,19 +6,37 @@ To separate the behavior to separate hemispheres, set
 SUMA_SameSurfCont = NO in .sumarc.  Some behavior only applies to one
 dataset.
 
-A **surface object** _does_ have topological (=mesh) information.
+A **surface object** (SO) _does_ have topological (=mesh) information.
+There might be only one SO viewed in suma (e.g. class demo with left hemi,
+lh.spec), or there might be two SOs, one for each hemi (e.g. both.spec),
+or there might be many SOs (e.g. suma -onestate -i roi*.gii).  Note that
+the one/two SO cases apply to the entire families, meaning SUMAg_DOv will
+have only one or two entries, each for that hemi's family, based on the
+family parent.
 
 A **surface dataset** does _not_ have topological information, and is
 only nodewise information.  It is often represented by an overlay
 (like a *.niml.dset file, or within the code SO->Overlays), to be
 displayed _on_ a surface dataset.
 
-GII datasets can be either surface object or surface dataset (or
-other).  TBD about *.niml.dset, but they can certainly be surface
-datasets.
+There are many file formats that are handled, and NIML has many sub-formats.
+Some formats are for surface objects, some are for surface datasets, and
+some are for either.
+
+   File format       suffix            read  write  SurfObj  SurfData
+   -------------     --------------    ----  -----  -------  --------
+   GIFTI             .gii               Y      Y      Y        Y
+   niml (asc/bin)    .niml.dset         Y      Y      -        Y
+   BrainVoyager                         Y      -      Y        -
+   Caret/Surefit                        Y      -      Y        -
+   FreeSurfer        .asc               Y      -      Y        -
+   vec/1D surf       .coord/.topo       Y      Y      Y        -
+   1D data           .1D                Y      Y      -        Y
+
 
 The SC_Notebook variable is a widget for managing all surface objects
-currently loaded into SUMA. 
+currently loaded into SUMA.  The object controller can either be a
+single notebook window for all, or each object gets its own window.
 * This notebook widget can encompass many different kinds of objects,
   even beyond surfaces (graphs, tracts, etc.).
 * The children of the notebook widget at called pages.
