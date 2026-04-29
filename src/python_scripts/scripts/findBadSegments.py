@@ -360,9 +360,6 @@ def getCardiacAndRespiratoryTimeSeriesPeaksTroughs(directory):
     with open(respiratoryTroughsFile) as f:
         for line in f:
             respiratoryTroughs = [int(line.strip()) for line in f if line.strip()]
-    
-           
-    # TODO: Add code
 
     return (
         cardiacTimeSeries,
@@ -442,9 +439,6 @@ def outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
     ax.set_xlabel(f"Time (seconds)")
     axes[-1].set_xlabel("Time (s)")
     plt.tight_layout()
-    # OutDir = directory
-    # if not OutDir:
-    #     OutDir = directory
 
     plt.savefig(output_file_name)
     plt.show()
@@ -484,6 +478,48 @@ def applyClustering(cardiacTimeSeries, cardiacPeaks, weights, rankVector, getMOD
     # vertex) with the highest sum of weights with other vertices and working down
     # towards the vertex with the lowest cumulative weights.
     final_clusters, bestMOD = merge_clusters_by_MOD(weights, clusters, rankVector, getMOD)
+    
+def findAnomalousBands():
+    # Identify outliers on low end of the cumulative weights
+    print('Identify outliers on low end of the cumulatives weights')
+    outlier_ts_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
+                                                    rankVector, cardiacPeaks)
+    # num_anomalies = len(outlier_ts_ranges)
+    
+    # Find peak outliers
+    print('Find peak outliers')
+    peakVals = []
+    for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
+    # peakRankVector = np.argsort(peakVals)[::-1]
+    peak_outliers = getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks)
+    
+    # Sort anomalous bands in  order of location
+    sorted_ts_ranges = sorted(outlier_ts_ranges, key=lambda item: item[0])
+    
+    # Merge overlapping ranges
+    num_ranges = len(sorted_ts_ranges)
+    i = 0
+    merged_ranges = []
+    
+    while i < num_ranges:
+        start, end = sorted_ts_ranges[i]
+    
+        j = i + 1
+        while j < num_ranges and sorted_ts_ranges[j][0] <= end:
+            end = max(end, sorted_ts_ranges[j][1])
+            j += 1
+    
+        merged_ranges.append([start, end])
+        i = j
+        
+    # Reverse the orders of the merged ranges
+    merged_ranges = merged_ranges[::-1]
+
+    return (
+        outlier_ts_ranges,
+        peak_outliers,
+        merged_ranges,
+    )
     
 def analyzePeakTroughMismatches(troughPeakMismatchRanges, respiratoryPeaks,
     peakVals, respiratoryTroughs, troughVals, cardiacPeaks):
@@ -660,17 +696,6 @@ while i < len(sys.argv):
 
 # Plot cardiac peaks on cardiac time series
 PlotCardiacPeaksOnCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks)
-# print('Plot cardiac peaks on cardiac time series')
-# x = []    
-# end = len(cardiacTimeSeries)
-# for i in range(0,end): x.append(i)
-# plt.subplot(211)
-# plt.plot(x, cardiacTimeSeries, "g") #Lines connecting peaks and troughs
-# if len(cardiacPeaks) > 0:
-#     peakVals = []
-#     for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
-#     plt.xlim(1608,2208)  # Zoom in on plot
-#     plt.plot(cardiacPeaks, peakVals, "ro") # Peaks
 
 # Build an array of vecs, one for each peak.
 print('Build an array of vecs, one for each peak')
@@ -701,78 +726,54 @@ print('Make weight sum and rank vectors')
 vectorWeightSums = np.sum(weights,axis=1)
 rankVector = np.argsort(vectorWeightSums)[::-1]
 
-if useClustering:   # Not currently used as it's very slow
+# Use clustering if required
+if useClustering:   # Not the default as it's very slow
     applyClustering(cardiacTimeSeries, cardiacPeaks, weights, rankVector, getMOD)
-    # print('clustering')
 
-    # # Each vertex is initially regarded as a community or cluster.
-    # print('Each vertex is initially regarded as a community or cluster')
-    # numPeaks = len(cardiacTimeSeries)
-    # clusters = [[i] for i in range(0,numPeaks)]
+# # Identify outliers on low end of the cumulative weights
+(
+    outlier_ts_ranges,
+    peak_outliers,
+    merged_ranges,
+) = findAnomalousBands()
+# print('Identify outliers on low end of the cumulatives weights')
+# outlier_ts_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
+#                                                 rankVector, cardiacPeaks)
+# num_anomalies = len(outlier_ts_ranges)
+
+# # Find peak outliers
+# print('Find peak outliers')
+# peakVals = []
+# for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
+# peakRankVector = np.argsort(peakVals)[::-1]
+# peak_outliers = getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks)
+
+# # Sort anomalous bands in  order of location
+# sorted_ts_ranges = sorted(outlier_ts_ranges, key=lambda item: item[0])
+
+# # Merge overlapping ranges
+# num_ranges = len(sorted_ts_ranges)
+# i = 0
+# merged_ranges = []
+
+# while i < num_ranges:
+#     start, end = sorted_ts_ranges[i]
+
+#     j = i + 1
+#     while j < num_ranges and sorted_ts_ranges[j][0] <= end:
+#         end = max(end, sorted_ts_ranges[j][1])
+#         j += 1
+
+#     merged_ranges.append([start, end])
+#     i = j
     
-    # # Make an array of clusters where each cluster is an array of members containing 
-    # # the iindices of the cluster members. 
-    # print('Make an array of clusters where each cluster is an array of members containing ')
-    # numPeaks = len(cardiacPeaks)
-    # clusters = [[i] for i in range(0,numPeaks)]
-
-    # # Starting with the first cluster (vertex) merge in other clusters only in cases 
-    # # where MOD is increased by doing so.
-    # clusters = [[i] for i in range(numPeaks)]
-
-    # # Merge clusters, starting with merginging into the cluster (initially single
-    # # vertex) with the highest sum of weights with other vertices and working down
-    # # towards the vertex with the lowest cumulative weights.
-    # final_clusters, bestMOD = merge_clusters_by_MOD(weights, clusters, rankVector, getMOD)
-
-# Identify outliers on low end of the cumulative weights
-print('Identify outliers on low end of the cumulatives weights')
-outlier_ts_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
-                                                rankVector, cardiacPeaks)
-num_anomalies = len(outlier_ts_ranges)
-
-# Find peak outliers
-print('Find peak outliers')
-peakVals = []
-for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
-peakRankVector = np.argsort(peakVals)[::-1]
-peak_outliers = getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks)
-
-# Plot cardiac results
-print('OutDir = '+OutDir)
-print('len(OutDir) = '+str(len(OutDir)))
-if OutDir[-1] == '/':
-    OutDir = OutDir[:-1]
-# else:
-#     OutDir = OutDir
-    
-
-# Sort anomalous bands in  order of location
-sorted_ts_ranges = sorted(outlier_ts_ranges, key=lambda item: item[0])
-
-# Merge overlapping ranges
-num_ranges = len(sorted_ts_ranges)
-i = 0
-merged_ranges = []
-
-while i < num_ranges:
-    start, end = sorted_ts_ranges[i]
-
-    j = i + 1
-    while j < num_ranges and sorted_ts_ranges[j][0] <= end:
-        end = max(end, sorted_ts_ranges[j][1])
-        j += 1
-
-    merged_ranges.append([start, end])
-    i = j
-    
-# Reverse the orders of the merged ranges
-merged_ranges = merged_ranges[::-1]
+# # Reverse the orders of the merged ranges
+# merged_ranges = merged_ranges[::-1]
 
 # Get median cardiac peak spacing
 median_peak_spacing = int(np.median([b - a for a, b in zip(cardiacPeaks[:-1], cardiacPeaks[1:])]))
 
-# Replace cardiac peaks in ranges with peaks spaced at roughly the median psacing
+# Replace cardiac peaks in ranges with peaks spaced at roughly the median spacing
 num_ranges = len(merged_ranges)
 i = 0
 while i < num_ranges:
@@ -791,6 +792,8 @@ while i < num_ranges:
     i = i + 1
 
 # Create output directory if it doesn't already exist
+if OutDir[-1] == '/':
+    OutDir = OutDir[:-1]
 Path(OutDir).mkdir(parents=True, exist_ok=True)
 
 # Write corrected cardiac peaks to file.
@@ -864,8 +867,8 @@ respiratoryPeaks = np.array(respiratoryPeaks)
 troughPeakMismatchRanges = list(zip(respiratoryPeaks[:-1][mask], 
                   respiratoryPeaks[1:][mask]))
 
-# PLot respiratory results
-print('PLot respiratory results')
+# Plot respiratory results
+print('Plot respiratory results')
 y = respiratoryTimeSeries              # length ~24,199
 x = np.arange(len(y))             # continuous index
 x_scaled = x / samp_freq          # scaled index
