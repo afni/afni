@@ -6,11 +6,16 @@ To separate the behavior to separate hemispheres, set
 SUMA_SameSurfCont = NO in .sumarc.  Some behavior only applies to one
 dataset.
 
-A surface dataset is an object like a *.gii file, that has the mesh
-information.
+A **surface object** _does_ have topological (=mesh) information.
 
-A dataset is represented by an overlay (like a *.niml.dset file, or
-within the code SO->Overlays), to be displayed on a surface dataset.
+A **surface dataset** does _not_ have topological information, and is
+only nodewise information.  It is often represented by an overlay
+(like a *.niml.dset file, or within the code SO->Overlays), to be
+displayed _on_ a surface dataset.
+
+GII datasets can be either surface object or surface dataset (or
+other).  TBD about *.niml.dset, but they can certainly be surface
+datasets.
 
 The SC_Notebook variable is a widget for managing all surface objects
 currently loaded into SUMA. 
@@ -23,24 +28,24 @@ A table of object configurations.
   - : that this attribute/feature  does _not_ apply to multiple
       things, and that it explicitly needs to be turned off for other 
       objects when it is turned on for one
-  + : 
-  S : surface dataset
-  D : dataset (like overlay)
+  / : that this attribute/feature  does _not_ apply to multiple
+      things, and they are independent
+  + : this attribute/feature _does_ apply to multiple things
+  S : surface object
+  D : surface dataset (like overlay)
 The P and O columns are for reference, with existing functionality (and don't
 refer to the Ctrl+P and Ctrl+O cases).
 ----------------------------------------------------------------------------
                     A(alpha)  B(box)  T(threshold)  P(points)  O(opacity)
 1S Multi-D          -         -       -             +          +
-2Hemi-S, Multi-D    +         +       +             +          +
-Multi-S, Multi-D    -         -       - ^1
+2Hemi-S, Single-D   +         +       +             +          +
+Multi-S, Multi-D    /         /       - ^1
 Volumes             NA        NA      
 Tracts
 Graphs              NA        NA
 ----------------------------------------------------------------------------
 ^1: the T propagates from earlier values, _until_ it has been set, after which
     it remains constant for the given surface.  
-
-
 
 
 A (Alpha) check box: When this is unchecked, subthreshold regions of the overlay
@@ -53,7 +58,7 @@ surface controller (SUMA_X_SurfCont) structure is the widget associated with the
 
 B (Box) check box.  When this is checked, an outline separates regions that are 
 above, from those that are below, the threshold. The function, SUMA_cb_BoxOutlineThresh_tb_toggled, 
-handles the clicking of the B chexckbox.  The BoxOutlineThresh_tb field of the surface controller 
+handles the clicking of the B checkbox.  The BoxOutlineThresh_tb field of the surface controller 
 (SUMA_X_SurfCont) structure is the widget associated with the B checkbox.  When the B box is checked on, the Dsp setting (in the ShowMode field of the overlay) is changed either from Col to C&C or from XXX to Con.  These settings are represented by the SW_SurfCont_DsetViewCol, SW_SurfCont_DsetViewCaC, SW_SurfCont_DsetViewXXX and SW_SurfCont_DsetViewCon tokens respectively. When the B box is checked off, the Dsp setting is changed either from C&C to Col or from Con to XXX. 
 
 A and B check boxes may each be positive for no more than one dataset.
