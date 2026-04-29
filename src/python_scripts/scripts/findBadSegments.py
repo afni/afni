@@ -520,6 +520,30 @@ def findAnomalousBands():
         peak_outliers,
         merged_ranges,
     )
+
+def correctCardiacPeaks(cardiacPeaks):
+    # Get median cardiac peak spacing
+    median_peak_spacing = int(np.median([b - a for a, b in zip(cardiacPeaks[:-1], cardiacPeaks[1:])]))
+    
+    # Replace cardiac peaks in ranges with peaks spaced at roughly the median spacing
+    num_ranges = len(merged_ranges)
+    i = 0
+    while i < num_ranges:
+        width = merged_ranges[i][1] - merged_ranges[i][0]
+        num_peaks = int(np.round(width/median_peak_spacing))
+        new_peaks = []
+        for j in range(1,num_peaks): new_peaks.append(merged_ranges[i][0] + 
+                                                      (j*median_peak_spacing))
+        
+        start, end = merged_ranges[i]
+    
+        mask = (cardiacPeaks < start) | (cardiacPeaks > end)
+        cardiacPeaks = np.concatenate([cardiacPeaks[mask], new_peaks])
+        cardiacPeaks.sort()  
+        
+        i = i + 1
+        
+    return cardiacPeaks
     
 def analyzePeakTroughMismatches(troughPeakMismatchRanges, respiratoryPeaks,
     peakVals, respiratoryTroughs, troughVals, cardiacPeaks):
@@ -730,66 +754,35 @@ rankVector = np.argsort(vectorWeightSums)[::-1]
 if useClustering:   # Not the default as it's very slow
     applyClustering(cardiacTimeSeries, cardiacPeaks, weights, rankVector, getMOD)
 
-# # Identify outliers on low end of the cumulative weights
+# Identify outliers on low end of the cumulative weights
 (
     outlier_ts_ranges,
     peak_outliers,
     merged_ranges,
 ) = findAnomalousBands()
-# print('Identify outliers on low end of the cumulatives weights')
-# outlier_ts_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
-#                                                 rankVector, cardiacPeaks)
-# num_anomalies = len(outlier_ts_ranges)
 
-# # Find peak outliers
-# print('Find peak outliers')
-# peakVals = []
-# for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
-# peakRankVector = np.argsort(peakVals)[::-1]
-# peak_outliers = getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks)
+cardiacPeaks = correctCardiacPeaks(cardiacPeaks)
 
-# # Sort anomalous bands in  order of location
-# sorted_ts_ranges = sorted(outlier_ts_ranges, key=lambda item: item[0])
+# # Get median cardiac peak spacing
+# median_peak_spacing = int(np.median([b - a for a, b in zip(cardiacPeaks[:-1], cardiacPeaks[1:])]))
 
-# # Merge overlapping ranges
-# num_ranges = len(sorted_ts_ranges)
+# # Replace cardiac peaks in ranges with peaks spaced at roughly the median spacing
+# num_ranges = len(merged_ranges)
 # i = 0
-# merged_ranges = []
-
 # while i < num_ranges:
-#     start, end = sorted_ts_ranges[i]
-
-#     j = i + 1
-#     while j < num_ranges and sorted_ts_ranges[j][0] <= end:
-#         end = max(end, sorted_ts_ranges[j][1])
-#         j += 1
-
-#     merged_ranges.append([start, end])
-#     i = j
+#     width = merged_ranges[i][1] - merged_ranges[i][0]
+#     num_peaks = int(np.round(width/median_peak_spacing))
+#     new_peaks = []
+#     for j in range(1,num_peaks): new_peaks.append(merged_ranges[i][0] + 
+#                                                   (j*median_peak_spacing))
     
-# # Reverse the orders of the merged ranges
-# merged_ranges = merged_ranges[::-1]
+#     start, end = merged_ranges[i]
 
-# Get median cardiac peak spacing
-median_peak_spacing = int(np.median([b - a for a, b in zip(cardiacPeaks[:-1], cardiacPeaks[1:])]))
-
-# Replace cardiac peaks in ranges with peaks spaced at roughly the median spacing
-num_ranges = len(merged_ranges)
-i = 0
-while i < num_ranges:
-    width = merged_ranges[i][1] - merged_ranges[i][0]
-    num_peaks = int(np.round(width/median_peak_spacing))
-    new_peaks = []
-    for j in range(1,num_peaks): new_peaks.append(merged_ranges[i][0] + 
-                                                  (j*median_peak_spacing))
+#     mask = (cardiacPeaks < start) | (cardiacPeaks > end)
+#     cardiacPeaks = np.concatenate([cardiacPeaks[mask], new_peaks])
+#     cardiacPeaks.sort()  
     
-    start, end = merged_ranges[i]
-
-    mask = (cardiacPeaks < start) | (cardiacPeaks > end)
-    cardiacPeaks = np.concatenate([cardiacPeaks[mask], new_peaks])
-    cardiacPeaks.sort()  
-    
-    i = i + 1
+#     i = i + 1
 
 # Create output directory if it doesn't already exist
 if OutDir[-1] == '/':
@@ -798,7 +791,7 @@ Path(OutDir).mkdir(parents=True, exist_ok=True)
 
 # Write corrected cardiac peaks to file.
 print('OutDir = '+OutDir)
-np.savetxt(OutDir + '/correctedCardiacPeaks.1D', cardiacPeaks, fmt="%.2f")
+np.savetxt(OutDir + '/correctedCardiacPeaks_1D.txt', cardiacPeaks, fmt="%.2f")
     
     
 output_file_name = OutDir + '/cardiacOutliersWithPeaks.pdf'
