@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, Apr, 2026, RCR, "afni", MICRO, TYPE_ENHANCE,
+   "add afni help details for DO_AFNI_X11_REDRAW and AFNI_X11_REDRAW_VERB",
+   NULL
+ } ,
+
  { 24, Apr, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "if tedana masking, suggest -blur_in_mask yes",
    NULL

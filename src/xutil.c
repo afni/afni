@@ -241,7 +241,11 @@ void forceExpose(Widget w, int source)
     */
    if( source == 0 ) {
       if( redraw_choice == 4 ) {
-         fprintf(stderr,"== x11 : remanage_widget %d\n", source);
+         static int verb=1;
+         if( verb || g_needs_x11_redraw_verb ) {
+            fprintf(stderr,"== x11 : remanage_widget %d\n", source);
+            verb = 0;
+         }
          remanage_widget(w);
          return;
       }
