@@ -6761,7 +6761,7 @@ void SUMA_cb_SetRangeValue (void *data)
    static char FuncName[]={"SUMA_cb_SetRangeValue"};
    SUMA_SRV_DATA srvdC, *srvd=NULL;
    SUMA_ALL_DO *ado=NULL, *otherAdo=NULL;
-   SUMA_OVERLAYS *colp=NULL;
+   SUMA_OVERLAYS *colp=NULL, *colpC;
    int n=-1,row=-1,col=-1, an=0;
    float reset = 0.0;
    void *cv=NULL;
@@ -6769,6 +6769,7 @@ void SUMA_cb_SetRangeValue (void *data)
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL, *SOC = NULL;
 
    SUMA_ENTRY;
 
@@ -6810,32 +6811,18 @@ void SUMA_cb_SetRangeValue (void *data)
       }
    }
 
-   // Process other surface objects
-   int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
-   int numSurfaceObjects, j;
+   // Process contralateral hemisphere.
    float newValue = TF->num_value[n];
-
-   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
-        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   if (numSurfaceObjects != N_adolist) {
-       if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-       SUMA_RETURNe;
-   }
-   for (j=0; j<N_adolist; ++j){
-       otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-
-       if (otherAdo != ado){
-
-           if (!(SurfCont=SUMA_ADO_Cont(otherAdo))) {
-             fprintf(stderr, "Surface index = %d", j);
-             SUMA_S_Warn("NULL input"); 
-             continue;
-           }
-
-          curColPlane = SUMA_ADO_CurColPlane(otherAdo);
-
-          colp = curColPlane;
+   if (ado->do_type == SO_type) {
+      /* do we have a contralateral SO and overlay? */
+      SO = (SUMA_SurfaceObject *)ado;
+      colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+      if (colpC && SOC) {
+         SUMA_LHv("Found contralateral equivalent to:\n"
+                      " %s and %s in\n"
+                      " %s and %s\n",
+                      SO->Label, CHECK_NULL_STR(colp->Label),
+                      SOC->Label, CHECK_NULL_STR(colpC->Label));
 
           TF = SurfCont->SetRangeTable;
           TF->cell_modified = n;
@@ -6850,7 +6837,7 @@ void SUMA_cb_SetRangeValue (void *data)
                                   FuncName, row, col, (char *)cv);
           }
 
-          an = SUMA_SetRangeValueNew(otherAdo, colp, row, col,
+          an = SUMA_SetRangeValueNew(otherAdo, colpC, row, col,
                                  newValue, 0.0,
                                  0, 1, &reset, TF->num_units);
 
@@ -6865,7 +6852,7 @@ void SUMA_cb_SetRangeValue (void *data)
                 SUMA_S_Err("Erriosity");
              }
           }
-        }
+      }
    }
 
    SUMA_RETURNe;
