@@ -1604,36 +1604,44 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    int imenu = 0;
    SUMA_MenuCallBackData *datap=NULL;
    SUMA_ALL_DO *ado=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *colpC=NULL;
    int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
    int numSurfaceObjects, j;
+   SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
-   /* ado = (SUMA_ALL_DO *)datap->ContID;*/
-    if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
-        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
-                  &numSurfaceObjects, NULL);
-    N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-    if (numSurfaceObjects != N_adolist) {
-        if (0) SUMA_S_Warn("Mismatch between # surface objects "
-                    "and # unique surface controllers"); 
-        SUMA_RETURNe;
-    }
-    for (j=0; j<N_adolist; ++j){
-       ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
 
-       imenu = (INT_CAST)datap->callback_data;
+   ado = (SUMA_ALL_DO *)datap->ContID;
 
-       curColPlane = SUMA_ADO_CurColPlane(ado);
-       if (imenu-1 == curColPlane->OptScl->tind) {
-          SUMA_RETURNe; /* nothing to be done */
-       }
+   imenu = (INT_CAST)datap->callback_data;
 
-       SUMA_SwitchColPlaneThreshold(ado, curColPlane, imenu -1, 1);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (imenu-1 == curColPlane->OptScl->tind) {
+      SUMA_RETURNe; /* nothing to be done */
+   }
+
+   SUMA_SwitchColPlaneThreshold(ado, curColPlane, imenu -1, 1);
+   
+   /* Process contralateral hemisphere */
+   if (ado->do_type == SO_type) {
+        /* do we have a contralateral SO and overlay? */
+        SO = (SUMA_SurfaceObject *)ado;
+        colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
+        if (colpC && SOC) {
+        SUMA_LHv("Found contralateral equivalent to:\n"
+                      " %s and %s in\n"
+                      " %s and %s\n",
+                      SO->Label, CHECK_NULL_STR(curColPlane->Label),
+                      SOC->Label, CHECK_NULL_STR(colpC->Label));
+                      
+        ado = (SUMA_ALL_DO *)SOC;
+
+        SUMA_SwitchColPlaneThreshold(ado, colpC, imenu -1, 1);
+      }
    }
 
    SUMA_RETURNe;
