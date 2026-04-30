@@ -1605,8 +1605,6 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    SUMA_MenuCallBackData *datap=NULL;
    SUMA_ALL_DO *ado=NULL;
    SUMA_OVERLAYS *curColPlane=NULL, *colpC=NULL;
-   int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
-   int numSurfaceObjects, j;
    SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -1629,7 +1627,7 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    /* Process contralateral hemisphere */
    if (ado->do_type == SO_type) {
         /* do we have a contralateral SO and overlay? */
-        SO = (SUMA_SurfaceObject *)ado;
+        // SO = (SUMA_SurfaceObject *)ado;
         colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
         if (colpC && SOC) {
         SUMA_LHv("Found contralateral equivalent to:\n"
@@ -2745,7 +2743,8 @@ void SUMA_cb_SwitchBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
    static char FuncName[]={"SUMA_cb_SwitchBrt_toggled"};
    SUMA_ALL_DO *ado = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *colpC=NULL;
+   SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
    int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
    int numSurfaceObjects, j;
    SUMA_Boolean UseBrt;
@@ -2774,27 +2773,44 @@ void SUMA_cb_SwitchBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
 
    UseBrt = XmToggleButtonGetState (SurfCont->Brt_tb);
    curColPlane->OptScl->UseBrt = UseBrt;
-
-   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
-        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
-                 &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   if (numSurfaceObjects != N_adolist) {
-       if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-       if (numSurfaceObjects != 1) SUMA_RETURNe;
-   }
-   for (j=0; j<numSurfaceObjects; ++j){
-      ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-      curColPlane = SUMA_ADO_CurColPlane(ado);
-      if ( !curColPlane )  {
-         SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+   
+   /* Process contralateral hemisphere */
+   if (ado->do_type == SO_type) {
+        /* do we have a contralateral SO and overlay? */
+        colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
+        if (colpC && SOC) {
+          curColPlane = SUMA_ADO_CurColPlane(ado);
+          if ( !curColPlane )  {
+             SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+          }
+          curColPlane->OptScl->UseBrt = UseBrt;
+          XmToggleButtonSetState (SurfCont->Brt_tb, UseBrt, NOPE);
+          SUMA_ColorizePlane(curColPlane);
+          SUMA_Remixedisplay(ado);
+          SUMA_UpdateNodeLblField(ado);
       }
-      curColPlane->OptScl->UseBrt = UseBrt;
-      XmToggleButtonSetState (SurfCont->Brt_tb, UseBrt, NOPE);
-      SUMA_ColorizePlane(curColPlane);
-      SUMA_Remixedisplay(ado);
-      SUMA_UpdateNodeLblField(ado);
    }
+
+//   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+//        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+//                 &numSurfaceObjects, NULL);
+//   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+//   if (numSurfaceObjects != N_adolist) {
+//       if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+//       if (numSurfaceObjects != 1) SUMA_RETURNe;
+//   }
+//   for (j=0; j<numSurfaceObjects; ++j){
+//      ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+//      curColPlane = SUMA_ADO_CurColPlane(ado);
+//      if ( !curColPlane )  {
+//         SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+//      }
+//      curColPlane->OptScl->UseBrt = UseBrt;
+//      XmToggleButtonSetState (SurfCont->Brt_tb, UseBrt, NOPE);
+//      SUMA_ColorizePlane(curColPlane);
+//      SUMA_Remixedisplay(ado);
+//      SUMA_UpdateNodeLblField(ado);
+//   }
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
