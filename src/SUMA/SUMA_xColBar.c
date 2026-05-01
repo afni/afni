@@ -2751,14 +2751,16 @@ void SUMA_cb_SwitchBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   
    SUMA_LH("Called");
 
    ado = (SUMA_ALL_DO *)data;
+   fprintf(stderr, "ado = %p\n", ado);
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
    curColPlane = SUMA_ADO_CurColPlane(ado);
+        fprintf(stderr, "curColPlane = %p\n", curColPlane);
    if ( !curColPlane )  {
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
@@ -2771,18 +2773,25 @@ void SUMA_cb_SwitchBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
       SUMA_RETURNe;
    }
 
-   UseBrt = XmToggleButtonGetState (SurfCont->Brt_tb);
-   curColPlane->OptScl->UseBrt = UseBrt;
+    /* Process current hemisphere */
+    UseBrt = XmToggleButtonGetState (SurfCont->Brt_tb);
+    curColPlane->OptScl->UseBrt = UseBrt;
+    SUMA_ColorizePlane(curColPlane);
+    SUMA_Remixedisplay(ado);
+    SUMA_UpdateNodeLblField(ado);
    
    /* Process contralateral hemisphere */
    if (ado->do_type == SO_type) {
         /* do we have a contralateral SO and overlay? */
         colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
         if (colpC && SOC) {
-          curColPlane = SUMA_ADO_CurColPlane(ado);
+          ado = (SUMA_ALL_DO *)SOC;
+          curColPlane = colpC;
           if ( !curColPlane )  {
              SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
           }
+
+          SurfCont=SUMA_ADO_Cont(ado);
           curColPlane->OptScl->UseBrt = UseBrt;
           XmToggleButtonSetState (SurfCont->Brt_tb, UseBrt, NOPE);
           SUMA_ColorizePlane(curColPlane);
@@ -2790,27 +2799,6 @@ void SUMA_cb_SwitchBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
           SUMA_UpdateNodeLblField(ado);
       }
    }
-
-//   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
-//        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
-//                 &numSurfaceObjects, NULL);
-//   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-//   if (numSurfaceObjects != N_adolist) {
-//       if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-//       if (numSurfaceObjects != 1) SUMA_RETURNe;
-//   }
-//   for (j=0; j<numSurfaceObjects; ++j){
-//      ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-//      curColPlane = SUMA_ADO_CurColPlane(ado);
-//      if ( !curColPlane )  {
-//         SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
-//      }
-//      curColPlane->OptScl->UseBrt = UseBrt;
-//      XmToggleButtonSetState (SurfCont->Brt_tb, UseBrt, NOPE);
-//      SUMA_ColorizePlane(curColPlane);
-//      SUMA_Remixedisplay(ado);
-//      SUMA_UpdateNodeLblField(ado);
-//   }
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
