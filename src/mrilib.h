@@ -2216,6 +2216,9 @@ extern void GA_interp_wsinc5_2D( MRI_IMAGE *fim ,
 extern int GA_gcd(int,int) ;
 extern int GA_find_relprime_fixed(int) ;
 extern MRI_IMAGE * GA_smooth( MRI_IMAGE *im, int meth, float rad ) ;
+#ifdef ALLIN_DOWNSAMPLE_COARSE
+extern MRI_IMAGE * GA_downsample2x( MRI_IMAGE *im ) ;   /* 3dAllineate coarse-pass helper */
+#endif
 
 extern MRI_IMAGE * GA_indexwarp( MRI_IMAGE *, int, MRI_IMAGE * ) ;
 extern MRI_IMAGE * GA_indexwarp_plus( MRI_IMAGE *, int, MRI_IMAGE *,
