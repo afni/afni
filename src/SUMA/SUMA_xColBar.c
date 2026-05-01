@@ -2704,8 +2704,8 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
    static char FuncName[]={"SUMA_cb_SwitchThr_toggled"};
    SUMA_ALL_DO *ado = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL;
-   int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   SUMA_OVERLAYS *curColPlane=NULL, *colpC=NULL;
+   SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
    int numSurfaceObjects, j;
    SUMA_Boolean UseThr;
    SUMA_Boolean LocalHead = NOPE;
@@ -2731,45 +2731,45 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
       SUMA_RETURNe;
    }
 
-   UseThr = XmToggleButtonGetState (SurfCont->Thr_tb);
-   curColPlane->OptScl->UseThr = UseThr;
+    /* Process current hemisphere */
+    UseThr = XmToggleButtonGetState (SurfCont->Thr_tb);
+    curColPlane->OptScl->UseThr = UseThr;
+    SUMA_ColorizePlane(curColPlane);
+    SUMA_Remixedisplay(ado);
+    SUMA_UpdateNodeLblField(ado);
+    
+   /* Process contralateral hemisphere */
+   if (ado->do_type == SO_type) {
+        /* do we have a contralateral SO and overlay? */
+        colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
+        if (colpC && SOC) {
+          ado = (SUMA_ALL_DO *)SOC;
+          curColPlane = colpC;
+          if ( !curColPlane )  {
+             SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+          }
 
-   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
-        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   if (numSurfaceObjects != N_adolist) {
-       if (0) SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-       if (numSurfaceObjects != 1) SUMA_RETURNe;
-   }
-   for (j=0; j<numSurfaceObjects; ++j){
-       ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+          SurfCont=SUMA_ADO_Cont(ado);
+          curColPlane->OptScl->UseThr = UseThr;
 
-      if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
-         SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
-      curColPlane = SUMA_ADO_CurColPlane(ado);
-      if ( !curColPlane )  {
-         SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
-      }
-
-      /* make sure ok to turn on */
-      if (curColPlane->OptScl->tind < 0) {
-         SUMA_BEEP;
-         SUMA_SLP_Note("no threshold column set");
-         XmToggleButtonSetState (SurfCont->Thr_tb, NOPE, NOPE);
-         SUMA_RETURNe;
-      }
-
-      curColPlane->OptScl->UseThr = UseThr;
-           /* XmToggleButtonGetState (SurfCont->Thr_tb); */
-
-      /* Set toggle button for this surface */
-      XmToggleButtonSetState (SurfCont->Thr_tb, UseThr , NOPE);
-
-      SUMA_ColorizePlane(curColPlane);
-      SUMA_Remixedisplay(ado);
-
-      SUMA_UpdateNodeLblField(ado);
-   }
+           /* make sure ok to turn on */
+           if (curColPlane->OptScl->bind < 0) {
+              SUMA_BEEP;
+              SUMA_SLP_Note("no brightness column set");
+              XmToggleButtonSetState (SurfCont->Brt_tb, NOPE, NOPE);
+              SUMA_RETURNe;
+           }
+          
+          /* Set toggle switch on control panel */
+          XmToggleButtonSetState (SurfCont->Thr_tb, UseThr, NOPE);
+          
+          /* Colorize surfaces */
+          curColPlane->OptScl->UseThr = UseThr;
+          SUMA_ColorizePlane(curColPlane);
+          SUMA_Remixedisplay(ado);
+          SUMA_UpdateNodeLblField(ado);
+        }
+   }          
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
