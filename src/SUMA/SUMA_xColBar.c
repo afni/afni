@@ -2095,33 +2095,6 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
         }
    }
 
-//   /* Process other surface objects */
-//   int numSurfaceObjects;
-//   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
-//        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
-//                 &numSurfaceObjects, NULL);
-//   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-//   if (numSurfaceObjects != N_adolist)
-//   {
-//        if (0) SUMA_S_Warn("Mismatch between # surface objects and "
-//                    "# unique surface controllers"); 
-//        SUMA_RETURNe;
-//   }
-//   for (j=0; j<N_adolist; ++j){
-//        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-//        if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
-//
-//            if (!otherAdo || !(SurfCont=SUMA_ADO_Cont(otherAdo)))
-//              { SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
-//              
-//            if (!SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(otherAdo, 
-//                AbsThresh, YUP)){
-//                    SUMA_S_Warn("Error toggling |T| for current surface"); 
-//                    SUMA_RETURNe;
-//            }
-//        }
-//   }
-
    SUMA_RETURNe;
 }
 
