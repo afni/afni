@@ -2289,9 +2289,10 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    static char FuncName[]={"SUMA_cb_ShowZero_tb_toggled"};
    SUMA_ALL_DO *ado = NULL, *otherAdo = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *colpC=NULL;
+   SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
+   SUMA_Boolean ShowZero;
    SUMA_Boolean LocalHead = NOPE;
-   int j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
 
    SUMA_ENTRY;
 
@@ -2309,36 +2310,38 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    }
 
    curColPlane->OptScl->MaskZero = !XmToggleButtonGetState (SurfCont->ShowZero_tb);
+   ShowZero = XmToggleButtonGetState(SurfCont->ShowZero_tb);
    
    if (!SUMA_cb_ShowZero_tb_toggledForSurfaceObject(ado, 
         curColPlane->OptScl->MaskZero, NOPE)){
     SUMA_S_Warn("Error toggling show zero for current surface"); SUMA_RETURNe;
    }
+      
+   /* Set show zero for contralateral hemisphere */
+   if (ado->do_type == SO_type) {
+        /* do we have a contralateral SO and overlay? */
+        colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
+        if (colpC && SOC) {
+            ado = (SUMA_ALL_DO *)SOC;
+            curColPlane = colpC;
+            if ( !curColPlane )  {
+                SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+            }
+            
+            curColPlane->OptScl->MaskZero = !ShowZero;
+  
+            /* Set state on surface controller */
+            SurfCont=SUMA_ADO_Cont(ado);
+            XmToggleButtonSetState(SurfCont->ShowZero_tb, 
+                                   ShowZero, NOPE);                    
    
-   // Set show zero for other surfaces
-   int numSurfaceObjects;
-   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
-        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
-                 &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   if (numSurfaceObjects != N_adolist)
-   {
-        if (0) SUMA_S_Warn("Mismatch between # surface objects and "
-                    "# unique surface controllers"); 
-        SUMA_RETURNe;
-   }
-   for (j=0; j<N_adolist; ++j){
-        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
-   
-           if (!SUMA_cb_ShowZero_tb_toggledForSurfaceObject(otherAdo, 
-                !curColPlane->OptScl->MaskZero, YUP)){
-                    SUMA_S_Warn("Error toggling show zero for current surface"); 
-                    SUMA_RETURNe;
+           if (!SUMA_cb_ShowZero_tb_toggledForSurfaceObject(ado, 
+                curColPlane->OptScl->MaskZero, NOPE)){
+            SUMA_S_Warn("Error toggling show zero for contralateral surface"); SUMA_RETURNe;
            }
         }
    }
-
+   
    SUMA_RETURNe;
 }
 
