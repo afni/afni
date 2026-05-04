@@ -2040,11 +2040,12 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
                                    XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_AbsThresh_tb_toggled"};
-   SUMA_ALL_DO *ado = NULL, *otherAdo = NULL;
+   SUMA_ALL_DO *ado = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *colpC=NULL;
+   SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
+   int i, j;
    int AbsThresh;
 
    SUMA_ENTRY;
@@ -2064,37 +2065,62 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
    /* Get state of |T| check box */
    AbsThresh = XmToggleButtonGetState (SurfCont->AbsThresh_tb);
    
+   /* Implement state for current surface */
    if (!SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(ado, 
         AbsThresh, NOPE)){
     SUMA_S_Warn("Error toggling |T| for current surface"); SUMA_RETURNe;
    }
+   
+      
+   /* Process contralateral hemisphere */
+   if (ado->do_type == SO_type) {
+        /* do we have a contralateral SO and overlay? */
+        colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
+        if (colpC && SOC) {
+            ado = (SUMA_ALL_DO *)SOC;
+            curColPlane = colpC;
+            if ( !curColPlane )  {
+                SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+            }
 
-   /* Process other surface objects */
-   int numSurfaceObjects;
-   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
-        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
-                 &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   if (numSurfaceObjects != N_adolist)
-   {
-        if (0) SUMA_S_Warn("Mismatch between # surface objects and "
-                    "# unique surface controllers"); 
-        SUMA_RETURNe;
-   }
-   for (j=0; j<N_adolist; ++j){
-        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-        if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
+            /* Set state on surface controller */
+            SurfCont=SUMA_ADO_Cont(ado);
+            XmToggleButtonSetState(SurfCont->AbsThresh_tb, AbsThresh, NOPE);            
 
-            if (!otherAdo || !(SurfCont=SUMA_ADO_Cont(otherAdo)))
-              { SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
-              
-            if (!SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(otherAdo, 
-                AbsThresh, YUP)){
-                    SUMA_S_Warn("Error toggling |T| for current surface"); 
-                    SUMA_RETURNe;
+            /* Implement state for contralateral surface */
+            if (!SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(ado, 
+                AbsThresh, NOPE)){
+                SUMA_S_Warn("Error toggling |T| for contralateral surface"); SUMA_RETURNe;
             }
         }
    }
+
+//   /* Process other surface objects */
+//   int numSurfaceObjects;
+//   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+//        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
+//                 &numSurfaceObjects, NULL);
+//   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+//   if (numSurfaceObjects != N_adolist)
+//   {
+//        if (0) SUMA_S_Warn("Mismatch between # surface objects and "
+//                    "# unique surface controllers"); 
+//        SUMA_RETURNe;
+//   }
+//   for (j=0; j<N_adolist; ++j){
+//        otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
+//        if ( otherAdo != ado &&  otherAdo->do_type == SO_type){
+//
+//            if (!otherAdo || !(SurfCont=SUMA_ADO_Cont(otherAdo)))
+//              { SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+//              
+//            if (!SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(otherAdo, 
+//                AbsThresh, YUP)){
+//                    SUMA_S_Warn("Error toggling |T| for current surface"); 
+//                    SUMA_RETURNe;
+//            }
+//        }
+//   }
 
    SUMA_RETURNe;
 }
