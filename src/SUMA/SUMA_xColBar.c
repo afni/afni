@@ -2069,8 +2069,7 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
    if (!SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(ado, 
         AbsThresh, NOPE)){
     SUMA_S_Warn("Error toggling |T| for current surface"); SUMA_RETURNe;
-   }
-   
+   }   
       
    /* Process contralateral hemisphere */
    if (ado->do_type == SO_type) {
@@ -2176,8 +2175,10 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    static char FuncName[]={"SUMA_cb_SymIrange_tb_toggled"};
    SUMA_ALL_DO *ado = NULL, *otherAdo=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *colpC=NULL;
+   SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
    SUMA_TABLE_FIELD *TF=NULL;
+   SUMA_Boolean SymIrange;
    SUMA_Boolean LocalHead = NOPE;
    int i, j, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
    int numSurfaceObjects;
@@ -2195,34 +2196,35 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
 
-   curColPlane->SymIrange = XmToggleButtonGetState (SurfCont->SymIrange_tb);
+   SymIrange = curColPlane->SymIrange = XmToggleButtonGetState (SurfCont->SymIrange_tb);
    
-   if (!(curColPlane) || !(curColPlane->SymIrange) || 
-	!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
+   if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
         curColPlane->SymIrange, NOPE)){
     SUMA_S_Warn("Error toggling sym I for current surface"); SUMA_RETURNe;
    }
-
-   // Set sym range for other surfaces
-   if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
-        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
-                 &numSurfaceObjects, NULL);
-   N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-   if (numSurfaceObjects != N_adolist)
-   {
-        if (0) SUMA_S_Warn("Mismatch between # surface objects and "
-                    "# unique surface controllers"); 
-        SUMA_RETURNe;
-   }
-   for (j=0; j<N_adolist; ++j){
-            otherAdo = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-            if (otherAdo != ado && otherAdo->do_type == SO_type){
-       
-            if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(otherAdo, 
-                curColPlane->SymIrange, YUP)){
-                    SUMA_S_Warn("Error toggling sym I for current surface"); 
-                    SUMA_RETURNe;
+      
+   /* Process contralateral hemisphere */
+   if (ado->do_type == SO_type) {
+        /* do we have a contralateral SO and overlay? */
+        colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
+        if (colpC && SOC) {
+            ado = (SUMA_ALL_DO *)SOC;
+            curColPlane = colpC;
+            if ( !curColPlane )  {
+                SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
             }
+            
+            curColPlane->SymIrange = SymIrange;
+ 
+            /* Set state on surface controller */
+            SurfCont=SUMA_ADO_Cont(ado);
+            XmToggleButtonSetState(SurfCont->SymIrange_tb, SymIrange, NOPE);            
+
+            if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
+                curColPlane->SymIrange, YUP)){
+                    SUMA_S_Warn("Error toggling sym I for contralateral surface"); 
+                    SUMA_RETURNe;
+                }
         }
    }
 
