@@ -2354,6 +2354,11 @@ int SUMA_cb_AlphaOpacityFalloff_tb_toggledForSurfaceObject(SUMA_ALL_DO *ado, int
    SUMA_SurfaceObject *SO = NULL;
 
    SUMA_ENTRY;
+   
+   if (!SUMA_AB_Ready(ado)){
+    SUMA_S_Warn("Variable opacity does not work for this object type."); 
+    SUMA_RETURN(0);
+   }
 
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (  !curColPlane ||
@@ -2413,7 +2418,12 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    SUMA_LH("Called");
 
    ado = (SUMA_ALL_DO *)data;
-   
+    
+   if (!SUMA_AB_Ready(ado)){
+    SUMA_S_Warn("Variable opacity does not work for this object type."); 
+    SUMA_RETURN(0);
+   }
+  
    /* Ensure object type is handled by this operation */
    if (ado->do_type != SO_type){
     SUMA_S_Warn("Error: Operation not handled for this object type."); 
@@ -2482,6 +2492,12 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    ado = (SUMA_ALL_DO *)data;
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
             || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
+            
+   if (!SUMA_AB_Ready(ado)){
+    SUMA_S_Warn("Threshold outline does not work for this object type."); 
+    SUMA_RETURN(0);   
+   }
+            
    SO = (SUMA_SurfaceObject *)ado;
    
    
@@ -2646,7 +2662,6 @@ void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
           SUMA_UpdateNodeLblField(ado);
       }
    }
-
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
@@ -11346,7 +11361,8 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
             SUMA_SET_SELECT_COLOR(SurfCont->BoxOutlineThresh_tb);
             
             // Disable "A" and "B" checkboxes if not a surface object
-            if (ado->do_type != SO_type){
+            // if (ado->do_type != SO_type){
+            if (!SUMA_AB_Ready(ado)){
                 XtSetSensitive(SurfCont->AlphaOpacityFalloff_tb, 0);
                 XtSetSensitive(SurfCont->BoxOutlineThresh_tb, 0);
             } 
@@ -15954,5 +15970,9 @@ int SUMA_Anatomical_DOs(SUMA_DO *dov, int N_dov, int *rdov)
    }
 
    return(N);
+}
 
+SUMA_Boolean SUMA_AB_Ready(SUMA_ALL_DO *ado)
+{
+    return (ado->do_type == SO_type);
 }
