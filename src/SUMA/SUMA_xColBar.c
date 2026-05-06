@@ -2421,7 +2421,7 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
     
    if (!SUMA_AB_Ready(ado)){
     SUMA_S_Warn("Variable opacity does not work for this object type."); 
-    SUMA_RETURN(0);
+    SUMA_RETURNe; 
    }
   
    /* Ensure object type is handled by this operation */
@@ -2495,7 +2495,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
             
    if (!SUMA_AB_Ready(ado)){
     SUMA_S_Warn("Threshold outline does not work for this object type."); 
-    SUMA_RETURN(0);   
+    SUMA_RETURNe;   
    }
             
    SO = (SUMA_SurfaceObject *)ado;
