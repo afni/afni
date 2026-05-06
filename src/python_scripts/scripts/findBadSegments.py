@@ -456,6 +456,54 @@ def PlotCardiacPeaksOnCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks):
         plt.xlim(1608,2208)  # Zoom in on plot
         plt.plot(cardiacPeaks, peakVals, "ro") # Peaks
         
+def buildCardiacPeakVectors(cardiacPeaks, cardiacTimeSeries):
+    # Build an array of vecs, one for each peak.
+    print('Build an array of vecs, one for each peak')
+    cardiacPeaks = np.asarray(cardiacPeaks)
+    cardiacTimeSeries = np.asarray(cardiacTimeSeries)
+    vec = np.column_stack([
+        cardiacTimeSeries[cardiacPeaks] - np.roll(cardiacTimeSeries[cardiacPeaks], 1),
+        np.roll(cardiacTimeSeries[cardiacPeaks], -1) - cardiacTimeSeries[cardiacPeaks],
+        cardiacPeaks - np.roll(cardiacPeaks, 1),
+        np.roll(cardiacPeaks, -1) - cardiacPeaks
+    ])
+    vec[0] = vec[1]
+    vec[-1] = vec[0]
+    
+    # Normalize time differences to be in the same range as the value differences
+    print('Normalize time differences to be in the same range as the value differences')
+    scaleFactor = (vec[:,0:1].max()-vec[:,0:1].min())/(vec[:,2:3].max()-vec[:,2:3].min())
+    vec[:,2:4] =vec[:,2:4]*scaleFactor
+    
+    return (
+        cardiacPeaks, 
+        cardiacTimeSeries,
+        vec
+        )
+
+def buildRespiratoryPeakVectors(resp_peak_values, resp_peak_indices):
+    print('Build an array of vecs, one for each peak')
+
+    vec = np.column_stack([
+        resp_peak_values - np.roll(resp_peak_values, 1),
+        np.roll(resp_peak_values, -1) - resp_peak_values,
+        resp_peak_indices - np.roll(resp_peak_indices, 1),
+        np.roll(resp_peak_indices, -1) - resp_peak_indices
+    ])
+    vec[0] = vec[1]
+    vec[-1] = vec[0]
+    
+    # Normalize time differences to be in the same range as the value differences
+    print('Normalize time differences to be in the same range as the value differences')
+    scaleFactor = (vec[:,0:1].max()-vec[:,0:1].min())/(vec[:,2:3].max()-vec[:,2:3].min())
+    vec[:,2:4] =vec[:,2:4]*scaleFactor
+    
+    return (
+        resp_peak_values, 
+        resp_peak_indices,
+        vec
+        )
+        
 def applyClustering(cardiacTimeSeries, cardiacPeaks, weights, rankVector, getMOD):
     print('clustering')
 
@@ -738,27 +786,17 @@ while i < len(sys.argv):
     respiratoryTroughs,
 ) = getCardiacAndRespiratoryTimeSeriesPeaksTroughs(directory)
 
+# Process cardiac data
 
 # Plot cardiac peaks on cardiac time series
 PlotCardiacPeaksOnCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks)
 
 # Build an array of vecs, one for each peak.
-print('Build an array of vecs, one for each peak')
-cardiacPeaks = np.asarray(cardiacPeaks)
-cardiacTimeSeries = np.asarray(cardiacTimeSeries)
-vec = np.column_stack([
-    cardiacTimeSeries[cardiacPeaks] - np.roll(cardiacTimeSeries[cardiacPeaks], 1),
-    np.roll(cardiacTimeSeries[cardiacPeaks], -1) - cardiacTimeSeries[cardiacPeaks],
-    cardiacPeaks - np.roll(cardiacPeaks, 1),
-    np.roll(cardiacPeaks, -1) - cardiacPeaks
-])
-vec[0] = vec[1]
-vec[-1] = vec[0]
-
-# Normalize time differences to be in the same range as the value differences
-print('Normalize time differences to be in the same range as the value differences')
-scaleFactor = (vec[:,0:1].max()-vec[:,0:1].min())/(vec[:,2:3].max()-vec[:,2:3].min())
-vec[:,2:4] =vec[:,2:4]*scaleFactor
+(
+    cardiacPeaks, 
+    cardiacTimeSeries,
+    vec
+    ) = buildCardiacPeakVectors(cardiacPeaks, cardiacTimeSeries)
 
 # Make NxN matrix where N is the number of segments
 # Fill the matrix with the weights
@@ -786,30 +824,8 @@ cardiacPeaks = correctCardiacPeaks(cardiacPeaks)
 
 writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, cardiacPeaks, samp_freq,
                            peak_outliers, outlier_ts_ranges)
-
-# # Create output directory if it doesn't already exist
-# if OutDir[-1] == '/':
-#     OutDir = OutDir[:-1]
-# Path(OutDir).mkdir(parents=True, exist_ok=True)
-
-# # Write corrected cardiac peaks to file.
-# print('OutDir = '+OutDir)
-# np.savetxt(OutDir + '/correctedCardiacPeaks_1D.txt', cardiacPeaks, fmt="%.2f")
-    
-    
-# output_file_name = OutDir + '/cardiacOutliersWithPeaks.pdf'
-# outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
-#                        peak_outliers,
-#                        outlier_ts_ranges, 
-#                        output_file_name)
         
-
-
-
-
-
-
-
+# Process respiratory data
 
 # Get modified peaks (original peaks minus the mean of the adjacent peaks)
 print('Get modified peaks (original peaks minus the mean of the adjacent peaks)')
@@ -818,19 +834,24 @@ resp_peak_indices, resp_peak_values, resp_outliers = compute_respiratory_peaks(r
 
 # Build an array of vecs, one for each peak.
 print('Build an array of vecs, one for each peak')
-vec = np.column_stack([
-    resp_peak_values - np.roll(resp_peak_values, 1),
-    np.roll(resp_peak_values, -1) - resp_peak_values,
-    resp_peak_indices - np.roll(resp_peak_indices, 1),
-    np.roll(resp_peak_indices, -1) - resp_peak_indices
-])
-vec[0] = vec[1]
-vec[-1] = vec[0]
+(
+    resp_peak_values, 
+    resp_peak_indices,
+    vec
+    ) = buildRespiratoryPeakVectors(resp_peak_values, resp_peak_indices)
+# vec = np.column_stack([
+#     resp_peak_values - np.roll(resp_peak_values, 1),
+#     np.roll(resp_peak_values, -1) - resp_peak_values,
+#     resp_peak_indices - np.roll(resp_peak_indices, 1),
+#     np.roll(resp_peak_indices, -1) - resp_peak_indices
+# ])
+# vec[0] = vec[1]
+# vec[-1] = vec[0]
 
-# Normalize time differences to be in the same range as the value differences
-print('Normalize time differences to be in the same range as the value differences')
-scaleFactor = (vec[:,0:1].max()-vec[:,0:1].min())/(vec[:,2:3].max()-vec[:,2:3].min())
-vec[:,2:4] =vec[:,2:4]*scaleFactor
+# # Normalize time differences to be in the same range as the value differences
+# print('Normalize time differences to be in the same range as the value differences')
+# scaleFactor = (vec[:,0:1].max()-vec[:,0:1].min())/(vec[:,2:3].max()-vec[:,2:3].min())
+# vec[:,2:4] =vec[:,2:4]*scaleFactor
 
 # Make NxN matrix where N is the number of segments
 # Fill the matrix with the weights
