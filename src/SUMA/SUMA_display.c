@@ -7977,9 +7977,10 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
          /* Kill the scroller from hell otherwise no keyboard input
             gets to the baby widgets. Better write my own scroller
             if need be in the future */
-         if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
+         if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook){
             scroller = XtNameToWidget (SUMAg_CF->X->SC_Notebook, "PageScroller");
-                XtUnmanageChild (scroller);
+            XtUnmanageChild (scroller);
+         }
       }
 
    }
