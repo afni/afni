@@ -14789,8 +14789,8 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
    }
 
    // Set "A" and "B" check-boxes to reflect whether there should be variable 
-   //   overlay opacity for this object
-   if (SurfCont){
+   //   overlay opacity or box outlines for this object
+   if (SUMA_AB_Ready(ado) && SurfCont){
        if (SurfCont->AlphaOpacityFalloff_tb)
            XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
                           curColPlane->AlphaOpacityFalloff, YUP);
@@ -16398,10 +16398,12 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    /* Set A and B check boxes to the values for this existing dataset */
    ColPlane = SUMA_ADO_CurColPlane(ado);
    SurfCont = SUMA_ADO_Cont(ado);
-    XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 
-                           ColPlane->AlphaOpacityFalloff, 1);
-    XmToggleButtonSetState(SurfCont->BoxOutlineThresh_tb, 
-                           ColPlane->BoxOutlineThresh, 1);
+   if (SUMA_AB_Ready(ado)){
+        XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 
+                               ColPlane->AlphaOpacityFalloff, 1);
+        XmToggleButtonSetState(SurfCont->BoxOutlineThresh_tb, 
+                               ColPlane->BoxOutlineThresh, 1);
+   }
     if (ColPlane->BoxOutlineThresh) ColPlane->ShowMode = SW_SurfCont_DsetViewCaC;
     else ColPlane->ShowMode = SW_SurfCont_DsetViewCol;
 

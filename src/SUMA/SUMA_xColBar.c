@@ -15974,5 +15974,6 @@ int SUMA_Anatomical_DOs(SUMA_DO *dov, int N_dov, int *rdov)
 
 SUMA_Boolean SUMA_AB_Ready(SUMA_ALL_DO *ado)
 {
+    if (!ado) return NOPE;
     return (ado->do_type == SO_type);
 }

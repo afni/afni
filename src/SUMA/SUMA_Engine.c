@@ -4128,7 +4128,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               toggleOn, YUP);
             }
 
-            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA") &&
+            if (SUMA_AB_Ready(ado) && NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA") &&
             
                 // Ensure "A" button is not disabled
                 XtIsSensitive(SUMA_SV_Focus_SO(sv)->SurfCont->AlphaOpacityFalloff_tb)) {
@@ -4152,7 +4152,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             }
             
-            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE")) {
+            if (SUMA_AB_Ready(ado) && NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE")) {
                 if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
                     XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
                 else {
@@ -4191,7 +4191,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                     }     
             }
 
-            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED")) {
+            if (SUMA_AB_Ready(ado) && NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED")) {
                 curColPlane = SurfCont->curColPlane;
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_BOXED", "y")){
                   curColPlane->BoxOutlineThresh = 1;

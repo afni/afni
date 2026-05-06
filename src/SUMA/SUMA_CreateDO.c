@@ -15191,7 +15191,7 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
          /* any contours? */
          if ( (colplane->ShowMode == SW_SurfCont_DsetViewCon ||
                colplane->ShowMode == SW_SurfCont_DsetViewCaC ||
-               SO->SurfCont->BoxOutlineThresh && 
+               colplane->BoxOutlineThresh && 
             colplane == SUMA_ADO_CurColPlane((SUMA_ALL_DO *)SO) ) && 
               colplane->Contours && colplane->N_Contours) {
               
