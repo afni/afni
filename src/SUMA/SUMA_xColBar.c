@@ -2488,7 +2488,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    static int savedShowMode;
 
    SUMA_ENTRY;
-
+   
    ado = (SUMA_ALL_DO *)data;
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
             || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
@@ -2498,8 +2498,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
     SUMA_RETURNe;   
    }
             
-   SO = (SUMA_SurfaceObject *)ado;
-   
+   SO = (SUMA_SurfaceObject *)ado;   
    
    // Get box outline threshold status from checkbox
    BoxOutlineThresh = XmToggleButtonGetState(w);    
@@ -2514,8 +2513,11 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
     
     for (i=0; i<SO->N_Overlays; ++i){
         if (SO->Overlays[i] != over2){
+            if (SO->Overlays[i]->BoxOutlineThresh){
+               SO->Overlays[i]->ShowMode = (SO->Overlays[i]->ShowMode == SW_SurfCont_DsetViewCon)? 
+                    SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
+            }
             SO->Overlays[i]->BoxOutlineThresh = NOPE; 
-            SO->Overlays[i]->ShowMode = SW_SurfCont_DsetViewCol;      
         }
     }
    }
@@ -2530,10 +2532,14 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    }
    SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
                            SUMA_ShowMode2ShowModeMenuItem(over2->ShowMode));
-
+                           
    // Get contours
    SUMA_ScaleToMap_Interactive(over2);
-      
+    
+   // Refresh display
+   SUMA_Remixedisplay(ado);
+   SUMA_UpdateNodeLblField(ado);
+  
    // Process for contralateral hemisphere
    colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
    if (colpC && SOC){
@@ -2543,7 +2549,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
 
        colpC->BoxOutlineThresh = BoxOutlineThresh;
        colpC->makeContours = YUP;
-   
+
        // Set Dsp mode to C&C for contralateral hemisphere
        if (BoxOutlineThresh){
            colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewXXX)? 
@@ -2564,11 +2570,19 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
         
        for (i=0; i<SOC->N_Overlays; ++i){
             if (SOC->Overlays[i] != colpC){
+                if (SO->Overlays[i]->BoxOutlineThresh){
+                   SO->Overlays[i]->ShowMode = (SO->Overlays[i]->ShowMode == SW_SurfCont_DsetViewCon)? 
+                        SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
+                }
                 SOC->Overlays[i]->BoxOutlineThresh = NOPE; 
-                SOC->Overlays[i]->ShowMode = SW_SurfCont_DsetViewCol;      
             }
         }
        }
+   
+       // Refresh display
+       ado = (SUMA_ALL_DO *)SOC;
+       SUMA_Remixedisplay(ado);
+       SUMA_UpdateNodeLblField(ado);
    }
    
    // Refresh display
