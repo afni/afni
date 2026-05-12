@@ -94,8 +94,8 @@ int isMacTahoe(void)
 
   if( fgets(version, sizeof(version), fp) != NULL ){
     MacTahoe = ( strncmp(version, "26.", 3) == 0 );
-    /* if the minor version is at least 5, return 2 */
-    if( MacTahoe && (version[3]-4 > 0) )
+    /* if the minor version is at least 5 (and check for 2 digits), return 2 */
+    if( MacTahoe && ((version[3]-4 > 0) || isdigit(version[4])) )
       MacTahoe = 2;
   }
   pclose(fp);
