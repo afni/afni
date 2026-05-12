@@ -496,7 +496,7 @@ workflows:
           matrix:
             parameters:
               build_type: ["cmake_build"]
-              # [PJM: 2025-xx-xx] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
+              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
               image_cache_version: ["1"]
           filters:
             tags:
@@ -511,7 +511,7 @@ workflows:
           matrix:
             parameters:
               build_type: ["make_build"]
-              # [PJM: 2025-xx-xx] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
+              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
               image_cache_version: ["1"]
           filters:
             tags:
@@ -524,7 +524,7 @@ workflows:
           matrix:
             parameters:
               build_type: ["make_build", "cmake_build"]
-              # [PJM: 2025-xx-xx] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
+              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
               image_cache_version: ["1"]
               test_data_cache_version: ["0"]
           requires:
@@ -539,7 +539,7 @@ workflows:
           name: check containers for issues with users and permissions and environments
           matrix:
             parameters:
-              # [PJM: 2025-xx-xx] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
+              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
               image_cache_version: ["1"]
           requires:
             - make_build
@@ -555,7 +555,7 @@ workflows:
           matrix:
             parameters:
               build_type: ["make_build", "cmake_build"]
-              # [PJM: 2025-xx-xx] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
+              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
               image_cache_version: ["1"]
           requires:
             - test_<< matrix.build_type >>
@@ -573,7 +573,7 @@ workflows:
             - test_make_build
           matrix:
             parameters:
-              # [PJM: 2025-xx-xx] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
+              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
               image_cache_version: ["1"]
               test_data_cache_version: ["5"]
           filters:
