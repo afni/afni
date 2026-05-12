@@ -544,3 +544,33 @@ target_link_libraries(
           NIFTI::nifti2
           NIFTI::nifticdf
 )
+
+# ---- ARM / macOS compile definitions for mri --------------------------------
+# Mirrors:  -DDARWIN -DARM_M1         from CCMIN in Makefile.macos_13_ARM_clang
+#           -DUSE_TRACING -DHAVE_XDBE
+#           -DDONT_USE_MCW_MALLOC      from CEXTRA
+#           -Wall -Wno-deprecated-declarations -Wcomment -Wformat  from CEXTRA
+# Note: -m64 is intentionally absent — it is invalid on arm64 and already the
+#       default on x86_64, so omitting it is correct for both targets.
+if(AFNI_IS_MACOS)
+    target_compile_definitions(mri PUBLIC DARWIN)
+    target_compile_options(mri PRIVATE
+        -Wall
+        -Wno-deprecated-declarations
+        -Wcomment
+        -Wformat
+    )
+    if(AFNI_IS_ARM)
+        target_compile_definitions(mri PUBLIC ARM_M1)
+    endif()
+endif()
+
+# USE_TRACING / HAVE_XDBE / DONT_USE_MCW_MALLOC: applied on all platforms
+# (they are already set via libheaders for most TUs; repeating here ensures
+# they propagate transitively to every consumer of the mri target).
+target_compile_definitions(mri PUBLIC
+    USE_TRACING
+    HAVE_XDBE
+    DONT_USE_MCW_MALLOC
+)
+# -----------------------------------------------------------------------------

@@ -52,6 +52,31 @@ endif()
 set(CMAKE_FIND_FRAMEWORK_SAVE ${CMAKE_FIND_FRAMEWORK})
 set(CMAKE_FIND_FRAMEWORK NEVER)
 
+# ---- Mesa override ----------------------------------------------------------
+# When AFNI_MESA_ROOT is set, prefer its GL and GLU libraries over XQuartz.
+# GLUT is always taken from XQuartz since Mesa does not ship it.
+# The include directory is kept from XQuartz since it has glut.h which
+# Mesa does not provide.
+if(AFNI_MESA_ROOT)
+  foreach(_gl libGL.dylib libGL.1.dylib)
+    if(EXISTS "${AFNI_MESA_ROOT}/lib/${_gl}")
+      set(XQuartzGL_gl_LIBRARY "${AFNI_MESA_ROOT}/lib/${_gl}" CACHE FILEPATH "" FORCE)
+      break()
+    endif()
+  endforeach()
+  foreach(_glu libGLU.dylib libGLU.1.dylib)
+    if(EXISTS "${AFNI_MESA_ROOT}/lib/${_glu}")
+      set(XQuartzGL_glu_LIBRARY "${AFNI_MESA_ROOT}/lib/${_glu}" CACHE FILEPATH "" FORCE)
+      break()
+    endif()
+  endforeach()
+  message(STATUS "[FindXQuartzGL] Mesa override active:")
+  message(STATUS "  GL  : ${XQuartzGL_gl_LIBRARY}")
+  message(STATUS "  GLU : ${XQuartzGL_glu_LIBRARY}")
+  message(STATUS "  inc : XQuartz (needed for glut.h)")
+endif()
+# -----------------------------------------------------------------------------
+
 find_path(XQuartzGL_INCLUDE_DIR GL/gl.h
   PATHS /usr/X11R6/include /opt/X11/include
   NO_DEFAULT_PATH
@@ -90,7 +115,7 @@ mark_as_advanced(XQuartzGL_INCLUDE_DIR XQuartzGL_gl_LIBRARY XQuartzGL_glu_LIBRAR
 if(XQuartzGL_FOUND)
   if(NOT TARGET XQuartzGL::GL)
     add_library(XQuartzGL::GL UNKNOWN IMPORTED)
-    set_target_properties(XQuartzGL::GL PROPERTIES 
+    set_target_properties(XQuartzGL::GL PROPERTIES
       INTERFACE_INCLUDE_DIRECTORIES "${XQuartzGL_INCLUDE_DIR}"
       IMPORTED_LOCATION "${XQuartzGL_gl_LIBRARY}"
     )
@@ -98,7 +123,7 @@ if(XQuartzGL_FOUND)
 
   if(NOT TARGET XQuartzGL::GLU)
     add_library(XQuartzGL::GLU UNKNOWN IMPORTED)
-    set_target_properties(XQuartzGL::GLU PROPERTIES 
+    set_target_properties(XQuartzGL::GLU PROPERTIES
       INTERFACE_INCLUDE_DIRECTORIES "${XQuartzGL_INCLUDE_DIR}"
       INTERFACE_LINK_LIBRARIES XQuartzGL::GL
       IMPORTED_LOCATION "${XQuartzGL_glu_LIBRARY}"
@@ -106,7 +131,7 @@ if(XQuartzGL_FOUND)
   endif()
   if(NOT TARGET XQuartzGL::GLUT)
     add_library(XQuartzGL::GLUT UNKNOWN IMPORTED)
-    set_target_properties(XQuartzGL::GLUT PROPERTIES 
+    set_target_properties(XQuartzGL::GLUT PROPERTIES
       INTERFACE_INCLUDE_DIRECTORIES "${XQuartzGL_INCLUDE_DIR}"
       INTERFACE_LINK_LIBRARIES XQuartzGL::GLUT
       IMPORTED_LOCATION "${XQuartzGL_glut_LIBRARY}"

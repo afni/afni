@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.14.7 FATAL_ERROR)
+cmake_policy(SET CMP0170 OLD)
 
 # ##### Set policies
 cmake_policy(SET CMP0077 NEW)
@@ -8,6 +9,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
 include(get_git_repo_version)
 include(get_build_macros_and_functions)
 include(CMakeDependentOption)
+include(AfniPlatform)
 
 if( (NOT DEFINED ENV{CC}) )
   if(DEFINED CMAKE_TOOLCHAIN_FILE)

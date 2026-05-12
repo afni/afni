@@ -1080,6 +1080,10 @@ int main (int argc,char *argv[])
       fprintf(stderr,"Error in SUMA_X_SurfaceViewer_Create. Exiting\n");
       return 1;
    }
+   /* Initialize GLUT so glutBitmapWidth works on right-click context menus.
+       The original call was removed in 2016 for remote connections but is
+       needed on ARM macOS with XQuartz GLUT. */
+    glutInit(&argc, argv);
 
    for (i=0; i<ispec; ++i) {
       if (!list) list = SUMA_CreateList();
