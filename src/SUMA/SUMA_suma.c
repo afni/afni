@@ -1084,6 +1084,8 @@ int main (int argc,char *argv[])
        The original call was removed in 2016 for remote connections but is
        needed on ARM macOS with XQuartz GLUT. 
        
+       Commented out part of MACRO in SUMA_DataSets.h -> SUMA_STANDALONE_INIT
+       
        The reason this works is glutInit called after SUMA_X_SurfaceViewer_Create()
        X display and GL context are fully established. Should be safe for
        both local and remote connections.
