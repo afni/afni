@@ -70,6 +70,11 @@ int isMacTahoe(void){ return 0 ; } /* that was easy */
 
 #else
 
+/* return :
+ *    0 if not macos 26    - no problem yet
+ *    1 if 26.0 .. 26.4*   - problem
+ *    2 if 26.5+           - problem fixed on Apple's side
+ */
 int isMacTahoe(void)
 {
   static int MacTahoe=-1;  /* init to unknown */
@@ -89,6 +94,9 @@ int isMacTahoe(void)
 
   if( fgets(version, sizeof(version), fp) != NULL ){
     MacTahoe = ( strncmp(version, "26.", 3) == 0 );
+    /* if the minor version is at least 5, return 2 */
+    if( MacTahoe && (version[3]-4 > 0) )
+      MacTahoe = 2;
   }
   pclose(fp);
   return MacTahoe;
