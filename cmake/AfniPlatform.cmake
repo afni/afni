@@ -44,6 +44,14 @@ set(AFNI_MESA_ROOT ""
     "Explicit Mesa install prefix (libs in <prefix>/lib, headers in <prefix>/include). \
 Leave empty to let CMake search automatically.")
 
+set(AFNI_GLU_ROOT ""
+    CACHE PATH
+    "Explicit libGLU install prefix (libs in <prefix>/lib, headers in <prefix>/include). \
+Leave empty to search under AFNI_MESA_ROOT first, then the system default. \
+Useful when GL and GLU come from different installations, e.g.: \
+  -DAFNI_MESA_ROOT=/opt/homebrew/opt/mesa-xquartz-shm-fix \
+  -DAFNI_GLU_ROOT=/opt/homebrew")
+
 set(AFNI_LOCAL_CC_PATH ""
     CACHE FILEPATH
     "Path to the C compiler (mirrors LOCAL_CC_PATH in the legacy ARM Makefile). \
@@ -224,17 +232,44 @@ if(AFNI_MESA_ROOT)
         message(STATUS "[AfniPlatform] Mesa GL  : ${AFNI_MESA_GL_LIBRARY}")
     endif()
     
-    # Locate libGLU
-    if(EXISTS "${AFNI_MESA_ROOT}/lib/libGLU.dylib")
-        set(AFNI_MESA_GLU_LIBRARY "${AFNI_MESA_ROOT}/lib/libGLU.dylib"
-            CACHE FILEPATH "" FORCE)
-    elseif(EXISTS "${AFNI_MESA_ROOT}/lib/libGLU.1.dylib")
-        set(AFNI_MESA_GLU_LIBRARY "${AFNI_MESA_ROOT}/lib/libGLU.1.dylib"
-            CACHE FILEPATH "" FORCE)
+    # Locate libGLU — check AFNI_GLU_ROOT first, then fall back to AFNI_MESA_ROOT.
+    # This allows GL and GLU to come from different installations, e.g.:
+    #   -DAFNI_MESA_ROOT=/opt/homebrew/opt/mesa-xquartz-shm-fix
+    #   -DAFNI_GLU_ROOT=/opt/homebrew
+    set(_glu_search_roots "")
+    if(AFNI_GLU_ROOT)
+        if(NOT EXISTS "${AFNI_GLU_ROOT}")
+            message(FATAL_ERROR
+                "[AfniPlatform] AFNI_GLU_ROOT='${AFNI_GLU_ROOT}' does not exist.")
+        endif()
+        message(STATUS "[AfniPlatform] Using explicit GLU root: ${AFNI_GLU_ROOT}")
+        list(APPEND _glu_search_roots "${AFNI_GLU_ROOT}")
     endif()
+    # Always also search AFNI_MESA_ROOT as fallback
+    list(APPEND _glu_search_roots "${AFNI_MESA_ROOT}")
+
+    foreach(_glu_root IN LISTS _glu_search_roots)
+        if(EXISTS "${_glu_root}/lib/libGLU.dylib")
+            set(AFNI_MESA_GLU_LIBRARY "${_glu_root}/lib/libGLU.dylib"
+                CACHE FILEPATH "" FORCE)
+            break()
+        elseif(EXISTS "${_glu_root}/lib/libGLU.so")
+            set(AFNI_MESA_GLU_LIBRARY "${_glu_root}/lib/libGLU.so"
+                CACHE FILEPATH "" FORCE)
+            break()
+        elseif(EXISTS "${_glu_root}/lib/libGLU.1.dylib")
+            set(AFNI_MESA_GLU_LIBRARY "${_glu_root}/lib/libGLU.1.dylib"
+                CACHE FILEPATH "" FORCE)
+            break()
+        endif()
+    endforeach()
+    unset(_glu_search_roots)
+    unset(_glu_root)
+
     if(NOT AFNI_MESA_GLU_LIBRARY)
         message(WARNING
-            "[AfniPlatform] libGLU not found under ${AFNI_MESA_ROOT}.")
+            "[AfniPlatform] libGLU not found under AFNI_GLU_ROOT or AFNI_MESA_ROOT. "
+            "Set -DAFNI_GLU_ROOT=<prefix> to specify explicitly.")
     else()
         message(STATUS "[AfniPlatform] Mesa GLU : ${AFNI_MESA_GLU_LIBRARY}")
     endif()
@@ -319,6 +354,7 @@ message(STATUS "  ARM build         : ${AFNI_IS_ARM}")
 message(STATUS "  macOS             : ${AFNI_IS_MACOS}")
 message(STATUS "  Homebrew prefix   : ${AFNI_BREW_PREFIX}")
 message(STATUS "  AFNI_MESA_ROOT    : '${AFNI_MESA_ROOT}'")
+message(STATUS "  AFNI_GLU_ROOT     : '${AFNI_GLU_ROOT}'")
 message(STATUS "  Mesa GL lib       : '${AFNI_MESA_GL_LIBRARY}'")
 message(STATUS "  Mesa GLU lib      : '${AFNI_MESA_GLU_LIBRARY}'")
 message(STATUS "  Mesa include dir  : '${AFNI_MESA_INCLUDE_DIR}'")
