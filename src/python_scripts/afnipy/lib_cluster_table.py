@@ -84,8 +84,89 @@ inobj : InOpts object
         if user_inobj :
             tmp1 = self.load_from_inopts()
             tmp2 = self.basic_setup()
+            tmp3 = self.make_workdir()
+            tmp4 = self.copy_input_clust_to_wdir()
+            tmp5 = self.copy_input_atlas_to_wdir()
 
     # ----- methods
+
+    def make_workdir(self):
+        """Make the workdir"""
+
+        BAD_RETURN = -10
+
+        cmd  = '\\mkdir -p "{}" '.format(self.workdir)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+
+        if stat :
+            ab.EP1("Could not make workdir")
+            return BAD_RETURN
+
+        return 0
+
+    def copy_input_atlas_to_wdir(self):
+        """Copy input_atlas to the wdir"""
+
+        BAD_RETURN = -1
+
+        # check if dset has labeltable or atlas points
+        is_fail, iaol = is_atlas_or_labeltable(self.input_atlas)
+        if is_fail :
+            ab.EP1("Failed to check atlas/labeltable of input_atlas")
+            return -1
+
+        # copy atlas (might need to resample)
+        cmd  = '3dTcat -overwrite -prefix "{}" '.format(self.wdir_atlas)
+        cmd += '"{}"'.format(self.input_atlas)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+
+        if stat :
+            ab.EP1("Could not copy input_atlas")
+            return BAD_RETURN
+
+        # do we need to attach/reattach atlas/lt?
+        if iaol :
+            is_fail = propagate_copytables(self.input_atlas, self.wdir_atlas)
+            if is_fail :
+                ab.EP1("Failed to propagate tables of input_atlas")
+                return -1
+
+        return 0
+
+    def copy_input_clust_to_wdir(self):
+        """Copy input_clust dset to the wdir"""
+
+        BAD_RETURN = -1
+
+        # check if grids match, to either copy or resample
+        is_fail, isg = is_same_grid(self.input_clust, self.input_atlas)
+        if is_fail :
+            ab.EP1("Failed to check grids of input clust and atlas")
+            return -1
+
+        # copy clust (might need to resample)
+        if isg :
+            # just copy
+            cmd  = '3dTcat -overwrite -prefix "{}" '.format(self.wdir_clust)
+            cmd += '"{}"'.format(self.input_clust)
+            com  = ab.shell_com(cmd, capture=1)
+            stat = com.run()
+        else :
+            # resample
+            cmd  = '3dresample -overwrite -prefix "{}" '.format(self.wdir_clust)
+            cmd += '-input "{}" '.format(self.input_clust)
+            cmd += '-master "{}" '.format(self.input_atlas)
+            cmd += '-rmode NN'
+            com  = ab.shell_com(cmd, capture=1)
+            stat = com.run()
+
+        if stat :
+            ab.EP1("Could not copy input_clust")
+            return BAD_RETURN
+
+        return 0
 
     def load_from_inopts(self):
         """Populate the input values using the command line interface
@@ -181,7 +262,7 @@ inobj : InOpts object
             com  = ab.shell_com(cmd, capture=1)
             stat = com.run()
             rstr = com.so[0].strip()
-            self.workdir = '__wdir_obliquity_' + rstr
+            self.workdir = '__wdir_cluster_table_' + rstr
 
         # convert bool-ish opts to bools
         self.do_clean          = au.convert_to_bool_yn10(self.do_clean)
@@ -194,10 +275,141 @@ inobj : InOpts object
 
     # ----- decorators
 
-    #@property
+    @property
     def ninput_clust(self):
         """number of input_clusts"""
         return len(self.input_clust)
+
+    @property
+    def wdir_clust(self):
+        """name of clust dset in workdir"""
+        return self.workdir + '/' + 'dset_clust.nii.gz'
+
+    @property
+    def wdir_atlas(self):
+        """name of atlas dset in workdir"""
+        return self.workdir + '/' + 'dset_atlas.nii.gz'
+
+
+def is_same_grid(A, B):
+    """Are the two dsets A and B on the same grid? Check with 3dinfo.
+
+Parameters
+----------
+A : str
+    name of a volumetric dset 
+B : str
+    name of a volumetric dset 
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+isg : int
+    1 for 'yes, same grid'; 0 for not so
+
+"""
+
+    isg = 0
+    BAD_RETURN = (-1, isg)
+
+    cmd  = '3dinfo -same_grid {} {}'.format(A, B)
+    com  = ab.shell_com(cmd, capture=1)
+    stat = com.run()
+    lll  = com.so
+
+    # verify dsets can be read by AFNI
+    for row in lll:
+        if row == 'NO-DSET' :
+            return (-2, 0)
+
+    # now parse: [0]th and [1]th values will be same now
+    try:
+        isg  = int(lll[0].strip())
+    except:
+        return BAD_RETURN
+
+    return 0, isg
+
+def is_atlas_or_labeltable(A):
+    """Does dset A have an atlas or labeltable?
+
+Parameters
+----------
+A : str
+    name of a volumetric dset 
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+iaol : int
+    1 for 'yes, has atlas or labeltable'; 0 for not so
+
+"""
+
+    iaol = 0
+    BAD_RETURN = (-1, iaol)
+
+    cmd  = '3dinfo -is_atlas_or_labeltable {}'.format(A)
+    com  = ab.shell_com(cmd, capture=1)
+    stat = com.run()
+    lll  = com.so
+
+    # verify dsets can be read by AFNI
+    for row in lll:
+        if row == 'NO-DSET' :
+            return (-2, 0)
+
+    # now parse: [0]th and [1]th values will be same now
+    try:
+        iaol  = int(lll[0].strip())
+    except:
+        return BAD_RETURN
+
+    return 0, iaol
+
+def propagate_copytables(A, B):
+    """Propagate copytables (atlas points, labeltable, etc.) from A to B. 
+
+Also sent cmap to INT_CMAP.
+
+Parameters
+----------
+A : str
+    dset from which to propagate copytables
+B : str
+    dset to which to propogate copytables
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+
+"""
+
+    BAD_RETURN = -1
+
+    # prop tables
+    cmd  = '3drefit -copytables {} {}'.format(A, B)
+    com  = ab.shell_com(cmd, capture=1)
+    stat = com.run()
+
+    if stat :
+        ab.EPI1("Could not refit copytables: {} -> {}".format(A, B))
+        return BAD_RETURN
+
+    # int cmap
+    cmd  = '3drefit -cmap INT_CMAP {}'.format(B)
+    com  = ab.shell_com(cmd, capture=1)
+    stat = com.run()
+
+    if stat :
+        ab.EPI1("Could not refit cmap: {}".format(B))
+        return BAD_RETURN
+
+    return 0
+
 
 # ============================================================================
 
