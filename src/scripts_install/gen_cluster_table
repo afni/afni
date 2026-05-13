@@ -545,7 +545,7 @@ Examples ~1~
         -input_clust   Clust_mask+tlrc.HEAD           \
         -input_atlas   MNI_Glasser_HCP_v1.0.nii.gz    \
         -min_olap_perc 5                              \
-        -prefix        table_cluster_olap _glasser.txt
+        -prefix        table_cluster_olap_glasser.txt
 
 3) Add in a supplementary dataset of data values, and report the values of
    its voxels within each cluster
@@ -553,7 +553,7 @@ Examples ~1~
         -input_clust   Clust_mask+tlrc.HEAD            \
         -input_atlas   MNI_Glasser_HCP_v1.0.nii.gz     \
         -min_olap_perc 5                               \
-        -prefix        table_cluster_olap _glasser.txt \
+        -prefix        table_cluster_olap_glasser.txt  \
         -input_dat     EffectEstimateData.nii.gz
 
 4) Same as #3, but report just the sign of the extra data's mean values within
@@ -562,7 +562,7 @@ Examples ~1~
         -input_clust   Clust_mask+tlrc.HEAD            \
         -input_atlas   MNI_Glasser_HCP_v1.0.nii.gz     \
         -min_olap_perc 5                               \
-        -prefix        table_cluster_olap _glasser.txt \
+        -prefix        table_cluster_olap_glasser.txt  \
         -input_dat     EffectEstimateData.nii.gz       \
         -dat_column_as_sign
 
