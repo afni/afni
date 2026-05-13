@@ -379,7 +379,7 @@ Parameters
 A : str
     dset from which to propagate copytables
 B : str
-    dset to which to propogate copytables
+    dset to which to propagate copytables
 
 Returns
 -------
