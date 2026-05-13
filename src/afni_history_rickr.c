@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, May, 2026, RCR, "afni", MAJOR, TYPE_BUG_FIX,
+   "macos 26.5+ now defaults to DO_AFNI_X11_REDRAW = NO",
+   "The issue requiring redraw/forceExpose/Remanage events has been\n"
+   "has been fixed by Apple as of macos 26.5."
+ } ,
+
  { 30, Apr, 2026, RCR, "afni", MICRO, TYPE_ENHANCE,
    "add afni help details for DO_AFNI_X11_REDRAW and AFNI_X11_REDRAW_VERB",
    NULL

@@ -149,7 +149,7 @@ int have_MACOS_FORCE_EXPOSE(void)
 /*----------------------------------------------------------------------
  * do we need or want the X11 windows to be redrawn upon resize?
  *
- * Redraw on resize if MACOS_FORCE_EXPOSE and macos 26.
+ * Redraw on resize if MACOS_FORCE_EXPOSE and macos 26 (< 26.5).
  * Override: redraw based on AFNI_DO_X11_REDRAW (Y/N).
  *
  * see https://github.com/afni/afni/pull/857
@@ -163,7 +163,8 @@ int needsX11Redraw(void)
    if( needsit >= 0 ) return needsit;   /* we have already decided */
 
    /* unknown, so set it this one time, default from compile flag */
-   needsit = have_MACOS_FORCE_EXPOSE() && isMacTahoe();
+   /* isMacTahoe: 0 if not macos 26, 1 if 26.0..4, 2 if 26.5+ */
+   needsit = have_MACOS_FORCE_EXPOSE() && (isMacTahoe()==1);
 
    /* allow evil user to forcefully override the default */
    eptr = my_getenv("AFNI_DO_X11_REDRAW");
@@ -182,7 +183,8 @@ int needsX11Redraw(void)
    /* also init g_needs_x11_redraw_verb */
    if( AFNI_yesenv("AFNI_X11_REDRAW_VERB") ) {
       g_needs_x11_redraw_verb = 1;
-      fprintf(stderr,"++ have x11_redraw %d, with verbosity\n", needsit);
+      fprintf(stderr,"++ have x11_redraw %d, isMacTahoe %d, with verbosity\n",
+              needsit, isMacTahoe());
    }
 
    return needsit;
