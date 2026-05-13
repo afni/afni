@@ -39,18 +39,19 @@ cmake_minimum_required(VERSION 3.16)
 # 1.  User-facing cache variables
 # ---------------------------------------------------------------------------
 
-set(AFNI_MESA_ROOT ""
-    CACHE PATH
-    "Explicit Mesa install prefix (libs in <prefix>/lib, headers in <prefix>/include). \
-Leave empty to let CMake search automatically.")
-
-set(AFNI_GLU_ROOT ""
-    CACHE PATH
-    "Explicit libGLU install prefix (libs in <prefix>/lib, headers in <prefix>/include). \
-Leave empty to search under AFNI_MESA_ROOT first, then the system default. \
-Useful when GL and GLU come from different installations, e.g.: \
-  -DAFNI_MESA_ROOT=/opt/homebrew/opt/mesa-xquartz-shm-fix \
-  -DAFNI_GLU_ROOT=/opt/homebrew")
+# AFNI_MESA_ROOT and AFNI_GLU_ROOT are intentionally NOT put in the cache here.
+# Section 4 auto-detects them via 'brew --prefix mesa' / 'brew --prefix mesa-glu'
+# once AFNI_BREW_PREFIX is known, so macOS gets the correct path for whatever
+# version is installed.  A -D override on the command line always wins because
+# cmake processes -D values before include() scripts run, and set() without
+# FORCE never overwrites an existing cache entry.
+# On non-Mac systems they remain empty unless explicitly passed via -D.
+if(NOT DEFINED AFNI_MESA_ROOT)
+    set(AFNI_MESA_ROOT "")
+endif()
+if(NOT DEFINED AFNI_GLU_ROOT)
+    set(AFNI_GLU_ROOT "")
+endif()
 
 set(AFNI_LOCAL_CC_PATH ""
     CACHE FILEPATH
@@ -153,6 +154,55 @@ if(AFNI_IS_MACOS)
         message(STATUS "[AfniPlatform] Homebrew prefix: ${AFNI_BREW_PREFIX}")
         # Prepend so cmake finds ARM-native libraries before Intel ones.
         list(PREPEND CMAKE_PREFIX_PATH "${AFNI_BREW_PREFIX}")
+
+        # Derive Mesa/GLU defaults from Homebrew if the user has not provided
+        # them via -D.  We only set the cache variable when brew --prefix
+        # succeeds AND the path exists, so a missing formula is a soft failure
+        # (warning) rather than a hard error.  set() without FORCE means a
+        # -D override or an already-cached value from a previous run always wins.
+        if(NOT AFNI_MESA_ROOT)
+            execute_process(
+                COMMAND brew --prefix mesa
+                OUTPUT_VARIABLE _brew_mesa_prefix
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                ERROR_QUIET
+            )
+            if(_brew_mesa_prefix AND EXISTS "${_brew_mesa_prefix}")
+                set(AFNI_MESA_ROOT "${_brew_mesa_prefix}"
+                    CACHE PATH
+                    "Explicit Mesa install prefix (libs in <prefix>/lib, headers \
+in <prefix>/include). Auto-detected from 'brew --prefix mesa'. \
+Pass -DAFNI_MESA_ROOT=<path> to override.")
+                message(STATUS "[AfniPlatform] Mesa default : ${_brew_mesa_prefix}")
+            else()
+                message(WARNING
+                    "[AfniPlatform] 'brew --prefix mesa' failed or path does not exist. "
+                    "Set -DAFNI_MESA_ROOT=<path> explicitly.")
+            endif()
+            unset(_brew_mesa_prefix)
+        endif()
+
+        if(NOT AFNI_GLU_ROOT)
+            execute_process(
+                COMMAND brew --prefix mesa-glu
+                OUTPUT_VARIABLE _brew_glu_prefix
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                ERROR_QUIET
+            )
+            if(_brew_glu_prefix AND EXISTS "${_brew_glu_prefix}")
+                set(AFNI_GLU_ROOT "${_brew_glu_prefix}"
+                    CACHE PATH
+                    "Explicit libGLU install prefix (libs in <prefix>/lib, headers \
+in <prefix>/include). Auto-detected from 'brew --prefix mesa-glu'. \
+Pass -DAFNI_GLU_ROOT=<path> to override.")
+                message(STATUS "[AfniPlatform] GLU default  : ${_brew_glu_prefix}")
+            else()
+                message(WARNING
+                    "[AfniPlatform] 'brew --prefix mesa-glu' failed or path does not exist. "
+                    "Set -DAFNI_GLU_ROOT=<path> explicitly.")
+            endif()
+            unset(_brew_glu_prefix)
+        endif()
     endif()
 endif()
 
@@ -190,11 +240,13 @@ endif()
 #
 # Strategy
 # --------
-# a) If AFNI_MESA_ROOT is set, inject it at the front of every relevant search
-#    path and disable the system OpenGL/GLU so CMake won't accidentally pick up
-#    /System/Library/Frameworks on macOS.
-# b) Otherwise let the existing find_package(OpenGL) / find_package(OpenGL GLU)
-#    in the tree run normally (no change to existing behaviour).
+# a) If AFNI_MESA_ROOT is set (either via -D override or the macOS default from
+#    section 4), inject it at the front of every relevant search path, run lib
+#    and header discovery, and disable the system OpenGL/GLU so CMake won't
+#    accidentally pick up /System/Library/Frameworks on macOS.
+# b) Otherwise (non-Mac with no -D override) let the existing find_package(OpenGL)
+#    / find_package(OpenGL GLU) in the tree run normally (no change to existing
+#    behaviour).
 #
 # After this block the following variables are available:
 #   AFNI_MESA_HINT          - hint directory (empty when not overriding)
