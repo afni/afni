@@ -133,6 +133,33 @@ inobj : InOpts object
                 ab.EP1("Failed to propagate tables of input_atlas")
                 return -1
 
+            # check if atlas but no lt
+            is_fail, ilt = is_labeltable(self.input_atlas)
+            if is_fail :
+                ab.EP1("Failed to check labeltable of input_atlas")
+                return -1
+
+            if not(ilt) :
+                # no lt, but must have at atlas, so make adjunct lt
+                cmd  = 'adjunct_atlas_points_to_labeltable '
+                cmd += '-input "{}" '.format(self.wdir_atlas)
+                cmd += '-add_lt_to_input'
+                com  = ab.shell_com(cmd, capture=1)
+                stat = com.run()
+
+                if stat :
+                    ab.EP1("Could not create lt from atlas")
+                    return BAD_RETURN
+
+                cmd  = '@MakeLabelTable '
+                cmd += '-atlasize_labeled_dset "{}"'.format(self.wdir_atlas)
+                com  = ab.shell_com(cmd, capture=1)
+                stat = com.run()
+
+                if stat :
+                    ab.EP1("Could not atlasize labeled dset")
+                    return BAD_RETURN
+
         return 0
 
     def copy_input_clust_to_wdir(self):
@@ -343,13 +370,13 @@ Returns
 -------
 is_fail : int
     0 for success, nonzero for failure
-iaol : int
+val : int
     1 for 'yes, has atlas or labeltable'; 0 for not so
 
 """
 
-    iaol = 0
-    BAD_RETURN = (-1, iaol)
+    val = 0
+    BAD_RETURN = (-1, val)
 
     cmd  = '3dinfo -is_atlas_or_labeltable {}'.format(A)
     com  = ab.shell_com(cmd, capture=1)
@@ -363,11 +390,51 @@ iaol : int
 
     # now parse: [0]th and [1]th values will be same now
     try:
-        iaol  = int(lll[0].strip())
+        val  = int(lll[0].strip())
     except:
         return BAD_RETURN
 
-    return 0, iaol
+    return 0, val
+
+
+def is_labeltable(A):
+    """Does dset A have a labeltable?
+
+Parameters
+----------
+A : str
+    name of a volumetric dset 
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+val : int
+    1 for 'yes, has labeltable'; 0 for not so
+
+"""
+
+    val = 0
+    BAD_RETURN = (-1, val)
+
+    cmd  = '3dinfo -is_labeltable {}'.format(A)
+    com  = ab.shell_com(cmd, capture=1)
+    stat = com.run()
+    lll  = com.so
+
+    # verify dsets can be read by AFNI
+    for row in lll:
+        if row == 'NO-DSET' :
+            return (-2, 0)
+
+    # now parse: single int value in a list
+    try:
+        val  = int(lll[0].strip())
+    except:
+        return BAD_RETURN
+
+    return 0, val
+
 
 def propagate_copytables(A, B):
     """Propagate copytables (atlas points, labeltable, etc.) from A to B. 
