@@ -1007,12 +1007,19 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   break;
                }
                it = SUMA_ABS(curColPlane->ShowMode);
+               curColPlane->ShowMode =  EngineData->i ;
+               /*
                if (EngineData->i == SW_SurfCont_DsetViewXXX) {
                   curColPlane->ShowMode =
                      -SUMA_ABS(curColPlane->ShowMode);
+                   if (curColPlane->ShowMode < 0)
+                    fprintf(stderr, "******* WARNING: ->ShowMode set to negative in SUMA_Engine 3\n");
                } else {
                   curColPlane->ShowMode =  EngineData->i ;
+                   if (curColPlane->ShowMode < 0)
+                    fprintf(stderr, "******* WARNING: ->ShowMode set to negative in SUMA_Engine 4\n");
                }
+               */
                if (strcmp(curColPlane->cmapname,"explicit")) {
                   /* Can we do contours? */
                   cmp = SUMA_FindNamedColMap(
@@ -1029,6 +1036,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            ++nwarn;
                         }
                         curColPlane->ShowMode = it; /* get back */
+                        if (curColPlane->ShowMode < 0)
+                            fprintf(stderr, 
+                               "******* WARNING: ->ShowMode set to negative in SUMA_Engine 5\n");
                         SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
                            SUMA_ShowMode2ShowModeMenuItem(it));
                         /* kill current contours, if any */
@@ -1059,6 +1069,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            ++nwarn2;
                         }
                         curColPlane->ShowMode = it; /* get back */
+                        if (curColPlane->ShowMode < 0)
+                            fprintf(stderr, "******* WARNING: ->ShowMode set to negative in SUMA_Engine 6\n");
                         SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
                            SUMA_ShowMode2ShowModeMenuItem(it));
                         /* kill current contours, if any . There should be none
@@ -4375,20 +4387,26 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   if (SurfCont->curColPlane->ShowMode < 0)
                      SurfCont->curColPlane->ShowMode =
                         -SurfCont->curColPlane->ShowMode;
+                        if (SurfCont->curColPlane->ShowMode < 0)
+                           fprintf(stderr, "******* WARNING: ->ShowMode set to negative in SUMA_Engine 7\n");
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr,
                                                 "view_dset", "n")) {
-                  if (SurfCont->curColPlane->ShowMode > 0)
+                  if (SurfCont->curColPlane->ShowMode < 0)
                      SurfCont->curColPlane->ShowMode =
                                     -SurfCont->curColPlane->ShowMode;
-               } else {
+              } else {
                   SUMA_S_Errv("Bad value of %s for view_dset, setting to 'y'\n",
                               NI_get_attribute(EngineData->ngr, "view_dset"));
                   SurfCont->curColPlane->ShowMode = SW_SurfCont_DsetViewCol;
+                  if (SurfCont->curColPlane->ShowMode < 0)
+                    fprintf(stderr, "******* WARNING: ->ShowMode set to negative in SUMA_Engine 1\n");
                }
                SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
                               SUMA_ShowMode2ShowModeMenuItem(
                                  SurfCont->curColPlane->ShowMode));
-            }
+                if (SurfCont->curColPlane->ShowMode < 0)
+                   fprintf(stderr, "******* WARNING: ->ShowMode set to negative in SUMA_Engine 2\n");
+           }
             if (NI_get_attribute(EngineData->ngr, "do_draw_mask")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr,
                                           "do_draw_mask", "All")) {

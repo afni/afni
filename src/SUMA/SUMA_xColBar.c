@@ -2623,7 +2623,7 @@ void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
    if (XmToggleButtonGetState (SurfCont->Int_tb)) {
       curColPlane->ShowMode = SUMA_ABS(curColPlane->ShowMode);
    } else {
-      curColPlane->ShowMode = -SUMA_ABS(curColPlane->ShowMode);
+      curColPlane->ShowMode = SW_SurfCont_DsetViewXXX;
    }
 
    Int_tb = XmToggleButtonGetState (SurfCont->Int_tb);
@@ -2664,7 +2664,7 @@ void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
           if (Int_tb) {
              curColPlane->ShowMode = SUMA_ABS(curColPlane->ShowMode);
           } else {
-             curColPlane->ShowMode = -SUMA_ABS(curColPlane->ShowMode);
+             curColPlane->ShowMode = SW_SurfCont_DsetViewXXX;
           }
           if (SurfCont->DsetViewModeMenu) {
              SUMA_Set_Menu_Widget(SurfCont->DsetViewModeMenu,
@@ -15987,6 +15987,18 @@ int SUMA_Anatomical_DOs(SUMA_DO *dov, int N_dov, int *rdov)
 }
 
 SUMA_Boolean SUMA_AB_Ready(SUMA_ALL_DO *ado)
+{
+    if (!ado) return NOPE;
+    return (ado->do_type == SO_type);
+}
+
+SUMA_Boolean SUMA_A_Ready(SUMA_ALL_DO *ado)
+{
+    if (!ado) return NOPE;
+    return (ado->do_type == SO_type);
+}
+
+SUMA_Boolean SUMA_B_Ready(SUMA_ALL_DO *ado)
 {
     if (!ado) return NOPE;
     return (ado->do_type == SO_type);

@@ -6442,7 +6442,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
 
    if (!Recycle) {
       Sover->GlobalOpacity = -1.0; /* no factor applied */
-      Sover->ShowMode = -SW_SurfCont_DsetViewCol;
+      Sover->ShowMode = SW_SurfCont_DsetViewXXX;
       Sover->Font = SUMA_FontStr2FontMenuItem(SUMA_EnvVal("SUMA_Dset_Font"));
       Sover->NodeRad = SW_SurfCont_DsetNodeRadConst;
       Sover->Through =
@@ -7463,8 +7463,10 @@ float *alphaOpacitiesForOverlay(SUMA_SurfaceObject *SO,
     int opacityModel = overlay->alphaOpacityModel; // From driver or .sumarc
     
     // Check whether valid overlay
-    if (overlay->ShowMode == SW_SurfCont_DsetViewXXX)
+    if (overlay->AlphaOpacityFalloff && overlay->ShowMode == SW_SurfCont_DsetViewXXX){
         SUMA_S_Err("Invalid overlay for alpha\n");
+        return NULL;
+    }
     
     // Allocate memory to alpha opacity arrays
     if (!(alphaOpacities = (float *)malloc(overlay->N_V*sizeof(float))))
@@ -8004,7 +8006,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    }
    /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^  Foreground colors -------------------------*/
 
-   float *activeAlphaOpacities = alphaOpacitiesForOverlay(SO, currentOverlay);
+   float *activeAlphaOpacities = NULL;
 
    /* time to modulate the mixed colors with the average brightness */
    /* (NshowOverlays_Back gives the status of show background colors) */
@@ -8021,9 +8023,13 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
        */
       if (currentOverlay->AlphaOpacityFalloff
          && currentOverlay->OptScl->UseThr) {
+           
+         activeAlphaOpacities = alphaOpacitiesForOverlay(SO, currentOverlay);
+
          for (i=0; i < N_Node; ++i) {
            float opacity = activeAlphaOpacities[i];
            float complement = 1.0f - opacity;
+           
             avgfact = Back_Modfact / 3.0;
 
             if (isColored_Fore[i] && isColored_Back[i]) {
@@ -8124,6 +8130,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
       if (currentOverlay->AlphaOpacityFalloff 
          && currentOverlay->OptScl->UseThr)
       {
+         activeAlphaOpacities = alphaOpacitiesForOverlay(SO, currentOverlay);
+         
          for (i=0; i < N_Node; ++i) {
             i4 = 4 * i;
             float opacity = activeAlphaOpacities[i];
@@ -8167,7 +8175,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
       }
    }
           
-   free(activeAlphaOpacities);
+   if (activeAlphaOpacities) free(activeAlphaOpacities);
 
    if (!NshowOverlays && NshowOverlays_Back) {   // Toy examples
       if (LocalHead)
@@ -9944,7 +9952,7 @@ SUMA_Boolean SUMA_iRGB_to_SO_OverlayPointer (SUMA_SurfaceObject *SO,
 
          /* set up some defaults for the overlap plane */
          if (sopd->Show) Overlay->ShowMode = SW_SurfCont_DsetViewCol;
-         else Overlay->ShowMode = -SW_SurfCont_DsetViewCol;
+         else Overlay->ShowMode = SW_SurfCont_DsetViewXXX;
          Overlay->GlobalOpacity = sopd->GlobalOpacity;
          Overlay->isBackGrnd = sopd->isBackGrnd;
          Overlay->OptScl->BrightFact = sopd->DimFact;
@@ -10194,7 +10202,7 @@ SUMA_Boolean SUMA_iRGB_to_TDO_OverlayPointer (SUMA_TractDO *TDO,
 
       /* set up some defaults for the overlap plane */
       if (sopd->Show) Overlay->ShowMode = SW_SurfCont_DsetViewCol;
-      else Overlay->ShowMode = -SW_SurfCont_DsetViewCol;
+      else Overlay->ShowMode = SW_SurfCont_DsetViewXXX;
       Overlay->GlobalOpacity = sopd->GlobalOpacity;
       Overlay->isBackGrnd = sopd->isBackGrnd;
       Overlay->OptScl->BrightFact = sopd->DimFact;

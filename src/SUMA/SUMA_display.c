@@ -14202,7 +14202,8 @@ SUMA_Boolean SUMA_Set_Menu_Widget(SUMA_MENU_WIDGET *men, int i)
 
    SUMA_ENTRY;
 
-   if (i<1) { SUMA_S_Err("i must be >=1"); SUMA_RETURN(NOPE);   }
+   if (i<1) { SUMA_S_Err("i must be >=1"); 
+        SUMA_RETURN(NOPE);   }
    if (!men) { SUMA_DUMP_TRACE("NULL widget struct"); SUMA_RETURN(NOPE); }
    if(men->menu_type == SUMA_XmArrowFieldMenu) {
       if (!men->af || !men->af->textfield) {
@@ -18995,6 +18996,8 @@ int SUMA_SetDsetViewMode(SUMA_ALL_DO *ado, int imenu, int updatemenu)
 
    SUMA_ENTRY;
 
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
    ED = SUMA_InitializeEngineListData (SE_SetDsetViewMode);
@@ -19002,6 +19005,9 @@ int SUMA_SetDsetViewMode(SUMA_ALL_DO *ado, int imenu, int updatemenu)
                                          SEF_i, (void *)&imenu,
                                          SES_SumaWidget, NULL, NOPE,
                                          SEI_Head, NULL);
+
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+
    if (!SUMA_RegisterEngineListCommand ( list, ED,
                                          SEF_vp, (void *)ado,
                                          SES_SumaWidget, NULL, NOPE,
@@ -19012,11 +19018,15 @@ int SUMA_SetDsetViewMode(SUMA_ALL_DO *ado, int imenu, int updatemenu)
       SUMA_RETURN(NOPE);
    }
 
+   curColPlane = SUMA_ADO_CurColPlane(ado);
 
    if (!SUMA_Engine (&list)) {
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Engine.\n", FuncName);
       SUMA_RETURN(NOPE);
    }
+
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+
 
    if (updatemenu &&
        (SurfCont = SUMA_ADO_Cont(ado)) &&
@@ -19024,6 +19034,9 @@ int SUMA_SetDsetViewMode(SUMA_ALL_DO *ado, int imenu, int updatemenu)
       SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
                             curColPlane->ShowMode);
    }
+
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+
 
    SUMA_RETURN(YUP);
 }
@@ -19049,6 +19062,9 @@ void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data,
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
    ado = (SUMA_ALL_DO *)datap->ContID;
+
+   over2 = SUMA_ADO_CurColPlane(ado);
+
    imenu = (INT_CAST)datap->callback_data;
 
    if (!SUMA_SetDsetViewMode(ado, imenu, 0)) {
