@@ -246,10 +246,10 @@ endfunction()
 
 function(add_afni_library target_in)
   add_library(${ARGV})
+  # On Darwin, undefined symbols fail by default for regular libraries and
+  # executables.  Passing "-undefined error" is now deprecated by Apple ld.
   target_link_options(${target_in}
   PRIVATE
-  $<$<C_COMPILER_ID:AppleClang>:LINKER:-undefined,error>
-  $<$<C_COMPILER_ID:Clang>:LINKER:-undefined,error>
   $<$<AND:$<C_COMPILER_ID:GNU>,$<NOT:$<BOOL:${APPLE}>>>:LINKER:--as-needed>
   $<$<AND:$<C_COMPILER_ID:GNU>,$<NOT:$<BOOL:${APPLE}>>>:LINKER:--no-undefined>
   )
@@ -259,11 +259,10 @@ endfunction()
 
 function(add_afni_executable target_in)
   add_executable(${ARGV})
+  # On Darwin, undefined symbols fail by default for regular libraries and
+  # executables.  Passing "-undefined error" is now deprecated by Apple ld.
   target_link_options(${target_in}
   PRIVATE
-  $<$<C_COMPILER_ID:AppleClang>:LINKER:-undefined,error>
-  $<$<C_COMPILER_ID:Clang>:LINKER:-undefined,error>
-  $<$<C_COMPILER_ID:Intel>:LINKER:-undefined,error>
   $<$<AND:$<C_COMPILER_ID:GNU>,$<NOT:$<BOOL:${APPLE}>>>:LINKER:--no-undefined>
   $<$<AND:$<C_COMPILER_ID:GNU>,$<NOT:$<BOOL:${APPLE}>>>:LINKER:--as-needed>
     )
@@ -301,9 +300,6 @@ function(add_afni_plugin target_in)
     target_link_options(
       checking_${target_in}
       PRIVATE
-      $<$<C_COMPILER_ID:AppleClang>:LINKER:-undefined,error>
-      $<$<C_COMPILER_ID:Clang>:LINKER:-undefined,error>
-      $<$<C_COMPILER_ID:Intel>:LINKER:-undefined,error>
       $<$<AND:$<C_COMPILER_ID:GNU>,$<NOT:$<BOOL:${APPLE}>>>:LINKER:--no-undefined>
       )
   endif()

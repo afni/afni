@@ -8,12 +8,12 @@ The macOS arm64 build has three separate concerns that should stay separate:
 
 Compiler, C++ compiler, SDK, architecture, archiver, linker, and deployment
 target are toolchain concerns.  Set them in a CMake toolchain file or with
-standard CMake cache variables before `project()` runs.  The example toolchain
-files in this directory set the compiler pair, active macOS SDK, `arm64`
-architecture, Apple command-line tools, and a default deployment target based
-on the active SDK major version.  That default avoids mixing current Homebrew
-dylibs with an older deployment target such as one inherited from the compiler,
-environment, or command line:
+standard CMake cache variables before `project()` runs.  The arm64 example
+toolchain files in this directory set the compiler pair, active macOS SDK,
+`arm64` architecture, Apple command-line tools, and a default deployment target
+based on the active SDK major version.  That default avoids mixing current
+Homebrew dylibs with an older deployment target such as one inherited from the
+compiler, environment, or command line:
 
 ```sh
 cmake -S . -B build-gcc13-arm64 -G Ninja \
@@ -31,6 +31,49 @@ cmake -S . -B build-gcc13-arm64 -G Ninja \
 The GCC toolchain defaults to `AFNI_HOMEBREW_GCC_VERSION=13`, but the same
 file can select another Homebrew GCC installation, for example
 `-DAFNI_HOMEBREW_GCC_VERSION=15`.
+
+Other compiler selections use the same component options:
+
+```sh
+# Homebrew GCC 15
+cmake -S . -B build-gcc15-arm64 -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE=cmake/macos_homebrew_gcc13_arm64_toolchain.cmake \
+  -DAFNI_HOMEBREW_GCC_VERSION=15 \
+  -DCOMP_GUI=ON \
+  -DCOMP_SUMA=ON \
+  -DCOMP_PLUGINS=ON \
+  -DCOMP_COREBINARIES=ON \
+  -DCOMP_PYTHON=OFF
+
+# Homebrew LLVM clang
+cmake -S . -B build-llvm-arm64 -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE=cmake/macos_homebrew_llvm_arm64_toolchain.cmake \
+  -DCOMP_GUI=ON \
+  -DCOMP_SUMA=ON \
+  -DCOMP_PLUGINS=ON \
+  -DCOMP_COREBINARIES=ON \
+  -DCOMP_PYTHON=OFF
+
+# AppleClang from Xcode Command Line Tools
+SDK_MAJOR="$(xcrun --show-sdk-version | sed 's/\..*/.0/')"
+CC=/usr/bin/clang CXX=/usr/bin/clang++ \
+cmake -S . -B build-appleclang-arm64 -G Ninja \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET="${SDK_MAJOR}" \
+  -DCOMP_GUI=ON \
+  -DCOMP_SUMA=ON \
+  -DCOMP_PLUGINS=ON \
+  -DCOMP_COREBINARIES=ON \
+  -DCOMP_PYTHON=OFF
+```
+
+On native Apple Silicon, CMake normally selects `arm64` for the AppleClang
+command.  Add `-DCMAKE_OSX_ARCHITECTURES=arm64` when running under Rosetta,
+cross-compiling, or scripting a fixed arm64 build.  Build any configured tree
+with:
+
+```sh
+cmake --build <build-dir> -j$(sysctl -n hw.logicalcpu)
+```
 
 The GCC toolchain file checks the compiler's configured SDK automatically.  To
 inspect the same inputs by hand:
@@ -74,11 +117,12 @@ the library's recorded minimum OS version.
 
 On native Apple Silicon terminals, CMake normally selects `arm64` without an
 extra architecture flag.  The post-`project()` dependency hints detect that
-selected architecture from CMake and do not change it.  The example toolchain
+selected architecture from CMake and do not change it.  The arm64 toolchain
 files still set `CMAKE_OSX_ARCHITECTURES=arm64` as a default so Rosetta,
 cross-compiling, and scripted builds do not depend on the invoking process
-tree's architecture.  An explicit command-line `CMAKE_OSX_ARCHITECTURES` value
-can override that default.
+tree's architecture.  An Intel macOS toolchain should be a separate file with
+`CMAKE_OSX_ARCHITECTURES=x86_64` and an Intel Homebrew prefix, typically
+`/usr/local`.
 
 ## Distribution
 
@@ -96,15 +140,20 @@ standalone AFNI tree:
 2. Bundle non-system dylibs that AFNI expects at runtime.  This includes
    Homebrew-provided dependencies such as Motif, JPEG, GSL, Mesa GL, and
    `mesa-glu`, plus any transitive non-system dylibs they require.
-3. Rewrite install names with `install_name_tool` so binaries and bundled dylibs
-   resolve those libraries through `@loader_path` or `@rpath`, not through
-   `/opt/homebrew`, `/usr/local`, or a developer's build prefix.  The CMake build
-   already defaults `CMAKE_INSTALL_RPATH` to `@loader_path/../lib`, which is the
-   right shape for an installed `bin` plus sibling `lib` layout.
-4. Audit the result with `otool -L` from a clean machine or VM.  Runtime links
+3. Use the CMake install tree as the starting point.  The build already computes
+   a relative install RPATH from installed `bin` to installed `lib`; on macOS
+   this is `@loader_path/../lib` for the default layout.  CMake's generated
+   install scripts also remove the build-tree RPATH from installed targets.
+4. After copying external dylibs into the AFNI tree, rewrite their install names
+   and dependency references with `install_name_tool` so AFNI binaries and
+   bundled dylibs resolve them through `@loader_path` or `@rpath`, not through
+   `/opt/homebrew`, `/usr/local`, or a developer's build prefix.  This step is
+   still needed for copied Homebrew dylibs because CMake only controls targets it
+   builds and installs itself.
+5. Audit the result with `otool -L` from a clean machine or VM.  Runtime links
    should resolve to system libraries, XQuartz libraries where intentionally
    external, or libraries inside the AFNI tree.
-5. Choose `CMAKE_OSX_DEPLOYMENT_TARGET` as the minimum macOS version the package
+6. Choose `CMAKE_OSX_DEPLOYMENT_TARGET` as the minimum macOS version the package
    intends to support, then make sure every bundled dylib records a minimum
    macOS version no newer than that target.  Building the package and its bundled
    dependencies on the oldest supported macOS release is one practical way to

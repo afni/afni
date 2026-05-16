@@ -120,6 +120,8 @@ set(CMAKE_AR /usr/bin/ar CACHE FILEPATH "Archiver")
 set(CMAKE_RANLIB /usr/bin/ranlib CACHE FILEPATH "Ranlib")
 set(CMAKE_NM /usr/bin/nm CACHE FILEPATH "NM")
 set(CMAKE_LINKER /usr/bin/ld CACHE FILEPATH "Linker")
+set(CMAKE_INSTALL_NAME_TOOL /usr/bin/install_name_tool CACHE FILEPATH "install_name_tool")
+set(CMAKE_STRIP /usr/bin/strip CACHE FILEPATH "Strip")
 
 unset(_afni_gcc_configured_sysroot)
 unset(_afni_gcc_result)

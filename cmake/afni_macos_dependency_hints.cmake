@@ -21,7 +21,7 @@ function(afni_check_macos_dylib_deployment_target dylib_path)
   endif()
 
   execute_process(
-    COMMAND otool -l "${dylib_path}"
+    COMMAND /usr/bin/otool -l "${dylib_path}"
     OUTPUT_VARIABLE _afni_otool_output
     RESULT_VARIABLE _afni_otool_result
     ERROR_QUIET
