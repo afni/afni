@@ -8,6 +8,7 @@
 # ============================================================================
 
 import sys, os, copy, glob
+import math
 
 from   afnipy import afni_base          as ab
 from   afnipy import afni_util          as au
@@ -74,6 +75,7 @@ inobj : InOpts object
         self.clust_min       = 0
         self.clust_max       = 0
         self.clust_list      = []
+        self.clust_nzero     = 1
 
         # control variables
         self.outdir            = DOPTS['outdir'] 
@@ -93,7 +95,8 @@ inobj : InOpts object
             tmp4 = self.copy_input_clust_to_wdir()
             tmp5 = self.copy_input_atlas_to_wdir()
             tmp6 = self.make_clust_list()
-            tmp7 = self.calc_overlap_metrics_all()
+            tmp7 = self.set_label_size()
+            tmp8 = self.calc_overlap_metrics_all()
 
     # ----- methods
 
@@ -103,6 +106,10 @@ inobj : InOpts object
         """
 
         BAD_RETURN = -8
+
+        # don't think zeropadding is so necessary? these should
+        # effectively just be temporary files
+        label = 'cl_{:>0{}d}'.format(clust, self.clust_nzero)
 
         # make a temp dset of one clust (=onecl)
 
@@ -134,14 +141,17 @@ inobj : InOpts object
 
         # calc tableize info: relative sizes of overlaps
 
+        otable = self.wdir_table_01_root + '_cl_' + label + '.dat'
+        olog   = self.wdir_table_01_root + '_cl_' + label + '_log.txt'
+
         cmd  = '''adjunct_aw_tableize_roi_info.py '''
-        cmd += '''"{}" '''.format(self.wdir_table_01)
+        cmd += '''"{}" '''.format(otable)
         cmd += '''"{}" '''.format(self.wdir_atlas_onecl)
         cmd += '''"{}" '''.format(self.wdir_onecl)
         cmd += '''"{}" '''.format(self.wdir_atlas)
         cmd += '''"{}" '''.format(self.wdir_atlas)
         cmd += '''0 '''
-        cmd += ''' > {}'''.format(self.wdir_table_01_log)
+        cmd += ''' > {}'''.format(olog)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
         
@@ -452,11 +462,32 @@ inobj : InOpts object
 
         return 0
 
+    def set_label_size(self):
+        """Use the clust_min and clust_max to figure out how many zeros we
+        need to pad with for cluster labels."""
+
+        BAD_RETURN = -2
+
+        # defaults
+        powmin = 1
+        powmax = 1
+
+        # use powers of ten of clust values to get nvox
+        if self.clust_min :
+            # add one bc of neg sign
+            powmin = int(math.ceil(math.log10(abs(self.clust_min)))) + 1
+        if self.clust_max :
+            powmax = int(math.ceil(math.log10(abs(self.clust_max))))
+
+        self.clust_nzero = max(powmin, powmax)
+
+        return 0
 
     # ----- decorators
 
     @property
     def ninput_clust(self):
+
         """number of input_clusts; should always be 1"""
         return len(self.input_clust)
 
@@ -486,14 +517,9 @@ inobj : InOpts object
         return self.workdir + '/' + 'dset_atlas_01_onecl.nii.gz'
 
     @property
-    def wdir_table_01(self):
+    def wdir_table_01_root(self):
         """name of temporary dset in workdir---initial table"""
-        return self.workdir + '/' + 'table_01.dat'
-
-    @property
-    def wdir_table_01_log(self):
-        """name of temporary dset in workdir---log of making initial table"""
-        return self.workdir + '/' + 'table_01_log.txt'
+        return self.workdir + '/' + 'table_01'
 
 def is_same_grid(A, B):
     """Are the two dsets A and B on the same grid? Check with 3dinfo.
