@@ -71,19 +71,17 @@ inobj : InOpts object
         self.prefix          = DOPTS['prefix']
 
         # extra vars
-        self.clust_max_pos   = 0
-        self.clust_max_neg   = 0
-        self.clust_list_pos  = []
-        self.clust_list_neg  = []
-        self.clust_list_all  = []
+        self.clust_min       = 0
+        self.clust_max       = 0
+        self.clust_list      = []
 
         # control variables
-        self.outdir          = DOPTS['outdir']         # None or str
-        self.workdir         = DOPTS['workdir']
-        self.min_fill_clust  = DOPTS['min_fill_clust']
-        self.min_fill_atlas  = DOPTS['min_fill_atlas']
+        self.outdir            = DOPTS['outdir'] 
+        self.workdir           = DOPTS['workdir']
+        self.min_fill_clust    = DOPTS['min_fill_clust']
+        self.min_fill_atlas    = DOPTS['min_fill_atlas']
         self.strict_fill_clust = DOPTS['strict_fill_clust']
-        self.dat_col_as_sign = DOPTS['dat_col_as_sign']
+        self.dat_col_as_sign   = DOPTS['dat_col_as_sign']
 
         # ----- take action(s)
 
@@ -94,113 +92,156 @@ inobj : InOpts object
             tmp3 = self.make_workdir()
             tmp4 = self.copy_input_clust_to_wdir()
             tmp5 = self.copy_input_atlas_to_wdir()
-            tmp6 = self.get_clust_list()
+            tmp6 = self.make_clust_list()
+            tmp7 = self.calc_overlap_metrics_all()
 
     # ----- methods
 
-    def get_clust_list(self):
-        """Derive separate lists of pos and/or neg clusters, from the
-        input_clust. NB: we are using the unresampled dset for this,
-        to make sure no clusters are lost at this stage.
+    def calc_overlap_metrics_per_clust(self, clust):
+        """For a given clust, populate relevant overlap info with the
+        input_atlas.
+        """
+
+        BAD_RETURN = -8
+
+        # make a temp dset of one clust (=onecl)
+
+        cmd  = '''3dcalc -overwrite '''
+        cmd += '''-a "{}" '''.format(self.wdir_clust)
+        cmd += '''-expr "equals(a,{})" '''.format(clust)
+        cmd += '''-prefix "{}" '''.format(self.wdir_onecl)
+        cmd += '''-datum byte -nscale'''
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        
+        if stat :
+            ab.EP1("Could not make dset of one clust:", clust)
+            return BAD_RETURN
+
+        # use onecl to mask atlas dset
+
+        cmd  = '''3dcalc -overwrite '''
+        cmd += '''-a "{}" '''.format(self.wdir_atlas)
+        cmd += '''-b "{}" '''.format(self.wdir_onecl)
+        cmd += '''-expr "a*step(b)" '''
+        cmd += '''-prefix "{}" '''.format(self.wdir_atlas_onecl)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        
+        if stat :
+            ab.EP1("Could not mask atlas with onecl dset:", clust)
+            return BAD_RETURN
+
+        # calc tableize info: relative sizes of overlaps
+
+        cmd  = '''adjunct_aw_tableize_roi_info.py '''
+        cmd += '''"{}" '''.format(self.wdir_table_01)
+        cmd += '''"{}" '''.format(self.wdir_atlas_onecl)
+        cmd += '''"{}" '''.format(self.wdir_onecl)
+        cmd += '''"{}" '''.format(self.wdir_atlas)
+        cmd += '''"{}" '''.format(self.wdir_atlas)
+        cmd += '''0 '''
+        cmd += ''' > {}'''.format(self.wdir_table_01_log)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        
+        if stat :
+            ab.EP1("Could not mask atlas with onecl dset:", clust)
+            return BAD_RETURN
+
+        return 0
+
+    def calc_overlap_metrics_all(self):
+        """Loop over all clusters in clust_list and look for their overlap
+        with the input atlas.
+        """
+
+        BAD_RETURN = -7
+
+        ab.IP("Calc cluster overlap metrics")
+        for clust in self.clust_list:
+            if self.verb :
+                print("   cluster value:", clust, flush=True)
+            is_fail = self.calc_overlap_metrics_per_clust(clust)
+            if is_fail :
+                ab.EP1("Could not calc overlap info for clust:", clust)
+                return BAD_RETURN
+
+        return 0
+
+    def make_clust_list(self):
+
+        """Derive one list of all (pos and/or neg) clusters, from the
+        input_clust. NB: we are using the unresampled dset for this
+        list, to make sure no clusters are lost at this stage.
+
+        While earlier versions used 3dBrickStat to get min/max ranges
+        and make separate pos/neg clusters, there doesn't actually
+        seem to be much reason to do that extra work. Soooo we don't now.
+
+        We sort as follows: ascending values from 1, then all negative
+        values. So, like:  1, 2, 3, 25, 87, -1, -6.
+
         """
 
         BAD_RETURN = -6
 
-        # get 'max' for pos and neg cluster values
+        clust_pos = []
+        clust_neg = []
 
-        cmd  = '3dBrickStat -slow -min -max "{}" '.format(self.input_clust)
+        # get list of all ROIs from this
+
+        cmd  = '''3dROIstats -quiet '''
+        cmd += '''-mask "3dcalc( -a {} '''.format(self.input_clust)
+        cmd += '''-expr a*bool(a) )" '''
+        cmd += '''"{}" '''.format(self.input_clust)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
-        list_minmax = com.so[0].split()
-
+        
         if stat :
-            ab.EP1("Could not make workdir")
-            return BAD_RETURN
-        elif len(list_minmax) != 2 :
-            msg = "Number of min/max vals is not 2, seeing this: "
-            msg+= "{}".format(list_minmax)
-            ab.EP1(msg)
+            ab.EP1("Could not get clust list with 3dROIstats")
             return BAD_RETURN
 
-        # make sure values are int
+        list_roi = com.so[0].split()
+
+        # translate str to int
 
         try:
-            bot, btype = au.try_convert_bool_float_int_str(list_minmax[0])
-            top, ttype = au.try_convert_bool_float_int_str(list_minmax[1])
+            for roi in list_roi:
+                val, vtype = au.try_convert_bool_float_int_str(roi,
+                                                    int_val_is_int=True)
+                if vtype != 'int' :
+                    msg = "Non-int val for pos clust list: {}".format(val)
+                    ab.EP1()
+                    return BAD_RETURN
+                if val > 0 :
+                    clust_pos.append(val)
+                else:
+                    clust_neg.append(val)
         except:
-            msg = "Could not convert clust min/max, from list of vals:\n"
-            msg+= "{}".format(list_minmax)
-            ab.EP1(msg)
+            ab.EP1("Could not parse clust list")
             return BAD_RETURN
 
-        if btype != 'int' or ttype != 'int' :
-            msg = "Clust min/max should be 'int int', "
-            msg+= "not: {}  {}\n".format(btype, ttype)
-            msg+= "... for original vals: {}".format(list_minmax)
-            ab.EP1(msg)
-            return BAD_RETURN
-        
-        # set max for pos/neg ranges
+        # sort and combine
 
-        if bot < 0 :
-            self.clust_max_neg = bot
-        if top > 0 :
-            self.clust_max_pos = top
+        if len(clust_pos) :
+            clust_pos.sort()
+            self.clust_list.extend(clust_pos)
 
-        # get list of pos values...
+        if len(clust_neg) :
+            clust_neg.sort(reverse=True)
+            self.clust_list.extend(clust_neg)
 
-        if self.clust_max_pos :
-            cmd  = '''3dROIstats -quiet '''
-            cmd += '''-mask "3dcalc( -a {} '''.format(self.input_clust)
-            cmd += '''-expr a*ispositive(a) )" '''
-            cmd += '''"{}" '''.format(self.input_clust)
-            com  = ab.shell_com(cmd, capture=1)
-            stat = com.run()
-            
-            if stat :
-                ab.EP1("Could not get pos clust list")
-                return BAD_RETURN
-            list_roi = com.so[0].split()
-            try:
-                for roi in list_roi:
-                    val, vtype = au.try_convert_bool_float_int_str(roi,
-                                                        int_val_is_int=True)
-                    if vtype != 'int' :
-                        ab.EP1("Non-int value for pos clust list: {}".format(val))
-                        return BAD_RETURN
-                    self.clust_list_pos.append(val)
-                self.clust_list_pos.sort()
-                self.clust_list_all.extend(self.clust_list_pos)
-            except:
-                ab.EP1("Could not parse pos clust list")
-                return BAD_RETURN
+        if self.nclust :
+            self.clust_min = min(self.clust_list)
+            self.clust_max = max(self.clust_list)
 
-        if self.clust_max_neg :
-            cmd  = '''3dROIstats -quiet '''
-            cmd += '''-mask "3dcalc( -a {} " '''.format(self.input_clust)
-            cmd += '''-expr a*isnegative(a) )" '''
-            cmd += '''"{}" '''.format(self.input_clust)
-            com  = ab.shell_com(cmd, capture=1)
-            stat = com.run()
-            
-            if stat :
-                ab.EP1("Could not get neg clust list")
-                return BAD_RETURN
-            list_roi = com.so[0].split()
-            try:
-                for roi in list_roi:
-                    val, vtype = au.try_convert_bool_float_int_str(roi,
-                                                        int_val_is_int=True)
-                    if vtype != 'int' :
-                        ab.EP1("Non-int value for neg clust list: {}".format(val))
-                        return BAD_RETURN
-                    self.clust_list_neg.append(val)
-                self.clust_list_neg.sort(reverse=True)
-                self.clust_list_all.extend(self.clust_list_neg)
+        if self.verb:
+            msg = "Found {} clusters, ".format(self.nclust)
+            msg+= "in interval: [{}, {}]".format(self.clust_min, self.clust_max)
+            ab.IP(msg)
 
-            except:
-                ab.EP1("Could not parse neg clust list")
-                return BAD_RETURN
+        return 0
 
     def make_workdir(self):
         """Make the workdir"""
@@ -416,23 +457,43 @@ inobj : InOpts object
 
     @property
     def ninput_clust(self):
-        """number of input_clusts"""
+        """number of input_clusts; should always be 1"""
         return len(self.input_clust)
 
     @property
     def wdir_clust(self):
         """name of clust dset in workdir"""
-        return self.workdir + '/' + 'dset_clust.nii.gz'
+        return self.workdir + '/' + 'dset_clust_00_input.nii.gz'
 
     @property
     def wdir_atlas(self):
         """name of atlas dset in workdir"""
-        return self.workdir + '/' + 'dset_atlas.nii.gz'
+        return self.workdir + '/' + 'dset_atlas_00_input.nii.gz'
 
     @property
     def nclust(self):
         """number of clusters, based on clust_list_all"""
-        return len(self.clust_list_all)
+        return len(self.clust_list)
+
+    @property
+    def wdir_onecl(self):
+        """name of temporary dset in workdir---has just one clust"""
+        return self.workdir + '/' + 'dset_clust_01_onecl.nii.gz'
+
+    @property
+    def wdir_atlas_onecl(self):
+        """name of temporary dset in workdir---atlas masked by onecl"""
+        return self.workdir + '/' + 'dset_atlas_01_onecl.nii.gz'
+
+    @property
+    def wdir_table_01(self):
+        """name of temporary dset in workdir---initial table"""
+        return self.workdir + '/' + 'table_01.dat'
+
+    @property
+    def wdir_table_01_log(self):
+        """name of temporary dset in workdir---log of making initial table"""
+        return self.workdir + '/' + 'table_01_log.txt'
 
 def is_same_grid(A, B):
     """Are the two dsets A and B on the same grid? Check with 3dinfo.
