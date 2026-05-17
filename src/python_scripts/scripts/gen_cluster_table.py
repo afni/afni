@@ -206,6 +206,9 @@ checks happen in a subsequent object.
 
         # optional parameters
 
+        self.valid_opts.add_opt('-input_dat', 1, [], 
+                        helpstr='name of input dset to report sign or mean')
+
         self.valid_opts.add_opt('-workdir', 1, [], 
                         helpstr='name of workdir (no path)')
 
@@ -439,12 +442,13 @@ def main():
     # use options to create main object
     mainobj = LCT.MainObj( user_inobj=inobj )
     if not mainobj :  
-        return 1
+        return 1, None
 
     # write out log/history of what has been done (not done by default, to
     # save some time, bc this takes a mini-while)
     if inobj.do_log :
         olog = 'log_cluster_table.txt'
+        BASE.IP('creating log: {}'.format(olog))
         UTIL.write_afni_com_log(olog)
 
     return 0, mainobj

@@ -92,17 +92,56 @@ inobj : InOpts object
         # prelim stuff
         if user_inobj :
             tmp1 = self.load_from_inopts()
+            if tmp1 : return
+
             tmp2 = self.basic_setup()
+            if tmp2 : return
+
             tmp3 = self.make_workdir()
+            if tmp3 : return
+
             tmp4 = self.copy_input_clust_to_wdir()
+            if tmp4 : return
+
             tmp5 = self.copy_input_atlas_to_wdir()
+            if tmp5 : return
+
+            if self.input_dat :
+                tmp5b = self.check_input_dat_grid()
+                if tmp1 : return
+
             tmp6 = self.make_clust_list()
+            if tmp6 : return
+
             tmp7 = self.set_label_size()
+            if tmp7 : return
+
             tmp8 = self.calc_overlap_metrics_all()
+            if tmp8 : return
 
     # ----- methods
 
+    def check_input_dat_grid(self):
+        """Is the input grid valid? To answer this, see if it is the same grid
+        as input_clust.  NB: this dset (if supplied) will not be
+        resampled, and it will be used with the un-resampled
+        input_clust dset.
+        """
+
+        is_fail, isg = is_same_grid(self.input_clust, self.input_dat)
+
+        if is_fail :
+            ab.EP1("Failed to check grids of input_clust and input_dat")
+            return -1
+
+        if not(isg) :
+            ab.EP1("Grid mismatch for: input_clust and input_dat")
+            return -2
+
+        return 0
+
     def run_tableize_roi(self, clust):
+
         """For a given clust, populate relevant overlap info with the
         input_atlas.
         """
@@ -611,7 +650,6 @@ inobj : InOpts object
 
     @property
     def ninput_clust(self):
-
         """number of input_clusts; should always be 1"""
         return len(self.input_clust)
 
