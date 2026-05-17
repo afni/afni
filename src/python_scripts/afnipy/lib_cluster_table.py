@@ -78,6 +78,7 @@ inobj : InOpts object
         self.clust_max       = 0
         self.clust_list      = []
         self.clust_nzero     = 1
+        self.input_dat_nv    = 0                     # num of vol in input_dat
 
         # control variables
         self.outdir            = DOPTS['outdir'] 
@@ -107,8 +108,8 @@ inobj : InOpts object
             if tmp5 : return
 
             if self.input_dat :
-                tmp5b = self.check_input_dat_grid()
-                if tmp1 : return
+                tmp5b = self.check_input_dat()
+                if tmp5b : return
 
             tmp6 = self.make_clust_list()
             if tmp6 : return
@@ -121,11 +122,14 @@ inobj : InOpts object
 
     # ----- methods
 
-    def check_input_dat_grid(self):
-        """Is the input grid valid? To answer this, see if it is the same grid
-        as input_clust.  NB: this dset (if supplied) will not be
-        resampled, and it will be used with the un-resampled
-        input_clust dset.
+    def check_input_dat(self):
+        """Is the input grid valid? To answer this, we first see if it is the
+        same grid as input_clust.  We then also verify that there is
+        only value in input_dat, so as not to get confused
+
+        NB: this dset (if supplied) will not be resampled, and it will
+        be used with the un-resampled input_clust dset.
+
         """
 
         is_fail, isg = is_same_grid(self.input_clust, self.input_dat)
@@ -138,10 +142,57 @@ inobj : InOpts object
             ab.EP1("Grid mismatch for: input_clust and input_dat")
             return -2
 
+        is_fail, self.input_dat_nv = get_nv(self.input_dat)
+
+        if is_fail :
+            ab.EP1("Failed to get nv for input_dat")
+            return -1
+
+        if self.input_dat_nv :
+            ab.WP("The input_dat dset has >1 value; we only use [0]th")
+
         return 0
 
-    def run_tableize_roi(self, clust):
+    def calc_input_dat_mean_roi(self, clust):
+        """For a given clust, calculate the mean value within input_dat. 
+        
+        NB: this calc uses ORIGINAL dsets, not resampled ones.
 
+        Returns
+        -------
+        is_fail : int
+            0 for succeed, nonzero for failure
+        clust_dat : float
+            mean value of input_dat within clust
+        """
+
+        BAD_RETURN = (-6, 0.0)
+        
+        # might need a subbrick selector, if there are input_dat's nv>1 
+        if self.input_dat_nv > 1 : 
+            subbb = "[0]"
+        else:
+            subbb = ""
+        
+        cmd  = '''3dROIstats -quiet '''
+        cmd += '''-mask "{}<{}>" '''.format(self.input_clust, clust)
+        cmd += '''"{}{}" '''.format(self.input_dat, subbb)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+
+        if stat :
+            ab.EP1("Could not calc input_dat ave, clust: {}".format(clust))
+            return BAD_RETURN
+        
+        try:
+            clust_dat = float(com.so[0].strip())
+        except:
+            ab.EP1("Could not parse input_dat ave, clust: {}".format(clust))
+            return BAD_RETURN
+
+        return 0, clust_dat
+
+    def run_tableize_roi(self, clust):
         """For a given clust, populate relevant overlap info with the
         input_atlas.
         """
@@ -314,6 +365,16 @@ inobj : InOpts object
             return BAD_RETURN
 
         all_atl_olap = copy.deepcopy(com.so)
+
+        # if input_dat is used, get average value within onecl
+
+        if self.input_dat :
+            is_fail, clust_dat = self.calc_input_dat_mean_roi(clust)
+            if is_fail :
+                ab.EP1("Could not calc input_dat ave, clust: {}".format(clust))
+                return BAD_RETURN
+
+            print("   -> mean clust: {:.3e}".format(clust_dat))
 
         # *** need to attach info to new object, to save it all
 
@@ -767,6 +828,43 @@ val : int
 
     return 0, val
 
+def get_nv(A):
+    """How many values (or volumes) in dset A?
+
+Parameters
+----------
+A : str
+    name of a volumetric dset 
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+val : int
+    number of volumes or values ('-nv', in 3dinfo parlance)
+
+"""
+
+    val = 0
+    BAD_RETURN = (-1, val)
+
+    cmd  = '3dinfo -nv "{}"'.format(A)
+    com  = ab.shell_com(cmd, capture=1)
+    stat = com.run()
+    lll  = com.so
+
+    # verify dsets can be read by AFNI
+    for row in lll:
+        if row == 'NO-DSET' :
+            return (-2, 0)
+
+    # now parse
+    try:
+        val  = int(lll[0].strip())
+    except:
+        return BAD_RETURN
+
+    return 0, val
 
 def is_labeltable(A):
     """Does dset A have a labeltable?
@@ -788,7 +886,7 @@ val : int
     val = 0
     BAD_RETURN = (-1, val)
 
-    cmd  = '3dinfo -is_labeltable {}'.format(A)
+    cmd  = '3dinfo -is_labeltable "{}"'.format(A)
     com  = ab.shell_com(cmd, capture=1)
     stat = com.run()
     lll  = com.so
@@ -829,7 +927,7 @@ is_fail : int
     BAD_RETURN = -1
 
     # prop tables
-    cmd  = '3drefit -copytables {} {}'.format(A, B)
+    cmd  = '3drefit -copytables "{}" "{}"'.format(A, B)
     com  = ab.shell_com(cmd, capture=1)
     stat = com.run()
 
@@ -838,7 +936,7 @@ is_fail : int
         return BAD_RETURN
 
     # int cmap
-    cmd  = '3drefit -cmap INT_CMAP {}'.format(B)
+    cmd  = '3drefit -cmap INT_CMAP "{}"'.format(B)
     com  = ab.shell_com(cmd, capture=1)
     stat = com.run()
 
