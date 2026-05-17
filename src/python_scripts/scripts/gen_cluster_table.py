@@ -38,24 +38,24 @@ Usage ~1~
 -prefix PPP     :(req) output name for the table, so likely should end
                  with ".txt" or ".dat", for clarity
 
--min_fill_clust MFC :this parameter defines the minimum percent of a
+-min_perc_clust MFC :this parameter defines the minimum percent of a
                  cluster that must be filled by a reference atlas
                  region to be included in the table.
                  That is, if MFC% or more of the cluster overlaps with
                  a given region, then that region will be listed.
-                 (def: {min_fill_clust}) 
+                 (def: {min_perc_clust}) 
                  **See Notes, below, for more about this**
 
--min_fill_atlas MFA :this parameter defines the minimum percent of a
+-min_perc_atlas MFA :this parameter defines the minimum percent of a
                  reference atlas region that must be filled by a cluster 
                  to be included in the table.
                  That is, if MFA% or more of the atlas region overlaps
                  with a given cluster, then that region will be listed.
-                 (def: {min_fill_atlas}) 
+                 (def: {min_perc_atlas}) 
                  **See Notes, below, for more about this**
 
 -strict_fill_clust SFC :by default, if no atlas region overlaps with
-                 the '-min_fill_clust ..' threshold value, then the
+                 the '-min_perc_clust ..' threshold value, then the
                  atlas region with maximum overlap will be displayed
                  still; use this option, however, to strictly apply
                  the threshold, so no ROI would be shown.
@@ -99,7 +99,7 @@ Usage ~1~
 
 Notes ~1~
 
-Note that the '-min_fill_clust ..' value specifies the fraction of the
+Note that the '-min_perc_clust ..' value specifies the fraction of the
 *cluster* to be filled, for an atlas region to be displayed in the
 table. 
 
@@ -161,8 +161,8 @@ checks happen in a subsequent object.
         # control variables
         self.workdir         = None
         self.outdir          = None
-        self.min_fill_clust  = None
-        self.min_fill_atlas  = None
+        self.min_perc_clust  = None
+        self.min_perc_atlas  = None
         self.strict_fill_clust = None
         self.dat_col_as_sign = None
 
@@ -209,14 +209,14 @@ checks happen in a subsequent object.
         self.valid_opts.add_opt('-workdir', 1, [], 
                         helpstr='name of workdir (no path)')
 
-        self.valid_opts.add_opt('-min_fill_clust', 1, [], 
+        self.valid_opts.add_opt('-min_perc_clust', 1, [], 
                         helpstr='minimum fraction of cluster to be filled')
 
-        self.valid_opts.add_opt('-min_fill_atlas', 1, [], 
+        self.valid_opts.add_opt('-min_perc_atlas', 1, [], 
                         helpstr='minimum fraction of atlas to be filled')
 
         self.valid_opts.add_opt('-strict_fill_clust', 1, [], 
-                        helpstr='apply min_fill_clust strictly')
+                        helpstr='apply min_perc_clust strictly')
 
         self.valid_opts.add_opt('-dat_col_as_sign', 1, [], 
                         helpstr='should extra data be reported as just sign?')
@@ -324,17 +324,17 @@ checks happen in a subsequent object.
                     BASE.EP(err_base + opt.name)
                 self.workdir = val
 
-            elif opt.name == '-min_fill_clust':
+            elif opt.name == '-min_perc_clust':
                 val, err = uopts.get_type_opt(float, '', opt=opt)
                 if val != None and err: 
                     BASE.EP(err_base + opt.name)
-                self.min_fill_clust = val
+                self.min_perc_clust = val
 
-            elif opt.name == '-min_fill_atlas':
+            elif opt.name == '-min_perc_atlas':
                 val, err = uopts.get_type_opt(float, '', opt=opt)
                 if val != None and err: 
                     BASE.EP(err_base + opt.name)
-                self.min_fill_atlas = val
+                self.min_perc_atlas = val
 
             elif opt.name == '-strict_fill_clust':
                 val, err = uopts.get_string_opt('', opt=opt)

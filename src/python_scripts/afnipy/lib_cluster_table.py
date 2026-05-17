@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-# A library of functions for dealing with gen_cluster_table.py
+# A library of functions for dealing with gen_cluster_table.py.
+# Specifically, this file contains the main object for running the
+# whole operation.
 #
 # auth : PA Taylor (SSCC, NIMH, NIH, USA)
 # ----------------------------------------------------------------------------
@@ -28,8 +30,8 @@ DOPTS = {
     'prefix'          : '',
     'outdir'          : None,
     'workdir'         : '',
-    'min_fill_clust'  : 10.0,
-    'min_fill_atlas'  : 25.0,
+    'min_perc_clust'  : 10.0,
+    'min_perc_atlas'  : 25.0,
     'strict_fill_clust' : 'No',
     'dat_col_as_sign' : 'No',
 }
@@ -80,8 +82,8 @@ inobj : InOpts object
         # control variables
         self.outdir            = DOPTS['outdir'] 
         self.workdir           = DOPTS['workdir']
-        self.min_fill_clust    = DOPTS['min_fill_clust']
-        self.min_fill_atlas    = DOPTS['min_fill_atlas']
+        self.min_perc_clust    = DOPTS['min_perc_clust']
+        self.min_perc_atlas    = DOPTS['min_perc_atlas']
         self.strict_fill_clust = DOPTS['strict_fill_clust']
         self.dat_col_as_sign   = DOPTS['dat_col_as_sign']
 
@@ -100,7 +102,7 @@ inobj : InOpts object
 
     # ----- methods
 
-    def calc_overlap_metrics_per_clust(self, clust):
+    def run_tableize_roi(self, clust):
         """For a given clust, populate relevant overlap info with the
         input_atlas.
         """
@@ -109,6 +111,7 @@ inobj : InOpts object
 
         # don't think zeropadding is so necessary? these should
         # effectively just be temporary files
+
         label = 'cl_{:>0{}d}'.format(clust, self.clust_nzero)
 
         # make a temp dset of one clust (=onecl)
@@ -122,7 +125,7 @@ inobj : InOpts object
         stat = com.run()
         
         if stat :
-            ab.EP1("Could not make dset of one clust:", clust)
+            ab.EP1("Could not make dset of one clust: {}".format(clust))
             return BAD_RETURN
 
         # use onecl to mask atlas dset
@@ -136,28 +139,144 @@ inobj : InOpts object
         stat = com.run()
         
         if stat :
-            ab.EP1("Could not mask atlas with onecl dset:", clust)
+            ab.EP1("Could not mask atlas with onecl dset: {}".format(clust))
             return BAD_RETURN
+
+        # ... and reattach labels and header stuff
+        is_fail = propagate_copytables(self.wdir_atlas, self.wdir_atlas_onecl)
+        if is_fail :
+            ab.EP1("Failed to propagate tables to atlas_onecl")
+            return -1
 
         # calc tableize info: relative sizes of overlaps
 
-        otable = self.wdir_table_01_root + '_cl_' + label + '.dat'
-        olog   = self.wdir_table_01_root + '_cl_' + label + '_log.txt'
+        otable1 = self.wdir_table_root(1) + label + '.dat'
+        olog1   = self.wdir_table_root(1) + label + '_log.txt'
 
         cmd  = '''adjunct_aw_tableize_roi_info.py '''
-        cmd += '''"{}" '''.format(otable)
+        cmd += '''"{}" '''.format(otable1)
         cmd += '''"{}" '''.format(self.wdir_atlas_onecl)
         cmd += '''"{}" '''.format(self.wdir_onecl)
         cmd += '''"{}" '''.format(self.wdir_atlas)
         cmd += '''"{}" '''.format(self.wdir_atlas)
         cmd += '''0 '''
-        cmd += ''' > {}'''.format(olog)
+        cmd += ''' > {}'''.format(olog1)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
         
         if stat :
-            ab.EP1("Could not mask atlas with onecl dset:", clust)
+            ab.EP1("Could not mask atlas w/ onecl for clust: {}".format(clust))
             return BAD_RETURN
+
+        # find where the [5]th colum ("RelVol_A2B") is >= threshold,
+        # bc that is the relative fill fraction to the full
+        # (resampled) atlas ROI -> creates a file of 1s and zeros
+
+        otable2 = self.wdir_table_root(2) + label + '.dat'
+
+        cmd  = '''1deval '''
+        cmd += '''-a "{}[5]" '''.format(otable1)
+        cmd += '''-expr "not(isnegative(a-{}))" '''.format(self.min_fill_clust)
+        cmd += ''' > {}'''.format(otable2)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        
+        if stat :
+            ab.EP1("Could not eval table of olaps for clust: {}".format(clust))
+            return BAD_RETURN
+
+        # Get selector str of nonzero values...
+
+        cmd  = '''1d_tool.py '''
+        cmd += '''-show_trs_uncensored encoded '''
+        cmd += '''-infile "{}" '''.format(otable2)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        
+        if stat :
+            ab.EP1("Could not get olap row list for clust: {}".format(clust))
+            return BAD_RETURN
+
+        rows_to_use = com.so[0].strip()
+
+        # ... and apply them to first table, making new subset table
+
+        otable3 = self.wdir_table_root(3) + label + '.dat'
+
+        # use slice sel string inside curly brackets, hence funny use of 3
+        cmd  = '''1dcat "{}{{{}}}" '''.format(otable1, rows_to_use)
+        cmd += '''| column -t '''
+        cmd += '''> "{}" '''.format(otable3)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+
+        if stat :
+            ab.EP1("Could not make new subset table for clust:", clust)
+            return BAD_RETURN
+
+        # do this to get line number where table of numbers and ROI
+        # labels starts
+
+        cmd  = '''grep -nE "ROI_value|Label_str" "{}" '''.format(otable1)
+        cmd += '''| cut -d: -f1 | tail -n 1 '''
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        
+        if stat :
+            ab.EP1("Could not get line numbers for clust: {}".format(clust))
+            return BAD_RETURN
+
+        try:
+            nnn = int(com.so[0].strip())
+        except:
+            msg = "Could not convert line number '{}' ".format(nnn)
+            mst+= "to int, for clust: {}".format(clust)
+            ab.EP1(msg)
+            return BAD_RETURN
+
+        # figure out first and last lines of table for sed command to
+        # select it; if ntable=0, then there are no olaps
+        
+        cmd  = '''cat "{}" | wc -l '''.format(otable3)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        
+        if stat :
+            ab.EP1("Could not get ntable in table3 for clust: {}".format(clust))
+            return BAD_RETURN
+
+        try:
+            ntable  = int(com.so[0].strip())
+        except:
+            msg = "Could not convert ntable '{}' ".format(ntable)
+            mst+= "to int, for clust: {}".format(clust)
+            ab.EP1(msg)
+            return BAD_RETURN
+        
+        print("   -> olap count: {}".format(ntable))
+
+        if not(ntable) :
+            return 0
+
+        row_top = nnn + 2
+        row_bot = row_top + ntable - 1
+
+        # get list of ROI labels (save as var): apply selector, and
+        # open up last column of labels for selection
+
+        cmd  = '''sed -n "{},{}p" '''.format(row_top, row_bot)
+        cmd += '''"{}" '''.format(otable1)
+        cmd += '''| awk '{{print $11}}' '''.format(otable1)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        
+        if stat :
+            ab.EP1("Could not make TSV table for clust:", clust)
+            return BAD_RETURN
+
+        all_atl_olap = copy.deepcopy(com.so)
+
+        # *** need to attach info to new object, to save it all
 
         return 0
 
@@ -172,9 +291,9 @@ inobj : InOpts object
         for clust in self.clust_list:
             if self.verb :
                 print("   cluster value:", clust, flush=True)
-            is_fail = self.calc_overlap_metrics_per_clust(clust)
+            is_fail = self.run_tableize_roi(clust)
             if is_fail :
-                ab.EP1("Could not calc overlap info for clust:", clust)
+                ab.EP1("Could not calc olap info for clust: {}".format(clust))
                 return BAD_RETURN
 
         return 0
@@ -400,10 +519,10 @@ inobj : InOpts object
         if io.outdir is not None :          # or this could be derived
             self.outdir = io.outdir
 
-        if io.min_fill_clust is not None :
-            self.min_fill_clust = io.min_fill_clust
-        if io.min_fill_atlas is not None :
-            self.min_fill_atlas = io.min_fill_atlas
+        if io.min_perc_clust is not None :
+            self.min_perc_clust = io.min_perc_clust
+        if io.min_perc_atlas is not None :
+            self.min_perc_atlas = io.min_perc_atlas
         if io.strict_fill_clust is not None :
             self.strict_fill_clust = io.strict_fill_clust
 
@@ -441,10 +560,10 @@ inobj : InOpts object
             ab.EP("Need to provide a prefix")
 
         # checks of params
-        if self.min_fill_clust < 0.0 :
-            ab.EP("The min_fill_clust must be >=0")
-        if self.min_fill_atlas < 0.0 :
-            ab.EP("The min_fill_atlas must be >=0")
+        if self.min_perc_clust < 0.0 :
+            ab.EP("The min_perc_clust must be >=0")
+        if self.min_perc_atlas < 0.0 :
+            ab.EP("The min_perc_atlas must be >=0")
 
         # generate wdir with random component, if none provided
         if not(self.workdir) :
@@ -483,6 +602,11 @@ inobj : InOpts object
 
         return 0
 
+    def wdir_table_root(self, idx):
+        """name of temporary dset in workdir---initial table"""
+
+        return self.workdir + '/' + 'table_{:02d}_'.format(idx)
+
     # ----- decorators
 
     @property
@@ -517,9 +641,15 @@ inobj : InOpts object
         return self.workdir + '/' + 'dset_atlas_01_onecl.nii.gz'
 
     @property
-    def wdir_table_01_root(self):
-        """name of temporary dset in workdir---initial table"""
-        return self.workdir + '/' + 'table_01'
+    def min_fill_clust(self):
+        """fractional form of min_perc_clust"""
+        return self.min_perc_clust / 100.0
+
+    @property
+    def min_fill_atlas(self):
+        """fractional form of min_perc_atlas"""
+        return self.min_perc_atlas / 100.0
+
 
 def is_same_grid(A, B):
     """Are the two dsets A and B on the same grid? Check with 3dinfo.
