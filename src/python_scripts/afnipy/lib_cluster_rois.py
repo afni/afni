@@ -273,7 +273,7 @@ min_fill_atlas : float
         """number of labels"""
         return len(self.labels)
 
-def disp_cluster_table(X, hdr):
+def disp_cluster_table(X, hdr, disp_hdr=True):
     """Display a table of cluster values X, with header/column titles hdr.
 
 Parameters
@@ -282,6 +282,8 @@ X : list
     list of lists, where each row is one overlap region to report
 hdr : list
     list of column title strings (must be same len as X[0], etc.)
+disp_hdr : bool
+    should the hdr be displayed?
 
 Returns
 -------
@@ -308,18 +310,21 @@ is_fail : bool
                            
     # make title row
     
-    title = """{:>6s}  """.format(hdr[0])
-    title+= """{:>6s}  """.format(hdr[1])
-    if ncol == len(LIST_clust_report_hdr) :
-        idx = 2
-    else:
-        title+= """{:<9s}  """.format(hdr[2])
-        idx = 3
-    title+= """{:10s}  """.format(hdr[idx])
-    title+= """{:10s}  """.format(hdr[idx+1])
-    title+= """{:<s}""".format(hdr[idx+2])
-    otxt.append(title)
+    if disp_hdr :
+        title = """{:>6s}  """.format(hdr[0])
+        title+= """{:>6s}  """.format(hdr[1])
+        if ncol == len(LIST_clust_report_hdr) :
+            idx = 2
+        else:
+            title+= """{:<9s}  """.format(hdr[2])
+            idx = 3
+        title+= """{:10s}  """.format(hdr[idx])
+        title+= """{:10s}  """.format(hdr[idx+1])
+        title+= """{:<s}""".format(hdr[idx+2])
+        otxt.append(title)
     
+    # add text for each row
+
     for ii in range(nrow):
         row = X[ii]
         ttt = """{:>6d}  """.format(row[0])
