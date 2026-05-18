@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, May, 2026, RCR, "3dCM", MICRO, TYPE_BUG_FIX,
+   "if writing resample dset, preserve dirname",
+   "Thanks to X Davis for noting the problem."
+ } ,
+
  { 13, May, 2026, RCR, "3dmask_tool", MICRO, TYPE_ENHANCE,
    "small improvement of info messages",
    NULL

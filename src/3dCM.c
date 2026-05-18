@@ -6,6 +6,8 @@
   [PT: Apr 2024] So that XYZ coords will consistently in RAI-Dicom
   format by default, resample the input dset and then process it,
   *unless* '-local_ijk' is used.
+
+  [RR: May 2026] if resampling, propagate input dirname
 */
  
 int dset_get_orient( THD_3dim_dataset *ddd, 
@@ -88,6 +90,7 @@ int main( int argc , char * argv[] )
    int narg=1, do_automask=0 , iv , nxyz , do_set=0 , 
       *rois=NULL, N_rois=0, all_rois = 0;
    THD_3dim_dataset *xset = NULL ;
+   char xset_dirname[THD_MAX_NAME]=""; /* preserve xset dir if resample */
    byte *mmm=NULL ; int nmask=0 , nvox_mask=0 ;
    THD_fvec3 cmv , setv ;
 
@@ -102,10 +105,8 @@ int main( int argc , char * argv[] )
    // [PT: Apr 23, 2024] for resampling internally
    char *dset_orient_ref   = NULL ;  // internally resampling all to this
 	char dset_orient_inp[4] = "   ";  // [4]="---";
-	char dset_orient_ext[4] = "   ";  // [4]="---";
    THD_3dim_dataset *tmpset = NULL;
    char tmppref[THD_MAX_PREFIX];
-   int i = 0;
 
    mainENTRY("3dCM main") ; machdep() ;
 
@@ -229,7 +230,7 @@ int main( int argc , char * argv[] )
    if ( mask_dset ) {
       // [PT: Apr 23, 2024] see note from same date below about
       // (maybe) initial resampling; use same 'if' condition as below
-      i = dset_get_orient( mask_dset, dset_orient_inp);
+      (void)dset_get_orient( mask_dset, dset_orient_inp);
       if ( cmode != 1 && strcmp(dset_orient_inp, dset_orient_ref) != 0 ) {
          MCW_strncpy( tmppref, DSET_PREFIX(mask_dset), THD_MAX_PREFIX ) ;
          tmpset = r_new_resam_dset( mask_dset, NULL, 0.0, 0.0, 0.0,
@@ -266,9 +267,11 @@ int main( int argc , char * argv[] )
       // 'necessary' means that the input data wasn't already in the
       // 'correct' orientation, and also that '-local_ijk' was not
       // used. NB: use same 'if' condition and resampling for mask, above.
-      i = dset_get_orient( xset, dset_orient_inp);
+      (void)dset_get_orient( xset, dset_orient_inp);
       if ( cmode != 1 && strcmp(dset_orient_inp, dset_orient_ref) != 0 ) {
          MCW_strncpy( tmppref, DSET_PREFIX(xset), THD_MAX_PREFIX ) ;
+         /* dirname will not propagate across resample */
+         strcpy(xset_dirname, DSET_DIRNAME(xset));
          tmpset = r_new_resam_dset( xset, NULL, 0.0, 0.0, 0.0,
                                     dset_orient_ref, RESAM_NN_TYPE, 
                                     NULL, 1, 0);   
@@ -358,7 +361,16 @@ int main( int argc , char * argv[] )
                                              NULL, 1, 0);   
                   DSET_delete(xset);  xset=tmpset;  tmpset=NULL;
                   INFO_message("OUT PREF: %s", tmppref);
-                  EDIT_dset_items(  xset , ADN_prefix,  tmppref, ADN_none);
+                  /* if we have a dirname, propagate */
+                  if( strlen( xset_dirname ) )
+                     EDIT_dset_items(xset,
+                           ADN_prefix,         tmppref,
+                           ADN_directory_name, xset_dirname,
+                           ADN_none);
+                  else
+                     EDIT_dset_items(xset,
+                           ADN_prefix,         tmppref,
+                           ADN_none);
                }
 
                /* recompute Tc(Cardinal transformation matrix for new
