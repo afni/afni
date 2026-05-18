@@ -54,6 +54,11 @@ Usage ~1~
                  (def: {min_perc_atlas}) 
                  **See Notes, below, for more about this**
 
+-olap_logic OL  :specify the logical operator that should be used to 
+                 combine the cluster- and atlas-filling conditions.
+                 Choices come from the following: and, or.
+                 (def: {olap_logic}) 
+
 -strict_fill_clust SFC :by default, if no atlas region overlaps with
                  the '-min_perc_clust ..' threshold value, then the
                  atlas region with maximum overlap will be displayed
@@ -164,6 +169,7 @@ checks happen in a subsequent object.
         self.min_perc_clust  = None
         self.min_perc_atlas  = None
         self.strict_fill_clust = None
+        self.olap_logic      = None
         self.dat_col_as_sign = None
 
 
@@ -217,6 +223,9 @@ checks happen in a subsequent object.
 
         self.valid_opts.add_opt('-min_perc_atlas', 1, [], 
                         helpstr='minimum fraction of atlas to be filled')
+
+        self.valid_opts.add_opt('-olap_logic', 1, [], 
+                        helpstr='logical operator for combining conditions')
 
         self.valid_opts.add_opt('-strict_fill_clust', 1, [], 
                         helpstr='apply min_perc_clust strictly')
@@ -338,6 +347,12 @@ checks happen in a subsequent object.
                 if val != None and err: 
                     BASE.EP(err_base + opt.name)
                 self.min_perc_atlas = val
+
+            elif opt.name == '-olap_logic':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.olap_logic = val
 
             elif opt.name == '-strict_fill_clust':
                 val, err = uopts.get_string_opt('', opt=opt)

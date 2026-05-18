@@ -34,6 +34,7 @@ DOPTS = {
     'min_perc_clust'  : 10.0,
     'min_perc_atlas'  : 25.0,
     'strict_fill_clust' : 'No',
+    'olap_logic'      : 'or',
     'dat_col_as_sign' : 'No',
 }
 
@@ -86,6 +87,7 @@ inobj : InOpts object
         self.workdir           = DOPTS['workdir']
         self.min_perc_clust    = DOPTS['min_perc_clust']
         self.min_perc_atlas    = DOPTS['min_perc_atlas']
+        self.olap_logic        = DOPTS['olap_logic']
         self.strict_fill_clust = DOPTS['strict_fill_clust']
         self.dat_col_as_sign   = DOPTS['dat_col_as_sign']
 
@@ -259,52 +261,6 @@ inobj : InOpts object
             ab.EP1("Could not mask atlas w/ onecl for clust: {}".format(clust))
             return BAD_RETURN
 
-        # find where the [5]th colum ("RelVol_A2B") is >= threshold,
-        # bc that is the relative fill fraction to the full
-        # (resampled) atlas ROI -> creates a file of 1s and zeros
-
-        otable2 = self.wdir_table_root(2) + label + '.dat'
-
-        cmd  = '''1deval '''
-        cmd += '''-a "{}[5]" '''.format(otable1)
-        cmd += '''-expr "not(isnegative(a-{}))" '''.format(self.min_fill_clust)
-        cmd += ''' > {}'''.format(otable2)
-        com  = ab.shell_com(cmd, capture=1)
-        stat = com.run()
-        
-        if stat :
-            ab.EP1("Could not eval table of olaps for clust: {}".format(clust))
-            return BAD_RETURN
-
-        # Get selector str of nonzero values...
-
-        cmd  = '''1d_tool.py '''
-        cmd += '''-show_trs_uncensored encoded '''
-        cmd += '''-infile "{}" '''.format(otable2)
-        com  = ab.shell_com(cmd, capture=1)
-        stat = com.run()
-        
-        if stat :
-            ab.EP1("Could not get olap row list for clust: {}".format(clust))
-            return BAD_RETURN
-
-        rows_to_use = com.so[0].strip()
-
-        # ... and apply them to first table, making new subset table
-
-        otable3 = self.wdir_table_root(3) + label + '.dat'
-
-        # use slice sel string inside curly brackets, hence funny use of 3
-        cmd  = '''1dcat "{}{{{}}}" '''.format(otable1, rows_to_use)
-        cmd += '''| column -t '''
-        cmd += '''> "{}" '''.format(otable3)
-        com  = ab.shell_com(cmd, capture=1)
-        stat = com.run()
-
-        if stat :
-            ab.EP1("Could not make new subset table for clust:", clust)
-            return BAD_RETURN
-
         # do this to get line number where table of numbers and ROI
         # labels starts
 
@@ -325,15 +281,27 @@ inobj : InOpts object
             ab.EP1(msg)
             return BAD_RETURN
 
-        # figure out first and last lines of table for sed command to
-        # select it; if ntable=0, then there are no olaps
+        # make minitable of only numbers
         
-        cmd  = '''cat "{}" | wc -l '''.format(otable3)
+        otable2 = self.wdir_table_root(2) + label + '.dat'
+
+        cmd  = '''1dcat "{}" > "{}" '''.format(otable1, otable2)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
         
         if stat :
-            ab.EP1("Could not get ntable in table3 for clust: {}".format(clust))
+            ab.EP1("Could not make (mini)table2 for clust: {}".format(clust))
+            return BAD_RETURN
+
+        # figure out first and last lines of table for sed command to
+        # select it; if ntable=0, then there are no olaps
+
+        cmd  = '''cat "{}" | wc -l '''.format(otable2)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        
+        if stat :
+            ab.EP1("Could not get ntable in table2 for clust: {}".format(clust))
             return BAD_RETURN
 
         try:
@@ -381,17 +349,25 @@ inobj : InOpts object
 
         # read in mini clust-table to a list of int+float
 
-        is_fail, table = read_mini_table_info(otable3)
+        is_fail, table = read_mini_table_info(otable2)
         if is_fail :
             ab.EP1("Could not calc input_dat ave, clust: {}".format(clust))
             return BAD_RETURN
-
-        print("HEY")
-        print(table)
-
+        
+        #print("HEY")
+        #print(table)
+        #print("HEY2")
+        #print(table_labels)
         # *** need to attach info to new object, to save it all
-        ###ClustRegionObj(clust, table, table_labels, 
+        asdf = lcr.ClustRegionObj(clust, table, table_labels, 
+                                  min_fill_clust    = self.min_fill_clust, 
+                                  min_fill_atlas    = self.min_fill_atlas,
+                                  olap_logic        = self.olap_logic,
+                                  strict_fill_clust = self.strict_fill_clust,
+                                  clust_dat         = clust_dat,
+                                  dat_col_as_sign   = self.dat_col_as_sign)
 
+        
         return 0
 
     def calc_overlap_metrics_all(self):
@@ -637,6 +613,8 @@ inobj : InOpts object
             self.min_perc_clust = io.min_perc_clust
         if io.min_perc_atlas is not None :
             self.min_perc_atlas = io.min_perc_atlas
+        if io.olap_logic is not None :
+            self.olap_logic = io.olap_logic
         if io.strict_fill_clust is not None :
             self.strict_fill_clust = io.strict_fill_clust
 
