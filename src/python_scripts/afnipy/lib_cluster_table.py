@@ -151,7 +151,7 @@ inobj : InOpts object
             ab.EP1("Failed to get nv for input_dat")
             return -1
 
-        if self.input_dat_nv :
+        if self.input_dat_nv > 1 :
             ab.WP("The input_dat dset has >1 value; we only use [0]th")
 
         return 0
@@ -353,12 +353,9 @@ inobj : InOpts object
         if is_fail :
             ab.EP1("Could not calc input_dat ave, clust: {}".format(clust))
             return BAD_RETURN
-        
-        #print("HEY")
-        #print(table)
-        #print("HEY2")
-        #print(table_labels)
-        # *** need to attach info to new object, to save it all
+
+        # go through mini clust-table and find regions to keep
+
         asdf = lcr.ClustRegionObj(clust, table, table_labels, 
                                   min_fill_clust    = self.min_fill_clust, 
                                   min_fill_atlas    = self.min_fill_atlas,
@@ -366,7 +363,6 @@ inobj : InOpts object
                                   strict_fill_clust = self.strict_fill_clust,
                                   clust_dat         = clust_dat,
                                   dat_col_as_sign   = self.dat_col_as_sign)
-
         
         return 0
 

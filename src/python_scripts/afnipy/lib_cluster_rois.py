@@ -172,7 +172,7 @@ min_fill_atlas : float
                         else:
                             rep_dat = 'zero'
 
-                    L.insert(rep_dat, crh_extra_dat[1])
+                    L.insert(crh_extra_dat[1], rep_dat)
 
                 # figure out how/where to save L
 
@@ -199,7 +199,7 @@ min_fill_atlas : float
         else:
             # get index to sort by
             idx = self.clust_report_hdr.index('Clust_perc')
-            prelim_list.sort(key=itemgetter(idx))
+            prelim_list.sort(key=itemgetter(idx), reverse=True)
             self.clust_report = prelim_list
 
         is_fail = disp_cluster_table(self.clust_report, self.clust_report_hdr)
@@ -219,9 +219,12 @@ min_fill_atlas : float
         
         if self.clust_dat is not None :
             try:
-                self.clust_report_hdr.insert(crh_extra_dat[0],
-                                             crh_extra_dat[1])
+                self.clust_report_hdr.insert(crh_extra_dat[1],
+                                             crh_extra_dat[0])
             except:
+                msg = "Failed to append clust_dat to hdr report "
+                msg+= "for clust: {}".format(self.clust)
+                ab.EP1(msg)
                 return BAD_RETURN
 
         return 0
@@ -273,7 +276,7 @@ min_fill_atlas : float
         """number of labels"""
         return len(self.labels)
 
-def disp_cluster_table(X, hdr, disp_hdr=True):
+def disp_cluster_table(X, hdr, disp_hdr=True, disp_uline=True):
     """Display a table of cluster values X, with header/column titles hdr.
 
 Parameters
@@ -284,6 +287,8 @@ hdr : list
     list of column title strings (must be same len as X[0], etc.)
 disp_hdr : bool
     should the hdr be displayed?
+disp_uline : bool
+    should there be an underline for header items (if disp_hdr=True)?
 
 Returns
 -------
@@ -316,24 +321,41 @@ is_fail : bool
         if ncol == len(LIST_clust_report_hdr) :
             idx = 2
         else:
-            title+= """{:<9s}  """.format(hdr[2])
+            title+= """{:>10s}  """.format(hdr[2])
             idx = 3
         title+= """{:10s}  """.format(hdr[idx])
         title+= """{:10s}  """.format(hdr[idx+1])
         title+= """{:<s}""".format(hdr[idx+2])
         otxt.append(title)
-    
+
+        if disp_uline :
+            ulist = [' ' if x == ' ' else '-' for x in title]
+            uline = ''.join(ulist)
+            otxt.append(uline)
+
     # add text for each row
 
     for ii in range(nrow):
         row = X[ii]
-        ttt = """{:>6d}  """.format(row[0])
-        ttt+= """{:>6d}  """.format(row[1])
-        if ncol == len(LIST_clust_report_hdr) :
-            idx = 2
+        if not(ii) :
+            # these items only get reported initially
+            ttt = """{:>6d}  """.format(row[0])
+            ttt+= """{:>6d}  """.format(row[1])
+            if ncol == len(LIST_clust_report_hdr) :
+                idx = 2
+            else:
+                ttt+= """{:>10s}  """.format(row[2])
+                idx = 3
         else:
-            ttt+= """{:<9s}  """.format(row[2])
-            idx = 3
+            # ... now report these blankly
+            ttt = """{:>6s}  """.format('')
+            ttt+= """{:>6s}  """.format('')
+            if ncol == len(LIST_clust_report_hdr) :
+                idx = 2
+            else:
+                ttt+= """{:>10s}  """.format('')
+                idx = 3
+        # ... and always report these
         ttt+= """{:10.1f}  """.format(row[idx])
         ttt+= """{:10.1f}  """.format(row[idx+1])
         ttt+= """{:<s}""".format(row[idx+2])

@@ -72,31 +72,39 @@ Usage ~1~
                  dataset must be on the same grid as the '-input_clust
                  ..' dset.  Using this opt will add a column of mean
                  values of the ID data per cluster written using
-                 scientific notation (see '-dat_column_as_sign' for
+                 scientific notation (see '-dat_col_as_sign' for
                  alternative reporting).  NB: there is no check that
                  the sign of values are constant across each cluster,
                  though that likely should be the case.  name of the
                  input dataset
 
--workdir WD    : working directory name, without path; the working dir
-                will be subdirectory of the output location
-                (def: name with random chars)
+-dat_col_as_sign DCAS 
+                :if using '-input_dat ..', should the results be output
+                 as a simple string value of 'pos', 'neg' or 'zero'?
+                 If that option is not chosen, then the input_dat is 
+                 reported numerically as the mean value of the data 
+                 in the cluster, using scientific notation
+                 (def: {dat_col_as_sign}) 
 
--do_clean DC   :state whether to clean up any intermediate files;
-                allowed values are:  Yes, 1, No, 0
-                (def: '{do_clean}')
+-workdir WD     :working directory name, without path; the working dir
+                 will be subdirectory of the output location
+                 (def: name with random chars)
 
--do_log        :add this opt to turn on making a text log of all the
-                shell commands that are run when this program is
-                executed.  Mainly for debugging purposes.
+-do_clean DC    :state whether to clean up any intermediate files;
+                 allowed values are:  Yes, 1, No, 0
+                 (def: '{do_clean}')
 
--help, -h      :display program help file
+-do_log         :add this opt to turn on making a text log of all the
+                 shell commands that are run when this program is
+                 executed.  Mainly for debugging purposes.
 
--hist          :display program history
+-help, -h       :display program help file
 
--ver           :display program version number
+-hist           :display program history
 
--verb  VVV     :control verbosity (def: {verb})
+-ver            :display program version number
+
+-verb  VVV      :control verbosity (def: {verb})
 
 -show_valid_opts :show valid options for this program
 
