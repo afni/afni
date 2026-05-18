@@ -14,6 +14,7 @@ import math
 
 from   afnipy import afni_base          as ab
 from   afnipy import afni_util          as au
+from   afnipy import lib_cluster_rois   as lcr
 
 # ============================================================================
 
@@ -361,10 +362,10 @@ inobj : InOpts object
         stat = com.run()
         
         if stat :
-            ab.EP1("Could not make TSV table for clust:", clust)
+            ab.EP1("Could not get atlas labels for clust:", clust)
             return BAD_RETURN
 
-        all_atl_olap = copy.deepcopy(com.so)
+        table_labels = copy.deepcopy(com.so)
 
         # if input_dat is used, get average value within onecl
 
@@ -375,8 +376,21 @@ inobj : InOpts object
                 return BAD_RETURN
 
             print("   -> mean clust: {:.3e}".format(clust_dat))
+        else:
+            clust_dat = None
+
+        # read in mini clust-table to a list of int+float
+
+        is_fail, table = read_mini_table_info(otable3)
+        if is_fail :
+            ab.EP1("Could not calc input_dat ave, clust: {}".format(clust))
+            return BAD_RETURN
+
+        print("HEY")
+        print(table)
 
         # *** need to attach info to new object, to save it all
+        ###ClustRegionObj(clust, table, table_labels, 
 
         return 0
 
@@ -749,6 +763,59 @@ inobj : InOpts object
         """fractional form of min_perc_atlas"""
         return self.min_perc_atlas / 100.0
 
+
+def read_mini_table_info(fname):
+    """This function is for reading in a text file with name fname that
+was made from extracting the non-commented, purely-numerical part of a
+an overlap table created by adjunct_aw_tableize_roi_info.py.
+
+It simply returns that information as a "2D" list of ints and floats.
+
+Parameters
+----------
+fname : str
+    name of text file
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+L : list
+    contains a list of lists, each of whose elements are floats and ints
+
+    """
+
+    L = []
+    BAD_RETURN = (-11, L)
+
+    # verify existence
+    if not(os.path.exists(fname)) :
+        ab.EP1("Cannot find mini table file: {}".format(fname))
+        return BAD_RETURN
+
+    fff = open(fname, 'r')
+    dat = fff.readlines()
+    fff.close()
+
+    ndat = len(dat)
+
+    # look for rows with data, and convert all elements to int or float
+    for ii in range(ndat):
+        row = dat[ii].split()
+        if len(row) :
+            R = []
+            for r in row :
+                v, vtype = au.try_convert_bool_float_int_str(r)
+                if not(vtype in ['int', 'float']) :
+                    msg = "Table conversion failuer. "
+                    msg+= "Could not convert '{}' ".format(r)
+                    msg+= "to float or int, was: {}".format(vtype)
+                    ab.EP1(msg)
+                    return BAD_RETURN
+                R.append(v)
+            L.append(R)
+
+    return 0, L
 
 def is_same_grid(A, B):
     """Are the two dsets A and B on the same grid? Check with 3dinfo.
