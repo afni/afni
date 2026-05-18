@@ -157,7 +157,7 @@ min_fill_atlas : float
                     100.0*row[5],    # "Atlas_perc",   -> RelVol_A2B
                     self.labels[ii], # "Atlas_region", 
                 ]
-                print("HEY:", cond_total, L)
+                
                 # if user asked, include appropriate clust_dat info
                 if self.clust_dat is not None :
                     # if using data, record as expon notation
@@ -192,15 +192,18 @@ min_fill_atlas : float
 
         if not(len(prelim_list)) :
             if not(self.strict_fill_clust) :
-                self.clust_report = max_fill_sub
+                if len(max_fill_sub) :
+                    self.clust_report = [max_fill_sub]
+                else:
+                    self.clust_report = []
         else:
             # get index to sort by
             idx = self.clust_report_hdr.index('Clust_perc')
             prelim_list.sort(key=itemgetter(idx))
             self.clust_report = prelim_list
 
-        print("HEY5: ")
-        print(self.clust_report)
+        is_fail = disp_cluster_table(self.clust_report, self.clust_report_hdr)
+
 
         return 0
 
@@ -270,10 +273,75 @@ min_fill_atlas : float
         """number of labels"""
         return len(self.labels)
 
+def disp_cluster_table(X, hdr):
+    """Display a table of cluster values X, with header/column titles hdr.
+
+Parameters
+----------
+X : list
+    list of lists, where each row is one overlap region to report
+hdr : list
+    list of column title strings (must be same len as X[0], etc.)
+
+Returns
+-------
+is_fail : bool
+    0 for success, nonzero for error
+"""
+
+    BAD_RETURN = -12
+
+    ncol = len(hdr)
+    nrow = len(X)
+
+    if not(nrow) :
+        return 0
+
+    if len(X[0]) != ncol :
+        msg = "Length of row is '{}', ".format(len(X[0]))
+        msg+= "which does not match len of hdr ('{}')".format(nrow)
+        ab.EP1(msg)
+        return BAD_RETURN
+
+    # make a list of lines of txt
+    otxt = []
+                           
+    # make title row
+    
+    title = """{:>6s}  """.format(hdr[0])
+    title+= """{:>6s}  """.format(hdr[1])
+    if ncol == len(LIST_clust_report_hdr) :
+        idx = 2
+    else:
+        title+= """{:<9s}  """.format(hdr[2])
+        idx = 3
+    title+= """{:10s}  """.format(hdr[idx])
+    title+= """{:10s}  """.format(hdr[idx+1])
+    title+= """{:<s}""".format(hdr[idx+2])
+    otxt.append(title)
+    
+    for ii in range(nrow):
+        row = X[ii]
+        ttt = """{:>6d}  """.format(row[0])
+        ttt+= """{:>6d}  """.format(row[1])
+        if ncol == len(LIST_clust_report_hdr) :
+            idx = 2
+        else:
+            ttt+= """{:<9s}  """.format(row[2])
+            idx = 3
+        ttt+= """{:10.1f}  """.format(row[idx])
+        ttt+= """{:10.1f}  """.format(row[idx+1])
+        ttt+= """{:<s}""".format(row[idx+2])
+        otxt.append(ttt)
+
+    for jj in range(len(otxt)):
+        print(otxt[jj])
+
+    return 0
+
 # ============================================================================
 
 if __name__ == "__main__" :
 
     # an example use case
     print("++ No example")
-

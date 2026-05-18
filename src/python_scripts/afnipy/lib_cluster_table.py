@@ -312,8 +312,8 @@ inobj : InOpts object
             ab.EP1(msg)
             return BAD_RETURN
         
-        print("   -> olap count: {}".format(ntable))
-
+        # this should never happen, because we do no thresholding when
+        # generating table2
         if not(ntable) :
             return 0
 
