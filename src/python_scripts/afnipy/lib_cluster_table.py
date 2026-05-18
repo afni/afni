@@ -807,7 +807,7 @@ L : list
             for r in row :
                 v, vtype = au.try_convert_bool_float_int_str(r)
                 if not(vtype in ['int', 'float']) :
-                    msg = "Table conversion failuer. "
+                    msg = "Table conversion failure. "
                     msg+= "Could not convert '{}' ".format(r)
                     msg+= "to float or int, was: {}".format(vtype)
                     ab.EP1(msg)
