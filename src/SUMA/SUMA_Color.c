@@ -6442,7 +6442,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
 
    if (!Recycle) {
       Sover->GlobalOpacity = -1.0; /* no factor applied */
-      Sover->ShowMode = SW_SurfCont_DsetViewXXX;
+      Sover->ShowMode = SW_SurfCont_DsetViewCol;
       Sover->Font = SUMA_FontStr2FontMenuItem(SUMA_EnvVal("SUMA_Dset_Font"));
       Sover->NodeRad = SW_SurfCont_DsetNodeRadConst;
       Sover->Through =
@@ -9952,7 +9952,7 @@ SUMA_Boolean SUMA_iRGB_to_SO_OverlayPointer (SUMA_SurfaceObject *SO,
 
          /* set up some defaults for the overlap plane */
          if (sopd->Show) Overlay->ShowMode = SW_SurfCont_DsetViewCol;
-         else Overlay->ShowMode = SW_SurfCont_DsetViewXXX;
+         else Overlay->ShowMode = -SW_SurfCont_DsetViewCol;
          Overlay->GlobalOpacity = sopd->GlobalOpacity;
          Overlay->isBackGrnd = sopd->isBackGrnd;
          Overlay->OptScl->BrightFact = sopd->DimFact;

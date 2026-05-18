@@ -16406,8 +16406,8 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
         XmToggleButtonSetState(SurfCont->BoxOutlineThresh_tb, 
                                ColPlane->BoxOutlineThresh, 1);
    }
-    if (ColPlane->BoxOutlineThresh) ColPlane->ShowMode = SW_SurfCont_DsetViewCaC;
-    else ColPlane->ShowMode = SW_SurfCont_DsetViewCol;
+//    if (ColPlane->BoxOutlineThresh) ColPlane->ShowMode = SW_SurfCont_DsetViewCaC;
+//    else ColPlane->ShowMode = SW_SurfCont_DsetViewCol;
 
    SUMA_RETURNe;
 }
