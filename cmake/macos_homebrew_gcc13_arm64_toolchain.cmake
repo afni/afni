@@ -1,9 +1,13 @@
 # Toolchain for building AFNI on Apple Silicon with Homebrew GCC.
 #
 # Usage:
-#   cmake -S . -B build-gcc13-arm64 -G Ninja \
-#     -DCMAKE_TOOLCHAIN_FILE=cmake/macos_homebrew_gcc13_arm64_toolchain.cmake \
-#     -DAFNI_HOMEBREW_GCC_VERSION=13
+#   cmake -S . -B build-gcc-arm64 -G Ninja \
+#     -DCMAKE_TOOLCHAIN_FILE=cmake/macos_homebrew_gcc13_arm64_toolchain.cmake
+#
+# The default GCC version is 15 (current Homebrew stable as of 2025).
+# Override with -DAFNI_HOMEBREW_GCC_VERSION=<version> for older installs, e.g.:
+#   -DAFNI_HOMEBREW_GCC_VERSION=13
+#   -DAFNI_HOMEBREW_GCC_VERSION=14
 #
 # This file intentionally sets the macOS SDK explicitly. Homebrew GCC can have
 # a stale built-in sysroot after macOS or Command Line Tools upgrades, which can
@@ -18,7 +22,7 @@ set(CMAKE_SYSTEM_NAME Darwin)
 set(CMAKE_SYSTEM_PROCESSOR arm64)
 
 set(AFNI_HOMEBREW_PREFIX "/opt/homebrew" CACHE PATH "Homebrew prefix")
-set(AFNI_HOMEBREW_GCC_VERSION "13" CACHE STRING "Homebrew GCC major version")
+set(AFNI_HOMEBREW_GCC_VERSION "15" CACHE STRING "Homebrew GCC major version (13, 14, or 15)")
 
 set(_afni_homebrew_gcc "${AFNI_HOMEBREW_PREFIX}/bin/gcc-${AFNI_HOMEBREW_GCC_VERSION}")
 set(_afni_homebrew_gxx "${AFNI_HOMEBREW_PREFIX}/bin/g++-${AFNI_HOMEBREW_GCC_VERSION}")
@@ -28,9 +32,9 @@ if(NOT EXISTS "${_afni_homebrew_gcc}" OR NOT EXISTS "${_afni_homebrew_gxx}")
     "Could not find Homebrew GCC ${AFNI_HOMEBREW_GCC_VERSION}. Expected:\n"
     "  ${_afni_homebrew_gcc}\n"
     "  ${_afni_homebrew_gxx}\n"
-    "Install a versioned formula such as 'brew install gcc@13', install the "
-    "current GCC with 'brew install gcc', or pass "
-    "-DAFNI_HOMEBREW_GCC_VERSION=<version>."
+    "Install the current GCC with 'brew install gcc' (provides gcc-15), or a "
+    "specific version with 'brew install gcc@13' / 'brew install gcc@14', then "
+    "pass -DAFNI_HOMEBREW_GCC_VERSION=<version> to match."
   )
 endif()
 
