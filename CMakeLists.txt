@@ -40,7 +40,7 @@ string(TIMESTAMP BUILD_DATE "%m %d %Y")
 # AFNI includes legacy C sources that rely on pre-C23 empty-parameter-list
 # semantics.  Pin the project dialect so compiler default changes do not alter
 # those semantics.
-set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
