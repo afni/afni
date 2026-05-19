@@ -59,8 +59,8 @@ inobj : InOpts object
         # ----- set up attributes
 
         # main input variables
-        self.status          = 0                       # not used
-        self.user_opts       = DOPTS['user_opts']      # command the user ran
+        self.status          = 0                     # not used
+        self.user_opts       = DOPTS['user_opts']    # command the user ran
         self.user_inobj      = user_inobj
 
         # general variables
@@ -74,6 +74,9 @@ inobj : InOpts object
         self.input_atlas     = DOPTS['input_atlas']
         self.input_dat       = DOPTS['input_dat']
         self.prefix          = DOPTS['prefix']
+
+        self.list_clust_report  = []                  # main thing to populate
+        self.list_clust_no_olap = []                  # count empty olaps
 
         # extra vars
         self.clust_min       = 0
@@ -120,10 +123,41 @@ inobj : InOpts object
             tmp7 = self.set_label_size()
             if tmp7 : return
 
-            tmp8 = self.calc_overlap_metrics_all()
+            tmp8 = self.calc_cluster_report_all()
             if tmp8 : return
 
+            tmp9 = self.write_cluster_report()
+            if tmp9 : return
+
     # ----- methods
+
+    def write_cluster_report(self):
+        """Write out the list of individual cluster reports into a text file."""
+
+        if self.len_cluster_no_olap :
+            msg = "This many clusters had no overlaps: "
+            msg+= "{}".format(self.len_cluster_no_olap)
+            ab.WP(msg)
+
+        if self.len_cluster_report :
+            ab.IP("Writing out cluster report to: {}".format(self.prefix))
+            for ii in range(self.len_cluster_report):
+                # write for [0]th report and append all others
+                if ii : 
+                    write_mode = 'a'
+                    disp_hdr   = False
+                else  : 
+                    write_mode = 'w'
+                    disp_hdr   = True
+
+                report = self.list_clust_report[ii]
+                lcr.disp_cluster_table(report.clust_report, 
+                                       report.clust_report_hdr,
+                                       fname      = self.prefix,
+                                       write_mode = write_mode,
+                                       disp_hdr   = disp_hdr)
+
+        return 0
 
     def check_input_dat(self):
         """Is the input grid valid? To answer this, we first see if it is the
@@ -343,7 +377,7 @@ inobj : InOpts object
                 ab.EP1("Could not calc input_dat ave, clust: {}".format(clust))
                 return BAD_RETURN
 
-            print("   -> mean clust: {:.3e}".format(clust_dat))
+            print("      mean clust : {:.3e}".format(clust_dat))
         else:
             clust_dat = None
 
@@ -354,9 +388,11 @@ inobj : InOpts object
             ab.EP1("Could not calc input_dat ave, clust: {}".format(clust))
             return BAD_RETURN
 
-        # go through mini clust-table and find regions to keep
+        # go through mini clust-table and find regions to keep; this
+        # creates a cro = "cluster region object", which has a display
+        # function in the associated library file.
 
-        asdf = lcr.ClustRegionObj(clust, table, table_labels, 
+        cro = lcr.ClustRegionObj(clust, table, table_labels, 
                                   min_fill_clust    = self.min_fill_clust, 
                                   min_fill_atlas    = self.min_fill_atlas,
                                   olap_logic        = self.olap_logic,
@@ -364,9 +400,17 @@ inobj : InOpts object
                                   clust_dat         = clust_dat,
                                   dat_col_as_sign   = self.dat_col_as_sign)
         
+        # ... and add this to the main list of cluster reports, if any
+        # regions were found to report
+
+        if cro.len_clust_report :
+            self.list_clust_report.append(cro)
+        else:
+            self.list_clust_no_olap.append(clust)
+
         return 0
 
-    def calc_overlap_metrics_all(self):
+    def calc_cluster_report_all(self):
         """Loop over all clusters in clust_list and look for their overlap
         with the input atlas.
         """
@@ -376,7 +420,7 @@ inobj : InOpts object
         ab.IP("Calc cluster overlap metrics")
         for clust in self.clust_list:
             if self.verb :
-                print("   cluster value:", clust, flush=True)
+                print("++ cluster value :", clust, flush=True)
             is_fail = self.run_tableize_roi(clust)
             if is_fail :
                 ab.EP1("Could not calc olap info for clust: {}".format(clust))
@@ -737,6 +781,18 @@ inobj : InOpts object
         """fractional form of min_perc_atlas"""
         return self.min_perc_atlas / 100.0
 
+    @property
+    def len_cluster_report(self):
+        """how many clusters are in the cluster report"""
+        return len(self.list_clust_report)
+
+    @property
+    def len_cluster_no_olap(self):
+        """how many clusters had no overlap (and hence are _not_ in the
+        cluster report"""
+        return len(self.list_clust_no_olap)
+
+# ---------------------------------------------------------------------------
 
 def read_mini_table_info(fname):
     """This function is for reading in a text file with name fname that

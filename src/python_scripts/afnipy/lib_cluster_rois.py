@@ -22,6 +22,10 @@ from   afnipy import afni_util          as au
 LIST_valid_olap = ['or', 'and']
 STR_valid_olap  = ', '.join(LIST_valid_olap)
 
+# parameters for writing out cluster report
+LIST_valid_write_mode = ['a', 'w']
+STR_valid_write_mode  = ', '.join(LIST_valid_write_mode)
+
 # ----------------------------------------------------------------------------
 
 # what columns will be reported in table by default
@@ -202,8 +206,9 @@ min_fill_atlas : float
             prelim_list.sort(key=itemgetter(idx), reverse=True)
             self.clust_report = prelim_list
 
-        is_fail = disp_cluster_table(self.clust_report, self.clust_report_hdr)
+        #is_fail = disp_cluster_table(self.clust_report, self.clust_report_hdr)
 
+        print("      olap count : {:d}".format(self.len_clust_report))
 
         return 0
 
@@ -276,8 +281,20 @@ min_fill_atlas : float
         """number of labels"""
         return len(self.labels)
 
-def disp_cluster_table(X, hdr, disp_hdr=True, disp_uline=True):
+    @property
+    def len_clust_report(self):
+        """len of cluster report; essentially, how many overlapping rois
+        were found"""
+        return len(self.clust_report)
+
+def disp_cluster_table(X, hdr, fname=None, write_mode = 'w',
+                       disp_hdr=True, disp_uline=True):
     """Display a table of cluster values X, with header/column titles hdr.
+
+This function can also write the results to a text file, fname.  Users
+can choose the write_mode to be writing/overwriting (write_mode='w')
+or appending (write_mode='a').  The value of this parameter only
+matters if fname is not None.
 
 Parameters
 ----------
@@ -285,6 +302,10 @@ X : list
     list of lists, where each row is one overlap region to report
 hdr : list
     list of column title strings (must be same len as X[0], etc.)
+fname : str
+    if given, write to text file 
+write_mode : str
+    style of writing to use, if fname is given
 disp_hdr : bool
     should the hdr be displayed?
 disp_uline : bool
@@ -294,7 +315,8 @@ Returns
 -------
 is_fail : bool
     0 for success, nonzero for error
-"""
+
+    """
 
     BAD_RETURN = -12
 
@@ -363,6 +385,21 @@ is_fail : bool
 
     for jj in range(len(otxt)):
         print(otxt[jj])
+
+    # see if we also write these contents to a file
+    if fname is not None :
+        # can either (over)write or append, nothing else
+        if write_mode not in LIST_valid_write_mode :
+            msg = "Invalid write mode for cluster "
+            msg+= "report provided: {}. ".format(write_mode)
+            msg+= "Most must be one of these: {}".format(STR_valid_write_mode)
+            ab.EP1(msg)
+            return BAD_RETURN
+
+        fff = open(fname, write_mode)
+        for jj in range(len(otxt)):
+            fff.write(otxt[jj] + '\n')
+        fff.close()
 
     return 0
 
