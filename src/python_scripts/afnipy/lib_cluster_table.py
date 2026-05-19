@@ -429,7 +429,6 @@ inobj : InOpts object
         return 0
 
     def make_clust_list(self):
-
         """Derive one list of all (pos and/or neg) clusters, from the
         input_clust. NB: we are using the unresampled dset for this
         list, to make sure no clusters are lost at this stage.
