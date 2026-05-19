@@ -112,27 +112,69 @@ Usage ~1~
 
 Notes ~1~
 
-Note that the '-min_perc_clust ..' value specifies the fraction of the
-*cluster* to be filled, for an atlas region to be displayed in the
-table. 
+Thresholds for filling clusters and atlas regions ~2~
 
-There is also another opt ***
+Probably the biggest choice that users will have to make when using
+this programs is deciding what the cut-off value will be for "enough"
+overlap to be counted in the cluster report table.  There are two
+primary parameters for specifying this:
 
+  '-min_perc_clust ..' : what percentage of a cluster should be filled
+                         by a given atlas region to be included
 
-In such a case, you might want to lower the
-'-min_olap_clust ..' significantly.
+  '-min_perc_atlas ..' : what percentage of an atlas region should be 
+                         filled by a given cluster to be included
 
-Future work might be to have a different thresholding criterion,
-perhaps based on the fraction of the *atlas* region overlap with the
-cluster, for reporting.
+Having both of these parameters available is useful particularly when
+clusters are much larger than atlas regions, or vice versa.  (An
+earlier version of this program only had the cluster-fill condition,
+and it became obvious that the atlas-based one would be necessary to
+add.)  There are default values for each (min_perc_clust = {min_perc_clust}%, 
+and min_perc_atlas = {min_perc_atlas}%), which seem a reasonable starting point,
+but these were not chosen for deep reasons. Users should choose what 
+makes most sense for their data.
+
+There is an important secondary parameter related to the above options:
+
+  '-olap_logic ..'     : should the cluster- and atlas-filling conditions
+                         be applied with 'or' logic (so, only one condition
+                         needs to be met) for an overlap to be included
+                         in the table, or with 'and' logic (so both
+                         conditions need to be met simultaneously).
+
+The default logic is '{olap_logic}'.  Again, users may have their own
+preferences for their study design and reporting.
 
 ------------------------------------------------------------------------
 
 Examples ~1~
 
- ****
+ 1. Make cluster overlap table using basic/default parameters:
 
-           
+    gen_cluster_table.py                                \\
+        -input_clust      Clust+tlrc.HEAD               \\
+        -input_atlas      MNI_Glasser_HCP_v1.0.nii.gz   \\
+        -prefix           Clust_01_report.dat
+
+ 2. Make cluster overlap table using different cluster and altas
+    region fill thresholds:
+
+    gen_cluster_table.py                                \\
+        -input_clust      Clust+tlrc.HEAD               \\
+        -input_atlas      MNI_Glasser_HCP_v1.0.nii.gz   \\
+        -min_perc_clust   20.0                          \\
+        -min_perc_atlas   50.0                          \\
+        -prefix           Clust_02_report.dat
+
+ 3. Include another dataset, to report the sign of the cluster
+    (as a string):
+
+    gen_cluster_table.py                                \\
+        -input_clust      Clust+tlrc.HEAD               \\
+        -input_atlas      MNI_Glasser_HCP_v1.0.nii.gz   \\
+        -input_dat        stats.beta_values.nii.gz      \\
+        -dat_col_as_sign  Yes                           \\
+        -prefix           Clust_03_report.dat
 
 """.format(**LCT.DOPTS)
 
