@@ -17,9 +17,13 @@ set(CMAKE_SYSTEM_NAME Darwin)
 set(CMAKE_SYSTEM_PROCESSOR arm64)
 
 set(AFNI_HOMEBREW_PREFIX "/opt/homebrew" CACHE PATH "Homebrew prefix")
+set(_afni_brew_executable "${AFNI_HOMEBREW_PREFIX}/bin/brew")
+if(NOT EXISTS "${_afni_brew_executable}")
+  set(_afni_brew_executable brew)
+endif()
 
 execute_process(
-  COMMAND brew --prefix llvm
+  COMMAND "${_afni_brew_executable}" --prefix llvm
   OUTPUT_VARIABLE _afni_llvm_prefix
   RESULT_VARIABLE _afni_llvm_result
   OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -34,9 +38,23 @@ if(NOT _afni_llvm_result EQUAL 0 OR NOT EXISTS "${_afni_llvm_prefix}")
   )
 endif()
 
-set(CMAKE_C_COMPILER   "${_afni_llvm_prefix}/bin/clang"   CACHE FILEPATH "C compiler")
-set(CMAKE_CXX_COMPILER "${_afni_llvm_prefix}/bin/clang++" CACHE FILEPATH "CXX compiler")
+set(_afni_llvm_clang "${_afni_llvm_prefix}/bin/clang")
+set(_afni_llvm_clangxx "${_afni_llvm_prefix}/bin/clang++")
+if(NOT EXISTS "${_afni_llvm_clang}" OR NOT EXISTS "${_afni_llvm_clangxx}")
+  message(FATAL_ERROR
+    "Homebrew LLVM was found at '${_afni_llvm_prefix}', but the expected "
+    "compiler pair is missing:\n"
+    "  ${_afni_llvm_clang}\n"
+    "  ${_afni_llvm_clangxx}"
+  )
+endif()
 
+set(CMAKE_C_COMPILER   "${_afni_llvm_clang}"   CACHE FILEPATH "C compiler")
+set(CMAKE_CXX_COMPILER "${_afni_llvm_clangxx}" CACHE FILEPATH "CXX compiler")
+
+unset(_afni_brew_executable)
+unset(_afni_llvm_clang)
+unset(_afni_llvm_clangxx)
 unset(_afni_llvm_prefix)
 unset(_afni_llvm_result)
 
