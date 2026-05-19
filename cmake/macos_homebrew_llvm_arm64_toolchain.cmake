@@ -16,8 +16,29 @@
 set(CMAKE_SYSTEM_NAME Darwin)
 set(CMAKE_SYSTEM_PROCESSOR arm64)
 
-set(CMAKE_C_COMPILER /opt/homebrew/opt/llvm/bin/clang CACHE FILEPATH "C compiler")
-set(CMAKE_CXX_COMPILER /opt/homebrew/opt/llvm/bin/clang++ CACHE FILEPATH "CXX compiler")
+set(AFNI_HOMEBREW_PREFIX "/opt/homebrew" CACHE PATH "Homebrew prefix")
+
+execute_process(
+  COMMAND brew --prefix llvm
+  OUTPUT_VARIABLE _afni_llvm_prefix
+  RESULT_VARIABLE _afni_llvm_result
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_QUIET
+)
+
+if(NOT _afni_llvm_result EQUAL 0 OR NOT EXISTS "${_afni_llvm_prefix}")
+  message(FATAL_ERROR
+    "Could not find Homebrew LLVM via 'brew --prefix llvm'. "
+    "Install it with 'brew install llvm', or use the GCC toolchain file instead: "
+    "cmake/macos_homebrew_gcc13_arm64_toolchain.cmake"
+  )
+endif()
+
+set(CMAKE_C_COMPILER   "${_afni_llvm_prefix}/bin/clang"   CACHE FILEPATH "C compiler")
+set(CMAKE_CXX_COMPILER "${_afni_llvm_prefix}/bin/clang++" CACHE FILEPATH "CXX compiler")
+
+unset(_afni_llvm_prefix)
+unset(_afni_llvm_result)
 
 execute_process(
   COMMAND xcrun --show-sdk-path
