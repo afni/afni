@@ -1,24 +1,10 @@
 project(SUMA)
 
-# ---- Mesa / GL helper -------------------------------------------------------
-# When AFNI_MESA_ROOT is set, AfniPlatform.cmake creates AFNI::Mesa which
-# bundles libGL + libGLU from the requested prefix.
-# When AFNI_MESA_ROOT is not set, fall back to the normal CMake-discovered
-# targets — behaviour is identical to the pre-patch file.
-if(TARGET AFNI::Mesa)
-    set(_SUMA_GLU_TARGET AFNI::Mesa)
-else()
-    set(_SUMA_GLU_TARGET
-        $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
-        $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>
-    )
-endif()
-
-# ---- Override XQuartzGL targets to use Mesa when AFNI_MESA_ROOT is set ------
-# FindXQuartzGL.cmake already redirects GL/GLU libraries to Mesa when
-# AFNI_MESA_ROOT is set (via the override block in that file). GLUT remains
-# from XQuartz since Mesa does not ship it.
-# -----------------------------------------------------------------------------
+set(
+  _SUMA_GLU_TARGETS
+  $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
+  $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>
+)
 
 # SUMA library
 add_afni_library(
@@ -89,7 +75,7 @@ target_link_libraries(
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
           $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLUT>
   PRIVATE AFNI::mrix
-          ${_SUMA_GLU_TARGET}
+          ${_SUMA_GLU_TARGETS}
           segtools
           $<IF:$<BOOL:${APPLE}>,X11::Xmu,>
           AFNI::3DEdge
@@ -97,17 +83,13 @@ target_link_libraries(
           NIFTI::nifticdf
 )
 
-# ---- ARM / macOS compile definitions for SUMA --------------------------------
+# These mirror the long-standing SUMA_MDEFS entries in the macOS Makefiles.
 if(AFNI_IS_MACOS)
-    target_compile_definitions(SUMA PUBLIC SUMA_GL_NO_CHECK_FRAME_BUFFER)
-    if(AFNI_IS_ARM)
-        target_compile_definitions(SUMA PUBLIC ARM_M1)
-    endif()
+  target_compile_definitions(SUMA PUBLIC SUMA_GL_NO_CHECK_FRAME_BUFFER)
+  if(AFNI_IS_ARM)
+    target_compile_definitions(SUMA PUBLIC ARM_M1)
+  endif()
 endif()
-if(AFNI_MESA_INCLUDE_DIR)
-    target_include_directories(SUMA PRIVATE "${AFNI_MESA_INCLUDE_DIR}")
-endif()
-# -----------------------------------------------------------------------------
 
 # suma GUI:
 add_afni_executable(suma SUMA_suma.c)
@@ -116,17 +98,8 @@ target_link_libraries(
   PRIVATE SUMA
           AFNI::mrix
           AFNI::segtools
-          ${_SUMA_GLU_TARGET}
+          ${_SUMA_GLU_TARGETS}
 )
-
-# ---- Mesa rpath for suma executable ------------------------------------------
-if(AFNI_MESA_ROOT)
-    set_target_properties(suma PROPERTIES
-        BUILD_RPATH "${AFNI_MESA_ROOT}/lib"
-        INSTALL_RPATH "${AFNI_MESA_ROOT}/lib"
-    )
-endif()
-# ------------------------------------------------------------------------------
 
 # Add build time check for correct linking in suma gui.
 # For further information see:
@@ -209,7 +182,7 @@ endforeach(program)
 add_afni_executable(volume_render SUMA_volume_render.c)
 target_link_libraries(
   volume_render
-  PRIVATE SUMA AFNI::mrix ${_SUMA_GLU_TARGET} NIFTI::nifti2
+  PRIVATE SUMA AFNI::mrix ${_SUMA_GLU_TARGETS} NIFTI::nifti2
           NIFTI::nifticdf
 )
 set_target_properties(
@@ -246,7 +219,7 @@ foreach(suma_target pixmap2eps;glxdino;paperplane)
             X11::Xmu
             NIFTI::nifti2
             NIFTI::nifticdf
-            ${_SUMA_GLU_TARGET}
+            ${_SUMA_GLU_TARGETS}
   )
 endforeach()
 

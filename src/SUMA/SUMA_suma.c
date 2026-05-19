@@ -1080,17 +1080,15 @@ int main (int argc,char *argv[])
       fprintf(stderr,"Error in SUMA_X_SurfaceViewer_Create. Exiting\n");
       return 1;
    }
-   /* Initialize GLUT so glutBitmapWidth works on right-click context menus.
-       The original call was removed in 2016 for remote connections but is
-       needed on ARM macOS with XQuartz GLUT. 
-       
-       Commented out part of MACRO in SUMA_DataSets.h -> SUMA_STANDALONE_INIT
-       
-       The reason this works is glutInit called after SUMA_X_SurfaceViewer_Create()
-       X display and GL context are fully established. Should be safe for
-       both local and remote connections.
-       */
-    glutInit(&argc, argv);
+#if defined(__APPLE__) && defined(ARM_M1)
+   /*
+    * XQuartz GLUT on Apple Silicon needs GLUT initialized before calls such as
+    * glutBitmapWidth used by the right-click context menus.  Keep this scoped:
+    * the older SUMA_STANDALONE_INIT glutInit call was disabled because it
+    * caused remote display problems on some systems.
+    */
+   glutInit(&argc, argv);
+#endif
 
    for (i=0; i<ispec; ++i) {
       if (!list) list = SUMA_CreateList();
@@ -1235,5 +1233,4 @@ int main (int argc,char *argv[])
       SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
   SUMA_RETURN(0);             /* ANSI C requires main to return int. */
 }/* Main */
-
 
