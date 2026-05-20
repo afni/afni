@@ -17698,7 +17698,7 @@ char * SUMA_WriteStringToFile(char *fname, char *s, int over, int view)
          SUMA_RETURN(NULL);
       }
       snprintf(cmd,250*sizeof(char),"%s %s &", viewer, fused);
-      system(cmd);
+      int ret = system(cmd);
    }
 
    SUMA_RETURN(fused);

@@ -10284,7 +10284,7 @@ SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_ALL_DO *ado, SUMA_COLOR_MAP *CM)
       if (SUMA_NeedsLinearizing(CM)) {
          if (!nwarn) {
             SUMA_SLP_Note("Cannot do contouring with colormaps\n"
-                          "that panes of unequal sizes.\n"
+                          "that has panes of unequal sizes.\n"
                           "Contouring turned off.\n"
                           "Notice shown once per session.");
             ++nwarn;

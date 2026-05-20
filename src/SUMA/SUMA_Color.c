@@ -4611,7 +4611,10 @@ SUMA_Boolean SUMA_NeedsLinearizing(SUMA_COLOR_MAP *ColMap)
 
    /*    SUMA_Show_ColorMapVec(&ColMap, 1, NULL, 2); */
 
-   if (!ColMap->frac) SUMA_RETURN(NOPE);
+   if (!ColMap->frac){
+    // SUMA_SL_Err("NULL ColMap frac");
+    SUMA_RETURN(NOPE);
+   } 
 
    if (ColMap->N_M[0]<2) SUMA_RETURN(NOPE);
 
@@ -7817,7 +7820,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    }
 
    /* ClippingPlanes verification */
-   if ( N_Overlays > 0 && (!Overlays || Overlays == 0x1) ) {
+   if ( N_Overlays > 0 && !Overlays)  {
         SUMA_S_Err("NULL Overlays pointer.");
         SUMA_RETURN (NOPE);
    }
