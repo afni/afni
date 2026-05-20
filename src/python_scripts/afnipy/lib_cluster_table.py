@@ -1022,13 +1022,21 @@ is_fail : int
 
     BAD_RETURN = -1
 
+    # if dset A has square bracket selectors, these must be removed
+    # for use as "-copytables .." arg
+    if '[' in A :
+        idx = A.index('[')
+        Aname = A[:idx]
+    else:
+        Aname = A
+
     # prop tables
-    cmd  = '3drefit -copytables "{}" "{}"'.format(A, B)
+    cmd  = '3drefit -copytables "{}" "{}"'.format(Aname, B)
     com  = ab.shell_com(cmd, capture=1)
     stat = com.run()
 
     if stat :
-        ab.EPI1("Could not refit copytables: {} -> {}".format(A, B))
+        ab.EP1("Could not refit copytables: {} -> {}".format(Aname, B))
         return BAD_RETURN
 
     # int cmap
@@ -1037,7 +1045,7 @@ is_fail : int
     stat = com.run()
 
     if stat :
-        ab.EPI1("Could not refit cmap: {}".format(B))
+        ab.EP1("Could not refit cmap: {}".format(B))
         return BAD_RETURN
 
     return 0

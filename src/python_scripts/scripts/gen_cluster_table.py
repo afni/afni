@@ -176,6 +176,14 @@ Examples ~1~
         -dat_col_as_sign  Yes                           \\
         -prefix           Clust_03_report.dat
 
+ 4. User sub-brick selectors for various datasets:
+
+    gen_cluster_table.py                                         \\
+        -input_clust      Clust+tlrc.HEAD"[3]"                   \\
+        -input_atlas      CHARM_in_NMT_v2.1_sym_05mm.nii.gz"[4]" \\
+        -input_dat        stats.beta_values.nii.gz"[2]"          \\
+        -prefix           Clust_04_report.dat
+
 """.format(**LCT.DOPTS)
 
 g_history = """
