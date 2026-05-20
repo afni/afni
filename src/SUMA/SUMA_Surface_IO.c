@@ -734,7 +734,7 @@ SUMA_Boolean SUMA_SureFit_Read_Coord ( char * f_name, SUMA_SureFit_struct *SF)
       }
    }
    /* Now read the Number of Nodes */
-   fscanf(sf_file, "%d", &SF->N_Node);
+   int ret = fscanf(sf_file, "%d", &SF->N_Node);
    if (LocalHead) fprintf (stdout,"Expecting %d nodes.\n", SF->N_Node);
    if (SF->N_Node <= 3) {
       SUMA_S_Err("Too few nodes!");
@@ -2394,7 +2394,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
                break;
             }
             ct = SUMA_CreateFS_ColorTable(nbins, len, NULL);
-            fread(ct->fname, sizeof(char), len, fl) ;
+            int ret = fread(ct->fname, sizeof(char), len, fl) ;
             SUMA_LHv("coltable fname: %s\n", ct->fname);
             for (i = 0 ; i < nbins ; i++)
             {
@@ -2404,7 +2404,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
                         SUMA_SL_Err("Too long a name");
                         SUMA_RETURN(NOPE);
                    }
-                   fread(cte->name, sizeof(char), len, fl) ;
+                   int ret = fread(cte->name, sizeof(char), len, fl) ;
                    SUMA_READ_INT (&(cte->r), bs, fl, ex);
                    SUMA_READ_INT (&(cte->g), bs, fl, ex);
                    SUMA_READ_INT (&(cte->b), bs, fl, ex);
@@ -4343,7 +4343,7 @@ SUMA_Boolean SUMA_STL_Read (char * f_name, SUMA_SurfaceObject *SO)
    }
 
    /* Is this a binary or ascii file? Read 80 characters and check for 'solid'*/
-   fread(head, sizeof(char), 80, fout);
+   int ret = fread(head, sizeof(char), 80, fout);
    head[80] = '\0'; /* replace FreeBSD-specific strnstr() 11 Feb 2015 [rickr] */
    if ((bb=strstr(head, "solid"))) {
       if (bb - head > 3) {
@@ -4366,7 +4366,7 @@ SUMA_Boolean SUMA_STL_Read (char * f_name, SUMA_SurfaceObject *SO)
 
          SUMA_LH("Reading BINARY STL");
          /* We should be right at the number of triangles */
-         fread(&ui, sizeof(unsigned int), 1, fout);
+         int ret = fread(&ui, sizeof(unsigned int), 1, fout);
          SUMA_LH("%d facesets", ui);
          SO->N_FaceSet = ui;
          SO->FaceSetDim = 3;
@@ -4424,7 +4424,7 @@ SUMA_Boolean SUMA_STL_Read (char * f_name, SUMA_SurfaceObject *SO)
             SO->NodeNormList[j3[0]+2] =
                SO->NodeNormList[j3[1]+2] =
                   SO->NodeNormList[j3[2]+2] = SO->FaceNormList[i3+2];
-            fread(&ss, sizeof(short), 1, fout);
+            int ret = fread(&ss, sizeof(short), 1, fout);
             #if 0
                SUMA_LH( "Facet %d %d %d %d\n"
                         "%f %f %f\n"

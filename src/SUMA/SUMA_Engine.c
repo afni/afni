@@ -1794,8 +1794,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   */
                   SUMAg_CF->ClipPlaneType[SUMAg_CF->N_ClipPlanes] =
                                     (SUMA_CLIP_PLANE_TYPES)EngineData->i;
+//                  snprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes],
+//                                          8*sizeof(char), "%s", EngineData->s);
                   snprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes],
-                                          8*sizeof(char), "%s", EngineData->s);
+                                          sizeof(EngineData->s), "%s", EngineData->s);
                   SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes  ] =
                                                    (GLdouble)EngineData->fv15[0];
                   SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes+1] =
@@ -1809,8 +1811,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   /* Replace an existing one */
                   SUMAg_CF->ClipPlaneType[iplane] =
                                           (SUMA_CLIP_PLANE_TYPES)EngineData->i;
+//                  snprintf(SUMAg_CF->ClipPlanesLabels[iplane],
+//                                          8*sizeof(char), "%s", EngineData->s);
                   snprintf(SUMAg_CF->ClipPlanesLabels[iplane],
-                                          8*sizeof(char), "%s", EngineData->s);
+                                          sizeof(EngineData->s), "%s", EngineData->s);
                   SUMAg_CF->ClipPlanes[4*iplane  ] =
                                           (GLdouble)EngineData->fv15[0];
                   SUMAg_CF->ClipPlanes[4*iplane+1] =
