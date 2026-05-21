@@ -10,9 +10,14 @@ from afnipy import option_list   as OL
 from afnipy import afni_util     as UTIL
 from afnipy import afni_base     as BASE
 from afnipy import lib_cluster_table as LCT
+from afnipy import lib_cluster_rois  as LCR
 
 # ----------------------------------------------------------------------
 # globals
+
+g_help_dict = {**LCT.DOPTS, 
+               'STR_valid_sort_hdr_col' : LCR.STR_valid_sort_hdr_col,
+               }
 
 g_help_string = """Overview ~1~
 
@@ -86,6 +91,18 @@ Usage ~1~
                  reported numerically as the mean value of the data 
                  in the cluster, using scientific notation
                  (def: {dat_col_as_sign}) 
+
+-sort_hdr_col SHC :for each cluster, outputs are sorted by one of these
+                 columns:
+                     {STR_valid_sort_hdr_col}
+                 The user can specify one of those for sorting.
+                 (def: {sort_hdr_col}) 
+
+-sort_hdr_rev SHR :when sorting the column values in the cluster table, 
+                 should the sorting be reversed?  That is likely useful when
+                 sorting by a column of number values, in order to have the
+                 larger numbers higher up in the table
+                 (def: {sort_hdr_rev}) 
 
 -workdir WD     :working directory name, without path; the working dir
                  will be subdirectory of the output location
@@ -239,7 +256,7 @@ Examples ~1~
         -input_dat        stats.beta_values.nii.gz"[2]"          \\
         -prefix           Clust_04_report.dat
 
-""".format(**LCT.DOPTS)
+""".format(**g_help_dict)
 
 g_history = """
   gen_cluster_table.py history:
@@ -285,6 +302,8 @@ checks happen in a subsequent object.
         self.strict_fill_clust = None
         self.olap_logic      = None
         self.dat_col_as_sign = None
+        self.sort_hdr_col    = None
+        self.sort_hdr_rev    = None
 
 
         # ----- take action(s)
@@ -346,6 +365,12 @@ checks happen in a subsequent object.
 
         self.valid_opts.add_opt('-dat_col_as_sign', 1, [], 
                         helpstr='should extra data be reported as just sign?')
+
+        self.valid_opts.add_opt('-sort_hdr_col', 1, [], 
+                        helpstr='column header for sorting overlap results')
+
+        self.valid_opts.add_opt('-sort_hdr_rev', 1, [], 
+                        helpstr='should the sorting order be reversed')
 
         # may derive from -prefix by default
         #self.valid_opts.add_opt('-outdir', 1, [], 
@@ -479,6 +504,18 @@ checks happen in a subsequent object.
                 if val is None or err:
                     BASE.EP(err_base + opt.name)
                 self.dat_col_as_sign = val
+
+            elif opt.name == '-sort_hdr_col':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.sort_hdr_col = val
+
+            elif opt.name == '-sort_hdr_rev':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.sort_hdr_rev = val
 
             # general options
 

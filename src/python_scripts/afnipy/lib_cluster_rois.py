@@ -26,6 +26,10 @@ STR_valid_olap  = ', '.join(LIST_valid_olap)
 LIST_valid_write_mode = ['a', 'w']
 STR_valid_write_mode  = ', '.join(LIST_valid_write_mode)
 
+# by which columns could one sort olap list?
+LIST_valid_sort_hdr_col = ['Clust_perc', 'Atlas_perc', 'Atlas_region']
+STR_valid_sort_hdr_col  = ', '.join(LIST_valid_sort_hdr_col)
+
 # ----------------------------------------------------------------------------
 
 # what columns will be reported in table by default
@@ -71,6 +75,7 @@ min_fill_atlas : float
                  min_fill_clust=0.0, min_fill_atlas=0.0, 
                  strict_fill_clust=True, olap_logic='or',
                  clust_dat=None, dat_col_as_sign=False,
+                 sort_hdr_col='Clust_perc', sort_hdr_rev=True,
                  verb=1 ):
 
         # ----- set up attributes
@@ -89,6 +94,8 @@ min_fill_atlas : float
 
         self.clust_dat         = clust_dat            # (extra) mean val of dat
         self.dat_col_as_sign   = dat_col_as_sign      # how to apply dat mean?
+        self.sort_hdr_col      = sort_hdr_col         # which col to sort by
+        self.sort_hdr_rev      = sort_hdr_rev         # reverse the sort?
 
         self.verb              = verb
 
@@ -141,9 +148,9 @@ min_fill_atlas : float
                 cond_clust = row[6] >= self.min_fill_clust   # Frac_A
                 cond_atlas = row[5] >= self.min_fill_atlas   # RelVol_A2B
 
-                if self.olap_logic == 'and' :
+                if self.olap_logic == 'AND' :
                     cond_total = cond_clust * cond_atlas
-                elif self.olap_logic == 'or' :
+                elif self.olap_logic == 'OR' :
                     cond_total = cond_clust + cond_atlas
                 else:
                     msg = "Unknown olap_logic. Should never reach here!"
@@ -202,8 +209,8 @@ min_fill_atlas : float
                     self.clust_report = []
         else:
             # get index to sort by
-            idx = self.clust_report_hdr.index('Clust_perc')
-            prelim_list.sort(key=itemgetter(idx), reverse=True)
+            idx = self.clust_report_hdr.index(self.sort_hdr_col)
+            prelim_list.sort(key=itemgetter(idx), reverse=self.sort_hdr_rev)
             self.clust_report = prelim_list
 
         #is_fail = disp_cluster_table(self.clust_report, self.clust_report_hdr)
@@ -260,10 +267,17 @@ min_fill_atlas : float
             ab.EP1(msg)
             return BAD_RETURN
 
-        # allowed keyword for combining threhsold conditions
+        # allowed keyword for combining threshold conditions
         if not(self.olap_logic in LIST_valid_olap) :
             msg = "Invalid olap logic operator '{}'. ".format(self.olap_logic)
             mst+= "Must be one of: {}".format(STR_valid_olap)
+            ab.EP1(msg)
+            return BAD_RETURN
+
+        # allowed keyword for column sorting
+        if not(self.sort_hdr_col in LIST_valid_sort_hdr_col) :
+            msg = "Invalid olap logic operator '{}'. ".format(self.sort_hdr_col)
+            mst+= "Must be one of: {}".format(STR_valid_sort_hdr_col)
             ab.EP1(msg)
             return BAD_RETURN
 

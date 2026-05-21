@@ -36,6 +36,8 @@ DOPTS = {
     'min_perc_atlas'  : 25.0,
     'strict_fill_clust' : 'No',
     'olap_logic'      : 'OR',
+    'sort_hdr_col'    : 'Clust_perc',
+    'sort_hdr_rev'    : 'Yes',
     'dat_col_as_sign' : 'No',
 }
 
@@ -94,6 +96,8 @@ inobj : InOpts object
         self.olap_logic        = DOPTS['olap_logic']
         self.strict_fill_clust = DOPTS['strict_fill_clust']
         self.dat_col_as_sign   = DOPTS['dat_col_as_sign']
+        self.sort_hdr_col      = DOPTS['sort_hdr_col']
+        self.sort_hdr_rev      = DOPTS['sort_hdr_rev']
 
         # ----- take action(s)
 
@@ -399,7 +403,10 @@ inobj : InOpts object
                                   olap_logic        = self.olap_logic,
                                   strict_fill_clust = self.strict_fill_clust,
                                   clust_dat         = clust_dat,
-                                  dat_col_as_sign   = self.dat_col_as_sign)
+                                  dat_col_as_sign   = self.dat_col_as_sign,
+                                  sort_hdr_col      = self.sort_hdr_col,
+                                  sort_hdr_rev      = self.sort_hdr_rev,
+                                 )
         
         # ... and add this to the main list of cluster reports, if any
         # regions were found to report
@@ -661,6 +668,11 @@ inobj : InOpts object
         if io.dat_col_as_sign is not None :
             self.dat_col_as_sign = io.dat_col_as_sign
 
+        if io.sort_hdr_col is not None :
+            self.sort_hdr_col = io.sort_hdr_col
+        if io.sort_hdr_rev is not None :
+            self.sort_hdr_rev = io.sort_hdr_rev
+
         return 0
 
 
@@ -729,6 +741,13 @@ inobj : InOpts object
             msg+= "Must be one from this list: {}".format(lcr.STR_valid_olap)
             ab.EP(msg)
 
+        # verify sort_hdr_col is a valid item
+        if self.sort_hdr_col not in lcr.LIST_valid_sort_hdr_col :
+            msg = "Unknown value '{}' ".format(self.sort_hdr_col)
+            msg+= "after '-sort_hdr_col'. \n"
+            msg+= "Must be one of these: {}".format(lcr.STR_valid_sort_hdr_col)
+            ab.EP(msg)
+
         # req output name
         if not(self.prefix) : 
             ab.EP("Need to provide a prefix")
@@ -758,6 +777,7 @@ inobj : InOpts object
         self.do_log            = au.convert_to_bool_yn10(self.do_log)
         self.strict_fill_clust = au.convert_to_bool_yn10(self.strict_fill_clust)
         self.dat_col_as_sign   = au.convert_to_bool_yn10(self.dat_col_as_sign)
+        self.sort_hdr_rev      = au.convert_to_bool_yn10(self.sort_hdr_rev)
 
         return 0
 
