@@ -114,36 +114,81 @@ Notes ~1~
 
 Thresholds for filling clusters and atlas regions ~2~
 
-Probably the biggest choice that users will have to make when using
-this programs is deciding what the cut-off value will be for "enough"
-overlap to be counted in the cluster report table.  There are two
-primary parameters for specifying this:
+  Probably the biggest choice that users will have to make when using
+  this programs is deciding what the cut-off value will be for "enough"
+  overlap to be counted in the cluster report table.  There are two
+  primary parameters for specifying this:
 
-  '-min_perc_clust ..' : what percentage of a cluster should be filled
-                         by a given atlas region to be included
+    '-min_perc_clust ..' : what percentage of a cluster should be filled
+                           by a given atlas region to be included
 
-  '-min_perc_atlas ..' : what percentage of an atlas region should be 
-                         filled by a given cluster to be included
+    '-min_perc_atlas ..' : what percentage of an atlas region should be 
+                           filled by a given cluster to be included
 
-Having both of these parameters available is useful particularly when
-clusters are much larger than atlas regions, or vice versa.  (An
-earlier version of this program only had the cluster-fill condition,
-and it became obvious that the atlas-based one would be necessary to
-add.)  There are default values for each (min_perc_clust = {min_perc_clust}%, 
-and min_perc_atlas = {min_perc_atlas}%), which seem a reasonable starting point,
-but these were not chosen for deep reasons. Users should choose what 
-makes most sense for their data.
+  Having both of these parameters available is useful particularly when
+  clusters are much larger than atlas regions, or vice versa.  (An
+  earlier version of this program only had the cluster-fill condition,
+  and it became obvious that the atlas-based one would be necessary to
+  add.)  There are default values for each (min_perc_clust = {min_perc_clust}%, 
+  and min_perc_atlas = {min_perc_atlas}%), which seem a reasonable starting point,
+  but these were not chosen for deep reasons. Users should choose what 
+  makes most sense for their data.
 
-There is an important secondary parameter related to the above options:
+  There is an important secondary parameter related to the above options:
 
-  '-olap_logic ..'     : should the cluster- and atlas-filling conditions
-                         be applied with 'or' logic (so, only one condition
-                         needs to be met) for an overlap to be included
-                         in the table, or with 'and' logic (so both
-                         conditions need to be met simultaneously).
+    '-olap_logic ..'     : should the cluster- and atlas-filling conditions
+                           be applied with 'or' logic (so, only one condition
+                           needs to be met) for an overlap to be included
+                           in the table, or with 'and' logic (so both
+                           conditions need to be met simultaneously).
 
-The default logic is '{olap_logic}'.  Again, users may have their own
-preferences for their study design and reporting.
+  The default logic is '{olap_logic}'.  Again, users may have their own
+  preferences for their study design and reporting.
+
+
+Specifying individual volumes ~2~
+
+  Sometimes one of the input datasets will have more than one
+  volume. For example, the CHARM atlas has 6 volumes in it.  In such
+  cases, the user must specify individual volumes using subbrick
+  selectors.  
+
+  The subbrick selector syntax is used/allowed throughout the AFNI
+  codebase, putting the desired index of the volume within square
+  brackets at the end of the filename. Note that index counting starts
+  at 0, like in C and Python. Importantly, in many cases of scripting,
+  the square brackets must themselves be wrapped in quotation
+  marks. For example, this is how one would specify the first volume
+  in the dset:
+   
+    DSET"[0]"
+
+  In some cases, datasets have labels attached to each subbrick. This
+  is particularly common in statistics volumes output by AFNI.  These
+  can also be used within the square brackets to select a particular
+  volume, in place of the integer index.  For example, if you want to
+  specify the Full_Fstat or 'vis#0_Coef' beta coefficient from a
+  model, you could use these, respectively:
+
+    DSET"[Full_Fstat]"
+    DSET"[vis#0_Coef]"
+
+  To know how many volumes are in a dset, you can run:
+   
+    3dinfo -nv DSET
+
+  To know what the labels are within a dset, you can run:
+
+    3dinfo -label DSET
+
+  Note that labels by default are separately by the '|' symbol.
+  Additionally, you can just run one of these:
+
+    3dinfo DSET
+    3dinfo -verb DSET
+
+  ... and you will see the per-volume information (if it was a dset
+  created by AFNI), including subbrick labels per volume.
 
 ------------------------------------------------------------------------
 
