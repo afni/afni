@@ -61,10 +61,11 @@ Usage ~1~
 
 -strict_fill_clust SFC :by default, if no atlas region overlaps with
                  the '-min_perc_clust ..' threshold value, then the
-                 atlas region with maximum overlap will be displayed
-                 still; use this option, however, to strictly apply
-                 the threshold, so no ROI would be shown.
-                 (def: {strict_fill_clust}) 
+                 atlas region with maximum overlap will still be
+                 displayed by default; however, to strictly apply the
+                 threshold, so that no ROI would be shown in that
+                 case, use this option with 'No'.  (def:
+                 {strict_fill_clust})
 
 -input_dat  ID  :by default, there is no info about the mean or
                  sign of a given cluster. With this option, users
@@ -189,6 +190,15 @@ Specifying individual volumes ~2~
 
   ... and you will see the per-volume information (if it was a dset
   created by AFNI), including subbrick labels per volume.
+
+
+Column labels and runtime text ~2~
+
+  As the program runs, it displays the 'olap count', which is how many
+  atlas regions were found to overlap each cluster, applying the given
+  thresholds/criteria.
+  
+
 
 ------------------------------------------------------------------------
 

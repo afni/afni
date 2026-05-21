@@ -19,7 +19,7 @@ from   afnipy import afni_util          as au
 # ============================================================================
 
 # parameters for combining threshold conditions
-LIST_valid_olap = ['or', 'and']
+LIST_valid_olap = ['OR', 'AND']
 STR_valid_olap  = ', '.join(LIST_valid_olap)
 
 # parameters for writing out cluster report

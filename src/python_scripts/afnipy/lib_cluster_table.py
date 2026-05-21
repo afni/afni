@@ -35,7 +35,7 @@ DOPTS = {
     'min_perc_clust'  : 10.0,
     'min_perc_atlas'  : 25.0,
     'strict_fill_clust' : 'No',
-    'olap_logic'      : 'or',
+    'olap_logic'      : 'OR',
     'dat_col_as_sign' : 'No',
 }
 
@@ -721,6 +721,13 @@ inobj : InOpts object
                 msg = "The input_dat has {} volumes. User ".format(nv)
                 msg+= 'must use a subbrick selector to pick one, like: DSET"[3]" '
                 ab.EP(msg)
+
+        # verify olap_logic is a valid item
+        if self.olap_logic not in lcr.LIST_valid_olap :
+            msg = "Unknown value '{}' ".format(self.olap_logic)
+            msg+= "after '-olap_logic'. \n"
+            msg+= "Must be one from this list: {}".format(lcr.STR_valid_olap)
+            ab.EP(msg)
 
         # req output name
         if not(self.prefix) : 
