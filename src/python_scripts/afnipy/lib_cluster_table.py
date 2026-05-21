@@ -195,6 +195,45 @@ inobj : InOpts object
 
         return 0
 
+    def calc_clust_vol(self, clust):
+        """For a given clust, calculate its volume in units of mm^3.
+        
+        NB: this calc uses ORIGINAL dsets, not resampled ones.
+
+        Returns
+        -------
+        is_fail : int
+            0 for succeed, nonzero for failure
+        clust_vol : float
+            physical volume of cluster.
+        """
+
+        BAD_RETURN = (-6, 0.0)
+        
+        # might need a subbrick selector, if there are input_dat's nv>1 
+        if self.input_dat_nv > 1 : 
+            subbb = "[0]"
+        else:
+            subbb = ""
+        
+        cmd  = '''3dROIstats -quiet -nomeanout -nzvolume '''
+        cmd += '''-mask "{}<{}>" '''.format(self.input_clust, clust)
+        cmd += '''"{}{}" '''.format(self.input_clust, subbb)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+
+        if stat :
+            ab.EP1("Could not calc input_clust vol, clust: {}".format(clust))
+            return BAD_RETURN
+        
+        try:
+            clust_vol = float(com.so[0].strip())
+        except:
+            ab.EP1("Could not parse input_clust vol, clust: {}".format(clust))
+            return BAD_RETURN
+
+        return 0, clust_vol
+
     def calc_input_dat_mean_roi(self, clust):
         """For a given clust, calculate the mean value within input_dat. 
         
@@ -390,14 +429,20 @@ inobj : InOpts object
 
         is_fail, table = read_mini_table_info(otable2)
         if is_fail :
-            ab.EP1("Could not calc input_dat ave, clust: {}".format(clust))
+            ab.EP1("Could not read mini-table, clust: {}".format(clust))
             return BAD_RETURN
+
+        is_fail, clust_vol = self.calc_clust_vol(clust)
+        if is_fail :
+            ab.EP1("Could not calc input_clust vol, clust: {}".format(clust))
+            return BAD_RETURN
+
 
         # go through mini clust-table and find regions to keep; this
         # creates a cro = "cluster region object", which has a display
         # function in the associated library file.
 
-        cro = lcr.ClustRegionObj(clust, table, table_labels, 
+        cro = lcr.ClustRegionObj(clust, clust_vol, table, table_labels, 
                                   min_fill_clust    = self.min_fill_clust, 
                                   min_fill_atlas    = self.min_fill_atlas,
                                   olap_logic        = self.olap_logic,

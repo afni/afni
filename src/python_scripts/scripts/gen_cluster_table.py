@@ -214,8 +214,30 @@ Column labels and runtime text ~2~
   As the program runs, it displays the 'olap count', which is how many
   atlas regions were found to overlap each cluster, applying the given
   thresholds/criteria.
-  
 
+  The default columns are:
+
+    Clust         : the cluster ID (int value)
+    Clust_vol     : the cluster's volume in units of mm**3 (as calculated
+                    on its original dset grid)
+    Clust_perc    : percentage of the cluster filled by the overlapping
+                    atlas region (as calculated on the atlas dset grid)
+    Atlas_perc    : percentage of the atlas region filled by the overlapping
+                    cluster (as calculated on the atlas dset grid)
+    Atlas_region  : string label for the atlas region (if the atlas dset
+                    had a labeltable and/or atlas points list); otherwise,
+                    the integer value of the atlas region
+  
+  Additionally, the user can use the '-input_dat' option to input
+  another dset, whose mean value is calculated within the cluster.
+  This input_dat dset must have the same grid as input_clust, and the
+  mean is calculated on that grid.  If this option has been used, then
+  an additional column of output is provided:
+
+    Clust_dat     : either the mean value of the input_dat dset within
+                    the cluster, or if the '-dat_col_as_sign ..' option
+                    is used, then a text string describing the sign of the
+                    mean input_dat value: 'pos', 'neg' or 'zero'.
 
 ------------------------------------------------------------------------
 

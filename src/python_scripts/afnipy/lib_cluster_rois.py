@@ -35,7 +35,7 @@ STR_valid_sort_hdr_col  = ', '.join(LIST_valid_sort_hdr_col)
 # what columns will be reported in table by default
 LIST_clust_report_hdr = [
     "Clust",                     # int, cluster value
-    "Nvox",                      # int, cluster size as num of voxels
+    "Clust_vol",                 # float, volume of orig cluster
     "Clust_perc",                # float, percent filled of cluster by ROI
     "Atlas_perc",                # float, percent filled of ROI by cluster
     "Atlas_region",              # str, atlas region name/label
@@ -56,6 +56,8 @@ Parameters
 ----------
 clust : int
     value of cluster
+clust_vol : float
+    volume of cluster
 table : list 
     list of lists representation of int+float value part of table created
     by adjunct_aw_tableize_roi_info.py (the ROI labels are input separately
@@ -71,7 +73,7 @@ min_fill_atlas : float
 
     """
 
-    def __init__(self, clust, table, labels, 
+    def __init__(self, clust, clust_vol, table, labels, 
                  min_fill_clust=0.0, min_fill_atlas=0.0, 
                  strict_fill_clust=True, olap_logic='or',
                  clust_dat=None, dat_col_as_sign=False,
@@ -83,6 +85,7 @@ min_fill_atlas : float
         # main input variables
         self.status            = 0                    # not used
         self.clust             = clust                # which cluster is it?
+        self.clust_vol         = clust_vol            # cluster volume (mm**3)
         self.table             = table                # number part of table
         self.labels            = labels               # list of labels
 
@@ -161,9 +164,12 @@ min_fill_atlas : float
                 # might get either added directly (if suprathr) or
                 # potentially (if subthr, and needs to be included)
 
+                # format the cluster volume, in sci not
+                rep_vol = '{:.2e}'.format(self.clust_vol)
+
                 L = [
                     self.clust,      # "Clust",        
-                    row[1],          # "Nvox",         
+                    rep_vol,         # "Clust_vol",         
                     100.0*row[6],    # "Clust_perc",   -> Frac_A
                     100.0*row[5],    # "Atlas_perc",   -> RelVol_A2B
                     self.labels[ii], # "Atlas_region", 
@@ -172,7 +178,7 @@ min_fill_atlas : float
                 # if user asked, include appropriate clust_dat info
                 if self.clust_dat is not None :
                     # if using data, record as expon notation
-                    rep_dat = '{:.3e}'.format(self.clust_dat)
+                    rep_dat = '{:.2e}'.format(self.clust_dat)
 
                     # if using string label, get appropriate one
                     if self.dat_col_as_sign :
@@ -353,7 +359,7 @@ is_fail : bool
     
     if disp_hdr :
         title = """{:>6s}  """.format(hdr[0])
-        title+= """{:>6s}  """.format(hdr[1])
+        title+= """{:>10s}  """.format(hdr[1])
         if ncol == len(LIST_clust_report_hdr) :
             idx = 2
         else:
@@ -376,7 +382,7 @@ is_fail : bool
         if not(ii) :
             # these items only get reported initially
             ttt = """{:>6d}  """.format(row[0])
-            ttt+= """{:>6d}  """.format(row[1])
+            ttt+= """{:>10s}  """.format(row[1])
             if ncol == len(LIST_clust_report_hdr) :
                 idx = 2
             else:
@@ -385,7 +391,7 @@ is_fail : bool
         else:
             # ... now report these blankly
             ttt = """{:>6s}  """.format('')
-            ttt+= """{:>6s}  """.format('')
+            ttt+= """{:>10s}  """.format('')
             if ncol == len(LIST_clust_report_hdr) :
                 idx = 2
             else:
