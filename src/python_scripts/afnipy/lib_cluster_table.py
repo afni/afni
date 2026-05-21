@@ -690,6 +690,12 @@ inobj : InOpts object
         if not(self.prefix) : 
             ab.EP("Need to provide a prefix")
 
+        # don't overwrite without explicit 'overwrite'
+        if os.path.isfile(self.prefix) and not(self.overwrite) :
+            msg = "Output file (prefix = {}) exists. ".format(self.prefix)
+            msg+= "Add '-overwrite' to overwrite it."
+            ab.EP(msg)
+
         # checks of params
         if self.min_perc_clust < 0.0 :
             ab.EP("The min_perc_clust must be >=0")
