@@ -187,9 +187,10 @@ Examples ~1~
 """.format(**LCT.DOPTS)
 
 g_history = """
-  **TEMPLATE_tool.py** history:
+  gen_cluster_table.py history:
 
-  0.1   Sep 25, 2025 :: started this command line interface 
+  0.1   May 13, 2026 :: started this command line interface 
+  0.2   May 21, 2026 :: implement DRG-suggested updates
 """
 
 g_prog    = g_history.split()[0]
