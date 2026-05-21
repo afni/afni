@@ -14,6 +14,7 @@ import math
 
 from   afnipy import afni_base          as ab
 from   afnipy import afni_util          as au
+from   afnipy import lib_info_items     as lii
 from   afnipy import lib_cluster_rois   as lcr
 
 # ============================================================================
@@ -169,7 +170,7 @@ inobj : InOpts object
 
         """
 
-        is_fail, isg = is_same_grid(self.input_clust, self.input_dat)
+        is_fail, isg = lii.is_same_grid(self.input_clust, self.input_dat)
 
         if is_fail :
             ab.EP1("Failed to check grids of input_clust and input_dat")
@@ -179,7 +180,7 @@ inobj : InOpts object
             ab.EP1("Grid mismatch for: input_clust and input_dat")
             return -2
 
-        is_fail, self.input_dat_nv = get_nv(self.input_dat)
+        is_fail, self.input_dat_nv = lii.get_nv(self.input_dat)
 
         if is_fail :
             ab.EP1("Failed to get nv for input_dat")
@@ -522,7 +523,7 @@ inobj : InOpts object
         BAD_RETURN = -1
 
         # check if dset has labeltable or atlas points
-        is_fail, iaol = is_atlas_or_labeltable(self.input_atlas)
+        is_fail, iaol = lii.is_atlas_or_labeltable(self.input_atlas)
         if is_fail :
             ab.EP1("Failed to check atlas/labeltable of input_atlas")
             return -1
@@ -545,7 +546,7 @@ inobj : InOpts object
                 return -1
 
             # check if atlas but no lt
-            is_fail, ilt = is_labeltable(self.input_atlas)
+            is_fail, ilt = lii.is_labeltable(self.input_atlas)
             if is_fail :
                 ab.EP1("Failed to check labeltable of input_atlas")
                 return -1
@@ -579,7 +580,7 @@ inobj : InOpts object
         BAD_RETURN = -1
 
         # check if grids match, to either copy or resample
-        is_fail, isg = is_same_grid(self.input_clust, self.input_atlas)
+        is_fail, isg = lii.is_same_grid(self.input_clust, self.input_atlas)
         if is_fail :
             ab.EP1("Failed to check grids of input clust and atlas")
             return -1
@@ -851,160 +852,6 @@ L : list
             L.append(R)
 
     return 0, L
-
-def is_same_grid(A, B):
-    """Are the two dsets A and B on the same grid? Check with 3dinfo.
-
-Parameters
-----------
-A : str
-    name of a volumetric dset 
-B : str
-    name of a volumetric dset 
-
-Returns
--------
-is_fail : int
-    0 for success, nonzero for failure
-isg : int
-    1 for 'yes, same grid'; 0 for not so
-
-"""
-
-    isg = 0
-    BAD_RETURN = (-1, isg)
-
-    cmd  = '3dinfo -same_grid {} {}'.format(A, B)
-    com  = ab.shell_com(cmd, capture=1)
-    stat = com.run()
-    lll  = com.so
-
-    # verify dsets can be read by AFNI
-    for row in lll:
-        if row == 'NO-DSET' :
-            return (-2, 0)
-
-    # now parse: [0]th and [1]th values will be same now
-    try:
-        isg  = int(lll[0].strip())
-    except:
-        return BAD_RETURN
-
-    return 0, isg
-
-def is_atlas_or_labeltable(A):
-    """Does dset A have an atlas or labeltable?
-
-Parameters
-----------
-A : str
-    name of a volumetric dset 
-
-Returns
--------
-is_fail : int
-    0 for success, nonzero for failure
-val : int
-    1 for 'yes, has atlas or labeltable'; 0 for not so
-
-"""
-
-    val = 0
-    BAD_RETURN = (-1, val)
-
-    cmd  = '3dinfo -is_atlas_or_labeltable {}'.format(A)
-    com  = ab.shell_com(cmd, capture=1)
-    stat = com.run()
-    lll  = com.so
-
-    # verify dsets can be read by AFNI
-    for row in lll:
-        if row == 'NO-DSET' :
-            return (-2, 0)
-
-    # now parse: [0]th and [1]th values will be same now
-    try:
-        val  = int(lll[0].strip())
-    except:
-        return BAD_RETURN
-
-    return 0, val
-
-def get_nv(A):
-    """How many values (or volumes) in dset A?
-
-Parameters
-----------
-A : str
-    name of a volumetric dset 
-
-Returns
--------
-is_fail : int
-    0 for success, nonzero for failure
-val : int
-    number of volumes or values ('-nv', in 3dinfo parlance)
-
-"""
-
-    val = 0
-    BAD_RETURN = (-1, val)
-
-    cmd  = '3dinfo -nv "{}"'.format(A)
-    com  = ab.shell_com(cmd, capture=1)
-    stat = com.run()
-    lll  = com.so
-
-    # verify dsets can be read by AFNI
-    for row in lll:
-        if row == 'NO-DSET' :
-            return (-2, 0)
-
-    # now parse
-    try:
-        val  = int(lll[0].strip())
-    except:
-        return BAD_RETURN
-
-    return 0, val
-
-def is_labeltable(A):
-    """Does dset A have a labeltable?
-
-Parameters
-----------
-A : str
-    name of a volumetric dset 
-
-Returns
--------
-is_fail : int
-    0 for success, nonzero for failure
-val : int
-    1 for 'yes, has labeltable'; 0 for not so
-
-"""
-
-    val = 0
-    BAD_RETURN = (-1, val)
-
-    cmd  = '3dinfo -is_labeltable "{}"'.format(A)
-    com  = ab.shell_com(cmd, capture=1)
-    stat = com.run()
-    lll  = com.so
-
-    # verify dsets can be read by AFNI
-    for row in lll:
-        if row == 'NO-DSET' :
-            return (-2, 0)
-
-    # now parse: single int value in a list
-    try:
-        val  = int(lll[0].strip())
-    except:
-        return BAD_RETURN
-
-    return 0, val
 
 
 def propagate_copytables(A, B):
