@@ -670,6 +670,7 @@ inobj : InOpts object
 
         # check basic requirements
 
+        # req clust
         if not(self.input_clust) :
             ab.EP("Need to provide an input_clust")
         else:
@@ -679,6 +680,15 @@ inobj : InOpts object
             if nfail :
                 ab.EP("Failed to load input_clust")
 
+            is_fail, nv = lii.get_nv(self.input_clust)
+            if is_fail :
+                ab.EP("Failed to get nv for input_clust")
+            elif nv > 1 :
+                msg = "The input_clust has {} volumes. User ".format(nv)
+                msg+= 'must use a subbrick selector to pick one, like: DSET"[3]" '
+                ab.EP(msg)
+
+        # req atlas, with 1 volume chosen
         if not(self.input_atlas) :
             ab.EP("Need to provide an input_atlas")
         else:
@@ -688,6 +698,31 @@ inobj : InOpts object
             if nfail :
                 ab.EP("Failed to load input_atlas")
 
+            is_fail, nv = lii.get_nv(self.input_atlas)
+            if is_fail :
+                ab.EP("Failed to get nv for input_atlas")
+            elif nv > 1 :
+                msg = "The input_atlas has {} volumes. User ".format(nv)
+                msg+= 'must use a subbrick selector to pick one, like: DSET"[3]" '
+                ab.EP(msg)
+
+        # verify dat, if used, with 1 volume chosen
+        if self.input_dat :
+            nfail = au.check_all_dsets_exist([self.input_dat], 
+                                             label='input_dat', 
+                                             verb=self.verb)
+            if nfail :
+                ab.EP("Failed to load input_dat")
+
+            is_fail, nv = lii.get_nv(self.input_dat)
+            if is_fail :
+                ab.EP("Failed to get nv for input_dat")
+            elif nv > 1 :
+                msg = "The input_dat has {} volumes. User ".format(nv)
+                msg+= 'must use a subbrick selector to pick one, like: DSET"[3]" '
+                ab.EP(msg)
+
+        # req output name
         if not(self.prefix) : 
             ab.EP("Need to provide a prefix")
 
