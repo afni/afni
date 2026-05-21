@@ -14,6 +14,10 @@ STR_workdir_base = '__wdir_brainteaser_'
 LIST_all_device = ['cpu', 'cuda']
 STR_all_device  = ', '.join(LIST_all_device)
 
+# model parameters from training, and 
+model_orient = 'RSP'
+model_matrix = 16
+
 # ============================================================================
 # default values, parameters and settings for the main obj
 

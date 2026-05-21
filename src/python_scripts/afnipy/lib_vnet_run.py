@@ -52,6 +52,12 @@ inobj : InOpts object
 
         self.device          = DEF.DOPTS['device']
 
+        # items for preproc_forward
+        self.preproc_dset    = None           # name of dset to proc
+        self.preproc_obl     = None           # 
+        self.preproc_orient  = None
+        self.preproc_n3      = None
+
         # control variables
         self.outdir          = DEF.DOPTS['outdir']         # None or str
         self.workdir         = DEF.DOPTS['workdir']
@@ -69,9 +75,57 @@ inobj : InOpts object
             tmp3 = self.make_workdir()
             if tmp3 : return
 
+            tmp4 = self.preproc_forward_all()
+            if tmp4 : return
+
             # ****
 
     # ----- methods
+
+    def preproc_forward_all(self):
+        """Go through all steps to prepare the inset for processing.  This
+        includes dealing with any obliquity, dset re-orienting, and/or
+        zeropadding to appropriate matrix dims.
+
+        A later function will deal with undoing these to prepare the
+        output mask to match the input grid.
+        """
+
+        is_fail = self.preproc_forward_obliquity()
+        if is_fail :
+            ab.EP1("failed in preproc step: obliquity")
+
+        is_fail = self.preproc_forward_orient()
+        if is_fail :
+            ab.EP1("failed in preproc step: orient")
+
+        is_fail = self.preproc_forward_matrix()
+        if is_fail :
+            ab.EP1("failed in preproc step: matrix")
+
+        return 0
+
+    def preproc_forward_obliquity(self):
+        """Remove and preserve any obliquity in inset"""
+        
+        # ****
+
+        return 0
+
+    def preproc_forward_orient(self):
+        """Reorient data to match training data value"""
+        
+        # ****
+
+        return 0
+
+    def preproc_forward_matrix(self):
+        """Make sure dataset matrix is a multiple of 16 (for kernel
+        progression)"""
+        
+        # ****
+
+        return 0
 
     def load_from_inopts(self):
         """Populate the input values using the command line interface
@@ -141,6 +195,10 @@ inobj : InOpts object
                                              verb=self.verb)
             if nfail :
                 ab.EP("Failed to load mask")
+
+            # mask grid must match inset
+            is_fail = au.check_all_dsets_same_grid([self.inset, self.mask],
+                                                   label='inset and mask')
 
         # (opt) checkpoint
         if self.checkpoint :
