@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# A library of functions for dealing with ***TEMPLATE
+# A library of functions for dealing with 3dBrainTeaser
 #
 # auth : PA Taylor (SSCC, NIMH, NIH, USA)
 # ----------------------------------------------------------------------------

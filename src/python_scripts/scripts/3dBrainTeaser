@@ -12,16 +12,26 @@ from afnipy import afni_base     as BASE
 from afnipy import lib_vnet_defs as DEF
 
 
-#from afnipy import lib_vnet_run  as LVR         #### do this later,
-                                                #### for module checks ****
-
 # ----------------------------------------------------------------------
 # globals
+
+# combine all entries for help here
+g_help_dict   = {**DEF.DOPTS, 
+                 'STR_all_device': DEF.STR_all_device}
 
 g_help_string = """Overview ~1~
 
 This program is skullstripping anatomical T1w volumes (AKA teasing out
-the brain in them), using machine learning methods. 
+the brain in them), using machine learning methods.  Specifically, the
+model was created here using a convolutional neural network (CNN) with
+V-net architecture.  It was designed in a way to be as robust as
+possible to realistic variability, noise and practical realities of
+data acquisition.
+
+For more details on its creation and training, please see:
+
+   ***
+
 
 auth = Y Narayana Swamy (SSCC, NIMH, NIH, USA)
        RC Reynolds (SSCC, NIMH, NIH, USA)
@@ -35,12 +45,22 @@ Usage ~1~
 
 -prefix PREFIX :(req) name of output dset
 
+-checkpoint CP :this option specifies which V-net model should be used
+                (def: '{checkpoint}')
 
-****
-
--workdir WD    : working directory name, without path; the working dir
+-workdir WD    :working directory name, without path; the working dir
                 will be subdirectory of the output location
                 (def: name with random chars)
+
+-mask M        :the name of a mask, for comparison in QC images; this
+                option is likely primarily for testing purposes.
+
+-device D      :users can choose the device that they run on, namely to
+                use a CPU or GPU for processing, from this list: 
+                {STR_all_device}
+                Performance has mainly been tested on the default, and 
+                it should generally not be necessary to change it.
+                (def: '{device}')
 
 -do_clean DC   :state whether to clean up any intermediate files;
                 allowed values are:  Yes, 1, No, 0
@@ -74,12 +94,12 @@ Examples ~1~
 
            
 
-""".format(**LVR.DOPTS)
+""".format(**g_help_dict)
 
 g_history = """
-  **TEMPLATE_tool.py** history:
+  3dBrainTeaser history:
 
-  0.1   Sep 25, 2025 :: started this command line interface 
+  0.1   May 20, 2026 :: started this command line interface 
 """
 
 g_prog    = g_history.split()[0]
@@ -100,7 +120,7 @@ checks happen in a subsequent object.
         self.user_opts       = None
 
         # general variables
-        self.verb            = LVR.DOPTS['verb']
+        self.verb            = DEF.DOPTS['verb']
         self.do_clean        = None
         self.overwrite       = None
         self.do_log          = None
@@ -148,6 +168,15 @@ checks happen in a subsequent object.
                         helpstr='name of output dataset')
 
         # optional parameters
+
+        self.valid_opts.add_opt('-mask', 1, [], 
+                        helpstr='name of a mask (mainly for testing and/or QC)')
+
+        self.valid_opts.add_opt('-checkpoint', 1, [], 
+                        helpstr='name of specific V-net model to apply')
+
+        self.valid_opts.add_opt('-device', 1, [], 
+                        helpstr='choose to run on CPU or GPU')
 
         self.valid_opts.add_opt('-workdir', 1, [], 
                         helpstr='name of workdir (no path)')
@@ -319,6 +348,9 @@ def main():
         # exit with error status
         BASE.EP1('failed to process options')
         return 1, None
+
+    # import this module here, having established processing will occur
+    from afnipy import lib_vnet_run  as LVR
 
     # check the options
     rv2 = inobj.check_options()
