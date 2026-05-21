@@ -53,6 +53,22 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, May, 2026, RCR, "3dCM", MICRO, TYPE_BUG_FIX,
+   "if writing resample dset, preserve dirname",
+   "Thanks to X Davis for noting the problem."
+ } ,
+
+ { 13, May, 2026, RCR, "3dmask_tool", MICRO, TYPE_ENHANCE,
+   "small improvement of info messages",
+   NULL
+ } ,
+
+ { 12, May, 2026, RCR, "afni", MAJOR, TYPE_BUG_FIX,
+   "macos 26.5+ now defaults to DO_AFNI_X11_REDRAW = NO",
+   "The issue requiring redraw/forceExpose/Remanage events has been\n"
+   "has been fixed by Apple as of macos 26.5."
+ } ,
+
  { 30, Apr, 2026, RCR, "afni", MICRO, TYPE_ENHANCE,
    "add afni help details for DO_AFNI_X11_REDRAW and AFNI_X11_REDRAW_VERB",
    NULL

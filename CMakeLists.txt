@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.14.7 FATAL_ERROR)
+if(POLICY CMP0170)
+  cmake_policy(SET CMP0170 OLD)
+endif()
 
 # ##### Set policies
 cmake_policy(SET CMP0077 NEW)
@@ -33,6 +36,13 @@ project(
   DESCRIPTION "A package for the analysis of functional neuroimaging."
 )
 string(TIMESTAMP BUILD_DATE "%m %d %Y")
+
+# AFNI includes legacy C sources that rely on pre-C23 empty-parameter-list
+# semantics.  Pin the project dialect so compiler default changes do not alter
+# those semantics.
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS ON)
 
 set(AFNI_VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/src/AFNI_version.h")
 check_header_has_been_created("${AFNI_VERSION_HEADER}" "${GIT_REPO_VERSION}")
@@ -134,4 +144,3 @@ if(USE_CPACK)
     include(CMakeCPack.cmake)
   endif()
 endif()
-

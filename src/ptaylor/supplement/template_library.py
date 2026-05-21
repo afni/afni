@@ -71,7 +71,15 @@ inobj : InOpts object
         # prelim stuff
         if user_inobj :
             tmp1 = self.load_from_inopts()
+            if tmp1 : return
+
             tmp2 = self.basic_setup()
+            if tmp2 : return
+
+            tmp3 = self.make_workdir()
+            if tmp3 : return
+
+            # ****
 
     # ----- methods
 
@@ -141,13 +149,27 @@ inobj : InOpts object
             com  = ab.shell_com(cmd, capture=1)
             stat = com.run()
             rstr = com.so[0].strip()
-            self.workdir = '__wdir_obliquity_' + rstr
+            self.workdir = '__wdir_TEMPLATE_' + rstr
 
         # convert bool-ish opts to bools
         self.do_clean       = au.convert_to_bool_yn10(self.do_clean)
 
         return 0
 
+    def make_workdir(self):
+        """Make the workdir"""
+
+        BAD_RETURN = -10
+
+        cmd  = '\\mkdir -p "{}" '.format(self.workdir)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+
+        if stat :
+            ab.EP1("Could not make workdir")
+            return BAD_RETURN
+
+        return 0
 
     # ----- decorators
 
