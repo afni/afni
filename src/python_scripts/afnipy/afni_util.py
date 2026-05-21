@@ -1962,7 +1962,7 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
    mblevel = int(round(ntimes/nunique))
 
    if verb > 2:
-      print("-- TR +~ %g, MB %g, rdig %d, nunique %g, med slice diff: %g" \
+      print("-- TR +~ %g, MB %g, rdig %d, nunique %g, mean slice diff: %g" \
             % (TR, mblevel, rdigits, nunique, tgrid))
 
    # if TR is not valid, we are out of here
@@ -2003,7 +2003,7 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
    # and tround must be the same length as nunique
    if len(tround) != nunique:
       if verb > 1:
-         print("** have %d unique times, but %d unique scaled and rounded times" \
+         print("** have %d unique times, but %d unique scaled/rounded times" \
                % (nunique, len(tround)))
       return 1, defpat
 
@@ -2140,6 +2140,12 @@ def _uniq_ints_to_tpattern(tints):
         test for : 'seq+z', 'seq-z', 'alt+z', 'alt-z', 'alt+z2', 'alt-z2'
         - for each test pattern:
             - compare with slice_pattern_to_timing()
+      + now also test for alt+z_D, for some integer D
+            - while alt+z aquires every other slice, alt+z_D acquires
+              every Dth slice (so alt+z == alt+z_2)
+            - alt+z    slice order: 0, 2, 4, ..., 1, 3, 5
+            - alt+z_D slice order: 0, D, 2D, 3D, ... (all modulo nslices)
+            * D *must* be relatively prime to nslices for this to work
         if no match, return 'irregular'
 
       return something in g_valid_slice_patterns or 'irregular'
@@ -2155,6 +2161,23 @@ def _uniq_ints_to_tpattern(tints):
       # did it match?
       if rv:
          return tpat
+
+   # try bigger alt's
+   if nslices < 3:
+      return g_tpattern_irreg
+
+   # try alt+z_n : not every other, but every zn'th
+   if tints[0] == 0 and 1 in tints:
+      # must be relatively prime to nslices to work, but just proceed
+      zn = tints.index(1)
+      ttimes = [0]*nslices
+      for s in range(nslices):
+        ttimes[(s*zn)%nslices] = s
+      rv = lists_are_same(tints, ttimes)
+      del(ttimes)
+      if rv:
+         return g_tpattern_irreg + (":alt+z_%d" % zn)
+   # so how would alt-z_n look?
 
    # failure
    return g_tpattern_irreg
