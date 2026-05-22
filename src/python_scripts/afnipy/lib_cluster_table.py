@@ -287,14 +287,52 @@ inobj : InOpts object
 
         # make a temp dset of one clust (=onecl)
 
-        cmd  = '''3dcalc -overwrite '''
-        cmd += '''-a "{}" '''.format(self.wdir_clust)
-        cmd += '''-expr "equals(a,{})" '''.format(clust)
-        cmd += '''-prefix "{}" '''.format(self.wdir_onecl)
-        cmd += '''-datum byte -nscale'''
-        com  = ab.shell_com(cmd, capture=1)
-        stat = com.run()
-        
+        # check if grids match, to either extract directly or resample
+        is_fail, isg = lii.is_same_grid(self.input_clust, self.input_atlas)
+        if is_fail :
+            msg = "Failed to check grids of input clust and atlas "
+            msg+= "for clust: {}".format(clust)
+            ab.EP1(msg)
+            return BAD_RETURN
+
+        if isg :
+            # same grids, no resampling, just extract it
+            cmd  = '''3dcalc -overwrite '''
+            cmd += '''-a "{}" '''.format(self.wdir_clust)
+            cmd += '''-expr "equals(a,{})" '''.format(clust)
+            cmd += '''-prefix "{}" '''.format(self.wdir_onecl)
+            cmd += '''-datum byte -nscale'''
+            com  = ab.shell_com(cmd, capture=1)
+            stat = com.run()
+
+        else:
+            # in this case, imitate what happens in whereami_afni for
+            # regridding
+            
+            # resample first in linear mode...
+            cmd  = '3dresample -overwrite '
+            cmd += '-prefix "{}" '.format(self.wdir_onecl)
+            cmd += '-input "{}<{}>" '.format(self.wdir_clust, clust)
+            cmd += '-master "{}" '.format(self.input_atlas)
+            cmd += '-rmode Li'
+            com  = ab.shell_com(cmd, capture=1)
+            stat = com.run()
+
+            if stat :
+                ab.EP1("Could not resamp dset of one clust: {}".format(clust))
+                return BAD_RETURN
+
+            # ... then threshold at half the clust val (like if the
+            # original value had been 1 and then one thresholded at
+            # >=0.5), overwriting
+            cmd  = '''3dcalc -overwrite '''
+            cmd += '''-a "{}" '''.format(self.wdir_onecl)
+            cmd += '''-expr "step(abs(a)-abs({})/2.001)" '''.format(clust)
+            cmd += '''-prefix "{}" '''.format(self.wdir_onecl)
+            cmd += '''-datum byte -nscale'''
+            com  = ab.shell_com(cmd, capture=1)
+            stat = com.run()
+
         if stat :
             ab.EP1("Could not make dset of one clust: {}".format(clust))
             return BAD_RETURN
@@ -627,31 +665,23 @@ inobj : InOpts object
         return 0
 
     def copy_input_clust_to_wdir(self):
-        """Copy input_clust dset to the wdir"""
+        """Copy input_clust dset to the wdir; at this point, we keep the
+        original grid, and let any resampling happen at the
+        per-cluster level later.
+
+        """
 
         BAD_RETURN = -1
 
-        # check if grids match, to either copy or resample
-        is_fail, isg = lii.is_same_grid(self.input_clust, self.input_atlas)
-        if is_fail :
-            ab.EP1("Failed to check grids of input clust and atlas")
-            return -1
-
-        # copy clust (might need to resample)
-        if isg :
-            # just copy
-            cmd  = '3dTcat -overwrite -prefix "{}" '.format(self.wdir_clust)
-            cmd += '"{}"'.format(self.input_clust)
-            com  = ab.shell_com(cmd, capture=1)
-            stat = com.run()
-        else :
-            # resample
-            cmd  = '3dresample -overwrite -prefix "{}" '.format(self.wdir_clust)
-            cmd += '-input "{}" '.format(self.input_clust)
-            cmd += '-master "{}" '.format(self.input_atlas)
-            cmd += '-rmode NN'
-            com  = ab.shell_com(cmd, capture=1)
-            stat = com.run()
+        # just copy, but make sure the output has datum=float, in case
+        # of resampling later
+        cmd  = '3dcalc -overwrite '
+        cmd += '-a "{}" '.format(self.input_clust)
+        cmd += '-expr "a" '
+        cmd += '-prefix "{}" '.format(self.wdir_clust)
+        cmd += '-datum float'
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
 
         if stat :
             ab.EP1("Could not copy input_clust")

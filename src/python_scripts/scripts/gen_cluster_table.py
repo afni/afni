@@ -285,6 +285,7 @@ g_history = """
 
   0.1   May 13, 2026 :: started this command line interface 
   0.2   May 21, 2026 :: implement DRG-suggested updates
+  0.3   May 21, 2026 :: input_clust regridding matches whereami_afni's
 """
 
 g_prog    = g_history.split()[0]
