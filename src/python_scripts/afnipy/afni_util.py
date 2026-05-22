@@ -6395,14 +6395,19 @@ xtype : str
         return b
 
 
-def try_convert_bool_float_int_str(x, exit_on_error=False):
+def try_convert_bool_float_int_str(x, exit_on_error=False,
+                                   int_val_is_int=False):
     """For input string x, see how it might convert to a numerical value
 and output one of those (in descending order of bool, then float, then
 int), or if none of those work, just output the str itself.
 
 If an error on input occurs, this program will by default return a
-value of None, plus the type of the item input (its supposed to be a
+value of None, plus the type of the item input (it's supposed to be a
 str, folks!). But users can change this behavior with the exit_on_error kwarg.
+
+In some cases, we want '1.0' to be output as an int. In such cases,
+one would set int_val_is_int=True. Note that even with this opt on,
+x='True' would still produce a bool.
 
 Parameters
 ----------
@@ -6410,6 +6415,8 @@ x : str
     a string to consider converting to a numerical type
 exit_on_error: bool
     toggle whether to exit totally on input error, or to just whine vociferously
+int_val_is_int : bool
+    int-valued x is considered int, even if it has a decimal point
 
 Returns
 -------
@@ -6437,7 +6444,7 @@ ytype : str
     # int, else float
     try:
         y = float(x)
-        if y.is_integer() and not('.' in x) :
+        if y.is_integer() and (not('.' in x) or int_val_is_int) :
             y = int(y)
     except:
         # str
