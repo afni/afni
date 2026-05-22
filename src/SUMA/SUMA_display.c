@@ -12225,13 +12225,13 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
       SUMA_RETURN(NOPE);
    }
    
-   if (!SO->SurfCont->ColPlane_fr) {    //DEBUG
+   if (!SO->SurfCont->ColPlane_fr) {    
       /* just set the curColPlane before returning ZSS  March 25 08*/
       if (ColPlane) SO->SurfCont->curColPlane = ColPlane;
       SUMA_RETURN(YUP);
    }
    
-   if (SO->SurfCont->curColPlane->BoxOutlineThresh){
+   if (0 && SO->SurfCont->curColPlane->BoxOutlineThresh){
         SO->SurfCont->curColPlane = ColPlane;
         SUMA_RETURNe;    
    }

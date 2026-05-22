@@ -2513,11 +2513,18 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
     
     for (i=0; i<SO->N_Overlays; ++i){
         if (SO->Overlays[i] != over2){
+            // Process current hemisphere
             if (SO->Overlays[i]->BoxOutlineThresh){
                SO->Overlays[i]->ShowMode = (SO->Overlays[i]->ShowMode == SW_SurfCont_DsetViewCon)? 
                     SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
             }
             SO->Overlays[i]->BoxOutlineThresh = NOPE; 
+            // Process contralateral hemisphere
+            colpC = SUMA_Contralateral_overlay(SO->Overlays[i], SO, &SOC);
+            if (colpC && SOC && colpC->BoxOutlineThresh){
+               colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewCon)? 
+                    SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
+            }
         }
     }
    }
