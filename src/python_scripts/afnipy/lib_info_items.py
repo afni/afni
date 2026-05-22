@@ -19,6 +19,7 @@
 # ============================================================================
 
 from   afnipy import afni_base          as ab
+from   afnipy import afni_util          as au
 
 # ============================================================================
 
@@ -128,12 +129,56 @@ val : int
     # verify dsets can be read by AFNI
     for row in lll:
         if row == 'NO-DSET' :
-            return (-2, 0)
+            return BAD_RETURN
 
     # now parse
     try:
         val  = int(lll[0].strip())
     except:
+        return BAD_RETURN
+
+    return 0, val
+
+def get_n3(A):
+    """What is the matrix dims of dset A?
+
+Parameters
+----------
+A : str
+    name of a volumetric dset 
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+n3 : list
+    list of 3 int values, the matrix dims of A ('-n3', in 3dinfo parlance)
+
+"""
+
+    val = [0, 0, 0]
+    BAD_RETURN = (-1, val)
+
+    cmd  = '3dinfo -n3 "{}"'.format(A)
+    com  = ab.shell_com(cmd, capture=1)
+    stat = com.run()
+    lll  = com.so
+
+    # verify dsets can be read by AFNI
+    for row in lll:
+        if row == 'NO-DSET' :
+            ab.EP1("Had 'NO-DSET' in row")
+            return BAD_RETURN
+
+    # now parse
+    try:
+        mmm = lll[0].split()
+        is_fail, val, valtype = au.try_convert_bool_float_int_str_LIST(mmm)
+        if is_fail or len(valtype) > 1 or valtype[0] != 'int' :
+            ab.EP1("Failed parsing 3dinfo output for n3: {}".format(lll))
+            return BAD_RETURN
+    except:
+        ab.EP1("Failed getting values for n3: {}".format(lll))
         return BAD_RETURN
 
     return 0, val
