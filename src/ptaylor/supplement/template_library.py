@@ -81,6 +81,10 @@ inobj : InOpts object
 
             # ****
 
+            if self.do_clean :
+                tmp10 = self.remove_workdir()
+                if tmp10 : return
+
     # ----- methods
 
     def load_from_inopts(self):
@@ -167,6 +171,25 @@ inobj : InOpts object
 
         if stat :
             ab.EP1("Could not make workdir")
+            return BAD_RETURN
+
+        return 0
+
+    def remove_workdir(self):
+        """Remove the workdir"""
+
+        BAD_RETURN = -10
+
+        # see if we have a workdir to remove (if not, just return)
+        if not(os.path.isdir(self.workdir)) :
+            return 0
+
+        cmd  = '\\rm -rf "{}" '.format(self.workdir)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+
+        if stat :
+            ab.EP1("Could not remove workdir: {}".format(self.workdir))
             return BAD_RETURN
 
         return 0
