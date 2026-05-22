@@ -47,9 +47,9 @@ inobj : InOpts object
         # main data variables
         self.inset           = DEF.DOPTS['inset']
         self.prefix          = DEF.DOPTS['prefix']
+
         self.mask            = DEF.DOPTS['mask']
         self.checkpoint      = DEF.DOPTS['checkpoint']
-
         self.device          = DEF.DOPTS['device']
 
         # items for preproc_forward
@@ -79,6 +79,10 @@ inobj : InOpts object
             if tmp4 : return
 
             # ****
+
+            if self.do_clean :
+                tmp10 = self.remove_workdir()
+                if tmp10 : return
 
     # ----- methods
 
@@ -158,6 +162,7 @@ inobj : InOpts object
             self.inset = io.inset
         if io.prefix is not None :
             self.prefix = io.prefix
+
         if io.mask is not None :
             self.mask = io.mask
         if io.checkpoint is not None :
@@ -209,9 +214,9 @@ inobj : InOpts object
         if not(self.prefix) : 
             ab.EP("Need to provide a prefix")
 
-        if self.device not in DEFS.LIST_all_device :
+        if self.device not in DEF.LIST_all_device :
             msg = "Unrecognized device '{}'. ".format(self.device)
-            msg+= "Must use one from list: {}".format(DEFS.STR_all_device)
+            msg+= "Must use one from list: {}".format(DEF.STR_all_device)
             ab.EP(msg)
 
         # generate basic items
@@ -240,6 +245,25 @@ inobj : InOpts object
 
         if stat :
             ab.EP1("Could not make workdir")
+            return BAD_RETURN
+
+        return 0
+
+    def remove_workdir(self):
+        """Remove the workdir"""
+
+        BAD_RETURN = -10
+
+        # see if we have a workdir to remove (if not, just return)
+        if not(os.path.isdir(self.workdir)) :
+            return 0
+
+        cmd  = '\\rm -rf "{}" '.format(self.workdir)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+
+        if stat :
+            ab.EP1("Could not remove workdir: {}".format(self.workdir))
             return BAD_RETURN
 
         return 0

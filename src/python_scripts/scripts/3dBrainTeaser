@@ -129,6 +129,10 @@ checks happen in a subsequent object.
         self.inset           = None
         self.prefix          = None
 
+        self.mask            = None
+        self.checkpoint      = None
+        self.device          = None
+
         # control variables
         self.workdir         = None
         self.outdir          = None
@@ -265,6 +269,24 @@ checks happen in a subsequent object.
                 self.prefix = val
 
             # general options
+
+            elif opt.name == '-mask':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.mask = val
+
+            elif opt.name == '-checkpoint':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.checkpoint = val
+
+            elif opt.name == '-device':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.device = val
 
             elif opt.name == '-workdir':
                 val, err = uopts.get_string_opt('', opt=opt)
