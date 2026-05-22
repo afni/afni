@@ -2965,7 +2965,7 @@ class A1DInterface:
       # pattern
       errs = 0
       pattern = self.slice_pattern_to_times[0]
-      if pattern not in UTIL.g_valid_slice_patterns:
+      if not UTIL.is_valid_slice_pattern(pattern):
          print("** -slice_pattern_to_times: invalid slice pattern %s" % pattern)
          print("   example (alt+z): -slice_pattern_to_times alt+z 34 2")
          print("   see 'tpattern' examples from 'to3d -help'")

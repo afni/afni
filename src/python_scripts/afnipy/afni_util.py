@@ -1912,6 +1912,60 @@ def numerical_resolution(vals):
 
    return diffs[-1]-diffs[0]
 
+def is_valid_slice_pattern(pattern):
+   """is the given slice timing pattern string a valid one?
+
+      return 1 if so, else 0
+
+      It is valid if it is in g_valid_slice_patterns, or if it is of
+      the new form alt+z_D (or alt-z_D), for some positive integer D
+   """
+
+   if pattern in g_valid_slice_patterns:
+      return 1
+   # positive is alt+z, negative is alt-z
+   if alt_z_D_level(pattern) != 0:
+      return 1
+
+   return 0
+
+def alt_z_D_level(pattern):
+   """if the pattern string is of the form 'alt+z_D' (or 'alt-z_D')
+      for some positive integer D, then return D (-D if alt-z)
+
+      return: 0     : if the string does not look like alt+z_D
+                      (or alt-z_D) for some D > 0
+              D > 0 : alt+z_D level
+              D < 0 : alt-z_D level
+   """
+   if type(pattern) != str:
+      return -1
+
+   # if it does not look like alt+z_D (or -), return 0
+   if pattern.startswith('alt+z_'):
+      neg = 0
+   elif pattern.startswith('alt-z_'):
+      neg = 1
+   else:
+      return 0  # not the strings we were looking for
+
+   # look past 'startswith' to the D
+   Dstr = pattern[6:]
+   try:
+      D = int(Dstr)
+   except:
+      D = 0 # failure
+
+   # D < 0 is invalid
+   if D < 0:
+      return 0
+
+   # and if alt-z, negate D
+   if neg:
+      D = -D
+
+   return D
+
 def timing_to_slice_pattern(timing, rdigits=1, verb=1):
    """given an array of slice times, try to return multiband level and
       a pattern in g_valid_slice_patterns
@@ -2134,10 +2188,80 @@ def __max_int_diff(vals):
 
     return mind, mdiff
 
+def _alt_z_D_slice_order(nslices, D):
+   """given int D != 0, return an array with integer slice ordering
+      i.e. a list of slice indices in the order acquired
+      - if D<0, return return the alt-z_A order, where A = abs(D),
+        so if D < 0, return n-1-i, for i in order
+
+      return an array
+   """
+   # compute with abs(D) and adjust later
+   AD = abs(D)
+   if AD <= 1 or nslices < 1:
+      return []
+
+   order = [0]*nslices
+
+   # each time, do nslices/GCD(slices,AD) slices and add gind
+   gcd = GCD(AD, nslices)
+   nsper = nslices // gcd
+   index = 0
+   for gind in range(gcd):
+      for s in range(nsper):
+        order[index] = (s*AD+gind)%nslices
+        index += 1
+
+   # make sure that we didn't mess up, there should be only 1 zero
+   if order.count(0) > 1:
+      print("** _alt_z_D_slice_order failure, D=%d, nslices=%d" % (D, nslices))
+      return []
+
+   # if negative, alt-z_AD, so reverse the timing to start from the other end
+   if D < 0:
+      order = [(nslices-1-o) for o in order]
+
+   return order
+
+def _alt_z_D_slice_itimes(nslices, D):
+   """given int D != 0, return an array with index form slice timing
+      (so where TR == nslices) for pattern alt+z_D
+      (if D<0, return alt-z_A, where A = abs(D))
+
+      return an array
+   """
+   # compute with abs(D) and reverse later if D < 0
+   AD = abs(D)
+   if AD <= 1 or nslices < 1:
+      return []
+
+   order = [0]*nslices
+
+   # each time, do nslices/GCD(slices,AD) slices and add gind
+   gcd = GCD(AD, nslices)
+   nsper = nslices // gcd
+   index = 0
+   for gind in range(gcd):
+      for s in range(nsper):
+        order[(s*AD+gind)%nslices] = index
+        index += 1
+
+   # make sure that we didn't mess up, there should be only 1 zero
+   if order.count(0) > 1:
+      print("** _alt_z_D_slice_itimes failure, D=%d, nslices=%d" % (D, nslices))
+      return []
+
+   # if negative, alt-z_AD, so reverse the timing to start from the other end
+   if D < 0:
+      order.reverse()
+
+   return order
+
 def _uniq_ints_to_tpattern(tints):
    """given a list of (unique) ints 0..N-1, try to match a timing pattern
         since uniq, do not test 'simult'
         test for : 'seq+z', 'seq-z', 'alt+z', 'alt-z', 'alt+z2', 'alt-z2'
+        also     : 'alt+z_D', for some integer D (or 'alt-z_D')
         - for each test pattern:
             - compare with slice_pattern_to_timing()
       + now also test for alt+z_D, for some integer D
@@ -2166,18 +2290,24 @@ def _uniq_ints_to_tpattern(tints):
    if nslices < 3:
       return g_tpattern_irreg
 
-   # try alt+z_n : not every other, but every zn'th
+   # try alt+z_D : not every other, but every Dth
    if tints[0] == 0 and 1 in tints:
-      # must be relatively prime to nslices to work, but just proceed
-      zn = tints.index(1)
-      ttimes = [0]*nslices
-      for s in range(nslices):
-        ttimes[(s*zn)%nslices] = s
+      D = tints.index(1)  # offset from start
+      ttimes = _alt_z_D_slice_itimes(nslices, D)
       rv = lists_are_same(tints, ttimes)
       del(ttimes)
       if rv:
-         return g_tpattern_irreg + (":alt+z_%d" % zn)
-   # so how would alt-z_n look?
+         return "alt+z_%d" % D
+
+   # try alt-z_D : same as '+', but reverse order
+   elif tints[-1] == 0 and 1 in tints:
+      D = nslices - 1 - tints.index(1)  # positive offset from the end
+      # pass -D  for alt-z
+      ttimes = _alt_z_D_slice_itimes(nslices, -D)
+      rv = lists_are_same(tints, ttimes)
+      del(ttimes)
+      if rv:
+         return "alt-z_%d" % D
 
    # failure
    return g_tpattern_irreg
@@ -2201,12 +2331,15 @@ def slice_pattern_to_order(pattern, nslices):
              : None on error
    """
 
-   if pattern not in g_valid_slice_patterns:
+   if not is_valid_slice_pattern(pattern):
       print("** pattern_to_order, invalid pattern", pattern)
       return None
    if pattern in ['zero', 'simult']:
       print("** pattern_to_order, cannot make ordering from pattern", pattern)
       return None
+
+   # init to failure
+   order = None
 
    # sequential
    if pattern == 'seq+z' or pattern == 'seqplus':
@@ -2234,7 +2367,16 @@ def slice_pattern_to_order(pattern, nslices):
       order =      list(range(nslices-2, -1, -2))
       order.extend(list(range(nslices-1, -1, -2)))
 
-   else:
+   # if not yet set, check for alt+z_D or alt-z
+   if order is None:
+      D = alt_z_D_level(pattern)
+      if D != 0:
+         # new pattern: alt+z_D (or '-'), for some integer D
+         # (D < 0 means alt-z_D)
+         order = _alt_z_D_slice_order(nslices, D)
+      # else D == 0, so not a valid D level
+
+   if order is None:
       print("** pattern_to_order, unhandled pattern", pattern)
       return None
 
@@ -2251,6 +2393,7 @@ def slice_pattern_to_timing(pattern, nslices, TR=0, mblevel=1, verb=1):
                                   'seq-z', 'seqminus',
                                   'alt+z', 'altplus',     'alt+z2',    
                                   'alt-z', 'altminus',    'alt-z2',    
+                            new:  'alt+z_D' (for some integer D)
          nslices    : (int)    total number of output slice times
          TR         : (float)  total time to acquire all slices
          mblevel    : (int)    multiband level (number of repeated time sets)
@@ -2282,7 +2425,7 @@ def slice_pattern_to_timing(pattern, nslices, TR=0, mblevel=1, verb=1):
    if nslices == 1:
       return [0]
 
-   if pattern not in g_valid_slice_patterns:
+   if not is_valid_slice_pattern(pattern):
       print("** slice_pattern_to_timing, invalid pattern", pattern)
       return []
 
@@ -4802,6 +4945,33 @@ def mean(vec, ibot=-1, itop=-1):
 
     return tot/(itop-ibot+1)
 
+# GCD - greatest common denominator
+#       math.gcd exists as of 3.5 or 9, for longer sets
+def GCD(a, b):
+   """return the greatest common denominator of ints a and b
+
+      repeat larger modulo smaller until the result is 0,
+      then return smaller
+   """
+   # should we worry about negatives?
+   a = abs(a)
+   b = abs(b)
+
+   # start with larger and smaller values
+   if a >= b:
+      L = a
+      S = b
+   else:
+      L = b
+      S = a
+
+   r = L % S
+   while r > 0:
+      L = S
+      S = r
+      r = L % S
+
+   return S
 
 # convert from degrees to chord length
 def deg2chordlen(theta, radius=1.0):
