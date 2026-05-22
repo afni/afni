@@ -12224,11 +12224,16 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
       SUMA_S_Err("NULL input, what gives?");
       SUMA_RETURN(NOPE);
    }
-
-   if (!SO->SurfCont->ColPlane_fr) {
+   
+   if (!SO->SurfCont->ColPlane_fr) {    //DEBUG
       /* just set the curColPlane before returning ZSS  March 25 08*/
       if (ColPlane) SO->SurfCont->curColPlane = ColPlane;
       SUMA_RETURN(YUP);
+   }
+   
+   if (SO->SurfCont->curColPlane->BoxOutlineThresh){
+        SO->SurfCont->curColPlane = ColPlane;
+        SUMA_RETURNe;    
    }
 
    if (!ColPlane) {
@@ -12314,14 +12319,20 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
 
    }
 
+   if (SO->SurfCont->curColPlane->BoxOutlineThresh) SUMA_RETURNe;
+
 
    SO->SurfCont->curColPlane = ColPlane;
+
+   // if (SO->SurfCont->curColPlane->BoxOutlineThresh) SUMA_RETURNe;
 
    SUMA_LHv("Have ShowMode for %s of %d (widget %d)\n",
                 SO->SurfCont->curColPlane->Label,
                 SO->SurfCont->curColPlane->ShowMode,
                 SUMA_ShowMode2ShowModeMenuItem(
                               SO->SurfCont->curColPlane->ShowMode));
+//   if (SO->SurfCont->curColPlane->BoxOutlineThresh) SUMA_RETURNe;
+//
    SUMA_Set_Menu_Widget(SO->SurfCont->DsetViewModeMenu,
                  SUMA_ShowMode2ShowModeMenuItem(
                               SO->SurfCont->curColPlane->ShowMode));
@@ -12329,6 +12340,8 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
    XmToggleButtonSetState (SO->SurfCont->ColPlaneShow_tb, ColPlane->Show, NOPE);
    */
 
+//   if (SO->SurfCont->curColPlane->BoxOutlineThresh) SUMA_RETURNe;
+//
    /* Set 1 only sensitivity */
    if (SO->SurfCont->ColPlaneShowOneFore_tb) {
       if (SO->SurfCont->curColPlane->isBackGrnd) {
@@ -12342,6 +12355,9 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
 
    /* update the cross hair group */
    SUMA_Init_SurfCont_CrossHair((SUMA_ALL_DO *)SO);
+
+//   if (SO->SurfCont->curColPlane->BoxOutlineThresh) SUMA_RETURNe;
+//
 
    /* set the colormap */
    SUMA_LH("Cmap time");
@@ -14775,7 +14791,7 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
    curColPlane = SUMA_ADO_CurColPlane(ado);
 
    SUMA_LHv("About to change page to %d\n", (int)SurfCont->SurfContPage->value);
-   
+    
    // This if function causes the surface control menu to expand downwards.
    if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook && 
        (SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook,
@@ -14798,7 +14814,7 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
                           curColPlane->AlphaOpacityFalloff, YUP);
        if (SurfCont->BoxOutlineThresh_tb)
            XmToggleButtonSetState ( SurfCont->BoxOutlineThresh_tb,
-                          curColPlane->BoxOutlineThresh, YUP);
+                          curColPlane->BoxOutlineThresh, 0);
    }
 
    SUMA_RETURNe;
@@ -16103,7 +16119,7 @@ void SUMA_cb_SurfCont_SwitchColPlane (Widget w, XtPointer data,
    SUMA_OVERLAYS *curColPlane=NULL;
 
    SUMA_ENTRY;
-
+   
    SUMA_LH("Called");
    ado = (SUMA_ALL_DO *)data;
 
@@ -16277,6 +16293,7 @@ int SUMA_SelectSwitchColPlane_one(SUMA_ALL_DO *ado,
                                   SUMA_LIST_WIDGET *LW,
                                   int ichoice, SUMA_Boolean CloseShop,
                                   int setmen)
+    /* This function is called for /* Switch Dset */
 {
    static char FuncName[]={"SUMA_SelectSwitchColPlane_one"};
    SUMA_OVERLAYS *ColPlane=NULL;
@@ -16285,7 +16302,7 @@ int SUMA_SelectSwitchColPlane_one(SUMA_ALL_DO *ado,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   
    if (!ado || !LW) SUMA_RETURN(0);
    SurfCont = SUMA_ADO_Cont(ado);
 
@@ -16299,7 +16316,15 @@ int SUMA_SelectSwitchColPlane_one(SUMA_ALL_DO *ado,
          if (LocalHead)
             fprintf (SUMA_STDERR,"%s: Retrieved ColPlane named %s\n",
                      FuncName, ColPlane->Name);
+                     
+            SUMA_SurfaceObject * SO = (SUMA_SurfaceObject *)ado;
+           if (SO->SurfCont->curColPlane->BoxOutlineThresh){    
+                SO->SurfCont->curColPlane = ColPlane;
+                SUMA_RETURNe;    
+           }
+           
          SUMA_InitializeColPlaneShell(ado, ColPlane);
+
          SUMA_UpdateColPlaneShellAsNeeded(ado); /* update other open
                                                    ColPlaneShells */
          SUMA_UpdateNodeField(ado);
@@ -16369,15 +16394,17 @@ int SUMA_SelectSwitchColPlane(SUMA_ALL_DO *ado,
 */
 void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
 {
+    /* Called for "Switch Dset */
    static char FuncName[] = {"SUMA_cb_SelectSwitchColPlane"};
    SUMA_LIST_WIDGET *LW = NULL;
    XmListCallbackStruct *cbs = (XmListCallbackStruct *) call_data;
    SUMA_Boolean CloseShop = NOPE, Found = NOPE;
    int ichoice = -1;
-   SUMA_OVERLAYS *ColPlane = NULL;
+   SUMA_OVERLAYS *ColPlane = NULL, *colpC=NULL;
    SUMA_ALL_DO *ado = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead=NOPE;
+   SUMA_SurfaceObject *SO = NULL, *SOC = NULL;
 
    SUMA_ENTRY;
 
@@ -16404,10 +16431,8 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
         XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 
                                ColPlane->AlphaOpacityFalloff, 1);
         XmToggleButtonSetState(SurfCont->BoxOutlineThresh_tb, 
-                               ColPlane->BoxOutlineThresh, 1);
+                               ColPlane->BoxOutlineThresh, 0);
    }
-//    if (ColPlane->BoxOutlineThresh) ColPlane->ShowMode = SW_SurfCont_DsetViewCaC;
-//    else ColPlane->ShowMode = SW_SurfCont_DsetViewCol;
 
    SUMA_RETURNe;
 }

@@ -10456,7 +10456,6 @@ void SUMA_RefreshDsetList (SUMA_ALL_DO *ado)
 
    SUMA_ENTRY;
 
-
    SurfCont = SUMA_ADO_Cont(ado);
    LW = SurfCont->SwitchDsetlst;
 
