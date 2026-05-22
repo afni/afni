@@ -12,6 +12,7 @@ import sys, os, copy, glob
 from   afnipy import afni_base          as ab
 from   afnipy import afni_util          as au
 from   afnipy import lib_info_dict      as lid
+from   afnipy import lib_info_items     as lii
 from   afnipy import lib_vnet_defs      as DEF
 
 # ----------------------------------------------------------------------------
@@ -56,14 +57,14 @@ inobj : InOpts object
         # "preproc_forward" items: each only gets populated if used,
         # so we know to undo that step later (most have supplemental
         # info to help in undoing the step later)
-        self.dset_pp_last      = None           # name of dset to actually proc 
-        self.dset_pp_copy      = None           # 
-        self.dset_pp_obl       = None           # dset that was deobliqued
-        self.dset_pp_obl_base  = None           # base of suppl files, to use later
-        self.dset_pp_orient    = None           # dset that was re-oriented
-        self.dset_pp_orient_in = None           # orient of input, to match later
-        self.dset_pp_matrix    = None           # dset that was zeropadded
-        self.dset_pp_matrix_in = None           # mat of input, to match to later
+        self.dset_pp_last       = None           # name of dset to actually proc 
+        self.dset_pp_copy       = None           # 
+        self.dset_pp_obl        = None           # dset that was deobliqued
+        self.dset_pp_obl_base   = None           # base of suppl files, to use later
+        self.dset_pp_orient     = None           # dset that was re-oriented
+        self.dset_pp_orient_ori = None           # orient of input, to match later
+        self.dset_pp_matrix     = None           # dset that was zeropadded
+        self.dset_pp_matrix_n3  = None           # mat of input, to match to later
 
         # control variables
         self.outdir          = DEF.DOPTS['outdir']         # None or str
@@ -163,9 +164,15 @@ inobj : InOpts object
             ab.EP1("failed in preproc step: header check")
             return BAD_RETURN
 
-        # use header values to set do_* values
+        # use header values to set do_* values (and store some pieces
+        # of information now, for undoing later; some have to be set
+        # later, though, like the matrix)
+
         do_obl = D['is_oblique']
+
         do_ori = int(D['orient'] != DEF.model_orient)
+        if do_ori :
+            self.dset_pp_orient_ori = D['orient']
 
         # are all matrix dimensions multiples of magic number?
         for val in D['n3'] :
@@ -264,14 +271,20 @@ inobj : InOpts object
 
         cmd  = '''3dZeropad -overwrite '''
         cmd += '''-pad2mult "{}" '''.format(DEF.model_matrix)
-        cmd += '''-inset  "{}" '''.format(self.dset_pp_last)
         cmd += '''-prefix "{}" '''.format(self.dset_pp_matrix)
+        cmd += ''' "{}" '''.format(self.dset_pp_last)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
-        
+
         if stat :
             ab.EP1("Failed in preproc forward step: matrix")
             return BAD_RETURN
+
+        # save the matrix of the input dset
+        is_fail, n3 = lii.get_n3(self.dset_pp_last)
+        if is_fail :
+            return BAD_RETURN
+        self.dset_pp_matrix_n3 = n3
 
         # keeping updating what the current/latest preproc dset is
         self.dset_pp_last = self.dset_pp_matrix
@@ -374,7 +387,7 @@ inobj : InOpts object
             com  = ab.shell_com(cmd, capture=1)
             stat = com.run()
             rstr = com.so[0].strip()
-            self.workdir = '__wdir_TEMPLATE_' + rstr
+            self.workdir = '__wdir_brainteaser_' + rstr
 
         # convert bool-ish opts to bools
         self.do_clean       = au.convert_to_bool_yn10(self.do_clean)
