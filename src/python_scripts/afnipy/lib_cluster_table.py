@@ -616,6 +616,10 @@ inobj : InOpts object
 
         BAD_RETURN = -10
 
+        # see if we have a workdir to remove (if not, just return)
+        if not(os.path.isdir(self.workdir)) :
+            return 0
+
         cmd  = '\\rm -rf "{}" '.format(self.workdir)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
