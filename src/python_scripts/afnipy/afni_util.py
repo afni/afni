@@ -6455,6 +6455,59 @@ ytype : str
 
     return y, ytype
 
+
+def try_convert_bool_float_int_str_LIST(L, exit_on_error=False,
+                                        int_val_is_int=False):
+    """For a list L of strings, run try_convert_bool_float_int_str() on
+each.  Output a list of the converted elements, as well as a
+one-to-one matched list of the type that each is. In the special case
+that each element has the same type, the output list of types will
+only have 1 element.
+
+Parameters
+----------
+L : list
+    a list of strings to consider converting to a numerical type
+exit_on_error: bool
+    toggle whether to exit totally on input error, or to just whine vociferously
+int_val_is_int : bool
+    int-valued x is considered int, even if it has a decimal point
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+Ly : list
+    a list of one (or more) of a descending list of types (of bool or
+    float or int or str) to try converting to, with str being the last
+Lytype : list
+    a list of the simple-string-format types of the items returned in
+    Ly; if there is only one type across all elements of Ly, then 
+    len(Lytype)=1, otherwise len(Lytype)=len(Ly).
+
+    """
+
+    Ly = []
+    Lytype = []
+
+    BAD_RETURN = (-1, Ly, Lytype)
+
+    if not isinstance(L, list):
+        BASE.EP1("input must be of type list")
+        return BAD_RETURN
+
+    for x in L :
+        y, ytype = try_convert_bool_float_int_str(x, 
+                                                  exit_on_error=exit_on_error,
+                                                  int_val_is_int=int_val_is_int)
+        Ly.append(y)
+        Lytype.append(ytype)
+
+    if len(set(Lytype)) == 1 :
+        Lytype = list(set(Lytype)) 
+
+    return 0, Ly, Lytype
+
 # ----------------------------------------------------------------------
 
 if __name__ == '__main__':
