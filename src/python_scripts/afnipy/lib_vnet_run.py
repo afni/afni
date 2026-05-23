@@ -4,7 +4,7 @@
 #
 # auth : PA Taylor (SSCC, NIMH, NIH, USA)
 # ----------------------------------------------------------------------------
-# ver 1.0 : *** TEMPLATE ***
+# ver 1.0 : start of vnet processing for skullstripping
 # ============================================================================
 
 import sys, os, copy, glob
@@ -14,6 +14,8 @@ from   afnipy import afni_util          as au
 from   afnipy import lib_info_dict      as lid
 from   afnipy import lib_info_items     as lii
 from   afnipy import lib_vnet_defs      as DEF
+
+from   vnet_afni import lib_test_vnet   as VALTV
 
 # ----------------------------------------------------------------------------
 
@@ -98,7 +100,10 @@ inobj : InOpts object
     def run_vnet(self):
         """ """
 
-
+        VTO = VALTV.VnetTestObj(self.dset_pp_last, prefix=self.prefix, 
+                                mask=self.mask, checkpoint=self.checkpoint,
+                                device=self.device, 
+                                do_overwrite=False, verb=self.verb)
 
         return 0
 
@@ -369,7 +374,7 @@ inobj : InOpts object
         if self.checkpoint :
             is_ok = os.path.isfile(self.checkpoint)
             if not(is_ok) :
-                ab.EP("Failed to load mask")
+                ab.EP("Failed to load checkpoint")
 
         if not(self.prefix) : 
             ab.EP("Need to provide a prefix")
@@ -430,7 +435,7 @@ inobj : InOpts object
 
     # ----- decorators
 
-    #@property
+    @property
     def ninset(self):
         """number of insets"""
         return len(self.inset)
