@@ -1505,7 +1505,7 @@ def EP1( S, indent=True):
 
     return 1
 
-def APRINT( S, ptype=None, indent=True):
+def APRINT( S, ptype=None, indent=True, flush=True):
     '''Print Error/Warn/Info for string S
 
     This function is not meant to be used directly, in general; use
@@ -1535,7 +1535,7 @@ def APRINT( S, ptype=None, indent=True):
     if ptype == 'ERROR' :
        out+= "\n"
     
-    print(out)
+    print(out, flush=flush)
     
 
 def ARG_missing_arg(arg):
