@@ -59,14 +59,35 @@ inobj : InOpts object
         # "preproc_forward" items: each only gets populated if used,
         # so we know to undo that step later (most have supplemental
         # info to help in undoing the step later)
-        self.dset_pp_last       = None           # name of dset to actually proc 
-        self.dset_pp_copy       = None           # 
-        self.dset_pp_obl        = None           # dset that was deobliqued
-        self.dset_pp_obl_base   = None           # base of suppl files, to use later
-        self.dset_pp_orient     = None           # dset that was re-oriented
-        self.dset_pp_orient_ori = None           # orient of input, to match later
-        self.dset_pp_matrix     = None           # dset that was zeropadded
-        self.dset_pp_matrix_n3  = None           # mat of input, to match to later
+        self.dset_pp_copy       = None       # copy of inset
+        self.dset_pp_copy_info  = None       # many 3dinfo items of copy
+
+        self.dset_pp_last       = None       # name of dset to (finally) proc 
+        self.dset_pp_obl        = None       # dset that was deobliqued
+        self.dset_pp_obl_base   = None       # base of suppl files...
+        self.dset_pp_obl_ijkrl  = None       # pre-deobl IJK_TO_DICOM_REAL
+        self.dset_pp_obl_ijk    = None       # pre-deobl IJK_TO_DICOM
+        self.dset_pp_obl_origin = None       # pre-deobl ORIGIN
+        self.dset_pp_orient     = None       # dset that was re-oriented
+        self.dset_pp_orient_ori = None       # orient of input
+        self.dset_pp_dims       = None       # dset that was zeropadded
+        self.dset_pp_dims_mast  = None       # master dset for dims
+
+        # "proc_mask" : calc from vnet and check/refine
+        self.dset_proc_last        = None    # primary calc obj
+        self.dset_proc_vnet        = None
+        self.dset_proc_clust_base  = None
+        self.dset_proc_clust       = None
+        self.dset_proc_clust_table = None
+        self.dset_proc_main        = None
+
+        # "afterproc_reverse" items: go back through any
+        # preproc_forward steps and reverse them, so we get back to
+        # same grid
+        self.dset_ap_last       = None       # dset getting un-altered grid
+        self.dset_ap_obl        = None       # dset that was un-deobliqued
+        self.dset_ap_orient     = None       # dset that was un-re-oriented
+        self.dset_ap_dims       = None       # dset that was un-zeropadded
 
         # control variables
         self.outdir          = DEF.DOPTS['outdir']         # None or str
@@ -88,7 +109,13 @@ inobj : InOpts object
             tmp = self.preproc_forward_all()
             if tmp : return
 
-            tmp = self.run_vnet()
+            tmp = self.proc_mask_all()
+            if tmp : return
+
+            tmp = self.afterproc_reverse_all()
+            if tmp : return
+
+            tmp = self.write_out_prefix()
             if tmp : return
 
             if self.do_clean :
@@ -97,25 +124,290 @@ inobj : InOpts object
 
     # ----- methods
 
-    def run_vnet(self):
-        """ """
+    def write_out_prefix(self):
+        """Copy final dset out. Should be last step. **Add in history**
+        """
 
-        VTO = VALTV.VnetTestObj(self.dset_pp_last, prefix=self.prefix, 
-                                mask=self.mask, checkpoint=self.checkpoint,
-                                device=self.device, 
-                                do_overwrite=False, verb=self.verb)
+        if self.verb : ab.IP("final copy: {}".format(self.prefix))
+
+        BAD_RETURN = -7
+                
+        # keeping updating what the current/latest afterproc dset is
+        
+        # make new dset to reformat
+        cmd  = '3dcopy -overwrite '
+        cmd += '{} '.format(self.dset_ap_last)
+        cmd += '{}'.format(self.prefix)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        if stat : 
+            ab.EP1("Failed in final dset: copying")
+            return BAD_RETURN
+
+        # ----- add history to original note of inset (which might not
+        # ----- have even had a history
+        
+        # prepare the history to write
+        argv = self.user_inobj.argv
+        if '/' in argv[0] :
+            # terse-ify full path to the cmd being run
+            argv[0] = argv[0].split('/')[-1]
+        hist_str = ' NB: several preceding steps via :: '
+        hist_str+= ' '.join(argv)
+
+        cmd = '''3dNotes -h "{}" '''.format(hist_str)
+        cmd+= '''"{}" '''.format(self.prefix)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+
+        if stat : 
+            ab.EP1("Failed in final dset: adding history")
+            return BAD_RETURN
 
         return 0
 
+    def afterproc_reverse_all(self):
+        """Undo any of the preproc_forward_all() steps that were done in
+        preparation for running the vnet. The goal is to put the mask
+        back on the same grid on which it was input, so we check those
+        steps in reverse, by seeing what (if any) self.dset_pp_*
+        attribute dsets are not None.
+
+        The vnet-estimated mask dset undergoes this set up steps.
+
+        Again, we note that no voxel interpolating will be needed in
+        this procedure.
+        """
+
+        BAD_RETURN = -7
+
+        # keeping updating what the current/latest afterproc dset is
+        self.dset_ap_last = self.dset_proc_last
+
+        if self.dset_pp_dims :
+            is_fail = self.afterproc_reverse_dims()
+            if is_fail :
+                ab.EP1("failed in afterproc step: dims")
+                return BAD_RETURN
+
+        if self.dset_pp_orient :
+            is_fail = self.afterproc_reverse_orient()
+            if is_fail :
+                ab.EP1("failed in afterproc step: orient")
+                return BAD_RETURN
+
+        if self.dset_pp_obl is not None :
+            is_fail = self.afterproc_reverse_obl()
+            if is_fail :
+                ab.EP1("failed in afterproc step: obliquity")
+                return BAD_RETURN
+
+        return 0
+
+    def afterproc_reverse_dims(self):
+        """Reverse changes of any zeropadding"""
+
+        if self.verb : ab.IP("afterproc reverse: dims")
+        
+        BAD_RETURN = -1
+
+        self.dset_ap_dims = self.workdir + '/' + 'dset_21_mask_dims.nii.gz'
+
+        cmd  = '''3dZeropad -overwrite '''
+        cmd += '''-master "{}" '''.format(self.dset_pp_dims_mast)
+        cmd += '''-prefix "{}" '''.format(self.dset_ap_dims)
+        cmd += ''' "{}" '''.format(self.dset_ap_last)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+
+        if stat :
+            ab.EP1("Failed in afterproc reverse step: dims")
+            return BAD_RETURN
+
+        # keeping updating what the current/latest preproc dset is
+        self.dset_ap_last = self.dset_ap_dims
+
+        return 0
+
+    def afterproc_reverse_orient(self):
+        """Reorient dset to match input dset orient, in current afterproc step
+        dset"""
+        
+        if self.verb : ab.IP("afterproc reverse: orient")
+
+        BAD_RETURN = -1
+
+        self.dset_ap_orient = self.workdir + '/' + 'dset_22_mask_orient.nii.gz'
+
+        cmd  = '''3dresample -overwrite '''
+        cmd += '''-orient "{}" '''.format(self.dset_pp_orient_ori)
+        cmd += '''-inset  "{}" '''.format(self.dset_ap_last)
+        cmd += '''-prefix "{}" '''.format(self.dset_ap_orient)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        
+        if stat :
+            ab.EP1("Failed in afterproc reverse step: orient")
+            return BAD_RETURN
+
+        # keeping updating what the current/latest preproc dset is
+        self.dset_ap_last = self.dset_ap_orient
+
+        return 0
+
+    def afterproc_reverse_obl(self):
+        """Return any obliquity in current afterproc step dset, which means
+        updating IJK_TO_DICOM, IJK_TO_DICOM_REAL, and ORIGIN. 
+
+        NB: in this step, we make a BRIK/HEAD format dset.
+
+        Odd quirk to note: 3drefit will not produce a status message
+        if a command fails because it can't open a particular dset,
+        because it will try to keep processing multiple ones.  So, the
+        stat checks here are not fully helpful."""
+        
+        if self.verb : ab.IP("afterproc reverse: obliquity")
+
+        BAD_RETURN = -1
+
+        # use BRIK/HEAD format dset, to modify attributes more cleanly
+        av_space = self.dset_pp_copy_info['av_space']
+        self.dset_ap_obl = self.workdir + '/' 
+        self.dset_ap_obl+= 'dset_23_mask_obl{}.HEAD'.format(av_space)
+
+        # make new dset to reformat
+        cmd  = '3dcopy -overwrite '
+        cmd += '{} '.format(self.dset_ap_last)
+        cmd += '{}'.format(self.dset_ap_obl)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        if stat : 
+            ab.EP1("Failed in afterproc_reverse: 3dcopy")
+            return BAD_RETURN
+
+        # attach new aform to dset
+        cmd  = '3drefit -atrfloat IJK_TO_DICOM_REAL '
+        cmd += '{} '.format(self.dset_pp_obl_ijkrl)
+        cmd += '{}'.format(self.dset_ap_obl)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        if stat : 
+            ab.EP1("Failed in afterproc_reverse: 3drefit IJK_TO_DICOM_REAL")
+            return BAD_RETURN
+
+        # attach new IJK_TO_DICOM to dset
+        cmd  = '3drefit -atrfloat IJK_TO_DICOM '
+        cmd += '{} '.format(self.dset_pp_obl_ijk)
+        cmd += '{}'.format(self.dset_ap_obl)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        if stat : 
+            ab.EP1("Failed in afterproc_reverse: 3drefit IJK_TO_DICOM")
+            return BAD_RETURN
+
+        # attach new ORIGIN to dset
+        cmd  = '3drefit -atrfloat ORIGIN '
+        cmd += '{} '.format(self.dset_pp_obl_origin)
+        cmd += '{}'.format(self.dset_ap_obl)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        if stat : 
+            ab.EP1("Failed in afterproc_reverse: 3drefit ORIGIN")
+            return BAD_RETURN
+
+        # keeping updating what the current/latest preproc dset is
+        self.dset_ap_last = self.dset_ap_obl
+
+        return 0
+
+    def proc_mask_all(self):
+        """Do all stages of mask generation, and possible refining"""
+
+        BAD_RETURN = -4
+
+        is_fail = self.proc_mask_vnet()
+        if is_fail :
+            ab.EP1("failed in proc mask step: vnet")
+            return BAD_RETURN
+
+        is_fail = self.proc_mask_clust()
+        if is_fail :
+            ab.EP1("failed in proc mask step: clust")
+            return BAD_RETURN
+
+        return 0
+
+    def proc_mask_vnet(self):
+        """Run the vnet model/checkpoint to get the mask estimate """
+
+        self.dset_proc_vnet = self.workdir + '/' + 'dset_10_mask_vnet.nii.gz'
+
+        VTO = VALTV.VnetTestObj(self.dset_pp_last, prefix=self.dset_proc_vnet,
+                                mask=self.mask, checkpoint=self.checkpoint,
+                                device=self.device, 
+                                do_overwrite=True, verb=self.verb)
+
+        self.dset_proc_last = self.dset_proc_vnet
+
+        return 0
+
+    def proc_mask_clust(self):
+        """Run 3dClusterize on the vnet output to avoid any little tiny extra
+        bits possibly floating around"""
+
+        BAD_RETURN = -10
+
+        # clusterize 
+
+        self.dset_proc_clust_base  = self.workdir + '/' + 'dset_11_mask_clust'
+        self.dset_proc_clust       = self.dset_proc_clust_base + '.nii.gz'
+        self.dset_proc_clust_table = self.dset_proc_clust_base + '_table.1D'
+
+        cmd  = '3dClusterize -idat 0 -ithr 0 -bisided -0.5 0.5 -NN 2 '
+        cmd += '-pref_map "{}" '.format(self.dset_proc_clust)
+        cmd += '-inset "{}" '.format(self.dset_proc_last)
+        cmd += '> "{}" '.format(self.dset_proc_clust_table)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        if stat : 
+            ab.EP1("Failed in proc mask: clust check")
+            return BAD_RETURN
+
+        self.dset_proc_last = self.dset_proc_clust
+
+        # ... and get largest cluster for result
+        self.dset_proc_main = self.workdir + '/' + 'dset_12_mask_main.nii.gz'
+        
+        cmd  = '3dcalc '
+        cmd += '-a "{}<1>" '.format(self.dset_proc_last)
+        cmd += '-expr "step(a)" '
+        cmd += '-prefix "{}" '.format(self.dset_proc_main)
+        cmd += '-datum short -nscale'
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+
+        if stat : 
+            ab.EP1("Failed in proc mask: clust select")
+            return BAD_RETURN
+
+        self.dset_proc_last = self.dset_proc_main
+
+        return 0
 
     def preproc_forward_all(self):
         """Go through all steps to prepare the inset for processing.  This
         includes dealing with any obliquity, dset re-orienting, and/or
-        zeropadding to appropriate matrix dims.
+        zeropadding to appropriate spatial dims. NB: none of these involve
+        regridding, in the sense of interpolating voxel values.
 
-        A later function will deal with undoing these to prepare the
-        output mask to match the input grid.
+        The input anatomical undergoes this set of steps.
+
+        A later function afterproc_reverse_all() will deal with
+        undoing these to prepare the output mask to match the input
+        grid.
         """
+
+        BAD_RETURN = -3
 
         # can determine which preproc_forward steps need to be done,
         # via single header check at the beginning
@@ -126,21 +418,25 @@ inobj : InOpts object
         is_fail = self.preproc_forward_copy()
         if is_fail :
             ab.EP1("failed in preproc step: copy")
+            return BAD_RETURN
 
-        if do_obl : 
+        if do_obl :
             is_fail = self.preproc_forward_obl()
             if is_fail :
                 ab.EP1("failed in preproc step: obliquity")
+                return BAD_RETURN
 
         if do_ori :
             is_fail = self.preproc_forward_orient()
             if is_fail :
                 ab.EP1("failed in preproc step: orient")
+                return BAD_RETURN
 
         if do_mat :
-            is_fail = self.preproc_forward_matrix()
+            is_fail = self.preproc_forward_dims()
             if is_fail :
-                ab.EP1("failed in preproc step: matrix")
+                ab.EP1("failed in preproc step: dims")
+                return BAD_RETURN
 
         # NB: at this point, self.dset_pp_last should be all set for
         # the 'real' processing with the VNET. After the mask has been
@@ -169,9 +465,13 @@ inobj : InOpts object
             ab.EP1("failed in preproc step: header check")
             return BAD_RETURN
 
+        # save a copy into an object attribute here (but keep
+        # referring to D below, for simplicity)
+        self.dset_pp_copy_info = copy.deepcopy(D)
+
         # use header values to set do_* values (and store some pieces
         # of information now, for undoing later; some have to be set
-        # later, though, like the matrix)
+        # later, though, like the dims)
 
         do_obl = D['is_oblique']
 
@@ -179,7 +479,7 @@ inobj : InOpts object
         if do_ori :
             self.dset_pp_orient_ori = D['orient']
 
-        # are all matrix dimensions multiples of magic number?
+        # are all spatial dimensions multiples of magic number?
         for val in D['n3'] :
             if val % DEF.model_matrix :
                 do_mat = 1
@@ -212,7 +512,8 @@ inobj : InOpts object
         return 0
 
     def preproc_forward_obl(self):
-        """Remove and preserve any obliquity in current preproc step dset"""
+        """Remove and preserve any obliquity in current preproc step dset.
+        There are a few supplementary text files saved in this case."""
         
         if self.verb : ab.IP("preproc forward: obliquity")
 
@@ -231,6 +532,37 @@ inobj : InOpts object
         
         if stat :
             ab.EP1("Failed in preproc forward step: obliquity")
+            return BAD_RETURN
+
+        # ... and save supplementary info from current inset, used later
+        self.dset_pp_obl_ijk    = self.dset_pp_obl_base + '_ijk2dcm.1D'
+        self.dset_pp_obl_ijkrl  = self.dset_pp_obl_base + '_ijk2dcmrl.1D'
+        self.dset_pp_obl_origin = self.dset_pp_obl_base + '_origin.1D'
+
+        cmd  = '''cat_matvec -ONELINE '''
+        cmd += '''{}::IJK_TO_DICOM '''.format(self.dset_pp_last)
+        cmd += '''> "{}" '''.format(self.dset_pp_obl_ijk)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        if stat :
+            ab.EP1("Failed in preproc forward step: obliquity, ijk2dcm")
+            return BAD_RETURN
+
+        cmd  = '''cat_matvec -ONELINE '''
+        cmd += '''{}::IJK_TO_DICOM_REAL '''.format(self.dset_pp_last)
+        cmd += '''> "{}" '''.format(self.dset_pp_obl_ijkrl)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        if stat :
+            ab.EP1("Failed in preproc forward step: obliquity, ijk2dcmrl")
+            return BAD_RETURN
+
+        cmd  = '''3dinfo -o3 "{}" '''.format(self.dset_pp_last)
+        cmd += '''> "{}" '''.format(self.dset_pp_obl_origin)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+        if stat :
+            ab.EP1("Failed in preproc forward step: obliquity, ijk2dcmrl")
             return BAD_RETURN
 
         # keeping updating what the current/latest preproc dset is
@@ -264,35 +596,32 @@ inobj : InOpts object
 
         return 0
 
-    def preproc_forward_matrix(self):
-        """Make sure dataset matrix is a multiple of 16 (for kernel
+    def preproc_forward_dims(self):
+        """Make sure dataset spatial dims are a multiple of 16 (for kernel
         progression)"""
 
-        if self.verb : ab.IP("preproc forward: matrix")
+        if self.verb : ab.IP("preproc forward: dims")
         
         BAD_RETURN = -1
 
-        self.dset_pp_matrix = self.workdir + '/' + 'dset_03_matrix.nii.gz'
+        self.dset_pp_dims = self.workdir + '/' + 'dset_03_dims.nii.gz'
 
         cmd  = '''3dZeropad -overwrite '''
         cmd += '''-pad2mult "{}" '''.format(DEF.model_matrix)
-        cmd += '''-prefix "{}" '''.format(self.dset_pp_matrix)
+        cmd += '''-prefix "{}" '''.format(self.dset_pp_dims)
         cmd += ''' "{}" '''.format(self.dset_pp_last)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
 
         if stat :
-            ab.EP1("Failed in preproc forward step: matrix")
+            ab.EP1("Failed in preproc forward step: dims")
             return BAD_RETURN
 
-        # save the matrix of the input dset
-        is_fail, n3 = lii.get_n3(self.dset_pp_last)
-        if is_fail :
-            return BAD_RETURN
-        self.dset_pp_matrix_n3 = n3
+        # save the input dset here to be the master dset on afterproc_reverse
+        self.dset_pp_dims_mast = self.dset_pp_last
 
         # keeping updating what the current/latest preproc dset is
-        self.dset_pp_last = self.dset_pp_matrix
+        self.dset_pp_last = self.dset_pp_dims
 
         return 0
 
@@ -376,8 +705,19 @@ inobj : InOpts object
             if not(is_ok) :
                 ab.EP("Failed to load checkpoint")
 
+        # (req) prefix is needed; if it doesn't have nifti ext, give it one
         if not(self.prefix) : 
             ab.EP("Need to provide a prefix")
+        else:
+            if not(self.prefix.endswith('.nii')) and \
+               not(self.prefix.endswith('.nii.gz')) :
+                self.prefix += '.nii.gz'
+            
+
+        if os.path.isfile(self.prefix) and not(self.overwrite) :
+            msg = "The prefix '{}' dset exists already, ".format(self.prefix)
+            msg+= "and you must either (re)move it or use '-overwrite'"
+            ab.EP(msg)
 
         if self.device not in DEF.LIST_all_device :
             msg = "Unrecognized device '{}'. ".format(self.device)
@@ -459,13 +799,15 @@ inobj : InOpts object
 
     @property
     def wdir_pp_orient(self):
-        """name of anatomical dset in forward preproc: orient changed (if done)"""
+        """name of anatomical dset in forward preproc: orient changed (if
+        done)"""
         return self.workdir + '/' + 'dset_02_orient.nii.gz'
 
     @property
-    def wdir_pp_matrix(self):
-        """name of anatomical dset in forward preproc: matrix changed (if done)"""
-        return self.workdir + '/' + 'dset_03_matrix.nii.gz'
+    def wdir_pp_dims(self):
+        """name of anatomical dset in forward preproc: dims are changed (if
+        done)"""
+        return self.workdir + '/' + 'dset_03_dims.nii.gz'
 
 
 # ============================================================================

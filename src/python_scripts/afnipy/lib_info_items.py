@@ -183,7 +183,45 @@ n3 : list
 
     return 0, val
 
-# --------------------------------------------------------------------------------
+def get_history(A):
+    """What is the history of the dset A?
+
+NB: if the result is a list with a single string 'NA', then this dset
+has no history.
+
+Parameters
+----------
+A : str
+    name of a volumetric dset 
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+N : int
+    length of history list
+val : list
+    list string values, each line of the history
+
+    """
+
+    val = []
+    BAD_RETURN = (-1, 0, val)
+
+    cmd  = '3dinfo -history "{}"'.format(A)
+    com  = ab.shell_com(cmd, capture=1)
+    stat = com.run()
+
+    if stat :
+        ab.EP1("Could not get history")
+        return BAD_RETURN
+
+    val = com.so
+    N    = len(val)
+
+    return 0, N, val
+
+# ----------------------------------------------------------------------------
 
 def is_same_grid(A, B):
     """Are the two dsets A and B on the same grid? Check with 3dinfo.

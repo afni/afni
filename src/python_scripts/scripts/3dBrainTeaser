@@ -3,7 +3,7 @@
 # python3 status: compatible
 
 # system libraries
-import sys, os
+import sys, os, copy
 
 # AFNI libraries
 from afnipy import option_list   as OL
@@ -124,6 +124,7 @@ checks happen in a subsequent object.
         self.do_clean        = None
         self.overwrite       = None
         self.do_log          = None
+        self.argv            = None
 
         # main data variables
         self.inset           = None
@@ -210,6 +211,9 @@ checks happen in a subsequent object.
            return  0 on valid and continue    (e.g. do main processing)
            return -1 on invalid               (bad things, panic, abort)
         """
+
+        # save all opts
+        self.argv = copy.deepcopy(sys.argv)
 
         # process any optlist_ options
         self.valid_opts.check_special_opts(sys.argv)
