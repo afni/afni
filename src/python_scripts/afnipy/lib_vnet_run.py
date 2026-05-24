@@ -15,7 +15,7 @@ from   afnipy import lib_info_dict      as lid
 from   afnipy import lib_info_items     as lii
 from   afnipy import lib_vnet_defs      as DEF
 
-from   vnet_afni import lib_test_vnet   as VALTV
+from   vnet_afni import lib_vnet_test   as VALVT
 
 # ----------------------------------------------------------------------------
 
@@ -342,7 +342,7 @@ inobj : InOpts object
 
         self.dset_proc_vnet = self.workdir + '/' + 'dset_10_mask_vnet.nii.gz'
 
-        VTO = VALTV.VnetTestObj(self.dset_pp_last, prefix=self.dset_proc_vnet,
+        VTO = VALVT.VnetTestObj(self.dset_pp_last, prefix=self.dset_proc_vnet,
                                 mask=self.mask, checkpoint=self.checkpoint,
                                 device=self.device, 
                                 do_overwrite=True, verb=self.verb)
