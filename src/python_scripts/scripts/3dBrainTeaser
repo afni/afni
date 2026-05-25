@@ -56,6 +56,12 @@ Usage ~1~
                 quantitatively and in QC images; this option is likely
                 primarily for testing purposes.
 
+-comp_add_data CAD :if CAD is Yes or 1, then if a '-comp_mask ..' has 
+                been input, then add the option '-add_data_to_outdir Yes' 
+                when running that command, in order to have more
+                interactive QC outputs
+                (def: '{comp_add_data}')
+
 -device D      :users can choose the device that they run on, namely to
                 use a CPU or GPU for processing, from this list: 
                 {STR_all_device}
@@ -132,6 +138,7 @@ checks happen in a subsequent object.
         self.prefix          = None
 
         self.comp_mask       = None
+        self.comp_add_data   = None
         self.checkpoint      = None
         self.device          = None
 
@@ -178,6 +185,9 @@ checks happen in a subsequent object.
         self.valid_opts.add_opt('-comp_mask', 1, [], 
                         helpstr='name of a mask, esp. for comparison/testing')
 
+        self.valid_opts.add_opt('-comp_add_data', 1, [], 
+                        helpstr='if comp_mask is used, add more QC output')
+
         self.valid_opts.add_opt('-checkpoint', 1, [], 
                         helpstr='name of specific V-net model to apply')
 
@@ -212,6 +222,8 @@ checks happen in a subsequent object.
            return  0 on valid and continue    (e.g. do main processing)
            return -1 on invalid               (bad things, panic, abort)
         """
+
+        BASE.IP("Start 3dBrainTeaser")
 
         # save all opts
         self.argv = copy.deepcopy(sys.argv)
@@ -280,6 +292,12 @@ checks happen in a subsequent object.
                 if val is None or err:
                     BASE.EP(err_base + opt.name)
                 self.comp_mask = val
+
+            elif opt.name == '-comp_add_data':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.comp_add_data = val
 
             elif opt.name == '-checkpoint':
                 val, err = uopts.get_string_opt('', opt=opt)

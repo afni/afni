@@ -53,6 +53,9 @@ inobj : InOpts object
         self.prefix           = DEF.DOPTS['prefix']
 
         self.comp_mask        = DEF.DOPTS['comp_mask']
+        self.comp_add_data    = DEF.DOPTS['comp_add_data']
+        self.comp_mask_odir   = None         # output dir for comparison items
+
         self.checkpoint       = DEF.DOPTS['checkpoint']
         self.device           = DEF.DOPTS['device']
 
@@ -95,7 +98,6 @@ inobj : InOpts object
 
         # ----- take action(s)
 
-        # prelim stuff
         if user_inobj :
             tmp = self.load_from_inopts()
             if tmp : return
@@ -118,12 +120,47 @@ inobj : InOpts object
             tmp = self.write_out_prefix()
             if tmp : return
 
+            tmp = self.compare_mask_overlap()
+            if tmp : return
+
             if self.do_clean :
                 tmp = self.remove_workdir()
                 if tmp : return
 
     # ----- methods
 
+    def compare_mask_overlap(self):
+        """If a comp_mask was provided, run the comparison(s). Otherwise, do
+        nothing"""
+
+        if not(self.comp_mask) :
+            return 0
+
+        if self.verb : ab.IP("compare with comp_mask")
+
+        BAD_RETURN = -8
+
+        if self.comp_add_data :
+            add_data = 'Yes'
+        else:
+            add_data = 'No'
+
+        cmd  = 'compare_mask_overlap.tcsh '
+        cmd += '{} '.format(self.overwrite)
+        cmd += '-inputA {} '.format(self.prefix)
+        cmd += '-inputB {} '.format(self.comp_mask)
+        cmd += '-ulay   {} '.format(self.inset)
+        cmd += '-outdir {} '.format(self.comp_mask_odir)
+        cmd += '-add_data_to_outdir {} '.format(add_data)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+
+        if stat : 
+            ab.EP1("Failed in final dset: compare with comp_mask")
+            return BAD_RETURN
+
+        return 0
+        
     def write_out_prefix(self):
         """Copy final dset out. Should be last step. **Add in history**
         """
@@ -140,6 +177,7 @@ inobj : InOpts object
         cmd += '{}'.format(self.prefix)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
+
         if stat : 
             ab.EP1("Failed in final dset: copying")
             return BAD_RETURN
@@ -344,7 +382,6 @@ inobj : InOpts object
 
         VTO = VALVT.VnetTestObj(self.dset_pp_last, 
                                 prefix=self.dset_proc_vnet,
-                                comp_mask=self.comp_mask, # *** prob don't use
                                 checkpoint=self.checkpoint,
                                 device=self.device, 
                                 do_overwrite=True, verb=self.verb)
@@ -661,6 +698,9 @@ inobj : InOpts object
 
         if io.comp_mask is not None :
             self.comp_mask = io.comp_mask
+        if io.comp_add_data is not None :
+            self.comp_add_data = io.comp_add_data
+
         if io.checkpoint is not None :
             self.checkpoint = io.checkpoint
 
@@ -690,6 +730,14 @@ inobj : InOpts object
             if nfail :
                 ab.EP("Failed to load inset")
 
+        # (req) prefix is needed; if it doesn't have nifti ext, give it one
+        if not(self.prefix) : 
+            ab.EP("Need to provide a prefix")
+        else:
+            if not(self.prefix.endswith('.nii')) and \
+               not(self.prefix.endswith('.nii.gz')) :
+                self.prefix += '.nii.gz'
+                                    
         # (opt) mask
         if self.comp_mask :
             nfail = au.check_all_dsets_exist([self.comp_mask], 
@@ -702,20 +750,25 @@ inobj : InOpts object
             is_fail = au.check_all_dsets_same_grid([self.inset, self.comp_mask],
                                                    label='inset and comp_mask')
 
+            # make the output dir for comp mask stuff, based on
+            # prefix, which we know will be a nifti dset
+            if self.prefix.endswith('.nii.gz') :
+                self.comp_mask_odir = self.prefix[:-7] + '_comp'
+            elif self.prefix.endswith('.nii') :
+                self.comp_mask_odir = self.prefix[:-4] + '_comp'
+            else:
+                msg = "Failed to make comp_mask_odir, from "
+                msg+= "prefix that is somehow not nifti (???): "
+                msg+= "{}".format(self.prefix)
+                ab.EP(msg)
+
+
         # (opt) checkpoint
         if self.checkpoint :
             is_ok = os.path.isfile(self.checkpoint)
             if not(is_ok) :
                 ab.EP("Failed to load checkpoint")
 
-        # (req) prefix is needed; if it doesn't have nifti ext, give it one
-        if not(self.prefix) : 
-            ab.EP("Need to provide a prefix")
-        else:
-            if not(self.prefix.endswith('.nii')) and \
-               not(self.prefix.endswith('.nii.gz')) :
-                self.prefix += '.nii.gz'
-            
 
         if os.path.isfile(self.prefix) and not(self.overwrite) :
             msg = "The prefix '{}' dset exists already, ".format(self.prefix)
@@ -739,6 +792,7 @@ inobj : InOpts object
 
         # convert bool-ish opts to bools
         self.do_clean       = au.convert_to_bool_yn10(self.do_clean)
+        self.comp_add_data  = au.convert_to_bool_yn10(self.comp_add_data)
 
         return 0
 

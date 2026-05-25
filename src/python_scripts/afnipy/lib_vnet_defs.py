@@ -29,6 +29,7 @@ DOPTS = {
     'do_log'          : 'No',
     'inset'           : '',
     'comp_mask'       : '',
+    'comp_add_data'   : 'No',
     'checkpoint'      : '',
     'prefix'          : '',
     'device'          : 'cpu',
