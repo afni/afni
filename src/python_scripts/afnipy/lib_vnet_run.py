@@ -52,7 +52,7 @@ inobj : InOpts object
         self.inset            = DEF.DOPTS['inset']
         self.prefix           = DEF.DOPTS['prefix']
 
-        self.mask             = DEF.DOPTS['mask']
+        self.comp_mask        = DEF.DOPTS['comp_mask']
         self.checkpoint       = DEF.DOPTS['checkpoint']
         self.device           = DEF.DOPTS['device']
 
@@ -342,8 +342,10 @@ inobj : InOpts object
 
         self.dset_proc_vnet = self.workdir + '/' + 'dset_10_mask_vnet.nii.gz'
 
-        VTO = VALVT.VnetTestObj(self.dset_pp_last, prefix=self.dset_proc_vnet,
-                                mask=self.mask, checkpoint=self.checkpoint,
+        VTO = VALVT.VnetTestObj(self.dset_pp_last, 
+                                prefix=self.dset_proc_vnet,
+                                comp_mask=self.comp_mask, # *** prob don't use
+                                checkpoint=self.checkpoint,
                                 device=self.device, 
                                 do_overwrite=True, verb=self.verb)
 
@@ -657,8 +659,8 @@ inobj : InOpts object
         if io.prefix is not None :
             self.prefix = io.prefix
 
-        if io.mask is not None :
-            self.mask = io.mask
+        if io.comp_mask is not None :
+            self.comp_mask = io.comp_mask
         if io.checkpoint is not None :
             self.checkpoint = io.checkpoint
 
@@ -689,15 +691,16 @@ inobj : InOpts object
                 ab.EP("Failed to load inset")
 
         # (opt) mask
-        if self.mask :
-            nfail = au.check_all_dsets_exist([self.mask], label='mask',
+        if self.comp_mask :
+            nfail = au.check_all_dsets_exist([self.comp_mask], 
+                                             label='comp_mask',
                                              verb=self.verb)
             if nfail :
-                ab.EP("Failed to load mask")
+                ab.EP("Failed to load comp_mask")
 
-            # mask grid must match inset
-            is_fail = au.check_all_dsets_same_grid([self.inset, self.mask],
-                                                   label='inset and mask')
+            # comp_mask grid must match inset
+            is_fail = au.check_all_dsets_same_grid([self.inset, self.comp_mask],
+                                                   label='inset and comp_mask')
 
         # (opt) checkpoint
         if self.checkpoint :

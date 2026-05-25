@@ -52,8 +52,9 @@ Usage ~1~
                 will be subdirectory of the output location
                 (def: name with random chars)
 
--mask M        :the name of a mask, for comparison in QC images; this
-                option is likely primarily for testing purposes.
+-comp_mask CM  :the name of a mask, for comparison of overlaps, both
+                quantitatively and in QC images; this option is likely
+                primarily for testing purposes.
 
 -device D      :users can choose the device that they run on, namely to
                 use a CPU or GPU for processing, from this list: 
@@ -130,7 +131,7 @@ checks happen in a subsequent object.
         self.inset           = None
         self.prefix          = None
 
-        self.mask            = None
+        self.comp_mask       = None
         self.checkpoint      = None
         self.device          = None
 
@@ -174,8 +175,8 @@ checks happen in a subsequent object.
 
         # optional parameters
 
-        self.valid_opts.add_opt('-mask', 1, [], 
-                        helpstr='name of a mask (mainly for testing and/or QC)')
+        self.valid_opts.add_opt('-comp_mask', 1, [], 
+                        helpstr='name of a mask, esp. for comparison/testing')
 
         self.valid_opts.add_opt('-checkpoint', 1, [], 
                         helpstr='name of specific V-net model to apply')
@@ -274,11 +275,11 @@ checks happen in a subsequent object.
 
             # general options
 
-            elif opt.name == '-mask':
+            elif opt.name == '-comp_mask':
                 val, err = uopts.get_string_opt('', opt=opt)
                 if val is None or err:
                     BASE.EP(err_base + opt.name)
-                self.mask = val
+                self.comp_mask = val
 
             elif opt.name == '-checkpoint':
                 val, err = uopts.get_string_opt('', opt=opt)
