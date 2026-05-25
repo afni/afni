@@ -696,7 +696,7 @@ Examples ~1~
          -inputA              mask_01.nii.gz                       \
          -inputB              mask_02.nii.gz                       \
          -ulay                sub-001_T1w.nii.gz                   \
-         -outdir              compare_mask_01_02
+         -outdir              compare_mask_01_02                   \
          -add_data_to_outdir  Yes
 
 
