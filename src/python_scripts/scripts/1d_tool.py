@@ -1581,9 +1581,10 @@ g_history = """
    2.23 Apr 25, 2025 - allow float read retry for na values
    2.24 Jan  7, 2026 - add -show_xmat_warnings
    2.25 Mar 18, 2026 - add -censor_to_spike_regs
+   2.26 May 26, 2026 - add new slice patterns alt+z_D and alt-z_D
 """
 
-g_version = "1d_tool.py version 2.25, March 18, 2026"
+g_version = "1d_tool.py version 2.26, May 26, 2026"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
