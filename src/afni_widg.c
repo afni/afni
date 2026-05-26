@@ -6466,7 +6466,7 @@ ENTRY("new_AFNI_controller") ;
    im3d->fimdata = myXtNew( AFNI_fimmer_type ); ADDTO_KILL(im3d->kl,im3d->fimdata);
    CLEAR_FIMDATA(im3d) ;
 
-   strcpy( im3d->window_title , "GPL AFNI" ) ;
+   strcpy( im3d->window_title , "AFNI" ) ;
 
    if( shell != NULL ){
       im3d->vwid->top_shell = shell ;
@@ -7334,7 +7334,7 @@ ENTRY("AFNI_misc_button") ;
 #endif
                              " Save Layout       = Save windows layout/setup\n"
                              " Run Script        = Run an AFNI script file\n"
-                             " License Info      = GPL & Copyright notice\n"
+                             " License Info      = Copyright notice\n"
                              " Version Check     = Check AFNI version\n"
                              " Message of the Day= Fetch current AFNI MotD\n"
                              " Purge Memory      = Of dataset BRIKs\n"
@@ -7614,7 +7614,7 @@ ENTRY("AFNI_misc_button") ;
             NULL ) ;
    XtAddCallback( dmode->misc_license_pb , XmNactivateCallback ,
                   AFNI_misc_CB , im3d ) ;
-   MCW_register_hint( dmode->misc_license_pb,"Display GPL & Copyright Notice" );
+   MCW_register_hint( dmode->misc_license_pb,"Display Copyright Notice" );
 
    if( !ALLOW_realtime ){    /* 01 May 2000: only if not doing realtime */
       dmode->misc_vcheck_pb =

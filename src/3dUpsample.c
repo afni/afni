@@ -1,6 +1,6 @@
-/***** This code is part of the AFNI software package, which is   *****
- ***** partly in the public domain and partly covered by the GPL. *****
- ***** See https://afni.nimh.nih.gov/afni for more information.    *****/
+/***** This code is part of the AFNI software package, which is     *****
+ ***** partly in the public domain and partly covered by the CC BY. *****
+ ***** See https://afni.nimh.nih.gov/afni for more information.     *****/
 
 #include "mrilib.h"
 

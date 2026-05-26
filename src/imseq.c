@@ -816,7 +816,7 @@ static char * ISQ_form_help =
      "************************************************\n"
      "* Image Sequence Display Module                *\n"
      "*                                              *\n"
-     "* Released under the GPL (v2 or later)         *\n"
+     "* Released under the CC-BY license             *\n"
      "*                                              *\n"
      "* Author:  Robert W Cox, PhD                   *\n"
      "************************************************"   ;

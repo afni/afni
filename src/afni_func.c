@@ -4195,7 +4195,7 @@ STATUS("creating new dialog") ;
       im3d->vwid->file_dialog =
          XtVaCreatePopupShell(
            "menu" , xmDialogShellWidgetClass , im3d->vwid->top_shell ,
-              XmNtitle , "GPL AFNI" ,
+              XmNtitle , "AFNI" ,
               XmNdeleteResponse , XmDO_NOTHING ,
               XmNinitialResourcesPersistent , False ,
               XmNkeyboardFocusPolicy , XmEXPLICIT ,

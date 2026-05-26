@@ -12,7 +12,7 @@
 ******************************************************************************/
 
 /**********************************************************************/
-/* MCW/GPL/NIH AFNI:                                                  */
+/* MCW/CC-BY/NIH AFNI:                                                */
 /*    Analysis of Functional NeuroImages                              */
 /*                                                                    */
 /* Author: Robert W. Cox, PhD                                         */
@@ -68,7 +68,7 @@
 #ifdef SHSTRING
 
 #define ANNOUNCEMENT                                                           \
- "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
+ "AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"        \
  "This is Version " VERSION               "\n"                                 \
  "[[Precompiled binary " SHSTRING ": " __DATE__ "]]\n\n"                       \
  " ** This software was designed to be used only for research purposes. **\n"  \
@@ -90,7 +90,7 @@
 #else
 
 #define ANNOUNCEMENT                                                           \
- "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
+ "AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"        \
  "This is Version " AVERZHN " -- compiled " __DATE__  "\n\n"                   \
  " ** This software was designed to be used only for research purposes. **\n"  \
  " ** Clinical uses are not recommended, and have never been evaluated. **\n"  \
