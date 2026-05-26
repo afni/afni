@@ -167,7 +167,7 @@ extern "C" {
 #ifdef MAIN
 #define AFNI_about \
      "************************************************\n"  \
-     "* GPL AFNI: Analysis of Functional NeuroImages *\n"  \
+     "* AFNI: Analysis of Functional NeuroImages     *\n"  \
      "*           Version " AVERZHN          "       *\n"  \
      "*                                              *\n"  \
      "* Major portions are Copyright 1994-2000,      *\n"  \
@@ -176,8 +176,8 @@ extern "C" {
      "* See file README.copyright for information,   *\n"  \
      "* or the Datamode->Misc->License menu item.    *\n"  \
      "*                                              *\n"  \
-     "* Released to the public by MCW under the GNU  *\n"  \
-     "* General Public License (version 2), Dec 2000 *\n"  \
+     "* Released to the public by MCW under the      *\n"  \
+     "* Creative Commons Attribution License (CC BY) *\n"  \
      "*                                              *\n"  \
      "* Author:  Robert W Cox, PhD                   *\n"  \
      "************************************************"
