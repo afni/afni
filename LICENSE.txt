@@ -11,7 +11,7 @@ CONTENTS
 
 With the exception of certain third-party files, including those
 summarized below, this software is a "United States Government Work"
-under the terms of theUnited States Copyright Act. It was written as
+under the terms of the United States Copyright Act. It was written as
 part of the authors' official duties as United States Government
 employees and thus cannot be copyrighted. This software is freely
 available to the public for use. The National Institute of Mental
