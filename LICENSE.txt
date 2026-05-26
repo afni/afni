@@ -41,8 +41,8 @@ See here for details:
 Location: Major portions of this software are copyrighted by the
           Medical College of Wisconsin
 Authors:  Robert W. Cox, et al. 
-License:  GNU General Public License 2 [doc/README/README.copyright and
-          top of files]
+License:  Creative Commons Attribution License (CC BY 4.0)
+          [doc/README/README.copyright and top of files]
 
 Location: src/3DEdge/ and parts of src/SUMA/ using 3DEdge 
 Authors:  Gregoire Malandain
@@ -50,7 +50,8 @@ License:  GNU GPL 3.0 [src/3DEdge/gpl-3.0.txt]
 
 Location: src/coxplot/
 Authors:  Medical College of Wisconsin
-License:  GNU GPL 2.0 [src/coxplot/coxplot.h]
+License:  Creative Commons Attribution License (CC BY 4.0)
+          [src/coxplot/coxplot.h]
 
 Location: much of src/crorden/dcm2niix_console/
 Authors:  Chris Rorden
@@ -193,7 +194,7 @@ License:  Permissive [top of file]
 
 Location: part of src/rickr/l_mcw_glob.c
 Authors:  Medical College of Wisconsin 
-License:  GNU GPL 2.0 [top of file]
+License:  Creative Commons Attribution License (CC BY 4.0) [top of file]
 
 Location: part of src/R_scripts/3dPFM.R
 Authors:  Muhammad Salman Asif (Georgia Tech)
