@@ -414,6 +414,15 @@ A. Large portions of the code (and current active development) is in
    the public domain. For example, the `afnipy` Python module is
    entirely within the public domain.
 
+   On May 12, 2026, an important update to license information in the
+   AFNI codebase occurred. The Medical College of Wisconsin granted
+   NIH a Creative Commons Attribution License (CC BY 4.0) for all of
+   the code under its copyright (typically referred to as the "major
+   portions of this software" that were developed from 1994-2000 at
+   MCW), which had previously been distributed with a GPL 2.0
+   license. A copy of the letter reflecting this update is stored
+   here: doc/license_history/MCW_AFNI_license_update_2026.pdf.
+
    But as outlined above, parts of the codebase also contain licenses,
    such as GNU GPL 2.0, MIT, Apache 2.0, BSD, Apple Public Source, and
    various free/permissive licensing descriptions; some very small
