@@ -397,7 +397,8 @@ inobj : InOpts object
         self.dset_proc_clust       = self.dset_proc_clust_base + '.nii.gz'
         self.dset_proc_clust_table = self.dset_proc_clust_base + '_table.1D'
 
-        cmd  = '3dClusterize -idat 0 -ithr 0 -bisided -0.5 0.5 -NN 2 '
+        cmd  = '3dClusterize -overwrite '
+        cmd += '-idat 0 -ithr 0 -bisided -0.5 0.5 -NN 2 '
         cmd += '-pref_map "{}" '.format(self.dset_proc_clust)
         cmd += '-inset "{}" '.format(self.dset_proc_last)
         cmd += '> "{}" '.format(self.dset_proc_clust_table)
