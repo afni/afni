@@ -170,7 +170,7 @@ checks happen in a subsequent object.
         self.prefix          = None
 
         self.comp_mask       = None
-        self.comp_add_data   = None
+        self.comp_opts       = None
         self.checkpoint      = None
         self.device          = None
 
