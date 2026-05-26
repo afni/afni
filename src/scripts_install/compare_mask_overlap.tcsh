@@ -33,6 +33,7 @@ set orep      = "${opref}_report.txt"
 set rim_dep   = 5.0                      # mm value for rim depth
 set ADTO      = 0                        # add data into outdir?
 
+set overwrite = ""
 set wdir      = ""
 set DO_CLEAN  = 1           
 
@@ -120,6 +121,9 @@ while ( $ac <= $#argv )
             goto BAD_EXIT
         endif
 
+    else if ( "$argv[$ac]" == "-overwrite" ) then
+        set overwrite = "-overwrite"
+        
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = 0
         
@@ -160,6 +164,10 @@ endif
 if ( ! -e "${outdir}" ) then
     echo "++ Making new output directory: $outdir"
     \mkdir -p "${outdir}"
+else if ( -e "${outdir}" && "${overwrite}" != "-overwrite" ) then
+    echo "** ERROR: outdir exists already: ${outdir}"
+    echo "   Either remove it, or add '-overwrite'"
+    goto BAD_EXIT
 endif
 
 # make the working directory
@@ -554,6 +562,10 @@ Options ~1~
                     (which is created as a new subdirectory of the output
                     file location---do not include path info here, just a
                     simple name)
+
+-overwrite         :by default, this program will not overwrite a
+                    pre-existing 'outdir'. Add this option to allow it to
+                    do so
 
 -no_clean          :do not remove working directory (def: remove it)
 
