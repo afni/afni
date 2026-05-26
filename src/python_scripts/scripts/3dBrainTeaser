@@ -17,7 +17,8 @@ from afnipy import lib_vnet_defs as DEF
 
 # combine all entries for help here
 g_help_dict   = {**DEF.DOPTS, 
-                 'STR_all_device': DEF.STR_all_device}
+                 'STR_all_device' : DEF.STR_all_device,
+                 'STR_all_comp_opts_nono' : DEF.STR_all_comp_opts_nono}
 
 g_help_string = """Overview ~1~
 
@@ -56,11 +57,14 @@ Usage ~1~
                 quantitatively and in QC images; this option is likely
                 primarily for testing purposes.
 
--comp_add_data CAD :if CAD is Yes or 1, then if a '-comp_mask ..' has 
-                been input, then add the option '-add_data_to_outdir Yes' 
-                when running that command, in order to have more
-                interactive QC outputs
-                (def: '{comp_add_data}')
+-comp_opts CO  :if using '-comp_mask ..', then users can add one or more 
+                options for the execution of compare_mask_overlap.tcsh 
+                via this opt. One common choice for CO here could be:
+                    "-add_data_to_outdir  Yes"
+                Some options for compare_mask_overlap.tcsh _cannot_ be
+                managed here, and those are:
+                    {STR_all_comp_opts_nono}
+                (def: '{comp_opts}')
 
 -device D      :users can choose the device that they run on, namely to
                 use a CPU or GPU for processing, from this list: 
@@ -97,9 +101,37 @@ Notes ~1~
 
 Examples ~1~
 
- ****
+  1. Basic usage, provide a T1w anatomical dset as input and get a mask
+     out:
 
-           
+     3dBrainTeaser                                                  \
+         -overwrite                                                 \
+         -checkpoint  checkpoint_001.pt                             \
+         -inset       sub-123_T1w.nii.gz                            \
+         -prefix      sub-123_T1w_mask.nii.gz
+
+         
+  2. Same as #1, but add in another mask for comparison:
+
+     3dBrainTeaser                                                  \
+         -overwrite                                                 \
+         -checkpoint  checkpoint_001.pt                             \
+         -inset       sub-123_T1w.nii.gz                            \
+         -prefix      sub-123_T1w_mask.nii.gz                       \
+         -comp_mask   sub-123_T1w_other_mask.nii.gz
+
+
+  3. Same as #2, but keep overlap datasets and a driver script in the 
+     mask-comparison directory, for interactive exploration:
+
+     3dBrainTeaser                                                  \
+         -overwrite                                                 \
+         -checkpoint  checkpoint_001.pt                             \
+         -inset       sub-123_T1w.nii.gz                            \
+         -prefix      sub-123_T1w_mask.nii.gz                       \
+         -comp_mask   sub-123_T1w_other_mask.nii.gz                 \
+         -comp_opts   -add_data_to_outdir Yes
+
 
 """.format(**g_help_dict)
 
@@ -183,10 +215,10 @@ checks happen in a subsequent object.
         # optional parameters
 
         self.valid_opts.add_opt('-comp_mask', 1, [], 
-                        helpstr='name of a mask, esp. for comparison/testing')
+                        helpstr='add a mask for comparisons (like testing/QC)')
 
-        self.valid_opts.add_opt('-comp_add_data', 1, [], 
-                        helpstr='if comp_mask is used, add more QC output')
+        self.valid_opts.add_opt('-comp_opts', -1, [], 
+                        helpstr='add opts for compare_mask_overlap.tcsh part')
 
         self.valid_opts.add_opt('-checkpoint', 1, [], 
                         helpstr='name of specific V-net model to apply')
@@ -293,11 +325,11 @@ checks happen in a subsequent object.
                     BASE.EP(err_base + opt.name)
                 self.comp_mask = val
 
-            elif opt.name == '-comp_add_data':
-                val, err = uopts.get_string_opt('', opt=opt)
+            elif opt.name == '-comp_opts':
+                val, err = uopts.get_string_list('', opt=opt)
                 if val is None or err:
                     BASE.EP(err_base + opt.name)
-                self.comp_add_data = val
+                self.comp_opts = val
 
             elif opt.name == '-checkpoint':
                 val, err = uopts.get_string_opt('', opt=opt)

@@ -53,7 +53,7 @@ inobj : InOpts object
         self.prefix           = DEF.DOPTS['prefix']
 
         self.comp_mask        = DEF.DOPTS['comp_mask']
-        self.comp_add_data    = DEF.DOPTS['comp_add_data']
+        self.comp_opts        = DEF.DOPTS['comp_opts']
         self.comp_mask_odir   = None         # output dir for comparison items
 
         self.checkpoint       = DEF.DOPTS['checkpoint']
@@ -140,18 +140,13 @@ inobj : InOpts object
 
         BAD_RETURN = -8
 
-        if self.comp_add_data :
-            add_data = 'Yes'
-        else:
-            add_data = 'No'
-
         cmd  = 'compare_mask_overlap.tcsh '
         cmd += '{} '.format(self.overwrite)
         cmd += '-inputA {} '.format(self.prefix)
         cmd += '-inputB {} '.format(self.comp_mask)
         cmd += '-ulay   {} '.format(self.inset)
         cmd += '-outdir {} '.format(self.comp_mask_odir)
-        cmd += '-add_data_to_outdir {} '.format(add_data)
+        cmd += '{} '.format(' '.join(self.comp_opts))
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
 
@@ -698,8 +693,8 @@ inobj : InOpts object
 
         if io.comp_mask is not None :
             self.comp_mask = io.comp_mask
-        if io.comp_add_data is not None :
-            self.comp_add_data = io.comp_add_data
+        if io.comp_opts is not None :
+            self.comp_opts = io.comp_opts
 
         if io.checkpoint is not None :
             self.checkpoint = io.checkpoint
@@ -762,6 +757,18 @@ inobj : InOpts object
                 msg+= "{}".format(self.prefix)
                 ab.EP(msg)
 
+            # make sure prohibited opts are not used here
+            if len(self.comp_opts) :
+                for opt in DEF.LIST_all_comp_opts_nono :
+                    if opt in self.comp_opts :
+                        ab.EP("Cannot manage opt '{}' here".format(opt))
+        else:
+            # warn user they are likely missing comp_mask, or forgot
+            # to delete the opts for it
+            if len(self.comp_opts) :
+                msg = "Using -comp_opts without -comp_mask will have "
+                msg+= "no effect. Consider using either both or neither."
+                ab.WP(msg)
 
         # (opt) checkpoint
         if self.checkpoint :
@@ -792,7 +799,6 @@ inobj : InOpts object
 
         # convert bool-ish opts to bools
         self.do_clean       = au.convert_to_bool_yn10(self.do_clean)
-        self.comp_add_data  = au.convert_to_bool_yn10(self.comp_add_data)
 
         return 0
 

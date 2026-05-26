@@ -18,6 +18,10 @@ STR_all_device  = ', '.join(LIST_all_device)
 model_orient = 'RSP'
 model_matrix = 16
 
+# compare_mask_overlap.tcsh options that cannot be provided via '-comp_opts'
+LIST_all_comp_opts_nono = ['-inputA', '-inputB', '-ulay', '-outdir']
+STR_all_comp_opts_nono  = ', '.join(LIST_all_comp_opts_nono)
+
 # ============================================================================
 # default values, parameters and settings for the main obj
 
@@ -29,7 +33,7 @@ DOPTS = {
     'do_log'          : 'No',
     'inset'           : '',
     'comp_mask'       : '',
-    'comp_add_data'   : 'No',
+    'comp_opts'       : [],
     'checkpoint'      : '',
     'prefix'          : '',
     'device'          : 'cpu',
