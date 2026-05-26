@@ -104,32 +104,32 @@ Examples ~1~
   1. Basic usage, provide a T1w anatomical dset as input and get a mask
      out:
 
-     3dBrainTeaser                                                  \
-         -overwrite                                                 \
-         -checkpoint  checkpoint_001.pt                             \
-         -inset       sub-123_T1w.nii.gz                            \
+     3dBrainTeaser                                                  \\
+         -overwrite                                                 \\
+         -checkpoint  checkpoint_001.pt                             \\
+         -inset       sub-123_T1w.nii.gz                            \\
          -prefix      sub-123_T1w_mask.nii.gz
 
          
   2. Same as #1, but add in another mask for comparison:
 
-     3dBrainTeaser                                                  \
-         -overwrite                                                 \
-         -checkpoint  checkpoint_001.pt                             \
-         -inset       sub-123_T1w.nii.gz                            \
-         -prefix      sub-123_T1w_mask.nii.gz                       \
+     3dBrainTeaser                                                  \\
+         -overwrite                                                 \\
+         -checkpoint  checkpoint_001.pt                             \\
+         -inset       sub-123_T1w.nii.gz                            \\
+         -prefix      sub-123_T1w_mask.nii.gz                       \\
          -comp_mask   sub-123_T1w_other_mask.nii.gz
 
 
   3. Same as #2, but keep overlap datasets and a driver script in the 
      mask-comparison directory, for interactive exploration:
 
-     3dBrainTeaser                                                  \
-         -overwrite                                                 \
-         -checkpoint  checkpoint_001.pt                             \
-         -inset       sub-123_T1w.nii.gz                            \
-         -prefix      sub-123_T1w_mask.nii.gz                       \
-         -comp_mask   sub-123_T1w_other_mask.nii.gz                 \
+     3dBrainTeaser                                                  \\
+         -overwrite                                                 \\
+         -checkpoint  checkpoint_001.pt                             \\
+         -inset       sub-123_T1w.nii.gz                            \\
+         -prefix      sub-123_T1w_mask.nii.gz                       \\
+         -comp_mask   sub-123_T1w_other_mask.nii.gz                 \\
          -comp_opts   -add_data_to_outdir Yes
 
 
