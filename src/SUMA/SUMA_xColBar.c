@@ -4,6 +4,7 @@ xim.c display.c and pbar.c*/
 
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
+// [pt] check if this is used at all, or could be removed?
 #include <sys/time.h> // For struct timeval and gettimeofday
 
 /*!
@@ -946,8 +947,6 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
     SUMA_SL_Err("NULL SurfCont"); SUMA_RETURN(0); }
 
    curColPlane = SUMA_ADO_CurColPlane(ado);
-   if ((uintptr_t) (curColPlane->OptScl) < 4096) 
-      { SUMA_SL_Err("Invalid curColPlane->OptScl"); SUMA_RETURN(0); }
    
    switch (curColPlane->OptScl->ThrMode) {
       case SUMA_LESS_THAN:
@@ -1261,6 +1260,7 @@ int SUMA_SwitchColPlaneIntensity_one (
       SUMA_S_Err("This is a NODE_RGB dataset, cannot switch columns.\n");
       SUMA_RETURN(0);
    }
+
    if (ind >= SDSET_VECNUM(colp->dset_link)) {
       SUMA_S_Errv("Col. Index of %d exceeds maximum of %d for this dset.\n",
                    ind, SDSET_VECNUM(colp->dset_link)-1);
@@ -1315,8 +1315,8 @@ int SUMA_SwitchColPlaneIntensity_one (
                         SUMA_LH("Setting threshold values");
                         SUMA_Set_Menu_Widget(SurfCont->SwitchThrMenu,
                                       colp->OptScl->tind+1);
-                        /* range is the range over which colp->OptScl->ThreshRange
-                            can be chosen */
+                        /* range is over which colp->OptScl->ThreshRange
+                           can be chosen */
                         if (SUMA_GetDsetColRange(colp->dset_link,
                                              colp->OptScl->tind, range, loc)) {
                            SUMA_SetScaleRange(ado, range );
@@ -1604,7 +1604,8 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    int imenu = 0;
    SUMA_MenuCallBackData *datap=NULL;
    SUMA_ALL_DO *ado=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL, *colpC=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_OVERLAYS *colpC=NULL;
    SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -1645,7 +1646,7 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    SUMA_RETURNe;
 }
 
-// Called when B subbrick option changed
+/* Called when B subbrick option is changed */
 int SUMA_SwitchColPlaneBrightness(
          SUMA_ALL_DO *ado,
          SUMA_OVERLAYS *colp,
