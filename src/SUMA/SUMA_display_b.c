@@ -556,8 +556,21 @@ SUMA_SHPINX_BREAK
    #endif
    
    /* realize the widget */
-   if (SUMAg_CF->X->UseSameSurfCont && SUMAg_CF && SUMAg_CF->X && 
-	SUMAg_CF->X->SC_Notebook) XtManageChild (SUMAg_CF->X->SC_Notebook);
+   if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SUMAg_CF->X->SC_Notebook);
+
+   if( needsX11Redraw() ){   /* macos 26 fix */
+     XtInsertEventHandler( SurfCont->Mainform,
+                           StructureNotifyMask ,    /* resizes */
+                           FALSE ,                  /* nonmaskable events? */
+                           SUMA_expose_EV ,         /* handler */
+                           (XtPointer) SurfCont->Mainform ,  /* client data */
+                           XtListTail               /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for Mask ctrl tractography resize\n");
+   }
+
    XtRealizeWidget (SurfCont->TLS);
    
    SUMA_LH("%s",slabel);
