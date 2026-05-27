@@ -142,13 +142,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                              verify that AFNI handles either well
                                              THIS handling here is TEMPORARY */
     int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
-    int numSurfaceObjects, j;
+    int j;
     float newMin, newMax;
    SUMA_Boolean LocalHead = NOPE;
 
 
    SUMA_ENTRY;
-   
+
    if (NI_TALK_MODE < 0) {
       if (AFNI_yesenv("SUMA_NI_TEXT_TALK_MODE")) {
          SUMA_S_Note("Talking in text mode");
@@ -1007,6 +1007,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   break;
                }
                it = SUMA_ABS(curColPlane->ShowMode);
+               // [pt] check about changing ShowMode to only be pos?
                curColPlane->ShowMode =  EngineData->i ;
                /*
                if (EngineData->i == SW_SurfCont_DsetViewXXX) {
@@ -1794,10 +1795,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   */
                   SUMAg_CF->ClipPlaneType[SUMAg_CF->N_ClipPlanes] =
                                     (SUMA_CLIP_PLANE_TYPES)EngineData->i;
-//                  snprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes],
-//                                          8*sizeof(char), "%s", EngineData->s);
                   snprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes],
-                                          sizeof(EngineData->s), "%s", EngineData->s);
+                                          8*sizeof(char), "%s", EngineData->s);
                   SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes  ] =
                                                    (GLdouble)EngineData->fv15[0];
                   SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes+1] =
@@ -1811,10 +1810,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   /* Replace an existing one */
                   SUMAg_CF->ClipPlaneType[iplane] =
                                           (SUMA_CLIP_PLANE_TYPES)EngineData->i;
-//                  snprintf(SUMAg_CF->ClipPlanesLabels[iplane],
-//                                          8*sizeof(char), "%s", EngineData->s);
                   snprintf(SUMAg_CF->ClipPlanesLabels[iplane],
-                                          sizeof(EngineData->s), "%s", EngineData->s);
+                                          8*sizeof(char), "%s", EngineData->s);
                   SUMAg_CF->ClipPlanes[4*iplane  ] =
                                           (GLdouble)EngineData->fv15[0];
                   SUMAg_CF->ClipPlanes[4*iplane+1] =
@@ -4033,13 +4030,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         
                      newMin = SurfCont->curColPlane->OptScl->IntRange[0];
                      newMax = SurfCont->curColPlane->OptScl->IntRange[1];
-                     if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
-                        XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
                      N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-                     if (numSurfaceObjects != N_adolist) {
-                            SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-                            SUMA_RETURN (NOPE);
-                     }
                      for (j=0; j<N_adolist; ++j){
                          SUMA_ALL_DO *ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
                          SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
@@ -4391,6 +4382,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   if (SurfCont->curColPlane->ShowMode < 0)
                      SurfCont->curColPlane->ShowMode =
                         -SurfCont->curColPlane->ShowMode;
+                        // [pt] review use of negative ShowMode---should be OK/useful
                         if (SurfCont->curColPlane->ShowMode < 0)
                            fprintf(stderr, "******* WARNING: ->ShowMode set to negative in SUMA_Engine 7\n");
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr,
@@ -5943,6 +5935,7 @@ int SUMA_Selectable_ADOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    SUMA_RETURN (k);
 }
 
+// [pt] check about sticking with the master branch version of this function???
 int SUMA_ADOs_WithUniqueSurfCont (SUMA_DO *dov, int N_dov, int *dov_IDs)
 {
    static char FuncName[]={"SUMA_ADOs_WithUniqueSurfCont"};
