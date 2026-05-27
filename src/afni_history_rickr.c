@@ -53,6 +53,15 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, May, 2026, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "allow for new slice timing patterns, alt+z_D and alt-z_D",
+   "Like alt+z, but generalized with a step of D slices, rather than just 2.\n"
+   "Note that alt+z == alt+z_2.  There may be confusion with alt+z2, which\n"
+   "is different.  Life is hard.\n"
+   "The same relationships hold between alt-z_D and alt-z.\n"
+   "Inspired by new data from D Handwerker."
+ } ,
+
  { 18, May, 2026, RCR, "3dCM", MICRO, TYPE_BUG_FIX,
    "if writing resample dset, preserve dirname",
    "Thanks to X Davis for noting the problem."

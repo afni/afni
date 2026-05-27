@@ -1581,9 +1581,10 @@ g_history = """
    2.23 Apr 25, 2025 - allow float read retry for na values
    2.24 Jan  7, 2026 - add -show_xmat_warnings
    2.25 Mar 18, 2026 - add -censor_to_spike_regs
+   2.26 May 26, 2026 - add new slice patterns alt+z_D and alt-z_D
 """
 
-g_version = "1d_tool.py version 2.25, March 18, 2026"
+g_version = "1d_tool.py version 2.26, May 26, 2026"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
@@ -2965,7 +2966,7 @@ class A1DInterface:
       # pattern
       errs = 0
       pattern = self.slice_pattern_to_times[0]
-      if pattern not in UTIL.g_valid_slice_patterns:
+      if not UTIL.is_valid_slice_pattern(pattern):
          print("** -slice_pattern_to_times: invalid slice pattern %s" % pattern)
          print("   example (alt+z): -slice_pattern_to_times alt+z 34 2")
          print("   see 'tpattern' examples from 'to3d -help'")
