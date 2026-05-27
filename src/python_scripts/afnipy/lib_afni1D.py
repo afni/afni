@@ -2779,7 +2779,8 @@ class Afni1D:
       else:
          timing = [v[0] for v in self.mat]
 
-      nb, tpat = UTIL.timing_to_slice_pattern(timing, rdigits=rdigits,verb=verb)
+      nb, tpat = UTIL.timing_to_slice_pattern(timing, rdigits=rdigits,
+                                              tr=self.tr, verb=verb)
       if nb < 0:
          tpat = 'INVALID'
 

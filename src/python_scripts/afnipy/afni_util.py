@@ -1966,17 +1966,20 @@ def alt_z_D_level(pattern):
 
    return D
 
-def timing_to_slice_pattern(timing, rdigits=1, verb=1):
+def timing_to_slice_pattern(timing, rdigits=1, tr=0, verb=1):
    """given an array of slice times, try to return multiband level and
       a pattern in g_valid_slice_patterns
 
       inputs:
          timing     : <float list> : slice times
-         rdigits    : [1] <int>    : num digits to round to for required test
-         verb       : [1] <int>    : verbosity level
+         rdigits    : <int>        : num digits to round to for required test
+         tr         : float        : requested TR, if passed
+         verb       : <int>        : verbosity level
 
       method:
          - detect timing grid (TR = tgrid*nslice_times (unique))
+           - if passed tr > 0, use it
+             - if apparent discrepancy, warn
          - multiband = number of repeated time sets (ntimes/nunique)
          - round timing/tgrid
             - test as ints in {0..nunique-1}
@@ -2012,11 +2015,24 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
    # TR is slice time * num_slices_times
    TR = tgrid*nunique
 
+   # if tr was passed, apply it instead (set TR and tgrid)
+   if tr > 0:
+      # check if fractional diff exceeds 1/4 slice fraction
+      # (> 1 would mean an extra slice might fit one way or the other)
+      if abs(TR-tr)/(TR+tr)*2 > 0.25/nunique :
+         print("** warning, computed and passed TR discrepancy (%g, %g)" \
+               % (TR, tr))
+         print("-- using passed TR %g, but might not be reliable" % tr)
+      elif verb > 2:
+         print("-- applying passed TR %g over computed TR %g" % (tr, TR))
+      TR = tr
+      tgrid = TR/nunique
+
    # note multiband level (number of repeated times)
    mblevel = int(round(ntimes/nunique))
 
    if verb > 2:
-      print("-- TR +~ %g, MB %g, rdig %d, nunique %g, mean slice diff: %g" \
+      print("-- TR ~= %g, MB %g, rdig %d, nunique %g, mean slice diff: %g" \
             % (TR, mblevel, rdigits, nunique, tgrid))
 
    # if TR is not valid, we are out of here
@@ -2031,17 +2047,18 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
    tscale = [t*scalar for t in timing]
 
    # get rounded unique sublist and sort, to compare against ints
-   tround = get_unique_sublist([int(round(t,ndigits=rdigits)) for t in tscale])
+   tround = get_unique_sublist([int(round(t)) for t in tscale])
    tround.sort()
 
    # chat
-   if verb > 1:
+   if verb > 2:
       # print("++ t2sp: TR %s, min %s, max %s" % (TR, nzmin, nzmax))
-      if verb > 2: print("-- times : %s" % timing)
-      if verb > 3:
-         print("== (sorted) tscale should be close to ints, tround must be ints")
-         print("-- tscale: %s" % gen_float_list_string(sorted(tscale)))
-         print("-- tround: %s" % gen_float_list_string(tround))
+      if verb > 2:
+        print("== times : %s" % timing)
+        print("-- tscale = slice_time / time_grid -> should be ~slice_index")
+        print("-- (sorted) tscale should be close to ints, tround must be ints")
+        print("-- tscale: %s" % gen_float_list_string(sorted(tscale)))
+        print("-- tround: %s" % gen_float_list_string(tround))
 
    # ----------------------------------------------------------------------
    # tests:
@@ -2070,10 +2087,11 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
       return 1, defpat
 
    # check tscale timing, warn when not close enough to an int
+   # (be flexible due to siemens 0.025 grid)
    warnvec = []
    for ind in range(ntimes):
       tsval = tscale[ind]
-      if round(tsval) != round(tsval, ndigits=2):
+      if round(tsval) != round(tsval, ndigits=1):
          warnvec.append(ind)
 
    # actually warn if we found anything
@@ -2082,17 +2100,23 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
       badmults = 1
       print("** warning: %d/%d slice times are only approx multiples of %g" \
             % (len(warnvec), ntimes, tgrid))
-      if verb > 1:
+      if verb > 2:
          # make this pretty?
          ratios = [t/tgrid for t in timing]
          maxlen, strtimes = floats_to_strings(timing)
          maxlen, strratio = floats_to_strings(ratios)
          for ind in range(ntimes):
-            print(" bad time[%2d] : %s  /  %g  =  %s" \
-                  % (ind, strtimes[ind], tgrid, strratio[ind]))
+            if ind in warnvec:
+               c = '*'
+            else:
+               c = ' '
+            print("   %s bad time[%2d] : %s  /  %g  =  %s" \
+                  % (c, ind, strtimes[ind], tgrid, strratio[ind]))
 
    if verb > 1 or badmults:
-      print("-- timing: max ind,diff = %s" % list(__max_int_diff(tscale)))
+      idiff = __max_ind_diff(tscale)
+      print("-- timing: max slice index diff, slice = %g, %g" \
+            % (idiff[1], idiff[0]))
 
    # ----------------------------------------------------------------------
    # at this point, the sorted list has a regular (multiband?) pattern
@@ -2170,7 +2194,7 @@ def floats_to_strings(fvals):
 
     return len(slist[0]), slist
 
-def __max_int_diff(vals):
+def __max_ind_diff(vals):
     """return the (index and) maximum difference from an int (max is 0.5)
        if all the same, return 0, diff[0]
     """
