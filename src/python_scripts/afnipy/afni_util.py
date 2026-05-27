@@ -2289,7 +2289,7 @@ def _uniq_ints_to_tpattern(tints):
         - for each test pattern:
             - compare with slice_pattern_to_timing()
       + now also test for alt+z_D, for some integer D
-            - while alt+z aquires every other slice, alt+z_D acquires
+            - while alt+z acquires every other slice, alt+z_D acquires
               every Dth slice (so alt+z == alt+z_2)
             - alt+z    slice order: 0, 2, 4, ..., 1, 3, 5
             - alt+z_D slice order: 0, D, 2D, 3D, ... (all modulo nslices)
