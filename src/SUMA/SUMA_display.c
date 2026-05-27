@@ -14774,7 +14774,7 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
    curColPlane = SUMA_ADO_CurColPlane(ado);
 
    SUMA_LHv("About to change page to %d\n", (int)SurfCont->SurfContPage->value);
-    
+   
    // This if function causes the surface control menu to expand downwards.
    if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook && 
        (SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook,
