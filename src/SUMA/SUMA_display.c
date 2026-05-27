@@ -12230,11 +12230,6 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
       if (ColPlane) SO->SurfCont->curColPlane = ColPlane;
       SUMA_RETURN(YUP);
    }
-   
-   if (0 && SO->SurfCont->curColPlane->BoxOutlineThresh){
-        SO->SurfCont->curColPlane = ColPlane;
-        SUMA_RETURNe;    
-   }
 
    if (!ColPlane) {
       SUMA_LH("Initializing with NULL");
@@ -12319,20 +12314,13 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
 
    }
 
-   if (SO->SurfCont->curColPlane->BoxOutlineThresh) SUMA_RETURNe;
-
-
    SO->SurfCont->curColPlane = ColPlane;
-
-   // if (SO->SurfCont->curColPlane->BoxOutlineThresh) SUMA_RETURNe;
 
    SUMA_LHv("Have ShowMode for %s of %d (widget %d)\n",
                 SO->SurfCont->curColPlane->Label,
                 SO->SurfCont->curColPlane->ShowMode,
                 SUMA_ShowMode2ShowModeMenuItem(
                               SO->SurfCont->curColPlane->ShowMode));
-//   if (SO->SurfCont->curColPlane->BoxOutlineThresh) SUMA_RETURNe;
-//
    SUMA_Set_Menu_Widget(SO->SurfCont->DsetViewModeMenu,
                  SUMA_ShowMode2ShowModeMenuItem(
                               SO->SurfCont->curColPlane->ShowMode));
@@ -12340,8 +12328,6 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
    XmToggleButtonSetState (SO->SurfCont->ColPlaneShow_tb, ColPlane->Show, NOPE);
    */
 
-//   if (SO->SurfCont->curColPlane->BoxOutlineThresh) SUMA_RETURNe;
-//
    /* Set 1 only sensitivity */
    if (SO->SurfCont->ColPlaneShowOneFore_tb) {
       if (SO->SurfCont->curColPlane->isBackGrnd) {
@@ -12355,9 +12341,6 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
 
    /* update the cross hair group */
    SUMA_Init_SurfCont_CrossHair((SUMA_ALL_DO *)SO);
-
-//   if (SO->SurfCont->curColPlane->BoxOutlineThresh) SUMA_RETURNe;
-//
 
    /* set the colormap */
    SUMA_LH("Cmap time");
@@ -16293,7 +16276,7 @@ int SUMA_SelectSwitchColPlane_one(SUMA_ALL_DO *ado,
                                   SUMA_LIST_WIDGET *LW,
                                   int ichoice, SUMA_Boolean CloseShop,
                                   int setmen)
-    /* This function is called for /* Switch Dset */
+    /* This function is called for Switch Dset */
 {
    static char FuncName[]={"SUMA_SelectSwitchColPlane_one"};
    SUMA_OVERLAYS *ColPlane=NULL;
@@ -16316,12 +16299,6 @@ int SUMA_SelectSwitchColPlane_one(SUMA_ALL_DO *ado,
          if (LocalHead)
             fprintf (SUMA_STDERR,"%s: Retrieved ColPlane named %s\n",
                      FuncName, ColPlane->Name);
-                     
-            SUMA_SurfaceObject * SO = (SUMA_SurfaceObject *)ado;
-           if (SO->SurfCont->curColPlane->BoxOutlineThresh){    
-                SO->SurfCont->curColPlane = ColPlane;
-                SUMA_RETURNe;    
-           }
            
          SUMA_InitializeColPlaneShell(ado, ColPlane);
 

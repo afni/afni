@@ -4062,8 +4062,20 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
       /* copy face elements to SO structure */
       SO->FaceSetDim = flist[0]->nverts;
       SO->N_FaceSet = num_elems;
-      SO->FaceSetList = (int *) SUMA_calloc (SO->FaceSetDim * num_elems,
-                                             sizeof(int));
+        if (SO->FaceSetDim <= 0 || num_elems <= 0) {
+            SUMA_SL_Err("Invalid dimensions");
+            SUMA_RETURN(NOPE);
+        }
+
+        if ((size_t)SO->FaceSetDim > SIZE_MAX / (size_t)num_elems) {
+            SUMA_SL_Err("Allocation overflow");
+            SUMA_RETURN(NOPE);
+        }
+
+        SO->FaceSetList = (int *)SUMA_calloc(
+            (size_t)SO->FaceSetDim * (size_t)num_elems,
+            sizeof(int)
+        );
       if (!SO->FaceSetList) {
          SUMA_S_Err("Failed to allocate for SO->NodeList.\n");
          if (SO->NodeList) SUMA_free(SO->NodeList);
@@ -4652,7 +4664,12 @@ SUMA_Boolean SUMA_STL_Write (char * f_name_in, SUMA_SurfaceObject *SO)
             char dummy[80], dhead[81];
             snprintf(dummy,60,"SO Label: %s, Written by SUMA",
                      CHECK_NULL_STR(SO->Label));
-            snprintf(dhead,80,"%-80s",dummy);
+            //snprintf(dhead,80,"%-80s",dummy);
+            snprintf(dhead, sizeof(dhead),
+                 "%-*.*s",
+                 (int)(sizeof(dhead) - 1),
+                 (int)(sizeof(dhead) - 1),
+                 dummy);
             fwrite(dhead, sizeof(char), 80, fout);
             for (i=0; i<SO->N_FaceSet; ++i) {
                i3 = 3*i;

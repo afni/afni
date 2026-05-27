@@ -946,7 +946,7 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
     SUMA_SL_Err("NULL SurfCont"); SUMA_RETURN(0); }
 
    curColPlane = SUMA_ADO_CurColPlane(ado);
-   if (curColPlane->OptScl<0x20)
+   if ((uintptr_t) (curColPlane->OptScl) < 4096) 
       { SUMA_SL_Err("Invalid curColPlane->OptScl"); SUMA_RETURN(0); }
    
    switch (curColPlane->OptScl->ThrMode) {
@@ -4213,9 +4213,9 @@ void SUMA_CreateTable(  Widget parent,
    if (!TF) { SUMA_SL_Err("NULL TF"); SUMA_RETURNe; }
    /* looks like wname is the "useless default"    17 Feb 2021 [rickr] */
    if (iwname) { /* override useless default */
-      snprintf(TF->wname,63,"%s", iwname);
+      snprintf(TF->wname, sizeof(TF->wname), "%s", iwname);
    } else {
-      snprintf(TF->wname,63,"%s", wname);
+      snprintf(TF->wname, sizeof(TF->wname), "%s", wname);
    }
    TF->Ni = Ni; TF->Nj = Nj; TF->editable = editable;
    TF->cwidth = (int *)SUMA_calloc(TF->Nj, sizeof(int));
@@ -4292,7 +4292,7 @@ void SUMA_CreateTable(  Widget parent,
       }
 
       /* Create what would become a table URI in the html help */
-      snprintf(wname, 63, "%s", TF->wname);
+      snprintf(wname, sizeof(wname), "%s", TF->wname);
       SUMA_Register_Widget_Help(NULL, 2, wname, NULL, NULL);
 
       for (j=0; j<TF->Nj; ++j) { /* for each column */
@@ -4345,9 +4345,18 @@ void SUMA_CreateTable(  Widget parent,
                     Cannot use it before updating
                     help generating functions which now call for help on .c00,
                     .c01, or .r00 .r01, etc. */
-                  snprintf(wname, 63, "%s.%s", TF->wname, row_tit[i]);
+                  snprintf(wname, sizeof(wname),
+                     "%.*s.%.*s",
+                     (int)(sizeof(wname) / 2 - 2),
+                     TF->wname,
+                     (int)(sizeof(wname) / 2 - 2),
+                     row_tit[i]);
                } else {
-                  snprintf(wname, 63, "%s.r%02d", TF->wname, i);
+                  snprintf(wname, sizeof(wname),
+                     "%.*s.r%d",
+                     (int)(sizeof(wname) - 16),
+                     TF->wname,
+                     i);
                }
                SUMA_Register_Widget_Help(TF->cells[n], 1, wname,
                                          row_hint?row_hint[i]:NULL,
@@ -4446,10 +4455,19 @@ void SUMA_CreateTable(  Widget parent,
                     Cannot use it before updating
                     help generating functions which now call for help on .c00,
                     .c01, or .r00 .r01, etc. */
-                  snprintf(wname, 63, "%s.%s", TF->wname, col_tit[j]);
+                  snprintf(wname, sizeof(wname),
+                     "%.*s.%.*s",
+                     (int)(sizeof(wname) / 2 - 2),
+                     TF->wname,
+                     (int)(sizeof(wname) / 2 - 2),
+                     col_tit[j]);
                } else {
-                  snprintf(wname, 63, "%s.c%02d", TF->wname, j);
-               }
+                  snprintf(wname, sizeof(wname),
+                     "%.*s.c%02u",
+                     (int)(sizeof(wname) - 6),
+                     TF->wname,
+                     (unsigned)(j % 100));
+                           }
                SUMA_Register_Widget_Help(TF->cells[n], 1, wname,
                                          col_hint?col_hint[j]:NULL,
                                          col_help?col_help[j]:NULL ) ;
@@ -4474,10 +4492,19 @@ void SUMA_CreateTable(  Widget parent,
                               SUMAg_CF->X->TableTextFontList, NULL);
                if (col_help || col_hint || row_help || row_hint)  {
                   if (TF->Ni>1) {
-                     snprintf(wname, 63, "%s[%d,%d]", TF->wname, i, j);
+                     snprintf(wname, sizeof(wname),
+                         "%.*s[%d,%d]",
+                         (int)(sizeof(wname) - 32),
+                         TF->wname,
+                         i,
+                         j);
                   } else {
-                     snprintf(wname, 63, "%s[%d]", TF->wname, n);
-                  }
+                     snprintf(wname, sizeof(wname),
+                         "%.*s[%d]",
+                         (int)(sizeof(wname) - 16),
+                         TF->wname,
+                         n);
+                    }
                   if (!row_tit && !col_tit && TF->Ni == 1 && TF->Nj == 1) {
                      char *shh=NULL, *sii=NULL;
                      if (col_help) shh =  col_help[0] ;
@@ -4964,7 +4991,13 @@ void SUMA_CreateSliceFields(  Widget parent,
                            XmNfontList, SUMAg_CF->X->TableTextFontList,
                                      NULL);
    if (hint || help) {
-      snprintf(wname,63, "%s->%s", SF->wname, tit);
+      // snprintf(wname,63, "%s->%s", SF->wname, tit);
+      snprintf(wname, sizeof(wname),
+         "%.*s->%.*s",
+         (int)(sizeof(wname) / 2 - 3),
+         SF->wname,
+         (int)(sizeof(wname) / 2 - 2),
+         tit);
       SUMA_Register_Widget_Help( SF->lab, 1, wname, hint, help);
    }
    mult = ((int)(SF->Nslc/20.0)/5)*5; if (mult < 1) mult = 1;
@@ -5009,7 +5042,13 @@ void SUMA_CreateSliceFields(  Widget parent,
                   SUMAg_CF->X->TableTextFontList, NULL);
 
    if (hint || help) {
-      snprintf(wname, 63, "%s->%s_text", SF->wname, tit);
+      // snprintf(wname, 63, "%s->%s_text", SF->wname, tit);
+      snprintf(wname, sizeof(wname),
+         "%.*s->%.*s_text",
+         (int)(sizeof(wname) / 2 - 3),
+         SF->wname,
+         (int)(sizeof(wname) / 2 - 7),
+         tit);
       SUMA_Register_Widget_Help( SF->text, 1, wname, hint, help);
    }
    XtVaSetValues(SF->text, XmNcolumns, 3, NULL);
@@ -5043,7 +5082,11 @@ void SUMA_CreateSliceFields(  Widget parent,
                   SUMAg_CF->X->TableTextFontList, NULL);
 
    if (hint || help) {
-      snprintf(wname, 63, "%s->mont", SF->wname);
+      // snprintf(wname, 63, "%s->mont", SF->wname);
+      snprintf(wname, sizeof(wname),
+         "%.*s->mont",
+         (int)(sizeof(wname) - sizeof("->mont")),
+         SF->wname);
       SUMA_Register_Widget_Help( SF->mont, 1, wname, hint, help);
    }
    XtVaSetValues(SF->mont, XmNcolumns, 5, NULL);
@@ -5068,7 +5111,11 @@ void SUMA_CreateSliceFields(  Widget parent,
       xmToggleButtonWidgetClass, SF->rc, NULL);
    XtAddCallback (SF->tb,
          XmNvalueChangedCallback, shwslccb, ado);
-   snprintf(wname, 63, "%s->tb", SF->wname);
+   // snprintf(wname, 63, "%s->tb", SF->wname);
+   snprintf(wname, sizeof(wname),
+     "%.*s->tb",
+     (int)(sizeof(wname) - sizeof("->tb")),
+     SF->wname);
    SUMA_Register_Widget_Help(SF->tb, 1, wname,
                      "View (ON)/Hide Slice(s)",
                      SUMA_SurfContHelp_ShowSliceTgl);
@@ -11729,7 +11776,15 @@ SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_ALL_DO *ado,
             of sub-bricks. In any case, sub-brick labels are not that
             important here, this should be improved someday*/
          menu[i].label = (char*)malloc(13*sizeof(char));
-         snprintf(menu[i].label,11*sizeof(char), "sb%d", i-1);
+         // snprintf(menu[i].label,11*sizeof(char), "sb%d", i-1);
+         int n = snprintf(menu[i].label,
+                 sizeof(menu[i].label),
+                 "sb%d",
+                 i - 1);
+
+         if (n < 0 || n >= sizeof(menu[i].label)) {
+            SUMA_S_Warn("Menu label truncated.")
+         }
       }
       menu[i].class = &xmPushButtonWidgetClass;
       menu[i].mnemonic = '\0';
@@ -11974,20 +12029,18 @@ void SUMA_UpdatePvalueField (SUMA_ALL_DO *ado, float thresh)
           else           sprintf( buf , "p=%1d.-%2d"  , (int)rint(zval), dec ) ;
         }
       }
-      if( qval > 0.0f && qval < 0.9999 ){
-         char qbuf[16] ;
-         if( qval >= 0.0010 ) sprintf(qbuf,"%5.4f",qval) ;
-         else {
-           int dec = (int)(0.999 - log10(qval)) ;
-           zval = qval * pow( 10.0 , (double)dec ) ;  /* between 1 and 10 */
-           if( dec < 10 ) sprintf( qbuf, " %3.1f-%1d",            zval, dec );
-           else           sprintf( qbuf, " %1d.-%2d" , (int)rint(zval), dec );
-         }
-         strcat(buf,"\nq=") ; SUMA_strncat(buf,qbuf+1,99) ;
+      char qbuf[64];
+      if (qval >= 0.0010f) {
+            snprintf(qbuf, sizeof(qbuf), "%5.4f", qval);
       } else {
-         SUMA_strncat(buf,"\nq=N/A",99) ;
-      }
+            int dec = (int)(0.999 - log10(qval));
+            zval = qval * pow(10.0, (double)dec);
 
+            if (dec < 10)
+                snprintf(qbuf, sizeof(qbuf), " %3.1f-%1d", zval, dec);
+            else
+                snprintf(qbuf, sizeof(qbuf), " %1.0f.-%2d", rint(zval), dec);
+      }
       MCW_set_widget_label( SurfCont->thrstat_lb, buf );
    }
 

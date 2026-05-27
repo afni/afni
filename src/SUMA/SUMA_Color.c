@@ -4491,6 +4491,15 @@ SUMA_COLOR_MAP *SUMA_NICmapToCmap(NI_group *ngr)
       for (i=0; i<CM->N_M[0]; ++i) CM->M[i][3] = a[i];
    }
    if (s) {
+      if (CM->N_M[0] <= 0) {
+        SUMA_SL_Err("Invalid dimensions");
+        SUMA_RETURN(NULL);
+      }
+
+      if ((size_t)(CM->N_M[0]) > SIZE_MAX) {
+        SUMA_SL_Err("Allocation overflow");
+        SUMA_RETURN(NULL);
+      }
       CM->cname = (char **)SUMA_calloc(CM->N_M[0], sizeof(char *));
       for (i=0; i<CM->N_M[0]; ++i) CM->cname[i] = SUMA_copy_string(s[i]);
    }
