@@ -111,10 +111,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    char tmpstr[128], sfield[100], sdestination[100];
    const char *NextCom;
    int NextComCode, ii, i, id, ND, ip, NP, itmp=-1;
-   SUMA_SurfaceObject *SO = NULL;
+   SUMA_SurfaceObject *SO = NULL, *SOC=NULL;
    SUMA_ALL_DO *ado = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *colpC=NULL;
    float delta_t, ftmp = -1.0;
    struct  timeval tt;
    int it, Wait_tot, nn=0, N_SOlist,
@@ -144,7 +144,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
     int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
     int j;
     float newMin, newMax;
-   SUMA_Boolean LocalHead = NOPE;
+    static int BoxOutlineThresh = 0;  
+    SUMA_Boolean LocalHead = NOPE;
 
 
    SUMA_ENTRY;
@@ -1795,8 +1796,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   */
                   SUMAg_CF->ClipPlaneType[SUMAg_CF->N_ClipPlanes] =
                                     (SUMA_CLIP_PLANE_TYPES)EngineData->i;
-                  snprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes],
-                                          8*sizeof(char), "%s", EngineData->s);
+                  snprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], 8,
+                           "%.*s", 7, EngineData->s);                  
                   SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes  ] =
                                                    (GLdouble)EngineData->fv15[0];
                   SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes+1] =
@@ -1811,7 +1812,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMAg_CF->ClipPlaneType[iplane] =
                                           (SUMA_CLIP_PLANE_TYPES)EngineData->i;
                   snprintf(SUMAg_CF->ClipPlanesLabels[iplane],
-                                          8*sizeof(char), "%s", EngineData->s);
+                                          8*sizeof(char), "%.*s", 7, EngineData->s);
                   SUMAg_CF->ClipPlanes[4*iplane  ] =
                                           (GLdouble)EngineData->fv15[0];
                   SUMAg_CF->ClipPlanes[4*iplane+1] =
@@ -4000,6 +4001,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             Same for B_range and B_scale       ZSS July 2012 */
             if (NI_get_attribute(EngineData->ngr, "I_range")) {
                char *stmp = NULL;
+               SUMA_Boolean SymIrange;
 
                NI_GET_STR_CP(EngineData->ngr, "I_range", stmp);
                if (!stmp) {
@@ -4019,9 +4021,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SurfCont->curColPlane->OptScl->IntRange[1] = dv15[1];
                      
                      // Ensure symmetric I range compatible with input I range values
-                     if (SurfCont->curColPlane->OptScl->IntRange[1] != 
-                        -SurfCont->curColPlane->OptScl->IntRange[0])
-                        SurfCont->curColPlane->SymIrange = 0;
+                     SymIrange = (SurfCont->curColPlane->OptScl->IntRange[1] == 
+                        -SurfCont->curColPlane->OptScl->IntRange[0]);
+                     SurfCont->curColPlane->SymIrange = SymIrange;
+                        // SurfCont->curColPlane->SymIrange = 0;
                         
                      // Toggle symmetric I range button which also sets 
                      // the threshold (temporarily) to zero
@@ -4030,7 +4033,39 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         
                      newMin = SurfCont->curColPlane->OptScl->IntRange[0];
                      newMax = SurfCont->curColPlane->OptScl->IntRange[1];
+                      
+                     // Process for contralateral hemisphere
+                     SO = (SUMA_SurfaceObject *)ado;
+                     colpC = SUMA_Contralateral_overlay(SurfCont->curColPlane, SO, &SOC);
+                     if (colpC && SOC){                        
+                         SUMA_ALL_DO *ado = (SUMA_ALL_DO *)SOC;
+                         SurfCont = SOC->SurfCont;
+                         SurfCont->curColPlane->OptScl->IntRange[0] = newMin;
+                         SurfCont->curColPlane->OptScl->IntRange[1] = newMax;
+                         SurfCont->curColPlane->SymIrange = SymIrange;
+                         SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 1,
+                                     SurfCont->curColPlane->OptScl->IntRange[0]);
+                         SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 2,
+                                     SurfCont->curColPlane->OptScl->IntRange[1]);
+                         if (SurfCont->curColPlane->ShowMode > 0 &&
+                             SurfCont->curColPlane->ShowMode <
+                                                 SW_SurfCont_DsetViewXXX ) {
+                            if (!SUMA_ColorizePlane (SurfCont->curColPlane)) {
+                               SUMA_SLP_Err("Failed to colorize plane.\n");
+                            } else {
+                               SUMA_Remixedisplay(ado);
+                               SUMA_UpdateNodeValField(ado);
+                               SUMA_UpdateNodeLblField(ado);
+                            }
+                         }
+                     }
+                        
+                     /*   
                      N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+                     if (numSurfaceObjects != N_adolist) {
+                            SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
+                            SUMA_RETURN (NOPE);
+                     }
                      for (j=0; j<N_adolist; ++j){
                          SUMA_ALL_DO *ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
                          SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
@@ -4053,6 +4088,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                             }
                          }
                       }
+                      */
                   }
                   SUMA_free(stmp); stmp = NULL;
                }
@@ -4160,6 +4196,64 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             
             if (SUMA_AB_Ready(ado) && NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE")) {
+                SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+                SurfCont = SO->SurfCont;
+                curColPlane = SurfCont->curColPlane;
+                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "L")){
+                  curColPlane->alphaOpacityModel = LINEAR;
+                }
+                else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "Q"))
+                {
+                  curColPlane->alphaOpacityModel = QUADRATIC;
+                }
+                else {
+                  SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L/Q",
+                              NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
+                }
+                if (!sv) sv = &(SUMAg_SVv[0]); 
+                SO = SUMA_SV_Focus_SO(sv);
+                SO->SurfCont->curColPlane->alphaOpacityModel = curColPlane->alphaOpacityModel;
+
+                // Refresh display
+                SUMA_Remixedisplay(ado);
+                SUMA_UpdateNodeLblField(ado);
+               
+                 // Process for contralateral hemisphere
+                 colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
+                 if (colpC && SOC){                        
+                     SUMA_ALL_DO *ado = (SUMA_ALL_DO *)SOC;
+                     SurfCont = SOC->SurfCont;
+                     
+                     curColPlane = colpC;
+                    if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "L")){
+                      curColPlane->alphaOpacityModel = LINEAR;
+                    }
+                    else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "Q"))
+                    {
+                      curColPlane->alphaOpacityModel = QUADRATIC;
+                    }
+                    else {
+                      SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L/Q",
+                                  NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
+                    }
+                    // if (!sv) sv = &(SUMAg_SVv[0]); 
+                    // SO = SUMA_SV_Focus_SO(sv);
+                    SOC->SurfCont->curColPlane->alphaOpacityModel = curColPlane->alphaOpacityModel;
+
+                    // Refresh display
+                    SUMA_Remixedisplay(ado);
+                    SUMA_UpdateNodeLblField(ado);
+                     
+                     
+                     
+                 }
+               
+           }
+                
+               
+
+                    #if 0
+                    
                 if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
                     XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
                 else {
@@ -4195,8 +4289,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                        // Refresh display
                        SUMA_Remixedisplay(ado);
                        SUMA_UpdateNodeLblField(ado);
-                    }     
-            }
+                    }  
+                    #endif   
 
             if (SUMA_AB_Ready(ado) && NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED")) {
                 curColPlane = SurfCont->curColPlane;
