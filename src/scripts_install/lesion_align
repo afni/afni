@@ -34,12 +34,14 @@ set progname = lesion_align
 # unifize option, lesion mask transformation
 #set version = 1.09
 # [pt] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes down one level
-set version = 1.10
+#set version = 1.10
 # [pt] $lesion_outs text file made with just "-help", populated with 
 #      useless info.  Also, immediately would overwrite itself...
 #      moved creation of ${lesion_outs} further down in code to prevent this
 #    + ** guessing it should also create this text file wherever the actual
 #      output will go
+set version = 1.11
+# [drg] output in native orig space with obliquity if input oblique
 
 # get parsed and we can still get at script version number
 if ("$#" <  "1") then
@@ -788,6 +790,9 @@ else
         -dset ${origdsetprefix}_aff_mirror.nii.gz -no_cp
    echo "affine mirrored subject transformed to subject space : ${origdsetprefix}_aff_mirror.nii.gz"  \
         >> ${lesion_outs}
+   # recover obliquity too
+   set itdr = `3dAttribute -name IJK_TO_DICOM_REAL ${finalmaster} |sed 's/IJK_TO_DICOM_REAL =//'`
+   3drefit -atrfloat IJK_TO_DICOM_REAL "$itdr" ${origdsetprefix}_aff_mirror.nii.gz
 
    # take original data preferably in goodside hemi
    3dcalc -a $unif_dset -b ${origdsetprefix}_aff_mirror.nii.gz \
@@ -796,6 +801,7 @@ else
    -prefix ${origdsetprefix}_aff_orig_mirror.nii.gz -overwrite
    echo "affine mirrored+original subject : ${origdsetprefix}_aff_orig_mirror.nii.gz"  \
         >> ${lesion_outs}
+   3drefit -atrfloat IJK_TO_DICOM_REAL "$itdr" ${origdsetprefix}_aff_orig_mirror.nii.gz
 
 endif
 #***********************************************************************
