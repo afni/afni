@@ -1008,20 +1008,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   break;
                }
                it = SUMA_ABS(curColPlane->ShowMode);
-               // [pt] check about changing ShowMode to only be pos?
-               curColPlane->ShowMode =  EngineData->i ;
-               /*
                if (EngineData->i == SW_SurfCont_DsetViewXXX) {
                   curColPlane->ShowMode =
                      -SUMA_ABS(curColPlane->ShowMode);
-                   if (curColPlane->ShowMode < 0)
-                    fprintf(stderr, "******* WARNING: ->ShowMode set to negative in SUMA_Engine 3\n");
                } else {
                   curColPlane->ShowMode =  EngineData->i ;
-                   if (curColPlane->ShowMode < 0)
-                    fprintf(stderr, "******* WARNING: ->ShowMode set to negative in SUMA_Engine 4\n");
                }
-               */
                if (strcmp(curColPlane->cmapname,"explicit")) {
                   /* Can we do contours? */
                   cmp = SUMA_FindNamedColMap(
@@ -1038,9 +1030,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            ++nwarn;
                         }
                         curColPlane->ShowMode = it; /* get back */
-                        if (curColPlane->ShowMode < 0)
-                            fprintf(stderr, 
-                               "******* WARNING: ->ShowMode set to negative in SUMA_Engine 5\n");
                         SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
                            SUMA_ShowMode2ShowModeMenuItem(it));
                         /* kill current contours, if any */
@@ -1071,8 +1060,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            ++nwarn2;
                         }
                         curColPlane->ShowMode = it; /* get back */
-                        if (curColPlane->ShowMode < 0)
-                            fprintf(stderr, "******* WARNING: ->ShowMode set to negative in SUMA_Engine 6\n");
                         SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
                            SUMA_ShowMode2ShowModeMenuItem(it));
                         /* kill current contours, if any . There should be none
@@ -4058,37 +4045,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                SUMA_UpdateNodeLblField(ado);
                             }
                          }
-                     }
-                        
-                     /*   
-                     N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-                     if (numSurfaceObjects != N_adolist) {
-                            SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-                            SUMA_RETURN (NOPE);
-                     }
-                     for (j=0; j<N_adolist; ++j){
-                         SUMA_ALL_DO *ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-                         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-                         SurfCont = SO->SurfCont;
-                         SurfCont->curColPlane->OptScl->IntRange[0] = newMin;
-                         SurfCont->curColPlane->OptScl->IntRange[1] = newMax;
-                         SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 1,
-                                     SurfCont->curColPlane->OptScl->IntRange[0]);
-                         SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 2,
-                                     SurfCont->curColPlane->OptScl->IntRange[1]);
-                         if (SurfCont->curColPlane->ShowMode > 0 &&
-                             SurfCont->curColPlane->ShowMode <
-                                                 SW_SurfCont_DsetViewXXX ) {
-                            if (!SUMA_ColorizePlane (SurfCont->curColPlane)) {
-                               SUMA_SLP_Err("Failed to colorize plane.\n");
-                            } else {
-                               SUMA_Remixedisplay(ado);
-                               SUMA_UpdateNodeValField(ado);
-                               SUMA_UpdateNodeLblField(ado);
-                            }
-                         }
                       }
-                      */
                   }
                   SUMA_free(stmp); stmp = NULL;
                }
@@ -4252,45 +4209,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                 
                
 
-                    #if 0
-                    
-                if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
-                    XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber, &numSurfaceObjects, NULL);
-                else {
-                    Widget w = (Widget) EngineData->ip;
-                    Widget tl = SUMA_GetTopShell(w); /* top level widget */
-                }
-                 N_adolist = SUMA_ADOs_WithUniqueSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
-                 if (numSurfaceObjects != N_adolist) {
-                        SUMA_S_Warn("Mismatch between # surface objects and # unique surface controllers"); 
-                        SUMA_RETURN (NOPE);
-                 }
-
-                for (j=0; j<N_adolist; ++j){
-                     SUMA_ALL_DO *ado = ((SUMA_ALL_DO *)SUMAg_DOv[adolist[j]].OP);
-                     SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-                     SurfCont = SO->SurfCont;
-                     curColPlane = SurfCont->curColPlane;
-                       if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "L")){
-                          curColPlane->alphaOpacityModel = LINEAR;
-                       }
-                       else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "Q"))
-                       {
-                          curColPlane->alphaOpacityModel = QUADRATIC;
-                       }
-                       else {
-                          SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L/Q",
-                                      NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
-                       }
-                       if (!sv) sv = &(SUMAg_SVv[0]); 
-                       SO = SUMA_SV_Focus_SO(sv);
-                       SO->SurfCont->curColPlane->alphaOpacityModel = curColPlane->alphaOpacityModel;
-           
-                       // Refresh display
-                       SUMA_Remixedisplay(ado);
-                       SUMA_UpdateNodeLblField(ado);
-                    }  
-                    #endif   
 
             if (SUMA_AB_Ready(ado) && NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED")) {
                 curColPlane = SurfCont->curColPlane;
@@ -4481,10 +4399,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            fprintf(stderr, "******* WARNING: ->ShowMode set to negative in SUMA_Engine 7\n");
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr,
                                                 "view_dset", "n")) {
-                  if (SurfCont->curColPlane->ShowMode < 0)
+                  if (SurfCont->curColPlane->ShowMode > 0)
                      SurfCont->curColPlane->ShowMode =
                                     -SurfCont->curColPlane->ShowMode;
-              } else {
+               } else {
                   SUMA_S_Errv("Bad value of %s for view_dset, setting to 'y'\n",
                               NI_get_attribute(EngineData->ngr, "view_dset"));
                   SurfCont->curColPlane->ShowMode = SW_SurfCont_DsetViewCol;
@@ -4494,9 +4412,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
                               SUMA_ShowMode2ShowModeMenuItem(
                                  SurfCont->curColPlane->ShowMode));
-                if (SurfCont->curColPlane->ShowMode < 0)
-                   fprintf(stderr, "******* WARNING: ->ShowMode set to negative in SUMA_Engine 2\n");
-           }
+            }
             if (NI_get_attribute(EngineData->ngr, "do_draw_mask")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr,
                                           "do_draw_mask", "All")) {
