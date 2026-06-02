@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Jun, 2026, RCR, "1d_tool.py", MINOR, TYPE_BUG_FIX,
+   "fix setting tr - forgot to check in the original update for it",
+   "Change original lib_afni1D:show_tpattern(), now require tr to be passed\n"
+   "if one wants to override the class default of 1."
+ } ,
+
  { 26, May, 2026, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
    "allow for new slice timing patterns, alt+z_D and alt-z_D",
    "Like alt+z, but generalized with a step of D slices, rather than just 2.\n"

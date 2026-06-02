@@ -2876,7 +2876,8 @@ class A1DInterface:
       if self.show_tpattern:
          if self.show_tpattern == 2: rdigits = 0
          else:                       rdigits = 1
-         self.adata.show_tpattern(rdigits=rdigits, verb=self.verb)
+         self.adata.show_tpattern(tr=self.set_tr, rdigits=rdigits,
+                                  verb=self.verb)
 
       if self.show_tresolution:
          self.adata.show_tresolution()
