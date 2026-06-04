@@ -4718,6 +4718,7 @@ void SUMA_cb_FileLoadView (Widget w, XtPointer data, XtPointer calldata)
       fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
    }
 
+ 
    /*
    if (!SUMA_LoadVisualState(NULL, (void*)sv)) {
       SUMA_SLP_Err("Failed to load view.");
@@ -7266,7 +7267,7 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
 
    /* allow for code to resize the shell */
    XtVaSetValues (sv->X->ViewCont->TopLevelShell,
-         XmNresizePolicy , XmRESIZE_NONE , /* allow (?) childrent to resize */
+         XmNresizePolicy , XmRESIZE_NONE , /* allow (?) children to resize */
          XmNallowShellResize , True ,       /* let code resize shell */
          NULL);
 
@@ -7990,6 +7991,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          break;
    }
 
+
    SUMA_RETURNe;
 }
 
@@ -8118,6 +8120,7 @@ SUMA_Boolean SUMA_Snap_AllCont(SUMA_DO_Types do_type, char *fname)
                                     XtPointer callData);
    \param data (XtPointer) to SO (NOT sv)
 
+   - surface object controller menu, ctrl-s to get these in GUI
 */
 void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
 {
@@ -8217,6 +8220,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
          XmInternAtom( dpy , "WM_DELETE_WINDOW" , False ) ,
          SUMA_cb_closeSurfaceCont, (XtPointer) ado) ;
 
+      /* SUMAg_CF->X->SC_Notebook is set only in the case of UseSameSurfCont */
       if (SUMAg_CF->X->UseSameSurfCont) {
          Widget scroller;
          SUMAg_CF->X->CommonSurfContTLW = tls;
@@ -9151,6 +9155,8 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                                               args, 1);
    }
 
+   /* matrix graph controller */
+
    /* create a form widget, manage it at the end ...*/
    SurfCont->Mainform = XtVaCreateWidget ("dialog",
       xmFormWidgetClass, SurfCont->Page ?
@@ -9944,6 +9950,7 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
    SUMA_cb_ToggleManagementColPlaneWidget(NULL, (XtPointer)(&ado), NULL);
    #endif
 
+
    SUMA_LH("going home.");
 
    SUMA_MarkSurfContOpen(1, ado);
@@ -10122,6 +10129,7 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
    }
 
    /* create a form widget, manage it at the end ...*/
+   /* - tract controller */
    SurfCont->Mainform = XtVaCreateWidget ("dialog",
       xmFormWidgetClass, SurfCont->Page ?
                               SurfCont->Page:SurfCont->TLS,
@@ -13358,7 +13366,8 @@ SUMA_Register_Widget_Help( SUMAg_CF->X->DrawROI->AppShell , 0,
 ":SPX:"
 "\n") ;
 
-   /* create a form widget, manage it at the end ...*/
+   /* create a form widget (DrawROI), manage it at the end ...*/
+
    SUMAg_CF->X->DrawROI->form = XtVaCreateWidget ("dialog",
       xmFormWidgetClass, SUMAg_CF->X->DrawROI->AppShell,
       XmNborderWidth , 0 ,
@@ -14858,7 +14867,7 @@ void SUMA_DrawROI_NewValue (void *data)
 
    if (AF->value == DrawnROI->iLabel) SUMA_RETURNe;
 
-   if (!DrawnROI->DrawStatus == SUMA_ROI_Finished) {
+   if ((!DrawnROI->DrawStatus) == SUMA_ROI_Finished) {
       if (LocalHead)
          fprintf (SUMA_STDERR,
                   "%s: Changing ROI value from %d to %d\n",

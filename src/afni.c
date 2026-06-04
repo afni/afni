@@ -987,6 +987,39 @@ void AFNI_syntax(void)
      "                have one on your computer, right?).\n"
      "                Exit after display.\n"
      "\n"
+     "   -show        show the package name\n"
+     "\n"
+     "    -x_have_MACOS_FORCE_EXPOSE\n"
+     "                Show whether compiled with MACOS_FORCE_EXPOSE.  This\n"
+     "                is the default on current macos systems, specifically\n"
+     "                macos_12_x86_64 and macos_13_ARM.\n"
+     "\n"
+     "    -x_needsX11Redraw\n"
+     "                show whether resize events will cause redraws\n"
+     "\n"
+     "                This will default to true on the above 2 macos systems\n"
+     "                (macos_12_x86_64 and macos_13_ARM) if the user is also\n"
+     "                running macos 26, but < 26.5.  Otherwise not.\n"
+     "\n"
+     "                The issue requiring redraw/forceExpose/Remanage events\n"
+     "                has been fixed by Apple as of macos 26.5.\n"
+     "\n"
+     "                Any system can override the default behavior using\n"
+     "                environment variable AFNI_DO_X11_REDRAW.  Values:\n"
+     "\n"
+     "                  N        : no, do not use any redraw mechanism\n"
+     "                  Y        : yes, use the base redraw mechanism\n"
+     "                  REMANAGE : yes redraw, but with the dglen-special\n"
+     "                             remanage mechanism\n"
+     "\n"
+     "                This can be set in the environment, .afnirc file, or\n"
+     "                on the command line, as in:\n"
+     "\n"
+     "                  afni -DAFNI_DO_X11_REDRAW=Y\n"
+     "                  afni -DAFNI_DO_X11_REDRAW=N\n"
+     "                  afni -DAFNI_DO_X11_REDRAW=REMANAGE\n"
+     "\n"
+     "                Consider also -DAFNI_X11_REDRAW_VERB=Y.\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
      "      can be controlled by appropriate X11 resources.  See the\n"
@@ -8156,12 +8189,14 @@ void AFNI_redisplay_func( Three_D_View *im3d )  /* 05 Mar 2002 */
 ENTRY("AFNI_redisplay_func") ;
    if( !ignore_redisplay_func    &&
        IM3D_OPEN(im3d)           &&
-       IM3D_IMAGIZED(im3d)       &&
-       im3d->vinfo->func_visible    /* Dec 2025 */ ){
+       IM3D_IMAGIZED(im3d)       ){   
+/* o key/overlay toggle doesn't redisplay with func_visible check */
+/* && im3d->vinfo->func_visible  Dec 2025 */ 
 
      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
      AFNI_process_funcdisplay( im3d ) ;
    }
+
    EXRETURN ;
 }
 

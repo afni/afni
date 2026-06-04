@@ -87,6 +87,9 @@ Usage ~1~
 -alpha  ALPHA  :keyword setting for specifying alpha transparency for
                 thresholding.  Must be one of the following values:
                   {all_alpha}
+                Well, it is now allowed to be any real number, taking
+                the role of the power on the fade-ratio term. Mainly
+                just for testing and special examples.
 
 -thr_val TVAL  :threshold value, applied as an absolute value (def: {thr_val})
 
@@ -369,7 +372,7 @@ cbar (see 'JSONs' in the Notes above).
            do_autorotate=lct.DOPTS['do_autorotate'])
 
 g_history = """
-  gtkyd_check.py history:
+  colorbar_tool.py history:
 
   0.1   Jan 26, 2025 :: started this command line interface for lib_cbar_tool
   0.2   Jan 30, 2025 :: beta version complete (with options)
@@ -377,6 +380,7 @@ g_history = """
   0.4   Jun 17, 2025 :: checks about extension when failing to write
   0.5   Jun 18, 2025 :: use json path to find local cbar
   0.6   Sep 30, 2025 :: new -do_clean opt, and add ability to FLIP cbar
+  0.7   Feb  6, 2026 :: '-alpha VAL' can be a float and used as expon (for testing)
 """
 
 g_ver     = g_history.split("\n")[-2].split("::")[0].strip()

@@ -1773,6 +1773,11 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       mode = opts.NAMEIN_outmode;//argv[iarg];
    }
 
+   if ( !opts.prefix ) {
+      ERROR_exit("Specify an output prefix with '-prefix ..'\n") ;
+		exit(5);
+   }
+
    // * * * * * * * * * * * * * * check HARDI vs DTI * * * * * * * * * * * *
    
    if( opts.algopt_file_name ) {

@@ -1912,17 +1912,74 @@ def numerical_resolution(vals):
 
    return diffs[-1]-diffs[0]
 
-def timing_to_slice_pattern(timing, rdigits=1, verb=1):
+def is_valid_slice_pattern(pattern):
+   """is the given slice timing pattern string a valid one?
+
+      return 1 if so, else 0
+
+      It is valid if it is in g_valid_slice_patterns, or if it is of
+      the new form alt+z_D (or alt-z_D), for some positive integer D
+   """
+
+   if pattern in g_valid_slice_patterns:
+      return 1
+   # positive is alt+z, negative is alt-z
+   if alt_z_D_level(pattern) != 0:
+      return 1
+
+   return 0
+
+def alt_z_D_level(pattern):
+   """if the pattern string is of the form 'alt+z_D' (or 'alt-z_D')
+      for some positive integer D, then return D (-D if alt-z)
+
+      return: 0     : if the string does not look like alt+z_D
+                      (or alt-z_D) for some D > 0
+              D > 0 : alt+z_D level
+              D < 0 : alt-z_D level
+   """
+   if type(pattern) != str:
+      return -1
+
+   # if it does not look like alt+z_D (or -), return 0
+   if pattern.startswith('alt+z_'):
+      neg = 0
+   elif pattern.startswith('alt-z_'):
+      neg = 1
+   else:
+      return 0  # not the strings we were looking for
+
+   # look past 'startswith' to the D
+   Dstr = pattern[6:]
+   try:
+      D = int(Dstr)
+   except:
+      D = 0 # failure
+
+   # D < 0 is invalid
+   if D < 0:
+      return 0
+
+   # and if alt-z, negate D
+   if neg:
+      D = -D
+
+   return D
+
+def timing_to_slice_pattern(timing, rdigits=1, tr=0, verb=1):
    """given an array of slice times, try to return multiband level and
       a pattern in g_valid_slice_patterns
 
       inputs:
          timing     : <float list> : slice times
-         rdigits    : [1] <int>    : num digits to round to for required test
-         verb       : [1] <int>    : verbosity level
+         rdigits    : <int>        : num digits to round to for required test
+         tr         : float        : requested TR, if passed
+         verb       : <int>        : verbosity level
 
       method:
          - detect timing grid (TR = tgrid*nslice_times (unique))
+           - if passed tr > 0, use it
+             - if apparent discrepancy, warn
          - multiband = number of repeated time sets (ntimes/nunique)
          - round timing/tgrid
             - test as ints in {0..nunique-1}
@@ -1958,11 +2015,24 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
    # TR is slice time * num_slices_times
    TR = tgrid*nunique
 
+   # if tr was passed, apply it instead (set TR and tgrid)
+   if tr > 0:
+      # check if fractional diff exceeds 1/4 slice fraction
+      # (> 1 would mean an extra slice might fit one way or the other)
+      if abs(TR-tr)/(TR+tr)*2 > 0.25/nunique :
+         print("** warning, computed and passed TR discrepancy (%g, %g)" \
+               % (TR, tr))
+         print("-- using passed TR %g, but might not be reliable" % tr)
+      elif verb > 2:
+         print("-- applying passed TR %g over computed TR %g" % (tr, TR))
+      TR = tr
+      tgrid = TR/nunique
+
    # note multiband level (number of repeated times)
    mblevel = int(round(ntimes/nunique))
 
    if verb > 2:
-      print("-- TR +~ %g, MB %g, rdig %d, nunique %g, med slice diff: %g" \
+      print("-- TR ~= %g, MB %g, rdig %d, nunique %g, mean slice diff: %g" \
             % (TR, mblevel, rdigits, nunique, tgrid))
 
    # if TR is not valid, we are out of here
@@ -1977,17 +2047,18 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
    tscale = [t*scalar for t in timing]
 
    # get rounded unique sublist and sort, to compare against ints
-   tround = get_unique_sublist([int(round(t,ndigits=rdigits)) for t in tscale])
+   tround = get_unique_sublist([int(round(t)) for t in tscale])
    tround.sort()
 
    # chat
-   if verb > 1:
+   if verb > 2:
       # print("++ t2sp: TR %s, min %s, max %s" % (TR, nzmin, nzmax))
-      if verb > 2: print("-- times : %s" % timing)
-      if verb > 3:
-         print("== (sorted) tscale should be close to ints, tround must be ints")
-         print("-- tscale: %s" % gen_float_list_string(sorted(tscale)))
-         print("-- tround: %s" % gen_float_list_string(tround))
+      if verb > 2:
+        print("== times : %s" % timing)
+        print("-- tscale = slice_time / time_grid -> should be ~slice_index")
+        print("-- (sorted) tscale should be close to ints, tround must be ints")
+        print("-- tscale: %s" % gen_float_list_string(sorted(tscale)))
+        print("-- tround: %s" % gen_float_list_string(tround))
 
    # ----------------------------------------------------------------------
    # tests:
@@ -2003,7 +2074,7 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
    # and tround must be the same length as nunique
    if len(tround) != nunique:
       if verb > 1:
-         print("** have %d unique times, but %d unique scaled and rounded times" \
+         print("** have %d unique times, but %d unique scaled/rounded times" \
                % (nunique, len(tround)))
       return 1, defpat
 
@@ -2016,10 +2087,11 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
       return 1, defpat
 
    # check tscale timing, warn when not close enough to an int
+   # (be flexible due to siemens 0.025 grid)
    warnvec = []
    for ind in range(ntimes):
       tsval = tscale[ind]
-      if round(tsval) != round(tsval, ndigits=2):
+      if round(tsval) != round(tsval, ndigits=1):
          warnvec.append(ind)
 
    # actually warn if we found anything
@@ -2028,17 +2100,23 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
       badmults = 1
       print("** warning: %d/%d slice times are only approx multiples of %g" \
             % (len(warnvec), ntimes, tgrid))
-      if verb > 1:
+      if verb > 2:
          # make this pretty?
          ratios = [t/tgrid for t in timing]
          maxlen, strtimes = floats_to_strings(timing)
          maxlen, strratio = floats_to_strings(ratios)
          for ind in range(ntimes):
-            print(" bad time[%2d] : %s  /  %g  =  %s" \
-                  % (ind, strtimes[ind], tgrid, strratio[ind]))
+            if ind in warnvec:
+               c = '*'
+            else:
+               c = ' '
+            print("   %s bad time[%2d] : %s  /  %g  =  %s" \
+                  % (c, ind, strtimes[ind], tgrid, strratio[ind]))
 
    if verb > 1 or badmults:
-      print("-- timing: max ind,diff = %s" % list(__max_int_diff(tscale)))
+      idiff = __max_ind_diff(tscale)
+      print("-- timing: max slice index diff, slice = %g, %g" \
+            % (idiff[1], idiff[0]))
 
    # ----------------------------------------------------------------------
    # at this point, the sorted list has a regular (multiband?) pattern
@@ -2116,7 +2194,7 @@ def floats_to_strings(fvals):
 
     return len(slist[0]), slist
 
-def __max_int_diff(vals):
+def __max_ind_diff(vals):
     """return the (index and) maximum difference from an int (max is 0.5)
        if all the same, return 0, diff[0]
     """
@@ -2134,12 +2212,88 @@ def __max_int_diff(vals):
 
     return mind, mdiff
 
+def _alt_z_D_slice_order(nslices, D):
+   """given int D != 0, return an array with integer slice ordering
+      i.e. a list of slice indices in the order acquired
+      - if D<0, return return the alt-z_A order, where A = abs(D),
+        so if D < 0, return n-1-i, for i in order
+
+      return an array
+   """
+   # compute with abs(D) and adjust later
+   AD = abs(D)
+   if AD <= 1 or nslices < 1:
+      return []
+
+   order = [0]*nslices
+
+   # each time, do nslices/GCD(slices,AD) slices and add gind
+   gcd = GCD(AD, nslices)
+   nsper = nslices // gcd
+   index = 0
+   for gind in range(gcd):
+      for s in range(nsper):
+        order[index] = (s*AD+gind)%nslices
+        index += 1
+
+   # make sure that we didn't mess up, there should be only 1 zero
+   if order.count(0) > 1:
+      print("** _alt_z_D_slice_order failure, D=%d, nslices=%d" % (D, nslices))
+      return []
+
+   # if negative, alt-z_AD, so reverse the timing to start from the other end
+   if D < 0:
+      order = [(nslices-1-o) for o in order]
+
+   return order
+
+def _alt_z_D_slice_itimes(nslices, D):
+   """given int D != 0, return an array with index form slice timing
+      (so where TR == nslices) for pattern alt+z_D
+      (if D<0, return alt-z_A, where A = abs(D))
+
+      return an array
+   """
+   # compute with abs(D) and reverse later if D < 0
+   AD = abs(D)
+   if AD <= 1 or nslices < 1:
+      return []
+
+   order = [0]*nslices
+
+   # each time, do nslices/GCD(slices,AD) slices and add gind
+   gcd = GCD(AD, nslices)
+   nsper = nslices // gcd
+   index = 0
+   for gind in range(gcd):
+      for s in range(nsper):
+        order[(s*AD+gind)%nslices] = index
+        index += 1
+
+   # make sure that we didn't mess up, there should be only 1 zero
+   if order.count(0) > 1:
+      print("** _alt_z_D_slice_itimes failure, D=%d, nslices=%d" % (D, nslices))
+      return []
+
+   # if negative, alt-z_AD, so reverse the timing to start from the other end
+   if D < 0:
+      order.reverse()
+
+   return order
+
 def _uniq_ints_to_tpattern(tints):
    """given a list of (unique) ints 0..N-1, try to match a timing pattern
         since uniq, do not test 'simult'
         test for : 'seq+z', 'seq-z', 'alt+z', 'alt-z', 'alt+z2', 'alt-z2'
+        also     : 'alt+z_D', for some integer D (or 'alt-z_D')
         - for each test pattern:
             - compare with slice_pattern_to_timing()
+      + now also test for alt+z_D, for some integer D
+            - while alt+z acquires every other slice, alt+z_D acquires
+              every Dth slice (so alt+z == alt+z_2)
+            - alt+z    slice order: 0, 2, 4, ..., 1, 3, 5
+            - alt+z_D slice order: 0, D, 2D, 3D, ... (all modulo nslices)
+            * D *must* be relatively prime to nslices for this to work
         if no match, return 'irregular'
 
       return something in g_valid_slice_patterns or 'irregular'
@@ -2155,6 +2309,29 @@ def _uniq_ints_to_tpattern(tints):
       # did it match?
       if rv:
          return tpat
+
+   # try bigger alt's
+   if nslices < 3:
+      return g_tpattern_irreg
+
+   # try alt+z_D : not every other, but every Dth
+   if tints[0] == 0 and 1 in tints:
+      D = tints.index(1)  # offset from start
+      ttimes = _alt_z_D_slice_itimes(nslices, D)
+      rv = lists_are_same(tints, ttimes)
+      del(ttimes)
+      if rv:
+         return "alt+z_%d" % D
+
+   # try alt-z_D : same as '+', but reverse order
+   elif tints[-1] == 0 and 1 in tints:
+      D = nslices - 1 - tints.index(1)  # positive offset from the end
+      # pass -D  for alt-z
+      ttimes = _alt_z_D_slice_itimes(nslices, -D)
+      rv = lists_are_same(tints, ttimes)
+      del(ttimes)
+      if rv:
+         return "alt-z_%d" % D
 
    # failure
    return g_tpattern_irreg
@@ -2178,12 +2355,15 @@ def slice_pattern_to_order(pattern, nslices):
              : None on error
    """
 
-   if pattern not in g_valid_slice_patterns:
+   if not is_valid_slice_pattern(pattern):
       print("** pattern_to_order, invalid pattern", pattern)
       return None
    if pattern in ['zero', 'simult']:
       print("** pattern_to_order, cannot make ordering from pattern", pattern)
       return None
+
+   # init to failure
+   order = None
 
    # sequential
    if pattern == 'seq+z' or pattern == 'seqplus':
@@ -2211,7 +2391,16 @@ def slice_pattern_to_order(pattern, nslices):
       order =      list(range(nslices-2, -1, -2))
       order.extend(list(range(nslices-1, -1, -2)))
 
-   else:
+   # if not yet set, check for alt+z_D or alt-z
+   if order is None:
+      D = alt_z_D_level(pattern)
+      if D != 0:
+         # new pattern: alt+z_D (or '-'), for some integer D
+         # (D < 0 means alt-z_D)
+         order = _alt_z_D_slice_order(nslices, D)
+      # else D == 0, so not a valid D level
+
+   if order is None:
       print("** pattern_to_order, unhandled pattern", pattern)
       return None
 
@@ -2228,6 +2417,7 @@ def slice_pattern_to_timing(pattern, nslices, TR=0, mblevel=1, verb=1):
                                   'seq-z', 'seqminus',
                                   'alt+z', 'altplus',     'alt+z2',    
                                   'alt-z', 'altminus',    'alt-z2',    
+                            new:  'alt+z_D' (for some integer D)
          nslices    : (int)    total number of output slice times
          TR         : (float)  total time to acquire all slices
          mblevel    : (int)    multiband level (number of repeated time sets)
@@ -2259,7 +2449,7 @@ def slice_pattern_to_timing(pattern, nslices, TR=0, mblevel=1, verb=1):
    if nslices == 1:
       return [0]
 
-   if pattern not in g_valid_slice_patterns:
+   if not is_valid_slice_pattern(pattern):
       print("** slice_pattern_to_timing, invalid pattern", pattern)
       return []
 
@@ -4779,6 +4969,33 @@ def mean(vec, ibot=-1, itop=-1):
 
     return tot/(itop-ibot+1)
 
+# GCD - greatest common denominator
+#       math.gcd exists as of 3.5 or 9, for longer sets
+def GCD(a, b):
+   """return the greatest common denominator of ints a and b
+
+      repeat larger modulo smaller until the result is 0,
+      then return smaller
+   """
+   # should we worry about negatives?
+   a = abs(a)
+   b = abs(b)
+
+   # start with larger and smaller values
+   if a >= b:
+      L = a
+      S = b
+   else:
+      L = b
+      S = a
+
+   r = L % S
+   while r > 0:
+      L = S
+      S = r
+      r = L % S
+
+   return S
 
 # convert from degrees to chord length
 def deg2chordlen(theta, radius=1.0):
@@ -6293,16 +6510,78 @@ nfail : int
     for dset in all_dset:
         exists = info_dset_exists(dset)
         if verb > 1 :
-            txt = "Existence check for {}dset {}: ".format(label, dset)
+            txt = "Existence check for {}dset: {}: ".format(label, dset)
             txt+= " {}".format(exists)
             BASE.IP(txt)
         if not(exists) :
-            msg = " Cannot load {}dset {} ".format(label, dset)
+            msg = " Cannot load {}dset: {} ".format(label, dset)
             BASE.EP1(msg)
             nfail+= 1
 
     return nfail
 
+def check_all_dsets_same_grid(all_dset, label='', verb=1) :
+    """For a list of dsets all_dset, check if they have the same grid
+(according to '3dinfo -same_grid -prefix ...'). Return the number of
+non-grid-matches. Hence, if this returns 0 then each dset in all_dset
+is on the same grid (= success, likely).
+
+The optional string 'label' can be used when reporting verbosely about
+what kind of dset is being checked.
+
+Parameters
+----------
+all_dset : list (of str)
+    a list of dataset names
+label : str
+    string label when reporting verbosely
+verb : int
+    verbosity level
+
+Returns
+-------
+ndiff : int
+    number of failures (=non-matches)
+
+    """
+
+    BAD_RETURN = -1
+
+    if not(isinstance(all_dset, list)):
+        BASE.EP("Must provide a list of dsets to this function.")
+
+    # minor adjustment for spacing
+    if label :
+        label+= ' '
+
+    ndiff = 0
+
+    cmd  = '3dinfo -same_grid -prefix ' + ' '.join(all_dset)
+    com  = BASE.shell_com(cmd, capture=1)
+    stat = com.run()
+
+    # should match len of input dsets
+    ncom = len(com.so)
+
+    if stat or not(ncom) :
+        return BAD_RETURN
+
+    # split into list of sublists; sublist has 2 str:
+    #   '0' or '1'
+    #   filename
+    L = [x.split() for x in com.so]
+    
+    for nn in range(ncom):
+        x = L[nn]
+        if verb > 1 :
+            txt = "Grid sameness check for {}dset: {}".format(label, x[1])
+            BASE.IP(txt)
+        if x[0] == '0' :
+            msg = "Grid mismatch for {}dset: {}".format(label, x[1])
+            BASE.EP1(msg)
+            ndiff+= 1
+
+    return ndiff
 
 def simple_type(x):
     """When printing the type(...) of something, the format is annoyingly:
@@ -6333,14 +6612,19 @@ xtype : str
         return b
 
 
-def try_convert_bool_float_int_str(x, exit_on_error=False):
+def try_convert_bool_float_int_str(x, exit_on_error=False,
+                                   int_val_is_int=False):
     """For input string x, see how it might convert to a numerical value
 and output one of those (in descending order of bool, then float, then
 int), or if none of those work, just output the str itself.
 
 If an error on input occurs, this program will by default return a
-value of None, plus the type of the item input (its supposed to be a
+value of None, plus the type of the item input (it's supposed to be a
 str, folks!). But users can change this behavior with the exit_on_error kwarg.
+
+In some cases, we want '1.0' to be output as an int. In such cases,
+one would set int_val_is_int=True. Note that even with this opt on,
+x='True' would still produce a bool.
 
 Parameters
 ----------
@@ -6348,6 +6632,8 @@ x : str
     a string to consider converting to a numerical type
 exit_on_error: bool
     toggle whether to exit totally on input error, or to just whine vociferously
+int_val_is_int : bool
+    int-valued x is considered int, even if it has a decimal point
 
 Returns
 -------
@@ -6375,7 +6661,7 @@ ytype : str
     # int, else float
     try:
         y = float(x)
-        if y.is_integer() and not('.' in x) :
+        if y.is_integer() and (not('.' in x) or int_val_is_int) :
             y = int(y)
     except:
         # str
@@ -6385,6 +6671,59 @@ ytype : str
     ytype = simple_type(y)
 
     return y, ytype
+
+
+def try_convert_bool_float_int_str_LIST(L, exit_on_error=False,
+                                        int_val_is_int=False):
+    """For a list L of strings, run try_convert_bool_float_int_str() on
+each.  Output a list of the converted elements, as well as a
+one-to-one matched list of the type that each is. In the special case
+that each element has the same type, the output list of types will
+only have 1 element.
+
+Parameters
+----------
+L : list
+    a list of strings to consider converting to a numerical type
+exit_on_error: bool
+    toggle whether to exit totally on input error, or to just whine vociferously
+int_val_is_int : bool
+    int-valued x is considered int, even if it has a decimal point
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+Ly : list
+    a list of one (or more) of a descending list of types (of bool or
+    float or int or str) to try converting to, with str being the last
+Lytype : list
+    a list of the simple-string-format types of the items returned in
+    Ly; if there is only one type across all elements of Ly, then 
+    len(Lytype)=1, otherwise len(Lytype)=len(Ly).
+
+    """
+
+    Ly = []
+    Lytype = []
+
+    BAD_RETURN = (-1, Ly, Lytype)
+
+    if not isinstance(L, list):
+        BASE.EP1("input must be of type list")
+        return BAD_RETURN
+
+    for x in L :
+        y, ytype = try_convert_bool_float_int_str(x, 
+                                                  exit_on_error=exit_on_error,
+                                                  int_val_is_int=int_val_is_int)
+        Ly.append(y)
+        Lytype.append(ytype)
+
+    if len(set(Lytype)) == 1 :
+        Lytype = list(set(Lytype)) 
+
+    return 0, Ly, Lytype
 
 # ----------------------------------------------------------------------
 

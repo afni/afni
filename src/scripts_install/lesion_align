@@ -891,7 +891,7 @@ if ($segset != "") then
     echo "Atlas/seg, NL-warped to orig modal smoothed: ${seg_prefix}_in_${origdsetprefix}_mode.nii.gz"\
             >> ${lesion_outs}
     end        
-
+endif
 
 goto FINISH_OUTS
 

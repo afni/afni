@@ -45,6 +45,15 @@ brew install libpng jpeg expat freetype fontconfig openmotif  \
              libomp gsl glib pkg-config gcc libiconv autoconf \
              libxt mesa mesa-glu libxpm
 
+# and apply the mesa-25 tap so that suma will work
+brew tap afni/mesa-25.3.4
+brew install mesa@25.3.4
+
+rm $HOMEBREW_PREFIX/opt/mesa
+ln -s $HOMEBREW_PREFIX/Cellar/mesa@25.3.4/25.3.4 $HOMEBREW_PREFIX/opt/mesa
+brew unlink mesa@25.3.4
+brew link mesa@25.3.4
+
 # ----------------------------------------------------------------------
 # put python in path and install matplotlib via pip (multiple shells)
 

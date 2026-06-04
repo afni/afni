@@ -369,6 +369,8 @@ inobj : InOpts object
                 if self.alpha == 'Yes' or self.alpha == 'Quadratic' :
                     # quadratic Alpha situation
                     wtN[i]**= 2
+                elif isinstance(self.alpha, float) :
+                    wtN[i]**= self.alpha
 
         # apply fading is parallel to cbar gradient
         for i in range(N):
@@ -408,6 +410,8 @@ inobj : InOpts object
             if self.alpha == 'Yes' or self.alpha == 'Quadratic' :
                 # quadratic Alpha situation
                 wtW[j]**= 2
+            elif isinstance(self.alpha, float) :
+                wtW[j]**= self.alpha
 
         # when fading is orthogonal to cbar gradient
         for i in range(N):
@@ -446,10 +450,18 @@ inobj : InOpts object
         For example, pretty much every *_color attribute should be
         passed through here."""
 
-        # alpha value must be known keyword
-        if not(self.alpha in list_alpha) :
-            ttt = "The input alpha value is not recognized: {}. "
-            ttt+= "It must be one of: {}".format(self.alpha, list_alpha_str)
+        # alpha value must be known keyword; or, now if alpha is a
+        # real number it can be treated like a power and applied
+        # (though mainly just for testing/examples)
+        try: 
+            self.alpha = float(self.alpha)
+            msg = "Using floating point alpha: {}".format(self.alpha)
+            ab.IP(msg)
+        except:
+            pass
+        if not(self.alpha in list_alpha) and not(isinstance(self.alpha, float)):
+            ttt = "The input alpha value is not recognized: "
+            ttt+= "{}. It must be one of: {}".format(self.alpha, list_alpha_str)
             ab.EP(ttt)
 
         # colors must be in appropriate format
@@ -977,6 +989,9 @@ Y : np.array
             if alpha == 'Yes' or alpha == 'Quadratic' :
                 # quadratic Alpha situation
                 wtW[j]**= 2
+            elif isinstance(self.alpha, float) :
+                # secret functionality
+                wtW[j]**= self.alpha
     elif HAVE_ALL_VALS :
         # make weight (wtN, vals in [0, 1]) so fading will be along grad
         for i in range(N):
@@ -993,6 +1008,9 @@ Y : np.array
                 if alpha == 'Yes' or alpha == 'Quadratic' :
                     # quadratic Alpha situation
                     wtN[i]**= 2
+                elif isinstance(self.alpha, float) :
+                    # secret functionality
+                    wtN[i]**= self.alpha
     else:
         ab.WP("""You said you wanted Alpha on, but didn't provide enough 
         info for it: need min_val, max_val and thr_val""")
