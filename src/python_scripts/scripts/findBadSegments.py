@@ -17,6 +17,93 @@ import statistics
 from afnipy import lib_physio_opts    as lpo
 from afnipy import lib_physio_reading as lpr
 from pathlib import Path
+from scipy.sparse import csr_matrix
+
+
+def louvain_phase1(weights, max_iter=100):
+
+    # Convert to sparse CSR format
+    W = csr_matrix(weights)
+    W.setdiag(1e-6)
+
+    n = W.shape[0]
+
+    # Initial community assignment
+    labels = np.arange(n)
+
+    # Node weighted degrees
+    k = np.array(W.sum(axis=1)).flatten()
+
+    # Total graph weight *2
+    m2 = k.sum()
+
+    # Community total degrees
+    comm_tot = k.copy()
+
+    improved = True
+    iteration = 0
+    
+    # Reduce modularity in order to get low end (by size) outlier clusters
+    # gamma = 1.001
+    gamma = 1.003
+
+
+    while improved and iteration < max_iter:
+
+        improved = False
+        iteration += 1
+        total_gain = 0
+
+        for node in np.random.permutation(n):
+        
+            current_comm = labels[node]
+            ki = k[node]
+        
+            # neighbors
+            start = W.indptr[node]
+            end = W.indptr[node + 1]
+        
+            neighbors = W.indices[start:end]
+            weights_to_neighbors = W.data[start:end]
+        
+            # weights from node to neighboring communities
+            neigh_comm_wts = {}
+        
+            for nbr, wt in zip(neighbors, weights_to_neighbors):
+        
+                nbr_comm = labels[nbr]
+        
+                neigh_comm_wts[nbr_comm] = (
+                    neigh_comm_wts.get(nbr_comm, 0.0) + wt
+                )
+        
+            # remove node from current community
+            comm_tot[current_comm] -= ki
+        
+            best_comm = current_comm
+            best_gain = 0.0
+        
+            for test_comm, ki_in in neigh_comm_wts.items():
+        
+                # modified Louvain gain
+                gain = ki_in - gamma * (comm_tot[test_comm] * ki) / m2
+            
+                if gain > best_gain:
+                    best_gain = gain
+                    best_comm = test_comm
+        
+            # restore/add node to chosen community
+            comm_tot[best_comm] += ki
+            
+            if best_comm != current_comm:
+                total_gain += best_gain
+                labels[node] = best_comm
+                improved = True
+        
+        print('Num communities = ', len(np.unique(labels)), '. total_gain = ', total_gain)
+                    
+    clusters = clusters_from_labels(labels)
+    return clusters
 
 # Get cluster modulatity (MOD)
 def getMOD(weights, clusters):
@@ -31,25 +118,37 @@ def getMOD(weights, clusters):
     numClusters = len(clusters)
     
     # Build MOD from clusters
-    mod = 0
-    for i in range(0,numClusters):
-        # print('Processing cluster ', i, ' of ', numClusters)
-        insum = 0
-        for j in range(0,numVertices):
-            if j != i and j in clusters[i]: insum = insum + weights[i,j]
-        totSum = 0
-        for j in range(0,numVertices):
-            if j != i: totSum = insum + weights[i,j]
-            
-        mod = mod + (insum/TwoM - (totSum/TwoM)**2)
+    mod = 0.0
+    
+    for i in range(numClusters):
+    
+        cluster = set(clusters[i])   # if not already a set
+    
+        insum = 0.0
+        totSum = 0.0
+    
+        row = weights[i]
+    
+        for j in range(numVertices):
+            if j != i:
+                w = row[j]
+                totSum += w
+    
+                if j in cluster:
+                    insum += w
+    
+        mod += insum / TwoM - (totSum / TwoM) ** 2    
         
     return mod
 
 def clusters_from_labels(labels):
+
     d = defaultdict(list)
-    for v,c in enumerate(labels):
+
+    for v, c in enumerate(labels):
         d[c].append(v)
-    return list(d.values())
+
+    return [d[k] for k in sorted(d)]
 
 # Use MOD as basis to merge clusters
 def merge_clusters_by_MOD(weights, clusters, rankVector, getMOD):
@@ -57,23 +156,26 @@ def merge_clusters_by_MOD(weights, clusters, rankVector, getMOD):
 
     # --- Start with a label per vertex ---
     labels = np.arange(numVertices)
+    
+    k = np.array(weights.sum(axis=1)).flatten()
+    m2 = k.sum()
 
     # initial modularity
     bestMOD = getMOD(weights, clusters_from_labels(labels))
     
     # --- Process vertices in ranking order ---
     print('Process vertices in ranking order')
-    for u in rankVector:
-        Cu = labels[u]
+    for node in rankVector:
+        Cu = labels[node]
 
         # collect all existing cluster IDs
-        clusterIDs = np.unique(labels)
+        clusterIDs = list(set(labels))
 
         # test merging Cu with every other cluster Cj
         numClusters = len(clusterIDs)
         print('Number of clusters = ', numClusters)
         for Cj in clusterIDs:
-            # print(' u, Cj = '+str(u)+' , '+str(Cj))
+            
             if Cj == Cu:
                 continue
             
@@ -93,7 +195,7 @@ def merge_clusters_by_MOD(weights, clusters, rankVector, getMOD):
                 # Cu stays the same label, so continue merging into that
 
         # Break if number of clusters not reduced
-        clusterIDs = np.unique(labels)
+        clusterIDs = list(set(labels))
         if (len(clusterIDs) == numClusters): break
 
     # Rebuild final cluster list
@@ -216,6 +318,28 @@ def cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, rankVector,
         for i in outlier_peak_indices]
     
     return outlier_ts_indices
+
+def getOutliersFromClusters(cluster_sizes, clusters):
+
+    # Log transform cluster sizes as size distribution tends to be skewed.
+    log_sizes = np.log(cluster_sizes)
+    
+    # Get first and third quartiles
+    q1, q3 = np.percentile(log_sizes, [25, 75])
+    
+    # Get inter-quartile range
+    iqr = q3 - q1
+    
+    # Get lower bound for non-outliers
+    lower_bound = q1 - 1.5 * iqr
+    
+    # Get true outliers
+    outliers = []
+    for i in range(len(cluster_sizes)):
+        if log_sizes[i] < lower_bound:
+            outliers.extend(clusters[i])
+    
+    return outliers
 
 def getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks):
 
@@ -481,6 +605,20 @@ def buildCardiacPeakVectors(cardiacPeaks, cardiacTimeSeries):
         vec
         )
 
+def makeRankVector(vec):
+    # Make NxN matrix where N is the number of segments
+    # Fill the matrix with the weights
+    print('Make weights matrix')
+    weights = squareform(pdist(vec, metric='euclidean'))
+    weights = np.exp(1/(weights+1))
+        
+    # make vector of weight sums and get vector of their ranks starting with the highest weight sum
+    print('Make weight sum and rank vectors')
+    vectorWeightSums = np.sum(weights,axis=1)
+    rankVector = np.argsort(vectorWeightSums)[::-1]
+    
+    return (rankVector, vectorWeightSums, weights)
+
 def buildRespiratoryPeakVectors(resp_peak_values, resp_peak_indices):
     print('Build an array of vecs, one for each peak')
 
@@ -504,30 +642,66 @@ def buildRespiratoryPeakVectors(resp_peak_values, resp_peak_indices):
         vec
         )
         
-def applyClustering(cardiacTimeSeries, cardiacPeaks, weights, rankVector, getMOD):
+def applyClustering(cardiacPeaks, weights):
     print('clustering')
-
-    # Each vertex is initially regarded as a community or cluster.
-    print('Each vertex is initially regarded as a community or cluster')
-    numPeaks = len(cardiacTimeSeries)
-    clusters = [[i] for i in range(0,numPeaks)]
     
-    # Make an array of clusters where each cluster is an array of members containing 
-    # the iindices of the cluster members. 
-    print('Make an array of clusters where each cluster is an array of members containing ')
-    numPeaks = len(cardiacPeaks)
-    clusters = [[i] for i in range(0,numPeaks)]
-
-    # Starting with the first cluster (vertex) merge in other clusters only in cases 
-    # where MOD is increased by doing so.
-    clusters = [[i] for i in range(numPeaks)]
-
-    # Merge clusters, starting with merginging into the cluster (initially single
-    # vertex) with the highest sum of weights with other vertices and working down
-    # towards the vertex with the lowest cumulative weights.
-    final_clusters, bestMOD = merge_clusters_by_MOD(weights, clusters, rankVector, getMOD)
+    # Make clusters from weights
+    clusters = louvain_phase1(weights)
     
-def findAnomalousBands():
+    # Get sizes of clusters
+    cluster_sizes = [len(cluster) for cluster in clusters]
+    
+    # Find low end outliers among the cluster sizes()
+    outlier_peak_indices = getOutliersFromClusters(cluster_sizes, clusters)
+    
+    # Get outlier peak indices
+    peakVals = []
+    for i in cardiacPeaks: peakVals.append(cardiacTimeSeries[i])
+    # peakRankVector = np.argsort(peakVals)[::-1]
+    peak_outliers = getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks)
+    
+    # Get outlier time series indices
+    outlier_ts_indices = []
+    if 0 in outlier_peak_indices: 
+        outlier_ts_indices += [[cardiacPeaks[0], cardiacPeaks[2]]]
+        outlier_peak_indices = outlier_peak_indices[outlier_peak_indices != 0]
+    last = len(cardiacPeaks) - 1
+    lastM2 = last - 2
+    if any(item > lastM2 for item in outlier_peak_indices):
+        outlier_ts_indices += [[cardiacPeaks[last-1], cardiacPeaks[last]]]
+        outlier_peak_indices = outlier_peak_indices[outlier_peak_indices <= last-2]
+    outlier_ts_indices += [[cardiacPeaks[i-1], cardiacPeaks[i+2]]  
+        for i in outlier_peak_indices]
+    
+    # Sort anomalous bands in  order of location
+    sorted_ts_ranges = sorted(outlier_ts_indices, key=lambda item: item[0])
+    
+    # Merge overlapping ranges
+    num_ranges = len(sorted_ts_ranges)
+    i = 0
+    merged_ranges = []
+    
+    while i < num_ranges:
+        start, end = sorted_ts_ranges[i]
+    
+        j = i + 1
+        while j < num_ranges and sorted_ts_ranges[j][0] <= end:
+            end = max(end, sorted_ts_ranges[j][1])
+            j += 1
+    
+        merged_ranges.append([start, end])
+        i = j
+        
+    # Reverse the orders of the merged ranges
+    merged_ranges = merged_ranges[::-1]
+
+    return (
+        sorted_ts_ranges,
+        peak_outliers,
+        merged_ranges,
+    )
+        
+def findAnomalousBands(vectorWeightSums, rankVector, cardiacPeaks):
     # Identify outliers on low end of the cumulative weights
     print('Identify outliers on low end of the cumulatives weights')
     outlier_ts_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
@@ -798,27 +972,23 @@ PlotCardiacPeaksOnCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks)
     vec
     ) = buildCardiacPeakVectors(cardiacPeaks, cardiacTimeSeries)
 
-# Make NxN matrix where N is the number of segments
-# Fill the matrix with the weights
-print('Make weights matrix')
-weights = squareform(pdist(vec, metric='euclidean'))
-weights = np.exp(1/(weights+1))
-    
-# make vector of weight sums and get vector of their ranks starting with the highest weight sum
-print('Make weight sum and rank vectors')
-vectorWeightSums = np.sum(weights,axis=1)
-rankVector = np.argsort(vectorWeightSums)[::-1]
+# Make cardiac rank vector
+(rankVector, vectorWeightSums, weights) = makeRankVector(vec)
 
 # Use clustering if required
 if useClustering:   # Not the default as it's very slow
-    applyClustering(cardiacTimeSeries, cardiacPeaks, weights, rankVector, getMOD)
-
-# Identify outliers on low end of the cumulative weights
-(
-    outlier_ts_ranges,
-    peak_outliers,
-    merged_ranges,
-) = findAnomalousBands()
+    (
+        outlier_ts_ranges,
+        peak_outliers,
+        merged_ranges,
+    ) = applyClustering(cardiacPeaks, weights)
+else:
+    # Identify outliers on low end of the cumulative weights
+    (
+        outlier_ts_ranges,
+        peak_outliers,
+        merged_ranges,
+    ) = findAnomalousBands(vectorWeightSums, rankVector, cardiacPeaks)
 
 cardiacPeaks = correctCardiacPeaks(cardiacPeaks)
 
@@ -833,36 +1003,24 @@ resp_peak_indices, resp_peak_values, resp_outliers = compute_respiratory_peaks(r
     respiratoryPeaks, respiratoryTroughs)
 
 # Build an array of vecs, one for each peak.
-print('Build an array of vecs, one for each peak')
 (
     resp_peak_values, 
     resp_peak_indices,
     vec
     ) = buildRespiratoryPeakVectors(resp_peak_values, resp_peak_indices)
-# vec = np.column_stack([
-#     resp_peak_values - np.roll(resp_peak_values, 1),
-#     np.roll(resp_peak_values, -1) - resp_peak_values,
-#     resp_peak_indices - np.roll(resp_peak_indices, 1),
-#     np.roll(resp_peak_indices, -1) - resp_peak_indices
-# ])
-# vec[0] = vec[1]
-# vec[-1] = vec[0]
 
-# # Normalize time differences to be in the same range as the value differences
-# print('Normalize time differences to be in the same range as the value differences')
-# scaleFactor = (vec[:,0:1].max()-vec[:,0:1].min())/(vec[:,2:3].max()-vec[:,2:3].min())
-# vec[:,2:4] =vec[:,2:4]*scaleFactor
+# Make respiratory rank vector
+(rankVector, vectorWeightSums, weights) = makeRankVector(vec)
 
-# Make NxN matrix where N is the number of segments
-# Fill the matrix with the weights
-print('Make respiratory weights vector')
-weights = squareform(pdist(vec, metric='euclidean'))
-weights = np.exp(1/(weights+1))
-
-# Get weight sum vectors and rank indices
-print('Get weight sum vectors and rank indices')
-vectorWeightSums = np.sum(weights,axis=1)
-rankVector = np.argsort(vectorWeightSums)[::-1]
+# Use clustering if required.  Currently applied only to peaks
+if useClustering:   # Not the default as it's very slow
+    (
+        outlier_ts_ranges,
+        peak_outliers,
+        merged_ranges,
+    ) = applyClustering(resp_peak_indices, weights)
+    # clusters = louvain_phase1(weights)
+    # applyClustering(respiratoryTimeSeries, resp_peak_indices, weights, rankVector, getMOD)
 
 # Identify outliers on low end of the cumulative weights
 print('Identify outliers on low end of the cumulatives weights')
