@@ -192,12 +192,13 @@ int SUMA_GetSortedNodeOverInd (SUMA_OVERLAYS *Sover, int node);
 SUMA_Boolean SUMA_isDsetColumn_inferred(SUMA_DSET *dset, int icol);
 SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO);
 SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd);
-static char SUMA_COLOR_MAP_NAMES[][32]={
-         "rgybr20"   , "bgyr19"  , "gray02"  ,
-         "gray_i02"  , "gray20"  , "ngray20" ,
-         "bw20"      , "byr64"   , "bgyr64"  , 
-         "ygbrp256"  , "ygbrp128", "ygbrp64",
-         "\0" };
+extern char SUMA_COLOR_MAP_NAMES[][32];
+//static char SUMA_COLOR_MAP_NAMES[][32]={
+//         "rgybr20"   , "bgyr19"  , "gray02"  ,
+//         "gray_i02"  , "gray20"  , "ngray20" ,
+//         "bw20"      , "byr64"   , "bgyr64"  , 
+//         "ygbrp256"  , "ygbrp128", "ygbrp64",
+//         "\0" };
 SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
       SUMA_ALL_DO *ado, SUMA_OVERLAYS *Sover,
       SUMA_ENGINE_SOURCE Src, NI_group *ngr);

@@ -1315,8 +1315,8 @@ int SUMA_SwitchColPlaneIntensity_one (
                         SUMA_LH("Setting threshold values");
                         SUMA_Set_Menu_Widget(SurfCont->SwitchThrMenu,
                                       colp->OptScl->tind+1);
-                        /* range is over which colp->OptScl->ThreshRange
-                           can be chosen */
+                        /* range is the range over which colp->OptScl->ThreshRange
+                            can be chosen */
                         if (SUMA_GetDsetColRange(colp->dset_link,
                                              colp->OptScl->tind, range, loc)) {
                            SUMA_SetScaleRange(ado, range );

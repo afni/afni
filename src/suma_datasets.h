@@ -947,7 +947,8 @@ NodeDef might be dynamically changed in the overlay plane */
 #endif
 /* #define DSET_(dset) NI_get_attribute(dset->nel,"") */
    
-static byte NI_GOT;
+// static byte NI_GOT;
+extern byte NI_GOT;
 
 #define NI_SET_STR(ngr, name, val)  {\
    if (val && val[0] != '\0') NI_set_attribute(ngr, name, val);  \

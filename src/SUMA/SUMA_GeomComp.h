@@ -55,7 +55,8 @@ typedef struct {
 
 typedef enum { SUMA_SMOOTH_NOT_SET, SUMA_EQUAL, SUMA_FUJIWARA, SUMA_DESBRUN } SUMA_TAUBIN_SMOOTH_OPTIONS;
 
-static int SUMA_SSidbg=-1; /*!< Index of node for debug */
+// static int SUMA_SSidbg=-1; /*!< Index of node for debug */
+extern int SUMA_SSidbg;
 
 typedef struct {
    int ni;

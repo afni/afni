@@ -4718,7 +4718,6 @@ void SUMA_cb_FileLoadView (Widget w, XtPointer data, XtPointer calldata)
       fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
    }
 
- 
    /*
    if (!SUMA_LoadVisualState(NULL, (void*)sv)) {
       SUMA_SLP_Err("Failed to load view.");
@@ -7991,7 +7990,6 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          break;
    }
 
-
    SUMA_RETURNe;
 }
 
@@ -9949,7 +9947,6 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
    SUMA_cb_ToggleManagementColPlaneWidget(NULL, (XtPointer)(&ado), NULL);
    SUMA_cb_ToggleManagementColPlaneWidget(NULL, (XtPointer)(&ado), NULL);
    #endif
-
 
    SUMA_LH("going home.");
 

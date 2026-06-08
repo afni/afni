@@ -1,4 +1,16 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
 #include "SUMA_suma.h"
+#pragma GCC diagnostic pop
+
+int SUMA_SSidbg = -1;
+char SUMA_COLOR_MAP_NAMES[][32]={
+         "rgybr20"   , "bgyr19"  , "gray02"  ,
+         "gray_i02"  , "gray20"  , "ngray20" ,
+         "bw20"      , "byr64"   , "bgyr64"  , 
+         "ygbrp256"  , "ygbrp128", "ygbrp64",
+         "\0" };
+byte NI_GOT;
 
 extern SUMA_CommonFields *SUMAg_CF; 
 
@@ -205,8 +217,7 @@ tb_project_to_sphere(float r, float x, float y)
 
 #define RENORMCOUNT 97
 
-void
-add_quats(float q1[4], float q2[4], float dest[4])
+void add_quats(float *q1, float *q2, float *dest)
 {
   static int count = 0;
   float t1[4], t2[4], t3[4];
@@ -263,7 +274,6 @@ void
 SUMA_build_rotmatrix(GLfloat m[4][4], float q[4])
 {
 	static char FuncName[]={"SUMA_build_rotmatrix"};
-	SUMA_Boolean LocalHead = NOPE;
 	
 	SUMA_ENTRY;
 	m[0][0] = 1.0 - 2.0 * (q[1] * q[1] + q[2] * q[2]);

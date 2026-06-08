@@ -272,7 +272,8 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 
 #define DBG_set_hist_status(hss)                         \
  do{ if( hist_status == NULL ) DBG_setup_hist_status() ; \
-     strncpy(hist_status[nhist_status],hss,1023) ;       \
+     snprintf(hist_status[nhist_status], 1024, "%.*s",   \
+              1023, hss);                                \
      hist_status[nhist_status][1023] = '\0' ;            \
      nhist_status = (nhist_status+1) % DBG_MAX_HIST ;    \
      hist_status[nhist_status][0] = '\0' ;               \
