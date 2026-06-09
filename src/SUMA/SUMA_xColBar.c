@@ -2202,7 +2202,7 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
         curColPlane->SymIrange, NOPE)){
     SUMA_S_Warn("Error toggling sym I for current surface"); SUMA_RETURNe;
    }
-      
+
    /* Process contralateral hemisphere */
    if (ado->do_type == SO_type) {
         /* do we have a contralateral SO and overlay? */
@@ -2335,9 +2335,10 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
             XmToggleButtonSetState(SurfCont->ShowZero_tb, 
                                    ShowZero, NOPE);                    
    
-           if (!SUMA_cb_ShowZero_tb_toggledForSurfaceObject(ado, 
-                curColPlane->OptScl->MaskZero, NOPE)){
-            SUMA_S_Warn("Error toggling show zero for contralateral surface"); SUMA_RETURNe;
+            if (!SUMA_cb_ShowZero_tb_toggledForSurfaceObject(ado, 
+                      curColPlane->OptScl->MaskZero, NOPE)) {
+              SUMA_S_Warn("Error toggling show zero for contralateral surface");
+              SUMA_RETURNe;
            }
         }
    }
@@ -2448,7 +2449,6 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
     SUMA_RETURNe;
    }
 
-      
    /* Process contralateral hemisphere */
    if (ado->do_type == SO_type) {
         /* do we have a contralateral SO and overlay? */
@@ -2616,7 +2616,7 @@ void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
    SUMA_ENTRY;
 
    SUMA_LH("Called");
-    
+
    ado = (SUMA_ALL_DO *)data;
 
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
@@ -2656,7 +2656,7 @@ void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
           SurfCont=SUMA_ADO_Cont(ado);
           // curColPlane->OptScl->UseBrt = UseBrt;
 
-           /* make sure ok to turn on */
+          /* make sure ok to turn on */
           if (curColPlane->OptScl->find < 0) {
              SUMA_BEEP;
              SUMA_SLP_Note("no intensity column set");
@@ -3087,7 +3087,8 @@ void SUMA_cb_SetLinkMode(Widget widget, XtPointer client_data,
 /*!
    \brief sets the coordinate bias mode
    - expects a SUMA_MenuCallBackData * in  client_data
-   with SO as client_data->ContID and Menubutton in client_data->callback_data
+     with SO as client_data->ContID and Menubutton in client_data->callback_data
+   - called when Bias field is changed
 */
 void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data,
                            XtPointer call_data)
@@ -5614,6 +5615,8 @@ void SUMA_SliceF_SetString (SUMA_SLICE_FIELD * SF)
 
 /*!
    \brief This function is called when the label field is activated by the user
+
+   - called when the Col field is changed
 \*/
 void SUMA_TableF_cb_label_change (  Widget w, XtPointer client_data,
                                     XtPointer call_data)
@@ -6034,6 +6037,7 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_RETURN(1);
 }
 
+/* called when the threshold box is edited */
 int SUMA_SetScaleThr(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                           float *val, int setmen, int redisplay)
 {
@@ -6076,6 +6080,7 @@ int SUMA_SetScaleThr(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_RETURN(1);
 }
 
+/* called when the threshold box is edited */
 void SUMA_cb_SetScaleThr(void *data)
 {
    static char FuncName[]={"SUMA_cb_SetScaleThr"};
@@ -6859,6 +6864,7 @@ int SUMA_SetRangeValueNew (SUMA_ALL_DO *ado,
    SUMA_RETURN(an);
 }
 
+/* set threshold range values (search terms: imin imax) */
 void SUMA_cb_SetRangeValue (void *data)
 {
     // Set threshold range values
@@ -6868,7 +6874,7 @@ void SUMA_cb_SetRangeValue (void *data)
    SUMA_ALL_DO *ado=NULL, *otherAdo=NULL;
    SUMA_OVERLAYS *colp=NULL, *colpC;
    int n=-1,row=-1,col=-1, an=0;
-   float reset = 0.0;
+   float reset=0.0, newValue;
    void *cv=NULL;
    SUMA_TABLE_FIELD *TF=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
@@ -6917,7 +6923,7 @@ void SUMA_cb_SetRangeValue (void *data)
    }
 
    // Process contralateral hemisphere.
-   float newValue = TF->num_value[n];
+   newValue = TF->num_value[n];
    if (ado->do_type == SO_type) {
       /* do we have a contralateral SO and overlay? */
       SO = (SUMA_SurfaceObject *)ado;
@@ -10435,7 +10441,9 @@ void SUMA_cb_CloseSwitchCmap (Widget w, XtPointer client_data, XtPointer call)
    SUMA_RETURNe;
 }
 
-/* based on bbox.c's optmenu_EV */
+/* based on bbox.c's optmenu_EV
+ * - called when a subbrick option (I, T, B) or the Cmp menu is changed
+ */
 void SUMA_optmenu_EV( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch )
 {
@@ -12493,7 +12501,7 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado)
                SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
          SUMA_RETURN(NOPE);
    }
-   
+
    SUMA_RETURN(YUP);
 }
 
@@ -13920,7 +13928,7 @@ void SUMA_LoadCmapFile (char *filename, void *data)
          SUMA_SL_Err("Failed in SUMA_SetCmapMenuChoice");
       }
 
-      /* switch to the recently loaded  cmap */
+      /* switch to the recently loaded cmap */
       if (!SUMA_SwitchColPlaneCmap(ado, Cmap)) {
          SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
       }

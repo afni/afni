@@ -175,7 +175,7 @@ avsp : str
 
         if self.bname_type == 'NIFTI' :
             return '.nii'
-        elif nobj.bname_type == 'NIFTI_GZ' :
+        elif self.bname_type == 'NIFTI_GZ' :
             return '.nii.gz'
         else:
             return ''

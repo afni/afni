@@ -1080,6 +1080,15 @@ int main (int argc,char *argv[])
       fprintf(stderr,"Error in SUMA_X_SurfaceViewer_Create. Exiting\n");
       return 1;
    }
+#if defined(__APPLE__) && defined(ARM_M1)
+   /*
+    * XQuartz GLUT on Apple Silicon needs GLUT initialized before calls such as
+    * glutBitmapWidth used by the right-click context menus.  Keep this scoped:
+    * the older SUMA_STANDALONE_INIT glutInit call was disabled because it
+    * caused remote display problems on some systems.
+    */
+   glutInit(&argc, argv);
+#endif
 
    for (i=0; i<ispec; ++i) {
       if (!list) list = SUMA_CreateList();
@@ -1224,5 +1233,4 @@ int main (int argc,char *argv[])
       SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
   SUMA_RETURN(0);             /* ANSI C requires main to return int. */
 }/* Main */
-
 

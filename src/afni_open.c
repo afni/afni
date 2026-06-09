@@ -59,11 +59,54 @@ int is_pdf(char *name)
    return(a);
 }
 
+/* List of text file types, including some fairly specific to AFNI
+   (like NIML, netcc, grid, asc, spec, etc.); don't include .HEAD
+   here, because afni_open can open dsets with AFNI, too. */
+int is_text_pn(SUMA_PARSED_NAME *FN)
+{
+   int a = 0;
+   if (!FN) return(0);
+   if (!strcmp(FN->Ext,".txt")  ||
+       !strcmp(FN->Ext,".json") ||
+       !strcmp(FN->Ext,".py")   ||
+       !strcmp(FN->Ext,".tcsh") ||
+       !strcmp(FN->Ext,".bash") ||
+       !strcmp(FN->Ext,".sh")   ||
+       !strcmp(FN->Ext,".zsh")  ||
+       !strcmp(FN->Ext,".dat")  ||
+       !strcmp(FN->Ext,".lt")   ||
+       !strcmp(FN->Ext,".dset") ||
+       !strcmp(FN->Ext,".spec") ||
+       !strcmp(FN->Ext,".asc")  ||
+       !strcmp(FN->Ext,".grid") ||
+       !strcmp(FN->Ext,".netcc") ) {
+      a = 1; 
+   }
+   return(a);
+}
+
+int is_text(char *name)
+{
+   int a;
+   SUMA_PARSED_NAME *pn;
+   if (!name) return(0);
+   if (!(pn = SUMA_ParseFname (name,NULL))) {
+      return(0);
+   }
+   a = is_text_pn(pn);
+   SUMA_Free_Parsed_Name (pn);
+   return(a);
+}
+
 int is_image_pn(SUMA_PARSED_NAME *FN)
 {
    int a = 0;
    if (!FN) return(0);
-   if (!strcmp(FN->Ext,".jpg")) {
+   if (!strcmp(FN->Ext,".jpg") ||
+       !strcmp(FN->Ext,".png") ||
+       !strcmp(FN->Ext,".tif") ||
+       !strcmp(FN->Ext,".ppm") ||
+       !strcmp(FN->Ext,".bmp") ) {
       a = 1; 
    }
    return(a);
@@ -664,7 +707,7 @@ int main(int argc, char **argv)
          }
       } else if (is_local_html(FN)) {
          ao_with_browser(FN->NameAsParsed);
-      } else if (FN->StorageMode == STORAGE_BY_1D) {
+      } else if (FN->StorageMode == STORAGE_BY_1D || is_text_pn(FN)) {
          ao_with_editor(FN->NameAsParsed);
       } else if (is_pdf_pn(FN)) {
          ao_with_pdf_viewer(FN->NameAsParsed);

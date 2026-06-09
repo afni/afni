@@ -53,6 +53,129 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Jun, 2026, RCR, "1d_tool.py", MINOR, TYPE_BUG_FIX,
+   "fix setting tr - forgot to check in the original update for it",
+   "Change original lib_afni1D:show_tpattern(), now require tr to be passed\n"
+   "if one wants to override the class default of 1."
+ } ,
+
+ { 26, May, 2026, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "allow for new slice timing patterns, alt+z_D and alt-z_D",
+   "Like alt+z, but generalized with a step of D slices, rather than just 2.\n"
+   "Note that alt+z == alt+z_2.  There may be confusion with alt+z2, which\n"
+   "is different.  Life is hard.\n"
+   "The same relationships hold between alt-z_D and alt-z.\n"
+   "Inspired by new data from D Handwerker."
+ } ,
+
+ { 18, May, 2026, RCR, "3dCM", MICRO, TYPE_BUG_FIX,
+   "if writing resample dset, preserve dirname",
+   "Thanks to X Davis for noting the problem."
+ } ,
+
+ { 13, May, 2026, RCR, "3dmask_tool", MICRO, TYPE_ENHANCE,
+   "small improvement of info messages",
+   NULL
+ } ,
+
+ { 12, May, 2026, RCR, "afni", MAJOR, TYPE_BUG_FIX,
+   "macos 26.5+ now defaults to DO_AFNI_X11_REDRAW = NO",
+   "The issue requiring redraw/forceExpose/Remanage events has been\n"
+   "has been fixed by Apple as of macos 26.5."
+ } ,
+
+ { 30, Apr, 2026, RCR, "afni", MICRO, TYPE_ENHANCE,
+   "add afni help details for DO_AFNI_X11_REDRAW and AFNI_X11_REDRAW_VERB",
+   NULL
+ } ,
+
+ { 24, Apr, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "if tedana masking, suggest -blur_in_mask yes",
+   NULL
+ } ,
+
+ { 21, Apr, 2026, RCR, "model_conv_PRF", MICRO, TYPE_ENHANCE,
+   "be more descriptive of x and y, mapping stimulus orientation to results",
+   NULL
+ } ,
+
+ { 21, Apr, 2026, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "show data dir history from the left, to include date",
+   NULL
+ } ,
+
+ { 17, Apr, 2026, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
+   "add a help section, 'general rules for stimulus timing files'",
+   NULL
+ } ,
+
+ { 10, Apr, 2026, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "update OS_notes.macos_12_*_a_admin_pt2.zsh to install R 4.5.2 (from 4.3.1)",
+   NULL
+ } ,
+
+ {  3, Apr, 2026, RCR, "@diff.tree", MINOR, TYPE_ENHANCE,
+   "make more space-friendly, adding quote and :q for most variable access",
+   NULL
+ } ,
+
+ { 30, Mar, 2026, RCR, "suma", MINOR, TYPE_BUG_FIX,
+   "apply D Glen macos 26 X11 fixes on the suma side",
+   NULL
+ } ,
+
+ { 27, Mar, 2026, RCR, "suma", MINOR, TYPE_BUG_FIX,
+   "fix problems causing crashes when using SUMA_SameSurfCont=NO",
+   NULL
+ } ,
+
+ { 18, Mar, 2026, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -censor_to_spike_regs",
+   "Use this option to convert a 3dDeconvolve-style censor file\n"
+   "to an equivalent multi-column spike regressor file."
+ } ,
+
+ {  9, Mar, 2026, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "on macos, check CPU type for gcc vs that of system",
+   NULL
+ } ,
+
+ {  3, Mar, 2026, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
+   "add help for evaluating TR-offset stats for non-binary TRs, like 1.3",
+   NULL
+ } ,
+
+ {  3, Mar, 2026, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
+   "describe converting an HRF (long stimulus) to an IRF in the help",
+   NULL
+ } ,
+
+ { 19, Feb, 2026, RCR, "make_random_timing.py", MICRO, TYPE_MODIFY,
+   "add -tr_locked to g_style_opts_old",
+   "Sorry about that, Catherine."
+ } ,
+
+ { 19, Feb, 2026, RCR, "SurfToSurf", MICRO, TYPE_ENHANCE,
+   "add an example usage",
+   "Inspired by P Molfese."
+ } ,
+
+ {  9, Feb, 2026, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
+   "fix labels in -write_simple_tsv (they were truncated)",
+   NULL
+ } ,
+
+ { 23, Jan, 2026, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "do not automatically include tcsh on check_list for init_user_dotfiles.py",
+   "This prevents unneeded whining about apsearch in tcsh.\n"
+   "Just let tcsh inherit variables when it is not the login shell."
+ } ,
+
+ { 22, Jan, 2026, RCR, "afni", MICRO, TYPE_BUG_FIX,
+   "lose the C99 variable declaration, add new options to afni -help",
+   NULL
+ } ,
+
  { 21, Jan, 2026, RCR, "afni", MICRO, TYPE_MODIFY,
    "have AFNI_IMAGE_DATASETS default to NO",
    "Set it to YES to see jpg files in a directory (env var or .afnirc).\n"

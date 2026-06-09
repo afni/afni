@@ -36,4 +36,3 @@ if(NOT USE_SYSTEM_GLUT AND APPLE)
    message(WARNING [=[On OSX the only GLUT implementation supported is the one distributed with XQuartz]=])
    set(USE_SYSTEM_GLUT ON)
 endif()
-

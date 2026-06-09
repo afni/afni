@@ -4647,10 +4647,13 @@ num : int
     # for warns QC block, parse output and get max warning level
     if qcb == 'warns' :
         warn_level = 'undecided'
-        if len(com.so) > 1 :
-            ttt = com.so[1].split(':')[-1].strip()
-            if len(ttt) :
-                warn_level = ttt
+        # [PT: 2026-05-08] have to search for line with max warn level
+        ncom = len(com.so)
+        for ii in range(ncom):
+            if com.so[ii].startswith('++ max warn level') :
+                ttt = com.so[ii].split(':')[-1].strip()
+                if len(ttt) :
+                    warn_level = ttt
 
     # text above data
     partxt  = "{}, had_blur={}".format(fname, had_blur)
@@ -4675,7 +4678,7 @@ num : int
             'title'       : lah.qc_blocks[qcb][1],
             'text'        : otoptxt,
             'warn_level'  : warn_level,
-        }        
+        }
     with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 

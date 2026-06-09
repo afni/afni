@@ -827,9 +827,10 @@ g_history = """
        - allow verb only to show tracked files and create proc script
     8.04 Jan  9, 2026: add -show_xmat_warnings after -show_cormat_warnings
     8.05 Jan 13, 2026: create enorm time series even if no volreg or censoring
+    8.06 Apr 24, 2026: if tedana masking, suggest -blur_in_mask yes
 """
 
-g_version = "version 8.05, January 13, 2026"
+g_version = "version 8.06, April 24, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
