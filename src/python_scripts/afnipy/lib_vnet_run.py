@@ -17,8 +17,6 @@ from   afnipy import lib_vnet_defs      as DEF
 
 from   vnet_afni  import lib_vnet_test   as VALVT
 
-from   communifti import lib_nibabel_write_nifti as lnwn
-
 # ----------------------------------------------------------------------------
 
 
