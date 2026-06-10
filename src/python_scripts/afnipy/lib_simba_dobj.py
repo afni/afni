@@ -9,12 +9,14 @@
 # ver 1.0 : start of main interface 
 # ============================================================================
 
-import sys
-
-import numpy   as np
+import sys, copy
 import torch
 
-import nibabel as nib
+import numpy    as np
+
+from   afnipy     import afni_base              as ab
+from   afnipy     import afni_util              as au
+from   communifti import lib_nibabel_read_nifti as lnrn
 
 # ============================================================================
 
@@ -36,7 +38,7 @@ fname_mask : str
 
     """
 
-    def __init__(self, fname_pickle=None, infiles=None,
+    def __init__(self, fname_pickle=None, infiles=[],
                  fname_mask='', fname_ulay='', verb=1):
 
         # ----- set up attributes
@@ -57,34 +59,88 @@ fname_mask : str
         self.jj              = None         # j-th idx of unflattened vol arr
         self.kk              = None         # k-th idx of unflattened vol arr
         self.voxdim          = None         # np arr, dims=(3); voxel dim (mm)
+        self.matdim          = None         # np arr, dims=(3); matrix dim
 
         # additional data variables/dsets
-        self.mask_img        = None         # Nifti1Image, mask data
-        self.ulay_img        = None         # Nifti1Image, underlay data
-        self.ulay_data       = None         # Nifti1Image, underlay data
+        self.mask_data       = None         # np.ndarray, mask data
+        self.mask_hdr        = None         # NIFTI nibabel header
+        self.ulay_data       = None         # np.ndarray, underlay data
+        self.ulay_hdr        = None         # NIFTI nibabel header
 
         # ----- take action(s)
 
-        if self.fname_mask : 
-            # import mask, and define IJK indices (ii, jj, kk) & grid from it
-            tmpm   = self.unpack_mask()
-            tmpijk = self.set_ijk_coords()
-            tmpv   = self.set_voxdim()
-            tmpg   = self.set_grid()
-        else:
-            sys.exit("** ERROR: no mask")
+        tmp = self.basic_setup()
+        if tmp : return
 
-        if self.infiles is not None :
-            tmpi = self.unpack_infiles()
+        # first dset to load, so we can get relevant shape/data info
+        tmp = self.unpack_mask()
+        if tmp : return
+
+        tmp = self.set_dset_info_all()
+        if tmp : return
+
+        if len(self.infiles) :
+            tmp = self.unpack_infiles()
+            if tmp: return
         elif self.fname_pickle is not None :
-            tmpp = self.unpack_pickle()
+            tmp = self.unpack_pickle()
+            if tmp: return
 
         if self.fname_ulay : 
-            tmpu = self.unpack_ulay()
+            tmp = self.load_ulay()
+            if tmp: return
+
 
         # *****
 
     # ----- methods
+
+    def basic_setup(self):
+        """Verify that datasets and other input choices exist"""
+
+        ab.IP("Prepare simba")
+
+        BAD_RETURN = -1
+
+        # (req) input dsets: either infiles or pickle
+        if len(self.infiles) and self.fname_pickle :
+            ab.EP1("Cannot have _both_ pickle and infiles")
+            return BAD_RETURN
+        elif len(self.infiles) :
+            nfail = au.check_all_dsets_exist(self.infiles, label='infiles', 
+                                             verb=self.verb)
+            if nfail :
+                ab.EP1("Failed to load infiles")
+                return BAD_RETURN
+        elif self.fname_pickle :
+            if not(os.path.isfile(self.fname_pickle)) :
+                msg = "Failed to find pickle: {}".format(self.fname_pickle)
+                ab.EP1(msg)
+                return BAD_RETURN
+        else:
+            ab.EP1("Need to provide infiles or pickle inset")
+            return BAD_RETURN
+
+        # (req) must have mask at present
+        if not(self.fname_mask) :
+            ab.EP1("Need to provide mask")
+            return BAD_RETURN
+        else:
+            nfail = au.check_all_dsets_exist([self.fname_mask], label='mask', 
+                                             verb=self.verb)
+            if nfail :
+                ab.EP1("Failed to load mask")
+                return BAD_RETURN
+
+        # (opt) check existence of ulay, if provided
+        if self.fname_ulay :
+            nfail = au.check_all_dsets_exist([self.fname_ulay], label='ulay', 
+                                             verb=self.verb)
+            if nfail :
+                ab.EP1("Failed to load ulay")
+                return BAD_RETURN
+
+        return 0
 
     def unpack_pickle(self):
         """Unpack the pickle object"""
@@ -102,8 +158,10 @@ fname_mask : str
         existence and grid consistency
         """
 
+        BAD_RETURN = -1
+
         if self.verb > 1 : 
-            print(" ++ Load {} dsets".format(self.ninfiles))
+            print("++ Load {} dsets".format(self.ninfiles), flush=True)
 
         # init torch tensor to hold all infile data, dims=(ndsets, nvox)
         self.data = torch.tensor( np.zeros((self.ninfiles, self.nvox), 
@@ -113,19 +171,60 @@ fname_mask : str
         for nn in range(self.ninfiles) :
             dset = self.infiles[nn]
             if self.verb > 1 : print(" ++ Load dset {}: {}".format(nn+1, dset))
-            img  = nib.load(dset)
-            arr  = img.get_fdata()
+
+            # read NIFTI to data array and header obj
+            is_fail, arr, hdr = \
+                lnrn.read_nifti_to_nibabel(dset, verb=self.verb)
+            if is_fail :
+                ab.EP1("Could not read in NIFTI: {}".format(dset))
+                return BAD_RETURN 
+
+            # keep all arrays in list
             self.data[nn, :] = torch.from_numpy(arr[self.ii, self.jj, self.kk])
+
 
         return 0
 
     def unpack_mask(self):
-        """Unpack the mask dset, from its name."""
+        """Unpack the mask dset, from its name. NB: the self.mask_data and
+        self.mask_hdr is where we get the dset_info_all from, like
+        grid and nonzero vox.
+        """
+
+        BAD_RETURN = -4
 
         if self.verb > 1 :  print(" ++ Load mask")
 
-        # load in the data
-        self.mask_img = nib.Nifti1Image.from_filename(self.fname_mask)
+        # read NIFTI to tmp data array (needs proc) and header obj
+        is_fail, self.mask_data, self.mask_hdr = \
+            lnrn.read_nifti_to_nibabel(self.fname_mask, verb=self.verb)
+        if is_fail :
+            ab.EP1("Could not read in NIFTI: {}".format(self.fname_mask))
+            return BAD_RETURN 
+
+        return 0
+
+    def set_dset_info_all(self):
+        """Save the basic info from the dset that will be needed within
+        SIMBA, like IJK coords, voxel dimensions and grid points."""
+
+        BAD_RETURN = -3
+
+        if self.mask_data is None or self.mask_hdr is None :
+            ab.EPI1("Cannot get dset_info_all without mask input")
+            return BAD_RETURN
+
+        tmp = self.set_ijk_coords()
+        if tmp : return BAD_RETURN
+
+        tmp = self.set_matdim()
+        if tmp : return BAD_RETURN
+
+        tmp = self.set_voxdim()
+        if tmp : return BAD_RETURN
+
+        tmp = self.set_grid()
+        if tmp : return BAD_RETURN
 
         return 0
 
@@ -135,21 +234,37 @@ fname_mask : str
         nonzero."""
 
         # get IJK indices where mask is nonzero, stored in 3 sep arrays
-        img  = nib.load(self.fname_mask)
-        mask = img.get_fdata()
-        self.ii, self.jj, self.kk = np.nonzero(mask)
+        self.ii, self.jj, self.kk = np.nonzero(self.mask_data)
+
+        return 0
+
+    def set_matdim(self):
+        """Define the matrix dimension of the dataset, for writing out
+        dset arrays. Here, this is done by using the mask's NIFTI header 
+        (pixdim)."""
+
+        BAD_RETURN = -6
+
+        try:
+            self.matdim = np.array(self.mask_hdr['dim'][1:4], dtype=int)
+        except:
+            ab.EP1("Could not get matrix dim from mask")
+            return BAD_RETURN
 
         return 0
 
     def set_voxdim(self):
         """Define the voxel dimension of the dataset, for providing physical
-        grid. Here, this is done by using the mask's NIFTI header (pixdim)."""
+        grid. Here, this is done by using the mask's NIFTI header
+        (pixdim)."""
+
+        BAD_RETURN = -7
 
         try:
-            self.voxdim = np.array(self.mask_img.header['pixdim'][1:4], 
-                                   dtype=float)
+            self.voxdim = np.array(self.mask_hdr['pixdim'][1:4], dtype=float)
         except:
-            sys.exit("** ERROR: Could not get voxel dim from mask")
+            ab.EP1("Could not get voxel dim from mask")
+            return BAD_RETURN
 
         return 0
 
@@ -172,21 +287,36 @@ fname_mask : str
                                                         self.kk, 
                                                         self.voxdim) )
 
-
         return 0
 
-    def unpack_ulay(self):
+    def load_ulay(self):
+        """Load the ulay dataset into separate data array and header pieces,
+        and extract just the [0]th volume of ulay, in case fname_ulay
+        has multiple volumes (more specifically, is 4D or 5D), since nilearn
+        only wants a 3D dataset to plot."""
 
-        """Unpack the ulay dset, from its name
-        *** REVISIT THIS """
+        BAD_RETURN = -5
 
-        #self.ulay_img = nib.Nifti1Image.from_filename(self.fname_ulay)
+        if self.verb > 1 :  print("++ Load ulay")
 
-        if self.verb > 1 :  print(" ++ Load ulay")
+        # read NIFTI to tmp data array (needs proc) and header obj
+        is_fail, arr, self.ulay_hdr = \
+            lnrn.read_nifti_to_nibabel(self.fname_ulay, verb=self.verb)
+        if is_fail :
+            ab.EP1("Could not read in NIFTI: {}".format(self.fname_ulay))
+            return BAD_RETURN 
 
-        self.ulay_img  = nib.load(self.fname_ulay)
-        # Extract the 0-th volume
-        self.ulay_data = self.ulay_img.get_fdata()[:, :, :, 0, 0]  
+        S  = np.shape(arr)
+        LS = len(S)
+        if LS == 5 :
+            self.ulay_data = arr[:,:,:,0,0]
+        elif LS == 4 :
+            self.ulay_data = arr[:,:,:,0]
+        elif LS == 4 :
+            self.ulay_data = copy.deepcopy(arr)
+        else:
+            ab.EP1("Ulay shape is not 3D, 4D or 5D, but: {}".format(S))
+            return BAD_RETURN 
 
         return 0
 
@@ -228,36 +358,30 @@ fname_mask : str
 
     @property
     def nifti_affine(self):
-        """Nifti affine array from one of the input dsets; if we don't have
-        that info from a mask or ulay dset, return an empty 2D array"""
-        if self.mask_img :
-            return self.mask_img.affine
-        elif self.ulay_img :
-            return self.mask_img.ulay
+        """Nifti affine array from mask dset; else, return an empty 2D array"""
+        if self.mask_hdr is not None :
+            return self.mask_hdr.get_best_affine()
         else:
+            ab.EP1("Missing mask_hdr for dset_info: affine")
             return np.zeros((0,0))
 
     @property
     def nifti_qform_code(self):
-        """Nifti qform_code int from one of the input dsets; if we don't have
-        that info from a mask or ulay dset, return 0"""
-        if self.mask_img :
-            return int(self.mask_img.header['qform_code'])
-        elif self.ulay_img :
-            return int(self.mask_img.header['qform_code'])
+        """Nifti qform_code array from mask dset; else, return -1"""
+        if self.mask_hdr is not None :
+            return int(self.mask_hdr['qform_code'])
         else:
-            return 0
+            ab.EP1("Missing mask_hdr for dset_info: qform_code")
+            return -1
 
     @property
     def nifti_sform_code(self):
-        """Nifti sform_code int from one of the input dsets; if we don't have
-        that info from a mask or ulay dset, return 0"""
-        if self.mask_img :
-            return int(self.mask_img.header['sform_code'])
-        elif self.ulay_img :
-            return int(self.mask_img.header['sform_code'])
+        """Nifti sform_code array from mask dset; else, return -1"""
+        if self.mask_hdr is not None :
+            return int(self.mask_hdr['sform_code'])
         else:
-            return 0
+            ab.EP1("Missing mask_hdr for dset_info: sform_code")
+            return -1
 
 def scale_old(vec, tmin=-1, tmax=1):
     '''scale function tp [-1, 1]; early method for making grid, no longer

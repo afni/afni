@@ -26,6 +26,8 @@ from   afnipy import lib_simba_dobj     as DOBJ
 import afnipy.simba_model.SIMBA_VI      as SIMBA_VI
 import afnipy.simba_model.SIMBA_Gibbs   as SIMBA_Gibbs
 
+from   communifti import lib_nibabel_write_nifti as lnwn
+
 # ============================================================================
 # various parameters
 
@@ -195,12 +197,12 @@ inobj : InOpts object
         ii, jj, kk = self.simdata.ii, self.simdata.jj, self.simdata.kk
 
         # this might be effect estimate times sig?
-        self.eff_sig = np.zeros(self.simdata.mask_img.shape)
+        self.eff_sig = np.zeros(self.simdata.matdim)
         self.eff_sig[ii, jj, kk] = eff_sig
 
-        self.eff_est = np.zeros(self.simdata.mask_img.shape)
+        self.eff_est = np.zeros(self.simdata.matdim)
         self.eff_est[ii, jj, kk] = eff_est
-        self.E_s = np.zeros(self.simdata.mask_img.shape)
+        self.E_s = np.zeros(self.simdata.matdim)
         self.E_s[ii, jj, kk] = E_s
 
         return 0
@@ -234,9 +236,9 @@ inobj : InOpts object
 
         ii, jj, kk = self.simdata.ii, self.simdata.jj, self.simdata.kk
 
-        self.eff_est = np.zeros(self.simdata.mask_img.shape)
+        self.eff_est = np.zeros(self.simdata.matdim)
         self.eff_est[ii, jj, kk] = eff_est
-        #self.E_s = np.zeros(self.simdata.mask_img.shape)
+        #self.E_s = np.zeros(self.simdata.matdim)
         #self.E_s[ii, jj, kk] = E_s
 
         return 0
@@ -274,9 +276,10 @@ inobj : InOpts object
         ii, jj, kk = self.simdata.ii, self.simdata.jj, self.simdata.kk
 
         post_map_img = nib.Nifti1Image(self.eff_est, 
-                                       self.simdata.mask_img.affine)
-        ulay_img = nib.Nifti1Image(self.simdata.ulay_data, 
-                                   self.simdata.ulay_img.affine)
+                                       self.simdata.nifti_affine)
+
+        ulay_img = nib.Nifti1Image(self.simdata.ulay_data,
+                                   self.simdata.ulay_hdr.get_best_affine())
 
         fig = plot_stat_map(post_map_img,
                             bg_img=ulay_img,
@@ -295,6 +298,65 @@ inobj : InOpts object
         return fig
 
     def write_model_to_nifti(self):
+        """Write out the model information (which can be both self.eff_est and
+        self.E_s). This uses the communifti module, which is handy for
+        passing along appropriate header info from the inputs,
+        verifying some important pieces have _not_ changed, and also
+        updating fields where it was _appropriate_ to have changes.
+        """
+
+        BAD_RETURN = -11
+
+        if self.verb > 1 :
+            ab.IP("Write NIFTI")
+
+        # local var for shorter reference
+        prefix = self.prefix_outset
+
+        # prepare to write effect estimate array, while also being
+        # ready to concatenate an E_s volume, below, if available
+        arr = copy.deepcopy(self.eff_est)
+
+        # text for adding subvolume labels
+        opt_sublab = "-sublabel 0 eff_est "
+
+        # concatenate the E_s volume
+        if self.E_s is not None :
+            arr = np.stack((arr, self.E_s), axis=3)
+            opt_sublab+= "-sublabel 1 stat_pplus "
+
+        # nb: convert self.overwrite (str) -> kwarg do_overwrite (bool)
+        lnwn.BabelNiftiWrite( arr, self.simdata.mask_hdr, prefix,
+                              map_rules    = "afni_rules",
+                              do_overwrite = bool(self.overwrite),
+                              do_rm_exts   = True, 
+                              verb         = self.verb )
+
+        # do this to create AFNI extension, for subbrick selectors, etc.
+        if self.do_afniize :
+            cmd  = '3dcopy -overwrite {} {}'.format(prefix, prefix)
+            com  = ab.shell_com(cmd, capture=1)
+            stat = com.run()
+
+            if stat :
+                ab.EP("Cannot copy output dataset: {}".format(prefix))
+
+            # add subbrick labels
+            cmd  = '3drefit {} {}'.format(opt_sublab, prefix)
+            com  = ab.shell_com(cmd, capture=1)
+            stat = com.run()
+
+            # add history
+            all_opt = copy.deepcopy(self.user_inobj.argv)
+            all_opt[0] = all_opt[0].split('/')[-1] # only name of prog
+            hist = ' '.join(all_opt)
+            cmd  = '3dNotes -h "{}" {}'.format(hist, prefix)
+            com  = ab.shell_com(cmd, capture=1)
+            stat = com.run()
+
+        return 0
+
+    def write_model_to_nifti_OLD(self):
         """*** work on this
 
         + have to pass along better qform_code/sform_code
@@ -320,7 +382,7 @@ inobj : InOpts object
             arr0 = np.stack((arr0, arr1), axis=3)
             opt_sublab+= "-sublabel 1 stat_pplus "
 
-        ovol0 = nib.Nifti1Image(arr0, affine=self.simdata.mask_img.affine)
+        ovol0 = nib.Nifti1Image(arr0, affine=self.simdata.nifti_affine)
         ovol0.header['qform_code'] = qform_code
         ovol0.header['sform_code'] = sform_code
         nib.save(ovol0, opre0)
