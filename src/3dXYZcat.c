@@ -191,8 +191,8 @@ int main( int argc , char *argv[] )
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
    }
 
-   mainENTRY("3dZcat main") ; machdep() ; AFNI_logger("3dZcat",argc,argv) ;
-   PRINT_VERSION("3dZcat") ;
+   mainENTRY("3dXYZcat main") ; machdep() ; AFNI_logger("3dXYZcat",argc,argv) ;
+   PRINT_VERSION("3dXYZcat") ;
 
    XCAT_read_opts( argc , argv ) ;
 

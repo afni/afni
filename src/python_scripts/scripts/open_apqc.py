@@ -19,6 +19,7 @@ version = '1.1'  # adds in Timer functionality, so multiple pages can
 version = '1.11' # add more help text and examples
 version = '2.0'  # add in AV button functionality 
 version = '3.0'  # run with or without server going
+version = '3.1'  # add in -find_infiles opt
 
 # ==========================================================================
 
@@ -111,6 +112,12 @@ Examples ~1~
 
      open_apqc.py  -infiles  data_21_ap/sub*/*results/QC_*/index.html 
 
+  1b) The same as #1, but get the list of input files by searching down the
+     full file tree from the present directory for any index.html files
+     (NB: could be a large list!):
+
+     open_apqc.py  -find_infiles .
+
   2) The same as #1, but have each page jump to the 'vstat' block of
      the HTML:
 
@@ -143,8 +150,14 @@ parser = argp.ArgumentParser( prog=str(sys.argv[0]).split('/')[-1],
                               epilog=textwrap.dedent(help_str_epi) )
 
 parser.add_argument('-infiles', nargs='+',          
-                    default=[lao.DEF['infiles']],
+                    default=lao.DEF['infiles'],
                     help='path to one or more APQC index.html files')
+
+parser.add_argument('-find_infiles', type=str,
+                    default=lao.DEF['find_infiles'],
+                    help='directory from which to find a set of one or more '
+                    'APQC index.html files, via the `find ..` command; any '
+                    'paths found here are appended to the "-infiles .." list')
 
 parser.add_argument('-jump_to', nargs=1,
                     default=[lao.DEF['jump_to']],
@@ -155,7 +168,7 @@ parser.add_argument('-disp_jump_ids', action="store_true",
                     default=lao.DEF['disp_jump_ids'],
                     help='display list of IDs within first index.html file '
                     'that can be jumped to with the "-jump_to .." option '
-                    '(must be used with "-infiles ..")')
+                    '(must be used with "-infiles .." or "-find_infiles ..")')
 
 parser.add_argument('-new_tabs_only', action="store_true", 
                     default=lao.DEF['new_tabs_only'],
@@ -223,6 +236,7 @@ parser.add_argument('-hview', action="store_true",
 
 args             = parser.parse_args()
 all_inpath       = args.infiles
+find_topdir      = args.find_infiles
 portnum          = int(args.portnum[0])
 port_nsearch     = int(args.port_nsearch[0])
 host             = args.host[0]
@@ -237,6 +251,13 @@ do_new_tabs_only = args.new_tabs_only
 do_new_wins_only = args.new_windows_only
 pause_time       = float(args.pause_time[0])
 verb             = int(args.verb[0])
+
+# do we have index.html files to find?
+if not(find_topdir is None) :
+    npath, all_findpath = lao.find_infiles_from_topdir(find_topdir, verb=verb)
+    if npath :
+        for path in all_findpath :
+            all_inpath.extend(all_findpath)
 
 # ---------------------------- help stuff -------------------------------
 
@@ -259,11 +280,19 @@ if do_ver :
 
 # show jump_to IDs
 if do_disp_jump_ids :
+    is_valid = lao.verify_all_paths_to_html(all_inpath)
+    if not(is_valid) :
+        print("** ERROR: invalid input paths, cannot proceed")
+        sys.exit(1)
     lao.disp_jump_ids_file(all_inpath)
     sys.exit(0)
 
 # ------------------------------------------------------------------------
 # continue on: process opts slightly
+
+if not(len(all_inpath)) :
+    print("** ERROR: no valid input files---exiting.")
+    sys.exit(1)
 
 if verb > 2 :
     print("++ do_new_tabs_only:", do_new_tabs_only)

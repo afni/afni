@@ -21,9 +21,14 @@
 #set version   = "0.32";  set rev_dat   = "Mar 3, 2021"
 # [PT] turn of early exit
 #
-set version   = "0.33";   set rev_dat   = "Sep 27, 2021"
+#set version   = "0.33";   set rev_dat   = "Sep 27, 2021"
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
+#
+set version   = "0.4";   set rev_dat   = "Jun 25, 2025"
+#     + [PT] FS's recon-all now (ver >= 8.0.0) outputs a much larger
+#       CSF region, including the CSF around the brain.  We won't want
+#       to include that in the fs*mask* dset, so we exclude that
 #
 # ----------------------------------------------------------------
 
@@ -158,12 +163,30 @@ if ( $status ) then
     goto BAD_EXIT
 endif
 
-# make a filled mask from aparc+aseg (output to ../. directory)
+# [PT: June 25, 2025] FS ver>=8.0.0 includes a larger amount of CSF
+# around the brain in their CSF tissue region, so now we need/want to
+# exclude that; this should lead to very little to no change from
+# previous output, even though CSF regions even within the brain are
+# bigger, because the next step remains to inflate by 2 (before
+# infilling and uninflating)
+3dcalc                                                                    \
+    -overwrite                                                            \
+    -a ../aparc+aseg_REN_wmat.nii*                                        \
+    -b ../aparc+aseg_REN_gm.nii*                                          \
+    -c ../aparc+aseg_REN_vent.nii*                                        \
+    -e ../aparc+aseg_REN_othr.nii*                                        \
+    -f ../aparc+aseg_REN_unkn.nii*                                        \
+    -expr "step(a+b+c+e+f)"                                               \
+    -prefix dset_all_but_csf.nii.gz                                       \
+    -datum short
+
+# make a filled mask from aparc+aseg (output to ../. directory); now
+# using the non-CSF tissue map, see above
 3dmask_tool                                                       \
     -overwrite                                                    \
     -dilate_inputs 2                                              \
     -prefix mask1.nii.gz                                          \
-    -inputs ../aparc+aseg_REN_all.nii.* 
+    -inputs dset_all_but_csf.nii.gz
 
 3dmask_tool                                                       \
     -overwrite                                                    \

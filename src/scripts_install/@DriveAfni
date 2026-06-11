@@ -69,7 +69,7 @@ plugout_drive  $NPB                                               \
                -com 'OPEN_WINDOW A.axialimage keypress=v'         \
                -quit
                                     
-set l = `prompt_user -pause  "Hit OK to pause movie and move on"`
+set l = `prompt_user -pause  "Hit OK to pause movie and move on" >& /dev/null`
 if ( $l == '0') goto STEND
  
 plugout_drive  $NPB                                               \
@@ -79,14 +79,14 @@ plugout_drive  $NPB                                               \
                -com 'SAVE_JPEG axialimage SavedAxiale.jpg'        \
                -quit
                
-set l = `prompt_user -pause "Hit OK to view the saved image"`
+set l = `prompt_user -pause "Hit OK to view the saved image" >& /dev/null`
 if ( $l == '0') goto STEND
 
 aiv SavedAxiale.jpg &
 
 sleep 2
 
-set l = `prompt_user -pause  "Close image then hit OK to examine time series."`
+set l = `prompt_user -pause  "Close image then hit OK to examine time series." >& /dev/null`
 if ( $l == '0') goto STEND
 
 #Now let us examine the time series
@@ -103,7 +103,7 @@ plugout_drive  $NPB                                               \
 #Show how sub-brick selection can be done.
 #and how the threshold bar can be set
 set l = `prompt_user -pause  \
-      "Hit OK to pause movie and show sub-brick manipulation"`
+      "Hit OK to pause movie and show sub-brick manipulation" >& /dev/null`
 if ( $l == '0') goto STEND
 plugout_drive  $NPB                                               \
                -com 'SWITCH_OVERLAY B.func_slim'                  \
@@ -116,7 +116,7 @@ plugout_drive  $NPB                                               \
                -com 'SET_DICOM_XYZ B 30 80.7 15'                  \
                -quit   
 
-set l = `prompt_user -pause "Hit OK to command all programs to quit"`
+set l = `prompt_user -pause "Hit OK to command all programs to quit" >& /dev/null`
 if ( $l == '0') goto STEND
 plugout_drive  $NPB                                          \
                -com 'QUIT' -quit

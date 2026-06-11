@@ -76,7 +76,7 @@ wlevel_colors = {
     'severe'    : "#FF0000"
     }
 
-wlevel_str = ' '.join(list(wlevel_ranks.keys())) 
+wlevel_str = '  '.join(list(wlevel_ranks.keys())) 
 
 # --------------------------------------------------------------------
 

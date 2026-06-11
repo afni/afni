@@ -57,7 +57,8 @@ typedef struct suma_menu_item {
     char         mnemonic;      /*!< mnemonic; NULL if none */
     char        *accelerator;   /*!< accelerator; NULL if none */
     char        *accel_text;    /*!< to be converted to compound string */
-    void       (*callback)();   /*!< routine to call; NULL if none */
+    XtCallbackProc callback;    /*!< routine to call; NULL if none */
+                                /*!  25 Jul 2025 [rickr] */
     XtPointer    callback_data; /*!< client_data for callback(). 
                         This ends up being the index
                         of the widget in the menu, in addition
@@ -80,7 +81,7 @@ typedef struct suma_menu_item {
 
 typedef struct {
    XtPointer callback_data; /*!< usually the item number in the menu */
-   void       (*callback)();/*!< routine to call; This is only used when
+   XtCallbackProc callback; /*!< routine to call; This is only used when
                                  and arrow field is usurping a menu's job */
    void *ContID; /*!< some identifier of the controller */
    SUMA_MENU_WIDGET *SMW; /*!< This is needed for handling arrow fields */
@@ -342,6 +343,12 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_closeSumaCont(Widget w, XtPointer data, XtPointer callData);
 Widget SUMA_GetTopShell(Widget w);
 void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData);
+void SUMA_mainform_EV( Widget w, XtPointer cd,
+      XEvent *ev , RwcBoolean *continue_to_dispatch );
+void SUMA_expose_EV( Widget w, XtPointer cd,
+      XEvent *ev , RwcBoolean *continue_to_dispatch );
+void SUMA_surfcont_expose_EV( Widget w, XtPointer cd,
+      XEvent *ev , RwcBoolean *continue_to_dispatch );
 void SUMA_cb_closeViewerCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_XHlock_toggled(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_XHviewlock_toggled(Widget w, XtPointer data, XtPointer callData);

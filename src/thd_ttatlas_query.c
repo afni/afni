@@ -64,11 +64,11 @@ THD_string_array *recreate_working_atlas_name_list(void) {
 /* almost complete change of default list*/
 THD_string_array *get_working_atlas_name_list(void) {
    char *min_atlas_list[] = {
-	  "Brodmann_Pijn_AFNI","MNI_Glasser_HCP_v1.0",
+      "Julich_MNI2009c_v3.1","Julich_MNI_N27_v3.1",
+   	  "Brodmann_Pijn_AFNI","MNI_Glasser_HCP_v1.0",
       "FS.afni.MNI2009c_asym","FS.afni.TTN27",
-      "Julich_MNI2009c","Julich_MNI_N27",
       "Brainnetome_1.0",
-	  "CA_ML_18_MNI", NULL};
+	     "CA_ML_18_MNI", NULL};
    int i;
 
    if (!working_atlas_name_list || working_atlas_name_list->num==0) {
@@ -8782,7 +8782,8 @@ char *Current_Atlas_Default_Name()
    if(ept != NULL) return(search_quotes(ept)); /* remove any extra quotes*/
    if( ept != NULL ) return( ept ) ;
 
-   return("Brodmann_Pijn_AFNI"); // was TT_daemon - maybe set to Brodmann_Pijn_AFNI 
+//   return("Brodmann_Pijn_AFNI"); // was TT_daemon - maybe set to Brodmann_Pijn_AFNI 
+   return("Julich_MNI2009c_v3.1"); // switch to 
 
 }
 

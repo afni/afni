@@ -52,6 +52,10 @@ g_oc_methods = [
     'm_tedana_OC_tedort', # tedana --tedort, extract ortvecs for 3dD
     'm_tedana_m_tedort'   # tedana --tedort (MEICA group tedort)
     ]
+# OC methods that result in EPI being masked by tedana
+g_ted_mask_methods = [
+    'tedana', 'tedana_OC',                              # old tedana
+    'm_tedana', 'm_tedana_OC', 'm_tedana_m_tedort' ]    # new tedana
 g_m_tedana_site = 'https://github.com/ME-ICA/tedana'
 
 g_despike_new_opts = [
@@ -312,6 +316,10 @@ def db_cmd_tcat(proc, block):
     if val == None: rmlast = 0
     else: rmlast = val
 
+    # store first (list) and last (value) in class instance
+    proc.rm_nfirst = flist
+    proc.rm_nlast  = rmlast
+
     if proc.have_sels: selstr = "while applying volume selectors"
     else:              selstr = "while removing the first %d TRs" % first
 
@@ -360,7 +368,7 @@ def db_cmd_tcat(proc, block):
         cmd = cmd + "3dTcat -prefix %s/%s %s%s\n" \
                     % (proc.od_var, pre_form, dset.nice_input(), selstr)
 
-        proc.tlist.add(dset.nice_input(sel=1), pre_form, 'tcat', ftype='dset')
+        proc.tlist.add(dset.nice_input(sel=1), pre_form, 'epi', ftype='dset')
 
       if proc.have_me: cmd += '\n'
 
@@ -394,6 +402,43 @@ def db_cmd_tcat(proc, block):
        rv, tcmd = tcat_make_blip_in_for(proc, block)
        if rv: return
        if tcmd != '': cmd += tcmd
+
+    # QC: run gtkyd.py
+    gcmd = run_gtkyd(proc, block)
+    if gcmd != '':
+       cmd += gcmd
+
+    return cmd
+
+def run_gtkyd(proc, block):
+    """run gtkyd_check.py, and check for any errors or warnings
+
+        basic command: gtkyd_check.py -infiles pb00.*.HEAD -outdir gtkyd
+
+        Then run any commands to possibly produce a warnings file, or to
+        have the script fail outright.
+
+**** todo: datum, same_all_grid (obliquity might need to be linient)
+
+
+    """
+
+    # basic, for now (add blip, warp, etc.)
+    cmd = '# -------------------------------------------------------\n'     \
+          '# QC - GTKYD: get to know your data: generate attribute files\n' \
+          'gtkyd_check.py -infiles pb00.*.HEAD -outdir gtkyd\n\n'
+
+    gbase = 'gen_ss_review_table.py -infiles gtkyd/dset*.txt -outlier_sep space'
+
+    gtests = [ 'datum VARY', 'orient VARY', 'av_space VARY' ]
+    tstr   = ' \\\n    -report_outliers '.join(gtests)
+
+    cmd += '# -------------------------------------------------------\n'   \
+           '# QC - GTKYD: check for varying data type across EPI inputs\n' \
+           '%s \\\n'                                                       \
+           '    -report_outliers %s \\\n'                                  \
+           '    |& tee out.gtkyd.outliers.txt\n\n'                         \
+           % (gbase, tstr)
 
     return cmd
 
@@ -869,8 +914,18 @@ def make_outlier_commands(proc, block):
     # set polort level
     val, err = proc.user_opts.get_type_opt(int, '-outlier_polort')
     if err: return
-    elif val != None and val >= 0: polort = val
-    else: polort = proc.regress_polort
+    elif val != None :
+        if val >= 0: 
+            polort = val
+        else: 
+            print("** ERROR: -outlier_polort must be >=0")
+            return -1, ''
+    else: 
+        polort = proc.regress_polort
+        if polort < 0 :
+            print("** ERROR: Using -regress_polort for 3dToutcount, but is <0")
+            print("   Perhaps consider using the '-outlier_polort' option?")
+            return -1, ''
 
     # use Legendre polynomials?
     opt = proc.user_opts.find_opt('-outlier_legendre')
@@ -1343,9 +1398,16 @@ def dset_is_oblique(aname, verb):
       print('== dset_is_oblique cmd: %s' % cmd)
       print('       st = %s, so = %s, se = %s' % (st, so, se))
 
-   if len(so) < 1:    return 0
-   elif so[0] == '1': return 1
-   else:              return 0
+
+   if len(so) < 1:
+      return 0
+   elif so[0] == '1':
+      return 1
+   elif so[0] == 'NO-DSET':
+      print("** warning: failed obliquity check for '%s'" % aname.rel_input())
+      return 0
+   else:
+      return 0
 
 def blip_warp_command(proc, warp, source, prefix, interp=' -quintic',
                       oblset=None, indent=''):
@@ -1831,6 +1893,8 @@ def db_cmd_ricor(proc, block):
         print("** ERROR: failed to read '%s' as Afni1D" % proc.ricor_regs[0])
         return
     nsr_labs = adata.labs_matching_str('s0.')
+    # might have zero-padded labels now
+    if len(nsr_labs) == 0: nsr_labs = adata.labs_matching_str('s000.')
     nsliregs = adata.nvec // nslices
     nlab = len(nsr_labs)
     if nlab > 0: nrslices = adata.nvec//nlab
@@ -1848,11 +1912,11 @@ def db_cmd_ricor(proc, block):
               % (nrslices, nslices))
         return
 
-    if nlab > 0 and nlab != 13:
-        print("** WARNING: have %d regressors per slice (13 is typical)" % nlab)
+    # do not expect 13 sliregs anymore - remove warning
 
-    if proc.verb > 1: print('-- ricor: nsliregs = %d, # slice 0 labels = %d' \
-                            % (nsliregs, len(nsr_labs)))
+    if proc.verb > 0:
+       print('-- ricor: nsliregs = %d, nslices = %d, # slice 0 labels = %d' \
+             % (nsliregs, nslices, len(nsr_labs)))
     if proc.verb > 2: print('-- ricor: slice 0 labels: %s' % ' '.join(nsr_labs))
 
     # check reps against adjusted NT
@@ -2571,6 +2635,7 @@ def db_mod_volreg(block, proc, user_opts):
     #   - would be nice to also allow -volreg_warp_dxyz, but as that is an
     #     isotropic voxels size, it should not be applied without user request
     #     (i.e. be able to use -master without -dxyz)
+    #     ** these options are allowed together, as is -volreg_warp_master_box
     #   - could simply require user to be sure it is appropriate
     #     (for now, and account for issues as they arise, e.g. check space)
     #   - what if oblique? even allowed? can 3dAllin/NwA output be oblique?
@@ -2587,15 +2652,24 @@ def db_mod_volreg(block, proc, user_opts):
     block.valid = 1
 
 def vr_prep_for_warp_master(proc, user_opts):
-    """check for -volreg_warp_master option and prep for processing"""
+    """check for -volreg_warp_master or _box option and prep for processing"""
 
-    # if no such option, bail
+    # check for either option, starting with master
     oname = '-volreg_warp_master'
     warp_master, rv = user_opts.get_string_opt(oname)
+    mbox = 0
+    # if no master, check for master_box
+    if warp_master is None or warp_master == '':
+       mbox = 1
+       oname = '-volreg_warp_master_box'
+       warp_master, rv = user_opts.get_string_opt(oname)
+
+    # if neither was used, we are done
     if warp_master is None or warp_master == '':
        return 0
 
     proc.vr_wmast_in = warp_master
+    proc.vr_warp_mbox = mbox    # flag to use EPI to set voxel size
     view = UTIL.dset_view(warp_master)
     if view == '':
        print("** failed to get view from -volreg_warp_master, %s" % warp_master)
@@ -2906,6 +2980,7 @@ def db_cmd_volreg(proc, block):
           "           -prefix %s\n"                                         \
           % (prev_prefix, all1_input.prefix)
 
+    # ------------------------------------------------------------
     # if warping to new grid, note dimensions
     dim = 0
     if doadwarp or dowarp or doe2a:
@@ -2915,16 +2990,21 @@ def db_cmd_volreg(proc, block):
         proc.delta = [dim, dim, dim]
 
         opt = block.opts.find_opt('-volreg_warp_dxyz')
+        get_dim = 1
         if opt:
            dim = opt.parlist[0]
            proc.delta = [dim, dim, dim]
-        elif proc.vr_warp_mast is not None:
+           get_dim = 0
+        # else if warp master but not a _box (if _box, still get_dim from EPI)
+        elif proc.vr_warp_mast is not None and proc.vr_warp_mbox == 0:
             dims = UTIL.get_3dinfo_val_list(proc.vr_wmast_in, "d3", float)
             if dims is None or len(dims) != 3:
                print("** failed to get dimensions of -volreg_warp_master")
                return
             proc.delta = dims
-        else:
+            get_dim = 0
+
+        if get_dim:
             # truncate min dimension, but scale up slightly
             dim = UTIL.get_truncated_grid_dim(proc.dsets[0].rel_input(),
                                               scale=1.0001)
@@ -2936,6 +3016,7 @@ def db_cmd_volreg(proc, block):
         if proc.verb > 2: print("++ volreg: setting delta = %s" % proc.delta)
 
 
+    # ------------------------------------------------------------
     # create EPI warp list, outer to inner
     epi_warps      = []
     allinbase      = None       # master grid for warp
@@ -3117,25 +3198,7 @@ def db_cmd_volreg(proc, block):
 
     # if not censoring motion, make a generic motion file
     if not proc.user_opts.find_opt('-regress_censor_motion'):
-        cmd = cmd +                                                         \
-            "# compute motion magnitude time series: the Euclidean norm\n"  \
-            "# (sqrt(sum squares)) of the motion parameter derivatives\n"
-
-        proc.mot_enorm = 'motion_${subj}_enorm.1D'
-        if proc.reps_vary :     # use -set_run_lengths aot -set_nruns
-           cmd = cmd +                                                      \
-               "1d_tool.py -infile %s \\\n"                                 \
-               "           -set_run_lengths %s \\\n"                        \
-               "           -derivative -collapse_cols euclidean_norm \\\n"  \
-               "           -write %s\n\n"                                   \
-               % (proc.mot_file, UTIL.int_list_string(proc.reps_all),
-                  proc.mot_enorm)
-        else:                   # stick with -set_nruns
-           cmd = cmd +                                                      \
-               "1d_tool.py -infile %s -set_nruns %d \\\n"                   \
-               "           -derivative  -collapse_cols euclidean_norm \\\n" \
-               "           -write %s\n\n"                                   \
-               % (proc.mot_file, proc.runs, proc.mot_enorm)
+        cmd = cmd + create_enorm(proc)
 
     if do_extents:
         proc.mask_extents = gen_afni_name('mask_epi_extents' + proc.view)
@@ -3293,6 +3356,37 @@ def db_cmd_volreg(proc, block):
 
     return cmd
 
+def create_enorm(proc):
+    """create an enorm dataset from motion
+
+       return the sub-command string to do so
+    """
+    # do not repeat this operation
+    if proc.mot_enorm != '':
+       if proc.verb > 1: print("-- already have enorm dset")
+       return ''
+
+    cmd =                                                               \
+        "# compute motion magnitude time series: the Euclidean norm\n"  \
+        "# (sqrt(sum squares)) of the motion parameter derivatives\n"
+
+    proc.mot_enorm = 'motion_${subj}_enorm.1D'
+    if proc.reps_vary :     # use -set_run_lengths aot -set_nruns
+       cmd = cmd +                                                      \
+           "1d_tool.py -infile %s \\\n"                                 \
+           "           -set_run_lengths %s \\\n"                        \
+           "           -derivative -collapse_cols euclidean_norm \\\n"  \
+           "           -write %s\n\n"                                   \
+           % (proc.mot_file, UTIL.int_list_string(proc.reps_all),
+              proc.mot_enorm)
+    else:                   # stick with -set_nruns
+       cmd = cmd +                                                      \
+           "1d_tool.py -infile %s -set_nruns %d \\\n"                   \
+           "           -derivative -collapse_cols euclidean_norm \\\n"  \
+           "           -write %s\n\n"                                   \
+           % (proc.mot_file, proc.runs, proc.mot_enorm)
+
+    return cmd
 
 def clear_grid_dependent_vars(proc, block):
     """clear any generic proc variables that depend on the current grid,
@@ -3794,6 +3888,12 @@ def db_cmd_combine(proc, block):
       if not have_tedana_mask(proc, block, ocmeth):
          return
 
+   # check whether tedana mask will be applied to volume EPI
+   # if so, and if blurring, suggest -blur_in_mask
+   if ocmeth in g_ted_mask_methods and not proc.surf_anat:
+      if blur_without_mask(proc, block):
+         print('** have -oc_method %s, consider "-blur_in_mask yes"' % ocmeth)
+
    # write commands
    cmd =  '# %s\n'                                                   \
           '# combine multi-echo data per run, using method %s%s\n\n' \
@@ -3852,10 +3952,32 @@ def have_tedana_mask(proc, block, method):
 
    return 1
 
+def blur_without_mask(proc, block):
+   """return whether blurring is later applied without -blur_in_mask yes"""
+   # is blurring run after this block?
+   bo = proc.find_block_order(block.label, 'blur')
+
+   # if not, return no
+   if bo != -1:
+      return 0
+
+   # so blurring will be applied, do we have -blur_in_mask yes?
+
+   bblock = proc.find_block('blur')
+   if not bblock:   # should not happen, since bo == -1
+      return 0
+
+   if OL.opt_is_yes(bblock.opts.find_opt('-blur_in_mask')) or \
+        bblock.opts.find_opt('-blur_in_automask'):
+      return 0
+
+   # blur, but not in mask
+   return 1
+
 def which_tedana_method(ocmeth):
    """There are a few ways to apply tedana now, see if we can distinguish.
 
-      return 0: none
+      return 0: none      (e.g. AFNI OC)
              1: tedana.py (via tedana_wrapper.py)
              2: tedana    (from MEICA group)
             -1: error
@@ -4705,7 +4827,16 @@ def db_cmd_blur(proc, block):
         size = val
         havesize = 1
     else:
-        size = 4.0
+        dsize = 4.0
+        size = UTIL.get_def_blur_from_dims(proc.dsets[0].nice_input())
+        mesg = "** no -blur_size: using old default of %g" % dsize
+        if size > 0.0 and size != dsize:
+           mesg += ", but consider new default of %g\n" % size
+        mesg += "   (preferably, specify -blur_size directly)"
+        print(mesg)
+
+        # stick with current default
+        size = dsize
         havesize = 0
 
     # pass blur_size to APQC
@@ -5703,8 +5834,6 @@ def db_mod_regress(block, proc, user_opts):
 
         block.opts.add_opt('-regress_extra_stim_files', -1, [])
         block.opts.add_opt('-regress_extra_stim_labels', -1, [])
-        block.opts.add_opt('-regress_extra_ortvec', -1, [])
-        block.opts.add_opt('-regress_extra_ortvec_labels', -1, [])
 
         block.opts.add_opt('-regress_opts_3dD', -1, [])
         block.opts.add_opt('-regress_opts_reml', -1, [])
@@ -5898,37 +6027,14 @@ def db_mod_regress(block, proc, user_opts):
 
     # check for extra ortvecs
     oname = '-regress_extra_ortvec'
-    uopt = user_opts.find_opt(oname)
-    bopt = block.opts.find_opt(oname)
-    if uopt and bopt:  # only check length against labels
-        bopt.parlist = uopt.parlist
-        # convert paths to the local stimulus directory
-        proc.extra_ortvec = []
-        proc.extra_ortvec_orig = bopt.parlist
-        for fname in bopt.parlist:
-            proc.extra_ortvec.append('stimuli/%s' % os.path.basename(fname))
+    apply_uopt_to_block(oname, user_opts, block)
+    apply_uopt_to_block('-regress_extra_ortvec_labels', user_opts, block)
+    if len(user_opts.find_all_opts(oname)) > 1:
+       print("** please include all ortvec with single %s opt" % oname)
+       errs += 1
 
-    oname = '-regress_extra_ortvec_labels'
-    uopt = user_opts.find_opt(oname)
-    bopt = block.opts.find_opt(oname)
-    if uopt and bopt:
-        bopt.parlist = uopt.parlist
-        proc.extra_ortvec_labs = uopt.parlist
-        nxlabs = len(proc.extra_ortvec_labs)
-        nxorts = len(proc.extra_ortvec)
-        if nxorts == 0:
-            print("** have -regress_extra_ortvec_labels without" + \
-                  " -regress_extra_ortvec")
-            errs += 1
-        elif nxorts != nxlabs:
-            print("** have %d extra ortvec but %d extra ort labels" % \
-                  (nxorts, nxlabs))
-            errs += 1
-    elif bopt and len(proc.extra_ortvec) > 0:
-        # no ortvec label option, so fashion some
-        print("-- auto-generating labels for extra ortvec files")
-        proc.extra_ortvec_labs = \
-              ['xort%02d'%ind for ind in range(len(proc.extra_ortvec))]
+    # and per-run ortvecs
+    apply_uopt_list_to_block('-regress_per_run_ortvec',  user_opts, block)
 
     # --------------------------------------------------
     # if we are here, then we should have stimulus files
@@ -6330,6 +6436,16 @@ def db_cmd_regress(proc, block):
 
     # ----------------------------------------
     # user ortvecs, add vec/lab pairs to self.regress_orts list
+
+    if check_for_extra_ortvec(proc, block):
+       return
+
+    # convert per-run ortvec to across run ortvec
+    if block.opts.find_opt('-regress_per_run_ortvec'):
+        err, newcmd = process_per_run_ortvec(proc, block)
+        if err: return
+        if newcmd: cmd = cmd + newcmd
+
     nxort = len(proc.extra_ortvec)
     if nxort > 0:
         if len(proc.extra_ortvec_labs) != nxort:
@@ -6765,6 +6881,11 @@ def db_cmd_regress(proc, block):
                "1d_tool.py -show_cormat_warnings -infile %s"                  \
                " |& tee out.cormat_warn.txt\n\n" % proc.xmat
         cmd = cmd + rcmd
+        # also warn on small max magnitudes or empty regressors
+        rcmd = "# warn on small or all-zero regressors in X-matrix\n" \
+               "1d_tool.py -show_xmat_warnings -infile %s"            \
+               " |& tee out.xmat_warn.txt\n\n" % proc.xmat
+        cmd = cmd + rcmd
 
     # make a file with df_info
     if not block.opts.have_no_opt('-regress_show_df_info'):
@@ -6959,6 +7080,197 @@ def db_cmd_regress(proc, block):
     if bcmd: cmd += bcmd
 
     return cmd
+
+
+def process_per_run_ortvec(proc, block):
+   """process any -regress_per_run_ortvec options
+      - for each option
+        - be sure there are NRUNS+1 parameters, and so NRUNS PROV files
+        - NT should be consistent across options
+        - for each PROV
+          - check whether first or last time points need to be removed
+          - convert to across run regressors
+          - populate proc.extra_ortvec and extra_ortvec_labs
+
+      return 0 on success, and command string
+   """
+   # ----- first process options and evaluate NT
+
+   # get a list of all such options
+   oname = '-regress_per_run_ortvec'
+   optlist = block.opts.find_all_opts(oname)
+   if len(optlist) < 1:
+      return 0, ''
+
+   # just store all option lists together
+   all_orts = [opt.parlist for opt in optlist]
+
+   # do PROVs use final NT per run, or original
+   use_final = per_run_ortvecs_use_final_nt(proc, all_orts)
+   if use_final < 0:
+      return 1, ''
+
+   rv, cmd = pad_per_run_ortvecs(proc, all_orts, use_final)
+   if rv < 0:
+      return 1, ''
+
+   return 0, cmd
+
+
+def per_run_ortvecs_use_final_nt(proc, all_orts):
+   """check all per_run_ortvec opts for consistent lengths
+
+      - all files should use either the final NT per run or the originals
+      - original NT means to apply -tcat_remove_first/last_trs
+
+      - return 1 to use final NT, 0 to use original, -1 on error
+   """
+
+   # note initial and applied NT per run
+   reps_apply = proc.reps_all       # final NT per run, after any removal
+   reps_init = proc.reps_all[:]     # copy to modify, and add back removed
+   for run0 in range(proc.runs):
+      reps_init[run0] = reps_init[run0] + proc.rm_nfirst[run0] + proc.rm_nlast
+
+   # set orvecs, convert paths to the local stimulus directory
+   errs = 0                 # count problems
+   use_final = -1           # do we truncate input (-1 means need to init)
+   for oind, ortparm in enumerate(all_orts):
+      olabel = ortparm[0]   # current ort label
+      ovecs = ortparm[1:]   # current ortvec files (one per run)
+      if len(ovecs) != proc.runs:
+         print("** %s %s : have %d files, but %d runs" \
+               % (olabel, olabel, len(ovecs), proc.runs))
+         errs += 1
+
+      # for each file, verify length and whether nfirst/last will be applied
+      for rind, ovec in enumerate(ovecs):
+         overrs = 0
+         adata = LD.AfniData(ovec)
+         if adata == None:
+            errs += 1   # errors are printed
+            continue
+         # possibly init use_final
+         if use_final < 0:
+            if adata.nrows == reps_apply[rind]:
+               use_final = 1
+               reps_final = reps_apply  # reps match any post-TR removal
+            else:
+               use_final = 0
+               reps_final = reps_init   # reps match pre-TR removal
+
+         # check for consistency of use_final and run lengths
+         # - use_final should match use of reps_apply
+         if adata.nrows == reps_apply[rind]:
+            if use_final == 0:
+               overrs = 1
+               errs += 1
+         elif adata.nrows == reps_init[rind]:
+            if use_final == 1:
+               overrs = 1
+               errs += 1
+         else:
+            print("** bad length %d for per-run ortvec '%s' %s" \
+                  % (adata.nrows, olabel, ovec))
+            print(" - should be either %d or %d" \
+                  % (reps_apply[rind], reps_init[rind]))
+            errs += 1
+
+         # if inconsistent use_final, whine
+         if overrs:
+            print("** per-run ortvecs are inconsistent for removing TRs")
+            print(" - ortvec %s (%s run %d) differs from first" \
+                  % (olabel, ovec, rind+1))
+            print(" - current reps = %d, should be %d" \
+                  % (adata.nrows, reps_final[rind]))
+            print(" - check lengths vs -tcat_remove_first/last_trs params")
+
+         del(adata)
+
+   if use_final == -1:
+      print("** missing per-run ortvecs?")
+      return -1
+
+   if errs:
+      return -1
+
+   return use_final
+
+def pad_per_run_ortvecs(proc, all_orts, use_final):
+   """run 1d_tool.py -pad_into_many_runs on each per run ortvec
+
+      - input files are as original, but under stimuli
+      - use_final: if set, files use final NT (so no selection)
+                   else, apply -tcat_remove_first/last_trs
+
+      return status (0=success) and command string
+   """
+
+   # verify that input exists
+   if len(all_orts) == 0: return 0, ''
+
+   cmd = "# pad per-run regressors with zeros for the other runs\n"
+
+   # if use_final, select nothing
+   # else, skip rm_nfirst an take up to reps[run]+nfirst[run]-1
+   select = ''
+
+   for oind, ortparm in enumerate(all_orts):
+      olabel = ortparm[0]
+      ovecs = ortparm[1:]
+      for rind, ovec in enumerate(ovecs):
+         ovin = os.path.basename(ovec)          # infile
+         ovlab = '%s_r%02d' % (olabel, rind+1)  # file label
+         ovout = 'PROV_%s.1D' % ovlab           # out file
+         if not use_final:
+            nt0 = proc.rm_nfirst[oind]
+            nt1 = proc.reps_all[oind] + proc.rm_nfirst[oind] - 1
+            select = "'{%d..%d}'" % (nt0, nt1)
+         tcmd = "1d_tool.py -pad_into_many_runs %d %d \\\n"     \
+                "    -infile stimuli/%s%s -write stimuli/%s\n"    \
+                % (rind+1, len(ovecs), ovin, select, ovout)
+         cmd += tcmd
+
+         # and add ortvec and label to main list
+         proc.extra_ortvec.append('stimuli/%s' % ovout)
+         proc.extra_ortvec_labs.append(ovlab)
+
+   return 0, cmd+'\n'
+
+# process any -regress_extra_ortvec/_labels option
+# populate proc.extra_ortvec and extra_ortvec_labs
+# return 0 on success
+def check_for_extra_ortvec(proc, block):
+    # ----- first get ortvecs
+    oname = '-regress_extra_ortvec'
+    bopt = block.opts.find_opt(oname)
+    if bopt is None:
+       return 0
+
+    # set orvecs, convert paths to the local stimulus directory
+    ortvecs = bopt.parlist
+    for ind, fname in enumerate(ortvecs):
+        proc.extra_ortvec.append('stimuli/%s' % os.path.basename(fname))
+
+    # ----- then get labels
+    lname = '-regress_extra_ortvec_labels'
+    lopt = block.opts.find_opt(lname)
+    if lopt is None:
+       print("-- auto-generating labels for extra ortvec files")
+       labels = ['xort%02d' % ind for ind in range(len(ortvecs))]
+    else:
+       labels = lopt.parlist
+       if len(labels) != len(bopt.parlist):
+          print("** have %d extra ortvec but %d extra ort labels" % \
+                (len(bopt.parlist), len(labels)))
+          return 1
+
+    # and insert the labels
+    proc.extra_ortvec_labs.extend(labels)
+
+    # todo: check total length before processing
+
+    return 0
 
 # Run 3dTproject, akin to 3dDeconvolve.
 #
@@ -8502,6 +8814,9 @@ def db_cmd_regress_motion_stuff(proc, block):
         err, newcmd = db_cmd_regress_censor_motion(proc, block)
         if err: return 1, ''
         if newcmd: cmd = cmd + newcmd
+    else:
+        # if not done already (volreg), create enorm file
+        cmd = cmd + create_enorm(proc)
 
     if cmd != '': return 0, '\n' + cmd
     else: return 0, cmd
@@ -12413,8 +12728,6 @@ OPTIONS:  ~2~
 
         List the history of '-requires_afni_version' dates and reasons.
 
-    -show_valid_opts        : show all valid options (brief format)
-
     -show_example NAME      : display the given example command
 
             e.g. afni_proc.py -show_example 'example 6b'
@@ -12502,6 +12815,18 @@ OPTIONS:  ~2~
         Adding this option to an existing afni_proc.py command will result in
         displaying the command itself, but in a python list format that is
         helpful to me.
+
+    -show_tracked_files DESC : show tracked input files for the given desc
+
+            e.g. -show_tracked_files ALL
+            e.g. -show_tracked_files ortvec
+
+        Adding this option to an existing afni_proc.py command will show input
+        tracked input files and what is known about them.
+
+        File tracking might change...
+
+    -show_valid_opts        : show all valid options (brief format)
 
     -ver                    : show the version number
 
@@ -13719,7 +14044,7 @@ OPTIONS:  ~2~
         Without this option, the first TRs of the first input EPI time
         series would be used as the forward blip dataset.
 
-        See also -blip_revers_dset.
+        See also -blip_reverse_dset.
 
         Please see '3dQwarp -help' for more information, and the -plusminus
         option in particular.

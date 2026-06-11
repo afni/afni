@@ -18,6 +18,28 @@ from afnipy import afni_util as UTIL
 from afnipy import afni_base as BASE
 
 # ----------------------------------------------------------------------
+# adding a new option (probably 3 files, plus regression):
+#
+# o 1d_tool.py:
+#     - init_options()     : self.valid_opts.add_opt()
+#     - process_options()  : elif opt.name ... : set class vars
+#     - class A1DInterface : add class vars
+#     - process_data()     : check class vars and process
+#
+# o lib_afni1D.py:
+#     - class Afni1D: write functions called by 1d_tool.py:process_data()
+#
+# o add regression tests
+#
+# o (back to) 1d_tool.py:
+#     - add help examples
+#     - add option help (and opt references)
+#     - add hist entry and update g_version
+#
+# o afni_history_rickr.c
+#     - add history entry
+
+# ----------------------------------------------------------------------
 # globals
 
 g_help_string = """
@@ -210,6 +232,10 @@ examples (very basic for now): ~1~
    Example 6c.  Like 6a, but include warnings for baseline regressors. ~2~
 
          1d_tool.py -infile X.xmat.1D -show_cormat_warnings_full
+
+   Example 6d.  Show warnings for zero or small-valued regressors. ~2~
+
+         1d_tool.py -infile X.xmat.1D -show_xmat_warnings
 
    Example 7a. Output temporal derivative of motion regressors. ~2~
 
@@ -685,6 +711,19 @@ examples (very basic for now): ~1~
             1d_tool.py -slice_pattern_to_times alt+z 40 2 -set_tr 2 \\
                 | 1d_tool.py -show_slice_timing_pattern -infile -
 
+   Example 33. Convert a 3dDeconvolve censor file to spike regressors ~2~
+
+       For 3dDeconvolve, a -censor time series is all ones, except is zero at
+       time points to be censored out.
+
+       Convert this to a multi-column spike censor file for which:
+
+          - there are N columns matching N time point censored out
+          - each column is all 0, except is 1 at the censored time point
+
+            1d_tool.py -infile censor_sub-000.affine_combined_2.1D \\
+                       -censor_to_spike_regs spikes.1D
+
 ---------------------------------------------------------------------------
 command-line options: ~1~
 ---------------------------------------------------------------------------
@@ -798,6 +837,33 @@ general options: ~2~
                                   (probably for use with -forward_diff)
 
    -censor_prev_TR              : for each censored TR, also censor previous
+
+   -censor_to_spike_regs S_FILE : convert 3dDecon censor file to spike regs
+
+          e.g. -censor_to_spike_regs spikes.1D
+
+       For 3dDeconvolve, a -censor time series is all ones, except is zero at
+       time points to be censored out.  Assuming one has input a 3dDeconvolve
+       censor file, use this option to convert it to a spike regression censor
+       file.
+
+       Suppose the 3dDeconvolve censor file has NT time points (possibly across
+       multiple runs), and that there are NC time points censored out (zeros in
+       the input file), c_0, c_1, ..., c_(NC-1).
+
+       Output a multi-column spike censor file for which:
+
+          - there are NC columns, matching NC censored time points
+          - each column is all 0, except is 1 at the censored time point
+            (e.g. column i will have a 1 at index c_i)
+
+       Using such a file as an -ortvec in 3dDeconvolve should be equivalent to
+       using typical censoring.  For example, replace:
+
+            replace:    -censor censor_${subj}_combined_2.1D
+            with:       -ortvec spikes.1D spikes
+
+       See Example 33.
 
    -cormat_cutoff CUTOFF        : set cutoff for cormat warnings (in [0,1])
 
@@ -1076,6 +1142,7 @@ general options: ~2~
    -show_cormat                 : display correlation matrix
    -show_cormat_warnings        : display correlation matrix warnings
                                   (this does not include baseline terms)
+                                  see also: -show_xmat_warnings
    -show_cormat_warnings_full   : display correlation matrix warnings
                                   (this DOES include baseline terms)
    -show_distmat                : display distance matrix
@@ -1214,6 +1281,10 @@ general options: ~2~
         See example 5e.
         See also -show_regs_style.
 
+   -show_xmat_warnings          : display matrix warnings for all zero or
+                                  small-valued regressors
+                                  see also: -show_cormat_warnings
+
    -show_group_labels           : display group and label, per column
 
    -slice_order_to_times        : convert a list of slice indices to times
@@ -1330,17 +1401,6 @@ general options: ~2~
 
         See example 23.
 
-   -write FILE                  : write the current 1D data to FILE
-
-   -write_sep SEP               : use SEP for column separators
-
-   -write_style STYLE           : write using one of the given styles
-
-        basic:      the default, don't work too hard
-        ljust:      left-justified columns of the same width
-        rjust:      right-justified columns of the same width
-        tsv:        tab-separated (use <tab> as in -write_sep '\\t')
-
    -weight_vec v1 v2 ...        : supply weighting vector
 
         e.g. -weight_vec 0.9 0.9 0.9 1 1 1
@@ -1351,6 +1411,8 @@ general options: ~2~
         parameters output by 3dvolreg.
 
         See also -collapse_cols.
+
+   -write FILE                  : write the current 1D data to FILE
 
    -write_censor FILE           : write as boolean censor.1D
 
@@ -1383,6 +1445,23 @@ general options: ~2~
         This file is in the easily readable format applied with -CENSORTR.
         It has the same effect on 3dDeconvolve as the sister file from
         -write_censor, above.
+
+   -write_sep SEP               : use SEP for column separators
+
+   -write_style STYLE           : write using one of the given styles
+
+        basic:      the default, don't work too hard
+        ljust:      left-justified columns of the same width
+        rjust:      right-justified columns of the same width
+        tsv:        tab-separated (use <tab> as in -write_sep '\\t')
+
+   -write_with_header yes/no    : include comment header in 1D output
+
+        e.g. -write_with_header yes
+        def  -write_with_header no
+
+        Use this option (with 'yes') to include a commented header with the
+        text output.
 
    -verb LEVEL                  : set the verbosity level
 
@@ -1500,9 +1579,12 @@ g_history = """
    2.21 Mar 12, 2025 - allow auto-reading of TSV as -infile
    2.22 Mar 20, 2025 - add -select_cols_via_TSV_table
    2.23 Apr 25, 2025 - allow float read retry for na values
+   2.24 Jan  7, 2026 - add -show_xmat_warnings
+   2.25 Mar 18, 2026 - add -censor_to_spike_regs
+   2.26 May 26, 2026 - add new slice patterns alt+z_D and alt-z_D
 """
 
-g_version = "1d_tool.py version 2.23, April 25, 2025"
+g_version = "1d_tool.py version 2.26, May 26, 2026"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
@@ -1536,6 +1618,7 @@ class A1DInterface:
       self.censor_next_TR  = 0          # if censor, also censor next TR
       self.censor_prev_TR  = 0          # if censor, also censor previous TR
       self.collapse_method = ''         # method for collapsing columns
+      self.c2spike_file    = ''         # -censor_to_spike_regs file
       self.csim_alpha      = 0.05       # corrected   p-value for clust sim
       self.csim_pthr       = 0.001      # uncorrected p-value for clust sim
       self.demean          = 0          # demean the data
@@ -1595,6 +1678,7 @@ class A1DInterface:
       self.show_trs_to_zero= 0          # show iresp length
       self.show_xmat_stim_info = ''     # show xmat stimulus information
       self.show_xmat_stype_cols = []    # show columns of given stim types
+      self.show_xmat_warn  = 0          # show xmat regressor warnings
       self.slice_order_to_times = 0     # re-sort slices indices to times
       self.slice_pattern_to_times = []  # slice time parameters (pat, NS, MB)
       self.sort            = 0          # sort data over time
@@ -1720,6 +1804,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-censor_prev_TR', 0, [], 
                       helpstr='if censoring a TR, also censor previous one')
+
+      self.valid_opts.add_opt('-censor_to_spike_regs', 1, [],
+                      helpstr='convert input to binary spike regressors')
 
       self.valid_opts.add_opt('-collapse_cols', 1, [],
                       acplist=['min','max','minabs','maxabs',
@@ -1934,11 +2021,14 @@ class A1DInterface:
       self.valid_opts.add_opt('-show_trs_to_zero', 0, [], 
                    helpstr='show length of data until constant zero')
 
-      self.valid_opts.add_opt('-show_xmat_stype_cols', -1, [], 
+      self.valid_opts.add_opt('-show_xmat_stype_cols', -1, [],
                       helpstr='display xmat cols for given stim types')
 
-      self.valid_opts.add_opt('-show_xmat_stim_info', 1, [], 
+      self.valid_opts.add_opt('-show_xmat_stim_info', 1, [],
                       helpstr='display xmat stim class info for class')
+
+      self.valid_opts.add_opt('-show_xmat_warnings', 0, [],
+                      helpstr='display warnings for the regression matrix')
 
       self.valid_opts.add_opt('-slice_order_to_times', 0, [], 
                    helpstr='convert slice indices to slice times')
@@ -2159,6 +2249,11 @@ class A1DInterface:
                print('** -cormat_cutoff must be in [0,1)')
                return 1
 
+         elif opt.name == '-censor_to_spike_regs':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.c2spike_file = val
+
          elif opt.name == '-csim_show_clustsize':
             self.show_clustsize = 1
 
@@ -2367,6 +2462,9 @@ class A1DInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if err: return 1
             self.show_xmat_stim_info = val
+
+         elif opt.name == '-show_xmat_warnings':
+            self.show_xmat_warn = 1
 
          elif opt.name == '-show_indices_baseline':
             self.show_indices |= 1
@@ -2700,6 +2798,14 @@ class A1DInterface:
       if self.censor_first_trs:
          if self.adata.set_first_TRs(self.censor_first_trs, newval=0): return 1
 
+      if self.c2spike_file:
+         adspike = self.adata.convert_to_censor_spikes()
+         if adspike is None: return 1
+         return adspike.write(self.c2spike_file, overwrite=self.overwrite,
+                              sep=self.write_sep,
+                              with_header=self.write_header,
+                              style=self.write_style)
+
       if self.vr2allin:
          if self.adata.volreg_2_allineate(): return 1
 
@@ -2770,7 +2876,8 @@ class A1DInterface:
       if self.show_tpattern:
          if self.show_tpattern == 2: rdigits = 0
          else:                       rdigits = 1
-         self.adata.show_tpattern(rdigits=rdigits, verb=self.verb)
+         self.adata.show_tpattern(tr=self.set_tr, rdigits=rdigits,
+                                  verb=self.verb)
 
       if self.show_tresolution:
          self.adata.show_tresolution()
@@ -2797,6 +2904,10 @@ class A1DInterface:
       if self.show_corwarnfull:
          err, wstr = self.adata.make_cormat_warnings_string(self.cormat_cutoff,
                                             name=self.infile, skip_expected=0)
+         print(wstr)
+      if self.show_xmat_warn:
+         err, wstr = self.adata.make_xmat_warnings_string(fname=self.infile,
+                                                          level=self.verb)
          print(wstr)
 
       # ---- possibly write: last option -----
@@ -2856,7 +2967,7 @@ class A1DInterface:
       # pattern
       errs = 0
       pattern = self.slice_pattern_to_times[0]
-      if pattern not in UTIL.g_valid_slice_patterns:
+      if not UTIL.is_valid_slice_pattern(pattern):
          print("** -slice_pattern_to_times: invalid slice pattern %s" % pattern)
          print("   example (alt+z): -slice_pattern_to_times alt+z 34 2")
          print("   see 'tpattern' examples from 'to3d -help'")

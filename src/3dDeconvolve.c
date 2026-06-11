@@ -828,6 +828,38 @@ void display_help_menu(int detail)
    "the output S(t) or K(t) be non-negative):                               \n"
    " https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dTfitter.html     \n"
    "------------------------------------------------------------------------\n"
+   "A more simple deconvolution: HRF -> IRF\n"
+   "\n"
+   "  Convert the HRF of a sustained stimulus down to the IRF of an\n"
+   "  IRF from an impulse.\n"
+   "\n"
+   "  0. given   HRF.1D : response can be oversampled to look pretty\n"
+   "             TR     : (oversampled?) grid TR\n"
+   "             sdur   : stim duration (in grid counts)\n"
+   "             idur   : impulse duration (in grid counts)\n"
+   "\n"
+   "  1. pretend there is a constant stimulus for 'sdur' time points\n"
+   "     (and pretend the TR=1s, which is okay regardless of the actual one)\n"
+   "\n"
+   "        1deval -num $sdur -expr t > stim.1D\n"
+   "\n"
+   "  2. Deconvolve (inserting $sdur and $sdur-1 appropriately):\n"
+   "\n"
+   "        3dDeconvolve -input HRF.1D\\' -polort -1 -num_stimts 1      \\\n"
+   "                     -stim_times 1 stim.1D 'TENT(0,$idur-1,$idur)' \\\n"
+   "                     -x1D x.xmat.1D -bucket irf.1D\n"
+   "\n"
+   "  3. scale to a unit height (setting $MAX):\n"
+   "\n"
+   "        3dTstat -max -prefix - irf.1D\\'\n"
+   "        # and using  MAX\n"
+   "        1deval -a irf.1D -expr a/$MAX > irf.scaled.1D\n"
+   "\n"
+   "  4. probably edit the endpoint (truncate slightly)\n"
+   "\n"
+   "        1dplot irf.scaled.1D\n"
+   "\n"
+   "------------------------------------------------------------------------\n"
    "The 'baseline model' in 3dDeconvolve (and 3dREMLfit) does not mean just \n"
    "a constant (mean) level of the signal, or even just the slow drifts that\n"
    "happen in FMRI time series.  'Baseline' here also means the model that  \n"
@@ -1161,6 +1193,60 @@ void display_help_menu(int detail)
     "        other models are for users with specific needs who understand  \n"
     "        clearly what they are doing.                                   \n"
     "                                                                       \n"
+    "-----------------------------------------------------------------------\n"
+    "** general rules for stimulus timing files (local times):\n"
+    "   - local format has N rows for N runs\n"
+    "   - each row will have all events for that run\n"
+    "   - event onset times are in seconds from the start of that run\n"
+    "   - modulator use should be consistent for all events in that file\n"
+    "     - 0 or more amplitude modulators\n"
+    "     - 0 or 1 duration\n"
+    "   + general format for a single event\n"
+    "     - simple format (onset times only)\n"
+    "       - onset time (from the beginning of the run)\n"
+    "     - modulated format (amplitude and/or duration modulation):\n"
+    "       - onset time\n"
+    "       - then (optionally) *amp, for each amplitude modulator amp\n"
+    "       - then (optionally) :dur, if event durations are included\n"
+    "     + GENERAL FORMAT for a single event:\n"
+    "          onset*amp_A*amp_B...*amp_K:dur\n"
+    "   -----------------------------------------\n"
+    "   + examples (2 events, just 1 run):\n"
+    "       13.6            27.9                 # onset only\n"
+    "       13.6*1.4        27.9*-0.13           # onset and single AM term\n"
+    "       13.6*1.4*-0.8   27.9*-0.13*-0.62     # onset and 2 AM terms\n"
+    "       13.6:3.6        27.9:1.843           # onset and duration\n"
+    "       13.6*1.4:3.6    27.9*-0.13:1.843     # onset, AM, duration\n"
+    "   -----------------------------------------\n"
+    "   - if there are no events in a run:\n"
+    "     - use 2 event placeholders for the run (2 implies local timing)\n"
+    "     - simple format (onsets only) : use '*' for each placeholder\n"
+    "       - an empty run should look like: * *\n"
+    "     - with both modulators (include appropriate modulators)\n"
+    "       - an empty run should look like: -1*0:0\n"
+    "         (assuming one AM and DM - match the format of the other events)\n"
+    "   - if at most one event per run, include an extra '*' for local timing"
+    "   -----------------------------------------\n"
+    "   + example 1 : simple format, 3 runs, nothing in run 2\n"
+    "       13.6  27.9  46.13\n"
+    "       * *\n"
+    "       9.42  26.1  57.8\n"
+    "   + example 2 : simple format, 3 runs, rare events, want local times\n"
+    "               - to be local, must have at least 2 events in one run\n"
+    "                 (still use '*' for extra events, in just run 1 or all)\n"
+    "       13.6  *\n"
+    "       * *\n"
+    "       9.42  *\n"
+    "   + example 3 : including one amplitude modulator\n"
+    "       13.6*0.3       27.9*-0.6      46.13*1.4\n"
+    "       -1*0           -1*0\n"
+    "       9.42*-0.9      26.1*-0.6      57.8*0.4\n"
+    "   + example 4 : including one amplitude modulator and a duration\n"
+    "       13.6*0.3:1.4   27.9*-0.6:2.0  46.13*1.4:1.5\n"
+    "       -1*0:0         -1*0:0\n"
+    "       9.42*-0.9:1.7  26.1*-0.6:2.1  57.8*0.4:1.2\n"
+    "-----------------------------------------------------------------------\n"
+    "\n"
     "[-stim_times k tname Rmodel]                                           \n"
     "   Generate the k-th response model from a set of stimulus times       \n"
     "   given in file 'tname'.                                              \n"
@@ -5538,8 +5624,9 @@ void check_for_valid_inputs
       } else if( stim_length[is] > nt*nptr[is] ){ /* 02 Jul 2009 */
 
         WARNING_message(
-          "-stim_file %d: file length is %d, longer than expected %d (from dataset)",
-          is+1 , stim_length[is] , nt*nptr[is] ) ;
+          "input stimulus time series file %s (%d) is too long:\n"
+          "            length = %d, longer than expected %d (from dataset)",
+          option_data->stim_filename[is], is+1, stim_length[is], nt*nptr[is] );
       }
     }
 #ifdef ALLOW_EXTEND
@@ -12895,102 +12982,7 @@ MRI_IMAGE * convert_FSL_to_fvect( MRI_IMAGE *fslim , int do_amp1 )
    return nbt ;
 }
 
-/******************************************************************************/
-/******************************************************************************/
-#if 0
-/*--- The shell script below is for testing this ARMA/REML implementation. ---*/
+/******************************************************************************
+ * moved trailing script to scripts_src/test_ARMA_REML.tcsh [10 Sep 2025 rickr]
+ ******************************************************************************/
 
-#!/bin/tcsh
-
-### Script to test REML GLSQ vs OLSQ regression
-
-# B      = signal amplitude for all repetitions
-# P      = signal period (TRs)
-# nstim  = number of signals (IM regression)
-# numvox = number of voxels to simulate
-# so there is a total of $nstim * $numvox stimuli being simulated
-
-set B      = 2
-set P      = 12
-set nstim  = 20
-set numvox = 400
-
-# ARMA(1,1) parameters for this test/simulation
-
-set AA  = 0.8
-set LAM = 0.5
-
-# D = number of time points (TR=1)
-
-@ D = $P * $nstim
-
-# create stimulus timing
-
-1deval -num $nstim -expr "i*${P}"  > stim.1D
-
-# create the voxel time series = simulated data
-
-1deval -num $D -expr "${B}*sin(PI*t/${P})^2"  > signal.1D
-foreach ii ( `count_afni -dig 4 1 $numvox` )
-  1dgenARMA11 -num $D -a $AA -lam $LAM               > noise.1D
-  1deval      -a noise.1D -b signal.1D -expr 'a+b'   > data${ii}.1D
-end
-
-# glue them together into one file
-
-1dcat data0*.1D > data.1D
-\rm -f data0*.1D noise.1D signal.1D
-
-# create the regression matrix
-
-3dDeconvolve -num_stimts 1                                            \
-             -stim_times_IM 1 stim.1D "EXPR(0,${P}) sin(PI*t/${P})^2" \
-             -stim_label    1 'sinsq'                                 \
-             -nodata $D 1 -x1D_stop -polort 2 -x1D test.xmat.1D
-
-# analyses
-
-3dREMLfit -matrix test.xmat.1D \
-          -input data.1D\'     \
-          -Rvar  test.Rvar.1D  \
-          -Rbeta test.Rbeta.1D \
-          -Obeta test.Obeta.1D \
-          -nobout -Grid 5 -MAXa 0.9 -MAXb 0.9 -NEGcor
-
-# extract the betas for each voxel into one long single column 1D file
-# instead of the multi-column file output by 3dREMLfit
-
-@ ns1 = $nstim - 1
-if( -f test.Rbeta.all.1D ) \rm test.Rbeta.all.1D
-if( -f test.Obeta.all.1D ) \rm test.Obeta.all.1D
-foreach ii ( `count_afni -dig 1 0 $ns1` )
-  1dcat test.Rbeta.1D"[$ii]" >> test.Rbeta.all.1D
-  1dcat test.Obeta.1D"[$ii]" >> test.Obeta.all.1D
-end
-
-# compute the mean and stdev of the GLSQ and OLSQ betas
-# (means should be about B, or something weird happened)
-
-3dTstat -mean -stdev -prefix test.Rbeta.stat.1D test.Rbeta.all.1D\'
-3dTstat -mean -stdev -prefix test.Obeta.stat.1D test.Obeta.all.1D\'
-
-# compute the ratio of the stdevs
-# srat > 1 means OLSQ stdev was bigger than GLSQ (what we expect)
-
-set Rsig = `1dcat test.Rbeta.stat.1D'[1]'`
-set Osig = `1dcat test.Obeta.stat.1D'[1]'`
-set srat = `ccalc "$Osig/$Rsig"`
-
-# print out these results
-
-echo "======================="
-echo "a = $AA  lam = $LAM"
-echo "REML mean stdev = " `1dcat test.Rbeta.stat.1D`
-echo "OLSQ mean stdev = " `1dcat test.Obeta.stat.1D`
-echo "Osig/Rsig       =  $srat"
-echo "======================="
-
-time ; exit 0
-#endif
-/******************************************************************************/
-/******************************************************************************/

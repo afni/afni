@@ -81,7 +81,7 @@ MAX_WLEVEL_RANK =  lahc.wlevel_ranks[MAX_WLEVEL]
 if __name__ == "__main__":
 
     # parse inputs, and get current dir (to return to at end)
-    iopts  = laio.parse_html_args(sys.argv[1:])
+    iopts  = laio.parse_html_args(sys.argv)
     my_cwd = os.getcwd()
     list_links = []                   # will hold list of links
 

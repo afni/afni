@@ -2,8 +2,11 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-set version   = "1.0";  set rev_dat   = "Feb 22, 2024"
+#set version   = "1.0";  set rev_dat   = "Feb 22, 2024"
 # + script to do deobliquing while preserving the coord origin
+#
+set version   = "1.1";  set rev_dat   = "Dec 08, 2025"
+# + fix case of no obliquity for output
 #
 # ----------------------------------------------------------------
 
@@ -129,7 +132,7 @@ if ( "${is_obl}" == "0" ) then
     endif
 
     if ( $DO_MATS ) then
-        set ppp    = `3dinfo -prefix_noext "{prefix}"`
+        set ppp    = `3dinfo -prefix_noext "${prefix}"`
         set omat   = "${odir}/${ppp}_${pmat}"
         set omat_I = "${odir}/${ppp}_${pmat_I}"
         echo " 1 0 0 0  0 1 0 0  0 0 1 0" > "${omat}"
@@ -242,7 +245,7 @@ if ( $DO_CLEAN == 1 ) then
     echo "++ Clean working dir"
     \rm -rf ${wdir}
 else
-    echo "++ NOT removing temporary axialization working dir: ${wdir}"
+    echo "++ NOT removing temporary deobliquing working dir: ${wdir}"
 endif
 
 DONE_MSG: 
@@ -279,9 +282,9 @@ Options ~1~
 
 -input                 : (req) input volumetric dataset name
 -prefix                : (req) output dataset name
--oblique_origin        : style of preserving origin, via 3drefit (def)
+-oblique_origin        : style of preserving origin, via 3drefit 
 -oblique_recenter      : style of preserving origin, via 3drefit (def)
--oblique_recenter_raw  : style of preserving origin, via 3drefit (def)
+-oblique_recenter_raw  : style of preserving origin, via 3drefit 
 -write_aff_mats        : write out affine matrix that would send output 
                          dset here to same place `3dWarp -deoblique ..` 
                          would send input (see Notes -> Affine Matrix)

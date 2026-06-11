@@ -365,9 +365,16 @@ g_history = """
    1.40 Jan 23, 2025 - more checks for gcc, check rPkgsInstall
    1.41 Feb 26, 2025 - note if afni is owned by root or not user
    1.42 Feb 27, 2025 - add a more detailed get_macos_mdls_val()
+   1.43 Sep  9, 2025 - flask and flask_cors are now required, AFNI_data7
+   1.44 Sep 18, 2025 - report afnipy version
+   1.45 Sep 25, 2025 - remove fix message about examples using 'tcsh'
+   1.46 Dec  5, 2025 - warn if the 'phia' R library has version 0.3.1
+   1.47 Jan 23, 2026 - do not automatically test tcsh
+   1.48 Mar  9, 2026 - check mac CPU types for gcc vs system
+   1.49 Apr 21, 2026 - show data dir history from the left, to include date
 """
 
-g_version = "afni_system_check.py version 1.42, February 27, 2025"
+g_version = "afni_system_check.py version 1.49, April 21, 2026"
 
 
 class CmdInterface:

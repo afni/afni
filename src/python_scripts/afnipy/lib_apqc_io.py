@@ -170,18 +170,31 @@ DEF_color_table = [
 
 # control overwriting/backing up any existing QC dirs
 dict_apqc_ow_modes = {
-    'shy'         : '(def) make new QC dir only if one does not exist',
+    'backup'      : '(def) move old QC dir to QC_<time>;' + \
+                    '\n' + ' '*16 + 'make new QC dir',
     'overwrite'   : 'purge old QC dir and make new QC/',
-    'backup'      : 'move old QC dir to QC_<time>; make new QC dir',
+    'shy'         : 'make new QC dir iff one does not exist',
 }
 
 list_apqc_ow_modes = list(dict_apqc_ow_modes.keys())
-list_apqc_ow_modes.sort()
-str_apqc_ow_modes = ', '.join([x for x in list_apqc_ow_modes])
+str_apqc_ow_modes  = ', '.join([x for x in list_apqc_ow_modes])
 
 hstr_apqc_ow_modes = \
     '\n'.join(['{:12s} -> {}'.format(x, dict_apqc_ow_modes[x]) \
                for x in list_apqc_ow_modes])
+
+DEF_apqc_ow_mode = 'backup'
+
+# defaults for some apqc_make_tcsh.py opts
+DEF_can_add_blur = 'Yes'
+# technically, these defaults are for some required opts, but if you
+# run apqc_make_tcsh.py *in* the results dir, then these are the
+# values you would use. Since some folks (= the author) do _that_ so
+# frequently, this will save valuable time+energy.
+DEF_uvar_json    = 'out.ss_review_uvars.json'
+DEF_subj_dir     = '.'
+
+DEF_apqc_log     = 'log_apqc_tcsh.txt'
 
 # -------------------------------------------------------------------
 
@@ -1996,18 +2009,28 @@ def parse_1dplot_args(full_argv):
 # ======================== for apqc_make_tcsh ============================
 
 help_string_apqc_make_tcsh = '''
+Overview ~1~
 
-This program creates the single subject (ss) HTML review script
-'@ss_review_html', which itself generates images and text that form
-the afni_proc.py quality control (APQC) HTML.
+This program generates images and text that form the afni_proc.py
+quality control (APQC) HTML.  It stores these in a directory called
+QC_<subj>, where <subj> is the subject ID of the data being processed.
 
-It is typically run by the afni_proc.py (AP) proc* script itself.
+This program is usually run by afni_proc.py's (AP's) processing
+script, but users can run it as well, as needed, to regerate the APQC
+HTML.
 
-Options:
+It is almost always followed by running apqc_make_html.py, to turn the
+images+text into the full APQC HTML doc.
+
+++ written by PA Taylor (SSCC, NIMH, NIH, USA)
+
+--------------------------------------------------------------------------
+Options ~1~
 
 -uvar_json  UJ    :(req) UJ is a text file of uvars ("user variables")
                    created by gen_ss_review.py that catalogues important
-                   files in the results directory, for the APQC.
+                   files in the results directory, for the APQC. This file
+                   is called:  {uvar_json}.
 
 -subj_dir   SD    :(req) location of AP results directory (often '.', as
                    this program is often run from within the AP results 
@@ -2015,7 +2038,7 @@ Options:
 
 -review_style RS  :(opt) the 'style' of the APQC HTML output HTML.  Allowed
                    keywords are:
-                       {{{}}}
+                       {review_style}
                    + Using 'pythonic' is the recommended way to go: the
                    1D images are the clearest and most informative.
                    It means you need the Python module Matplotlib
@@ -2041,8 +2064,29 @@ Options:
                    provided in this list. If not used, the program
                    uses default logic to pick up to 5 items to show.
 
--ow_mode  OM      :(opt) set overwrite mode; choices are
-                   {}
+-can_add_blur CAB :(opt) if the FMRI processing did not use blurring, then
+                   the APQC HTML creation can add blurring to a couple steps
+                   within the QC generation that might be easier to interpret,
+                   such as the seedbased correlation maps, in the TSNR warns
+                   levels of any ROI TSNR tables, and in the corr_brain map.
+                   This program will check the uvars for whether blurring was
+                   used automatically, to know whether it would consider adding
+                   extra blur in the QC images; the TSNR warn levels will still
+                   be automatically adjusted based on blurring/not.
+                   These extra blurs *only* apply in the QC items, not in the
+                   final data; this program will check the uvars for whether
+                   blurring
+                   If you don't want this program to check to add any extra 
+                   blur for data processed without blurring, then disable that
+                   here.
+                   Allowed values of CAB are: Yes or 1, No or 0.
+                   (def: {can_add_blur})
+
+-ow_mode  OM      :(opt) set overwrite mode; choices are:
+
+                     {ow_mode}
+
+                   (def: {def_ow_mode})
                    See also '-bup_dir ..' for additional backup dir 
                    naming.
 
@@ -2054,32 +2098,92 @@ Options:
                    shell commands that are run when apqc_make_tcsh.py
                    is executed; mainly for debugging purposes, if 
                    necessary.
+                   The name of the log file is: {apqc_log}.
 
-'''.format( str_apqc_review_styles,
-            hstr_apqc_ow_modes.replace('\n', '\n'+ ' '*19 ))
+-run              :(opt) a trivial option that does nothing, but means you can
+                   execute this program, rather than display the help text,
+                   when using default -uvar_json and -subj_dir values (which
+                   mean running this in the current dir).
+
+-help             :(opt) display this help text
+
+-hview            :(opt) display this help text in a GUI text window
+
+--------------------------------------------------------------------------
+Examples ~1~
+
+Note that in every example below, a user would immediately run
+'apqc_make_html.py -qc_dir ..' to finalize the full APQC HTML.
+
+
+1) Consider having an AP results directory, for data with subject
+   ID sub-000. From that directory, run:
+
+     apqc_make_tcsh.py -run
+
+2) Same as #1, but make a text file log of everything that ran (for
+   troubleshooting purposes). From that directory, run:
+
+     apqc_make_tcsh.py -run -do_log
+
+
+3) Same as #1, but to use the older long form of options (no longer
+   necessary), run:
+
+     apqc_make_tcsh.py                                                \\
+         -subj_dir    .                                               \\
+         -uvar_json   out.ss_review_uvars.json
+
+4) Same as #1, but from some other location on the file system more
+   generally, run:
+
+     apqc_make_tcsh.py                                                \\
+         -subj_dir    path/to/AP_results                              \\
+         -uvar_json   path/to/AP_results/out.ss_review_uvars.json
+          
+
+   
+
+
+'''.format( uvar_json=DEF_uvar_json,
+            review_style=str_apqc_review_styles, 
+            can_add_blur=DEF_can_add_blur,
+            def_ow_mode=DEF_apqc_ow_mode,
+            apqc_log=DEF_apqc_log,
+            ow_mode=hstr_apqc_ow_modes.replace('\n', '\n'+ ' '*21 ))
 
 # -------------------------------------------------------------------
 
 class apqc_tcsh_opts:
 
     def __init__(self):
-        self.json             = ""
-        self.subjdir          = ""
+        self.json             = DEF_uvar_json
+        self.subjdir          = DEF_subj_dir
         self.revstyle         = "pythonic"
         self.pythonic2basic   = 0
 
-        self.ow_mode          = 'backup'   # overwrite mode 
+        self.ow_mode          = DEF_apqc_ow_mode # overwrite mode 
         self.bup_dir          = None
         self.do_mot_grayplot  = True
         self.vstat_label_list = []
+        self.can_add_blur     = DEF_can_add_blur # if no proc blur, can add in QC
         self.do_log           = False      # don't log by default
+        self.run              = True       # a non-used value, allowing simple opt
 
     # -------------------------
 
     def set_json(self, json):
+        if not(os.path.isfile(json)) :
+            print("** ERROR: entere uvar_json '{}' does not seem to exist."
+                  "".format(json))
+            sys.exit(12)
         self.json = json
 
     def set_subjdir(self, subjdir):
+        if not(os.path.isdir(subjdir)) :
+            print("** ERROR: entere subj_dir '{}' does not seem to exist."
+                  "".format(subjdir))
+            sys.exit(12)
         self.subjdir = subjdir
 
     def set_bup_dir(self, bup_dir):
@@ -2092,6 +2196,16 @@ class apqc_tcsh_opts:
             sys.exit(11)
         self.ow_mode = ow_mode
 
+    def set_can_add_blur(self, cab):
+        if cab == 'Yes' or cab == '1' :
+            self.can_add_blur = True
+        elif cab == 'No' or cab == '0' :
+            self.can_add_blur = False
+        else:
+            print("** ERROR: illegal can_add_blur '{}', must be one of:\n"
+                  "   Yes or 1, No or 0")
+            sys.exit(13)
+
     def set_revstyle(self, revstyle):
         self.revstyle = revstyle
 
@@ -2102,6 +2216,12 @@ class apqc_tcsh_opts:
     def set_log(self, tf):
         if tf :   self.do_log = True
         else:     self.do_log = False
+
+    def set_run(self, tf):
+        """This is just a place holder, to allow a simple option to run this
+        program when using default other inputs."""
+        if tf :   self.run = True
+        else:     self.run = False
 
     def add_vstat_label(self, label):
         # keep list unique; checking if label is valid in the
@@ -2146,18 +2266,20 @@ list_apqc_tcsh_opts = ['-help', '-h',
                        '-review_style',
                        '-mot_grayplot_off',
                        '-vstat_list',
+                       '-can_add_blur',
                        '-ow_mode',
                        '-bup_dir',
                        '-do_log',
+                       '-run',
                        ]
 
 
-def parse_tcsh_args(argv):
+def parse_tcsh_args(full_argv):
     '''Parse arguments for tcsh scripter.
 
     Input
     -----
-    argv : list of args (not including prog name)
+    argv : full list of args (including prog name)
 
     Return
     ------
@@ -2166,6 +2288,8 @@ def parse_tcsh_args(argv):
         self-"check_req()" method, as well.
     '''
 
+    # list of opts used
+    argv   = full_argv[1:]
     Narg   = len(argv)
     Nargm1 = Narg - 1     # to check if opt is missing par(s)
 
@@ -2186,6 +2310,12 @@ def parse_tcsh_args(argv):
 
         elif argv[i] == "-help" or argv[i] == "-h":
             print(help_string_apqc_make_tcsh)
+            sys.exit(0)
+
+        elif argv[i] == "-hview" :
+            prog = os.path.basename(full_argv[0])
+            cmd = 'apsearch -view_prog_help {}'.format( prog )
+            ab.simple_shell_exec(cmd)
             sys.exit(0)
 
         # ---------- req ---------------
@@ -2214,6 +2344,12 @@ def parse_tcsh_args(argv):
             i+= 1
             iopts.set_ow_mode(argv[i])
 
+        elif argv[i] == "-can_add_blur":
+            if i >= Nargm1 :
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_can_add_blur(argv[i])
+
         elif argv[i] == "-bup_dir":
             if i >= Nargm1 :
                 ARG_missing_arg(argv[i])
@@ -2227,6 +2363,9 @@ def parse_tcsh_args(argv):
 
         elif argv[i] == "-do_log":
             iopts.set_log(True)
+
+        elif argv[i] == "-run":
+            iopts.set_run(True)
 
         # get a list of labels 
         elif argv[i] == "-vstat_list":
@@ -2307,9 +2446,47 @@ def check_apqc_pythonic_ok():
 
 help_string_apqc_make_html = '''
 
-Help is here.
+This program converts the contents of a QC directory that were created
+by apqc_make_tcsh.py into the APQC HTML doc, readable with any
+browser.
 
--qc_dir
+This program is usually run by afni_proc.py's processing script, but
+users can run it as well, as needed, to regerate the APQC HTML.
+
+++ written by PA Taylor (SSCC, NIMH, NIH, USA)
+
+--------------------------------------------------------------------------
+Running ~1~
+
+To execute this program, run it like this, providing the name of the
+directory created by apqc_make_tcsh.py:
+
+   apqc_make_html.py -qc_dir QC_DIR
+
+--------------------------------------------------------------------------
+Options ~1~
+
+-qc_dir QC_DIR  : (req) the name of the QC directory that was created by
+                  apqc_make_tcsh.py (likely in the results directory from
+                  running afni_proc.py)
+
+-help           : display this (short) help
+
+-hview          : display this (short) help in a GUI text window
+
+--------------------------------------------------------------------------
+Example ~1~
+
+Note that in every example below, a user would probably have preceded
+this command with 'apqc_make_tcsh.py ...'.
+
+
+1) Consider final AP processing of a dataset with subject ID
+   sub-000.  Then, the following could be run in the AP results
+   directory (after afni_make_tcsh.py):
+
+     apqc_make_html.py -qc_dir QC_sub-000
+
 
 '''
 
@@ -2333,12 +2510,12 @@ class apqc_html_opts:
 
 # -------------------------------------------------------------------
 
-def parse_html_args(argv):
+def parse_html_args(full_argv):
     '''Parse arguments for html generator.
 
     Input
     -----
-    argv : list of args (not including prog name)
+    full_argv : list of args (including prog name, for hview)
 
     Return
     ------
@@ -2347,6 +2524,8 @@ def parse_html_args(argv):
         self-"check_req()" method, as well.
     '''
 
+    # list of opts used
+    argv = full_argv[1:]
     Narg = len(argv)
 
     if not(Narg):
@@ -2365,6 +2544,12 @@ def parse_html_args(argv):
 
         elif argv[i] == "-help" or argv[i] == "-h":
             print(help_string_apqc_make_html)
+            sys.exit(0)
+
+        elif argv[i] == "-hview" :
+            prog = os.path.basename(full_argv[0])
+            cmd = 'apsearch -view_prog_help {}'.format( prog )
+            ab.simple_shell_exec(cmd)
             sys.exit(0)
 
         # ---------- req ---------------

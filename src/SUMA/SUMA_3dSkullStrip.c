@@ -57,7 +57,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
       int i;
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
-      sts = SUMA_help_talk(ps);
+      sts = SUMA_help_talk();
       printf (
 "\n"
 "Usage: A program to extract the brain from surrounding.\n"

@@ -2635,7 +2635,7 @@ STATUS("threshold-ization and alpha-ization") ;
        /* in the following code,
           note that alcode==0 implies ALFA() = 0.0 implies not visible,
           whereas alcode==1 or ==2 implies 0 < ALFA() < 1 implies translucent */
- 
+
        case MRI_short:{
          register float thb=thbot , tht=thtop , aa ; register int rej, vvz ;
          register short *ar_thr = MRI_SHORT_PTR(im_thr) ;
@@ -6574,7 +6574,7 @@ ENTRY("AFNI_autorange_label") ;
    /* Get the autorange as a percentage point of the nonzero values */
    /* (if we have a functional dataset)         [11 Jan 2024 rickr] */
    if( ISVALID_3DIM_DATASET(im3d->fim_now)
-        && im3d->fim_now->int_cmap == CONT_CMAP 
+        && im3d->fim_now->int_cmap == CONT_CMAP
         && AUTORANGE_PERC > 1 && AUTORANGE_PERC < 100 ){
      MRI_IMAGE *qim=NULL ; float qval ;
      if( !DSET_LOADED(im3d->fim_now) && DSET_TOTALBYTES(im3d->fim_now)
@@ -7253,6 +7253,18 @@ void AFNI_papers_CB( Widget w , XtPointer cd , XtPointer cbd )
    if( IM3D_OPEN(im3d) )
      AFNI_list_papers( im3d->vwid->imag->topper ) ;
 
+   return ;
+}
+
+/*--------------------------------------------------------------------*/
+
+void AFNI_redraw_CB( Widget w , XtPointer cd , XtPointer cbd ) /* Dec 2025 */
+{
+   int cc ; Three_D_View *qq3d ;
+   for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
+     qq3d = GLOBAL_library.controllers[cc] ;
+     if( IM3D_OPEN(qq3d) ) AFNI_redraw_controller( qq3d ) ;
+   }
    return ;
 }
 
@@ -8413,7 +8425,7 @@ ENTRY("AFNI_hidden_EV") ;
          else if( !NO_frivolities && event->button == Button5 ) AFNI_alter_controller_bg(im3d,1.041667f) ;
 #endif
       }
-      break ;
+      break ;  /* end of ButtonPress */
 
       /*----- take key press [09 Sep 2002] -----*/
 
@@ -8450,11 +8462,25 @@ ENTRY("AFNI_hidden_EV") ;
              AFNI_hidden_CB( im3d->vwid->prog->hidden_gamberi_pb ,
                              (XtPointer)im3d , NULL ) ;
            break ;
-         }
-      }
-      break ;
-   }
 
+#if 0
+           case ' ':  /*--- refresh windows [Dec 2025] ---*/
+           {
+             int cc ; Three_D_View *qq3d ;
+             for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
+               qq3d = GLOBAL_library.controllers[cc] ;
+               if( IM3D_OPEN(qq3d) ) AFNI_redraw_controller( qq3d ) ;
+             }
+           }
+           break ;
+#endif
+
+        }
+     }  /* end of KeyPress */
+
+   } /* end of ev>-type switch */
+
+   SHOW_AFNI_READY ;
    EXRETURN ;
 }
 

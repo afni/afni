@@ -305,6 +305,20 @@ examples: ~1~
 
              timing_tool.py -timing stim01_houses.txt -show_modulator_stats
 
+       g. verify that stim times are TR-locked (like in e), but the TR
+          is not exact on a computer (ratio denom is not power of 2)
+
+          Use -show_events and evaluate the offsets directly by showing
+          only the part of the fractions that are to the right of the
+          decimal.  So a TR-locked output should be numbers around 000 or
+          999 (or possibly not shown at all if there are no decimals).
+
+             timing_tool.py -multi_timing stim.*.1D              \\
+                -tr 1.3 -show_events                             \\
+                | grep -v '#' | awk '{print $3}'                 \\
+                | 1deval -a - -expr a/1.3 | awk -F. '{print $2}' \\
+                | sort -n | uniq
+
    Example 11.  test a file for local/global timing issues ~2~
 
        Test a timing file for timing issues, which currently means having
@@ -423,6 +437,29 @@ examples: ~1~
                         -nplaces 1 -mplaces 1 -write_as_married \\
                         -select_runs 0 0 1 2 0 -write_timing NEW.txt
 
+   Example 18e. Go the other direction: create FSL timing from AFNI.
+
+      Given AFNI formatted timing files afni_stim*.txt, convert them to
+      FSL timing format
+
+      1. without explicit duration (likely with AFNI duration mod timing files)
+
+          timing_tool.py -multi_timing afni_stim*.txt -write_simple_tsv fsl_stim
+
+      2. with constant duration (e.g. 4.2 seconds)
+
+          timing_tool.py -multi_timing afni_stim*.txt -multi_stim_dur 4.2 \\
+                         -write_simple_tsv fsl_stim
+
+      3. with a duration list, one per file
+         (careful, not listing files would mean alphabetical)
+
+          timing_tool.py -multi_timing     afni_stim*.txt  \\
+                         -multi_stim_dur   2  4.1  5.3  3  \\
+                         -write_simple_tsv fsl_stim
+
+      Consider also -write_tsv_cols_of_interest.
+
    Example 19a. convert TSV formatted timing files to AFNI timing format ~2~
 
       A tab separated value file contains events for all classes for a single
@@ -489,6 +526,15 @@ examples: ~1~
                         -show_tsv_label_details
 
       Consider "-show_events" to view event list.
+
+   Example 19h.  can force the timing to be simple, AM, DM or AMDM ~2~
+
+      Here "-force_write_type simple", but can use AM or DM or AMDM,
+      to force the output to be exactly that modulation type.
+
+         timing_tool.py -multi_timing_ncol_tsv sing_weather.run*.tsv \\
+                        -write_multi_timing AFNI_timing.weather      \\
+                        -force_write_type simple
 
    Example 20.  set event durations based on next events ~2~
 
@@ -681,7 +727,7 @@ options with both single and multi versions (all single first): ~1~
         After modifying the timing data, the multiple timing instances
         can be written out.
 
-            Consider '-write_as_married'.
+            Consider '-force_write_type', '-write_as_married'.
 
    -write_simple_tsv PREFIX     : write timing to new TSV files ~2~
 
@@ -697,10 +743,11 @@ options with both single and multi versions (all single first): ~1~
         If some classes have modulators and some do not (or have fewer), the
         output will still be rectangular, with such modulators output as zeros.
 
-            Consider '-write_multi_timing'.
+        This can be used to convert the timing files from an AFNI format
+        to an FSL format.
 
-------------------------------------------
-action options (apply to multi timing elements, only): ~1~
+            Consider '-write_multi_timing' and '-write_tsv_cols_of_interest'.
+
 ------------------------------------------
 action options (apply to single timing element, only): ~1~
 
@@ -924,6 +971,8 @@ action options (apply to single timing element, only): ~1~
 
         Some comments may be made for the global results.
 
+        Also, use '-verb 3' to directly show all fractional offsets.
+
             See also '-show_tr_stats', '-warn_tr_stats'.
 
    -show_tr_stats               : display within-TR statistics of stimuli ~2~
@@ -1094,6 +1143,11 @@ action options (apply to single timing element, only): ~1~
         of a basis function).  Use -write_as_married to include any constant
         duration as a modulator.
 
+        If there are no modulators in the input but married output is wanted,
+        consider -force_write_type.
+
+            See also '-force_write_type'.
+
    -write_tsv_cols_of_interest NEW_FILE : write cols of interest ~2~
 
         e.g. -write_tsv_cols_of_interest cols_of_interest.tsv
@@ -1102,6 +1156,9 @@ action options (apply to single timing element, only): ~1~
         Since the input TSV files often have many columns that make viewing
         difficult, this option can be used to extract only the relevant
         columns and write them to a new TSV file.
+
+        It is an alternate way to create FSL timing files, but this result
+        might be more general.
 
             Consider '-multi_timing_ncol_tsv'.
 
@@ -1113,7 +1170,7 @@ action options (apply to single timing element, only): ~1~
         out the result.  Alternatively, the user could use -show_timing and
         cut-and-paste to write such a file.
 
-            Consider '-write_as_married'.
+            Consider '-force_write_type', '-write_as_married'.
 
 ------------------------------------------
 action options (apply to multi timing elements, only): ~1~
@@ -1229,6 +1286,18 @@ general options: ~1~
    -chrono                      : process options chronologically ~2~
 
         This option has been removed.
+
+   -force_write_type            : force output to have given modulators ~2~
+
+        By default, or via other options, writing timing files with have
+        amplitude modulators, duration modulators, neither or both.
+
+        Use this option to force what is in the output timing files.
+
+            simple  : no modulators
+            AM      : only amplitude modulators (if none, use a=1)
+            DM      : only duration modulators (if none, use d=0)
+            AMDM    : both AM and DM (if missing a=1, d=0)
 
    -min_frac FRAC               : specify minimum TR fraction ~2~
 
@@ -1738,9 +1807,12 @@ g_history = """
    3.23 Dec 10, 2024 - add -show_modulator_stats
    3.24 Feb  6, 2025 - allow -multi_timing with -timing_to_1D
                      - add -timing_to_1D_method
+   3.25 Jul 29, 2025 - add -force_write_type
+   3.26 Feb  9, 2026 - fix fname_prefix to return intended length
+   3.27 Mar  3, 2026 - add help for tr_stats of non-binary TRs (like 1.3 s)
 """
 
-g_version = "timing_tool.py version 3.24, February 6, 2025"
+g_version = "timing_tool.py version 3.27, March 3, 2026"
 
 
 
@@ -1754,6 +1826,7 @@ class ATInterface:
       self.all_edtypes     = ['i', 'p', 't', 'o', 'd', 'm', 'f']
 
       # user options
+      self.force_w_type    = ''         # can force write: simple, AM, DM, AMDM
       self.nplaces         = -1         # num decimal places for writing
       self.mplaces         = -1         # decimal places for married info
       self.run_len         = [0]        # time per run (for single/multi)
@@ -1976,6 +2049,9 @@ class ATInterface:
       if not self.timing:
          print('** no timing to write')
          return 1
+      # pass along any sub-class vars
+      if self.force_w_type:
+         self.timing.force_w_type = self.force_w_type
       return self.timing.write_times(fname, nplaces=self.nplaces,
                 mplaces=self.mplaces, force_married=self.write_married)
 
@@ -1993,6 +2069,11 @@ class ATInterface:
          if   timing.fname: fname = prefix+timing.fname
          elif timing.name:  fname = prefix+timing.name+'.txt'
          else:              fname = '%sclass_%02d' % (pp, tind)
+
+         # pass along any sub-class vars
+         if self.force_w_type:
+            timing.force_w_type = self.force_w_type
+
          timing.write_times(fname, nplaces=self.nplaces,
                     mplaces=self.mplaces, force_married=self.write_married)
 
@@ -2138,7 +2219,7 @@ class ATInterface:
             break
       # if we found a suffix, strip it
       if suffix != '':
-         return fname[:(len(suffix)+1)]
+         return fname[:-(len(suffix)+1)]
       return fname
 
    def init_options(self):
@@ -2278,6 +2359,9 @@ class ATInterface:
 
 
       # general options (including multi)
+      self.valid_opts.add_opt('-force_write_type', 1, [],
+                         acplist=['simple', 'AM', 'DM', 'AMDM'],
+                         helpstr='force timing file type')
       self.valid_opts.add_opt('-min_frac', 1, [],
                          helpstr='min tr fraction (in [0,1.0])')
       self.valid_opts.add_opt('-nplaces', 1, [],
@@ -2367,6 +2451,13 @@ class ATInterface:
       if oind >= 0:
          val, err = uopts.get_type_opt(int, '-verb')
          if val != None and not err: self.verb = val
+         uopts.olist.pop(oind)
+
+      oind = uopts.find_opt_index('-force_write_type')
+      if oind >= 0:
+         val, err = uopts.get_string_opt('-force_write_type')
+         if val and not err:
+            self.force_w_type = val
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-min_frac')

@@ -352,6 +352,9 @@ extern long   strtol() ;
 #endif
 
 /* Mac OSX (Darwin) */
+
+extern int isMacTahoe(void) ;  /* in machdep.c [Dec 2025] */
+
 #ifdef DARWIN
 # include <dirent.h>
 # define THD_MMAP_FLAG  MAP_SHARED
@@ -415,6 +418,7 @@ extern int machdep_be_quiet(void) ;  /* 08 Dec 2010 */
 extern char * GetAfniWebBrowser(void);
 extern char * GetAfniWebDownloader(void);
 extern char * GetAfniPDFViewer(void);
+extern char * GetAfniSpreadsheetViewer(void);
 extern char * GetAfniImageViewer(void);
 extern char * GetAfniTextEditor(void);
 extern char * AFNI_strcasestr(const char *s1, const char *s2);

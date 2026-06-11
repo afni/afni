@@ -1,5 +1,7 @@
 #!/usr/bin/env tcsh
 
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
 # ===========================================================================
 # Run a simple afni_proc.py resting state analysis, possibly to get QC output.
 #
@@ -22,13 +24,15 @@ set epi_list = ()
 
 # ----------------------------------------------------------------------
 # other user-controllable parameters
-set nt_rm    = 2        # number of time points to remove
+set nt_rm     = 2       # number of time points to remove
                         # rcr - make def to compute from TR?
-set subjid   = 'SUBJ'   # rcr - make def to guess from BIDS?
+set subjid    = 'SUBJ'  # rcr - make def to guess from BIDS?
                         # rcr - rewrite this in python?  (or subsume in AP)
-set run_ap   = 0        # do we run afni_proc.py?
-set run_proc = 0        # do we run the resulting proc script?
+set run_ap    = 0       # do we run afni_proc.py?
+set run_proc  = 0       # do we run the resulting proc script?
 
+set blur_size = 0       # allow user control, but have default
+set ahs       = yes     # anat_has_skull?
 set template = MNI152_2009_template_SSW.nii.gz
 set verb     = 1
 
@@ -37,7 +41,7 @@ set verb     = 1
 # ----------------------------------------------------------------------
 # parameters not controlled by user
 set prog = `basename $0`
-set script_version = 0.6  # ugly, SHOW_HIST is at the end
+set script_version = 0.7  # ugly, SHOW_HIST is at the end
 
 
 # ===========================================================================
@@ -117,6 +121,22 @@ while ( $ac <= $narg )
       endif
       set template = $argv[$ac]
 
+   else if ( "$argv[$ac]" == '-blur_size' ) then
+      @ ac ++
+      if ( $ac > $narg ) then
+         echo "** -blur_size requires 1 parameter"
+         exit 1
+      endif
+      set blur_size = $argv[$ac]
+
+   else if ( "$argv[$ac]" == '-anat_has_skull' ) then
+      @ ac ++
+      if ( $ac > $narg ) then
+         echo "** -anat_has_skull requires 1 parameter"
+         exit 1
+      endif
+      set anat_has_skull = $argv[$ac]
+
    else if ( "$argv[$ac]" == '-compressor' ) then
       @ ac ++
       if ( $ac > $narg ) then
@@ -173,20 +193,21 @@ if ( $verb > 1 ) then
    # display parameters?
 cat << EOF
 ++ parameters for program $prog :
-   anat        = $anat
-   epi_list    = $epi_list
-   nt_rm       = $nt_rm
-   run_ap      = $run_ap
-   run_proc    = $run_proc
-   subjid      = $subjid
-   template    = $template
-   verb        = $verb
+   anat            = $anat
+   anat_has_skull  = $ahs
+   epi_list        = $epi_list
+   nt_rm           = $nt_rm
+   blur_size       = $blur_size
+   run_ap          = $run_ap
+   run_proc        = $run_proc
+   subjid          = $subjid
+   template        = $template
+   verb            = $verb
 EOF
 endif
 
-
 # ===========================================================================
-# prepare afni_proc.py command script
+# check for missing inputs and set main variables
 
 # are expect processing files already here?
 set script_ap   = run_ap_$subjid
@@ -206,6 +227,19 @@ end
 if ( $#epi_list == 0 ) then
    echo "** missing -epi dataset inputs"
    exit 1
+endif
+
+# ===========================================================================
+# apply any defaults (after validating input) if the user has not specified
+
+if ( $blur_size == 0 ) then
+   set blur_size = `afni_python_wrapper.py -print \
+                  "get_def_blur_from_dims('$epi_list[1]')" |& tail -n 1`
+   if ( $blur_size == "0" ) then
+      echo "** failed to get blur size from dims of $epi_list[1]"
+      exit 1
+   endif
+   echo "++ setting blur from voxel sizes: $blur_size"
 endif
 
 # ===========================================================================
@@ -237,6 +271,7 @@ afni_proc.py                                                        \
                                blur scale regress                   \
     -radial_correlate_blocks   tcat volreg regress                  \
     -copy_anat                 $anat \
+    -anat_has_skull            ${ahs}                               \
     -dsets                     $epi_list \
     -tcat_remove_first_trs     $nt_rm \
     -align_unifize_epi         local                                \
@@ -247,7 +282,7 @@ afni_proc.py                                                        \
     -volreg_tlrc_warp                                               \
     -volreg_compute_tsnr       yes                                  \
     -mask_epi_anat             yes                                  \
-    -blur_size                 6                                    \
+    -blur_size                 $blur_size                           \
     -regress_censor_motion     0.25                                 \
     -regress_censor_outliers   0.05                                 \
     -regress_motion_per_run                                         \
@@ -269,6 +304,7 @@ else
 #
 #     -blocks align tlrc
 #     -copy_anat
+#     -anat_has_skull
 #     -align_unifize_epi
 #     -align_opts_aea
 #     -tlrc_base
@@ -295,7 +331,7 @@ afni_proc.py                                                        \
     -tcat_remove_first_trs     $nt_rm \
     -volreg_align_to           MIN_OUTLIER                          \
     -volreg_compute_tsnr       yes                                  \
-    -blur_size                 6                                    \
+    -blur_size                 $blur_size                           \
     -regress_censor_motion     0.25                                 \
     -regress_censor_outliers   0.05                                 \
     -regress_motion_per_run                                         \
@@ -385,6 +421,8 @@ SHOW_HELP:
 cat << EOF
 
 ------------------------------------------------------------------------------
+Overview ~1~
+
 $prog  - run a quick afni_proc.py analysis for QC
 
    usage: $prog [options] -anat ANAT -epi EPI1 EPI2 EPI3 ...
@@ -414,32 +452,12 @@ Overview:
 This program may be devoured by afni_proc.py itself, at some point.
 
 ------------------------------------------------------------------------------
-example 0: just create an afni_proc.py script, run_ap_SUBJ, no data required
+Options ~1~
 
-      $prog -anat anat.nii -epi epi.nii
+This program is designed to be run with minimal options
 
+  $prog -epi epi.nii [-anat anat.nii] [...]
 
-example 1: quickly process EPI (no anat, so no align/tlrc blocks)
-
-      $prog -epi epi.nii -run_proc
-
-
-example 2: preferred - run an analysis from a clean directory
-
-      cd AFNI_data6/FT_analysis
-      mkdir test.ap
-      cd test.ap
-      $prog -subjid ft.qc \\
-          -run_proc -nt_rm 2                \\
-          -anat ../FT/FT_anat+orig          \\
-          -epi ../FT/FT_epi_r*.HEAD
-
-------------------------------------------------------------------------------
-terminal options:
-
-   -help                   : show this help
-   -hist                   : show the program history
-   -ver                    : show the version number
 
 required parameters:
 
@@ -464,6 +482,9 @@ optional parameters:
    -template TEMPLATE      : specify template for standard space
                              def: $template
 
+   -anat_has_skull AHS     : specify whether the anatomy (if used) has a skull
+                             def: $ahs
+
    -compressor COMP        : control automatic compression of *.BRIK files.
                              'COMP' must be one of the allowed keywords for
                              the AFNI_COMPRESSOR environment variable:
@@ -477,6 +498,38 @@ optional parameters:
 
    -echo                   : set 'echo' in the shell, as if run via 'tcsh -x'
                              (same as '-verb 3')
+
+terminal options:
+
+   -help                   : show this help
+   -hist                   : show the program history
+   -ver                    : show the version number
+
+------------------------------------------------------------------------------
+Examples ~1~
+
+example 0: just create an afni_proc.py script, run_ap_SUBJ, no data required
+
+      $prog -anat anat.nii -epi epi.nii
+
+
+example 1: quickly process EPI (no anat, so no align/tlrc blocks)
+
+      $prog -epi epi.nii -run_proc
+
+
+example 2: preferred - run an analysis from a clean directory
+
+      cd AFNI_data7/task_demo_ap
+      mkdir test.ap
+      cd test.ap
+
+      $prog \\
+          -epi       ../sub-000/func/sub-000_*bold.nii.gz  \\
+          -anat      ../sub-000/anat/sub-000_T1w.nii.gz    \\
+          -subjid    sub-000                               \\
+          -nt_rm     2                                     \\
+          -run_proc
 
 ------------------------------------------------------------------------------
 R Reynolds Apr, 2021
@@ -510,6 +563,7 @@ $prog modification history:
           - process AP example names using underscore rather than space
    0.5  : Feb 20, 2024: don't pass irritating -script and -out_dir opts
    0.6  : Mar 29, 2024: remove -compare option, use afni_proc.py for that
+   0.7  : Jan 14, 2026: add -anat_has_skull; update help
 
    current version: $script_version
 EOF

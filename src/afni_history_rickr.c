@@ -53,6 +53,378 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Jun, 2026, RCR, "3dresample", MICRO, TYPE_ENHANCE,
+   "add specific alloc check for signed int overflow",
+   "Add more clarity to the life of C Walsh."
+ } ,
+
+ {  2, Jun, 2026, RCR, "1d_tool.py", MINOR, TYPE_BUG_FIX,
+   "fix setting tr - forgot to check in the original update for it",
+   "Change original lib_afni1D:show_tpattern(), now require tr to be passed\n"
+   "if one wants to override the class default of 1."
+ } ,
+
+ { 26, May, 2026, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "allow for new slice timing patterns, alt+z_D and alt-z_D",
+   "Like alt+z, but generalized with a step of D slices, rather than just 2.\n"
+   "Note that alt+z == alt+z_2.  There may be confusion with alt+z2, which\n"
+   "is different.  Life is hard.\n"
+   "The same relationships hold between alt-z_D and alt-z.\n"
+   "Inspired by new data from D Handwerker."
+ } ,
+
+ { 18, May, 2026, RCR, "3dCM", MICRO, TYPE_BUG_FIX,
+   "if writing resample dset, preserve dirname",
+   "Thanks to X Davis for noting the problem."
+ } ,
+
+ { 13, May, 2026, RCR, "3dmask_tool", MICRO, TYPE_ENHANCE,
+   "small improvement of info messages",
+   NULL
+ } ,
+
+ { 12, May, 2026, RCR, "afni", MAJOR, TYPE_BUG_FIX,
+   "macos 26.5+ now defaults to DO_AFNI_X11_REDRAW = NO",
+   "The issue requiring redraw/forceExpose/Remanage events has been\n"
+   "has been fixed by Apple as of macos 26.5."
+ } ,
+
+ { 30, Apr, 2026, RCR, "afni", MICRO, TYPE_ENHANCE,
+   "add afni help details for DO_AFNI_X11_REDRAW and AFNI_X11_REDRAW_VERB",
+   NULL
+ } ,
+
+ { 24, Apr, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "if tedana masking, suggest -blur_in_mask yes",
+   NULL
+ } ,
+
+ { 21, Apr, 2026, RCR, "model_conv_PRF", MICRO, TYPE_ENHANCE,
+   "be more descriptive of x and y, mapping stimulus orientation to results",
+   NULL
+ } ,
+
+ { 21, Apr, 2026, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "show data dir history from the left, to include date",
+   NULL
+ } ,
+
+ { 17, Apr, 2026, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
+   "add a help section, 'general rules for stimulus timing files'",
+   NULL
+ } ,
+
+ { 10, Apr, 2026, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "update OS_notes.macos_12_*_a_admin_pt2.zsh to install R 4.5.2 (from 4.3.1)",
+   NULL
+ } ,
+
+ {  3, Apr, 2026, RCR, "@diff.tree", MINOR, TYPE_ENHANCE,
+   "make more space-friendly, adding quote and :q for most variable access",
+   NULL
+ } ,
+
+ { 30, Mar, 2026, RCR, "suma", MINOR, TYPE_BUG_FIX,
+   "apply D Glen macos 26 X11 fixes on the suma side",
+   NULL
+ } ,
+
+ { 27, Mar, 2026, RCR, "suma", MINOR, TYPE_BUG_FIX,
+   "fix problems causing crashes when using SUMA_SameSurfCont=NO",
+   NULL
+ } ,
+
+ { 18, Mar, 2026, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -censor_to_spike_regs",
+   "Use this option to convert a 3dDeconvolve-style censor file\n"
+   "to an equivalent multi-column spike regressor file."
+ } ,
+
+ {  9, Mar, 2026, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "on macos, check CPU type for gcc vs that of system",
+   NULL
+ } ,
+
+ {  3, Mar, 2026, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
+   "add help for evaluating TR-offset stats for non-binary TRs, like 1.3",
+   NULL
+ } ,
+
+ {  3, Mar, 2026, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
+   "describe converting an HRF (long stimulus) to an IRF in the help",
+   NULL
+ } ,
+
+ { 19, Feb, 2026, RCR, "make_random_timing.py", MICRO, TYPE_MODIFY,
+   "add -tr_locked to g_style_opts_old",
+   "Sorry about that, Catherine."
+ } ,
+
+ { 19, Feb, 2026, RCR, "SurfToSurf", MICRO, TYPE_ENHANCE,
+   "add an example usage",
+   "Inspired by P Molfese."
+ } ,
+
+ {  9, Feb, 2026, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
+   "fix labels in -write_simple_tsv (they were truncated)",
+   NULL
+ } ,
+
+ { 23, Jan, 2026, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "do not automatically include tcsh on check_list for init_user_dotfiles.py",
+   "This prevents unneeded whining about apsearch in tcsh.\n"
+   "Just let tcsh inherit variables when it is not the login shell."
+ } ,
+
+ { 22, Jan, 2026, RCR, "afni", MICRO, TYPE_BUG_FIX,
+   "lose the C99 variable declaration, add new options to afni -help",
+   NULL
+ } ,
+
+ { 21, Jan, 2026, RCR, "afni", MICRO, TYPE_MODIFY,
+   "have AFNI_IMAGE_DATASETS default to NO",
+   "Set it to YES to see jpg files in a directory (env var or .afnirc).\n"
+   "   e.g. afni -DAFNI_IMAGE_DATASETS=Y ~/abin\n"
+   "Note that such files can be seen when directly passed on the command line."
+ } ,
+
+ { 21, Jan, 2026, RCR, "afni", MINOR, TYPE_MODIFY,
+   "can specify whether to redraw, even on non-macos26",
+   "Have new options -x_needsX11Redraw() : do we redraw on resize?\n"
+   "                 -x_have_MACOS_FORCE_EXPOSE : is the compile flag set?\n"
+   "Use Y/N env var AFNI_DO_X11_REDRAW to force redrawing.  Else, default\n"
+   "is still based on macos 26 and compile flag."
+ } ,
+
+ { 20, Jan, 2026, RCR, "afni", MAJOR, TYPE_BUG_FIX,
+   "on macos 26, fully redraw any resized windows",
+   "The major updates were from RW Cox.\n"
+   "If using macos 26, resize events will have top-level windows call\n"
+   "XClearArea() and XSync(), and recursively on all children.\n"
+   "RW Cox rewrote AFNI graphs to continue drawing into fd_pxWind, but to\n"
+   "then copy this into the windows, rather than just having it as the\n"
+   "background.\n"
+   "Applying these 2 changes requires building with MACOS_FORCE_EXPOSE set,\n"
+   "currently done for both official mac systems.\n"
+   "RW Cox also added FIX_TOPFORM_HEIGHT to control window sizing in Linux.\n"
+   "These updates were also done with D Glen, who is now working on suma."
+ } ,
+
+ { 14, Jan, 2026, RCR, "install_bootcamp_data.tcsh", MICRO, TYPE_BUG_FIX,
+   "handle -install_root as absolute path",
+   "Thanks to P Taylor for noting this."
+ } ,
+
+ { 13, Jan, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "create enorm time series even if no volreg or censoring",
+   "This is needed for APQC generation, so do it regardless.\n"
+   "Thanks to Lauren_L on MB for the reminder."
+ } ,
+
+ {  9, Jan, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "add -show_xmat_warnings after -show_cormat_warnings",
+   "Warn about all-zero regressors or those with small maximum magnitudes."
+ } ,
+
+ {  9, Jan, 2026, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "if -prog_list given, have -build_source default to 'official'",
+   NULL
+ } ,
+
+ {  8, Jan, 2026, RCR, "install_bootcamp_data.tcsh", MAJOR, TYPE_NEW_PROG,
+   "new program to install the AFNI bootcamp data",
+   "Download and install all packages in the checksum file."
+ } ,
+
+ {  7, Jan, 2026, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_xmat_warnings",
+   "Warn on all-zero regressors or ones with small magnitudes."
+ } ,
+
+ { 16, Dec, 2025, RCR, "3dresample", MICRO, TYPE_MODIFY,
+   "allow resampling to stay on current voxel grid, as much as possible",
+   "Add -bound_type CENT/CENT_ORIG, add -up/downsample, -delta_scale.\n"
+   "Done for PT."
+ } ,
+
+ { 15, Dec, 2025, RCR, "3dcalc", MICRO, TYPE_MODIFY,
+   "quiet some warnings",
+   "If expr is 0 (or maybe 1), do not warn about all zeros or unused var."
+ } ,
+
+ {  5, Dec, 2025, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "warn if the 'phia' R library has version 0.3.1",
+   NULL
+ } ,
+
+ {  4, Dec, 2025, RCR, "plug_3dsvm", MICRO, TYPE_MODIFY,
+   "cast function pointers to expected types in plug_3dsvm.c",
+   NULL
+ } ,
+
+ { 18, Nov, 2025, RCR, "suma", MICRO, TYPE_BUG_FIX,
+   "fix volume ray-trace voxel selection thresholding",
+   "Thanks to Z Saad for bringing up the issue and cause :\n"
+   "   https://discuss.afni.nimh.nih.gov/t/voxel-selection-in-suma/9206"
+ } ,
+
+ { 25, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "remove fix message regarding our code examples using 'tcsh'",
+   "On the orders of PT."
+ } ,
+
+ { 25, Sep, 2025, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "OS_notes.macos_12_intel_b_user.tcsh : build_afni.py -fast_log_messages",
+   "Do immediate message logging, in case of early user termination."
+ } ,
+
+ { 25, Sep, 2025, RCR, "build_afni.py", MICRO, TYPE_ENHANCE,
+   "add debug, a return at end of f_get_extras, and flush buffers",
+   "Flush buffers any time we ask user to be patient.\n"
+   "This helps with installs when scripts pipe (and so buffer) through tee."
+ } ,
+
+ { 23, Sep, 2025, RCR, "afni", MICRO, TYPE_MODIFY,
+   "change default crosshair gap from 5 to 1",
+   "This is controlled by AFNI_CROSSHAIRGAP."
+ } ,
+
+ { 23, Sep, 2025, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
+   "store FreeSurfer version in SUMA/version_fs.txt",
+   NULL
+ } ,
+
+ { 18, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "report afnipy version",
+   NULL
+ } ,
+
+ { 17, Sep, 2025, RCR, "afni", MICRO, TYPE_GENERAL,
+   "add comment list of NAME2-enabled environment variables for grepping",
+   "Done to appease the mighty D Glen."
+ } ,
+
+ { 11, Sep, 2025, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "OS_notes.macos_12_ARM_b_user.tcsh : also update .zshrc",
+   "Some installs set PATH without updates, so update in each shell."
+ } ,
+
+ { 11, Sep, 2025, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "minor updates",
+   "- suggest a new default blur (but still use 4.0), if none is given\n"
+   "- suggest open_apqc.py instead of afni_open\n"
+   "- allow verb only to show tracked files and create proc script\n"
+   "- add example class do_21, to match that in AFNI_data7"
+ } ,
+
+ { 11, Sep, 2025, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "add get_def_blur_from_dims() to report a hopefully useful blur size",
+   "Set gmean = geometric mean(deltas), scale by 1.6 and take the ceiling,\n"
+   "truncating to 4 significant bits.  So return:\n\n"
+   "    truncate_to_N_bits(gmean, bits=4, method='ceil', scale=1.6)\n"
+ } ,
+
+ { 10, Sep, 2025, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "do not create a proc script on -show_tracked_files",
+   NULL
+ } ,
+
+ { 10, Sep, 2025, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_NEW_OPT,
+   "add -blur_size; have default come from voxel sizes",
+   "The default is now 1.6 times the geometric mean dim, ceiling rounded."
+ } ,
+
+ { 10, Sep, 2025, RCR, "ap_run_simple_rest_me.tcsh", MINOR, TYPE_NEW_OPT,
+   "add -blur_size; have default come from voxel sizes",
+   "The default is now 1.1 times the geometric mean dim, ceiling rounded."
+ } ,
+
+ { 10, Sep, 2025, RCR, "test_ARMA_REML.tcsh", MICRO, TYPE_GENERAL,
+   "extract the script from the end of 3dDeconvolve.c",
+   "Having it in the .c file produce compile warnings."
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "look for AFNI_data7; better units evaluation on available disk space",
+   NULL
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "flask and flask_cors are now required",
+   NULL
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "add 'ceil' option to truncate_to_N_bits; and removed repeated scaling",
+   NULL
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "mac install: if brew is not initialized, do so",
+   "Run 'brew shellenv' from OS_notes.macos_12_*_b_user.tcsh if need be.\n"
+   "This if for JAMF, but can apply without."
+ } ,
+
+ {  9, Sep, 2025, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "mac install: remove inappropriate backticks around 'which' command",
+   NULL
+ } ,
+
+ {  8, Sep, 2025, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -regress_per_run_ortvec, to process physio_calc.py volbase regs",
+   "The main outputs of physio_calc.py are *slibase.1D (for slice-based\n"
+   "regressors) and *volbase.1D (for spatially global regressors).\n"
+   "Keep using the -ricor options for *slibase.1D, but pass the *volbase.1D\n"
+   "files using -regress_per_run_ortvec, with a label and one file per run.\n"
+   "E.g.  -regress_per_run_ortvec Vphys resp_r1_volbase.1D resp_r2_volbase.1D"
+ } ,
+
+ { 28, Aug, 2025, RCR, "gen_group_command.py", MINOR, TYPE_NEW_OPT,
+   "try to detect BIDS; add option -sid_method",
+   "This will also be incorporated in gen_ss_review_table.py."
+ } ,
+
+ { 18, Aug, 2025, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -volreg_warp_master_box",
+   "This is like -volreg_warp_master, but dxyz will come from EPI.\n"
+   "If -volreg_warp_dxyz is given, _master is the same as _master_box."
+ } ,
+
+ { 15, Aug, 2025, RCR, "@compute_OC_weights", MINOR, TYPE_NEW_OPT,
+   "add -prefix_combine, to combine the echoes using computed weights",
+   "Added for P Molfese."
+ } ,
+
+ { 15, Aug, 2025, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
+   "add -fast_log_commands and -fast_log_messages",
+   NULL
+ } ,
+
+ {  6, Aug, 2025, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add basic GTKYD (getting to know your data) and outlier check",
+   "This will grow, including with user control."
+ } ,
+
+ { 29, Jul, 2025, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -force_write_type, to force output of simple, AM, DM or AM/DM",
+   NULL
+ } ,
+
+ { 25, Jul, 2025, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "gcc-15 : code updates under the SUMA tree",
+   "This hopefully finalizes the June 12, 2025 update, including SUMA."
+ } ,
+
+ { 22, Jul, 2025, RCR, "@update.afni.binaries", MICRO, TYPE_NEW_OPT,
+   "add option -binary_source, to supersede -build_afni and -overwrite_build",
+   NULL
+ } ,
+
+ {  3, Jul, 2025, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix test of atr_flt2 when setting TAXIS_FLOATS",
+   "Thanks to C Rorden for noting the problem."
+ } ,
+
  { 18, Jun, 2025, RCR, "build_afni.py", MICRO, TYPE_ENHANCE,
    "check that build_root is not at or under install dir",
    NULL
@@ -94,6 +466,12 @@ afni_history_struct rickr_history[] = {
  { 16, May, 2025, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "add help for forgotten m_tedana_OC_tedort/OC_m_tedort combine methods",
    NULL
+ } ,
+
+ { 15, May, 2025, RCR, "suma", MAJOR, TYPE_MODIFY,
+   "rewrite Alpha transparency thresholding to follow suma design",
+   "These updates went into a new PR and do not show me as the owner.\n"
+   "See PR #794."
  } ,
 
  { 25, Apr, 2025, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
@@ -1227,12 +1605,12 @@ afni_history_struct rickr_history[] = {
    "If IM, warn if the user did not specify the timing type.\n"
    "Thanks to M Hoptman for letting us know of the problem."
  } ,
- 
+
  {  8, Feb, 2023, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "give error message when image writing fails on missing external program",
    "Warn on missing programs cjpeg and pnmtopng"
  } ,
- 
+
  {  7, Feb, 2023, RCR, "@RetinoProc", MICRO, TYPE_MODIFY,
    "as with afni_proc.py, get SurfSmooth parms from smrec file",
    NULL
@@ -1843,86 +2221,86 @@ afni_history_struct rickr_history[] = {
    "commit pull request and further clarify -nan help",
    "Thanks to L Anderson for the pull request."
  } ,
- 
+
  { 19, Dec, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "misc updates for circleCI build based on xcode 12.4.0",
    "Remove thd_incorrelate.o from cmake libmri, etc."
  } ,
- 
+
  { 19, Dec, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add -show_distmat",
    "Display nrows x nrows matrix of distances between all vector row pairs.\n"
    "Option added for jkblujus (AFNI MB)."
  } ,
- 
+
  {  9, Dec, 2021, RCR, "3dinfo", MINOR, TYPE_MODIFY,
    "further restrict -same_center",
    "Change def limit from 0.1*sum_vox_diags to 0.001*ave_vox_diag."
  } ,
- 
+
  {  9, Dec, 2021, RCR, "3dmaskdump", MINOR, TYPE_BUG_FIX,
    "balls were not verified to be entirely within dset bounds",
    "Thanks to aclyn11 (AFNI MB) for noting the problem."
  } ,
- 
+
  {  3, Dec, 2021, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add -combine_method m_tedana_tedort",
    "Now have MEICA group tedana methods:\n"
    "    m_tedana, m_tedana_OC, m_tedana_tedort"
  } ,
- 
+
  { 26, Nov, 2021, RCR, "3dGrayplot", MICRO, TYPE_BUG_FIX,
    "cs_pv.c: xt no longer malloc'd",
    NULL
  } ,
- 
+
  { 24, Nov, 2021, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "put space_to_NIFTI_code() into libmri",
    "To satisfy the evil designs of afni_proc.py."
  } ,
- 
+
  { 24, Nov, 2021, RCR, "3dmaskdump", MINOR, TYPE_BUG_FIX,
    "make boxes tight; scale radius to voxel counts",
    "Tighten boxes and balls to not include unrequested voxels.\n"
    "Scaling the radius allows for sub-mm voxels."
  } ,
- 
+
  { 21, Nov, 2021, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add updates for current tedana; add -help_tedana_files",
    NULL
  } ,
- 
+
  { 17, Nov, 2021, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "handle uninit and if block in debugtrace.c, suma_datasets.c",
    NULL
  } ,
- 
+
  { 15, Nov, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "pull THD_nifti_process_afni_ext() out of thd_niftiread.c:THD_open_nifti()",
    "This should have no effect.\n"
    "It is preparation for testing the AFNI extension in NIFTI against dset."
  } ,
- 
+
  {  8, Nov, 2021, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
    "add -milestones, to show interesting milestones for the program",
    NULL
  } ,
- 
+
  {  8, Nov, 2021, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
    "add -milestones",
    NULL
  } ,
- 
+
  {  7, Nov, 2021, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -regress_opts_fwhmx (for adding options to 3dFWHMx)",
    "Added on the authority of S Torrisi."
  } ,
- 
+
  { 29, Oct, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "on mac, check for standard R not in PATH",
    NULL
  } ,
- 
+
  { 28, Oct, 2021, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
    "remove 2-run polort 0 cormat IDENTICAL automatic warnings",
    "Done for P Taylor, as they were getting flagged in APQC."
@@ -2541,7 +2919,7 @@ afni_history_struct rickr_history[] = {
  {  1, Jun, 2020, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add -show_regs and -show_regs_style",
    "Show column indices or labels of an xmat.1D file with empty (all-zero)\n"
-   "regressors.  An index list can be space or comma-separeated, or encoded.\n" 
+   "regressors.  An index list can be space or comma-separeated, or encoded.\n"
    "Example 30 shows typical use cases.\n"
    "Added for S Haller."
  } ,
@@ -3285,7 +3663,7 @@ afni_history_struct rickr_history[] = {
 
  { 17, Jul, 2019, RCR, "NIFTI", MINOR, TYPE_BUG_FIX,
    "another fix for 32-64 bit NIFTI update for older xorg7 systems",
-   "In thd_niftiread.c, cast nim->nz as int for EDIT_dset_items().\n" 
+   "In thd_niftiread.c, cast nim->nz as int for EDIT_dset_items().\n"
    "Newer C libraries seem to handle the possibility of 8 bits better,\n"
    "but we are reading as 4.  Thanks again to R Birn."
  } ,
@@ -3299,7 +3677,7 @@ afni_history_struct rickr_history[] = {
 
  {  5, Jul, 2019, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "(useless) switch to 3dTcorr1D for dot product",
-   "Drops 2 commands down to 1 for computing corr_* volumes." 
+   "Drops 2 commands down to 1 for computing corr_* volumes."
  } ,
 
  {  3, Jul, 2019, RCR, "3dvolreg", MICRO, TYPE_BUG_FIX,
@@ -9868,7 +10246,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 20, JUL, 2010, RCR, "xmat_tool.py", MICRO, TYPE_MODIFY,
-   "made small improvement out text formatting for cormat and cosmat", 
+   "made small improvement out text formatting for cormat and cosmat",
    NULL
  } ,
 
@@ -9879,7 +10257,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 19, JUL, 2010, RCR, "@DriveAfni", MICRO, TYPE_NEW_OPT,
-   "added -help", 
+   "added -help",
    NULL
  } ,
 
@@ -12007,12 +12385,12 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 27, FEB, 2008, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
-   "fixed -regress_use_stim_files typo (was -regress_use_stim_times)", 
+   "fixed -regress_use_stim_files typo (was -regress_use_stim_times)",
    NULL
  } ,
 
  { 26, FEB, 2008, RCR, "afni_history", MICRO, TYPE_GENERAL,
-   "checked in initial afni_history files", 
+   "checked in initial afni_history files",
    NULL
  } ,
 
@@ -12075,7 +12453,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  20, DEC, 2006, RCR, "afni_proc.py", SUPER, TYPE_NEW_PROG,
-   "program to write complete single subject FMRI processing script", 
+   "program to write complete single subject FMRI processing script",
    NULL
  } ,
 
@@ -12085,7 +12463,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  22, OCT, 2006, RCR, "model_demri_3", MAJOR, TYPE_NEW_PROG,
-   "NLfim model for Dynamic Enhanced MRI", 
+   "NLfim model for Dynamic Enhanced MRI",
    NULL
  } ,
 

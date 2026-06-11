@@ -19,6 +19,9 @@ warn2q = {
     'severe'    : 'x',
 }
 
+DEF_had_blur = True         # was blurring used during AP?
+DEF_verb = 1
+
 # ============================================================================
 
 class all_comp_roi_dset_table:
@@ -26,7 +29,8 @@ class all_comp_roi_dset_table:
 This contains a *set* of one or more tables."""
 
     def __init__(self, ftext, prefix='', fname='input_file', 
-                 write_out=True, disp_max_warn=False, verb=0):
+                 write_out=True, disp_max_warn=False,
+                 had_blur=DEF_had_blur, verb=0):
         """Take a full file text (list of strings) and loop over tables
         within."""
 
@@ -36,6 +40,7 @@ This contains a *set* of one or more tables."""
         self.fname             = fname           # str, input filename
         self.write_out         = write_out       # bool, make output file?
         self.disp_max_warn     = disp_max_warn   # bool, show max warn str?
+        self.had_blur          = had_blur        # bool, switch levels for unblurred
 
         # attributes defined by parsing self.ftext
         self.all_tables_raw    = []              # list of comp_roi_dset* text
@@ -92,7 +97,9 @@ This contains a *set* of one or more tables."""
 
         for table_raw in self.all_tables_raw:
             OBJ = comp_roi_dset_table(table_raw,
-                                      disp_max_warn = self.disp_max_warn)
+                                      disp_max_warn = self.disp_max_warn,
+                                      had_blur=self.had_blur,
+                                      verb=self.verb)
             self.all_tables_eval.append(OBJ)
 
     def find_all_tables(self):
@@ -153,7 +160,8 @@ Probably the major products of interest from creating this object are:
                              HTML-style warning level coloration
 """
 
-    def __init__(self, table, disp_max_warn=False, verb=0):
+    def __init__(self, table, disp_max_warn=False, had_blur=DEF_had_blur,
+                 verb=0):
         """Take a dset table (list of strings) and go to work
         calculating/evaluating things.
         """
@@ -171,6 +179,7 @@ Probably the major products of interest from creating this object are:
         self.table_values_html  = []             # table_values + HTML colors
         self.table_maxwarn      = []             # list of max warn per item
         self.disp_max_warn      = disp_max_warn  # do display max warning lev?
+        self.had_blur           = had_blur       # data had blurring during AP?
 
         # ----- start doing work
         _tmp = is_comp_roi_str_list_ok(self.table)
@@ -240,6 +249,10 @@ Probably the major products of interest from creating this object are:
         possible warn functions, and update: table_values_html and
         table_maxwarn."""
 
+        if self.verb :
+            print("++ option note, had_blur = {}".format(self.had_blur))
+
+
         # each of these updates table_values_html and table_maxwarn
         for idx in range(self.n_table_values):
             self.check_nvox(idx)
@@ -281,7 +294,9 @@ Probably the major products of interest from creating this object are:
         T75p = float(self.table_values[idx][col_T75p])
 
         # evaluate warning level, and save
-        wlev = warn_roi_stats_tsnr_value_75(T75p, verb=self.verb)
+        wlev = warn_roi_stats_tsnr_value_75(T75p, 
+                                            had_blur=self.had_blur,
+                                            verb=self.verb)
 
         # ... and update warning levels in cols
         self.update_table_maxwarn(wlev, idx, col_T75p)
@@ -479,7 +494,7 @@ wlevel : str
     """
 
     ttt = ', '.join([str(x) for x in tlist])
-    if verb :  ab.IP("TSNR values : ".format(ttt))
+    if verb > 1 :  ab.IP("TSNR values : {}".format(ttt))
 
     N = len(tlist)
     if N != 5 :
@@ -505,14 +520,22 @@ wlevel : str
     elif rat > 0.5 : return 'undecided'
     else:            return 'none'
 
-def warn_roi_stats_tsnr_value_75(t75p, verb=0):
+def warn_roi_stats_tsnr_value_75(t75p, had_blur=DEF_had_blur, verb=0):
     """For a given value of the 75%ile of TSNR in the ROI, determine
 warning level. This increasingly warns as this TSNR value decreases.
+
+The value of had_blur determines the levels of warning: if
+had_blur=False, then the levels are lowered to about 2/3rds or 70
+percent of what they would be if blurring _had_ been applied during
+processing. The ratio of approx 2/3rds was set from testing across
+several single echo FMRI datasets.
 
 Parameters
 ----------
 t75p : int/float
     75th %ile value of TSNR in the ROI
+had_blur : bool
+    was blurring used in processing?
 verb : int
     verbosity level
 
@@ -524,17 +547,24 @@ wlevel : str
 
     """
 
-    if verb :  ab.IP("t75p: {}".format(t75p))
+    if verb > 1 :  ab.IP("t75p: {}".format(t75p))
 
-    if t75p < 0:
+    if t75p < 0 :
         ab.EP("Can't have negative t75p ({})".format(t75p))
 
     if t75p == 0 :     return 'none'   # no vox; gets flagged elsewhere
-    
-    if   t75p >= 100 :  return 'none'
-    elif t75p >=  80 :  return 'mild'
-    elif t75p >=  50 :  return 'medium'
-    else:               return 'severe'
+
+    # higher warn thresholds if proc had blurring, bc expect higher TSNR
+    if had_blur :
+        if   t75p >= 100 :  return 'none'
+        elif t75p >=  80 :  return 'mild'
+        elif t75p >=  50 :  return 'medium'
+        else:               return 'severe'
+    else:
+        if   t75p >=  70 :  return 'none'
+        elif t75p >=  55 :  return 'mild'
+        elif t75p >=  35 :  return 'medium'
+        else:               return 'severe'
 
 def warn_roi_stats_nvox(nvox, verb=0):
     """For a given number of voxels (nvox), determine warning level. This
@@ -555,7 +585,7 @@ wlevel : str
 
     """
 
-    if verb :  ab.IP("nvox: {}".format(nvox))
+    if verb > 1 :  ab.IP("nvox: {}".format(nvox))
 
     if nvox < 0:
         ab.EP("Can't have negative nvox ({})".format(nvox))
@@ -589,7 +619,7 @@ wlevel : str
 
     """
 
-    if verb :  ab.IP("nvox: {}, nzer: {}".format(nvox, nzer))
+    if verb > 1 :  ab.IP("nvox: {}, nzer: {}".format(nvox, nzer))
 
     if nvox < 0 or nzer < 0 :
         ab.EP("Can't have negative nvox ({}) or nzer ({})".format(nvox, nzer))
@@ -627,7 +657,7 @@ wlevel : str
 
     """
 
-    if verb :  ab.IP("dvox: {}".format(dvox))
+    if verb > 1 :  ab.IP("dvox: {}".format(dvox))
 
     if   dvox < 0 :  
         ab.EP("Can't have negative dvox ({})".format(dvox))

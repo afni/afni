@@ -114,7 +114,7 @@ Introduction
     3dLME2 -prefix LME -jobs 12                                     \\
          -mask myMask+tlrc                                          \\
           -fixef  'emotion'                                         \\
-          -ranef  '~1|Aubj'                                         \\
+          -ranef  '~1|Subj'                                         \\
           -SS_type 3                                                \\
           -bounds  -2 2                                             \\
           -gltCode pos      'emotion : 1*pos'                       \\

@@ -816,12 +816,26 @@ g_history = """
     7.91 May  6, 2025: set ROI_import view in case of no volreg block
     7.92 May 16, 2025: add help for m_tedort combine methods
     7.93 Jun 17, 2025: pass blur_size uvar to PT for APQC
+    8.00 Aug  6, 2025: run gtkyd and report outliers (basic start for now)
+    8.01 Aug  6, 2025: add -volreg_warp_master_box, to base dxyz on EPI
+    8.02 Sep  8, 2025: add -regress_per_run_ortvec, for physio volbase regs
+    8.03 Sep 11, 2025:
+       - do not create a script on -show_tracked_files
+       - add example class do_21, to match that in AFNI_data7
+       - suggest a new default blur (but still use 4.0), if none is given
+       - suggest open_apqc.py instead of afni_open
+       - allow verb only to show tracked files and create proc script
+    8.04 Jan  9, 2026: add -show_xmat_warnings after -show_cormat_warnings
+    8.05 Jan 13, 2026: create enorm time series even if no volreg or censoring
+    8.06 Apr 24, 2026: if tedana masking, suggest -blur_in_mask yes
 """
 
-g_version = "version 7.93, June 17, 2025"
+g_version = "version 8.06, April 24, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 7 Jan 2026",  "1d_tool.py -show_xmat_warnings" ],
+      [ "10 Sep 2025",  "afni_util.py get_def_blur_from_dims" ],
       [ "24 Apr 2025",  "find_variance_lines.tcsh -ignore_edges" ],
       [ " 7 Mar 2024",  "3dTto1D -method 4095_warn" ],
       [ "15 Feb 2024",  "compute_ROI_stats.tcsh, whereami -index_to_label" ],
@@ -895,6 +909,9 @@ interesting milestones for afni_proc.py:
    2024.04 : ap_run_simple_rest_me.tcsh: low-option afni_proc.py for multiecho
    2024.05 : enable output of BIDS derivative tree
    2024.08 : input external distortion warp dataset
+   2025.03 : add tedort combine methods OC_m_tedort and m_tedana_OC_tedort
+   2025.08 : GTKYD - outlier check from: getting to know your data
+   2025.09 : handle physio_calc.py slibase and volbase regressors
 """
 
 
@@ -1059,9 +1076,9 @@ g_eg_skip_opts = [
    '-surf_anat', '-surf_spec',
    '-tlrc_NL_warped_dsets', 
    # '-volreg_base_dset',   (not sure, so allow for now)
-   '-regress_censor_extern', '-regress_extra_stim_files', 
-   '-regress_extra_ortvec', '-regress_extra_ortvec_labels',
-   '-regress_motion_file', 
+   '-regress_censor_extern',  '-regress_extra_stim_files',
+   '-regress_extra_ortvec',   '-regress_extra_ortvec_labels',
+   '-regress_per_run_ortvec', '-regress_motion_file',
    '-regress_ppi_stim_files', '-regress_stim_files', '-regress_stim_times', 
    '-ricor_regs'
    ] 
@@ -1134,6 +1151,7 @@ class SubjProcSream:
         self.vr_int_name= ''            # other internal volreg dset name
         self.vr_base_dset = None        # afni_name for applied volreg base
         self.vr_warp_mast = None        # local -volreg_warp_master dset
+        self.vr_warp_mbox = 0           # is the warp master just for the box?
         self.vr_wmast_in  = None        # input dset for warp_master
         self.vr_warp_fint = ''          # final interpolation for warped dsets
         self.vr_base_MO   = 0           # using MIN_OUTLIER volume for VR base
@@ -1246,6 +1264,8 @@ class SubjProcSream:
         self.runs       = 0             # number of runs
         self.reps_all   = []            # number of TRs in each run
         self.reps_vary  = 0             # do the repetitions vary
+        self.rm_nfirst  = []            # NT to remove from start of each run
+        self.rm_nlast   = 0             # constant NT to remove from run ends
         self.orig_delta = [0, 0, 0]     # dataset voxel size (initial)
         self.delta      = [0, 0, 0]     # dataset voxel size
         self.datatype   = -1            # 1=short, 3=float, ..., -1=uninit
@@ -1376,7 +1396,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-show_process_changes', 0, [],
                         helpstr="show afni_proc.py changes that affect results")
         self.valid_opts.add_opt('-show_tracked_files', 1, [],
-                        helpstr="show tracked files of given type")
+                        helpstr="show tracked files of given 'desc' or ALL")
         self.valid_opts.add_opt('-show_valid_opts', 0, [],
                         helpstr="show all valid options")
         self.valid_opts.add_opt('-todo', 0, [],
@@ -1652,6 +1672,8 @@ class SubjProcSream:
                         helpstr='final interpolation used when apply warps')
         self.valid_opts.add_opt('-volreg_warp_master', 1, [],
                         helpstr='grid master applied to volreg warp')
+        self.valid_opts.add_opt('-volreg_warp_master_box', 1, [],
+                        helpstr='grid bounding box applied to volreg warp')
         self.valid_opts.add_opt('-volreg_method', 1, [],
                         acplist=['3dvolreg','3dAllineate'],
                         helpstr='specify program for EPI volume registration')
@@ -1878,6 +1900,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_extra_ortvec_labels',
                                 -1, [], okdash=0,
                         helpstr="labels for extra -stim_files")
+        self.valid_opts.add_opt('-regress_per_run_ortvec', -2, [], okdash=0,
+                        helpstr="label and ortvecs for each run")
         self.valid_opts.add_opt('-regress_ppi_stim_files', -1, [], okdash=0,
                         helpstr="extra PPI -stim_files to apply")
         self.valid_opts.add_opt('-regress_ppi_stim_labels', -1, [], okdash=0,
@@ -2064,6 +2088,7 @@ class SubjProcSream:
         
         if opt_list.find_opt('-show_tracked_files'):
             self.show_tfiles,rv = opt_list.get_string_opt('-show_tracked_files')
+            self.make_main_script = 0      # do not create a script
         
         if opt_list.find_opt('-todo'):     # print "todo" list
             print(g_todo_str)
@@ -3340,7 +3365,7 @@ class SubjProcSream:
               tstr += 'timing_tool.py -add_offset %g -timing %s \\\n'   \
                       '               -write_timing %s/%s\n'            \
                       % (val, oldfile, self.od_var, newfile)
-              self.tlist.add(oldfile, newfile, 'stim')
+              self.tlist.add(oldfile, newfile, 'stim', ftype='text')
 
           # otherwise, have either regular timing files or no offset
           else:
@@ -3348,7 +3373,8 @@ class SubjProcSream:
             for ind in range(len(self.stims)):
                 tstr += ' %s' % self.stims_orig[ind]
             tstr += ' %s/stimuli\n' % self.od_var
-            self.tlist.add_many(self.stims_orig, 'stim', pre='stimuli/')
+            self.tlist.add_many(self.stims_orig, 'stim', pre='stimuli/',
+                                ftype='text')
           self.write_text(add_line_wrappers(tstr))
           self.write_text("%s\n" % stat_inc)
 
@@ -3358,16 +3384,21 @@ class SubjProcSream:
                   (' '.join(self.extra_stims_orig), self.od_var)
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
-            self.tlist.add_many(self.extra_stims_orig, 'stim', pre='stimuli/')
+            self.tlist.add_many(self.extra_stims_orig, 'stim', pre='stimuli/',
+                                ftype='1D')
 
         opt = self.user_opts.find_opt('-regress_extra_ortvec')
         if opt and len(opt.parlist) > 0:
             tstr = '# copy external ortvec files into stimuli dir\n' \
                   'cp %s %s/stimuli\n' %                             \
                       (' '.join(quotize_list(opt.parlist,'')),self.od_var)
-            self.tlist.add_many(opt.parlist, 'ortvec', ftype='1D')
+            self.tlist.add_many(opt.parlist, 'ortvec',ftype='1D',pre='stimuli/')
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
+
+        # do the same for per_run ortvecs, but need -pad_into_many_runs
+        if self.user_opts.find_opt('-regress_per_run_ortvec'):
+           self.copy_per_run_ortvecs()
 
         if self.anat:
             oanat = self.anat.nice_input()
@@ -3648,6 +3679,31 @@ class SubjProcSream:
 
         self.flush_script()
 
+    # copy per_run ortvecs, calling 1d_tool.py -pad_into_many_runs
+    #
+    # checks:
+    #   - first term should be a label and not a file
+    #   - other terms should be files, one per run
+    #   - check the run lengths (in regress block)
+    #     - consider nt_rm_first/last
+    #
+    #   - here, just copy the files
+    def copy_per_run_ortvecs(self):
+        oname = '-regress_per_run_ortvec'
+        olist = self.user_opts.find_all_opts(oname)
+        if len(olist) == 0:
+           return
+
+        # we have options, copy all files to stimuli/per_run_orig
+        cstr = '# copy per-run ortvec files into stimuli dir\n'
+        for opt in olist:
+            fnames = opt.parlist[1:]
+            cstr += 'cp %s %s/stimuli\n' % \
+                      (' '.join(quotize_list(fnames,'')),self.od_var)
+            self.tlist.add_many(fnames, 'ortvec', ftype='1D', pre='stimuli/')
+
+        self.write_text(add_line_wrappers(cstr+'\n'))
+
     # and last steps
     def finalize_script(self):
         tstr = '# %s\n\n' % block_header('auto block: finalize')
@@ -3865,9 +3921,9 @@ class SubjProcSream:
         cmd = add_line_wrappers(cmd)
 
         if self.out_dir:
-           ocmd = 'afni_open -b %s/QC_$subj/index.html' % self.out_dir
+           ocmd = 'open_apqc.py -infiles %s/QC_$subj/index.html' % self.out_dir
         else:
-           ocmd = 'afni_open -b QC_$subj/index.html'
+           ocmd = 'open_apqc.py -infiles QC_$subj/index.html'
 
         cmd += '%secho "\\nconsider running: \\n"\n' \
                '%secho "   %s"\n'                    \
@@ -4732,7 +4788,7 @@ class TrackedFlist:
 
        # make sure ftype is valid
        if ftype not in ['dset', '1D', 'text', 'unknown']:
-          print("** TrackedFile: illegal ftype %s for infle %s" \
+          print("** TrackedFile: illegal ftype %s for infile %s" \
                 % (ftype, oldname))
           ftype = 'unknown'
 
@@ -4981,6 +5037,10 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
 
        proc.tlist.show(order='sort', rfield=rfield, rval=rval, dfields=dfields)
                        # dfields = ['ftype', 'short_in'])
+
+       # if not making a script (e.g. with -show_tracked_files), terminate here
+       if not proc.make_main_script:
+           return 0, None
 
     return 0, proc
 

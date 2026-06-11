@@ -4,6 +4,87 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+/* Notes on X11/XQuartz changes for MacOS Tahoe 26 (03 March 2026)
+ * With the latest release of the MacOS, Tahoe v26, all X11 applications
+* began to have corrupted window displays, with usually blackened areas in
+* rectangles within each window. Tahoe introduced new "Liquid Glass"
+* effects that may be responsible for its effect on the X11 windows management.
+* On the Mac, XQuartz is the X11 server, and it has largely been abandoned
+* by Apple and developers.
+* 
+* The corruption of the windows almost always associated with a resizing
+* operation by dragging the lower right corner or with a programmatic
+* opening or closing of a panel.
+* Based on initial suggestions from the XQuartz github site,
+* we implemented changes that "reexposed" the windows to refresh the display.
+* 
+* Windows that needed attention in AFNI package
+* Panels that open and close in the AFNI GUI
+*   Overlay, Define Datamode, Etc
+* Graph display (uses pixmap buffering that needed specific attention (RWC))
+* Plot windows - all through coxplot functions
+*    (1dplot, underlay graymap plot, scatterplot,
+*    1dgraymap, histogram plugin plots)
+* suma windows - image display, surface object controller, 
+*    surface display locking controller, Draw ROI controller
+*    suma graph plot
+*    file dialogs - load view, save view, load Dset,
+*    dropdown list chooser menus (cmap, load, interpolation, subbrick selectors)
+*    usage help window, text windows (more, info from object controller)
+* AFNI image windows, aiv, to3d image window display - share same image window
+*    functions
+* AFNI atlas - Go to Atlas location (generic strchooser), Show Atlas Colors
+* to3d menu window
+* plugin windows - 
+*   Draw Dataset, Render Dataset, Nudge Dataset
+* Many plugins use a common interface with a common row-column interface 
+* from afni_plugin.c, so all these could be handled together
+*   ScatterPlot, Histogram, Histogram CC, Histogram Multi, Maxima,Vol2Surf
+*   Dataset#N, Dataset2, Tagset, Notes, SVM
+* 
+* All windows now have inserted callback functions for ConfigureNotify events
+* that call functions for redisplay of the window widgets. 
+* Almost all need no other information than just the widget pointer.
+* 
+* The reexpose function calls either forceExpose (a function posted by dpeterc)
+* or a remanage function that unmanages and then manages the widget.
+* Tested with -DAFNI_DO_X11_REDRAW=Y or REMANAGE but can set this in .afnirc.
+* For most windows, the remanage method works faster or seems less visually
+* annoying. Both methods cause some kind of flicker. Complicated windows like 
+* the ones in the suma object controller or the Render plugin are the slowest. 
+* The plotting functions, like 1dplot, are also quite slow, 
+* but they have always been slow.
+* 
+* There are functions that do variations like try to impose width, height for
+* windows that should not change height. Some wait for events to be flushed,
+* with or without extra short sleep delays between events.
+* 
+* Some windows, like the X11 HTML windows used by the whereami GUI and Tips,
+* do not seem to need these fixes, possibly because they already include
+* their own reexpose callbacks.
+* 
+* Dialog boxes that have no size control also do not need patching. 
+* Note, many kinds of widgets *should* not need a resizing control do not 
+* observe the no resize control on widget creation.
+* 
+* TODO: (Remaining tasks)
+* Redraw all viewers crash from Poetry menu with REMANAGE setting
+* Try some of the plugin and fixed size menus with the size control options
+* Consolidate all miscellaneous functions around AFNI with only the ones here.
+* Replace callback insertion for all events with single function with options
+* for expose, remanage types, size control, flushing, sleep between flush events
+* Remove printf statements for debugging
+* Clusterize (dropdown for Aux dsets), InstaCorr, Instacalc
+* Small dialogs like jumpto's, paned colormap chooser
+* Other plugins - GyrusFinder (plug_roiedit), others that do not appear
+* by default.
+* SUMA's multiple object controllers - in an X11 "notebook" widget
+* is very, very slow with multiple objects. There are options for separate
+* widgets, which is also annoying for hundreds of widgets. See code for details
+* AFNI GUI Poetry hidden menu items - like US Constitution, Declaration of 
+* Independence,...
+* */
+
 #include "xutil.h"
 #include "afni_environ.h"
 #include "debugtrace.h"    /* 12 Mar 2001 */
@@ -14,6 +95,9 @@
 
 #include "Amalloc.h"
 extern char * THD_find_executable( char * ) ;
+
+/* global verbosity for needsX11Redraw use */
+int g_needs_x11_redraw_verb = 0;
 
 /*--------------------------------------------------------------------
   force an immediate expose for the widget
@@ -48,6 +132,286 @@ void MCW_expose_widget( Widget w )
    XFlush( XtDisplay(w) ) ;
    return ;
 }
+
+/*------------------------------------------------------------------------*/
+/* add an interface to check needsX11Redraw and MACOS_FORCE_EXPOSE
+   - just for X11 interfaces, so put in libmrix [21 Jan 2026 rickr]
+--------------------------------------------------------------------------*/
+int have_MACOS_FORCE_EXPOSE(void)
+{
+#ifdef MACOS_FORCE_EXPOSE
+   return 1;
+#else
+   return 0;
+#endif
+}
+
+/*----------------------------------------------------------------------
+ * do we need or want the X11 windows to be redrawn upon resize?
+ *
+ * Redraw on resize if MACOS_FORCE_EXPOSE and macos 26 (< 26.5).
+ * Override: redraw based on AFNI_DO_X11_REDRAW (Y/N).
+ *
+ * see https://github.com/afni/afni/pull/857
+ * see https://github.com/afni/afni/pull/872
+ *----------------------------------------------------------------------*/
+int needsX11Redraw(void)
+{
+   static int needsit=-1;      /* is X11Redraw needed? start as unknown */
+   char       *eptr;
+
+   if( needsit >= 0 ) return needsit;   /* we have already decided */
+
+   /* unknown, so set it this one time, default from compile flag */
+   /* isMacTahoe: 0 if not macos 26, 1 if 26.0..4, 2 if 26.5+ */
+   needsit = have_MACOS_FORCE_EXPOSE() && (isMacTahoe()==1);
+
+   /* allow evil user to forcefully override the default */
+   eptr = my_getenv("AFNI_DO_X11_REDRAW");
+   if( eptr ) {
+      if( (*eptr == 'y') || (*eptr == 'Y') )
+         needsit = 1;
+      else if( (*eptr == 'n') || (*eptr == 'N') )
+         needsit = 0;
+      else if( !strcmp(eptr, "REMANAGE") )
+         needsit = 4;
+      else
+         fprintf(stderr,"** invalid AFNI_DO_X11_REDRAW %s (should be yes/no)\n",
+                        eptr);
+   }
+
+   /* also init g_needs_x11_redraw_verb */
+   if( AFNI_yesenv("AFNI_X11_REDRAW_VERB") ) {
+      g_needs_x11_redraw_verb = 1;
+      fprintf(stderr,"++ have x11_redraw %d, isMacTahoe %d, with verbosity\n",
+              needsit, isMacTahoe());
+   }
+
+   return needsit;
+}
+
+
+/*------------------------------------------------------------------------*/
+/* The following 2 functions are to force Expose events down an
+   entire hierarchy of Widgets [Dec 2025]
+--------------------------------------------------------------------------*/
+
+/* drg/rcr - to redraw after resize */
+
+
+
+void remanage_widget(Widget w)
+{
+   /* if we don't need/want to do this, return */
+
+   if( !w || !XtIsRealized(w) || !XtIsWidget(w) ) {
+      fprintf(stderr,"** remanage_widget, bad things, man\n");
+      return;
+   }
+
+   XtUnmanageChild(w);
+   XtManageChild(w);
+
+   return;
+}
+
+
+void forceExpose(Widget w, int source)
+{
+   static int redraw_choice=-1;  /* how to perform redraw */
+   static int cc=0;              /* count occurrences */
+   int        i;                 /* kid count */
+
+   /* make note of what is wanted and store */
+   if( redraw_choice < 0 )
+      redraw_choice = needsX11Redraw();
+
+   /* if we don't need/want to do this, return */
+   if( ! redraw_choice ) return;
+
+   /* note whether this ever happens on a system */
+   if( cc == 0 ) {
+      fprintf(stderr,"== have forceExpose, source %d, choice %d\n",
+              source, redraw_choice);
+      cc++;
+   }
+
+   /* source == 0 comes from main afni/suma GUI and image windows
+    * source == 1 comes from afni graph windows
+    *   - remanaging graph windows currently leads callback loop
+    *     so for now, don't use remanage source on graph windows
+    */
+   if( source == 0 ) {
+      if( redraw_choice == 4 ) {
+         static int verb=1;
+         if( verb || g_needs_x11_redraw_verb ) {
+            fprintf(stderr,"== x11 : remanage_widget %d\n", source);
+            verb = 0;
+         }
+         remanage_widget(w);
+         return;
+      }
+   }
+
+#if 0
+   fprintf(stderr,"== expose %p, depth %d, cc %d\n", w, depth, cc);
+   if(!w) { fprintf(stderr,"** bail on NULL\n");   return; }
+   if(!XtIsRealized(w)){ fprintf(stderr,"** bail unrealized\n");   return; }
+   if(!XtIsWidget(w)){ fprintf(stderr,"** bail on non-widget\n");   return; }
+   cc++;
+#else
+  if( !w || !XtIsRealized(w) || !XtIsWidget(w) ) return ;
+#endif
+
+   /* redraw */
+   XClearArea(XtDisplay(w), XtWindow(w), 0, 0, 0, 0, True);
+   XSync(XtDisplay(w),False) ;
+
+   /* recurse */
+   if (XtIsComposite(w)) {
+      WidgetList kids;
+      Cardinal nkids;
+      XtVaGetValues(w, XmNchildren, &kids, XmNnumChildren, &nkids, NULL);
+      for (i = 0; i < nkids; ++i)
+         forceExpose(kids[i], source);
+   }
+
+   return ;
+}
+
+/*----- RWC - another way to do the same-ish stuff -----*/
+/* The difference from above is that the Widget isn't   */
+/* cleared, so the redraw might not include background. */
+/*------------------------------------------------------*/
+
+void sendExpose( Widget w , int depth )
+{
+  XExposeEvent expose_event ;
+  int wout , hout , i;
+
+   /* if we don't need/want to do this, return */
+   if( ! needsX11Redraw() ) return;
+
+#if 0
+  if(!w) { fprintf(stderr,"** Bail on NULL\n");   return; }
+  if(!XtIsRealized(w)){ fprintf(stderr,"** Bail unrealized\n");   return; }
+  if(!XtIsWidget(w)){ fprintf(stderr,"** Bail on non-widget\n");   return; }
+#else
+  if( !w || !XtIsRealized(w) || !XtIsWidget(w) ) return ;
+#endif
+
+  /* Clear the event structure */
+  memset (&expose_event, 0, sizeof(expose_event) ) ;
+
+  MCW_widget_geom( w, &wout, &hout , NULL,NULL ) ;  /* get width and height */
+
+  /* Populate the event structure */
+  expose_event.type       = Expose ;
+  expose_event.display    = XtDisplay(w) ;
+  expose_event.window     = XtWindow(w) ;
+  expose_event.x          = 0 ;
+  expose_event.y          = 0 ;
+  expose_event.width      = wout ;
+  expose_event.height     = hout ;
+  expose_event.count      = 0 ;    /* 0 => is last (or only) expose event in a sequence */
+  expose_event.send_event = True ; /* Indicates the event came from a SendEvent request */
+
+  /* Send the event ; The mask must be ExposureMask, not Expose ; Flush X11 output buffer */
+  XSendEvent( expose_event.display, expose_event.window, False, ExposureMask, (XEvent *)&expose_event) ;
+  XSync(expose_event.display,False) ;
+
+  if (XtIsComposite(w)) {
+    WidgetList kids;
+    Cardinal nkids;
+    XtVaGetValues(w, XmNchildren, &kids, XmNnumChildren, &nkids, NULL);
+    for (i = 0; i < nkids; ++i)
+      sendExpose(kids[i],depth+1);
+  }
+
+}
+
+/* widget to re-expose or remanage widget on resize
+ * made mostly for MacOS Tahoe bug with Xquartz that
+*  caused corrupted windows */
+void AFNI_widget_expose_EV( Widget w , XtPointer cd ,
+                     XEvent *event , RwcBoolean *continue_to_dispatch )
+{
+   static int busy=0 ;
+   XEvent ev;
+   XConfigureEvent last = event->xconfigure;
+   int iter=0;
+ENTRY("AFNI_widget_expose_EV") ;
+
+   if( g_needs_x11_redraw_verb )
+      printf("AFNI_widget_expose_EV\n");
+
+   if( busy ) EXRETURN ;
+
+   busy = 1 ;
+
+   /* dpeterc's trick for flushing / waiting for ConfigureNotify events */ 
+   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w),
+                                 ConfigureNotify, &ev)){
+      if( g_needs_x11_redraw_verb )
+         printf("waiting for events to clear - iteration %d\n", iter);
+
+      last = ev.xconfigure;
+      /* consider NI_sleep(10); */
+
+      iter++;
+   }
+
+   switch( event->type ){
+     case ConfigureNotify:{
+        if( g_needs_x11_redraw_verb )
+           printf("ConfigureNotify event for Tahoe resizing widgets\n");
+
+        forceExpose( w , 1 ) ;
+     }
+     break ;
+ 
+     case MapNotify:{
+        if( g_needs_x11_redraw_verb )
+           printf("MapNotify\n");
+        break;
+     }
+     case UnmapNotify:{
+        if( g_needs_x11_redraw_verb )
+           printf("UnmapNotify\n");
+        break;
+     }
+
+     case CirculateNotify:{
+        if( g_needs_x11_redraw_verb )
+           printf("CirculateNotify\n");
+        break;
+     }
+     case DestroyNotify:{
+        if( g_needs_x11_redraw_verb )
+           printf("DestroyNotify\n");
+        break;
+     }
+     case GravityNotify:{
+        if( g_needs_x11_redraw_verb )
+           printf("GravityNotify\n");
+        break;
+     }
+     case ReparentNotify:{
+        if( g_needs_x11_redraw_verb )
+           printf("ReparentNotify\n");
+        break;
+     }
+
+     /** No other event types (at this time) */
+     default:
+        if( g_needs_x11_redraw_verb )
+           printf("not ConfigureNotify event\n");
+   }
+
+   busy = 0 ;
+   EXRETURN ;
+}
+
 
 /*--------------------------------------------------------------------
   Get the Colormap for a widget -- 01 Sep 1998
@@ -732,7 +1096,7 @@ void MCW_popup_message_once( Widget w, char *msg, char *expiry, char *codestring
      char da[16],db[16],dc[16] ;  int emon=-1,eday=-1,eyear=-1 , ii ;
      da[0] = db[0] = dc[0] = '\0' ;
      sscanf( expiry , "%5s%5s%5s" , da,db,dc ) ;
-     if( da[0] != '\0' && db[0] != '\0' && dc != '\0' ){ /* got 3 sub-strings */
+     if( da[0] != '\0' && db[0] != '\0' && dc[0] != '\0' ){ /* got 3 sub-strings */
        if( isalpha(da[0]) ){ /* month is first */
          for( ii=0; ii < 12 && strcasecmp(da,monthlist[ii]); ii++ ) ; /*nada*/
          emon = ii ;
@@ -988,9 +1352,12 @@ void MCW_register_hint( Widget w , char *msg )
                                           RES_CONVERT(XtNfontSet,cfont) ,
                                        NULL);
       if( !RWC_liteclue_has_fontset(liteClue) ){   /* Failed :( */
+/* removing warning for Macs */
+#ifndef DARWIN
         INFO_message("\n") ;
         INFO_message("\n Hints disabled: X11 failure to create LiteClue window") ;
         INFO_message("\n") ;
+#endif
         clueless = 1 ;
         return ;
       }

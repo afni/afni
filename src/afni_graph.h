@@ -634,6 +634,8 @@ typedef struct {
    int           thresh_fade ;                      /* Mar 2013 */
    MCW_bbox  *opt_tfade_bbox ;
 
+   int force_redraw ;                               /* Dec 2025 */
+
 } MCW_grapher ;
 
 #define GRA_MAX_DETREND      7     /* max order for detrending */

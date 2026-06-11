@@ -1961,20 +1961,24 @@ fprintf(stderr,"\n") ; }
       /* set the space of the dataset */
       if(space) {
          int old_vtype = dset->view_type ;
-         /* check if trying to assign a non-orig space to orig view data */
+         /* check if trying to assign a non-orig space to orig view data,
+            ... and as of 2025-12-15, do it with less whining */
          if( strcmp("orig",VIEW_codestr[old_vtype]) == 0 ) {
             if(strncmp(spacename, "ORIG", 4)!=0){
-               WARNING_message("Changing the space of an ORIG view dataset may cause confusion!");
-               WARNING_message(" NIFTI copies will be interpreted as TLRC view (not TLRC space).");
-               WARNING_message(" Consider changing the view of the dataset to TLRC view also");
+               //WARNING_message("Changing the space of an ORIG view dataset may cause confusion!");
+               //WARNING_message(" NIFTI copies will be interpreted as TLRC view (not TLRC space).");
+               if( new_view == 0 )
+                  WARNING_message("Consider updating the view also: -view tlrc");
             }
          }
-         /* check if trying to assign orig space to tlrc view data */
+         /* check if trying to assign orig space to tlrc view data,
+            ... and as of 2025-12-15, do it with less whining */
          else if( strcmp("tlrc",VIEW_codestr[old_vtype]) == 0 ) {
             if(strncmp(spacename, "ORIG", 4)==0){
-               WARNING_message("Changing the space of a TLRC view dataset to an ORIG type may cause confusion!");
-               WARNING_message(" NIFTI copies will be interpreted as ORIG view.");
-               WARNING_message(" Consider changing the view of the dataset to ORIG view also");
+               //WARNING_message("Changing the space of a TLRC view dataset to an ORIG type may cause confusion!");
+               //WARNING_message(" NIFTI copies will be interpreted as ORIG view.");
+               if( new_view == 0 )
+                  WARNING_message("Consider updating the view also: -view orig");
             }
          }
          /* actually update the space */

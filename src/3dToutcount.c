@@ -156,7 +156,10 @@ int main( int argc , char *argv[] )
    }
 
    /* check polort level */
-   if( polort < 0 || (polort > 3 && !use_legendre) ){
+   if( polort < 0 ){
+     fprintf(stderr,"** ERROR: must use polort >= 0\n"); exit(1);
+   }
+   if( polort > 3 && !use_legendre ){
      fprintf(stderr,"** polort > 3 requires -legendre\n"); exit(1);
    }
 
