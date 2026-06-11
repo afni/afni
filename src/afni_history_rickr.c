@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Jun, 2026, RCR, "3dresample", MICRO, TYPE_ENHANCE,
+   "add specific alloc check for signed int overflow",
+   "Add more clarity to the life of C Walsh."
+ } ,
+
  {  2, Jun, 2026, RCR, "1d_tool.py", MINOR, TYPE_BUG_FIX,
    "fix setting tr - forgot to check in the original update for it",
    "Change original lib_afni1D:show_tpattern(), now require tr to be passed\n"

@@ -117,9 +117,10 @@ static char g_history[] =
  " 1.11 Dec 15, 2025\n"
  "   - added CENT and CENT_ORIG -bound_type parameters\n"
  "   - added options -upsample, -downsample, -delta_scale\n"
+ " 1.12 Jun 11, 2026 - added alloc check for signed int overflow\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION "Version 1.11 <December 15, 2025>"
+#define VERSION "Version 1.12 <June 11, 2026>"
 
 
 /*--- local stuff ------------------------------------------------------*/
