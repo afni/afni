@@ -768,7 +768,7 @@ def correctCardiacPeaks(cardiacPeaks):
     return cardiacPeaks
 
 def writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, cardiacPeaks, samp_freq,
-                           peak_outliers, outlier_ts_ranges):
+                           peak_outliers, outlier_ts_ranges, useClustering):
     
     print('Write cardiac results to files')
 
@@ -780,9 +780,12 @@ def writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, cardiacPeaks, samp_fre
     # Write corrected cardiac peaks to file.
     print('OutDir = '+OutDir)
     np.savetxt(OutDir + '/correctedCardiacPeaks_1D.txt', cardiacPeaks, fmt="%.2f")
-        
-        
-    output_file_name = OutDir + '/cardiacOutliersWithPeaks.pdf'
+                
+    if useClustering:
+        output_file_name = OutDir + '/cardiacOutliersWithPeaks_clustering.pdf'
+    else:
+        output_file_name = OutDir + '/cardiacOutliersWithPeaks_LECW.pdf'
+
     outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
                            peak_outliers,
                            outlier_ts_ranges, 
@@ -812,6 +815,8 @@ OutDir = ''
 # args_dict = lpo.main_option_processing( sys.argv )
 # pcobj = lpr.pcalc_obj( args_dict, args_orig=args_orig )
 i = 1
+import sys
+
 while i < len(sys.argv):
     match sys.argv[i]:
         case "-directory":
@@ -973,10 +978,12 @@ PlotCardiacPeaksOnCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks)
     ) = buildCardiacPeakVectors(cardiacPeaks, cardiacTimeSeries)
 
 # Make cardiac rank vector
+print('Make cardiac rank vector')
 (rankVector, vectorWeightSums, weights) = makeRankVector(vec)
 
 # Use clustering if required
 if useClustering:   # Not the default as it's very slow
+    print('Use clustering for cardiac data')
     (
         outlier_ts_ranges,
         peak_outliers,
@@ -993,7 +1000,7 @@ else:
 cardiacPeaks = correctCardiacPeaks(cardiacPeaks)
 
 writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, cardiacPeaks, samp_freq,
-                           peak_outliers, outlier_ts_ranges)
+                           peak_outliers, outlier_ts_ranges, useClustering)
         
 # Process respiratory data
 
@@ -1010,26 +1017,34 @@ resp_peak_indices, resp_peak_values, resp_outliers = compute_respiratory_peaks(r
     ) = buildRespiratoryPeakVectors(resp_peak_values, resp_peak_indices)
 
 # Make respiratory rank vector
+print('Make respiratory rank vector')
 (rankVector, vectorWeightSums, weights) = makeRankVector(vec)
 
 # Use clustering if required.  Currently applied only to peaks
 if useClustering:   # Not the default as it's very slow
+    print('Use clustering for respiratory data')
     (
         outlier_ts_ranges,
         peak_outliers,
         merged_ranges,
     ) = applyClustering(resp_peak_indices, weights)
-    # clusters = louvain_phase1(weights)
-    # applyClustering(respiratoryTimeSeries, resp_peak_indices, weights, rankVector, getMOD)
+else:
+    # Identify outliers on low end of the cumulative weights
+    (
+        outlier_ts_ranges,
+        peak_outliers,
+        merged_ranges,
+    ) = findAnomalousBands(vectorWeightSums, rankVector, cardiacPeaks)
 
-# Identify outliers on low end of the cumulative weights
-print('Identify outliers on low end of the cumulatives weights')
-outlier_ts_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
+    # Identify outliers on low end of the cumulative weights
+    print('Identify outliers on low end of the cumulatives weights')
+    outlier_ts_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
                                                 rankVector, resp_peak_indices)
 num_anomalies = len(outlier_ts_ranges)
 
-# Identify peak-trough mesmatches
-cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
+# Identify peak-trough mismatches
+print('Identify peak-trough mismatches')
+# cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
 respiratoryPeaks_scaled = np.array(respiratoryPeaks) / samp_freq
 respiratoryTroughs_scaled = np.array(respiratoryTroughs) / samp_freq
 left = np.searchsorted(respiratoryTroughs, respiratoryPeaks[:-1], 
@@ -1113,7 +1128,12 @@ ax.set_xlabel(f"Time (seconds)")
 plt.tight_layout()
 if not OutDir:
     OutDir = directory
-plt.savefig('%s/respOutliersWithPeaks.pdf' % (OutDir))
+
+if useClustering:
+    plt.savefig('%s/respOutliersWithPeaks_clustering.pdf' % (OutDir))
+else:
+    plt.savefig('%s/respOutliersWithPeaks_LECW.pdf' % (OutDir))
+    
 # plt.savefig(output_file_name)
 plt.show()
 
