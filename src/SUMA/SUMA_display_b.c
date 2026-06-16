@@ -142,10 +142,8 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
          /* Kill the scroller from hell otherwise no keyboard input
             gets to the baby widgets. Better write my own scroller
             if need be in the future */
-            if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook){
-                 scroller = XtNameToWidget (SUMAg_CF->X->SC_Notebook, "PageScroller");
-                 XtUnmanageChild (scroller);
-            }
+            scroller = XtNameToWidget(SUMAg_CF->X->SC_Notebook, "PageScroller");
+            XtUnmanageChild (scroller);
       }
    }
    
@@ -165,11 +163,10 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
       Arg args[20];
       /* add the page */
       XtSetArg (args[0], XmNnotebookChildType, XmPAGE);
-      if (SUMAg_CF && SUMAg_CF->X && SUMAg_CF->X->SC_Notebook)
-          SurfCont->Page = 
-             XmCreateRowColumn (SUMAg_CF->X->SC_Notebook,
-                         SUMA_ADO_Label(ado)?SUMA_ADO_Label(ado):"page",
-                                                  args, 1);
+      SurfCont->Page =
+         XmCreateRowColumn (SUMAg_CF->X->SC_Notebook,
+                     SUMA_ADO_Label(ado)?SUMA_ADO_Label(ado):"page",
+                                              args, 1);
    }
    
    /* create a form widget, manage it at the end ...*/
@@ -1911,10 +1908,7 @@ SUMA_Boolean SUMA_ModifyTable(SUMA_TABLE_FIELD *TF, int Nrows)
                   }
                   // snprintf(wname, 63, "%s.r%02d", TF->wname, i);
                   snprintf(wname, sizeof(wname),
-                     "%.*s.r%02d",
-                     (int)(sizeof(wname) - 6),
-                     TF->wname,
-                     i);
+                     "%.*s.r%02d", (int)(sizeof(wname) - 6), TF->wname, i);
                   SUMA_Register_Widget_Help(TF->cells[n], 1, wname, 
                                             row_hint?row_hint[i]:NULL, 
                                             row_help?row_help[i]:NULL ) ;
@@ -3421,11 +3415,9 @@ void SUMA_CreateVrFields(  Widget parent,
                            XmNfontList, SUMAg_CF->X->TableTextFontList, 
                                      NULL);
    if (hint || help) {
-      // snprintf(wname,63,"%s->lab", VrF->wname);
-       snprintf(wname, sizeof(wname),
-         "%.*s->lab",
-         (int)(sizeof(wname) - 6),
-         VrF->wname);
+     // snprintf(wname,63,"%s->lab", VrF->wname);
+     snprintf(wname, sizeof(wname),
+        "%.*s->lab", (int)(sizeof(wname) - 6), VrF->wname);
      SUMA_Register_Widget_Help(VrF->lab, 1, wname, hint, help);
    }
    
@@ -3449,10 +3441,8 @@ void SUMA_CreateVrFields(  Widget parent,
 
    if (hint || help) {
       // snprintf(wname,63,"%s->Ns", VrF->wname);
-       snprintf(wname, sizeof(wname),
-         "%.*s->Ns",
-         (int)(sizeof(wname) - 5),
-         VrF->wname);
+      snprintf(wname, sizeof(wname),
+         "%.*s->Ns", (int)(sizeof(wname) - 5), VrF->wname);
       SUMA_Register_Widget_Help(VrF->text, 1, wname, hint, help);
    }
    XtVaSetValues(VrF->text, XmNcolumns, 3, NULL); 
@@ -3479,10 +3469,8 @@ void SUMA_CreateVrFields(  Widget parent,
          XmNvalueChangedCallback, SUMA_cb_ShowVrF_toggled, ado);
    if (hint || help) {
       // snprintf(wname,63,"%s->Ns->v", VrF->wname);
-       snprintf(wname, sizeof(wname),
-         "%.*s->Ns->v",
-         (int)(sizeof(wname) - 8),
-         VrF->wname);
+      snprintf(wname, sizeof(wname),
+         "%.*s->Ns->v", (int)(sizeof(wname) - 8), VrF->wname);
       SUMA_Register_Widget_Help(VrF->tb, 1, wname, 
                                 "View (ON)/Hide VrF", 
                                 SUMA_SurfContHelp_ShowVrFTgl);
@@ -3498,10 +3486,8 @@ void SUMA_CreateVrFields(  Widget parent,
          XmNvalueChangedCallback, SUMA_cb_VrSelect_toggled, ado);
    if (hint || help) {
       // snprintf(wname,63,"%s->Ns->s", VrF->wname);
-       snprintf(wname, sizeof(wname),
-         "%.*s->Ns->v",
-         (int)(sizeof(wname) - 8),
-         VrF->wname);
+      snprintf(wname, sizeof(wname),
+         "%.*s->Ns->v", (int)(sizeof(wname) - 8), VrF->wname);
       SUMA_Register_Widget_Help(VrF->tbs, 1, wname, 
                                 "Allow voxel selection on rendered volume (ON)", 
                                 SUMA_SurfContHelp_VrSelectTgl);

@@ -3724,7 +3724,7 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                   SUMAg_CF->SUMA_SnapshotOverSampling),
                                 0);
                /* use explicit tcsh to avoid sh syntax  25 Apr 2017 [rickr] */
-               int ret = system(  "tcsh -c 'rm -f HighRes_Suma_tmp* >& /dev/null' ; "
+               (void)system( "tcsh -c 'rm -f HighRes_Suma_tmp* >& /dev/null' ; "
                         "2dcat -prefix HighRes_Suma_tmp HighRes_Photo___tmp* ; "
                         "rm -f HighRes_Photo___tmp*");
             }
@@ -3742,38 +3742,16 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                            SUMAg_CF->autorecord->Path,
                            SUMAg_CF->autorecord->FileName_NoExt);
                if (callmode && strcmp(callmode, "interactive") == 0) {
-                  // SUMA_SLP_Note ("%s",sbuf); 
-                  SUMA_SLP_Note("Disk Recording ON to: %s%s*",
-                           SUMAg_CF->autorecord->Path,
-                           SUMAg_CF->autorecord->FileName_NoExt);
-                }
-               else {
-                    // SUMA_S_Note ("%s",sbuf); 
-                    SUMA_S_Note("Disk Recording ON to: %s%s*",
-                           SUMAg_CF->autorecord->Path,
-                           SUMAg_CF->autorecord->FileName_NoExt);
-               }
+                  SUMA_SLP_Note (sbuf); }
+               else { SUMA_S_Note (sbuf); }
             } else {
                snprintf(sbuf,256*sizeof(char),
                         "Disk Recording OFF. Results in: %s%s*",
                            SUMAg_CF->autorecord->Path,
                            SUMAg_CF->autorecord->FileName_NoExt);
                if (callmode && strcmp(callmode, "interactive") == 0) {
-                  // SUMA_SLP_Note ("%s",sbuf); 
-                  SUMA_SLP_Note(
-                        "Disk Recording ON to: %s%s*",
-                        SUMAg_CF->autorecord->Path,
-                        SUMAg_CF->autorecord->FileName_NoExt
-                    );
-                  }
-               else { 
-                    // SUMA_S_Note ("%s",sbuf);
-                    SUMA_S_Note(
-                        "Disk Recording ON to: %s%s*",
-                        SUMAg_CF->autorecord->Path,
-                        SUMAg_CF->autorecord->FileName_NoExt
-                    );
-               }
+                  SUMA_SLP_Note (sbuf); }
+               else { SUMA_S_Note (sbuf); }
             }
             SUMA_UpdateViewerTitle(sv);
          } else {
@@ -5313,7 +5291,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          xls = XLookupString((XKeyEvent *) cd->event, buffer, 8, &keysym, NULL);
       }
         // Modifier
-        modifierBuf[0] = '\0'; //sprintf(modifierBuf, "\0");
+        modifierBuf[0] = '\0';
         if (SUMA_ALTHELL) strcat(modifierBuf, "Alt+");
         if ((Kev.state & ControlMask)) strcat(modifierBuf, "Ctrl+");
 

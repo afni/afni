@@ -597,8 +597,8 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 
 */
 #define SUMA_SL_Crit(...) {\
-   char m_stemp[511];   \
-   snprintf(m_stemp, sizeof(m_stemp), __VA_ARGS__);   \
+   char m_stemp[513];   \
+   snprintf(m_stemp, 511, __VA_ARGS__);   \
    SUMA_S_Crit(__VA_ARGS__); \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, m_stemp, FuncName, \
                          SMT_Critical, SMA_Log); \
@@ -608,8 +608,8 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 
 */
 #define SUMA_SLP_Crit(...) {\
-   char m_stemp[511];   \
-   snprintf(m_stemp, sizeof(m_stemp), __VA_ARGS__);   \
+   char m_stemp[513];   \
+   snprintf(m_stemp, 511, __VA_ARGS__);   \
    SUMA_S_Crit(__VA_ARGS__); \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, m_stemp, FuncName, \
                          SMT_Critical, SMA_LogAndPopup); \
