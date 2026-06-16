@@ -1672,6 +1672,12 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
    numNodes_2 = surf2->N_Node;
    numFace_2 = surf2->N_FaceSet;
 
+   /* mostly for compiler warnings, but why not? */
+   if( numNodes_1 < 0 || numNodes_2 < 0 ) {
+      SUMA_SL_Err("invalid negative numNodes (1 or 2)");
+      SUMA_RETURN (NULL);
+   }
+
    clsNodes = (int *)SUMA_calloc( 3*numNodes_1, sizeof(int) );
    weight = (float *)SUMA_calloc( 3*numNodes_1, sizeof(float) );
    if (!clsNodes || !weight) {
@@ -1893,15 +1899,6 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
    /**sort x of NodeList_2*/
 
    /*create array justX_2 of only X location values*/
-   if (numNodes_2 <= 0) {
-        SUMA_SL_Err("Invalid dimensions");
-        SUMA_RETURN(NULL);
-   }
-
-   if ((size_t)numNodes_2 > SIZE_MAX) {
-        SUMA_SL_Err("Allocation overflow");
-        SUMA_RETURN(NULL);
-   }
    justX_2 = (float *) SUMA_calloc( numNodes_2, sizeof(float) );
    if (!justX_2 ) {
       fprintf (SUMA_STDERR,
@@ -2671,7 +2668,7 @@ float* SUMA_readColor (int numNodes, char* colFileNm) {
       exit(1);
    }
    else {
-      char * ret = fgets( line, 1000, colFile);
+      (void)fgets( line, 1000, colFile);
       while( !feof(colFile) ) {
 
          j = 3*index;
@@ -2705,7 +2702,7 @@ float* SUMA_readColor (int numNodes, char* colFileNm) {
          SUMA_free(temp);
          temp = SUMA_calloc( 10000, sizeof(char));
       
-         ret = fgets( line, 10000, colFile ); 
+         (void)fgets( line, 10000, colFile ); 
          ++index;
       }
    }
@@ -3054,7 +3051,7 @@ void SUMA_read1D (char* fileNm, int* i_colm, int* i_locInfo, SUMA_1dData* data) 
       
       /**skip through comments*/
       char * ret = fgets( line, 1000, file);
-      while( line[0]=='#' ) {
+      while( ret && line[0]=='#' ) {
          ret = fgets( line, 10000, file);
       }
       
@@ -3107,7 +3104,7 @@ void SUMA_read1D (char* fileNm, int* i_colm, int* i_locInfo, SUMA_1dData* data) 
             else valArray[ (valCnt++)*lgth + num_node ] = tempFlt;     // value
             i_last = i_colmSrtd[k];
          }
-         char * ret = fgets( line, 10000, file);
+         (void)fgets( line, 10000, file);
          ++num_node;
       }  
       fclose(file);

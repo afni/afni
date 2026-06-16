@@ -1125,12 +1125,8 @@ SUMA_Boolean SUMA_GICOR_Dsets(SUMA_SurfaceObject *SOv[],
                SUMA_RETURN(NOPE);
             }
             /* add the columns */
-            if (SDSET_VECLEN(sdsetv[i]) <= 0) {
-                SUMA_SL_Err("Invalid dimensions");
-                SUMA_RETURN(NOPE);
-            }
-            if ((size_t)(SDSET_VECLEN(sdsetv[i])) > SIZE_MAX) {
-                SUMA_SL_Err("Allocation overflow");
+            if (SDSET_VECLEN(sdsetv[i]) < 0) {
+                SUMA_SL_Err("Invalid negative stdsetv dimension");
                 SUMA_RETURN(NOPE);
             }
             Ti = (int *) SUMA_calloc(SDSET_VECLEN(sdsetv[i]), sizeof(int));

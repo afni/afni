@@ -7491,14 +7491,6 @@ SUMA_Boolean SUMA_FixNN_Oversampling ( SUMA_SurfaceObject *SO, SUMA_DSET *dset,
       }
       
       /* fatten blur_zone */
-      if (SO->N_Node <= 0) {
-        SUMA_SL_Err("Invalid dimensions");
-        SUMA_RETURN(0);
-      }
-      if ((size_t)(SO->N_Node) > SIZE_MAX) {
-        SUMA_SL_Err("Allocation overflow");
-        SUMA_RETURN(0);
-      }
       if (!blur_zone_2) { blur_zone_2 = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte)); }
       for (n=0; n<SO->N_Node; ++n) {
          if (blur_zone[n]) {
@@ -15469,19 +15461,11 @@ SUMA_Boolean SUMA_PrepMaskEval_Params(char *expr, int N_vals,
       if (*c >= 'a' && *c <='z') mep->varsused[*c-'a']=1;
       ++c;
    }
-   mep->allvarsineq[0]='\0';
+   /* allvarsineq seems unused, but fix to track [15 Jun 2026 rickr] */
    for (n=0,i=0; i<26; ++i) {
-      if (mep->varsused[i]) mep->allvarsineq[n]=i+'a';
+      if (mep->varsused[i]) mep->allvarsineq[n++]=i+'a';
    }
-   if (!mep->varsused) {
-        SUMA_SL_Err("varsused is NULL");
-        SUMA_RETURN(NOPE);
-   }
-
-   if (i < 0 || i >= 26) {
-        SUMA_SL_Err("varsused index out of range");
-        SUMA_RETURN(NOPE);
-   }
+   mep->allvarsineq[n]='\0';
    mep->varsused[i]='\0';
    
    /* How does N_vals square with what was available */
