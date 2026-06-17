@@ -52,7 +52,7 @@ dev_out : str
     BAD_RETURN = (-1, '')
 
     if dev_in not in LIST_allowed_device_general :
-        msg = "Input {} is not in list of allowed devices:".fomrat(dev_in)
+        msg = "Input {} is not in list of allowed devices:".format(dev_in)
         msg+= "{}".format(STR_allowed_device_general)
         ab.EP1(msg)
         return BAD_RETURN
