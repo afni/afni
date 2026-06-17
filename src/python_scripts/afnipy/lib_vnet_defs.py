@@ -11,7 +11,7 @@ import sys, os, copy, glob
 STR_workdir_base = '__wdir_brainteaser_'
 
 # available model posterior inference methods (PIMs)
-LIST_all_device = ['cpu', 'cuda']
+LIST_all_device = ['auto', 'cpu', 'cuda', 'mps']
 STR_all_device  = ', '.join(LIST_all_device)
 
 # model parameters from training, and 
@@ -36,7 +36,7 @@ DOPTS = {
     'comp_opts'       : [],
     'checkpoint'      : '',
     'prefix'          : '',
-    'device'          : 'cpu',
+    'device'          : 'auto',
     'outdir'          : None,
     'workdir'         : '',
 }
