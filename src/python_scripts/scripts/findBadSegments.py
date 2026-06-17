@@ -492,6 +492,102 @@ def getCardiacAndRespiratoryTimeSeriesPeaksTroughs(directory):
         respiratoryPeaks,
         respiratoryTroughs,
     )
+
+def outputRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks, 
+                       respiratoryTroughs, samp_freq,
+                       peak_outliers, 
+                       outlier_ts_ranges, troughPeakMismatchRanges,
+                       output_file_name):
+    y = respiratoryTimeSeries              # length 
+    x = np.arange(len(y))             # original index
+    x_scaled = x / samp_freq          # scaled index
+    respiratoryPeaks_scaled = np.array(respiratoryPeaks) / samp_freq
+
+    # Limit length of each row for clarity
+    print('Limit length of each row for clarity')
+    points_per_row = 3000             
+    num_rows = int(np.ceil(len(y) / points_per_row))
+
+    fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
+    if num_rows == 1:
+        axes = [axes]
+
+    # Ensure index array is of integer type
+    if respiratoryPeaks.dtype!=int:
+        respiratoryPeaks = respiratoryPeaks.astype(int)
+      
+    # Get peak values
+    respiratoryTimeSeries = np.array(respiratoryTimeSeries)
+    respiratoryPeaks = np.array(respiratoryPeaks)
+    peakVals = respiratoryTimeSeries[respiratoryPeaks]
+    respiratoryTroughs = np.array(respiratoryTroughs)
+    troughVals = respiratoryTimeSeries[respiratoryTroughs]    
+
+    # Output rows
+    for row in range(num_rows):
+        start = row * points_per_row
+        end = min((row + 1) * points_per_row, len(y))
+    
+        ax = axes[row]
+    
+        # --- plot scaled x ---
+        ax.plot(
+            x_scaled[start:end],
+            y[start:end],
+            linewidth=0.5,
+            solid_capstyle='butt',
+            solid_joinstyle='miter',
+            color="black"
+        )
+    
+        # Peaks and troughs
+        ax.plot(respiratoryPeaks_scaled, peakVals, "ro")
+        ax.plot(respiratoryTroughs_scaled, troughVals, "bo")
+    
+        # --- Draw  peak-trough mismatch regions bands (also scaled) ---
+        for band_start, band_end in outlier_ts_ranges:
+            if band_end <= start or band_start >= end:
+                continue
+            ax.axvspan(
+                max(band_start, start) / samp_freq,
+                min(band_end, end) / samp_freq,
+                color='red',
+                alpha=0.15
+            )
+    
+        # --- Draw generically bad regions bands (also scaled) ---
+        for bandrange in troughPeakMismatchRanges:
+            # print("DEBUG:", bandrange)
+            if bandrange[1] <= start or bandrange[0] >= end:
+                continue
+            ax.axvspan(
+                max(bandrange[0], start) / samp_freq,
+                min(bandrange[1], end) / samp_freq,
+                color='blue',
+                alpha=0.15
+            )
+        # --- scaled x-limits ---
+        ax.set_xlim(x_scaled[start], x_scaled[end - 1])
+        ax.set_ylabel("Respiratory Amplitude")
+
+    # Set axes and save plot to file
+    print('Set axes and save plot to file')
+    ax.set_xlabel(f"Time (seconds)")
+    axes[-1].set_xlabel("Time (s)")
+    plt.tight_layout()
+
+    plt.savefig(output_file_name)
+    plt.show()
+    
+    return (
+        peakVals,
+        troughVals
+        )
+
+    # Analyze cases where peaks and troughs are mismatched
+    # analyzePeakTroughMismatches(troughPeakMismatchRanges, respiratoryPeaks,
+    #     peakVals, respiratoryTroughs, troughVals, cardiacPeaks)
+    
     
 
 def outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
@@ -706,7 +802,6 @@ def findAnomalousBands(vectorWeightSums, rankVector, cardiacPeaks):
     print('Identify outliers on low end of the cumulatives weights')
     outlier_ts_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
                                                     rankVector, cardiacPeaks)
-    # num_anomalies = len(outlier_ts_ranges)
     
     # Find peak outliers
     print('Find peak outliers')
@@ -767,7 +862,49 @@ def correctCardiacPeaks(cardiacPeaks):
         
     return cardiacPeaks
 
-def writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, cardiacPeaks, samp_freq,
+def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries, 
+            respiratoryPeaks, respiratoryTroughs, samp_freq, peak_outliers, 
+            outlier_ts_ranges, troughPeakMismatchRanges, useClustering):
+    
+    print('Write respiratory results to files')
+
+    # Create output directory if it doesn't already exist
+    if OutDir[-1] == '/':
+        OutDir = OutDir[:-1]
+    Path(OutDir).mkdir(parents=True, exist_ok=True)
+    
+    # Write corrected cardiac peaks to file.
+    print('OutDir = '+OutDir)
+    np.savetxt(OutDir + '/correctedRespiratoryPeaks_1D.txt', respiratoryPeaks, 
+               fmt="%.2f")
+                
+    if useClustering:
+        output_file_name = OutDir + '/respOutliersWithPeaks_clustering.pdf'
+    else:
+        output_file_name = OutDir + '/respOutliersWithPeaks_LECW.pdf'
+
+    (
+     respiratoryPeakVals, 
+     respiratoryTroughVals,
+     ) = outputRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks, 
+                           respiratoryTroughs, samp_freq,
+                           peak_outliers,
+                           outlier_ts_ranges, troughPeakMismatchRanges,
+                           output_file_name)
+
+    # Analyze cases where peaks and troughs are mismatched
+    analyzePeakTroughMismatches(troughPeakMismatchRanges, respiratoryPeaks,
+        respiratoryPeakVals, respiratoryTroughs, respiratoryTroughVals, cardiacPeaks)
+    
+    return (
+     peak_outliers,
+     outlier_ts_ranges,
+     respiratoryPeakVals, 
+     respiratoryTroughs, 
+     respiratoryTroughVals
+     )
+    
+def writeCardiacResultsToFiles(OutDir, respiratoryTimeSeries, respiitaroryPeaks, samp_freq,
                            peak_outliers, outlier_ts_ranges, useClustering):
     
     print('Write cardiac results to files')
@@ -1040,9 +1177,8 @@ else:
     print('Identify outliers on low end of the cumulatives weights')
     outlier_ts_ranges = cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, 
                                                 rankVector, resp_peak_indices)
-num_anomalies = len(outlier_ts_ranges)
-
-# Identify peak-trough mismatches
+    
+# Identify peak-trough mismatches (only applies to respiratory data)
 print('Identify peak-trough mismatches')
 # cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
 respiratoryPeaks_scaled = np.array(respiratoryPeaks) / samp_freq
@@ -1058,87 +1194,18 @@ troughPeakMismatchRanges = list(zip(respiratoryPeaks[:-1][mask],
                   respiratoryPeaks[1:][mask]))
 
 # Plot respiratory results
-print('Plot respiratory results')
-y = respiratoryTimeSeries              # length ~24,199
-x = np.arange(len(y))             # continuous index
-x_scaled = x / samp_freq          # scaled index
+(
+ respiratoryPeakOutliers,
+ respiratoryOutlier_ts_ranges,
+ respiratoryPeakVals, 
+ respiratoryTroughs, 
+ respiratoryTroughVals
+ ) = writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries, 
+            respiratoryPeaks, respiratoryTroughs, samp_freq, peak_outliers, 
+            outlier_ts_ranges, troughPeakMismatchRanges, useClustering)
 
-#Limit row width for clarity
-points_per_row = 3000
-num_rows = int(np.ceil(len(y) / points_per_row))
-
-fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
-if num_rows == 1:
-    axes = [axes]
-
-respiratoryTimeSeries = np.array(respiratoryTimeSeries)
-respiratoryPeaks = np.array(respiratoryPeaks)
-peakVals = respiratoryTimeSeries[respiratoryPeaks]
-respiratoryTroughs = np.array(respiratoryTroughs)
-troughVals = respiratoryTimeSeries[respiratoryTroughs]
-
-for row in range(num_rows):
-    start = row * points_per_row
-    end = min((row + 1) * points_per_row, len(y))
-
-    ax = axes[row]
-
-    # --- plot scaled x ---
-    ax.plot(
-        x_scaled[start:end],
-        y[start:end],
-        linewidth=0.5,
-        solid_capstyle='butt',
-        solid_joinstyle='miter',
-        color="black"
-    )
-
-    # Peaks and troughs
-    ax.plot(respiratoryPeaks_scaled, peakVals, "ro")
-    ax.plot(respiratoryTroughs_scaled, troughVals, "bo")
-
-    # --- Draw  peak-trough mismatch regions bands (also scaled) ---
-    for band_start, band_end in outlier_ts_ranges:
-        if band_end <= start or band_start >= end:
-            continue
-        ax.axvspan(
-            max(band_start, start) / samp_freq,
-            min(band_end, end) / samp_freq,
-            color='red',
-            alpha=0.15
-        )
-
-    # --- Draw generically bad regions bands (also scaled) ---
-    for bandrange in troughPeakMismatchRanges:
-        # print("DEBUG:", bandrange)
-        if bandrange[1] <= start or bandrange[0] >= end:
-            continue
-        ax.axvspan(
-            max(bandrange[0], start) / samp_freq,
-            min(bandrange[1], end) / samp_freq,
-            color='blue',
-            alpha=0.15
-        )
-    # --- scaled x-limits ---
-    ax.set_xlim(x_scaled[start], x_scaled[end - 1])
-    ax.set_ylabel("Respiratory Amplitude")
-
-print('Make respiratory axes')
-ax.set_xlabel(f"Time (seconds)")
-plt.tight_layout()
-if not OutDir:
-    OutDir = directory
-
-if useClustering:
-    plt.savefig('%s/respOutliersWithPeaks_clustering.pdf' % (OutDir))
-else:
-    plt.savefig('%s/respOutliersWithPeaks_LECW.pdf' % (OutDir))
-    
-# plt.savefig(output_file_name)
-plt.show()
-
-# Analyze cases where peaks and troughs are mismatched
-analyzePeakTroughMismatches(troughPeakMismatchRanges, respiratoryPeaks,
-    peakVals, respiratoryTroughs, troughVals, cardiacPeaks)
+# # Analyze cases where peaks and troughs are mismatched
+# analyzePeakTroughMismatches(troughPeakMismatchRanges, respiratoryPeaks,
+#     respiratoryPeakVals, respiratoryTroughs, respiratoryTroughVals, cardiacPeaks)
 
 
