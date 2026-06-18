@@ -55,6 +55,7 @@ int   g_ge_nim_acq = -1;               /* number of images in acquisition */
 float g_ge_echo_time = -1.0;           /* GE echo time */
 int   g_ge_echo_num = -1;              /* GE echo number */
 int   g_ge_me_index = -1;
+float g_ge_dz_vals[3] = {0.0, 0.0, 0.0}; /* get_dz SPACING, THICKNESS, final */
 int   g_sop_iuid_maj = -1;             /* ID SOP Instanced UID (major)    */
 int   g_sop_iuid_min = -1;             /* ID SOP Instanced UID (minor)    */
 
@@ -1448,6 +1449,11 @@ static float get_dz(  char **epos)
     }
   }
   if( dz == 0.0 ) dz = 1.0 ;               /* nominal dz */
+
+  /* populate global values for dz spacing, thickness and final value */
+  g_ge_dz_vals[0] = sp;
+  g_ge_dz_vals[1] = th;
+  g_ge_dz_vals[2] = dz;
 
   return(dz);
 } /*-- end of dz code, with all its stupidities --*/

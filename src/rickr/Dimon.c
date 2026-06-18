@@ -356,6 +356,7 @@ extern float        g_image_posn[3];
 extern float        g_ge_echo_time;
 extern int          g_ge_echo_num;
 extern int          g_ge_me_index;
+extern float        g_ge_dz_vals[3];  /* get_dz() spacing, thickness, final */
 extern int          g_ge_nim_acq;
 extern int          g_sop_iuid_maj;
 extern int          g_sop_iuid_min;
@@ -1003,6 +1004,28 @@ static int volume_search(
             if( gD.level > 1 )
                fprintf(stderr,"-- data is %soblique\n",V->oblique ? "":"not ");
             gAC.is_oblique = V->oblique;
+        }
+
+        /* evalate get_dz() vals: check if sp~=dz and th~=delta */
+        /* check for all of the following:
+             - all 3 values are positive (sp, th, dz)
+             - sp is approx dz
+             - sp >> th
+             - th ~= delta
+         */
+        { float sp = g_ge_dz_vals[0],
+                th = g_ge_dz_vals[1],
+                dz = g_ge_dz_vals[2];
+          if( th > 0.0 && sp > 0.0 && dz > 0.0 ) {
+            /* if sp ~= dz and sp >> th, consider applying
+               AFNI_SLICE_SPACING_IS_GAP = THICK */
+            if ( (fabs(sp-dz) < gD_epsilon ) && ((sp-th) > (10*gD_epsilon)) ) {
+               fprintf(stderr,
+                  "** returned dz, thickness, z-delta = (%g, %g, %g)\n"
+                  " - consider AFNI_SLICE_SPACING_IS_GAP=THICK\n",
+                  dz, th, delta);
+            }
+          }
         }
 
         return 1;
