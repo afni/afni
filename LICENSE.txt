@@ -44,10 +44,6 @@ Authors:  Robert W. Cox, et al.
 License:  Creative Commons Attribution License (CC BY 4.0)
           [doc/README/README.copyright and top of files]
 
-Location: src/3DEdge/ and parts of src/SUMA/ using 3DEdge 
-Authors:  Gregoire Malandain
-License:  GNU GPL 3.0 [src/3DEdge/gpl-3.0.txt]
-
 Location: src/coxplot/
 Authors:  Medical College of Wisconsin
 License:  Creative Commons Attribution License (CC BY 4.0)
@@ -177,6 +173,10 @@ License:  Permissive [top of file]
 Location: part of src/niml/niml_md5.c
 Authors:  Christophe Devine
 License:  GNU GPL 2.0 or later [top of file]
+
+Location: src/3DEdge/ and parts of src/SUMA/ using 3DEdge 
+Authors:  Gregoire Malandain
+License:  GNU GPL 3.0 [src/3DEdge/gpl-3.0.txt]
 
 Location: src/pkundu/meica.libs/nibabel/
 Authors:  Matthew Brett, Michael Hanke, Stephan Gerhard
@@ -424,8 +424,8 @@ A. Large portions of the code (and current active development) is in
    here: doc/license_history/MCW_AFNI_license_update_2026.pdf.
 
    But as outlined above, parts of the codebase also contain licenses,
-   such as GNU GPL 2.0, MIT, Apache 2.0, BSD, Apple Public Source, and
-   various free/permissive licensing descriptions; some very small
+   such as CC-BY, GNU GPL 2.0, MIT, Apache 2.0, BSD, Apple Public Source,
+   and various free/permissive licensing descriptions; some very small
    subsets contain "contact the author before redistribution"
    notices.  Please review the relevant license for distribution terms
    and conditions or directly contact the contributing author for more
