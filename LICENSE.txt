@@ -106,11 +106,6 @@ Location: src/f2cdir/
 Authors:  AT&T Bell Laboratories, Bellcore
 License:  Free [src/f2cdir/gram.head]
 
-Location: src/gifsicle/
-Authors:  Eddie Kohler (and Anne Dudfield, David Hedbor, Emil Mikulic,
-          Hans Dinsen-Hansen)
-License:  GNU GPL 2.0 or later [src/gifsicle/README]
-
 Location: much of src/gifti/LICENSE
 Authors:  Richard Reynolds (NIH)
 License:  Free [src/gifti/LICENSE]
@@ -126,26 +121,6 @@ Authors:  Tom Lane, Philip Gladstone, Jim Boucher, Lee Crocker, Julian
           Independent JPEG Group
 License:  Free [src/jpeg-6b/README]
 
-Location: src/jpeg-6b/lt{config,main.sh}
-Authors:  Gordon Matzigkeit
-License:  GNU GPL 2.0 or later [top of file]
-
-Location: src/jpeg-6b/config.sub
-Authors:  Free Software Foundation, Inc.
-License:  GNU GPL 2.0 or later [top of file]
-
-Location: src/jpeg-6b/config.guess
-Authors:  Per Bothner
-License:  GNU GPL 2.0 or later [top of file]
-
-Location: src/jpeg-6b/ansi2knr.c
-Authors:  Richard M. Stallman
-License:  Ghostscript GPL [top of file]
-
-Location: src/jzosky/RetroTS.py
-Authors:  Joshua Zosky
-License:  GNU GPL 3.0 or later [top of file]
-
 Location: much of src/mpeg_encodedir/
 Authors:  The Regents of the University of California
 License:  Permissive [src/mpeg_encodedir/COPYRIGHT]
@@ -153,10 +128,6 @@ License:  Permissive [src/mpeg_encodedir/COPYRIGHT]
 Location: src/mpeg_encodedir/{jrevdct,mfwddct}.c
 Authors:  Thomas G. Lane and Independent JPEG Group
 License:  Permissive [top of file]
-
-Location: src/mpegtoppm_dir
-Authors:  Aaron Holtzman, Michel Lespinasse, et al.
-License:  GNU GPL 2.0 [src/mpegtoppm_dir/COPYING]
 
 Location: much of src/nifti
 Authors:  NIFTI Data Format Working Group and volunteers
@@ -169,14 +140,6 @@ License:  Apache 2.0 [top of file]
 Location: part of src/niml/niml_md5.c
 Authors:  RSA Data Security, Inc.
 License:  Permissive [top of file]
-
-Location: part of src/niml/niml_md5.c
-Authors:  Christophe Devine
-License:  GNU GPL 2.0 or later [top of file]
-
-Location: src/3DEdge/ and parts of src/SUMA/ using 3DEdge 
-Authors:  Gregoire Malandain
-License:  GNU GPL 3.0 [src/3DEdge/gpl-3.0.txt]
 
 Location: src/pkundu/meica.libs/nibabel/
 Authors:  Matthew Brett, Michael Hanke, Stephan Gerhard
@@ -201,18 +164,10 @@ Authors:  Muhammad Salman Asif (Georgia Tech)
 License:  Permissive (academic, non-commercial, not-for-profit purposes)
           [top of file]
 
-Location: much of src/svm/
-Authors:  Stephen LaConte
-License:  GNU GPL 3.0 or later [src/svm/3dsvm.c]
-
 Location: SVM-Light functionality in src/svm/
 Authors:  Thorsten Joachims
 License:  Free for non-commercial use (contact author prior to
           redistribution) [src/svm/3dsvm.c]
-
-Location: src/XmHTML/Makefile
-Authors:  Ripley Software Development
-License:  GNU GPL 2.0 or later [src/XmHTML/Makefile]
 
 Location: parts of src/SUMA using Open Motif
 Authors:  Integrated Computer Systems (ICS) Inc.
@@ -231,18 +186,10 @@ Location: src/SUMA/GLw_local/GL/
 Authors:  Silicon Graphics, Inc.
 License:  Permissive [top of each file]
 
-Location: src/SUMA/gts/
-Authors:  Stéphane Popinet, et al.
-License:  GNU GPL 2.0 [src/SUMA/gts/COPYING]
-
 Location: src/SUMA/PLY/
 Authors:  Greg Turk (The Board of Trustees of The Leland Stanford Junior 
           University; Georgia Institute of Technology)
 License:  Permissive [top of each file]
-
-Location: src/SUMA/SUMA_{coarsen.c,gts.c,gts.h}
-Authors:  Jakub Otwinowski
-License:  GNU GPL 2.0 [top of file]
 
 Location: part of src/SUMA/SUMA_display.c
 Authors:  Dan Heller and Paula Ferguson (O'Reilly & Associates, Inc.)
@@ -296,39 +243,9 @@ Authors:  Stephen M. Moore (Washington University); Radiological Society
           of North America
 License:  Permissive [top of file]
 
-Location: src/{plug_,3d}retroicor.c 
-Authors:  Fred Tam (Sunnybrook & Women's College Health Sciences Centre, 
-          Toronto, Canada)
-License:  GNU GPL 2.0 [top of file]
-
-Location: src/retroicor.c 
-Authors:  Fred Tam (Sunnybrook & Women's College Health Sciences Centre, 
-          Toronto, Canada)
-License:  GNU GPL 2.0 [top of file]
-
-Location: src/balloon.c 
-Authors:  Matthew Belmonte
-License:  GNU GPL 2.0 or later [top of file]
-
-Location: src/plug_{permtest,threshold}.c 
-Authors:  Matthew Belmonte
-License:  GNU GPL 2.0 or later [top of file]
-
-Location: src/efence.c 
-Authors:  Bruce Perens
-License:  GNU GPL 2.0 [https://opensource.apple.com/source/binutils/binutils-36/src/electric-fence/COPYING.auto.html]
-
 Location: src/{fftn,fftn_OMP}.c 
 Authors:  MJ Olesen (Queen's University at Kingston)
 License:  Free [top of file]
-
-Location: src/FIRdesign.c
-Authors:  Jake Janovetz
-License:  GNU GPL 2.0 or higher [top of file]
-
-Location: src/remez.c
-Authors:  Jake Janovetz
-License:  GNU GPL 2.0 or higher [top of file]
 
 Location: src/Ifile.c
 Authors:  Guido van Rossum (The Regents of the University of California)
@@ -374,6 +291,88 @@ Location: src/zgaussian.c
 Authors:  Jochen Voss
 License:  GNU GPL 2 or later [top of file]
 
+Location: src/gifsicle/
+Authors:  Eddie Kohler (and Anne Dudfield, David Hedbor, Emil Mikulic,
+          Hans Dinsen-Hansen)
+License:  GNU GPL 2.0 or later [src/gifsicle/README]
+
+Location: src/jpeg-6b/lt{config,main.sh}
+Authors:  Gordon Matzigkeit
+License:  GNU GPL 2.0 or later [top of file]
+
+Location: src/jpeg-6b/config.sub
+Authors:  Free Software Foundation, Inc.
+License:  GNU GPL 2.0 or later [top of file]
+
+Location: src/jpeg-6b/config.guess
+Authors:  Per Bothner
+License:  GNU GPL 2.0 or later [top of file]
+
+Location: src/jpeg-6b/ansi2knr.c
+Authors:  Richard M. Stallman
+License:  Ghostscript GPL [top of file]
+
+Location: src/jzosky/RetroTS.py
+Authors:  Joshua Zosky
+License:  GNU GPL 3.0 or later [top of file]
+
+Location: src/mpegtoppm_dir
+Authors:  Aaron Holtzman, Michel Lespinasse, et al.
+License:  GNU GPL 2.0 [src/mpegtoppm_dir/COPYING]
+
+Location: part of src/niml/niml_md5.c
+Authors:  Christophe Devine
+License:  GNU GPL 2.0 or later [top of file]
+
+Location: src/3DEdge/ and parts of src/SUMA/ using 3DEdge 
+Authors:  Gregoire Malandain
+License:  GNU GPL 3.0 [src/3DEdge/gpl-3.0.txt]
+
+Location: much of src/svm/
+Authors:  Stephen LaConte
+License:  GNU GPL 3.0 or later [src/svm/3dsvm.c]
+
+Location: src/XmHTML/Makefile
+Authors:  Ripley Software Development
+License:  GNU GPL 2.0 or later [src/XmHTML/Makefile]
+
+Location: src/SUMA/gts/
+Authors:  Stéphane Popinet, et al.
+License:  GNU GPL 2.0 [src/SUMA/gts/COPYING]
+
+Location: src/SUMA/SUMA_{coarsen.c,gts.c,gts.h}
+Authors:  Jakub Otwinowski
+License:  GNU GPL 2.0 [top of file]
+
+Location: src/{plug_,3d}retroicor.c 
+Authors:  Fred Tam (Sunnybrook & Women's College Health Sciences Centre, 
+          Toronto, Canada)
+License:  GNU GPL 2.0 [top of file]
+
+Location: src/retroicor.c 
+Authors:  Fred Tam (Sunnybrook & Women's College Health Sciences Centre, 
+          Toronto, Canada)
+License:  GNU GPL 2.0 [top of file]
+
+Location: src/balloon.c 
+Authors:  Matthew Belmonte
+License:  GNU GPL 2.0 or later [top of file]
+
+Location: src/plug_{permtest,threshold}.c 
+Authors:  Matthew Belmonte
+License:  GNU GPL 2.0 or later [top of file]
+
+Location: src/efence.c 
+Authors:  Bruce Perens
+License:  GNU GPL 2.0 [https://opensource.apple.com/source/binutils/binutils-36/src/electric-fence/COPYING.auto.html]
+
+Location: src/FIRdesign.c
+Authors:  Jake Janovetz
+License:  GNU GPL 2.0 or higher [top of file]
+
+Location: src/remez.c
+Authors:  Jake Janovetz
+License:  GNU GPL 2.0 or higher [top of file]
 
 ===============================================================================
                               COPYRIGHT F.A.Q.
