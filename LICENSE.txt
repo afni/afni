@@ -421,10 +421,14 @@ A. Large portions of the code (and current active development) is in
    portions of this software" that were developed from 1994-2000 at
    MCW), which had previously been distributed with a GPL 2.0
    license. A copy of the letter reflecting this update is stored
-   here: doc/license_history/MCW_AFNI_license_update_2026.pdf.
+   here: doc/license_history/MCW_AFNI_license_update_2026.pdf.  In
+   brief, the CC-BY-4.0 allows for sharing and redistribution of
+   material, as well as adapting it, under the terms of giving
+   appropriate credit and indicating if any changes were made (see
+   https://creativecommons.org/licenses/by/4.0/ for details).
 
    But as outlined above, parts of the codebase also contain licenses,
-   such as CC-BY, GNU GPL 2.0, MIT, Apache 2.0, BSD, Apple Public Source,
+   such as GPL 2.0, MIT, Apache 2.0, BSD, Apple Public Source,
    and various free/permissive licensing descriptions; some very small
    subsets contain "contact the author before redistribution"
    notices.  Please review the relevant license for distribution terms
