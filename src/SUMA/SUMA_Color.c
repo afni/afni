@@ -3024,11 +3024,11 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    SUMA_ALL_DO *ado=NULL;
    SUMA_WIDGET_INDEX_COORDBIAS HoldBiasOpt;
    SUMA_Boolean LocalHead = NOPE;
-
    SUMA_SurfaceObject *SO;
-   static int * box_mask=NULL;    /* rcr */
-   static int     box_mask_size=0;
-   int            nnodes=0;
+
+   static int * box_mask=NULL;    /* maintain static Box mask array */
+   static int   box_mask_size=0;  /* Box mask allocation            */
+   int          nnodes=0;         /* locally applied Box mask size  */
 
    SUMA_ENTRY;
 
@@ -3084,8 +3084,9 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    /* Thresholding ? */
    if (Opt->tind >= 0 && Opt->UseThr) {
       SUMA_LH("Fetching Threshold column");
-      /* rcr (eventually delete) - prepare memory for box_mask */
-      /* allocate for minimum mask size and keep - might be okay */
+
+      /* box_mask memory, allocate maximum mask size and keep as static */
+      /* - below, box_mask accumulates threshold-surviving node indicies */
       nnodes = SDSET_VECFILLED(Sover->dset_link);
 
       if( nnodes > 0 && box_mask_size < nnodes ) {
@@ -3097,7 +3098,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          box_mask_size = nnodes;
          memset(box_mask, '\0', nnodes*sizeof(int));
       }
-      nnodes = 0; /* for box_mask */
+      nnodes = 0; /* for below, num box_mask nodes surviving threshold */
 
       if (  !SUMA_SetOverlay_Vecs(Sover, 'T', Opt->tind, "update", 0) ||
             !Sover->T ) {
@@ -3113,6 +3114,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
                if (Sover->T[i] < Opt->ThreshRange[0]) {
                   if (!Sover->AlphaOpacityFalloff) SV->isMasked[i] = YUP; /* Mask */
+                  /* survives threshold, so accumulate in box_mask list */
                   if (Sover->BoxOutlineThresh) box_mask[nnodes++] = i;
                }
             }
@@ -3648,15 +3650,17 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
 
    /* Do we need to create contours */
    if (Opt->ColsContMode) {
-      if (Sover->BoxOutlineThresh &&
-            (Opt->interpmode != SUMA_DIRECT) ) {
-            if (!SUMA_ContourateDsetOverlay_Box(nnodes, box_mask, Sover, SV)){
-                fprintf(stderr, "Error making contours\n");
-                SUMA_RETURN(NOPE);
-            }
+      if (Sover->BoxOutlineThresh && (Opt->interpmode != SUMA_DIRECT) ) {
+         /* possible contours via Box outline */
+         if (!SUMA_ContourateDsetOverlay_Box(nnodes, box_mask, Sover, SV)){
+             fprintf(stderr, "Error making contours\n");
+             SUMA_RETURN(NOPE);
+         }
       } else if (SUMA_is_Label_dset(Sover->dset_link,NULL))
+         /* possible contours based on labeled regions */
          SUMA_ContourateDsetOverlay(Sover, NULL);
       else
+         /* fallback contours */
          SUMA_ContourateDsetOverlay(Sover, SV);
    }
 
@@ -4492,12 +4496,7 @@ SUMA_COLOR_MAP *SUMA_NICmapToCmap(NI_group *ngr)
    }
    if (s) {
       if (CM->N_M[0] <= 0) {
-        SUMA_SL_Err("Invalid dimensions");
-        SUMA_RETURN(NULL);
-      }
-
-      if ((size_t)(CM->N_M[0]) > SIZE_MAX) {
-        SUMA_SL_Err("Allocation overflow");
+        SUMA_SL_Err("Invalid colormap dimensions");
         SUMA_RETURN(NULL);
       }
       CM->cname = (char **)SUMA_calloc(CM->N_M[0], sizeof(char *));
@@ -4620,10 +4619,7 @@ SUMA_Boolean SUMA_NeedsLinearizing(SUMA_COLOR_MAP *ColMap)
 
    /*    SUMA_Show_ColorMapVec(&ColMap, 1, NULL, 2); */
 
-   if (!ColMap->frac){
-    // SUMA_SL_Err("NULL ColMap frac");
-    SUMA_RETURN(NOPE);
-   } 
+   if (!ColMap->frac) SUMA_RETURN(NOPE);
 
    if (ColMap->N_M[0]<2) SUMA_RETURN(NOPE);
 
@@ -6454,6 +6450,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
 
    if (!Recycle) {
       Sover->GlobalOpacity = -1.0; /* no factor applied */
+      /* rcr - why lose '-' here? */
       Sover->ShowMode = SW_SurfCont_DsetViewCol;
       Sover->Font = SUMA_FontStr2FontMenuItem(SUMA_EnvVal("SUMA_Dset_Font"));
       Sover->NodeRad = SW_SurfCont_DsetNodeRadConst;
