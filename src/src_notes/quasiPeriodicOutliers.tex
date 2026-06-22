@@ -1,0 +1,434 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Journal Article
+% LaTeX Template
+% Version 1.4 (15/5/16)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% Original author:
+% Frits Wenneker (http://www.howtotex.com) with extensive modifications by
+% Vel (vel@LaTeXTemplates.com)
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[twoside,twocolumn]{article}
+
+\usepackage{blindtext} % Package to generate dummy text throughout this template 
+
+\usepackage[sc]{mathpazo} % Use the Palatino font
+\usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
+\linespread{1.05} % Line spacing - Palatino needs more space between lines
+\usepackage{microtype} % Slightly tweak font spacing for aesthetics
+\usepackage{amsmath}
+
+\usepackage[english]{babel} % Language hyphenation and typographical rules
+
+\usepackage[hmarginratio=1:1,top=32mm,columnsep=20pt]{geometry} % Document margins
+\usepackage[hang, small,labelfont=bf,up,textfont=it,up]{caption} % Custom captions under/above floats in tables or figures
+\usepackage{booktabs} % Horizontal rules in tables
+
+\usepackage{lettrine} % The lettrine is the first enlarged letter at the beginning of the text
+
+\usepackage{enumitem} % Customized lists
+\setlist[itemize]{noitemsep} % Make itemize lists more compact
+
+\usepackage{abstract} % Allows abstract customization
+\renewcommand{\abstractnamefont}{\normalfont\bfseries} % Set the "Abstract" text to bold
+\renewcommand{\abstracttextfont}{\normalfont\small\itshape} % Set the abstract itself to small italic text
+
+\usepackage{titlesec} % Allows customization of titles
+\renewcommand\thesection{\Roman{section}} % Roman numerals for the sections
+\renewcommand\thesubsection{\roman{subsection}} % roman numerals for subsections
+\titleformat{\section}[block]{\large\scshape\centering}{\thesection.}{1em}{} % Change the look of the section titles
+\titleformat{\subsection}[block]{\large}{\thesubsection.}{1em}{} % Change the look of the section titles
+
+\usepackage{fancyhdr} % Headers and footers
+\pagestyle{fancy} % All pages have headers and footers
+\fancyhead{} % Blank out the default header
+\fancyfoot{} % Blank out the default footer
+\fancyhead[C]{Running title $\bullet$ May 2016 $\bullet$ Vol. XXI, No. 1} % Custom header text
+\fancyfoot[RO,LE]{\thepage} % Custom footer text
+
+\usepackage{titling} % Customizing the title section
+
+\usepackage{hyperref} % For hyperlinks in the PDF
+
+\usepackage{graphicx} % For figures
+% \newcommand{\setrefnumber}{\phantomsection\renewcommand{\@currentlabel}}%
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{}
+
+\usepackage{subcaption}
+\usepackage{mathrsfs}
+
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
+
+\setlength{\droptitle}{-4\baselineskip} % Move the title up
+
+\pretitle{\begin{center}\Huge\bfseries} % Article title formatting
+	\posttitle{\end{center}} % Article title closing formatting
+\title{Finding Outliers in Quasiperiodic Series} % Article title
+\author{%
+	\textsc{Peter D. Lauren, Richard C. Reynolds, Daniel Glen \& Paul Taylor}\\ % Your name
+	\normalsize Scientific and Statistical Computing Core \\ NIMH, NIH \\ Bethesda, MD, USA\\ % Your institution
+}
+\date{\today} % Leave empty to omit a date
+\renewcommand{\maketitlehookd}{%
+	\begin{abstract}
+		\noindent To be added.
+	\end{abstract}
+}
+
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+	
+	% Print the title
+	\maketitle
+	\onecolumn
+	\tableofcontents
+	\newpage
+	\twocolumn
+	
+	%----------------------------------------------------------------------------------------
+	%	ARTICLE CONTENTS
+	%----------------------------------------------------------------------------------------
+\section{Introduction}
+
+Functional MRI (fMRI) allows researchers to model neuronal activity at different parts of the brain by analyzing blood oxygen level dependent (BOLD) signals. However blood oxygenation also varies with cardiac and respiratory cycles  \cite{Glover2000}.  Fluctuations in breathing during rest generally occur at similar frequencies ($\sim 0.03$ Hz) and in similar brain regions to those implicated in resting-state default-mode network (DMN) activity \cite{Wise2004}\cite{Birn2006}. The DMN comprises a set of regions that exhibit low-frequency correlated signals in task-free resting state \cite{Greicius2004} and are collectively down-regulated during a wide range of cognitively demanding tasks \cite{McKiernan2003}. The DMN likely reﬂects both unconstrained mental activity (e.g. ``mind wandering'') as well as spontaneous neuronal ﬂuctuations, and has been shown to reliably map multiple functional networks in the brain\cite{Birn2012}.  Glover {\em et al.}\cite{Glover2000} presented an algorithm for modeling such variation. This corrects the signal based on the phase of the cardiac and respiratory cycle in which each image was acquired.  This removes fluctuations at the respiratory and cardiac frequencies and their first harmonics.  This deals with physiological fluctuations (e.g. cardiac) that are of a higher frequency than the rate of image acquisition (determined by the repetition time (TR)\footnote{Whole brain imaging generally requires a TR of at least 2-3 s.}), and it allows for a variation in the cardiac and respiration rate. .
+
+{\em  Functional connectivity} typically refers to a high level of temporal correlation among spatially distinct locations within the brain.  Birn \cite{Birn2012} estimated functional connectivity among different brain regions from MRI data by computing the temporal correlation of low frequency (<0.1 Hz) ﬂuctuations in the MRI signal.  These fluctuations occurred even when the subject was ``at rest''.  Correlated signal ﬂuctuations occurred at low temporal frequencies (<0.1 Hz).  Biswal {\em et al.}\cite{Biswal1995} found that signal ﬂuctuations in the left and right primary motor areas were signiﬁcantly correlated even when the subject was not performing any motor task.  These correlated signal ﬂuctuations occurred at low temporal frequencies (<0.1 Hz)\cite{Birn2012}.  However, this requires accurate detection of peaks and troughs.
+
+A {\em quasi-periodic} (sometimes called {\em rhythmic}\cite{Yang2015})) time series (QTS) has a periodic pattern with variations in frequency.  Breathing and cardiovascular functions are examples of QTS.  This makes it more difficult to identify errors, in the peak and trough locations, as the correct locations continuously vary.  An erroneous call is most likely a significant outlier relative to the overall variation.  Ways to determine such outliers are discussed.  Non-deep learning methods, such as spectral decomposition, frequency domain analysis, and symbolic methods, are in general computationally more efficient than deep representation learning methods but non-deep learning approaches usually yield performance that is inferior to that of the deep representation learning methods.\cite{Yang2015}
+
+
+\section{Seq2GMM}
+
+Seq2GMM\cite{Yang2015} is a machine learning algorithm that identifies those time series that behave differently from the majority of the observations although the goal is more to identify worrisome cardiological activity rather than artifacts in the peak detection.  The learning algorithm is {\em unsupervised} since anomalies happen sporadically by their nature.
+
+The time series {\em shapelet} is a subsequence that Seq2GMM uses to deﬁne the difference between two classes of time series.  It is a discriminative small subsection of the shape between two classes of shapes.  Shapelets may be normal or anomalous.  Seq2GMM learns shapelet in the {\em latent space}\footnote{Latent space is a compressed, abstract representation of data that captures its essential features while discarding noise and irrelevant details.} through a recurrent encoder-decoder architecture.  It is therefore called a {\em recurrent shapelet}.  Given a collection of $N$ univariate rhythmic (quasi-periodic)
+time sequences/series, $\{\bf{s}_1, \bf{s}_2, \dots, \bf{s}_N\}$, with different lengths, called a {\em bundle}, the primary goal of seq2GMM is to 1) identify anomalous time series that appear to be different from the normal pattern, 2) pinpoint the anomaly subsequences.\cite{Yang2015}  Seq2GMM analyzes ECG signals by learning normal signals and identifying unusual signals that appear to be abnormal.  Additionally, seq2GMM outputs an anomaly score for each wave.
+
+Each time series, $\bf{s}_i$, in $\{\bf{s}_1, \bf{s}_2, \dots, \bf{s}_N\}$, is divided into multiple temporal segments $\bf{s}_i=\{\bf{s}_{i1}, \bf{s}_{i2}, \dots, \bf{s}_{iM}\}$.  Each segment is compressed into a latent space through an encoder-decoder structure.  The assumption is made that the latent space representation of a normal time segment $s$ is drawn from a null hypothesis ($H_0 \sim h_0({\bf{s})}$) and that $h_0({\bf{s})}$ follows a {\em Gaussian mixture model} (GMM).  The Seq2GMM algorithm consists of three steps.
+\begin{enumerate}
+	\item Temporal segmentation through a piecewise linear regression model.
+	\item Temporal sequence compression network to extract the temporal dynamics from the time series.
+	\item Gaussian Mixture Model in the latent space.
+\end{enumerate}
+The parameters of steps 2 and 3 need to be jointly optimized.  Seq2GMM aims to group all obtained temporal segments into different clusters according to the low-dimensional representation $y$ of each segment $\bf{y}_i=\{\bf{y}_{i1}, \bf{y}_{i2}, \dots, \bf{y}_{iM}\}$ and associate each segment with an anomaly score $\{e_{i1}, e_{i2}, \dots, e_{iM}\}$.
+
+\subsection{Temporal Segmentation}
+
+The time series is represented as a sequence of ﬁnite-length segments and a piecewise linear regression method is used to pre-process the time series and partition it into a sequence of segments.  This enables the learning of the temporal dynamics of each segment in order to pinpoint the most anomalous segment of a time series.  Each time series is split into non-overlapping temporal segments, $\{\bf{s}_{i1}, \bf{s}_{i2}, \dots, \bf{s}_{iM}\}$, where $M$ is the same for each time series.  The loss function for segmentation is composed of two components: 1) the least square error between the temporal sequence and its linear representation and 2) the ratio between the within-class scatter matrix and between-class scatter matrix. Let $\bf{l}$ denote the piecewise linear regression for $s$,  where $l_i$ denotes the regression result for the $i^{th}$ data point. Then 
+\[
+	\bf{l}=\bf{A}\boldsymbol{\beta}
+	\label{linearRegressionTemporalSegmentation}
+\]
+where $b_i$ and $\beta_i$ respectively denote the starting point and slope of the $i^{th}$ segment.  $\bf{A}$ is the regression matrix
+\begin{eqnarray}
+	\bf{A}=\left\{ 
+	\begin{array}{ c l }
+		i-b_i & i>b_i \\
+		0          & otherwise
+	\end{array}
+	\right.
+	\label{regressionMatrix}
+\end{eqnarray}
+The sum of squares error is given by
+\begin{eqnarray}
+	E_R(\bf{s},\bf{l})=\bf{e}^T\bf{e}	
+	\label{sumOfSquaresError}
+\end{eqnarray}
+where $\bf{e}=\bf{A}\boldsymbol{\beta}-\bf{s}$.  The optimal solution, to minimize the sum of squares, is given by
+\begin{eqnarray}
+	\boldsymbol{\beta}^*=(\bf{A}^T\bf{A})^{-1}\bf{A}^T\bf{s}
+	\label{minSumOfSquaresError}
+\end{eqnarray}
+M is adjusted to minimize $\bf{e}(\bf{b})^T\bf{e}(\bf{b})$.  This is done by training a neural network that progressively adds breakpoints to divide the time series in the training set.  The algorithm then performs K-means clustering on all temporal segments where $K=2$.  With each iteration of $M$, the Calinski-Harabasz index is used to evaluate the performance of the clustering.  The higher the value, the better the performance.  
+
+\subsection{Temporal Compression Network}
+
+This produces a low-dimensional representation, $\bf{y}$, of each temporal segment, given by 
+\begin{eqnarray}
+	\bf{h}_c=h(\bf{s},\bf{w}_{en})\\
+	\bf{s}^{\prime}=g_a(\bf{h}_c,\bf{s}_0,\bf{w}_{da})\\
+	\bf{z}_r=f(\bf{s},\bf{s}^{\prime}))\\
+	\bf{y}=[\bf{h}_c,\bf{z}_r]
+	\label{lowDimensionRepresentation}
+\end{eqnarray}
+where $h(\cdot,\bf{w}_{en})$ is a sequence encoder with parameters $\bf{w}_{en}$, $g_a(\cdot,\bf{w}_{da})$ is an attentive sequence decoder with parameters $\bf{w}_{da}$, $\bf{s}_0$ is the attention sequence output by the encoder, $\bf{s}^{\prime}$ is the reconstruction output from the attentive sequence decoder, $f(\cdot)$ is a function that calculates Euclidean distance and cosine similarity between the input and the reconstruction, and $\bf{z}_r$ is the output of this function.  Finally, both $\bf{h}_c$ and $\bf{z}_r$ are put into a vector $\bf{y}$ to build a complete representation. $\bf{y}$ is the low-dimensional representation of the time series.
+
+\subsection{GMM Estimation Network}
+
+Given the latent space representation of a temporal segment, the estimation network leverages the framework of GMM to carry out the density estimation.  Let $\boldsymbol{\mu}_k(i)$ and $\bf{\Sigma}_k(i)$ denote respectively the mean and variance of the $k^(th)$ component in GMM for the $i^{th}$ segment.  Let $\boldsymbol{\gamma}_i=[\gamma_1(i)\cdots\gamma+K(i)]^T$ denote a K-dimensional vector, where $\gamma_k(i)$ denotes the probability that the $i^{th}$ segment belongs to the $k^{th}$  mixture component.  Then
+\begin{eqnarray}
+	\boldsymbol{\gamma}_i=g_e(\bf{y}_i,\bf{w})\\
+	\boldsymbol{\Phi}_k=\sum_{i-1}^{N_s}\frac{\gamma_k(i)}{N_s}\\
+	\boldsymbol{\mu}_k,\Sigma_k=g_g^k(\{\bf{y},\bf{\gamma_i}\}_{i=1}^{N_s})
+	\label{GMM}
+\end{eqnarray}
+$\boldsymbol{\Phi}_k$, $\boldsymbol{\mu}_k$, $\boldsymbol{\Sigma}_k$ are the mixture weights, the mean, and the co- variance of the $k^{th}$ component in the Gaussian mixture model. $g_e(\cdot,\boldsymbol{w}_{es})$ represents the estimation network with parameters$\boldsymbol{w}_{es}$. $g_g^k(\cdot)$ represents the function that calculates $\boldsymbol{\mu}_k,\Sigma_k$ from $\{\bf{y},\bf{\gamma_i}\}_{i=1}^{N_s}$.  This function is detailed in \cite{Yang2015}.
+
+The sample energy function, $E(\boldsymbol{Y}_i)$, measures the likelihood of a segment sample and will be used to characterize its level of abnormality.  It is given by
+\begin{eqnarray}
+	E(\boldsymbol{Y}_i)=-\log\left(\sum_{k=1}^K\boldsymbol{\Phi}_k\frac{ e^{-\frac{1}{2}[\boldsymbol{y}_i-\boldsymbol{\mu}_k]^T\sum_k^{-1}[\boldsymbol{y}_i-\boldsymbol{mu}_k]} }{\sqrt{\vert 2\pi\Sigma_k\vert }}\right)
+	\label{sampleEnergyFunction}
+\end{eqnarray}
+
+The latest space samples are clustered.  Low density clusters correspond with anomalous segments.
+
+\section{Two-Level Clustering-Based QTS Segmentation Algorithm (TCQSA)}
+
+Liu {\em et al}\cite{Liu2022} propose a collection of algorithms of various levels of complexity with more complex algorithms having slightly better performance.  TCQSA also uses clustering but is conceptually simpler than Seq2GMM.   TCQSA first automatically splits the QTS into quasi-periods which are then classified by the {\em hybrid attentional Long Short-Term Memory-Convolutional Neural Network (LSTM-CNN) model} (HALCM) into normal periods or anomalies.  TCQSA integrates an hierarchical clustering and the k-means technique.  TCQSA contains two levels of clustering. Particularly, the former clustering adopts a hierarchical clustering, avoiding manual intervention.  The second clustering is speciﬁcally utilized to eliminate the clusters caused by the outliers of QTSs due to noise.  This may make the second clustering undesirable if the goal is to identify regions of badness.  TCQSA is aimed more at identifying medical anomalies such as arrhythmia.  However, the outliers, identified during the former clustering may correspond to badness regions.
+
+The dimensionality of clusters derives from features.  Huang {\em et al}\cite{Huang2014} clustered the vertex angles of the peak points of the QTS into a set of clusters, and then regarded the points in the cluster with the smallest difference as the split points.
+
+TCQSA considers a time sequence, $TS=(v_1, \dots, v_N)$ with a subsequence, $SS=(v_{s1},\dots,v_{sM})$, where $SS\subseteq TS$.  They regard a QTS as $QTS=(q_1,\dots, q_N)$.  Each element, $q_i$, is called a {\em period point} or {\em split point}.  These split the QTS into {\em quasi-periods}.  If a quasi-period has the same fluctuation pattern as most others, it is considered normal.  Otherwise, it is considered an anomaly.  They use the supervised classiﬁcation-based anomaly detection strategy to detect the anomalies in QTSs.  The Douglas-Peucker (DP) algorithm is used to extract the critical points.  The procedure is as follows.
+\begin{enumerate}
+	\item For a QTS, use a line segment, $\overline{p_fp_l}$ where $p_f$ refers to the first point of the QTS and $p_l$ to the last.
+	\item Between $p_f$ and $p_l$, find the point $p_m$ which has the maximum perpendicular distance to $\overline{p_fp_l}$.
+	\item Compare the perpendicular distance, $dist(p_m,\overline{p_fp_l})$ between $p_m$ and $\overline{p_fp_l}$.  If $dist(p_m,\overline{p_fp_l})\leq\lambda$, where $\lambda$ is a small, predefined threshold, the algorithm ends and the QTS is represented by $\overline{p_fp_l}$.
+	\item If $dist(p_m,\overline{p_fp_l})>\lambda$, recursively process the subsequences,  $\overline{p_fp_m}$ and $\overline{p_mp_l}$, using steps 1-3, marking $p_m$ as a critical point.
+\end{enumerate}
+The optimal value of $\lambda$ depends on the waveform of the QTS.  To avoid presetting the number of clusters, they use the Louvain algorithm.to cluster the candidate points.  The input to the Louvain algorithm is a weighted graph, $G=(V,E)$ where $V$ is a set of vertices and $E$ is a set of edges.  For two vertices, $u,v\in V$, the edge between them, $e(u,v)$, has weight $w_{uv}$.  The Lovain algorithm partitions $G$ into disjoint communities (clusters), $C$, which satisfies
+\begin{itemize}
+	\item $\cup sc_i=V_i, \forall c_i\in C$
+	\item $c_i \cap sc_j = \emptyset, \forall j \neq i$
+\end{itemize}
+To adapt to Louvain algorithm, the candidate points must first be converted to a weighted graph.  That is, for the $i_{th}$ candidate points, $p_i$, a vector, $vec_i=(vdist1_i,vdist2_i,tdist1_i,tdist2_i)$, is created where 
+\begin{eqnarray}
+	vdist1_i=v_i-v_{i-1}	\nonumber \\
+	vdist2_i=v_{i+1}-v_i	\nonumber \\
+	tdist1_i=t_i-t_{i-1}	\nonumber \\
+	tdist2_i=t_{i+1}-t_i
+\label{vdisttdist}
+\end{eqnarray}
+where $v_i$ and $t_i$ denote the value and time stamp of $p_i$ respectively.  The weight of $e(u,v)$ is given by 
+\begin{eqnarray}
+	w_{uv}=\frac{1}{dist(vec_u,vec_v)}
+	\label{weightUV}
+\end{eqnarray}
+where $dist(\cdot)$ is the Euclidean distance between the two vectors: $vec_u$ and $vec_v$. The reciprocal is used to negatively correlate the weight and distance, thus making larger weights reflect greater similarity between candidate points.  This puts similar candidates into the same cluster.  The pseudocode, for the process, where the input are the candidate points of the QTS and the output are the period points to split the QTS, is found in Liu {\em al}\cite{Liu2022}.  First, each vertex is initialized as a community. Then, each community is tentatively and orderly moved into another community. If the move cannot improve the quality of the communities (i.e., the clustering results), it will be revoked. This process continues until the quality does not improve any more.  To evaluate the quality of the communities effectively, the modularity, $MOD$ is adopted as the metric.  This is given by
+\begin{eqnarray}
+	MOD=\sum_{c_i\in C}\left(\frac{\sum_{in}^{c_i}}{2m}-
+	\left(\frac{\sum_{tot}^{c_i}}{2m}\right)^2
+	\right)
+	\label{MOD}
+\end{eqnarray}
+where $\sum_{in}^{ci}=\sum w_{u,v} (\forall u,v\in c_i  \text{ and } e(u,v) \in E)$ represents the sum of the weights of the edges contained in community $c_i$ and $\sum_{tot}^{ci}=\sum w_{u,v} (\forall (u\in c_i \text{ or } v \in c_i) \text{ and } e(u,v) \in E)$ is the sum of the weights of the edges that can connect at least one vertex of community $c_j$.  $m=\sum_{u,v\in V}w_{u,v}(\forall u,v\in C)$ denotes the sum of the weights of all edges and acts as a normalization factor.  $V$ is the set of all vertices.  If the weights of the inter-community edges and intra-community edges were relatively small and large respectively, then $\sum_{tot}^{ci}$ and $\sum_{in}^{ci}$ would be relatively small and large respectively  and the $MOD$ would be large.
+
+Clusters caused by outliers usually have only a few vertices.
+
+\section{Other Published Algorithms}
+
+Erku\c{s} \& Purut\c{c}uo\u{g}lu\cite{Erkus2021} present a frequency domain based algorithm for identifying outliers in quasi-periodic time series.  However, the focus is on identifying quasi-periodic outliers.  This requires outliers to follow a regular pattern. 
+
+Due to the complexity of Seq2GMM, the more recent TCQSA algorithm will be initially used.
+
+\section{Proposed Algorithm: Low End Cumulative Weights (LECW)}
+
+The proposed algorithm is roughly based on the TCQSA approach but the existing peaks (and troughs) will be used as the critical points.  The Louvain algorithm is still used to cluster the candidate points.  For cardiac data, $vec_i$ is determined as given by equation \ref{vdisttdist} with the peak value, $v_i$, simply the value of the time series at peak $i$.  $t_i$ is the index of peak $i$ on the time series.  For respiratory data, there are both peaks and troughs at different time points.  Peaks and troughs could be treated separately but this may result in information loss as it loses the relationships between adjacent peaks and troughs.  Alternatively, critical point, $i$, is alternatively a peak and a trough.  $t_i$ is the index of the $i^{th}$ critical point.  A problem with this is that breaths may not be symmetric around peaks.  A possible solution, for this, is to switch $tdist1_i$ and $tdist2_i$ for troughs.  In this case, $v_i$ is given by
+\begin{eqnarray}
+	v_i=\left\{ 
+	\begin{array}{ c l }
+		v_i^{\prime} - \frac{v_{i-1}^{\prime}+v_{i+1}^{\prime}}{2} & i \text{ a peak} \\
+		\frac{v_{i-1}^{\prime}+v_{i+1}^{\prime}}{2} - v_i^{\prime} & i \text{ a trough}
+	\end{array}
+	\right.
+	\label{respiratoryV}
+\end{eqnarray}
+
+where $v_i^{\prime}$ is the raw value at index $i$.  A problem combining this approach with equation \ref{vdisttdist} is that the differences between two values are used twice, thus not adding new information.  Instead, peaks are determined using equation \ref{respiratoryV} and the resulting respiratory peaks are treated the same way as are cardiac peaks.  The peak and trough list may need to be shifted to ensure they are correctly interdigitated (the troughs used in equation \ref{respiratoryV} are on either side of the peak).  If there are multiple peaks/troughs between troughs/peaks then the region, between the critical points on either side, is flagged as an anomalous region.  Equation \ref{respiratoryV} is modified to the following.
+\begin{eqnarray}
+	v_i = v_i^{\prime} - \frac{v_{i-1}^{\prime}+v_{i+1}^{\prime}}{2} 
+	\label{respiratoryV2}
+\end{eqnarray}
+
+where $v_i^{\prime}$ is the raw value of peak $i$ and $v_{i-1}^{\prime}$ and $v_{i+1}^{\prime}$ are the raw values of the troughs on either side of peak $i$.
+
+I would like to make a new set of peaks each of which is the difference between each peak value and the mean of the values of the troughs on either side.  There should be only one peak between two troughs and only one trough between two peaks.  If there are two troughs between two peaks, I would like the mean of the values of those troughs to be used as the value of one of the troughs used to determine the output peak height.  I would also like the range, between the two peaks to be recorded in out output list where each nested member gives the range between the two peaks.  If there are two peaks between two troughs, I would like the output peak to be the mean of the height and locations of both peaks and the indices, between the two troughs nested in the outliers list.
+
+$vdist$ and $tdist$ values are normalized so they are in the same range.  Otherwise, one may have a disproportionate effect.
+
+A matrix, of the weights (equation \ref{weightUV}) between each pair of vertices, is formed.  Segments are then merged into communities, using equation \ref{MOD} to evaluate whether the merger improves the overall quality of the communities.  The size of each community is recorded and the smallest communities, or unmerged vertices, labeled as bad vertices.
+
+The procedure is as follows.
+\begin{enumerate}
+	\item Load filtered cardiac time series and cardiac peaks.
+	\item Build an array of $vec$s, one for each peak, according to equation \ref{vdisttdist}.
+	\item Record the ranges for the $vdist$ and $tdist$ values.
+	\item Make an $N \times N$ matrix where $N$ is the number of cardiac peaks.
+	\item Fill the matrix with the weights, $w_{uv}$ determined using equation \ref{weightUV}.
+	\item Each vertex is initially regarded as a community or cluster.
+	\item Make an array of clusters where each cluster is an array of members containing the $i$ indices of the cluster members.  In Python, this would be a list of lists although a list of numpy array would also work.
+	\item Starting with the first cluster (vertex) merge in other clusters only in cases where MOD (equation \ref{MOD}) is increased by doing so.
+	\item Remove adopted clusters from the list of lists.
+	\item Move through each cluster and merge with each of the other clusters where doing so increases MOD.
+	\item When MOD no longer increases beyond a predefined threshold, stop.
+	\item The smallest clusters, or clusters less than a certain size, are flagged as cardiac outliers.
+	\item Load filtered respiratory time series and respiratory peaks.
+	\item Consider each peak and each trough as a vertex while recording whether each is a peak into a Boolean list
+	\item If there are more than one peak between two troughs then the region, between the troughs is marked as anomalous.
+	\item If there are more than one trough between two peaks then the region, between the peaks is marked as anomalous. 
+	\item Assign the vertex values according to equation \ref{respiratoryV2}.
+	\item Build an array of $vec$s, one for each peak, according to equation \ref{vdisttdist}.
+	\item The remainder of the process is the same as for cardiac peaks.
+\end{enumerate}
+
+\subsection{Optimization}
+
+Clustering tends to be slow so the default is to not use it.
+
+If expand factor greater than 1.0, median shrink cardiac time series to match cardiac peaks.
+
+The default procedure is as follows.
+\begin{enumerate}
+	\item Load filtered cardiac time series and cardiac peaks.
+	\item Build an array of $vec$s, one for each peak, according to equation \ref{vdisttdist}.
+	\item Normalize time differences to be in the same range as the value differences
+	\item Make an $N \times N$ matrix where $N$ is the number of cardiac peaks.
+	\item Fill the matrix with the weights, $w_{uv}$ determined using equation \ref{weightUV}.
+	\item Make a vector of weight sums and get a vector of their ranks starting with the highest weight sum.
+	\item Identify outliers on low end of the cumulative weights
+	\begin{enumerate}
+		\item Calculate Q1 and Q3 (first and third quartiles)
+		\item Calculate inter-quartile range (IQR)
+		\item $k_{opt}$ = best lower multiplier, determined as follows
+		\begin{enumerate}
+			\item Vector weight sums are referred to as {\em gaps}
+			\item Ensure array of gaps is a NumPy array
+			\item If no gaps or only one gap, fall back to base multiplier (currently 1.4)
+			\item Identify unusually large gaps.  That is, gaps more than twice the median gap.
+			\item If no unusually large gaps, select the base multiplier.
+			\item Otherwise, compute extra factor from the size of the largest gap and add it to the base multiplier.  The extra factor is the lesser of 1.0 and one fifth of the largest gap.
+		\end{enumerate}
+		\item Lower bound, $b_l$, is $q1 - (k_{opt} \times IQR)$.
+		\item Vectors with weight sums less than the lower bound are low end outliers.
+		\item If there are low end outliers, rank their indices.
+		\item Get outlier time series indices
+		\item Find peak outliers
+	\end{enumerate}
+	\item Sort anomalous bands in  order of location
+	\item Merge overlapping bands
+	\item Reverse the orders of the merged ranges
+	\item Get median cardiac peak spacing.
+	\item Replace cardiac peaks in ranges with peaks spaced at roughly the median spacing
+	\item Save cardiac results to files
+	\item Load respiratory time series
+	\item Median shrink respiratory time series to match respiratory peaks and troughs
+	\item Load respiratory peaks and respiratory troughs
+	\item Consider each peak and each trough as a vertex while recording whether each is a peak into a Boolean list If there are more than one peak between two troughs then the region, between the troughs is marked as anomalous. If there are more than one trough between two peaks then the region between the peaks is marked as anomalous. Assign the vertex values according to equation \ref{respiratoryV2}. Build an array of $vec$s, one for each peak, according to equation \ref{vdisttdist}.
+	\begin{enumerate}
+		\item Get modified peaks (original peaks minus the mean of the adjacent peaks)
+		\item Build an array of vectors, one for each peak.
+		\item Normalize time differences to be in the same range as the value differences
+		\item Make an $N \times N$ matrix where $N$ is the number of segments and fill the matrix with the weights
+		\item Get weight sum vectors and rank indices
+		\item Identify outliers on low end of the cumulative weights
+		\item Identify peak-trough mismatches (multiple peaks/troughs between pairs of troughs/peaks).
+	\end{enumerate}	
+\end{enumerate}
+
+This makes clustering run in a reasonable time although it is still slower than the LECW and finds fewer bad regions (although LECW may find too many).
+
+\section{Correcting Bad Regions}
+
+Regions, automatically flagged as bad, can be automatically corrected and afni\_proc.py used to assess the benefit of automatic correction.  The overall algorithm is as follows.
+\begin{enumerate}
+	\item Get corrected versions of respiratory and cardiac time series.
+	\item The physio\_calc.py program is used to determine RVT, RVTRRF, HRCRF and retroicor regressors from the corrected and uncorrected time series.
+	\item Single-echo FMRI data is used to test the value of the automatic correction. RVT, RVTRRF and HRCRF are typically applied as a set of 5 time-shifted regressors. To avoid boundary effects, the mean RVT/HRCRF value was subtracted from the RVT/HRCRF vector (mean centering) before convolution with RRFHR to obtain RVTRRF/HRCRF. For comparison, three types of physio regressor files were created: one containing the 5, shifted RVT regressors, one containing the 5 shifted RVTRRF regressors and one containing the 5, shifted HRCRF regressors. These were separately applied to FMRI processing using AFNI's afni\_proc.py \cite{Reynolds2024} pipeline tool. The effect of each set of regressors is directly compared in terms of variance reduction (i.e., filtering physiological features out). In the comparison, the uncorrected time series variance reduction is subtracted from that of using the corrected time series, so that positive values reflect where using the automatic correction explains more variance than using the uncorrected time series. 
+\end{enumerate}
+
+Time series are corrected as follows.  For the ECG time series:
+\begin{enumerate}
+	\item Determine the mean period among peaks, $T_p$.
+	\item In every region identified as bad
+	\begin{enumerate}
+		\item Remove all of the existing peaks in bad region.
+		\item Let $\ell_b$ be the width from the last peak before the bad region to the first peak after the bad region.  If there is no peak before the bad region, $\ell_b$ is the distance to the first peak after the bad region.  If there is no peak after the bad region, $\ell_b$ is the distance from the last peak before the bad region to the end of the time series.
+		\item Divide $\ell_b$ by $T_p$, and round it off to the nearest integer, to estimate the new number of peaks, $N_p$.
+		\item Decrement $N_p$ by 1 (so the first peak, after the bad region is not part of the new series).
+		\item Divide the width of the region by $N_p$ to get the local inter-peak width, $t_p$.
+		\item Starting at the last peak before the bad region, add peaks at intervals of $t_p$ with each index rounded to the nearest integer.  If there is no peak before the bad region, start at the first peak after the bad region and work back.
+		\item The value, at each peak, is the mean of the peak values on either side of the bad region.  (Taking the local maximum is less desirable since it may be affected by noise.) 
+	\end{enumerate}
+\end{enumerate}
+
+With the respiratory time series, there are troughs as well as peaks and peaks and troughs may not be  always bijective.  The following procedure is followed for the respiratory time series.
+\begin{enumerate}
+	\item Determine the mean period among peaks, $T_p$.
+	\item Determine the mean portion $P_{ip}$ of the interpeak distance from a peak to its following trough.
+	\item First deal with cases where there is more than one peak/trough between a pair of troughs/peaks.
+	\begin{enumerate}
+		\item If at least two consecutive peaks
+		\begin{enumerate}
+			\item Remove all of the existing peaks in bad region.
+			\item Get the distance, $t_t$ between the adjacent troughs.
+			\item The new number of peaks, $N_p$, between the adjacent troughs is given by $N_p = \text{max}(1, \lfloor \frac{t_t}{T_p} \rceil - 1)$ 
+			\item Add $N_p$ peaks, starting at $t_{\ell} + \lfloor (1.0 - P_{ip}) \times P_{ip} \rceil$ where $t_{\ell}$, is the index of the trough to the left of the multiple peaks, and incrementing by $T_p$ with the index rounded to the nearest integer.
+		\end{enumerate}
+		\item If at least two consecutive troughs
+		\begin{enumerate}
+			\item Remove all of the existing troughs in bad region.
+			\item Get the distance, $t_p$ between the adjacent peaks.
+			\item The new number of troughs, $N_t$, between the adjacent peaks is given by $N_t = \text{max}(1, \lfloor \frac{t_p}{T_p} \rceil - 1)$ 
+			\item If $N_t > 0$, add $N_t$ troughs, starting at $p_{\ell} + \lfloor P_{ip} \times P_{ip} \rceil$ where $p_{\ell}$, is the index of the peak to the left of the multiple troughs, and incrementing by $T_p$ with the index rounded to the nearest integer.
+		\end{enumerate}
+	\end{enumerate}
+	\item For the bad regions, place the peaks as for the cardiac series with a trough placed $\lfloor P_{ip} \times T_p \rceil$ after each peak.
+\end{enumerate}
+
+%----------------------------------------------------------------------------------------
+%	REFERENCE LIST
+%----------------------------------------------------------------------------------------
+
+\begin{thebibliography}{99} % Bibliography - this is intentionally simple in this template
+	
+	\bibitem{Glover2000} Glover GH, Li T-Q \& Ress D (2000). ``Image-Based Method for Retrospective Correction of Physiological Motion Effects in fMRI: RETROICOR''. {\em Magnetic Resonance in Medicine} 44:162–167 (2000)
+	
+	\bibitem{Birn2012} Birn, RM, (2012), ``The role of physiological noise in resting-state functional connectivity'', {\em NeuroImage} 62:864–870
+	
+	\bibitem{Biswal1995} Biswal, B., Yetkin, F.Z., Haughton, V.M., Hyde, J.S., 1995. ``Functional connectivity in the motor cortex of resting human brain using echo-planar MRI''. {\em Magn. Reson. Med.} 34, 537–541.
+	
+	\bibitem{Biswal1997} Biswal, B., Hudetz, A.G., Yetkin, F.Z., Haughton, V.M. \& Hyde, J.S., 1997. ``Hypercapnia reversibly suppresses low-frequency ﬂuctuations in the human motor cortex during rest using echo-planar MRI''. {\em J. Cereb. Blood Flow Metab.} 17:301–308.
+	
+	\bibitem{Greicius2004} Greicius, M.D. \& Menon, V., 2004. ``Default-mode activity during a passive sensory task: uncoupled from deactivation but impacting activation''. {\em J. Cogn. Neurosci.} 16:1484–1492
+	
+	\bibitem{McKiernan2003} McKiernan, K.A., Kaufman, J.N., Kucera-Thompson, J. \& Binder, J.R., 2003. A parametric manipulation of factors affecting task-induced deactivation in functional neuroimaging. {\em J. Cogn. Neurosci.} 15, 394–408
+	
+	\bibitem{Birn2008} Birn RM, Smith MA, Jones TB, \& Bandettini PA. ``The respiration response function: the temporal dynamics of fMRI signal fluctuations related to changes in respiration''. {\em Neuroimage} 2008;40:644–654 (2008)
+	
+	\bibitem{Wise2004} Wise RG, Ide K, Poulin MJ, Tracey I. Resting fluctuations in arterial carbon dioxide induce significant low frequency variations in BOLD signal. {\em Neuroimage} 2004;21(4):1652–1664. [PubMed: 15050588]
+	
+	\bibitem{Birn2006} Birn RM, Diamond JB, Smith MA, \& Bandettini PA. ``Separating respiratory-variation-related fluctuations from neuronal-activity-related fluctuations in fMRI''. {\em Neuroimage} 2006;31(4):1536–1548. [PubMed: 16632379]
+	
+	\bibitem{Yang2015} Yang, K, Dou, S, Luo, P, Wang, X, \&  Poor, HV, 2015, ``Robust group anomaly detection for quasi-periodic network time series''. {\em J. \LaTeX\ Class Files}, 14(8)
+	
+	\bibitem{Erkus2021} Erku\c{s} EC \& Purut\c{c}uo\u{g}lu, V, 2021, ``Outlier detection and quasi-periodicity optimization algorithm: Frequency domain based outlier detection (FOD)'', {\em European Journal of Operational Research} 291(2):560-574
+	
+	\bibitem{Liu2022} Liu, F, Zhou, X, Cao, J, Wang , Z, Wang, T, Wang, H \& Zhang, Y, 2022 ``Anomaly Detection in Quasi-Periodic Time Series Based on Automatic Data Segmentation and Attentional LSTM-CNN'', {\em IEEE Trans. Knowledge and Data Engineering} 34(6):2626-2640
+	
+	\bibitem{Huang2014} Huang, F {\em et al}. ``Online mining abnormal period patterns from multiple medical sensor data streams'', 2014, {\em World Wide Web}, 17(4):569-587
+	
+	\bibitem{Reynolds2024} Reynolds RC, Glen DR, Chen G, Saad ZS, Cox RW, Taylor PA (2024). Processing, evaluating and
+	understanding FMRI data with afni\_proc.py. {\em Imaging Neuroscience} 2:1-52
+	
+	
+\end{thebibliography}
+
+%----------------------------------------------------------------------------------------
+
+\end{document}

@@ -19,7 +19,6 @@ from afnipy import lib_physio_reading as lpr
 from pathlib import Path
 from scipy.sparse import csr_matrix
 
-
 def louvain_phase1(weights, max_iter=100):
 
     # Convert to sparse CSR format
@@ -904,7 +903,7 @@ def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries,
      respiratoryTroughVals
      )
     
-def writeCardiacResultsToFiles(OutDir, respiratoryTimeSeries, respiitaroryPeaks, samp_freq,
+def writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, cardiacPeaks, samp_freq,
                            peak_outliers, outlier_ts_ranges, useClustering):
     
     print('Write cardiac results to files')
@@ -927,6 +926,46 @@ def writeCardiacResultsToFiles(OutDir, respiratoryTimeSeries, respiitaroryPeaks,
                            peak_outliers,
                            outlier_ts_ranges, 
                            output_file_name)
+    
+    # Make corrected cardiac time series
+    makeCorrectedCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks, outlier_ts_ranges)
+    
+def makeCorrectedCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks, outlier_ts_ranges):
+    
+    # Determine the mean period among peaks, T_p.
+    T_p = np.diff(cardiacPeaks).mean()
+    
+    # In every region identified as bad
+    for bad_region in outlier_ts_ranges:
+    
+        # Remove all of the existing peaks in bad region
+        
+        # Determine the width, l_b, from the last peak before the bad region to 
+        # the first peak after the bad region.  If there is no peak before the 
+        # bad region, l_b is the distance to the first peak after the bad region. 
+        # If there is no peak after the bad region, l_b is the distance from
+        # the last peak before the bad region to the end of the time series.
+        
+        # Divide l_b by T_p , and round it off to the nearest integer, to 
+        # estimate the new number of peaks, N_p.
+        
+        # Decrement N_p by 1 (so the first peak, after the bad region is not 
+        # part of the new series).
+        
+        # Divide the width of the region by N_p to get the local inter-peak 
+        # width, t_p.
+        
+        # Starting at the last peak before the bad region, add peaks at 
+        # intervals of t_p with each index rounded to the nearest integer. If 
+        # there is no peak before the bad region, start at the first peak after 
+        # the bad region and work back.
+        
+        # The value, at each peak, is the mean of the peak values on either side 
+        # of the bad region. (Taking the local maximum is less desirable since 
+        # it may be affected by noise.)
+        
+    # Write out a plot of the corrected time series with green peaks (to show
+    # the corrections) and bad regions in pink
     
 def analyzePeakTroughMismatches(troughPeakMismatchRanges, respiratoryPeaks,
     peakVals, respiratoryTroughs, troughVals, cardiacPeaks):
