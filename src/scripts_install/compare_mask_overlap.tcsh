@@ -9,9 +9,12 @@
 #set version   = "0.1";  set rev_dat   = "May 24, 2026"
 # + start of program
 #
-set version   = "1.0";  set rev_dat   = "May 25, 2026"
+#set version   = "1.0";  set rev_dat   = "May 25, 2026"
 # + add in many options, more complete behavior and outputs, and
 #   help description
+#
+set version   = "1.1";  set rev_dat   = "June 23, 2026"
+# + more popup help info
 #
 # ----------------------------------------------------------------
 
@@ -32,6 +35,8 @@ set orep      = "${opref}_report.txt"
 
 set rim_dep   = 5.0                      # mm value for rim depth
 set ADTO      = 0                        # add data into outdir?
+
+set BT_TEXT   = 0                        # add text for 3dBrainTeaser
 
 set overwrite = ""
 set wdir      = ""
@@ -120,6 +125,9 @@ while ( $ac <= $#argv )
             echo "   Must be one of: Yes, 1, No, 0"
             goto BAD_EXIT
         endif
+
+    else if ( "$argv[$ac]" == "-add_bt_text" ) then
+        set BT_TEXT = 1
 
     else if ( "$argv[$ac]" == "-overwrite" ) then
         set overwrite = "-overwrite"
@@ -431,6 +439,27 @@ else
     set imrun_pref  = "${opref}_run.tcsh"     # keep
     set imcat_pref  = "${opref}_QC.jpg"       # keep
 
+    # prepare+create text for popup msg
+    set TA = ""
+    set TB = ""
+    if ( $BT_TEXT ) then
+        # special flag when running 3dBrainTeaser, to define what A
+        # and B dsets are
+        set TA = "(pred mask)"
+        set TB = "(comp mask)"
+    endif
+
+    set txt = "Color definitions for overlap:\n"
+    set txt = "${txt}   18 -> blue  : A and B\n"
+    set txt = "${txt}   24 -> red   : A only ${TA}\n"
+    set txt = "${txt}   26 -> green : B only ${TB}\n"
+    set txt = "${txt}\n"
+    set txt = "${txt}\n"
+    set txt = "${txt} To see only differences (red and green):   \n"
+    set txt = "${txt} + set threshold to approx. 20\n"
+    set txt = "${txt} + turn off alpha transparency ('A')\n"
+    set txt = "${txt} + maybe run Clusterize\n"
+
     @chauffeur_afni                                                          \
         -ulay              "${dset_ulay}"                                    \
         -olay              "${dset_olay}"                                    \
@@ -451,6 +480,7 @@ else
         -label_size        3                                                 \
         -cmd2script        "${imrun_pref}"                                   \
         -c2s_text          'View mask comparison'                            \
+        -c2s_text2         "${txt}"                                          \
         -c2s_mont_1x1
 
     if ( $status ) then
@@ -562,6 +592,11 @@ Options ~1~
                     (which is created as a new subdirectory of the output
                     file location---do not include path info here, just a
                     simple name)
+
+-add_bt_text       :special flag to add text to the popup help when this
+                    program is being run by 3dBrainTeaser, and therefore
+                    we know that inputA is the 'predicted mask' and inputB 
+                    is the 'comparison mask'
 
 -overwrite         :by default, this program will not overwrite a
                     pre-existing 'outdir'. Add this option to allow it to

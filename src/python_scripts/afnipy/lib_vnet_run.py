@@ -142,6 +142,7 @@ inobj : InOpts object
 
         cmd  = 'compare_mask_overlap.tcsh '
         cmd += '{} '.format(self.overwrite)
+        cmd += '-add_bt_text ' # adds useful text to popup help
         cmd += '-inputA {} '.format(self.prefix)
         cmd += '-inputB {} '.format(self.comp_mask)
         cmd += '-ulay   {} '.format(self.inset)
