@@ -966,62 +966,95 @@ def makeCorrectedCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks,
     
     # In every region identified as bad
     for bad_region in merged_outlier_ts_ranges:
-    
+
         # Remove all of the existing peaks in bad region
         mask = (cardiacPeaks < bad_region[0]) | (cardiacPeaks > bad_region[1])
         cardiacPeaks = cardiacPeaks[mask]
-        
-        # Determine the width, l_b, from the last peak before the bad region to 
-        # the first peak after the bad region.  If there is no peak before the 
-        # bad region, l_b is the distance to the first peak after the bad region. 
-        # If there is no peak after the bad region, l_b is the distance from
-        # the last peak before the bad region to the end of the time series.
+    
+        # peaks before and after bad region
         idx_start = np.searchsorted(cardiacPeaks, bad_region[0])
-        idx_end   = np.searchsorted(cardiacPeaks, bad_region[1])        
-        before = cardiacPeaks[idx_start - 1] if idx_start > 0 else None
+        idx_end   = np.searchsorted(cardiacPeaks, bad_region[1])
+        
+        before = cardiacPeaks[idx_start-1] if idx_start > 0 else None
         after  = cardiacPeaks[idx_end] if idx_end < len(cardiacPeaks) else None
-        if before == None and after == None: continue
-        if before == None:
-            l_b = after
-        elif after == None:
-            l_b = len(cardiacPeaks) - before
-        else: l_b = after - before
         
-        # Divide l_b by T_p , and round it off to the nearest integer, to 
-        # estimate the new number of peaks, N_p.
-        N_p = round(l_b/T_p)
-        if N_p < 1: continue
+        if before is None or after is None:
+            continue
         
-        # Divide the width of the region by N_p to get the local inter-peak 
-        # width, t_p.
-        ipw = l_b/N_p
+        # Use local RR intervals
+        rr_before = np.diff(cardiacPeaks[max(0, idx_start-5):idx_start])
+        rr_after  = np.diff(cardiacPeaks[idx_end:idx_end+6])
         
-        # The value, at each peak, is the mean of the peak values on either side 
-        # of the bad region. (Taking the local maximum is less desirable since 
-        # it may be affected by noise.)
-        if before == None: peakVal = cardiacTimeSeries[after]
-        elif after == None: peakVal = cardiacTimeSeries[before]
-        else: peakVal = (cardiacTimeSeries[after]+cardiacTimeSeries[before])/2
+        # Local estimate of beat interval
+        local_rr = np.median(np.concatenate((rr_before, rr_after)))
         
-        # Starting at the last peak before the bad region, add peaks at 
-        # intervals of t_p with each index rounded to the nearest integer. If 
-        # there is no peak before the bad region, start at the first peak after 
-        # the bad region and work back.
-        if before != None:
-            point = before + ipw
-            limit = len(cardiacTimeSeries) if (after == None) else after
-            while point < limit:
-                added_points.append(round(point))
-                # cardiacTimeSeries[round(point)] = peakVal
-                point += ipw
-                added_point_values.append(peakVal)
-        else:
-            point = after - ipw
-            while point > 0:
-                added_points.append(round(point))
-                # cardiacTimeSeries[round(point)] = peakVal
-                point -= ipw
-                added_point_values.append(peakVal)            
+        # Estimate number of missing beats
+        N_p = round((after - before) / local_rr)
+        
+        if N_p < 1:
+            continue
+        
+        # Phase interpolation
+        new_peaks = np.linspace(before, after, N_p+1)[1:-1]
+        
+        added_points.extend(np.round(new_peaks).astype(int))
+
+    #     # Remove all of the existing peaks in bad region
+    #     mask = (cardiacPeaks < bad_region[0]) | (cardiacPeaks > bad_region[1])
+    #     cardiacPeaks = cardiacPeaks[mask]
+        
+    #     # Determine the width, l_b, from the last peak before the bad region to 
+    #     # the first peak after the bad region.  If there is no peak before the 
+    #     # bad region, l_b is the distance to the first peak after the bad region. 
+    #     # If there is no peak after the bad region, l_b is the distance from
+    #     # the last peak before the bad region to the end of the time series.
+    #     idx_start = np.searchsorted(cardiacPeaks, bad_region[0])
+    #     idx_end   = np.searchsorted(cardiacPeaks, bad_region[1])        
+    #     before = cardiacPeaks[idx_start - 1] if idx_start > 0 else None
+    #     after  = cardiacPeaks[idx_end] if idx_end < len(cardiacPeaks) else None
+    #     if before == None and after == None: continue
+    #     if before == None:
+    #         l_b = after
+    #     elif after == None:
+    #         l_b = len(cardiacPeaks) - before
+    #     else: l_b = after - before
+        
+    #     # Divide l_b by T_p , and round it off to the nearest integer, to 
+    #     # estimate the new number of peaks, N_p.
+    #     N_p = round(l_b/T_p)
+    #     if N_p < 1: continue
+        
+    #     # Divide the width of the region by N_p to get the local inter-peak 
+    #     # width, t_p.
+    #     ipw = l_b/N_p
+    #     # ipw = T_p
+        
+    #     # The value, at each peak, is the mean of the peak values on either side 
+    #     # of the bad region. (Taking the local maximum is less desirable since 
+    #     # it may be affected by noise.)
+    #     if before == None: peakVal = cardiacTimeSeries[after]
+    #     elif after == None: peakVal = cardiacTimeSeries[before]
+    #     else: peakVal = (cardiacTimeSeries[after]+cardiacTimeSeries[before])/2
+        
+    #     # Starting at the last peak before the bad region, add peaks at 
+    #     # intervals of t_p with each index rounded to the nearest integer. If 
+    #     # there is no peak before the bad region, start at the first peak after 
+    #     # the bad region and work back.
+    #     if before != None:
+    #         point = before + ipw
+    #         limit = len(cardiacTimeSeries) if (after == None) else after
+    #         while point < limit:
+    #             added_points.append(round(point))
+    #             # cardiacTimeSeries[round(point)] = peakVal
+    #             point += ipw
+    #             added_point_values.append(peakVal)
+    #     else:
+    #         point = after - ipw
+    #         while point > 0:
+    #             added_points.append(round(point))
+    #             # cardiacTimeSeries[round(point)] = peakVal
+    #             point -= ipw
+    #             added_point_values.append(peakVal)            
         
     # Write out a plot of the corrected time series with green peaks (to show
     # the corrections) and bad regions in pink

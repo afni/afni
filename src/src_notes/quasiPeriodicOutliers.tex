@@ -366,6 +366,28 @@ Time series are corrected as follows.  For the ECG time series:
 	\end{enumerate}
 \end{enumerate}
 
+Unfortunately, the variation from periodicity resulted in the new peaks being significantly displaced from where they should be.  In some cases, even the number of peaks was wrong.  Hence, the missing peaks are treated as a phase interpolation problem, rather than a periodic interpolation problem.  The procedure is as follows.
+\begin{enumerate}
+	\item Keep the last few valid RR (the time (or number of samples) between consecutive R peaks in the ECG) intervals before the bad region.
+	\item Keep the first few valid RR intervals after the bad region.
+	\item Estimate the missing number of beats from the surrounding rhythm.
+	\item Place missing peaks by interpolating {\em phase} between the two known peaks.
+\end{enumerate}
+
+An example of the results is shown in figure \ref{fig:cardiacPhaseInterpolation}.
+
+
+\begin{figure}[htb]
+	\begin{center}
+		\includegraphics[height=4.0in,width=3in,angle=0]{/home/peterlauren/quasiPeriodicOutliers/cardiacPhaseInterpolation.pdf}
+		\caption{Effect of correcting cardiac peak locations using phase interpolation.  The blue spots are the original peaks in the good regions.  The red spots are the phase interpolated peaks in the bad regions.}
+		\label{fig:cardiacPhaseInterpolation}
+	\end{center}
+\end{figure}
+
+
+
+
 With the respiratory time series, there are troughs as well as peaks and peaks and troughs may not be  always bijective.  The following procedure is followed for the respiratory time series.
 \begin{enumerate}
 	\item Determine the mean period among peaks, $T_p$.
