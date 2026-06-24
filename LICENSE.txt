@@ -30,8 +30,8 @@ rights. NIMH and the U.S. Government will not be liable for any
 losses, claims, demands, expenses, or damages arising from, out of or
 in connection with the software, data, or use thereof.
 
-Please cite the authors in any work or product based on this material.
-See here for details:
+Please provide appropriate attribution and cite the authors in any work 
+or product based on this material. See here for details:
   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/published/citations.html
 
 
@@ -378,15 +378,17 @@ License:  GNU GPL 2.0 or higher [top of file]
                               COPYRIGHT F.A.Q.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 Q. Who are the primary developers of the AFNI software package?
 
 A. AFNI was started by Robert W. Cox at the Medical College of
    Wisconsin in 1994. Today, the primary developers of AFNI are the
    members of the NIMH's Scientific and Statistical Computing Core
-   (SSCC), though many members of the neuroimaging community have also
-   made (and continue to make) valuable contributions.
+   (SSCC), though many members of the broader neuroimaging community have
+   also made (and continue to make) valuable contributions.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 Q. I am not a member of the NIMH's SSCC. Can I contribute to the AFNI
    source code?  What kind of licensing will apply to my contribution?
 
@@ -398,41 +400,53 @@ A. Yes, many people have contributed to AFNI over the years!  You can
    Computing Core (SSCC)) early on in the process.
 
    US Government employees' work will automatically be in the Public
-   Domain.  Other contributions may have difference licensing, but
-   note that this is an open source, publicly available community
-   resource, and the intention is to have it remain so.  Any 3rd party
+   Domain.  Other contributions may have different licensing, but note
+   that this is an open source, publicly available community resource,
+   and the intention is to have it remain so.  Any 3rd party
    contributions should have appropriate licensing noted.
    Contributions without explicit licensing will be assumed to be
    entered into the public domain.  To make contributions with any
    explicit licensing, please contact the SSCC as early as possible.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 Q. So, what _is_ the distribution license?
 
-A. Large portions of the code (and current active development) is in
-   the public domain. For example, the `afnipy` Python module is
-   entirely within the public domain.
+A. It can be summarized as follows: 
+
+     Primarily Public Domain (U.S. Government Work) with substantial
+     portions licensed under CC BY 4.0 and third-party dependencies
+     under MIT, BSD, Apache 2.0, GPL v2/v3, and miscellaneous
+     permissive/open-source licenses; see included notices for
+     exceptions and restrictions.  Users may freely use and
+     redistribute the software consistent with the applicable
+     component licenses; attribution to the AFNI authors and other
+     third-party contributors should be provided where required and is
+     strongly requested for all uses.
+
+   Since 2001, the primary active development has been in the public
+   domain, as part of U.S. Government work.  For example, the `afnipy`
+   Python module is entirely within the public domain.
 
    On May 12, 2026, an important update to license information in the
-   AFNI codebase occurred. The Medical College of Wisconsin granted
-   NIH a Creative Commons Attribution License (CC BY 4.0) for all of
-   the code under its copyright (typically referred to as the "major
-   portions of this software" that were developed from 1994-2000 at
-   MCW), which had previously been distributed with a GPL 2.0
-   license. A copy of the letter reflecting this update is stored
-   here: doc/license_history/MCW_AFNI_license_update_2026.pdf.  In
-   brief, the CC-BY-4.0 allows for sharing and redistribution of
-   material, as well as adapting it, under the terms of giving
-   appropriate credit and indicating if any changes were made (see
+   AFNI codebase occurred, relating to code developed between
+   1994-2000.  The Medical College of Wisconsin granted NIH a Creative
+   Commons Attribution License (CC BY 4.0) for all of the code under
+   its copyright (typically referred to as the "major portions of this
+   software" that were developed from 1994-2000 at MCW), which had
+   previously been distributed with a GPL 2.0 license.  A copy of the
+   letter reflecting this update is stored here:
+   doc/license_history/MCW_AFNI_license_update_2026.pdf.  In brief,
+   the CC BY 4.0 allows for sharing and redistribution of material, as
+   well as adapting it, under the terms of giving appropriate credit
+   and indicating if any changes were made (see
    https://creativecommons.org/licenses/by/4.0/ for details).
 
-   But as outlined above, parts of the codebase also contain licenses,
-   such as GPL 2.0, MIT, Apache 2.0, BSD, Apple Public Source,
-   and various free/permissive licensing descriptions; some very small
-   subsets contain "contact the author before redistribution"
-   notices.  Please review the relevant license for distribution terms
-   and conditions or directly contact the contributing author for more
-   information, as necessary.
-
-
+   And as outlined above, third-party components of the codebase also
+   contain specific licenses, such as GPL 2.0, MIT, Apache 2.0, BSD,
+   Apple Public Source, and various free/permissive licensing
+   descriptions; some very small subsets contain "contact the author
+   before redistribution" notices.  Please review the relevant license
+   for distribution terms and conditions or directly contact the
+   contributing author for more information, as necessary.
 
