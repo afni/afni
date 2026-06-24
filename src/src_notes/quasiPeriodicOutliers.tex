@@ -360,7 +360,6 @@ Time series are corrected as follows.  For the ECG time series:
 		\item Remove all of the existing peaks in bad region.
 		\item Let $\ell_b$ be the width from the last peak before the bad region to the first peak after the bad region.  If there is no peak before the bad region, $\ell_b$ is the distance to the first peak after the bad region.  If there is no peak after the bad region, $\ell_b$ is the distance from the last peak before the bad region to the end of the time series.
 		\item Divide $\ell_b$ by $T_p$, and round it off to the nearest integer, to estimate the new number of peaks, $N_p$.
-		\item Decrement $N_p$ by 1 (so the first peak, after the bad region is not part of the new series).
 		\item Divide the width of the region by $N_p$ to get the local inter-peak width, $t_p$.
 		\item Starting at the last peak before the bad region, add peaks at intervals of $t_p$ with each index rounded to the nearest integer.  If there is no peak before the bad region, start at the first peak after the bad region and work back.
 		\item The value, at each peak, is the mean of the peak values on either side of the bad region.  (Taking the local maximum is less desirable since it may be affected by noise.) 

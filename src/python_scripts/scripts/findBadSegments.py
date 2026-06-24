@@ -928,44 +928,207 @@ def writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, cardiacPeaks, samp_fre
                            output_file_name)
     
     # Make corrected cardiac time series
-    makeCorrectedCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks, outlier_ts_ranges)
+    makeCorrectedCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks, 
+            outlier_ts_ranges, OutDir, samp_freq)
     
-def makeCorrectedCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks, outlier_ts_ranges):
+def merge_ranges(ranges):
+    if not ranges:
+        return []
+
+    # sort by start value
+    ranges = sorted(ranges, key=lambda x: x[0])
+
+    merged = [ranges[0]]
+
+    for current in ranges[1:]:
+        previous = merged[-1]
+
+        # overlap (or touching ranges if you use <=)
+        if current[0] <= previous[1]:
+            previous[1] = max(previous[1], current[1])
+        else:
+            merged.append(current)
+
+    return merged
+    
+def makeCorrectedCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks, 
+                                   outlier_ts_ranges, OutDir, samp_freq):
     
     # Determine the mean period among peaks, T_p.
     T_p = np.diff(cardiacPeaks).mean()
     
+    # Keep separate list of new points to display added points in green.
+    added_points = []
+    added_point_values = []
+    
+    # Merge overlapping peaks
+    merged_outlier_ts_ranges = merge_ranges(outlier_ts_ranges)
+    
     # In every region identified as bad
-    for bad_region in outlier_ts_ranges:
+    for bad_region in merged_outlier_ts_ranges:
     
         # Remove all of the existing peaks in bad region
+        mask = (cardiacPeaks < bad_region[0]) | (cardiacPeaks > bad_region[1])
+        cardiacPeaks = cardiacPeaks[mask]
         
         # Determine the width, l_b, from the last peak before the bad region to 
         # the first peak after the bad region.  If there is no peak before the 
         # bad region, l_b is the distance to the first peak after the bad region. 
         # If there is no peak after the bad region, l_b is the distance from
         # the last peak before the bad region to the end of the time series.
+        idx_start = np.searchsorted(cardiacPeaks, bad_region[0])
+        idx_end   = np.searchsorted(cardiacPeaks, bad_region[1])        
+        before = cardiacPeaks[idx_start - 1] if idx_start > 0 else None
+        after  = cardiacPeaks[idx_end] if idx_end < len(cardiacPeaks) else None
+        if before == None and after == None: continue
+        if before == None:
+            l_b = after
+        elif after == None:
+            l_b = len(cardiacPeaks) - before
+        else: l_b = after - before
         
         # Divide l_b by T_p , and round it off to the nearest integer, to 
         # estimate the new number of peaks, N_p.
-        
-        # Decrement N_p by 1 (so the first peak, after the bad region is not 
-        # part of the new series).
+        N_p = round(l_b/T_p)
+        if N_p < 1: continue
         
         # Divide the width of the region by N_p to get the local inter-peak 
         # width, t_p.
+        ipw = l_b/N_p
+        
+        # The value, at each peak, is the mean of the peak values on either side 
+        # of the bad region. (Taking the local maximum is less desirable since 
+        # it may be affected by noise.)
+        if before == None: peakVal = cardiacTimeSeries[after]
+        elif after == None: peakVal = cardiacTimeSeries[before]
+        else: peakVal = (cardiacTimeSeries[after]+cardiacTimeSeries[before])/2
         
         # Starting at the last peak before the bad region, add peaks at 
         # intervals of t_p with each index rounded to the nearest integer. If 
         # there is no peak before the bad region, start at the first peak after 
         # the bad region and work back.
-        
-        # The value, at each peak, is the mean of the peak values on either side 
-        # of the bad region. (Taking the local maximum is less desirable since 
-        # it may be affected by noise.)
+        if before != None:
+            point = before + ipw
+            limit = len(cardiacTimeSeries) if (after == None) else after
+            while point < limit:
+                added_points.append(round(point))
+                # cardiacTimeSeries[round(point)] = peakVal
+                point += ipw
+                added_point_values.append(peakVal)
+        else:
+            point = after - ipw
+            while point > 0:
+                added_points.append(round(point))
+                # cardiacTimeSeries[round(point)] = peakVal
+                point -= ipw
+                added_point_values.append(peakVal)            
         
     # Write out a plot of the corrected time series with green peaks (to show
     # the corrections) and bad regions in pink
+    writeCorrectedCardiacPeaks(cardiacTimeSeries, cardiacPeaks, 
+                outlier_ts_ranges, added_points, OutDir, samp_freq)
+        
+    # Merge added points into cardiacPeaks
+    
+    
+def writeCorrectedCardiacPeaks(cardiacTimeSeries, cardiacPeaks, 
+            outlier_ts_ranges, added_points, OutDir, samp_freq):
+    
+    print('Write cardiac results to files')
+
+    # Create output directory if it doesn't already exist
+    if OutDir[-1] == '/':
+        OutDir = OutDir[:-1]
+    Path(OutDir).mkdir(parents=True, exist_ok=True)
+    
+    # Write corrected cardiac peaks to file.
+    print('OutDir = '+OutDir)
+    np.savetxt(OutDir + '/correctedCardiacPeaks_1D.txt', cardiacPeaks, fmt="%.2f")
+                
+    if useClustering:
+        output_file_name = OutDir + '/correctedCardiacOutliersWithPeaks_clustering.pdf'
+    else:
+        output_file_name = OutDir + '/correctedCardiacOutliersWithPeaks_LECW.pdf'
+
+    outputCorrectedCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
+                           added_points,
+                           outlier_ts_ranges, 
+                           output_file_name)
+    
+def outputCorrectedCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
+                       added_points,
+                       outlier_ts_ranges, 
+                       output_file_name):
+    
+    y = cardiacTimeSeries              # length 
+    x = np.arange(len(y))             # original index
+    x_scaled = x / samp_freq          # scaled index
+    cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
+    addedPeaks_scaled = np.array(added_points) / samp_freq
+
+    # Limit length of each row for clarity
+    print('Limit length of each row for clarity')
+    points_per_row = 3000             
+    num_rows = int(np.ceil(len(y) / points_per_row))
+
+    fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
+    if num_rows == 1:
+        axes = [axes]
+
+    # Ensure index array is of integer type
+    if cardiacPeaks.dtype!=int:
+        cardiacPeaks = cardiacPeaks.astype(int)
+      
+    # Get peak values
+    peakVals = cardiacTimeSeries[cardiacPeaks]
+    addedPeakVals = cardiacTimeSeries[added_points]
+
+    for row in range(num_rows):
+        start = row * points_per_row
+        end = min((row + 1) * points_per_row, len(y))
+
+        ax = axes[row]
+
+        # --- plot scaled x ---
+        ax.plot(
+            x_scaled[start:end],
+            y[start:end],
+            linewidth=0.5,
+            solid_capstyle='butt',
+            solid_joinstyle='miter',
+            color="black"
+        )
+
+        # Peaks
+        ax.plot(cardiacPeaks_scaled, peakVals, "bo")
+
+        # Added peaks
+        ax.plot(addedPeaks_scaled, addedPeakVals, "ro")
+
+        # --- Draw bands (also scaled) ---
+        for band_start, band_end in outlier_ts_ranges:
+            if band_end <= start or band_start >= end:
+                continue
+            ax.axvspan(
+                max(band_start, start) / samp_freq,
+                min(band_end, end) / samp_freq,
+                color='red',
+                alpha=0.15
+            )
+
+        # --- scaled x-limits ---
+        ax.set_xlim(x_scaled[start], x_scaled[end - 1])
+        ax.set_ylabel("ECG Amplitude")
+
+    # Set axes and save plot to file
+    print('Set axes and save plot to file')
+    ax.set_xlabel(f"Time (seconds)")
+    axes[-1].set_xlabel("Time (s)")
+    plt.tight_layout()
+
+    plt.savefig(output_file_name)
+    plt.show()
+   
     
 def analyzePeakTroughMismatches(troughPeakMismatchRanges, respiratoryPeaks,
     peakVals, respiratoryTroughs, troughVals, cardiacPeaks):
