@@ -53,6 +53,16 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 8, Dec, 2025, DRG, "asymm_report.csh",
+     MINOR, TYPE_NEW_OPT,
+    "asymm_report.csh - surface patch asymmetry",
+    "Adding surface patch comparison to isosurface and volumes"
+},
+{ 20, JUN, 2025, DRG, "asymm_report.csh",
+     MINOR, TYPE_NEW_PROG,
+    "asymm_report.csh - generate reports of asymmetry in ROIs",
+    "Use labeled datasets in native space or an atlas in a template space\n"
+    "to create reports of asymmetry by volume and by surface area"
 { 30, JAN, 2026, DRG, "afni",
      MINOR, TYPE_BUG_FIX,
     "Overlay toggle fix",
