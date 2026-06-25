@@ -739,7 +739,15 @@ inobj : InOpts object
             if not(self.prefix.endswith('.nii')) and \
                not(self.prefix.endswith('.nii.gz')) :
                 self.prefix += '.nii.gz'
-                                    
+
+        # figure out outdir, if not provided, by parsing self.prefix
+        if self.outdir is None or self.outdir == '' :
+            # default
+            self.outdir = '.'
+            # ... or derive from prefix
+            if '/' in self.prefix :
+                self.outdir = '/'.join(self.prefix.split('/')[:-1])
+            
         # (opt) mask
         if self.comp_mask :
             nfail = au.check_all_dsets_exist([self.comp_mask], 
@@ -807,13 +815,17 @@ inobj : InOpts object
 
         # generate basic items
 
-        # generate wdir with random component, if none provided
+        # generate wdir with random component (and include outdir), if
+        # none provided
         if not(self.workdir) :
             cmd  = '3dnewid -fun11'
             com  = ab.shell_com(cmd, capture=1)
             stat = com.run()
             rstr = com.so[0].strip()
             self.workdir = '__wdir_brainteaser_' + rstr
+            if self.outdir and self.outdir != '.' :
+                self.workdir = self.outdir + '/' + self.workdir
+
 
         # convert bool-ish opts to bools
         self.do_clean = au.convert_to_bool_yn10(self.do_clean)
