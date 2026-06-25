@@ -37,6 +37,7 @@ DOPTS = {
     'checkpoint'      : '',
     'prefix'          : '',
     'device'          : 'auto',
+    'num_cpu'         : -1,
     'outdir'          : None,
     'workdir'         : '',
 }

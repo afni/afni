@@ -11,6 +11,7 @@ import sys, os, copy, glob
 
 from   afnipy import afni_base          as ab
 from   afnipy import afni_util          as au
+from   afnipy import lib_system_check   as lsc
 from   afnipy import lib_info_dict      as lid
 from   afnipy import lib_info_items     as lii
 from   afnipy import lib_vnet_defs      as DEF
@@ -58,6 +59,7 @@ inobj : InOpts object
 
         self.checkpoint       = DEF.DOPTS['checkpoint']
         self.device           = DEF.DOPTS['device']
+        self.num_cpu          = DEF.DOPTS['num_cpu']
 
         # "preproc_forward" items: each only gets populated if used,
         # so we know to undo that step later (most have supplemental
@@ -379,7 +381,8 @@ inobj : InOpts object
         VTO = VALVT.VnetTestObj(self.dset_pp_last, 
                                 prefix=self.dset_proc_vnet,
                                 checkpoint=self.checkpoint,
-                                device=self.device, 
+                                device=self.device,
+                                num_cpu=self.num_cpu,
                                 do_overwrite=True, verb=self.verb)
 
         self.dset_proc_last = self.dset_proc_vnet
@@ -703,6 +706,8 @@ inobj : InOpts object
 
         if io.device is not None :
             self.device = io.device
+        if io.num_cpu is not None :
+            self.num_cpu = io.num_cpu
 
         # control variables
         if io.workdir is not None :
@@ -778,7 +783,6 @@ inobj : InOpts object
             if not(is_ok) :
                 ab.EP("Failed to load checkpoint")
 
-
         if os.path.isfile(self.prefix) and not(self.overwrite) :
             msg = "The prefix '{}' dset exists already, ".format(self.prefix)
             msg+= "and you must either (re)move it or use '-overwrite'"
@@ -788,6 +792,18 @@ inobj : InOpts object
             msg = "Unrecognized device '{}'. ".format(self.device)
             msg+= "Must use one from list: {}".format(DEF.STR_all_device)
             ab.EP(msg)
+
+        # verify OMP_NUM_THREADS usability
+        if self.num_cpu > 0 :
+            # get number of available CPUs
+            SI = lsc.SysInfo()
+            ncpu_avail = SI.get_cpu_count()
+
+            if self.num_cpu > ncpu_avail :
+                msg = "User requested to use {} CPUs, ".format(self.num_cpu)
+                msg+= "but there are only {} available. ".format(ncpu_avail)
+                msg+= "Setting num_cpu to the latter number."
+                ab.WP(msg)
 
         # generate basic items
 
@@ -800,7 +816,7 @@ inobj : InOpts object
             self.workdir = '__wdir_brainteaser_' + rstr
 
         # convert bool-ish opts to bools
-        self.do_clean       = au.convert_to_bool_yn10(self.do_clean)
+        self.do_clean = au.convert_to_bool_yn10(self.do_clean)
 
         return 0
 
