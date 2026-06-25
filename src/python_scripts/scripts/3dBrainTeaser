@@ -101,7 +101,49 @@ Usage ~1~
 
 Notes ~1~
 
-***
+Outputs, 1: single mask data and QC ~2~
+
+  A mask dataset is output, called PREFIX.
+
+  By default a QC image of that mask over the inset is also provided
+  in the same location, called PREFIX_NOEXT_QC.jpg (where PREFIX_NOEXT
+  is the PREFIX filename but without the data extension part).  This
+  is a montage of axial, sagittal and coronal images.
+
+  There is also a script that is output, called PREFIX_NOEXT_run.tcsh.
+  This script can be executed with:
+
+      tcsh PREFIX_NOEXT_run.tcsh
+
+  ... and it will open up the inset and derived mask datasets to
+  explore interactively, if desired.
+
+Outputs, 2: comparison mask info ~2~
+
+  When the '-comp_mask ...' option is used to load in a comparison
+  mask, then a further directory of outputs is created.  The directory
+  will be called PREFIX_NOEXT_comp/.  **Please see the AFNI program
+  compare_mask_overlap.tcsh for more detailed information about the
+  quantitative and qualitative outputs.**
+
+  Briefly, this directory contains an image showing a montage of views
+  of the relative overlap and differences between the predicted mask
+  (which is the main output of this program) and the comparison mask.
+  There is also a driver script that can load the comparison mask
+  dataset into the AFNI GUI and display it over the inset, which can be 
+  run as: 
+
+      tcsh overlap_run.tcsh
+
+  This directory also contains a text file called 'overlap_report.txt
+  that has a quantitative report about the overlap (and differences)
+  between the predicted and comparison masks.  Because the masks are
+  expected to be generally similar, the report divides up regions of
+  the mask, into "core", "inner rim" and "outer rim", for more
+  detailed comparisons of regions of interest.  There is also an
+  "overall" comparison, but this might add less useful information.
+  Again, please see compare_mask_overlap.tcsh's help for more
+  information on this.
 
 ------------------------------------------------------------------------
 
