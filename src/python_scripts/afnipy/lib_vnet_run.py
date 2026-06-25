@@ -122,6 +122,9 @@ inobj : InOpts object
             tmp = self.write_out_prefix()
             if tmp : return
 
+            tmp = self.single_mask_image()
+            if tmp : return
+
             tmp = self.compare_mask_overlap()
             if tmp : return
 
@@ -131,6 +134,28 @@ inobj : InOpts object
 
     # ----- methods
 
+    def single_mask_image(self):
+        """Make an image of the mask over the anatomical"""
+
+        if self.verb : ab.IP("single mask qc image")
+
+        BAD_RETURN = -8
+
+        cmd  = 'adjunct_mask_qc_image '
+        cmd += '{} '.format(self.overwrite)
+        cmd += '-input  {} '.format(self.prefix)
+        cmd += '-ulay   {} '.format(self.inset)
+        cmd += '-outdir {} '.format(self.outdir)
+        cmd += '-prefix {} '.format(self.prefix_noext)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+
+        if stat : 
+            ab.EP1("Failed in final dset: single mask qc")
+            return BAD_RETURN
+
+        return 0
+        
     def compare_mask_overlap(self):
         """If a comp_mask was provided, run the comparison(s). Otherwise, do
         nothing"""
@@ -902,6 +927,18 @@ inobj : InOpts object
         done)"""
         return self.workdir + '/' + 'dset_03_dims.nii.gz'
 
+    @property
+    def prefix_noext(self):
+        """prefix without nifti extension parts; this assumes that prefix ends
+        with .nii or .nii.gz, which at present must be the case;
+        otherwise, just return the full prefix."""
+
+        if self.prefix.endswith('.nii') :
+            return self.prefix[:-4]
+        elif self.prefix.endswith('.nii.gz') :
+            return self.prefix[:-7]
+
+        return self.prefix
 
 # ============================================================================
 
