@@ -29,7 +29,7 @@ set inputB    = ""
 set ulay      = ""
 
 set outdir    = ""
-set prefix    = ""
+set prefix    = "overlap"
 set opref     = "overlap"
 set orep      = "${opref}_report.txt"
 
@@ -587,6 +587,7 @@ Options ~1~
 -prefix      PPP   :a prefix for helping to name files in the outdir.
                     The value of PPP should _not_ include path info,
                     because that is determined/provide by the outdir.
+                    (def: "${prefix}")
 
 -workdir     WWW   :specify the name of the temporary working directory
                     (which is created as a new subdirectory of the output
