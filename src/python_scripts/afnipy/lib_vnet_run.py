@@ -97,6 +97,7 @@ inobj : InOpts object
         # control variables
         self.outdir          = DEF.DOPTS['outdir']         # None or str
         self.workdir         = DEF.DOPTS['workdir']
+        self.do_single_qc    = DEF.DOPTS['do_single_qc']
 
         # ----- take action(s)
 
@@ -136,6 +137,9 @@ inobj : InOpts object
 
     def single_mask_image(self):
         """Make an image of the mask over the anatomical"""
+
+        if not(self.do_single_qc) :
+            return 0
 
         if self.verb : ab.IP("single mask qc image")
 
@@ -739,6 +743,8 @@ inobj : InOpts object
             self.workdir = io.workdir
         if io.outdir is not None :          # or this could be derived
             self.outdir = io.outdir
+        if io.do_single_qc is not None :
+            self.do_single_qc = io.do_single_qc
 
         return 0
 
@@ -853,7 +859,8 @@ inobj : InOpts object
 
 
         # convert bool-ish opts to bools
-        self.do_clean = au.convert_to_bool_yn10(self.do_clean)
+        self.do_clean     = au.convert_to_bool_yn10(self.do_clean)
+        self.do_single_qc = au.convert_to_bool_yn10(self.do_single_qc)
 
         return 0
 

@@ -30,6 +30,7 @@ DOPTS = {
     'verb'            : 1,
     'overwrite'       : '',
     'do_clean'        : 'Yes',
+    'do_single_qc'    : 'Yes',
     'do_log'          : 'No',
     'inset'           : '',
     'comp_mask'       : '',

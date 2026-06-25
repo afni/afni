@@ -79,6 +79,12 @@ Usage ~1~
                      afni_system_check.py -disp_num_cpu
                 (def: '{num_cpu}')
 
+-do_single_qc DSQC :state whether to make the QC image and script for 
+                quickly checking the mask results (does not refer to the
+                QC outputs for any comp_mask);
+                allowed values are:  Yes, 1, No, 0
+                (def: '{do_single_qc}')
+
 -do_clean DC   :state whether to clean up any intermediate files;
                 allowed values are:  Yes, 1, No, 0
                 (def: '{do_clean}')
@@ -186,7 +192,8 @@ Examples ~1~
 g_history = """
   3dBrainTeaser history:
 
-  0.1   May 20, 2026 :: started this command line interface 
+  0.1   May  20, 2026 :: started this command line interface 
+  1.0   June 25, 2026 :: functionality seems pretty full and tested 
 """
 
 g_prog    = g_history.split()[0]
@@ -226,6 +233,7 @@ checks happen in a subsequent object.
         # control variables
         self.workdir         = None
         self.outdir          = None
+        self.do_single_qc    = None
 
         # ----- take action(s)
 
@@ -280,6 +288,9 @@ checks happen in a subsequent object.
 
         self.valid_opts.add_opt('-workdir', 1, [], 
                         helpstr='name of workdir (no path)')
+
+        self.valid_opts.add_opt('-do_single_qc', 1, [], 
+                        helpstr="turn on/off making of single mask QC images")
 
         # may derive from -prefix by default
         #self.valid_opts.add_opt('-outdir', 1, [], 
@@ -406,6 +417,12 @@ checks happen in a subsequent object.
                 if val is None or err:
                     BASE.EP(err_base + opt.name)
                 self.workdir = val
+
+            elif opt.name == '-do_single_qc':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.do_single_qc = val
 
             # general options
 
