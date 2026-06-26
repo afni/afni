@@ -1,6 +1,11 @@
 #ifndef THD_STCORR2_INCLUDED
 #define THD_STCORR2_INCLUDED
 
+// simple form of (capped) Fisher Z-transform of an input Pearson
+// correlation value, x
+#undef  BOBatanhf
+#define BOBatanhf(x) ( ((x)<-0.999329f) ? -4.0f                \
+                      :((x)>+0.999329f) ? +4.0f : atanhf(x) )
 
 typedef struct {
 

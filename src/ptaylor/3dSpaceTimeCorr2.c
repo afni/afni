@@ -389,7 +389,11 @@ int run_stcorr2( int comline, PARAMS_stcorr2 opts,
    idx = 0;
    for( i=0 ; i<nvox ; i++) {
       if( mask_arr[i] ) {
-         DOTOUT[i] = DOT[idx];
+         // can do Fisher Z-transform of correlation values
+         if( opts.out_Zcorr ) 
+            DOTOUT[i] = BOBatanhf(DOT[idx]);
+         else
+            DOTOUT[i] = DOT[idx];
          idx++;
       }
    }
