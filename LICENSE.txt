@@ -415,11 +415,11 @@ Q. So, what _is_ the distribution license?
 A. It can be summarized as follows: 
 
      Primarily Public Domain (U.S. Government Work) with substantial
-     portions licensed under CC BY 4.0 and third-party dependencies
-     under MIT, BSD, Apache 2.0, GPL v2/v3, and miscellaneous
-     permissive/open-source licenses; see included notices for
-     exceptions and restrictions.  Users may freely use and
-     redistribute the software consistent with the applicable
+     portions licensed under CC BY 4.0, as well as third-party
+     dependencies under MIT, BSD, Apache 2.0, GPL v2/v3, and
+     miscellaneous permissive/open-source licenses; see included
+     notices for exceptions and restrictions.  Users may freely use
+     and redistribute the software consistent with the applicable
      component licenses; attribution to the AFNI authors and other
      third-party contributors should be provided where required and is
      strongly requested for all uses.
