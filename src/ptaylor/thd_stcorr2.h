@@ -26,6 +26,6 @@ PARAMS_stcorr2 set_stcorr2_defaults(void);
 // ---------------------------------------------------------------------------
 
 // does z-scoring transformation of a time series
-int zscore_ts_welford(const float *x, float *z, size_t n);
+int zscore_ts_welford(const float *x, float *z, size_t n, int SD_IS_POP);
 
 #endif

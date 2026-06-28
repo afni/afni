@@ -347,12 +347,12 @@ int run_stcorr2( int comline, PARAMS_stcorr2 opts,
          // extract [i]th insetA time series (from within mask)
          tmp = THD_extract_float_array(i, dset_insetA, tsA); 
          // ... and convert it to Z-scores, and store it in [idx]th location
-         tmp = zscore_ts_welford(tsA, AZ[idx], nvalsA);
+         tmp = zscore_ts_welford(tsA, AZ[idx], nvalsA, 1);
 
          // extract [i]th insetB time series (from within mask)
          tmp = THD_extract_float_array(i, dset_insetB, tsB); 
          // ... and convert it to Z-scores, and store it in [idx]th location
-         tmp = zscore_ts_welford(tsB, BZ[idx], nvalsB);
+         tmp = zscore_ts_welford(tsB, BZ[idx], nvalsB, 1);
 
          idx++;
       }
@@ -574,8 +574,8 @@ int calc_spacetimecorr(float *DOT, int nmask, float **AZ, int nvalsA,
          /* ----------------------- calc 2: space ----------------------- */
 
          // convert 1D arrays to Zscores, to prep for dot product
-         tmp = zscore_ts_welford(vecA, vecAZ, nmask-1);
-         tmp = zscore_ts_welford(vecB, vecBZ, nmask-1);
+         tmp = zscore_ts_welford(vecA, vecAZ, nmask-1, 1);
+         tmp = zscore_ts_welford(vecB, vecBZ, nmask-1, 1);
 
          // do the dot product
          sval = 0.0;

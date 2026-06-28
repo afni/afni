@@ -29,14 +29,15 @@ PARAMS_stcorr2 set_stcorr2_defaults(void)
   Z-score a time series (= 1D array of floats) using Welford's algorithm.
   
   Parameters:
-  x : input array of floats
-  z : output array of floats
-  n : number of elements in x (and z)
+  x         : input array of floats
+  z         : output array of floats
+  n         : number of elements in x (and z)
+  SD_IS_POP : if 0, use sample stdev 1/(n-1); else, stdev is population 1/n
  
-  Uses the sample standard deviation: (n-1).  Double precision is used
+  Uses the population standard deviation: 1/n.  Double precision is used
   internally.  Returns 0 upon success.
  */
-int zscore_ts_welford(const float *x, float *z, size_t n)
+int zscore_ts_welford(const float *x, float *z, size_t n, int SD_IS_POP)
 {
     if (n == 0)
         return 0;
@@ -49,16 +50,19 @@ int zscore_ts_welford(const float *x, float *z, size_t n)
 
     // Welford's online algorithm:
     // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-    for (size_t i = 0; i < n; i++) {
-        delta = x[i] - mean;
-        mean += delta / (i + 1);
+    for ( ii=0 ; ii < n ; ii++ ) {
+        delta = x[ii] - mean;
+        mean += delta / (ii + 1);
 
-        delta2 = x[i] - mean;
+        delta2 = x[ii] - mean;
         mean2 += delta * delta2;
     }
 
-    // Sample variance
-    variance = (n > 1) ? mean2 / (n - 1) : 0.0;
+    // variance (and we know n>0, from above)
+    if( SD_IS_POP ) 
+       variance = mean2 / n;   // population var
+    else
+       variance = (n > 1) ? mean2 / (n-1) : 0.0; // sample var
     stdev = sqrt(variance);
 
     // Handle zero variance: all zeros
