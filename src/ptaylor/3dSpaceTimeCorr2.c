@@ -3,6 +3,10 @@
 ver = 1.0;  date = June 26, 2026
 + [PT] start of this program
 
+ver = 1.1;  date = June 28, 2026
++ [PT] confirm treating time series as a sample, not population, for the def
+  of stdev in Z-scoring
+
 */
 
 #include <stdio.h>
@@ -347,12 +351,12 @@ int run_stcorr2( int comline, PARAMS_stcorr2 opts,
          // extract [i]th insetA time series (from within mask)
          tmp = THD_extract_float_array(i, dset_insetA, tsA); 
          // ... and convert it to Z-scores, and store it in [idx]th location
-         tmp = zscore_ts_welford(tsA, AZ[idx], nvalsA, 1);
+         tmp = zscore_ts_welford(tsA, AZ[idx], nvalsA, 0);
 
          // extract [i]th insetB time series (from within mask)
          tmp = THD_extract_float_array(i, dset_insetB, tsB); 
          // ... and convert it to Z-scores, and store it in [idx]th location
-         tmp = zscore_ts_welford(tsB, BZ[idx], nvalsB, 1);
+         tmp = zscore_ts_welford(tsB, BZ[idx], nvalsB, 0);
 
          idx++;
       }
@@ -574,8 +578,8 @@ int calc_spacetimecorr(float *DOT, int nmask, float **AZ, int nvalsA,
          /* ----------------------- calc 2: space ----------------------- */
 
          // convert 1D arrays to Zscores, to prep for dot product
-         tmp = zscore_ts_welford(vecA, vecAZ, nmask-1, 1);
-         tmp = zscore_ts_welford(vecB, vecBZ, nmask-1, 1);
+         tmp = zscore_ts_welford(vecA, vecAZ, nmask-1, 0);
+         tmp = zscore_ts_welford(vecB, vecBZ, nmask-1, 0);
 
          // do the dot product
          sval = 0.0;

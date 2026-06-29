@@ -44,7 +44,7 @@ int zscore_ts_welford(const float *x, float *z, size_t n, int SD_IS_POP)
 
     int ii;
 
-    double mean = 0.0, mean2 = 0.0;
+    double mean = 0.0, M2 = 0.0;
     double delta = 0.0, delta2 = 0.0;
     double variance = 0.0, stdev = 0.0;
 
@@ -55,14 +55,14 @@ int zscore_ts_welford(const float *x, float *z, size_t n, int SD_IS_POP)
         mean += delta / (ii + 1);
 
         delta2 = x[ii] - mean;
-        mean2 += delta * delta2;
+        M2 += delta * delta2;
     }
 
     // variance (and we know n>0, from above)
     if( SD_IS_POP ) 
-       variance = mean2 / n;   // population var
+       variance = M2 / n;   // population var
     else
-       variance = (n > 1) ? mean2 / (n-1) : 0.0; // sample var
+       variance = (n > 1) ? M2 / (n-1) : 0.0; // sample var
     stdev = sqrt(variance);
 
     // Handle zero variance: all zeros
