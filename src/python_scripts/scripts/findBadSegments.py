@@ -501,6 +501,7 @@ def outputRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks,
     x = np.arange(len(y))             # original index
     x_scaled = x / samp_freq          # scaled index
     respiratoryPeaks_scaled = np.array(respiratoryPeaks) / samp_freq
+    respiratoryTroughs_scaled = np.array(respiratoryTroughs) / samp_freq
 
     # Limit length of each row for clarity
     print('Limit length of each row for clarity')
@@ -895,6 +896,10 @@ def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries,
     analyzePeakTroughMismatches(troughPeakMismatchRanges, respiratoryPeaks,
         respiratoryPeakVals, respiratoryTroughs, respiratoryTroughVals, cardiacPeaks)
     
+    # Make corrected respiratory time series
+    makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks, 
+                respiratoryTroughs, outlier_ts_ranges, OutDir, samp_freq)
+    
     return (
      peak_outliers,
      outlier_ts_ranges,
@@ -951,25 +956,326 @@ def merge_ranges(ranges):
 
     return merged
     
+def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks, 
+            respiratoryTroughs, outlier_ts_ranges, OutDir, samp_freq):
+    
+    # Keep separate list of new points to display added points in green.
+    added_peaks = []
+    added_troughs = []
+    
+    # Merge overlapping peaks
+    merged_outlier_ts_ranges = merge_ranges(outlier_ts_ranges)
+    
+    # Estimate global respiratory period
+    # resp_intervals = np.diff(respiratoryPeaks)
+
+    # Build valid respiratory cycles
+    valid_cycles = []
+    
+    respiratoryPeaks = np.asarray(respiratoryPeaks)
+    respiratoryTroughs = np.asarray(respiratoryTroughs)
+
+    for i in range(len(respiratoryPeaks)-1):
+    
+        p1 = respiratoryPeaks[i]
+        p2 = respiratoryPeaks[i+1]
+    
+        troughs = respiratoryTroughs[
+            (respiratoryTroughs > p1) &
+            (respiratoryTroughs < p2)
+        ]
+    
+        if len(troughs) == 1:
+            valid_cycles.append(
+                (p1, troughs[0], p2)
+            )
+        
+    # calculate respiratory phase once
+    peak_to_trough = []
+    trough_to_peak = []
+    
+    for p1,t,p2 in valid_cycles:
+        peak_to_trough.append(t-p1)
+        trough_to_peak.append(p2-t)
+        
+    if len(valid_cycles) > 0:
+    
+        frac = np.median(
+            np.array(peak_to_trough) /
+            (np.array(peak_to_trough)+np.array(trough_to_peak))
+        )
+    
+    else:
+        frac = 0.5   # fallback: trough halfway between peaks    
+    
+    for bad_region in merged_outlier_ts_ranges:
+        
+        # Remove existing peaks and troughs in bad region
+        mask = (
+            (respiratoryPeaks < bad_region[0]) |
+            (respiratoryPeaks > bad_region[1])
+        )        
+        respiratoryPeaks = respiratoryPeaks[mask]
+        mask = (
+            (respiratoryTroughs < bad_region[0]) |
+            (respiratoryTroughs > bad_region[1])
+        )        
+        respiratoryTroughs = respiratoryTroughs[mask]
+        
+        # Recompute after removing bad peaks
+        resp_intervals = np.diff(respiratoryPeaks)
+    
+        idx_start = np.searchsorted(respiratoryPeaks,bad_region[0])
+        idx_end   = np.searchsorted(respiratoryPeaks,bad_region[1])
+    
+        before = respiratoryPeaks[idx_start-1] if idx_start>0 else None
+        after  = respiratoryPeaks[idx_end] if idx_end<len(respiratoryPeaks) else None
+    
+        if before is None or after is None:
+            continue
+    
+        local_periods = np.concatenate([
+            resp_intervals[max(0,idx_start-5):idx_start],
+            resp_intervals[idx_end:min(len(resp_intervals),idx_end+5)]
+        ])
+        
+        if len(local_periods) == 0:
+            continue
+    
+        local_period = np.median(local_periods)
+    
+        n_cycles = round((after-before)/local_period)
+        if n_cycles < 1:
+            continue
+    
+        new_peaks = np.linspace(
+            before,
+            after,
+            n_cycles+1
+        )[1:-1]
+    
+        all_peaks = np.concatenate(([before], new_peaks, [after]))
+    
+        for p1,p2 in zip(all_peaks[:-1],all_peaks[1:]):
+            added_troughs.append(
+                round(p1 + frac*(p2-p1))
+            )
+    
+        added_peaks.extend(np.round(new_peaks).astype(int))
+
+    respiratoryPeaks = np.sort(
+        np.concatenate((respiratoryPeaks, added_peaks))
+    )
+    
+    respiratoryTroughs = np.sort(
+        np.concatenate((respiratoryTroughs, added_troughs))
+    )
+                
+    # Identify lack of bijectivity on peaks and troughs
+    events = sorted(
+        [(x,'P') for x in respiratoryPeaks] +
+        [(x,'T') for x in respiratoryTroughs],
+        key=lambda x: x[0]
+    )
+    
+    bad_events = []
+    for i in range(len(events)-1):
+        if events[i][1] == events[i+1][1]:
+            bad_events.append(events[i:i+2])
+            print("artifact:", events[i:i+2])
+            
+    # Impose bijectivity on peaks and troughs    
+    events = sorted(
+        [(x,'P') for x in respiratoryPeaks] +
+        [(x,'T') for x in respiratoryTroughs],
+        key=lambda x: x[0]
+    )
+    
+    # added_peaks = []
+    # added_troughs = []
+    
+    for i in range(len(events)-1):
+    
+        x1, type1 = events[i]
+        x2, type2 = events[i+1]
+    
+        if type1 == type2:
+    
+            if type1 == 'P':
+                # PP: missing trough
+                trough = round(x1 + frac*(x2-x1))
+                added_troughs.append(trough)
+    
+            else:
+                # TT: missing peak
+                # approximate inverse phase
+                peak = round(x1 - frac*(x1-x2))
+                added_peaks.append(peak)
+    
+    
+    respiratoryPeaks = np.sort(
+        np.concatenate((respiratoryPeaks, added_peaks))
+    )
+    
+    respiratoryTroughs = np.sort(
+        np.concatenate((respiratoryTroughs, added_troughs))
+    )
+
+    # Write out a plot of the corrected time series with green peaks (to show
+    # the corrections) and bad regions in pink
+    writeCorrectedRespiratoryResultsToFiles(respiratoryTimeSeries, 
+                respiratoryPeaks, respiratoryTroughs, outlier_ts_ranges, 
+                added_peaks, added_troughs, OutDir, samp_freq)
+        
+    # Merge added points into cardiacPeaks
+    
+def writeCorrectedRespiratoryResultsToFiles(respiratoryTimeSeries, 
+                respiratoryPeaks, respiratoryTroughs, outlier_ts_ranges, 
+                added_peaks, added_troughs, OutDir, 
+                samp_freq):
+    
+    print('Write corrected respiratory results to files')
+
+    # Create output directory if it doesn't already exist
+    if OutDir[-1] == '/':
+        OutDir = OutDir[:-1]
+    Path(OutDir).mkdir(parents=True, exist_ok=True)
+    
+    # Write corrected cardiac peaks to file.
+    print('OutDir = '+OutDir)
+    np.savetxt(OutDir + '/correctedRespiratoryPeaks_1D.txt', respiratoryPeaks, 
+               fmt="%.2f")
+                
+    if useClustering:
+        output_file_name = OutDir + '/correctedRespOutliersWithPeaks_clustering.pdf'
+    else:
+        output_file_name = OutDir + '/correctedRespOutliersWithPeaks_LECW.pdf'
+
+    (
+     respiratoryPeakVals, 
+     respiratoryTroughVals,
+     ) = outputCorrectedRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks, 
+                           respiratoryTroughs, samp_freq, added_peaks, 
+                           added_troughs, outlier_ts_ranges, 
+                           output_file_name)
+
+    # Analyze cases where peaks and troughs are mismatched
+    # analyzePeakTroughMismatches(troughPeakMismatchRanges, respiratoryPeaks,
+    #     respiratoryPeakVals, respiratoryTroughs, respiratoryTroughVals, cardiacPeaks)
+
+def outputCorrectedRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks, 
+                      respiratoryTroughs, samp_freq, added_peaks, 
+                      added_troughs, outlier_ts_ranges, 
+                      output_file_name):
+    y = respiratoryTimeSeries              # length 
+    x = np.arange(len(y))             # original index
+    x_scaled = x / samp_freq          # scaled index
+    respiratoryPeaks_scaled = np.array(respiratoryPeaks) / samp_freq
+    respiratoryTroughs_scaled = np.array(respiratoryTroughs) / samp_freq
+    addedPeaks_scaled = np.array(added_peaks) / samp_freq
+    addedTroughs_scaled = np.array(added_troughs) / samp_freq
+
+    # Limit length of each row for clarity
+    print('Limit length of each row for clarity')
+    points_per_row = 3000             
+    num_rows = int(np.ceil(len(y) / points_per_row))
+
+    fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
+    if num_rows == 1:
+        axes = [axes]
+
+    # Ensure index array is of integer type
+    if respiratoryPeaks.dtype!=int:
+        respiratoryPeaks = respiratoryPeaks.astype(int)
+      
+    # Get peak and trough values
+    respiratoryTimeSeries = np.array(respiratoryTimeSeries)
+    respiratoryPeaks = np.array(respiratoryPeaks)
+    peakVals = respiratoryTimeSeries[respiratoryPeaks]
+    respiratoryTroughs = np.array(respiratoryTroughs)
+    troughVals = respiratoryTimeSeries[respiratoryTroughs]    
+    addedPeakVals = respiratoryTimeSeries[added_peaks]
+    addedTroughVals = respiratoryTimeSeries[added_troughs]
+
+    # Output rows
+    for row in range(num_rows):
+        start = row * points_per_row
+        end = min((row + 1) * points_per_row, len(y))
+    
+        ax = axes[row]
+    
+        # --- plot scaled x ---
+        ax.plot(
+            x_scaled[start:end],
+            y[start:end],
+            linewidth=0.5,
+            solid_capstyle='butt',
+            solid_joinstyle='miter',
+            color="black"
+        )
+    
+        # Peaks and troughs
+        ax.plot(respiratoryPeaks_scaled, peakVals, "ro")
+        ax.plot(respiratoryTroughs_scaled, troughVals, "bo")
+
+        # Added peaks and troughs
+        ax.plot(addedPeaks_scaled, addedPeakVals, "mo")
+        ax.plot(addedTroughs_scaled, addedTroughVals, "go")
+    
+        # --- Draw  peak-trough mismatch regions bands (also scaled) ---
+        for band_start, band_end in outlier_ts_ranges:
+            if band_end <= start or band_start >= end:
+                continue
+            ax.axvspan(
+                max(band_start, start) / samp_freq,
+                min(band_end, end) / samp_freq,
+                color='red',
+                alpha=0.15
+            )
+    
+        # --- Draw generically bad regions bands (also scaled) ---
+        for bandrange in troughPeakMismatchRanges:
+            # print("DEBUG:", bandrange)
+            if bandrange[1] <= start or bandrange[0] >= end:
+                continue
+            ax.axvspan(
+                max(bandrange[0], start) / samp_freq,
+                min(bandrange[1], end) / samp_freq,
+                color='blue',
+                alpha=0.15
+            )
+        # --- scaled limits ---
+        ax.set_xlim(x_scaled[start], x_scaled[end - 1])
+        ax.set_ylim(min(y[start:end]), 
+                    max(y[start:end]))
+        ax.set_ylabel("Respiratory Amplitude")
+
+    # Set axes and save plot to file
+    print('Set axes and save plot to file')
+    ax.set_xlabel(f"Time (seconds)")
+    axes[-1].set_xlabel("Time (s)")
+    plt.tight_layout()
+
+    plt.savefig(output_file_name)
+    plt.show()
+    
+    return (
+        peakVals,
+        troughVals
+        )
+    
+    
 def makeCorrectedCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks, 
                                    outlier_ts_ranges, OutDir, samp_freq):
     
-    # Determine the mean period among peaks, T_p.
-    T_p = np.diff(cardiacPeaks).mean()
-    
     # Keep separate list of new points to display added points in green.
     added_points = []
-    added_point_values = []
     
     # Merge overlapping peaks
     merged_outlier_ts_ranges = merge_ranges(outlier_ts_ranges)
     
     # In every region identified as bad
     for bad_region in merged_outlier_ts_ranges:
-
-        # Remove all of the existing peaks in bad region
-        mask = (cardiacPeaks < bad_region[0]) | (cardiacPeaks > bad_region[1])
-        cardiacPeaks = cardiacPeaks[mask]
     
         # peaks before and after bad region
         idx_start = np.searchsorted(cardiacPeaks, bad_region[0])
@@ -999,62 +1305,6 @@ def makeCorrectedCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks,
         
         added_points.extend(np.round(new_peaks).astype(int))
 
-    #     # Remove all of the existing peaks in bad region
-    #     mask = (cardiacPeaks < bad_region[0]) | (cardiacPeaks > bad_region[1])
-    #     cardiacPeaks = cardiacPeaks[mask]
-        
-    #     # Determine the width, l_b, from the last peak before the bad region to 
-    #     # the first peak after the bad region.  If there is no peak before the 
-    #     # bad region, l_b is the distance to the first peak after the bad region. 
-    #     # If there is no peak after the bad region, l_b is the distance from
-    #     # the last peak before the bad region to the end of the time series.
-    #     idx_start = np.searchsorted(cardiacPeaks, bad_region[0])
-    #     idx_end   = np.searchsorted(cardiacPeaks, bad_region[1])        
-    #     before = cardiacPeaks[idx_start - 1] if idx_start > 0 else None
-    #     after  = cardiacPeaks[idx_end] if idx_end < len(cardiacPeaks) else None
-    #     if before == None and after == None: continue
-    #     if before == None:
-    #         l_b = after
-    #     elif after == None:
-    #         l_b = len(cardiacPeaks) - before
-    #     else: l_b = after - before
-        
-    #     # Divide l_b by T_p , and round it off to the nearest integer, to 
-    #     # estimate the new number of peaks, N_p.
-    #     N_p = round(l_b/T_p)
-    #     if N_p < 1: continue
-        
-    #     # Divide the width of the region by N_p to get the local inter-peak 
-    #     # width, t_p.
-    #     ipw = l_b/N_p
-    #     # ipw = T_p
-        
-    #     # The value, at each peak, is the mean of the peak values on either side 
-    #     # of the bad region. (Taking the local maximum is less desirable since 
-    #     # it may be affected by noise.)
-    #     if before == None: peakVal = cardiacTimeSeries[after]
-    #     elif after == None: peakVal = cardiacTimeSeries[before]
-    #     else: peakVal = (cardiacTimeSeries[after]+cardiacTimeSeries[before])/2
-        
-    #     # Starting at the last peak before the bad region, add peaks at 
-    #     # intervals of t_p with each index rounded to the nearest integer. If 
-    #     # there is no peak before the bad region, start at the first peak after 
-    #     # the bad region and work back.
-    #     if before != None:
-    #         point = before + ipw
-    #         limit = len(cardiacTimeSeries) if (after == None) else after
-    #         while point < limit:
-    #             added_points.append(round(point))
-    #             # cardiacTimeSeries[round(point)] = peakVal
-    #             point += ipw
-    #             added_point_values.append(peakVal)
-    #     else:
-    #         point = after - ipw
-    #         while point > 0:
-    #             added_points.append(round(point))
-    #             # cardiacTimeSeries[round(point)] = peakVal
-    #             point -= ipw
-    #             added_point_values.append(peakVal)            
         
     # Write out a plot of the corrected time series with green peaks (to show
     # the corrections) and bad regions in pink
@@ -1136,7 +1386,7 @@ def outputCorrectedCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
         ax.plot(cardiacPeaks_scaled, peakVals, "bo")
 
         # Added peaks
-        ax.plot(addedPeaks_scaled, addedPeakVals, "ro")
+        ax.plot(addedPeaks_scaled, addedPeakVals, "r+")
 
         # --- Draw bands (also scaled) ---
         for band_start, band_end in outlier_ts_ranges:
@@ -1415,7 +1665,6 @@ else:
     
 # Identify peak-trough mismatches (only applies to respiratory data)
 print('Identify peak-trough mismatches')
-# cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
 respiratoryPeaks_scaled = np.array(respiratoryPeaks) / samp_freq
 respiratoryTroughs_scaled = np.array(respiratoryTroughs) / samp_freq
 left = np.searchsorted(respiratoryTroughs, respiratoryPeaks[:-1], 
