@@ -1441,8 +1441,7 @@ i = 1
 import sys
 
 while i < len(sys.argv):
-    match sys.argv[i]:
-        case "-directory":
+    if (sys.argv[i]=="-directory"):
             i += 1
             if i >= len(sys.argv):
                 print("Error: -directory requires an argument")
@@ -1450,7 +1449,7 @@ while i < len(sys.argv):
             directory = sys.argv[i]
             i += 1
             
-        case "-card_file":
+    elif (sys.argv[i]=="-card_file"):
             i += 1
             if i >= len(sys.argv):
                 print("Error: -card_file requires an argument")
@@ -1458,7 +1457,7 @@ while i < len(sys.argv):
             cardiacTimeSeriesFile = sys.argv[i]
             i += 1
 
-        case "-resp_file":
+    elif (sys.argv[i]=="-resp_file"):
             i += 1
             if i >= len(sys.argv):
                 print("Error: -resp_file requires an argument")
@@ -1466,7 +1465,7 @@ while i < len(sys.argv):
             respiratoryTimeSeriesFile = sys.argv[i]
             i += 1
 
-        case "-freq":
+    elif (sys.argv[i]=="-freq"):
             i += 1
             if i >= len(sys.argv):
                 print("Error: -freq requires an argument")
@@ -1474,7 +1473,7 @@ while i < len(sys.argv):
             samp_freq = float(sys.argv[i])
             i += 1
             
-        case '-expand_factor':
+    elif (sys.argv[i]=="-expand_factor"):
             i += 1
             if i >= len(sys.argv):
                 print("Error: -expand_factor requires an argument")
@@ -1482,7 +1481,7 @@ while i < len(sys.argv):
             expand_factor = int(sys.argv[i])
             i += 1
             
-        case '-dset_tr':
+    elif (sys.argv[i]=="-dset_tr"):
             i += 1
             if i >= len(sys.argv):
                 print("Error: -dset_tr requires an argument")
@@ -1490,7 +1489,7 @@ while i < len(sys.argv):
             vol_tr = float(sys.argv[i])
             i += 1
 
-        case '-dset_nt':
+    elif (sys.argv[i]=="-dset_nt"):
             i += 1
             if i >= len(sys.argv):
                 print("Error: -dset_nt requires an argument")
@@ -1498,7 +1497,7 @@ while i < len(sys.argv):
             vol_nv = float(sys.argv[i])
             i += 1
 
-        case '-dset_nslice':
+    elif (sys.argv[i]=="-dset_nslice"):
             i += 1
             if i >= len(sys.argv):
                 print("Error: -dset_nslice requires an argument")
@@ -1506,7 +1505,7 @@ while i < len(sys.argv):
             dset_nslice = float(sys.argv[i])
             i += 1
 
-        case '-prefilt_max_freq':
+    elif (sys.argv[i]=="-prefilt_max_freq"):
             i += 1
             if i >= len(sys.argv):
                 print("Error: -prefilt_max_freq requires an argument")
@@ -1514,7 +1513,7 @@ while i < len(sys.argv):
             prefilt_max_freq = int(sys.argv[i])
             i += 1
 
-        case '-dset_slice_pattern':
+    elif (sys.argv[i]=="-dset_slice_pattern"):
             i += 1
             if i >= len(sys.argv):
                 print("Error: -dset_slice_pattern requires an argument")
@@ -1522,7 +1521,7 @@ while i < len(sys.argv):
             dset_slice_pattern = str(sys.argv[i])
             i += 1
 
-        case '-prefilt_mode':
+    elif (sys.argv[i]=="-prefilt_mode"):
             i += 1
             if i >= len(sys.argv):
                 print("Error: -prefilt_mode requires an argument")
@@ -1530,7 +1529,7 @@ while i < len(sys.argv):
             dset_slice_pattern = str(sys.argv[i])
             i += 1
 
-        case '-out_dir':
+    elif (sys.argv[i]=="-out_dir"):
             i += 1
             if i >= len(sys.argv):
                 print("Error: -out_dir requires an argument")
@@ -1538,31 +1537,31 @@ while i < len(sys.argv):
             OutDir = str(sys.argv[i])
             i += 1
 
-        case '-do_fix_nan':
+    elif (sys.argv[i]=="-do_fix_nan"):
             do_fix_nan = 1
             i += 1
             
-        case '-do_use_clustering':           
+    elif (sys.argv[i]=="-do_use_clustering"):
             useClustering = True
             i += 1
 
-        case '-save_proc_peaks':
+    elif (sys.argv[i]=="-save_proc_peaks"):
             save_proc_peaks = 1
             i += 1
 
-        case '-save_proc_troughs':
+    elif (sys.argv[i]=="-save_proc_troughs"):
             save_proc_troughs = 1
             i += 1
 
-        case '-save_proc_troughs':
+    elif (sys.argv[i]=="-save_proc_troughs"):
             save_proc_troughs = 1
             i += 1
 
-        case '-save_proc_filtered_ts':
+    elif (sys.argv[i]=="-save_proc_filtered_ts"):
             save_proc_filtered_ts = 1
             i += 1
 
-        case "-help":
+    elif (sys.argv[i]=="-help"):
             print("Usage:\n python ./findBadSegments.py -directory <directory>")
             print("\t[-freq <samp_freq>]\n")
             print('where "directory" is the "physio_physio_extras/" directory ') 
@@ -1570,11 +1569,11 @@ while i < len(sys.argv):
             print('in Hertz') 
             sys.exit()
 
-        case "-h":
+    elif (sys.argv[i]=="-h"):
             print("-h not recognized.  Did you mean -help?")
             sys.exit()
 
-        case _:
+    else:
             print(f"Unrecognized option: {sys.argv[i]}")
             print('Use "-help" for correct usage.')
             sys.exit()
