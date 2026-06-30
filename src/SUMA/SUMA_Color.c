@@ -3024,7 +3024,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    SUMA_ALL_DO *ado=NULL;
    SUMA_WIDGET_INDEX_COORDBIAS HoldBiasOpt;
    SUMA_Boolean LocalHead = NOPE;
-   SUMA_SurfaceObject *SO;
 
    static int * box_mask=NULL;    /* maintain static Box mask array */
    static int   box_mask_size=0;  /* Box mask allocation            */
@@ -3078,7 +3077,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    SUMA_LH("Fetching vectors from dset");
 
    ado = SUMA_Overlay_OwnerADO(Sover);
-   SO = (SUMA_SurfaceObject *)ado;
 
    B = NULL;
    /* Thresholding ? */
@@ -3086,7 +3084,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       SUMA_LH("Fetching Threshold column");
 
       /* box_mask memory, allocate maximum mask size and keep as static */
-      /* - below, box_mask accumulates threshold-surviving node indicies */
+      /* - below, box_mask accumulates threshold-surviving node indices */
       nnodes = SDSET_VECFILLED(Sover->dset_link);
 
       if( nnodes > 0 && box_mask_size < nnodes ) {
@@ -4496,7 +4494,7 @@ SUMA_COLOR_MAP *SUMA_NICmapToCmap(NI_group *ngr)
    }
    if (s) {
       if (CM->N_M[0] <= 0) {
-        SUMA_SL_Err("Invalid colormap dimensions");
+        SUMA_SL_Err("NIC2CM 0: Invalid colormap dimensions");
         SUMA_RETURN(NULL);
       }
       CM->cname = (char **)SUMA_calloc(CM->N_M[0], sizeof(char *));
@@ -4673,8 +4671,6 @@ SUMA_Boolean SUMA_ScaleToMap(float *V, int N_V,
    static int nwarn = 0, nwarnvcont = 0;
    SUMA_COLOR_MAP_HASH_DATUM *hdbuf=NULL;
    SUMA_Boolean NewMap = NOPE;
-   SUMA_SurfaceObject *SO = NULL;
-   float *vSave;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -6450,7 +6446,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
 
    if (!Recycle) {
       Sover->GlobalOpacity = -1.0; /* no factor applied */
-      /* rcr - why lose '-' here? */
+      /* rcr - why lose '-' here?  possibly init to not shown */
       Sover->ShowMode = SW_SurfCont_DsetViewCol;
       Sover->Font = SUMA_FontStr2FontMenuItem(SUMA_EnvVal("SUMA_Dset_Font"));
       Sover->NodeRad = SW_SurfCont_DsetNodeRadConst;
@@ -7794,6 +7790,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    int numThresholdNodes = 0;
    static int *outlinevector = NULL;
    byte *isColored_ForeTmp;
+   float *activeAlphaOpacities;
    SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */
 
    SUMA_ENTRY;
@@ -8015,7 +8012,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    }
    /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^  Foreground colors -------------------------*/
 
-   float *activeAlphaOpacities = NULL;
+   activeAlphaOpacities = NULL;
 
    /* time to modulate the mixed colors with the average brightness */
    /* (NshowOverlays_Back gives the status of show background colors) */
@@ -8029,12 +8026,14 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
        * - in SUMA_ScaleToMap_Interactive, UseThr allowed use of isMasked
        *   to block color of voxels, but AlphaOp overrode that, so check
        *   AlphaOp and UseThr as a pair
+       *
+       *   Set activeAlphaOpacities, and verify it is non-NULL.
        */
       if (currentOverlay->AlphaOpacityFalloff
-         && currentOverlay->OptScl->UseThr) {
-           
+         && currentOverlay->OptScl->UseThr)
          activeAlphaOpacities = alphaOpacitiesForOverlay(SO, currentOverlay);
 
+      if ( activeAlphaOpacities ) {
          for (i=0; i < N_Node; ++i) {
            float opacity = activeAlphaOpacities[i];
            float complement = 1.0f - opacity;
@@ -8133,14 +8132,15 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    }
 
    // This is called when the background is toggled off with the B key
+   // - an 'else' to the prior ( ... && NshowOverlays_Back ) case
    if (NshowOverlays && !NshowOverlays_Back) {
       if (LocalHead)
          fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n", FuncName);
       if (currentOverlay->AlphaOpacityFalloff 
          && currentOverlay->OptScl->UseThr)
-      {
          activeAlphaOpacities = alphaOpacitiesForOverlay(SO, currentOverlay);
-         
+
+      if ( activeAlphaOpacities ) {
          for (i=0; i < N_Node; ++i) {
             i4 = 4 * i;
             float opacity = activeAlphaOpacities[i];
@@ -10211,6 +10211,7 @@ SUMA_Boolean SUMA_iRGB_to_TDO_OverlayPointer (SUMA_TractDO *TDO,
 
       /* set up some defaults for the overlap plane */
       if (sopd->Show) Overlay->ShowMode = SW_SurfCont_DsetViewCol;
+      /* rcr - this was and possibly should stay -SW_SurfCont_DsetViewCol */
       else Overlay->ShowMode = SW_SurfCont_DsetViewXXX;
       Overlay->GlobalOpacity = sopd->GlobalOpacity;
       Overlay->isBackGrnd = sopd->isBackGrnd;
@@ -12039,7 +12040,6 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(int nnodes, int *box_mask,
 {
     static char FuncName[]={"SUMA_ContourateDsetOverlay_Box"};
     int kkk=0, *ind=NULL, *key=NULL;
-    double   threshold = cp->OptScl->ThreshRange[0];
     SUMA_Boolean LocalHead = NOPE;
 
     SUMA_ENTRY;
