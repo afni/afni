@@ -2749,24 +2749,30 @@ class Afni1D:
       if verb > 0: print('rows = %d, cols = %d' % (self.nt, self.nvec))
       else:        print('%d %d' % (self.nt, self.nvec))
 
-   def show_tpattern(self, mesg='', rdigits=1, verb=1):
+   def show_tpattern(self, mesg='', tr=0.0, rdigits=1, verb=1):
       """display the multiband level and to3d-style tpattern
 
              mesg    : ['']  : print before output
+             tr      : 0.0   : if > 0, override detected TR with that passed
+                               * tr must be passed to have an effect,
+                                 since the class default is 1 (to mimic afni)
              rdigits : [1]   : N digtits used for rounding in pattern detection
              verb    : [1]   : verbosity level (0 = quiet)
       """
 
       if mesg:     print('%s' % mesg, end='')
 
-      nb, tpat = self.get_tpattern(rdigits=rdigits, verb=verb)
+      nb, tpat = self.get_tpattern(tr=tr, rdigits=rdigits, verb=verb)
 
       if verb > 0: print('nbands : %d, tpattern : %s' % (nb, tpat))
       else:        print('%d %s' % (nb, tpat))
 
-   def get_tpattern(self, rdigits=1, verb=1):
+   def get_tpattern(self, tr=0.0, rdigits=1, verb=1):
       """get the multiband level and to3d-style tpattern
 
+             tr      : 0.0   : if > 0, override detected TR with that passed
+                               * tr must be passed to have an effect,
+                                 since the class default is 1 (to mimic afni)
              rdigits : [1]   : digtits used for rounding in pattern detection
              verb    : [1]   : verbosity level (0 = quiet)
 
@@ -2779,7 +2785,8 @@ class Afni1D:
       else:
          timing = [v[0] for v in self.mat]
 
-      nb, tpat = UTIL.timing_to_slice_pattern(timing, rdigits=rdigits,verb=verb)
+      nb, tpat = UTIL.timing_to_slice_pattern(timing, rdigits=rdigits,
+                                              tr=tr, verb=verb)
       if nb < 0:
          tpat = 'INVALID'
 
