@@ -124,6 +124,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    XtPointer elvis=NULL;
    NI_element *nel;
    char *cbuf=NULL;
+   char *attr=NULL;  /* attribute */
    SUMA_Boolean Found;
    SUMA_SurfaceViewer *svi;
    SUMA_SurfaceViewer *sv = NULL;
@@ -141,10 +142,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                              is now always in NI_TEXT_MODE,
                                              verify that AFNI handles either well
                                              THIS handling here is TEMPORARY */
-    int adolist[SUMA_MAX_DISPLAYABLE_OBJECTS], N_adolist;
-    int j;
     float newMin, newMax;
-    static int BoxOutlineThresh = 0;  
     SUMA_Boolean LocalHead = NOPE;
 
 
@@ -3980,7 +3978,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
 
             /* Should you decide to fix/improve this block,
-            You should call on function SUMA_SetRangeNew
+            You should call on function SUMA_SetRangeValueNew
             to set the values, that function will handle
             contralateral parallelization, but it does not
             seem to use the ShowMode variable so might want
@@ -4022,6 +4020,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      newMax = SurfCont->curColPlane->OptScl->IntRange[1];
 
                      // Process for contralateral hemisphere
+                     // rcr - consider SUMA_SetRangeValueNew()
                      SO = (SUMA_SurfaceObject *)ado;
                      colpC = SUMA_Contralateral_overlay(SurfCont->curColPlane, SO, &SOC);
                      if (colpC && SOC){                        
@@ -4110,119 +4109,95 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               SurfCont->curColPlane->OptScl->MaskZero, YUP);
             }
 
-            if (NI_get_attribute(EngineData->ngr, "T_abs")) {
+            attr = NI_get_attribute(EngineData->ngr, "T_abs");
+            if (attr) {
                 SUMA_Boolean toggleOn;
-               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "T_abs", "y")){
+               if ( !strcmp(attr, "y") ) {
                   toggleOn = 1;
                }
-               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "T_abs", "n"))
-               {
+               else if ( !strcmp(attr, "n") ) {
                   toggleOn = 0;
                }
                else {
                   SUMA_S_Errv("Bad value of %s for T_abs, setting to 'y'\n",
-                              NI_get_attribute(EngineData->ngr, "T_abs"));
+                              attr);
                   toggleOn = NOPE;
                }
-               XmToggleButtonSetState ( SurfCont->AbsThresh_tb,
-                              toggleOn, YUP);
+               XmToggleButtonSetState ( SurfCont->AbsThresh_tb, toggleOn, YUP);
             }
 
-            if (SUMA_AB_Ready(ado) && NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA") &&
-            
-                // Ensure "A" button is not disabled
-                XtIsSensitive(SUMA_SV_Focus_SO(sv)->SurfCont->AlphaOpacityFalloff_tb)) {
-                
-               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "y")){
-                fprintf(stderr, "Show alpha\n");
-                    XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
-                      YUP, YUP);
+            /* check that we have an attribute, are ready to alpha/box,
+               and that the "A" button is enabled */
+            attr = NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA");
+            if ( attr && SUMA_AB_Ready(ado) ) {
+              if( XtIsSensitive(SUMA_SV_Focus_SO(sv)->SurfCont->AlphaOpacityFalloff_tb)) {
+                if ( !strcmp(attr, "y") ) {
+                     XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+                       YUP, YUP);
 
-               }
-               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "n"))
-               {
-                    XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
-                      NOPE, YUP);
-               }
-               else {
-                  SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA, setting to 'y'\n",
-                              NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA"));
-                    XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
-                      NOPE, YUP);
-               }
-            }
-
-            if (SUMA_AB_Ready(ado) && NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE")) {
-                SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-                SurfCont = SO->SurfCont;
-                curColPlane = SurfCont->curColPlane;
-                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "L")){
-                  curColPlane->alphaOpacityModel = LINEAR;
-                }
-                else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "Q"))
-                {
-                  curColPlane->alphaOpacityModel = QUADRATIC;
+                } else if ( !strcmp(attr, "n") ) {
+                     XmToggleButtonSetState ( SurfCont->AlphaOpacityFalloff_tb,
+                       NOPE, YUP);
                 }
                 else {
-                  SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L/Q",
-                              NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
+                   SUMA_S_Errv("ignoring bad SET_FUNC_ALPHA = %s\n", attr);
                 }
+              }
+            }
+
+            attr = NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE");
+            if ( attr && SUMA_AB_Ready(ado) ) {
+                SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+                int amode;
+
+                SurfCont = SO->SurfCont;
+                curColPlane = SurfCont->curColPlane;
+                amode = curColPlane->alphaOpacityModel;  /* note cur value */
+                if ( !strcmp(attr, "L") ) {
+                  /* set desired mode and store for contralateral hemi */
+                  amode = LINEAR;
+                } else if ( !strcmp(attr, "Q") ) {
+                  amode = QUADRATIC;
+                }
+                else {
+                  SUMA_S_Errv("ignoring bad SET_FUNC_ALPHA_MODE = %s\n", attr);
+                }
+                /* apply */
+                curColPlane->alphaOpacityModel = amode;
+
                 if (!sv) sv = &(SUMAg_SVv[0]); 
                 SO = SUMA_SV_Focus_SO(sv);
-                SO->SurfCont->curColPlane->alphaOpacityModel = curColPlane->alphaOpacityModel;
+                SO->SurfCont->curColPlane->alphaOpacityModel = amode;
 
                 // Refresh display
                 SUMA_Remixedisplay(ado);
                 SUMA_UpdateNodeLblField(ado);
-               
-                 // Process for contralateral hemisphere
-                 colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
-                 if (colpC && SOC){                        
-                     SUMA_ALL_DO *ado = (SUMA_ALL_DO *)SOC;
-                     SurfCont = SOC->SurfCont;
-                     
-                     curColPlane = colpC;
-                    if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "L")){
-                      curColPlane->alphaOpacityModel = LINEAR;
-                    }
-                    else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA_MODE", "Q"))
-                    {
-                      curColPlane->alphaOpacityModel = QUADRATIC;
-                    }
-                    else {
-                      SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA_MODE, setting to 'L/Q",
-                                  NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA_MODE"));
-                    }
-                    // if (!sv) sv = &(SUMAg_SVv[0]); 
-                    // SO = SUMA_SV_Focus_SO(sv);
-                    SOC->SurfCont->curColPlane->alphaOpacityModel = curColPlane->alphaOpacityModel;
 
-                    // Refresh display
-                    SUMA_Remixedisplay(ado);
-                    SUMA_UpdateNodeLblField(ado);
-                     
-                     
-                     
-                 }
-               
-           }
-                
-               
+                // Process for contralateral hemisphere
+                colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
+                if (colpC && SOC){                        
+                   SUMA_ALL_DO *ado = (SUMA_ALL_DO *)SOC;
+                   SurfCont = SOC->SurfCont;
 
+                   curColPlane = colpC;
+                   curColPlane->alphaOpacityModel = amode;
+                   SOC->SurfCont->curColPlane->alphaOpacityModel = amode;
 
-            if (SUMA_AB_Ready(ado) && NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED")) {
-                curColPlane = SurfCont->curColPlane;
-               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_BOXED", "y")){
+                   // Refresh display
+                   SUMA_Remixedisplay(ado);
+                   SUMA_UpdateNodeLblField(ado);
+                }
+            }
+
+            attr = NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED");
+            if ( attr && SUMA_AB_Ready(ado) ) {
+               curColPlane = SurfCont->curColPlane;
+               if ( !strcmp(attr, "y") ) {
                   curColPlane->BoxOutlineThresh = 1;
-               }
-               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_BOXED", "n"))
-               {
+               } else if ( !strcmp(attr, "n") ) {
                   curColPlane->BoxOutlineThresh = 0;
-               }
-               else {
-                  SUMA_S_Errv("Bad value of %s for SET_FUNC_BOXED, setting to 'y'\n",
-                              NI_get_attribute(EngineData->ngr, "SET_FUNC_BOXED"));
-                  curColPlane->BoxOutlineThresh = NOPE;
+               } else {
+                  SUMA_S_Errv("ignoring bad SET_FUNC_BOXED = %s\n", attr);
                }
                XmToggleButtonSetState ( SurfCont->BoxOutlineThresh_tb,
                               curColPlane->BoxOutlineThresh, YUP);
@@ -4391,14 +4366,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             if (NI_get_attribute(EngineData->ngr, "view_dset")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "view_dset", "y")) {
+                  /* if off (negative), turn on */
                   if (SurfCont->curColPlane->ShowMode < 0)
                      SurfCont->curColPlane->ShowMode =
                         -SurfCont->curColPlane->ShowMode;
-                        // [pt] review use of negative ShowMode---should be OK/useful
-                        if (SurfCont->curColPlane->ShowMode < 0)
-                           fprintf(stderr, "******* WARNING: ->ShowMode set to negative in SUMA_Engine 7\n");
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr,
                                                 "view_dset", "n")) {
+                  /* if on (positive), turn off */
                   if (SurfCont->curColPlane->ShowMode > 0)
                      SurfCont->curColPlane->ShowMode =
                                     -SurfCont->curColPlane->ShowMode;
@@ -4406,8 +4380,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_S_Errv("Bad value of %s for view_dset, setting to 'y'\n",
                               NI_get_attribute(EngineData->ngr, "view_dset"));
                   SurfCont->curColPlane->ShowMode = SW_SurfCont_DsetViewCol;
-                  if (SurfCont->curColPlane->ShowMode < 0)
-                    fprintf(stderr, "******* WARNING: ->ShowMode set to negative in SUMA_Engine 1\n");
                }
                SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
                               SUMA_ShowMode2ShowModeMenuItem(
@@ -5964,6 +5936,7 @@ int SUMA_ADOs_WithUniqueSurfCont (SUMA_DO *dov, int N_dov, int *dov_IDs)
       SurfConts[i] = SUMA_ADO_Cont((SUMA_ALL_DO*)SUMAg_DOv[i].OP);
    }
 
+   /* make sublist of unique ids */
    for (i=0; i< N_dov; ++i) {
       if (SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO*)SUMAg_DOv[i].OP)) {
         unique = 1;
@@ -5978,11 +5951,12 @@ int SUMA_ADOs_WithUniqueSurfCont (SUMA_DO *dov, int N_dov, int *dov_IDs)
       }
    }
 
-   /* if "All Objs." has not been done, say, there might be many surfaces,
+   /* if "All Objs." has not been selected, say, there might be many surfaces,
       but most without rendered pages */
    if( SUMAg_CF->X->UseSameSurfCont ) {
       XtVaGetValues(SUMAg_CF->X->SC_Notebook, XmNlastPageNumber,
                     &numSurfaceObjects, NULL);
+      /* so do not whine */
       if (0 && numSurfaceObjects != nfound)
           SUMA_S_Warn("Mismatch between # surface objects %d and "
                       "# unique surface controllers %d ",
