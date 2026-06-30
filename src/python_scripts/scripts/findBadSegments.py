@@ -1177,8 +1177,9 @@ def outputCorrectedRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks,
 
     # Limit length of each row for clarity
     print('Limit length of each row for clarity')
-    points_per_row = 3000             
-    num_rows = int(np.ceil(len(y) / points_per_row))
+    # points_per_row = 3000             
+    points_per_row = 3000000/len(respiratoryPeaks)             
+    num_rows = min(20, int(np.ceil(len(y) / points_per_row)))
 
     fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
     if num_rows == 1:
@@ -1199,8 +1200,8 @@ def outputCorrectedRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks,
 
     # Output rows
     for row in range(num_rows):
-        start = row * points_per_row
-        end = min((row + 1) * points_per_row, len(y))
+        start = round(row * points_per_row)
+        end = round(min((row + 1) * points_per_row, len(y)))
     
         ax = axes[row]
     
