@@ -13,8 +13,11 @@
 # + add in many options, more complete behavior and outputs, and
 #   help description
 #
-set version   = "1.1";  set rev_dat   = "June 23, 2026"
+#set version   = "1.1";  set rev_dat   = "June 23, 2026"
 # + more popup help info
+#
+set version   = "1.2";  set rev_dat   = "June 30, 2026"
+# + use inputB for core/rim def
 #
 # ----------------------------------------------------------------
 
@@ -241,15 +244,15 @@ cd ${outdir}/${wdir}
 
 # ----- make core+rim masks
 
-echo "++ Make core+rim masks"
+echo "++ Make core+rim masks from inputB"
 
-# from maskA, make inner and outer rim...
+# from maskB, make inner and outer rim...
 3dDepthMap                                                                   \
     -overwrite                                                               \
     -bounds_are_not_zero                                                     \
     -rimify              ${rim_dep}                                          \
-    -input               "3dcalc( -a dset_00_maskA.nii.gz -expr a+3*not(a) )" \
-    -prefix              dset_01_rim.nii.gz
+    -input               "3dcalc( -a dset_00_maskB.nii.gz -expr a+3*not(a) )" \
+    -prefix              dset_01_rimB.nii.gz
 
 if ( $status ) then
     goto BAD_EXIT
@@ -258,16 +261,16 @@ endif
 # ... and finalize by adding core
 3dcalc                                                                       \
     -overwrite                                                               \
-    -a          dset_00_maskA.nii.gz                                         \
-    -b          dset_01_rim.nii.gz                                           \
+    -a          dset_00_maskB.nii.gz                                         \
+    -b          dset_01_rimB.nii.gz                                           \
     -expr       "a+b"                                                        \
-    -prefix     dset_02_rimcore.nii.gz
+    -prefix     dset_02_rimcoreB.nii.gz
 
 if ( $status ) then
     goto BAD_EXIT
 endif
 
-# at this point, dset_02_rimcoreA.nii.gz has 3 values to be used in masking:
+# at this point, dset_02_rimcoreB.nii.gz has 3 values to be used in masking:
 #     1 : core
 #     2 : inner rim
 #     3 : outer rim
@@ -314,7 +317,7 @@ foreach ii ( `seq 1 1 ${#all_label}` )
     3dcalc                                                                   \
         -overwrite                                                           \
         -a          dset_00_maskA.nii.gz                                     \
-        -b          dset_02_rimcore.nii.gz"<${ii}>"                          \
+        -b          dset_02_rimcoreB.nii.gz"<${ii}>"                          \
         -expr       "${func}(a) * ${use_b}"                                  \
         -prefix     dset_03_maskA_${label}.nii.gz
 
@@ -325,7 +328,7 @@ foreach ii ( `seq 1 1 ${#all_label}` )
     3dcalc                                                                   \
         -overwrite                                                           \
         -a          dset_00_maskB.nii.gz                                     \
-        -b          dset_02_rimcore.nii.gz"<${ii}>"                          \
+        -b          dset_02_rimcoreB.nii.gz"<${ii}>"                          \
         -expr       "${func}(a) * ${use_b}"                                  \
         -prefix     dset_03_maskB_${label}.nii.gz
 
@@ -427,6 +430,9 @@ else
             echo "** ERROR: failed to cp data to outdir"
             goto BAD_EXIT
         endif
+        
+        # convenient, in case dset gets opened separately
+        3drefit -cmap INT_CMAP ../${dset_olay}
 
         # move out of wdir to outdir
         cd ..
@@ -560,9 +566,13 @@ revdate : ${rev_dat}
 -------------------------------------------------------------------------
 Options ~1~
 
--inputA      IA    :(req) input dataset, the primary one
+-inputA      IA    :(req) input mask dataset, the primary one, which is 
+                    likely the 'predicted' mask that we want to evaluate
+                    with regards to the inputB mask
 
--inputB      IB    :(req) input dataset, the secondary one
+-inputB      IB    :(req) input mask dataset, the secondary one, which is
+                    generally treated as the 'target' or reference mask to
+                    which comparisons are made                    
 
 -outdir      000   :(req) output dir name 
 
@@ -573,7 +583,7 @@ Options ~1~
                     have the QC images made, too
 
 -rim_dep     RD    :the depth (in units of mm) of the inner and outer rim 
-                    regions
+                    regions (calculated from inputB)
                     (def: ${rim_dep})
 
 -add_data_to_outdir ADTO
@@ -632,11 +642,11 @@ Outputs, 1: overlap report file ~2~
   The report contains the voxel count and overlap information for the
   input masks, divided into 4 sections for specificity:
 
-    inrim   : The "inner rim" boundary region of the inputA mask,
+    inrim   : The "inner rim" boundary region of the inputB mask,
               defined as being _inside_ the mask and within 'rim_dep' mm 
               from the boundary.
 
-    outrim  : The "outer rim" boundary region of the inputA mask,
+    outrim  : The "outer rim" boundary region of the inputB mask,
               defined as being _outside_ the mask and within 'rim_dep' mm 
               from the boundary.
 
@@ -645,13 +655,13 @@ Outputs, 1: overlap report file ~2~
               should appear here, so the reported counts are
               _inverted_, to remain on a similar scale of
               comparability with other regions. For example, by
-              definition no voxels from inputA appear in the outrim;
-              by inverting the count, the value of 'outrim nvoxA' is
+              definition no voxels from inputB appear in the outrim;
+              by inverting the count, the value of 'outrim nvoxB' is
               therefore the total volume of the outrim, and the value
-              of 'outrim nvoxB' is how many voxels in inputB do _not_
+              of 'outrim nvoxA' is how many voxels in inputA do _not_
               actually appear in that band.
 
-    core    : The "inner core" of the inputA mask, defined as being 
+    core    : The "inner core" of the inputB mask, defined as being 
               everything _inside_ the mask that is not part of the inner rim.
 
     overall : All voxels within the FOV, that is just the total masks.
