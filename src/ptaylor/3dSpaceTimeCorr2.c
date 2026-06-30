@@ -240,7 +240,7 @@ int run_stcorr2( int comline, PARAMS_stcorr2 opts,
    int nn;
    int tmp;
 
-   int *Dim=NULL;
+   int Dim[3] = {0, 0, 0};
    int nvox, nvalsA, nvalsB;
 
 	THD_3dim_dataset *dset_insetA = NULL;     // insetA
@@ -294,7 +294,6 @@ int run_stcorr2( int comline, PARAMS_stcorr2 opts,
    /* -------------------------- basic setup ----------------------------- */
 
    // spatial dim info
-   Dim = (int *)calloc(3, sizeof(int));
    Dim[0] = DSET_NX(dset_insetA);
    Dim[1] = DSET_NY(dset_insetA); 
    Dim[2] = DSET_NZ(dset_insetA);
@@ -319,7 +318,7 @@ int run_stcorr2( int comline, PARAMS_stcorr2 opts,
       AZ[i] = calloc( nvalsA, sizeof(float)); 
    BZ = calloc( nmask, sizeof(BZ));
    for( i=0 ; i<nmask ; i++) 
-      BZ[i] = calloc( nvalsA, sizeof(float)); 
+      BZ[i] = calloc( nvalsB, sizeof(float)); 
 
    if( (AZ == NULL) || (BZ == NULL) ) { 
       ERROR_message("MemAlloc failure for AZ and/or BZ.");
@@ -405,6 +404,8 @@ int run_stcorr2( int comline, PARAMS_stcorr2 opts,
    
    /* ------------------------ write output dset --------------------------- */
 
+   INFO_message("Writing output dataset...");
+
    dset_out = EDIT_empty_copy( dset_mask ); 
    EDIT_dset_items(dset_out,
                    ADN_nvals, 1,
@@ -436,9 +437,6 @@ int run_stcorr2( int comline, PARAMS_stcorr2 opts,
       free(dset_out); 
    }
 
-   if( Dim )
-      free(Dim);
-
    if( mask_arr )
       free(mask_arr);
 
@@ -456,7 +454,7 @@ int run_stcorr2( int comline, PARAMS_stcorr2 opts,
 
    if( tsA )
       free(tsA);
-   
+
    if (tsB )
       free(tsB);
 
