@@ -49,7 +49,7 @@
 set version   = "2.6";   set rev_dat   = "Sep 25, 2025"
 #     + [PT] migrate from older @afni_refacer_run
 #       - start using newer shells
-#       - move default ref_shell to sym_2.1 (more anonymizing
+#       - move default ref_shell to sym_2.1 (more anonymizing)
 #
 # ============================================================================
 
@@ -125,9 +125,9 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-mode_all" ) then
         set run_mode = ( ${run_mode} "deface" "reface" "reface_plus" )
 
-    else if ( "$argv[$ac]" == "-mode_cubeface" ) then
+    else if ( "$argv[$ac]" == "-mode2_cubeface" ) then
         set run_mode = ( ${run_mode} "cubeface" )
-    else if ( "$argv[$ac]" == "-mode_all_extras" ) then
+    else if ( "$argv[$ac]" == "-mode2_all" ) then
         set run_mode = ( ${run_mode} "cubeface" )
 
     # ------------------------------------------------------
@@ -693,7 +693,8 @@ USAGE ~1~
 
   refacer_tool                                                  \
     -input  DSET                                                \
-    -mode_{reface|reface_plus|deface|cubeface|all|all_extras}   \
+    -mode_{reface|reface_plus|deface|all}                       \
+    -mode2_{cubeface|all}                                       \
     -prefix PPP                                                 \
     {-anonymize_output}                                         \
     {-cost CC}                                                  \
@@ -707,8 +708,12 @@ where:
 
  -input DSET  : (req) name of input dset; can contain path information.
 
-     ... and at least one '-mode_*' option MUST be chosen (any
-     combination of these can be used; the union of modes will be output):
+ -prefix PPP  : (req) name of output dset (see NOTES for info about
+                about file names, particularly when "-mode_all" is used).
+
+     ... and at least one '-mode*' option MUST be chosen (any
+     combination of these can be used; the union of modes will be
+     output):
 
  -mode_deface : replace the computed face+ears voxels with all zeros
                 instead of the artificial face (ears are also removed)
@@ -721,19 +726,17 @@ where:
  -mode_all    : output three face-replaced volumes: one defaced, one 
                 refaced, and one reface_plused
 
- -mode_cubeface : replace the subject's face+ears with values averaged
+ -mode2_cubeface : replace the subject's face+ears with values averaged
                 across large cubes (see -cube_len, for controlling cube 
                 size)
-                NB: this mode is NOT particularly recommended for use in
-                practice, and is NOT included in the '-mode_all' output
-                It was added because it existed in The Wild, and we
-                wanted to be able to replicate it for training a
-                skullstripping program.
- -mode_all_extras : output all the other modes that are not included in 
-                '-mode_all'
-
- -prefix PPP  : (req) name of output dset (see NOTES for info about
-                about file names, particularly when "-mode_all" is used).
+                NB: this mode is NOT generally recommended; it exists
+                primarily for testing/using within training a
+                skullstripping program, simply because we saw it
+                existed in The Wild.
+ -mode2_all :   output all the other '-mode2_* cases, which are not 
+                included in '-mode_all'
+                NB: the '-mode2_*' cases are not recommended for general
+                use, but instead exist for other special use cases
 
  -anonymize_output : (opt) use 3drefit and nifti_tool to anonymize the
                 output dsets.  **But always verify anonymization
