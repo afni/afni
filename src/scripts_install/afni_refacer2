@@ -753,7 +753,7 @@ where:
  
  -ref_shell RS : (opt) can specify which shell to use.  At present, the 
                 available options for SH are:
-                  afni_refacer_shell_sym_1.1.nii.gz  (earliest version)
+                  afni_refacer_shell_sym_1.1.nii.gz  (earlier, shorter version)
                   afni_refacer_shell_sym_2.1.nii.gz  (remove more face/neck/ear)
                 See NOTES about specific reference shell version numbers.
                 (def: ${ref_shell})
