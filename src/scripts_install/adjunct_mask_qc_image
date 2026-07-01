@@ -1,0 +1,284 @@
+#!/bin/tcsh
+
+# A script for displaying a mask on a dset, similar to running
+# compare_mask_overlap.tcsh, but much simpler since there is only 1 dset here.
+#
+# ============================================================================
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+#set version   = "0.1";  set rev_dat   = "June 25, 2026"
+# + start of program
+#
+set version   = "0.2";  set rev_dat   = "July 1, 2026"
+# + ignore/remove overwriting opt---just always write
+#
+# ----------------------------------------------------------------
+
+set this_prog = "adjunct_mask_qc_image"
+set prog_abbr = "AMQI"
+set here      = $PWD
+
+# ----------------------- set defaults --------------------------
+
+set inputA    = ""
+set inputB    = ""
+set ulay      = ""
+
+set outdir    = ""
+set prefix    = ""
+set opref     = "overlap"
+set mcolor    = "lt-blue2"                 # default color
+
+set overwrite = ""                         # unused
+set wdir      = ""
+set DO_CLEAN  = 1           
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    if ( "$argv[$ac]" == '-echo' ) then
+        set echo
+
+    # --------- required
+
+    else if ( "$argv[$ac]" == "-input" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set inputA = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-outdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set outdir   = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set prefix = "$argv[$ac]"
+        set opref  = `basename "${prefix}"`
+
+        # prefix should have no path
+        if ( "${prefix}" != "${opref}" ) then
+            echo "+* WARNING: -prefix should have _no_ path info in it,"
+            echo "   bc it is output into the -outdir location."
+            echo "   We will just use '${opref}' instead."
+        endif
+
+    else if ( "$argv[$ac]" == "-ulay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ulay = "$argv[$ac]"
+
+    # --------- opt
+
+    else if ( "$argv[$ac]" == "-mcolor" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mcolor   = "$argv[$ac]"
+
+    #else if ( "$argv[$ac]" == "-overwrite" ) then
+    #    set overwrite = "-overwrite"
+        
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = 0
+        
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ======================== ** Verify + setup ** =========================
+# =======================================================================
+
+if ( "${outdir}" == "" ) then
+    echo "** ERROR: need to provide output dir name with '-outdir ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${inputA}" == "" ) then
+    echo "** ERROR: need to provide input dataset with '-input ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${ulay}" == "" ) then
+    echo "** ERROR: need to provide ulay dataset with '-ulay ..'"
+    goto BAD_EXIT
+endif
+
+# check output directory, use input one if nothing given
+if ( ! -e "${outdir}" ) then
+    echo "++ Making new output directory: $outdir"
+    \mkdir -p "${outdir}"
+else
+    echo "++ outdir exists already: ${outdir}"
+endif
+
+# =======================================================================
+# =========================== ** Main work ** ===========================
+# =======================================================================
+
+# ----- do QC images
+
+if ( 1 ) then
+
+    set dset_ulay = "${ulay}"
+    set dset_olay = "${inputA}"
+
+    set tmp_code    = `3dnewid -fun11`
+    set chauff_pref = "${outdir}/__img_${tmp_code}"     # temp/remove
+
+    set imrun_pref  = "${outdir}/${opref}_run.tcsh"     # keep
+    set imcat_pref  = "${outdir}/${opref}_QC.jpg"       # keep
+
+    @chauffeur_afni                                                          \
+        -ulay              "${dset_ulay}"                                    \
+        -olay              "${dset_olay}"                                    \
+        -box_focus_slices  "${dset_olay}"                                    \
+        -cbar_ncolors      2                                                 \
+        -cbar_topval       ""                                                \
+        -cbar              "1=${mcolor} 0.5=${mcolor} 0=none"                \
+        -prefix            "${chauff_pref}"                                  \
+        -pbar_posonly                                                        \
+        -func_range        1                                                 \
+        -set_xhairs        OFF                                               \
+        -montx             8                                                 \
+        -monty             1                                                 \
+        -opacity           4                                                 \
+        -label_mode        1                                                 \
+        -label_size        3                                                 \
+        -cmd2script        "${imrun_pref}"                                   \
+        -c2s_mont_1x1
+
+    if ( $status ) then
+        goto BAD_EXIT
+    endif
+
+    # Concatenate images across all 3 sliceviews.
+
+    2dcat                                                                    \
+        -gap      5                                                          \
+        -gap_col  150 180 150                                                \
+        -nx       1                                                          \
+        -ny       3                                                          \
+        -prefix   "${imcat_pref}"                                            \
+        "${chauff_pref}"*{axi,cor,sag}*png
+
+    if ( $status ) then
+        goto BAD_EXIT
+    endif
+
+    # clean up chauff_pref
+    \rm "${chauff_pref}"*.png
+
+endif
+
+# ---------------------------------------------------------------------
+
+cat <<EOF
+
+++ DONE. See the output:
+   "${imcat_pref}"
+
+EOF
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+Overview ~1~
+
+This program facilitates looking at a mask overlaid on another
+dataset, with a particular focus on whole brain masks. It makes a
+montage image of the mask.  It is used within 3dBrainTeaser, for example.
+
+auth    : PA Taylor (SSCC, NIMH, NIH, USA)
+ver     : ${version}
+revdate : ${rev_dat}
+
+-------------------------------------------------------------------------
+Options ~1~
+
+-input       IA    :(req) input dataset, the primary one
+
+-outdir      000   :(req) output dir name 
+
+-ulay        UU    :this dset UU is the underlay in the QC image
+
+-prefix      PPP   :a prefix for helping to name files in the outdir.
+                    The value of PPP should _not_ include path info,
+                    because that is determined/provide by the outdir.
+                    Also, it should not include an extension, since multiple
+                    files will be output.
+
+-mcolor      MC    :mask color, from one of the allowed AFNI overlay palette
+                    names.
+                    (def: "${mcolor}")
+
+-no_clean          :do not remove working directory (def: remove it)
+
+-echo              :very verbose output when running (for troubleshooting)
+
+-help, -h          :display this meager help info
+
+-ver               :display this program version
+
+-------------------------------------------------------------------------
+Notes ~1~
+
+Outputs: QC image ~2~
+
+  A QC image is output, called PREFIX_QC.jpg.  It is a montage of 8
+  slices from each of the axial, sagittal and coronal planes.
+
+  The name of the created driver script will be PREFIX_run.tcsh.
+
+-------------------------------------------------------------------------
+Examples ~1~
+
+  1. Make output QC image and report of two masks:
+
+     adjunct_mask_qc_image                                         \
+         -input               mask_01.nii.gz                       \
+         -ulay                sub-001_T1w.nii.gz                   \
+         -outdir              check_qc                             \
+         -prefix              sub-001_mask
+
+EOF
+
+# ----------------------------------------------------------------------
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0
