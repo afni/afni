@@ -343,6 +343,7 @@ def getOutliersFromClusters(cluster_sizes, clusters):
 def getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks):
 
     # Calculate Q1 and Q3
+    cardiacPeaks = np.asarray(cardiacPeaks).astype(int)
     q1, q3 = np.percentile(cardiacTimeSeries[cardiacPeaks], [25, 75])
     
     # Calculate IQR
@@ -512,6 +513,10 @@ def outputRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks,
     if num_rows == 1:
         axes = [axes]
 
+    #set window title
+    windowTitle = 'Respiratory ('+output_file_name+')'
+    fig.canvas.manager.set_window_title(windowTitle)
+
     # Ensure index array is of integer type
     if respiratoryPeaks.dtype!=int:
         respiratoryPeaks = respiratoryPeaks.astype(int)
@@ -608,6 +613,10 @@ def outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
     if num_rows == 1:
         axes = [axes]
 
+    #set window title
+    windowTitle = 'Cardiac Plots ('+output_file_name+')'
+    fig.canvas.manager.set_window_title(windowTitle)
+
     # Ensure index array is of integer type
     if cardiacPeaks.dtype!=int:
         cardiacPeaks = cardiacPeaks.astype(int)
@@ -672,7 +681,8 @@ def PlotCardiacPeaksOnCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks):
     plt.plot(x, cardiacTimeSeries, "g") #Lines connecting peaks and troughs
     if len(cardiacPeaks) > 0:
         peakVals = []
-        for i in cardiacPeaks: peakVals.append(round(cardiacTimeSeries[i]))
+        # for i in cardiacPeaks: peakVals.append(round(cardiacTimeSeries[i]))
+        for i in cardiacPeaks: peakVals.append(round(cardiacTimeSeries[int(i)]))
         plt.xlim(1608,2208)  # Zoom in on plot
         plt.plot(cardiacPeaks, peakVals, "ro") # Peaks
         
@@ -752,8 +762,10 @@ def applyClustering(cardiacPeaks, weights):
     
     # Get outlier peak indices
     peakVals = []
-    for i in cardiacPeaks: peakVals.append(round(cardiacTimeSeries[i]))
+    # for i in cardiacPeaks: peakVals.append(round(cardiacTimeSeries[i]))
+    for i in cardiacPeaks: peakVals.append(round(cardiacTimeSeries[int(i)]))
     # peakRankVector = np.argsort(peakVals)[::-1]
+    cardiacPeaks = np.asarray(cardiacPeaks).astype(int)
     peak_outliers = getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks)
     
     # Get outlier time series indices
@@ -806,7 +818,8 @@ def findAnomalousBands(vectorWeightSums, rankVector, cardiacPeaks):
     # Find peak outliers
     print('Find peak outliers')
     peakVals = []
-    for i in cardiacPeaks: peakVals.append(round(cardiacTimeSeries[i]))
+    # for i in cardiacPeaks: peakVals.append(round(cardiacTimeSeries[i]))
+    for i in cardiacPeaks: peakVals.append(round(cardiacTimeSeries[int(i)]))
     # peakRankVector = np.argsort(peakVals)[::-1]
     peak_outliers = getCardiacPeaktPeakOutliers(cardiacTimeSeries, cardiacPeaks)
     
@@ -1184,6 +1197,10 @@ def outputCorrectedRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks,
     fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
     if num_rows == 1:
         axes = [axes]
+
+    #set window title
+    windowTitle = 'Corrected Respiratory Peaks ('+output_file_name+')'
+    fig.canvas.manager.set_window_title(windowTitle)
 
     # Ensure index array is of integer type
     if respiratoryPeaks.dtype!=int:
