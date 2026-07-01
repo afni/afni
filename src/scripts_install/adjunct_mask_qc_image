@@ -7,8 +7,11 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-set version   = "0.1";  set rev_dat   = "June 25, 2026"
+#set version   = "0.1";  set rev_dat   = "June 25, 2026"
 # + start of program
+#
+set version   = "0.2";  set rev_dat   = "July 1, 2026"
+# + ignore/remove overwriting opt---just always write
 #
 # ----------------------------------------------------------------
 
@@ -27,7 +30,7 @@ set prefix    = ""
 set opref     = "overlap"
 set mcolor    = "lt-blue2"                 # default color
 
-set overwrite = ""
+set overwrite = ""                         # unused
 set wdir      = ""
 set DO_CLEAN  = 1           
 
@@ -85,8 +88,8 @@ while ( $ac <= $#argv )
         @ ac += 1
         set mcolor   = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-overwrite" ) then
-        set overwrite = "-overwrite"
+    #else if ( "$argv[$ac]" == "-overwrite" ) then
+    #    set overwrite = "-overwrite"
         
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = 0
@@ -122,10 +125,8 @@ endif
 if ( ! -e "${outdir}" ) then
     echo "++ Making new output directory: $outdir"
     \mkdir -p "${outdir}"
-else if ( -e "${outdir}" && "${overwrite}" != "-overwrite" ) then
-    echo "** ERROR: outdir exists already: ${outdir}"
-    echo "   Either remove it, or add '-overwrite'"
-    goto BAD_EXIT
+else
+    echo "++ outdir exists already: ${outdir}"
 endif
 
 # =======================================================================
@@ -232,10 +233,6 @@ Options ~1~
 -mcolor      MC    :mask color, from one of the allowed AFNI overlay palette
                     names.
                     (def: "${mcolor}")
-
--overwrite         :by default, this program will not overwrite a
-                    pre-existing 'outdir'. Add this option to allow it to
-                    do so
 
 -no_clean          :do not remove working directory (def: remove it)
 

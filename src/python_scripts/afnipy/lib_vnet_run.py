@@ -146,11 +146,10 @@ inobj : InOpts object
         BAD_RETURN = -8
 
         cmd  = 'adjunct_mask_qc_image '
-        cmd += '{} '.format(self.overwrite)
         cmd += '-input  {} '.format(self.prefix)
         cmd += '-ulay   {} '.format(self.inset)
         cmd += '-outdir {} '.format(self.outdir)
-        cmd += '-prefix {} '.format(self.prefix_noext)
+        cmd += '-prefix {} '.format(self.prefix_noext_nopath)
         com  = ab.shell_com(cmd, capture=1)
         stat = com.run()
 
@@ -946,6 +945,15 @@ inobj : InOpts object
             return self.prefix[:-7]
 
         return self.prefix
+
+    @property
+    def prefix_noext_nopath(self):
+        """see prefix_noext, and then also this output has no path."""
+
+        p1 = self.prefix_noext
+        p2 = p1.split('/')[-1]
+
+        return p2
 
 # ============================================================================
 
