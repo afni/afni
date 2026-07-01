@@ -6,7 +6,8 @@ set version   = "1.0";   set rev_dat   = "Sept 25, 2025"
 # ===========================================================================
 
 # regenerate everything from this file
-set dset = afni_refacer_shell_sym_1.0.nii.gz
+set dset1 = afni_refacer_shell_sym_1.0.nii.gz
+set dset2 = afni_refacer_shell_sym_1.0.nii.gz
 
 # ============================================================================
 # read in + interpret cmd line opts
@@ -41,8 +42,13 @@ end
 # ===========================================================================
 # checks for necessary data, and cleaning
 
-if ( ! -e ${dset} ) then
-    echo "** ERROR: can't find input dset: ${dset}"
+if ( ! -e ${dset1} ) then
+    echo "** ERROR: can't find input dset1: ${dset1}"
+    exit -1
+endif
+
+if ( ! -e ${dset2} ) then
+    echo "** ERROR: can't find input dset2: ${dset2}"
     exit -1
 endif
 
@@ -69,7 +75,7 @@ endif
 # start work
 
 # create everything from [0]th volume
-set dset = ${dset}'[0]'
+set dset = ${dset1}'[0]'
 
 # signed maps of positive and negative regions
 3dcalc                                                                       \
@@ -80,12 +86,20 @@ set dset = ${dset}'[0]'
     -datum      float                                                        \
     -nscale
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 # where input=0
 3dcalc                                                                       \
     -overwrite                                                               \
     -a          "${dset}"                                                    \
     -expr       'not(bool(a))'                                               \
     -prefix     __tmp_NOTBOOL.nii.gz
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 # full cluster map of input=0
 3dClusterize                                                                 \
@@ -98,6 +112,10 @@ set dset = ${dset}'[0]'
     -inset       __tmp_NOTBOOL.nii.gz                                        \
     -pref_dat    __tmp_CLUST_ALL.nii.gz
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 # cluster map of large middle/empty region
 3dClusterize                                                                 \
     -overwrite                                                               \
@@ -109,6 +127,10 @@ set dset = ${dset}'[0]'
     -inset       __tmp_NOTBOOL.nii.gz                                        \
     -pref_dat    __tmp_CLUST_BIG.nii.gz
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 # cluster map of just tiny input=0 regions
 3dcalc                                                                       \
     -overwrite                                                               \
@@ -119,6 +141,10 @@ set dset = ${dset}'[0]'
     -datum      short                                                        \
     -nscale
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 # try to get neighborhood sign everywhere
 3dLocalstat                                                                  \
     -overwrite                                                               \
@@ -126,6 +152,10 @@ set dset = ${dset}'[0]'
     -stat       mean                                                         \
     -prefix     __tmp_CLUST_SMALL_SIGN.nii.gz                                \
     -datum      float __tmp_BOOLSIGN.nii.gz
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 # local neighborhood means
 3dLocalstat                                                                  \
@@ -135,6 +165,10 @@ set dset = ${dset}'[0]'
     -prefix     __all_max.nii.gz                                             \
     -datum      float                                                        \
     "${dset}"
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 # apply signs and give tiny zero regions new values
 3dcalc                                                                       \
@@ -148,6 +182,10 @@ set dset = ${dset}'[0]'
     -prefix     __tmp_OUT_FILL.nii.gz
 
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 # first test for isolated bits of nonzero
 3dcalc                                                                       \
     -overwrite                                                               \
@@ -155,12 +193,20 @@ set dset = ${dset}'[0]'
     -expr       'not(bool(a))'                                               \
     -prefix     TESTNOTBOOL.nii.gz
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 # second test for isolated bits of nonzero
 3dcalc                                                                       \
     -overwrite                                                               \
     -a          __tmp_OUT_FILL.nii.gz                                        \
     -expr       'bool(a)'                                                    \
     -prefix     TESTBOOL.nii.gz
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 # ----- remap eyes that have value -1 to +1
 
@@ -170,6 +216,10 @@ set dset = ${dset}'[0]'
     -a          __tmp_OUT_FILL.nii.gz                                        \
     -expr       'isnegative(a)'                                              \
     -prefix     __tmp2_NEG.nii.gz                                            \
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 # full cluster map of input=0
 3dClusterize                                                                 \
@@ -182,6 +232,10 @@ set dset = ${dset}'[0]'
     -inset       __tmp2_NEG.nii.gz                                           \
     -pref_dat    __tmp2_CLUST2_ALL.nii.gz
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 # cluster map of large middle/empty region
 3dClusterize                                                                 \
     -overwrite                                                               \
@@ -193,6 +247,10 @@ set dset = ${dset}'[0]'
     -inset       __tmp2_NEG.nii.gz                                           \
     -pref_dat    __tmp2_CLUST2_BIG.nii.gz
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 # cluster map of just eyes
 3dcalc                                                                       \
     -overwrite                                                               \
@@ -203,6 +261,10 @@ set dset = ${dset}'[0]'
     -datum      short                                                        \
     -nscale
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 # remap eyes to be +1
 3dcalc                                                                       \
     -overwrite                                                               \
@@ -210,6 +272,10 @@ set dset = ${dset}'[0]'
     -b          __tmp_OUT_FILL.nii.gz                                        \
     -expr       'bool(a)+not(bool(a))*b'                                     \
     -prefix     __tmp2_OUT_FILL_FINAL_A.nii.gz
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 # ----- make [1]th volume
 
@@ -222,6 +288,10 @@ set dset = ${dset}'[0]'
     -datum      short                                \
     -nscale
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 # ... and again for larger deface
 3dcalc                                          \
     -overwrite                                                               \
@@ -230,6 +300,11 @@ set dset = ${dset}'[0]'
     -prefix     __tmp2_OUT_FILL_FINAL_C.nii.gz             \
     -datum      short                                \
     -nscale
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 # ... and trims away sub-brain stuff more
 3dcalc                                           \
     -a       __tmp2_OUT_FILL_FINAL_C.nii.gz             \
@@ -237,6 +312,10 @@ set dset = ${dset}'[0]'
     -prefix      __tmp2_OUT_FILL_FINAL_D.nii.gz             \
     -datum short                                  \
     -nscale
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 # ----- finalize
 
@@ -247,10 +326,18 @@ set dset = ${dset}'[0]'
     __tmp2_OUT_FILL_FINAL_A.nii.gz                  \
     __tmp2_OUT_FILL_FINAL_B.nii.gz  
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 # remove history, and give subbrick labels
 3drefit -denote                 afni_refacer_shell_sym_1.1.nii.gz
 3drefit -sublabel 0 "refacer"   afni_refacer_shell_sym_1.1.nii.gz
 3drefit -sublabel 1 "defacer"   afni_refacer_shell_sym_1.1.nii.gz
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 3dNotes                                                                  \
     -h "Created with adjunct_refacer_make_master_addendum2 v${version}"  \
@@ -263,10 +350,18 @@ set dset = ${dset}'[0]'
     __tmp2_OUT_FILL_FINAL_A.nii.gz                  \
     __tmp2_OUT_FILL_FINAL_D.nii.gz  
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 # remove history, and give subbrick labels
 3drefit -denote                 afni_refacer_shell_sym_2.1.nii.gz
 3drefit -sublabel 0 "refacer"   afni_refacer_shell_sym_2.1.nii.gz
 3drefit -sublabel 1 "defacer"   afni_refacer_shell_sym_2.1.nii.gz
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 3dNotes                                                                  \
     -h "Created with adjunct_refacer_make_master_addendum2 v${version}"  \
@@ -282,12 +377,20 @@ set dset = ${dset}'[0]'
     -expr 'bool(a-b)*(ispositive(a-b)-isnegative(a-b))'                    \
     -prefix DIFF_sym_2.1_min_2.0.nii.gz
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 3dcalc \
     -overwrite \
     -a afni_refacer_shell_sym_1.1.nii.gz \
     -b afni_refacer_shell_sym_1.0.nii.gz \
     -expr 'bool(a-b)*(ispositive(a-b)-isnegative(a-b))'                    \
     -prefix DIFF_sym_1.1_min_1.0.nii.gz
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 goto GOOD_EXIT
 
