@@ -542,7 +542,7 @@ foreach mode ( ${run_mode} )
     @djunct_anonymize ${owrite}                        \
         -input     tmp.99.result.${mode}.nii           \
         -copy_to   ../${opref}.${mode}.nii.gz          \
-        -add_note  "refacer_tool created this file"
+        -add_note  "afni_refacer2 created this file"
   else
     3dcopy -echo_edu ${owrite}                         \
         tmp.99.result.${mode}.nii                      \
@@ -581,7 +581,7 @@ foreach mode ( ${run_mode} )
     if ( ${DO_ANON} ) then
         @djunct_anonymize                                                    \
             -input     ../${opref}.${shell}.nii.gz                           \
-            -add_note  "refacer_tool created this file"
+            -add_note  "afni_refacer2 created this file"
     endif 
 
     # mask for QC images
@@ -695,7 +695,7 @@ A temporary working directory is also created.  This will be cleaned
 
 USAGE ~1~
 
-  refacer_tool                                                  \
+  afni_refacer2                                                  \
     -input  DSET                                                \
     -mode_{reface|reface_plus|deface|all}                       \
     -mode2_{cubeface|all}                                       \
@@ -846,35 +846,35 @@ EXAMPLES ~1~
 
 1) deface (= replace face+ears with zeros)
 
-    refacer_tool                                            \
+    afni_refacer2                                           \
         -input        anat+orig.HEAD                        \
         -mode_deface                                        \
         -prefix       anat_deface.nii.gz
 
 2) reface (= replace face+ears with generic face)
 
-    refacer_tool                                            \
+    afni_refacer2                                           \
         -input        anat.nii.gz                           \
         -mode_reface                                        \
         -prefix       anat_reface.nii.gz
 
 3) reface plus (= reface a larger area, including skull region)
 
-    refacer_tool                                            \
+    afni_refacer2                                           \
         -input             anat.nii.gz                      \
         -mode_reface_plus                                   \
         -prefix            anat_reface_plus.nii.gz
     
 4) ALL = output all versions of vol: refaced, reface_plused, defaced
 
-    refacer_tool                                            \
+    afni_refacer2                                           \
         -input     anat.nii.gz                              \
         -mode_all                                           \
         -prefix    anat
 
 5) ... and using different shell for replacement:
 
-    refacer_tool                                            \
+    afni_refacer2                                           \
         -input     anat+orig.                               \
         -mode_all                                           \
         -ref_shell afni_refacer_shell_sym_1.1.nii.gz        \
