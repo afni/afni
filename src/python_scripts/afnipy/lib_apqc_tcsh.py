@@ -1054,6 +1054,8 @@ def set_apqc_corr_brain(ap_ssdict):
 exists. We should already be in the correct dir (results dir) and the
 file name should be constant except for the av_space part.
 
+If the analysis is on a surface, do nothing here (just return the dict).
+
 Parameters
 ----------
 ap_ssdict : dict
@@ -1065,6 +1067,11 @@ ap_ssdict : dict
     updated dictionary of subject uvars
 
     """
+
+    # errts is not volumetric (nothing to do)
+    if not(is_volumetric(ap_ssdict['errts_dset'])) :
+        print("++ Surface analysis, so no corr_brain dset")
+        return ap_ssdict
 
     list_corr_brain = glob.glob('corr_brain+*.HEAD')
     nfound = len(list_corr_brain)
@@ -1452,6 +1459,10 @@ D : dict
     # no errts to blur (somehow? not sure this can happen, in reality) and/or
     # no tcat_dset (again, not sure this can actually happen)
     if not(check_dep(ap_ssdict, ['errts_dset', 'tcat_dset'])) :
+        return False, D
+
+    # errts is not volumetric (nothing to do)
+    if not(is_volumetric(ap_ssdict['errts_dset'])) :
         return False, D
 
     # data are already blurred; nothing to do
@@ -4435,6 +4446,11 @@ num : int
             ppp  = ' -censor_files "{}" '.format(ap_ssdict['censor_dset'])
             ap_ssdict_loc['censor_files']+= ppp
 
+        # add this to fix case when only one of motion and outlier
+        # censoring are applied (otherwise, the 1dplot.py failed, and
+        # the grayplot was not displayed in the HTML)
+        ap_ssdict_loc['cen_lim_all'] = ap_ssdict_loc['cen_lim_all'].replace('NONE', '')
+
         uuu2+= " rows: ordered by similarity to top two principal comps "
         uuu2+= "in mask ({})".format(mask_pref)
 
@@ -4636,10 +4652,13 @@ num : int
     # for warns QC block, parse output and get max warning level
     if qcb == 'warns' :
         warn_level = 'undecided'
-        if len(com.so) > 1 :
-            ttt = com.so[1].split(':')[-1].strip()
-            if len(ttt) :
-                warn_level = ttt
+        # [PT: 2026-05-08] have to search for line with max warn level
+        ncom = len(com.so)
+        for ii in range(ncom):
+            if com.so[ii].startswith('++ max warn level') :
+                ttt = com.so[ii].split(':')[-1].strip()
+                if len(ttt) :
+                    warn_level = ttt
 
     # text above data
     partxt  = "{}, had_blur={}".format(fname, had_blur)
@@ -4664,7 +4683,7 @@ num : int
             'title'       : lah.qc_blocks[qcb][1],
             'text'        : otoptxt,
             'warn_level'  : warn_level,
-        }        
+        }
     with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 

@@ -1238,11 +1238,11 @@ can end up being moved to bizarre locations.
 -----------------------------
 Variable: AFNI_IMAGE_DATASETS
 -----------------------------
-If this YES/NO variable is not set to NO, then 2D image files
+If this YES/NO variable is set to YES, then 2D image files
 (*.png and *.jpg) will be read as datasets when the interactive
-AFNI program starts. That is, you have to set this variable explicitly
-to NO if you do not want image files read into the AFNI GUI at
-startup. Image files can be opened using the Axial image viewer.
+AFNI program starts.
+Image files can be opened when passed directly on the command line.
+Image files can also be opened using the Axial image viewer, aiv.
 
 ----------------------------
 Variable: AFNI_MINC_DATASETS
@@ -4055,9 +4055,11 @@ AFNI_REALTIME_CHMERMODE = Number
 AFNI_REALTIME_CM_REG_MODE = Number
 
         If set, this variable controls the ChannelMerge registration mode.
-        Here: 0=none            : no merge registration
+        Here: 0=none            : no merge registration (register only channel 0)
               1=reg_merge       : register merged dastaset
+                                  (merge before registering)
               2=reg_chan        : apply merge xform to all channels
+                                  (register channels before merging)
         The default is 0.
 
 AFNI_REALTIME_MRG_CHANLIST = String

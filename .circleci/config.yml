@@ -1,13 +1,14 @@
 version: 2.1
+
 ############################################################################
 #Define commands that can be reused in the jobs section
 ############################################################################
 commands:
   setup_dev_base_image:
-    description: "Get base image using cache and  docker build"
+    description: "Get base image using cache and docker build"
     parameters:
-        image_cache_version:
-            type: string
+      image_cache_version:
+        type: string
     steps:
       - restore_an_exact_cache:
           version_file: "/tmp/src/afni/.docker/afni_dev_base.dockerfile"
@@ -16,10 +17,10 @@ commands:
           image_name: afni_dev_base
       - run:
           command: |
-            if [[  "$(docker images -q afni/afni_dev_base 2> /dev/null)" == "" ]];
+            if [[ "$(docker images -q afni/afni_dev_base 2> /dev/null)" == "" ]];
             then
-                  docker build -t afni/afni_dev_base  \
-                  -f .docker/afni_dev_base.dockerfile .
+              docker build -t afni/afni_dev_base \
+                -f .docker/afni_dev_base.dockerfile .
             fi
       - save_docker_image_to_disk:
           image_name: afni_dev_base
@@ -45,8 +46,7 @@ commands:
           no_output_timeout: 30m
           command: |
             # Coverage is off by default
-            if [[  "" == "$AFNI_WITH_COVERAGE" ]];then AFNI_WITH_COVERAGE="0";fi
-
+            if [[ "" == "$AFNI_WITH_COVERAGE" ]];then AFNI_WITH_COVERAGE="0";fi
             THISVERSION=$(cat src/AFNI_version_base.txt)
             echo "Building version ${CIRCLE_TAG:-$THISVERSION}"
             docker build \
@@ -68,15 +68,11 @@ commands:
           name: Run tests
           no_output_timeout: 60m
           command: |
-
             tests_dir=tests/afni_ci_test_data
             vol_dir=/opt/afni/src/$tests_dir
-
             TEST_ARGS="--extra-args='--runveryslow' $TEST_ARGS -v traceback --u container"
-
             # Coverage is off by default
-            if [[  "" == "$AFNI_WITH_COVERAGE" ]];then AFNI_WITH_COVERAGE="0";fi
-
+            if [[ "" == "$AFNI_WITH_COVERAGE" ]];then AFNI_WITH_COVERAGE="0";fi
             # Add coverage args as appropriate
             if [[ "$AFNI_WITH_COVERAGE" != "0" ]];then
               bash -c "echo Adding coverage because value is: $AFNI_WITH_COVERAGE"
@@ -85,28 +81,23 @@ commands:
               echo CircleCI coverage variables: $coverage_vars
               TEST_ARGS=" --coverage $TEST_ARGS --reuse-build"
             fi
-
             # some extra arguments for container management. Note that using
             # remote docker on circleci does not allow mounting volumes
             # directly into the container in the normal manner
             TEST_ARGS="$TEST_ARGS \
-                        --image-name=afni/afni_<< parameters.build_type >> \
-                        --container-name=testing_afni
-                        --source-mode=test-data-volume \
-                        --no-rm \
-                        --only-use-local"
-
+              --image-name=afni/afni_<< parameters.build_type >> \
+              --container-name=testing_afni
+              --source-mode=test-data-volume \
+              --no-rm \
+              --only-use-local"
             echo ...$TEST_ARGS...
             # stop if running locally and it happens to exist...
             pre_existing=$(docker ps -aq --filter name=testing_afni)
             if [[ ! "" == "$pre_existing" ]];then docker stop testing_afni;docker rm testing_afni;fi
-
             # Run the tests
             /tmp/src/afni/tests/run_afni_tests.py $TEST_ARGS
-
             # after application container finishes, copy artifacts directly from it
             docker cp -a testing_afni:/opt/afni/src/tests/afni_ci_test_data/. /tmp/src/afni/tests/afni_ci_test_data
-
 
   check_integrity_of_containers:
     description: "Check some of the permissions/user/PATH basics of the containers"
@@ -160,14 +151,14 @@ commands:
       - run:
           command: |
             if [[ "$DOCKER_USER" == 'afni' ]]; then
-              if [[  "$(docker images -q afni/afni_dev_base 2> /dev/null)" == "" ]];
+              if [[ "$(docker images -q afni/afni_dev_base 2> /dev/null)" == "" ]];
               then
                 echo Could not find the dev_base image used for release deployment.
                 exit 1
               else
-                  docker push afni/afni_dev_base:latest
-                  docker tag afni/afni_dev_base afni/afni_dev_base:$CIRCLE_TAG
-                  docker push afni/afni_dev_base:$CIRCLE_TAG
+                docker push afni/afni_dev_base:latest
+                docker tag afni/afni_dev_base afni/afni_dev_base:$CIRCLE_TAG
+                docker push afni/afni_dev_base:$CIRCLE_TAG
               fi
             fi
 
@@ -195,7 +186,7 @@ commands:
           name: Write osx dependencies to a file
           # [PT: 2024-10-30] we used to include 'python' in the
           # command list here, but CCI started failing on macos-build with:
-          #   'Error: Formula installation already attempted: python@3.13'
+          # 'Error: Formula installation already attempted: python@3.13'
           # and removing explicit 'python' resolved that.
           command: |
             echo \
@@ -203,38 +194,40 @@ commands:
               jpeg gsl gts openmotif libpng expat \
               freetype fontconfig netpbm git-annex | \
               tr " " '\n' | sort > /tmp/macos_dependencies_version.txt
-      ### [PT: May 28, 2023] leave out explicit llvm installation
-      ### above, because it leads to conflict issues when trying to
-      ### install its 'six' dependency
-      #### [PT: May 30, 2023] explicitly install more modern Python
-      #### 3.11, instead of 3.8
-      ##### [PT: May 30, 2023] be *non*explicit about Python version
-      ##### now---let CircleCI figure what it wants (previous style:
-      ##### 'python@3.11')
-      # circleci caching works with files owned by user (distiller on osx
-      # machines on circleci). If caching for macos is desired, homebrew files
-      # should be stored in home or /usr/local chowned. One thread mentioned
-      # that loading caches on macos is slower too so for now will not try to
-      # get this working:
-      # - restore_an_exact_cache:
-      #     version: "<< parameters.osx_dep_cache_version >>"
-      #     version_file: "/tmp/macos_dependencies_version.txt"
+
+          ### [PT: May 28, 2023] leave out explicit llvm installation
+          ### above, because it leads to conflict issues when trying to
+          ### install its 'six' dependency
+
+          #### [PT: May 30, 2023] explicitly install more modern Python
+          #### 3.11, instead of 3.8
+
+          ##### [PT: May 30, 2023] be *non*explicit about Python version
+          ##### now---let CircleCI figure what it wants (previous style:
+          ##### 'python@3.11')
+
+          # circleci caching works with files owned by user (distiller on osx
+          # machines on circleci). If caching for macos is desired, homebrew files
+          # should be stored in home or /usr/local chowned. One thread mentioned
+          # that loading caches on macos is slower too so for now will not try to
+          # get this working:
+          # - restore_an_exact_cache:
+          #     version: "<< parameters.osx_dep_cache_version >>"
+          #     version_file: "/tmp/macos_dependencies_version.txt"
       - run:
           name: Setup on macos
           # [PT 2024-10-01] avoid: 'Too long with no output (exceeded
           # 10m0s): context deadline exceeded' by doubling default timeout
-          no_output_timeout: 20m 
+          no_output_timeout: 20m
           command: |
-            brew  install --cask xquartz
+            brew install --cask xquartz
             if [[ -d /usr/local/Cellar/python@2 ]]; then
-                brew unlink python@2
+              brew unlink python@2
             fi
-
             # add hack for git upgrade to not raise an error
             set +o pipefail
             brew upgrade --force git || true
             set -o pipefail
-
             ### [PT: May 30, 2023] this might no longer be necessary,
             ### so we are commenting it out. Above, we specify
             ### installing Python 3.11, anyways
@@ -246,18 +239,14 @@ commands:
             #echo 'export LDFLAGS="-L/usr/local/opt/python@3.8/lib $LDFLAGS"' >> /Users/distiller/.bash_profile
             #export PKG_CONFIG_PATH="/usr/local/opt/python@3.8/lib/pkgconfig"
             #echo 'export PKG_CONFIG_PATH="/usr/local/opt/python@3.8/lib"' >> /Users/distiller/.bash_profile
-
             # Install dependency list
             cat /tmp/macos_dependencies_version.txt | xargs brew install
             # note other useful dependencies:
             # ffmpeg
-
-
-
-      # - save_cache:
-      #     key: v<< parameters.osx_dep_cache_version >>-/tmp/macos_dependencies_version.txt-{{ checksum "/tmp/macos_dependencies_version.txt" }}
-      #     paths:
-      #       - /usr/local
+          # - save_cache:
+          #     key: v<< parameters.osx_dep_cache_version >>-/tmp/macos_dependencies_version.txt-{{ checksum "/tmp/macos_dependencies_version.txt" }}
+          #     paths:
+          #       - /usr/local
 
   restore_afni_image_cache:
     description: "Restore cache from the build_afni_image command"
@@ -285,7 +274,7 @@ commands:
             if [[ ! -f /tmp/cache/<< parameters.image_name >>_docker.tar.gz ]]; then
               mkdir -p /tmp/cache
               docker save afni/<< parameters.image_name >>:latest \
-              | pigz -2 -p 3 > /tmp/cache/<< parameters.image_name >>_docker.tar.gz
+                | pigz -2 -p 3 > /tmp/cache/<< parameters.image_name >>_docker.tar.gz
             fi
 
   restore_a_cache:
@@ -377,7 +366,6 @@ jobs:
           paths:
             - /tmp/cache/afni_<< parameters.build_type >>_docker.tar.gz
 
-
   containers_check:
     working_directory: /tmp/src/afni
     parameters:
@@ -417,7 +405,7 @@ jobs:
           image_cache_version: << parameters.image_cache_version >>
       - run_afni_tests:
           build_type: << parameters.build_type >>
-          # Save test data as cache for subsequent runs if ideal is not already saved
+      # Save test data as cache for subsequent runs if ideal is not already saved
       - save_cache:
           key: v<< parameters.test_data_cache_version >>-/tmp/test_data_version.txt-{{ checksum "/tmp/test_data_version.txt" }}
           paths: /tmp/src/afni/tests/afni_ci_test_data
@@ -439,7 +427,7 @@ jobs:
   macos_build:
     working_directory: /tmp/src/afni
     macos:
-        xcode: "26.1.0"   # [PT: 2025-11-13] updated from 15.1
+      xcode: "26.1.0"   # [PT: 2025-11-13] updated from 15.1
     steps: # a series of commands to run
       - checkout_afni
       - setup_macos_for_afni
@@ -452,14 +440,14 @@ jobs:
             source venv/bin/activate
             pip install --upgrade pip
             pip install setuptools
-            cmake ..                                                      \
-                -GNinja                                                   \
-                -DCMAKE_TOOLCHAIN_FILE=../cmake/macos_toolchainfile.cmake \
-                -DUSE_SYSTEM_GLW=OFF                                      \
-                -DUSE_SYSTEM_XMHTML=OFF                                   \
-                -DUSE_SYSTEM_F2C=OFF                                      \
-                -DCOMP_RSTATS=OFF                                         \
-                -DUSE_SYSTEM_GIFTI=OFF
+            cmake .. \
+              -GNinja \
+              -DCMAKE_TOOLCHAIN_FILE=../cmake/macos_toolchainfile.cmake \
+              -DUSE_SYSTEM_GLW=OFF \
+              -DUSE_SYSTEM_XMHTML=OFF \
+              -DUSE_SYSTEM_F2C=OFF \
+              -DCOMP_RSTATS=OFF \
+              -DUSE_SYSTEM_GIFTI=OFF
             ninja
 
   coverage_check:
@@ -486,8 +474,9 @@ jobs:
       - run_afni_tests:
           build_type: cmake_build
 
+
 ############################################################################
-#Define the  workflow to organize the execution of the jobs on circleci
+#Define the workflow to organize the execution of the jobs on circleci
 ############################################################################
 workflows:
   version: 2.1
@@ -501,18 +490,20 @@ workflows:
               only: /.*/
             branches:
               only: /.*/
+
       - build:
           name: cmake_build
           matrix:
             parameters:
               build_type: ["cmake_build"]
-              # cache version should match for all jobs
-              image_cache_version: ["0"]
+              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
+              image_cache_version: ["1"]
           filters:
             tags:
               only: /.*/
             branches:
               only: /.*/
+
       - build:
           name: make_build
           requires:
@@ -520,20 +511,21 @@ workflows:
           matrix:
             parameters:
               build_type: ["make_build"]
-              # cache version should match for all jobs
-              image_cache_version: ["0"]
+              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
+              image_cache_version: ["1"]
           filters:
             tags:
               only: /.*/
             branches:
               only: /.*/
+
       - test:
           name: test_<< matrix.build_type >>
           matrix:
             parameters:
               build_type: ["make_build", "cmake_build"]
-              # cache version should match for all jobs
-              image_cache_version: ["0"]
+              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
+              image_cache_version: ["1"]
               test_data_cache_version: ["0"]
           requires:
             - << matrix.build_type >>
@@ -542,12 +534,13 @@ workflows:
               only: /.*/
             branches:
               only: /.*/
+
       - containers_check:
           name: check containers for issues with users and permissions and environments
           matrix:
             parameters:
-              # cache version should match for all jobs
-              image_cache_version: ["0"]
+              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
+              image_cache_version: ["1"]
           requires:
             - make_build
             - cmake_build
@@ -556,13 +549,14 @@ workflows:
               only: /.*/
             branches:
               only: /.*/
+
       - deploy:
           name: deploy_<< matrix.build_type >>
           matrix:
             parameters:
               build_type: ["make_build", "cmake_build"]
-              # cache version should match for all jobs
-              image_cache_version: ["0"]
+              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
+              image_cache_version: ["1"]
           requires:
             - test_<< matrix.build_type >>
             - macos_build
@@ -579,8 +573,8 @@ workflows:
             - test_make_build
           matrix:
             parameters:
-              # cache version should match for all jobs
-              image_cache_version: ["0"]
+              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
+              image_cache_version: ["1"]
               test_data_cache_version: ["5"]
           filters:
             tags:

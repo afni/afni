@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /* rcr todo:
@@ -1817,6 +1817,18 @@ ENTRY( "RCREND_make_widgets" );
 
    XtManageChild(anat_rowcol) ;
    XtManageChild(anat_frame) ;
+   if( needsX11Redraw() ){   /* macos 26 fix */
+     XtInsertEventHandler( top_rowcol,
+                           StructureNotifyMask ,    /* resizes */
+                           FALSE ,                  /* nonmaskable events? */
+                           AFNI_widget_expose_EV ,  /* handler */
+                           (XtPointer) NULL ,       /* client data - not used */
+                           XtListTail               /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for render plugin window resize\n");
+   }
 
    XtManageChild(top_rowcol) ;
    XtRealizeWidget(shell) ; NI_sleep(1) ;     /* will not be mapped */

@@ -98,12 +98,12 @@ PLUGIN_interface* PLUGIN_init( int ncall )
   if( ALLOW_realtime ) {
     plint = PLUTO_new_interface("RT 3dsvm",
         "Set Real-Time Options for 3dsvm - An AFNI SVM-Light Plugin",
-        help_contribution_string, PLUGIN_CALL_VIA_MENU, ASL_main);
+        help_contribution_string, PLUGIN_CALL_VIA_MENU, (cptr_func *)ASL_main);
     PLUTO_add_hint( plint , "Perform real-time SVM analysis" );
   }
   else {
     plint = PLUTO_new_interface("3dsvm", "3dsvm - An AFNI SVM Light Plugin",
-    help_contribution_string, PLUGIN_CALL_VIA_MENU, ASL_main);
+    help_contribution_string, PLUGIN_CALL_VIA_MENU, (cptr_func *)ASL_main);
     PLUTO_add_hint( plint , "Perform SVM analysis");
   }
 
@@ -1462,7 +1462,7 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
  
   /* --- setting global afni callback function to be invoked as
   * svm_rt_callback(void *junk) - junk will be NULL --- */
-  GLOBAL_library.realtime_callback = svm_rt_callback;
+  GLOBAL_library.realtime_callback = (gen_func *)svm_rt_callback;
 
   /* --- allocate and initialize myargv, myargc in GLOBAL_svm_vars  */
   /* afni's real-time callback functionality is not set up to pass

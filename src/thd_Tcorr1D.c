@@ -215,7 +215,7 @@ ENTRY("THD_Tcorr1D");
 
    if( ny > 1 ){ fprintf(stderr,"\n") ; nconst /= ny ; }
    if( nconst > 0 )
-     WARNING_message("THD_Tcorr1D: %d voxel%s skipped because were constant in time",
+     INFO_message("THD_Tcorr1D: %d voxel%s skipped because were constant in time",
                      nconst , (nconst==1) ? "\0" : "s" ) ;
 
    RETURN(cset);

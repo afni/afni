@@ -52,6 +52,10 @@ g_oc_methods = [
     'm_tedana_OC_tedort', # tedana --tedort, extract ortvecs for 3dD
     'm_tedana_m_tedort'   # tedana --tedort (MEICA group tedort)
     ]
+# OC methods that result in EPI being masked by tedana
+g_ted_mask_methods = [
+    'tedana', 'tedana_OC',                              # old tedana
+    'm_tedana', 'm_tedana_OC', 'm_tedana_m_tedort' ]    # new tedana
 g_m_tedana_site = 'https://github.com/ME-ICA/tedana'
 
 g_despike_new_opts = [
@@ -3194,25 +3198,7 @@ def db_cmd_volreg(proc, block):
 
     # if not censoring motion, make a generic motion file
     if not proc.user_opts.find_opt('-regress_censor_motion'):
-        cmd = cmd +                                                         \
-            "# compute motion magnitude time series: the Euclidean norm\n"  \
-            "# (sqrt(sum squares)) of the motion parameter derivatives\n"
-
-        proc.mot_enorm = 'motion_${subj}_enorm.1D'
-        if proc.reps_vary :     # use -set_run_lengths aot -set_nruns
-           cmd = cmd +                                                      \
-               "1d_tool.py -infile %s \\\n"                                 \
-               "           -set_run_lengths %s \\\n"                        \
-               "           -derivative -collapse_cols euclidean_norm \\\n"  \
-               "           -write %s\n\n"                                   \
-               % (proc.mot_file, UTIL.int_list_string(proc.reps_all),
-                  proc.mot_enorm)
-        else:                   # stick with -set_nruns
-           cmd = cmd +                                                      \
-               "1d_tool.py -infile %s -set_nruns %d \\\n"                   \
-               "           -derivative  -collapse_cols euclidean_norm \\\n" \
-               "           -write %s\n\n"                                   \
-               % (proc.mot_file, proc.runs, proc.mot_enorm)
+        cmd = cmd + create_enorm(proc)
 
     if do_extents:
         proc.mask_extents = gen_afni_name('mask_epi_extents' + proc.view)
@@ -3370,6 +3356,37 @@ def db_cmd_volreg(proc, block):
 
     return cmd
 
+def create_enorm(proc):
+    """create an enorm dataset from motion
+
+       return the sub-command string to do so
+    """
+    # do not repeat this operation
+    if proc.mot_enorm != '':
+       if proc.verb > 1: print("-- already have enorm dset")
+       return ''
+
+    cmd =                                                               \
+        "# compute motion magnitude time series: the Euclidean norm\n"  \
+        "# (sqrt(sum squares)) of the motion parameter derivatives\n"
+
+    proc.mot_enorm = 'motion_${subj}_enorm.1D'
+    if proc.reps_vary :     # use -set_run_lengths aot -set_nruns
+       cmd = cmd +                                                      \
+           "1d_tool.py -infile %s \\\n"                                 \
+           "           -set_run_lengths %s \\\n"                        \
+           "           -derivative -collapse_cols euclidean_norm \\\n"  \
+           "           -write %s\n\n"                                   \
+           % (proc.mot_file, UTIL.int_list_string(proc.reps_all),
+              proc.mot_enorm)
+    else:                   # stick with -set_nruns
+       cmd = cmd +                                                      \
+           "1d_tool.py -infile %s -set_nruns %d \\\n"                   \
+           "           -derivative -collapse_cols euclidean_norm \\\n"  \
+           "           -write %s\n\n"                                   \
+           % (proc.mot_file, proc.runs, proc.mot_enorm)
+
+    return cmd
 
 def clear_grid_dependent_vars(proc, block):
     """clear any generic proc variables that depend on the current grid,
@@ -3871,6 +3888,12 @@ def db_cmd_combine(proc, block):
       if not have_tedana_mask(proc, block, ocmeth):
          return
 
+   # check whether tedana mask will be applied to volume EPI
+   # if so, and if blurring, suggest -blur_in_mask
+   if ocmeth in g_ted_mask_methods and not proc.surf_anat:
+      if blur_without_mask(proc, block):
+         print('** have -oc_method %s, consider "-blur_in_mask yes"' % ocmeth)
+
    # write commands
    cmd =  '# %s\n'                                                   \
           '# combine multi-echo data per run, using method %s%s\n\n' \
@@ -3929,10 +3952,32 @@ def have_tedana_mask(proc, block, method):
 
    return 1
 
+def blur_without_mask(proc, block):
+   """return whether blurring is later applied without -blur_in_mask yes"""
+   # is blurring run after this block?
+   bo = proc.find_block_order(block.label, 'blur')
+
+   # if not, return no
+   if bo != -1:
+      return 0
+
+   # so blurring will be applied, do we have -blur_in_mask yes?
+
+   bblock = proc.find_block('blur')
+   if not bblock:   # should not happen, since bo == -1
+      return 0
+
+   if OL.opt_is_yes(bblock.opts.find_opt('-blur_in_mask')) or \
+        bblock.opts.find_opt('-blur_in_automask'):
+      return 0
+
+   # blur, but not in mask
+   return 1
+
 def which_tedana_method(ocmeth):
    """There are a few ways to apply tedana now, see if we can distinguish.
 
-      return 0: none
+      return 0: none      (e.g. AFNI OC)
              1: tedana.py (via tedana_wrapper.py)
              2: tedana    (from MEICA group)
             -1: error
@@ -6836,6 +6881,11 @@ def db_cmd_regress(proc, block):
                "1d_tool.py -show_cormat_warnings -infile %s"                  \
                " |& tee out.cormat_warn.txt\n\n" % proc.xmat
         cmd = cmd + rcmd
+        # also warn on small max magnitudes or empty regressors
+        rcmd = "# warn on small or all-zero regressors in X-matrix\n" \
+               "1d_tool.py -show_xmat_warnings -infile %s"            \
+               " |& tee out.xmat_warn.txt\n\n" % proc.xmat
+        cmd = cmd + rcmd
 
     # make a file with df_info
     if not block.opts.have_no_opt('-regress_show_df_info'):
@@ -8764,6 +8814,9 @@ def db_cmd_regress_motion_stuff(proc, block):
         err, newcmd = db_cmd_regress_censor_motion(proc, block)
         if err: return 1, ''
         if newcmd: cmd = cmd + newcmd
+    else:
+        # if not done already (volreg), create enorm file
+        cmd = cmd + create_enorm(proc)
 
     if cmd != '': return 0, '\n' + cmd
     else: return 0, cmd

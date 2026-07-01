@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.2.2, May 30, 2024
+Version 4.2.3, Dec 3, 2025
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1393,6 +1393,14 @@ if(!is.na(lop$vVarCenters)) lop$vVarCenters <- as.numeric(strsplit(as.character(
 
 library("afex")
 library("phia")
+if (packageVersion("phia") == "0.3.1") {
+  stop(
+    "ERROR: The installed 'phia' version is 0.3.1, which contains a serious bug. 
+    Please update the package to the latest version to avoid incorrect results.
+    You can try in R: install.packages('phia')"
+  )
+}
+
 if(lop$robust) library("robustbase")
 #if(lop$robust) pkgLoad(c('car', 'robustbase', 'phia')) else pkgLoad(c('afex', 'phia'))
 options(contrasts = c("contr.sum", "contr.poly"))

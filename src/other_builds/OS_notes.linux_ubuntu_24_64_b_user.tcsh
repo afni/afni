@@ -10,8 +10,15 @@ cd
 curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/@update.afni.binaries
 tcsh @update.afni.binaries -package linux_ubuntu_24_64 -do_extras
 
-source ~/.cshrc
-
+# put the new binaries into the PATH
+if ( -f ~/.tcshrc ) then
+   source ~/.tcshrc
+else if ( -f ~/.cshrc ) then
+   source ~/.cshrc
+else
+   echo "-- no .cshrc file, assuming afni is already in PATH"
+endif
+rehash
 
 echo "++ Download Bootcamp data, **if** it doesn't appear to exist already"
 

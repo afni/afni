@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "afni.h"
@@ -1031,6 +1031,18 @@ void DRAW_make_widgets(void)
    done_pb   = (Widget) DRAW_actor[6].data ;
 
    /*** that's all ***/
+   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( rowcol,  /* handle events in form */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           AFNI_widget_expose_EV ,  /* handler */
+                           (XtPointer) NULL ,       /* client data - not used */
+                           XtListTail               /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("Added event handler for Draw Dataset plugin window resize\n");
+   }
 
    XtManageChild(rowcol) ;
    XtRealizeWidget(shell) ; NI_sleep(1) ; /* will not be mapped */
@@ -1895,6 +1907,9 @@ void DRAW_mode_CB( MCW_arrowval * av , XtPointer cd )
 
    ENABLE_rad_av ;
 
+   /* tahoe fix */
+   if( needsX11Redraw() ){ forceExpose(rowcol,0 ) ; }
+    
    return ;
 }
 

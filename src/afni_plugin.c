@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #undef MAIN
@@ -2200,6 +2200,20 @@ STATUS("management") ;
       XtManageChild( wframe ) ;
       XtManageChild( wid->scrollw ) ;
    }
+
+   if( needsX11Redraw() ){   /* macos 26 fix */
+     XtInsertEventHandler( wid->form ,
+                           StructureNotifyMask ,   /* resizes */
+                           FALSE ,                 /* nonmaskable events? */
+                           AFNI_widget_expose_EV , /* handler */
+                           (XtPointer) NULL ,      /* client data - not used */
+                           XtListTail              /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for generic plugin window resize\n");
+   }
+
    XtManageChild( wid->form ) ;
 
 #if 0

@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*----------------------------------------------------------------------------*/
@@ -816,7 +816,7 @@ static char * ISQ_form_help =
      "************************************************\n"
      "* Image Sequence Display Module                *\n"
      "*                                              *\n"
-     "* Released under the GPL (v2 or later)         *\n"
+     "* Released under the CC-BY license             *\n"
      "*                                              *\n"
      "* Author:  Robert W Cox, PhD                   *\n"
      "************************************************"   ;
@@ -6326,18 +6326,14 @@ DPRI(" .. Expose; count=",event->count) ;
                                                             /* so let's un-hide it! */
                   XConfigureEvent nev ;
 
-STATUS(" .. really a hidden resize") ;
-
-#if 0
-INFO_message("convert Expose to ConfigureNotify") ;
-#endif
+                  STATUS(" .. really a hidden resize") ;
+                  STATUS("convert Expose to ConfigureNotify") ;
                   nev.type = ConfigureNotify ; nev.width = nx ; nev.height = ny ;
                   ISQ_drawing_EV( w, client_data, (XEvent *) &nev, continue_to_dispatch ) ;
 
                } else
-#if 0
-INFO_message("Expose") ;
-#endif
+
+                  STATUS("Expose") ;
                   ISQ_show_image( seq ) ;
             }
             else if( w == seq->wbar )
@@ -6708,6 +6704,8 @@ else fprintf(stderr,"  -- too soon to enforce aspect!\n") ;
 INFO_message("ConfigureNotify") ;
 #endif
                ISQ_show_image( seq ) ;
+               if( needsX11Redraw() )
+                  forceExpose(seq->wform,0) ; /* 06 Jan 2025 */
             } else {
 #if 0
 INFO_message("reject image ConfigureNotify") ;

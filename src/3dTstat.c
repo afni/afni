@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -678,7 +678,7 @@ int main( int argc , char *argv[] )
    if( nopt < argc )
      WARNING_message("Trailing datasets on command line ignored: %s ...",argv[nopt]) ;
 
-   if( DSET_NVALS(old_dset) == 1 ){
+   if( DSET_NVALS(old_dset) == 1 && do_tdiff ){
      WARNING_message("Input dataset has 1 sub-brick ==> -tdiff is turned off") ;
      do_tdiff = 0 ;
    }

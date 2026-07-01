@@ -15,7 +15,7 @@ if ( ! $?HOMEBREW_PREFIX ) then
    (echo; echo 'eval `/usr/local/bin/brew shellenv tcsh`')    >> $HOME/.login
 
    # and in our current shell env
-   eval "$(/usr/local/bin/brew shellenv)"
+   eval `/usr/local/bin/brew shellenv`
 endif
 
 tcsh -xef OS_notes.macos_12_b_user.tcsh |& tee out.mac_12_b_user.txt

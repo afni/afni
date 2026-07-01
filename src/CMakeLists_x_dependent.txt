@@ -31,6 +31,7 @@ target_link_libraries(
            Motif::Motif
            X11::Xt
            X11::X11
+           X11::Xext
   PRIVATE
           $<IF:$<BOOL:${USE_SYSTEM_XMHTML}>,XmTHML::XmHTML,AFNI::XmHTML>
 )
@@ -93,7 +94,16 @@ target_link_libraries(afni_all_objects
 
 
 add_afni_executable(afni $<TARGET_OBJECTS:afni_all_objects>)
-target_link_options(afni PRIVATE "-rdynamic")
+# -rdynamic is Linux-only; guard for macOS (ARM has no equivalent needed).
+if(AFNI_IS_MACOS)
+    if(NOT AFNI_IS_ARM)
+        # Intel macOS: export_dynamic rarely needed but kept for parity
+        target_link_options(afni PRIVATE "-Wl,-export_dynamic")
+    endif()
+    # ARM macOS: omit entirely — dyld handles visibility differently
+else()
+    target_link_options(afni PRIVATE "-rdynamic")
+endif()
 target_link_libraries(
   afni
   PRIVATE

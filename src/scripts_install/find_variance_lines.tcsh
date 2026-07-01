@@ -60,7 +60,7 @@ set cmd_vstat_base = a_cmd_02_vstat
 
 set prog = find_variance_lines.tcsh
 
-set version = "1.5, 23 May, 2025"
+set version = "1.6,  2 Jan, 2026"
 
 if ( $#argv < 1 ) goto SHOW_HELP
 
@@ -509,6 +509,7 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
       # create inner_clust laster, either avoid edges or using full clust
       set inner_clust = $clust_pre.inner.r$ind02.nii.gz
       # store edge cluster (restricted to edges) and inner clusters
+      echo "-- check for edge clusters to remove (OK to make brick of 0s)..."
       set edge_clust = $clust_pre.edge.r$ind02.nii.gz
       3dcalc -a $clust_mask -b $edge_mask -expr 'a*b' -prefix $edge_clust
       # use 3dRank to get badlist: non-zero values in $edge_clust
@@ -783,7 +784,7 @@ if ( $do_img ) then
                3dcalc                                     \
                   -overwrite                              \
                   -a    ${rfile}                          \
-                  -expr "${val}*within(x,${coords[1]}-0.25*${ad3[1]},${coords[1]}+0.25*${ad3[1]})*within(y,${coords[2]}-0.25*${ad3[2]},${coords[2]}+0.25*${ad3[2]})*(step(${dash}-k)+step(k-${nk}+${dash}))" \
+                  -expr "a*0+${val}*within(x,${coords[1]}-0.25*${ad3[1]},${coords[1]}+0.25*${ad3[1]})*within(y,${coords[2]}-0.25*${ad3[2]},${coords[2]}+0.25*${ad3[2]})*(step(${dash}-k)+step(k-${nk}+${dash}))" \
                   -prefix __tmp_dash_line.nii.gz          \
                   -datum byte
 
@@ -1227,6 +1228,7 @@ $prog modification history:
    1.3  12 May 2025 : [PT] add more reporting output
    1.4  20 May 2025 : [PT] add more chauffeur script and image output
    1.5  23 May 2025 : [PT] fix stats dset/script behavior when suffix_qc is used
+   1.6   2 Jan 2026 : [PT] quiet unneeded warn; comment possible warn is OK
 
 EOF
 # check $version, at top

@@ -54,6 +54,7 @@ class Afni1D:
 
       # main variables
       self.mat     = None       # actual data (2-D array [[]])
+                                # (array of time series)
       self.name    = "NoName"   # more personal and touchy-feely...
       self.fname   = filename   # name of data file
       self.aname   = None       # afni_name, if parsing is useful
@@ -1254,6 +1255,53 @@ class Afni1D:
 
       return 0
 
+   def convert_to_censor_spikes(self):
+      """return a similar Afni1D instance with ncensor spike time series
+
+         self: is expected to be a censor file for 3dDeconvolve
+               - a single binary column, where 1 means keep and 0 means censor
+
+         return: a new instance of the same nt, but where:
+                    nvec == ncensor
+                    ncensor == number of 0's in self.mat[0]
+                    each vector is all 0, but with a 1 at a single censor index
+
+         note: for input, 0 means a censored time point,
+               for output, it is the opposite (since they are spike regs)
+      """
+      if not self.ready:
+         print('** pad into runs: Afni1D is not ready')
+         return 1
+
+      # first make holder for returned instance
+      adcopy = self.copy()
+      adcopy.name = 'Spikey'
+
+      if adcopy.nvec < 1 or adcopy.nt < 1:
+         if self.verb > 1: print("-- convert to spikes: empty mat")
+         return adcopy
+
+      if adcopy.nvec > 1:
+         if self.verb > 1: print("-- convert to spikes: extra cols in mat")
+
+      # get indices of zeros
+      vec = self.mat[0]
+      zeros = [i for i in range(self.nt) if vec[i] == 0]
+      nz = len(zeros)
+
+      # make spike regressors
+      newmat = []
+      for z in zeros:
+         reg = [0] * self.nt
+         reg[z] = 1
+         newmat.append(reg)
+
+      del(adcopy).mat
+      adcopy.mat = newmat
+      adcopy.nvec = nz
+
+      return adcopy
+
    def get_allzero_cols(self):
       """return a list of column indices for which the column is all zero
          (these might represent regressors which were censored out)
@@ -2145,6 +2193,121 @@ class Afni1D:
             print(ps, end='')
          print("")
 
+   def make_xmat_warnings_string(self, fname='', level=1):
+      """make a string for any xmatrix warnings (non-correlation)
+
+         ...
+
+         return error code (0=success) and 'warnings' string"""
+
+      if self.verb > 2: print("-- make_xmat_warn_str for '%s'" % fname)
+
+      wall_str = ''
+      indent = '   ' # indentation for the actual warnings
+
+      # ------------------------------------------------------------
+      # warn on small maxabs
+      err, errstr, wlist = self.list_xmat_warns_maxabs(level=level)
+      if err: return err, errstr
+      wlen = len(wlist)
+
+      jstr = '\n%s' % indent
+      if wlen > 0: wstr = indent + jstr.join(wlist)
+      else:        wstr = ''
+      if self.verb > 1 or (self.verb > 0 and wlen > 0):
+         wstr = ("== xmat maxabs warnings: %d\n" % wlen) \
+                + wstr                                   \
+                + "\n-- betas will inversely scale with regressors"
+      if wstr != '': wstr += '\n'
+
+      wall_str += wstr
+
+      # ------------------------------------------------------------
+      # warn on all-zero regressors
+      err, errstr, wlist = self.list_xmat_warns_allzero(level=level)
+      if err: return err, errstr
+      wlen = len(wlist)
+
+      jstr = '\n%s' % indent
+      if wlen > 0: wstr = indent + jstr.join(wlist)
+      else:        wstr = ''
+      if self.verb > 1 or (self.verb > 0 and wlen > 0):
+         wstr = ("\n== xmat allzero warnings: %d\n" % wlen) \
+                + wstr
+      if wstr != '': wstr += '\n'
+
+      wall_str += wstr
+
+      # and returned combined string
+      return err, wall_str
+
+   def list_xmat_warns_allzero(self, level=1):
+      """return an error code, error string and a list of warnings
+
+         warn on regressors that are all zero
+
+            level       : verbosity warning level
+      """
+
+      if not self.ready:
+         return 1, '** no X-matrix to warn about', []
+
+      # stick with column selection, in case we apply it later
+      ilist = list(range(self.nvec))
+
+      # list of warnings
+      wlist = []
+
+      havelabs = len(self.labels) == self.nvec
+      zero_l = [i for i in ilist if UTIL.maxabs(self.mat[i]) == 0]
+      for bind in zero_l:
+         if havelabs: label = self.labels[bind]
+         else:        label = 'vector %02d' % bind
+         wlist.append('all zero regressor %s' % label)
+
+      return 0, '', wlist
+
+   def list_xmat_warns_maxabs(self, minmax=0.1, groups=1, level=1):
+      """return an error code, error string and a list of warnings
+
+         warn on maxabs() value less than minmax limit
+
+            minmax      : minimum limit for maxabs
+            groups      : limit results to columns of non-basline groups
+                          (if they exist, baseline groups are 0, -1)
+            level       : verbosity warning level
+      """
+
+      if not self.ready:
+         return 1, '** no X-matrix to warn about', []
+
+      # if non-baseline groups are wanted and defined
+      if groups and len(self.groups) == self.nvec and self.nvec > 0:
+         ilist = [i for i in range(self.nvec) if self.groups[i] > 0]
+         if self.verb > 1:
+            print("== have %d regs of interest: %s" % (len(ilist), ilist))
+      else:
+         ilist = list(range(self.nvec))
+         if self.verb > 1:
+            print("== using all %d regs" % len(ilist))
+
+      # list of warnings
+      wlist = []
+
+      havelabs = len(self.labels) == self.nvec
+      zero_l = [i for i in ilist if UTIL.maxabs(self.mat[i]) == 0]
+      badmax_l = [i for i in ilist if UTIL.maxabs(self.mat[i]) < minmax]
+      ll = badmax_l
+      for bind in badmax_l:
+         # all-zero regressors are separate, do not warn here
+         if bind in zero_l: continue
+         if havelabs: label = self.labels[bind]
+         else:        label = 'vector %02d' % bind
+         wlist.append('maxabs for regressor %s : %g' \
+                      % (label, UTIL.maxabs(self.mat[bind])))
+
+      return 0, '', wlist
+
    def make_cormat_warnings_string(self, cutoff=0.4, name='',
                                    skip_expected=1):
       """make a string for any entries at or above cutoffs:
@@ -2586,24 +2749,30 @@ class Afni1D:
       if verb > 0: print('rows = %d, cols = %d' % (self.nt, self.nvec))
       else:        print('%d %d' % (self.nt, self.nvec))
 
-   def show_tpattern(self, mesg='', rdigits=1, verb=1):
+   def show_tpattern(self, mesg='', tr=0.0, rdigits=1, verb=1):
       """display the multiband level and to3d-style tpattern
 
              mesg    : ['']  : print before output
+             tr      : 0.0   : if > 0, override detected TR with that passed
+                               * tr must be passed to have an effect,
+                                 since the class default is 1 (to mimic afni)
              rdigits : [1]   : N digtits used for rounding in pattern detection
              verb    : [1]   : verbosity level (0 = quiet)
       """
 
       if mesg:     print('%s' % mesg, end='')
 
-      nb, tpat = self.get_tpattern(rdigits=rdigits, verb=verb)
+      nb, tpat = self.get_tpattern(tr=tr, rdigits=rdigits, verb=verb)
 
       if verb > 0: print('nbands : %d, tpattern : %s' % (nb, tpat))
       else:        print('%d %s' % (nb, tpat))
 
-   def get_tpattern(self, rdigits=1, verb=1):
+   def get_tpattern(self, tr=0.0, rdigits=1, verb=1):
       """get the multiband level and to3d-style tpattern
 
+             tr      : 0.0   : if > 0, override detected TR with that passed
+                               * tr must be passed to have an effect,
+                                 since the class default is 1 (to mimic afni)
              rdigits : [1]   : digtits used for rounding in pattern detection
              verb    : [1]   : verbosity level (0 = quiet)
 
@@ -2616,7 +2785,8 @@ class Afni1D:
       else:
          timing = [v[0] for v in self.mat]
 
-      nb, tpat = UTIL.timing_to_slice_pattern(timing, rdigits=rdigits,verb=verb)
+      nb, tpat = UTIL.timing_to_slice_pattern(timing, rdigits=rdigits,
+                                              tr=tr, verb=verb)
       if nb < 0:
          tpat = 'INVALID'
 

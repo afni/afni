@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "parser.h"
@@ -49,6 +49,12 @@ int main( int argc , char * argv[] )
              "  -del d     = Use 'd' as the step for a single undetermined variable\n"
              "                 in the expression [default = 1.0]\n"
              "                 SYNONYMS: '-dx' and '-dt'\n"
+             "\n"
+             "  -expr EXPR = Specify 3dcalc-style expression EXPR to compute.\n"
+             "                 This expression has the same format as with\n"
+             "                 3dcalc, taking -a, -b, etc. as 1D time\n"
+             "                 series inputs.\n"
+             "               * See '3dcalc -help' for details.\n"
              "\n"
              "  -start s   = Start at value 's' for a single undetermined variable\n"
              "                 in the expression [default = 0.0]\n"

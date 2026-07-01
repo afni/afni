@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
    
 /*#define CLIPSECTIONS */
@@ -1288,9 +1288,24 @@ static int hilbertdelay_V2 (float *x,
       //return (0);
    }
 
-   
-   *del = NoWayDelay;              /* initialize to an unlikely value ...*/
-   *xcorCoef = NoWayxcorCoef;          
+   /* [BP: Jan 2, 2024] if x or y are NULL there's nothing more to do. This 
+      scenario occurs when when this function is called by 
+      hilbertdelay_V2reset. In this case del and xcorCoef pointers are also
+      NULL, which will cause a segfault when attempting to
+      dereference them in the next few lines of code, but because there's
+      nothing to evaluate, PT's logic re: 3dDelay above shouldn't apply.
+   */
+   if (x == NULL || y == NULL) {
+     return (0);
+   } 
+   else if (del == NULL || xcorCoef == NULL ) {
+     sprintf (buf,"Cannot evaluate with NULL delay or xcorr coef.\n");
+     error_message("hilbertdelay_V2",buf,0);
+     return (ERROR_OPTIONS);
+   } else {
+     *del = NoWayDelay;              /* initialize to an unlikely value ...*/
+     *xcorCoef = NoWayxcorCoef;          
+   }
 
 
    /*--------------------------------------------------------------------------*/
