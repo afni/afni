@@ -7,7 +7,7 @@ set version   = "1.0";   set rev_dat   = "Sept 25, 2025"
 
 # regenerate everything from this file
 set dset1 = afni_refacer_shell_sym_1.0.nii.gz
-set dset2 = afni_refacer_shell_sym_1.0.nii.gz
+set dset2 = afni_refacer_shell_sym_2.0.nii.gz
 
 # ============================================================================
 # read in + interpret cmd line opts
