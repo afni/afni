@@ -46,10 +46,14 @@
 #set version   = "2.5";   set rev_dat   = "Aug 29, 2025"
 #     + [PT] add cubeface functionality and opts
 #
-set version   = "2.6";   set rev_dat   = "Sep 25, 2025"
+#set version   = "2.6";   set rev_dat   = "Sep 25, 2025"
 #     + [PT] migrate from older @afni_refacer_run
 #       - start using newer shells
 #       - move default ref_shell to sym_2.1 (more anonymizing)
+#
+set version   = "2.7";   set rev_dat   = "July 1, 2026"
+#     + [PT] update help and tweak option usage
+#       - move less useful -mode_* opts to -mode2_*
 #
 # ============================================================================
 
@@ -749,7 +753,7 @@ where:
  
  -ref_shell RS : (opt) can specify which shell to use.  At present, the 
                 available options for SH are:
-                  afni_refacer_shell_sym_1.1.nii.gz  (traditional)
+                  afni_refacer_shell_sym_1.1.nii.gz  (earliest version)
                   afni_refacer_shell_sym_2.1.nii.gz  (remove more face/neck/ear)
                 See NOTES about specific reference shell version numbers.
                 (def: ${ref_shell})
@@ -825,7 +829,7 @@ with AFNI binaries:
     afni_refacer_shell_sym_*.nii.gz  = dataset to replace face region
 
 The latter dataset(s) have been made by a combination of the
-@afni_refacer_make_master and @afni_refacer_make_master_addendum 
+@afni_refacer_make_master and @afni_refacer_make_master_addendum2 
 scripts.
 
 If you are missing these datasets for some reason (e.g., you build
@@ -840,40 +844,40 @@ Reference shells and template datasets ~2~
 
 EXAMPLES ~1~
 
-1) default refacing (replace face+ears+skull+etc.)
-
-    refacer_tool                                            \
-        -input             anat.nii.gz                      \
-        -mode_reface_plus                                   \
-        -prefix            anat_reface_plus.nii.gz
-    
-2) reface smaller volume (replace face+ears only)
-
-    refacer_tool                                            \
-        -input        anat.nii.gz                           \
-        -mode_reface                                        \
-        -prefix       anat_reface.nii.gz
-
-3) deface = replace face+ears with zeros
+1) deface (= replace face+ears with zeros)
 
     refacer_tool                                            \
         -input        anat+orig.HEAD                        \
         -mode_deface                                        \
         -prefix       anat_deface.nii.gz
 
-3) ALL = output all versions of vol: refaced, reface_plused, defaced
+2) reface (= replace face+ears with generic face)
+
+    refacer_tool                                            \
+        -input        anat.nii.gz                           \
+        -mode_reface                                        \
+        -prefix       anat_reface.nii.gz
+
+3) reface plus (= reface a larger area, including skull region)
+
+    refacer_tool                                            \
+        -input             anat.nii.gz                      \
+        -mode_reface_plus                                   \
+        -prefix            anat_reface_plus.nii.gz
+    
+4) ALL = output all versions of vol: refaced, reface_plused, defaced
 
     refacer_tool                                            \
         -input     anat.nii.gz                              \
         -mode_all                                           \
         -prefix    anat
 
-4) ... and using different shell for replacement:
+5) ... and using different shell for replacement:
 
     refacer_tool                                            \
         -input     anat+orig.                               \
         -mode_all                                           \
-        -shell     afni_refacer_shell_sym_1.0.nii.gz        \
+        -ref_shell afni_refacer_shell_sym_1.1.nii.gz        \
         -prefix    anat
 
 EOF
