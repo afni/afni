@@ -4,8 +4,6 @@ xim.c display.c and pbar.c*/
 
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
-// [pt] check if this is used at all, or could be removed?
-#include <sys/time.h> // For struct timeval and gettimeofday
 
 /*!
    \brief Reads a ppm image and turns i into an rgba vector for ease of
@@ -1628,18 +1626,20 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    /* Process contralateral hemisphere */
    if (ado->do_type == SO_type) {
         /* do we have a contralateral SO and overlay? */
+        /* why is the SO assignment commented out? either pass NULL or assign */
         // SO = (SUMA_SurfaceObject *)ado;
         colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
         if (colpC && SOC) {
-        SUMA_LHv("Found contralateral equivalent to:\n"
+           /* rcr - probably delete */
+           SUMA_LHv("Found contralateral equivalent to:\n"
                       " %s and %s in\n"
                       " %s and %s\n",
                       SO->Label, CHECK_NULL_STR(curColPlane->Label),
                       SOC->Label, CHECK_NULL_STR(colpC->Label));
-                      
-        ado = (SUMA_ALL_DO *)SOC;
 
-        SUMA_SwitchColPlaneThreshold(ado, colpC, imenu -1, 1);
+           ado = (SUMA_ALL_DO *)SOC;
+
+           SUMA_SwitchColPlaneThreshold(ado, colpC, imenu -1, 1);
       }
    }
 
@@ -2062,7 +2062,7 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
          !curColPlane->OptScl )  {
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
-   
+
    /* Get state of |T| check box */
    AbsThresh = XmToggleButtonGetState (SurfCont->AbsThresh_tb);
    
@@ -2079,18 +2079,19 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
         if (colpC && SOC) {
             ado = (SUMA_ALL_DO *)SOC;
             curColPlane = colpC;
-            if ( !curColPlane )  {
-                SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
+            if ( !curColPlane ) {
+                SUMA_S_Warn("SATT: NULL Contralateral_overlay"); SUMA_RETURNe;
             }
 
             /* Set state on surface controller */
             SurfCont=SUMA_ADO_Cont(ado);
-            XmToggleButtonSetState(SurfCont->AbsThresh_tb, AbsThresh, NOPE);            
+            XmToggleButtonSetState(SurfCont->AbsThresh_tb, AbsThresh, NOPE);
 
             /* Implement state for contralateral surface */
             if (!SUMA_cb_AbsThresh_tb_toggledForSurfaceObject(ado, 
-                AbsThresh, NOPE)){
-                SUMA_S_Warn("Error toggling |T| for contralateral surface"); SUMA_RETURNe;
+                     AbsThresh, NOPE)){
+                SUMA_S_Warn("Error toggling |T| for contralateral surface");
+                SUMA_RETURNe;
             }
         }
    }
@@ -2196,7 +2197,8 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
    }
 
-   SymIrange = curColPlane->SymIrange = XmToggleButtonGetState (SurfCont->SymIrange_tb);
+   SymIrange = curColPlane->SymIrange
+             = XmToggleButtonGetState (SurfCont->SymIrange_tb);
    
    if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
         curColPlane->SymIrange, NOPE)){
@@ -2210,21 +2212,19 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
         if (colpC && SOC) {
             ado = (SUMA_ALL_DO *)SOC;
             curColPlane = colpC;
-            if ( !curColPlane )  {
-                SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
-            }
-            
+            if ( !curColPlane ) { SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; }
+
             curColPlane->SymIrange = SymIrange;
- 
+
             /* Set state on surface controller */
             SurfCont=SUMA_ADO_Cont(ado);
-            XmToggleButtonSetState(SurfCont->SymIrange_tb, SymIrange, NOPE);            
+            XmToggleButtonSetState(SurfCont->SymIrange_tb, SymIrange, NOPE);
 
             if (!SUMA_cb_SymIrange_tb_toggledForSurfaceObject(ado, 
-                curColPlane->SymIrange, YUP)){
-                    SUMA_S_Warn("Error toggling sym I for contralateral surface"); 
-                    SUMA_RETURNe;
-                }
+                     curColPlane->SymIrange, YUP)){
+                 SUMA_S_Warn("Error toggling sym I for contralateral surface"); 
+                 SUMA_RETURNe;
+            }
         }
    }
 
@@ -2324,17 +2324,17 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
         if (colpC && SOC) {
             ado = (SUMA_ALL_DO *)SOC;
             curColPlane = colpC;
-            if ( !curColPlane )  {
-                SUMA_S_Warn("NULL input 2"); SUMA_RETURNe;
-            }
-            
+            if ( !curColPlane ) { SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; }
+
+            /* rcr - looks reversed from above, ShowZero set after negation */
             curColPlane->OptScl->MaskZero = !ShowZero;
-  
+
             /* Set state on surface controller */
             SurfCont=SUMA_ADO_Cont(ado);
             XmToggleButtonSetState(SurfCont->ShowZero_tb, 
                                    ShowZero, NOPE);                    
    
+            /* rcr - shouldn't this do the above steps? */
             if (!SUMA_cb_ShowZero_tb_toggledForSurfaceObject(ado, 
                       curColPlane->OptScl->MaskZero, NOPE)) {
               SUMA_S_Warn("Error toggling show zero for contralateral surface");
