@@ -652,48 +652,19 @@ dataset.
 
 This can be an important step in anonymizing anatomical datasets.
 
+For an independent comparison of methods that demonstrates the strong
+performance of this defacing/refacing program, see:
+
+  Multisite Comparison of MRI Defacing Software Across Multiple Cohorts
+    by Theyers et al. (2021)
+  https://pmc.ncbi.nlm.nih.gov/articles/PMC7943842/
+
 ver = ${version}
 
 Author   - The Face of Imperial Zhark, Who is Terrible to Behold!
 Modifier - PA Taylor
 
 # ==========================================================================
-
-OUTPUTS ~1~
-
-There are different modes available for defacing/refacing.  Users can
-pick and choose which one(s) they want from an available list. 
-
-When running with '-mode_all', then 5 datasets will be output, all in
-the same space as the input volume:
-
-  + Three versions of the input anatomical with refacing/defacing, which 
-    we consider a reasonable/mainstream way of hiding the original face:
-    1) a "defaced" volume (face+ears replaced with zeros)
-    2) a "refaced" volume (face+ears replaced with artificial values) 
-    3) a "reface_plus"ed volume (face+ears+skull replaced with artificial
-       values)
-
-  + Two volumes of just the face-replacing datasets, for reference:
-    4) the face+ears used to replace or remove subject data
-    5) the face+ears+skull used to replace subject data
-
-Note that there are other methods of defacing/refacing.  While these
-are not very common, they are available here (if for no other reason
-than we have tested them and used them in other applications).  These
-mode(s) can also be run individually or as a group.  These are not
-included in the '-mode_all' output, but can be run with
-'-mode_all_extras' or the individual names.  At present, these are:
-
-    A) a "cubefaced" volume (face+ears replaced with average across
-       big cubes)
-
-In all cases, automatic images of the re/defaced volume(s) will be
-created with @chauffeur_afni, so the user can quickly evaluate results
-visually.
-
-A temporary working directory is also created.  This will be cleaned
-(=deleted) by default, but the user can choose to save it.
 
 USAGE ~1~
 
@@ -793,6 +764,44 @@ where:
 # ==========================================================================
 
 NOTES ~1~
+
+Modes for running ~2~
+
+There are different modes available for defacing/refacing.  Users can
+pick and choose which one(s) they want from an available list. 
+
+When running with '-mode_all', then 5 datasets will be output, all in
+the same space as the input volume:
+
+  + Three versions of the input anatomical with refacing/defacing, which 
+    we consider a reasonable/mainstream way of hiding the original face:
+    1) a "defaced" volume (face+ears replaced with zeros)
+    2) a "refaced" volume (face+ears replaced with artificial values) 
+    3) a "reface_plus"ed volume (face+ears+skull replaced with artificial
+       values)
+
+  + Two volumes of just the face-replacing datasets, for reference:
+    4) the face+ears used to replace or remove subject data
+    5) the face+ears+skull used to replace subject data
+
+Note that there are other methods of defacing/refacing.  While these
+are not very common, they are available here (if for no other reason
+than we have tested them and used them in other applications).  These
+mode(s) can also be run individually or as a group.  These are not
+included in the '-mode_all' output, but can be run with
+'-mode_all_extras' or the individual names.  At present, these are:
+
+    A) a "cubefaced" volume (face+ears replaced with average across
+       big cubes)
+
+In all cases, automatic images of the re/defaced volume(s) will be
+created with @chauffeur_afni, so the user can quickly evaluate results
+visually.
+
+A temporary working directory is also created.  This will be cleaned
+(=deleted) by default, but the user can choose to save it.
+
+------------------------------------------------------------------------
 
 Output file names ~2~
 
