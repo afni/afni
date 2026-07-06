@@ -1603,17 +1603,13 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    SUMA_MenuCallBackData *datap=NULL;
    SUMA_ALL_DO *ado=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
-   SUMA_OVERLAYS *colpC=NULL;
-   SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
-
    ado = (SUMA_ALL_DO *)datap->ContID;
-
    imenu = (INT_CAST)datap->callback_data;
 
    curColPlane = SUMA_ADO_CurColPlane(ado);
@@ -1622,27 +1618,6 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    }
 
    SUMA_SwitchColPlaneThreshold(ado, curColPlane, imenu -1, 1);
-   
-   /* Process contralateral hemisphere */
-   if (ado->do_type == SO_type) {
-        /* do we have a contralateral SO and overlay? */
-        /* why is the SO assignment commented out? either pass NULL or assign */
-        // SO = (SUMA_SurfaceObject *)ado;
-        colpC = SUMA_Contralateral_overlay(curColPlane, SO, &SOC);
-        if (colpC && SOC) {
-           /* rcr - probably delete */
-           SUMA_LHv("Found contralateral equivalent to:\n"
-                      " %s and %s in\n"
-                      " %s and %s\n",
-                      SO->Label, CHECK_NULL_STR(curColPlane->Label),
-                      SOC->Label, CHECK_NULL_STR(colpC->Label));
-
-           ado = (SUMA_ALL_DO *)SOC;
-
-           SUMA_SwitchColPlaneThreshold(ado, colpC, imenu -1, 1);
-      }
-   }
-
    SUMA_RETURNe;
 }
 
@@ -2326,7 +2301,6 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
             curColPlane = colpC;
             if ( !curColPlane ) { SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; }
 
-            /* rcr - looks reversed from above, ShowZero set after negation */
             curColPlane->OptScl->MaskZero = !ShowZero;
 
             /* Set state on surface controller */
@@ -2334,7 +2308,6 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
             XmToggleButtonSetState(SurfCont->ShowZero_tb, 
                                    ShowZero, NOPE);                    
    
-            /* rcr - shouldn't this do the above steps? */
             if (!SUMA_cb_ShowZero_tb_toggledForSurfaceObject(ado, 
                       curColPlane->OptScl->MaskZero, NOPE)) {
               SUMA_S_Warn("Error toggling show zero for contralateral surface");
@@ -2426,18 +2399,18 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
     SUMA_RETURNe; 
    }
   
+   if ( !(SurfCont=SUMA_ADO_Cont(ado)) ) {
+      SUMA_S_Warn("cb_AOFTT: no container"); SUMA_RETURNe;
+   }
    /* Ensure object type is handled by this operation */
    if (ado->do_type != SO_type){
     SUMA_S_Warn("Error: Operation not handled for this object type."); 
     XmToggleButtonSetState(SurfCont->AlphaOpacityFalloff_tb, 0, 0); // Uncheck A box
    }
 
-   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
-      SUMA_S_Warn("NULL input"); SUMA_RETURNe;
-   }
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if ( !curColPlane ) {
-      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; 
+      SUMA_S_Warn("cb_AOFTT: no ColPlane"); SUMA_RETURNe; 
    }
 
    SO = (SUMA_SurfaceObject *)ado;
@@ -2509,6 +2482,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    over2->makeContours = YUP;
    
    /* Make sure box threshold outline true for only one colorplane/dataset */
+   /* rcr - SO is still with respect to other hemi, need SO for contr hemi */
    if (over2->BoxOutlineThresh && SO->N_Overlays > 1){
     int i;
     
@@ -6919,50 +6893,6 @@ void SUMA_cb_SetRangeValue (void *data)
          else { SUMA_SLP_Err("Upper bound < Lower bound!"); }
       } else {
          SUMA_S_Err("Erriosity");
-      }
-   }
-
-   // Process contralateral hemisphere.
-   newValue = TF->num_value[n];
-   if (ado->do_type == SO_type) {
-      /* do we have a contralateral SO and overlay? */
-      SO = (SUMA_SurfaceObject *)ado;
-      colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
-      if (colpC && SOC) {
-         SUMA_LHv("Found contralateral equivalent to:\n"
-                      " %s and %s in\n"
-                      " %s and %s\n",
-                      SO->Label, CHECK_NULL_STR(colp->Label),
-                      SOC->Label, CHECK_NULL_STR(colpC->Label));
-
-          TF = SurfCont->SetRangeTable;
-          TF->cell_modified = n;
-          if (TF->cell_modified<0) SUMA_RETURNe;
-          n = TF->cell_modified;
-
-          row = n % TF->Ni;
-          col = n / TF->Ni;
-          // XtVaGetValues(TF->cells[n], XmNvalue, &cv, NULL);
-          if (LocalHead) {
-             fprintf(SUMA_STDERR,"%s:\nTable cell[%d, %d]=%s\n",
-                                  FuncName, row, col, (char *)cv);
-          }
-
-          an = SUMA_SetRangeValueNew(otherAdo, colpC, row, col,
-                                 newValue, 0.0,
-                                 0, 1, &reset, TF->num_units);
-
-          if (an < 0) {
-             if (an == -1 || an == -2) {
-                SUMA_BEEP;
-                TF->num_value[n] = reset;
-                SUMA_TableF_SetString(TF);
-                if (an == -1) { SUMA_SLP_Err("Lower bound > Upper bound!"); }
-                else { SUMA_SLP_Err("Upper bound < Lower bound!"); }
-             } else {
-                SUMA_S_Err("Erriosity");
-             }
-          }
       }
    }
 
