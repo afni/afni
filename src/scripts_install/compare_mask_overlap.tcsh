@@ -16,7 +16,10 @@
 #set version   = "1.1";  set rev_dat   = "June 23, 2026"
 # + more popup help info
 #
-set version   = "1.2";  set rev_dat   = "June 30, 2026"
+#set version   = "1.2";  set rev_dat   = "June 30, 2026"
+# + use inputB for core/rim def
+#
+set version   = "1.3";  set rev_dat   = "July 6, 2026"
 # + use inputB for core/rim def
 #
 # ----------------------------------------------------------------
@@ -36,6 +39,8 @@ set prefix    = "overlap"
 set opref     = "overlap"
 set orep      = "${opref}_report.txt"
 
+set dset_for_depth = dset_00_maskB.nii.gz   # dset for getting depth info
+set INFILL_B  = 1                        # fill in maskB for rim/core def
 set rim_dep   = 5.0                      # mm value for rim depth
 set ADTO      = 0                        # add data into outdir?
 
@@ -112,6 +117,20 @@ while ( $ac <= $#argv )
         set tf = `python -c "print('/' in '${wdir}')"`
         if ( "${tf}" == "True" ) then
             echo "** ERROR: '-workdir ..' is a name only, no '/' allowed\n"
+            goto BAD_EXIT
+        endif
+
+    else if ( "$argv[$ac]" == "-infill_for_core_rim" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set tmp = "$argv[$ac]"
+        if ( "${tmp}" == "Yes" || "${tmp}" == "1" ) then
+            set INFILL_B = 1
+        else if ( "${tmp}" == "No" || "${tmp}" == "0" ) then
+            set INFILL_B = 0
+        else
+            echo "** ERROR: bad value after -infill_for_core_rim: ${tmp}"
+            echo "   Must be one of: Yes, 1, No, 0"
             goto BAD_EXIT
         endif
 
@@ -225,6 +244,22 @@ if ( $status ) then
     goto BAD_EXIT
 endif
 
+# did user ask to fill holes in inputB, for making rim/corr dsets?
+if ( $INFILL_B ) then
+    3dmask_tool                                                              \
+        -overwrite                                                           \
+        -fill_holes                                                          \
+        -input       ${outdir}/${wdir}/dset_00_maskB.nii.gz                  \
+        -prefix      ${outdir}/${wdir}/dset_00_maskB_infill.nii.gz
+
+    if ( $status ) then
+        goto BAD_EXIT
+    endif
+
+    # update filename for which dset to use for rim/core estimation
+    set dset_for_depth = dset_00_maskB_infill.nii.gz
+endif
+
 if ( "${ulay}" != "" ) then
     3dcalc                                                                   \
         -overwrite                                                           \
@@ -246,12 +281,12 @@ cd ${outdir}/${wdir}
 
 echo "++ Make core+rim masks from inputB"
 
-# from maskB, make inner and outer rim...
+# from maskB (or infilled ver), make inner and outer rim...
 3dDepthMap                                                                   \
     -overwrite                                                               \
     -bounds_are_not_zero                                                     \
     -rimify              ${rim_dep}                                          \
-    -input               "3dcalc( -a dset_00_maskB.nii.gz -expr a+3*not(a) )" \
+    -input               "3dcalc( -a ${dset_for_depth} -expr a+3*not(a) )"   \
     -prefix              dset_01_rimB.nii.gz
 
 if ( $status ) then
@@ -261,8 +296,8 @@ endif
 # ... and finalize by adding core
 3dcalc                                                                       \
     -overwrite                                                               \
-    -a          dset_00_maskB.nii.gz                                         \
-    -b          dset_01_rimB.nii.gz                                           \
+    -a          ${dset_for_depth}                                            \
+    -b          dset_01_rimB.nii.gz                                          \
     -expr       "a+b"                                                        \
     -prefix     dset_02_rimcoreB.nii.gz
 
@@ -586,6 +621,21 @@ Options ~1~
                     regions (calculated from inputB)
                     (def: ${rim_dep})
 
+-infill_for_core_rim IFCR
+                   :should a copy of the inputB mask be infilled before
+                    defining the core and rim regions?  If this is not done,
+                    and there are holes in the inputB mask, then the inner
+                    and outer rims may also be defined around those holes, 
+                    which would be odd.  This would be weird in most cases---
+                    hence, this optional functionality is on by default.
+                    We would recommend using this option with 'Yes' if
+                    inputB does/might have holes;  but if you have a strong
+                    case for not using it, then of course don't.  note that 
+                    during the mask comparisons, the original (unfilled) 
+                    inputB is still used.  Valid values for IFCR include:
+                        Yes, 1, No, 0
+                    (def: ${INFILL_B})
+
 -add_data_to_outdir ADTO
                    :should copies of the underlay and mask-overlap dsets be
                     added to the outdir? If so, a driver script for AFNI
@@ -691,14 +741,14 @@ Outputs, 2: overlap QC image ~2~
   regions of the two masks, inputA and inputB. The image file is
   called PREFIX_QC.jpg.
 
-  It is a montage of 8 slices from each of the axial, sagittal and
-  coronal planes. It has the following color scheme:
+  The QC image is a montage of 8 slices from each of the axial,
+  sagittal and coronal planes. It has the following color scheme
+  (below, A and B stand for the inputA and inputB masks,
+  respectively):
 
-    blue    : yes inputA, yes inputB -> overlap (dset val = 18)
-
-    red     : yes inputA, no  inputB -> A not B (dset val = 24)
-
-    green   : no  inputA, yes inputB -> B not A (dset val = 26)
+    blue   :  overlap  (dset val = 18)
+    red    :  A not B  (dset val = 24)
+    green  :  B not A  (dset val = 26)
 
   We provide the numerical values of the voxels within the visualized
   dataset because if users want, they can add this option to their
