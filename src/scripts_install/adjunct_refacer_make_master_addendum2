@@ -1,7 +1,10 @@
 #!/bin/tcsh
 
-set version   = "1.0";   set rev_dat   = "Sept 25, 2025"
+#set version   = "1.0";   set rev_dat   = "Sept 25, 2025"
 
+set version   = "1.1";   set rev_dat   = "July 6, 2026"
+# [PT] update [1]th volume of afni_refacer_shell_sym_2.1.nii.gz; make it
+#      have correct coverage
 
 # ===========================================================================
 
@@ -296,7 +299,7 @@ endif
 3dcalc                                          \
     -overwrite                                                               \
     -a          __tmp2_OUT_FILL_FINAL_A.nii.gz     \
-    -expr       'a*isnegative(z+30)*ispositive(z+142)*isnegative(y-59)' \
+    -expr       'a*isnegative(z+5)*ispositive(z+168)*isnegative(y-59)' \
     -prefix     __tmp2_OUT_FILL_FINAL_C.nii.gz             \
     -datum      short                                \
     -nscale
