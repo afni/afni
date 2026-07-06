@@ -657,6 +657,8 @@ ver = ${version}
 Author   - The Face of Imperial Zhark, Who is Terrible to Behold!
 Modifier - PA Taylor
 
+# ==========================================================================
+
 OUTPUTS ~1~
 
 There are different modes available for defacing/refacing.  Users can
@@ -788,20 +790,21 @@ where:
  -help        : see helpfile (here, in fact)
  -hview       : popup help
 
+# ==========================================================================
+
 NOTES ~1~
 
 Output file names ~2~
 
-If the user implements one of the individual modes for either
-refacing, reface_plusing or defacing, then the main output file of
-interest is simply specified by their "-prefix .." choice.
-Additionally, the the replacement volume in subject space will be
-output, with the same name plus a suffix (either 'face' or
-'face_plus').
+If the user implements one of the individual modes for refacing,
+reface_plusing or defacing, then the main output file of interest is
+simply specified by their "-prefix .." choice.  Additionally, the
+replacement volume in subject space will be output, with the same name
+plus a suffix (either 'face' or 'face_plus').
 
-Elif the user implements '-mode_all', then three output volumes are
-created, each with the same prefix specified by their "-prefix .."
-choice, with identifying suffixes and *.nii.gz extensions:  
+If the user instead implements '-mode_all', then three output volumes
+are created, each with the same prefix specified by their "-prefix .."
+choice, with identifying suffixes and *.nii.gz extensions:
     PREFIX.deface.nii.gz 
     PREFIX.reface.nii.gz
     PREFIX.reface_plus.nii.gz
@@ -839,8 +842,12 @@ Message Board.
 
 Reference shells and template datasets ~2~
 
-***
+Different degrees of face-hiding have been preferred over time.
+Typically, it is recommended to remove more face (and ears) nowadays.
 
+The default masks here will do that.
+
+# ==========================================================================
 
 EXAMPLES ~1~
 
