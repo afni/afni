@@ -15359,7 +15359,7 @@ OPTIONS:  ~2~
         projection before projecting the modified "bad" components from the
         time series.  The 'm_tedana_OC_tedort' method gets the MEICA OC data,
         and passes the MEICA tedort regressors on to the regress block.  The
-        'OC_m_tedort' methed gets the AFNI OC result, and passes the MEICA
+        'OC_m_tedort' method gets the AFNI OC result, and passes the MEICA
         tedort regressors on to the regress block.
 
         Please see '@compute_OC_weights -help' for more information.
