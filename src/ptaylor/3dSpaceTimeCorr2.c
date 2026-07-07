@@ -7,6 +7,9 @@ ver = 1.1;  date = June 28, 2026
 + [PT] confirm treating time series as a sample, not population, for the def
   of stdev in Z-scoring
 
+ver = 1.2;  date = Jul 1, 2026
++ [PT] fix some intermittent seg faults, with stack vs heap memory alloc
+
 */
 
 #include <stdio.h>
@@ -117,7 +120,7 @@ int usage_3dstcorr2()
 "\n"
 );
 
-	return 0;
+   return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -137,7 +140,7 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
    //                  parse command line arguments
    // ****************************************************************
-	
+
    if (argc == 1) { usage_3dstcorr2(); exit(0); }
 
    /* scan through args */
@@ -149,7 +152,7 @@ int main(int argc, char *argv[]) {
          usage_3dstcorr2();
          exit(0);
       }
-			 
+
       if( strcmp(argv[iarg],"-insetA") == 0 ){
          if( ++iarg >= argc ) 
             ERROR_exit("Need argument after '%s'", argv[iarg-1]);
@@ -170,7 +173,7 @@ int main(int argc, char *argv[]) {
          if( ++iarg >= argc ) 
             ERROR_exit("Need argument after '%s'", argv[iarg-1]);
 
-         InOpts.mask_name = strdup(argv[iarg]) ;			
+         InOpts.mask_name = strdup(argv[iarg]) ;
          iarg++ ; continue ;
       }
 
@@ -202,7 +205,7 @@ int main(int argc, char *argv[]) {
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1);
    }
-	
+
    // ****************************************************************
    //               verify presence+behavior of inputs
    // **************************************************************** 
@@ -243,8 +246,8 @@ int run_stcorr2( int comline, PARAMS_stcorr2 opts,
    int Dim[3] = {0, 0, 0};
    int nvox, nvalsA, nvalsB;
 
-	THD_3dim_dataset *dset_insetA = NULL;     // insetA
-	THD_3dim_dataset *dset_insetB = NULL;     // insetB
+   THD_3dim_dataset *dset_insetA = NULL;     // insetA
+   THD_3dim_dataset *dset_insetB = NULL;     // insetB
    THD_3dim_dataset *dset_mask   = NULL;     // mask
    THD_3dim_dataset *dset_out    = NULL;     // output dset (to be created)
 
@@ -524,8 +527,16 @@ int calc_spacetimecorr(float *DOT, int nmask, float **AZ, int nvalsA,
 
       int tmp;
       float sval=0.0;
-      float vecA[nmask-1], vecB[nmask-1];
-      float vecAZ[nmask-1], vecBZ[nmask-1];
+      float *vecA=NULL, *vecB=NULL, *vecAZ=NULL, *vecBZ=NULL;
+
+      // allocate these potentially large arrays this way
+      vecA  = (float *)malloc((nmask-1) * sizeof(float));
+      vecB  = (float *)malloc((nmask-1) * sizeof(float));
+      vecAZ = (float *)malloc((nmask-1) * sizeof(float));
+      vecBZ = (float *)malloc((nmask-1) * sizeof(float));
+
+      if( !vecA || !vecB || !vecAZ || !vecBZ )
+         ERROR_exit("Per-thread malloc failure in calc_spacetimecorr");
 
 #ifdef USE_OMP
       ithr = omp_get_thread_num();
@@ -564,25 +575,32 @@ int calc_spacetimecorr(float *DOT, int nmask, float **AZ, int nvalsA,
                vecB[i]/= nvalsB;
             }
          }
-         // final one to put in: the last [i]th value gets stored in
-         // the i=pp spot (which was already initialized to zero above)
-         i = nmask-1;
-         for ( n=0 ; n<nvalsA ; n++ )
-            vecA[pp]+= AZ[pp][n]*AZ[i][n];
-         vecA[pp]/= nvalsA;
-         for ( n=0 ; n<nvalsB ; n++ ) 
-            vecB[pp]+= BZ[pp][n]*BZ[i][n];
-         vecB[pp]/= nvalsB;
 
+         /* 
+            final one to put in: the last [i]th value gets stored in
+            the i=pp spot (which was already initialized to zero
+            above); NB: if pp==nmask-1, we don't do this extra step,
+            bc that case doesn't need an extra one put back
+         */
+         if( pp < nmask-1 ) {
+            i = nmask-1;
+            for ( n=0 ; n<nvalsA ; n++ )
+               vecA[pp]+= AZ[pp][n]*AZ[i][n];
+            vecA[pp]/= nvalsA;
+            for ( n=0 ; n<nvalsB ; n++ ) 
+               vecB[pp]+= BZ[pp][n]*BZ[i][n];
+            vecB[pp]/= nvalsB;
+         }
+         
          /* ----------------------- calc 2: space ----------------------- */
 
          // convert 1D arrays to Zscores, to prep for dot product
          tmp = zscore_ts_welford(vecA, vecAZ, nmask-1, 0);
          tmp = zscore_ts_welford(vecB, vecBZ, nmask-1, 0);
 
-         // do the dot product
+         // do the dot product (note length of vecAZ and vecBZ arrs)
          sval = 0.0;
-         for ( n=0 ; n<nmask ; n++ )
+         for ( n=0 ; n<nmask-1 ; n++ )
             sval+= vecAZ[n]*vecBZ[n];
          sval/= nmask-1;
 
@@ -611,6 +629,16 @@ int calc_spacetimecorr(float *DOT, int nmask, float **AZ, int nvalsA,
 #endif
 
       }
+
+      // free allocated arrays
+      if( vecA ) 
+         free(vecA);
+      if( vecB )
+         free(vecB);
+      if( vecAZ )
+         free(vecAZ);
+      if( vecBZ )
+         free(vecBZ);
 
    } // end OMP
    AFNI_OMP_END ;
