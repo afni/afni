@@ -376,7 +376,6 @@ Unfortunately, the variation from periodicity resulted in the new peaks being si
 
 An example of the results is shown in figure \ref{fig:cardiacPhaseInterpolation}.
 
-
 \begin{figure}[htb]
 	\begin{center}
 		\includegraphics[height=4.0in,width=3in,angle=0]{/home/peterlauren/quasiPeriodicOutliers/cardiacPhaseInterpolation.pdf}
@@ -385,13 +384,8 @@ An example of the results is shown in figure \ref{fig:cardiacPhaseInterpolation}
 	\end{center}
 \end{figure}
 
-
-
-
 With the respiratory time series, there are troughs as well as peaks and peaks and troughs may not be  always bijective.  The following procedure is followed for the respiratory time series.
 \begin{enumerate}
-	\item Determine the mean period among peaks, $T_p$.
-	\item Determine the mean portion $P_{ip}$ of the interpeak distance from a peak to its following trough.
 	\item First deal with cases where there is more than one peak/trough between a pair of troughs/peaks.
 	\begin{enumerate}
 		\item If at least two consecutive peaks
@@ -411,6 +405,8 @@ With the respiratory time series, there are troughs as well as peaks and peaks a
 	\end{enumerate}
 	\item For the bad regions, place the peaks as for the cardiac series with a trough placed $\lfloor P_{ip} \times T_p \rceil$ after each peak.
 \end{enumerate}
+
+This places the peaks (and troughs) on a type of invisible clothesline which is preferable to trying to match the erroneous peaks (and troughs) of the input signal.  An optional modification would be to move each of the peaks (and troughs) to the local maximum (minimum), redetermine the bad segments and then recorrect with the standard clothesline method.
 
 %----------------------------------------------------------------------------------------
 %	REFERENCE LIST

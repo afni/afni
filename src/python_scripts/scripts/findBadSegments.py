@@ -9,13 +9,10 @@ Created on Tue Dec  2 07:59:59 2025
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import pdist, squareform
-import copy
 from collections import defaultdict
 import sys
 import os
 import statistics
-from afnipy import lib_physio_opts    as lpo
-from afnipy import lib_physio_reading as lpr
 from pathlib import Path
 from scipy.sparse import csr_matrix
 
@@ -851,7 +848,7 @@ def findAnomalousBands(vectorWeightSums, rankVector, cardiacPeaks):
         merged_ranges,
     )
 
-def correctCardiacPeaks(cardiacPeaks):
+def correctCardiacPeaks_Old(cardiacPeaks):
     # Get median cardiac peak spacing
     median_peak_spacing = int(np.median([b - a for a, b in zip(cardiacPeaks[:-1], cardiacPeaks[1:])]))
     
@@ -877,7 +874,8 @@ def correctCardiacPeaks(cardiacPeaks):
 
 def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries, 
             respiratoryPeaks, respiratoryTroughs, samp_freq, peak_outliers, 
-            outlier_ts_ranges, troughPeakMismatchRanges, useClustering):
+            outlier_ts_ranges, troughPeakMismatchRanges, useClustering,
+            moveToLocalPeaks):
     
     print('Write respiratory results to files')
 
@@ -907,11 +905,13 @@ def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries,
 
     # Analyze cases where peaks and troughs are mismatched
     analyzePeakTroughMismatches(troughPeakMismatchRanges, respiratoryPeaks,
-        respiratoryPeakVals, respiratoryTroughs, respiratoryTroughVals, cardiacPeaks)
+        respiratoryPeakVals, respiratoryTroughs, respiratoryTroughVals, 
+        cardiacPeaks)
     
     # Make corrected respiratory time series
     makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks, 
-                respiratoryTroughs, outlier_ts_ranges, OutDir, samp_freq)
+                respiratoryTroughs, outlier_ts_ranges, OutDir, samp_freq,
+                moveToLocalPeaks)
     
     return (
      peak_outliers,
@@ -922,7 +922,8 @@ def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries,
      )
     
 def writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, cardiacPeaks, samp_freq,
-                           peak_outliers, outlier_ts_ranges, useClustering):
+                           peak_outliers, outlier_ts_ranges, useClustering,
+                           moveToLocalPeaks):
     
     print('Write cardiac results to files')
 
@@ -946,8 +947,10 @@ def writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, cardiacPeaks, samp_fre
                            output_file_name)
     
     # Make corrected cardiac time series
-    makeCorrectedCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks, 
-            outlier_ts_ranges, OutDir, samp_freq)
+    cardiacPeaks = makeCorrectedCardiacTimeSeries(cardiacTimeSeries, 
+            cardiacPeaks, outlier_ts_ranges, OutDir, samp_freq, moveToLocalPeaks)
+    
+    return cardiacPeaks
     
 def merge_ranges(ranges):
     if not ranges:
@@ -970,7 +973,8 @@ def merge_ranges(ranges):
     return merged
     
 def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks, 
-            respiratoryTroughs, outlier_ts_ranges, OutDir, samp_freq):
+            respiratoryTroughs, outlier_ts_ranges, OutDir, samp_freq,
+            moveToLocalPeaks):
     
     # Keep separate list of new points to display added points in green.
     added_peaks = []
@@ -1284,7 +1288,8 @@ def outputCorrectedRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks,
     
     
 def makeCorrectedCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks, 
-                                   outlier_ts_ranges, OutDir, samp_freq):
+                                   outlier_ts_ranges, OutDir, samp_freq,
+                                   moveToLocalPeaks):
     
     # Keep separate list of new points to display added points in green.
     added_points = []
@@ -1321,16 +1326,54 @@ def makeCorrectedCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks,
         # Phase interpolation
         new_peaks = np.linspace(before, after, N_p+1)[1:-1]
         
-        added_points.extend(np.round(new_peaks).astype(int))
+        if moveToLocalPeaks:
+            # Refine interpolated peaks by moving them to the nearest local maximum.
+            # Search only a small window around each interpolated location.
+            search_radius = max(1, int(0.05 * samp_freq))    # ±50 ms
+    
+            adjusted_peaks = []
+    
+            for peak in new_peaks:
+    
+                peak = int(round(peak))
+    
+                left = max(0, peak - search_radius)
+                right = min(len(cardiacTimeSeries)-1,
+                            peak + search_radius)
+    
+                segment = cardiacTimeSeries[left:right+1]
+    
+                adjusted_peak = left + np.argmax(segment)
+    
+                adjusted_peaks.append(adjusted_peak)
+            
+            added_points.extend(np.round(adjusted_peaks).astype(int))
+            
+        else:
+            # Form s atraight clothesline between the good peaks on either side
+            cardiacTimeSeries[before+1:after] = np.linspace(
+                cardiacTimeSeries[before],
+                cardiacTimeSeries[after],
+                after - before + 1
+            )[1:-1]
+            
 
         
     # Write out a plot of the corrected time series with green peaks (to show
     # the corrections) and bad regions in pink
     writeCorrectedCardiacPeaks(cardiacTimeSeries, cardiacPeaks, 
                 outlier_ts_ranges, added_points, OutDir, samp_freq)
-        
-    # Merge added points into cardiacPeaks
     
+    # Merge added peaks into peak list
+    # cardiacPeaks.extend(np.round(added_points).astype(int))
+    cardiacPeaks = np.concatenate((
+        cardiacPeaks,
+        np.round(added_points).astype(int)
+    ))
+    cardiacPeaks = np.sort(cardiacPeaks)
+        
+    # Return modified peaks
+    return cardiacPeaks
     
 def writeCorrectedCardiacPeaks(cardiacTimeSeries, cardiacPeaks, 
             outlier_ts_ranges, added_points, OutDir, samp_freq):
@@ -1451,6 +1494,9 @@ directory = os.getcwd()
 #Whether to use clustering which tends to be slow
 print('Set clustering to false')
 useClustering = False
+
+# Whether to move peaks (and troughs) to local maximia (and minima)
+moveToLocalPeaks = False 
 
 # Read arguments
 print('Read arguments')
@@ -1593,6 +1639,10 @@ while i < len(sys.argv):
     elif (sys.argv[i]=="-h"):
             print("-h not recognized.  Did you mean -help?")
             sys.exit()
+            
+    elif (sys.argv[i]=="-moveToLocalPeaks"):
+            moveToLocalPeaks = True
+            sys.exit()
 
     else:
             print(f"Unrecognized option: {sys.argv[i]}")
@@ -1640,10 +1690,44 @@ else:
         merged_ranges,
     ) = findAnomalousBands(vectorWeightSums, rankVector, cardiacPeaks)
 
-cardiacPeaks = correctCardiacPeaks(cardiacPeaks)
+cardiacPeaks = writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, 
+                cardiacPeaks, samp_freq, peak_outliers, outlier_ts_ranges, 
+                useClustering, moveToLocalPeaks)
 
-writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, cardiacPeaks, samp_freq,
-                           peak_outliers, outlier_ts_ranges, useClustering)
+# If peaks have been moved to local maximia, repeat identification of bad regions,
+# and subsequent correction without moving to local maxima
+if moveToLocalPeaks:
+
+    # Build an array of vecs, one for each peak.
+    (
+        cardiacPeaks, 
+        cardiacTimeSeries,
+        vec
+        ) = buildCardiacPeakVectors(cardiacPeaks, cardiacTimeSeries)
+    
+    # Make cardiac rank vector
+    print('Make cardiac rank vector')
+    (rankVector, vectorWeightSums, weights) = makeRankVector(vec)
+    
+    # Use clustering if required
+    if useClustering:   # Not the default as it's very slow
+        print('Use clustering for cardiac data')
+        (
+            outlier_ts_ranges,
+            peak_outliers,
+            merged_ranges,
+        ) = applyClustering(cardiacPeaks, weights)
+    else:
+        # Identify outliers on low end of the cumulative weights
+        (
+            outlier_ts_ranges,
+            peak_outliers,
+            merged_ranges,
+        ) = findAnomalousBands(vectorWeightSums, rankVector, cardiacPeaks)
+    
+    cardiacPeaks = writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, 
+                    cardiacPeaks, samp_freq, peak_outliers, outlier_ts_ranges, 
+                    useClustering, False)
         
 # Process respiratory data
 
@@ -1707,10 +1791,8 @@ troughPeakMismatchRanges = list(zip(respiratoryPeaks[:-1][mask],
  respiratoryTroughVals
  ) = writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries, 
             respiratoryPeaks, respiratoryTroughs, samp_freq, peak_outliers, 
-            outlier_ts_ranges, troughPeakMismatchRanges, useClustering)
+            outlier_ts_ranges, troughPeakMismatchRanges, useClustering,
+            moveToLocalPeaks)
 
-# # Analyze cases where peaks and troughs are mismatched
-# analyzePeakTroughMismatches(troughPeakMismatchRanges, respiratoryPeaks,
-#     respiratoryPeakVals, respiratoryTroughs, respiratoryTroughVals, cardiacPeaks)
 
 
