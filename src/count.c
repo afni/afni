@@ -149,7 +149,7 @@ int main( int argc , char *argv[] )
          continue ;
       }
       if( strncmp(argv[narg],"-root",5) == 0 ){
-         strcpy(root,argv[++narg]) ;
+         snprintf(root,sizeof(root),"%s",argv[++narg]) ;
          continue ;
       }
       
@@ -168,7 +168,7 @@ int main( int argc , char *argv[] )
       }
 
       if( strncmp(argv[narg],"-suffix",4) == 0 ){
-         strcpy(suffix,argv[++narg]) ;
+         snprintf(suffix,sizeof(suffix),"%s",argv[++narg]) ;
          continue ;
       }
 
@@ -274,18 +274,17 @@ int main( int argc , char *argv[] )
    }
 /*** set up to iterate ***/
    if (ufrm) {
-      sprintf (nfmr, "%s", ufrm);
+      snprintf (nfmr, sizeof(nfmr), "%s", ufrm);
    } else {
-      sprintf (nfmr, "%%0%dd", ndig);
+      snprintf (nfmr, sizeof(nfmr), "%%0%dd", ndig);
    }
    if( step <= 0 ) step = 1 ;
    if (col == 0) {
-      if( sclfac == 0.0 ) sprintf( fmt , "%%s%s%%s" , nfmr ) ;
-      else                strcpy ( fmt , " %s%g%s" ) ;
-      if( isspace(sep) )  strcat ( fmt," ") ;
+      if( sclfac == 0.0 ) snprintf( fmt , sizeof(fmt) , "%%s%s%%s%s" , nfmr , isspace(sep) ? " " : "" ) ;
+      else                snprintf( fmt , sizeof(fmt) , " %%s%%g%%s%s" , isspace(sep) ? " " : "" ) ;
    } else {
-      if( sclfac == 0.0 ) sprintf( fmt , " %%s%s%%s\n" , nfmr ) ;
-      else                strcpy ( fmt , " %s%g%s\n" ) ;
+      if( sclfac == 0.0 ) snprintf( fmt , sizeof(fmt) , " %%s%s%%s\n" , nfmr ) ;
+      else                snprintf( fmt , sizeof(fmt) , " %%s%%g%%s\n" ) ;
    }
 /*** iterate ***/
    /* fprintf(stderr,"bot=%d, top=%d, step=%d\n", bot, top, step); */
