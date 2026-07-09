@@ -989,6 +989,13 @@ def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks,
     # Build valid respiratory cycles
     valid_cycles = []
     
+    # Impose bijectivity on peaks and troughs    
+    events = sorted(
+        [(x,'P') for x in respiratoryPeaks] +
+        [(x,'T') for x in respiratoryTroughs],
+        key=lambda x: x[0]
+    )
+    
     respiratoryPeaks = np.asarray(respiratoryPeaks)
     respiratoryTroughs = np.asarray(respiratoryTroughs)
 
@@ -1101,13 +1108,6 @@ def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks,
             bad_events.append(events[i:i+2])
             print("artifact:", events[i:i+2])
             
-    # Impose bijectivity on peaks and troughs    
-    events = sorted(
-        [(x,'P') for x in respiratoryPeaks] +
-        [(x,'T') for x in respiratoryTroughs],
-        key=lambda x: x[0]
-    )
-    
     # added_peaks = []
     # added_troughs = []
     
@@ -1150,27 +1150,12 @@ def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks,
     
         for bad_region in merged_outlier_ts_ranges:
             
-            # Remove existing peaks and troughs in bad region
-            mask = (
-                (respiratoryPeaks < bad_region[0]) |
-                (respiratoryPeaks > bad_region[1])
-            )        
-            respiratoryPeaks = respiratoryPeaks[mask]
-            mask = (
-                (respiratoryTroughs < bad_region[0]) |
-                (respiratoryTroughs > bad_region[1])
-            )        
-            respiratoryTroughs = respiratoryTroughs[mask]
+            idx_before = np.searchsorted(respiratoryPeaks, bad_region[0]) - 2
+            idx_after  = np.searchsorted(respiratoryPeaks, bad_region[1]) + 1
             
-            # Recompute after removing bad peaks
-            resp_intervals = np.diff(respiratoryPeaks)
-        
-            idx_start = np.searchsorted(respiratoryPeaks,bad_region[0])-1
-            idx_end   = np.searchsorted(respiratoryPeaks,bad_region[1])+1
-        
-            before = respiratoryPeaks[idx_start] if idx_start>0 else None
-            after  = respiratoryPeaks[idx_end] if idx_end<len(respiratoryPeaks) else None
-        
+            before = respiratoryPeaks[idx_before] if idx_before >= 0 else None
+            after  = respiratoryPeaks[idx_after] if idx_after < len(respiratoryPeaks) else None  
+            
             if before is None or after is None:
                 continue
 
@@ -1181,16 +1166,16 @@ def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks,
                 after - before + 1
             )[1:-1]
         
-            idx_start = np.searchsorted(respiratoryTroughs,bad_region[0])-1
-            idx_end   = np.searchsorted(respiratoryTroughs,bad_region[1])+2
-        
-            before = respiratoryTroughs[idx_start-1] if idx_start>0 else None
-            after  = respiratoryTroughs[idx_end] if idx_end<len(respiratoryTroughs) else None
-        
+            idx_before = np.searchsorted(respiratoryTroughs, bad_region[0]) - 1
+            idx_after  = np.searchsorted(respiratoryTroughs, bad_region[1])
+            
+            before = respiratoryTroughs[idx_before] if idx_before >= 0 else None
+            after  = respiratoryTroughs[idx_after] if idx_after < len(respiratoryTroughs) else None  
+            
             if before is None or after is None:
                 continue
 
-            # Form s atraight clothesline between the good peaks on either side
+            # Form s atraight clothesline between the good troughs on either side
             interpolatedTroughs[before+1:after] = np.linspace(
                 interpolatedTroughs[before],
                 interpolatedTroughs[after],
