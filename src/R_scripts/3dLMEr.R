@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.2.0, March 25, 2026
+Version 1.2.1, July 15, 2026
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -869,6 +869,7 @@ runLME <- function(myData, DM, tag) {
       try(fm <- lmer(lop$model, data=DM), silent=TRUE)
 
       if(!is.null(fm)) {
+        if(lop$nF > 0) {
          #Stat[1:lop$nF] <- anova(fm, type=lop$SS_type)$`F value` # F-stat
 	 Stat[1:lop$nF] <- qchisq(anova(fm, type=lop$SS_type)$`Pr(>F)`, 2, lower.tail = F) # convert to chisq
 	 #qnorm(anova(fm, type=lop$SS_type)$`Pr(>F)`/2, lower.tail = F) # Z-stat: should use one-tailed!
@@ -901,6 +902,13 @@ runLME <- function(myData, DM, tag) {
             resid <- unname(residuals(fm))
             if(!is.null(res.na)) for(aa in res.na) resid <- append(resid, 0, after=aa-1) # fill in missing data with 0s 
          }
+       } else if(lop$nF==0) {
+         if(lop$R2) Stat[(2*lop$num_glt+lop$num_glf+1):(2*lop$num_glt+lop$num_glf+2)] <- r.squaredGLMM(fm)
+         if(!is.null(lop$resid)) {
+            resid <- unname(residuals(fm)) 
+            if(!is.null(res.na)) for(aa in res.na) resid <- append(resid, 0, after=aa-1) # fill in missing data with 0s
+         }
+       } 
       }
    }
    if(!is.null(lop$resid)) Stat <- c(Stat, resid)
