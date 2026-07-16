@@ -1,0 +1,535 @@
+#!/usr/bin/env python
+
+# python3 status: compatible
+
+# system libraries
+import sys, os, copy
+
+# AFNI libraries
+from afnipy import option_list   as OL
+from afnipy import afni_util     as UTIL
+from afnipy import afni_base     as BASE
+from afnipy import lib_vnet_defs as DEF
+
+
+# ----------------------------------------------------------------------
+# globals
+
+# combine all entries for help here
+g_help_dict   = {**DEF.DOPTS, 
+                 'STR_all_device' : DEF.STR_all_device,
+                 'STR_all_comp_opts_nono' : DEF.STR_all_comp_opts_nono}
+
+g_help_string = """Overview ~1~
+
+This program is skullstripping anatomical T1w volumes (AKA teasing out
+the brain in them), using machine learning methods.  Specifically, the
+model was created here using a convolutional neural network (CNN) with
+V-net architecture.  It was designed in a way to be as robust as
+possible to realistic variability, noise and practical realities of
+data acquisition.
+
+For more details on its creation and training, please see:
+
+   ***
+
+
+auth = Y Narayana Swamy (SSCC, NIMH, NIH, USA)
+       RC Reynolds (SSCC, NIMH, NIH, USA)
+       PA Taylor (SSCC, NIMH, NIH, USA)
+
+------------------------------------------------------------------------
+
+Usage ~1~
+
+-inset INSET   :(req) name of the input dataset
+
+-prefix PREFIX :(req) name of output dset
+
+-checkpoint CP :this option specifies which V-net model should be used
+                (def: '{checkpoint}')
+
+-workdir WD    :working directory name, without path; the working dir
+                will be subdirectory of the output location
+                (def: name with random chars)
+
+-comp_mask CM  :the name of a mask, for comparison of overlaps, both
+                quantitatively and in QC images; this option is likely
+                primarily for testing purposes.
+
+-comp_opts CO  :if using '-comp_mask ..', then users can add one or more 
+                options for the execution of compare_mask_overlap.tcsh 
+                via this opt. One common choice for CO here could be:
+                    "-add_data_to_outdir  Yes"
+                Some options for compare_mask_overlap.tcsh _cannot_ be
+                managed here, and those are:
+                    {STR_all_comp_opts_nono}
+                (def: '{comp_opts}')
+
+-device D      :users can choose the device that they run on, namely to
+                use a CPU or GPU for processing, from this list: 
+                {STR_all_device}
+                Performance has mainly been tested on the default, and 
+                it should generally not be necessary to change it.
+                (def: '{device}')
+
+-num_cpu NCPU  :number of CPU threads to use during skullstripping; 
+                a negative value means that the system decides.
+                NB: to know how many CPUs are available, you can run:
+                     afni_system_check.py -disp_num_cpu
+                (def: '{num_cpu}')
+
+-do_single_qc DSQC :state whether to make the QC image and script for 
+                quickly checking the mask results (does not refer to the
+                QC outputs for any comp_mask);
+                allowed values are:  Yes, 1, No, 0
+                (def: '{do_single_qc}')
+
+-do_clean DC   :state whether to clean up any intermediate files;
+                allowed values are:  Yes, 1, No, 0
+                (def: '{do_clean}')
+
+-do_log        :add this opt to turn on making a text log of all the
+                shell commands that are run when this program is
+                executed.  Mainly for debugging purposes.
+
+-help, -h      :display program help file
+
+-hist          :display program history
+
+-ver           :display program version number
+
+-verb  VVV     :control verbosity (def: {verb})
+
+-show_valid_opts :show valid options for this program
+
+------------------------------------------------------------------------
+
+Notes ~1~
+
+Outputs, 1: single mask data and QC ~2~
+
+  A mask dataset is output, called PREFIX.
+
+  By default a QC image of that mask over the inset is also provided
+  in the same location, called PREFIX_NOEXT_QC.jpg (where PREFIX_NOEXT
+  is the PREFIX filename but without the data extension part).  This
+  is a montage of axial, sagittal and coronal images.
+
+  There is also a script that is output, called PREFIX_NOEXT_run.tcsh.
+  This script can be executed with:
+
+      tcsh PREFIX_NOEXT_run.tcsh
+
+  ... and it will open up the inset and derived mask datasets to
+  explore interactively, if desired.
+
+Outputs, 2: comparison mask info ~2~
+
+  When the '-comp_mask ...' option is used to load in a comparison
+  mask, then a further directory of outputs is created.  The directory
+  will be called PREFIX_NOEXT_comp/.  **Please see the AFNI program
+  compare_mask_overlap.tcsh for more detailed information about the
+  quantitative and qualitative outputs.**
+
+  Briefly, this directory contains an image showing a montage of views
+  of the relative overlap and differences between the predicted mask
+  (which is the main output of this program) and the comparison mask.
+  There is also a driver script that can load the comparison mask
+  dataset into the AFNI GUI and display it over the inset, which can be 
+  run as: 
+
+      tcsh overlap_run.tcsh
+
+  This directory also contains a text file called 'overlap_report.txt
+  that has a quantitative report about the overlap (and differences)
+  between the predicted and comparison masks.  Because the masks are
+  expected to be generally similar, the report divides up regions of
+  the mask, into "core", "inner rim" and "outer rim", for more
+  detailed comparisons of regions of interest.  There is also an
+  "overall" comparison, but this might add less useful information.
+  Again, please see compare_mask_overlap.tcsh's help for more
+  information on this.
+
+------------------------------------------------------------------------
+
+Examples ~1~
+
+  1. Basic usage, provide a T1w anatomical dset as input and get a mask
+     out:
+
+     3dBrainTeaser                                                  \\
+         -overwrite                                                 \\
+         -checkpoint  checkpoint_001.pt                             \\
+         -inset       sub-123_T1w.nii.gz                            \\
+         -prefix      sub-123_T1w_mask.nii.gz
+
+         
+  2. Same as #1, but add in another mask for comparison:
+
+     3dBrainTeaser                                                  \\
+         -overwrite                                                 \\
+         -checkpoint  checkpoint_001.pt                             \\
+         -inset       sub-123_T1w.nii.gz                            \\
+         -prefix      sub-123_T1w_mask.nii.gz                       \\
+         -comp_mask   sub-123_T1w_other_mask.nii.gz
+
+
+  3. Same as #2, but keep overlap datasets and a driver script in the 
+     mask-comparison directory, for interactive exploration:
+
+     3dBrainTeaser                                                  \\
+         -overwrite                                                 \\
+         -checkpoint  checkpoint_001.pt                             \\
+         -inset       sub-123_T1w.nii.gz                            \\
+         -prefix      sub-123_T1w_mask.nii.gz                       \\
+         -comp_mask   sub-123_T1w_other_mask.nii.gz                 \\
+         -comp_opts   -add_data_to_outdir Yes
+
+
+""".format(**g_help_dict)
+
+g_history = """
+  3dBrainTeaser history:
+
+  0.1   May  20, 2026 :: started this command line interface 
+  1.0   June 25, 2026 :: functionality seems pretty full and tested 
+"""
+
+g_prog    = g_history.split()[0]
+g_ver     = g_history.split("\n")[-2].split("::")[0].strip()
+g_version = g_prog + " version " + g_ver
+
+class InOpts:
+    """Object for storing any/all command line inputs, and just checking
+that any input files do, in fact, exist.  Option parsing and other
+checks happen in a subsequent object.
+
+    """
+
+    def __init__(self):
+        # main variables
+        self.status          = 0                       # exit value
+        self.valid_opts      = None
+        self.user_opts       = None
+
+        # general variables
+        self.verb            = DEF.DOPTS['verb']
+        self.do_clean        = None
+        self.overwrite       = None
+        self.do_log          = None
+        self.argv            = None
+
+        # main data variables
+        self.inset           = None
+        self.prefix          = None
+
+        self.comp_mask       = None
+        self.comp_opts       = None
+        self.checkpoint      = None
+        self.device          = None
+        self.num_cpu         = None
+
+        # control variables
+        self.workdir         = None
+        self.outdir          = None
+        self.do_single_qc    = None
+
+        # ----- take action(s)
+
+        # prelim stuff
+        tmp1 = self.init_options()
+
+    # ----- methods
+
+    def init_options(self):
+        """
+        Prepare the set of all options, with very short help descriptions
+        for each.
+        """
+
+        self.valid_opts = OL.OptionList('valid opts')
+
+        # short, terminal arguments
+
+        self.valid_opts.add_opt('-help', 0, [],           \
+                        helpstr='display program help')
+        self.valid_opts.add_opt('-hist', 0, [],           \
+                        helpstr='display the modification history')
+        self.valid_opts.add_opt('-show_valid_opts', 0, [],\
+                        helpstr='display all valid options')
+        self.valid_opts.add_opt('-ver', 0, [],            \
+                        helpstr='display the current version number')
+
+        # required parameters
+
+        self.valid_opts.add_opt('-inset', 1, [], 
+                        helpstr='name of input dataset')
+
+        self.valid_opts.add_opt('-prefix', 1, [], 
+                        helpstr='name of output dataset')
+
+        # optional parameters
+
+        self.valid_opts.add_opt('-comp_mask', 1, [], 
+                        helpstr='add a mask for comparisons (like testing/QC)')
+
+        self.valid_opts.add_opt('-comp_opts', -1, [], 
+                        helpstr='add opts for compare_mask_overlap.tcsh part')
+
+        self.valid_opts.add_opt('-checkpoint', 1, [], 
+                        helpstr='name of specific V-net model to apply')
+
+        self.valid_opts.add_opt('-device', 1, [], 
+                        helpstr='choose to run on CPU or GPU')
+
+        self.valid_opts.add_opt('-num_cpu', 1, [], 
+                        helpstr='choose number of CPU threads')
+
+        self.valid_opts.add_opt('-workdir', 1, [], 
+                        helpstr='name of workdir (no path)')
+
+        self.valid_opts.add_opt('-do_single_qc', 1, [], 
+                        helpstr="turn on/off making of single mask QC images")
+
+        # may derive from -prefix by default
+        #self.valid_opts.add_opt('-outdir', 1, [], 
+        #                helpstr='name of output dir')
+
+        # general options
+
+        self.valid_opts.add_opt('-do_clean', 1, [], 
+                        helpstr="turn on/off removal of intermediate files")
+
+        self.valid_opts.add_opt('-do_log', 0, [], 
+                        helpstr="turn on/off logging shell cmd execution")
+
+        self.valid_opts.add_opt('-overwrite', 0, [], 
+                        helpstr='overwrite preexisting outputs')
+
+        self.valid_opts.add_opt('-verb', 1, [], 
+                        helpstr='set the verbose level (default is 0)')
+
+        return 0
+
+    def process_options(self):
+        """return  1 on valid and exit        (e.g. -help)
+           return  0 on valid and continue    (e.g. do main processing)
+           return -1 on invalid               (bad things, panic, abort)
+        """
+
+        BASE.IP("Start 3dBrainTeaser")
+
+        # save all opts
+        self.argv = copy.deepcopy(sys.argv)
+
+        # process any optlist_ options
+        self.valid_opts.check_special_opts(sys.argv)
+
+        # process terminal options without the option_list interface
+        # (so that errors are not reported)
+        # return 1 (valid, but terminal)
+
+        # if no arguments are given, apply -help
+        if len(sys.argv) <= 1 or '-help' in sys.argv:
+           print(g_help_string)
+           return 1
+
+        if '-hist' in sys.argv:
+           print(g_history)
+           return 1
+
+        if '-show_valid_opts' in sys.argv:
+           self.valid_opts.show('', 1)
+           return 1
+
+        if '-ver' in sys.argv:
+           print(g_version)
+           return 1
+
+        # ============================================================
+        # read options specified by the user
+        self.user_opts = OL.read_options(sys.argv, self.valid_opts)
+        uopts = self.user_opts            # convenience variable
+        if not uopts: return -1           # error condition
+
+        # ------------------------------------------------------------
+        # process non-chronological options, verb comes first
+
+        val, err = uopts.get_type_opt(int, '-verb')
+        if val != None and not err: self.verb = val
+
+        # ------------------------------------------------------------
+        # process options sequentially, to make them like a script
+
+        err_base = "Problem interpreting use of opt: "
+
+        for opt in uopts.olist:
+
+            # main options
+
+            if opt.name == '-inset':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.inset = val
+
+            elif opt.name == '-prefix':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.prefix = val
+
+            # general options
+
+            elif opt.name == '-comp_mask':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.comp_mask = val
+
+            elif opt.name == '-comp_opts':
+                val, err = uopts.get_string_list('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.comp_opts = val
+
+            elif opt.name == '-checkpoint':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.checkpoint = val
+
+            elif opt.name == '-device':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.device = val
+
+            elif opt.name == '-num_cpu':
+                val, err = uopts.get_type_opt(int, '', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.num_cpu = val
+
+            elif opt.name == '-workdir':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.workdir = val
+
+            elif opt.name == '-do_single_qc':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.do_single_qc = val
+
+            # general options
+
+            elif opt.name == '-do_clean':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.do_clean = val
+
+            elif opt.name == '-do_log':
+                self.do_log = True
+
+            elif opt.name == '-overwrite':
+                self.overwrite = '-overwrite'
+
+            # ... verb has already been checked above
+
+        return 0
+
+    def check_options(self):
+        """perform any final tests before execution"""
+
+        if self.verb > 1:
+            BASE.IP("Begin processing options")
+
+        # required opt
+        if self.inset is None :
+            BASE.EP1("missing -inset option")
+            return -1
+
+        if self.prefix is None:
+            BASE.EP1("missing -prefix option")
+            return -1
+
+        return 0
+
+    def test(self, verb=3):
+        """one might want to be able to run internal tests,
+           alternatively, test from the shell
+        """
+        print('------------------------ initial tests -----------------------')
+        self.verb = verb
+        
+        print('------------------------ reset files -----------------------')
+
+        print('------------------------ should fail -----------------------')
+
+        print('------------------------ more tests ------------------------')
+
+        return None
+
+    # ----- decorators
+
+    @property
+    def ninset(self):
+        """number of insets"""
+        return len(self.inset)
+
+
+# ----------------------------------------------------------------------------
+
+def main():
+
+    # init option-reading obj
+    inobj = InOpts()
+    if not(inobj) :  
+        return 1, None
+
+    # process (= read) options
+    rv = inobj.process_options()
+    if rv > 0: 
+        # exit with success (e.g. -help)
+        return 0, None
+    if rv < 0:
+        # exit with error status
+        BASE.EP1('failed to process options')
+        return 1, None
+
+    # import this module here, having established processing will occur
+    from afnipy import lib_vnet_run  as LVR
+
+    # check the options
+    rv2 = inobj.check_options()
+    if rv2 :
+        # exit with error status
+        BASE.EP1('failed whilst checking options')
+        return rv2, None
+
+    # use options to create main object
+    mainobj = LVR.MainObj( user_inobj=inobj )
+    if not mainobj :  
+        return 1
+
+    # write out log/history of what has been done (not done by default, to
+    # save some time, bc this takes a mini-while)
+    if inobj.do_log :
+        olog = 'log_vnet_run.txt'
+        BASE.IP('creating log: {}'.format(olog))
+        UTIL.write_afni_com_log(olog)
+
+    return 0, mainobj
+
+# ============================================================================
+
+if __name__ == '__main__':
+
+    stat, mainobj = main()
+    sys.exit(stat)
+
+
