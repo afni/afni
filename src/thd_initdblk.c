@@ -718,9 +718,28 @@ int THD_WarpData_From_3dWarpDrive(THD_3dim_dataset *dset, ATR_float *atr_flt)
     Only some attributes have an effect.
     09 May 2005 -- written to support NIfTI-ization, by allowing
                    attributes to be applied AFTER a dataset is created.
+    Jan 2022 -- disco added print some attributes for testing 
+                set "attr_print" env var in afnirc
 -----------------------------------------------------------------------------*/
 
-void THD_datablock_apply_atr( THD_3dim_dataset *dset )
+/* move this somewhere else later */
+float frac_diff( float old, float new );
+
+float frac_diff(float old, float new) {
+    float fracdiff , denom ;
+
+    denom = fabs(old) + fabs(new);
+    
+    if ( denom ) {
+        fracdiff = fabs(old - new) / denom ;
+    } else {
+        fracdiff = 0;
+    }
+    return (fracdiff);
+}
+/* end move later */
+
+void THD_datablock_apply_atr( THD_3dim_dataset *dset , int validate )
 {
    THD_datablock     *blk ;
    THD_diskptr       *dkptr ;
@@ -859,11 +878,21 @@ ENTRY("THD_datablock_apply_atr") ;
 
    /*-- ID codes --*/
 
-   if( ATR_IS_STR(ATRNAME_IDSTRING) )
-     MCW_strncpy( dset->idcode.str , atr_str->ch , MCW_IDSIZE ) ;
+   if( ATR_IS_STR(ATRNAME_IDSTRING) ){
+       if( validate ){               /* disco change */
+           printf("\nnii  idcode: %s\n", dset->idcode.str);
+           printf("afni idcode: %s\n\n", atr_str->ch);
+       }
+       MCW_strncpy( dset->idcode.str , atr_str->ch , MCW_IDSIZE ) ;
+    }
 
-   if( ATR_IS_STR(ATRNAME_IDDATE) )
-     MCW_strncpy( dset->idcode.date , atr_str->ch , MCW_IDDATE ) ;
+    if( ATR_IS_STR(ATRNAME_IDDATE) ){
+      if( validate ){               /* disco change */
+          printf("nii  id date: %s\n", dset->idcode.date);
+          printf("afni id date: %s\n\n", atr_str->ch);
+      }
+      MCW_strncpy( dset->idcode.date , atr_str->ch , MCW_IDDATE ) ;
+     }
 
    if( ATR_IS_STR(ATRNAME_IDANATPAR) )
      MCW_strncpy( dset->anat_parent_idcode.str , atr_str->ch , MCW_IDSIZE ) ;
@@ -1110,11 +1139,34 @@ ENTRY("THD_datablock_apply_atr") ;
    if( ( atr_flt = THD_find_float_atr(blk,"IJK_TO_DICOM_REAL") ) ){
       /* load oblique transformation matrix */
       if(atr_flt) {
+        
+          if (validate) { /* disco change */
+              int label_c = 0, c_o = 0, c_i = 0;
+              float f_diff, eps = 0.00001;
+              
+              printf("ijk xx: %13.6s %13.6s %13.6s\n", "afni", "nii", "diff?");
+
+              for (c_o = 0; c_o < 3; c_o++) {
+                  for (c_i = 0; c_i < 4; c_i++) {
+                      f_diff =
+                          frac_diff(atr_flt->fl[label_c],
+                                    dset->daxes->ijk_to_dicom_real.m[c_o][c_i]);
+
+                      printf("ijk %02d: %13.4f %13.4f %13d\n", label_c,
+                             atr_flt->fl[label_c],
+                             dset->daxes->ijk_to_dicom_real.m[c_o][c_i],
+                             f_diff > eps);
+                      label_c++;
+                  }
+              }
+              printf("\n");
+          }  // end validate
+
         LOAD_MAT44(dset->daxes->ijk_to_dicom_real, \
             atr_flt->fl[0], atr_flt->fl[1], atr_flt->fl[2], atr_flt->fl[3], \
             atr_flt->fl[4], atr_flt->fl[5], atr_flt->fl[6], atr_flt->fl[7], \
             atr_flt->fl[8], atr_flt->fl[9], atr_flt->fl[10], atr_flt->fl[11]);
-      }
+      } 
    }
 
    /* update attributes for time axes - copied from thd_dsetdblk.c */
@@ -1125,6 +1177,34 @@ ENTRY("THD_datablock_apply_atr") ;
    if( atr_int != NULL && atr_flt2 != NULL ){
      int isfunc , nvals ;
 
+    /* disco change */
+     if (validate) {
+         printf("%s %13s %13s      %s\n", "afni", "nii", "diff?", "var");
+
+         printf("%d %13d %13.3f      %s\n", TIMEAXIS_TYPE, dset->taxis->type,
+                0.0, "type");
+         printf("%d %13d %13.3f      %s\n", atr_int->in[0], dset->taxis->ntt,
+                0.0, "Number of time points");
+         printf("%d %*d %*.3f      %s\n", atr_int->in[1], 13, dset->taxis->nsl,
+                13, 0.0, "Number of slice-dependent time offsets");
+         printf("%.3f %13.3f %13.3f      %s\n", atr_flt->fl[0],
+                dset->taxis->ttorg, 0.0, "Time origin (usually 0)");
+         printf("%.3f %13.3f %13.3f      %s\n", atr_flt->fl[1],
+                dset->taxis->ttdel, 0.0, "Fondly known as TR");
+         printf("%.3f %13.3f %13.3f      %s\n", atr_flt->fl[2],
+                dset->taxis->ttdur, 0.0,
+                "Duration of image acquisition (usually not known)");
+         printf("%.3f %13.3f %13.3f      %s\n", atr_flt->fl[3],
+                dset->taxis->zorg_sl, 0.0,
+                "z-coordinate origin for slice offsets");
+         printf("%.3f %13.3f %13.3f      %s\n", atr_flt->fl[4],
+                dset->taxis->dz_sl, 0.0,
+                "z-coordinate spacing for slice offsets");
+         printf("%d %13d %13.3f      %s\n", atr_int->in[2],
+                dset->taxis->units_type, 0.0, "one of the UNITS_ codes");
+      }
+    /* end disco change */
+    
      dset->taxis = myRwcNew( THD_timeaxis ) ;
 
      dset->taxis->type    = TIMEAXIS_TYPE ;
