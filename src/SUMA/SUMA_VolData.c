@@ -1296,7 +1296,7 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_Apply_VolReg_Trans"};
    int i, ND, id;
-   double xform[3][4];
+   double xform[4][4];
    SUMA_Boolean Bad=YUP;
    SUMA_Boolean LocalHead=NOPE;
    

@@ -1599,7 +1599,8 @@ void lightenActiveClipPlaneSquare(int planeIndex){
             fprintf(stderr, "### Darken clipping plane square: switch to the recently loaded  cmap\n");
             fprintf(stderr, "### Darken clipping plane square: Cmp = %p\n", Cmp);
             fprintf(stderr, "### Darken clipping plane square: Cmp Name = %s\n", Cmp->Name);
-            fprintf(stderr, "### Darken clipping plane square: Cmp cname = %ls\n", Cmp->cname);
+            // fprintf(stderr, "### Darken clipping plane square: Cmp cname = %ls\n", Cmp->cname);
+            fprintf(stderr, "### Darken clipping plane square: Cmp cname = %s\n", *(Cmp->cname));
             fprintf(stderr, "### Darken clipping plane square: justEnteredClippingPlaneMode = %d\n", justEnteredClippingPlaneMode);
             fprintf(stderr, "### Darken clipping plane square: sv->N_ColList = %d\n", sv->N_ColList);
         }

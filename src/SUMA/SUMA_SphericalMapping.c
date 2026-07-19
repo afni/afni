@@ -1893,6 +1893,15 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
    /**sort x of NodeList_2*/
 
    /*create array justX_2 of only X location values*/
+   if (numNodes_2 <= 0) {
+        SUMA_SL_Err("Invalid dimensions");
+        SUMA_RETURN(NULL);
+   }
+
+   if ((size_t)numNodes_2 > SIZE_MAX) {
+        SUMA_SL_Err("Allocation overflow");
+        SUMA_RETURN(NULL);
+   }
    justX_2 = (float *) SUMA_calloc( numNodes_2, sizeof(float) );
    if (!justX_2 ) {
       fprintf (SUMA_STDERR,
@@ -2662,7 +2671,7 @@ float* SUMA_readColor (int numNodes, char* colFileNm) {
       exit(1);
    }
    else {
-      fgets( line, 1000, colFile);
+      char * ret = fgets( line, 1000, colFile);
       while( !feof(colFile) ) {
 
          j = 3*index;
@@ -2696,7 +2705,7 @@ float* SUMA_readColor (int numNodes, char* colFileNm) {
          SUMA_free(temp);
          temp = SUMA_calloc( 10000, sizeof(char));
       
-         fgets( line, 10000, colFile ); 
+         ret = fgets( line, 10000, colFile ); 
          ++index;
       }
    }
@@ -3044,9 +3053,9 @@ void SUMA_read1D (char* fileNm, int* i_colm, int* i_locInfo, SUMA_1dData* data) 
    else {
       
       /**skip through comments*/
-      fgets( line, 1000, file);
+      char * ret = fgets( line, 1000, file);
       while( line[0]=='#' ) {
-         fgets( line, 10000, file);
+         ret = fgets( line, 10000, file);
       }
       
       /**read remaining values*/
@@ -3098,7 +3107,7 @@ void SUMA_read1D (char* fileNm, int* i_colm, int* i_locInfo, SUMA_1dData* data) 
             else valArray[ (valCnt++)*lgth + num_node ] = tempFlt;     // value
             i_last = i_colmSrtd[k];
          }
-         fgets( line, 10000, file);
+         char * ret = fgets( line, 10000, file);
          ++num_node;
       }  
       fclose(file);

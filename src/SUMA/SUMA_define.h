@@ -1094,6 +1094,9 @@ typedef struct {
    char *originalCMapName;
    double IntRange[2];
    SUMA_Boolean AlphaOpacityFalloff; /*!<  Variable opacity for sub-threshold colors */
+   int alphaOpacityModel;   // Model used for the opacity falloff from the alpha threshold
+   int BoxOutlineThresh;
+   SUMA_Boolean makeContours;
 } SUMA_OVERLAYS;
 
 
@@ -1772,8 +1775,8 @@ typedef struct {
    Widget AlphaOpacityFalloff_tb; /*!< alpha threshold */
    Widget BoxOutlineThresh_tb; /*!< box outline threshold */
    // int AlphaOpacityFalloff;
-   int alphaOpacityModel;   // Model used for the opacity falloff from the alpha threshold
-   int BoxOutlineThresh;
+//   int alphaOpacityModel;   // Model used for the opacity falloff from the alpha threshold
+//   int BoxOutlineThresh;
 }SUMA_X_SurfCont;
 
 typedef struct {
@@ -3253,6 +3256,9 @@ typedef struct {
 
    SUMA_DRAW_MASKS *DW; /*!< A structure containing node masking information
                              for on the fly masking */
+//   float *box_mask;       /* - byte mask of length nnodes */
+//   int box_mask_size;   /* should match nnodes, once first applied */
+//   SUMA_Boolean box_mask_apply;  /* toggle: is box on*/
 } SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
                      \sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c
