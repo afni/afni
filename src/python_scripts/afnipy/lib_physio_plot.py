@@ -22,7 +22,7 @@ MAT_VER   = mpl.__version__          # have some mpl ver dependence---sigh
 
 # =========================================================================
 
-class RetroPlobj:
+class PcalcPlobj:
     """An object for holding one time series or set of points for
 plotting.
 
@@ -164,7 +164,7 @@ plotting.
         """The len of the 'bot interval band' list."""
         return len(self.xw_ibandB)
 
-class RetroFig:
+class PcalcFig:
     """An object for holding 1 or more fig objects, and then for plotting
 them.
 
@@ -521,9 +521,9 @@ them.
                 self.list_plobj[ii].mec = self.list_plobj[ii].color
 
         if len(self.figsize) == 0 :
-            self.figsize_use = (7, 1.0+self.n_subplots_per_fig*1.0)
+            self.figsize_use = (14, 1.0+self.n_subplots_per_fig*1.0)
             # for plot of 'remainder' lines, if applicable
-            self.figsize_rem = (7, 0.5+self.n_subplots_per_fig_rem*1.0)
+            self.figsize_rem = (14, 0.5+self.n_subplots_per_fig_rem*1.0)
         else:
             self.figsize_use = copy.deepcopy(self.figsize)
             # for plot of 'remainder' lines, if applicable
@@ -826,10 +826,10 @@ them.
         else:
             return [], []
 
-def makefig_phobj_peaks_troughs(phobj, peaks=[], troughs=[],
+def makefig_tsobj_peaks_troughs(tsobj, peaks=[], troughs=[],
                                 phases = [],
-                                upper_env=[], lower_env=[], rvt=[],
-                                title='', fname='', retobj=None,
+                                upper_env=[], lower_env=[], rvt=[], hr=[],
+                                title='', fname='', pcobj=None,
                                 add_ibandT = False, add_ibandB = False,
                                 do_graypatch_bnds = True,
                                 img_axhline = 'MEDIAN',
@@ -842,12 +842,12 @@ def makefig_phobj_peaks_troughs(phobj, peaks=[], troughs=[],
 idea is to keep the plotting as uniform as possible.
 
 If do_show and do_interact are True, the user can interactively update
-peak/trough coord positions.  These changes will be put into the phobj
+peak/trough coord positions.  These changes will be put into the tsobj
 directly here.
 
 Parameters
 ----------
-phobj : phys_ts_obj
+tsobj : ts_obj
     object with physio time series information
 peaks : list
     (opt) 1D list of peak values to include in plot
@@ -857,18 +857,21 @@ phases : np.ndarray
     (opt) 1D array of phase values to include in plot
 upper_env : np.ndarray
     (opt) 1D array of upper envelope values to include in plot; has
-    same number of time points as the phobj.ts_orig
+    same number of time points as the tsobj.ts_orig
 lower_env : np.ndarray
     (opt) 1D array of lower envelope values to include in plot; has
-    same number of time points as the phobj.ts_orig
+    same number of time points as the tsobj.ts_orig
 rvt : np.ndarray
     (opt) 1D array of RVT values to include in plot; has
-    same number of time points as the phobj.ts_orig
+    same number of time points as the tsobj.ts_orig
+hr : np.ndarray
+    (opt) 1D array of HR values to include in plot; has
+    same number of time points as the tsobj.list_slice_sel_volbase (EPI ts)
 title : str
     string to include as title for the plot
 fname : str
     output file name, which can include path
-retobj : retro_obj
+pcobj : pcalc_obj
     object that contains larger settings information, like fontsize
     and other fine-control things the user can pass along
 add_ibandT : bool
@@ -882,7 +885,7 @@ do_graypatch_bnds : bool
     the FMRI data; all times before 0s should then be gray, for example
 img_axhline : str or float
     plot a horizontal line in the plot; can be either a number, or a keyword
-    like 'MEDIAN', which will get median of phobj time series.
+    like 'MEDIAN', which will get median of tsobj time series.
 use_bp_ts : bool
     instead of using the ts_orig as the main curve on display, use the
     ts_orig_bp one, which has been bandpassed in one of the early
@@ -904,21 +907,21 @@ Returns
     if PY_VER > 2:  fig_ylabel = 'physio signal'
     else:           fig_ylabel = ''
 
-    # start figure, either with retobj options or more simply
-    if retobj :    
-        fff = RetroFig( figname        = fname,
+    # start figure, either with pcobj options or more simply
+    if pcobj :    
+        fff = PcalcFig( figname        = fname,
                         max_n_per_line = 5000,
                         title          = title,
-                        figsize        = retobj.img_figsize,
-                        fontsize       = retobj.img_fontsize,
-                        max_t_per_line = retobj.img_line_time,
-                        max_l_per_fig  = retobj.img_fig_line,
+                        figsize        = pcobj.img_figsize,
+                        fontsize       = pcobj.img_fontsize,
+                        max_t_per_line = pcobj.img_line_time,
+                        max_l_per_fig  = pcobj.img_fig_line,
                         ylabel         = fig_ylabel,
                         verb           = verb,
         )
     else: 
         # simple fig, all defaults
-        fff = RetroFig( figname        = fname,
+        fff = PcalcFig( figname        = fname,
                         max_n_per_line = 5000,
                         title          = title,
                         verb           = verb )
@@ -928,31 +931,31 @@ Returns
     else:               ts_alpha = 1.0
 
     # can plot lower density of points in lines
-    istep = phobj.img_arr_step
+    istep = tsobj.img_arr_step
 
     # put a horizontal line at the median of the plot
     if img_axhline == 'MEDIAN' :
-        img_axhline = phobj.stats_med_ts_orig
+        img_axhline = tsobj.stats_med_ts_orig
 
     # not copying time series, just making a convenient name whilst
     # plotting; using for switching between different options, too
     if use_bp_ts :
-        ts = phobj.ts_orig_bp
+        ts = tsobj.ts_orig_bp
     else:
-        ts = phobj.ts_orig
+        ts = tsobj.ts_orig
 
 
     # maybe add graypatches, demarcating where the physio time series
     # overlaps the FMRI dset run (white) and where it doesn't (gray)
     if do_graypatch_bnds :
-        A = phobj.tvalues[phobj.indices_vol[0]]
+        A = tsobj.tvalues[tsobj.indices_vol[0]]
         # use '-1' here because indices_vol is half-open interval: [...)
-        B = phobj.tvalues[phobj.indices_vol[1]-1] 
+        B = tsobj.tvalues[tsobj.indices_vol[1]-1] 
         fff.add_graypatch([None, A])
         fff.add_graypatch([B, None])
 
-    ret_plobj1 = RetroPlobj(phobj.tvalues[::istep], ts[::istep], 
-                            label=phobj.label,
+    ret_plobj1 = PcalcPlobj(tsobj.tvalues[::istep], ts[::istep], 
+                            label=tsobj.label,
                             alpha=ts_alpha,
                             color='0.5',
                             img_axhline =img_axhline)
@@ -966,7 +969,7 @@ Returns
 
     # add peaks (maybe)
     if len(peaks) :
-        ret_plobj2 = RetroPlobj(phobj.tvalues[peaks],
+        ret_plobj2 = PcalcPlobj(tsobj.tvalues[peaks],
                                 ts[peaks],
                                 label='peaks', 
                                 ls='None', marker=7, 
@@ -977,7 +980,7 @@ Returns
         fff.add_plobj(ret_plobj2)
 
     if len(troughs) :
-        ret_plobj3 = RetroPlobj(phobj.tvalues[troughs],
+        ret_plobj3 = PcalcPlobj(tsobj.tvalues[troughs],
                                 ts[troughs], 
                                 label='troughs',
                                 ls='None', marker=6, 
@@ -994,7 +997,7 @@ Returns
         mints = np.min(ts)
         diff  = maxts - mints
         scale_ph = (phases + np.pi)/(2.0*np.pi)*diff + mints
-        ret_plobj4 = RetroPlobj(phobj.tvalues[::istep], scale_ph[::istep], 
+        ret_plobj4 = PcalcPlobj(tsobj.tvalues[::istep], scale_ph[::istep], 
                                 label='phase (scaled)',
                                 alpha=1.0,
                                 lw=DEF_lw*1.5,
@@ -1003,22 +1006,22 @@ Returns
 
         if len(troughs): # proxy for 'resp'
             # Bonus for resp phases: vis guide line
-            ret_plobj4a = RetroPlobj(phobj.tvalues[::istep], 
-                                  np.ones(len(phobj.tvalues[::istep]))*maxts,
+            ret_plobj4a = PcalcPlobj(tsobj.tvalues[::istep], 
+                                  np.ones(len(tsobj.tvalues[::istep]))*maxts,
                                   #label='$\pm\pi$',
                                   alpha=0.5,
                                   lw=DEF_lw*0.5,
                                   color='green')
             fff.add_plobj(ret_plobj4a)
-            ret_plobj4b = RetroPlobj(phobj.tvalues[::istep], 
-                                  np.ones(len(phobj.tvalues[::istep]))*mints,
+            ret_plobj4b = PcalcPlobj(tsobj.tvalues[::istep], 
+                                  np.ones(len(tsobj.tvalues[::istep]))*mints,
                                   alpha=0.5,
                                   lw=DEF_lw*0.5,
                                   color='green')
             fff.add_plobj(ret_plobj4b)
 
     if len(upper_env) :
-        ret_plobj5 = RetroPlobj(phobj.tvalues[::istep], upper_env[::istep], 
+        ret_plobj5 = PcalcPlobj(tsobj.tvalues[::istep], upper_env[::istep], 
                                 label='upper env',
                                 alpha=1.0,
                                 lw=DEF_lw*2,
@@ -1026,7 +1029,7 @@ Returns
         fff.add_plobj(ret_plobj5)
 
     if len(lower_env) :
-        ret_plobj5 = RetroPlobj(phobj.tvalues[::istep], lower_env[::istep], 
+        ret_plobj5 = PcalcPlobj(tsobj.tvalues[::istep], lower_env[::istep], 
                                 label='lower env',
                                 alpha=1.0,
                                 lw=DEF_lw*2,
@@ -1039,15 +1042,35 @@ Returns
         maxrvt     = np.max(rvt)
         minrvt     = np.min(rvt)
         diff_rvt   = maxrvt - minrvt
-        mints = np.min(ts)
+        mints      = np.min(ts)
         diff_ts    = np.max(ts) - mints
-        scale_rvt  = (rvt - minrvt)/diff_rvt*diff_ts + mints
-        ret_plobj4 = RetroPlobj(phobj.tvalues[::istep], scale_rvt[::istep], 
-                                label='RVT (scaled)',
+        scl        = diff_ts / diff_rvt
+        scale_rvt  = (rvt - minrvt)*scl + mints
+        ret_plobj6 = PcalcPlobj(tsobj.tvalues[::istep], scale_rvt[::istep], 
+                                label='RVT (scaled: {:0.2e}; offset)'.format(scl),
                                 alpha=1.0,
                                 lw=DEF_lw*1.5,
                                 color='green')
-        fff.add_plobj(ret_plobj4)
+        fff.add_plobj(ret_plobj6)
+
+    # add hr (maybe)
+    if len(hr) :
+        all_idx    = tsobj.list_slice_sel_volbase  # indices of EPI TR locs
+        # scale hr for plotting
+        maxhr      = np.max(hr)
+        minhr      = np.min(hr)
+        diff_hr    = maxhr - minhr
+        mints      = np.min(ts)
+        diff_ts    = np.max(ts) - mints
+        scl        = diff_ts / diff_hr
+        scale_hr   = (hr - minhr)*scl + mints
+        ret_plobj7 = PcalcPlobj(tsobj.tvalues[all_idx], scale_hr, 
+                                label='ave HR (scaled: {:0.2e}; offset)'.format(scl),
+                                alpha=1.0,
+                                lw=DEF_lw*1.5,
+                                color='lightcoral')
+        fff.add_plobj(ret_plobj7)
+
 
     # run plot, possibly in interactive mode to get new peak/trough
     # xcoords (which would need to be translated to indices
@@ -1055,41 +1078,41 @@ Returns
                                                do_interact=do_interact,
                                                do_save=do_save)
 
-    # update phobj peak/trough lists, if possible
+    # update tsobj peak/trough lists, if possible
     if do_interact :
-        print("++ ({}) Update from interactive mode".format(phobj.label))
+        print("++ ({}) Update from interactive mode".format(tsobj.label))
         if len(new_peaks_x) :
             # convert to indices; the initial ratios should essentially be int
             tmp1 = np.round( (np.array(new_peaks_x) - 
-                              phobj.start_time)/phobj.samp_rate, 
+                              tsobj.start_time)/tsobj.samp_delt, 
                              decimals=0)
             # set conversion to remove any duplicates
             tmp2 = set(tmp1.astype(int))
             # ... and to count number of diffs from orig
-            all_orig = set(phobj.peaks)
+            all_orig = set(tsobj.peaks)
             diffA = tmp2.difference(all_orig)
             diffB = all_orig.difference(tmp2)
-            phobj.ndiff_inter_peaks = len(diffA) + len(diffB)
+            tsobj.ndiff_inter_peaks = len(diffA) + len(diffB)
             # listify and sort
             tmp3 = list(tmp2)
             tmp3.sort()
-            phobj.peaks = copy.deepcopy(tmp3)
+            tsobj.peaks = copy.deepcopy(tmp3)
         if len(new_troughs_x) :
             # convert to indices; the initial ratios should essentially be int
             tmp1 = np.round( (np.array(new_troughs_x) - 
-                              phobj.start_time)/phobj.samp_rate, 
+                              tsobj.start_time)/tsobj.samp_delt, 
                              decimals=0)
             # set conversion to remove any duplicates
             tmp2 = set(tmp1.astype(int))
             # ... and to count number of diffs from orig
-            all_orig = set(phobj.troughs)
+            all_orig = set(tsobj.troughs)
             diffA = tmp2.difference(all_orig)
             diffB = all_orig.difference(tmp2)
-            phobj.ndiff_inter_troughs = len(diffA) + len(diffB)
+            tsobj.ndiff_inter_troughs = len(diffA) + len(diffB)
             # listify and sort
             tmp3 = list(tmp2)
             tmp3.sort()
-            phobj.troughs = copy.deepcopy(tmp3)
+            tsobj.troughs = copy.deepcopy(tmp3)
 
 # --------------------------------------------------------------------------
 
@@ -1097,7 +1120,7 @@ def makefig_ft_bandpass_magn(X, Xfilt,
                              delta_f, idx_ny,
                              idx_freq_peak=None,
                              title='TITLE', fname='FNAME',
-                             label='', retobj=None,
+                             label='', pcobj=None,
                              verb=0):
     """
 Parameters
@@ -1123,7 +1146,7 @@ fname : str
     output file name, which can include path
 label : str
     label for the time series, like 'card' or 'resp'
-retobj : retro_obj
+pcobj : pcalc_obj
     object that contains larger settings information, like fontsize
     and other fine-control things the user can pass along
 
@@ -1133,8 +1156,8 @@ Returns
 
 """
 
-    if not(retobj) :
-        print("** ERROR: need retobj in this function (bandpass plot)")
+    if not(pcobj) :
+        print("** ERROR: need pcobj in this function (bandpass plot)")
         sys.exit(7)
 
     if not(fname) :
@@ -1147,7 +1170,7 @@ Returns
     N = len(X)
     # make abscissa, up to either specified max freq or to Nyquist
     fvalues = np.arange(idx_ny) * delta_f
-    max_f   = retobj.img_bp_max_f
+    max_f   = pcobj.img_bp_max_f
     max_idx = max(min(int(max_f / delta_f), idx_ny), 1)
     istep   = 1
 
@@ -1160,10 +1183,10 @@ Returns
             
 
     # start figure 
-    fff = RetroFig( figname        = fname,
+    fff = PcalcFig( figname        = fname,
                     title          = title,
-                    figsize        = retobj.img_figsize,
-                    fontsize       = retobj.img_fontsize,
+                    figsize        = pcobj.img_figsize,
+                    fontsize       = pcobj.img_fontsize,
                     max_t_per_line = max_f,
                     xlabel         = 'freq (Hz)',
                     ylabel         = fig_ylabel,
@@ -1172,7 +1195,7 @@ Returns
     )
 
     # add unfiltered magnitude
-    ret_plobj1 = RetroPlobj(fvalues[:max_idx:istep], 
+    ret_plobj1 = PcalcPlobj(fvalues[:max_idx:istep], 
                             np.abs(X[:max_idx:istep]), 
                             label='unfilt',
                             alpha=1,
@@ -1180,7 +1203,7 @@ Returns
     fff.add_plobj(ret_plobj1)
 
     # add bandpassed magnitude
-    ret_plobj2 = RetroPlobj(fvalues[:max_idx:istep], 
+    ret_plobj2 = PcalcPlobj(fvalues[:max_idx:istep], 
                             np.abs(Xfilt[:max_idx:istep]), 
                             label='bandpassed',
                             alpha=1,
@@ -1193,7 +1216,7 @@ Returns
 # ---------------------------------------------------------------------------
 # dump a temp text file and plot RVT regressors, if being used
 
-def plot_regressors_rvt(retobj, label, ext='svg'):
+def plot_regressors_rvt(pcobj, label, ext='svg'):
     """
 
 
@@ -1203,22 +1226,24 @@ def plot_regressors_rvt(retobj, label, ext='svg'):
     # the specific card/resp/etc. obj we use here (NB: not copying
     # obj, just dual-labelling for simplifying function calls while
     # still updating peaks info, at end)
-    phobj  = retobj.data[label]
-    odir   = retobj.out_dir
-    prefix = retobj.prefix
-    nvol   = retobj.vol_nv
-    verb   = retobj.verb
-    nrvt   = phobj.n_regress_rvt
+    tsobj  = pcobj.data[label]
+    odir   = pcobj.out_dir
+    imdir  = pcobj.images_dir
+    prefix = pcobj.prefix
+    nvol   = pcobj.vol_nv
+    verb   = pcobj.verb
+    nrvt   = tsobj.n_regress_rvt
     
     # make the filename (final image)
-    fname = 'regressors_rvt_' + label + '.{}'.format(ext)
-    if prefix  :  fname = prefix + '_' + fname
-    if odir :     fname = odir + '/' + fname
+    infix = 'the_regressors_rvt'
+    fname = '{}_{}.{}'.format(infix, label, ext)
+    if prefix :  fname = prefix + '_' + fname
+    if imdir :   fname = imdir + '/' + fname
 
     # make the data file (temporary file)
-    ftmp = '__tmp' + label + '_rvt_regressors.dat'
-    if prefix  :  ftmp = prefix + '_' + ftmp
-    if odir :     ftmp = odir + '/' + ftmp
+    ftmp = '__tmp_{}_{}.dat'.format(infix, label)
+    if prefix :  ftmp = prefix + '_' + ftmp
+    if imdir :   ftmp = imdir + '/' + ftmp
 
     title = 'Process {} data: RVT regressors'.format(label)
 
@@ -1229,11 +1254,11 @@ def plot_regressors_rvt(retobj, label, ext='svg'):
 
     # process any/all RVT regressors
     for ii in range(nrvt):
-        key  = phobj.regress_rvt_keys[ii]
-        ylab = key + '\\n' + '$\\Delta={}$'.format(retobj.rvt_shift_list[ii])
+        key  = tsobj.regress_rvt_keys[ii]
+        ylab = key + '\\n' + '$\\Delta={}$'.format(pcobj.rvt_shift_list[ii])
 
         data_lab[ii] = ylab
-        data_arr[:,ii] = phobj.regress_dict_rvt[key]
+        data_arr[:,ii] = tsobj.regress_dict_rvt[key]
 
     # --------------------- write tmp data file ---------------------
 
@@ -1279,69 +1304,50 @@ def plot_regressors_rvt(retobj, label, ext='svg'):
     return 0
 
 # ---------------------------------------------------------------------------
-# dump a temp text file and plot phys regressors, if being used
 
-def plot_regressors_phys(retobj, ext='svg'):
+def plot_regressors_rvtrrf(pcobj, label, ext='svg'):
     """
 
 
 """
 
+
     # the specific card/resp/etc. obj we use here (NB: not copying
     # obj, just dual-labelling for simplifying function calls while
     # still updating peaks info, at end)
-    odir   = retobj.out_dir
-    prefix = retobj.prefix
-    nvol   = retobj.vol_nv
-    verb   = retobj.verb
+    tsobj  = pcobj.data[label]
+    odir   = pcobj.out_dir
+    imdir  = pcobj.images_dir
+    prefix = pcobj.prefix
+    nvol   = pcobj.vol_nv
+    verb   = pcobj.verb
+    nnn    = tsobj.n_regress_rvtrrf
     
     # make the filename (final image)
-    fname = 'regressors_phys.{}'.format(ext)
-    if prefix  :  fname = prefix + '_' + fname
-    if odir :     fname = odir + '/' + fname
+    infix = 'the_regressors_rvtrrf'
+    fname = '{}_{}.{}'.format(infix, label, ext)
+    if prefix :  fname = prefix + '_' + fname
+    if imdir :   fname = imdir + '/' + fname
 
     # make the data file (temporary file)
-    ftmp = '__tmp__' + 'regressors_phys.dat'
-    if prefix  :  ftmp = prefix + '_' + ftmp
-    if odir :     ftmp = odir + '/' + ftmp
+    ftmp = '__tmp_{}_{}.dat'.format(infix, label)
+    if prefix :  ftmp = prefix + '_' + ftmp
+    if imdir :   ftmp = imdir + '/' + ftmp
 
-    # make ylabels and title; NB: here and below, we focus on slice 0
-    idx_sli   = 0  
-    all_label = [lab for lab in list(retobj.data.keys()) \
-                 if retobj.data[lab] != None ]
-    nlabel = len(all_label)
-    lll    = ', '.join(all_label)
-    title  = 'Process ({}) data: '.format(lll)
-    title += 'physio regressors, slice {}'.format(idx_sli)
-
-    # build up count of number of regressors
-    nreg   = 0
-    for hh in range(nlabel):
-        label = all_label[hh]
-        phobj = retobj.data[label]        # simplify coding below
-        nreg += phobj.n_regress_rvt
-        nreg += phobj.n_regress_phys
+    title = 'Process {} data: RVTRRF regressors'.format(label)
 
     # put data+labels into simple forms for writing; initialize objs
-    data_shape = (nvol, nreg)
+    data_shape = (nvol, nnn)
     data_arr   = np.zeros(data_shape, dtype=float)
-    data_lab   = ['LABEL'] * nreg
+    data_lab   = ['LABEL'] * nnn
 
-    # -------------------- get regressors for [0] slice -------------------
+    # process any/all RVTRRF regressors
+    for ii in range(nnn):
+        key  = tsobj.regress_rvtrrf_keys[ii]
+        ylab = key 
 
-    idx_sli = 0  
-    # count number of regressors per slice, as added
-    cc = 0 
-    for hh in range(nlabel):
-        label = all_label[hh]
-        phobj = retobj.data[label]        # simplify coding below
-        # process any/all phys regressors
-        for ii in range(phobj.n_regress_phys):
-            keyA = phobj.regress_rvt_phys[ii]
-            keyB = phobj.regress_dict_phys[keyA][idx_sli][0]
-            data_lab[cc]   = keyB.split('.')[-1] + '\\n' + keyA
-            data_arr[:,cc] = phobj.regress_dict_phys[keyA][idx_sli][1]
-            cc+= 1
+        data_lab[ii] = ylab
+        data_arr[:,ii] = tsobj.regress_dict_rvtrrf[key]
 
     # --------------------- write tmp data file ---------------------
 
@@ -1355,7 +1361,7 @@ def plot_regressors_phys(retobj, ext='svg'):
     # le fin: close and finish
     fff.close()
 
-    # --------------------- make image of rvt data -----------------------
+    # --------------------- make image of the data -----------------------
 
     par_dict = {
         'ftmp'    : ftmp,
@@ -1381,7 +1387,217 @@ def plot_regressors_phys(retobj, ext='svg'):
     com    = BASE.shell_com(cmd, capture=1)
     stat   = com.run()
 
-    print("++ Made plot of {}-based RVT regressors: {}".format(label, fname))
+    print("++ Made plot of {}-based RVTRRF regressors: {}".format(label, fname))
+
+
+    return 0
+
+
+
+def plot_regressors_hrcrf(pcobj, label, ext='svg'):
+    """
+
+
+"""
+
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    tsobj  = pcobj.data[label]
+    odir   = pcobj.out_dir
+    imdir  = pcobj.images_dir
+    prefix = pcobj.prefix
+    nvol   = pcobj.vol_nv
+    verb   = pcobj.verb
+    nnn    = tsobj.n_regress_hrcrf
+    
+    # make the filename (final image)
+    infix = 'the_regressors_hrcrf'
+    fname = '{}_{}.{}'.format(infix, label, ext)
+    if prefix  :  fname = prefix + '_' + fname
+    if imdir :    fname = imdir + '/' + fname
+
+    # make the data file (temporary file)
+    ftmp = '__tmp_{}_{}'.format(infix, label)
+    if prefix  :  ftmp = prefix + '_' + ftmp
+    if imdir :    ftmp = imdir + '/' + ftmp
+
+    title = 'Process {} data: HRCRF regressors'.format(label)
+
+    # put data+labels into simple forms for writing; initialize objs
+    data_shape = (nvol, nnn)
+    data_arr   = np.zeros(data_shape, dtype=float)
+    data_lab   = ['LABEL'] * nnn
+
+    # process any/all HRCRF regressors
+    for ii in range(nnn):
+        key  = tsobj.regress_hrcrf_keys[ii]
+        ylab = key 
+
+        data_lab[ii] = ylab
+        data_arr[:,ii] = tsobj.regress_dict_hrcrf[key]
+
+    # --------------------- write tmp data file ---------------------
+
+    # open the file and write the header/start
+    fff = open(ftmp, 'w')
+    # write data
+    for ii in range(data_shape[0]):
+        for jj in range(data_shape[1]):
+            fff.write(" {:6.4f} ".format(data_arr[ii,jj]))
+        fff.write('\n')
+    # le fin: close and finish
+    fff.close()
+
+    # --------------------- make image of the data -----------------------
+
+    par_dict = {
+        'ftmp'    : ftmp,
+        'fname'   : fname,
+        'title'   : title,
+        'all_lab' : ' '.join(['\''+lab+'\'' for lab in data_lab])
+    }
+
+    cmd = '''
+    1dplot.py                                                            \
+        -reverse_order                                                   \
+        -infiles        {ftmp}                                           \
+        -ylabels        {all_lab}                                        \
+        -xlabel         "vol index"                                      \
+        -title          "{title}"                                        \
+        -prefix         "{fname}"
+    '''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    # --------------- clean up tmp file
+    cmd    = '''\\rm {ftmp}'''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    print("++ Made plot of {}-based HRCRF regressors: {}".format(label, fname))
+
+
+    return 0
+
+
+
+# ---------------------------------------------------------------------------
+# dump a temp text file and plot phys regressors, if being used
+
+def plot_regressors_retro(pcobj, ext='svg'):
+    """
+
+
+"""
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    odir   = pcobj.out_dir
+    imdir  = pcobj.images_dir
+    prefix = pcobj.prefix
+    nvol   = pcobj.vol_nv
+    verb   = pcobj.verb
+    
+    # make the filename (final image)
+    infix = 'the_regressors_retro'
+    fname = '{}.{}'.format(infix, ext)
+    if prefix :  
+        fname = prefix + '_' + fname
+    fname = imdir + '/' + fname
+
+    # make the data file (temporary file)
+    ftmp = '__tmp__{}.dat'.format(infix)
+    if prefix :
+        ftmp = prefix + '_' + ftmp
+    ftmp = imdir + '/' + ftmp
+
+    # make ylabels and title; NB: here and below, we focus on slice 0
+    idx_sli   = 0  
+    all_label = [lab for lab in list(pcobj.data.keys()) \
+                 if pcobj.data[lab] != None ]
+    nlabel = len(all_label)
+    lll    = ', '.join(all_label)
+    title  = 'Process ({}) data: '.format(lll)
+    title += 'physio regressors, slice {}'.format(idx_sli)
+
+    # build up count of number of regressors
+    nreg   = 0
+    for hh in range(nlabel):
+        label = all_label[hh]
+        tsobj = pcobj.data[label]        # simplify coding below
+        nreg += tsobj.n_regress_rvt
+        nreg += tsobj.n_regress_retro
+
+    if nreg == 0 :
+        if verb :
+            print("++ No phys-based retro regressors to plot")
+        return 0
+
+    # put data+labels into simple forms for writing; initialize objs
+    data_shape = (nvol, nreg)
+    data_arr   = np.zeros(data_shape, dtype=float)
+    data_lab   = ['LABEL'] * nreg
+
+    # -------------------- get regressors for [0] slice -------------------
+
+    idx_sli = 0  
+    # count number of regressors per slice, as added
+    cc = 0 
+    for hh in range(nlabel):
+        label = all_label[hh]
+        tsobj = pcobj.data[label]        # simplify coding below
+        # process any/all phys regressors
+        for ii in range(tsobj.n_regress_retro):
+            keyA = tsobj.regress_retro_keys[ii]
+            keyB = tsobj.regress_dict_retro[keyA][idx_sli][0]
+            data_lab[cc]   = keyB.split('.')[-1] + '\\n' + keyA
+            data_arr[:,cc] = tsobj.regress_dict_retro[keyA][idx_sli][1]
+            cc+= 1
+
+    # --------------------- write tmp data file ---------------------
+
+    # open the file and write the header/start
+    fff = open(ftmp, 'w')
+
+    # write data
+    for ii in range(data_shape[0]):
+        for jj in range(data_shape[1]):
+            fff.write(" {:6.4f} ".format(data_arr[ii,jj]))
+        fff.write('\n')
+
+    # le fin: close and finish
+    fff.close()
+
+    # ------------------ make image of phys/retro data -------------------
+
+    par_dict = {
+        'ftmp'    : ftmp,
+        'fname'   : fname,
+        'title'   : title,
+        'all_lab' : ' '.join(['\''+lab+'\'' for lab in data_lab])
+    }
+
+    cmd = '''
+    1dplot.py                                                            \
+        -reverse_order                                                   \
+        -infiles        {ftmp}                                           \
+        -ylabels        {all_lab}                                        \
+        -xlabel         "vol index"                                      \
+        -title          "{title}"                                        \
+        -prefix         "{fname}"
+    '''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    # --------------- clean up tmp file
+    cmd    = '''\\rm {ftmp}'''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    print("++ Made plot of {}-based retro regressors: {}".format(label, fname))
 
 
     return 0
@@ -1399,10 +1615,10 @@ if __name__ == "__main__" :
     d = np.random.random(2000)
     c = np.arange(len(d))/2.
 
-    ret_plobj1 = RetroPlobj(a,b, label='line1')
-    ret_plobj2 = RetroPlobj(c,d, ls='None', marker='o', label='dots2')
+    ret_plobj1 = PcalcPlobj(a,b, label='line1')
+    ret_plobj2 = PcalcPlobj(c,d, ls='None', marker='o', label='dots2')
 
-    fff = RetroFig(max_n_per_line=1000)
+    fff = PcalcFig(max_n_per_line=1000)
     fff.add_plobj(ret_plobj1)
     fff.add_plobj(ret_plobj2)
     fff.make_plot()
