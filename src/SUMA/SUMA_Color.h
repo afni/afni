@@ -238,5 +238,6 @@ SUMA_COLOR_MAP *SUMA_NICmapToCmap(NI_group *ngr);
 char *SUMA_RGB_to_hex(float *fv, char *here);
 int *boxThresholdOutline(SUMA_SurfaceObject *SO, int *numThresholdNodes);
 float *alphaOpacitiesForOverlay(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *overlay);
+int drawThresholdOutline(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *sv);
 
 #endif

@@ -1057,6 +1057,7 @@ int SUMA_period_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    /* do the work */
    switch (k) {
       case XK_period:
+          fprintf(stderr, "################################# Period\n");
          /* switch state, forward one */
          if (sv->N_VSv < 2) break;
 
@@ -1077,7 +1078,6 @@ int SUMA_period_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                SUMA_RETURN(0);
             }
          }
-
          do {
             if (LocalHead && nxtstateID > -1) {
                note = SUMA_append_string("Skipping state ",sv->State);
@@ -1114,6 +1114,7 @@ int SUMA_period_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
          } while (!SUMA_Selectable_ADOs(sv, SUMAg_DOv, NULL) &&
                    sv->iState != origState);
+
          /* register a call to redisplay
          (you also need to copy the color data, in case the next surface
           is of the same family)*/

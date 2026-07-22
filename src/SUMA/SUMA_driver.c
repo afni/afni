@@ -898,7 +898,7 @@ SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult,
    double dv;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
-
+   
    *Key_mult = 1;
    *Key_pause = 0.0;
    *Key_redis = 0;
