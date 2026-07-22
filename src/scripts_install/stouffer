@@ -7,19 +7,20 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo ""
    echo "                          Gang Chen "
    echo "                     gangchen@mail.nih.gov"
-   echo "                        March 31, 2025 "
+   echo "                        July 22, 2026 "
    echo "                      SSCC/NIMH/NIH/DHHS"
    echo ""
    echo "Usage: "
    echo ""
    echo "  stouffer -prefix output.file.name -input here.is.a.list.of.input.files"
    echo ""
-   echo "Input files contain Z-statistic values, typically derived from multiple "
-   echo "studies. T-statistic values may also be used if the degrees of freedom "
-   echo "are sufficiently large (e.g., ≥30); otherwise, they should first be "
-   echo "converted to Z-statistics. The output is a Z-statistic reflecting the "
-   echo "pooled evidence across studies. The sample sizes for the individual"
-   echo "studies are assumed to roughly equal."
+   echo "The progam is intended to perform meta-analysis using the Stouffer"
+   echo "method. Input files contain Z-statistic values, typically derived from"
+   echo "multiple studies. They can be in NIfTI or AFNI-tlrc format. T-statistic"
+   echo "values may also be used if the degrees of freedom are sufficiently large"
+   echo "(e.g., ≥30); otherwise, they should first be converted to Z-statistics."
+   echo "The output is a Z-statistic reflecting the pooled evidence across studies."
+   echo "The sample sizes for the individual studies are assumed to roughly equal."
    echo ""
    goto END
 endif
@@ -74,7 +75,9 @@ if ( "$prefix" == "" || $#inputs == 0 ) then
 endif
 
 # Create temporary mean image
-3dMean -prefix ZYXtmp $inputs
+set tmp = "./ZYXtmp_stouffer_$$.nii.gz"
+
+3dMean -prefix "$tmp" $inputs
 if ( $status != 0 ) then
     echo "Error: 3dMean failed. Check input files or AFNI installation."
     exit 1
@@ -84,9 +87,10 @@ endif
 set N = $#inputs
 
 # Compute Stouffer's Z-score
-3dcalc -a ZYXtmp+tlrc -expr "a*sqrt($N)" -prefix ${prefix}
+3dcalc -a "$tmp" -expr "a*sqrt($N)" -prefix "${prefix}"
 if ( $status != 0 ) then
     echo "Error: 3dcalc failed."
+    rm -f "$tmp"
     exit 1
 endif
 
@@ -97,12 +101,7 @@ else
     3drefit -sublabel 0 'stouffer-Z' -substatpar 0 fizt ${prefix}
 endif
 
-# Clean up temporary files (safe with nonomatch)
-if ( -e ZYXtmp+tlrc.HEAD ) then
-    rm ZYXtmp+tlrc*
-else
-    rm ZYXtmp
-endif
-
+# Clean up
+rm -f "$tmp"
 
 END:
