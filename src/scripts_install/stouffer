@@ -14,7 +14,7 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo ""
    echo "  stouffer -prefix output.file.name -input here.is.a.list.of.input.files"
    echo ""
-   echo "The progam is intended to perform meta-analysis using the Stouffer"
+   echo "The program is intended to perform meta-analysis using the Stouffer"
    echo "method. Input files contain Z-statistic values, typically derived from"
    echo "multiple studies. They can be in NIfTI or AFNI-tlrc format. T-statistic"
    echo "values may also be used if the degrees of freedom are sufficiently large"
