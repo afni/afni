@@ -6452,8 +6452,6 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
-   fprintf(stderr, "$$$$$$$$$$$$$$$$$$$$$$$$$$$ SUMA_Boolean SUMA_SwitchState\n");
 
    XYZ = NULL;
    XYZmap = NULL;
@@ -6709,9 +6707,8 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    /* set the focus ID to the first surface/object in the next view */
    // NB.  This appears to be the part that is implicated in box outline being
    //   confined to only one view if view changed by DriveSuma
-   fprintf(stderr, "sv->Focus_DO_ID = %d\n", sv->Focus_DO_ID);
-   fprintf(stderr, "MembSOs[0] = %d\n", MembSOs[0]);
-   // DEBUG sv->Focus_DO_ID = MembSOs[0];
+/* rcr - revisit */
+   // sv->Focus_DO_ID = MembSOs[0];
 
    SUMA_ifree(MembSOs);
 
@@ -6780,7 +6777,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    if (!SUMA_Engine (&list)) {
       fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
    }
-// #endif
+
    SUMA_RETURN (YUP);
 }
 

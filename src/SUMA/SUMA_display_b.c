@@ -3697,7 +3697,8 @@ SUMA_Boolean SUMA_Set_ADO_RenderMode(SUMA_ALL_DO *ado, int i, int delta,
 {
    static char FuncName[]={"SUMA_Set_ADO_RenderMode"};
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead=NOPE;
+   SUMA_SurfaceObject *SO=NULL;
    
    SUMA_ENTRY;
    
@@ -3706,7 +3707,7 @@ SUMA_Boolean SUMA_Set_ADO_RenderMode(SUMA_ALL_DO *ado, int i, int delta,
    
    switch (ado->do_type) {
       case SO_type: {
-         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+         SO = (SUMA_SurfaceObject *)ado;
          if (delta) {
             if (SO->PolyMode == SRM_ViewerDefault) {
                /* ambiguous case, start at i */
@@ -3723,8 +3724,9 @@ SUMA_Boolean SUMA_Set_ADO_RenderMode(SUMA_ALL_DO *ado, int i, int delta,
          SO->PolyMode = (i % SRM_N_RenderModes);
          if (SO->PolyMode <= SRM_ViewerDefault) SO->PolyMode = SRM_Fill; 
          if (SurfCont && SurfCont->RenderModeMenu) { /* also set widgets */
-             SUMA_Set_Menu_Widget( SurfCont->RenderModeMenu, 
+            SUMA_Set_Menu_Widget( SurfCont->RenderModeMenu, 
                         SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
+            SUMA_SET_GL_RENDER_MODE(SO->PolyMode);
          }
          break; }
       case VO_type: {
@@ -3738,7 +3740,7 @@ SUMA_Boolean SUMA_Set_ADO_RenderMode(SUMA_ALL_DO *ado, int i, int delta,
          SUMA_S_Err("Not ready for %s (%s)", ADO_LABEL(ado), ADO_TNAME(ado));
          break;
    }
-   
+
    SUMA_RETURN(YUP);
 }
 

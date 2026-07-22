@@ -2483,15 +2483,35 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                if (SO->Show && SO->PolyMode != SRM_Hide) {
                   if (  (SO->Side == SUMA_LEFT && csv->ShowLeft) ||
                         (SO->Side == SUMA_RIGHT && csv->ShowRight) ||
-                        SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_LR) {
-                        if (SUMAg_CF->Dev &&
-                            (SUMA_EnvVal("SUMA_TEMP_NODE_CMASK_EXPR"))) {
-                           /* Secret option, for testing only, search for
+                        SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_LR)
+                  {
+                     /* --- HIGH LEVEL PASS INTERCEPT --- */
+                     int saved_sv_polymode = csv->PolyMode;
+
+                     if (csv->PolyMode == SRM_Line) {
+                        /* 1. fake lines so contour routines compute faces */
+                        csv->PolyMode = SRM_Fill;
+                        /* 2. force rendering the mesh as a wireframe */
+                        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                     }
+
+                     if (SUMAg_CF->Dev &&
+                         (SUMA_EnvVal("SUMA_TEMP_NODE_CMASK_EXPR"))) {
+                        /* Secret option, for testing only, search for
                            env above for example */
-                           SUMA_DrawMesh_mask(SO, csv); /* create the surface */
-                        } else {
-                           SUMA_DrawMesh(SO, csv); /* create the surface */
-                        }
+                        SUMA_DrawMesh_mask(SO, csv); /* create the surface */
+                     } else {
+                        SUMA_DrawMesh(SO, csv); /* create the surface */
+                     }
+
+                     /* --- RESTORE STATE FOR SUBSEQUENT RENDERING --- */
+                     if (saved_sv_polymode == SRM_Line) {
+                        /* restore OpenGL state to Fill so overlays/contours
+                           can render solidly */
+                        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                        /* restore the true viewer mode variable */
+                        csv->PolyMode = saved_sv_polymode;
+                     }
                   }
                }
                break;
@@ -5021,7 +5041,6 @@ void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont
    sv->ResetGLStateVariables = YUP;
 
    SUMA_postRedisplay(w, clientData, NULL);
-
 
    SUMA_RETURNe;
 }
@@ -14526,6 +14545,8 @@ SUMA_Boolean SUMA_Set_Menu_Widget(SUMA_MENU_WIDGET *men, int i)
          SUMA_RETURN(NOPE); */
          SUMA_RETURN(YUP);
       }
+      
+      /* This doesn't do anything for SRM_Hide */
       XtVaSetValues(  men->mw[0], XmNmenuHistory ,  men->mw[i], NULL);
    }
 
@@ -18686,7 +18707,10 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data,
    DListElmt *Elmnt = NULL;
    SUMA_EngineData *ED = NULL;
    SUMA_MenuCallBackData *datap=NULL;
-   SUMA_SurfaceObject *SO = NULL;
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_SurfaceViewer *sv=NULL;
    int imenu = 0;
 
    SUMA_ENTRY;
@@ -18717,6 +18741,14 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data,
          break;
    }
 
+   /* rcr evaluate - test code to make menu change work */
+   SUMA_SET_GL_RENDER_MODE(imenu);
+   SO->PolyMode = imenu;
+   ado = (SUMA_ALL_DO *)SO;
+   if (ado) sv = SUMA_BestViewerForADO(ado);
+   else fprintf(stderr, "%s Error: No ado\n", FuncName);
+   if (sv) sv->PolyMode = SO->PolyMode;
+   else fprintf(stderr, "%s Error: No sv\n", FuncName);
 
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
@@ -18742,6 +18774,10 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data,
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Engine.\n", FuncName);
       SUMA_RETURNe;
    }
+   
+   /* rcr evaluate - Draw threshold outlines */
+   curColPlane = SO->SurfCont->curColPlane;
+   if (curColPlane->BoxOutlineThresh && sv) drawThresholdOutline(SO, sv);
 
    SUMA_RETURNe;
 }
