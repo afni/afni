@@ -87,6 +87,7 @@ foreach(
   3dRowFillin
   3dSetupGroupInCorr
   3dSharpen
+  3dShuffle
   3dSpatNorm
   3dStatClust
   3dSynthesize
