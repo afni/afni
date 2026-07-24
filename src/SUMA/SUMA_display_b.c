@@ -142,8 +142,8 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
          /* Kill the scroller from hell otherwise no keyboard input
             gets to the baby widgets. Better write my own scroller
             if need be in the future */
-         scroller = XtNameToWidget (SUMAg_CF->X->SC_Notebook, "PageScroller");
-         XtUnmanageChild (scroller);
+            scroller = XtNameToWidget(SUMAg_CF->X->SC_Notebook, "PageScroller");
+            XtUnmanageChild (scroller);
       }
    }
    
@@ -163,7 +163,7 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
       Arg args[20];
       /* add the page */
       XtSetArg (args[0], XmNnotebookChildType, XmPAGE);
-      SurfCont->Page = 
+      SurfCont->Page =
          XmCreateRowColumn (SUMAg_CF->X->SC_Notebook,
                      SUMA_ADO_Label(ado)?SUMA_ADO_Label(ado):"page",
                                               args, 1);
@@ -1906,7 +1906,9 @@ SUMA_Boolean SUMA_ModifyTable(SUMA_TABLE_FIELD *TF, int Nrows)
                         cd ,   /* client data */
                         XtListTail ) ; 
                   }
-                  snprintf(wname, 63, "%s.r%02d", TF->wname, i);
+                  // snprintf(wname, 63, "%s.r%02d", TF->wname, i);
+                  snprintf(wname, sizeof(wname),
+                     "%.*s.r%02d", (int)(sizeof(wname) - 6), TF->wname, i);
                   SUMA_Register_Widget_Help(TF->cells[n], 1, wname, 
                                             row_hint?row_hint[i]:NULL, 
                                             row_help?row_help[i]:NULL ) ;
@@ -1982,7 +1984,8 @@ SUMA_Boolean SUMA_ModifyTable(SUMA_TABLE_FIELD *TF, int Nrows)
                         cd ,   /* client data */
                         XtListTail ) ; 
                   }                 
-                  snprintf(wname, 63, "%s.c%02d", TF->wname, i);
+                  // snprintf(wname, 63, "%s.c%02d", TF->wname, i);
+                  snprintf(wname, sizeof(wname), "%.58s.c%02d", TF->wname, i);
                   SUMA_Register_Widget_Help(TF->cells[n], 1, wname, 
                                             col_hint?col_hint[j]:NULL, 
                                             col_help?col_help[j]:NULL ) ;
@@ -3412,8 +3415,10 @@ void SUMA_CreateVrFields(  Widget parent,
                            XmNfontList, SUMAg_CF->X->TableTextFontList, 
                                      NULL);
    if (hint || help) {
-      snprintf(wname,63,"%s->lab", VrF->wname);
-      SUMA_Register_Widget_Help(VrF->lab, 1, wname, hint, help);
+     // snprintf(wname,63,"%s->lab", VrF->wname);
+     snprintf(wname, sizeof(wname),
+        "%.*s->lab", (int)(sizeof(wname) - 6), VrF->wname);
+     SUMA_Register_Widget_Help(VrF->lab, 1, wname, hint, help);
    }
    
    if (VrF->N_slice_num < 0) {
@@ -3435,7 +3440,9 @@ void SUMA_CreateVrFields(  Widget parent,
                   SUMAg_CF->X->TableTextFontList, NULL);
 
    if (hint || help) {
-      snprintf(wname,63,"%s->Ns", VrF->wname);
+      // snprintf(wname,63,"%s->Ns", VrF->wname);
+      snprintf(wname, sizeof(wname),
+         "%.*s->Ns", (int)(sizeof(wname) - 5), VrF->wname);
       SUMA_Register_Widget_Help(VrF->text, 1, wname, hint, help);
    }
    XtVaSetValues(VrF->text, XmNcolumns, 3, NULL); 
@@ -3461,7 +3468,9 @@ void SUMA_CreateVrFields(  Widget parent,
    XtAddCallback (VrF->tb, 
          XmNvalueChangedCallback, SUMA_cb_ShowVrF_toggled, ado);
    if (hint || help) {
-      snprintf(wname,63,"%s->Ns->v", VrF->wname);
+      // snprintf(wname,63,"%s->Ns->v", VrF->wname);
+      snprintf(wname, sizeof(wname),
+         "%.*s->Ns->v", (int)(sizeof(wname) - 8), VrF->wname);
       SUMA_Register_Widget_Help(VrF->tb, 1, wname, 
                                 "View (ON)/Hide VrF", 
                                 SUMA_SurfContHelp_ShowVrFTgl);
@@ -3476,7 +3485,9 @@ void SUMA_CreateVrFields(  Widget parent,
    XtAddCallback (VrF->tbs, 
          XmNvalueChangedCallback, SUMA_cb_VrSelect_toggled, ado);
    if (hint || help) {
-      snprintf(wname,63,"%s->Ns->s", VrF->wname);
+      // snprintf(wname,63,"%s->Ns->s", VrF->wname);
+      snprintf(wname, sizeof(wname),
+         "%.*s->Ns->v", (int)(sizeof(wname) - 8), VrF->wname);
       SUMA_Register_Widget_Help(VrF->tbs, 1, wname, 
                                 "Allow voxel selection on rendered volume (ON)", 
                                 SUMA_SurfContHelp_VrSelectTgl);
@@ -3687,15 +3698,18 @@ SUMA_Boolean SUMA_Set_ADO_RenderMode(SUMA_ALL_DO *ado, int i, int delta,
    static char FuncName[]={"SUMA_Set_ADO_RenderMode"};
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL;
    
    SUMA_ENTRY;
    
    if (!ado) SUMA_RETURN(NOPE);
    if (update_widgets) SurfCont = SUMA_ADO_Cont(ado);
    
+   fprintf(stderr, "ado->do_type = %d\n", ado->do_type);
    switch (ado->do_type) {
       case SO_type: {
-         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+         // SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+         SO = (SUMA_SurfaceObject *)ado;
          if (delta) {
             if (SO->PolyMode == SRM_ViewerDefault) {
                /* ambiguous case, start at i */
@@ -3710,6 +3724,7 @@ SUMA_Boolean SUMA_Set_ADO_RenderMode(SUMA_ALL_DO *ado, int i, int delta,
             }
          }
          SO->PolyMode = (i % SRM_N_RenderModes);
+         fprintf(stderr, "SO->PolyMode = %d\n", SO->PolyMode);
          if (SO->PolyMode <= SRM_ViewerDefault) SO->PolyMode = SRM_Fill; 
          if (SurfCont && SurfCont->RenderModeMenu) { /* also set widgets */
              SUMA_Set_Menu_Widget( SurfCont->RenderModeMenu, 
@@ -3726,6 +3741,11 @@ SUMA_Boolean SUMA_Set_ADO_RenderMode(SUMA_ALL_DO *ado, int i, int delta,
       default: 
          SUMA_S_Err("Not ready for %s (%s)", ADO_LABEL(ado), ADO_TNAME(ado));
          break;
+   
+//      SUMA_OVERLAYS *curColPlane = SurfCont->curColPlane;
+//      fprintf(stderr, "********************* curColPlane->ShowMode = %d\n", curColPlane->ShowMode);
+//      SUMA_SurfaceViewer *SV = (SUMA_SurfaceViewer *)ado;
+//      if (curColPlane->BoxOutlineThresh) drawThresholdOutline(SO, SV);
    }
    
    SUMA_RETURN(YUP);
