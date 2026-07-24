@@ -3105,7 +3105,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
       /* setting SV->isMasked[i] means the node overlay is not shown */
       /* (if Alpha, nothing gets masked out here) */
-      fprintf(stderr, "Opt->ThrMode = %d\n", Opt->ThrMode);
       switch (Opt->ThrMode) {
          case SUMA_NO_THRESH:
             break;
@@ -3649,7 +3648,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
 
    /* Do we need to create contours */
    if (Opt->ColsContMode) {
-        fprintf(stderr, "(Opt->interpmode != SUMA_DIRECT) = %d\n", (Opt->interpmode != SUMA_DIRECT));
       if (Sover->BoxOutlineThresh && (Opt->interpmode != SUMA_DIRECT) ) {
          /* possible contours via Box outline */
          if (!SUMA_ContourateDsetOverlay_Box(nnodes, box_mask, Sover, SV)){
@@ -7507,7 +7505,6 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
    SUMA_ENTRY;
    
    el = dlist_head(SUMAg_CF->DsetList);
-   fprintf(stderr, "el = %p\n", el);
    while (el) {
       dd = (SUMA_DSET*)el->data;
       if (SUMA_isDsetRelated(dd,SO)) {
@@ -7519,13 +7516,14 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
                   SDSET_LABEL(dd));
                SUMA_RETURN(NOPE);
          }
+
          /* any contours? */
          if ( (colplane->ShowMode == SW_SurfCont_DsetViewCon ||
                colplane->ShowMode == SW_SurfCont_DsetViewCaC || 
                colplane->BoxOutlineThresh) &&
               colplane->Contours && colplane->N_Contours) {
+
             /* draw them */
-            fprintf(stderr, "colplane->N_Contours = %d\n", colplane->N_Contours);
             for (ic=0; ic<colplane->N_Contours; ++ic) {
                D_ROI = (SUMA_DRAWN_ROI *)colplane->Contours[ic];
                SUMA_LHv("Dset Contouring %d\n", ic);
@@ -7549,6 +7547,7 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
                                 SO->NodeList[id1cont+1],
                                 SO->NodeList[id1cont+2]);
                      i2last = D_ROI->CE[0].n1;
+
                      for (icont = 0; icont < D_ROI->N_CE; ++icont) {
                         id2cont = 3 * D_ROI->CE[icont].n2;
                         if (i2last != D_ROI->CE[icont].n1) {
@@ -8290,7 +8289,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
       }
    
    if (currentOverlay->BoxOutlineThresh /* && outlinevector */){
-        fprintf(stderr, "(drawThresholdOutline\n");
         drawThresholdOutline(SO, SV);
    }
 

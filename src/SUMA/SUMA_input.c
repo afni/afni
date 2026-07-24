@@ -1057,7 +1057,6 @@ int SUMA_period_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    /* do the work */
    switch (k) {
       case XK_period:
-          fprintf(stderr, "################################# Period\n");
          /* switch state, forward one */
          if (sv->N_VSv < 2) break;
 

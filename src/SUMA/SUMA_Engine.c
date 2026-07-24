@@ -6453,8 +6453,6 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "$$$$$$$$$$$$$$$$$$$$$$$$$$$ SUMA_Boolean SUMA_SwitchState\n");
-
    XYZ = NULL;
    XYZmap = NULL;
 

@@ -7,6 +7,7 @@ extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv;
 extern int SUMAg_N_DOv;
 
+
 /* This macro is used to decide if displayable objects on a node 'n' are to be
    drawn. For now, this condition is applied to certain objects only. T
    The NIDO functions do not call on this macro yet.
@@ -15188,15 +15189,13 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                   SDSET_LABEL(dd));
                SUMA_RETURN(NOPE);
          }
+
          /* any contours? */
-         // fprintf(stderr, "Any contours 1\n");
          if ( (colplane->ShowMode == SW_SurfCont_DsetViewCon ||
                colplane->ShowMode == SW_SurfCont_DsetViewCaC ||
                colplane->BoxOutlineThresh) && 
                  colplane == SUMA_ADO_CurColPlane((SUMA_ALL_DO *)SO)  && 
                  colplane->Contours && colplane->N_Contours) {
-                     
-                     // fprintf(stderr, "Any contours 2\n");
               
             /* draw them */
             for (ic=0; ic<colplane->N_Contours; ++ic) {

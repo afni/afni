@@ -5020,13 +5020,9 @@ void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont
       fprintf (SUMA_STDERR, "%s: in Surface Viewer #%d.\n", FuncName, isv);
    sv->ResetGLStateVariables = YUP;
    
-       SUMA_SurfaceObject *SO = SUMA_SV_Focus_SO(sv);
-   if (SO) sv->PolyMode = SO->PolyMode;
-       fprintf(stderr, "Before SUMA_postRedisplay, sv->PolyMode = %d\n", sv->PolyMode);
+   // SUMA_SurfaceObject *SO = SUMA_SV_Focus_SO(sv);
+   // if (SO) sv->PolyMode = SO->PolyMode;
        SUMA_postRedisplay(w, clientData, NULL);
-       fprintf(stderr, "After SUMA_postRedisplay, sv->PolyMode = %d\n", sv->PolyMode);
-       
-       if (SO) fprintf(stderr, "SO->PolyMode = %d\n", SO->PolyMode);
 
 
    SUMA_RETURNe;
@@ -18728,11 +18724,10 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data,
    SO->PolyMode = imenu;
    SUMA_ALL_DO *ado = (SUMA_ALL_DO *)SO;
    SUMA_SurfaceViewer *sv = NULL;
-   fprintf(stderr, "In SUMA_cb_SetRenderMode, ado = %p\n", ado);
    if (ado) sv = SUMA_BestViewerForADO(ado);
-   fprintf(stderr, "In SUMA_cb_SetRenderMode, sv = %p\n", sv);
+   else fprintf(stderr, "%s Error: No ado\n", FuncName);
    if (sv) sv->PolyMode = SO->PolyMode;
-   fprintf(stderr, "In SUMA_cb_SetRenderMode, SO->PolyMode = %d\n", SO->PolyMode);
+   else fprintf(stderr, "%s Error: No sv\n", FuncName);
  
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
@@ -18763,7 +18758,6 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data,
       SUMA_OVERLAYS *curColPlane = SO->SurfCont->curColPlane;
       if (curColPlane->BoxOutlineThresh && sv) drawThresholdOutline(SO, sv);
 
-   fprintf(stderr, "End of SUMA_cb_SetRenderMode, SO->PolyMode = %d\n", SO->PolyMode);
    SUMA_RETURNe;
 }
 
