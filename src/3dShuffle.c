@@ -21,8 +21,7 @@
 
 typedef enum {
    TAIL_TWO = 0,
-   TAIL_UPPER,
-   TAIL_LOWER
+   TAIL_ONE
 } tail_code;
 
 typedef enum {
@@ -105,8 +104,13 @@ static void shuffle_help(void)
 "Permutation options:\n"
 "  -method signflip    Paired sign-flip permutation test. Required in V1.\n"
 "  -stat paired_ttest  Paired t-statistic. Required/default in V1.\n"
-"  -tails two|upper|lower\n"
-"                      Direction follows the contrast A-B. Default: two.\n"
+"  -tails two|one\n"
+"                      Default: two.\n"
+"                      With -tails one, the tested direction is positive\n"
+"                      for the stated contrast A-B. That is, one-tailed\n"
+"                      -contrast A B tests whether A > B. To test whether\n"
+"                      B > A, reverse the contrast order and use\n"
+"                      -contrast B A -tails one.\n"
 "  -mode exact|random  Exact enumerates all 2^N sign patterns. Random uses\n"
 "                      -niter random sign patterns. Default: exact when\n"
 "                      feasible, otherwise random if -niter is supplied.\n"
@@ -139,11 +143,11 @@ static void shuffle_help(void)
 "                      further cluster correction is required.\n"
 "\n"
 "IMPORTANT resolution ceiling:\n"
-"  With exact sign-flip enumeration, the smallest achievable two-sided\n"
-"  p-value is 2/2^Nsubj (e.g. 2/32 = 0.0625 one-sided-equivalent min bin\n"
-"  at N=5). CON_z_fwe/CON_z_unc will never exceed the |z| corresponding\n"
-"  to that floor, regardless of true effect size. This is a property of\n"
-"  small-N exact permutation, not a bug.\n"
+"  With exact sign-flip enumeration, the smallest achievable p-value is\n"
+"  2/2^Nsubj for -tails two and 1/2^Nsubj for -tails one. For N=6, these\n"
+"  floors are 0.03125 and 0.015625. CON_z_fwe/CON_z_unc will never exceed\n"
+"  the |z| corresponding to that floor, regardless of true effect size.\n"
+"  This is a property of small-N exact permutation, not a bug.\n"
 "\n"
 "Important warning:\n"
 "  Independent-group label permutation tests are not implemented yet.\n"
@@ -309,9 +313,12 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
       if( strcmp(argv[nopt],"-tails") == 0 ){
          if( ++nopt >= argc ) ERROR_exit("need an argument after -tails");
          if( strcmp(argv[nopt],"two") == 0 ) opts->tails = TAIL_TWO;
-         else if( strcmp(argv[nopt],"upper") == 0 ) opts->tails = TAIL_UPPER;
-         else if( strcmp(argv[nopt],"lower") == 0 ) opts->tails = TAIL_LOWER;
-         else ERROR_exit("-tails must be one of: two upper lower");
+         else if( strcmp(argv[nopt],"one") == 0 ) opts->tails = TAIL_ONE;
+         else if( strcmp(argv[nopt],"upper") == 0 || strcmp(argv[nopt],"lower") == 0 )
+            ERROR_exit("-tails upper/lower has been replaced by -tails one. "
+                       "Use contrast order to set direction: -contrast A B "
+                       "tests A>B with -tails one.");
+         else ERROR_exit("-tails must be one of: two one");
          nopt++; continue;
       }
 
@@ -411,8 +418,9 @@ static void print_sanity(opts_t *opts, long long nperm)
    INFO_message("Subjects:     %d", opts->nsubj);
    INFO_message("Method:       signflip");
    INFO_message("Statistic:    paired_ttest");
-   INFO_message("Tails:        %s", opts->tails == TAIL_TWO ? "two" :
-                                 opts->tails == TAIL_UPPER ? "upper" : "lower");
+   INFO_message("Tails:        %s", opts->tails == TAIL_TWO ? "two" : "one");
+   if( opts->tails == TAIL_ONE )
+      INFO_message("One-tailed direction: positive for each contrast A-B");
    INFO_message("Mode:         %s", opts->mode == MODE_EXACT ? "exact" : "random");
    INFO_message("Permutations: %lld", nperm);
    if( opts->mode == MODE_RANDOM ) INFO_message("Seed:         %ld", opts->seed);
@@ -459,8 +467,7 @@ static float paired_t_from_diffs(float *diff, int nsubj, unsigned long bits,
 static float tail_value(float tt, tail_code tails)
 {
    if( tails == TAIL_TWO ) return fabsf(tt);
-   if( tails == TAIL_UPPER ) return tt;
-   return -tt;
+   return tt;
 }
 
 static int cmp_float(const void *a, const void *b)
@@ -505,7 +512,7 @@ static float emp_p_from_sorted(float *sorted, int nperm, float obs, int exact)
 }
 
 /* ---------------------------------------------------------------------
-   Convert an empirical (two-sided) p-value into a signed z-score, so
+   Convert an empirical p-value into a signed z-score, so
    that AFNI's GUI can be handed a FIZT-tagged brick and display the
    correct p-value on the interactive threshold slider. The sign of
    the observed statistic is preserved so overlay direction (positive
@@ -515,17 +522,21 @@ static float emp_p_from_sorted(float *sorted, int nperm, float obs, int exact)
    inverse) -- the same routine AFNI's own -toz option relies on.
    p is floored away from 0/1 to avoid +-infinity at the extremes.
 --------------------------------------------------------------------- */
-static float p_to_signed_z(float p_two_sided, float observed_stat)
+static float p_to_signed_z(float pval, float observed_stat, tail_code tails)
 {
    double p, z;
    double pmin = 1.0e-15;
 
-   p = (double)p_two_sided;
+   p = (double)pval;
    if( p < pmin )        p = pmin;
    if( p > 1.0 - pmin )  p = 1.0 - pmin;
 
-   z = qginv(p / 2.0);              /* two-sided p -> upper-tail inverse */
-   if( observed_stat < 0.0f ) z = -z;
+   if( tails == TAIL_TWO ){
+      z = qginv(p / 2.0);
+      if( observed_stat < 0.0f ) z = -z;
+   } else {
+      z = qginv(p);
+   }
 
    return (float)z;
 }
@@ -699,8 +710,8 @@ int main(int argc, char **argv)
          FIZT bricks. Masked-out voxels get z=0 (matches p=1). */
       for( iv=0 ; iv < nvox ; iv++ ){
          if( !mask[iv] ){ zunc_br[iv] = 0.0f; zfwe_br[iv] = 0.0f; continue; }
-         zunc_br[iv] = p_to_signed_z(p_br[iv],    t_br[iv]);
-         zfwe_br[iv] = p_to_signed_z(pfwe_br[iv], t_br[iv]);
+         zunc_br[iv] = p_to_signed_z(p_br[iv],    t_br[iv], opts.tails);
+         zfwe_br[iv] = p_to_signed_z(pfwe_br[iv], t_br[iv], opts.tails);
       }
 
       free(diff);
