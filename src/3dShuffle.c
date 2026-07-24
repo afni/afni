@@ -469,6 +469,29 @@ static int cmp_float(const void *a, const void *b)
    return (aa > bb) - (aa < bb);
 }
 
+/* Simple in-place percentage progress bar on stderr. Only redraws when
+   the integer percentage changes, so it doesn't spam output for fast
+   loops. Pass a pointer to an int initialized to -1 before the loop
+   starts (one such tracker per loop/contrast). */
+static void print_progress_bar(int current, int total, int *last_pct)
+{
+   int pct, filled, ii;
+   char bar[41];
+
+   if( total <= 0 ) return;
+   pct = (int)(100.0 * (current + 1) / (double)total);
+   if( pct == *last_pct ) return;
+   *last_pct = pct;
+
+   filled = pct * 40 / 100;
+   for( ii=0 ; ii < 40 ; ii++ ) bar[ii] = (ii < filled) ? '#' : '-';
+   bar[40] = '\0';
+
+   fprintf(stderr, "\r++ permuting [%s] %3d%% (%d/%d)", bar, pct, current+1, total);
+   if( pct >= 100 ) fprintf(stderr, "\n");
+   fflush(stderr);
+}
+
 static float emp_p_from_sorted(float *sorted, int nperm, float obs, int exact)
 {
    int lo = 0, hi = nperm;
@@ -616,6 +639,7 @@ int main(int argc, char **argv)
       int *unc_count = (int *)calloc(nvox,sizeof(int));
       float *max_null = (float *)calloc(nperm,sizeof(float));
       float *diff = (float *)calloc(opts.nsubj,sizeof(float));
+      int last_pct = -1;
       if( unc_count == NULL || max_null == NULL || diff == NULL )
          ERROR_exit("malloc failure");
 
@@ -656,6 +680,7 @@ int main(int argc, char **argv)
             if( tv >= tail_value(t_br[iv],opts.tails) ) unc_count[iv]++;
          }
          max_null[ib] = maxv;
+         print_progress_bar(ib,nperm,&last_pct);
       }
 
       qsort(max_null,nperm,sizeof(float),cmp_float);
@@ -705,10 +730,16 @@ int main(int argc, char **argv)
       }
       EDIT_BRICK_LABEL(outset,ib,lab);
 
-      /* Deliberately NOT tagging CON_t as FITT: this program exists to
-         avoid trusting the parametric t-distribution p-value at small
-         N, so the raw t-brick is left as a plain float rather than a
-         stat brick that invites exactly that. Threshold on z_fwe. */
+      /* CON_t IS tagged FITT here so it can be thresholded in the GUI
+         for direct comparison against CON_z_fwe. This is intentional:
+         seeing how much more permissive (liberal) the parametric FITT
+         p-value is at small N vs. the permutation-corrected FIZT
+         p-value is a useful, concrete illustration of exactly the
+         problem this program exists to solve. Do NOT report results
+         based on CON_t/FITT -- use it only as a side-by-side reference
+         against CON_z_fwe when writing up or sanity-checking findings. */
+      if( ib % 6 == 1 )
+         EDIT_BRICK_TO_FITT(outset,ib,opts.nsubj-1);
       if( ib % 6 == 4 || ib % 6 == 5 )
          EDIT_BRICK_TO_FIZT(outset,ib);
    }
