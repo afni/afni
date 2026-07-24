@@ -3,12 +3,19 @@
 
   V1 implements paired/repeated-measures sign-flip permutation tests for
   single-brick datasets.
+
+  This version adds signed z-score bricks (CON_z_unc / CON_z_fwe) derived
+  from the empirical permutation p-values, tagged as FIZT stat bricks so
+  that AFNI's interactive GUI threshold slider displays the correct
+  permutation-derived p-value rather than a parametric one. Threshold on
+  CON_z_fwe (not CON_t) when visualizing results.
 -------------------------------------------------------------------------*/
 
 #include "mrilib.h"
 #include <ctype.h>
 #include <limits.h>
 #include <math.h>
+#include <float.h>
 
 #define PROGRAM_NAME "3dShuffle"
 
@@ -114,11 +121,29 @@ static void shuffle_help(void)
 "                      invalid p-value bricks as 1.\n"
 "\n"
 "Output:\n"
-"  One float bucket dataset with 4 sub-bricks per contrast:\n"
+"  One float bucket dataset with 6 sub-bricks per contrast:\n"
 "    CON_mean          observed mean of A-B\n"
-"    CON_t             observed paired t-statistic\n"
-"    CON_p_unc         voxelwise empirical p-value\n"
+"    CON_t             observed paired t-statistic (NOT stat-coded --\n"
+"                      do not threshold on this; it has no corrected\n"
+"                      p-value attached and inviting the AFNI GUI to\n"
+"                      read a parametric p off it defeats the purpose\n"
+"                      of a permutation test)\n"
+"    CON_p_unc         voxelwise empirical p-value (uncorrected)\n"
 "    CON_p_fwe         max-stat FWE-corrected empirical p-value\n"
+"    CON_z_unc         signed z equivalent of CON_p_unc, tagged FIZT so\n"
+"                      the AFNI GUI threshold slider shows a correct\n"
+"                      p-value readout. Uncorrected -- exploratory only.\n"
+"    CON_z_fwe         signed z equivalent of CON_p_fwe, tagged FIZT.\n"
+"                      *** THRESHOLD ON THIS BRICK FOR REPORTED RESULTS ***\n"
+"                      It is whole-brain FWE-corrected already; no\n"
+"                      further cluster correction is required.\n"
+"\n"
+"IMPORTANT resolution ceiling:\n"
+"  With exact sign-flip enumeration, the smallest achievable two-sided\n"
+"  p-value is 2/2^Nsubj (e.g. 2/32 = 0.0625 one-sided-equivalent min bin\n"
+"  at N=5). CON_z_fwe/CON_z_unc will never exceed the |z| corresponding\n"
+"  to that floor, regardless of true effect size. This is a property of\n"
+"  small-N exact permutation, not a bug.\n"
 "\n"
 "Important warning:\n"
 "  Independent-group label permutation tests are not implemented yet.\n"
@@ -456,6 +481,32 @@ static float emp_p_from_sorted(float *sorted, int nperm, float obs, int exact)
    return (float)(nperm - lo + 1) / (float)(nperm + 1);
 }
 
+/* ---------------------------------------------------------------------
+   Convert an empirical (two-sided) p-value into a signed z-score, so
+   that AFNI's GUI can be handed a FIZT-tagged brick and display the
+   correct p-value on the interactive threshold slider. The sign of
+   the observed statistic is preserved so overlay direction (positive
+   vs. negative effect) is still visually meaningful.
+
+   qginv(q) returns z such that P(Z > z) = q (upper-tail Gaussian
+   inverse) -- the same routine AFNI's own -toz option relies on.
+   p is floored away from 0/1 to avoid +-infinity at the extremes.
+--------------------------------------------------------------------- */
+static float p_to_signed_z(float p_two_sided, float observed_stat)
+{
+   double p, z;
+   double pmin = 1.0e-15;
+
+   p = (double)p_two_sided;
+   if( p < pmin )        p = pmin;
+   if( p > 1.0 - pmin )  p = 1.0 - pmin;
+
+   z = qginv(p / 2.0);              /* two-sided p -> upper-tail inverse */
+   if( observed_stat < 0.0f ) z = -z;
+
+   return (float)z;
+}
+
 static byte *make_mask(opts_t *opts, THD_3dim_dataset *mset, float **vals, int nvox)
 {
    int iv, iset, ntot = opts->ncond * opts->nsubj;
@@ -544,7 +595,8 @@ int main(int argc, char **argv)
    mask = make_mask(&opts,mset,vals,nvox);
    INFO_message("%d voxels in analysis mask", THD_countmask(nvox,mask));
 
-   nout = opts.ncon * 4;
+   /* 6 output bricks per contrast now: mean, t, p_unc, p_fwe, z_unc, z_fwe */
+   nout = opts.ncon * 6;
    outbr = (float **)calloc(nout,sizeof(float *));
    if( outbr == NULL ) ERROR_exit("malloc failure");
    for( ib=0 ; ib < nout ; ib++ ){
@@ -555,10 +607,12 @@ int main(int argc, char **argv)
    if( opts.mode == MODE_RANDOM ) srand48(opts.seed);
 
    for( cc=0 ; cc < opts.ncon ; cc++ ){
-      float *mean_br = outbr[4*cc+0];
-      float *t_br    = outbr[4*cc+1];
-      float *p_br    = outbr[4*cc+2];
-      float *pfwe_br = outbr[4*cc+3];
+      float *mean_br = outbr[6*cc+0];
+      float *t_br    = outbr[6*cc+1];
+      float *p_br    = outbr[6*cc+2];
+      float *pfwe_br = outbr[6*cc+3];
+      float *zunc_br = outbr[6*cc+4];
+      float *zfwe_br = outbr[6*cc+5];
       int *unc_count = (int *)calloc(nvox,sizeof(int));
       float *max_null = (float *)calloc(nperm,sizeof(float));
       float *diff = (float *)calloc(opts.nsubj,sizeof(float));
@@ -616,6 +670,14 @@ int main(int argc, char **argv)
                                          opts.mode == MODE_EXACT);
       }
 
+      /* Convert both p-value bricks to signed z for GUI-thresholdable
+         FIZT bricks. Masked-out voxels get z=0 (matches p=1). */
+      for( iv=0 ; iv < nvox ; iv++ ){
+         if( !mask[iv] ){ zunc_br[iv] = 0.0f; zfwe_br[iv] = 0.0f; continue; }
+         zunc_br[iv] = p_to_signed_z(p_br[iv],    t_br[iv]);
+         zfwe_br[iv] = p_to_signed_z(pfwe_br[iv], t_br[iv]);
+      }
+
       free(diff);
       free(max_null);
       free(unc_count);
@@ -633,14 +695,22 @@ int main(int argc, char **argv)
       char lab[THD_MAX_NAME];
       EDIT_substitute_brick(outset,ib,MRI_float,outbr[ib]);
       outbr[ib] = NULL;
-      switch( ib % 4 ){
-         case 0: snprintf(lab,sizeof(lab),"%s_mean",opts.cons[ib/4].name); break;
-         case 1: snprintf(lab,sizeof(lab),"%s_t",opts.cons[ib/4].name); break;
-         case 2: snprintf(lab,sizeof(lab),"%s_p_unc",opts.cons[ib/4].name); break;
-         default: snprintf(lab,sizeof(lab),"%s_p_fwe",opts.cons[ib/4].name); break;
+      switch( ib % 6 ){
+         case 0: snprintf(lab,sizeof(lab),"%s_mean",  opts.cons[ib/6].name); break;
+         case 1: snprintf(lab,sizeof(lab),"%s_t",     opts.cons[ib/6].name); break;
+         case 2: snprintf(lab,sizeof(lab),"%s_p_unc", opts.cons[ib/6].name); break;
+         case 3: snprintf(lab,sizeof(lab),"%s_p_fwe", opts.cons[ib/6].name); break;
+         case 4: snprintf(lab,sizeof(lab),"%s_z_unc", opts.cons[ib/6].name); break;
+         default: snprintf(lab,sizeof(lab),"%s_z_fwe",opts.cons[ib/6].name); break;
       }
       EDIT_BRICK_LABEL(outset,ib,lab);
-      if( ib % 4 == 1 ) EDIT_BRICK_TO_FITT(outset,ib,opts.nsubj-1);
+
+      /* Deliberately NOT tagging CON_t as FITT: this program exists to
+         avoid trusting the parametric t-distribution p-value at small
+         N, so the raw t-brick is left as a plain float rather than a
+         stat brick that invites exactly that. Threshold on z_fwe. */
+      if( ib % 6 == 4 || ib % 6 == 5 )
+         EDIT_BRICK_TO_FIZT(outset,ib);
    }
 
    tross_Copy_History(first,outset);
