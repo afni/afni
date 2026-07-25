@@ -19,6 +19,24 @@
 
 #define PROGRAM_NAME "3dShuffle"
 
+/* Number of random relabelings used when -mode random is in effect but
+   -niter was not given. Matches PALM's default. It puts the smallest
+   reportable p-value at 1/(NITER+1) = 1e-4, far below any threshold in
+   practical use, and leaves enough draws that the max-statistic tail behind
+   the FWE correction is stably estimated. */
+#define DEFAULT_NITER 10000
+
+/* Exact enumeration past this many relabelings is still representable, but
+   it costs enormously more than random sampling and resolves p-values that
+   nobody reports. See resolve_mode(). */
+#define EXACT_WARN_COUNT 1000000LL
+
+/* Exact runs store one max statistic per relabeling in an int-indexed array,
+   so the count has to fit in INT_MAX. For sign flips that means 2^N <=
+   INT_MAX, i.e. N <= 30; for a balanced two-sample contrast it caps
+   choose(NA+NB,NA) and so allows about 33 datasets in total. */
+#define EXACT_MAX_SIGNFLIP_N 30
+
 typedef enum {
    TAIL_TWO = 0,
    TAIL_ONE
@@ -57,7 +75,8 @@ typedef struct {
    int ncon;
    int auto_mask;
    int unpooled;
-   int have_niter;
+   int have_niter;     /* -niter was given on the command line */
+   int mode_explicit;  /* -mode was given on the command line  */
    int niter;
    long seed;
    char *prefix;
@@ -179,7 +198,10 @@ static void shuffle_help(void)
 "  -mode exact|random  Exact enumerates all 2^N sign patterns for one-sample\n"
 "                      tests and all choose(NA+NB,NA) group assignments for\n"
 "                      two-sample contrasts. Random uses -niter draws.\n"
+"                      Default: exact when that is feasible, otherwise\n"
+"                      random. See 'Choosing exact versus random' below.\n"
 "  -niter N            Number of random sign-flip or shuffle iterations.\n"
+"                      Default: %d. Ignored by -mode exact.\n"
 "  -seed S             Random seed for -mode random. Default: 1234567.\n"
 "\n"
 "Masking:\n"
@@ -227,7 +249,30 @@ static void shuffle_help(void)
 "  Exact two-sample contrast resolution is likewise limited by the number\n"
 "  of fixed-size assignments: choose(NA+NB,NA).\n"
 "\n"
-   );
+"  With -mode random the floor is 1/(niter+1) instead, so the default\n"
+"  -niter %d puts it at 1e-04 no matter how many subjects there are.\n"
+"\n"
+"Choosing exact versus random:\n"
+"  Exact enumeration stores one number per relabeling in an int-indexed\n"
+"  array, so the count must fit in 2147483647. That caps sign-flip tests at\n"
+"  %d subjects, and a balanced two-sample contrast near 33 datasets in\n"
+"  total. Run time doubles with every subject added as well, so exact mode\n"
+"  stops being practical long before the cap, at roughly N=18.\n"
+"\n"
+"  Very little is lost by that. Exact mode earns its cost at SMALL N, where\n"
+"  so few relabelings exist that the floor above genuinely constrains what\n"
+"  can be reported: at N=6 that floor is 0.031, at N=10 it is 0.002. By\n"
+"  N=15 there are 32768 sign patterns and a floor of 6e-05, already finer\n"
+"  than -niter %d delivers, and both sit far below any threshold anyone\n"
+"  applies. Past that point exact enumeration buys resolution that will\n"
+"  never be used, at exponentially growing cost.\n"
+"\n"
+"  Random sampling is statistically sound at every N, so use it whenever\n"
+"  exact mode is slow. 3dShuffle warns when an exact run is large enough\n"
+"  that random is the better choice, and falls back to random on its own\n"
+"  when no -mode was given and the enumeration cannot be represented.\n"
+"\n"
+   , DEFAULT_NITER, DEFAULT_NITER, EXACT_MAX_SIGNFLIP_N, DEFAULT_NITER);
    PRINT_COMPILE_DATE;
    exit(0);
 }
@@ -415,6 +460,9 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
          if( strcmp(argv[nopt],"exact") == 0 ) opts->mode = MODE_EXACT;
          else if( strcmp(argv[nopt],"random") == 0 ) opts->mode = MODE_RANDOM;
          else ERROR_exit("-mode must be exact or random");
+         /* An explicit choice is honored strictly: an exact run that cannot
+            be represented becomes an error rather than a silent fallback. */
+         opts->mode_explicit = 1;
          nopt++; continue;
       }
 
@@ -532,11 +580,16 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
       if( opts->have_niter ) opts->mode = MODE_RANDOM;
       else opts->mode = MODE_EXACT;
    }
+   /* have_niter keeps meaning "the user asked for this count", so that
+      print_sanity() can label a defaulted value as such. resolve_mode()
+      supplies the same default if it has to fall back to random. */
    if( opts->mode == MODE_RANDOM && !opts->have_niter )
-      ERROR_exit("-mode random requires -niter");
-   if( opts->stat != STAT_TWOSAMPLE && opts->mode == MODE_EXACT &&
-       opts->nsubj >= (int)(8*sizeof(unsigned long)-1) )
-      ERROR_exit("too many subjects for exact sign-flip enumeration on this build; use -mode random -niter N");
+      opts->niter = DEFAULT_NITER;
+   if( opts->mode == MODE_EXACT && opts->have_niter )
+      WARNING_message("-niter %d is ignored with -mode exact, which enumerates "
+                      "every relabeling", opts->niter);
+   /* Whether an exact run is actually representable depends on permutation
+      counts, so that check lives in resolve_mode(). */
 }
 
 /* Count exact fixed-size group assignments, stopping once int storage is exceeded. */
@@ -564,6 +617,96 @@ static long long permutation_count(opts_t *opts, stat_code stat, int na, int nb)
    if( stat == STAT_TWOSAMPLE ) return combination_count(na+nb,na);
    if( na >= (int)(8*sizeof(unsigned long)-1) ) return (long long)INT_MAX+1LL;
    return 1LL << na;
+}
+
+/* Find the largest exact relabeling count this run would need, along with the
+   test that needs it and its observation count. Returns a value above INT_MAX
+   if any single test overflows. */
+static long long worst_exact_count(opts_t *opts, const char **which, int *nobs)
+{
+   long long worst = 0;
+   int cc;
+
+   for( cc=0 ; cc < opts->ncon ; cc++ ){
+      int ia = opts->cons[cc].ia;
+      int na = opts->nsubj_by_cond[ia];
+      int nb = opts->stat == STAT_ONESAMPLE ? 0 :
+               opts->nsubj_by_cond[opts->cons[cc].ib];
+      long long np = permutation_count(opts,opts->stat,na,nb);
+
+      if( np > worst ){
+         worst = np; *which = opts->cons[cc].name; *nobs = na+nb;
+      }
+      if( opts->stat == STAT_TWOSAMPLE ){
+         /* Two-sample output also contains a one-sample test per group, so
+            those sign-flip spaces have to be feasible as well. */
+         long long npa = permutation_count(opts,STAT_ONESAMPLE,na,0);
+         long long npb = permutation_count(opts,STAT_ONESAMPLE,nb,0);
+         if( npa > worst ){
+            worst = npa; *which = opts->cond_labels[ia]; *nobs = na;
+         }
+         if( npb > worst ){
+            worst = npb; *which = opts->cond_labels[opts->cons[cc].ib]; *nobs = nb;
+         }
+      }
+   }
+   return worst;
+}
+
+/* Decide whether an exact run is actually feasible, and say something useful
+   when it is not.
+
+   There are two distinct thresholds here. The hard one is representational:
+   relabelings are counted and indexed with int, so a count above INT_MAX
+   cannot be enumerated at all. The soft one is practical: an exact run whose
+   count is in the millions will take enormously longer than random sampling
+   while resolving p-values far past anything anyone reports. Exact mode is
+   worth its cost at small N, where so few relabelings exist that the discrete
+   p-value floor genuinely constrains the result. */
+static void resolve_mode(opts_t *opts)
+{
+   const char *which = "this design";
+   int nobs = 0;
+   long long worst;
+
+   if( opts->mode != MODE_EXACT ) return;
+
+   worst = worst_exact_count(opts,&which,&nobs);
+
+   if( worst <= 0 || worst > INT_MAX ){
+      if( opts->mode_explicit )
+         ERROR_exit(
+            "-mode exact needs more than %d relabelings for %s (N=%d), which is "
+            "more than this program can index.\n"
+            "   Exact enumeration tops out at %d subjects for sign-flip tests, "
+            "and near 33 datasets in total for a balanced two-sample contrast. "
+            "It stops being practical well before that, around N=18.\n"
+            "   Use:  -mode random -niter %d",
+            INT_MAX, which, nobs, EXACT_MAX_SIGNFLIP_N, DEFAULT_NITER);
+
+      /* No -mode was given, so choosing one is this program's job. */
+      WARNING_message(
+         "exact enumeration for %s (N=%d) needs more than %d relabelings and "
+         "cannot be represented, so this run switches to -mode random -niter %d.\n"
+         "   Random sampling is statistically sound at every N. Pass -mode exact "
+         "if you would rather this were an error.",
+         which, nobs, INT_MAX, DEFAULT_NITER);
+      opts->mode = MODE_RANDOM;
+      opts->niter = DEFAULT_NITER;
+      return;
+   }
+
+   if( worst > EXACT_WARN_COUNT )
+      WARNING_message(
+         "exact enumeration needs %lld relabelings for %s (N=%d).\n"
+         "   That is roughly %lld times the work of -mode random -niter %d, and "
+         "it buys nothing you can use: both resolve p-values far below any "
+         "threshold you would report.\n"
+         "   Exact mode earns its cost at SMALL N, where so few relabelings "
+         "exist that the p-value floor is coarse. Consider -mode random "
+         "-niter %d.",
+         worst, which, nobs, worst/(long long)DEFAULT_NITER,
+         DEFAULT_NITER, DEFAULT_NITER);
 }
 
 /* Report the resolved design, checks, and outputs before running permutations. */
@@ -594,7 +737,11 @@ static void print_sanity(opts_t *opts)
                    opts->stat == STAT_ONESAMPLE ? "positive condition mean" :
                                                   "positive for each contrast A-B");
    INFO_message("Mode:         %s", opts->mode == MODE_EXACT ? "exact" : "random");
-   if( opts->mode == MODE_RANDOM ) INFO_message("Seed:         %ld", opts->seed);
+   if( opts->mode == MODE_RANDOM ){
+      INFO_message("Iterations:   %d%s", opts->niter,
+                   opts->have_niter ? "" : " (default; set with -niter)");
+      INFO_message("Seed:         %ld", opts->seed);
+   }
    INFO_message("Grid check:   every input and mask must match the first input");
    INFO_message("Mask mode:    %s",
                 opts->auto_mask ? "AFNI automask of mean-absolute inputs" :
@@ -1072,25 +1219,7 @@ int main(int argc, char **argv)
 
    parse_opts(argc,argv,&opts);
 
-   if( opts.mode == MODE_EXACT ){
-      for( cc=0 ; cc < opts.ncon ; cc++ ){
-         int na = opts.nsubj_by_cond[opts.cons[cc].ia];
-         int nb = opts.stat == STAT_ONESAMPLE ? 0 :
-                  opts.nsubj_by_cond[opts.cons[cc].ib];
-         long long np = permutation_count(&opts,opts.stat,na,nb);
-         if( np <= 0 || np > INT_MAX )
-            ERROR_exit("exact permutation count for %s is too large; use -mode random -niter N",
-                       opts.cons[cc].name);
-         if( opts.stat == STAT_TWOSAMPLE ){
-            /* Two-sample output also includes one-sample tests for both
-               groups, so their exact sign-flip spaces must be feasible. */
-            if( permutation_count(&opts,STAT_ONESAMPLE,na,0) > INT_MAX ||
-                permutation_count(&opts,STAT_ONESAMPLE,nb,0) > INT_MAX )
-               ERROR_exit("exact group sign-flip count for %s is too large; use -mode random -niter N",
-                          opts.cons[cc].name);
-         }
-      }
-   }
+   resolve_mode(&opts);
    print_sanity(&opts);
 
    /* parse_opts guarantees ncond > 0; the guarded size also makes that
