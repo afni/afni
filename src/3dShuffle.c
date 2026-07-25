@@ -1,14 +1,14 @@
 /*-------------------------------------------------------------------------
   3dShuffle: randomization tests for AFNI datasets.
 
-  V1 implements paired/repeated-measures sign-flip permutation tests for
+  Implements paired/repeated-measures and one-sample sign-flip tests,
+  plus independent-group two-sample label-shuffle tests, for
   single-brick datasets.
 
-  This version adds signed z-score bricks (CON_z_unc / CON_z_fwe) derived
-  from the empirical permutation p-values, tagged as FIZT stat bricks so
-  that AFNI's interactive GUI threshold slider displays the correct
-  permutation-derived p-value rather than a parametric one. Threshold on
-  CON_z_fwe (not CON_t) when visualizing results.
+  Signed z-score bricks derived from the empirical permutation p-values
+  are tagged as FIZT stat bricks so AFNI's interactive GUI threshold
+  slider displays the permutation-derived p-value. Threshold on z_fwe,
+  rather than the parametric-reference t brick, for reported results.
 -------------------------------------------------------------------------*/
 
 #include "mrilib.h"
@@ -30,6 +30,17 @@ typedef enum {
    MODE_RANDOM
 } mode_code;
 
+typedef enum {
+   STAT_PAIRED = 0,
+   STAT_ONESAMPLE,
+   STAT_TWOSAMPLE
+} stat_code;
+
+typedef enum {
+   METHOD_SIGNFLIP = 0,
+   METHOD_SHUFFLE
+} method_code;
+
 typedef struct {
    int ia;
    int ib;
@@ -42,8 +53,11 @@ typedef struct {
    int ncond;
    int ninput;
    int nsubj;
+   int nsubj_labels;
+   int ntotal;
    int ncon;
    int auto_mask;
+   int unpooled;
    int have_niter;
    int niter;
    long seed;
@@ -52,11 +66,25 @@ typedef struct {
    char **cond_labels;
    char **subj_labels;
    char ***input_names;
+   int *nsubj_by_cond;
+   int *offsets;
    contrast_t *cons;
    tail_code tails;
    mode_code mode;
+   stat_code stat;
+   method_code method;
 } opts_t;
 
+typedef struct {
+   float *mean;
+   float *tstat;
+   float *p_unc;
+   float *p_fwe;
+   float *z_unc;
+   float *z_fwe;
+} test_output_t;
+
+/* Print command-line help and exit. */
 static void shuffle_help(void)
 {
    printf(
@@ -64,9 +92,9 @@ static void shuffle_help(void)
 "\n"
 "Permutation/randomization testing for AFNI datasets.\n"
 "\n"
-"V1 implements paired/repeated-measures sign-flip permutation tests for\n"
-"single-brick datasets. This is appropriate for paired contrasts where the\n"
-"input order defines subject pairing across repeated-measure conditions.\n"
+"Paired/repeated-measures and one-sample tests use sign flips. Independent\n"
+"two-sample tests shuffle group labels while preserving group sizes.\n"
+"All inputs must be single-brick datasets on the same grid.\n"
 "\n"
 "Example:\n"
 "  3dShuffle                                      \\\n"
@@ -87,11 +115,14 @@ static void shuffle_help(void)
 "    -prefix sleep_shuffle\n"
 "\n"
 "Required options:\n"
-"  -conditions N       Number of repeated-measure conditions.\n"
-"  -input dset ...     One -input list per condition. Each list must have\n"
-"                      the same number of single-brick datasets.\n"
-"  -contrast A B       Test contrast A-B. A and B can be condition labels\n"
-"                      or 1-based condition indices. May be repeated.\n"
+"  -conditions N       Number of repeated-measure conditions or one-sample\n"
+"                      input lists.\n"
+"  -input dset ...     One -input list per condition. Paired and one-sample\n"
+"                      lists must have equal counts; two-sample lists may\n"
+"                      have different counts.\n"
+"  -contrast A B       For paired and two-sample tests, test A-B. A and B\n"
+"                      can be condition labels or 1-based condition indices.\n"
+"                      May be repeated. Not used with -stat onesample.\n"
 "  -prefix PREFIX      Output bucket dataset prefix.\n"
 "\n"
 "Labels:\n"
@@ -99,22 +130,30 @@ static void shuffle_help(void)
 "                      Names for the N conditions. Used for contrasts and\n"
 "                      output sub-brick labels.\n"
 "  -subj_labels S1 ... SN\n"
-"                      Subject labels. Pairing is still by input order.\n"
+"                      Subject labels for paired or one-sample tests. Pairing\n"
+"                      is still by input order. Not used for two-sample tests.\n"
 "\n"
 "Permutation options:\n"
-"  -method signflip    Paired sign-flip permutation test. Required in V1.\n"
-"  -stat paired_ttest  Paired t-statistic. Required/default in V1.\n"
+"  -method signflip    Required for paired and one-sample tests. Default.\n"
+"  -method shuffle     Required for two-sample tests. Group labels are\n"
+"                      exchanged while the original group sizes are fixed.\n"
+"  -stat paired_ttest  Paired t-statistic. Default.\n"
+"  -stat onesample     One-sample t-statistic against zero. Each input list\n"
+"                      is tested independently; do not use -contrast.\n"
+"  -stat twosample     Independent-group t-statistic for each contrast A-B.\n"
+"                      The default assumes equal variances (pooled t-test).\n"
+"  -unpooled           With -stat twosample, use the unequal-variance Welch\n"
+"                      t-statistic. This overrides the pooled assumption.\n"
 "  -tails two|one\n"
 "                      Default: two.\n"
-"                      With -tails one, the tested direction is positive\n"
-"                      for the stated contrast A-B. That is, one-tailed\n"
-"                      -contrast A B tests whether A > B. To test whether\n"
-"                      B > A, reverse the contrast order and use\n"
-"                      -contrast B A -tails one.\n"
-"  -mode exact|random  Exact enumerates all 2^N sign patterns. Random uses\n"
-"                      -niter random sign patterns. Default: exact when\n"
-"                      feasible, otherwise random if -niter is supplied.\n"
-"  -niter N            Number of random sign-flip iterations.\n"
+"                      With -tails one, the tested direction is positive.\n"
+"                      For contrasts, -contrast A B tests whether A > B;\n"
+"                      reverse the order to test B > A. For one-sample and\n"
+"                      two-sample group outputs, positive means group > 0.\n"
+"  -mode exact|random  Exact enumerates all 2^N sign patterns for one-sample\n"
+"                      tests and all choose(NA+NB,NA) group assignments for\n"
+"                      two-sample contrasts. Random uses -niter draws.\n"
+"  -niter N            Number of random sign-flip or shuffle iterations.\n"
 "  -seed S             Random seed for -mode random. Default: 1234567.\n"
 "\n"
 "Masking:\n"
@@ -125,13 +164,13 @@ static void shuffle_help(void)
 "                      invalid p-value bricks as 1.\n"
 "\n"
 "Output:\n"
-"  One float bucket dataset with 6 sub-bricks per contrast:\n"
-"    CON_mean          observed mean of A-B\n"
-"    CON_t             observed paired t-statistic (NOT stat-coded --\n"
-"                      do not threshold on this; it has no corrected\n"
-"                      p-value attached and inviting the AFNI GUI to\n"
-"                      read a parametric p off it defeats the purpose\n"
-"                      of a permutation test)\n"
+"  Paired and one-sample tests produce 6 sub-bricks per test:\n"
+"    CON_mean          observed mean of A-B, or condition mean for onesample\n"
+"    CON_t             observed t-statistic. Tagged FITT when its degrees\n"
+"                      of freedom are fixed, for parametric reference only;\n"
+"                      do not use this brick for permutation inference.\n"
+"                      Welch contrast t bricks are not stat-coded because\n"
+"                      their degrees of freedom vary by voxel.\n"
 "    CON_p_unc         voxelwise empirical p-value (uncorrected)\n"
 "    CON_p_fwe         max-stat FWE-corrected empirical p-value\n"
 "    CON_z_unc         signed z equivalent of CON_p_unc, tagged FIZT so\n"
@@ -142,27 +181,32 @@ static void shuffle_help(void)
 "                      It is whole-brain FWE-corrected already; no\n"
 "                      further cluster correction is required.\n"
 "\n"
+"  Each two-sample contrast produces 18 sub-bricks, in this order:\n"
+"    GrpA_mean GrpA_t GrpA_p_unc GrpA_p_fwe GrpA_z_unc GrpA_z_fwe\n"
+"    GrpB_mean GrpB_t GrpB_p_unc GrpB_p_fwe GrpB_z_unc GrpB_z_fwe\n"
+"    CON_mean  CON_t  CON_p_unc  CON_p_fwe  CON_z_unc  CON_z_fwe\n"
+"  GrpA and GrpB are one-sample sign-flip tests against zero. CON is the\n"
+"  shuffled two-sample test of A-B. Labels use the supplied condition and\n"
+"  contrast names. Each six-brick family has its own max-stat correction.\n"
+"\n"
 "IMPORTANT resolution ceiling:\n"
 "  With exact sign-flip enumeration, the smallest achievable p-value is\n"
-"  2/2^Nsubj for -tails two and 1/2^Nsubj for -tails one. For N=6, these\n"
-"  floors are 0.03125 and 0.015625. CON_z_fwe/CON_z_unc will never exceed\n"
-"  the |z| corresponding to that floor, regardless of true effect size.\n"
-"  This is a property of small-N exact permutation, not a bug.\n"
-"\n"
-"Important warning:\n"
-"  Independent-group label permutation tests are not implemented yet.\n"
-"  Do not use -method signflip for unpaired/two-sample designs.\n"
+"  2/2^Nsubj for -tails two and 1/2^Nsubj for -tails one.\n"
+"  Exact two-sample contrast resolution is likewise limited by the number\n"
+"  of fixed-size assignments: choose(NA+NB,NA).\n"
 "\n"
    );
    PRINT_COMPILE_DATE;
    exit(0);
 }
 
+/* Return whether a string looks like a command-line option. */
 static int is_opt(const char *s)
 {
    return s != NULL && s[0] == '-';
 }
 
+/* Allocate and return a copy of a string. */
 static char *copy_string(const char *s)
 {
    char *out = NULL;
@@ -173,14 +217,18 @@ static char *copy_string(const char *s)
    return out;
 }
 
+/* Initialize option fields to their default values. */
 static void init_opts(opts_t *opts)
 {
    memset(opts,0,sizeof(opts_t));
    opts->tails = TAIL_TWO;
    opts->mode = MODE_AUTO;
+   opts->stat = STAT_PAIRED;
+   opts->method = METHOD_SIGNFLIP;
    opts->seed = 1234567L;
 }
 
+/* Build a sanitized output label for a contrast name. */
 static char *safe_contrast_name(const char *a, const char *b)
 {
    int ii, jj = 0, n = strlen(a) + strlen(b) + 5;
@@ -195,6 +243,19 @@ static char *safe_contrast_name(const char *a, const char *b)
    return out;
 }
 
+/* Build a sanitized output label from one condition name. */
+static char *safe_label_name(const char *a)
+{
+   int ii, jj = 0, n = strlen(a) + 1;
+   char *out = (char *)calloc(n,sizeof(char));
+   if( out == NULL ) ERROR_exit("malloc failure");
+   for( ii=0 ; a[ii] != '\0' ; ii++ )
+      out[jj++] = (isalnum((unsigned char)a[ii])) ? a[ii] : '_';
+   out[jj] = '\0';
+   return out;
+}
+
+/* Parse and validate a positive integer option argument. */
 static int parse_int_arg(const char *s, const char *opt)
 {
    char *end = NULL;
@@ -204,6 +265,7 @@ static int parse_int_arg(const char *s, const char *opt)
    return (int)val;
 }
 
+/* Convert a condition label or 1-based index string to a 0-based index. */
 static int label_to_index(opts_t *opts, const char *lab)
 {
    int ii;
@@ -220,6 +282,7 @@ static int label_to_index(opts_t *opts, const char *lab)
    return -1;
 }
 
+/* Parse command-line options and finalize derived option state. */
 static void parse_opts(int argc, char **argv, opts_t *opts)
 {
    int nopt = 1, ii;
@@ -234,7 +297,10 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
          opts->ncond = parse_int_arg(argv[nopt],"-conditions");
          opts->cond_labels = (char **)calloc(opts->ncond,sizeof(char *));
          opts->input_names = (char ***)calloc(opts->ncond,sizeof(char **));
-         if( opts->cond_labels == NULL || opts->input_names == NULL )
+         opts->nsubj_by_cond = (int *)calloc(opts->ncond,sizeof(int));
+         opts->offsets = (int *)calloc(opts->ncond,sizeof(int));
+         if( opts->cond_labels == NULL || opts->input_names == NULL ||
+             opts->nsubj_by_cond == NULL || opts->offsets == NULL )
             ERROR_exit("malloc failure");
          nopt++; continue;
       }
@@ -253,13 +319,10 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
          int start = ++nopt, nlab = 0;
          while( nopt < argc && !is_opt(argv[nopt]) ){ nlab++; nopt++; }
          if( nlab <= 0 ) ERROR_exit("need labels after -subj_labels");
-         if( opts->ninput > 0 && opts->nsubj != nlab )
-            ERROR_exit("-subj_labels count %d differs from -input count %d",
-                       nlab, opts->nsubj);
          opts->subj_labels = (char **)calloc(nlab,sizeof(char *));
          if( opts->subj_labels == NULL ) ERROR_exit("malloc failure");
          for( ii=0 ; ii < nlab ; ii++ ) opts->subj_labels[ii] = copy_string(argv[start+ii]);
-         opts->nsubj = nlab;
+         opts->nsubj_labels = nlab;
          continue;
       }
 
@@ -272,13 +335,9 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
          opts->input_names[ic] = (char **)calloc(nds,sizeof(char *));
          if( opts->input_names[ic] == NULL ) ERROR_exit("malloc failure");
          for( ii=0 ; ii < nds ; ii++ ) opts->input_names[ic][ii] = copy_string(argv[start+ii]);
-         if( opts->ninput == 0 ){
-            if( opts->nsubj == 0 ) opts->nsubj = nds;
-            else if( opts->nsubj != nds )
-               ERROR_exit("-subj_labels count %d differs from first -input count %d",opts->nsubj,nds);
-         } else if( nds != opts->nsubj ){
-            ERROR_exit("-input list %d has %d datasets, but expected %d",ic+1,nds,opts->nsubj);
-         }
+         /* Defer count comparisons until -stat is known: independent
+            groups may legitimately have different sample sizes. */
+         opts->nsubj_by_cond[ic] = nds;
          opts->ninput++;
          continue;
       }
@@ -298,15 +357,23 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
 
       if( strcmp(argv[nopt],"-method") == 0 ){
          if( ++nopt >= argc ) ERROR_exit("need an argument after -method");
-         if( strcmp(argv[nopt],"signflip") != 0 )
-            ERROR_exit("V1 only implements -method signflip");
+         if( strcmp(argv[nopt],"signflip") == 0 ) opts->method = METHOD_SIGNFLIP;
+         else if( strcmp(argv[nopt],"shuffle") == 0 ) opts->method = METHOD_SHUFFLE;
+         else ERROR_exit("-method must be one of: signflip shuffle");
          nopt++; continue;
       }
 
       if( strcmp(argv[nopt],"-stat") == 0 ){
          if( ++nopt >= argc ) ERROR_exit("need an argument after -stat");
-         if( strcmp(argv[nopt],"paired_ttest") != 0 )
-            ERROR_exit("V1 only implements -stat paired_ttest");
+         if( strcmp(argv[nopt],"paired_ttest") == 0 ) opts->stat = STAT_PAIRED;
+         else if( strcmp(argv[nopt],"onesample") == 0 ) opts->stat = STAT_ONESAMPLE;
+         else if( strcmp(argv[nopt],"twosample") == 0 ) opts->stat = STAT_TWOSAMPLE;
+         else ERROR_exit("-stat must be one of: paired_ttest onesample twosample");
+         nopt++; continue;
+      }
+
+      if( strcmp(argv[nopt],"-unpooled") == 0 ){
+         opts->unpooled = 1;
          nopt++; continue;
       }
 
@@ -367,12 +434,49 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
       exit(1);
    }
 
-   if( opts->ncond <= 1 ) ERROR_exit("need -conditions N, with N > 1");
+   if( opts->ncond <= 0 ) ERROR_exit("need -conditions N, with N > 0");
+   if( opts->stat != STAT_ONESAMPLE && opts->ncond <= 1 )
+      ERROR_exit("need -conditions N, with N > 1 for a contrast test");
    if( opts->ninput != opts->ncond )
       ERROR_exit("need exactly %d -input lists, found %d",opts->ncond,opts->ninput);
-   if( opts->nsubj < 2 ) ERROR_exit("need at least 2 paired subjects");
-   if( opts->ncon <= 0 ) ERROR_exit("need at least one -contrast A B");
+   if( opts->stat != STAT_ONESAMPLE && opts->ncon <= 0 )
+      ERROR_exit("need at least one -contrast A B for this statistic");
+   if( opts->stat == STAT_ONESAMPLE && opts->ncon > 0 )
+      ERROR_exit("-contrast is not used with -stat onesample");
+   if( opts->stat == STAT_TWOSAMPLE && opts->method != METHOD_SHUFFLE )
+      ERROR_exit("-stat twosample requires -method shuffle");
+   if( opts->stat != STAT_TWOSAMPLE && opts->method != METHOD_SIGNFLIP )
+      ERROR_exit("paired and one-sample tests require -method signflip");
+   if( opts->unpooled && opts->stat != STAT_TWOSAMPLE )
+      ERROR_exit("-unpooled is only valid with -stat twosample");
+   if( opts->stat == STAT_TWOSAMPLE && opts->subj_labels != NULL )
+      ERROR_exit("-subj_labels is not used with -stat twosample; group membership comes from each -input list");
    if( opts->prefix == NULL ) ERROR_exit("need -prefix");
+
+   opts->ntotal = 0;
+   for( ii=0 ; ii < opts->ncond ; ii++ ){
+      /* Every group needs variance, so a singleton input list cannot
+         support any of the requested t-statistics. */
+      if( opts->nsubj_by_cond[ii] < 2 )
+         ERROR_exit("-input list %d has %d datasets; need at least 2",
+                    ii+1,opts->nsubj_by_cond[ii]);
+      opts->offsets[ii] = opts->ntotal;
+      opts->ntotal += opts->nsubj_by_cond[ii];
+   }
+
+   if( opts->stat != STAT_TWOSAMPLE ){
+      opts->nsubj = opts->nsubj_by_cond[0];
+      for( ii=1 ; ii < opts->ncond ; ii++ ){
+         /* Paired input order and the common sign-flip schedule both
+            require a rectangular condition-by-subject input layout. */
+         if( opts->nsubj_by_cond[ii] != opts->nsubj )
+            ERROR_exit("-input list %d has %d datasets, but expected %d",
+                       ii+1,opts->nsubj_by_cond[ii],opts->nsubj);
+      }
+      if( opts->nsubj_labels > 0 && opts->nsubj_labels != opts->nsubj )
+         ERROR_exit("-subj_labels count %d differs from -input count %d",
+                    opts->nsubj_labels,opts->nsubj);
+   }
 
    for( ii=0 ; ii < opts->ncond ; ii++ ){
       char buf[32];
@@ -381,7 +485,7 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
          opts->cond_labels[ii] = copy_string(buf);
       }
    }
-   if( opts->subj_labels == NULL ){
+   if( opts->stat != STAT_TWOSAMPLE && opts->subj_labels == NULL ){
       opts->subj_labels = (char **)calloc(opts->nsubj,sizeof(char *));
       if( opts->subj_labels == NULL ) ERROR_exit("malloc failure");
       for( ii=0 ; ii < opts->nsubj ; ii++ ){
@@ -391,13 +495,29 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
       }
    }
 
-   for( ii=0 ; ii < opts->ncon ; ii++ ){
-      opts->cons[ii].ia = label_to_index(opts, opts->cons[ii].a);
-      opts->cons[ii].ib = label_to_index(opts, opts->cons[ii].b);
-      if( opts->cons[ii].ia == opts->cons[ii].ib )
-         ERROR_exit("contrast %s %s uses the same condition twice",opts->cons[ii].a,opts->cons[ii].b);
-      opts->cons[ii].name = safe_contrast_name(opts->cond_labels[opts->cons[ii].ia],
-                                               opts->cond_labels[opts->cons[ii].ib]);
+   if( opts->stat == STAT_ONESAMPLE ){
+      int ntest = opts->ncond;
+      size_t nalloc = (ntest > 0) ? (size_t)ntest : 1U;
+      if( ntest <= 0 ) ERROR_exit("need at least one one-sample test");
+      opts->ncon = ntest;
+      opts->cons = (contrast_t *)calloc(nalloc,sizeof(contrast_t));
+      if( opts->cons == NULL ) ERROR_exit("malloc failure");
+      for( ii=0 ; ii < opts->ncon ; ii++ ){
+         opts->cons[ii].ia = ii;
+         opts->cons[ii].ib = -1;
+         opts->cons[ii].a = copy_string(opts->cond_labels[ii]);
+         opts->cons[ii].b = copy_string("0");
+         opts->cons[ii].name = safe_label_name(opts->cond_labels[ii]);
+      }
+   } else {
+      for( ii=0 ; ii < opts->ncon ; ii++ ){
+         opts->cons[ii].ia = label_to_index(opts, opts->cons[ii].a);
+         opts->cons[ii].ib = label_to_index(opts, opts->cons[ii].b);
+         if( opts->cons[ii].ia == opts->cons[ii].ib )
+            ERROR_exit("contrast %s %s uses the same condition twice",opts->cons[ii].a,opts->cons[ii].b);
+         opts->cons[ii].name = safe_contrast_name(opts->cond_labels[opts->cons[ii].ia],
+                                                  opts->cond_labels[opts->cons[ii].ib]);
+      }
    }
 
    if( opts->mode == MODE_AUTO ){
@@ -406,55 +526,135 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
    }
    if( opts->mode == MODE_RANDOM && !opts->have_niter )
       ERROR_exit("-mode random requires -niter");
-   if( opts->mode == MODE_EXACT && opts->nsubj >= (int)(8*sizeof(unsigned long)-1) )
+   if( opts->stat != STAT_TWOSAMPLE && opts->mode == MODE_EXACT &&
+       opts->nsubj >= (int)(8*sizeof(unsigned long)-1) )
       ERROR_exit("too many subjects for exact sign-flip enumeration on this build; use -mode random -niter N");
 }
 
-static void print_sanity(opts_t *opts, long long nperm)
+/* Count exact fixed-size group assignments, stopping once int storage is exceeded. */
+static long long combination_count(int nn, int kk)
 {
-   int is, ic, cc;
-   INFO_message("paired/repeated-measures sign-flip test");
-   INFO_message("Conditions:   %d", opts->ncond);
-   INFO_message("Subjects:     %d", opts->nsubj);
-   INFO_message("Method:       signflip");
-   INFO_message("Statistic:    paired_ttest");
-   INFO_message("Tails:        %s", opts->tails == TAIL_TWO ? "two" : "one");
-   if( opts->tails == TAIL_ONE )
-      INFO_message("One-tailed direction: positive for each contrast A-B");
-   INFO_message("Mode:         %s", opts->mode == MODE_EXACT ? "exact" : "random");
-   INFO_message("Permutations: %lld", nperm);
-   if( opts->mode == MODE_RANDOM ) INFO_message("Seed:         %ld", opts->seed);
-
-   INFO_message("Input pairing:");
-   for( is=0 ; is < opts->nsubj ; is++ ){
-      fprintf(stderr,"++   %s:", opts->subj_labels[is]);
-      for( ic=0 ; ic < opts->ncond ; ic++ )
-         fprintf(stderr," %s=%s", opts->cond_labels[ic], opts->input_names[ic][is]);
-      fprintf(stderr,"\n");
+   int ii;
+   long long out = 1;
+   if( kk < 0 || kk > nn ) return 0;
+   if( kk > nn-kk ) kk = nn-kk;
+   for( ii=1 ; ii <= kk ; ii++ ){
+      long long factor = nn-kk+ii;
+      /* Exact runs store one max statistic per assignment, so values
+         beyond INT_MAX cannot be represented by this implementation. */
+      if( out > LLONG_MAX/factor ) return (long long)INT_MAX+1LL;
+      out = (out*factor)/ii;
+      if( out > INT_MAX ) return (long long)INT_MAX+1LL;
    }
-
-   INFO_message("Contrasts:");
-   for( cc=0 ; cc < opts->ncon ; cc++ )
-      fprintf(stderr,"++   %s = %s - %s\n", opts->cons[cc].name,
-              opts->cond_labels[opts->cons[cc].ia],
-              opts->cond_labels[opts->cons[cc].ib]);
+   return out;
 }
 
-static float paired_t_from_diffs(float *diff, int nsubj, unsigned long bits,
-                                 int use_bits, float *mean_out)
+/* Resolve the number of permutations for one statistical test. */
+static long long permutation_count(opts_t *opts, stat_code stat, int na, int nb)
+{
+   if( opts->mode == MODE_RANDOM ) return opts->niter;
+   if( stat == STAT_TWOSAMPLE ) return combination_count(na+nb,na);
+   if( na >= (int)(8*sizeof(unsigned long)-1) ) return (long long)INT_MAX+1LL;
+   return 1LL << na;
+}
+
+/* Report the resolved design, checks, and outputs before running permutations. */
+static void print_sanity(opts_t *opts)
+{
+   int is, ic, cc;
+   const char *stat_name =
+      opts->stat == STAT_PAIRED ? "paired_ttest" :
+      opts->stat == STAT_ONESAMPLE ? "onesample" : "twosample";
+
+   INFO_message("Design:       %s",
+                opts->stat == STAT_PAIRED ? "paired/repeated-measures" :
+                opts->stat == STAT_ONESAMPLE ? "one-sample" :
+                                               "independent groups");
+   INFO_message("Conditions:   %d", opts->ncond);
+   INFO_message("Method:       %s",
+                opts->method == METHOD_SIGNFLIP ? "signflip" : "shuffle");
+   INFO_message("Statistic:    %s", stat_name);
+   if( opts->stat == STAT_TWOSAMPLE )
+      INFO_message("Variance:     %s",
+                   opts->unpooled ? "unequal (Welch; -unpooled)" :
+                                    "equal (pooled; default)");
+   else
+      INFO_message("Subjects:     %d per input list", opts->nsubj);
+   INFO_message("Tails:        %s", opts->tails == TAIL_TWO ? "two" : "one");
+   if( opts->tails == TAIL_ONE )
+      INFO_message("One-tailed direction: %s",
+                   opts->stat == STAT_ONESAMPLE ? "positive condition mean" :
+                                                  "positive for each contrast A-B");
+   INFO_message("Mode:         %s", opts->mode == MODE_EXACT ? "exact" : "random");
+   if( opts->mode == MODE_RANDOM ) INFO_message("Seed:         %ld", opts->seed);
+   INFO_message("Grid check:   every input and mask must match the first input");
+   INFO_message("Auto-mask:    %s", opts->auto_mask ? "yes" : "no");
+   INFO_message("Mask dataset: %s", opts->mask_name != NULL ? opts->mask_name : "none");
+
+   if( opts->stat == STAT_TWOSAMPLE ){
+      INFO_message("Independent input groups:");
+      for( ic=0 ; ic < opts->ncond ; ic++ ){
+         fprintf(stderr,"++   %s: N=%d\n",
+                 opts->cond_labels[ic],opts->nsubj_by_cond[ic]);
+         for( is=0 ; is < opts->nsubj_by_cond[ic] ; is++ )
+            fprintf(stderr,"++      %s\n",opts->input_names[ic][is]);
+      }
+   } else {
+      INFO_message("Input pairing/order:");
+      for( is=0 ; is < opts->nsubj ; is++ ){
+         fprintf(stderr,"++   %s:", opts->subj_labels[is]);
+         for( ic=0 ; ic < opts->ncond ; ic++ )
+            fprintf(stderr," %s=%s", opts->cond_labels[ic], opts->input_names[ic][is]);
+         fprintf(stderr,"\n");
+      }
+   }
+
+   INFO_message("%s:", opts->stat == STAT_ONESAMPLE ? "One-sample tests" : "Contrasts");
+   for( cc=0 ; cc < opts->ncon ; cc++ ){
+      if( opts->stat != STAT_ONESAMPLE ){
+         int na = opts->nsubj_by_cond[opts->cons[cc].ia];
+         int nb = opts->nsubj_by_cond[opts->cons[cc].ib];
+         long long np = permutation_count(opts,opts->stat,na,nb);
+         fprintf(stderr,"++   %s = %s - %s\n", opts->cons[cc].name,
+                 opts->cond_labels[opts->cons[cc].ia],
+                 opts->cond_labels[opts->cons[cc].ib]);
+         fprintf(stderr,"++      N=%d versus N=%d; contrast permutations=%lld\n",
+                 na,nb,np);
+         if( opts->stat == STAT_TWOSAMPLE ){
+            long long npa = permutation_count(opts,STAT_ONESAMPLE,na,0);
+            long long npb = permutation_count(opts,STAT_ONESAMPLE,nb,0);
+            fprintf(stderr,"++      group sign-flips: %s=%lld, %s=%lld\n",
+                    opts->cond_labels[opts->cons[cc].ia],npa,
+                    opts->cond_labels[opts->cons[cc].ib],npb);
+            fprintf(stderr,"++      output order: %s[6], %s[6], %s[6]\n",
+                    opts->cond_labels[opts->cons[cc].ia],
+                    opts->cond_labels[opts->cons[cc].ib],
+                    opts->cons[cc].name);
+         }
+      } else {
+         long long np = permutation_count(opts,STAT_ONESAMPLE,
+                                          opts->nsubj_by_cond[opts->cons[cc].ia],0);
+         fprintf(stderr,"++   %s = %s vs 0\n", opts->cons[cc].name,
+                 opts->cond_labels[opts->cons[cc].ia]);
+         fprintf(stderr,"++      N=%d; sign-flip permutations=%lld\n",
+                 opts->nsubj_by_cond[opts->cons[cc].ia],np);
+      }
+   }
+}
+
+/* Compute a one-sample t-statistic from values, optionally sign-flipped. */
+static float one_sample_t(float *values, int nsubj, byte *flip, float *mean_out)
 {
    int ii;
    double sum = 0.0, ss = 0.0, mean, var;
    for( ii=0 ; ii < nsubj ; ii++ ){
-      double sgn = 1.0;
-      if( use_bits && ((bits >> ii) & 1UL) ) sgn = -1.0;
-      sum += sgn * diff[ii];
+      double sgn = (flip != NULL && flip[ii]) ? -1.0 : 1.0;
+      sum += sgn * values[ii];
    }
    mean = sum / nsubj;
    for( ii=0 ; ii < nsubj ; ii++ ){
-      double sgn = 1.0, dd;
-      if( use_bits && ((bits >> ii) & 1UL) ) sgn = -1.0;
-      dd = sgn * diff[ii] - mean;
+      double sgn = (flip != NULL && flip[ii]) ? -1.0 : 1.0;
+      double dd = sgn * values[ii] - mean;
       ss += dd * dd;
    }
    if( mean_out != NULL ) *mean_out = (float)mean;
@@ -464,19 +664,23 @@ static float paired_t_from_diffs(float *diff, int nsubj, unsigned long bits,
    return (float)(mean / sqrt(var/nsubj));
 }
 
+/* Convert a t-statistic to the comparison value for the requested tail mode. */
 static float tail_value(float tt, tail_code tails)
 {
    if( tails == TAIL_TWO ) return fabsf(tt);
    return tt;
 }
 
+/* Compare two floats for qsort in ascending order. */
 static int cmp_float(const void *a, const void *b)
 {
    float aa = *((const float *)a), bb = *((const float *)b);
    return (aa > bb) - (aa < bb);
 }
 
-/* Simple in-place percentage progress bar on stderr. Only redraws when
+/* Print an in-place percentage progress bar on stderr.
+
+   Only redraws when
    the integer percentage changes, so it doesn't spam output for fast
    loops. Pass a pointer to an int initialized to -1 before the loop
    starts (one such tracker per loop/contrast). */
@@ -499,6 +703,7 @@ static void print_progress_bar(int current, int total, int *last_pct)
    fflush(stderr);
 }
 
+/* Compute an empirical upper-tail p-value from a sorted null distribution. */
 static float emp_p_from_sorted(float *sorted, int nperm, float obs, int exact)
 {
    int lo = 0, hi = nperm;
@@ -522,6 +727,7 @@ static float emp_p_from_sorted(float *sorted, int nperm, float obs, int exact)
    inverse) -- the same routine AFNI's own -toz option relies on.
    p is floored away from 0/1 to avoid +-infinity at the extremes.
 --------------------------------------------------------------------- */
+/* Convert an empirical p-value to a signed z-score for output bricks. */
 static float p_to_signed_z(float pval, float observed_stat, tail_code tails)
 {
    double p, z;
@@ -541,9 +747,229 @@ static float p_to_signed_z(float pval, float observed_stat, tail_code tails)
    return (float)z;
 }
 
+/* Advance a sorted k-element combination drawn from 0..n-1. */
+static int next_combination(int *comb, int kk, int nn)
+{
+   int ii = kk-1, jj;
+   while( ii >= 0 && comb[ii] == nn-kk+ii ) ii--;
+   if( ii < 0 ) return 0;
+   comb[ii]++;
+   for( jj=ii+1 ; jj < kk ; jj++ ) comb[jj] = comb[jj-1]+1;
+   return 1;
+}
+
+/* Mark the observations assigned to group A by an exact combination. */
+static void membership_from_combination(byte *in_a, int ntot, int *comb, int na)
+{
+   int ii;
+   memset(in_a,0,(size_t)ntot*sizeof(byte));
+   for( ii=0 ; ii < na ; ii++ ) in_a[comb[ii]] = 1;
+}
+
+/* Draw a random fixed-size group-A assignment using a partial Fisher-Yates shuffle. */
+static void random_membership(byte *in_a, int *order, int ntot, int na)
+{
+   int ii;
+   memset(in_a,0,(size_t)ntot*sizeof(byte));
+   for( ii=0 ; ii < ntot ; ii++ ) order[ii] = ii;
+   for( ii=0 ; ii < na ; ii++ ){
+      int jj = ii + (int)(drand48()*(ntot-ii));
+      int tmp = order[ii];
+      order[ii] = order[jj];
+      order[jj] = tmp;
+      in_a[order[ii]] = 1;
+   }
+}
+
+/* Compute pooled or Welch independent-group t from a membership assignment. */
+static float two_sample_t(float **combined, int ntot, int na, byte *in_a,
+                          int iv, int unpooled, float *mean_diff)
+{
+   int ii, nb = ntot-na;
+   double suma = 0.0, sumb = 0.0, ssa = 0.0, ssb = 0.0;
+   double ma, mb, va, vb, denom;
+
+   for( ii=0 ; ii < ntot ; ii++ ){
+      if( in_a[ii] ) suma += combined[ii][iv];
+      else           sumb += combined[ii][iv];
+   }
+   ma = suma/na;
+   mb = sumb/nb;
+   for( ii=0 ; ii < ntot ; ii++ ){
+      double dd = combined[ii][iv] - (in_a[ii] ? ma : mb);
+      if( in_a[ii] ) ssa += dd*dd;
+      else           ssb += dd*dd;
+   }
+   va = ssa/(na-1);
+   vb = ssb/(nb-1);
+   if( mean_diff != NULL ) *mean_diff = (float)(ma-mb);
+
+   if( unpooled ){
+      /* Welch's denominator allows each group to retain its own variance. */
+      denom = sqrt(va/na + vb/nb);
+   } else {
+      /* The default follows 3dttest++: combine variance estimates when
+         the equal-variance model has been requested. */
+      double pooled = ((na-1)*va + (nb-1)*vb)/(ntot-2);
+      denom = sqrt(pooled*(1.0/na + 1.0/nb));
+   }
+   if( denom <= 0.0 || !isfinite(denom) ) return 0.0f;
+   return (float)((ma-mb)/denom);
+}
+
+/* Convert permutation exceedance counts into p and signed-z output bricks. */
+static void finish_permutation_output(test_output_t *out, byte *mask, int nvox,
+                                      int *unc_count, float *max_null, int nperm,
+                                      opts_t *opts)
+{
+   int iv;
+   qsort(max_null,nperm,sizeof(float),cmp_float);
+   for( iv=0 ; iv < nvox ; iv++ ){
+      if( !mask[iv] ){
+         out->p_unc[iv] = out->p_fwe[iv] = 1.0f;
+         out->z_unc[iv] = out->z_fwe[iv] = 0.0f;
+         continue;
+      }
+      if( opts->mode == MODE_EXACT )
+         out->p_unc[iv] = (float)unc_count[iv]/(float)nperm;
+      else
+         out->p_unc[iv] = (float)(unc_count[iv]+1)/(float)(nperm+1);
+      out->p_fwe[iv] = emp_p_from_sorted(
+         max_null,nperm,tail_value(out->tstat[iv],opts->tails),
+         opts->mode == MODE_EXACT);
+      out->z_unc[iv] = p_to_signed_z(out->p_unc[iv],out->tstat[iv],opts->tails);
+      out->z_fwe[iv] = p_to_signed_z(out->p_fwe[iv],out->tstat[iv],opts->tails);
+   }
+}
+
+/* Run a one-sample or paired-difference sign-flip test over all voxels. */
+static void run_signflip_test(float **group_a, float **group_b, int nsubj,
+                              byte *mask, int nvox, opts_t *opts,
+                              test_output_t *out, const char *label)
+{
+   int ip, is, iv, last_pct = -1;
+   long long nperm_ll = permutation_count(opts,STAT_ONESAMPLE,nsubj,0);
+   int nperm;
+   int *unc_count;
+   float *max_null, *values;
+   byte *flip;
+
+   if( nperm_ll <= 0 || nperm_ll > INT_MAX )
+      ERROR_exit("sign-flip count for %s is too large (%lld); use -mode random -niter N",
+                 label,nperm_ll);
+   nperm = (int)nperm_ll;
+   unc_count = (int *)calloc(nvox,sizeof(int));
+   max_null = (float *)calloc(nperm,sizeof(float));
+   values = (float *)calloc(nsubj,sizeof(float));
+   flip = (byte *)calloc(nsubj,sizeof(byte));
+   if( unc_count == NULL || max_null == NULL || values == NULL || flip == NULL )
+      ERROR_exit("malloc failure");
+
+   INFO_message("Computing %s: %d sign-flip permutations",label,nperm);
+   for( iv=0 ; iv < nvox ; iv++ ){
+      if( !mask[iv] ) continue;
+      for( is=0 ; is < nsubj ; is++ )
+         values[is] = group_a[is][iv] -
+                      (group_b != NULL ? group_b[is][iv] : 0.0f);
+      out->tstat[iv] = one_sample_t(values,nsubj,NULL,&out->mean[iv]);
+   }
+
+   for( ip=0 ; ip < nperm ; ip++ ){
+      float maxv = -FLT_MAX;
+      if( opts->mode == MODE_EXACT ){
+         unsigned long bits = (unsigned long)ip;
+         for( is=0 ; is < nsubj ; is++ ) flip[is] = (byte)((bits >> is)&1UL);
+      } else {
+         for( is=0 ; is < nsubj ; is++ ) flip[is] = drand48() < 0.5;
+      }
+      for( iv=0 ; iv < nvox ; iv++ ){
+         float tt, tv;
+         if( !mask[iv] ) continue;
+         for( is=0 ; is < nsubj ; is++ )
+            values[is] = group_a[is][iv] -
+                         (group_b != NULL ? group_b[is][iv] : 0.0f);
+         tt = one_sample_t(values,nsubj,flip,NULL);
+         tv = tail_value(tt,opts->tails);
+         if( tv > maxv ) maxv = tv;
+         if( tv >= tail_value(out->tstat[iv],opts->tails) ) unc_count[iv]++;
+      }
+      max_null[ip] = maxv;
+      print_progress_bar(ip,nperm,&last_pct);
+   }
+   finish_permutation_output(out,mask,nvox,unc_count,max_null,nperm,opts);
+   free(flip); free(values); free(max_null); free(unc_count);
+}
+
+/* Run a fixed-size independent-group label-shuffle test over all voxels. */
+static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
+                             byte *mask, int nvox, opts_t *opts,
+                             test_output_t *out, const char *label)
+{
+   int ip, is, iv, last_pct = -1, ntot = na+nb;
+   long long nperm_ll = permutation_count(opts,STAT_TWOSAMPLE,na,nb);
+   int nperm;
+   int *unc_count, *comb, *order;
+   float *max_null;
+   float **combined;
+   byte *in_a;
+
+   if( nperm_ll <= 0 || nperm_ll > INT_MAX )
+      ERROR_exit("shuffle count for %s is too large; use -mode random -niter N",
+                 label);
+   nperm = (int)nperm_ll;
+   unc_count = (int *)calloc(nvox,sizeof(int));
+   max_null = (float *)calloc(nperm,sizeof(float));
+   combined = (float **)calloc(ntot,sizeof(float *));
+   in_a = (byte *)calloc(ntot,sizeof(byte));
+   comb = (int *)calloc(na,sizeof(int));
+   order = (int *)calloc(ntot,sizeof(int));
+   if( unc_count == NULL || max_null == NULL || combined == NULL ||
+       in_a == NULL || comb == NULL || order == NULL )
+      ERROR_exit("malloc failure");
+
+   for( is=0 ; is < na ; is++ ){
+      combined[is] = group_a[is];
+      comb[is] = is;
+      in_a[is] = 1;
+   }
+   for( is=0 ; is < nb ; is++ ) combined[na+is] = group_b[is];
+
+   INFO_message("Computing %s: %d fixed-size label shuffles",label,nperm);
+   for( iv=0 ; iv < nvox ; iv++ ){
+      if( !mask[iv] ) continue;
+      out->tstat[iv] = two_sample_t(combined,ntot,na,in_a,iv,
+                                    opts->unpooled,&out->mean[iv]);
+   }
+
+   for( ip=0 ; ip < nperm ; ip++ ){
+      float maxv = -FLT_MAX;
+      if( opts->mode == MODE_EXACT ){
+         membership_from_combination(in_a,ntot,comb,na);
+      } else {
+         random_membership(in_a,order,ntot,na);
+      }
+      for( iv=0 ; iv < nvox ; iv++ ){
+         float tt, tv;
+         if( !mask[iv] ) continue;
+         tt = two_sample_t(combined,ntot,na,in_a,iv,opts->unpooled,NULL);
+         tv = tail_value(tt,opts->tails);
+         if( tv > maxv ) maxv = tv;
+         if( tv >= tail_value(out->tstat[iv],opts->tails) ) unc_count[iv]++;
+      }
+      max_null[ip] = maxv;
+      if( opts->mode == MODE_EXACT && ip+1 < nperm && !next_combination(comb,na,ntot) )
+         ERROR_exit("internal error while enumerating group assignments");
+      print_progress_bar(ip,nperm,&last_pct);
+   }
+   finish_permutation_output(out,mask,nvox,unc_count,max_null,nperm,opts);
+   free(order); free(comb); free(in_a); free(combined);
+   free(max_null); free(unc_count);
+}
+
+/* Build the analysis mask from an optional mask dataset and auto-mask rules. */
 static byte *make_mask(opts_t *opts, THD_3dim_dataset *mset, float **vals, int nvox)
 {
-   int iv, iset, ntot = opts->ncond * opts->nsubj;
+   int iv, iset, ntot = opts->ntotal;
    byte *mask = (byte *)malloc(sizeof(byte)*nvox);
    if( mask == NULL ) ERROR_exit("malloc failure");
    for( iv=0 ; iv < nvox ; iv++ ) mask[iv] = 1;
@@ -551,6 +977,8 @@ static byte *make_mask(opts_t *opts, THD_3dim_dataset *mset, float **vals, int n
    if( mset != NULL ){
       byte *mb = THD_makemask(mset,0,1.0f,0.0f);
       if( mb == NULL ) ERROR_exit("failed to make mask from %s", opts->mask_name);
+      /* The mask grid was checked before this call; here only its
+         nonzero support is intersected with the analysis voxels. */
       for( iv=0 ; iv < nvox ; iv++ ) if( !mb[iv] ) mask[iv] = 0;
       free(mb);
    }
@@ -560,6 +988,8 @@ static byte *make_mask(opts_t *opts, THD_3dim_dataset *mset, float **vals, int n
          int allzero = 1, bad = 0;
          for( iset=0 ; iset < ntot ; iset++ ){
             float vv = vals[iset][iv];
+            /* A single nonfinite observation invalidates a voxel because
+               every permutation can assign that value to a test group. */
             if( !isfinite(vv) ){ bad = 1; break; }
             if( vv != 0.0f ) allzero = 0;
          }
@@ -570,16 +1000,19 @@ static byte *make_mask(opts_t *opts, THD_3dim_dataset *mset, float **vals, int n
    return mask;
 }
 
+/* Run 3dShuffle from option parsing through permutation testing and output. */
 int main(int argc, char **argv)
 {
    opts_t opts;
    THD_3dim_dataset ***dsets = NULL, *first = NULL, *mset = NULL, *outset = NULL;
    float **vals = NULL;
    byte *mask = NULL;
-   int ic, is, iv, cc, ib, nvox, nout;
-   long long nperm_ll;
-   int nperm;
+   int ic, is, cc, ib, it, nvox, nout, ntest;
+   size_t ncond_alloc;
    float **outbr = NULL;
+   test_output_t *tests = NULL;
+   char **test_names = NULL;
+   int *test_df = NULL;
 
    mainENTRY("3dShuffle main"); machdep(); PRINT_VERSION(PROGRAM_NAME);
    { int new_argc; char **new_argv;
@@ -590,27 +1023,49 @@ int main(int argc, char **argv)
 
    parse_opts(argc,argv,&opts);
 
-   nperm_ll = (opts.mode == MODE_EXACT) ? (1LL << opts.nsubj) : opts.niter;
-   if( nperm_ll <= 0 || nperm_ll > INT_MAX )
-      ERROR_exit("number of permutations is too large for V1: %lld", nperm_ll);
-   nperm = (int)nperm_ll;
-   print_sanity(&opts,nperm_ll);
+   if( opts.mode == MODE_EXACT ){
+      for( cc=0 ; cc < opts.ncon ; cc++ ){
+         int na = opts.nsubj_by_cond[opts.cons[cc].ia];
+         int nb = opts.stat == STAT_ONESAMPLE ? 0 :
+                  opts.nsubj_by_cond[opts.cons[cc].ib];
+         long long np = permutation_count(&opts,opts.stat,na,nb);
+         if( np <= 0 || np > INT_MAX )
+            ERROR_exit("exact permutation count for %s is too large; use -mode random -niter N",
+                       opts.cons[cc].name);
+         if( opts.stat == STAT_TWOSAMPLE ){
+            /* Two-sample output also includes one-sample tests for both
+               groups, so their exact sign-flip spaces must be feasible. */
+            if( permutation_count(&opts,STAT_ONESAMPLE,na,0) > INT_MAX ||
+                permutation_count(&opts,STAT_ONESAMPLE,nb,0) > INT_MAX )
+               ERROR_exit("exact group sign-flip count for %s is too large; use -mode random -niter N",
+                          opts.cons[cc].name);
+         }
+      }
+   }
+   print_sanity(&opts);
 
-   dsets = (THD_3dim_dataset ***)calloc(opts.ncond,sizeof(THD_3dim_dataset **));
-   vals = (float **)calloc(opts.ncond*opts.nsubj,sizeof(float *));
+   /* parse_opts guarantees ncond > 0; the guarded size also makes that
+      allocation invariant explicit to compilers that do not know
+      ERROR_exit terminates execution. */
+   ncond_alloc = opts.ncond > 0 ? (size_t)opts.ncond : 1U;
+   dsets = (THD_3dim_dataset ***)calloc(ncond_alloc,sizeof(THD_3dim_dataset **));
+   vals = (float **)calloc(opts.ntotal,sizeof(float *));
    if( dsets == NULL || vals == NULL ) ERROR_exit("malloc failure");
 
    for( ic=0 ; ic < opts.ncond ; ic++ ){
-      dsets[ic] = (THD_3dim_dataset **)calloc(opts.nsubj,sizeof(THD_3dim_dataset *));
+      dsets[ic] = (THD_3dim_dataset **)calloc(opts.nsubj_by_cond[ic],
+                                              sizeof(THD_3dim_dataset *));
       if( dsets[ic] == NULL ) ERROR_exit("malloc failure");
-      for( is=0 ; is < opts.nsubj ; is++ ){
-         int idx = ic*opts.nsubj + is;
+      for( is=0 ; is < opts.nsubj_by_cond[ic] ; is++ ){
+         int idx = opts.offsets[ic]+is;
          dsets[ic][is] = THD_open_dataset(opts.input_names[ic][is]);
          CHECK_OPEN_ERROR(dsets[ic][is], opts.input_names[ic][is]);
          if( first == NULL ) first = dsets[ic][is];
          if( DSET_NVALS(dsets[ic][is]) != 1 )
-            ERROR_exit("input %s has %d sub-bricks; V1 requires single-brick inputs",
+            ERROR_exit("input %s has %d sub-bricks; 3dShuffle requires single-brick inputs",
                        opts.input_names[ic][is], DSET_NVALS(dsets[ic][is]));
+         /* Permutations compare values voxel-for-voxel, so dimensions,
+            orientation, spacing, and origin must match exactly. */
          if( !EQUIV_GRIDS(first,dsets[ic][is]) )
             ERROR_exit("input %s is not on the same grid as %s",
                        opts.input_names[ic][is], opts.input_names[0][0]);
@@ -623,100 +1078,84 @@ int main(int argc, char **argv)
    if( opts.mask_name != NULL ){
       mset = THD_open_dataset(opts.mask_name);
       CHECK_OPEN_ERROR(mset, opts.mask_name);
+      /* Applying a mask by voxel index is valid only on the input grid. */
       if( !EQUIV_GRIDS(first,mset) ) ERROR_exit("mask is not on the input grid");
       DSET_load(mset); CHECK_LOAD_ERROR(mset);
    }
    mask = make_mask(&opts,mset,vals,nvox);
    INFO_message("%d voxels in analysis mask", THD_countmask(nvox,mask));
 
-   /* 6 output bricks per contrast now: mean, t, p_unc, p_fwe, z_unc, z_fwe */
-   nout = opts.ncon * 6;
+   /* A two-sample contrast has two group one-sample families plus the
+      contrast family; every family contains the same six output bricks. */
+   ntest = opts.stat == STAT_TWOSAMPLE ? 3*opts.ncon : opts.ncon;
+   nout = ntest*6;
    outbr = (float **)calloc(nout,sizeof(float *));
-   if( outbr == NULL ) ERROR_exit("malloc failure");
+   tests = (test_output_t *)calloc(ntest,sizeof(test_output_t));
+   test_names = (char **)calloc(ntest,sizeof(char *));
+   test_df = (int *)calloc(ntest,sizeof(int));
+   if( outbr == NULL || tests == NULL || test_names == NULL || test_df == NULL )
+      ERROR_exit("malloc failure");
    for( ib=0 ; ib < nout ; ib++ ){
       outbr[ib] = (float *)calloc(nvox,sizeof(float));
       if( outbr[ib] == NULL ) ERROR_exit("malloc failure");
    }
+   for( it=0 ; it < ntest ; it++ ){
+      tests[it].mean   = outbr[6*it+0];
+      tests[it].tstat  = outbr[6*it+1];
+      tests[it].p_unc  = outbr[6*it+2];
+      tests[it].p_fwe = outbr[6*it+3];
+      tests[it].z_unc  = outbr[6*it+4];
+      tests[it].z_fwe = outbr[6*it+5];
+      test_df[it] = -1;
+   }
 
    if( opts.mode == MODE_RANDOM ) srand48(opts.seed);
 
-   for( cc=0 ; cc < opts.ncon ; cc++ ){
-      float *mean_br = outbr[6*cc+0];
-      float *t_br    = outbr[6*cc+1];
-      float *p_br    = outbr[6*cc+2];
-      float *pfwe_br = outbr[6*cc+3];
-      float *zunc_br = outbr[6*cc+4];
-      float *zfwe_br = outbr[6*cc+5];
-      int *unc_count = (int *)calloc(nvox,sizeof(int));
-      float *max_null = (float *)calloc(nperm,sizeof(float));
-      float *diff = (float *)calloc(opts.nsubj,sizeof(float));
-      int last_pct = -1;
-      if( unc_count == NULL || max_null == NULL || diff == NULL )
-         ERROR_exit("malloc failure");
-
-      INFO_message("Computing contrast %s = %s - %s",
-                   opts.cons[cc].name,
-                   opts.cond_labels[opts.cons[cc].ia],
-                   opts.cond_labels[opts.cons[cc].ib]);
-
-      for( iv=0 ; iv < nvox ; iv++ ){
-         if( !mask[iv] ){ p_br[iv] = 1.0f; pfwe_br[iv] = 1.0f; continue; }
-         for( is=0 ; is < opts.nsubj ; is++ ){
-            float va = vals[opts.cons[cc].ia*opts.nsubj + is][iv];
-            float vb = vals[opts.cons[cc].ib*opts.nsubj + is][iv];
-            diff[is] = va - vb;
-         }
-         t_br[iv] = paired_t_from_diffs(diff,opts.nsubj,0UL,0,&mean_br[iv]);
+   if( opts.stat == STAT_PAIRED ){
+      for( cc=0 ; cc < opts.ncon ; cc++ ){
+         int ia = opts.cons[cc].ia, ibb = opts.cons[cc].ib;
+         test_names[cc] = copy_string(opts.cons[cc].name);
+         test_df[cc] = opts.nsubj-1;
+         run_signflip_test(vals+opts.offsets[ia],vals+opts.offsets[ibb],
+                           opts.nsubj,mask,nvox,&opts,&tests[cc],
+                           opts.cons[cc].name);
       }
-
-      for( ib=0 ; ib < nperm ; ib++ ){
-         unsigned long bits = 0UL;
-         float maxv = -1.0e30f;
-         if( opts.mode == MODE_EXACT ) bits = (unsigned long)ib;
-         else {
-            for( is=0 ; is < opts.nsubj ; is++ )
-               if( drand48() < 0.5 ) bits |= (1UL << is);
-         }
-         for( iv=0 ; iv < nvox ; iv++ ){
-            float tt, tv;
-            if( !mask[iv] ) continue;
-            for( is=0 ; is < opts.nsubj ; is++ ){
-               float va = vals[opts.cons[cc].ia*opts.nsubj + is][iv];
-               float vb = vals[opts.cons[cc].ib*opts.nsubj + is][iv];
-               diff[is] = va - vb;
-            }
-            tt = paired_t_from_diffs(diff,opts.nsubj,bits,1,NULL);
-            tv = tail_value(tt,opts.tails);
-            if( tv > maxv ) maxv = tv;
-            if( tv >= tail_value(t_br[iv],opts.tails) ) unc_count[iv]++;
-         }
-         max_null[ib] = maxv;
-         print_progress_bar(ib,nperm,&last_pct);
+   } else if( opts.stat == STAT_ONESAMPLE ){
+      for( cc=0 ; cc < opts.ncon ; cc++ ){
+         int ia = opts.cons[cc].ia;
+         test_names[cc] = copy_string(opts.cons[cc].name);
+         test_df[cc] = opts.nsubj_by_cond[ia]-1;
+         run_signflip_test(vals+opts.offsets[ia],NULL,
+                           opts.nsubj_by_cond[ia],mask,nvox,&opts,&tests[cc],
+                           opts.cons[cc].name);
       }
+   } else {
+      for( cc=0 ; cc < opts.ncon ; cc++ ){
+         int ia = opts.cons[cc].ia, ibb = opts.cons[cc].ib;
+         int na = opts.nsubj_by_cond[ia], nb = opts.nsubj_by_cond[ibb];
+         int base = 3*cc;
+         char label[THD_MAX_NAME];
 
-      qsort(max_null,nperm,sizeof(float),cmp_float);
+         test_names[base] = safe_label_name(opts.cond_labels[ia]);
+         test_names[base+1] = safe_label_name(opts.cond_labels[ibb]);
+         test_names[base+2] = copy_string(opts.cons[cc].name);
+         test_df[base] = na-1;
+         test_df[base+1] = nb-1;
+         /* Welch degrees of freedom vary by voxel, so an unpooled
+            contrast t brick is intentionally left without a FITT code. */
+         test_df[base+2] = opts.unpooled ? -1 : na+nb-2;
 
-      for( iv=0 ; iv < nvox ; iv++ ){
-         if( !mask[iv] ) continue;
-         if( opts.mode == MODE_EXACT )
-            p_br[iv] = (float)unc_count[iv] / (float)nperm;
-         else
-            p_br[iv] = (float)(unc_count[iv]+1) / (float)(nperm+1);
-         pfwe_br[iv] = emp_p_from_sorted(max_null,nperm,tail_value(t_br[iv],opts.tails),
-                                         opts.mode == MODE_EXACT);
+         snprintf(label,sizeof(label),"group %s vs 0",opts.cond_labels[ia]);
+         run_signflip_test(vals+opts.offsets[ia],NULL,na,mask,nvox,
+                           &opts,&tests[base],label);
+         snprintf(label,sizeof(label),"group %s vs 0",opts.cond_labels[ibb]);
+         run_signflip_test(vals+opts.offsets[ibb],NULL,nb,mask,nvox,
+                           &opts,&tests[base+1],label);
+         snprintf(label,sizeof(label),"contrast %s",opts.cons[cc].name);
+         run_shuffle_test(vals+opts.offsets[ia],na,
+                          vals+opts.offsets[ibb],nb,mask,nvox,
+                          &opts,&tests[base+2],label);
       }
-
-      /* Convert both p-value bricks to signed z for GUI-thresholdable
-         FIZT bricks. Masked-out voxels get z=0 (matches p=1). */
-      for( iv=0 ; iv < nvox ; iv++ ){
-         if( !mask[iv] ){ zunc_br[iv] = 0.0f; zfwe_br[iv] = 0.0f; continue; }
-         zunc_br[iv] = p_to_signed_z(p_br[iv],    t_br[iv], opts.tails);
-         zfwe_br[iv] = p_to_signed_z(pfwe_br[iv], t_br[iv], opts.tails);
-      }
-
-      free(diff);
-      free(max_null);
-      free(unc_count);
    }
 
    outset = EDIT_empty_copy(first);
@@ -732,12 +1171,12 @@ int main(int argc, char **argv)
       EDIT_substitute_brick(outset,ib,MRI_float,outbr[ib]);
       outbr[ib] = NULL;
       switch( ib % 6 ){
-         case 0: snprintf(lab,sizeof(lab),"%s_mean",  opts.cons[ib/6].name); break;
-         case 1: snprintf(lab,sizeof(lab),"%s_t",     opts.cons[ib/6].name); break;
-         case 2: snprintf(lab,sizeof(lab),"%s_p_unc", opts.cons[ib/6].name); break;
-         case 3: snprintf(lab,sizeof(lab),"%s_p_fwe", opts.cons[ib/6].name); break;
-         case 4: snprintf(lab,sizeof(lab),"%s_z_unc", opts.cons[ib/6].name); break;
-         default: snprintf(lab,sizeof(lab),"%s_z_fwe",opts.cons[ib/6].name); break;
+         case 0: snprintf(lab,sizeof(lab),"%s_mean",  test_names[ib/6]); break;
+         case 1: snprintf(lab,sizeof(lab),"%s_t",     test_names[ib/6]); break;
+         case 2: snprintf(lab,sizeof(lab),"%s_p_unc", test_names[ib/6]); break;
+         case 3: snprintf(lab,sizeof(lab),"%s_p_fwe", test_names[ib/6]); break;
+         case 4: snprintf(lab,sizeof(lab),"%s_z_unc", test_names[ib/6]); break;
+         default: snprintf(lab,sizeof(lab),"%s_z_fwe",test_names[ib/6]); break;
       }
       EDIT_BRICK_LABEL(outset,ib,lab);
 
@@ -749,8 +1188,8 @@ int main(int argc, char **argv)
          problem this program exists to solve. Do NOT report results
          based on CON_t/FITT -- use it only as a side-by-side reference
          against CON_z_fwe when writing up or sanity-checking findings. */
-      if( ib % 6 == 1 )
-         EDIT_BRICK_TO_FITT(outset,ib,opts.nsubj-1);
+      if( ib % 6 == 1 && test_df[ib/6] > 0 )
+         EDIT_BRICK_TO_FITT(outset,ib,test_df[ib/6]);
       if( ib % 6 == 4 || ib % 6 == 5 )
          EDIT_BRICK_TO_FIZT(outset,ib);
    }
