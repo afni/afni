@@ -111,7 +111,7 @@ static void shuffle_help(void)
 "    -stat paired_ttest                           \\\n"
 "    -tails two                                   \\\n"
 "    -mode exact                                  \\\n"
-"    -auto_mask                                   \\\n"
+"    -mask sleep_group_mask+tlrc                  \\\n"
 "    -prefix sleep_shuffle\n"
 "\n"
 "Example 2 -- one-sample t-test against zero:\n"
@@ -126,7 +126,7 @@ static void shuffle_help(void)
 "    -stat onesample                              \\\n"
 "    -tails two                                   \\\n"
 "    -mode exact                                  \\\n"
-"    -auto_mask                                   \\\n"
+"    -mask activation_group_mask+tlrc             \\\n"
 "    -prefix activation_shuffle\n"
 "\n"
 "Example 3 -- independent two-sample t-test:\n"
@@ -144,7 +144,7 @@ static void shuffle_help(void)
 "    -mode random                                 \\\n"
 "    -niter 10000                                 \\\n"
 "    -seed 1234567                                \\\n"
-"    -auto_mask                                   \\\n"
+"    -mask patient_control_mask+tlrc              \\\n"
 "    -prefix patient_vs_control_shuffle\n"
 "\n"
 "Required options:\n"
@@ -191,10 +191,16 @@ static void shuffle_help(void)
 "\n"
 "Masking:\n"
 "  -mask MASK          Restrict analysis to nonzero voxels in MASK.\n"
-"  -auto_mask          Ignore voxels containing NaN/Inf in any input, and\n"
-"                      voxels where all values across conditions/subjects\n"
-"                      are zero. Invalid stat bricks are written as 0 and\n"
-"                      invalid p-value bricks as 1.\n"
+"                      This is strongly recommended for group analyses.\n"
+"  -automask           Use AFNI's automask procedure on the mean absolute\n"
+"                      value across every input dataset. Cannot be combined\n"
+"                      with -mask.\n"
+"                      WARNING: Statistical/effect maps generally do not\n"
+"                      have the intensity structure expected by automask,\n"
+"                      so the resulting coverage can be unreliable. Prefer\n"
+"                      a carefully constructed group mask with -mask.\n"
+"  Masked voxels and voxels containing NaN/Inf in an automask analysis\n"
+"  have statistic bricks set to 0 and p-value bricks set to 1.\n"
 "\n"
 "Output:\n"
 "  Paired and one-sample tests produce 6 sub-bricks per test:\n"
@@ -451,7 +457,7 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
          nopt++; continue;
       }
 
-      if( strcmp(argv[nopt],"-auto_mask") == 0 ){
+      if( strcmp(argv[nopt],"-automask") == 0 ){
          opts->auto_mask = 1;
          nopt++; continue;
       }
@@ -484,6 +490,8 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
       ERROR_exit("-unpooled is only valid with -stat twosample");
    if( opts->stat == STAT_TWOSAMPLE && opts->subj_labels != NULL )
       ERROR_exit("-subj_labels is not used with -stat twosample; group membership comes from each -input list");
+   if( opts->auto_mask && opts->mask_name != NULL )
+      ERROR_exit("-automask and -mask cannot be used together");
    if( opts->prefix == NULL ) ERROR_exit("need -prefix");
 
    opts->ntotal = 0;
@@ -621,8 +629,9 @@ static void print_sanity(opts_t *opts)
    INFO_message("Mode:         %s", opts->mode == MODE_EXACT ? "exact" : "random");
    if( opts->mode == MODE_RANDOM ) INFO_message("Seed:         %ld", opts->seed);
    INFO_message("Grid check:   every input and mask must match the first input");
-   INFO_message("Auto-mask:    %s", opts->auto_mask ? "yes" : "no");
-   INFO_message("Mask dataset: %s", opts->mask_name != NULL ? opts->mask_name : "none");
+   INFO_message("Mask mode:    %s",
+                opts->auto_mask ? "AFNI automask of mean-absolute inputs" :
+                opts->mask_name != NULL ? opts->mask_name : "none");
 
    if( opts->stat == STAT_TWOSAMPLE ){
       INFO_message("Independent input groups:");
@@ -999,8 +1008,9 @@ static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
    free(max_null); free(unc_count);
 }
 
-/* Build the analysis mask from an optional mask dataset and auto-mask rules. */
-static byte *make_mask(opts_t *opts, THD_3dim_dataset *mset, float **vals, int nvox)
+/* Build the analysis mask from an explicit mask or AFNI's automask machinery. */
+static byte *make_mask(opts_t *opts, THD_3dim_dataset *mset,
+                       THD_3dim_dataset *first, float **vals, int nvox)
 {
    int iv, iset, ntot = opts->ntotal;
    byte *mask = (byte *)malloc(sizeof(byte)*nvox);
@@ -1017,17 +1027,56 @@ static byte *make_mask(opts_t *opts, THD_3dim_dataset *mset, float **vals, int n
    }
 
    if( opts->auto_mask ){
+      MRI_IMAGE *avgim;
+      float *avgar;
+      byte *amask;
+
+      WARNING_message(
+         "-automask is being estimated from statistical/effect maps, "
+         "which may not have suitable intensity structure.");
+      WARNING_message(
+         "A carefully constructed group mask supplied with -mask is "
+         "strongly recommended.");
+
+      /* THD_automask normally averages absolute values across dataset
+         bricks before calling mri_automask_image(). Here the inputs are
+         separate datasets, so construct the equivalent image directly. */
+      avgim = mri_new_vol(DSET_NX(first),DSET_NY(first),DSET_NZ(first),MRI_float);
+      if( avgim == NULL ) ERROR_exit("failed to allocate automask image");
+      avgar = MRI_FLOAT_PTR(avgim);
+
       for( iv=0 ; iv < nvox ; iv++ ){
          int allzero = 1, bad = 0;
+         double sumabs = 0.0;
          for( iset=0 ; iset < ntot ; iset++ ){
             float vv = vals[iset][iv];
             /* A single nonfinite observation invalidates a voxel because
                every permutation can assign that value to a test group. */
             if( !isfinite(vv) ){ bad = 1; break; }
             if( vv != 0.0f ) allzero = 0;
+            sumabs += fabs((double)vv);
          }
-         if( bad || allzero ) mask[iv] = 0;
+         if( bad || allzero ){
+            mask[iv] = 0;
+            avgar[iv] = 0.0f;
+         } else {
+            avgar[iv] = (float)(sumabs/ntot);
+         }
       }
+
+      amask = mri_automask_image(avgim);
+      mri_free(avgim);
+      if( amask == NULL )
+         ERROR_exit("AFNI automask failed on the mean-absolute input image");
+
+      /* Retain only voxels selected by AFNI and already known to contain
+         finite, nonzero information across the input collection. */
+      for( iv=0 ; iv < nvox ; iv++ )
+         if( !amask[iv] ) mask[iv] = 0;
+      free(amask);
+
+      if( THD_countmask(nvox,mask) <= 0 )
+         ERROR_exit("-automask produced an empty analysis mask; use -mask");
    }
 
    return mask;
@@ -1115,7 +1164,7 @@ int main(int argc, char **argv)
       if( !EQUIV_GRIDS(first,mset) ) ERROR_exit("mask is not on the input grid");
       DSET_load(mset); CHECK_LOAD_ERROR(mset);
    }
-   mask = make_mask(&opts,mset,vals,nvox);
+   mask = make_mask(&opts,mset,first,vals,nvox);
    INFO_message("%d voxels in analysis mask", THD_countmask(nvox,mask));
 
    /* A two-sample contrast has two group one-sample families plus the
