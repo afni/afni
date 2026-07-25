@@ -272,6 +272,11 @@ static void shuffle_help(void)
 "  that random is the better choice, and falls back to random on its own\n"
 "  when no -mode was given and the enumeration cannot be represented.\n"
 "\n"
+"  The reverse also happens: if -niter is at least the total number of\n"
+"  relabelings, the run switches to exact. Drawing 10000 samples from a\n"
+"  group of 256 revisits some and misses others, so it costs 39 times as\n"
+"  much as enumerating them and returns a noisier p-value.\n"
+"\n"
    , DEFAULT_NITER, DEFAULT_NITER, EXACT_MAX_SIGNFLIP_N, DEFAULT_NITER);
    PRINT_COMPILE_DATE;
    exit(0);
@@ -662,16 +667,42 @@ static long long worst_exact_count(opts_t *opts, const char **which, int *nobs)
    count is in the millions will take enormously longer than random sampling
    while resolving p-values far past anything anyone reports. Exact mode is
    worth its cost at small N, where so few relabelings exist that the discrete
-   p-value floor genuinely constrains the result. */
+   p-value floor genuinely constrains the result.
+
+   Mode changes here only ever go one way on purpose. Upgrading random to
+   exact yields a strictly better answer for less work, so it happens even
+   against an explicit -mode random. Downgrading exact to random yields a
+   different, approximate answer, so it happens only when no -mode was
+   given. */
 static void resolve_mode(opts_t *opts)
 {
    const char *which = "this design";
    int nobs = 0;
+   mode_code want = opts->mode;
    long long worst;
 
-   if( opts->mode != MODE_EXACT ) return;
-
+   /* permutation_count() reports niter once the mode is random, so ask it
+      about the enumeration with the mode temporarily set. */
+   opts->mode = MODE_EXACT;
    worst = worst_exact_count(opts,&which,&nobs);
+   opts->mode = want;
+
+   if( want == MODE_RANDOM ){
+      /* Asking for at least as many draws as the group holds is a request for
+         the exact answer however it was phrased. Sampling with replacement
+         from a group that small revisits some relabelings and misses others,
+         so it costs more than enumeration and gives a noisier p-value. */
+      if( worst > 0 && worst <= INT_MAX && (long long)opts->niter >= worst ){
+         WARNING_message(
+            "-niter %d is at least the %lld relabelings that %s (N=%d) has in "
+            "total, so this run switches to -mode exact.\n"
+            "   Enumerating the whole group costs less than sampling it with "
+            "replacement and carries no sampling error.",
+            opts->niter, worst, which, nobs);
+         opts->mode = MODE_EXACT;
+      }
+      return;
+   }
 
    if( worst <= 0 || worst > INT_MAX ){
       if( opts->mode_explicit )
