@@ -53,7 +53,6 @@ typedef struct {
    int ncond;
    int ninput;
    int nsubj;
-   int nsubj_labels;
    int ntotal;
    int ncon;
    int auto_mask;
@@ -64,7 +63,6 @@ typedef struct {
    char *prefix;
    char *mask_name;
    char **cond_labels;
-   char **subj_labels;
    char ***input_names;
    int *nsubj_by_cond;
    int *offsets;
@@ -100,7 +98,6 @@ static void shuffle_help(void)
 "  3dShuffle                                      \\\n"
 "    -conditions 3                                \\\n"
 "    -cond_labels baseline endsleep longrec       \\\n"
-"    -subj_labels s01 s02 s03 s04 s05 s06         \\\n"
 "    -input s01_base+tlrc s02_base+tlrc ...       \\\n"
 "    -input s01_end+tlrc  s02_end+tlrc  ...       \\\n"
 "    -input s01_ltr+tlrc  s02_ltr+tlrc  ...       \\\n"
@@ -118,7 +115,6 @@ static void shuffle_help(void)
 "  3dShuffle                                      \\\n"
 "    -conditions 1                                \\\n"
 "    -cond_labels activation                      \\\n"
-"    -subj_labels s01 s02 s03 s04 s05 s06         \\\n"
 "    -input s01_activation+tlrc s02_activation+tlrc \\\n"
 "           s03_activation+tlrc s04_activation+tlrc \\\n"
 "           s05_activation+tlrc s06_activation+tlrc \\\n"
@@ -162,9 +158,6 @@ static void shuffle_help(void)
 "  -cond_labels L1 ... LN\n"
 "                      Names for the N conditions. Used for contrasts and\n"
 "                      output sub-brick labels.\n"
-"  -subj_labels S1 ... SN\n"
-"                      Subject labels for paired or one-sample tests. Pairing\n"
-"                      is still by input order. Not used for two-sample tests.\n"
 "\n"
 "Permutation options:\n"
 "  -method signflip    Required for paired and one-sample tests. Default.\n"
@@ -354,17 +347,6 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
          nopt++; continue;
       }
 
-      if( strcmp(argv[nopt],"-subj_labels") == 0 ){
-         int start = ++nopt, nlab = 0;
-         while( nopt < argc && !is_opt(argv[nopt]) ){ nlab++; nopt++; }
-         if( nlab <= 0 ) ERROR_exit("need labels after -subj_labels");
-         opts->subj_labels = (char **)calloc(nlab,sizeof(char *));
-         if( opts->subj_labels == NULL ) ERROR_exit("malloc failure");
-         for( ii=0 ; ii < nlab ; ii++ ) opts->subj_labels[ii] = copy_string(argv[start+ii]);
-         opts->nsubj_labels = nlab;
-         continue;
-      }
-
       if( strcmp(argv[nopt],"-input") == 0 ){
          int start = ++nopt, nds = 0, ic = opts->ninput;
          if( opts->ncond <= 0 ) ERROR_exit("-conditions must precede -input");
@@ -488,8 +470,6 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
       ERROR_exit("paired and one-sample tests require -method signflip");
    if( opts->unpooled && opts->stat != STAT_TWOSAMPLE )
       ERROR_exit("-unpooled is only valid with -stat twosample");
-   if( opts->stat == STAT_TWOSAMPLE && opts->subj_labels != NULL )
-      ERROR_exit("-subj_labels is not used with -stat twosample; group membership comes from each -input list");
    if( opts->auto_mask && opts->mask_name != NULL )
       ERROR_exit("-automask and -mask cannot be used together");
    if( opts->prefix == NULL ) ERROR_exit("need -prefix");
@@ -514,9 +494,6 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
             ERROR_exit("-input list %d has %d datasets, but expected %d",
                        ii+1,opts->nsubj_by_cond[ii],opts->nsubj);
       }
-      if( opts->nsubj_labels > 0 && opts->nsubj_labels != opts->nsubj )
-         ERROR_exit("-subj_labels count %d differs from -input count %d",
-                    opts->nsubj_labels,opts->nsubj);
    }
 
    for( ii=0 ; ii < opts->ncond ; ii++ ){
@@ -526,16 +503,6 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
          opts->cond_labels[ii] = copy_string(buf);
       }
    }
-   if( opts->stat != STAT_TWOSAMPLE && opts->subj_labels == NULL ){
-      opts->subj_labels = (char **)calloc(opts->nsubj,sizeof(char *));
-      if( opts->subj_labels == NULL ) ERROR_exit("malloc failure");
-      for( ii=0 ; ii < opts->nsubj ; ii++ ){
-         char buf[32];
-         sprintf(buf,"subj%d",ii+1);
-         opts->subj_labels[ii] = copy_string(buf);
-      }
-   }
-
    if( opts->stat == STAT_ONESAMPLE ){
       int ntest = opts->ncond;
       size_t nalloc = (ntest > 0) ? (size_t)ntest : 1U;
@@ -644,7 +611,7 @@ static void print_sanity(opts_t *opts)
    } else {
       INFO_message("Input pairing/order:");
       for( is=0 ; is < opts->nsubj ; is++ ){
-         fprintf(stderr,"++   %s:", opts->subj_labels[is]);
+         fprintf(stderr,"++   subj%d:", is+1);
          for( ic=0 ; ic < opts->ncond ; ic++ )
             fprintf(stderr," %s=%s", opts->cond_labels[ic], opts->input_names[ic][is]);
          fprintf(stderr,"\n");
