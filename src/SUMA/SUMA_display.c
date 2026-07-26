@@ -2478,19 +2478,36 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case N_DO_TYPES:
                SUMA_S_Err("N_DO_TYPES should not come up here");
                break;
-            case SO_type:
+              case SO_type:
                SO = (SUMA_SurfaceObject *)dov[sRegistDO[i].dov_ind].OP;
                if (SO->Show && SO->PolyMode != SRM_Hide) {
                   if (  (SO->Side == SUMA_LEFT && csv->ShowLeft) ||
                         (SO->Side == SUMA_RIGHT && csv->ShowRight) ||
                         SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_LR) {
+                        
+                        /* --- HIGH LEVEL PASS INTERCEPT --- */
+                        int saved_sv_polymode = csv->PolyMode;
+                        
+                        if (csv->PolyMode == SRM_Line) {
+                           /* 1. Trick all sub-functions and contour routines into computing faces */
+                           csv->PolyMode = SRM_Fill;
+                           /* 2. Force the graphics hardware to render the mesh as a wireframe */
+                           glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                        }
+
                         if (SUMAg_CF->Dev &&
                             (SUMA_EnvVal("SUMA_TEMP_NODE_CMASK_EXPR"))) {
-                           /* Secret option, for testing only, search for
-                           env above for example */
                            SUMA_DrawMesh_mask(SO, csv); /* create the surface */
                         } else {
                            SUMA_DrawMesh(SO, csv); /* create the surface */
+                        }
+
+                        /* --- RESTORE STATE FOR SUBSEQUENT RENDERING --- */
+                        if (saved_sv_polymode == SRM_Line) {
+                           /* Reset OpenGL state to Fill so overlays/contours can render solidly */
+                           glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                           /* Restore the true viewer mode variable */
+                           csv->PolyMode = saved_sv_polymode;
                         }
                   }
                }
