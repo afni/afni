@@ -6,11 +6,6 @@
 
 #undef MAIN
 #include "afni.h"
-#ifdef LINUX2
-extern char *strptime (const char *__restrict __s,
-		       const char *__restrict __fmt, struct tm *__tp)
-     __THROW;
-#endif
 
 #include "mcw_graf.h"
 #include "parser.h"
