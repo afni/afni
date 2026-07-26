@@ -4972,7 +4972,7 @@ XtPointer T3D_getim( int n , int type , FD_brick * br )
 
       stat->num_total  = br->n3 ;
       stat->num_series = br->n3 ;
-      stat->send_CB    = (gen_func *)T3D_imseq_CB ;
+      stat->send_CB    = T3D_imseq_CB ;
       stat->parent     = (XtPointer) br ;
       stat->aux        = NULL ;
 
@@ -4992,8 +4992,9 @@ XtPointer T3D_getim( int n , int type , FD_brick * br )
 
 /*-------------------------------------------------------------------*/
 
-void T3D_imseq_CB( MCW_imseq * seq , FD_brick * br , ISQ_cbs * cbs )
+void T3D_imseq_CB( MCW_imseq * seq, void *handle, ISQ_cbs * cbs )
 {
+   FD_brick * br=(FD_brick *)handle;
    switch( cbs->reason ){
 
       case isqCR_destroy:

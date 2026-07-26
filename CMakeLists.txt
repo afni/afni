@@ -40,9 +40,9 @@ string(TIMESTAMP BUILD_DATE "%m %d %Y")
 # AFNI includes legacy C sources that rely on pre-C23 empty-parameter-list
 # semantics.  Pin the project dialect so compiler default changes do not alter
 # those semantics.
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS ON)
+#set(CMAKE_C_STANDARD 11)
+#set(CMAKE_C_STANDARD_REQUIRED ON)
+#set(CMAKE_C_EXTENSIONS ON)
 
 set(AFNI_VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/src/AFNI_version.h")
 check_header_has_been_created("${AFNI_VERSION_HEADER}" "${GIT_REPO_VERSION}")

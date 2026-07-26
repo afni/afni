@@ -14,8 +14,7 @@
 
 /*** this routine creates a blank overlay ***/
 
-short * RWC_create_overlay( nxover , nyover )
-   int nxover , nyover ;
+short * RWC_create_overlay(int nxover, int nyover)
 {
    short * ov ;
    register int ii , npix = nxover * nyover ;
@@ -31,12 +30,8 @@ short * RWC_create_overlay( nxover , nyover )
 /*** this routine modifies an array of shorts by
      overlaying values that are NOT the flag value ***/
 
-int RWC_short_overlay( nxim,nyim,image , nxover,nyover ,
-                       flag,dont_overlay,checker , overlay )
-  short * image ;
-  int     nxim,nyim , nxover,nyover , checker ;
-  short   flag , dont_overlay ;
-  short * overlay ;
+int RWC_short_overlay(int nxim, int nyim, short * image, int nxover, int nyover,
+  short flag, short dont_overlay, int checker, short * overlay)
 {
    int rowsize = nxim ;
    static int old_rowsize = -1 ; /* remember last entry */

@@ -39,7 +39,7 @@ int     nowsize ;
 #define SIZ(k) (allim[k]->nx * allim[k]->ny)
 #define DIM(k) (allim[k]->nx)
 
-void add_extra_image() ;
+void add_extra_image(MRI_IMAGE *newim);
 
 MRI_IMAGE * RWC_pcim = NULL , * RWC_alpim = NULL ;
 
@@ -159,7 +159,7 @@ static char * tfont ,
 struct _key {
            char   *st;
            int    code;
-           int    (*fun)();
+           int    (*fun)(int keynum);
            Window wid;
            short  x,y,width,height;
   unsigned long   fore,back; // long is OK here AJJ
@@ -196,13 +196,13 @@ struct _key *key;
 #define kSC1  19
 #define kSC2  20
 
-int  Ims_rot(), Im_help(), Im_diff(), SCA_action(), Ref_im1(), Ref_im2();
-int  Im_Aver(), Im_norm(), Av_im1(), Av_im2(), Smooth_line();
+int  Ims_rot(int ikey), Im_help(int ikey), Im_diff(int ikey), SCA_action(int ikey), Ref_im1(int ikey), Ref_im2(int ikey);
+int  Im_Aver(int ikey), Im_norm(int ikey), Av_im1(int ikey), Av_im2(int ikey), Smooth_line(int ikey);
 
 #define FFT_first_key kFT1
 #define FFT_last_key  kFT3
 
-int  FFT_action(), FFT_selection();
+int  FFT_action(int ikey), FFT_selection(int ikey);
 int  FFT_pressed = 0;
 int  FT1_pressed = 0, FT2_stat = 0, FT3_stat = 0;
 int  z_im1=0, z_imL=0;
@@ -214,7 +214,7 @@ char *key_kFT3[3]    = {"    ", "i FT", "zero"};
 
 #define SCA_first_key kSC1
 #define SCA_last_key  kSC2
-int   SCA_selection();
+int   SCA_selection(int ikey);
 int   SCA_pressed = 0;
 char  *key_kSCA[2]  = {"Scale", "ScEnd"};
 float SCA_ref_val = -1.;
@@ -223,7 +223,7 @@ float SCA_ratio = 0.;
 #define FIM_first_key kFI1
 #define FIM_last_key  kFI3
 
-int  FIM_action() , FIM_selection() ;
+int  FIM_action(int ikey) , FIM_selection(int ikey) ;
 int  FIM_pressed = 0 , FIM_modified = 0 ;
 
 char *FIM_selection_name[FIM_last_key-FIM_first_key+1] =
@@ -346,6 +346,9 @@ int           avr_grp = 0, Av_1, Av_2, av1_done = 0, Av_length = 1;
 int           fim_dif = 0, fim_avr = 0, redraw;
 int           txtW_ON = 0;
 
+typedef struct { unsigned short r;
+                 unsigned short g;
+                 unsigned short b; } AJ_rgb_str;
 
 /* keys (small subwindows) stuff ----- ^^^^^^^^^ ------  AJ */
 
@@ -357,33 +360,33 @@ char            *realloc();
 #endif
 /*---------------------------------------------------------------------------*/
 
-int  STD_colors();
+int  STD_colors(int cx);
 
 void x_events_loop();
-void Resample();
-void Put_image();
+void Resample(MRI_IMAGE * im);
+void Put_image(int n);
 void plot_line();
 void draw_marker();
 void scale_up();
 void scale_down();
-void mat_up();
-void mat_down();
+void mat_up(int n);
+void mat_down(int n);
 void init_mat();
 void grid_up();
 void grid_down();
-void print_plot();
-void redo_graph_window();
+void print_plot(int ask_file);
+void redo_graph_window(int xs, int ys);
 void window_plane();
 void graphic_store();
-void plotx();
-void plx_txt();
-void plx_TXT();
-void subW_TXT();
-void line_color();
-void txt_color();
+void plotx(int x,int y,int mod);
+void plx_txt(int x,int y,char *str);
+void plx_TXT(Window w, int x, int y, char *str);
+void subW_TXT(int x, int y, char *str);
+void line_color(char *col);
+void txt_color(char *col);
 void DrawSubWindow();
 void DrawTopWindow();
-int  FIM_edit_time_series() ;
+int  FIM_edit_time_series( time_series * vec );
 
 int  c_f = 0;
 int    st_8[] = {
@@ -463,14 +466,14 @@ int             eWIDE, eHIGH, aWIDE, eW, eH;
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
-void RWC_setup_fims() ;
+void RWC_setup_fims(int imflag);
 
 int    FIM_opt_colors = 0 ;               /* these are for the data */
 float  FIM_opt_thr[MAX_FIM_COLORS] ;      /* from the -fim_colors option */
 char * FIM_opt_pos[MAX_FIM_COLORS] ,
      * FIM_opt_neg[MAX_FIM_COLORS] ;
 
-int check_color() ;
+int check_color( char * cname );
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -544,7 +547,7 @@ char      *formt[4][4] = {
           {"%s_%02d.%d", "%s_%02d.%02d", "%s_%02d.%03d", "%s_%02d.%04d"},
           {"%s_%03d.%d", "%s_%03d.%02d", "%s_%03d.%03d", "%s_%03d.%04d"} };
 
-void          csfft();
+void          csfft( int mode , int idim , complex * xc );
 int           t_points, t_N_im; /* keep npoints & N_im FFT done AJJ */
 float         t_coef1;
 int           t_min1;
@@ -569,7 +572,7 @@ struct _undo_buf *undo_buf = NULL;
 struct _undo_buf *undo_ref = NULL; /* for reference line */
 int           act_undo = -1, ref_undo = -1;
 char          FT_name[100];
-int           im_f, phase = 0; 
+int           im_f, phase = 0;
 #define FFT_MAG .2
 float         fft_mag = FFT_MAG; /* fft amplitude magnify factor AJJ */
 float         *T_ref; /* tmp pointer of LSQ_ref[0]->ts when FFT done AJJ */
@@ -578,79 +581,76 @@ float         *avr_A = NULL;     /* array of average over several pixels */
 int           avr_nr = 0; /* for time course average over several pixels AJ */
 int           cancell_FT = 0;
 /* ------ vvvvv ------ RGB mode 10.17.2001 AJ ----- vvvvv ------ */
-XImage        *Load_Any_Arr();
-XImage        *Load_Any_ind();
-XImage        *Load_Any_RGB();
-void          Load_Next_Arr();
-void          Load_Next_ind();
-void          Load_Next_RGB();
-void          AJ_StoreColors();
+XImage        *Load_Any_Arr(short int im_arr[], int x, int y);
+XImage        *Load_Any_ind(short int im_arr[], int x, int y);
+XImage        *Load_Any_RGB(short int im_arr[], int x, int y);
+void          Load_Next_Arr(XImage *Image, short int im_arr[], int x, int y);
+void          Load_Next_ind(XImage *Image, short int im_arr[], int x, int y);
+void          Load_Next_RGB(XImage *Image, short int im_arr[], int x, int y);
+void          AJ_StoreColors(Display *Disp, Colormap cmap, XColor *mc, int nc, int color);
 int           AJ_init_RGB();
-void          Make_RGB_lookup();
-static int    highbit();
+void          Make_RGB_lookup(AJ_rgb_str in[], unsigned int out[], int nc);
+static int    highbit(unsigned int ul);
 void          Syntax();
-void          The_Help();
+void          The_Help(int);
 void          init_grid();
-void          get_line_args();
+void          get_line_args(int argc, char *argv[]);
 void          init_const();
-void          make_belt();
-void          load_rect_str();
+void          make_belt(short int *id, int x, int y);
+void          load_rect_str(short int idata[], short int ipx[], int x, int y, int i1, int i2, int x1, int x2, int amin, int nshade);
 void          main_FD_EPI();
 void          redraw_graph();
-void          swap_2();
-void          swap_4();
-void          top_nr_name();
-void          FatalError();
-void          AJ_make_STDcol();
+void          swap_2(char *arR, int nr);
+void          swap_4(char *arR, int nr);
+void          top_nr_name(char *name);
+void          FatalError (char *identifier);
+void          AJ_make_STDcol(struct S_16_c *mc, int nc);
 void          colmap_init();
-void          CreateMainWindow();
-void          New_Cursor();
-void          MResize();
-void          Allow_smaller_im();
-void          HandleEvent();
-void          DrawKey();
-void          discard();
+void          CreateMainWindow(char *geom, int argc, char *argv[]);
+void          New_Cursor( Display *Disp, Window Wind, unsigned int shape, char *fg_col, char *bg_col);
+void          MResize(XImage *(*emage),int *eW,int *eH,XImage *image,int w,int h);
+void          Allow_smaller_im(int argc, char *argv[]);
+void          HandleEvent(XEvent *event);
+void          DrawKey(int keynum);
+void          discard(int x, XEvent *ev);
 int           save_all_images();
 void          c_swap();
 int           save_act_im();
 int           save_avr_array();
-int           get_fft_mag();
+int           get_fft_mag(float *fff);
 int           read_new_im();
 int           kill_curr_im();
-void          Track_Cursor();
-void          c_squeeze();
-void          c_bright();
-void          c_rotate();
+void          Track_Cursor(int mx, int my);
+void          c_squeeze(int d);
+void          c_bright(int d);
+void          c_rotate(int k);
 void          Track_Vpointer();
-void          InvertKey();
-void          discard_Key();
-void          color_init();
-void          LetGoKey();
-void          color_rotate();
+void          InvertKey(int keynum);
+void          discard_Key(Window keyW, int x, XEvent *ev);
+void          color_init(int a1,int a2);
+void          LetGoKey(int keynum);
+void          color_rotate(int k);
 void          grey_init();
-void          grey_rotate();
+void          grey_rotate(int k);
 void          color_swap();
-void          color_squeeze();
-void          grey_contrast();
-void          color_bright();
-void          grey_change();
-void          Allow_new_name();
-void          Cpointer_PIXWIN();
-void          CreateGraphWindow();
+void          color_squeeze(int d);
+void          grey_contrast(int d_lev);
+void          color_bright(int d);
+void          grey_change(int d_lev);
+void          Allow_new_name(int argc, char *argv[]);
+void          Cpointer_PIXWIN(int x, int y, char *color );
+void          CreateGraphWindow(int argc, char *argv[]);
 void          Setup_subWindow();
 void          Setup_topWindow();
 void          Setup_keys();
-void          Allow_smaller_gr();
-void          Vpointer();
-void          Cpointer();
-void          take_file_name();
-int           dec_indx();
+void          Allow_smaller_gr(int argc, char *argv[]);
+void          Vpointer(int x, int y);
+void          Cpointer(int x, int y);
+void          take_file_name( Display *theDisp, Window topW, Colormap CMap, GC txtGC, XFontStruct *finf, int x, int y, char *name, int str_l, char *text, int check);
+int           dec_indx(int n);
 void          draw_frame();
 void          erase_graph();
 
-typedef struct { unsigned short r;
-                 unsigned short g;
-                 unsigned short b; } AJ_rgb_str;
 int           AJ_PseudoColor = 1; /* as original pseudocolor max 12 bpp FD2 */
                                   /* reg. colors 0-207, 208-223 std colors, */
                                   /* 224-255 fim colors */
@@ -665,9 +665,7 @@ int           swap_bytes = 0;     // in place of macro #ifdef LINUX
 
 /* ---------------- */
    int
-   main(argc, argv)
-   int  argc;
-   char *argv[];
+   main(int  argc, char *argv[])
 /* ---------------- */
 {
    int    i, j, k, m, max1;
@@ -857,8 +855,7 @@ int           swap_bytes = 0;     // in place of macro #ifdef LINUX
 
 /* ------------ */
    void
-   The_Help(ex)
-   int ex;
+   The_Help(int ex)
 /* ------------ */
 {
   fprintf (stderr, "\n Events:\n");
@@ -933,9 +930,7 @@ int           swap_bytes = 0;     // in place of macro #ifdef LINUX
 
 /* ------------------------- */
    void
-   get_line_args(argc, argv)
-   int  argc;
-   char *argv[];
+   get_line_args(int  argc, char *argv[])
 /* ------------------------- */
 {
    register int i, j, k, nopt, nnn;
@@ -1241,10 +1236,10 @@ int           swap_bytes = 0;     // in place of macro #ifdef LINUX
    /* swap based on command-line now                   27 Aug 2004 [rickr] */
 
    if ( swap_bytes && imtemp->kind == MRI_short ) {
-     swap_2(MRI_SHORT_PTR(imtemp), imtemp->nx*imtemp->ny*2);
+     swap_2((char *)imtemp, imtemp->nx*imtemp->ny*2);
    }
    else if ( swap_bytes && imtemp->kind == MRI_float ) {
-     swap_4(MRI_FLOAT_PTR(imtemp), imtemp->nx*imtemp->ny*4);
+     swap_4((char *)imtemp, imtemp->nx*imtemp->ny*4);
    }
 
    if( imtemp == NULL ) exit(-1) ;
@@ -1281,10 +1276,10 @@ int           swap_bytes = 0;     // in place of macro #ifdef LINUX
 
       /* we already know whether to swap     26 Aug 2004 [rickr] */
       if ( swap_bytes && imtemp->kind == MRI_short ) {
-        swap_2(MRI_SHORT_PTR(imtemp), imtemp->nx*imtemp->ny*2);
+        swap_2((char *)imtemp, imtemp->nx*imtemp->ny*2);
       }
       else if ( swap_bytes && imtemp->kind == MRI_float ) {
-        swap_4(MRI_FLOAT_PTR(imtemp), imtemp->nx*imtemp->ny*4);
+        swap_4((char *)imtemp, imtemp->nx*imtemp->ny*4);
       }
 
       if( imtemp == NULL ){
@@ -1531,8 +1526,7 @@ int           swap_bytes = 0;     // in place of macro #ifdef LINUX
 int C_count = -1;
 /* ------------------ */
    void
-   HandleEvent(event)
-   XEvent *event;
+   HandleEvent(XEvent *event)
 /* ------------------ */
 {
    Window wind;
@@ -1751,7 +1745,7 @@ int C_count = -1;
                fprintf(stderr,"\n*** cannot realloc undo_ref\a\n") ;
                XBell(theDisp, 100);
             }
- 
+
             discard(KeyPressMask, event);
             break;
          }
@@ -1770,7 +1764,7 @@ int C_count = -1;
                   if ( f3 > 32767. ) f3 = 32767.;
                   RWC_ideal->ts[k] = f3;
                   ref_undo -= 1;
-                  undo_ref = 
+                  undo_ref =
                      realloc(undo_ref,(ref_undo+1)*sizeof(struct _undo_buf));
                   if ( undo_ref == NULL ) {
                      ref_undo = -1;
@@ -1800,7 +1794,7 @@ int C_count = -1;
                if ( undo_buf != NULL ) {
                   redraw_graph() ;
                   DrawSubWindow();
- 
+
                }
                else {
                   act_undo = -1;
@@ -1808,7 +1802,7 @@ int C_count = -1;
                           "\n*** cannot realloc undo_buf or undo_ref\a\n") ;
                   XBell(theDisp, 100);
                }
-            } 
+            }
 
             discard(KeyPressMask, event);
             break;
@@ -1939,7 +1933,7 @@ int C_count = -1;
             New_Cursor(theDisp, theWindow, XC_left_ptr, "red", "white");
             New_Cursor(theDisp,   GWindow, XC_left_ptr, "blue", "yellow");
             if ( (matx != matx_0) && (maty != maty_0) ) {
-               init_mat(0);
+               init_mat();
                redraw_graph();
             }
 	    RWC_framehide = 0 ;
@@ -1960,7 +1954,7 @@ int C_count = -1;
       else {
          switch (buf[0]) {
             /* make time course array of the sum of several pixels */
-            case 'a': {   
+            case 'a': {
                int i, index;
                if ( FT_graph_on ) {
                   if ( avr_A == NULL ) {
@@ -1975,7 +1969,7 @@ int C_count = -1;
                      avr_nr = 0;
                   }
                   index = ypoint*im_size+xpoint;
-                  for (i=0; i < t_points; i++) 
+                  for (i=0; i < t_points; i++)
                      avr_A[i] += (float) T_SAR(i)[index];
                   avr_nr++;
                }
@@ -2174,12 +2168,12 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
                int aaa = avr_grp, ddd = diff_im;
 
 #ifdef USE_MCW
-               if( Im_Nr == 0 ){ 
-                  Put_image(-1) ; 
+               if( Im_Nr == 0 ){
+                  Put_image(-1) ;
                   sleep(1) ;
                   Put_image(0) ;
                   discard(KeyPressMask, event);
-                  break ; 
+                  break ;
                }
 #endif
 
@@ -2225,7 +2219,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
             case 'x': {
                AJ_base = ! AJ_base;
                redraw_graph();
-               DrawSubWindow(); 
+               DrawSubWindow();
                break;
             } /* p used to write plot to file */
             case 'w': case 'p': {
@@ -2530,9 +2524,8 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 /* It loads color strip made by make_belt() & adds unit color stips */
 /* ------------------------------------------------------------- */
    void
-   load_rect_str(idata, ipx, x, y, i1, x1, i2, x2, amin, nshade)
-   short int idata[], ipx[];
-   int       x, y, i1, i2, x1, x2, amin, nshade;
+   load_rect_str(short int idata[], short int ipx[],
+    int x, int y, int i1, int i2, int x1, int x2, int amin, int nshade)
 /* ------------------------------------------------------------- */
 {
    register int i, ii, j, k;
@@ -2567,9 +2560,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------------- */       /* It makes data belt (ramp of indices) */
    void
-   make_belt(id, x, y)
-   short int *id;
-   int       x, y;
+   make_belt(short int *id, int x, int y)
 /* ------------------- */
 {
    register int i, j, ii;
@@ -2583,9 +2574,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------------------------ */ /* It resizes images universally  */
    void
-   MResize(emage,eW,eH,image,w,h)    /* for 12 and 8 bit planes. */
-   int     w, h, *eW, *eH;
-   XImage  *image,*(*emage);
+   MResize(XImage *(*emage),int *eW,int *eH,XImage *image,int w,int h)    /* for 12 and 8 bit planes. */
 /* ------------------------------ */
 {
    int          lt[MAX_WIDTH], bp16;
@@ -2671,9 +2660,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ---------------------------- */
    void
-   Allow_smaller_im(argc, argv)
-   int  argc;
-   char *argv[];
+   Allow_smaller_im(int argc, char *argv[])
 /* ---------------------------- */
 {
    XSizeHints           hints;
@@ -2698,10 +2685,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ---------------------------------- */
    void
-   CreateMainWindow(geom, argc, argv)
-   char *geom;
-   int  argc;
-   char *argv[];
+   CreateMainWindow(char *geom, int argc, char *argv[])
 /* ---------------------------------- */
 {
    XClassHint           class;
@@ -2802,8 +2786,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ----------------- */ /* Set color array of the Image */
    void
-   color_init(a1,a2)    /* OK but sharp edge on green near yellow */
-   int a1, a2;
+   color_init(int a1,int a2) /* OK but sharp edge on green near yellow */
 /* ----------------- */
 {
    double da, an, c, n, s, sb, cb, ak, ab;
@@ -2850,8 +2833,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* --------------- */
    void
-   c_rotate(k)
-   int k;
+   c_rotate(int k)
 /* --------------- */
 {
    if (YES_color) color_rotate(k);
@@ -2861,8 +2843,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* --------------- */
    void
-   color_rotate(k)
-   int k;
+   color_rotate(int k)
 /* --------------- */
 {
    register int i, j;
@@ -2912,8 +2893,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* --------------- */
    void
-   grey_rotate(k)
-   int k;
+   grey_rotate(int k)
 /* --------------- */
 {
    register int i, j;
@@ -2995,8 +2975,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------- */ /* Modify span or contrast */
    void
-   c_squeeze(d)
-   int d;
+   c_squeeze(int d)
 /* ------------- */
 {
    if (YES_color) color_squeeze(d);
@@ -3005,8 +2984,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* -------------------- */      /* Modify contrast of the Image */
    void
-   grey_contrast(d_lev)
-   int d_lev;
+   grey_contrast(int d_lev)
 /* -------------------- */
 {
    register int i, k, m, delta, dx;
@@ -3026,8 +3004,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* -------------------- */ /* Modify span of colors*/
    void
-   color_squeeze(d)
-   int d;
+   color_squeeze(int d)
 /* -------------------- */
 {
    static unsigned int x_arr[NCOLORS];
@@ -3062,8 +3039,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------------ */ /* Modify brightness (color or B&W) */
    void
-   c_bright(d)
-   int d;
+   c_bright(int d)
 /* ------------------ */
 {
    if (YES_color) color_bright(d);
@@ -3072,8 +3048,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------------ */   /* Modify brightness of the Image  */
    void
-   grey_change(d_lev)
-   int d_lev;
+   grey_change(int d_lev)
 /* ------------------ */
 {
    register int i, k, m, delta, dx;
@@ -3093,8 +3068,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------------ */ /* Modify brightness of the Image */
    void
-   color_bright(d)
-   int d;
+   color_bright(int d)
 /* ------------------ */
 {
    double c;
@@ -3113,8 +3087,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* -------------- */ /* It assigns index for one of standard 16 colors */
    int
-   STD_colors(cx)    /* First index is 1, last 16 (equv. to 0 - black col.). */
-   int cx;
+   STD_colors(int cx)    /* First index is 1, last 16 (equv. to 0 - black col.). */
 /* -------------- */
 {
    XColor  any_col;
@@ -3138,11 +3111,9 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
  else return 0;
 }
 
-/* ---------------------------------- */   /* Create Image from the im_arr */
-   XImage *Load_Any_Arr(im_arr, x, y)      /* Usage: theImage = Load_An... */
-   short int im_arr[];                     /* indexed or RGB colors        */
-   int       x, y;
-/* ---------------------------------- */
+/* ---------------------------------- */                  /* Create Image from the im_arr */
+   XImage *Load_Any_Arr(short int im_arr[], int x, int y) /* Usage: theImage = Load_An... */
+/* ---------------------------------- */                  /* indexed or RGB colors        */
 {
    XImage    *image;
 
@@ -3152,10 +3123,10 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
    return image;
 }
 
-/* ---------------------------------- */   /* Create Image from the im_arr */
-   XImage *Load_Any_RGB(im_arr, x, y)      /* Indices for RGB screen       */
-   short int im_arr[];
-   int       x, y;
+/* ---------------------------------- */
+/* Create Image from the im_arr */
+/* Indices for RGB screen       */
+   XImage *Load_Any_RGB(short int im_arr[], int x, int y)
 /* ---------------------------------- */
 {
    register int   i, k;
@@ -3165,7 +3136,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
    unsigned char  *a8, *i8, *m8;
    unsigned short *a16, *i16;
    unsigned int   *a32, *i32;
- 
+
    Width = x;      /* Image width  */
    Hight = y;      /* Image higth  */
    last  = x * y;
@@ -3190,7 +3161,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
             *a32++ =  i32[im_arr[k++]];
          }
       break ;
- 
+
       case 24:
          a8 = (unsigned char *) image->data;
          i8 = (unsigned char *) AJ_RGB;
@@ -3209,7 +3180,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
             *a16++ =  i16[im_arr[k++]];
          }
       break ;
- 
+
       case 8:
          a8 = (unsigned char *) image->data;
          i8 = (unsigned char *) AJ_RGB;
@@ -3222,10 +3193,12 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 }
 
 /* ---------------------------------- */   /* Create Image from the im_arr */
-   XImage *Load_Any_ind(im_arr, x, y)      /* Usage: theImage = Load_An... */
-   short int im_arr[];                     /* Uses own 16 colors for nega- */
-   int       x, y;                         /* tive numbers (-1 - -16).     */
-/* ---------------------------------- */   /* 8 and 12 bit planes work OK. */
+   XImage *Load_Any_ind(short int im_arr[], int x, int y)
+/* Usage: theImage = Load_An... */
+/* Uses own 16 colors for nega- */
+/* tive numbers (-1 - -16).     */
+/* 8 and 12 bit planes work OK. */
+/* ---------------------------------- */
 {
   register char *ptr;
   register int   i, j, k, iN, iE;
@@ -3264,11 +3237,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* -------------------------------------------- */
    void
-   New_Cursor(Disp, Wind, shape, fg_col, bg_col)
-   Display     *Disp;
-   Window       Wind;
-   unsigned int shape;
-   char        *fg_col, *bg_col;
+   New_Cursor( Display *Disp, Window Wind, unsigned int shape, char *fg_col, char *bg_col)
 /* -------------------------------------------- */
 /* Assigns new cursor to the Window. Call after creating the Window */
 {
@@ -3296,9 +3265,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 	arr   :	returned file as array.
    ---------------------------------------------------------------- */
 /* ----------------------------- */
-   int  read_iqm(fname,size,arr)
-   int  *size;
-   char fname[],arr[];
+   int  read_iqm(char fname[],int *size,char arr[])
 /* ----------------------------- */
 {
 	int	isize = *size;
@@ -3331,9 +3298,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 	arr   :	file array.
    ---------------------------------------------------------------- */
 /* ----------------------------- */
-   int WRite_iqm(fname,size,arr)
-   int  *size;
-   char fname[],arr[];
+   int WRite_iqm(char fname[],int *size,char arr[])
 /* ----------------------------- */
 {
 	int	isize = *size;
@@ -3356,8 +3321,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 /*  Directory names (if present) are skipped. and number is added in front */
 /* -------------- */
    void
-   top_nr_name(name)
-   char *name;
+   top_nr_name(char *name)
 /* -------------- */
 {
    register int i, k;
@@ -3380,8 +3344,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 }
 
 /* ------------------ */ /* resample image into 256x256 frame using st_? */
-   void Resample(im)
-   MRI_IMAGE * im ;
+   void Resample(MRI_IMAGE * im)
 /* ------------------ */
 {
    register short int *a;
@@ -3533,8 +3496,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------ */ /* Don't use before first Resample() and Load_Any_Arr(). */
    void            /* Load_Any_Arr() allocate memory for theImage. */
-   Put_image(n)    /* Put_image() needs THIS memory. */
-   int n;
+   Put_image(int n)/* Put_image() needs THIS memory. */
 /* ------------ */
 {
    register int    min2, max2, i, dd;
@@ -3544,7 +3506,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
    if ( (n == old_im) && AJ_PseudoColor ) {
       for (i = 0; i < IM_ARR; i++) imx[i] = tmp_imx[i];
    }
-#ifdef USE_MCW 
+#ifdef USE_MCW
    else if ( n < 0 ){
       mcw_load() ;
       for( i=0 ; i < IM_ARR ; i++ ) tmp_ar[i] = mcw_im[i] ;
@@ -3553,7 +3515,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
       strcpy(T_name,"Medical College of Wisconsin") ;
       strcpy(G_name,"Medical College of Wisconsin") ;
       strcpy(I_name,"MCW") ;
-      Allow_new_name(Argc, Argv); 
+      Allow_new_name(Argc, Argv);
       old_im = -9999 ;
    }
 #endif
@@ -3711,12 +3673,11 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
    XPutImage(theDisp, theWindow, theGC, expImage,0, 0, 0, 0, eWIDE, eHIGH);
 }
 
-/* ---------------------------------- */   /* Create Image from the im_arr */
+/* ---------------------------------- */
+/* Create Image from the im_arr */
+/* Usage: Load_Next... */
    void
-   Load_Next_Arr(Image, im_arr, x, y)      /* Usage: Load_Next... */
-   short int im_arr[];
-   int       x, y;
-   XImage    *Image;
+   Load_Next_Arr(XImage *Image, short int im_arr[], int x, int y)
 /* ---------------------------------- */
 {
 
@@ -3726,22 +3687,19 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ---------------------------------- */
    void
-   Load_Next_RGB(Image, im_arr, x, y)
-   short int im_arr[];
-   int       x, y;
-   XImage    *Image;
+   Load_Next_RGB(XImage *Image, short int im_arr[], int x, int y)
 /* ---------------------------------- */   /* RGB version */
 {
    register int   i, k, last;
    byte      *a8, *i8, *m8;
    unsigned short *a16, *i16;
    unsigned int   *a32, *i32;
- 
+
    last  = x * y;
- 
+
    for (i=0; i < last; i++)
       if ( im_arr[i] < 0 ) im_arr[i] = STD_indx[-im_arr[i]-1];
- 
+
    k = 0;
    switch( bperpix ) {
       case 32:
@@ -3751,7 +3709,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
             *a32++ =  i32[im_arr[k++]];
          }
       break ;
- 
+
       case 24:
          a8 = (byte *) Image->data;
          i8 = (byte *) AJ_RGB;
@@ -3770,7 +3728,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
             *a16++ =  i16[im_arr[k++]];
          }
       break ;
- 
+
       case 8:
          a8 = (byte *) Image->data;
          i8 = (byte *) AJ_RGB;
@@ -3781,13 +3739,15 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
    }
 }
 
-/* ---------------------------------- */   /* Create Image from the im_arr */
+/* ---------------------------------- */
+/* Create Image from the im_arr */
    void
-   Load_Next_ind(Image, im_arr, x, y)      /* Usage: Load_Next... */
-   short int im_arr[];                     /* Uses own 16 colors for nega- */
-   int       x, y;                         /* tive numbers (-1 - -16).     */
-   XImage    *Image;
-/* ---------------------------------- */   /* 8 and 12 bit planes work OK. */
+   Load_Next_ind(XImage *Image, short int im_arr[], int x, int y)
+/* Usage: Load_Next... */
+/* Uses own 16 colors for nega- */
+/* tive numbers (-1 - -16).     */
+/* 8 and 12 bit planes work OK. */
+/* ---------------------------------- */
 {
   register char *ptr;
   register int   i, j, k, iN, iE;
@@ -3815,9 +3775,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ---------------------------- */
    void
-   Allow_new_name(argc, argv)
-   int  argc;
-   char *argv[];
+   Allow_new_name(int argc, char *argv[])
 /* ---------------------------- */
 {
    XSetStandardProperties(theDisp, theWindow, T_name, T_name, None,
@@ -4090,11 +4048,11 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
    xo = xorigin[xc][yc] ; yo = yorigin[xc][yc] ;
    g  = 5 ;
    for( j=1 ; j <= g ; j++ ){
-      plotx( xo+j    , yo+j    , 0 ) ; 
-      plotx( xo+j    , yo+gy-j , 1 ) ; 
+      plotx( xo+j    , yo+j    , 0 ) ;
+      plotx( xo+j    , yo+gy-j , 1 ) ;
       plotx( xo+gx-j , yo+gy-j , 1 ) ;
-      plotx( xo+gx-j , yo+j    , 1 ) ; 
-      plotx( xo+j    , yo+j    , 1 ) ; 
+      plotx( xo+gx-j , yo+j    , 1 ) ;
+      plotx( xo+j    , yo+j    , 1 ) ;
    }
 #endif
 
@@ -4150,8 +4108,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 }
 
 /* ----------------------------- */   /* decrease matrix and redraw  */
-   void mat_down(n)
-   int n;
+   void mat_down(int n)
 /* ----------------------------- */
 {
    matx_0 = matx;
@@ -4174,8 +4131,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 }
 
 /* ----------------------------- */   /* increase matrix and redraw  */
-   void mat_up(n)
-   int n;
+   void mat_up(int n)
 /* ----------------------------- */
 {
    matx_0 = matx;
@@ -4290,8 +4246,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 }
 
 /* ------------------------------  resize graph window */
-   void redo_graph_window(xs, ys)
-   int xs, ys;
+   void redo_graph_window(int xs, int ys)
 /* ------------------------------ */
 {
    idX = xs;   idY = ys;
@@ -4313,7 +4268,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
    XGCValues   gcv;
 
-    CreateGraphWindow(NULL, 0);      /* Set theWindow properties */
+    CreateGraphWindow(0, NULL);      /* Set theWindow properties */
 /* subWindow, topWindow and keys stuff is here ------- vvvvvvv ------- AJ*/
 
     ffc = XGetDefault(theDisp, Xdef_Name, "FKeyFore");
@@ -4703,8 +4658,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* --------------- */
    void
-   DrawKey(keynum)
-   int keynum;
+   DrawKey(int keynum)
 /* --------------- */
 {
    char        *str;
@@ -4728,8 +4682,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ----------------- */
    void
-   InvertKey(keynum)
-   int keynum;
+   InvertKey(int keynum)
 /* ----------------- */
 {
    struct _key *kp;
@@ -4745,8 +4698,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ---------------- */
    void
-   LetGoKey(keynum)
-   int keynum;
+   LetGoKey(int keynum)
 /* ---------------- */
 {
    if( keynum < 0 || keynum >= N_KEYS ) return;
@@ -4756,8 +4708,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------- */
    int
-   Ims_rot(ikey)
-   int ikey;
+   Ims_rot(int ikey)
 /* ------------- */
 {
    register int i, j, k, l, m, n, s;
@@ -4868,8 +4819,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ----------------- */
    int
-   Smooth_line(ikey)
-   int ikey;
+   Smooth_line(int ikey)
 /* ----------------- */
 {
    int  i, x, y, hx;
@@ -4927,8 +4877,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ----------------- */
    int
-   get_fft_mag(fff)
-   float *fff;
+   get_fft_mag(float *fff)
 /* ----------------- */
 {
    int  i, k, x, y;
@@ -4999,7 +4948,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 }
 /* ------------ */
    int
-   FFT_action()
+   FFT_action(int ikey)
 /* ------------ */
 {
    MRI_IMAGE **MM;
@@ -5012,7 +4961,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
       Put_image(Im_Nr);
       DrawSubWindow();
       DrawTopWindow();
-      discard(KeyPressMask, event);
+      discard(KeyPressMask, &event); /* Note that this refers to static event on line 454 */
    }
 
    if( FFT_pressed ) {                /* second press - back to normal graph */
@@ -5107,8 +5056,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------------- */
    int
-   FFT_selection(ikey)
-   int ikey;
+   FFT_selection(int ikey)
 /* ------------------- */
 {
    int  i, j, k, ii, mm, nn;
@@ -5309,7 +5257,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
             z_imL = Im_Nr + 1;
             /* swap order if last < first */
-            if ( z_imL - z_im1 < 0) { 
+            if ( z_imL - z_im1 < 0) {
                i = z_im1;
                z_im1 = z_imL;
                z_imL = i;
@@ -5318,7 +5266,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
             act_undo += (z_imL - z_im1) * ar_size;
             undo_buf = realloc(undo_buf, (act_undo+1)*sizeof(struct _undo_buf));
             if ( undo_buf != NULL ) {
-               for ( k=z_im1, nn=mm; k < z_imL; k++, nn+=ar_size) { 
+               for ( k=z_im1, nn=mm; k < z_imL; k++, nn+=ar_size) {
                   for ( i=0, j=nn; i < ar_size; j++, i++) {
                      undo_buf[j].im  = k;
                      undo_buf[j].pix = i;
@@ -5340,7 +5288,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
                undo_ref =
                       realloc(undo_ref, (ref_undo+1)*sizeof(struct _undo_buf));
                if ( undo_ref != NULL ) {
-                  for ( k=z_im1, j=mm; k < z_imL; k++, j++) { 
+                  for ( k=z_im1, j=mm; k < z_imL; k++, j++) {
                      undo_ref[j].im  = k;
                      undo_ref[j].r   = r_arr[k+1].r;
                      undo_ref[j].i   = r_arr[k+1].i;
@@ -5519,8 +5467,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------- */
    int
-   Im_diff(ikey)
-   int ikey;
+   Im_diff(int ikey)
 /* ------------- */
 {
    XUnmapWindow(theDisp,  key[kDIF].wid);
@@ -5530,8 +5477,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 }
 
 /* ---------------- */
-   int SCA_action(ikey)
-   int ikey;
+   int SCA_action(int ikey)
 /* ---------------- */
 {
    int i;
@@ -5592,7 +5538,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
          DrawSubWindow();
          DrawTopWindow();
          old_im = -1;
-         Put_image(0);       
+         Put_image(0);
    }
 #endif
 
@@ -5602,8 +5548,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------------- */
    int
-   SCA_selection(ikey)
-   int ikey ;
+   SCA_selection(int ikey)
 /* ------------------- */
 {
    int i, k, ix, iy;
@@ -5653,8 +5598,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------- */
    int
-   Im_Aver(ikey)
-   int ikey;
+   Im_Aver(int ikey)
 /* ------------- */
 {
    avr_grp = fim_avr = 0;
@@ -5665,8 +5609,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------- */
    int
-   Im_norm(ikey)
-   int ikey;
+   Im_norm(int ikey)
 /* ------------- */
 {
    diff_im = fim_dif = 0;
@@ -5683,8 +5626,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------ */
    int
-   Av_im1(ikey)
-   int ikey;
+   Av_im1(int ikey)
 /* ------------ */  /* set first image for average one */
 {
    Av_1 = Im_Nr;
@@ -5694,8 +5636,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------ */
    int
-   Av_im2(ikey)
-   int ikey;
+   Av_im2(int ikey)
 /* ------------ */  /* set second image for average one */
 {
    register int  i, j;
@@ -5730,8 +5671,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------- */
    int
-   Ref_im1(ikey)
-   int ikey;
+   Ref_im1(int ikey)
 /* ------------- */  /* set first image for average reference one */
 {
    Im_1 = Im_Nr;
@@ -5741,8 +5681,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------- */
    int
-   Ref_im2(ikey)
-   int ikey;
+   Ref_im2(int ikey)
 /* -------------  set second image for average and make refer im for diff */
 {
    register int  i, j, m;
@@ -5780,8 +5719,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------- */
    int
-   Im_help(ikey)
-   int ikey;
+   Im_help(int ikey)
 /* ------------- */
 {
    The_Help(0);
@@ -5817,10 +5755,9 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
    XFlush(theDisp);
 }
 
-/* ------------------- */	/* It plots line to point (x,y) for mod = 1 */
-   void plotx(x,y,mod)		/* or moves to this point for mod = 0.      */
-   int x, y, mod;               /* All into the pxWind.                     */
-/* ------------------- */
+/* ------------------- */	   /* It plots line to point (x,y) for mod = 1 */
+   void plotx(int x,int y,int mod) /* or moves to this point for mod = 0.      */
+/* ------------------- */	   /* All into the pxWind.                     */
 {
    int	iy = idY - y;
 
@@ -5831,21 +5768,16 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
    }
 }
 
-/* --------------------- */	/* Plot text in pxWind at x,y position */
-   void plx_txt(x,y,str)        /*  relative to lower left corner (!). */
-   int  x, y;
-   char *str;
+/* --------------------- */	       /* Plot text in pxWind at x,y position */
+   void plx_txt(int x,int y,char *str) /*  relative to lower left corner (!). */
 /* --------------------- */
 {
    int	iy = idY - y, n = strlen(str);;
    XDrawString(theDisp, pxWind, txtGC, x, iy, str, n);
 }
 
-/* -------------------------- */ /* Plot text in any window w at x, y */
-   void plx_TXT(w, x, y, str)    /* relative to lower left corner (!)   */
-   Window w;
-   int  x, y;
-   char *str;
+/* -------------------------- */                      /* Plot text in any window w at x, y */
+   void plx_TXT(Window w, int x, int y, char *str)    /* relative to lower left corner (!)   */
 /* -------------------------- */
 {
    Window r;
@@ -5860,10 +5792,8 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
       XDrawString(theDisp, w, txtGC, x, height - y, str, strlen(str));
 }
 
-/* -------------------------- */ /* Plot text in subWindow  at x, y */
-   void subW_TXT(x, y, str)      /* relative to lower left corner (!) */
-   int  x, y;
-   char *str;
+/* -------------------------- */          /* Plot text in subWindow  at x, y */
+   void subW_TXT(int x, int y, char *str) /* relative to lower left corner (!) */
 /* -------------------------- */
 {
    XDrawString(theDisp, subWindow, txtGC, x, sub_W_y - y, str, strlen(str));
@@ -5897,8 +5827,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 }
 
 /* -------------------- */     /* Change color for plotting */
-   void line_color(col)        /* col - named color         */
-   char *col;
+   void line_color(char *col)  /* col - named color         */
 /* -------------------- */
 {
    XColor  any_col, rgb_col;
@@ -5914,8 +5843,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 }
 
 /* -------------------- */     /* Change color for plotting */
-   void txt_color(col)         /* col - named color         */
-   char *col;
+   void txt_color(char *col)   /* col - named color         */
 /* -------------------- */
 {
    XColor  any_col, rgb_col;
@@ -5927,8 +5855,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ----------------------- */
    void
-   FatalError (identifier)
-   char *identifier;
+   FatalError (char *identifier)
 /* ----------------------- */
 {
    fprintf(stderr, "%s: %s\a\n",ProgramName, identifier);
@@ -5937,9 +5864,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ----------------------------------- */
    void
-   CreateGraphWindow(argv, argc)
-   int  argc;
-   char *argv[];
+   CreateGraphWindow(int argc, char *argv[])
 /* ----------------------------------- */
 {
    XClassHint		class;
@@ -5976,9 +5901,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ---------------------------- */
    void
-   Allow_smaller_gr(argc, argv)
-   int  argc;
-   char *argv[];
+   Allow_smaller_gr(int argc, char *argv[])
 /* ---------------------------- */
 {
    XSizeHints           hints;
@@ -5997,9 +5920,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* -------------- */     /* discard events x (of ev) to stop faster */
    void
-   discard(x, ev)
-   int x;
-   XEvent *ev;
+   discard(int x, XEvent *ev)
 /* -------------- */
 {
    XSync(theDisp,False) ;
@@ -6009,10 +5930,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* ------------------------ */
    void
-   discard_Key(keyW, x, ev)
-   int    x;
-   XEvent *ev;
-   Window keyW;
+   discard_Key(Window keyW, int x, XEvent *ev)
 /* ------------------------ */
 {
    while ( XCheckWindowEvent(theDisp, keyW, x, ev) ) ;
@@ -6020,8 +5938,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* -------------------- */
    void
-   Track_Cursor(mx, my)
-   int mx, my;
+   Track_Cursor(int mx, int my)
 /* -------------------- */
 {
    Window       rW, cW;
@@ -6043,8 +5960,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 }
 /* -------------- */
    void
-   Vpointer(x, y)
-   int x, y;
+   Vpointer(int x, int y)
 /* -------------- */
 {
    XPoint a[3];
@@ -6059,8 +5975,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* -------------- */
    void
-   Cpointer(x, y )
-   int x, y;
+   Cpointer(int x, int y)
 /* -------------- */
 {
    int  i;
@@ -6077,9 +5992,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
 /* -------------- */
    void
-   Cpointer_PIXWIN(x, y,color )
-   int x, y;
-   char * color ;
+   Cpointer_PIXWIN(int x, int y, char *color )
 /* -------------- */
 {
    int  i;
@@ -6145,8 +6058,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 }
 
 /* ------------------ */
-   int is_file(fname)
-   char  *fname;
+   int is_file(char *fname)
 /* ------------------ */
 {
    FILE          *fp;
@@ -6160,8 +6072,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 }
 
 /* ----------------------------- */   /* write plot to file  */
-   void print_plot(ask_file)
-   int ask_file ;
+   void print_plot(int ask_file)
 /* ----------------------------- */
 {
    int  i, x, y;
@@ -6261,19 +6172,19 @@ try_again:
          sprintf(strF, formt[0][im_f], strp, i+1);
          /* we have already decided whether to swap */
          if ( swap_bytes && allim[i]->kind == MRI_short ) {
-           swap_2(MRI_SHORT_PTR(allim[i]), allim[i]->nx*allim[i]->ny*2);
+           swap_2((char *)allim[i], allim[i]->nx*allim[i]->ny*2);
          }
          else if ( swap_bytes && allim[i]->kind == MRI_float ) {
-           swap_4(MRI_FLOAT_PTR(allim[i]), allim[i]->nx*allim[i]->ny*4);
+           swap_4((char *)allim[i], allim[i]->nx*allim[i]->ny*4);
          }
 
          mri_write(strF, allim[i]) ;
 
          if ( swap_bytes && allim[i]->kind == MRI_short ) {
-           swap_2(MRI_SHORT_PTR(allim[i]), allim[i]->nx*allim[i]->ny*2);
+           swap_2((char *)allim[i], allim[i]->nx*allim[i]->ny*2);
          }
          else if ( swap_bytes && allim[i]->kind == MRI_float ) {
-           swap_4(MRI_FLOAT_PTR(allim[i]), allim[i]->nx*allim[i]->ny*4);
+           swap_4((char *)allim[i], allim[i]->nx*allim[i]->ny*4);
          }
       }
    }
@@ -6343,19 +6254,19 @@ try_again:
       /* we have already decided on swapping     27 Aug 2004 [rickr] */
 
       if ( swap_bytes && im_tmp_ar->kind == MRI_short ) {
-        swap_2(MRI_SHORT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*2);
+        swap_2((char *)im_tmp_ar, im_tmp_ar->nx*im_tmp_ar->ny*2);
       }
       else if ( swap_bytes && im_tmp_ar->kind == MRI_float ) {
-        swap_4(MRI_FLOAT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*4);
+        swap_4((char *)im_tmp_ar, im_tmp_ar->nx*im_tmp_ar->ny*4);
       }
 
       mri_write( strp , im_tmp_ar ) ;
 
       if ( swap_bytes && im_tmp_ar->kind == MRI_short ) {
-        swap_2(MRI_SHORT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*2);
+        swap_2((char *)im_tmp_ar, im_tmp_ar->nx*im_tmp_ar->ny*2);
       }
       else if ( swap_bytes && im_tmp_ar->kind == MRI_float ) {
-        swap_4(MRI_FLOAT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*4);
+        swap_4((char *)im_tmp_ar, im_tmp_ar->nx*im_tmp_ar->ny*4);
       }
    }
 
@@ -6366,16 +6277,16 @@ try_again:
 /* popup window which take a file name of max length str_l */
 /* --------------------------------------- return name of file in name */
    void
-   take_file_name(theDisp, topW, CMap, txtGC, finf, x, y, name, str_l, text, check)
-   Display     *theDisp;
-   Window      topW;                    /* top window of this popup one */
-   Colormap    CMap;
-   GC          txtGC;
-   XFontStruct *finf;
-   int         x, y;                    /* relative position */
-   char *name, *text;                   /* name - file name, max str_l chars */
-   int  str_l;                          /* text - window's header */
-   int  check ;                         /* to check if name exists already? */
+   take_file_name(
+   Display     *theDisp,
+   Window      topW,                    /* top window of this popup one */
+   Colormap    CMap,
+   GC          txtGC,
+   XFontStruct *finf,
+   int         x, int y,                /* relative position */
+   char *name,                          /* name - file name, max str_l chars */
+   int  str_l, char *text,              /* text - window's header */
+   int  check)                          /* to check if name exists already? */
 /* --------------------------------------- */
 {
    int    w_l1, w_h1, w_l2, w_h2, h_txt, expose = 0, name_OK = 0, length;
@@ -6575,8 +6486,7 @@ try_again:
 #define MAX_NREF (MAX_NUMORT+MAX_POLORT+99)
 
 
-void RWC_setup_fims( imflag )
-   int imflag ;
+void RWC_setup_fims( int imflag )
 {
    int kim , nref ;
    float current_refs[MAX_NREF] ;
@@ -6830,8 +6740,7 @@ void RWC_setup_fims( imflag )
 
 /****************************************************************************/
 
-int FIM_action(ikey)
-  int ikey ;
+int FIM_action(int ikey)
 {
    int i ;
 #ifdef USE_MCW
@@ -6874,8 +6783,7 @@ int FIM_action(ikey)
 
 /****************************************************************************/
 
-int FIM_selection(ikey)
-  int ikey ;
+int FIM_selection(int ikey)
 {
    int x , y , ifim = ikey - FIM_first_key , ref_modified = 0 ;
    float fval ;
@@ -7136,7 +7044,7 @@ int FIM_selection(ikey)
                int ii , ival ;
                FILE * fp ;
 
-               if( !RWC_do_overfim || RWC_ideal == NULL ){ 
+               if( !RWC_do_overfim || RWC_ideal == NULL ){
                   XBell(theDisp,100) ;
                   return 0;
                }
@@ -7299,8 +7207,7 @@ int FIM_selection(ikey)
 
 /****************************************************************************/
 
-int FIM_edit_time_series( vec )
-  time_series * vec ;
+int FIM_edit_time_series( time_series * vec )
 {
    int i , itop ;
    if( vec == NULL ) return 0;
@@ -7342,8 +7249,7 @@ int kill_curr_im()
 
 /*** add an extra image onto the end of allim ***/
 
-void add_extra_image(newim)
-     MRI_IMAGE *newim;
+void add_extra_image(MRI_IMAGE *newim)
 {
    if( N_im >= dim_allim ){
       dim_allim += INC_ALLIM ;
@@ -7393,10 +7299,10 @@ void add_extra_image(newim)
    /* we have already decided on swapping     27 Aug 2004 [rickr] */
 
    if ( swap_bytes && im->kind == MRI_short ) {
-     swap_2(MRI_SHORT_PTR(im), im->nx*im->ny*2);
+     swap_2((char *)im, im->nx*im->ny*2);
    }
    else if ( swap_bytes && im->kind == MRI_float ) {
-     swap_4(MRI_FLOAT_PTR(im), im->nx*im->ny*4);
+     swap_4((char *)im, im->nx*im->ny*4);
    }
 
    if( im == NULL ) return(3) ;
@@ -7547,11 +7453,7 @@ void RWC_init_fim_colors()
      (see routine STD_colors)
 ***/
 
-void add_extra_color(r, g, b, ind)
-     int r;
-     int g;
-     int b;
-     int ind;
+void add_extra_color(int r, int g, int b, int ind)
 {
    XColor any_col;
    int    ic ;
@@ -7596,7 +7498,7 @@ void add_extra_color(r, g, b, ind)
       AJ_rgb[0].r = (r >> 8) & 0xff;
       AJ_rgb[0].g = (g >> 8) & 0xff;
       AJ_rgb[0].b = (b >> 8) & 0xff;
-      Make_RGB_lookup(AJ_rgb, cH, 1);
+      Make_RGB_lookup(AJ_rgb, (unsigned int *)cH, 1);
    }
 }
 
@@ -7604,8 +7506,7 @@ void add_extra_color(r, g, b, ind)
 
 /*** check that a character string is a valid color name ***/
 
-int check_color( cname )
-  char * cname ;
+int check_color( char * cname )
 {
    XColor test_color ;
 
@@ -7613,8 +7514,7 @@ int check_color( cname )
 }
 
 /* --------------- */
-   int dec_indx(n)
-   int n;
+   int dec_indx(int n)
 /* --------------- */
 {
    int m;
@@ -7628,8 +7528,7 @@ int check_color( cname )
 }
 
 /* -------------------- */
-   int Get_X_Y(mx, my)
-   int *mx, *my;
+   int Get_X_Y(int *mx, int *my)
 /* -------------------- */
 {
    Window       rW, cW;
@@ -7652,9 +7551,7 @@ int check_color( cname )
 
 /* ----------------------- */
    void
-   swap_2(arR, nr)
-   char *arR;
-   int nr;
+   swap_2(char *arR, int nr)
 /* ----------------------- */
 {
    int i;
@@ -7669,9 +7566,7 @@ int check_color( cname )
 
 /* ----------------------- */
    void
-   swap_4(arR, nr)
-   char *arR;
-   int nr;
+   swap_4(char *arR, int nr)
 /* ----------------------- */
 {
    int i;
@@ -7689,11 +7584,7 @@ int check_color( cname )
 
 /* ----------------------------------------- */
    void
-   AJ_StoreColors(Disp, cmap, mc, nc, color)
-   Display   *Disp;
-   Colormap  cmap;
-   XColor    *mc;
-   int       nc, color;
+   AJ_StoreColors(Display *Disp, Colormap cmap, XColor *mc, int nc, int color)
 /* ----------------------------------------- */
 {
    int i;
@@ -7717,10 +7608,7 @@ int check_color( cname )
 
 /* --------------------------------- create machine packed RGB values */
    void
-   Make_RGB_lookup(in, out, nc)
-   AJ_rgb_str *in;
-   char *out;
-   int nc;
+   Make_RGB_lookup(AJ_rgb_str in[], unsigned int out[], int nc)
 /* --------------------------------- */
 {
    unsigned int  r, g, b, rmask, gmask, bmask;
@@ -7798,16 +7686,14 @@ int check_color( cname )
 
 /* ---------------------------------- */
    void
-   AJ_make_STDcol(mc, nc)
-   struct S_16_c  *mc;
-   int    nc;
+   AJ_make_STDcol(struct S_16_c *mc, int nc)
 /* ---------------------------------- */
 {
    int i;
    char *cH;
    unsigned char *a8;
    short *a16;
- 
+
    switch( bperpix ) {
       case 32:
       default:
@@ -7826,13 +7712,13 @@ int check_color( cname )
          cH = (char *) &a8[NCOLORS];
       break;
    }
-  
+
    for (i=0; i < nc; i++) {
       AJ_rgb[i].r = mc[i].red >> 8;
       AJ_rgb[i].g = mc[i].green >> 8;
       AJ_rgb[i].b = mc[i].blue >> 8;
    }
-   Make_RGB_lookup(AJ_rgb, cH, nc);
+   Make_RGB_lookup(AJ_rgb, (unsigned int *)cH, nc);
 }
 
 /* ------------- */

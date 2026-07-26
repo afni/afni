@@ -339,7 +339,7 @@ char * nl_langinfo(){ return "ISO-8859-1"; }
 
 /** log of gamma, for argument between 1 and 2 **/
 
-static double gamma_12( double y )
+double gamma_12( double y )
 {
    double x , g ;
    x = y - 1.0 ;
@@ -357,7 +357,7 @@ static double gamma_12( double y )
 
 #define LNSQRT2PI 0.918938533204672  /* ln(sqrt(2*PI)) */
 
-static double gamma_asympt(double x)
+double gamma_asympt(double x)
 {
    double sum ;
 
