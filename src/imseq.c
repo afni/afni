@@ -11974,7 +11974,7 @@ ENTRY("ISQ_record_getim") ;
    so that we can free some memory.
 -----------------------------------------------------------------------------*/
 
-void ISQ_record_send_CB( MCW_imseq *seq , XtPointer , ISQ_cbs *cbs )
+void ISQ_record_send_CB( MCW_imseq *seq , XtPointer handle, ISQ_cbs *cbs )
 {
 ENTRY("ISQ_record_send_CB") ;
 
