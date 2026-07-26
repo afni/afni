@@ -2616,7 +2616,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_despike_L1.o thd_Tcorr1D.o thd_openimage.o                 \
            thd_remove_allzero.o thd_store_index.o thd_ljungbox.o          \
            thd_get_tcsv.o thd_vecwarp.o thd_StatsPDL.o thd_depth_map_edt.o \
-           thd_edge_dog.o thd_permute.o
+           thd_edge_dog.o
 
 # these are now included in NIML
 
@@ -4288,4 +4288,3 @@ AFNI_version.txt: AFNI_version_base.txt
 	date +'%b %d %Y' >> AFNI_version.txt ;           \
 	echo $(AFNI_WHOMADEIT) >> AFNI_version.txt ;     \
 	)
-
