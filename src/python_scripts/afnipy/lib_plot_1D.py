@@ -370,6 +370,9 @@ lots of individual subject 'ss' instances of the subplobj object.
         for vv in bf.vlines:
             pp.axvline(x=vv, c='0.2', ls='--', lw=1)
 
+        for vv, lbl in bf.vlines_hl:
+            pp.axvline(x=vv, color='#c44e52', lw=1.5, label=lbl)
+
         pp.set_xlabel(ss.xlabel, fontsize=bf.fontsize)
 
         if bf.ylabels_maxlen :
@@ -408,7 +411,7 @@ lots of individual subject 'ss' instances of the subplobj object.
             # suptitle
             pp.set_title(bf.title, fontsize=bf.fontsize)
 
-        if bf.legend_on :
+        if bf.legend_on or bf.vlines_hl:
             pp.legend(loc=ss.legloc)
 
 
@@ -564,6 +567,9 @@ def make_1dplot_histogram_figure(bf):
         for vv in bf.vlines:
             pp.axvline(x=vv, c='0.2', ls='--', lw=1)
 
+        for vv, lbl in bf.vlines_hl:
+            pp.axvline(x=vv, color='#c44e52', lw=1.5, label=lbl)
+
         title = ''
         if bf.title and not(i):
             title = bf.title
@@ -590,7 +596,7 @@ def make_1dplot_histogram_figure(bf):
             pp.spines['top'   ].set_color('0.5')
             pp.spines['left'  ].set_color('0.5')
             pp.spines['right' ].set_color('0.5')
-        if bf.legend_on:
+        if bf.legend_on or bf.vlines_hl:
             pp.legend(loc=ss.legloc)
         print("++ Plotting histogram: {}".format(ss.ylabel))
 
@@ -719,6 +725,7 @@ def populate_1dplot_fig(iopts):
     bigfig.set_plot_kind( iopts.plot_kind )
     bigfig.set_hist_opts( iopts.histbin, iopts.histwidth, iopts.hist_density )
     bigfig.set_vlines( iopts.vlines )
+    bigfig.set_vlines_hl( iopts.vlines_hl )
     bigfig.set_heat_opts( iopts.heat_matrix, iopts.heat_cmap,
                           iopts.zerocenter )
     bigfig.set_scatter( iopts.scatter_on )

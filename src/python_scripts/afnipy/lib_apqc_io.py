@@ -337,6 +337,13 @@ COMMAND OPTIONS ~1~
               :add vertical reference lines to histogram, scatter or line
                plots.  For example, use '-vline 0' to mark zero.
 
+-vline_hl VV LABEL
+              :add a highlighted vertical reference line to histogram,
+               scatter or line plots: drawn in a distinct color and added
+               to the legend under LABEL.  For example, use
+               '-vline_hl 0.42 "mean 0.42"' to call out the mean.  May be
+               repeated.
+
 -scatter      :draw points rather than lines.  This is mainly useful with
                '-xfile ..' to provide the x-values.
 
@@ -732,6 +739,7 @@ class figplobj:
         self.histwidth   = DEF_histwidth
         self.hist_density = DEF_hist_density
         self.vlines      = []
+        self.vlines_hl   = []
         self.heat_matrix = []
         self.heat_cmap   = DEF_heat_cmap
         self.zerocenter  = False
@@ -765,6 +773,9 @@ class figplobj:
 
     def set_vlines(self, ll):
         self.vlines = ll
+
+    def set_vlines_hl(self, ll):
+        self.vlines_hl = ll
 
     def set_heat_opts(self, mat, cmap, zcen):
         self.heat_matrix = mat
@@ -1109,6 +1120,7 @@ class apqc_1dplot_opts:
         self.histwidth  = DEF_histwidth
         self.hist_density = DEF_hist_density
         self.vlines     = []
+        self.vlines_hl  = []
         self.heat_matrix = []
         self.heat_cmap  = DEF_heat_cmap
         self.zerocenter = False
@@ -1208,6 +1220,9 @@ class apqc_1dplot_opts:
 
     def add_vline(self, c):
         self.vlines.append(float(c))
+
+    def add_vline_hl(self, val, label):
+        self.vlines_hl.append((float(val), label))
 
     def set_heat_cmap(self, c):
         self.heat_cmap = c
@@ -1912,6 +1927,14 @@ def parse_1dplot_args(full_argv):
                     break
             if not(count):
                 ARG_missing_arg(argv[i])
+
+        elif argv[i] == "-vline_hl":
+            if i+2 >= Narg:
+                ARG_missing_arg(argv[i])
+            val = argv[i+1]
+            label = argv[i+2]
+            i+= 2
+            iopts.add_vline_hl(val, label)
 
         elif argv[i] == "-scatter":
             iopts.set_scatter(True)
