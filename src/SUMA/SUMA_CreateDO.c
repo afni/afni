@@ -17571,8 +17571,6 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "########## RENDER_METHOD = %s\n", FuncName); 
-
    SUMA_LH("Entered");
 
    if (LocalHead) {
@@ -17794,10 +17792,9 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             glNormalPointer (GL_FLOAT, 0, SurfObj->glar_NodeNormList);
             if (LocalHead)
                fprintf(stdout, "Ready to draw Elements %d\n", ptch->N_FaceSet);
-            fprintf(stderr, "########## RENDER_METHOD = %d\n", RENDER_METHOD); 
+
             switch (RENDER_METHOD) {
                case TRIANGLES:
-                   fprintf(stderr, "++++++++++++++++++++++ TRIANGLES\n");
                   if (SurfObj->PolyMode == SRM_Line) {
                      /* === PASS 1: Calculate contours invisibly via filled faces === */
                      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -18028,8 +18025,6 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "########## Function name = %s\n", FuncName); 
-
    SUMA_LH("Entered DrawMesh");
 
    if (LocalHead) {
@@ -18165,7 +18160,6 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 
    N_glar_FaceSet = SurfObj->N_FaceSet;
 
-   fprintf(stderr, "########## DRAW_METHOD = %d\n", DRAW_METHOD); 
    switch (DRAW_METHOD) {
       case STRAIGHT:
          switch (RENDER_METHOD) {
@@ -18233,7 +18227,6 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             fprintf(stdout, "Ready to draw Elements %d from %s\n",
 	             N_glar_FaceSet, SurfObj->Label);
 	       
-        fprintf(stderr, "RENDER_METHOD = %d\n", RENDER_METHOD);
          switch (RENDER_METHOD) {
             case TRIANGLES:
                SUMA_LH("Tri %d %p",NP, SurfObj->glar_FaceSetList);
@@ -18307,14 +18300,6 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             fprintf (SUMA_STDERR,
                      "Error %s: Failed in drawing ROI objects.\n", FuncName);
          }
-
-         /* If we temporarily changed the viewer state to trick the contours,
-            we must restore it back to SRM_Line before exiting the function. */
-         if (glIsEnabled(GL_TEXTURE_2D) == GL_FALSE && sv->PolyMode == SRM_Fill) {
-             // We use a safe conditional or track a local variable boolean to flip it back:
-             // If you want to keep it simple, just add a tracker variable at the top of the function:
-         }
-
 
          /* Draw Axis */
          SUMA_LH("Axis");
