@@ -12139,7 +12139,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
          if (LocalHead) SUMA_Show_ColorOverlayPlanes(&cp, 1, 0);
       }
    } else {      
-         fprintf(stderr, ">>> FALLBACK PATH TRIGGERED: SV is NULL!\n");
+         // fprintf(stderr, ">>> FALLBACK PATH TRIGGERED: SV is NULL!\n");
       if (!SV->VCont || !SV->N_VCont) {
          SUMA_RETURN(NOPE);
       } else {
@@ -12167,7 +12167,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
                   SUMA_FindNamedColMap (cp->cmapname), 1,
                   cp->Label, SDSET_IDMDOM(cp->dset_link),
                   &(cp->N_Contours), 1, 1);
-         fprintf(stderr, "SV: >>> CONTOUR GENERATION RESULT: N_Contours = %d\n", cp->N_Contours);
+         // fprintf(stderr, "SV: >>> CONTOUR GENERATION RESULT: N_Contours = %d\n", cp->N_Contours);
          if (LocalHead) SUMA_Show_ColorOverlayPlanes(&cp, 1, 0);
       }
    }

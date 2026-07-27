@@ -15193,7 +15193,7 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   
    el = dlist_head(SUMAg_CF->DsetList);
    while (el) {
       dd = (SUMA_DSET*)el->data;
@@ -15214,9 +15214,17 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                  colplane == SUMA_ADO_CurColPlane((SUMA_ALL_DO *)SO)  && 
                  colplane->Contours && colplane->N_Contours) {
               
-            /* --- FORCE DEPTH VISIBILITY OVER WIREFRAME MESH --- */
-            glDisable(GL_DEPTH_TEST); 
-            glLineWidth(sv->ContThick * 2.0); /* Double the thickness so contours pop over mesh lines */
+            /* --- QUERY THE REAL HARDWARE RASTER STATE --- */
+            GLint current_gl_mode[2];
+            glGetIntegerv(GL_POLYGON_MODE, current_gl_mode);
+
+            /* If the hardware is currently rendering lines (GL_LINE is 0x1B01) */
+            if (current_gl_mode[0] == GL_LINE) {
+               glDisable(GL_DEPTH_TEST); 
+               glLineWidth(sv->ContThick * 2.0); 
+            } else {
+               glLineWidth(sv->ContThick);       
+            }
 
             /* draw them */
             for (ic=0; ic<colplane->N_Contours; ++ic) {
@@ -15353,9 +15361,9 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                               i2last = D_ROI->CE[icont].n2;
                            }
                            ++icont;
-                        }
-                        glEnd();
                      }
+                     glEnd();
+                     
                      #else /* slower way */
                      for (icont = 0; icont < D_ROI->N_CE; ++icont) {
                         id1cont = 3 * D_ROI->CE[icont].n1;
@@ -15376,18 +15384,33 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                         }
                      }
                      #endif
-                  }
-               }
 
+                  } /* End of if (icont < D_ROI->N_CE &&
+                           D_ROI->CE[icont].n1 < SO->N_Node &&
+                           D_ROI->CE[icont].n2 < SO->N_Node ) */
+               } /* End of else for if (!SO->patchNodeMask) (draw the contour) */
+               } /* end of if (D_ROI->CE && D_ROI->N_CE) condition */
+            } /* end of for (ic=0; ic... loop */
+
+
+            /* --- RESTORE STANDARD GRAPHICS STATE IF IN LINE MODE --- */
+            GLint post_gl_mode[2];
+            glGetIntegerv(GL_POLYGON_MODE, post_gl_mode);
+            
+            if (post_gl_mode[0] == GL_LINE) {
+               glEnable(GL_DEPTH_TEST);
             }
-             /* --- RESTORE STATE FOR THE REST OF THE ENGINE --- */
-            glEnable(GL_DEPTH_TEST);
-        }
-         
+
+         }   /* End of // any contours? 
+         if ( (colplane->ShowMode == SW_SurfCont_DsetViewCon ||
+               colplane->ShowMode == SW_SurfCont_DsetViewCaC ||
+               colplane->BoxOutlineThresh) && 
+                 colplane == SUMA_ADO_CurColPlane((SUMA_ALL_DO *)SO)  && 
+                 colplane->Contours && colplane->N_Contours) { */      
          /* If show threshold outlines only for current overlay for this surface object ... */
       }
       el = dlist_next(el);
-   }
+   } /* while (el) { */
 
    SUMA_RETURN(YUP);
 }
