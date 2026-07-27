@@ -3,7 +3,8 @@
 
   Implements paired/repeated-measures and one-sample sign-flip tests,
   plus independent-group two-sample label-shuffle tests, for
-  single-brick datasets.
+  single-brick datasets, or brickwise through multi-brick datasets when
+  -brickwise is used.
 
   Signed z-score bricks derived from the empirical permutation p-values
   are tagged as FIZT stat bricks so AFNI's interactive GUI threshold
@@ -74,6 +75,7 @@ typedef struct {
    int ntotal;
    int ncon;
    int auto_mask;
+   int brickwise;
    int unpooled;
    int have_niter;     /* -niter was given on the command line */
    int mode_explicit;  /* -mode was given on the command line  */
@@ -111,7 +113,9 @@ static void shuffle_help(void)
 "\n"
 "Paired/repeated-measures and one-sample tests use sign flips. Independent\n"
 "two-sample tests shuffle group labels while preserving group sizes.\n"
-"All inputs must be single-brick datasets on the same grid.\n"
+"By default, all inputs must be single-brick datasets on the same grid.\n"
+"With -brickwise, each -input takes one multi-brick dataset and each brick\n"
+"is treated like one dataset in the corresponding input list.\n"
 "\n"
 "Example 1 -- paired/repeated-measures t-tests:\n"
 "  3dShuffle                                      \\\n"
@@ -168,6 +172,12 @@ static void shuffle_help(void)
 "  -input dset ...     One -input list per condition. Paired and one-sample\n"
 "                      lists must have equal counts; two-sample lists may\n"
 "                      have different counts.\n"
+"  -brickwise          Each -input must contain exactly one dataset. The\n"
+"                      program loops over that dataset's sub-bricks as the\n"
+"                      samples/subjects for that condition. For paired and\n"
+"                      one-sample tests, all inputs must have the same\n"
+"                      number of sub-bricks; for two-sample tests, groups\n"
+"                      may have different numbers of sub-bricks.\n"
 "  -contrast A B       For paired and two-sample tests, test A-B. A and B\n"
 "                      can be condition labels or 1-based condition indices.\n"
 "                      May be repeated. Not used with -stat onesample.\n"
@@ -413,6 +423,11 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
          continue;
       }
 
+      if( strcmp(argv[nopt],"-brickwise") == 0 ){
+         opts->brickwise = 1;
+         nopt++; continue;
+      }
+
       if( strcmp(argv[nopt],"-contrast") == 0 ){
          if( nopt+2 >= argc ) ERROR_exit("need 2 arguments after -contrast");
          opts->cons = (contrast_t *)realloc(opts->cons,sizeof(contrast_t)*(opts->ncon+1));
@@ -529,16 +544,22 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
 
    opts->ntotal = 0;
    for( ii=0 ; ii < opts->ncond ; ii++ ){
-      /* Every group needs variance, so a singleton input list cannot
-         support any of the requested t-statistics. */
-      if( opts->nsubj_by_cond[ii] < 2 )
-         ERROR_exit("-input list %d has %d datasets; need at least 2",
-                    ii+1,opts->nsubj_by_cond[ii]);
-      opts->offsets[ii] = opts->ntotal;
-      opts->ntotal += opts->nsubj_by_cond[ii];
+      if( opts->brickwise ){
+         if( opts->nsubj_by_cond[ii] != 1 )
+            ERROR_exit("-brickwise requires exactly one dataset after -input list %d; found %d",
+                       ii+1,opts->nsubj_by_cond[ii]);
+      } else {
+         /* Every group needs variance, so a singleton input list cannot
+            support any of the requested t-statistics. */
+         if( opts->nsubj_by_cond[ii] < 2 )
+            ERROR_exit("-input list %d has %d datasets; need at least 2",
+                       ii+1,opts->nsubj_by_cond[ii]);
+         opts->offsets[ii] = opts->ntotal;
+         opts->ntotal += opts->nsubj_by_cond[ii];
+      }
    }
 
-   if( opts->stat != STAT_TWOSAMPLE ){
+   if( !opts->brickwise && opts->stat != STAT_TWOSAMPLE ){
       opts->nsubj = opts->nsubj_by_cond[0];
       for( ii=1 ; ii < opts->ncond ; ii++ ){
          /* Paired input order and the common sign-flip schedule both
@@ -595,6 +616,50 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
                       "every relabeling", opts->niter);
    /* Whether an exact run is actually representable depends on permutation
       counts, so that check lives in resolve_mode(). */
+}
+
+/* In -brickwise mode, resolve the sample count from the one dataset named
+   by each -input list. This has to happen before resolve_mode(), since the
+   permutation counts depend on those Ns. */
+static void finalize_brickwise_inputs(opts_t *opts)
+{
+   THD_3dim_dataset *first = NULL, *dset = NULL;
+   int ic, nvals;
+
+   if( !opts->brickwise ) return;
+
+   opts->ntotal = 0;
+   for( ic=0 ; ic < opts->ncond ; ic++ ){
+      dset = THD_open_dataset(opts->input_names[ic][0]);
+      CHECK_OPEN_ERROR(dset, opts->input_names[ic][0]);
+      if( first == NULL ) first = dset;
+      else if( !EQUIV_GRIDS(first,dset) )
+         ERROR_exit("input %s is not on the same grid as %s",
+                    opts->input_names[ic][0], opts->input_names[0][0]);
+
+      nvals = DSET_NVALS(dset);
+      if( nvals < 2 )
+         ERROR_exit("-brickwise input %s has %d sub-brick%s; need at least 2",
+                    opts->input_names[ic][0], nvals, nvals == 1 ? "" : "s");
+
+      opts->offsets[ic] = opts->ntotal;
+      opts->nsubj_by_cond[ic] = nvals;
+      opts->ntotal += nvals;
+
+      if( ic > 0 ) DSET_delete(dset);
+   }
+
+   if( opts->stat != STAT_TWOSAMPLE ){
+      opts->nsubj = opts->nsubj_by_cond[0];
+      for( ic=1 ; ic < opts->ncond ; ic++ ){
+         if( opts->nsubj_by_cond[ic] != opts->nsubj )
+            ERROR_exit("-brickwise input %s has %d sub-bricks, but expected %d",
+                       opts->input_names[ic][0],
+                       opts->nsubj_by_cond[ic],opts->nsubj);
+      }
+   }
+
+   if( first != NULL ) DSET_delete(first);
 }
 
 /* Count exact fixed-size group assignments, stopping once int storage is exceeded. */
@@ -774,6 +839,9 @@ static void print_sanity(opts_t *opts)
       INFO_message("Seed:         %ld", opts->seed);
    }
    INFO_message("Grid check:   every input and mask must match the first input");
+   INFO_message("Input mode:   %s",
+                opts->brickwise ? "brickwise (-input has one multi-brick dataset)"
+                                : "dataset lists");
    INFO_message("Mask mode:    %s",
                 opts->auto_mask ? "AFNI automask of mean-absolute inputs" :
                 opts->mask_name != NULL ? opts->mask_name : "none");
@@ -783,15 +851,26 @@ static void print_sanity(opts_t *opts)
       for( ic=0 ; ic < opts->ncond ; ic++ ){
          fprintf(stderr,"++   %s: N=%d\n",
                  opts->cond_labels[ic],opts->nsubj_by_cond[ic]);
-         for( is=0 ; is < opts->nsubj_by_cond[ic] ; is++ )
-            fprintf(stderr,"++      %s\n",opts->input_names[ic][is]);
+         if( opts->brickwise ){
+            fprintf(stderr,"++      %s[0..%d]\n",opts->input_names[ic][0],
+                    opts->nsubj_by_cond[ic]-1);
+         } else {
+            for( is=0 ; is < opts->nsubj_by_cond[ic] ; is++ )
+               fprintf(stderr,"++      %s\n",opts->input_names[ic][is]);
+         }
       }
    } else {
       INFO_message("Input pairing/order:");
       for( is=0 ; is < opts->nsubj ; is++ ){
          fprintf(stderr,"++   subj%d:", is+1);
-         for( ic=0 ; ic < opts->ncond ; ic++ )
-            fprintf(stderr," %s=%s", opts->cond_labels[ic], opts->input_names[ic][is]);
+         for( ic=0 ; ic < opts->ncond ; ic++ ){
+            if( opts->brickwise )
+               fprintf(stderr," %s=%s[%d]", opts->cond_labels[ic],
+                       opts->input_names[ic][0], is);
+            else
+               fprintf(stderr," %s=%s", opts->cond_labels[ic],
+                       opts->input_names[ic][is]);
+         }
          fprintf(stderr,"\n");
       }
    }
@@ -1249,6 +1328,7 @@ int main(int argc, char **argv)
    AFNI_logger(PROGRAM_NAME,argc,argv);
 
    parse_opts(argc,argv,&opts);
+   finalize_brickwise_inputs(&opts);
 
    resolve_mode(&opts);
    print_sanity(&opts);
@@ -1262,25 +1342,47 @@ int main(int argc, char **argv)
    if( dsets == NULL || vals == NULL ) ERROR_exit("malloc failure");
 
    for( ic=0 ; ic < opts.ncond ; ic++ ){
-      dsets[ic] = (THD_3dim_dataset **)calloc(opts.nsubj_by_cond[ic],
-                                              sizeof(THD_3dim_dataset *));
+      int ndset = opts.brickwise ? 1 : opts.nsubj_by_cond[ic];
+      dsets[ic] = (THD_3dim_dataset **)calloc(ndset,sizeof(THD_3dim_dataset *));
       if( dsets[ic] == NULL ) ERROR_exit("malloc failure");
-      for( is=0 ; is < opts.nsubj_by_cond[ic] ; is++ ){
-         int idx = opts.offsets[ic]+is;
-         dsets[ic][is] = THD_open_dataset(opts.input_names[ic][is]);
-         CHECK_OPEN_ERROR(dsets[ic][is], opts.input_names[ic][is]);
-         if( first == NULL ) first = dsets[ic][is];
-         if( DSET_NVALS(dsets[ic][is]) != 1 )
-            ERROR_exit("input %s has %d sub-bricks; 3dShuffle requires single-brick inputs",
-                       opts.input_names[ic][is], DSET_NVALS(dsets[ic][is]));
+      if( opts.brickwise ){
+         dsets[ic][0] = THD_open_dataset(opts.input_names[ic][0]);
+         CHECK_OPEN_ERROR(dsets[ic][0], opts.input_names[ic][0]);
+         if( first == NULL ) first = dsets[ic][0];
+         if( DSET_NVALS(dsets[ic][0]) != opts.nsubj_by_cond[ic] )
+            ERROR_exit("input %s changed from %d to %d sub-bricks while opening",
+                       opts.input_names[ic][0], opts.nsubj_by_cond[ic],
+                       DSET_NVALS(dsets[ic][0]));
          /* Permutations compare values voxel-for-voxel, so dimensions,
             orientation, spacing, and origin must match exactly. */
-         if( !EQUIV_GRIDS(first,dsets[ic][is]) )
+         if( !EQUIV_GRIDS(first,dsets[ic][0]) )
             ERROR_exit("input %s is not on the same grid as %s",
-                       opts.input_names[ic][is], opts.input_names[0][0]);
-         DSET_load(dsets[ic][is]); CHECK_LOAD_ERROR(dsets[ic][is]);
-         vals[idx] = THD_extract_to_float(0,dsets[ic][is]);
-         if( vals[idx] == NULL ) ERROR_exit("failed to extract %s", opts.input_names[ic][is]);
+                       opts.input_names[ic][0], opts.input_names[0][0]);
+         DSET_load(dsets[ic][0]); CHECK_LOAD_ERROR(dsets[ic][0]);
+         for( is=0 ; is < opts.nsubj_by_cond[ic] ; is++ ){
+            int idx = opts.offsets[ic]+is;
+            vals[idx] = THD_extract_to_float(is,dsets[ic][0]);
+            if( vals[idx] == NULL )
+               ERROR_exit("failed to extract %s[%d]", opts.input_names[ic][0], is);
+         }
+      } else {
+         for( is=0 ; is < opts.nsubj_by_cond[ic] ; is++ ){
+            int idx = opts.offsets[ic]+is;
+            dsets[ic][is] = THD_open_dataset(opts.input_names[ic][is]);
+            CHECK_OPEN_ERROR(dsets[ic][is], opts.input_names[ic][is]);
+            if( first == NULL ) first = dsets[ic][is];
+            if( DSET_NVALS(dsets[ic][is]) != 1 )
+               ERROR_exit("input %s has %d sub-bricks; 3dShuffle requires single-brick inputs",
+                          opts.input_names[ic][is], DSET_NVALS(dsets[ic][is]));
+            /* Permutations compare values voxel-for-voxel, so dimensions,
+               orientation, spacing, and origin must match exactly. */
+            if( !EQUIV_GRIDS(first,dsets[ic][is]) )
+               ERROR_exit("input %s is not on the same grid as %s",
+                          opts.input_names[ic][is], opts.input_names[0][0]);
+            DSET_load(dsets[ic][is]); CHECK_LOAD_ERROR(dsets[ic][is]);
+            vals[idx] = THD_extract_to_float(0,dsets[ic][is]);
+            if( vals[idx] == NULL ) ERROR_exit("failed to extract %s", opts.input_names[ic][is]);
+         }
       }
    }
    nvox = DSET_NVOX(first);
