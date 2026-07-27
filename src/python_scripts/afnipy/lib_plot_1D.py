@@ -250,6 +250,11 @@ lots of individual subject 'ss' instances of the subplobj object.
 
     '''
 
+    if bf.plot_kind == 'histogram':
+        return make_1dplot_histogram_figure(bf)
+    elif bf.plot_kind == 'heat':
+        return make_1dplot_heat_figure(bf)
+
     fff = plt.figure(bf.title, figsize=bf.figsize)
 
     rcParams['font.family'] = bf.fontfamily
@@ -331,10 +336,18 @@ lots of individual subject 'ss' instances of the subplobj object.
         # number of points.
         #if not(bf.margin_on) :
         #    pp.axis('off')
-        sp = pp.plot( ss.x, ss.y, 
-                      color = ss.color,
-                      lw=calc_lw_from_npts(ss.npts),
-                      label=ss.leglabel )
+        if bf.scatter_on:
+            sp = pp.scatter( ss.x, ss.y,
+                             color = ss.color,
+                             s=14,
+                             alpha=0.7,
+                             edgecolors='none',
+                             label=ss.leglabel )
+        else:
+            sp = pp.plot( ss.x, ss.y,
+                          color = ss.color,
+                          lw=calc_lw_from_npts(ss.npts),
+                          label=ss.leglabel )
 
         # if using yrange: can have a semitransparent filled area
         if len(ss.yrantop) :
@@ -345,6 +358,17 @@ lots of individual subject 'ss' instances of the subplobj object.
 
         pp.set_xlim(ss.xlim)
         pp.set_ylim(ss.ylim)
+
+        if bf.diagonal:
+            vmin = min(min(ss.x), min(ss.y))
+            vmax = max(max(ss.x), max(ss.y))
+            pp.plot([vmin, vmax], [vmin, vmax], color='0.2', ls='--', lw=1)
+            pp.set_xlim([vmin, vmax])
+            pp.set_ylim([vmin, vmax])
+            pp.set_aspect('equal')
+
+        for vv in bf.vlines:
+            pp.axvline(x=vv, c='0.2', ls='--', lw=1)
 
         pp.set_xlabel(ss.xlabel, fontsize=bf.fontsize)
 
@@ -509,6 +533,151 @@ lots of individual subject 'ss' instances of the subplobj object.
 
 # ---------------------------------------------------------------------------
 
+def make_1dplot_histogram_figure(bf):
+    '''Make binned histogram(s), one per input column unless one_graph is on.'''
+
+    rcParams['font.family'] = bf.fontfamily
+    rcParams['axes.linewidth'] = 0.5
+
+    if bf.ngraph > 1:
+        a, subpl = plt.subplots( bf.ngraph, 1, figsize=bf.figsize )
+    else:
+        a, subpl = plt.subplots( 1, 1, figsize=bf.figsize )
+
+    for i in range(bf.nsub):
+        ss = bf.all_subs[i]
+
+        if bf.ngraph > 1:
+            pp = subpl[i]
+        else:
+            pp = subpl
+
+        bins = get_hist_bins(ss.y, bf.histbin, bf.histwidth)
+        pp.hist( ss.y,
+                 bins=bins,
+                 density=bf.hist_density,
+                 color=ss.color,
+                 alpha=0.75,
+                 edgecolor='white',
+                 label=ss.leglabel )
+
+        for vv in bf.vlines:
+            pp.axvline(x=vv, c='0.2', ls='--', lw=1)
+
+        title = ''
+        if bf.title and not(i):
+            title = bf.title
+        elif ss.ylabel:
+            title = ss.ylabel
+        if title:
+            pp.set_title(title, fontsize=bf.fontsize)
+
+        if bf.ngraph > 1:
+            if i < bf.nsub - 1:
+                pp.set_xlabel("")
+            else:
+                pp.set_xlabel(ss.xlabel, fontsize=bf.fontsize)
+        else:
+            pp.set_xlabel(ss.xlabel, fontsize=bf.fontsize)
+
+        pp.set_ylabel('density' if bf.hist_density else 'count',
+                      fontsize=bf.fontsize)
+
+        pp.tick_params( axis='both', which='major', direction='in',
+                        color='0.5', bottom=True, left=True, right=True )
+        if bf.margin_on:
+            pp.spines['bottom'].set_color('0.5')
+            pp.spines['top'   ].set_color('0.5')
+            pp.spines['left'  ].set_color('0.5')
+            pp.spines['right' ].set_color('0.5')
+        if bf.legend_on:
+            pp.legend(loc=ss.legloc)
+        print("++ Plotting histogram: {}".format(ss.ylabel))
+
+    save_1dplot_pyplot(bf)
+    return 0
+
+# ---------------------------------------------------------------------------
+
+def get_hist_bins(vals, nbins=0, width=0.0):
+    if width:
+        vmin = min(vals)
+        vmax = max(vals)
+        if vmin == vmax:
+            return [vmin - 0.5 * width, vmax + 0.5 * width]
+        bins = []
+        vv = vmin
+        while vv <= vmax:
+            bins.append(vv)
+            vv+= width
+        if bins[-1] < vmax:
+            bins.append(vmax)
+        elif len(bins) == 1:
+            bins.append(vmax)
+        return bins
+    if nbins:
+        return nbins
+    return max(8, int(len(vals)**0.5))
+
+# ---------------------------------------------------------------------------
+
+def make_1dplot_heat_figure(bf):
+    '''Make a square matrix heatmap.'''
+
+    rcParams['font.family'] = bf.fontfamily
+    rcParams['axes.linewidth'] = 0.5
+
+    a, pp = plt.subplots( 1, 1, figsize=bf.figsize )
+    mat = bf.heat_matrix
+    cmap = afni_cbar_to_mpl_cmap(bf.heat_cmap)
+
+    imopts = {'cmap': cmap}
+    if bf.zerocenter:
+        vmax = max([max([abs(x) for x in row]) for row in mat])
+        imopts['vmin'] = -vmax
+        imopts['vmax'] =  vmax
+
+    im = pp.imshow(mat, **imopts)
+    if bf.title:
+        pp.set_title(bf.title, fontsize=bf.fontsize)
+
+    xlabel = ''
+    ylabel = ''
+    if bf.all_subs:
+        xlabel = bf.all_subs[0].xlabel
+        ylabel = bf.all_subs[0].ylabel
+    pp.set_xlabel(xlabel if xlabel else 'subject', fontsize=bf.fontsize)
+    pp.set_ylabel(ylabel if ylabel else 'subject', fontsize=bf.fontsize)
+    a.colorbar(im, ax=pp, fraction=0.046, pad=0.04)
+
+    pp.tick_params( axis='both', which='major', direction='in',
+                    color='0.5', bottom=True, left=True, right=True )
+
+    save_1dplot_pyplot(bf)
+    print("++ Plotting heatmap")
+    return 0
+
+# ---------------------------------------------------------------------------
+
+def afni_cbar_to_mpl_cmap(cbar):
+    if cbar == 'Reds_and_Blues_Inv':
+        return 'RdBu_r'
+    elif cbar == 'Reds_and_Blues':
+        return 'RdBu'
+    return cbar
+
+# ---------------------------------------------------------------------------
+
+def save_1dplot_pyplot(bf):
+    if not(bf.margin_on):
+        plt.savefig( bf.fname, dpi=bf.dpi, facecolor=bf.bkgd_color)
+    else:
+        plt.savefig( bf.fname, dpi=bf.dpi, facecolor=bf.bkgd_color,
+                     bbox_inches='tight')
+    print("++ Done! Figure created:\n\t {}".format(bf.fname))
+
+# ---------------------------------------------------------------------------
+
 def calc_lw_from_npts(N):
     if N < 450:
         return 1.5
@@ -535,6 +704,7 @@ def populate_1dplot_fig(iopts):
     bigfig.set_fontsize( iopts.fontsize )
     bigfig.set_fontfamily( iopts.fontfamily )
     bigfig.set_fontstyles( iopts.fontstyles )
+    bigfig.set_bkgd_color( iopts.bkgd_color )
     bigfig.set_censor_arr( iopts.censor_arr )
     bigfig.set_censor_width( iopts.censor_width )
     bigfig.set_censor_RGB( iopts.censor_RGB )
@@ -546,6 +716,25 @@ def populate_1dplot_fig(iopts):
     bigfig.set_bplot_view( iopts.bplot_view )
     bigfig.set_legend_on( iopts.legend_on )
     bigfig.set_ylabels_maxlen( iopts.ylabels_maxlen )
+    bigfig.set_plot_kind( iopts.plot_kind )
+    bigfig.set_hist_opts( iopts.histbin, iopts.histwidth, iopts.hist_density )
+    bigfig.set_vlines( iopts.vlines )
+    bigfig.set_heat_opts( iopts.heat_matrix, iopts.heat_cmap,
+                          iopts.zerocenter )
+    bigfig.set_scatter( iopts.scatter_on )
+    bigfig.set_diagonal( iopts.diagonal )
+
+    if iopts.plot_kind == 'heat':
+        ss = laio.subplobj()
+        ss.set_xlabel( iopts.xlabel )
+        if iopts.ylabels:
+            ss.set_ylabel( iopts.ylabels[0] )
+        else:
+            ss.set_ylabel( "" )
+        bigfig.add_sub(ss)
+        bigfig.set_figsize( iopts.figsize )
+        bigfig.set_ngraph( False )
+        return bigfig
 
     for i in range(iopts.ndsets):
 
@@ -623,6 +812,15 @@ def make_censored_sublist( y, cen_arr ):
 # ---------------------------------------------------------------------------
 
 def populate_1dplot_arrays(iopts):
+
+    if iopts.plot_kind == 'heat':
+        iopts.read_heat_matrix()
+        iopts.read_reorder_file()
+        iopts.apply_heat_reorder()
+        iopts.npts = len(iopts.heat_matrix)
+        iopts.ndsets = 1
+        iopts.check_color_table()
+        return 0
 
     iopts.create_all_y()
     ok = iopts.check_dims_all_y() # check with number ylabels
