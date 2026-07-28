@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.2.1, July 15, 2026
+Version 1.2.2, July 28, 2026
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -44,6 +44,12 @@ Introduction
  built on the nlme R package, 3dLMEr leverages lme4, allowing for greater flexibility.
  Additionally, statistical values for main effects and interactions are approximated
  using Satterthwaite’s method.  
+
+ WARNING: The statistical values provided by this program can be poorly
+ approximated in small samples due to the difficulty of accurately
+ assigning degrees of freedom. Users should exercise caution and ensure an
+ adequate sample size (e.g., at least 15 to 20 individuals) to ensure reliable
+ model convergence and reasonable approximation for statistical values.
  
  ### Key Differences Between 3dLMEr and 3dLME  
  
@@ -415,8 +421,18 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
 
       '-jobs' = apl(n = 1, d = 1, h = paste(
-   "-jobs NJOBS: On a multi-processor machine, parallel computing will speed ",
-   "         up the program significantly.",
+   "-jobs NJOBS: On a multi-processor machine, parallel computing can speed",
+   "         up the program significantly. However, increasing the number of CPUs",
+   "         processes does not necessarily improve performance. Because each",
+   "         CPU is an independent R process, aggregate memory usage grows",
+   "         with the number of CPUs. It is therefore advisable to identify",
+   "         the largest number of CPUs that fits comfortably within physical",
+   "         RAM while avoiding swap activity, rather than simply using all",
+   "         available CPU cores. A useful strategy is to benchmark several",
+   "         CPU counts while monitoring memory usage (e.g., with free -h,",
+   "         vmstat, or htop) and choose the largest number that avoids",
+   "         sustained swapping, as memory thrashing can more than offset the",
+   "         benefits of additional parallelism.",
    "         Choose 1 for a single-processor computer.\n", sep = '\n'
                      ) ),
 
