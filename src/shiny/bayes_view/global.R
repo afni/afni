@@ -53,7 +53,7 @@ acc.col <- brewer.pal(6,"Accent")
 rain.col <- rainbow(6)[c(1,3,4,5,6)]
 gang.col <- c("blue","cyan","gray","gray","yellow","#C9182B")
 
-col.list <- list("Blue - Red","Dark2","Set1","Rainbow","Accent")
+col.list <- list("Default","Dark2","Set1","Accent")
 
 ### stat functions ##################################
 

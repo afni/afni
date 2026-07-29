@@ -7,12 +7,12 @@
 
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2 (or later).  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /**********************************************************************/
-/* MCW/GPL/NIH AFNI:                                                  */
+/* MCW/CC-BY/NIH AFNI:                                                */
 /*    Analysis of Functional NeuroImages                              */
 /*                                                                    */
 /* Author: Robert W. Cox, PhD                                         */
@@ -68,7 +68,7 @@
 #ifdef SHSTRING
 
 #define ANNOUNCEMENT                                                           \
- "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
+ "AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"        \
  "This is Version " VERSION               "\n"                                 \
  "[[Precompiled binary " SHSTRING ": " __DATE__ "]]\n\n"                       \
  " ** This software was designed to be used only for research purposes. **\n"  \
@@ -90,7 +90,7 @@
 #else
 
 #define ANNOUNCEMENT                                                           \
- "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
+ "AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"        \
  "This is Version " AVERZHN " -- compiled " __DATE__  "\n\n"                   \
  " ** This software was designed to be used only for research purposes. **\n"  \
  " ** Clinical uses are not recommended, and have never been evaluated. **\n"  \
@@ -620,8 +620,8 @@ void AFNI_syntax(void)
      "                   found in the sub-XXX directories. These images can be\n"
      "                   opened in the AFNI GUI using the Axial image viewer.\n"
      "                   (You might want to turn the AFNI crosshairs off!)\n"
-     "              ++++ If you do NOT want .png and .jpg files read into AFNI,\n"
-     "                   set Unix environment variable AFNI_IMAGE_DATASETS to 'NO'.\n"
+     "              ++++ If you do want .png and .jpg files read into AFNI,\n"
+     "                   set environment variable AFNI_IMAGE_DATASETS to 'Y'.\n"
      "                ++ You can put multiple subject IDs after '-bysub', as\n"
      "                   in the example above. You can also use the '-bysub' option\n"
      "                   more than once, if you like. Each distinct subect ID will\n"
@@ -987,6 +987,39 @@ void AFNI_syntax(void)
      "                have one on your computer, right?).\n"
      "                Exit after display.\n"
      "\n"
+     "   -show        show the package name\n"
+     "\n"
+     "    -x_have_MACOS_FORCE_EXPOSE\n"
+     "                Show whether compiled with MACOS_FORCE_EXPOSE.  This\n"
+     "                is the default on current macos systems, specifically\n"
+     "                macos_12_x86_64 and macos_13_ARM.\n"
+     "\n"
+     "    -x_needsX11Redraw\n"
+     "                show whether resize events will cause redraws\n"
+     "\n"
+     "                This will default to true on the above 2 macos systems\n"
+     "                (macos_12_x86_64 and macos_13_ARM) if the user is also\n"
+     "                running macos 26, but < 26.5.  Otherwise not.\n"
+     "\n"
+     "                The issue requiring redraw/forceExpose/Remanage events\n"
+     "                has been fixed by Apple as of macos 26.5.\n"
+     "\n"
+     "                Any system can override the default behavior using\n"
+     "                environment variable AFNI_DO_X11_REDRAW.  Values:\n"
+     "\n"
+     "                  N        : no, do not use any redraw mechanism\n"
+     "                  Y        : yes, use the base redraw mechanism\n"
+     "                  REMANAGE : yes redraw, but with the dglen-special\n"
+     "                             remanage mechanism\n"
+     "\n"
+     "                This can be set in the environment, .afnirc file, or\n"
+     "                on the command line, as in:\n"
+     "\n"
+     "                  afni -DAFNI_DO_X11_REDRAW=Y\n"
+     "                  afni -DAFNI_DO_X11_REDRAW=N\n"
+     "                  afni -DAFNI_DO_X11_REDRAW=REMANAGE\n"
+     "\n"
+     "                Consider also -DAFNI_X11_REDRAW_VERB=Y.\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
      "      can be controlled by appropriate X11 resources.  See the\n"
@@ -2382,6 +2415,21 @@ int main( int argc , char *argv[] )
       show_ports_list(); dienow++ ;
    }
 
+   /*----- -x_* redraw options [21 Jan 2026 rickr] -----*/
+   if( check_string("-x_have_MACOS_FORCE_EXPOSE", argc, argv) ) {
+      fprintf(stderr, "MACOS_FORCE_EXPOSE = %d\n", have_MACOS_FORCE_EXPOSE());
+      dienow++;
+   }
+
+   if( check_string("-x_needsX11Redraw", argc, argv) ) {
+      /* result depends on an env var, be sure they have been processed */
+      machdep();
+      AFNI_prefilter_args( &argc , &argv );
+      fprintf(stderr, "needsX11Redraw = %d\n", needsX11Redraw());
+      dienow++;
+   }
+
+
    /*** if ordered, die right now ***/
 
    if( dienow ) exit(0) ;  /* farewell, cruel world */
@@ -2415,6 +2463,8 @@ int main( int argc , char *argv[] )
 /*** INFO_message("before prefilter: argc=%d argv=%p",argc,(void *)argv) ; ***/
    AFNI_prefilter_args( &argc , &argv ) ;  /* 11 Dec 2007 */
 /*** INFO_message("after prefilter: argc=%d argv=%p",argc,(void *)argv) ; ***/
+
+   /***** fprintf(stderr,",needsX11Redraw = %d\n", needsX11Redraw()) ; *****/
 
    THD_load_datablock_verbose(1) ; /* 21 Aug 2002 */
 
@@ -5727,10 +5777,13 @@ if(PRINT_TRACING)
 
          LOAD_DSET_VIEWS(im3d) ;  /* 20 Nov 2003 */
          daxes = CURRENT_DAXES(im3d->anat_now) ;
+
               if( id.ijk[0] <  0          ) id.ijk[0] += daxes->nxx ;
          else if( id.ijk[0] >= daxes->nxx ) id.ijk[0] -= daxes->nxx ;
+
               if( id.ijk[1] <  0          ) id.ijk[1] += daxes->nyy ;
          else if( id.ijk[1] >= daxes->nyy ) id.ijk[1] -= daxes->nyy ;
+
               if( id.ijk[2] <  0          ) id.ijk[2] += daxes->nzz ;
          else if( id.ijk[2] >= daxes->nzz ) id.ijk[2] -= daxes->nzz ;
 
@@ -5751,6 +5804,16 @@ if(PRINT_TRACING)
 #if 1
         switch( cbs->key ){  /* 05 Mar 2007: keys that AFNI needs */
                                        /* to process, not imseq.c */
+
+          case ' ':{   /* redraw image viewers [06 Jan 2026] */
+            if( needsX11Redraw() ) {
+               if( im3d->s123 ) forceExpose(im3d->s123->wtop, 0) ;
+               if( im3d->s231 ) forceExpose(im3d->s231->wtop, 0) ;
+               if( im3d->s312 ) forceExpose(im3d->s312->wtop, 0) ;
+            }
+          }
+          break ;
+
           case 'U':
           case 'u':{
             int uu = im3d->vinfo->underlay_type ; /* toggle Overlay as Underlay */
@@ -7230,6 +7293,14 @@ ENTRY("AFNI_controller_panel_CB") ;
 
    if( XtIsManaged(im3d->vwid->view->frame) == True ){
 
+      /* Do the Tahoe fix [Dec 2025] */
+
+#if 0
+      if( needsX11Redraw() && im3d->anat_now != NULL && im3d->fim_now != NULL ){
+        AFNI_redraw_controller(im3d) ;
+      }
+#endif
+
       if( XtIsManaged(im3d->vwid->marks->frame) == True ){
          AFNI_marks_action_CB( NULL , (XtPointer) im3d , NULL ) ;
       }
@@ -7254,6 +7325,8 @@ ENTRY("AFNI_controller_panel_CB") ;
       SHIFT_TIPS( im3d , TIPS_TOTAL_SHIFT ) ;
       SHIFT_NEWS( im3d , TIPS_TOTAL_SHIFT ) ;
 
+      FIX_TOPFORM_HEIGHT(im3d) ;
+
    } else {  /** open the view frame (but not its children) **/
 
       XtManageChild(im3d->vwid->view->frame) ;
@@ -7265,11 +7338,12 @@ ENTRY("AFNI_controller_panel_CB") ;
       XtManageChild(im3d->vwid->phelp_pb) ;
       XtManageChild(im3d->vwid->ytube_pb) ;
 
-
       SHIFT_TIPS( im3d , (im3d->vwid->view->marks_enabled) ? TIPS_MINUS_SHIFT
                                                            : TIPS_PLUS_SHIFT ) ;
       SHIFT_NEWS( im3d , (im3d->vwid->view->marks_enabled) ? TIPS_MINUS_SHIFT
                                                            : TIPS_PLUS_SHIFT ) ;
+
+      FIX_TOPFORM_HEIGHT(im3d) ;
    }
 
    RESET_AFNI_QUIT(im3d) ;
@@ -8113,10 +8187,16 @@ void AFNI_redisplay_func_ignore( int ig ){ ignore_redisplay_func = ig ; }
 void AFNI_redisplay_func( Three_D_View *im3d )  /* 05 Mar 2002 */
 {
 ENTRY("AFNI_redisplay_func") ;
-   if( !ignore_redisplay_func && IM3D_OPEN(im3d) && IM3D_IMAGIZED(im3d) ){
+   if( !ignore_redisplay_func    &&
+       IM3D_OPEN(im3d)           &&
+       IM3D_IMAGIZED(im3d)       ){   
+/* o key/overlay toggle doesn't redisplay with func_visible check */
+/* && im3d->vinfo->func_visible  Dec 2025 */ 
+
      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
      AFNI_process_funcdisplay( im3d ) ;
    }
+
    EXRETURN ;
 }
 
@@ -10864,7 +10944,7 @@ static void fixscale( XtPointer client_data , XtIntervalId *id )
 }
 #endif
 
-/*------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------------*/
 
 void AFNI_define_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
@@ -10953,7 +11033,7 @@ STATUS("opening marks") ;
 
 #if 1
 #if 0
-         XFlush( XtDisplay(marks->rowcol) ) ; XSync( XtDisplay(marks->rowcol),False ) ;
+         XSync( XtDisplay(marks->rowcol),False ) ;
 #endif
          if( im3d->anat_now->markers != NULL ){  /* Oct 1998 */
             XtManageChild( marks->tog_rowcol ) ;
@@ -10984,6 +11064,12 @@ STATUS("opening marks") ;
          }
       }
 
+      /* this will be taken care of in AFNI_vwidtopform_EV() when top_form is resized */
+#if 0
+      if( needsX11Redraw() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
+#else
+      FIX_TOPFORM_HEIGHT(im3d) ;
+#endif
       EXRETURN ;
    }
 
@@ -11045,6 +11131,12 @@ STATUS("remanaging children") ;
 /***     XtManageChild( im3d->vwid->func->inten_bbox->wrowcol ) ; ***/
       }
 
+      /* forceExpose will be taken care of in AFNI_vwidtopform_EV() when top_form is resized */
+#if 0
+      if( needsX11Redraw() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
+#else
+      FIX_TOPFORM_HEIGHT(im3d) ;
+#endif
       EXRETURN ;
    }
 
@@ -11066,6 +11158,12 @@ STATUS("opening dmode" ) ;
          OPEN_PANEL(im3d,dmode) ;
       }
 
+      /* this will be taken care of in AFNI_vwidtopform_EV() when top_form is resized */
+#if 0
+      if( needsX11Redraw() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
+#else
+      FIX_TOPFORM_HEIGHT(im3d) ;
+#endif
       EXRETURN ;
    }
 
@@ -14136,9 +14234,10 @@ void AFNI_fix_scale_size_direct( Three_D_View *im3d )
                   XmNheight , &sel_aaa , NULL ) ;
    sel_actual = (int)sel_aaa ;
 
+   /**** fprintf(stderr,"fix_scale_size_direct: orig %d  actual %d\n",sel_height,sel_actual) ; ****/
    /**** INFO_message("actual = %d  nominal = %d",sel_actual,sel_height) ; ****/
 
-   if( sel_actual == sel_height ) return ;  /* it's OK */
+   if( abs(sel_actual-sel_height) < 4 ) return ;  /* it's OK */
 
    /* do the work */
 

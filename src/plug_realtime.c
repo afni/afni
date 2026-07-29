@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "afni.h"
@@ -455,7 +455,9 @@ static char helpstring[] =
    "                MergeRegister values:\n"
    "                    none         ==> no merge registration\n"
    "                    reg merged   ==> register merged channels\n"
+   "                                     (merge before registering)\n"
    "                    reg channels ==> apply merge xform to all channels,\n"
+   "                                     (register before merging)\n"
    "                       - register all channels based on 'Src Chan'\n"
    "                       - apply registration params to all chan/echoes\n"
    "                         i.e. create 'registered' dataset per channel\n"

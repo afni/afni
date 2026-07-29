@@ -104,7 +104,13 @@ plotting.
 
         """
 
-        cmap = mplcm.get_cmap('bwr')  # faded red/wh/blue cmap for bands
+        # [PT: 2026-07-29] matplotlib v3.11 introduced a breaking
+        # change; the TRY branch works in mpl ver<3.11, and the EXCEPT
+        # for ver>=3.11.  Thanks, Dan Handwerker, for pointing this out.
+        try:
+            cmap = mplcm.get_cmap('bwr')  # faded red/wh/blue cmap for bands
+        except:
+            cmap = mpl.colormaps['bwr']   # faded red/wh/blue cmap for bands
 
         all_ivals = np.array([j-i for i, j in zip(self.x[:-1], self.x[1:])])
         med = np.median(all_ivals)

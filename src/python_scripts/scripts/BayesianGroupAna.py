@@ -302,7 +302,7 @@ if x_var != '1':
 x_var = " ".join(x_var)
 
 ## add intercept if necessary
-if x_var is not "1":
+if x_var != '1':
     x_var = "1 "+x_var
 
 ########################################################################

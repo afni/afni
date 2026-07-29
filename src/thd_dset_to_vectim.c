@@ -1347,9 +1347,18 @@ void THD_check_vectim( MRI_vectim *mv , char *fname )
      for( ii=1 ; ii < nvals && vpt[ii] == vz ; ii++ ) ; /*nada*/
      if( ii == nvals ) nbad++ ;
    }
-   if( nbad > 0 && nvals > 1 )
-     WARNING_message("%s :: %d vector%s constant",
+   if( nbad > 0 && nvals > 1 ){
+     /* 16 Dec 2025: be quieter about warnings, with some
+        cases moved to "just" info msgs. We start warns-> info for
+        3dTproject usage, but might expand further.
+     */
+     if (strcmp(fname,"3dTproject input data") == 0)
+       INFO_message("%s :: %d vector%s constant",
                      fname , nbad , (nbad==1) ? " is" : "s are" ) ;
+     else
+       WARNING_message("%s :: %d vector%s constant",
+                     fname , nbad , (nbad==1) ? " is" : "s are" ) ;
+   }
 
    /* scan each time point for constancy */
 
@@ -1360,9 +1369,15 @@ void THD_check_vectim( MRI_vectim *mv , char *fname )
      }
      if( jj == nvec ) nbad++ ;
    }
-   if( nbad > 0 && nvec > 1 )
-     WARNING_message("%s :: %d volume%s constant",
+   if( nbad > 0 && nvec > 1 ){
+     /* 5 Jan 2026: less warns (3dTproject now, may expand later) */
+     if (strcmp(fname,"3dTproject input data") == 0)
+       INFO_message("%s :: %d volume%s constant",
                      fname , nbad , (nbad==1) ? " is" : "s are" ) ;
+     else
+       WARNING_message("%s :: %d volume%s constant",
+                     fname , nbad , (nbad==1) ? " is" : "s are" ) ;
+   }
    return ;
 }
 

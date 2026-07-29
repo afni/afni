@@ -327,7 +327,7 @@ for x in lssr.g_ss_uvar_fields:
 
 if __name__ == "__main__":
 
-    iopts = laio.parse_tcsh_args(sys.argv[1:])
+    iopts = laio.parse_tcsh_args(sys.argv)
 
     # note the original location, to which to return at the end
     pwd_orig = os.getcwd()
@@ -1204,7 +1204,7 @@ if __name__ == "__main__":
     # write out log/history of what has been done (not done by default, to
     # save some time, bc this takes a mini-while)
     if iopts.do_log :
-        olog = 'log_apqc_tcsh.txt'
+        olog = laio.DEF_apqc_log
         UTIL.write_afni_com_log(olog)
 
     # note where we are in the AP results dir

@@ -1,0 +1,9 @@
+# for building a compile machine on Ubuntu 24.04
+#
+# assumes user has done normal setup for running binaries:
+# https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/steps_linux_ubuntu24.html
+#
+# use afni/src/other_builds/Makefile.linux_ubuntu_16_64_glw_local_shared
+
+
+# ** no other dependencies need be installed **

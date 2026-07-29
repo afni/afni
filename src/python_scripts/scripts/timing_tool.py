@@ -305,6 +305,20 @@ examples: ~1~
 
              timing_tool.py -timing stim01_houses.txt -show_modulator_stats
 
+       g. verify that stim times are TR-locked (like in e), but the TR
+          is not exact on a computer (ratio denom is not power of 2)
+
+          Use -show_events and evaluate the offsets directly by showing
+          only the part of the fractions that are to the right of the
+          decimal.  So a TR-locked output should be numbers around 000 or
+          999 (or possibly not shown at all if there are no decimals).
+
+             timing_tool.py -multi_timing stim.*.1D              \\
+                -tr 1.3 -show_events                             \\
+                | grep -v '#' | awk '{print $3}'                 \\
+                | 1deval -a - -expr a/1.3 | awk -F. '{print $2}' \\
+                | sort -n | uniq
+
    Example 11.  test a file for local/global timing issues ~2~
 
        Test a timing file for timing issues, which currently means having
@@ -422,6 +436,29 @@ examples: ~1~
          timing_tool.py -fsl_timing_files fsl_r1.txt fsl_r2.txt \\
                         -nplaces 1 -mplaces 1 -write_as_married \\
                         -select_runs 0 0 1 2 0 -write_timing NEW.txt
+
+   Example 18e. Go the other direction: create FSL timing from AFNI.
+
+      Given AFNI formatted timing files afni_stim*.txt, convert them to
+      FSL timing format
+
+      1. without explicit duration (likely with AFNI duration mod timing files)
+
+          timing_tool.py -multi_timing afni_stim*.txt -write_simple_tsv fsl_stim
+
+      2. with constant duration (e.g. 4.2 seconds)
+
+          timing_tool.py -multi_timing afni_stim*.txt -multi_stim_dur 4.2 \\
+                         -write_simple_tsv fsl_stim
+
+      3. with a duration list, one per file
+         (careful, not listing files would mean alphabetical)
+
+          timing_tool.py -multi_timing     afni_stim*.txt  \\
+                         -multi_stim_dur   2  4.1  5.3  3  \\
+                         -write_simple_tsv fsl_stim
+
+      Consider also -write_tsv_cols_of_interest.
 
    Example 19a. convert TSV formatted timing files to AFNI timing format ~2~
 
@@ -706,10 +743,11 @@ options with both single and multi versions (all single first): ~1~
         If some classes have modulators and some do not (or have fewer), the
         output will still be rectangular, with such modulators output as zeros.
 
-            Consider '-write_multi_timing'.
+        This can be used to convert the timing files from an AFNI format
+        to an FSL format.
 
-------------------------------------------
-action options (apply to multi timing elements, only): ~1~
+            Consider '-write_multi_timing' and '-write_tsv_cols_of_interest'.
+
 ------------------------------------------
 action options (apply to single timing element, only): ~1~
 
@@ -933,6 +971,8 @@ action options (apply to single timing element, only): ~1~
 
         Some comments may be made for the global results.
 
+        Also, use '-verb 3' to directly show all fractional offsets.
+
             See also '-show_tr_stats', '-warn_tr_stats'.
 
    -show_tr_stats               : display within-TR statistics of stimuli ~2~
@@ -1116,6 +1156,9 @@ action options (apply to single timing element, only): ~1~
         Since the input TSV files often have many columns that make viewing
         difficult, this option can be used to extract only the relevant
         columns and write them to a new TSV file.
+
+        It is an alternate way to create FSL timing files, but this result
+        might be more general.
 
             Consider '-multi_timing_ncol_tsv'.
 
@@ -1765,9 +1808,11 @@ g_history = """
    3.24 Feb  6, 2025 - allow -multi_timing with -timing_to_1D
                      - add -timing_to_1D_method
    3.25 Jul 29, 2025 - add -force_write_type
+   3.26 Feb  9, 2026 - fix fname_prefix to return intended length
+   3.27 Mar  3, 2026 - add help for tr_stats of non-binary TRs (like 1.3 s)
 """
 
-g_version = "timing_tool.py version 3.25, July 29, 2025"
+g_version = "timing_tool.py version 3.27, March 3, 2026"
 
 
 
@@ -2174,7 +2219,7 @@ class ATInterface:
             break
       # if we found a suffix, strip it
       if suffix != '':
-         return fname[:(len(suffix)+1)]
+         return fname[:-(len(suffix)+1)]
       return fname
 
    def init_options(self):

@@ -148,6 +148,18 @@ class afni_name(object):
 
       return retval
 
+   def noext_input(self):
+      """remove view and ext from input (even NIFTI), leaving path info as is.
+         - Ex 1: these inputs all return '/qwer/asdf' :
+           '/qwer/asdf+orig.HEAD', '/qwer/asdf+tlrc.', '/qwer/asdf.nii'
+         - Ex 2: these inputs all return 'qwer/asdf' :
+           'qwer/asdf+orig, 'qwer/asdf+tlrc.BRIK.gz', 'qwer/asdf.nii.gz'
+      """
+      if self.initname.startswith('/') :
+         return self.pp()
+      else:
+         return self.rel_dir() + self.prefix
+
    def rel_input(self, head=0, sel=0):
       """relative path to dataset in 'input' format
          e.g. +orig, but no .HEAD
@@ -1493,7 +1505,7 @@ def EP1( S, indent=True):
 
     return 1
 
-def APRINT( S, ptype=None, indent=True):
+def APRINT( S, ptype=None, indent=True, flush=True):
     '''Print Error/Warn/Info for string S
 
     This function is not meant to be used directly, in general; use
@@ -1523,7 +1535,7 @@ def APRINT( S, ptype=None, indent=True):
     if ptype == 'ERROR' :
        out+= "\n"
     
-    print(out)
+    print(out, flush=flush)
     
 
 def ARG_missing_arg(arg):
