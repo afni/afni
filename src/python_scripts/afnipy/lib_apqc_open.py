@@ -748,11 +748,33 @@ is_fail : int
                 subprocess.run(['open', url], check=True)
                 return 0
 
-        ### write now, ignore the xdg-open route, because it didn't
-        ### seem to confer benefits for Linux
-        #elif sys_name == 'Linux' :
-        #    subprocess.run(['xdg-open', url], check=True)
-        #    return 0
+        elif sys_name == 'Linux' :
+            ### NB: using xdg-open was too simple, not being able to
+            ### pass opts to different browsers, so go for
+            ### browser-specific calls now
+            #subprocess.run(['xdg-open', url], check=True)
+            #return 0
+
+            if 'firefox' in browser_id :
+                if page_code == 1 :  flag = '--new-window' 
+                else:                flag = '--new-tab'
+                subprocess.run(['firefox', flag, url], check=True)
+                return 0
+            elif 'chromium' in browser_id or 'chrome' in browser_id :
+                # chrome/chromium use --new-window, but not --new-tab
+                if 'chromium' in browser_id : binname = 'chromium' 
+                else:                         binname = 'google-chrome'
+
+                if page_code == 1 :
+                    subprocess.run([binname, '--new-window', url], check=True)
+                else :
+                    subprocess.run([binname, url], check=True)
+                return 0
+            else :
+                # unknown browser: fall back to webbrowser
+                import webbrowser
+                ok = webbrowser.open(url, new=page_code)
+                return 0 if ok else 1
 
         else:
             import webbrowser
@@ -807,6 +829,8 @@ browser_id : str
     # only doing the browser check on macOS/Darwin right now
     if sys_name == 'Darwin' :
         browser_id = get_default_browser_macos()
+    if sys_name == 'Linux' :
+        browser_id = get_default_browser_linux()
 
     return 0, sys_name, browser_id
 
@@ -847,6 +871,26 @@ def get_default_browser_macos():
 
     # If no explicit https handler is registered, macOS defaults to Safari
     return 'com.apple.safari'
+
+
+def get_default_browser_linux():
+    """On Linux, get the default browser's .desktop id via xdg-settings.
+
+    Returns
+    -------
+    bundle_id : str
+        the default browser's bundle id, lowercased (e.g.,
+        'firefox.desktop', 'google-chrome.desktop',
+        'chromium.desktop', 'chromium_chromium.desktop' (Snap) or ''
+        if it cannot be determined
+    """
+    try:
+        out = subprocess.run(['xdg-settings', 'get', 'default-web-browser'],
+                             capture_output=True, text=True, check=True)
+        return out.stdout.strip().lower()
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        return ''
+
 
 # =========================================================================
 # =========================================================================
