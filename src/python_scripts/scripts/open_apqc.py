@@ -23,6 +23,7 @@ version = '3.1'  # add in -find_infiles opt
 version = '3.2'  # fix occasional/semi-systematic blank tab when opening
 version = '3.3'  # remove unnec werkzeug WARNING @ production server.
 version = '3.4'  # add OS- and browser-specific funcs to open new window
+version = '3.5'  # add more macOS/Darwin-specific browser functionality
 
 # ==========================================================================
 

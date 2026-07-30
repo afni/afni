@@ -670,6 +670,9 @@ def open_url_in_browser(url, page_code=2,
     """The fancy approach to open a URL, trying to make use of OS-specific
 (and sometimes browser-specific) command functionality.
 
+macOS/Darwin presents challenges for command-line browser calls, so we
+have to make a lot of if-conditions within this function
+
 Parameters
 ----------
 url : str
@@ -692,13 +695,52 @@ is_fail : int
 
     try:
         if sys_name == 'Darwin' :                       # macOS
-            is_safari = (browser_id == 'com.apple.safari')
-            if page_code == 1 and is_safari :
+            if page_code == 1 and (browser_id == 'com.apple.safari') :
                 # Safari ignores window-vs-tab control via 'open', so use
                 # AppleScript's 'make new document' to force a new window
                 script = ('tell application "Safari" to make new document '
                           'with properties {{URL:"{}"}}').format(url)
                 subprocess.run(['osascript', '-e', script], check=True)
+                return 0
+            elif page_code == 1 and (browser_id == 'org.mozilla.firefox') :
+                # Firefox: call the binary directly with -new-window.  Going
+                # through 'open -a Firefox --args' is unreliable (URL often
+                # ignored); the direct binary call routes to the running
+                # instance and honors -new-window.
+                ff = '/Applications/Firefox.app/Contents/MacOS/firefox'
+                if os.path.isfile(ff) :
+                    subprocess.run([ff, '--new-window', url], check=True)
+                    return 0
+                # fall through to plain 'open' if binary not where expected
+                subprocess.run(['open', url], check=True)
+                return 0            
+            elif page_code == 2 and (browser_id == 'org.mozilla.firefox') :
+                # Firefox: call the binary directly with -new-tab.  Going
+                # through 'open -a Firefox --args' is unreliable (URL often
+                # ignored); the direct binary call routes to the running
+                # instance and honors -new-window.
+                ff = '/Applications/Firefox.app/Contents/MacOS/firefox'
+                if os.path.isfile(ff) :
+                    subprocess.run([ff, '--new-tab', url], check=True)
+                    return 0
+                # fall through to plain 'open' if binary not where expected
+                subprocess.run(['open', url], check=True)
+                return 0            
+            elif page_code == 1 and (browser_id == 'com.google.chrome') :
+                # Chrome: call the binary directly with --new-window.
+                # Going through 'open -a "Google Chrome" --args' is
+                # unreliable, because --args only applies on a fresh
+                # launch; when Chrome is already running the flag is
+                # ignored and the URL opens as a tab.  The direct
+                # binary call routes to the running instance and
+                # honors --new-window.
+                gc = '/Applications/Google Chrome.app/Contents/'
+                gc+= 'MacOS/Google Chrome'
+                if os.path.isfile(gc) :
+                    subprocess.run([gc, '--new-window', url], check=True)
+                    return 0
+                # fall through to plain 'open' if binary not where expected
+                subprocess.run(['open', url], check=True)
                 return 0
             else :
                 # non-Safari default (Chrome/Firefox/etc.), or page_code==2
