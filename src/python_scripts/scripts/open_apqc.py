@@ -102,10 +102,12 @@ When finished:
   When you are doing viewing the APQC HTMLs, you can close all of
   them, and type 'Ctrl+c' in the terminal (to cancel/exit the server).
 
+
 Troubleshooting ~1~
 
 Some suggestions of things to try if problems arise.  NB: I would not
 default to any of these options, just try/use them if necessary.
+
 
 Seeing blank pages/tabs? ~2~
 
@@ -132,12 +134,23 @@ Failure to open all tabs in browser? ~2~
   might not be able to force the system to open a new window to start, 
   but it should be relatively stable.  
 
+Desktop asks for permission to open browser ~2~
+
+  Occasionally, when this program is run a user might be asked to verify
+  whether the system is allowed to fire up the browser.  For example,
+  we have seen this on macOS/Darwin systems, particularly for the Safari
+  browser.  This shouldn't actually cause any problems, and you should 
+  just be able to click 'Yes'.  Moreover, this should just be queried 
+  one time, so hopefully it shouldn't be too big of a deal.
+
+
 Notes on dependencies ~1~
 
 To get the most information (and fun!) when using the program, the 
 following Python modules should be installed, to enable a local server
 to be up and running: {flask_deps}
 These could/should be installed with a package manager, Conda, etc.
+
 
 {ddashline}
 
