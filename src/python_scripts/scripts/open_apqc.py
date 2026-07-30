@@ -21,6 +21,7 @@ version = '2.0'  # add in AV button functionality
 version = '3.0'  # run with or without server going
 version = '3.1'  # add in -find_infiles opt
 version = '3.2'  # fix occasional/semi-systematic blank tab when opening
+version = '3.3'  # remove unnec werkzeug WARNING @ production server.
 
 # ==========================================================================
 
@@ -353,6 +354,7 @@ rem_apqc_json_list, rem_ssrev_json_list = \
 
 # debugging display at present
 if verb :
+    print("++ Open APQC HTML report(s)...")
     print("++ Number of paths:", npath)
     print("++ common_abs_path:" + dent + common_abs_path)
     print("++ rem index.html:" + dent + dent.join(rem_html_list))
@@ -372,6 +374,10 @@ DO_HAVE_FLASK = 0
 try:
     from flask        import Flask, send_from_directory, request, jsonify, cli
     from flask_cors   import CORS   # to circumvent 'no access issues from UI'
+    import werkzeug                 # avoid: "WARNING: This is a develop..."
+    import werkzeug.serving
+    import functools
+
     DO_HAVE_FLASK = 1
 except (ImportError,NotImplementedError):
     print(flask_warn)
@@ -380,7 +386,27 @@ if DO_HAVE_FLASK :
     app = Flask(__name__)           # initialize flask app
     CORS(app)                       # let CORS package upgrade app
 
-    cli.show_server_banner = lambda *_: None   # disable warning @ dev server
+    # disable warning @ dev server
+    cli.show_server_banner = lambda *_: None
+
+    # disable Werkzeug's dev-server warning
+    werkzeug.serving.show_server_banner = lambda *_: None   
+    # ... and suppress Werkzeug's separate "development server"
+    # warning, which is printed via its internal _ansi_style()
+    # helper. We wrap that helper and seek out only that one line,
+    # leaving all other server output (incl. per-request GET logs)
+    # intact.
+    ## NB: _ansi_style is a private Werkzeug function; correct for at
+    ## least v3.1.3, but we might have to re-check this if Werkzeug is
+    ## upgraded.
+    _orig_ansi_style = werkzeug.serving._ansi_style
+    @functools.wraps(_orig_ansi_style)
+    def _quiet_ansi_style(value, *args, **kwargs):
+        if isinstance(value, str) and \
+           value.startswith('WARNING: This is a development server.'):
+            return ''
+        return _orig_ansi_style(value, *args, **kwargs)
+    werkzeug.serving._ansi_style = _quiet_ansi_style
 
     if not(nv_dir) :
         # get location of AFNI binaries dir, which is where
@@ -593,7 +619,10 @@ if __name__ == "__main__":
     
     if DO_HAVE_FLASK :
         # start the flask application---have to refresh above pages?
-        print(anti_warn)
+
+        # This text is no longer needed, as long as the suppression of
+        # the annoying werkzeug WARNING remains intact, added above
+        ###print(anti_warn)
         app.run(host=host, port=portnum) #, debug=True)
 
         print("++ DONE.  Goodbye.")
