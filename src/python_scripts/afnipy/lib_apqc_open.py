@@ -32,6 +32,7 @@ DEF = {
     'new_tabs_only' : False,    # T/F: do not open [0]th page in new win
     'new_wins_only' : False,    # T/F: open each page in new win (not tabs)
     'pause_time'    : 2.0,      # time (s) to pause to let pages load
+    'pause_tab0'    : 0.5,      # time (s) to pause after initial tab
     'verb'          : 1,        # verbosity level
 }
 

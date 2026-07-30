@@ -20,6 +20,7 @@ version = '1.11' # add more help text and examples
 version = '2.0'  # add in AV button functionality 
 version = '3.0'  # run with or without server going
 version = '3.1'  # add in -find_infiles opt
+version = '3.2'  # fix occasional/semi-systematic blank tab when opening
 
 # ==========================================================================
 
@@ -32,6 +33,7 @@ import os
 import argparse   as     argp
 import webbrowser
 import textwrap
+import time
 
 from afnipy       import lib_apqc_open as lao
 from afnipy       import afni_base     as BASE
@@ -95,6 +97,21 @@ While running/viewing the HTMLs:
 When finished:
   When you are doing viewing the APQC HTMLs, you can close all of
   them, and type 'Ctrl+c' in the terminal (to cancel/exit the server).
+
+Troubleshooting ~1~
+
+Occasionally, when opening a ~large number of APQC HTML pages, an
+individual tab might open empty.  This appears to occur when there
+isn't a large enough pause after the first new page opening for the
+next tab to open.  This appears to be some interaction between the
+flask server and browser. Exact behavior and/or presence of delays may
+vary by browser, system and number of tabs.
+
+We have put a short default pause in now to hopefully avoid this, but
+it is possible that it could happen in some cases. Users can try to
+avoid this by using the '-pause_tab0 ..' option, by trying to increase
+the pause-after-initial-tab time slightly. But hopefully this is
+mainly handled automatically now within the code.
 
 Notes on dependencies ~1~
 
@@ -187,6 +204,11 @@ parser.add_argument('-pause_time', nargs=1,
                     help='total time (s) to pause to let pages load '
                     '(def: {})'.format(lao.DEF['pause_time']))
 
+parser.add_argument('-pause_tab0', nargs=1,
+                    default=[lao.DEF['pause_tab0']],
+                    help='total time (s) to pause after the initial tab '
+                    '(def: {})'.format(lao.DEF['pause_tab0']))
+
 parser.add_argument('-open_pages_off', action="store_false", 
                     default=lao.DEF['open_pages'],
                     help='(not typically needed) '
@@ -250,6 +272,7 @@ do_disp_jump_ids = args.disp_jump_ids
 do_new_tabs_only = args.new_tabs_only
 do_new_wins_only = args.new_windows_only
 pause_time       = float(args.pause_time[0])
+pause_tab0       = float(args.pause_tab0[0])
 verb             = int(args.verb[0])
 
 # do we have index.html files to find?
@@ -533,7 +556,7 @@ def open_all_browser_pages( portnum ):
     page_code = first_page_code
     if verb>1 :
         print('++ URL for browser:')
-    for rem_html in rem_html_list:
+    for ii, rem_html in enumerate(rem_html_list):
         if DO_HAVE_FLASK :
             url = lao.construct_url(host, portnum, rem_html, jump_to=jump_to)
         else:
@@ -541,11 +564,16 @@ def open_all_browser_pages( portnum ):
             if jump_to :
                 ttt = '#' + jump_to
             url = 'file://' + common_abs_path + '/' + rem_html + ttt
-            if verb>1 :
-                print('       {}'.format( url ))
+        if verb>1 :
+            print('       {}'.format(url))
         if do_open_pages :
             webbrowser.open(url, new = page_code)
             page_code = other_page_code
+            # after the first page opens a NEW WINDOW, give the browser
+            # a moment to create it before firing a tab into it; without
+            # this, that first tab request is dropped and the tab is blank
+            if ii == 0 and not do_new_tabs_only:
+                time.sleep(pause_tab0)
 
 # ================================ main =====================================
 
