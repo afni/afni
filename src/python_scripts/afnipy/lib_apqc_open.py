@@ -799,9 +799,7 @@ def get_system_and_browser():
     'Darwin'   -> macOS
     'Linux'    -> Linux flavors
 
-Also, for some systems, return some browser names. For now, this only
-tries on macOS ('Darwin'), where things are trickier and more
-browser-specific.
+Also, for some systems, return some browser names.
 
 Parameters
 ----------
