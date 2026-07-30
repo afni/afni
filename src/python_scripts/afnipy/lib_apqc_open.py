@@ -13,6 +13,7 @@ import sys, os
 import glob
 import copy
 import socket
+import platform, plistlib, subprocess
 
 from afnipy       import afni_base     as BASE
 
@@ -28,6 +29,7 @@ DEF = {
     'nv_dir'  : '',             # hostname
     'jump_to' : None,           # hash to jump to in APQC page
     'open_pages'    : True,     # T/F: open pages in browser?
+    'do_use_wbrsr'  : False,    # T/F: use webbrowser module to open pages?
     'disp_jump_ids' : False,    # T/F: display jump IDs in index.html
     'new_tabs_only' : False,    # T/F: do not open [0]th page in new win
     'new_wins_only' : False,    # T/F: open each page in new win (not tabs)
@@ -658,6 +660,151 @@ all_findpath : list (of str)
         print(msg)
 
     return npath, all_findpath
+
+# ---------------------------------------------------------------------------
+# some browser-specific functionality
+
+def open_url_in_browser(url, page_code=2, 
+                        sys_name='', browser_id='',
+                        verb=0):
+    """The fancy approach to open a URL, trying to make use of OS-specific
+(and sometimes browser-specific) command functionality.
+
+Parameters
+----------
+url : str
+    page address to open
+page_code : int
+    2 for 'new tab', 1 for 'new window'
+sys_name : str
+    operating system name ('Darwin', 'Linux', etc.)
+browser_id : str
+    string representing browser ID (only used on some systems, at present)
+verb : int
+    verbosity level
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+
+    """
+
+    try:
+        if sys_name == 'Darwin' :                       # macOS
+            is_safari = (browser_id == 'com.apple.safari')
+            if page_code == 1 and is_safari :
+                # Safari ignores window-vs-tab control via 'open', so use
+                # AppleScript's 'make new document' to force a new window
+                script = ('tell application "Safari" to make new document '
+                          'with properties {{URL:"{}"}}').format(url)
+                subprocess.run(['osascript', '-e', script], check=True)
+                return 0
+            else :
+                # non-Safari default (Chrome/Firefox/etc.), or page_code==2
+                # not requested: plain 'open' launches the default browser
+                subprocess.run(['open', url], check=True)
+                return 0
+
+        ### write now, ignore the xdg-open route, because it didn't
+        ### seem to confer benefits for Linux
+        #elif sys_name == 'Linux' :
+        #    subprocess.run(['xdg-open', url], check=True)
+        #    return 0
+
+        else:
+            import webbrowser
+            ok = webbrowser.open(url, new=page_code)
+            return 0 if ok else 1
+
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError) as e:
+        if verb :
+            print("+* WARN: native open failed ({}); trying webbrowser"
+                  "".format(e))
+        try:
+            import webbrowser
+            ok = webbrowser.open(url, new=page_code)
+            return 0 if ok else 1
+        except Exception as e2:
+            print("** ERROR: could not open URL '{}': {}".format(url, e2))
+            return 1
+
+
+def get_system_and_browser():
+    """Return the string that is the system name, such as:
+    'Darwin'   -> macOS
+    'Linux'    -> Linux flavors
+
+Also, for some systems, return some browser names. For now, this only
+tries on macOS ('Darwin'), where things are trickier and more
+browser-specific.
+
+Parameters
+----------
+None
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for fail
+sys_name : str
+    a string for the system name
+browser_id : str
+    a string for the browser ID; technically, the 'bundle_id' --
+    see the help for get_default_browser_macos()
+
+    """
+
+    sys_name   = ''
+    browser_id = ''
+
+    BAD_RETURN = ( -1, sys_name, browser_id )
+
+    sys_name = platform.system()
+
+    # only doing the browser check on macOS/Darwin right now
+    if sys_name == 'Darwin' :
+        browser_id = get_default_browser_macos()
+
+    return 0, sys_name, browser_id
+
+
+def get_default_browser_macos():
+    """On macOS, determine the default browser's bundle identifier by
+    reading the LaunchServices 'secure' plist and finding the handler
+    registered for the 'https' URL scheme.
+
+    Returns
+    -------
+    bundle_id : str
+        the default browser's bundle id, lowercased (e.g.,
+        'com.apple.safari', 'com.google.chrome', 'org.mozilla.firefox'),
+        or '' if it cannot be determined
+    """
+
+    plist_path = os.path.expanduser(
+        '~/Library/Preferences/com.apple.LaunchServices/'
+        'com.apple.launchservices.secure.plist'
+    )
+
+    if not os.path.isfile(plist_path):
+        return ''
+
+    try:
+        with open(plist_path, 'rb') as fff:  
+            # binary plist -> read as bytes
+            data = plistlib.load(fff)
+    except Exception:
+        return ''
+
+    # LSHandlers is a list of dicts; find the one handling the https scheme
+    for handler in data.get('LSHandlers', []):
+        if handler.get('LSHandlerURLScheme') == 'https':
+            bundle = handler.get('LSHandlerRoleAll', '')
+            return bundle.lower()
+
+    # If no explicit https handler is registered, macOS defaults to Safari
+    return 'com.apple.safari'
 
 # =========================================================================
 # =========================================================================

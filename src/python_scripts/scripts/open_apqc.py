@@ -22,6 +22,7 @@ version = '3.0'  # run with or without server going
 version = '3.1'  # add in -find_infiles opt
 version = '3.2'  # fix occasional/semi-systematic blank tab when opening
 version = '3.3'  # remove unnec werkzeug WARNING @ production server.
+version = '3.4'  # add OS- and browser-specific funcs to open new window
 
 # ==========================================================================
 
@@ -101,18 +102,33 @@ When finished:
 
 Troubleshooting ~1~
 
-Occasionally, when opening a ~large number of APQC HTML pages, an
-individual tab might open empty.  This appears to occur when there
-isn't a large enough pause after the first new page opening for the
-next tab to open.  This appears to be some interaction between the
-flask server and browser. Exact behavior and/or presence of delays may
-vary by browser, system and number of tabs.
+Some suggestions of things to try if problems arise.  NB: I would not
+default to any of these options, just try/use them if necessary.
 
-We have put a short default pause in now to hopefully avoid this, but
-it is possible that it could happen in some cases. Users can try to
-avoid this by using the '-pause_tab0 ..' option, by trying to increase
-the pause-after-initial-tab time slightly. But hopefully this is
-mainly handled automatically now within the code.
+Seeing blank pages/tabs? ~2~
+
+  Occasionally, when opening a ~large number of APQC HTML pages, an
+  individual tab might open empty.  This appears to occur when there
+  isn't a large enough pause after the first new page opening for the
+  next tab to open.  This appears to be some interaction between the
+  flask server and browser. Exact behavior and/or presence of delays may
+  vary by browser, system and number of tabs.
+
+  We have put a short default pause in now to hopefully avoid this, but
+  it is possible that it could happen in some cases. Users can try to
+  avoid this by using the '-pause_tab0 ..' option, by trying to increase
+  the pause-after-initial-tab time slightly. But hopefully this is
+  mainly handled automatically now within the code.
+
+Failure to open all tabs in browser? ~2~
+
+  By default, this program tries to use some OS- and browser-specific 
+  info to open new windows.  However, this can be challenging on some
+  systems, and may run into issues.  If it happens that _no_ windows or 
+  tabs open, then try using the '-use_webbrowser' option, to skip the
+  fancier functionality and just use the webbrowser Python module.  It
+  might not be able to force the system to open a new window to start, 
+  but it should be relatively stable.  
 
 Notes on dependencies ~1~
 
@@ -240,6 +256,12 @@ parser.add_argument('-nv_dir', nargs=1,
                     'path to directory containing "niivue_afni.umd.js" '
                     '(def: {})'.format('use the location of "afni" program'))
 
+parser.add_argument('-use_webbrowser', action="store_true", 
+                    default=lao.DEF['do_use_wbrsr'],
+                    help='(not typically needed) '
+                    'ignore attempts to use system- and browser-specific '
+                    'info to open new windows/tabs (def: use OS info)')
+
 parser.add_argument('-verb', nargs=1,
                     default=[lao.DEF['verb']],
                     help='verbosity level '
@@ -266,6 +288,7 @@ host             = args.host[0]
 nv_dir           = args.nv_dir[0]
 jump_to          = args.jump_to[0]
 do_open_pages    = args.open_pages_off
+do_use_wbrsr     = args.use_webbrowser
 do_ver           = args.ver
 do_help          = args.help
 do_hview         = args.hview
@@ -579,9 +602,25 @@ def open_all_browser_pages( portnum ):
     server is up and running.
 
     """
+
+    # get system name and (in some cases) browser ID, to try to follow
+    # 'new window' directive more widely, since different OSs and
+    # browsers present challenges to generic webbrowser calls
+    is_fail, sys_name, browser_id = lao.get_system_and_browser()
+    if is_fail :
+        msg = "** ERROR: could not get system name and/or browser ID"
+        print(msg)
+        return -1
+
+    if verb :
+        msg = "++ System name (and browser ID, if applicable): "
+        msg+= "{} ({})".format(sys_name, browser_id)
+        print(msg)
+
     page_code = first_page_code
     if verb>1 :
         print('++ URL for browser:')
+
     for ii, rem_html in enumerate(rem_html_list):
         if DO_HAVE_FLASK :
             url = lao.construct_url(host, portnum, rem_html, jump_to=jump_to)
@@ -593,8 +632,25 @@ def open_all_browser_pages( portnum ):
         if verb>1 :
             print('       {}'.format(url))
         if do_open_pages :
-            webbrowser.open(url, new = page_code)
+
+            # decide whether to go for simple webbrowser module (where
+            # 'new window' may be more likely ignored), or use fancier
+            # route for trying to control OS-specific (and sometimes
+            # browser-specific) commands
+            if do_use_wbrsr :
+                # simple but often overruled
+                webbrowser.open(url, new = page_code)
+            else :
+                # fancy approach
+                lao.open_url_in_browser(url, 
+                                        page_code=page_code, 
+                                        sys_name=sys_name, 
+                                        browser_id=browser_id,
+                                        verb=verb)
+
+            # after ii==0, use the second setting
             page_code = other_page_code
+
             # after the first page opens a NEW WINDOW, give the browser
             # a moment to create it before firing a tab into it; without
             # this, that first tab request is dropped and the tab is blank
