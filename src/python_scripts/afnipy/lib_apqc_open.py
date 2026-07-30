@@ -652,7 +652,9 @@ all_findpath : list (of str)
         print("   {}".format("\n   ".join(all_findpath)))
 
     if npath == 0 :
-        print("+* WARN: no index.html files found from topdir: {}".topdir)
+        msg = "+* WARN: no index.html files found "
+        msg+= "from topdir: {}".format(topdir)
+        print(msg)
 
     return npath, all_findpath
 
