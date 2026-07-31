@@ -1870,6 +1870,8 @@ int SUMA_SwitchCmap(SUMA_ALL_DO *ado,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   fprintf(stderr, "############### %s\n", FuncName);
 
    SUMA_LH("Called");
    if (!ado || !CM) SUMA_RETURN(0);
@@ -2475,8 +2477,9 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    SO = (SUMA_SurfaceObject *)ado;   
    
    // Get box outline threshold status from checkbox
-   BoxOutlineThresh = XmToggleButtonGetState(w);    
-   over2 = SUMA_ADO_CurColPlane(ado);
+   BoxOutlineThresh = XmToggleButtonGetState(w);
+   over2 = SO->Overlays[SO->N_Overlays - 1];
+   // over2 = SUMA_ADO_CurColPlane(ado);
    over2->BoxOutlineThresh = BoxOutlineThresh;
    // Process for current hemisphere
    over2->makeContours = YUP;

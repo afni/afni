@@ -5465,6 +5465,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
       SUMA_disp_vect(far, ncol*nrow);
    }
 
+   fprintf(stderr, "SUMA_MultiColumnsToDrawnROI: nrow = %d\n", nrow);
    switch (nrow) {
       case 1:
          /* Node index only*/

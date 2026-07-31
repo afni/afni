@@ -3030,11 +3030,12 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    int          nnodes=0;         /* locally applied Box mask size  */
 
    SUMA_ENTRY;
-
+   
    if (!Sover) { SUMA_SL_Err("NULL Sover"); SUMA_RETURN(NOPE); }
    if (!Sover->cmapname) {
       SUMA_SL_Err("NULL Colormap name"); SUMA_RETURN(NOPE);
    }
+
    if (!SUMAg_CF->scm) {
       SUMAg_CF->scm = SUMA_Build_Color_maps();
       if (!SUMAg_CF->scm) {
@@ -3051,7 +3052,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       SUMA_RETURN(NOPE);
    }
    ColMap = SUMAg_CF->scm->CMv[icmap];
-
+   
    Opt = Sover->OptScl;
 
    SUMA_LH("Creating a scaled color vect");
@@ -3097,12 +3098,13 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          memset(box_mask, '\0', nnodes*sizeof(int));
       }
       nnodes = 0; /* for below, num box_mask nodes surviving threshold */
-
+      
       if (  !SUMA_SetOverlay_Vecs(Sover, 'T', Opt->tind, "update", 0) ||
             !Sover->T ) {
          SUMA_S_Err("Failed to get T");
          SUMA_RETURN(NOPE);
       }
+
       /* setting SV->isMasked[i] means the node overlay is not shown */
       /* (if Alpha, nothing gets masked out here) */
       switch (Opt->ThrMode) {
@@ -3385,7 +3387,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
    }
 
-
    if (Opt->bind >= 0 &&
        (Opt->UseBrt || Sover->AlphaVal == SW_SurfCont_DsetAlphaVal_B)) {
       SUMA_LH("Brightness modulation needed");
@@ -3410,6 +3411,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          }
          minB = Range[0]; maxB = Range[1];
       }
+
       /* Now scale B and modulate colors in SV*/
       SUMA_LH("Scaling by B");
       fact = (Opt->BrightMap[1] - Opt->BrightMap[0]) / (maxB - minB);
@@ -3510,7 +3512,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             break;
       }
    }
-
 
    /* finally copy results */
    SUMA_LH("Copying into NodeDef");
@@ -12056,7 +12057,8 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(int nnodes, int *box_mask,
     if (!cp) SUMA_RETURN(NOPE);
     if (!cp->dset_link) SUMA_RETURN(NOPE);
     if (!(cp->makeContours)) SUMA_RETURN(NOPE);
-
+    
+    fprintf(stderr, "SUMA_MultiColumnsToDrawnROI in SUMA_Color.c, 2\n");
     cp->Contours =
        SUMA_MultiColumnsToDrawnROI( nnodes,
              (void *)box_mask, SUMA_int,
@@ -12071,7 +12073,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(int nnodes, int *box_mask,
              
     if( cp->Contours )
         memset(cp->Contours[0]->FillColor, '\0', 4*sizeof(float));
-   
+    
    SUMA_RETURN(YUP);
 }
 
@@ -12101,6 +12103,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
 
          ind = SDSET_NODE_INDEX_COL(cp->dset_link);
          key = SDSET_VEC(cp->dset_link, cp->OptScl->find);
+         fprintf(stderr, "SUMA_MultiColumnsToDrawnROI in SUMA_Color.c, 3\n");
          cp->Contours =
             SUMA_MultiColumnsToDrawnROI( SDSET_VECLEN(cp->dset_link),
                   (void *)ind, SUMA_int,
@@ -12123,6 +12126,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
          ind = cp->NodeDef;
          key = SDSET_VEC(cp->dset_link, cp->OptScl->find);
 
+         fprintf(stderr, "SUMA_MultiColumnsToDrawnROI in SUMA_Color.c, 4\n");
          if (ind && key) {
             cp->Contours =
                SUMA_MultiColumnsToDrawnROI( cp->N_NodeDef,
@@ -12157,6 +12161,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
          key = SV->VCont;
          /*for (kkk=0; kkk<cp->N_NodeDef; ++kkk)
             fprintf(SUMA_STDERR,"%d-->%d\t", ind[kkk], key[kkk]);*/
+            fprintf(stderr, "SUMA_MultiColumnsToDrawnROI in SUMA_Color.c, 1\n");
          cp->Contours =
             SUMA_MultiColumnsToDrawnROI( cp->N_NodeDef,
                   (void *)ind, SUMA_int,

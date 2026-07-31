@@ -2157,15 +2157,23 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    DListElmt *NextElm= NULL;
    SUMA_Boolean LocalHead = NOPE;
    Widget w = NULL;
+   SUMA_SurfaceObject *SO = SUMA_SV_Focus_SO(sv);
+   char *cmapname;
    static SUMA_Boolean clippingPlanesInitialized = NOPE;
+   int result;
+   size_t buffer_size;
 
    SUMA_ENTRY;
 
    SUMA_KEY_COMMON;
+   
+   fprintf(stderr, "SUMA_C_Key: C/c key\n");
 
    /* do the work */
    switch (k) {
      case XK_C:
+         
+         fprintf(stderr, "C key\n");
 
         if ((SUMA_ALT_KEY(key) || SUMA_APPLE_KEY(key))){
 
@@ -2188,6 +2196,19 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 activeClipPlanes = activeClippingPlanes();
             }
         } else if (SUMA_CTRL_KEY(key)){
+           /* Save active color plane name */
+           if (SO->N_Overlays > 0){
+               buffer_size = (strlen(SO->Overlays[SO->N_Overlays-1]->cmapname) + 8) * 
+                    sizeof(char);
+                if (!(cmapname = (char *)malloc(buffer_size))){
+                    fprintf(stderr, "Error allocating name buffer\n");
+                    SUMA_RETURN(0);
+                }           
+                result = snprintf(cmapname, buffer_size, "%s", 
+                                     SO->Overlays[SO->N_Overlays-1]->cmapname);
+           }
+           
+            fprintf(stderr, "ctrl-C key\n");
             if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
                 fprintf(stderr, "### SUMA_C_Key: toggleClippingPlaneMode\n");
             toggleClippingPlaneMode(sv, w, &locallySelectedPlane);
@@ -2211,6 +2232,14 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             // Update vewier header with initialized scroll inc.
             sv->clippingPlaneIncrement = scrollInc;
             SUMA_UpdateViewerTitle(sv);
+   
+           /* Restore active color plane name */
+           if (SO->N_Overlays > 0){
+               sprintf(SO->Overlays[SO->N_Overlays-1]->cmapname, cmapname);
+               result = snprintf(SO->Overlays[SO->N_Overlays-1]->cmapname, 
+                    buffer_size, "%s", cmapname);
+               free(cmapname);
+           }
         }else if (clippingPlaneMode) {
 
             SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
@@ -5374,6 +5403,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_C:
+             fprintf(stderr, "XK_C\n");
+             fprintf(stderr, "Kev.state = %d\n", Kev.state);
+             fprintf(stderr, "ControlMask = %d\n", ControlMask);
             if ((SUMA_ALTHELL)){
                 if ((Kev.state & ControlMask)){ // Ctrl-Shift-alt-C (clip plane box
                     if (!SUMA_C_Key(sv, "Shift+Ctrl+Alt+C", "interactive")) {
