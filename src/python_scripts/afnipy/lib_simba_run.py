@@ -126,21 +126,31 @@ inobj : InOpts object
 
         # prelim stuff
         if user_inobj :
-            tmp1 = self.load_from_inopts()
-            tmp2 = self.basic_setup()
+            tmp = self.load_from_inopts()
+            if tmp : return
+
+            tmp = self.basic_setup()
+            if tmp : return
 
             # load in main data
             if self.inset :
-                tmp3 = self.load_simdata_from_inset_pickle()
+                tmp = self.load_simdata_from_inset_pickle()
+                if tmp : return
+
             elif self.infiles :
-                tmp4 = self.load_simdata_from_infiles()
+                tmp = self.load_simdata_from_infiles()
+                if tmp : return
 
             # do the work
             if self.simdata is not None :
-                tmp5 = self.specify_kernel_function()
-                tmp6 = self.run_model_general()
-                tmp7 = self.make_outputs()
+                tmp = self.specify_kernel_function()
+                if tmp : return
 
+                tmp = self.run_model_general()
+                if tmp : return
+
+                tmp = self.make_outputs()
+                if tmp : return
 
     # ----- methods
 
@@ -254,10 +264,12 @@ inobj : InOpts object
             self.fig = self.make_model_plot()
 
         if self.do_save_nifti :
-            tmp1 = self.write_model_to_nifti()
+            tmp = self.write_model_to_nifti()
+            if tmp : return -1
 
         if self.do_ppc_curves :
-            tmp2 = self.make_ppc_curves()
+            tmp = self.make_ppc_curves()
+            if tmp : return -1
 
         return 0
 
@@ -517,7 +529,7 @@ inobj : InOpts object
         self.simdata = DOBJ.SimbaDataObj( fname_pickle = self.inset,
                                           fname_mask   = self.mask, 
                                           fname_ulay   = self.ulay, 
-                                          verb         = self.verb)
+                                          verb         = self.verb )
         return 0
 
     def load_simdata_from_infiles(self):
@@ -529,7 +541,7 @@ inobj : InOpts object
         self.simdata = DOBJ.SimbaDataObj( infiles       = self.infiles,
                                           fname_mask    = self.mask, 
                                           fname_ulay    = self.ulay, 
-                                          verb          = self.verb)
+                                          verb          = self.verb )
         return 0
 
     def load_from_inopts(self):
