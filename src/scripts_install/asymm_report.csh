@@ -7,9 +7,10 @@
 
 set progname = asymm_report
 
-set version   = "0.91";   set rev_dat   = "Jun 12, 2025"
+#set version   = "0.91";   set rev_dat   = "Jun 12, 2025"
 #     + [DRG] adding in right_list, left_list options
-
+set version = "1.00"; set rev_dat   = "Jul 30, 2026"
+#     + [DRG] check for no labels and checks for zero values
 
 # start with cerebellum regions from HCA_lr_v0.9.nii.gz
 
@@ -44,6 +45,8 @@ set patchsmooth = "2"
 
 # default method for computing asymmetry is right to left ratio
 set asymm_method = "RL"
+# allow for no file matches in wildcard expansion
+set nonomatch
 
 if ("$#" <  "1") then
    goto HELP
@@ -348,17 +351,37 @@ foreach roi (`count -digits 2 1 $#right_range`)
    if ( $isosurfs ) then
       set righti_1d = `ccalc -int $righti`
       set lefti_1d = `ccalc -int $lefti`
-      SurfaceMetrics -area -prefix temp.1D -overwrite \
-        -i ${isosurf_dir}/${isosurf_base}*.k${righti_1d}.gii > /dev/null
+      if -e ${isosurf_dir}/${isosurf_base}*.k${righti_1d}.gii then
+        SurfaceMetrics -area -prefix temp.1D -overwrite \
+          -i ${isosurf_dir}/${isosurf_base}*.k${righti_1d}.gii
+# > /dev/null
       set righta = `3dTstat -sum  -prefix stdout temp.1D.area'[1]'\' `
-      SurfaceMetrics -area -prefix temp.1D -overwrite \
-        -i ${isosurf_dir}/${isosurf_base}*.k${lefti_1d}.gii > /dev/null
-      set lefta = `3dTstat -sum  -prefix stdout temp.1D.area'[1]'\' `
+      else
+          set righta = 0
+      endif 
+
+      if -e ${isosurf_dir}/${isosurf_base}*.k${righti_1d}.gii then
+         SurfaceMetrics -area -prefix temp.1D -overwrite \
+           -i ${isosurf_dir}/${isosurf_base}*.k${lefti_1d}.gii 
+# > /dev/null
+         set lefta = `3dTstat -sum  -prefix stdout temp.1D.area'[1]'\' `
+      else
+         set lefta = 0
+      endif
+
       # compute asymmetry as ratio of right to left volumes or Laterality Index
       if ($asymm_method == "LI") then
-         set surf_asymm = `ccalc "($lefta-$righta)/($lefta+$righta)"`
+         if(($lefta == 0) && ($righta==0)) then
+            set surf_asymm = 0
+         else
+            set surf_asymm = `ccalc "($lefta-$righta)/($lefta+$righta)"`
+         endif
       else
-         set surf_asymm = `ccalc "$righta/$lefta"`
+         if ($lefta == 0) then
+            set surf_asymm = 0
+         else
+            set surf_asymm = `ccalc "$righta/$lefta"`
+         endif
       endif
 
       set righta = `ccalc -form "%.1f" $righta`
