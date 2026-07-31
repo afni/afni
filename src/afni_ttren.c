@@ -451,6 +451,20 @@ ENTRY("TTRR_setup_widgets") ;
    XtManageChild( ttc->workwin ) ;
    XtManageChild( frame ) ;
    XtManageChild( ttc->scrollw ) ;
+
+   if( needsX11Redraw() ){   /* macos 26 fix */
+     XtInsertEventHandler( toprc ,
+                           StructureNotifyMask ,    /* resizes */
+                           FALSE ,                  /* nonmaskable events? */
+                           AFNI_widget_expose_EV ,  /* handler */
+                           (XtPointer) NULL ,       /* client data - not used */
+                           XtListTail               /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for Show atlas color window resize\n");
+   }
+
    XtManageChild( toprc ) ;
    XtRealizeWidget( ttc->shell ) ; NI_sleep(5) ;
 

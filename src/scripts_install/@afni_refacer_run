@@ -622,6 +622,22 @@ write over the subject's 'face' region.
 
 The main input is the name of a T1-weighted dataset.
 
+For an independent comparison of methods that demonstrates the strong
+performance of this defacing/refacing program, see:
+
+  Multisite Comparison of MRI Defacing Software Across Multiple Cohorts
+    by Theyers et al. (2021)
+  https://pmc.ncbi.nlm.nih.gov/articles/PMC7943842/
+
+# ==================================================================== #
+#    ** Note that an updated version of this program now exists,       #
+#       called refacer_run2.  The results should be very similar,      #
+#       but the program itself is more efficient under the hood.       # 
+#       The default de/refacing will also be more anonymizing,         #
+#       which is preferable.  This version will not get updates.       #
+#       Please switch over to using the newer refacer_run2.      **    # 
+# ==================================================================== #
+
 ver = ${version}
 
 OUTPUTS ~1~
@@ -789,6 +805,17 @@ EXAMPLES ~1~
         -mode_all                                 \
         -shell afni_refacer_shell_sym_2.0.nii.gz  \
         -prefix anat
+
+
+# ==================================================================== #
+#    ** Note that an updated version of this program now exists,       #
+#       called refacer_run2.  The results should be very similar,      #
+#       but the program itself is more efficient under the hood.       # 
+#       The default de/refacing will also be more anonymizing,         #
+#       which is preferable.  This version will not get updates.       #
+#       Please switch over to using the newer refacer_run2.      **    # 
+# ==================================================================== #
+
 
 EOF
 

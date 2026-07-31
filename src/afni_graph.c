@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*------------------------------------------------------------------------*/
@@ -3707,8 +3707,8 @@ STATUS(str) ; }
 #endif
 
         if( needsX11Redraw() ){                    /* Dec 2025 - Tahoe Redraw */
-          forceExpose( grapher->opt_cbut , 0 ) ;
-          forceExpose( grapher->fmenu->fim_cbut , 0 ) ;
+          forceExpose( grapher->opt_cbut , 1 ) ;
+          forceExpose( grapher->fmenu->fim_cbut , 1 ) ;
         }
 
         XSync( XtDisplay(w) , False ) ;  /* 05 Feb 1999 */

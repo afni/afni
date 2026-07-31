@@ -1320,7 +1320,7 @@ DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni,
    DListElmt *elm=NULL;
    float *ToBeAssigned=NULL;
    float mean;
-   int N_n, nc, i, kk, PureNothing=0;
+   int N_n=0, nc, i, kk, PureNothing=0;
    SUMA_CLUST_DATUM *Clust = NULL;
    SUMA_Boolean LocalHead = NOPE;
    

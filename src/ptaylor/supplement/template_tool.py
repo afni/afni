@@ -329,6 +329,7 @@ def main():
     # save some time, bc this takes a mini-while)
     if inobj.do_log :
         olog = 'log_template_tool.txt'
+        BASE.IP('creating log: {}'.format(olog))
         UTIL.write_afni_com_log(olog)
 
     return 0, mainobj

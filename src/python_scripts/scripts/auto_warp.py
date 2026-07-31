@@ -12,6 +12,8 @@
 #                    AFNI_COMPRESSOR works with NIFTI (-> now ignores them)
 # [PT: Mar 3,  2023] running this prog with no opts now produces FULL help
 #                  + add in -hview functionality
+# [PT: Apr 8,  2026] more verbosity available, and clearer messages in some
+#                    cases; goes along with @animal_warper updates
 # --------------------------------------------------------------------------
 
 
@@ -54,7 +56,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "0.06" # software version (update for changes)
+      self.align_version = "0.07" # software version (update for changes)
       self.label = label          # this program's name
       self.valid_opts = None
       self.user_opts = None
@@ -619,7 +621,7 @@ class RegWrap:
                % (a.input(), n.input()) , ps.oexec)
          com.run()
          if (not n.exist() and not ps.dry_run()):
-            print("** ERROR: Could not strip skull\n")
+            print("** ERROR: Could not unifize data\n")
             ps.ciao(1)
       else:
          self.exists_msg(n.input())  
@@ -650,6 +652,17 @@ class RegWrap:
 
    def resample(self,a,prefix='resampled', dxyz=0.0, m=None):
       n = afni_name(prefix)
+
+      if self.verb > 2 :
+         msg = "Step: resample\n"
+         msg+= "a   : {}\n".format(a.prefix)
+         msg+= "pref: {}\n".format(prefix)
+         msg+= "dxyz: {}\n".format(dxyz)
+         if m is not None :
+             msg+= "m   : {}\n".format(m)
+         msg+= "-> n: {}\n".format(n.prefix)
+         IP(msg)
+
       if (m == None):
          m = a
       if (not n.exist() or ps.rewrite or ps.dry_run()):
@@ -668,14 +681,30 @@ class RegWrap:
                         m.input()), ps.oexec)
          com.run()
          if (not n.exist() and not ps.dry_run()):
-            print("** ERROR: Could not strip skull with automask\n")
+            print("** ERROR: Could not resample data\n")
             ps.ciao(1)
       else:
          self.exists_msg(n.input())    
+
+      if self.verb > 2 :
+         msg = "... outputting from resample in order:\n"
+         msg+= "n   : {}\n".format(n.prefix)
+         IP(msg)
+
       return(n)
    
       
    def match_resolutions(self, a, b, suf, dxyz=0.0, m=None):
+      if self.verb > 2 :
+         msg = "Step: match_resolutions\n"
+         msg+= "a   : {}\n".format(a.prefix)
+         msg+= "b   : {}\n".format(b.prefix)
+         msg+= "suf : {}\n".format(suf)
+         msg+= "dxyz: {}\n".format(dxyz)
+         if m is not None :
+             msg+= "m   : {}\n".format(m.prefix)
+         IP(msg)
+
       if (dxyz != 0.0):
          print("%f" % (dxyz))
          ar = self.resample(a,prefix="anat%s.nii" % suf, dxyz=dxyz, m=m)
@@ -696,6 +725,12 @@ class RegWrap:
       com.run()
       if (len(com.so) and int(com.so[0]) == 0):
          ar = self.resample(ar,prefix="anat%sb.nii" % suf ,m=br)
+
+      if self.verb > 2 :
+         msg = "... outputting from match_resolutions in order:\n"
+         msg+= "ar  : {}\n".format(ar.prefix)
+         msg+= "br  : {}\n".format(br.prefix)
+         IP(msg)
 
       return ar,br
 
@@ -766,7 +801,13 @@ class RegWrap:
          self.exists_msg(n.input())  
       
       w = n.new(new_pref="%s_WARP" % n.prefix)
-      
+
+      if self.verb > 2 :
+         msg = "... outputting from qwarping in order:\n"
+         msg+= "n   : {}\n".format(n.prefix)
+         msg+= "w   : {}\n".format(w.prefix)
+         IP(msg)
+
       return (n,w)
       
    def qwarp_applying(self, a, aff, wrp, prefix=None, dxyz=0.0, master=None):
@@ -809,6 +850,12 @@ class RegWrap:
             ps.ciao(1)
       else:
          self.exists_msg(n.input())
+
+      if self.verb > 2 :
+         msg = "... outputting from qwarp_applying in order:\n"
+         msg+= "n   : {}\n".format(n.prefix)
+         IP(msg)
+
       return n
       
    def align_epi_anat(self, e, a, aff):
@@ -892,5 +939,10 @@ if __name__ == '__main__':
    #cleanup after the parents too?
    if (ps.rmrm):
       ps.cleanup()
-            
+   
+   if ps.verb :
+      msg = "Done: auto_warp.py\n"
+      msg+= "aw  : {}\n".format(aw.prefix)
+      IP(msg)
+
    ps.ciao(0)

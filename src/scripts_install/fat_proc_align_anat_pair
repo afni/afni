@@ -67,9 +67,12 @@
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
 #
-set version   = "1.4";   set rev_dat   = "Feb 23, 2026"
+#set version   = "1.4";   set rev_dat   = "Feb 23, 2026"
 #     + [PT] add new opt so output transform+dset is T2w->T1w
 #            add new opt to turn off -cmass
+#
+set version   = "1.5";   set rev_dat   = "Mar 18, 2026"
+#     + [PT] add new opt to open up parameter space for 3dAllineate
 #
 # ---------------------------------------------------------------
 
@@ -123,6 +126,10 @@ set warp_opt   = "-warp shift_rotate" # default, but can be changed
 
 set DO_T2W_TO_T1W = 0
 set do_use_cmass  = 1
+
+# to control max rot and max translation
+set maxrot = ""
+set maxshf = ""
 
 # ------------------- process options, a la rr ----------------------
 
@@ -205,6 +212,16 @@ while ( $ac <= $#argv )
         @ ac += 1
         set wdir = "$argv[$ac]"
         set WDIR_EX  = "0"
+
+    else if ( "$argv[$ac]" == "-maxrot" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set maxrot = "-maxrot $argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-maxshf" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set maxshf = "-maxshf $argv[$ac]"
 
     else if ( "$argv[$ac]" == "-no_cmd_out" ) then
         set output_cmd = 0
@@ -472,6 +489,7 @@ if ( "$imtrx" == "" ) then
         -wtprefix      $wdir/wtvol.nii.gz \
         -autoweight                       \
         -final wsinc5                     \
+        ${maxrot} ${maxshf}               \
         -overwrite
     
     if ( $status ) then
@@ -782,6 +800,18 @@ cat << EOF
                    manner described in 3dAllineate's help;  that is, WAR can
                    be any of shift_only, shift_rotate, shift_rotate_scale, or
                    affine_general.  Default: WAR = shift_rotate.
+
+   -maxrot MR     :use this option to change the range of rotations
+                   searched during the 3dAllineate alignment process;
+                   this option is just passed along to 3dAllineate,
+                   and if not used, the default range from 3dAllineate
+                   is used (see its help for the details)
+
+   -maxshf MS     :use this option to change the range of shifts/translation
+                   searched during the 3dAllineate alignment process;
+                   this option is just passed along to 3dAllineate,
+                   and if not used, the default range from 3dAllineate
+                   is used (see its help for the details)
 
    -matrix MMM    :one can apply a pre-made matrix that has been made by
                    3dAllineate previously.  With this option.  If you want.

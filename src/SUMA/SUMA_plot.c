@@ -437,6 +437,19 @@ MEM_topshell_data * SUMA_memplot_to_topshell( Display *dpy,
    XtAddCallback( drawing , XmNinputCallback  ,
                   SUMA_pm_input_CB  , (XtPointer) mpcb ) ;
 
+   if( needsX11Redraw() ){   /* macos 26 fix */
+     XtInsertEventHandler( form ,
+                           StructureNotifyMask ,  /* resizes */
+                           FALSE ,                /* nonmaskable events? */
+                           SUMA_expose_EV ,       /* handler */
+                           (XtPointer) mpcb ,     /* client data - not used */
+                           XtListTail             /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for SUMA plot window resize\n");
+   }
+
    /* finish the job */
 
    XtVaSetValues( form , BGCOLOR_ARG("white") , NULL ) ;

@@ -7,12 +7,12 @@
 
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2 (or later).  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /**********************************************************************/
-/* MCW/GPL/NIH AFNI:                                                  */
+/* MCW/CC-BY/NIH AFNI:                                                */
 /*    Analysis of Functional NeuroImages                              */
 /*                                                                    */
 /* Author: Robert W. Cox, PhD                                         */
@@ -68,7 +68,7 @@
 #ifdef SHSTRING
 
 #define ANNOUNCEMENT                                                           \
- "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
+ "AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"        \
  "This is Version " VERSION               "\n"                                 \
  "[[Precompiled binary " SHSTRING ": " __DATE__ "]]\n\n"                       \
  " ** This software was designed to be used only for research purposes. **\n"  \
@@ -90,7 +90,7 @@
 #else
 
 #define ANNOUNCEMENT                                                           \
- "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
+ "AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"        \
  "This is Version " AVERZHN " -- compiled " __DATE__  "\n\n"                   \
  " ** This software was designed to be used only for research purposes. **\n"  \
  " ** Clinical uses are not recommended, and have never been evaluated. **\n"  \
@@ -990,11 +990,36 @@ void AFNI_syntax(void)
      "   -show        show the package name\n"
      "\n"
      "    -x_have_MACOS_FORCE_EXPOSE\n"
-     "                show whether compiled with MACOS_FORCE_EXPOSE\n"
+     "                Show whether compiled with MACOS_FORCE_EXPOSE.  This\n"
+     "                is the default on current macos systems, specifically\n"
+     "                macos_12_x86_64 and macos_13_ARM.\n"
      "\n"
      "    -x_needsX11Redraw\n"
      "                show whether resize events will cause redraws\n"
      "\n"
+     "                This will default to true on the above 2 macos systems\n"
+     "                (macos_12_x86_64 and macos_13_ARM) if the user is also\n"
+     "                running macos 26, but < 26.5.  Otherwise not.\n"
+     "\n"
+     "                The issue requiring redraw/forceExpose/Remanage events\n"
+     "                has been fixed by Apple as of macos 26.5.\n"
+     "\n"
+     "                Any system can override the default behavior using\n"
+     "                environment variable AFNI_DO_X11_REDRAW.  Values:\n"
+     "\n"
+     "                  N        : no, do not use any redraw mechanism\n"
+     "                  Y        : yes, use the base redraw mechanism\n"
+     "                  REMANAGE : yes redraw, but with the dglen-special\n"
+     "                             remanage mechanism\n"
+     "\n"
+     "                This can be set in the environment, .afnirc file, or\n"
+     "                on the command line, as in:\n"
+     "\n"
+     "                  afni -DAFNI_DO_X11_REDRAW=Y\n"
+     "                  afni -DAFNI_DO_X11_REDRAW=N\n"
+     "                  afni -DAFNI_DO_X11_REDRAW=REMANAGE\n"
+     "\n"
+     "                Consider also -DAFNI_X11_REDRAW_VERB=Y.\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
      "      can be controlled by appropriate X11 resources.  See the\n"

@@ -17,39 +17,42 @@ from afnipy import afni_util as UTIL
 
 # list of 3dinfo opts not to use (reasons shown)
 list_3dinfo_ignore = [ \
-    '-HELP',              # show help
-    '-NA_flag',           # modifier
-    '-VERB',              # modifier
-    '-all_opts',          # show opts
-    '-atr_delim',         # modifier
-    '-echo_edu',          # show cmd (shouldn't happen)
-    '-h',                 # show help
-    '-h_aspx',            # show help
-    '-h_find',            # show help
-    '-h_raw',             # show help
-    '-h_spx',             # show help
-    '-h_view',            # show help
-    '-h_web',             # show help
-    '-hdr',               # modifier
-    '-header_line',       # modifier
-    '-help',              # show help
-    '-hview',             # show help
-    '-hweb',              # show help
-    '-monog_pairs',       # req 2+ dsets
-    '-n[i|j|k',           # existed at some point
-    '-no_hist',           # modifier
-    '-same_all_grid',     # req 2+ dsets
-    '-same_center',       # req 2+ dsets
-    '-same_delta',        # req 2+ dsets
-    '-same_dim',          # req 2+ dsets
-    '-same_grid',         # req 2+ dsets
-    '-same_obl',          # req 2+ dsets
-    '-same_orient',       # req 2+ dsets
-    '-sb_delim',          # modifier opt
-    '-short',             # modifier
-    '-sval_diff',         # req 2+ dsets
-    '-val_diff',          # req 2+ dsets
-    '-verb',              # modifier
+    '-HELP',                  # show help
+    '-NA_flag',               # modifier
+    '-VERB',                  # modifier
+    '-all_opts',              # show opts
+    '-atr_delim',             # modifier
+    '-echo_edu',              # show cmd (shouldn't happen)
+    '-h',                     # show help
+    '-h_aspx',                # show help
+    '-h_find',                # show help
+    '-h_raw',                 # show help
+    '-h_spx',                 # show help
+    '-h_view',                # show help
+    '-h_web',                 # show help
+    '-hdr',                   # modifier
+    '-header_line',           # modifier
+    '-help',                  # show help
+    '-hview',                 # show help
+    '-hweb',                  # show help
+    '-monog_pairs',           # req 2+ dsets
+    '-n[i|j|k',               # existed at some point
+    '-no_hist',               # modifier
+    '-same_all_grid',         # req 2+ dsets
+    '-same_center',           # req 2+ dsets
+    '-same_delta',            # req 2+ dsets
+    '-same_dim',              # req 2+ dsets
+    '-same_grid',             # req 2+ dsets
+    '-same_obl',              # req 2+ dsets
+    '-same_orient',           # req 2+ dsets
+    '-sb_delim',              # modifier opt
+    '-short',                 # modifier
+    '-sval_diff',             # req 2+ dsets
+    '-val_diff',              # req 2+ dsets
+    '-verb',                  # modifier
+    '-aform_real_refit_ori',  # requires arg
+    '-perm_to_orient',        # requires arg
+    '-label2index',           # requires arg
 ]
 
 # ============================================================================
@@ -79,32 +82,35 @@ fname : str
 
 Returns
 -------
+is_fail : int
+    0 for success, nonzero for failure
 dict_info : dict
     dictionary whose keys are 3dinfo option flags (with leading '-') and
     values are associated dset values for each
 
     '''
 
-    # ------- Quick check on dset being valid
-    cmd = '''3dinfo -prefix {fff}'''.format(fff=fname)
-    com = BASE.shell_com(cmd, capture=1, save_hist=0)
-    com.run()
+    BAD_RETURN = (-1, {})
 
-    if com.so[0] == 'NO-DSET' :
-        print('+* WARNING: No valid dset of that name: {fff}\n.'
-              '   Bye.'.format(fff=fname))
-        return {}
+    is_ok = UTIL.info_dset_exists(fname)
+    if not(is_ok) :
+        BASE.EP1("Dataset {} could not be loaded".format(fname))
+        return BAD_RETURN
 
     # ------- Get list of all opts in 3dinfo
     cmd = '''apsearch -list_popts 3dinfo'''
     com = BASE.shell_com(cmd, capture=1, save_hist=0)
-    com.run()
+    stat = com.run()
+
+    if stat :
+        BASE.EP1("apsearch failure for 3dinfo")
+        return BAD_RETURN
 
     # filter out some ones we don't want
     list_3dinfo_opts = []
     for x in com.so:
         y = x.strip()
-        if not(list_3dinfo_ignore.__contains__(y)) :
+        if not(y in list_3dinfo_ignore) :
             list_3dinfo_opts.append(y)
 
     dict_info = {}
@@ -112,10 +118,17 @@ dict_info : dict
     for opt in list_3dinfo_opts:
         cmd = '''3dinfo {ooo} {fff}'''.format( ooo=opt, fff=fname )
         com = BASE.shell_com(cmd, capture=1, save_hist=0)
-        com.run()
+        stat = com.run()
+
+        if stat :
+            msg = "3dinfo opt failure ({}) ".format(opt)
+            msg+= "for dset: {}".format(fname)
+            BASE.EP1(msg)
+            return BAD_RETURN
+
         dict_info[opt] = com.so
 
-    return dict_info
+    return 0, dict_info
 
 # -------------------------------------
 
@@ -138,6 +151,8 @@ dd : dict
 
 Returns
 -------
+is_fail: int
+    0 for success, nonzero for failure
 dd_new : dict
     dictionary whose keys are 3dinfo option flags (with leading '-')
     and a "neatened" form of values, as described above
@@ -145,6 +160,8 @@ dd_new : dict
     '''
 
     dd_new = {}
+
+    BAD_RETURN = (-2, {})
 
     for key in dd.keys():
 
@@ -174,7 +191,7 @@ dd_new : dict
         else:
             dd_new[key] = dd[key]
 
-    return dd_new
+    return 0, dd_new
 
 # -------------------------------------
 
@@ -205,6 +222,8 @@ remove_dash_in_keys: bool
 
 Returns
 -------
+is_fail : int
+    0 for success, nonzero for failure
 DD_new : dict
     dictionary whose keys are 3dinfo option flags and values are
     associated dset values for each; both keys and values can get
@@ -212,16 +231,27 @@ DD_new : dict
 
     '''
 
-    DD     = get_all_3dinfo_dset_basic(fname)
-    DD_new = make_neater_3dinfo_dict(DD)
+    BAD_RETURN = (-3, {})
+
+    is_fail, DD = get_all_3dinfo_dset_basic(fname)
+    if is_fail :
+        return BAD_RETURN
+
+    is_fail, DD_new = make_neater_3dinfo_dict(DD)
+    if is_fail :
+        return BAD_RETURN
 
     if numberize_values :
-        DD_new = make_number_values(DD_new)
+        is_fail, DD_new = make_number_values(DD_new)
+        if is_fail :
+            return BAD_RETURN
 
     if remove_dash_in_keys :
-        DD_new = make_keys_dashless(DD_new)
+        is_fail, DD_new = make_keys_dashless(DD_new)
+        if is_fail :
+            return BAD_RETURN
 
-    return DD_new
+    return 0, DD_new
 
 
 def make_keys_dashless(DD):
@@ -236,12 +266,16 @@ DD : dict
 
 Returns
 -------
+is_fail : int
+    0 for success, nonzero for failure
 EE : dict
     processed version of DD; should be same number of keys and values
 
     """
 
     EE = {}
+
+    BAD_RETURN = (-4, {})
 
     # go through all keys, and remove any '-' at start of str
     for key in DD.keys():
@@ -255,7 +289,7 @@ EE : dict
         else:
             EE[key] = val
 
-    return EE
+    return 0, EE
 
 
 def make_number_values(DD):
@@ -271,12 +305,16 @@ DD : dict
 
 Returns
 -------
+is_fail : int
+    0 for success, nonzero for failure
 EE : dict
     processed version of DD; should be same number of keys and values
 
     """
 
     EE = {}
+
+    BAD_RETURN = (-5, {})
 
     # go through all values, and see what values (or their elements,
     # if a list) can be converted
@@ -307,7 +345,7 @@ EE : dict
             else:
                 EE[key] = val
 
-    return EE
+    return 0, EE
             
 
 # ============================================================================

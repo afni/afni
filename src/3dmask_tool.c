@@ -47,9 +47,10 @@ static char * g_history[] =
   "     - fix tiny origin shift due to zeropad truncation effects\n"
   "0.9  24 Jun 2022: use mask_epi_anat in examples (over full_mask)\n",
   "0.10 21 Feb 2024: use more common -input rather than -inputs\n",
+  "0.11 13 May 2026: tiny cleanup of info messages\n",
 };
 
-static char g_version[] = "3dmask_tool version 0.10, 21 February 2024";
+static char g_version[] = "3dmask_tool version 0.11, 13 May 2026";
 
 #include "mrilib.h"
 
@@ -146,7 +147,10 @@ int main( int argc, char *argv[] )
    /* limit to frac of nvols (if not counting, convert to 0/1 mask) */
    limit = ceil((params->frac>1) ? params->frac : params->nvols*params->frac );
    if( params->verb ) {
-      INFO_message("have %d volumes of input to combine\n", params->nvols);
+      if( params->nvols == 1 )
+         INFO_message("have %d volume of input, no combining\n", params->nvols);
+      else
+         INFO_message("have %d volumes of input to combine\n", params->nvols);
       INFO_message("frac %g over %d volumes gives min count %d\n",
                    params->frac, params->nvols, limit);
    }
@@ -1104,7 +1108,8 @@ int process_opts(param_t * params, int argc, char * argv[] )
    if( params->ndsets <= 0 ) ERROR_exit("missing -input dataset list");
    if( !params->prefix ) ERROR_exit("missing -prefix option");
    if( params->frac < 0.0 ) {
-      if( params->verb ) INFO_message("no -frac option: defaulting to -union");
+      if( params->verb && params->ndsets > 1 )
+         INFO_message("no -frac option: defaulting to -union");
       params->frac = 0.0;
    }
 
