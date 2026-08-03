@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.2.0, July 28, 2026
+Version 2.2.0, Aug 3, 2026
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -269,6 +269,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         Default is no masking.\n"
                      ) ),
 
+      '-jobs' = apl(n = 1, d = 1, h = paste(
    "-jobs NJOBS: On a multi-processor machine, parallel computing can speed",
    "         up the program significantly. However, increasing the number of CPUs",
    "         up the program significantly. NOTE: Increasing the number of CPUs", 
