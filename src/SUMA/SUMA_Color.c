@@ -12058,7 +12058,6 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(int nnodes, int *box_mask,
     if (!cp->dset_link) SUMA_RETURN(NOPE);
     if (!(cp->makeContours)) SUMA_RETURN(NOPE);
     
-    fprintf(stderr, "SUMA_MultiColumnsToDrawnROI in SUMA_Color.c, 2\n");
     cp->Contours =
        SUMA_MultiColumnsToDrawnROI( nnodes,
              (void *)box_mask, SUMA_int,
@@ -12103,7 +12102,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
 
          ind = SDSET_NODE_INDEX_COL(cp->dset_link);
          key = SDSET_VEC(cp->dset_link, cp->OptScl->find);
-         fprintf(stderr, "SUMA_MultiColumnsToDrawnROI in SUMA_Color.c, 3\n");
+
          cp->Contours =
             SUMA_MultiColumnsToDrawnROI( SDSET_VECLEN(cp->dset_link),
                   (void *)ind, SUMA_int,
@@ -12126,7 +12125,6 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
          ind = cp->NodeDef;
          key = SDSET_VEC(cp->dset_link, cp->OptScl->find);
 
-         fprintf(stderr, "SUMA_MultiColumnsToDrawnROI in SUMA_Color.c, 4\n");
          if (ind && key) {
             cp->Contours =
                SUMA_MultiColumnsToDrawnROI( cp->N_NodeDef,
@@ -12159,9 +12157,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
          }
          ind = cp->NodeDef;
          key = SV->VCont;
-         /*for (kkk=0; kkk<cp->N_NodeDef; ++kkk)
-            fprintf(SUMA_STDERR,"%d-->%d\t", ind[kkk], key[kkk]);*/
-            fprintf(stderr, "SUMA_MultiColumnsToDrawnROI in SUMA_Color.c, 1\n");
+
          cp->Contours =
             SUMA_MultiColumnsToDrawnROI( cp->N_NodeDef,
                   (void *)ind, SUMA_int,
@@ -12172,7 +12168,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
                   SUMA_FindNamedColMap (cp->cmapname), 1,
                   cp->Label, SDSET_IDMDOM(cp->dset_link),
                   &(cp->N_Contours), 1, 1);
-         // fprintf(stderr, "SV: >>> CONTOUR GENERATION RESULT: N_Contours = %d\n", cp->N_Contours);
+
          if (LocalHead) SUMA_Show_ColorOverlayPlanes(&cp, 1, 0);
       }
    }

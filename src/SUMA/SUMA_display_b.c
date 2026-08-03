@@ -3705,7 +3705,6 @@ SUMA_Boolean SUMA_Set_ADO_RenderMode(SUMA_ALL_DO *ado, int i, int delta,
    if (!ado) SUMA_RETURN(NOPE);
    if (update_widgets) SurfCont = SUMA_ADO_Cont(ado);
    
-   fprintf(stderr, "ado->do_type = %d\n", ado->do_type);
    switch (ado->do_type) {
       case SO_type: {
          // SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
@@ -3724,11 +3723,11 @@ SUMA_Boolean SUMA_Set_ADO_RenderMode(SUMA_ALL_DO *ado, int i, int delta,
             }
          }
          SO->PolyMode = (i % SRM_N_RenderModes);
-         fprintf(stderr, "SO->PolyMode = %d\n", SO->PolyMode);
          if (SO->PolyMode <= SRM_ViewerDefault) SO->PolyMode = SRM_Fill; 
          if (SurfCont && SurfCont->RenderModeMenu) { /* also set widgets */
-             SUMA_Set_Menu_Widget( SurfCont->RenderModeMenu, 
+            SUMA_Set_Menu_Widget( SurfCont->RenderModeMenu, 
                         SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
+            SUMA_SET_GL_RENDER_MODE(SO->PolyMode);
          }
          break; }
       case VO_type: {

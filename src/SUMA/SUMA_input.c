@@ -2167,14 +2167,10 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_KEY_COMMON;
    
-   fprintf(stderr, "SUMA_C_Key: C/c key\n");
-
    /* do the work */
    switch (k) {
      case XK_C:
          
-         fprintf(stderr, "C key\n");
-
         if ((SUMA_ALT_KEY(key) || SUMA_APPLE_KEY(key))){
 
             if (clippingPlaneMode){
@@ -2208,7 +2204,6 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                      SO->Overlays[SO->N_Overlays-1]->cmapname);
            }
            
-            fprintf(stderr, "ctrl-C key\n");
             if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
                 fprintf(stderr, "### SUMA_C_Key: toggleClippingPlaneMode\n");
             toggleClippingPlaneMode(sv, w, &locallySelectedPlane);
@@ -3529,6 +3524,12 @@ int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             if (sv->PolyMode <= SRM_ViewerDefault) sv->PolyMode = SRM_Fill;
 
             SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
+            //for (k=0; k<N_SOlist; ++k) {
+                SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[k]].OP);
+                SUMA_RenderMode2RenderModeMenuItem(sv->PolyMode+1);
+//                SUMA_Set_Menu_Widget( SO->SurfCont->RenderModeMenu, 
+//                            SUMA_RenderMode2RenderModeMenuItem(sv->PolyMode+1));
+            //}
          }
          SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
          break;
@@ -5403,9 +5404,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_C:
-             fprintf(stderr, "XK_C\n");
-             fprintf(stderr, "Kev.state = %d\n", Kev.state);
-             fprintf(stderr, "ControlMask = %d\n", ControlMask);
             if ((SUMA_ALTHELL)){
                 if ((Kev.state & ControlMask)){ // Ctrl-Shift-alt-C (clip plane box
                     if (!SUMA_C_Key(sv, "Shift+Ctrl+Alt+C", "interactive")) {

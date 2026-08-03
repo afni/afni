@@ -14545,6 +14545,8 @@ SUMA_Boolean SUMA_Set_Menu_Widget(SUMA_MENU_WIDGET *men, int i)
          SUMA_RETURN(NOPE); */
          SUMA_RETURN(YUP);
       }
+      
+      /* This doesn't do anything for SRM_Hide */
       XtVaSetValues(  men->mw[0], XmNmenuHistory ,  men->mw[i], NULL);
    }
 
