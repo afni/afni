@@ -1,4 +1,9 @@
-FROM neurodebian:nd18.04@sha256:3b3f09ca5387f479f144a2e45fb191afa9c9f7c1bd0f03ac90941834a4e5a616
+# neurodebian:nd18.04 has no linux/arm64 manifest, so the base is plain
+# ubuntu:18.04 (multi-arch). The neurodebian base did carry its own apt repos
+# (used implicitly for git-annex-standalone); the two consequences of dropping
+# it are handled below: the git-core PPA (for a datalad-compatible git) and
+# the git-annex package in place of git-annex-standalone.
+FROM ubuntu:18.04
 
 # FROM thewtex/opengl:ubuntu1804@sha256:b9de45d4f594b57136f7ec3b890567ecea1421278ee4c7be80e11888bf8d23ba
 
@@ -9,6 +14,16 @@ ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN apt-get update && apt-get install -y wget sudo locales \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# datalad (a test dependency) requires git >= 2.19.1, but Ubuntu 18.04 ships
+# 2.17.1. The former neurodebian base supplied a newer git via the
+# neurodebian-only git-annex-standalone package; on the plain ubuntu base we
+# pull a current git from the git-core PPA instead, which serves both amd64
+# and arm64.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+                    software-properties-common \
+    && add-apt-repository -y ppa:git-core/ppa \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # The gpg key import is a little flaky...
 # COPY .docker/neurodebian.gpg /usr/local/etc/neurodebian.gpg
@@ -105,10 +120,10 @@ RUN apt-get update && apt-get install -y eatmydata && \
     f2c \
     g++ \
     gcc \
-    git-annex-standalone \
+    git-annex \
+    libncurses-dev \
     libtool \
     m4 \
-    ncurses-dev \
     ninja-build \
     pkg-config \
     && apt-get clean \
@@ -148,14 +163,23 @@ RUN bash -c 'mkdir -p $AFNI_ROOT/../{build,src,install} && fix-permissions $AFNI
 # in the filename (was "Linux" in 3.14.x and earlier).
 ENV CMAKE_VER=3.31.7
 
-RUN wget -P /opt/cmake \
-      https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-linux-x86_64.tar.gz \
+# CMake publishes separate tarballs per architecture (linux-x86_64, linux-aarch64);
+# resolve the right one at build time instead of hardcoding a single arch.
+RUN ARCH="$(uname -m)" \
+    && case "$ARCH" in \
+         x86_64)  CMAKE_ARCH=linux-x86_64 ;; \
+         aarch64) CMAKE_ARCH=linux-aarch64 ;; \
+         *) echo "Unsupported architecture for CMake install: $ARCH" >&2; exit 1 ;; \
+       esac \
+    && wget -P /opt/cmake \
+      https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-${CMAKE_ARCH}.tar.gz \
     && cd /opt/cmake \
-    && tar xzvf cmake-${CMAKE_VER}-linux-x86_64.tar.gz \
-    && rm -fr cmake-${CMAKE_VER}-linux-x86_64.tar.gz \
+    && tar xzvf cmake-${CMAKE_VER}-${CMAKE_ARCH}.tar.gz \
+    && rm -fr cmake-${CMAKE_VER}-${CMAKE_ARCH}.tar.gz \
+    && ln -s cmake-${CMAKE_VER}-${CMAKE_ARCH} current \
     && fix-permissions /opt
 
-ENV PATH="/opt/cmake/cmake-${CMAKE_VER}-linux-x86_64/bin:$PATH"
+ENV PATH="/opt/cmake/current/bin:$PATH"
 
 RUN mkdir $PYTHONUSERBASE
 
