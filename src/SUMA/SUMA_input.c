@@ -3524,12 +3524,13 @@ int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             if (sv->PolyMode <= SRM_ViewerDefault) sv->PolyMode = SRM_Fill;
 
             SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
-            //for (k=0; k<N_SOlist; ++k) {
-                SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[k]].OP);
-                SUMA_RenderMode2RenderModeMenuItem(sv->PolyMode+1);
-//                SUMA_Set_Menu_Widget( SO->SurfCont->RenderModeMenu, 
-//                            SUMA_RenderMode2RenderModeMenuItem(sv->PolyMode+1));
-            //}
+            
+            /* Update PolyMode on surface control menu */
+            if ((ado = SUMA_SV_Focus_ADO(sv))) {
+                SO = (SUMA_SurfaceObject *)ado; 
+                SUMA_Set_Menu_Widget( SO->SurfCont->RenderModeMenu, 
+                            SUMA_RenderMode2RenderModeMenuItem(sv->PolyMode+1));
+            }
          }
          SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
          break;
