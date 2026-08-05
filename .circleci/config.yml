@@ -219,7 +219,11 @@ commands:
           # [PT 2024-10-01] avoid: 'Too long with no output (exceeded
           # 10m0s): context deadline exceeded' by doubling default timeout
           no_output_timeout: 20m
+          # [PJM 2026-07-24] force brew update to avoid stale cache
+          # this should hopefully avoid the cask_loader error
           command: |
+            brew update-reset
+            brew update
             brew install --cask xquartz
             if [[ -d /usr/local/Cellar/python@2 ]]; then
               brew unlink python@2

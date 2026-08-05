@@ -1,6 +1,17 @@
 /*! Functions to create Displayable Objects */
 #include "SUMA_suma.h"
 
+/* range settings for different types of displayable objects
+   for example, used as maximum number of tracts as a floating point number 
+   to allow for more than a short integer
+   had been 2,000,000,000,000 (2 trillion) (2000000000000), 
+   but gcc clang ver 21 notices a conversion difference
+   "warning: implicit conversion from 'long' to 'float'
+      changes value from 2000000000000 to 1999999991808 
+     [-Wimplicit-const-int-float-conversion]" 
+   Now replaced with this VERY BIG number */
+#define VBIG 1.0e+24f
+
 extern SUMA_CommonFields *SUMAg_CF;
 extern SUMA_DO *SUMAg_DOv;
 extern SUMA_SurfaceViewer *SUMAg_SVv;
@@ -3909,8 +3920,8 @@ float *SUMA_TDO_XYZ_Range(SUMA_TractDO *tdo, float *here)
    here[1] = here[3] = here[5] =   20;
    if (!tdo || !tdo->net || !tdo->net->tbv) SUMA_RETURN(here);
 
-   here[0] = here[2] = here[4] =   2000000000000;
-   here[1] = here[3] = here[5] =  -2000000000000;
+   here[0] = here[2] = here[4] =   VBIG;
+   here[1] = here[3] = here[5] =  -VBIG;
    ok = 0;
    for (ii=0; ii<tdo->net->N_tbv; ++ii) {
       if ((tb = tdo->net->tbv[ii])) {
@@ -4037,8 +4048,8 @@ float *SUMA_VO_XYZ_Range(SUMA_VolumeObject *VO, float *here)
    here[1] = here[3] = here[5] =   20;
    if (!VO || !(dset = SUMA_VO_dset(VO))) SUMA_RETURN(here);
 
-   here[0] = here[2] = here[4] =   2000000000000;
-   here[1] = here[3] = here[5] =  -2000000000000;
+   here[0] = here[2] = here[4] =   VBIG;
+   here[1] = here[3] = here[5] =  -VBIG;
 
    here[0] = VO->VE[0]->bo0[0]; here[1] = VO->VE[0]->boN[0];
       if (here[0] > here[1]) { /* Happens for certain orientations.
@@ -4080,8 +4091,8 @@ float *SUMA_MDO_XYZ_Range(SUMA_MaskDO *MDO, float *here)
    here[1] = here[3] = here[5] =   20;
    if (!MDO) SUMA_RETURN(here);
 
-   here[0] = here[2] = here[4] =   2000000000000;
-   here[1] = here[3] = here[5] =  -2000000000000;
+   here[0] = here[2] = here[4] =   VBIG;
+   here[1] = here[3] = here[5] =  -VBIG;
 
    if (MDO->mtype[0] == 'c' || MDO->mtype[0] == 'b') { /* cube or sphere */
       for (ii=0; ii<MDO->N_obj; ++ii) {
@@ -4238,8 +4249,8 @@ float *SUMA_ADO_Range(SUMA_ALL_DO *ado, float *here)
       here = (float *)(&fv[icall]);
    }
    /* An error inspiring range */
-   here[0] = here[2] = here[4] =   2000000000000;
-   here[1] = here[3] = here[5] =  -2000000000000;
+   here[0] = here[2] = here[4] =   VBIG;
+   here[1] = here[3] = here[5] =  -VBIG;
 
    if (!ado) SUMA_RETURN(here);
 
