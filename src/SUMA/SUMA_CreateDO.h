@@ -16,7 +16,7 @@ typedef struct {
    char state_s[32]; /*!< state name */
 /* increased now_s and init_s to allow for two %f floats separated by a comma
    and a space. Otherwise, see warnings for overflow from gcc (clang 21)
-   with several sprintf in .c file (and rightly so).  These had been 16 */ 
+   with several sprintf in .c file (and rightly so).  These had been 16 */
    char now_s[32]; /*!< current value in string format*/
    char init_s[32]; /*!< initial value in string format*/
    int now_i;
