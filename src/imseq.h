@@ -52,7 +52,7 @@ extern "C" {
 
 #ifndef HAVE_GET_PTR_TYPEDEF
 #  define HAVE_GET_PTR_TYPEDEF
-   typedef XtPointer (*get_ptr)() ;  /* function type that returns a pointer */
+   typedef XtPointer (*get_ptr)(int n , int type , XtPointer handle) ;  /* function type that returns a pointer */
 #endif
 
 /* This struct is returned from AFNI to indicate the general
@@ -60,10 +60,13 @@ extern "C" {
    Other stuff is stuffed into here, such as the lists of
    image transformation function that AFNI provides for fun. */
 
+typedef struct MCW_imseq MCW_imseq;  /* incomplete definition, completed below: */
+typedef struct ISQ_cbs ISQ_cbs;
+
 typedef struct {
       int num_total , num_series ;  /* # of images, # in "series" */
 
-      void (* send_CB)() ;   /* callback, if non_NULL */
+      void (* send_CB)(MCW_imseq * , XtPointer , ISQ_cbs *) ;   /* callback, if non_NULL */
 
       MCW_function_list *transforms0D ;
       MCW_function_list *transforms2D ;
@@ -290,7 +293,7 @@ typedef struct {
 
 /*--- "callback" data stuff: info about events in image window ---*/
 
-typedef struct {
+typedef struct ISQ_cbs {
       int          reason ;       /* isqCR_??? defined below */
       XEvent *     event ;        /* may be NULL */
       int          xim,yim ;      /* original image coords, */
@@ -439,8 +442,6 @@ extern void ISQ_set_anim_dup( int ) ;  /* 09 Feb 2009 */
 
 #define ISQ_NHELP   2047
 #define ISQ_NWIDGET 128
-
-struct MCW_imseq ;  /* incomplete definition, completed below: */
 
 typedef struct MCW_imseq {
 

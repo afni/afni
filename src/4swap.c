@@ -18,9 +18,7 @@ typedef struct { unsigned char a,b,c,d ; } fourbytes ;
 
 static int buf[BUFSIZE] ;
 
-int main( argc , argv )
-   int argc ;
-   char * argv[] ;
+int main( int argc , char * argv[] )
 {
    FILE * infil , * outfil ;
    int narg , nbyte , nint , quiet = 0 , ndone ;
