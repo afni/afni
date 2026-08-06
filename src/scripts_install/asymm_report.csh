@@ -43,6 +43,8 @@ set patchsurf = "fullpatchsurf.gii"
 set patchprefix = "roi_proj"
 set patchsmooth = "2"
 
+set dec = "1"
+
 # default method for computing asymmetry is right to left ratio
 set asymm_method = "RL"
 # allow for no file matches in wildcard expansion
@@ -202,6 +204,15 @@ while ($ac <= $#argv)
         endif
         set asymm_method = $argv[$ac]
 
+    else if ("$argv[$ac]" == "-dec_places") then
+        set this_opt = "$argv[$ac]"
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '${this_opt}'"
+            exit 1
+        endif
+        set dec = $argv[$ac]
+
    
    # ---------- fin ------------------
 
@@ -342,8 +353,8 @@ foreach roi (`count -digits 2 1 $#right_range`)
    else
       set asymm = `ccalc "$rightv/$leftv"`
    endif
-   set rightv = `ccalc -form "%.1f" $rightv`
-   set leftv = `ccalc -form "%.1f" $leftv`
+   set rightv = `ccalc -form "%.${dec}f" $rightv`
+   set leftv = `ccalc -form "%.${dec}f" $leftv`
    set asymm = `ccalc -form "%.3f" -expr "min(100,$asymm)"`
 
    set resultline = "$resultline $rightv $leftv $asymm"
@@ -384,8 +395,8 @@ foreach roi (`count -digits 2 1 $#right_range`)
          endif
       endif
 
-      set righta = `ccalc -form "%.1f" $righta`
-      set lefta = `ccalc -form "%.1f" $lefta`
+      set righta = `ccalc -form "%.${dec}f" $righta`
+      set lefta = `ccalc -form "%.${dec}f" $lefta`
       set surf_asymm = `ccalc -form "%.3f" -expr "min(100,$surf_asymm)"`
       set resultline = "$resultline     $righta $lefta $surf_asymm"
    endif
@@ -416,8 +427,8 @@ foreach roi (`count -digits 2 1 $#right_range`)
       else
          set parea_asymm = `ccalc "$rightparea/$leftparea"`
       endif
-      set rightparea = `ccalc -form "%.1f" $rightparea`
-      set leftparea = `ccalc -form "%.1f" $leftparea`
+      set rightparea = `ccalc -form "%.${dec}f" $rightparea`
+      set leftparea = `ccalc -form "%.${dec}f" $leftparea`
       set parea_asymm = `ccalc -form "%.3f" -expr "min(100,$parea_asymm)"`
 
       set resultline = "$resultline     $rightparea $leftparea $parea_asymm"
