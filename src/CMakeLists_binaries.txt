@@ -242,6 +242,7 @@ foreach(target
 	3dNwarpXYZ
 	3dRegAna
 	3dREMLfit
+	3dShuffle
 	3dTcorr1D
 	3dTcorrMap
 	3dUnifize
