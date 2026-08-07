@@ -1751,15 +1751,15 @@ def dsplayBijectivityCcorrection(OutDir, respiratoryTimeSeries, respiratoryPeaks
         ax.plot(addedTroughs_scaled, addedTroughVals, "go")
     
         # --- Draw  peak-trough mismatch regions bands (also scaled) ---
-        for band_start, band_end in outlier_ts_ranges:
-            if band_end <= start or band_start >= end:
-                continue
-            ax.axvspan(
-                max(band_start, start) / samp_freq,
-                min(band_end, end) / samp_freq,
-                color='red',
-                alpha=0.15
-            )
+        # for band_start, band_end in outlier_ts_ranges:
+        #     if band_end <= start or band_start >= end:
+        #         continue
+        #     ax.axvspan(
+        #         max(band_start, start) / samp_freq,
+        #         min(band_end, end) / samp_freq,
+        #         color='red',
+        #         alpha=0.15
+        #     )
     
         # --- Draw generically bad regions bands (also scaled) ---
         for bandrange in troughPeakMismatchRanges:
