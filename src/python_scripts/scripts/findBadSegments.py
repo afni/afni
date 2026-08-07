@@ -285,7 +285,9 @@ def cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, rankVector,
     iqr = q3 - q1
     
     # k_opt = best_lower_multiplier(vectorWeightSums)
-    k_opt = gap_based_multiplier(vectorWeightSums)
+    sorted_vals = np.sort(np.asarray(vectorWeightSums))
+    real_gaps = np.diff(sorted_vals)    # actual gaps between consecutive points
+    k_opt = gap_based_multiplier(real_gaps)
     
     # Define lower bound
     lower_bound = q1 - k_opt * iqr
@@ -310,7 +312,7 @@ def cumulatives_weights_low_end_outlier_ranges(vectorWeightSums, rankVector,
     if any(item > lastM2 for item in outlier_peak_indices):
         outlier_ts_indices += [[cardiacPeaks[last-1], cardiacPeaks[last]]]
         outlier_peak_indices = outlier_peak_indices[outlier_peak_indices <= last-2]
-    outlier_ts_indices += [[cardiacPeaks[i-1], cardiacPeaks[i+2]]  
+    outlier_ts_indices += [[cardiacPeaks[i-2], cardiacPeaks[i+2]]  
         for i in outlier_peak_indices]
     
     return outlier_ts_indices
@@ -374,9 +376,6 @@ def compute_respiratory_peaks(
     respiratoryPeaksFile,
     respiratoryTroughsFile
 ):
-    # ts = respiratoryTimeSeriesFile
-    # peaks = np.asarray(respiratoryPeaksFile)
-    # troughs = np.asarray(respiratoryTroughsFile)
     ts = np.asarray(respiratoryTimeSeriesFile)
     peaks = np.asarray(respiratoryPeaksFile)
     troughs = np.asarray(respiratoryTroughsFile)
@@ -391,6 +390,10 @@ def compute_respiratory_peaks(
 
     # Iterate trough-to-trough
     for t0, t1 in zip(troughs[:-1], troughs[1:]):
+        
+        # Convert trough locations to integers
+        t0 = int(np.round(t0))
+        t1 = int(np.round(t1))
 
         # Peaks inside this trough interval
         mask = (peaks > t0) & (peaks < t1)
@@ -401,7 +404,7 @@ def compute_respiratory_peaks(
 
         # ---- Peak aggregation ----
         if len(seg_peaks) == 1:
-            peak_idx = seg_peaks[0]
+            peak_idx = int(np.round(seg_peaks[0]))
             peak_val = ts[peak_idx]
         else:
             peak_idx = int(np.round(seg_peaks.mean()))
@@ -1158,8 +1161,10 @@ def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks,
             idx = merged_outlier_ts_ranges.index(bad_region)
             
             
-            before = respiratoryPeaks[idx_before] if idx_before >= 0 else None
-            after  = respiratoryPeaks[idx_after] if idx_after < len(respiratoryPeaks) else None  
+            before = int(np.round(respiratoryPeaks[idx_before])) \
+                if idx_before >= 0 else None
+            after  = int(np.round(respiratoryPeaks[idx_after])) \
+                if idx_after < len(respiratoryPeaks) else None  
             
             if before is None or after is None:
                 continue
@@ -1174,8 +1179,10 @@ def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks,
             idx_before = np.searchsorted(respiratoryTroughs, bad_region[0]) - 3
             idx_after  = np.searchsorted(respiratoryTroughs, bad_region[1])
             
-            before = respiratoryTroughs[idx_before] if idx_before >= 0 else None
-            after  = respiratoryTroughs[idx_after] if idx_after < len(respiratoryTroughs) else None  
+            before = int(np.round(respiratoryTroughs[idx_before])) \
+                if idx_before >= 0 else None
+            after  = int(np.round(respiratoryTroughs[idx_after])) \
+                if idx_after < len(respiratoryTroughs) else None  
             
             if before is None or after is None:
                 continue
@@ -1750,17 +1757,6 @@ def dsplayBijectivityCcorrection(OutDir, respiratoryTimeSeries, respiratoryPeaks
         ax.plot(addedPeaks_scaled, addedPeakVals, "mo")
         ax.plot(addedTroughs_scaled, addedTroughVals, "go")
     
-        # --- Draw  peak-trough mismatch regions bands (also scaled) ---
-        # for band_start, band_end in outlier_ts_ranges:
-        #     if band_end <= start or band_start >= end:
-        #         continue
-        #     ax.axvspan(
-        #         max(band_start, start) / samp_freq,
-        #         min(band_end, end) / samp_freq,
-        #         color='red',
-        #         alpha=0.15
-        #     )
-    
         # --- Draw generically bad regions bands (also scaled) ---
         for bandrange in troughPeakMismatchRanges:
             # print("DEBUG:", bandrange)
@@ -2067,8 +2063,8 @@ dsplayBijectivityCcorrection(OutDir, respiratoryTimeSeries, respiratoryPeaks,
                              respiratoryTroughs, added_peaks, added_troughs,
                              samp_freq)
 
-# Get modified peaks (original peaks minus the mean of the adjacent peaks)
-print('Get modified peaks (original peaks minus the mean of the adjacent peaks)')
+# Get modified peaks (original peaks minus the mean of the adjacent troughs)
+print('Get modified peaks (original peaks minus the mean of the adjacent troughs)')
 resp_peak_indices, resp_peak_values, resp_outliers = compute_respiratory_peaks(respiratoryTimeSeries, 
     respiratoryPeaks, respiratoryTroughs)
 
@@ -2097,7 +2093,7 @@ else:
         outlier_ts_ranges,
         peak_outliers,
         merged_ranges,
-    ) = findAnomalousBands(vectorWeightSums, rankVector, cardiacPeaks)
+    ) = findAnomalousBands(vectorWeightSums, rankVector, respiratoryPeaks)
 
     # Identify outliers on low end of the cumulative weights
     print('Identify outliers on low end of the cumulatives weights')
