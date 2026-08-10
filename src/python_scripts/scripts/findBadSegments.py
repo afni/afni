@@ -1151,8 +1151,9 @@ def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks,
     
         for bad_region in merged_outlier_ts_ranges:
             
-            idx_before = np.searchsorted(respiratoryPeaks, bad_region[0]) - 3
-            idx_after  = np.searchsorted(respiratoryPeaks, bad_region[1]) + 1
+            idx_before = max(np.searchsorted(respiratoryPeaks, bad_region[0]) - 3, 0)
+            idx_after  = min(np.searchsorted(respiratoryPeaks, bad_region[1]) + 1,\
+                             len(respiratoryPeaks) - 1)
             
             # To avoid noise just to the left of the bad region, more the before
             # back until the value is at least the 85th percentile of the 
