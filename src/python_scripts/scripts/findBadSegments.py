@@ -250,7 +250,7 @@ def best_lower_multiplier(data, k_values=np.linspace(1.0, 1.6, 601)):
 
     return best_k
 
-def gap_based_multiplier(gaps, base_multiplier=1.4):
+def gap_based_multiplier(gaps, base_multiplier=1.5):
     # Ensure gaps is a NumPy array
     gaps = np.asarray(gaps)
 
@@ -1259,8 +1259,8 @@ def outputCorrectedRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks,
 
     # Limit length of each row for clarity
     print('Limit length of each row for clarity')
-    # points_per_row = 3000             
-    points_per_row = 3000000/len(respiratoryPeaks)             
+    points_per_row = 3000             
+    # points_per_row = 3000000/len(respiratoryPeaks)             
     num_rows = min(20, int(np.ceil(len(y) / points_per_row)))
 
     fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
@@ -1401,6 +1401,9 @@ def makeCorrectedCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks,
         rr_before = np.diff(cardiacPeaks[max(0, idx_start-5):idx_start])
         rr_after  = np.diff(cardiacPeaks[idx_end:idx_end+6])
         
+        # Remove cardiac peaks in bad region
+        cardiacPeaks = cardiacPeaks[(cardiacPeaks <= before) | (cardiacPeaks >= after)]
+        
         # Local estimate of beat interval
         local_rr = np.median(np.concatenate((rr_before, rr_after)))
         
@@ -1437,6 +1440,8 @@ def makeCorrectedCardiacTimeSeries(cardiacTimeSeries, cardiacPeaks,
             added_points.extend(np.round(adjusted_peaks).astype(int))
             
         else:
+            added_points.extend(np.round(new_peaks).astype(int))
+            
             # Form s atraight clothesline between the good peaks on either side
             cardiacTimeSeries[before+1:after] = np.linspace(
                 cardiacTimeSeries[before],
