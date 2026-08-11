@@ -7,7 +7,7 @@
  * that does the real work in this program) was written by Jake
  * Janovetz.  As noted in the 2026-08-11 update note (below), this
  * program currently uses an updated version of the original
- * implementation, which is copywrited by Jave Janovetz (2024) and
+ * implementation, which is copywrited by Jake Janovetz (2024) and
  * distributed with an MIT license.  Please see the accompanying
  * src/remez.c and src/remez-exchange/LICENSE files for more
  * information.
