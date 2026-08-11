@@ -362,10 +362,6 @@ Location: src/plug_{permtest,threshold}.c
 Authors:  Matthew Belmonte
 License:  GNU GPL 2.0 or later [top of file]
 
-Location: src/FIRdesign.c
-Authors:  Jake Janovetz
-License:  GNU GPL 2.0 or higher [top of file]
-
 Location: src/remez.c
 Authors:  Jake Janovetz
 License:  GNU GPL 2.0 or higher [top of file]

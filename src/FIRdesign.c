@@ -1,21 +1,16 @@
 /**************************************************************************
- * Parks-McClellan algorithm for FIR filter design (C version)
- *-------------------------------------------------
- *  Copyright (C) 1995  Jake Janovetz (janovetz@coewl.cen.uiuc.edu)
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  any later version.
+ * This file is a wrapper/interface program for using the
+ * Parks-McClellan algorithm for FIR filter design. 
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * The specific Remez algorithm implementation used here (AKA the part
+ * that does the real work in this program) was written by Jake
+ * Janovetz, copywrite 1995 and distributed under GPL v2 or later.
+ * Please see the accompanying remez.c and remez.h files for more
+ * information.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * This file was written by Bob Cox in May, 2012, to provide a command
+ * line interface for running the algorithm.
  *
  *************************************************************************/
 
