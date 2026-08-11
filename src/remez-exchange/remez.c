@@ -1,27 +1,42 @@
 /**************************************************************************
  * Parks-McClellan algorithm for FIR filter design (C version)
  *-------------------------------------------------
- *  Copyright (c) 1995,1998  Jake Janovetz (janovetz@uiuc.edu)
+ *  Copyright (c) 1995,1998  Jake Janovetz
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Library General Public
- *  License as published by the Free Software Foundation; either
- *  version 2 of the License, or (at your option) any later version.
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Library General Public License for more details.
- *
- *  You should have received a copy of the GNU Library General Public
- *  License along with this library; if not, write to the Free
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
+ *  Sep 1999 - Paul Kienzle (pkienzle@cs.indiana.edu)
+ *      Modified for use in octave as a replacement for the matlab function
+ *      remez.mex.  In particular, magnitude responses are required for all
+ *      band edges rather than one per band, griddensity is a parameter,
+ *      and errors are returned rather than printed directly.
+ *  Mar 2000 - Kai Habel (kahacjde@linux.zrz.tu-berlin.de)
+ *      Change: ColumnVector x=arg(i).vector_value();
+ *      to: ColumnVector x(arg(i).vector_value());
+ *  There appear to be some problems with the routine Search. See comments
+ *  therein [search for PAK:].  I haven't looked closely at the rest
+ *  of the code---it may also have some problems.
+ *  Aug 2026 - Paul Taylor (paul.taylor@nih.gov)
+ *      Change: remove need for R.h dependency, by updating one error-
+ *      printing statement.
  *************************************************************************/
 
-
-#include "remez.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
+
+#define CONST const
+#define BANDPASS       1
+#define DIFFERENTIATOR 2
+#define HILBERT        3
+
+#define NEGATIVE       0
+#define POSITIVE       1
+
+#define Pi             3.1415926535897932
+#define Pi2            6.2831853071795865
+
+#define GRIDDENSITY    16
+#define MAXITERATIONS  40
 
 /*******************
  * CreateDenseGrid
@@ -37,9 +52,10 @@
  * int      numtaps  - Number of taps in the resulting filter
  * int      numband  - Number of bands in user specification
  * double   bands[]  - User-specified band edges [2*numband]
- * double   des[]    - Desired response per band [numband]
+ * double   des[]    - Desired response per band [2*numband]
  * double   weight[] - Weight per band [numband]
  * int      symmetry - Symmetry of filter - used for grid check
+ * int      griddensity
  *
  * OUTPUT:
  * -------
@@ -49,34 +65,31 @@
  * double W[]        - Weight function on the dense grid [gridsize]
  *******************/
 
-void CreateDenseGrid(int r, int numtaps, int numband, double bands[],
-                     double des[], double weight[], int *gridsize,
+void CreateDenseGrid(int r, int numtaps, int numband, const double bands[],
+                     const double des[], const double weight[], int gridsize,
                      double Grid[], double D[], double W[],
-                     int symmetry)
+                     int symmetry, int griddensity)
 {
    int i, j, k, band;
-   double delf, lowf, highf;
+   double delf, lowf, highf, grid0;
 
-   delf = 0.5/(GRIDDENSITY*r);
+   delf = 0.5/(griddensity*r);
 
 /*
  * For differentiator, hilbert,
- *   symmetry is odd and Grid[0] = max(delf, band[0])
+ *   symmetry is odd and Grid[0] = max(delf, bands[0])
  */
-
-   if ((symmetry == NEGATIVE) && (delf > bands[0]))
-      bands[0] = delf;
+   grid0 = (symmetry == NEGATIVE) && (delf > bands[0]) ? delf : bands[0];
 
    j=0;
    for (band=0; band < numband; band++)
    {
-      Grid[j] = bands[2*band];
-      lowf = bands[2*band];
+      lowf = (band==0 ? grid0 : bands[2*band]);
       highf = bands[2*band + 1];
       k = (int)((highf - lowf)/delf + 0.5);   /* .5 for rounding */
       for (i=0; i<k; i++)
       {
-         D[j] = des[band];
+         D[j] = des[2*band] + i*(des[2*band+1]-des[2*band])/(k-1);
          W[j] = weight[band];
          Grid[j] = lowf;
          lowf += delf;
@@ -90,10 +103,10 @@ void CreateDenseGrid(int r, int numtaps, int numband, double bands[],
  *  - but, if there are even taps, leave the last grid point at .5
  */
    if ((symmetry == NEGATIVE) &&
-       (Grid[*gridsize-1] > (0.5 - delf)) &&
+       (Grid[gridsize-1] > (0.5 - delf)) &&
        (numtaps % 2))
    {
-      Grid[*gridsize-1] = 0.5-delf;
+      Grid[gridsize-1] = 0.5-delf;
    }
 }
 
@@ -104,7 +117,7 @@ void CreateDenseGrid(int r, int numtaps, int numband, double bands[],
  * Places Extremal Frequencies evenly throughout the dense grid.
  *
  *
- * INPUT:
+ * INPUT: 
  * ------
  * int r        - 1/2 the number of filter coefficients
  * int gridsize - Number of elements in the dense frequency grid
@@ -261,7 +274,7 @@ double ComputeA(double freq, int r, double ad[], double x[], double y[])
  * int gridsize  - Number of elements in the dense frequency grid
  * double Grid[] - Frequencies on the dense grid [gridsize]
  * double D[]    - Desired response on the dense grid [gridsize]
- * double W[]    - Weight function on the dense grid [gridsize]
+ * double W[]    - Weight function on the desnse grid [gridsize]
  *
  * OUTPUT:
  * -------
@@ -306,8 +319,7 @@ void CalcError(int r, double ad[], double x[], double y[],
  * -------
  * int    Ext[]    - New indexes to extremal frequencies [r+1]
  ************************/
-
-void Search(int r, int Ext[],
+int Search(int r, int Ext[],
             int gridsize, double E[])
 {
    int i, j, k, l, extra;     /* Counters */
@@ -333,8 +345,15 @@ void Search(int r, int Ext[],
    for (i=1; i<gridsize-1; i++)
    {
       if (((E[i]>=E[i-1]) && (E[i]>E[i+1]) && (E[i]>0.0)) ||
-          ((E[i]<=E[i-1]) && (E[i]<E[i+1]) && (E[i]<0.0)))
-         foundExt[k++] = i;
+          ((E[i]<=E[i-1]) && (E[i]<E[i+1]) && (E[i]<0.0))) {
+    // PAK: we sometimes get too many extremal frequencies
+    if (k >= 2*r) 
+    {
+      free(foundExt);
+      return -3;
+    }
+    foundExt[k++] = i;
+      }
    }
 
 /*
@@ -342,14 +361,27 @@ void Search(int r, int Ext[],
  */
    j = gridsize-1;
    if (((E[j]>0.0) && (E[j]>E[j-1])) ||
-       ((E[j]<0.0) && (E[j]<E[j-1])))
-      foundExt[k++] = j;
+       ((E[j]<0.0) && (E[j]<E[j-1]))) {
+     if (k >= 2*r)
+     {
+       free(foundExt);
+       return -3;
+     }
+     foundExt[k++] = j;
+   }
 
+   // PAK: we sometimes get not enough extremal frequencies
+   if (k < r+1)
+   {
+     free(foundExt);
+     return -2;
+   }
 
 /*
  * Remove extra extremals
  */
    extra = k - (r+1);
+   //   assert(extra >= 0);
 
    while (extra > 0)
    {
@@ -369,8 +401,14 @@ void Search(int r, int Ext[],
          else if ((!up) && (E[foundExt[j]] > 0.0))
             up = 1;             /* switch to a maxima */
          else
-         {
+     { 
             alt = 0;
+        // PAK: break now and you will delete the smallest overall
+        // extremal.  If you want to delete the smallest of the
+        // pair of non-alternating extremals, then you must do:
+            //
+        // if (fabs(E[foundExt[j]]) < fabs(E[foundExt[j-1]])) l=j;
+        // else l=j-1;
             break;              /* Ooops, found two non-alternating */
          }                      /* extrema.  Delete smallest of them */
       }  /* if the loop finishes, all extrema are alternating */
@@ -382,14 +420,19 @@ void Search(int r, int Ext[],
       if ((alt) && (extra == 1))
       {
          if (fabs(E[foundExt[k-1]]) < fabs(E[foundExt[0]]))
-            l = foundExt[k-1];   /* Delete last extremal */
+       /* Delete last extremal */
+       l = k-1;
+       // PAK: changed from l = foundExt[k-1]; 
          else
-            l = foundExt[0];     /* Delete first extremal */
+       /* Delete first extremal */
+       l = 0;
+       // PAK: changed from l = foundExt[0];     
       }
 
-      for (j=l; j<k; j++)        /* Loop that does the deletion */
+      for (j=l; j<k-1; j++)        /* Loop that does the deletion */
       {
          foundExt[j] = foundExt[j+1];
+         //  assert(foundExt[j]<gridsize);
       }
       k--;
       extra--;
@@ -397,10 +440,12 @@ void Search(int r, int Ext[],
 
    for (i=0; i<=r; i++)
    {
+     //      assert(foundExt[i]<gridsize);
       Ext[i] = foundExt[i];       /* Copy found extremals to Ext[] */
    }
 
    free(foundExt);
+   return 0;
 }
 
 
@@ -487,7 +532,7 @@ void FreqSample(int N, double A[], double h[], int symm)
  *
  * INPUT:
  * ------
- * int    r     - 1/2 the number of filter coefficients
+ * int    r     - 1/2 the number of filter coeffiecients
  * int    Ext[] - Indexes to extremal frequencies [r+1]
  * double E[]   - Error function on the dense grid [gridsize]
  *
@@ -497,7 +542,7 @@ void FreqSample(int N, double A[], double h[], int symm)
  * Returns 0 if the result has not converged
  ********************/
 
-short isDone(int r, int Ext[], double E[])
+int isDone(int r, int Ext[], double E[])
 {
    int i;
    double min, max, current;
@@ -511,9 +556,7 @@ short isDone(int r, int Ext[], double E[])
       if (current > max)
          max = current;
    }
-   if (((max-min)/max) < 0.0001)
-      return 1;
-   return 0;
+   return (((max-min)/max) < 0.0001);
 }
 
 /********************
@@ -521,26 +564,28 @@ short isDone(int r, int Ext[], double E[])
  *=======
  * Calculates the optimal (in the Chebyshev/minimax sense)
  * FIR filter impulse response given a set of band edges,
- * the desired response on those bands, and the weight given to
+ * the desired reponse on those bands, and the weight given to
  * the error in those bands.
  *
  * INPUT:
  * ------
- * int     numtaps     - Number of filter coefficients
- * int     numband     - Number of bands in filter specification
- * double  bands[]     - User-specified band edges [2 * numband]
- * double  des[]       - User-specified band responses [numband]
- * double  weight[]    - User-specified error weights [numband]
- * int     type        - Type of filter
+ * int     *numtaps     - Number of filter coefficients
+ * int     *numband     - Number of bands in filter specification
+ * double  bands[]      - User-specified band edges [2 * numband]
+ * double  des[]        - User-specified band responses [2 * numband]
+ * double  weight[]     - User-specified error weights [numband]
+ * int     *type        - Type of filter
+ * int     *griddensity - ??
  *
  * OUTPUT:
  * -------
  * double h[]      - Impulse response of final filter [numtaps]
  ********************/
 
-void remez(double h[], int numtaps,
-           int numband, double bands[], double des[], double weight[],
-           int type)
+void remez(double h[], int *numtaps,
+      int *numband, const double bands[], 
+      const double des[], const double weight[],
+      int *type, int *griddensity)
 {
    double *Grid, *W, *D, *E;
    int    i, iter, gridsize, r, *Ext;
@@ -548,23 +593,23 @@ void remez(double h[], int numtaps,
    double *x, *y, *ad;
    int    symmetry;
 
-   if (type == BANDPASS)
+   if (*type == BANDPASS)
       symmetry = POSITIVE;
    else
       symmetry = NEGATIVE;
 
-   r = numtaps/2;                  /* number of extrema */
-   if ((numtaps%2) && (symmetry == POSITIVE))
+   r = *numtaps / 2;                  /* number of extrema */
+   if ((*numtaps % 2) && (symmetry == POSITIVE))
       r++;
-
+   h[0] = 32;
 /*
  * Predict dense grid size in advance for memory allocation
  *   .5 is so we round up, not truncate
  */
    gridsize = 0;
-   for (i=0; i<numband; i++)
+   for (i=0; i < *numband; i++)
    {
-      gridsize += (int)(2*r*GRIDDENSITY*(bands[2*i+1] - bands[2*i]) + .5);
+      gridsize += (int)(2 * r * (*griddensity) * (bands[2*i+1] - bands[2*i]) + .5);
    }
    if (symmetry == NEGATIVE)
    {
@@ -587,14 +632,14 @@ void remez(double h[], int numtaps,
 /*
  * Create dense frequency grid
  */
-   CreateDenseGrid(r, numtaps, numband, bands, des, weight,
-                   &gridsize, Grid, D, W, symmetry);
+   CreateDenseGrid(r, *numtaps, *numband, bands, des, weight,
+                   gridsize, Grid, D, W, symmetry, *griddensity);
    InitialGuess(r, Ext, gridsize);
 
 /*
  * For Differentiator: (fix grid)
  */
-   if (type == DIFFERENTIATOR)
+   if (*type == DIFFERENTIATOR)
    {
       for (i=0; i<gridsize; i++)
       {
@@ -610,19 +655,19 @@ void remez(double h[], int numtaps,
  */
    if (symmetry == POSITIVE)
    {
-      if (numtaps % 2 == 0)
+      if (*numtaps % 2 == 0)
       {
          for (i=0; i<gridsize; i++)
          {
             c = cos(Pi * Grid[i]);
             D[i] /= c;
-            W[i] *= c;
+            W[i] *= c; 
          }
       }
    }
    else
    {
-      if (numtaps % 2)
+      if (*numtaps % 2)
       {
          for (i=0; i<gridsize; i++)
          {
@@ -649,13 +694,12 @@ void remez(double h[], int numtaps,
    {
       CalcParms(r, Ext, Grid, D, W, ad, x, y);
       CalcError(r, ad, x, y, gridsize, Grid, D, W, E);
-      Search(r, Ext, gridsize, E);
+      int err = Search(r, Ext, gridsize, E);
+      //if (err) error("error, %i, %i", err, gridsize);
+      if (err) fprintf(stderr, "\nerror, %i, %i\n", err, gridsize);
+      //      for(i=0; i <= r; i++) assert(Ext[i]<gridsize);
       if (isDone(r, Ext, E))
          break;
-   }
-   if (iter == MAXITERATIONS)
-   {
-      printf("Reached maximum iteration count.\nResults may be bad.\n");
    }
 
    CalcParms(r, Ext, Grid, D, W, ad, x, y);
@@ -665,29 +709,29 @@ void remez(double h[], int numtaps,
  * Sampling.  If odd or Negative symmetry, fix the taps
  * according to Parks McClellan
  */
-   for (i=0; i<=numtaps/2; i++)
+   for (i=0; i <= *numtaps / 2; i++)
    {
       if (symmetry == POSITIVE)
       {
-         if (numtaps%2)
+         if (*numtaps % 2)
             c = 1;
          else
-            c = cos(Pi * (double)i/numtaps);
+            c = cos(Pi * (double)i / *numtaps);
       }
       else
       {
-         if (numtaps%2)
-            c = sin(Pi2 * (double)i/numtaps);
+         if (*numtaps % 2)
+            c = sin(Pi2 * (double)i / *numtaps);
          else
-            c = sin(Pi * (double)i/numtaps);
+            c = sin(Pi * (double)i / *numtaps);
       }
-      taps[i] = ComputeA((double)i/numtaps, r, ad, x, y)*c;
+      taps[i] = ComputeA((double)i / *numtaps, r, ad, x, y) * c;
    }
 
 /*
  * Frequency sampling design with calculated taps
  */
-   FreqSample(numtaps, taps, h, symmetry);
+   FreqSample(*numtaps, taps, h, symmetry);
 
 /*
  * Delete allocated memory
@@ -697,7 +741,171 @@ void remez(double h[], int numtaps,
    free(D);
    free(E);
    free(Ext);
+   free(taps);
    free(x);
    free(y);
    free(ad);
 }
+
+
+/* == Octave interface starts here ====================================== */
+/*******************
+DEFUN_DLD (remez, args, ,
+  "b = remez(n, f, a [, w] [, ftype] [, griddensity])\n\
+Parks-McClellan optimal FIR filter design.\n\
+n gives the number of taps in the returned filter\n\
+f gives frequency at the band edges [ b1 e1 b2 e2 b3 e3 ...]\n\
+a gives amplitude at the band edges [ a(b1) a(e1) a(b2) a(e2) ...]\n\
+w gives weighting applied to each band\n\
+ftype is 'bandpass', 'hilbert' or 'differentiator'\n\
+griddensity determines how accurately the filter will be\n\
+    constructed. The minimum value is 16, but higher numbers are\n\
+    slower to compute.\n\
+\n\
+Frequency is in the range (0, 1), with 1 being the nyquist frequency")
+{
+  octave_value_list retval;
+  int i;
+
+  int nargin = args.length();
+  if (nargin < 3 || nargin > 6) {
+    print_usage("remez");
+    return retval;
+  }
+
+  int numtaps = NINT (args(0).double_value()) + 1; // #coeff = filter order+1
+  if (numtaps < 4) {
+    error("remez: number of taps must be an integer greater than 3");
+    return retval;
+  }
+
+  ColumnVector o_bands(args(1).vector_value());
+  int numbands = o_bands.length()/2;
+  OCTAVE_LOCAL_BUFFER(double, bands, numbands*2);
+  if (numbands < 1 || o_bands.length()%2 == 1) {
+    error("remez: must have an even number of band edges");
+    return retval;
+  }
+  for (i=1; i < o_bands.length(); i++) {
+    if (o_bands(i)<o_bands(i-1)) {
+      error("band edges must be nondecreasing");
+      return retval;
+    }
+  }
+  if (o_bands(0) < 0 || o_bands(1) > 1) {
+    error("band edges must be in the range [0,1]");
+    return retval;
+  }
+  for(i=0; i < 2*numbands; i++) bands[i] = o_bands(i)/2.0;
+
+  ColumnVector o_response(args(2).vector_value());
+  OCTAVE_LOCAL_BUFFER (double, response, numbands*2);
+  if (o_response.length() != o_bands.length()) {
+    error("remez: must have one response magnitude for each band edge");
+    return retval;
+  }
+  for(i=0; i < 2*numbands; i++) response[i] = o_response(i);
+
+  std::string stype = std::string("bandpass");
+  int density = 16;
+  OCTAVE_LOCAL_BUFFER (double, weight, numbands);
+  for (i=0; i < numbands; i++) weight[i] = 1.0;
+  if (nargin > 3) {
+    if (args(3).is_real_matrix()) {
+      ColumnVector o_weight(args(3).vector_value());
+      if (o_weight.length() != numbands) {
+    error("remez: need one weight for each band [=length(band)/2]");
+    return retval;
+      }
+      for (i=0; i < numbands; i++) weight[i] = o_weight(i);
+    }
+    else if (args(3).is_string())
+      stype = args(3).string_value();
+    else if (args(3).is_real_scalar())
+      density = NINT(args(3).double_value());
+    else {
+      error("remez: incorrect argument list");
+      return retval;
+    }
+  }
+  if (nargin > 4) {
+    if (args(4).is_string() && !args(3).is_string())
+      stype = args(4).string_value();
+    else if (args(4).is_real_scalar() && !args(3).is_real_scalar())
+      density = NINT(args(4).double_value());
+    else {
+      error("remez: incorrect argument list");
+      return retval;
+    }
+  }
+  if (nargin > 5) {
+    if (args(5).is_real_scalar() 
+    && !args(4).is_real_scalar() 
+    && !args(3).is_real_scalar())
+      density = NINT(args(4).double_value());
+    else {
+      error("remez: incorrect argument list");
+      return retval;
+    }
+  }
+
+  int itype;
+  if (stype == "bandpass") 
+    itype = BANDPASS;
+  else if (stype == "differentiator") 
+    itype = DIFFERENTIATOR;
+  else if (stype == "hilbert") 
+    itype = HILBERT;
+  else {
+    error("remez: unknown ftype '%s'", stype.data());
+    return retval;
+  }
+
+  if (density < 16) {
+    error("remez: griddensity is too low; must be greater than 16");
+    return retval;
+  }
+
+  OCTAVE_LOCAL_BUFFER (double, coeff, numtaps+5);
+  int err = remez(coeff,numtaps,numbands,bands,response,weight,itype,density);
+
+  if (err == -1)
+    warning("remez: -- failed to converge -- returned filter may be bad.");
+  else if (err == -2) {
+    error("remez: insufficient extremals--cannot continue");
+    return retval;
+  }
+  else if (err == -3) {
+    error("remez: too many extremals--cannot continue");
+    return retval;
+  }
+
+  ColumnVector h(numtaps);
+  while(numtaps--) h(numtaps) = coeff[numtaps];
+
+  return octave_value(h);
+}
+****************/
+/*
+%!test
+%! b = [
+%!    0.0415131831103279
+%!    0.0581639884202646
+%!   -0.0281579212691008
+%!   -0.0535575358002337
+%!   -0.0617245915143180
+%!    0.0507753178978075
+%!    0.2079018331396460
+%!    0.3327160895375440
+%!    0.3327160895375440
+%!    0.2079018331396460
+%!    0.0507753178978075
+%!   -0.0617245915143180
+%!   -0.0535575358002337
+%!   -0.0281579212691008
+%!    0.0581639884202646
+%!    0.0415131831103279];
+%! assert(remez(15,[0,0.3,0.4,1],[1,1,0,0]),b,1e-14);
+
+ */
+

@@ -5,23 +5,42 @@
  *
  * The specific Remez algorithm implementation used here (AKA the part
  * that does the real work in this program) was written by Jake
- * Janovetz, copywrite 1995 and distributed under GPL v2 or later.
- * Please see the accompanying remez.c and remez.h files for more
+ * Janovetz.  As noted in the 2026-08-11 update note (below), this
+ * program currently uses an updated version of the original
+ * implementation, which is copywrited by Jave Janovetz (2024) and
+ * distributed with an MIT license.  Please see the accompanying
+ * src/remez.c and src/remez-exchange/LICENSE files for more
  * information.
  *
  * This file was written by Bob Cox in May, 2012, to provide a command
  * line interface for running the algorithm.
  *
+ * NOTES
+ *
+ * [2026-08-11] This program was updated to use a more recent
+ * repository version of remez.c, updated by J Janovetz and
+ * co-authors: https://github.com/janovetz/remez-exchange (specific
+ * commit now incorporated within AFNI is a pull request version:
+ * https://github.com/janovetz/remez-exchange/pull/7 that avoids an
+ * R.h dependency, which would require r-base-dev being installed).
+ * Instead of using separate remez.c and remez.h files, the repository
+ * contains a single remez.c file, and is located in a subdirectory of
+ * the GitHub repo's name: afni/src/remez-exchange.  See that
+ * file/directory's contents for relevant information on updates.
+ *
  *************************************************************************/
 
 #include "mrilib.h"
-#include "remez.c"
+#include "remez-exchange/remez.c"
 
 int main( int argc , char *argv[] )
 {
-   double weight[3] , desired[3] , band[6] , h[2048] ;
+   double weight[3] , desired[6] , band[6] , h[2048] ;
    int i , ntap=-666 , nband , iarg=1 ;
    double fbot=-666.9 , ftop=-999.9 , df,dff , fdel , TR=1.0 , dqq ;
+
+   /* [pt: 2026-08-11] new vars for updating to new remez.c file funcs */
+   int remez_type=BANDPASS , griddensity=16 , remez_err ;
 
    /*-- help me if you can ---*/
 
@@ -68,7 +87,11 @@ int main( int argc , char *argv[] )
        "NOTES:\n"
        "------\n"
        "* http://en.wikipedia.org/wiki/Parks-McClellan_filter_design_algorithm\n"
-       "* The Remez algorithm code is written and GPL-ed by Jake Janovetz\n"
+       "* The Remez algorithm code currently in use was written by Jake\n"
+       "  Janovetz (copywrite 2024) and is distributed 'as is' with an\n"
+       "  MIT license; for more details, see:\n"
+       "  https://github.com/janovetz/remez-exchange\n"
+       "\n"
        "* Multiple passbands could be designed this way; let me know if you\n"
        "  need such an option; a Hilbert transform FIR is also possible\n"
        "* Don't try to be stupidly clever when using this program\n"
@@ -182,14 +205,16 @@ int main( int argc , char *argv[] )
    /*-- reject below fbot, if fbot > 0 --*/
 
    if( fbot > 0.0 ){
-     weight[nband] = 1.0 ; desired[nband]  = 0 ;
+     weight[nband] = 1.0 ;
+     desired[2*nband] = desired[2*nband+1] = 0.0 ;
      band[2*nband] = 0.0 ; band[2*nband+1] = fbot-dff ;
      nband++ ;
    }
 
    /*-- pass between fbot and ftop --*/
 
-   weight[nband] = 1.0 ; desired[nband] = 1 ;
+   weight[nband] = 1.0 ;
+   desired[2*nband] = desired[2*nband+1] = 1.0 ;
    if( fbot > 0.0 ){
      band[2*nband] = fbot+dff ; band[2*nband+1] = (ftop < 0.5) ? ftop-dff : 0.5 ;
    } else {
@@ -200,14 +225,17 @@ int main( int argc , char *argv[] )
    /*-- reject above ftop, if ftop < Nyquist --*/
 
    if( ftop < 0.5 ){
-     weight[nband] = 1.0 ;      desired[nband]  = 0   ;
+     weight[nband] = 1.0 ;
+     desired[2*nband] = desired[2*nband+1] = 0.0 ;
      band[2*nband] = ftop+dff ; band[2*nband+1] = 0.5 ;
      nband++ ;
    }
 
    /*-- compute FIR weights --*/
 
-   remez( h, ntap, nband, band, desired, weight, BANDPASS ) ;
+   /* [pt: 2026-08-11] apply new definitions of arg types (and error check) */
+   remez( h, &ntap, &nband, band, desired, weight,
+          &remez_type, &griddensity ) ;
 
    /*-- print --*/
 
