@@ -634,7 +634,9 @@ imreg:imreg.o pcor.o
 	$(RM) $@
 	$(CC) -o imreg imreg.o pcor.o $(LFLAGS) $(LLIBS)
 
-FIRdesign.o:FIRdesign.c remez.c remez.h
+FIRdesign.o:FIRdesign.c remez-exchange/remez.c
+	$(RM) $@
+	$(CC) -c FIRdesign.c $(INFLAGS) -Iremez-exchange
 
 FIRdesign:FIRdesign.o
 	$(RM) $@
