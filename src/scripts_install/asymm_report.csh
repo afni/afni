@@ -9,8 +9,11 @@ set progname = asymm_report
 
 #set version   = "0.91";   set rev_dat   = "Jun 12, 2025"
 #     + [DRG] adding in right_list, left_list options
-set version = "1.00"; set rev_dat   = "Jul 30, 2026"
+# set version = "1.00"; set rev_dat   = "Jul 30, 2026"
 #     + [DRG] check for no labels and checks for zero values
+ set version = "1.01"; set rev_dat   = "Aug 11, 2026"
+#     + [DRG] allow for more decimal places for small volumes and areas
+#     as in the case with marmosets
 
 # start with cerebellum regions from HCA_lr_v0.9.nii.gz
 
