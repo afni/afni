@@ -42,6 +42,8 @@ int main( int argc , char *argv[] )
    /* [pt: 2026-08-11] new vars for updating to new remez.c file funcs */
    int remez_type=BANDPASS , griddensity=16 , remez_err ;
 
+   mainENTRY("3dFIRdesign main") ; machdep() ;
+
    /*-- help me if you can ---*/
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
