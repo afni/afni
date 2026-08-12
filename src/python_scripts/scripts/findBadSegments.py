@@ -1097,46 +1097,46 @@ def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks,
     )
                 
     # Identify lack of bijectivity on peaks and troughs
-    events = sorted(
-        [(x,'P') for x in respiratoryPeaks] +
-        [(x,'T') for x in respiratoryTroughs],
-        key=lambda x: x[0]
-    )
+    # events = sorted(
+    #     [(x,'P') for x in respiratoryPeaks] +
+    #     [(x,'T') for x in respiratoryTroughs],
+    #     key=lambda x: x[0]
+    # )
     
-    bad_events = []
-    for i in range(len(events)-1):
-        if events[i][1] == events[i+1][1]:
-            bad_events.append(events[i:i+2])
-            print("artifact:", events[i:i+2])
+    # bad_events = []
+    # for i in range(len(events)-1):
+    #     if events[i][1] == events[i+1][1]:
+    #         bad_events.append(events[i:i+2])
+    #         print("artifact:", events[i:i+2])
             
     # added_peaks = []
     # added_troughs = []
     
-    for i in range(len(events)-1):
+    # for i in range(len(events)-1):
     
-        x1, type1 = events[i]
-        x2, type2 = events[i+1]
+    #     x1, type1 = events[i]
+    #     x2, type2 = events[i+1]
     
-        if type1 == type2:
+    #     if type1 == type2:
     
-            if type1 == 'P':
-                # PP: missing trough
-                trough = round(x1 + frac*(x2-x1))
-                added_troughs.append(trough)
+    #         if type1 == 'P':
+    #             # PP: missing trough
+    #             trough = round(x1 + frac*(x2-x1))
+    #             added_troughs.append(trough)
     
-            else:
-                # TT: missing peak
-                # approximate inverse phase
-                peak = round(x1 - frac*(x1-x2))
-                added_peaks.append(peak)
+    #         else:
+    #             # TT: missing peak
+    #             # approximate inverse phase
+    #             peak = round(x1 - frac*(x1-x2))
+    #             added_peaks.append(peak)
     
-    respiratoryPeaks = np.sort(
-        np.concatenate((respiratoryPeaks, added_peaks))
-    )
+    # respiratoryPeaks = np.sort(
+    #     np.concatenate((respiratoryPeaks, added_peaks))
+    # )
     
-    respiratoryTroughs = np.sort(
-        np.concatenate((respiratoryTroughs, added_troughs))
-    )
+    # respiratoryTroughs = np.sort(
+    #     np.concatenate((respiratoryTroughs, added_troughs))
+    # )
                 
     # Either move peaks/troughs in bad regions to local maxima/minima or
     # linearly interpolate peak/trough profiles between peak/trough just before
