@@ -702,7 +702,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
                    to dataset, rather than doing it here */
 
 #ifdef USE_APPLICATOR
-   THD_datablock_apply_atr( dset ) ;
+    THD_datablock_apply_atr( dset , 0 ) ;  /* disco change */
 #endif
 
    /*--- check for the following conditions:
