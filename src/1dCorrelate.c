@@ -206,6 +206,7 @@ int main( int argc , char *argv[] )
 
    /* def seed: use wall clock (always changes); user can set from cmd line */
    uint32_t rseed = 0;
+   long lseed = 0;
 
    /*-- start the AFNI machinery --*/
 
@@ -394,6 +395,9 @@ int main( int argc , char *argv[] )
 
    /* apply the seed to initialize for Gaussian calcs */
    zgaussian_init( rseed );
+   /* ... and also the other random numbers used */
+   lseed = (rseed != 0) ? (long)rseed : (long)time(NULL) ;
+   srand48( lseed ) ;
 
    /*--- Print a beeyootiful header ---*/
 
