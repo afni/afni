@@ -1,5 +1,6 @@
 #include "mrilib.h"
-#include "zgaussian.c"
+#include <stdint.h>
+#include "zgaussian/zgaussian.c"
 
 #define NCOR 6
 
@@ -198,6 +199,9 @@ int main( int argc , char *argv[] )
    int cormeth=0 ;    /* 0=Pearson, 1=Spearman, 2=Quadrant, 3=Kendall tau_b */
    float (*corfun)(int,float *,float *) ;
 
+   /* def seed: use wall clock (always changes); user can set from cmd line */
+   uint32_t rseed = 0;
+
    /*-- start the AFNI machinery --*/
 
    mainENTRY("1dCorrelate main") ; machdep() ;
@@ -345,6 +349,9 @@ int main( int argc , char *argv[] )
      }
    }
    DESTROY_IMARR(tar) ;
+
+   /* apply the seed to initialize for Gaussian calcs */
+   zgaussian_init( rseed );
 
    /*--- Print a beeyootiful header ---*/
 

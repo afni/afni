@@ -2013,6 +2013,10 @@ qtest:thd_bstrap_corr.o
 	$(RM) $@
 	$(CC) -o 1dcorr 1dcorr.o $(LFLAGS) $(LLIBS)
 
+1dCorrelate.o:1dCorrelate.c zgaussian/zgaussian.c zgaussian/ziggurat.c
+	$(RM) $@
+	$(CC) -c 1dCorrelate.c $(INFLAGS) -Izgaussian
+
 1dCorrelate:1dCorrelate.o
 	$(RM) $@
 	$(CC) -o 1dCorrelate 1dCorrelate.o $(LFLAGS) $(LLIBS)

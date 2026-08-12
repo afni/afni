@@ -291,6 +291,10 @@ Location: src/remez-exchange/remez.c
 Authors:  Jake Janovetz
 License:  MIT license [src/remez-exchange/LICENSE]
 
+Location: src/zgaussian/ziggurat.{c,h}
+Authors:  John Burkardt
+License:  MIT license [top of file]
+
 Location: src/zgaussian.c
 Authors:  Jochen Voss
 License:  GNU GPL 2 or later [top of file]
