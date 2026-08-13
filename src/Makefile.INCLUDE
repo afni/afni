@@ -638,6 +638,9 @@ FIRdesign.o:FIRdesign.c remez-exchange/remez.c
 	$(RM) $@
 	$(CC) -c FIRdesign.c $(INFLAGS) -Iremez-exchange
 
+# appease some feable make systems
+remez-exchange/remez.c:
+
 FIRdesign:FIRdesign.o
 	$(RM) $@
 	$(CC) -o FIRdesign FIRdesign.o $(LFLAGS) $(LLIBS)
