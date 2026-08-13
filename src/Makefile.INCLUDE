@@ -634,13 +634,13 @@ imreg:imreg.o pcor.o
 	$(RM) $@
 	$(CC) -o imreg imreg.o pcor.o $(LFLAGS) $(LLIBS)
 
-FIRdesign.o:FIRdesign.c remez-exchange/remez.c
+FIRdesign.o:FIRdesign.c
 	$(RM) $@
-	$(CC) -c FIRdesign.c $(INFLAGS) -Iremez-exchange
+	$(CC) -c FIRdesign.c $(INFLAGS)
 
-FIRdesign:FIRdesign.o
+FIRdesign:FIRdesign.o remez.o
 	$(RM) $@
-	$(CC) -o FIRdesign FIRdesign.o $(LFLAGS) $(LLIBS)
+	$(CC) -o FIRdesign FIRdesign.o remez.o $(LFLAGS) $(LLIBS)
 
 imfit:imfit.o
 	$(RM) $@
@@ -3783,6 +3783,13 @@ libsegtools.a: avovk/cluster_floatNOMASK.c avovk/thd_segtools_fNM.c
 	$(MAKE) libsegtools.a  ;	\
 	$(CP) libsegtools.a ../;	\
 	cd ../	;		)
+
+#############
+#REMEZ* directory
+
+remez.o: remez-exchange/remez.c remez-exchange/remez.h
+	$(RM) $@
+	$(CC) -c remez-exchange/remez.c $(INFLAGS)
 
 
 #############
