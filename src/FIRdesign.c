@@ -31,7 +31,7 @@
  *************************************************************************/
 
 #include "mrilib.h"
-#include "remez-exchange/remez.c"
+#include "remez-exchange/remez.h"
 
 int main( int argc , char *argv[] )
 {
