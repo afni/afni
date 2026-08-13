@@ -1151,9 +1151,9 @@ strblast:strblast.o
 	$(RM) $@
 	$(CC) -o 3dABoverlap 3dABoverlap.o $(LFLAGS) $(LLIBS)
 
-3dNormalityTest.o:3dNormalityTest.c
+3dNormalityTest.o:3dNormalityTest.c zgaussian/zgaussian.c zgaussian/ziggurat.c
 	$(RM) $@
-	$(CCFAST) -c 3dNormalityTest.c $(INFLAGS)
+	$(CCFAST) -c 3dNormalityTest.c $(INFLAGS) -Izgaussian
 
 3dNormalityTest:3dNormalityTest.o
 	$(RM) $@
