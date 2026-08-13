@@ -130,6 +130,8 @@ int main( int argc , char *argv[] )
    char *prefix="NormTest" ;
    float *avar , *dval , *atr ; double *eval ;
 
+   mainENTRY("3dNormalityTest") ; machdep() ;
+
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
      printf(
        "Program: 3dNormalityTest\n"
