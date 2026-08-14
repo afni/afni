@@ -1556,7 +1556,7 @@ qqqOMP:qqqOMP.o
 	$(RM) $@
 	$(CCOMP) -o 3dLocalstat 3dLocalstat.o $(LFLAGS) $(LLIBS)
 
-AlphaSim.o:AlphaSim.c
+AlphaSim.o:AlphaSim.c zgaussian_OLD.c
 	$(RM) $@
 	$(CCOMP) -c AlphaSim.c $(INFLAGS)
 
@@ -1565,7 +1565,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o AlphaSim AlphaSim.o $(LFLAGS) $(LLIBS)
 
-3dClustSim.o:3dClustSim.c zgaussian_OLD.c mri_radial_random_field.c
+3dClustSim.o:3dClustSim.c  mri_radial_random_field.c
 	$(RM) $@
 	$(CCOMP) -c 3dClustSim.c $(INFLAGS)
 
