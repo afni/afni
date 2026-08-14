@@ -419,7 +419,7 @@ gitignore: prog_list
         fi
 	echo "" >> .gitignore
 	echo "" >> .gitignore
-	echo '## Ignore the build directory created by the make build' >> .gitinore
+	echo '## Ignore the build directory created by the make build' >> .gitignore
 	echo '$(INSTALLDIR)' >> .gitignore
 	echo "" >> .gitignore
 	echo "" >> .gitignore
