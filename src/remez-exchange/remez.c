@@ -18,10 +18,9 @@
  *  Aug 2026 - Paul Taylor (paul.taylor@nih.gov)
  *      Change: remove need for R.h dependency, by updating one error-
  *      printing statement.
- *      Change2: remove duplication of #define statements in *.c, since 
- *      they all exist in *.h; now do: #include "remez.h"
+ *      Change2: make *.h of definitions and prototypes; and in main C 
+ *      progs, now do: #include "remez.h"
  *      Change3: remove "#define CONST const", which was never used
- *      Change4: put prototypes for functions in *.c
  *************************************************************************/
 
 #include <stdio.h>
