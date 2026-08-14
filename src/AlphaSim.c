@@ -1005,12 +1005,8 @@ void initialize (int argc, char ** argv,
 
   /*----- initialize random number generator -----*/
   srand48 (seed); gseed = (unsigned int)seed ;
-
+  zgaussian2_init( (uint32_t)seed ) ;
 }
-
-/*---------------------------------------------------------------------------*/
-#include "zgaussian_OLD.c"  /** Ziggurat Gaussian random number generator **/
-/*---------------------------------------------------------------------------*/
 
 #ifndef USE_OMP  /* these RNGs are not used in the OpenMP code */
 /*---------------------------------------------------------------------------*/
@@ -1035,7 +1031,7 @@ void normal (float * n1, float * n2)
   float r;
 
   /** the -fast way **/
-  if( use_zg ){ *n1 = zgaussian() ; *n2 = zgaussian() ; return ; }
+  if( use_zg ){ *n1 = zgaussian2() ; *n2 = zgaussian2() ; return ; }
 
   u1 = 0.0;
   while (u1 <= 0.0)
@@ -1076,7 +1072,7 @@ void activation_region (int nx, int ny, int nz, int ax, int ay, int az,
 
 void generate_image (int nx, int ny, int nz, int power,
 		     int ax, int ay, int az, float zsep, float * fim,
-           unsigned short xran[] )
+           uint32_t *xran )
 {
   int nxy, nxyz;
   int nxyzdiv2;
@@ -1103,7 +1099,7 @@ void generate_image (int nx, int ny, int nz, int power,
   fim[nxyz-1] = n1;
 #else
   for( ixyz=0 ; ixyz < nxyz ; ixyz++ )  /* OpenMP always uses zgaussian */
-    fim[ixyz] = zgaussian_sss(xran) ;
+    fim[ixyz] = zgaussian2_sss(xran) ;
 #endif
 
   /*----- if power calculation, generate "island" of activation -----*/
@@ -1938,11 +1934,14 @@ int main (int argc, char ** argv)
  {
    int iter , qqq=quiet ; float *fim , *arfim=NULL ;
    long count=0; double sum=0.0, sumsq=0.0 ;
-   long *mt , *ft ; int ithr=0 ; unsigned short xran[3] ;
+   long *mt , *ft ; int ithr=0 ; 
 
   /* create separate tables for each thread, if using OpenMP */
 #ifdef USE_OMP
    ithr = omp_get_thread_num() ;
+   /* initialize single uint32_t seed for zgaussian2_sss() calls */
+   uint32_t xran = zgaussian2_thread_seed( ithr ) ;
+
 #pragma omp master  /* only in the master thread */
  {
    nthr = omp_get_num_threads() ;
@@ -1955,10 +1954,6 @@ int main (int argc, char ** argv)
    mtab[ithr] = mt = (long *) calloc( g_max_cluster_size , sizeof(long) ) ;
    ftab[ithr] = ft = (long *) calloc( g_max_cluster_size , sizeof(long) ) ;
 
-   /* initialize random seed array for each thread separately */
-   xran[2] = ( gseed        & 0xffff) + (unsigned short)ithr ;
-   xran[1] = ((gseed >> 16) & 0xffff) - (unsigned short)ithr ;
-   xran[0] = 0x330e                   + (unsigned short)ithr ;
 
 #else /* not OpenMP ==> only one set of tables */
    mt = max_table ;
@@ -1981,8 +1976,11 @@ int main (int argc, char ** argv)
       }
 
       /*----- generate volume of random voxel intensities -----*/
-      generate_image (nx, ny, nz, power, ax, ay, az, zsep, fim , xran );
-
+#ifdef USE_OMP
+      generate_image (nx, ny, nz, power, ax, ay, az, zsep, fim , &xran );
+#else
+      generate_image (nx, ny, nz, power, ax, ay, az, zsep, fim , NULL );
+#endif
 
       /*----- apply gaussian filter to volume data -----*/
       if (filter)  gaussian_filter (nx, ny, nz, dx, dy, dz, rmm,
