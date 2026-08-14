@@ -1,6 +1,4 @@
 #include "mrilib.h"
-#include <stdint.h>
-#include "zgaussian/zgaussian.c"
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -36,7 +34,7 @@ static MTYPE corcut = 0.0001 ;
     * If tau==NULL, tau[i] is taken to be i -- that is, no censoring/gaps.
 
     [pt: 2026-08-13] Update this program to use a newer+faster
-    zgaussian() function, for getting random Gaussian-distribution
+    zgaussian2() function, for getting random Gaussian-distribution
     values via the Ziggurat algorithm.  No functionality/outputs should really
     change, just the speed.
 
@@ -475,14 +473,14 @@ int main( int argc , char *argv[] )
    rvec  = (double *)malloc(sizeof(double)*nlen) ;
 
    /* apply the seed to initialize for Gaussian calcs */
-   zgaussian_init( rseed );
+   zgaussian2_init( rseed );
    /* ... and also the other random numbers used (NB: unlike in other
       programs, lseed can include getpid() for its randomization) */
    lseed = (rseed != 0) ? (long)rseed : (long)time(NULL)+(long)getpid() ;
    srand48( lseed ) ;
 
    for( kk=0 ; kk < nvec ; kk++ ){
-     for( ii=0 ; ii < nlen ; ii++ ) rvec[ii] = zgaussian() ;
+     for( ii=0 ; ii < nlen ; ii++ ) rvec[ii] = zgaussian2() ;
      rcmat_lowert_vecmul( rcm , rvec ) ;
      vv = outar + kk*nlen ;
      if( do_norm ){

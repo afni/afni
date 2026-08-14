@@ -9,22 +9,22 @@
  *
  * Usage in each AFNI program:
  *   - at top:  #include <stdint.h>
- *              #include "zgaussian2.h"
- *   - in file: call zgaussian_init(rseed) once near the top of
- *              main(), before any call to zgaussian().
- *   - in file, with parallelization: use zgaussian_sss() version
+ *              #include "zgaussian.h"
+ *   - in file: call zgaussian2_init(rseed) once near the top of
+ *              main(), before any call to zgaussian2().
+ *   - in file, with parallelization: use zgaussian2_sss() version
  *
  ****************************************************************************/
 
-/*  initialize RNG for zgaussian() usage  */
-void  zgaussian_init( uint32_t seed ) ;
+/*  initialize RNG for zgaussian2() usage  */
+extern void  zgaussian2_init( uint32_t seed ) ;
 
 /*  Generate random num from Gaussian distribution N(0,1)  */
-float zgaussian( void ) ; 
+extern float zgaussian2( void ) ; 
 
-/*  thread-safe variant of zgaussian(); caller owns jsr state  */
-float zgaussian_sss( uint32_t *jsr ) ;
-/*  derive a per-thread seed from the base seed; use with zgaussian_sss()  */
-uint32_t zgaussian_thread_seed( int tid ) ;  
+/*  thread-safe variant of zgaussian2(); caller owns jsr state  */
+extern float zgaussian2_sss( uint32_t *jsr ) ;
+/*  derive a per-thread seed from the base seed; use with zgaussian2_sss()  */
+extern uint32_t zgaussian2_thread_seed( int tid ) ;  
 
 #endif /* _ZGAUSSIAN2_HEADER_ */

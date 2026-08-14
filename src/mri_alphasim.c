@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <time.h>
 
-#include "zgaussian.c"   /** fast function for generating Gaussian deviates **/
+#include "zgaussian_OLD.c"   /** fast function for generating Gaussian deviates **/
 
 /*============================================================================*/
 /* The function below is no longer used,

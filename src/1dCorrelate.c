@@ -1,6 +1,4 @@
 #include "mrilib.h"
-#include <stdint.h>
-#include "zgaussian/zgaussian.c"
 
 #define NCOR 6
 
@@ -210,7 +208,7 @@ int main( int argc , char *argv[] )
 
    /*-- start the AFNI machinery --*/
 
-   mainENTRY("1dCorrelate main") ; machdep() ;
+   mainENTRY("1dCorrelate") ; machdep() ;
 
    /* check for options */
 
@@ -394,7 +392,7 @@ int main( int argc , char *argv[] )
    DESTROY_IMARR(tar) ;
 
    /* apply the seed to initialize for Gaussian calcs */
-   zgaussian_init( rseed );
+   zgaussian2_init( rseed );
    /* ... and also the other random numbers used */
    lseed = (rseed != 0) ? (long)rseed : (long)time(NULL) ;
    srand48( lseed ) ;
@@ -508,7 +506,7 @@ ENTRY("Corrboot") ;
      }
      if( xsig > 0.0f || ysig > 0.0f ){
        for( ii=0; ii < nn; ii++ ){
-         xar[ii] += zgaussian()*xsig; yar[ii] += zgaussian()*ysig;
+         xar[ii] += zgaussian2()*xsig; yar[ii] += zgaussian2()*ysig;
        }
      }
      cbb[kk] = cfun(nn,xar,yar) ;  /* bootstrap result */

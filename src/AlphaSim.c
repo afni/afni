@@ -1009,7 +1009,7 @@ void initialize (int argc, char ** argv,
 }
 
 /*---------------------------------------------------------------------------*/
-#include "zgaussian.c"  /** Ziggurat Gaussian random number generator **/
+#include "zgaussian_OLD.c"  /** Ziggurat Gaussian random number generator **/
 /*---------------------------------------------------------------------------*/
 
 #ifndef USE_OMP  /* these RNGs are not used in the OpenMP code */

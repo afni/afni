@@ -1,6 +1,4 @@
 #include "mrilib.h"
-#include <stdint.h>
-#include "zgaussian/zgaussian.c"
 
 /*----------------------------------------------------------------------------*/
 
@@ -56,7 +54,7 @@ double anderson_darling_normal( int npt , double *xxx )
 
 /*----------------------------------------------------------------------------*/
 
-/*  [pt: 2026-08-13] going to use new zgaussian() function in updated
+/*  [pt: 2026-08-13] going to use new zgaussian2() function in updated
     library; so, before calling this function need to setup RNG, below  */
 float * anderson_darling_simulate( int npt , int ntrial )
 {
@@ -68,7 +66,7 @@ float * anderson_darling_simulate( int npt , int ntrial )
    xxx = (double *)malloc(sizeof(double)*npt) ;
    for( jj=0 ; jj < ntrial ; jj++ ){
      for( ii=0 ; ii < npt ; ii++ )
-       xxx[ii] = (double)(zgaussian()+zgaussian()+zgaussian()+1.0f) ;
+       xxx[ii] = (double)(zgaussian2()+zgaussian2()+zgaussian2()+1.0f) ;
      ad[jj] = - (float)anderson_darling_normal( npt , xxx ) ;
    }
    qsort_float( ntrial , ad ) ;
@@ -312,7 +310,7 @@ int main( int argc , char *argv[] )
      INFO_message("Simulating A-D null distribution: %d trials",ntr) ;
 
      /* [pt: 2026-08-13] apply the seed to initialize for Gaussian calcs */
-     zgaussian_init( rseed );
+     zgaussian2_init( rseed );
 
      atr = anderson_darling_simulate( nvals , ntr ) ;
      if( atr == NULL ) ERROR_exit("Simulation failed!?") ;

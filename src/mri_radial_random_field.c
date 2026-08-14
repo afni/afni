@@ -18,7 +18,7 @@
 #define CFFT_setup csfft_cox_OMP_SETUP()
 
 /*---------------------------------------------------------------------------*/
-#include "zgaussian.c"  /** Ziggurat Gaussian random number generator **/
+#include "zgaussian_OLD.c"  /** Ziggurat Gaussian random number generator **/
 /*---------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------*/

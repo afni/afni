@@ -14,7 +14,7 @@
 
 /**** C source codes to include, for compilation efficiency (we hope & pray) ***/
 /*----------------------------------------------------------------------------*/
-#include "zgaussian.c"         /** Ziggurat Gaussian random number generator **/
+#include "zgaussian_OLD.c"         /** Ziggurat Gaussian random number generator **/
 /*----------------------------------------------------------------------------*/
 #include "mri_radial_random_field.c" /** 3D FFT-based random field generator **/
 /*----------------------------------------------------------------------------*/
