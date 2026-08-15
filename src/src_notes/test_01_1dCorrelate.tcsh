@@ -13,12 +13,18 @@
 
 # set locations of old and new program versions, for comparisons
 
-set path_old = ${HOME}/afni_build_GOOD_2026_08_12_11_08_1786548635
+set path_old = ${HOME}/afni_build_GOOD_2026_07_02_09_07_1783000295
 set path_old = ${path_old}/src/linux_ubuntu_16_64_glw_local_shared/
 set path_new = ${HOME}/afni_build/src/linux_ubuntu_16_64_glw_local_shared
 
 set prog_old = ${path_old}/1dCorrelate
 set prog_new = ${path_new}/1dCorrelate
+
+if ( ! -f ${prog_old} ) then
+    echo "** ERROR: cannot find prog old:"
+    echo "   ${prog_old}"
+    exit -1
+endif
 
 # make output dir for test results (and init/clear a text file of diffs)
 
@@ -28,14 +34,36 @@ set txt_diff = ${dir_test}/all_diffs.txt
 \mkdir -p ${dir_test}
 printf '' > ${txt_diff}
 
-# input test scripts were created once, via these cmds
-# 1dcat jrandom1D:20,2    | column -t -R 0 > data_input_01.1D
-# 1dcat jrandom1D:50,2    | column -t -R 0 > data_input_02.1D
-# 1dcat jrandom1D:200,2   | column -t -R 0 > data_input_03.1D
-# 1dcat jrandom1D:500,2   | column -t -R 0 > data_input_04.1D
-# 1dcat jrandom1D:5000,2  | column -t -R 0 > data_input_05.1D
-# 1dcat jrandom1D:10000,2 | column -t -R 0 > data_input_06.1D
-# echo "0.5 0.75" > data_vsig.1D
+# ---------------------------------------------------------------------------
+
+# check about whether we appear to have the test data present
+set all_datA = `find . -maxdepth 1 -name "data_input_??.1D" | cut -b3- | sort`
+set all_datB = `find . -maxdepth 1 -name "data_vsig.1D" | cut -b3- | sort`
+set all_dat  = ( ${all_datA} ${all_datB} )
+set ndat     = ${#all_dat}
+
+if ( ${ndat} != 7 ) then
+cat <<EOF
+
+** ERROR: could only find ${ndat} out of 6 input dsets
+
+   Consider copy+pasting these lines these to generate a full set:
+
+    1dcat jrandom1D:20,2    | column -t > data_input_01.1D
+    1dcat jrandom1D:50,2    | column -t > data_input_02.1D
+    1dcat jrandom1D:200,2   | column -t > data_input_03.1D
+    1dcat jrandom1D:500,2   | column -t > data_input_04.1D
+    1dcat jrandom1D:5000,2  | column -t > data_input_05.1D
+    1dcat jrandom1D:10000,2 | column -t > data_input_06.1D
+    echo "0.5 0.75" > data_vsig.1D
+
+EOF
+
+    exit -1
+else
+    echo "++ Seem to have found enough input dsets to run."
+    echo "   Here we go..."
+endif
 
 # ===========================================================================
 
