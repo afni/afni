@@ -39,7 +39,7 @@ if ( ! -f data_input_01.nii.gz ) then
     \rm -f __tmp.nii.gz
 else
     echo "++ Already have input data file: data_input_01.nii.gz"
-    echo "   ... just proceding with comparison"
+    echo "   ... just proceeding with comparison"
 endif
 
 # ===========================================================================
