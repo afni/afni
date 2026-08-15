@@ -32,7 +32,7 @@ if ( ! -f mask.auto.nii.gz ) then
     echo "   Is this being run in: ~/AFNI_data6/afni/ ? It should be..."
 else
     echo "++ Found input mask"
-    echo "   ... just proceding with comparison"
+    echo "   ... just proceeding with comparison"
 endif
 
 # ===========================================================================
