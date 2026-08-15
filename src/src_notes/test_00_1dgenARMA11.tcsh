@@ -49,21 +49,25 @@ foreach hh ( `seq 1 1 ${nnum}` )
     # special things done when running here:
     # + want to record time of each, so this records time values as
     #   integers that count milliseconds: date +%s%3N
+    # + the -prefix of 3dhistog always adds .1D, so hack around it
 
     set time0 = `date +%s%3N`
-    1dgenARMA11 -num ${num} -a 0.8 -lam 0.7 > ${bname}_A_old.1D
+    ${prog_old} -num ${num} -a 0.8 -lam 0.7 > ${bname}_ARMAgen11_old.1D
     set time1 = `date +%s%3N`
     @ time_ms_old = ${time1} - ${time0}
-    3dhistog -nbin ${nbin} -min -5 -max 5 -prefix ${out_old} ${bname}_A_old.1D
+    3dhistog -nbin ${nbin} -min -5 -max 5 -pdf \
+        -prefix ${bname}-old ${bname}_ARMAgen11_old.1D
 
     set time0 = `date +%s%3N`
-    1dgenARMA11 -num ${num} -a 0.8 -lam 0.7 > ${bname}_A_new.1D
+    ${prog_old} -num ${num} -a 0.8 -lam 0.7 > ${bname}_ARMAgen11_new.1D
     set time1 = `date +%s%3N`
     @ time_ms_new = ${time1} - ${time0}
-    3dhistog -nbin ${nbin} -min -5 -max 5 -prefix ${out_new} ${bname}_A_new.1D
+    3dhistog -nbin ${nbin} -min -5 -max 5 -pdf \
+        -prefix ${bname}-new ${bname}_ARMAgen11_new.1D
 
     echo "---- test: ${bname} ----" |& tee -a ${txt_diff}
-    3dDiff -a ${out_old} -b ${out_new} -tol 0.01 |& tee -a ${txt_diff}
+    3dDiff -a "${out_old}[1]" -b "${out_new}[1]" -tol 0.01 |& tee -a ${txt_diff}
+    3dDiff -a "${out_old}[2]" -b "${out_new}[2]" -tol 0.01 |& tee -a ${txt_diff}
 
     @ time_diff_ms = ${time_ms_new} - ${time_ms_old}
 
@@ -79,9 +83,29 @@ cat <<EOF
 
 EOF
 
-    1dplot -one -ynames "old" "new" -dashed 1:3 -title "${bname}" \
-        ${out_old} ${out_new} >& ${out_log} &
+    1dplot \
+        -one -xmulti "${out_old}[0]" "${out_new}[0]" \
+        -ynames "old" "new" -dashed 1:3 -title "${bname}" \
+        "${out_old}[1]" "${out_new}[1]" >& ${out_log} &
 
+end
+
+# ... and another set of images 
+foreach hh ( `seq 1 1 ${nnum}` )
+    set ii   = ${all_ii[$hh]}
+    set num  = ${all_num[$hh]}
+    set nbin = ${all_nbin[$hh]}
+
+    set bname   = ${dir_test}/test-${ii}
+
+    set out_old = ${bname}-old.1D
+    set out_new = ${bname}-new.1D
+    set out_log = ${bname}-plot-log.txt
+
+    1dplot \
+        -one -xmulti "${out_old}[0]" "${out_new}[0]" \
+        -ynames "old" "new" -dashed 1:3 -title "${bname}" \
+        "${out_old}[2]" "${out_new}[2]" >& ${out_log} &
 end
 
 # ===========================================================================
