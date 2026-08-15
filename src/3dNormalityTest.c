@@ -314,7 +314,8 @@ int main( int argc , char *argv[] )
 
      atr = anderson_darling_simulate( nvals , ntr ) ;
      if( atr == NULL ) ERROR_exit("Simulation failed!?") ;
-     /** ININFO_message("range %g .. %g",atr[0],atr[ntr-1]) ; **/
+     //INFO_message("atr range : %g .. %g",atr[0],atr[ntr-1]) ; 
+     //INFO_message("atr median: %g", atr[ntr/2]) ; 
 
      if( dopval )
        INFO_message("Converting A-D statistics to p-values") ;

@@ -11,7 +11,7 @@
 
 # set locations of old and new program versions, for comparisons
 
-set path_old = ${HOME}/afni_build_GOOD_2026_08_13_07_08_1786622358
+set path_old = ${HOME}/afni_build_GOOD_2026_07_02_09_07_1783000295
 set path_old = ${path_old}/src/linux_ubuntu_16_64_glw_local_shared/
 set path_new = ${HOME}/afni_build/src/linux_ubuntu_16_64_glw_local_shared
 
@@ -26,18 +26,20 @@ set txt_diff = ${dir_test}/all_diffs.txt
 \mkdir -p ${dir_test}
 printf '' > ${txt_diff}
 
-# input test scripts were created once, via these cmds
-if ( 0 ) then
-    3dUndump -overwrite -dimen 128 128 128 -prefix __tmp.nii.gz
+# input test data created (if need be), via these cmds
+if ( ! -f data_input_01.nii.gz ) then
+    3dUndump -overwrite -dimen 100 100 100 -prefix __tmp.nii.gz
     3dcalc                                                                   \
         -overwrite                                                           \
         -a       __tmp.nii.gz                                                \
-        -b       '1D: 0 0 0 0 0 0 0 0 0 0'                                   \
+        -b       '1D: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0'               \
         -expr    'i*gran(0,1.4)+(100-i)*eran(4)'                             \
         -prefix  data_input_01.nii.gz                                        \
         -datum   float
     \rm -f __tmp.nii.gz
-
+else
+    echo "++ Already have input data file: data_input_01.nii.gz"
+    echo "   ... just proceding with comparison"
 endif
 
 # ===========================================================================
@@ -84,9 +86,9 @@ foreach ii ( ${all_ii} )
     echo "++ generate image: old"
     @chauffeur_afni                                                       \
         -ulay             data_input_${ii}.nii.gz                         \
-        -ulay_range       0 5000                                          \
+        -ulay_range       -150 1000                                       \
         -olay             ${out_old}                                      \
-        -func_range       5                                               \
+        -func_range       2                                               \
         -cbar             GoogleTurbo                                     \
         -thr_olay_p2stat  0.01                                            \
         -thr_olay_pside   bisided                                         \
@@ -106,9 +108,9 @@ foreach ii ( ${all_ii} )
     echo "++ generate image: new"
     @chauffeur_afni                                                       \
         -ulay             data_input_${ii}.nii.gz                         \
-        -ulay_range       0 5000                                          \
+        -ulay_range       -150 1000                                       \
         -olay             ${out_new}                                      \
-        -func_range       5                                               \
+        -func_range       2                                               \
         -cbar             GoogleTurbo                                     \
         -thr_olay_p2stat  0.01                                            \
         -thr_olay_pside   bisided                                         \
@@ -128,9 +130,9 @@ foreach ii ( ${all_ii} )
     echo "++ generate image: diff"
     @chauffeur_afni                                                       \
         -ulay             data_input_${ii}.nii.gz                         \
-        -ulay_range       0 5000                                          \
+        -ulay_range       -150 1000                                       \
         -olay             ${bname}_DIFF.nii.gz                            \
-        -func_range       5                                               \
+        -func_range       2                                               \
         -cbar             GoogleTurbo                                     \
         -thr_olay         0.1                                             \
         -set_subbricks    0 0 0                                           \
@@ -152,7 +154,7 @@ foreach ii ( ${all_ii} )
         -gap_col  70 70 70                                                \
         -nx       1                                                       \
         -ny       3                                                       \
-        -prefix   ${bname}_OLDNEW.jpg                                     \
+        -prefix   ${bname}_final_OLDNEW.jpg                               \
         ${bname}_old.axi.png ${bname}_new.axi.png ${bname}_DIFF.axi.png
 
 cat <<EOF
@@ -164,6 +166,24 @@ cat <<EOF
    perc : ${time_diff_frac} %
 
 EOF
+
+cat <<EOF
+---------------------------
+++ And check out this image:
+    
+     ${bname}_final_OLDNEW.jpg 
+
+   top row : old
+   mid row : new
+   bot row : diffs
+
+   Hopefully:
+    + the first two rows look similar, 
+    + the bottom row is sparse or with zero-ish colors (bc there is
+      randomness involved, we expect some nonzero, float-ish diffs)
+
+EOF
+
 
 end
 
