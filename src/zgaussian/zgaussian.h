@@ -17,14 +17,14 @@
  ****************************************************************************/
 
 /*  initialize RNG for zgaussian2() usage  */
-extern void  zgaussian2_init( uint32_t seed ) ;
+extern void     zgaussian2_init( uint32_t seed ) ;
 
 /*  Generate random num from Gaussian distribution N(0,1)  */
-extern float zgaussian2( void ) ; 
+extern float    zgaussian2( void ) ; 
 
-/*  thread-safe variant of zgaussian2(); caller owns jsr state  */
-extern float zgaussian2_sss( uint32_t *jsr ) ;
-/*  derive a per-thread seed from the base seed; use with zgaussian2_sss()  */
-extern uint32_t zgaussian2_thread_seed( int tid ) ;  
+/*  thread-safe variant of zgaussian2(); caller owns 64-bit jsr state  */
+extern float    zgaussian2_sss( uint64_t *jsr ) ;
+/*  derive a per-thread 64-bit seed from the base seed; use with zgaussian2_sss()  */
+extern uint64_t zgaussian2_thread_seed( int tid ) ;  
 
 #endif /* _ZGAUSSIAN2_HEADER_ */
