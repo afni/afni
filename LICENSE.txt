@@ -295,10 +295,6 @@ Location: src/zgaussian/ziggurat.{c,h}
 Authors:  John Burkardt
 License:  MIT license [top of file]
 
-Location: src/zgaussian.c
-Authors:  Jochen Voss
-License:  GNU GPL 2 or later [top of file]
-
 Location: src/gifsicle/
 Authors:  Eddie Kohler (and Anne Dudfield, David Hedbor, Emil Mikulic,
           Hans Dinsen-Hansen)
