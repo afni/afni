@@ -63,7 +63,7 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0,
                        method='rr'):
     """write the given text (tdata) to the given file
           fname   : file name to write (or append) to
-          dtata   : text to write
+          tdata   : text to write
           mode    : optional write mode 'w' or 'a' [default='w']
           wrap    : optional wrap flag
           wrapstr : optional wrap string: if wrap, apply this string
