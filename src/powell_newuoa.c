@@ -186,7 +186,7 @@ X(N).*/
     STATIC doublereal detrat=0, crvmin=0;
     STATIC integer nftest=0;
     STATIC doublereal distsq=0;
-    extern /* Subroutine */ int trsapp_(integer *, integer *, doublereal *,
+    STATIC /* Subroutine */ int trsapp_(integer *, integer *, doublereal *,
 	    doublereal *, doublereal *, doublereal *, doublereal *,
 	    doublereal *, doublereal *, doublereal *, doublereal *,
 	    doublereal *, doublereal *, doublereal *);
@@ -1115,7 +1115,7 @@ if(DEBUG) fprintf(stderr," ; return f=%.14g with rho=%.14g\n",f,rho) ;
     return 0;
 } /* newuob_ */
 
-/* Subroutine */ int trsapp_(integer *n, integer *npt, doublereal *xopt,
+/* Subroutine */ STATIC int trsapp_(integer *n, integer *npt, doublereal *xopt,
 	doublereal *xpt, doublereal *gq, doublereal *hq, doublereal *pq,
 	doublereal *delta, doublereal *step, doublereal *d__, doublereal *g,
 	doublereal *hd, doublereal *hs, doublereal *crvmin)

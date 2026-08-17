@@ -182,7 +182,7 @@ void T3D_geometry_parent_CB(Widget, XtPointer, XtPointer );
 void T3D_anatomy_parent_CB (Widget, XtPointer, XtPointer );
 void T3D_pointer_leave_EV  (Widget, XtPointer, XEvent * , RwcBoolean * ) ;
 
-void T3D_imseq_CB( MCW_imseq * , FD_brick * , ISQ_cbs * ) ;
+void T3D_imseq_CB( MCW_imseq * , void * , ISQ_cbs * ) ;
 
 XtPointer T3D_getim( int , int , FD_brick * ) ;
 
