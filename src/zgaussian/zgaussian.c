@@ -69,11 +69,22 @@ void zgaussian2_init( uint32_t seed )
  * 
  * This function is basically a wrapper for an actual library function
  * (see ziggurat.*), matching the name and usage of an earlier one.
+ * 
+ * The *current* form just makes the single thread call (this one) be a
+ * special case of the multithread, OpenMP version, below. The idea is
+ * to just make the maintenance/updates inherently unified.
+ *
+ * The earlier/initial form of this function was just comprised of the
+ * following 2 lines: 
+ * { 
+ *   uint32_t jsr = next_jsr32() ;
+ *   return r4_nor( &jsr , zigg_kn , zigg_fn , zigg_wn ) ; 
+ * }
+ * 
  *--------------------------------------------------------------------------*/
 float zgaussian2( void )
 {
-  uint32_t jsr = next_jsr32() ;
-  return r4_nor( &jsr , zigg_kn , zigg_fn , zigg_wn ) ;
+  return zgaussian2_sss( &zigg_jsr64 ) ;
 }
 
 /*---------------------------------------------------------------------------
