@@ -3661,8 +3661,9 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       } else {
          /* standard functional overlay contours */
          if (SV == NULL) {
-            /* INTERCEPT WIREFRAME MODE: If SV was stripped out upstream because of SRM_Line, 
-               force it to compute contours using the fallback label/node matrix pathway */
+            /* INTERCEPT WIREFRAME MODE: If SV was stripped out upstream
+             * because of SRM_Line, force it to compute contours using the
+             * fallback label/node matrix pathway */
             SUMA_ContourateDsetOverlay(Sover, NULL);
          } else {
             /* Standard filled mesh rendering path */
@@ -12115,16 +12116,17 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
                   &(cp->N_Contours), 1, 0);
          if (LocalHead) SUMA_Show_ColorOverlayPlanes(&cp, 1, 0);
       } else {
-         /* --- CORRECTED FALLBACK PATHWAY FOR WIREFRAME / MISSING SV --- */
-         SUMA_LHv("Forcing true functional contours for non-label dset %s without SV\n", SDSET_LABEL(cp->dset_link));
+         /* --- fallback pathway for wireframe/missing SV --- */
+         SUMA_LHv("Forcing true functional contours for non-label "
+                  "dset %s without SV\n", SDSET_LABEL(cp->dset_link));
          if (cp->Contours) {
             SUMA_KillOverlayContours(cp);
          }
 
-         /* Pull the node tracking indices and functional mapping arrays directly from the structures */
+         /* Pull the node tracking indices and functional mapping arrays
+          * directly from the structures */
          ind = cp->NodeDef;
          key = SDSET_VEC(cp->dset_link, cp->OptScl->find);
-
          if (ind && key) {
             cp->Contours =
                SUMA_MultiColumnsToDrawnROI( cp->N_NodeDef,
@@ -12135,13 +12137,12 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
                      NULL, SUMA_notypeset,
                      SUMA_FindNamedColMap (cp->cmapname), 1,
                      cp->Label, SDSET_IDMDOM(cp->dset_link),
-                     &(cp->N_Contours), 1, 1); /* <--- FORCE THIS FINAL FLAG TO 1 TO RUN THE CONTOUR ENGINE */
+                     &(cp->N_Contours), 1, 1);
+                     /* final flag is 1 to run contour engine */
          }
-         fprintf(stderr, ">>> !SV: CONTOUR GENERATION RESULT: N_Contours = %d\n", cp->N_Contours);
          if (LocalHead) SUMA_Show_ColorOverlayPlanes(&cp, 1, 0);
       }
-   } else {      
-         // fprintf(stderr, ">>> FALLBACK PATH TRIGGERED: SV is NULL!\n");
+   } else { /* have SV */
       if (!SV->VCont || !SV->N_VCont) {
          SUMA_RETURN(NOPE);
       } else {
@@ -12157,7 +12158,6 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
          }
          ind = cp->NodeDef;
          key = SV->VCont;
-
          cp->Contours =
             SUMA_MultiColumnsToDrawnROI( cp->N_NodeDef,
                   (void *)ind, SUMA_int,

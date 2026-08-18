@@ -6707,6 +6707,9 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    /* set the focus ID to the first surface/object in the next view */
    // NB.  This appears to be the part that is implicated in box outline being
    //   confined to only one view if view changed by DriveSuma
+
+/* rcr - why is this commented out? */
+
    // sv->Focus_DO_ID = MembSOs[0];
 
    SUMA_ifree(MembSOs);
