@@ -309,7 +309,7 @@ static MRI_IMAGE * make_radial_weight( int   nx , int   ny , int   nz ,
 static MRI_IMARR * make_radial_random_field( int nx, int ny, int nz ,
                                              MRI_IMAGE *wtim ,
                                              complex *tar ,
-                                             uint32_t *xran )
+                                             uint64_t *xran )
 {
    MRI_IMAGE *cxim ; complex *cxar ;
    MRI_IMARR *outar ;
@@ -411,7 +411,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *wim ;
    THD_3dim_dataset *dset=NULL ;
    THD_ivec3 nxyz_vec ; THD_fvec3 fxyz_vec , oxyz_vec ;
-   uint32_t xran ; unsigned int gseed ; int ithr=1,nbrik=2 ;
+   uint64_t xran ; unsigned int gseed ; int ithr=1,nbrik=2 ;
    int nthr=1 , ith ;
 
    parm[0] = 0.66f ;

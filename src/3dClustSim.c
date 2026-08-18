@@ -1499,7 +1499,7 @@ void generate_fim_inset( float *fim , int ival )
 /*---------------------------------------------------------------------------*/
 /* Create the "functional" image, the ACF way [30 Nov 2015]. */
 
-void generate_fim_acf( float *fim , uint32_t *xran )
+void generate_fim_acf( float *fim , uint64_t *xran )
 {
   DECLARE_ithr ;
   int ii,jj,kk,pp,qq ;
@@ -1544,7 +1544,7 @@ void generate_fim_acf( float *fim , uint32_t *xran )
 /*---------------------------------------------------------------------------*/
 /* Create the "functional" image, with smoothing and padding [12 May 2015] */
 
-void generate_fim_padded( float *fim , float *pfim , uint32_t *xran )
+void generate_fim_padded( float *fim , float *pfim , uint64_t *xran )
 {
   int ii,jj,kk,pp,qq ;
 
@@ -1571,7 +1571,7 @@ void generate_fim_padded( float *fim , float *pfim , uint32_t *xran )
 /*---------------------------------------------------------------------------*/
 /* Create the functional "image", with no padding and optional smoothing. */
 
-void generate_fim_unpadded( float *fim , uint32_t *xran )
+void generate_fim_unpadded( float *fim , uint64_t *xran )
 {
   int ii ; float sum ;
 
@@ -1590,7 +1590,7 @@ void generate_fim_unpadded( float *fim , uint32_t *xran )
 /*---------------------------------------------------------------------------*/
 /* Generate random smoothed masked image, with stdev=1. */
 
-void generate_image( float *fim , float *pfim , uint32_t *xran , int iter )
+void generate_image( float *fim , float *pfim , uint64_t *xran , int iter )
 {
   register int ii ; register float sum ;
 
@@ -2667,7 +2667,7 @@ int main( int argc , char **argv )
  {
    DECLARE_ithr ;
    int iter, ipthr, **mt_1sid[4],**mt_2sid[4],**mt_bsid[4] , nnn ;
-   float *fim ; byte *bfim ; uint32_t xran ;
+   float *fim ; byte *bfim ; uint64_t xran ;
    float *pfim ;
    int vstep , vii ;
 
