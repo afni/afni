@@ -9,24 +9,78 @@
 # 
 # ===========================================================================
 
+set prog = FIRdesign
+set idx  = 01
+
+# ---------------------------------------------------------------------------
 # set locations of old and new program versions, for comparisons
 
-set path_old = ${HOME}/afni_build_GOOD_2026_08_11_09_08_1786455134
+set path_old = ${HOME}/afni_build_GOOD_2026_07_02_09_07_1783000295
 set path_old = ${path_old}/src/linux_ubuntu_16_64_glw_local_shared/
 set path_new = ${HOME}/afni_build/src/linux_ubuntu_16_64_glw_local_shared
 
-set prog_old = ${path_old}/FIRdesign
-set prog_new = ${path_new}/FIRdesign
+set prog_old = ${path_old}/${prog}
+set prog_new = ${path_new}/${prog}
 
-# make output dir for test results (and init/clear a text file of diffs)
+# output dir for results and a text file
 
-set dir_test = testing-FIRdesign
+set dir_test = odir_test-${idx}-${prog}
 set txt_diff = ${dir_test}/all_diffs.txt
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# generic checks to be able to run testing
+
+if ( ! -f ${prog_old} ) then
+    echo "** ERROR: cannot find prog old:"
+    echo "   ${prog_old}"
+    exit -1
+endif
+
+if ( ! -f ${prog_new} ) then
+    echo "** ERROR: cannot find prog new:"
+    echo "   ${prog_new}"
+    exit -1
+endif
+
+if ( -d ${dir_test} ) then
+    echo ""
+    echo "** ERROR: already have output testing dir."
+    echo "   Consider running the following to remove it:"
+    echo ""
+    echo "     \\rm -rf ${dir_test}"
+    echo ""
+    exit -1
+endif
+
+echo "++++ Passed first checks to be able to run test. Continuing."
+# ---------------------------------------------------------------------------
+
+# ===========================================================================
+# extra checks, specific to this dset
+
+# test data 1: findable?
+
+if ( 0 ) then
+    echo "... should never reach here"
+else
+    echo "++ We need no preliminary data."
+    echo "   Here we go..."
+endif
+
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# make output dir for test results (and init/clear a text file of diffs)
 
 \mkdir -p ${dir_test}
 printf '' > ${txt_diff}
+# ---------------------------------------------------------------------------
 
 # ===========================================================================
+# run tests
+
+# ----- test 01
 
 set bname   = ${dir_test}/test-01
 
@@ -43,7 +97,7 @@ echo "---- test: ${bname} ----" |& tee -a ${txt_diff}
 1dplot -one -ynames "old" "new" -dashed 1:3 -title "${bname}" \
     ${out_old} ${out_new} >& ${out_log} &
 
-# ----------------------------------------------------------------------------
+# ----- test 02
 
 set bname   = ${dir_test}/test-02
 
@@ -60,7 +114,7 @@ echo "---- test: ${bname} ----" |& tee -a ${txt_diff}
 1dplot -one -ynames "old" "new" -dashed 1:3 -title "${bname}" \
     ${out_old} ${out_new} >& ${out_log} &
 
-# ----------------------------------------------------------------------------
+# ----- test 03
 
 set bname   = ${dir_test}/test-03
 
@@ -77,8 +131,7 @@ echo "---- test: ${bname} ----" |& tee -a ${txt_diff}
 1dplot -one -ynames "old" "new" -dashed 1:3 -title "${bname}" \
     ${out_old} ${out_new} >& ${out_log} &
 
-
-# ----------------------------------------------------------------------------
+# ----- test 04
 
 set bname   = ${dir_test}/test-04
 
@@ -96,7 +149,7 @@ echo "---- test: ${bname} ----" |& tee -a ${txt_diff}
 1dplot -one -ynames "old" "new" -dashed 1:3 -title "${bname}" \
     ${out_old} ${out_new} >& ${out_log} &
 
-# ----------------------------------------------------------------------------
+# ===========================================================================
 
 echo "++ DONE.  Check diffs file:"
 echo "-------------------------------------------------"

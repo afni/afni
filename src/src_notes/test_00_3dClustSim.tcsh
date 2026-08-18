@@ -9,24 +9,58 @@
 # 
 # ===========================================================================
 
+set prog = 3dClustSim
+set idx  = 00
+
+# ---------------------------------------------------------------------------
 # set locations of old and new program versions, for comparisons
 
 set path_old = ${HOME}/afni_build_GOOD_2026_07_02_09_07_1783000295
 set path_old = ${path_old}/src/linux_ubuntu_16_64_glw_local_shared/
 set path_new = ${HOME}/afni_build/src/linux_ubuntu_16_64_glw_local_shared
 
-set prog_old = ${path_old}/3dClustSim
-set prog_new = ${path_new}/3dClustSim
+set prog_old = ${path_old}/${prog}
+set prog_new = ${path_new}/${prog}
 
-# make output dir for test results (and init/clear a text file of diffs)
+# output dir for results and a text file
 
-set dir_test = testing-3dClustSim
+set dir_test = odir_test-${idx}-${prog}
 set txt_diff = ${dir_test}/all_diffs.txt
+# ---------------------------------------------------------------------------
 
-\mkdir -p ${dir_test}
-printf '' > ${txt_diff}
+# ---------------------------------------------------------------------------
+# generic checks to be able to run testing
 
-# input test data created (if need be), via these cmds
+if ( ! -f ${prog_old} ) then
+    echo "** ERROR: cannot find prog old:"
+    echo "   ${prog_old}"
+    exit -1
+endif
+
+if ( ! -f ${prog_new} ) then
+    echo "** ERROR: cannot find prog new:"
+    echo "   ${prog_new}"
+    exit -1
+endif
+
+if ( -d ${dir_test} ) then
+    echo ""
+    echo "** ERROR: already have output testing dir."
+    echo "   Consider running the following to remove it:"
+    echo ""
+    echo "     \\rm -rf ${dir_test}"
+    echo ""
+    exit -1
+endif
+
+echo "++++ Passed first checks to be able to run test. Continuing."
+# ---------------------------------------------------------------------------
+
+# ===========================================================================
+# extra checks, specific to this dset
+
+# test data 1: findable?
+
 if ( ! -f mask.auto.nii.gz ) then
     echo "** ERROR: cannot find output mask"
     echo "   Is this being run in: ~/AFNI_data6/afni/ ? It should be..."
@@ -34,6 +68,18 @@ else
     echo "++ Found input mask"
     echo "   ... just proceeding with comparison"
 endif
+
+### in case you want to test single
+# setenv OMP_NUM_THREADS 1
+
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# make output dir for test results (and init/clear a text file of diffs)
+
+\mkdir -p ${dir_test}
+printf '' > ${txt_diff}
+# ---------------------------------------------------------------------------
 
 # ===========================================================================
 

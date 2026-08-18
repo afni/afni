@@ -8,24 +8,76 @@
 # 
 # ===========================================================================
 
+set prog = 1dgenARMA11
+set idx  = 00
+
+# ---------------------------------------------------------------------------
 # set locations of old and new program versions, for comparisons
 
-set path_old = ${HOME}/afni_build_GOOD_2026_08_13_07_08_1786622358
+set path_old = ${HOME}/afni_build_GOOD_2026_07_02_09_07_1783000295
 set path_old = ${path_old}/src/linux_ubuntu_16_64_glw_local_shared/
 set path_new = ${HOME}/afni_build/src/linux_ubuntu_16_64_glw_local_shared
 
-set prog_old = ${path_old}/1dgenARMA11
-set prog_new = ${path_new}/1dgenARMA11
+set prog_old = ${path_old}/${prog}
+set prog_new = ${path_new}/${prog}
 
-# make output dir for test results (and init/clear a text file of diffs)
+# output dir for results and a text file
 
-set dir_test = testing-1dgenARMA11
+set dir_test = odir_test-${idx}-${prog}
 set txt_diff = ${dir_test}/all_diffs.txt
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# generic checks to be able to run testing
+
+if ( ! -f ${prog_old} ) then
+    echo "** ERROR: cannot find prog old:"
+    echo "   ${prog_old}"
+    exit -1
+endif
+
+if ( ! -f ${prog_new} ) then
+    echo "** ERROR: cannot find prog new:"
+    echo "   ${prog_new}"
+    exit -1
+endif
+
+if ( -d ${dir_test} ) then
+    echo ""
+    echo "** ERROR: already have output testing dir."
+    echo "   Consider running the following to remove it:"
+    echo ""
+    echo "     \\rm -rf ${dir_test}"
+    echo ""
+    exit -1
+endif
+
+echo "++++ Passed first checks to be able to run test. Continuing."
+# ---------------------------------------------------------------------------
+
+# ===========================================================================
+# extra checks, specific to this dset
+
+# test data 1: findable?
+
+if ( 0 ) then
+    echo "... should never reach here"
+else
+    echo "++ We need no preliminary data."
+    echo "   Here we go..."
+endif
+
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# make output dir for test results (and init/clear a text file of diffs)
 
 \mkdir -p ${dir_test}
 printf '' > ${txt_diff}
+# ---------------------------------------------------------------------------
 
 # ===========================================================================
+# run tests
 
 # all we need to do is change num of points generated
 set all_num  = ( 100 500 1000 5000 10000 50000 100000 500000 )
@@ -80,6 +132,12 @@ cat <<EOF
    new  : ${time_ms_new}
    diff : ${time_diff_ms}
    perc : ${time_diff_frac} %
+
+   In the plots that pop up, the thing to check is that the black
+   (old) and red (new) lines look similar between old and new.
+
+   NB: for smaller N tests, there will be differences just due to
+   randomness, and at larger N, curves should be _very_ similar.
 
 EOF
 
