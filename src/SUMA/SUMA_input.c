@@ -2161,16 +2161,16 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    char *cmapname;
    static SUMA_Boolean clippingPlanesInitialized = NOPE;
    int result;
-   size_t buffer_size;
+   size_t bufsize;
 
    SUMA_ENTRY;
 
    SUMA_KEY_COMMON;
-   
+
    /* do the work */
    switch (k) {
      case XK_C:
-         
+
         if ((SUMA_ALT_KEY(key) || SUMA_APPLE_KEY(key))){
 
             if (clippingPlaneMode){
@@ -2194,16 +2194,16 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
         } else if (SUMA_CTRL_KEY(key)){
            /* Save active color plane name */
            if (SO->N_Overlays > 0){
-               buffer_size = (strlen(SO->Overlays[SO->N_Overlays-1]->cmapname) + 8) * 
-                    sizeof(char);
-                if (!(cmapname = (char *)malloc(buffer_size))){
-                    fprintf(stderr, "Error allocating name buffer\n");
-                    SUMA_RETURN(0);
-                }           
-                result = snprintf(cmapname, buffer_size, "%s", 
-                                     SO->Overlays[SO->N_Overlays-1]->cmapname);
+              bufsize = (strlen(SO->Overlays[SO->N_Overlays-1]->cmapname) +8)
+                        * sizeof(char);
+              if (!(cmapname = (char *)malloc(bufsize))){
+                   fprintf(stderr, "Error allocating name buffer\n");
+                   SUMA_RETURN(0);
+              }
+              result = snprintf(cmapname, bufsize, "%s",
+                                SO->Overlays[SO->N_Overlays-1]->cmapname);
            }
-           
+
             if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
                 fprintf(stderr, "### SUMA_C_Key: toggleClippingPlaneMode\n");
             toggleClippingPlaneMode(sv, w, &locallySelectedPlane);
@@ -2216,9 +2216,9 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 SUMA_S_Err("Failed to initialize clipping plane.");
                 }
             }
-            
+
             if (clippingPlaneMode && !clipPlaneIdentificationMode){
-                // Toggle clip plane identification mode on 
+                // Toggle clip plane identification mode on
                 if (!SUMA_C_Key(sv, "Shift+C", "interactive")) {
                     SUMA_S_Err("Failed in key func.");
                 }
@@ -2227,12 +2227,13 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             // Update vewier header with initialized scroll inc.
             sv->clippingPlaneIncrement = scrollInc;
             SUMA_UpdateViewerTitle(sv);
-   
+
            /* Restore active color plane name */
+           /* rcr - where above does this get lost?  why overwrite? */
            if (SO->N_Overlays > 0){
                sprintf(SO->Overlays[SO->N_Overlays-1]->cmapname, cmapname);
                result = snprintf(SO->Overlays[SO->N_Overlays-1]->cmapname, 
-                    buffer_size, "%s", cmapname);
+                    bufsize, "%s", cmapname);
                free(cmapname);
            }
         }else if (clippingPlaneMode) {
@@ -3526,6 +3527,7 @@ int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
             
             /* Update PolyMode on surface control menu */
+            /* rcr - revisit */
             if ((ado = SUMA_SV_Focus_ADO(sv))) {
                 SO = (SUMA_SurfaceObject *)ado; 
                 SUMA_Set_Menu_Widget( SO->SurfCont->RenderModeMenu, 

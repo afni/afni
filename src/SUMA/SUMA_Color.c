@@ -3030,7 +3030,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    int          nnodes=0;         /* locally applied Box mask size  */
 
    SUMA_ENTRY;
-   
+
    if (!Sover) { SUMA_SL_Err("NULL Sover"); SUMA_RETURN(NOPE); }
    if (!Sover->cmapname) {
       SUMA_SL_Err("NULL Colormap name"); SUMA_RETURN(NOPE);
@@ -3052,7 +3052,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       SUMA_RETURN(NOPE);
    }
    ColMap = SUMAg_CF->scm->CMv[icmap];
-   
+
    Opt = Sover->OptScl;
 
    SUMA_LH("Creating a scaled color vect");
@@ -3098,7 +3098,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          memset(box_mask, '\0', nnodes*sizeof(int));
       }
       nnodes = 0; /* for below, num box_mask nodes surviving threshold */
-      
+
       if (  !SUMA_SetOverlay_Vecs(Sover, 'T', Opt->tind, "update", 0) ||
             !Sover->T ) {
          SUMA_S_Err("Failed to get T");
@@ -7511,7 +7511,7 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
    int OverInd = -1, id2cont=0, id1cont=0, icont=0, ic, i2last=0;
    float off[3];
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
    
    el = dlist_head(SUMAg_CF->DsetList);
@@ -12058,7 +12058,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(int nnodes, int *box_mask,
     if (!cp) SUMA_RETURN(NOPE);
     if (!cp->dset_link) SUMA_RETURN(NOPE);
     if (!(cp->makeContours)) SUMA_RETURN(NOPE);
-    
+
     cp->Contours =
        SUMA_MultiColumnsToDrawnROI( nnodes,
              (void *)box_mask, SUMA_int,
@@ -12073,8 +12073,8 @@ SUMA_Boolean SUMA_ContourateDsetOverlay_Box(int nnodes, int *box_mask,
              
     if( cp->Contours )
         memset(cp->Contours[0]->FillColor, '\0', 4*sizeof(float));
-    
-   SUMA_RETURN(YUP);
+
+    SUMA_RETURN(YUP);
 }
 
 

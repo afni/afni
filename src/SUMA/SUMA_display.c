@@ -2478,37 +2478,40 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case N_DO_TYPES:
                SUMA_S_Err("N_DO_TYPES should not come up here");
                break;
-              case SO_type:
+            case SO_type:
                SO = (SUMA_SurfaceObject *)dov[sRegistDO[i].dov_ind].OP;
                if (SO->Show && SO->PolyMode != SRM_Hide) {
                   if (  (SO->Side == SUMA_LEFT && csv->ShowLeft) ||
                         (SO->Side == SUMA_RIGHT && csv->ShowRight) ||
-                        SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_LR) {
-                        
-                        /* --- HIGH LEVEL PASS INTERCEPT --- */
-                        int saved_sv_polymode = csv->PolyMode;
-                        
-                        if (csv->PolyMode == SRM_Line) {
-                           /* 1. Trick all sub-functions and contour routines into computing faces */
-                           csv->PolyMode = SRM_Fill;
-                           /* 2. Force the graphics hardware to render the mesh as a wireframe */
-                           glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-                        }
+                        SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_LR)
+                  {
+                     /* --- HIGH LEVEL PASS INTERCEPT --- */
+                     int saved_sv_polymode = csv->PolyMode;
 
-                        if (SUMAg_CF->Dev &&
-                            (SUMA_EnvVal("SUMA_TEMP_NODE_CMASK_EXPR"))) {
-                           SUMA_DrawMesh_mask(SO, csv); /* create the surface */
-                        } else {
-                           SUMA_DrawMesh(SO, csv); /* create the surface */
-                        }
+                     if (csv->PolyMode == SRM_Line) {
+                        /* 1. fake lines so contour routines compute faces */
+                        csv->PolyMode = SRM_Fill;
+                        /* 2. force rendering the mesh as a wireframe */
+                        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                     }
 
-                        /* --- RESTORE STATE FOR SUBSEQUENT RENDERING --- */
-                        if (saved_sv_polymode == SRM_Line) {
-                           /* Reset OpenGL state to Fill so overlays/contours can render solidly */
-                           glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                           /* Restore the true viewer mode variable */
-                           csv->PolyMode = saved_sv_polymode;
-                        }
+                     if (SUMAg_CF->Dev &&
+                         (SUMA_EnvVal("SUMA_TEMP_NODE_CMASK_EXPR"))) {
+                        /* Secret option, for testing only, search for
+                           env above for example */
+                        SUMA_DrawMesh_mask(SO, csv); /* create the surface */
+                     } else {
+                        SUMA_DrawMesh(SO, csv); /* create the surface */
+                     }
+
+                     /* --- RESTORE STATE FOR SUBSEQUENT RENDERING --- */
+                     if (saved_sv_polymode == SRM_Line) {
+                        /* restore OpenGL state to Fill so overlays/contours
+                           can render solidly */
+                        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                        /* restore the true viewer mode variable */
+                        csv->PolyMode = saved_sv_polymode;
+                     }
                   }
                }
                break;
@@ -5036,11 +5039,8 @@ void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont
    if (LocalHead)
       fprintf (SUMA_STDERR, "%s: in Surface Viewer #%d.\n", FuncName, isv);
    sv->ResetGLStateVariables = YUP;
-   
-   // SUMA_SurfaceObject *SO = SUMA_SV_Focus_SO(sv);
-   // if (SO) sv->PolyMode = SO->PolyMode;
-       SUMA_postRedisplay(w, clientData, NULL);
 
+   SUMA_postRedisplay(w, clientData, NULL);
 
    SUMA_RETURNe;
 }
@@ -18707,7 +18707,10 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data,
    DListElmt *Elmnt = NULL;
    SUMA_EngineData *ED = NULL;
    SUMA_MenuCallBackData *datap=NULL;
-   SUMA_SurfaceObject *SO = NULL;
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_SurfaceViewer *sv=NULL;
    int imenu = 0;
 
    SUMA_ENTRY;
@@ -18737,17 +18740,16 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data,
          fprintf (SUMA_STDERR, "Error %s: Unexpected widget index.\n", FuncName);
          break;
    }
-   
-   // Added code to make menu change work
+
+   /* rcr evaluate - test code to make menu change work */
    SUMA_SET_GL_RENDER_MODE(imenu);
    SO->PolyMode = imenu;
-   SUMA_ALL_DO *ado = (SUMA_ALL_DO *)SO;
-   SUMA_SurfaceViewer *sv = NULL;
+   ado = (SUMA_ALL_DO *)SO;
    if (ado) sv = SUMA_BestViewerForADO(ado);
    else fprintf(stderr, "%s Error: No ado\n", FuncName);
    if (sv) sv->PolyMode = SO->PolyMode;
    else fprintf(stderr, "%s Error: No sv\n", FuncName);
- 
+
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
    SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible,
@@ -18773,9 +18775,9 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data,
       SUMA_RETURNe;
    }
    
-   /* Draw threshold outlines */
-      SUMA_OVERLAYS *curColPlane = SO->SurfCont->curColPlane;
-      if (curColPlane->BoxOutlineThresh && sv) drawThresholdOutline(SO, sv);
+   /* rcr evaluate - Draw threshold outlines */
+   curColPlane = SO->SurfCont->curColPlane;
+   if (curColPlane->BoxOutlineThresh && sv) drawThresholdOutline(SO, sv);
 
    SUMA_RETURNe;
 }

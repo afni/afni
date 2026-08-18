@@ -3697,8 +3697,8 @@ SUMA_Boolean SUMA_Set_ADO_RenderMode(SUMA_ALL_DO *ado, int i, int delta,
 {
    static char FuncName[]={"SUMA_Set_ADO_RenderMode"};
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_Boolean LocalHead = NOPE;
-   SUMA_SurfaceObject *SO = NULL;
+   SUMA_Boolean LocalHead=NOPE;
+   SUMA_SurfaceObject *SO=NULL;
    
    SUMA_ENTRY;
    
@@ -3707,7 +3707,6 @@ SUMA_Boolean SUMA_Set_ADO_RenderMode(SUMA_ALL_DO *ado, int i, int delta,
    
    switch (ado->do_type) {
       case SO_type: {
-         // SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
          SO = (SUMA_SurfaceObject *)ado;
          if (delta) {
             if (SO->PolyMode == SRM_ViewerDefault) {
@@ -3740,13 +3739,8 @@ SUMA_Boolean SUMA_Set_ADO_RenderMode(SUMA_ALL_DO *ado, int i, int delta,
       default: 
          SUMA_S_Err("Not ready for %s (%s)", ADO_LABEL(ado), ADO_TNAME(ado));
          break;
-   
-//      SUMA_OVERLAYS *curColPlane = SurfCont->curColPlane;
-//      fprintf(stderr, "********************* curColPlane->ShowMode = %d\n", curColPlane->ShowMode);
-//      SUMA_SurfaceViewer *SV = (SUMA_SurfaceViewer *)ado;
-//      if (curColPlane->BoxOutlineThresh) drawThresholdOutline(SO, SV);
    }
-   
+
    SUMA_RETURN(YUP);
 }
 
