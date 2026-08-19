@@ -1168,7 +1168,6 @@ def writeCorrectedRespiratoryResultsToFiles(respiratoryTimeSeries,
                     added_troughs, outlier_ts_ranges, 
                     output_file_name, interpolatedPeaks, interpolatedTroughs)
 
-# 
 def plotCorrectedRespiratoryImage(output_file_name, num_rows, points_per_row,
                                    x_scaled, y,
                                    x_peaks_scaled, y_peaks,
@@ -1433,61 +1432,118 @@ def writeCorrectedCardiacPeaks(cardiacTimeSeries, cardiacPeaks,
                            outlier_ts_ranges, 
                            output_file_name)
     
-def outputCorrectedCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
-                       added_points,
-                       outlier_ts_ranges, 
-                       output_file_name):
+# def outputCorrectedCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
+#                        added_points,
+#                        outlier_ts_ranges, 
+#                        output_file_name):
     
-    y = cardiacTimeSeries              # length 
-    x = np.arange(len(y))             # original index
-    x_scaled = x / samp_freq          # scaled index
-    cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
-    addedPeaks_scaled = np.array(added_points) / samp_freq
+#     y = cardiacTimeSeries              # length 
+#     x = np.arange(len(y))             # original index
+#     x_scaled = x / samp_freq          # scaled index
+#     cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
+#     addedPeaks_scaled = np.array(added_points) / samp_freq
 
-    # Limit length of each row for clarity
-    print('Limit length of each row for clarity')
-    points_per_row = 3000             
-    num_rows = int(np.ceil(len(y) / points_per_row))
+#     # Limit length of each row for clarity
+#     print('Limit length of each row for clarity')
+#     points_per_row = 3000             
+#     num_rows = int(np.ceil(len(y) / points_per_row))
+
+#     fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
+#     if num_rows == 1:
+#         axes = [axes]
+        
+#     #set window title
+#     windowTitle = 'Corrected Cardiac Peaks ('+output_file_name+')'
+#     fig.canvas.manager.set_window_title(windowTitle)
+
+#     # Ensure index array is of integer type
+#     if cardiacPeaks.dtype!=int:
+#         cardiacPeaks = cardiacPeaks.astype(int)
+      
+#     # Get peak values
+#     peakVals = cardiacTimeSeries[cardiacPeaks]
+#     addedPeakVals = cardiacTimeSeries[added_points]
+
+#     for row in range(num_rows):
+#         start = row * points_per_row
+#         end = min((row + 1) * points_per_row, len(y))
+
+#         ax = axes[row]
+
+#         # --- plot scaled x ---
+#         ax.plot(
+#             x_scaled[start:end],
+#             y[start:end],
+#             linewidth=0.5,
+#             solid_capstyle='butt',
+#             solid_joinstyle='miter',
+#             color="black"
+#         )
+
+#         # Peaks
+#         ax.plot(cardiacPeaks_scaled, peakVals, "bo")
+
+#         # Added peaks
+#         ax.plot(addedPeaks_scaled, addedPeakVals, "r+")
+
+#         # --- Draw bands (also scaled) ---
+#         for band_start, band_end in outlier_ts_ranges:
+#             if band_end <= start or band_start >= end:
+#                 continue
+#             ax.axvspan(
+#                 max(band_start, start) / samp_freq,
+#                 min(band_end, end) / samp_freq,
+#                 color='red',
+#                 alpha=0.15
+#             )
+
+#         # --- scaled x-limits ---
+#         ax.set_xlim(x_scaled[start], x_scaled[end - 1])
+#         ax.set_ylabel("ECG Amplitude")
+
+#     # Set axes and save plot to file
+#     print('Set axes and save plot to file')
+#     ax.set_xlabel(f"Time (minutes)")
+#     axes[-1].set_xlabel("Time (minutes)")
+#     plt.tight_layout()
+
+#     plt.savefig(output_file_name)
+#     plt.show()
+
+def plotCorrectedCardiacImage(output_file_name, num_rows, points_per_row,
+                               x_scaled, y,
+                               cardiacPeaks_scaled, peakVals,
+                               addedPeaks_scaled, addedPeakVals,
+                               outlier_ts_ranges, samp_freq, offset=0):
 
     fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
     if num_rows == 1:
         axes = [axes]
-        
-    #set window title
+
     windowTitle = 'Corrected Cardiac Peaks ('+output_file_name+')'
     fig.canvas.manager.set_window_title(windowTitle)
 
-    # Ensure index array is of integer type
-    if cardiacPeaks.dtype!=int:
-        cardiacPeaks = cardiacPeaks.astype(int)
-      
-    # Get peak values
-    peakVals = cardiacTimeSeries[cardiacPeaks]
-    addedPeakVals = cardiacTimeSeries[added_points]
-
     for row in range(num_rows):
-        start = row * points_per_row
-        end = min((row + 1) * points_per_row, len(y))
+        local_start = row * points_per_row
+        local_end = min((row + 1) * points_per_row, len(y))
+        # global-index equivalents, for band comparisons/plotting
+        start = local_start + offset
+        end = local_end + offset
 
         ax = axes[row]
 
-        # --- plot scaled x ---
         ax.plot(
-            x_scaled[start:end],
-            y[start:end],
+            x_scaled[local_start:local_end],
+            y[local_start:local_end],
             linewidth=0.5,
             solid_capstyle='butt',
             solid_joinstyle='miter',
             color="black"
         )
 
-        # Peaks
         ax.plot(cardiacPeaks_scaled, peakVals, "bo")
-
-        # Added peaks
         ax.plot(addedPeaks_scaled, addedPeakVals, "r+")
 
-        # --- Draw bands (also scaled) ---
         for band_start, band_end in outlier_ts_ranges:
             if band_end <= start or band_start >= end:
                 continue
@@ -1498,18 +1554,77 @@ def outputCorrectedCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
                 alpha=0.15
             )
 
-        # --- scaled x-limits ---
-        ax.set_xlim(x_scaled[start], x_scaled[end - 1])
+        ax.set_xlim(x_scaled[local_start], x_scaled[local_end - 1])
         ax.set_ylabel("ECG Amplitude")
 
-    # Set axes and save plot to file
     print('Set axes and save plot to file')
-    ax.set_xlabel(f"Time (minutes)")
     axes[-1].set_xlabel("Time (minutes)")
     plt.tight_layout()
-
     plt.savefig(output_file_name)
     plt.show()
+
+
+def outputCorrectedCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
+                       added_points,
+                       outlier_ts_ranges,
+                       output_file_name):
+
+    y = cardiacTimeSeries
+    x = np.arange(len(y))
+    x_scaled = x / samp_freq
+    cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
+    addedPeaks_scaled = np.array(added_points) / samp_freq
+
+    print('Limit length of each row for clarity')
+    points_per_row = 3000
+    num_rows = int(np.ceil(len(y) / points_per_row))
+
+    if cardiacPeaks.dtype != int:
+        cardiacPeaks = cardiacPeaks.astype(int)
+
+    peakVals = cardiacTimeSeries[cardiacPeaks]
+    addedPeakVals = cardiacTimeSeries[added_points]
+
+    common_args = dict(
+        cardiacPeaks_scaled=cardiacPeaks_scaled,
+        peakVals=peakVals,
+        addedPeaks_scaled=addedPeaks_scaled,
+        addedPeakVals=addedPeakVals,
+        outlier_ts_ranges=outlier_ts_ranges,
+        samp_freq=samp_freq,
+    )
+
+    if num_rows <= MAX_ROWS_PER_IMAGE:   # Whole time series in one image
+        plotCorrectedCardiacImage(output_file_name, num_rows, points_per_row,
+                                   x_scaled, y, **common_args)
+    else:                                # Split time series among several images
+        print('******* Num rows = ', num_rows)
+        rows_per_image = MAX_ROWS_PER_IMAGE
+        points_per_image = points_per_row * rows_per_image
+        num_full_images = num_rows // rows_per_image   # floor, not round
+
+        for image in range(num_full_images):    # Full images
+            offset = image * points_per_image
+            start, end = offset, offset + points_per_image
+            imageFileName = output_file_name[:-4] + "_image_" + str(image) + ".pdf"
+            plotCorrectedCardiacImage(
+                imageFileName, rows_per_image, points_per_row,
+                x_scaled[start:end], y[start:end],
+                offset=offset, **common_args
+            )
+
+        if num_full_images * points_per_image < len(y):   # Partial image
+            image = num_full_images
+            offset = image * points_per_image
+            start, end = offset, offset + points_per_image
+            imageFileName = output_file_name[:-4] + "_image_" + str(image) + ".pdf"
+            remaining_points = len(y) - offset
+            partial_num_rows = int(np.ceil(remaining_points / points_per_row))
+            plotCorrectedCardiacImage(
+                imageFileName, partial_num_rows, points_per_row,
+                x_scaled[start:end], y[start:end],
+                offset=offset, **common_args
+            )
     
 def correctRespiratoryBijectivity(respiratoryPeaks, respiratoryTroughs):
     
