@@ -2160,8 +2160,6 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_SurfaceObject *SO = SUMA_SV_Focus_SO(sv);
    char *cmapname;
    static SUMA_Boolean clippingPlanesInitialized = NOPE;
-   int result;
-   size_t bufsize;
 
    SUMA_ENTRY;
 
@@ -2194,14 +2192,8 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
         } else if (SUMA_CTRL_KEY(key)){
            /* Save active color plane name */
            if (SO->N_Overlays > 0){
-              bufsize = (strlen(SO->Overlays[SO->N_Overlays-1]->cmapname) +8)
-                        * sizeof(char);
-              if (!(cmapname = (char *)malloc(bufsize))){
-                   fprintf(stderr, "Error allocating name buffer\n");
-                   SUMA_RETURN(0);
-              }
-              result = snprintf(cmapname, bufsize, "%s",
-                                SO->Overlays[SO->N_Overlays-1]->cmapname);
+              cmapname = nifti_strdup(SO->Overlays[SO->N_Overlays-1]->cmapname);
+              if (!cmapname) SUMA_RETURN(0); /* nifti_strdup should whine */
            }
 
             if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
@@ -2229,12 +2221,10 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             SUMA_UpdateViewerTitle(sv);
 
            /* Restore active color plane name */
-           /* rcr - where above does this get lost?  why overwrite? */
+           /* rcr - where above does cmapname get lost? */
            if (SO->N_Overlays > 0){
-               sprintf(SO->Overlays[SO->N_Overlays-1]->cmapname, cmapname);
-               result = snprintf(SO->Overlays[SO->N_Overlays-1]->cmapname, 
-                    bufsize, "%s", cmapname);
-               free(cmapname);
+               free(SO->Overlays[SO->N_Overlays-1]->cmapname);
+               SO->Overlays[SO->N_Overlays-1]->cmapname = cmapname;
            }
         }else if (clippingPlaneMode) {
 

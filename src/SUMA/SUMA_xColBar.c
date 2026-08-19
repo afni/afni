@@ -1871,8 +1871,6 @@ int SUMA_SwitchCmap(SUMA_ALL_DO *ado,
 
    SUMA_ENTRY;
    
-   fprintf(stderr, "############### %s\n", FuncName);
-
    SUMA_LH("Called");
    if (!ado || !CM) SUMA_RETURN(0);
 
@@ -2464,20 +2462,21 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    static int savedShowMode;
 
    SUMA_ENTRY;
-   
+
    ado = (SUMA_ALL_DO *)data;
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
             || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
-            
+
    if (!SUMA_AB_Ready(ado)){
     SUMA_S_Warn("Threshold outline does not work for this object type."); 
     SUMA_RETURNe;   
    }
-            
+
    SO = (SUMA_SurfaceObject *)ado;   
-   
+
    // Get box outline threshold status from checkbox
    BoxOutlineThresh = XmToggleButtonGetState(w);
+   /* rcr : this does not look correct, what is wrong with previous? */
    over2 = SO->Overlays[SO->N_Overlays - 1];
    // over2 = SUMA_ADO_CurColPlane(ado);
    over2->BoxOutlineThresh = BoxOutlineThresh;
@@ -2493,7 +2492,8 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
         if (SO->Overlays[i] != over2){
             // Process current hemisphere
             if (SO->Overlays[i]->BoxOutlineThresh){
-               SO->Overlays[i]->ShowMode = (SO->Overlays[i]->ShowMode == SW_SurfCont_DsetViewCon)? 
+               SO->Overlays[i]->ShowMode =
+                  (SO->Overlays[i]->ShowMode == SW_SurfCont_DsetViewCon) ?
                     SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
             }
             SO->Overlays[i]->BoxOutlineThresh = NOPE; 
