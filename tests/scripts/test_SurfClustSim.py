@@ -233,13 +233,14 @@ def test_acf_generates_requested_autocorrelation(data):
         f" -acf {requested_a} 8 24 -acf_nbasis 6 -niter 20 -pthr 0.01"
         f" -1sided -prefix acfgen -nthreads 4 -verb"
     )
-    differ = tools.run_cmd(data, cmd, workdir=data.outdir,
-                           merge_error_with_output=True, timeout=600)
+    differ = tools.run_cmd(
+        data, cmd, workdir=data.outdir, merge_error_with_output=True, timeout=600
+    )
     text = str(differ.stdout) if hasattr(differ, "stdout") else ""
     # The program prints "generated a=... b=... c=..."; parse the achieved a.
     match = re.search(r"generated a=([0-9.eE+-]+)", text)
     assert match, f"no ACF verification line in output:\n{text}"
     achieved = float(match.group(1))
-    assert abs(achieved - requested_a) < 0.15, (
-        f"requested a={requested_a}, generated a={achieved}"
-    )
+    assert (
+        abs(achieved - requested_a) < 0.15
+    ), f"requested a={requested_a}, generated a={achieved}"
