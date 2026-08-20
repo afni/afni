@@ -17,16 +17,10 @@
 #include <limits.h>
 #include <math.h>
 #include <float.h>
+#include <stdint.h>
 
 #ifdef USE_OMP
 #include <omp.h>
-#endif
-
-#undef DECLARE_ithr
-#ifdef USE_OMP
-# define DECLARE_ithr const int ithr = omp_get_thread_num()
-#else
-# define DECLARE_ithr const int ithr = 0
 #endif
 
 #define PROGRAM_NAME "3dShuffle"
@@ -278,10 +272,12 @@ static void shuffle_help(void)
 "  In both z bricks, |z| is the strength of the evidence and the sign is\n"
 "  only the direction of the effect, so the AFNI slider (which ranks by\n"
 "  |z|) removes the weakest voxels first. Voxels with no evidence sit at\n"
-"  z = 0, the same value written outside the mask. With -tails one only\n"
-"  the tested direction is inferable, so every p >= 0.5 lands at z = 0\n"
-"  and the z bricks are non-negative; use -tails two if you want the\n"
-"  opposite direction shown as well.\n"
+"  z = 0, the same value written outside the mask.\n"
+"  The z is encoded so that AFNI's own FIZT reading of it -- which is\n"
+"  two-sided -- reports back the empirical permutation p-value in these\n"
+"  bricks. 3dPval on a z brick returns the matching p_unc/p_fwe value.\n"
+"  With -tails one only the tested direction is inferable, so those z\n"
+"  bricks are non-negative; use -tails two to see the opposite direction.\n"
 "\n"
 "  Each two-sample contrast produces 18 sub-bricks, in this order:\n"
 "    GrpA_mean GrpA_t GrpA_p_unc GrpA_p_fwe GrpA_z_unc GrpA_z_fwe\n"
@@ -1068,26 +1064,29 @@ static float emp_p_from_sorted(float *sorted, int nperm, float obs, int exact)
 --------------------------------------------------------------------- */
 /* Convert an empirical p-value to a signed z-score for output bricks.
 
-   The governing constraint is that AFNI's threshold slider ranks voxels
-   by |z|, so |z| has to mean "strength of evidence" and nothing else.
-   A voxel with no evidence must land near 0 so it thresholds away first;
-   the sign is only there to show the direction of a result that already
-   has evidence behind it.
+   Two constraints have to hold at once, and qginv(p/2) is the mapping
+   that satisfies both for either tail mode.
+
+   First, these bricks are tagged FIZT, and AFNI reads a FIZT statistic
+   as a TWO-SIDED normal deviate: it reports 2*(1-Phi(|z|)). Encoding z
+   as qginv(p/2) is exactly the inverse of that, so the p AFNI shows on
+   the threshold slider is the empirical permutation p this program
+   computed. Using qginv(p) instead -- the "natural" one-sided z -- makes
+   AFNI report 2p, i.e. double the true value, which is wrong no matter
+   how significant the voxel is.
+
+   Second, AFNI's slider ranks voxels by |z|, so |z| has to mean strength
+   of evidence and nothing else. qginv(p/2) decreases monotonically over
+   p in [0,1] and reaches exactly 0 at p=1, so a voxel with no evidence
+   thresholds away first rather than outranking real findings. It also
+   stays non-negative, so for -tails one -- where only the tested
+   direction is inferable -- the z bricks carry no misleading sign. For
+   -tails two the observed statistic's sign is applied afterwards, purely
+   to show the direction of a result that already has evidence behind it.
 
    The lower clamp is tied to nperm, the number of permutations actually
    drawn. A fixed constant far below 1/nperm (e.g. 1e-15) is not a real
-   achievable p-value for this test.
-
-   The p=1 end matters just as much, and the two tail modes have to reach
-   0 by different routes. Two-tailed gets there on its own: p=1 gives
-   qginv(0.5) = 0. One-tailed does not -- qginv(p) runs off to large
-   NEGATIVE values as p approaches 1, so the least significant voxels in
-   the map would come out with the largest |z| of all, ranking above
-   genuine findings on the slider and vanishing together in one step.
-   Since -tails one tests a single direction, p >= 0.5 means "no evidence
-   in the tested direction" and carries no inference at all, so it
-   collapses to z = 0 -- matching both the two-tailed branch and the
-   z = 0 already written for out-of-mask voxels. */
+   achievable p-value for this test. */
 static float p_to_signed_z(float pval, float observed_stat, tail_code tails, int nperm)
 {
    double p, z;
@@ -1097,13 +1096,8 @@ static float p_to_signed_z(float pval, float observed_stat, tail_code tails, int
    if( p < pmin ) p = pmin;
    if( p > 1.0 )  p = 1.0;
 
-   if( tails == TAIL_TWO ){
-      z = qginv(p / 2.0);
-      if( observed_stat < 0.0f ) z = -z;
-   } else {
-      if( p > 0.5 ) p = 0.5;
-      z = qginv(p);
-   }
+   z = qginv(p / 2.0);
+   if( tails == TAIL_TWO && observed_stat < 0.0f ) z = -z;
 
    return (float)z;
 }
@@ -1125,6 +1119,30 @@ static void membership_from_combination(byte *in_a, int ntot, int *comb, int na)
    int ii;
    memset(in_a,0,(size_t)ntot*sizeof(byte));
    for( ii=0 ; ii < na ; ii++ ) in_a[comb[ii]] = 1;
+}
+
+/* Seed a 48-bit erand48() state from the run seed and one permutation's
+   index.
+
+   Deriving the stream from the iteration number rather than from the
+   OpenMP thread id is what makes -seed mean something: permutation ip
+   draws the same relabeling no matter which thread happens to run it or
+   how many threads exist, so the same command reproduces on any machine
+   regardless of OMP_NUM_THREADS. Seeding per thread instead lets the
+   work-sharing schedule decide which stream feeds which permutation.
+
+   The splitmix64 finalizer scrambles the counter before it becomes RNG
+   state; feeding erand48() near-consecutive seeds directly would leave
+   neighboring permutations visibly correlated. */
+static void seed_perm_rng(unsigned short xran[3], long seed, int iperm)
+{
+   uint64_t z = (uint64_t)seed + 0x9E3779B97F4A7C15ULL * (uint64_t)(iperm + 1);
+   z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+   z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
+   z =  z ^ (z >> 31);
+   xran[0] = (unsigned short)( z         & 0xFFFFULL);
+   xran[1] = (unsigned short)((z >> 16)  & 0xFFFFULL);
+   xran[2] = (unsigned short)((z >> 32)  & 0xFFFFULL);
 }
 
 /* Draw a random fixed-size group-A assignment using a partial Fisher-Yates
@@ -1251,22 +1269,13 @@ static void run_signflip_test(float **group_a, float **group_b, int nsubj,
    AFNI_OMP_START;
 #pragma omp parallel
    {
-      DECLARE_ithr;
       int th_is, th_iv, ip;
       float *th_values = (float *)calloc(nsubj,sizeof(float));
       byte *th_flip = (byte *)calloc(nsubj,sizeof(byte));
       int *th_unc = (int *)calloc(nvox,sizeof(int));
-      unsigned short xran[3];
 
       if( th_values == NULL || th_flip == NULL || th_unc == NULL )
          ERROR_exit("malloc failure");
-      /* Distinct, reproducible-per-thread-count RNG stream; erand48() is
-         reentrant, unlike the drand48() this replaces, which shares one
-         global stream that multiple threads calling it concurrently
-         would corrupt. */
-      xran[0] = (unsigned short)(opts->seed & 0xFFFFL);
-      xran[1] = (unsigned short)((opts->seed >> 16) & 0xFFFFL);
-      xran[2] = (unsigned short)((ithr+1)*7919 & 0xFFFF);
 
 #pragma omp for schedule(static)
       for( ip=0 ; ip < nperm ; ip++ ){
@@ -1276,6 +1285,11 @@ static void run_signflip_test(float **group_a, float **group_b, int nsubj,
             for( th_is=0 ; th_is < nsubj ; th_is++ )
                th_flip[th_is] = (byte)((bits >> th_is)&1UL);
          } else {
+            /* erand48() is reentrant, unlike the drand48() this replaces;
+               seeding it from ip keeps the draw independent of which
+               thread runs this iteration. */
+            unsigned short xran[3];
+            seed_perm_rng(xran,opts->seed,ip);
             for( th_is=0 ; th_is < nsubj ; th_is++ )
                th_flip[th_is] = erand48(xran) < 0.5;
          }
@@ -1355,7 +1369,8 @@ static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
       parallelized directly. Enumerate the whole sequence once up front
       (cheap: O(nperm*na)) into a flat membership table, then let threads
       index into it independently. Random mode needs no such table --
-      each permutation draws its own membership from a per-thread RNG. */
+      each permutation draws its own membership from an RNG seeded by
+      its own index. */
    if( opts->mode == MODE_EXACT ){
       exact_table = (byte *)malloc((size_t)nperm*ntot*sizeof(byte));
       if( exact_table == NULL ) ERROR_exit("malloc failure");
@@ -1369,18 +1384,13 @@ static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
    AFNI_OMP_START;
 #pragma omp parallel
    {
-      DECLARE_ithr;
       int th_iv, th_ip;
       byte *th_in_a = (byte *)calloc(ntot,sizeof(byte));
       int *th_order = (int *)calloc(ntot,sizeof(int));
       int *th_unc = (int *)calloc(nvox,sizeof(int));
-      unsigned short xran[3];
 
       if( th_in_a == NULL || th_order == NULL || th_unc == NULL )
          ERROR_exit("malloc failure");
-      xran[0] = (unsigned short)(opts->seed & 0xFFFFL);
-      xran[1] = (unsigned short)((opts->seed >> 16) & 0xFFFFL);
-      xran[2] = (unsigned short)((ithr+1)*7919 & 0xFFFF);
 
 #pragma omp for schedule(static)
       for( th_ip=0 ; th_ip < nperm ; th_ip++ ){
@@ -1389,6 +1399,8 @@ static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
          if( opts->mode == MODE_EXACT ){
             cur_in_a = exact_table + (size_t)th_ip*ntot;
          } else {
+            unsigned short xran[3];
+            seed_perm_rng(xran,opts->seed,th_ip);
             random_membership(th_in_a,th_order,ntot,na,xran);
             cur_in_a = th_in_a;
          }
@@ -1614,7 +1626,8 @@ int main(int argc, char **argv)
       test_df[it] = -1;
    }
 
-   if( opts.mode == MODE_RANDOM ) srand48(opts.seed);
+   /* No global srand48() here: -seed is consumed by seed_perm_rng(),
+      which derives an independent erand48() stream per permutation. */
 
    if( opts.stat == STAT_PAIRED ){
       for( cc=0 ; cc < opts.ncon ; cc++ ){
