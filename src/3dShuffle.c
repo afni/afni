@@ -53,7 +53,8 @@
 
 typedef enum {
    TAIL_TWO = 0,
-   TAIL_ONE
+   TAIL_ONE,
+   TAIL_BI
 } tail_code;
 
 typedef enum {
@@ -231,17 +232,22 @@ static void shuffle_help(void)
 "                      The default assumes equal variances (pooled t-test).\n"
 "  -unpooled           With -stat twosample, use the unequal-variance Welch\n"
 "                      t-statistic. This overrides the pooled assumption.\n"
-"  -sided 1sided|2sided\n"
+"  -sided 1sided|2sided|bisided\n"
 "                      Default: 2sided. Same keywords as 3dClustSim,\n"
 "                      p2dsetstat and dsetstat2p use.\n"
 "                      With 1sided, the tested direction is positive.\n"
 "                      For contrasts, -contrast A B tests whether A > B;\n"
 "                      reverse the order to test B > A. For one-sample and\n"
 "                      two-sample group outputs, positive means group > 0.\n"
-"                      bisided is not available: this program corrects\n"
-"                      voxelwise against a single max-statistic null, and\n"
-"                      bisided would need a separate null per tail. Run\n"
-"                      1sided twice with the contrast reversed instead.\n"
+"                      With bisided, each tail is corrected against its own\n"
+"                      max-statistic null: a positive voxel is ranked among\n"
+"                      the permuted maxima and a negative one among the\n"
+"                      permuted minima. As in 3dClustSim, each tail carries\n"
+"                      p/2, the same per-tail threshold 2sided applies, so\n"
+"                      the reported p is on the 2sided scale. Prefer bisided\n"
+"                      over 2sided when the two directions are not expected\n"
+"                      to behave alike -- an asymmetric null makes a single\n"
+"                      pooled |t| distribution misleading for one of them.\n"
 "  -tails one|two      Older spelling of -sided 1sided|2sided; still\n"
 "                      accepted so existing scripts keep working.\n"
 "  -mode exact|random  Exact enumerates all 2^N sign patterns for one-sample\n"
@@ -298,7 +304,8 @@ static void shuffle_help(void)
 "  two-sided -- reports back the empirical permutation p-value in these\n"
 "  bricks. 3dPval on a z brick returns the matching p_unc/p_fwe value.\n"
 "  With 1sided only the tested direction is inferable, so those z\n"
-"  bricks are non-negative; use 2sided to see the opposite direction.\n"
+"  bricks are non-negative; use 2sided or bisided to see the opposite\n"
+"  direction. Bisided z bricks are signed like 2sided ones.\n"
 "\n"
 "  Each two-sample contrast produces 18 sub-bricks, in this order:\n"
 "    GrpA_mean GrpA_t GrpA_p_unc GrpA_p_fwe GrpA_z_unc GrpA_z_fwe\n"
@@ -310,7 +317,8 @@ static void shuffle_help(void)
 "\n"
 "IMPORTANT resolution ceiling:\n"
 "  With exact sign-flip enumeration, the smallest achievable p-value is\n"
-"  2/2^Nsubj for 2sided and 1/2^Nsubj for 1sided.\n"
+"  2/2^Nsubj for 2sided and bisided, and 1/2^Nsubj for 1sided. Bisided\n"
+"  counts one tail and doubles it, so it shares the 2sided ceiling.\n"
 "  Exact two-sample contrast resolution is likewise limited by the number\n"
 "  of fixed-size assignments: choose(NA+NB,NA).\n"
 "\n"
@@ -577,19 +585,15 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
          else if( strcmp(argv[nopt],"1sided") == 0 || strcmp(argv[nopt],"one") == 0 )
             opts->tails = TAIL_ONE;
          else if( strcmp(argv[nopt],"bisided") == 0 )
-            /* bisided keeps a separate null for each tail. That differs
-               from 2sided even voxelwise, so aliasing it would quietly
-               return something else than asked for. */
-            ERROR_exit("%s bisided is not implemented. 3dShuffle corrects "
-                       "voxelwise against one max-statistic distribution; "
-                       "bisided would need a separate null per tail.\n"
-                       "   Use 2sided, or 1sided twice with the contrast "
-                       "reversed to test each direction on its own.",onam);
+            /* bisided builds a separate max-statistic null per tail, so it
+               is not an alias for 2sided: a negative voxel is ranked among
+               the permuted minima rather than among all extremes. */
+            opts->tails = TAIL_BI;
          else if( strcmp(argv[nopt],"upper") == 0 || strcmp(argv[nopt],"lower") == 0 )
             ERROR_exit("%s upper/lower has been replaced by %s 1sided. "
                        "Use contrast order to set direction: -contrast A B "
                        "tests A>B with %s 1sided.",onam,onam,onam);
-         else ERROR_exit("%s must be one of: 1sided 2sided",onam);
+         else ERROR_exit("%s must be one of: 1sided 2sided bisided",onam);
          nopt++; continue;
       }
 
@@ -945,7 +949,9 @@ static void print_sanity(opts_t *opts)
                                     "equal (pooled; default)");
    else
       INFO_message("Subjects:     %d per input list", opts->nsubj);
-   INFO_message("Sidedness:    %s", opts->tails == TAIL_TWO ? "2sided" : "1sided");
+   INFO_message("Sidedness:    %s",
+                opts->tails == TAIL_TWO ? "2sided" :
+                opts->tails == TAIL_BI  ? "bisided" : "1sided");
    if( opts->tails == TAIL_ONE )
       INFO_message("1sided direction: %s",
                    opts->stat == STAT_ONESAMPLE ? "positive condition mean" :
@@ -1058,10 +1064,17 @@ static float one_sample_t(float *values, int nsubj, byte *flip, float *mean_out)
    return (float)(mean / sqrt(var/nsubj));
 }
 
-/* Convert a t-statistic to the comparison value for the requested tail mode. */
+/* Convert a t-statistic to the comparison value for the requested tail mode.
+
+   TAIL_BI uses |t| here, the same as TAIL_TWO, because a bisided voxel is
+   compared against the max-statistic null belonging to its own tail: for a
+   negative voxel that null holds max(-t), so |t| is the value to look up in
+   it. What separates bisided from 2sided is which null gets used and how the
+   permutation counts are accumulated, not this magnitude -- see the tail
+   handling in the permutation loops. */
 static float tail_value(float tt, tail_code tails)
 {
-   if( tails == TAIL_TWO ) return fabsf(tt);
+   if( tails == TAIL_TWO || tails == TAIL_BI ) return fabsf(tt);
    return tt;
 }
 
@@ -1167,7 +1180,7 @@ static float p_to_signed_z(float pval, float observed_stat, tail_code tails, int
       THD_pval_to_stat() explicitly accepts NULL for that case. */
    z = THD_pval_to_stat((float)p, FUNC_ZT_TYPE, NULL);
 
-   if( tails == TAIL_TWO && observed_stat < 0.0f ) z = -z;
+   if( (tails == TAIL_TWO || tails == TAIL_BI) && observed_stat < 0.0f ) z = -z;
 
    return z;
 }
@@ -1303,11 +1316,15 @@ static void warn_zero_variance(test_output_t *out, byte *mask, int nvox,
    iteration. The signed statistic (out->tstat) still drives the
    two-tailed z-score sign. */
 static void finish_permutation_output(test_output_t *out, byte *mask, int nvox,
-                                      int *unc_count, float *max_null, int nperm,
-                                      float *obs_cmp, opts_t *opts)
+                                      int *unc_count, float *max_null,
+                                      float *max_null_neg, int nperm,
+                                      float *obs_cmp, float *obs_sgn,
+                                      opts_t *opts)
 {
    int iv;
+   int bisided = (opts->tails == TAIL_BI);
    qsort(max_null,nperm,sizeof(float),cmp_float);
+   if( bisided ) qsort(max_null_neg,nperm,sizeof(float),cmp_float);
    for( iv=0 ; iv < nvox ; iv++ ){
       if( !mask[iv] ){
          out->p_unc[iv] = out->p_fwe[iv] = 1.0f;
@@ -1318,8 +1335,25 @@ static void finish_permutation_output(test_output_t *out, byte *mask, int nvox,
          out->p_unc[iv] = (float)unc_count[iv]/(float)nperm;
       else
          out->p_unc[iv] = (float)(unc_count[iv]+1)/(float)(nperm+1);
+      /* Bisided corrects each direction against its own max-statistic
+         null, so a negative voxel is ranked among the permuted minima
+         rather than among all extremes. */
       out->p_fwe[iv] = emp_p_from_sorted(
-         max_null,nperm,obs_cmp[iv],opts->mode == MODE_EXACT);
+         (bisided && obs_sgn[iv] < 0.0f) ? max_null_neg : max_null,
+         nperm,obs_cmp[iv],opts->mode == MODE_EXACT);
+
+      if( bisided ){
+         /* Both counts above are single-tail. AFNI's bisided convention
+            puts p/2 in each tail -- the same per-tail thresholds a 2sided
+            test uses, differing only in that the tails stay separate --
+            so double them to land on the 2sided scale a user comparing
+            the two would expect. */
+         out->p_unc[iv] *= 2.0f;
+         out->p_fwe[iv] *= 2.0f;
+         if( out->p_unc[iv] > 1.0f ) out->p_unc[iv] = 1.0f;
+         if( out->p_fwe[iv] > 1.0f ) out->p_fwe[iv] = 1.0f;
+      }
+
       out->z_unc[iv] = p_to_signed_z(out->p_unc[iv],out->tstat[iv],opts->tails,nperm);
       out->z_fwe[iv] = p_to_signed_z(out->p_fwe[iv],out->tstat[iv],opts->tails,nperm);
    }
@@ -1335,6 +1369,9 @@ static void run_signflip_test(float **group_a, float **group_b, int nsubj,
    int nperm;
    int *unc_count;
    float *max_null, *values, *obs_cmp;
+   /* Only allocated for bisided, which corrects each tail separately. */
+   float *max_null_neg = NULL, *obs_sgn = NULL;
+   int bisided = (opts->tails == TAIL_BI);
 
    if( nperm_ll <= 0 || nperm_ll > INT_MAX )
       ERROR_exit("sign-flip count for %s is too large (%lld); use -mode random -niter N",
@@ -1346,6 +1383,11 @@ static void run_signflip_test(float **group_a, float **group_b, int nsubj,
    obs_cmp = (float *)calloc(nvox,sizeof(float));
    if( unc_count == NULL || max_null == NULL || values == NULL || obs_cmp == NULL )
       ERROR_exit("malloc failure");
+   if( bisided ){
+      max_null_neg = (float *)calloc(nperm,sizeof(float));
+      obs_sgn = (float *)calloc(nvox,sizeof(float));
+      if( max_null_neg == NULL || obs_sgn == NULL ) ERROR_exit("malloc failure");
+   }
 
    INFO_message("Computing %s: %d sign-flip permutations",label,nperm);
    for( iv=0 ; iv < nvox ; iv++ ){
@@ -1355,6 +1397,7 @@ static void run_signflip_test(float **group_a, float **group_b, int nsubj,
                       (group_b != NULL ? group_b[is][iv] : 0.0f);
       out->tstat[iv] = one_sample_t(values,nsubj,NULL,&out->mean[iv]);
       obs_cmp[iv] = tail_value(out->tstat[iv],opts->tails);
+      if( bisided ) obs_sgn[iv] = (out->tstat[iv] < 0.0f) ? -1.0f : 1.0f;
    }
    free(values);
    warn_zero_variance(out,mask,nvox,label);
@@ -1377,7 +1420,7 @@ static void run_signflip_test(float **group_a, float **group_b, int nsubj,
 
 #pragma omp for schedule(static)
       for( ip=0 ; ip < nperm ; ip++ ){
-         float maxv = -FLT_MAX;
+         float maxv = -FLT_MAX, maxv_neg = -FLT_MAX;
          if( opts->mode == MODE_EXACT ){
             unsigned long bits = (unsigned long)ip;
             for( th_is=0 ; th_is < nsubj ; th_is++ )
@@ -1399,11 +1442,23 @@ static void run_signflip_test(float **group_a, float **group_b, int nsubj,
                th_values[th_is] = group_a[th_is][th_iv] -
                             (group_b != NULL ? group_b[th_is][th_iv] : 0.0f);
             tt = one_sample_t(th_values,nsubj,th_flip,NULL);
-            tv = tail_value(tt,opts->tails);
-            if( tv > maxv ) maxv = tv;
-            if( tv >= obs_cmp[th_iv] ) th_unc[th_iv]++;
+            if( bisided ){
+               /* Each direction keeps its own max-statistic null: the
+                  positive null tracks max(t) across the mask, the negative
+                  one tracks max(-t). The uncorrected count only advances
+                  for a permuted value at least as extreme as the
+                  observation in the direction it was actually seen. */
+               if(  tt > maxv     ) maxv     =  tt;
+               if( -tt > maxv_neg ) maxv_neg = -tt;
+               if( obs_sgn[th_iv]*tt >= obs_cmp[th_iv] ) th_unc[th_iv]++;
+            } else {
+               tv = tail_value(tt,opts->tails);
+               if( tv > maxv ) maxv = tv;
+               if( tv >= obs_cmp[th_iv] ) th_unc[th_iv]++;
+            }
          }
          max_null[ip] = maxv;
+         if( bisided ) max_null_neg[ip] = maxv_neg;
 
 #pragma omp critical(shuffle_progress)
          { completed++; print_progress_bar(completed-1,nperm,&last_pct); }
@@ -1416,8 +1471,10 @@ static void run_signflip_test(float **group_a, float **group_b, int nsubj,
    }
    AFNI_OMP_END;
 
-   finish_permutation_output(out,mask,nvox,unc_count,max_null,nperm,obs_cmp,opts);
+   finish_permutation_output(out,mask,nvox,unc_count,max_null,max_null_neg,
+                             nperm,obs_cmp,obs_sgn,opts);
    free(max_null); free(unc_count); free(obs_cmp);
+   free(max_null_neg); free(obs_sgn);
 }
 
 /* Run a fixed-size independent-group label-shuffle test over all voxels. */
@@ -1430,6 +1487,9 @@ static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
    int nperm;
    int *unc_count, *comb;
    float *max_null, *obs_cmp;
+   /* Only allocated for bisided, which corrects each tail separately. */
+   float *max_null_neg = NULL, *obs_sgn = NULL;
+   int bisided = (opts->tails == TAIL_BI);
    float **combined;
    byte *in_a, *exact_table = NULL;
 
@@ -1446,6 +1506,11 @@ static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
    if( unc_count == NULL || max_null == NULL || combined == NULL ||
        in_a == NULL || comb == NULL || obs_cmp == NULL )
       ERROR_exit("malloc failure");
+   if( bisided ){
+      max_null_neg = (float *)calloc(nperm,sizeof(float));
+      obs_sgn = (float *)calloc(nvox,sizeof(float));
+      if( max_null_neg == NULL || obs_sgn == NULL ) ERROR_exit("malloc failure");
+   }
 
    for( is=0 ; is < na ; is++ ){
       combined[is] = group_a[is];
@@ -1460,6 +1525,7 @@ static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
       out->tstat[iv] = two_sample_t(combined,ntot,na,in_a,iv,
                                     opts->unpooled,&out->mean[iv]);
       obs_cmp[iv] = tail_value(out->tstat[iv],opts->tails);
+      if( bisided ) obs_sgn[iv] = (out->tstat[iv] < 0.0f) ? -1.0f : 1.0f;
    }
    warn_zero_variance(out,mask,nvox,label);
 
@@ -1493,7 +1559,7 @@ static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
 
 #pragma omp for schedule(static)
       for( th_ip=0 ; th_ip < nperm ; th_ip++ ){
-         float maxv = -FLT_MAX;
+         float maxv = -FLT_MAX, maxv_neg = -FLT_MAX;
          byte *cur_in_a;
          if( opts->mode == MODE_EXACT ){
             cur_in_a = exact_table + (size_t)th_ip*ntot;
@@ -1508,11 +1574,23 @@ static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
             float tt, tv;
             if( !mask[th_iv] ) continue;
             tt = two_sample_t(combined,ntot,na,cur_in_a,th_iv,opts->unpooled,NULL);
-            tv = tail_value(tt,opts->tails);
-            if( tv > maxv ) maxv = tv;
-            if( tv >= obs_cmp[th_iv] ) th_unc[th_iv]++;
+            if( bisided ){
+               /* Each direction keeps its own max-statistic null: the
+                  positive null tracks max(t) across the mask, the negative
+                  one tracks max(-t). The uncorrected count only advances
+                  for a permuted value at least as extreme as the
+                  observation in the direction it was actually seen. */
+               if(  tt > maxv     ) maxv     =  tt;
+               if( -tt > maxv_neg ) maxv_neg = -tt;
+               if( obs_sgn[th_iv]*tt >= obs_cmp[th_iv] ) th_unc[th_iv]++;
+            } else {
+               tv = tail_value(tt,opts->tails);
+               if( tv > maxv ) maxv = tv;
+               if( tv >= obs_cmp[th_iv] ) th_unc[th_iv]++;
+            }
          }
          max_null[th_ip] = maxv;
+         if( bisided ) max_null_neg[th_ip] = maxv_neg;
 
 #pragma omp critical(shuffle2_progress)
          { completed++; print_progress_bar(completed-1,nperm,&last_pct); }
@@ -1525,9 +1603,11 @@ static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
    }
    AFNI_OMP_END;
 
-   finish_permutation_output(out,mask,nvox,unc_count,max_null,nperm,obs_cmp,opts);
+   finish_permutation_output(out,mask,nvox,unc_count,max_null,max_null_neg,
+                             nperm,obs_cmp,obs_sgn,opts);
    free(comb); free(in_a); free(combined);
    free(max_null); free(unc_count); free(obs_cmp);
+   free(max_null_neg); free(obs_sgn);
    if( exact_table != NULL ) free(exact_table);
 }
 
