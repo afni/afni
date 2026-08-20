@@ -142,7 +142,7 @@ static void shuffle_help(void)
 "    -contrast endsleep longrec                   \\\n"
 "    -method signflip                             \\\n"
 "    -stat paired_ttest                           \\\n"
-"    -tails two                                   \\\n"
+"    -sided 2sided                                \\\n"
 "    -mode exact                                  \\\n"
 "    -mask sleep_group_mask+tlrc                  \\\n"
 "    -prefix sleep_shuffle\n"
@@ -156,7 +156,7 @@ static void shuffle_help(void)
 "           s05_activation+tlrc s06_activation+tlrc \\\n"
 "    -method signflip                             \\\n"
 "    -stat onesample                              \\\n"
-"    -tails two                                   \\\n"
+"    -sided 2sided                                \\\n"
 "    -mode exact                                  \\\n"
 "    -mask activation_group_mask+tlrc             \\\n"
 "    -prefix activation_shuffle\n"
@@ -172,7 +172,7 @@ static void shuffle_help(void)
 "    -contrast patient control                    \\\n"
 "    -method shuffle                              \\\n"
 "    -stat twosample                              \\\n"
-"    -tails two                                   \\\n"
+"    -sided 2sided                                \\\n"
 "    -mode random                                 \\\n"
 "    -niter 10000                                 \\\n"
 "    -seed 1234567                                \\\n"
@@ -193,7 +193,7 @@ static void shuffle_help(void)
 "    -contrast OLS REML                            \\\n"
 "    -method signflip                              \\\n"
 "    -stat paired_ttest                            \\\n"
-"    -tails two                                    \\\n"
+"    -sided 2sided                                 \\\n"
 "    -mode exact                                   \\\n"
 "    -mask mask+tlrc.                              \\\n"
 "    -prefix olsreml_shuffle\n"
@@ -231,12 +231,19 @@ static void shuffle_help(void)
 "                      The default assumes equal variances (pooled t-test).\n"
 "  -unpooled           With -stat twosample, use the unequal-variance Welch\n"
 "                      t-statistic. This overrides the pooled assumption.\n"
-"  -tails two|one\n"
-"                      Default: two.\n"
-"                      With -tails one, the tested direction is positive.\n"
+"  -sided 1sided|2sided\n"
+"                      Default: 2sided. Same keywords as 3dClustSim,\n"
+"                      p2dsetstat and dsetstat2p use.\n"
+"                      With 1sided, the tested direction is positive.\n"
 "                      For contrasts, -contrast A B tests whether A > B;\n"
 "                      reverse the order to test B > A. For one-sample and\n"
 "                      two-sample group outputs, positive means group > 0.\n"
+"                      bisided is not available: this program corrects\n"
+"                      voxelwise against a single max-statistic null, and\n"
+"                      bisided would need a separate null per tail. Run\n"
+"                      1sided twice with the contrast reversed instead.\n"
+"  -tails one|two      Older spelling of -sided 1sided|2sided; still\n"
+"                      accepted so existing scripts keep working.\n"
 "  -mode exact|random  Exact enumerates all 2^N sign patterns for one-sample\n"
 "                      tests and all choose(NA+NB,NA) group assignments for\n"
 "                      two-sample contrasts. Random uses -niter draws.\n"
@@ -290,8 +297,8 @@ static void shuffle_help(void)
 "  The z is encoded so that AFNI's own FIZT reading of it -- which is\n"
 "  two-sided -- reports back the empirical permutation p-value in these\n"
 "  bricks. 3dPval on a z brick returns the matching p_unc/p_fwe value.\n"
-"  With -tails one only the tested direction is inferable, so those z\n"
-"  bricks are non-negative; use -tails two to see the opposite direction.\n"
+"  With 1sided only the tested direction is inferable, so those z\n"
+"  bricks are non-negative; use 2sided to see the opposite direction.\n"
 "\n"
 "  Each two-sample contrast produces 18 sub-bricks, in this order:\n"
 "    GrpA_mean GrpA_t GrpA_p_unc GrpA_p_fwe GrpA_z_unc GrpA_z_fwe\n"
@@ -303,7 +310,7 @@ static void shuffle_help(void)
 "\n"
 "IMPORTANT resolution ceiling:\n"
 "  With exact sign-flip enumeration, the smallest achievable p-value is\n"
-"  2/2^Nsubj for -tails two and 1/2^Nsubj for -tails one.\n"
+"  2/2^Nsubj for 2sided and 1/2^Nsubj for 1sided.\n"
 "  Exact two-sample contrast resolution is likewise limited by the number\n"
 "  of fixed-size assignments: choose(NA+NB,NA).\n"
 "\n"
@@ -557,15 +564,32 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
          nopt++; continue;
       }
 
-      if( strcmp(argv[nopt],"-tails") == 0 ){
-         if( ++nopt >= argc ) ERROR_exit("need an argument after -tails");
-         if( strcmp(argv[nopt],"two") == 0 ) opts->tails = TAIL_TWO;
-         else if( strcmp(argv[nopt],"one") == 0 ) opts->tails = TAIL_ONE;
+      /* -sided is the preferred spelling, and 1sided/2sided match the
+         keywords used by 3dClustSim, p2dsetstat, dsetstat2p and friends,
+         so a script can pass the same word to any of them. -tails and
+         its one/two values are kept working so older scripts do not
+         break. */
+      if( strcmp(argv[nopt],"-sided") == 0 || strcmp(argv[nopt],"-tails") == 0 ){
+         char *onam = argv[nopt];
+         if( ++nopt >= argc ) ERROR_exit("need an argument after %s",onam);
+         if( strcmp(argv[nopt],"2sided") == 0 || strcmp(argv[nopt],"two") == 0 )
+            opts->tails = TAIL_TWO;
+         else if( strcmp(argv[nopt],"1sided") == 0 || strcmp(argv[nopt],"one") == 0 )
+            opts->tails = TAIL_ONE;
+         else if( strcmp(argv[nopt],"bisided") == 0 )
+            /* bisided keeps a separate null for each tail. That differs
+               from 2sided even voxelwise, so aliasing it would quietly
+               return something else than asked for. */
+            ERROR_exit("%s bisided is not implemented. 3dShuffle corrects "
+                       "voxelwise against one max-statistic distribution; "
+                       "bisided would need a separate null per tail.\n"
+                       "   Use 2sided, or 1sided twice with the contrast "
+                       "reversed to test each direction on its own.",onam);
          else if( strcmp(argv[nopt],"upper") == 0 || strcmp(argv[nopt],"lower") == 0 )
-            ERROR_exit("-tails upper/lower has been replaced by -tails one. "
+            ERROR_exit("%s upper/lower has been replaced by %s 1sided. "
                        "Use contrast order to set direction: -contrast A B "
-                       "tests A>B with -tails one.");
-         else ERROR_exit("-tails must be one of: two one");
+                       "tests A>B with %s 1sided.",onam,onam,onam);
+         else ERROR_exit("%s must be one of: 1sided 2sided",onam);
          nopt++; continue;
       }
 
@@ -921,9 +945,9 @@ static void print_sanity(opts_t *opts)
                                     "equal (pooled; default)");
    else
       INFO_message("Subjects:     %d per input list", opts->nsubj);
-   INFO_message("Tails:        %s", opts->tails == TAIL_TWO ? "two" : "one");
+   INFO_message("Sidedness:    %s", opts->tails == TAIL_TWO ? "2sided" : "1sided");
    if( opts->tails == TAIL_ONE )
-      INFO_message("One-tailed direction: %s",
+      INFO_message("1sided direction: %s",
                    opts->stat == STAT_ONESAMPLE ? "positive condition mean" :
                                                   "positive for each contrast A-B");
    INFO_message("Mode:         %s", opts->mode == MODE_EXACT ? "exact" : "random");
@@ -1099,42 +1123,53 @@ static float emp_p_from_sorted(float *sorted, int nperm, float obs, int exact)
 --------------------------------------------------------------------- */
 /* Convert an empirical p-value to a signed z-score for output bricks.
 
-   Two constraints have to hold at once, and qginv(p/2) is the mapping
-   that satisfies both for either tail mode.
+   Two constraints have to hold at once, and THD_pval_to_stat() with the
+   FIZT stat code satisfies both for either tail mode.
 
    First, these bricks are tagged FIZT, and AFNI reads a FIZT statistic
-   as a TWO-SIDED normal deviate: it reports 2*(1-Phi(|z|)). Encoding z
-   as qginv(p/2) is exactly the inverse of that, so the p AFNI shows on
-   the threshold slider is the empirical permutation p this program
-   computed. Using qginv(p) instead -- the "natural" one-sided z -- makes
-   AFNI report 2p, i.e. double the true value, which is wrong no matter
-   how significant the voxel is.
+   as a TWO-SIDED normal deviate: it reports 2*(1-Phi(|z|)). AFNI's own
+   p-to-stat routine for that code halves p before inverting, so it is
+   exactly the inverse of how AFNI will read the brick back, and the p
+   shown on the threshold slider is the empirical permutation p this
+   program computed. Encoding the "natural" one-sided z instead would
+   make AFNI report 2p, i.e. double the true value, no matter how
+   significant the voxel is.
 
    Second, AFNI's slider ranks voxels by |z|, so |z| has to mean strength
-   of evidence and nothing else. qginv(p/2) decreases monotonically over
-   p in [0,1] and reaches exactly 0 at p=1, so a voxel with no evidence
-   thresholds away first rather than outranking real findings. It also
-   stays non-negative, so for -tails one -- where only the tested
-   direction is inferable -- the z bricks carry no misleading sign. For
-   -tails two the observed statistic's sign is applied afterwards, purely
-   to show the direction of a result that already has evidence behind it.
+   of evidence and nothing else. That mapping decreases monotonically
+   over p in [0,1] and reaches exactly 0 at p=1, so a voxel with no
+   evidence thresholds away first rather than outranking real findings.
+   It also stays non-negative, so for a one-sided test -- where only the
+   tested direction is inferable -- the z bricks carry no misleading
+   sign. For a two-sided test the observed statistic's sign is applied
+   afterwards, purely to show the direction of a result that already has
+   evidence behind it.
 
    The lower clamp is tied to nperm, the number of permutations actually
    drawn. A fixed constant far below 1/nperm (e.g. 1e-15) is not a real
    achievable p-value for this test. */
 static float p_to_signed_z(float pval, float observed_stat, tail_code tails, int nperm)
 {
-   double p, z;
+   double p;
+   float z;
    double pmin = (nperm > 0) ? 1.0/(2.0*(double)nperm) : 1.0e-15;
 
    p = (double)pval;
    if( p < pmin ) p = pmin;
    if( p > 1.0 )  p = 1.0;
 
-   z = qginv(p / 2.0);
+   /* Let AFNI do the conversion for the very stat code these bricks are
+      tagged with, rather than open-coding the normal quantile here. For
+      FUNC_ZT_TYPE that routes to normal_p2t(), which halves p before
+      inverting -- the two-sided convention AFNI reads FIZT back with --
+      so the encoding cannot drift from whatever AFNI considers correct
+      for this stat code. stataux is unused for FUNC_ZT_TYPE, and
+      THD_pval_to_stat() explicitly accepts NULL for that case. */
+   z = THD_pval_to_stat((float)p, FUNC_ZT_TYPE, NULL);
+
    if( tails == TAIL_TWO && observed_stat < 0.0f ) z = -z;
 
-   return (float)z;
+   return z;
 }
 
 /* Advance a sorted k-element combination drawn from 0..n-1. */
