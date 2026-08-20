@@ -166,7 +166,7 @@ PROGS_4  = 3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip       \
            3dExtractGroupInCorr dcm2niix_afni 3dTto1D 3dBrainSync 3dGrayplot  \
            1dsound afni_check_omp 3dPVmap 3dExchange 3dEdu_01_scale 3dDiff    \
            get_afni_model_PRF get_afni_model_PRF_6 get_afni_model_PRF_6_BAD   \
-           3dedgedog p2dsetstat dsetstat2p get_afni_model_PRF_DN              \
+           3dedgedog p2dsetstat dsetstat2p get_afni_model_PRF_DN 3dShuffle    \
            $(EXTRAS)
 
 progs_1:$(PROGS_1)
@@ -1237,6 +1237,10 @@ qm:qm.o
 3dSharpen:3dSharpen.o
 	$(RM) $@
 	$(CC) -o 3dSharpen 3dSharpen.o $(LFLAGS) $(LLIBS)
+
+3dShuffle:3dShuffle.o
+	$(RM) $@
+	$(CC) -o 3dShuffle 3dShuffle.o $(LFLAGS) $(LLIBS)
 
 rotcom:rotcom.o
 	$(RM) $@
@@ -4315,4 +4319,3 @@ AFNI_version.txt: AFNI_version_base.txt
 	date +'%b %d %Y' >> AFNI_version.txt ;           \
 	echo $(AFNI_WHOMADEIT) >> AFNI_version.txt ;     \
 	)
-
