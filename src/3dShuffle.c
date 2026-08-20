@@ -43,6 +43,14 @@
    choose(NA+NB,NA) and so allows about 33 datasets in total. */
 #define EXACT_MAX_SIGNFLIP_N 30
 
+/* Stand-in for an infinite t-statistic: every observation identical and
+   nonzero, so the effect is perfectly consistent and the denominator
+   vanishes. A finite sentinel is used rather than INFINITY so the value
+   can be written into a float stat brick and compared normally; it is
+   far above any t real data produces, so it sorts to the top of the
+   permutation distribution as an infinite statistic should. */
+#define ZEROVAR_TSTAT 1.0e20f
+
 typedef enum {
    TAIL_TWO = 0,
    TAIL_ONE
@@ -259,6 +267,12 @@ static void shuffle_help(void)
 "                      do not use this brick for permutation inference.\n"
 "                      Welch contrast t bricks are not stat-coded because\n"
 "                      their degrees of freedom vary by voxel.\n"
+"                      A voxel whose inputs are identical across every\n"
+"                      dataset, with a nonzero effect, has no denominator\n"
+"                      and so an infinite t; it is stored as 1e20 and\n"
+"                      reported in a warning. Its permutation p-value is\n"
+"                      still bounded normally, but such voxels usually\n"
+"                      mean a constant region slipped inside the mask.\n"
 "    CON_p_unc         voxelwise empirical p-value (uncorrected)\n"
 "    CON_p_fwe         max-stat FWE-corrected empirical p-value\n"
 "    CON_z_unc         signed z equivalent of CON_p_unc, tagged FIZT so\n"
@@ -320,6 +334,15 @@ static void shuffle_help(void)
 "  relabelings, the run switches to exact. Drawing 10000 samples from a\n"
 "  group of 256 revisits some and misses others, so it costs 39 times as\n"
 "  much as enumerating them and returns a noisier p-value.\n"
+"\n"
+"  That switch is decided once for the whole run, and it compares -niter\n"
+"  against the LARGEST relabeling count among the tests being computed.\n"
+"  When one design mixes very different group sizes, a small test can\n"
+"  therefore stay random even though -niter would have covered its\n"
+"  relabelings many times over, because some other test in the same run\n"
+"  needs the sampling. Those p-values are still valid -- sampled rather\n"
+"  than enumerated. Run a test on its own if you want it enumerated\n"
+"  exactly.\n"
 "\n"
    , DEFAULT_NITER, DEFAULT_NITER, EXACT_MAX_SIGNFLIP_N, DEFAULT_NITER);
    PRINT_AFNI_OMP_USAGE(PROGRAM_NAME,NULL);
@@ -995,7 +1018,17 @@ static float one_sample_t(float *values, int nsubj, byte *flip, float *mean_out)
    if( mean_out != NULL ) *mean_out = (float)mean;
    if( nsubj < 2 ) return 0.0f;
    var = ss / (nsubj-1);
-   if( var <= 0.0 ) return 0.0f;
+   if( var <= 0.0 ){
+      /* Every value identical. That is 0/0 -- a genuine null -- only when
+         they are all zero; a nonzero common value is a perfectly
+         consistent effect divided by no spread, i.e. an infinite t.
+         Returning 0 for both would report the second case as maximally
+         non-significant. Sign flips break the tie for all but the two
+         all-same patterns, so the permutation distribution still bounds
+         the resulting p-value rather than declaring certainty. */
+      if( mean == 0.0 || !isfinite(mean) ) return 0.0f;
+      return (mean > 0.0) ? ZEROVAR_TSTAT : -ZEROVAR_TSTAT;
+   }
    return (float)(mean / sqrt(var/nsubj));
 }
 
@@ -1195,8 +1228,35 @@ static float two_sample_t(float **combined, int ntot, int na, byte *in_a,
       double pooled = ((na-1)*va + (nb-1)*vb)/(ntot-2);
       denom = sqrt(pooled*(1.0/na + 1.0/nb));
    }
-   if( denom <= 0.0 || !isfinite(denom) ) return 0.0f;
+   if( !isfinite(denom) ) return 0.0f;
+   if( denom <= 0.0 ){
+      /* Both groups constant. Same distinction as in one_sample_t(): a
+         zero difference is a genuine null, a nonzero one is an infinite
+         t rather than a null result. */
+      double diff = ma - mb;
+      if( diff == 0.0 || !isfinite(diff) ) return 0.0f;
+      return (diff > 0.0) ? ZEROVAR_TSTAT : -ZEROVAR_TSTAT;
+   }
    return (float)((ma-mb)/denom);
+}
+
+/* Report voxels whose observed statistic came back as ZEROVAR_TSTAT.
+   These are real results, but they always mean the inputs were constant
+   across every dataset there, which in practice usually points at a
+   degenerate region inside the mask rather than at a finding. */
+static void warn_zero_variance(test_output_t *out, byte *mask, int nvox,
+                               const char *label)
+{
+   int iv, ndegen = 0;
+   for( iv=0 ; iv < nvox ; iv++ )
+      if( mask[iv] && fabsf(out->tstat[iv]) >= ZEROVAR_TSTAT ) ndegen++;
+   if( ndegen > 0 )
+      WARNING_message(
+         "%s: %d voxel%s identical across all inputs with a nonzero effect, "
+         "so the t-statistic is infinite (stored as %g).\n"
+         "   The permutation p-value still bounds these, but check for "
+         "constant or degenerate regions inside the mask.",
+         label, ndegen, (ndegen == 1) ? " is" : "s are", ZEROVAR_TSTAT);
 }
 
 /* Convert permutation exceedance counts into p and signed-z output bricks.
@@ -1260,6 +1320,7 @@ static void run_signflip_test(float **group_a, float **group_b, int nsubj,
       obs_cmp[iv] = tail_value(out->tstat[iv],opts->tails);
    }
    free(values);
+   warn_zero_variance(out,mask,nvox,label);
 
    /* Permutations are independent given their own scratch buffers and
       RNG stream, so each thread runs a disjoint slice of them and
@@ -1363,6 +1424,7 @@ static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
                                     opts->unpooled,&out->mean[iv]);
       obs_cmp[iv] = tail_value(out->tstat[iv],opts->tails);
    }
+   warn_zero_variance(out,mask,nvox,label);
 
    /* Exact-mode combinations are generated by next_combination(), which
       mutates its state from the previous combination and so can't be
