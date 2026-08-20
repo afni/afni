@@ -3938,7 +3938,8 @@ libGLws.a:
 
 SUMA_PROGS = suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset         \
    3dVol2Surf 3dSurf2Vol SurfMeasures SurfFWHM ConvertSurface ConvertDset     \
-   SurfClust IsoSurface ConvexHull MapIcosahedron CreateIcosahedron           \
+   SurfClust SurfClustSim IsoSurface ConvexHull MapIcosahedron               \
+   CreateIcosahedron                                                          \
    SurfaceMetrics SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual \
    SampBias 3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask      \
    SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace        \
@@ -3969,7 +3970,8 @@ suma_exec:libGLws.a $(LIBSUMA_OBJ) libtracktools.a $(LIBMRI_OBJ) xutil.o \
 	'RANLIB=$(RANLIB)'                                             \
         'NETPBMDIR=$(NETPBMDIR)'                                       \
         'MAKE=$(MAKE)'                                             \
-	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)' \
+	'CC=$(CC)' 'OMPFLAG=$(OMPFLAG)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)'  \
+	'MV=$(MV)' 'CP=$(CP)'                                         \
     'CPU_TYPE=$(CPU_TYPE)'                                         \
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	                               \
 	cd ../	;)
@@ -3990,7 +3992,8 @@ suma_gts_progs: libgts.a
             'NETPBMDIR=$(NETPBMDIR)'                                         \
             'MAKE=$(MAKE)'                                                   \
            	'CPU_TYPE=$(CPU_TYPE)'                                           \
-            'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'   \
+            'CC=$(CC)' 'OMPFLAG=$(OMPFLAG)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)'    \
+            'MV=$(MV)' 'CP=$(CP)'                                             \
             'TAR=$(TAR)' 'MKDIR=$(MKDIR)';                                   \
 	cd ../	;)
 
@@ -4010,7 +4013,8 @@ suma_all:$(LIBMRI_OBJ) libtracktools.a xutil.o LiteClue.o parser.o parser_int.o 
             'NETPBMDIR=$(NETPBMDIR)'                                         \
             'MAKE=$(MAKE)'                                                   \
             'MRI_SHARED=$(MRI_SHARED)'                                       \
-            'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'   \
+            'CC=$(CC)' 'OMPFLAG=$(OMPFLAG)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)'    \
+            'MV=$(MV)' 'CP=$(CP)'                                             \
             'CPU_TYPE=$(CPU_TYPE)'                                           \
             'TAR=$(TAR)' 'MKDIR=$(MKDIR)';                                   \
 	cd ../	;)
@@ -4062,6 +4066,8 @@ suma_clean:
 	if [ -f SUMA/ConvertDset ]; then $(RM) SUMA/ConvertDset; fi;
 	if [ -f SurfClust ]; then $(RM) SurfClust; fi;
 	if [ -f SUMA/SurfClust ]; then $(RM) SUMA/SurfClust; fi;
+	if [ -f SurfClustSim ]; then $(RM) SurfClustSim; fi;
+	if [ -f SUMA/SurfClustSim ]; then $(RM) SUMA/SurfClustSim; fi;
 	if [ -f IsoSurface ]; then $(RM) IsoSurface; fi;
 	if [ -f SUMA/IsoSurface ]; then $(RM) SUMA/IsoSurface; fi;
 	if [ -f ConvexHull ]; then $(RM) ConvexHull; fi;
@@ -4162,7 +4168,8 @@ suma_link:
             $(LIBF2C_OBJ) ../ ;                                                \
 	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol              \
             SurfMeasures SurfFWHM ScaleToMap MapIcosahedron CreateIcosahedron  \
-            CompareSurfaces ConvertSurface ConvertDset SurfClust IsoSurface    \
+            CompareSurfaces ConvertSurface ConvertDset SurfClust             \
+            SurfClustSim IsoSurface                                           \
             ConvexHull SurfaceMetrics SurfSmooth inspec                        \
             quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip    \
             3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask SurfToSurf         \
@@ -4174,7 +4181,8 @@ suma_link:
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap              	    \
             ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures SurfFWHM \
             MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface    \
-            ConvertDset SurfClust IsoSurface ConvexHull SurfaceMetrics         \
+            ConvertDset SurfClust SurfClustSim IsoSurface ConvexHull          \
+            SurfaceMetrics                                                     \
             SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual        \
             SampBias 3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI         \
             3dSurfMask SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo  \
@@ -4193,7 +4201,8 @@ suma_link:
         'NETPBMDIR=$(NETPBMDIR)'                                               \
         'MAKE=$(MAKE)'                                                     \
 	'MRI_SHARED=$(MRI_SHARED)'                                             \
-	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'         \
+	'CC=$(CC)' 'OMPFLAG=$(OMPFLAG)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)'          \
+	'MV=$(MV)' 'CP=$(CP)'                                                   \
     'CPU_TYPE=$(CPU_TYPE)'                                                 \
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	                                       \
 	cd ../	;)
@@ -4206,7 +4215,8 @@ suma_install:
               SUMA/3dSurf2Vol SUMA/SurfMeasures SUMA/SurfFWHM                  \
               SUMA/ScaleToMap SUMA/MapIcosahedron SUMA/CreateIcosahedron       \
               SUMA/CompareSurfaces SUMA/ConvertSurface SUMA/ConvertDset        \
-              SUMA/SurfClust SUMA/IsoSurface SUMA/ConvexHull SUMA/SUMA_glxdino \
+              SUMA/SurfClust SUMA/SurfClustSim SUMA/IsoSurface                 \
+              SUMA/ConvexHull SUMA/SUMA_glxdino                                \
               SUMA/SUMA_pixmap2eps SUMA/SurfaceMetrics SUMA/inspec             \
               SUMA/quickspec SUMA/FSread_annot SUMA/SurfPatch SUMA/SurfQual    \
               SUMA/SurfSmooth SUMA/SUMA_paperplane SUMA/SampBias               \
@@ -4315,4 +4325,3 @@ AFNI_version.txt: AFNI_version_base.txt
 	date +'%b %d %Y' >> AFNI_version.txt ;           \
 	echo $(AFNI_WHOMADEIT) >> AFNI_version.txt ;     \
 	)
-

@@ -689,6 +689,7 @@ to3d, gui
 3dSeg, suma
 3dSkullStrip, suma
 3dSurf2Vol, suma
+SurfClustSim, suma
 3dSurfMask, suma
 3dVol2Surf, suma
 3dinfill, suma
