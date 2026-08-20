@@ -344,6 +344,8 @@ static void shuffle_help(void)
 "  than enumerated. Run a test on its own if you want it enumerated\n"
 "  exactly.\n"
 "\n"
+"Author: P. Molfese, August 2026\n"
+"\n"
    , DEFAULT_NITER, DEFAULT_NITER, EXACT_MAX_SIGNFLIP_N, DEFAULT_NITER);
    PRINT_AFNI_OMP_USAGE(PROGRAM_NAME,NULL);
    PRINT_COMPILE_DATE;
