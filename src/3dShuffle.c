@@ -103,12 +103,6 @@ typedef struct {
    mode_code mode;
    stat_code stat;
    method_code method;
-   int tfce;            /* -tfce was given */
-   float tfce_H;         /* height exponent, default 2.0 */
-   float tfce_E;         /* extent exponent, default 0.5 */
-   float tfce_dh;        /* integration step; 0 means auto (obs max / 100) */
-   int tfce_conn;        /* voxel connectivity: 6, 18, or 26 */
-   int nx, ny, nz;       /* grid dimensions, set from the first dataset */
 } opts_t;
 
 typedef struct {
@@ -250,33 +244,6 @@ static void shuffle_help(void)
 "                      Default: %d. Ignored by -mode exact.\n"
 "  -seed S             Random seed for -mode random. Default: 1234567.\n"
 "\n"
-"Threshold-free cluster enhancement (Smith & Nichols, 2009):\n"
-"  -tfce               Replace the raw per-voxel statistic with its TFCE\n"
-"                      score before running the max-stat permutation\n"
-"                      correction. Works with every -stat. For -stat\n"
-"                      twosample this enhances the GrpA/GrpB one-sample\n"
-"                      sub-tests and the CON contrast independently, each\n"
-"                      with its own six-brick TFCE-based correction. TFCE\n"
-"                      aggregates spatial support from neighboring voxels\n"
-"                      instead of requiring a single voxel to beat the\n"
-"                      maximum across the whole analysis volume, which is\n"
-"                      what raw voxel-wise max-stat FWE correction demands\n"
-"                      and which makes it extremely conservative at\n"
-"                      whole-brain scale. CON_mean and CON_t (and their\n"
-"                      GrpA/GrpB equivalents) stay the ordinary observed\n"
-"                      values; only p_unc/p_fwe/z_unc/z_fwe are computed\n"
-"                      from TFCE scores instead of the raw statistic.\n"
-"  -tfce_H h            TFCE height exponent. Default: 2.0 (FSL's default).\n"
-"  -tfce_E e            TFCE extent exponent. Default: 0.5 (FSL's default).\n"
-"  -tfce_dh d           TFCE integration step size. Default: the observed\n"
-"                      map's peak statistic / 100, matching FSL's usual\n"
-"                      resolution. A smaller step increases run time.\n"
-"  -tfce_conn 6|18|26   Voxel connectivity for cluster extent. Default: 18.\n"
-"                      TFCE recomputes a full spatial cluster sweep for\n"
-"                      every permutation, which costs meaningfully more than\n"
-"                      the ordinary max-stat correction -- expect a run to\n"
-"                      take noticeably longer with -tfce than without it.\n"
-"\n"
 "Masking:\n"
 "  -mask MASK          Restrict analysis to nonzero voxels in MASK.\n"
 "                      This is strongly recommended for group analyses.\n"
@@ -307,6 +274,14 @@ static void shuffle_help(void)
 "                      *** THRESHOLD ON THIS BRICK FOR REPORTED RESULTS ***\n"
 "                      It is whole-brain FWE-corrected already; no\n"
 "                      further cluster correction is required.\n"
+"\n"
+"  In both z bricks, |z| is the strength of the evidence and the sign is\n"
+"  only the direction of the effect, so the AFNI slider (which ranks by\n"
+"  |z|) removes the weakest voxels first. Voxels with no evidence sit at\n"
+"  z = 0, the same value written outside the mask. With -tails one only\n"
+"  the tested direction is inferable, so every p >= 0.5 lands at z = 0\n"
+"  and the z bricks are non-negative; use -tails two if you want the\n"
+"  opposite direction shown as well.\n"
 "\n"
 "  Each two-sample contrast produces 18 sub-bricks, in this order:\n"
 "    GrpA_mean GrpA_t GrpA_p_unc GrpA_p_fwe GrpA_z_unc GrpA_z_fwe\n"
@@ -382,10 +357,6 @@ static void init_opts(opts_t *opts)
    opts->stat = STAT_PAIRED;
    opts->method = METHOD_SIGNFLIP;
    opts->seed = 1234567L;
-   opts->tfce_H = 2.0f;
-   opts->tfce_E = 0.5f;
-   opts->tfce_dh = 0.0f;
-   opts->tfce_conn = 18;
 }
 
 /* Build a sanitized output label for a contrast name. */
@@ -565,46 +536,6 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
          nopt++; continue;
       }
 
-      if( strcmp(argv[nopt],"-tfce") == 0 ){
-         opts->tfce = 1;
-         nopt++; continue;
-      }
-
-      if( strcmp(argv[nopt],"-tfce_H") == 0 ){
-         char *end = NULL;
-         if( ++nopt >= argc ) ERROR_exit("need an argument after -tfce_H");
-         opts->tfce_H = (float)strtod(argv[nopt],&end);
-         if( end == argv[nopt] || opts->tfce_H <= 0.0f )
-            ERROR_exit("bad value after -tfce_H: %s",argv[nopt]);
-         nopt++; continue;
-      }
-
-      if( strcmp(argv[nopt],"-tfce_E") == 0 ){
-         char *end = NULL;
-         if( ++nopt >= argc ) ERROR_exit("need an argument after -tfce_E");
-         opts->tfce_E = (float)strtod(argv[nopt],&end);
-         if( end == argv[nopt] || opts->tfce_E <= 0.0f )
-            ERROR_exit("bad value after -tfce_E: %s",argv[nopt]);
-         nopt++; continue;
-      }
-
-      if( strcmp(argv[nopt],"-tfce_dh") == 0 ){
-         char *end = NULL;
-         if( ++nopt >= argc ) ERROR_exit("need an argument after -tfce_dh");
-         opts->tfce_dh = (float)strtod(argv[nopt],&end);
-         if( end == argv[nopt] || opts->tfce_dh <= 0.0f )
-            ERROR_exit("bad value after -tfce_dh: %s",argv[nopt]);
-         nopt++; continue;
-      }
-
-      if( strcmp(argv[nopt],"-tfce_conn") == 0 ){
-         if( ++nopt >= argc ) ERROR_exit("need an argument after -tfce_conn");
-         opts->tfce_conn = parse_int_arg(argv[nopt],"-tfce_conn");
-         if( opts->tfce_conn != 6 && opts->tfce_conn != 18 && opts->tfce_conn != 26 )
-            ERROR_exit("-tfce_conn must be 6, 18, or 26");
-         nopt++; continue;
-      }
-
       if( strcmp(argv[nopt],"-tails") == 0 ){
          if( ++nopt >= argc ) ERROR_exit("need an argument after -tails");
          if( strcmp(argv[nopt],"two") == 0 ) opts->tails = TAIL_TWO;
@@ -683,10 +614,6 @@ static void parse_opts(int argc, char **argv, opts_t *opts)
    if( opts->auto_mask && opts->mask_name != NULL )
       ERROR_exit("-automask and -mask cannot be used together");
    if( opts->prefix == NULL ) ERROR_exit("need -prefix");
-   if( !opts->tfce && (opts->tfce_H != 2.0f || opts->tfce_E != 0.5f ||
-                       opts->tfce_dh != 0.0f || opts->tfce_conn != 18) )
-      WARNING_message("-tfce_H/-tfce_E/-tfce_dh/-tfce_conn have no effect "
-                      "without -tfce");
 
    opts->ntotal = 0;
    for( ii=0 ; ii < opts->ncond ; ii++ ){
@@ -1141,25 +1068,40 @@ static float emp_p_from_sorted(float *sorted, int nperm, float obs, int exact)
 --------------------------------------------------------------------- */
 /* Convert an empirical p-value to a signed z-score for output bricks.
 
-   The clamp away from 0/1 has to be tied to nperm, the number of
-   permutations actually drawn. A fixed constant far below 1/nperm (e.g.
-   1e-15) is not a real achievable p-value for this test: clamping p=1.0
-   (the least significant result the test can report) against it produces
-   a huge-magnitude z that looks like a strong result on a |z| threshold,
-   when it actually means "did not beat a single permutation." */
+   The governing constraint is that AFNI's threshold slider ranks voxels
+   by |z|, so |z| has to mean "strength of evidence" and nothing else.
+   A voxel with no evidence must land near 0 so it thresholds away first;
+   the sign is only there to show the direction of a result that already
+   has evidence behind it.
+
+   The lower clamp is tied to nperm, the number of permutations actually
+   drawn. A fixed constant far below 1/nperm (e.g. 1e-15) is not a real
+   achievable p-value for this test.
+
+   The p=1 end matters just as much, and the two tail modes have to reach
+   0 by different routes. Two-tailed gets there on its own: p=1 gives
+   qginv(0.5) = 0. One-tailed does not -- qginv(p) runs off to large
+   NEGATIVE values as p approaches 1, so the least significant voxels in
+   the map would come out with the largest |z| of all, ranking above
+   genuine findings on the slider and vanishing together in one step.
+   Since -tails one tests a single direction, p >= 0.5 means "no evidence
+   in the tested direction" and carries no inference at all, so it
+   collapses to z = 0 -- matching both the two-tailed branch and the
+   z = 0 already written for out-of-mask voxels. */
 static float p_to_signed_z(float pval, float observed_stat, tail_code tails, int nperm)
 {
    double p, z;
    double pmin = (nperm > 0) ? 1.0/(2.0*(double)nperm) : 1.0e-15;
 
    p = (double)pval;
-   if( p < pmin )        p = pmin;
-   if( p > 1.0 - pmin )  p = 1.0 - pmin;
+   if( p < pmin ) p = pmin;
+   if( p > 1.0 )  p = 1.0;
 
    if( tails == TAIL_TWO ){
       z = qginv(p / 2.0);
       if( observed_stat < 0.0f ) z = -z;
    } else {
+      if( p > 0.5 ) p = 0.5;
       z = qginv(p);
    }
 
@@ -1240,11 +1182,11 @@ static float two_sample_t(float **combined, int ntot, int na, byte *in_a,
 }
 
 /* Convert permutation exceedance counts into p and signed-z output bricks.
-   obs_cmp holds the per-voxel value ranked against max_null: tail_value()
-   of the raw statistic in the ordinary path, or the TFCE-enhanced score
-   when -tfce is in effect. The raw statistic's sign (out->tstat) still
-   drives the two-tailed z-score sign, regardless of which value was used
-   for ranking. */
+   obs_cmp holds the per-voxel observed value ranked against max_null,
+   i.e. tail_value() of the observed statistic, precomputed once by the
+   caller so the permutation loop does not redo it per voxel per
+   iteration. The signed statistic (out->tstat) still drives the
+   two-tailed z-score sign. */
 static void finish_permutation_output(test_output_t *out, byte *mask, int nvox,
                                       int *unc_count, float *max_null, int nperm,
                                       float *obs_cmp, opts_t *opts)
@@ -1266,165 +1208,6 @@ static void finish_permutation_output(test_output_t *out, byte *mask, int nvox,
       out->z_unc[iv] = p_to_signed_z(out->p_unc[iv],out->tstat[iv],opts->tails,nperm);
       out->z_fwe[iv] = p_to_signed_z(out->p_fwe[iv],out->tstat[iv],opts->tails,nperm);
    }
-}
-
-/* ---------------------------------------------------------------------
-   TFCE (threshold-free cluster enhancement, Smith & Nichols 2009).
-   Replaces each voxel's statistic with an integral over cluster extent
-   at every threshold up to that voxel's own value:
-      TFCE(v) = sum_{h=dh,2dh,...} extent(h,v)^E * h^H * dh
-   where extent(h,v) is the size of the supra-threshold cluster
-   containing v at threshold h (0 if v's own value is below h).
-
-   Implemented as a fixed-height sweep from high to low, with an
-   incrementally-maintained union-find tracking cluster membership and
-   size as voxels activate. At every height step, every currently-active
-   voxel's current cluster size is looked up and its contribution added.
-   That makes this O(nsteps * navtive-per-step), worst case O(nsteps *
-   nvox) -- adequate for the grid sizes and permutation counts this
-   program targets, but the first thing to revisit if TFCE proves too
-   slow on very large runs.
---------------------------------------------------------------------- */
-
-/* Union-find root of ii, with path compression. */
-static int tfce_find(int *parent, int ii)
-{
-   int root = ii, tmp;
-   while( parent[root] != root ) root = parent[root];
-   while( parent[ii] != root ){ tmp = parent[ii]; parent[ii] = root; ii = tmp; }
-   return root;
-}
-
-/* Union by size; returns the new root. */
-static int tfce_union(int *parent, int *size, int aa, int bb)
-{
-   int ra = tfce_find(parent,aa), rb = tfce_find(parent,bb);
-   if( ra == rb ) return ra;
-   if( size[ra] < size[rb] ){ int tmp = ra; ra = rb; rb = tmp; }
-   parent[rb] = ra;
-   size[ra] += size[rb];
-   return ra;
-}
-
-/* Fill offs[][3] with the (dx,dy,dz) neighbor offsets for 6/18/26-voxel
-   connectivity; returns the number of offsets filled. */
-static int tfce_neighbor_offsets(int conn, int offs[][3])
-{
-   int dx, dy, dz, nfaces, n = 0;
-   for( dz=-1 ; dz<=1 ; dz++ )
-   for( dy=-1 ; dy<=1 ; dy++ )
-   for( dx=-1 ; dx<=1 ; dx++ ){
-      nfaces = (dx!=0)+(dy!=0)+(dz!=0);
-      if( nfaces == 0 ) continue;
-      if( conn == 6  && nfaces != 1 ) continue;
-      if( conn == 18 && nfaces == 3 ) continue;
-      offs[n][0] = dx; offs[n][1] = dy; offs[n][2] = dz; n++;
-   }
-   return n;
-}
-
-typedef struct { float val; int idx; } tfce_pair_t;
-
-/* Sort descending by value, for qsort. */
-static int cmp_tfce_pair(const void *a, const void *b)
-{
-   float aa = ((const tfce_pair_t *)a)->val, bb = ((const tfce_pair_t *)b)->val;
-   return (aa < bb) - (aa > bb);
-}
-
-/* Enhance the positive side of stat[] into tfce_out[], which the caller
-   must have zeroed first. Voxels with stat<=0, or outside mask, never
-   activate and are left at 0. */
-static void tfce_enhance_positive(float *stat, byte *mask, int nx, int ny, int nz,
-                                  float H, float E, float dh, int conn,
-                                  float *tfce_out)
-{
-   int nvox = nx*ny*nz;
-   int offs[26][3];
-   int noff, ii, jj, kk, np, nsteps, pos, nactive, iv, rr;
-   int i0, j0, k0, ni, nj, nk, nb;
-   float maxval, h, hH;
-   tfce_pair_t *order;
-   int *parent, *size, *active_list;
-   byte *active;
-
-   noff = tfce_neighbor_offsets(conn,offs);
-
-   maxval = 0.0f;
-   for( ii=0 ; ii < nvox ; ii++ )
-      if( mask[ii] && stat[ii] > maxval ) maxval = stat[ii];
-   if( maxval <= 0.0f ) return;
-
-   if( dh <= 0.0f ) dh = maxval/100.0f;
-   nsteps = (int)ceil(maxval/dh);
-   if( nsteps < 1 ) nsteps = 1;
-
-   order = (tfce_pair_t *)malloc(sizeof(tfce_pair_t)*nvox);
-   parent = (int *)malloc(sizeof(int)*nvox);
-   size = (int *)malloc(sizeof(int)*nvox);
-   active = (byte *)calloc(nvox,sizeof(byte));
-   active_list = (int *)malloc(sizeof(int)*nvox);
-   if( order==NULL || parent==NULL || size==NULL || active==NULL || active_list==NULL )
-      ERROR_exit("malloc failure in tfce_enhance_positive");
-
-   np = 0;
-   for( ii=0 ; ii < nvox ; ii++ ){
-      parent[ii] = ii; size[ii] = 0;
-      if( mask[ii] && stat[ii] > 0.0f ){ order[np].val = stat[ii]; order[np].idx = ii; np++; }
-   }
-   qsort(order,np,sizeof(tfce_pair_t),cmp_tfce_pair);
-
-   pos = 0; nactive = 0;
-   for( kk=nsteps ; kk>=1 ; kk-- ){
-      h = kk*dh;
-      while( pos < np && order[pos].val >= h ){
-         iv = order[pos].idx;
-         i0 = iv % nx; j0 = (iv/nx) % ny; k0 = iv/(nx*ny);
-         active[iv] = 1; parent[iv] = iv; size[iv] = 1;
-         active_list[nactive++] = iv;
-         for( jj=0 ; jj < noff ; jj++ ){
-            ni = i0+offs[jj][0]; nj = j0+offs[jj][1]; nk = k0+offs[jj][2];
-            if( ni<0 || ni>=nx || nj<0 || nj>=ny || nk<0 || nk>=nz ) continue;
-            nb = ni + nx*(nj + ny*nk);
-            if( active[nb] ) tfce_union(parent,size,iv,nb);
-         }
-         pos++;
-      }
-      hH = powf(h,H);
-      for( jj=0 ; jj < nactive ; jj++ ){
-         iv = active_list[jj];
-         rr = tfce_find(parent,iv);
-         tfce_out[iv] += powf((float)size[rr],E) * hH * dh;
-      }
-   }
-
-   free(active_list); free(active); free(size); free(parent); free(order);
-}
-
-/* Compute the TFCE-enhanced value used for permutation-null comparisons.
-   For -tails one this is the positive-side score (0 for voxels with no
-   positive evidence). For -tails two this is the larger of the positive-
-   and negative-side scores, mirroring how tail_value() collapses a raw
-   t-statistic to a magnitude for two-sided testing. neg_stat_buf,
-   pos_buf, neg_buf are nvox-length scratch buffers owned by the caller;
-   neg_stat_buf/neg_buf are unused (may be NULL) for -tails one. */
-static void tfce_score(float *stat, byte *mask, int nx, int ny, int nz,
-                       tail_code tails, float H, float E, float dh, int conn,
-                       float *neg_stat_buf, float *pos_buf, float *neg_buf,
-                       float *score_out)
-{
-   int nvox = nx*ny*nz, iv;
-   memset(pos_buf,0,sizeof(float)*nvox);
-   tfce_enhance_positive(stat,mask,nx,ny,nz,H,E,dh,conn,pos_buf);
-   if( tails == TAIL_ONE ){
-      memcpy(score_out,pos_buf,sizeof(float)*nvox);
-      return;
-   }
-   for( iv=0 ; iv < nvox ; iv++ ) neg_stat_buf[iv] = -stat[iv];
-   memset(neg_buf,0,sizeof(float)*nvox);
-   tfce_enhance_positive(neg_stat_buf,mask,nx,ny,nz,H,E,dh,conn,neg_buf);
-   for( iv=0 ; iv < nvox ; iv++ )
-      score_out[iv] = (pos_buf[iv] >= neg_buf[iv]) ? pos_buf[iv] : neg_buf[iv];
 }
 
 /* Run a one-sample or paired-difference sign-flip test over all voxels. */
@@ -1449,42 +1232,16 @@ static void run_signflip_test(float **group_a, float **group_b, int nsubj,
    if( unc_count == NULL || max_null == NULL || values == NULL || obs_cmp == NULL )
       ERROR_exit("malloc failure");
 
-   INFO_message("Computing %s: %d sign-flip permutations%s",label,nperm,
-               opts->tfce ? " (TFCE)" : "");
+   INFO_message("Computing %s: %d sign-flip permutations",label,nperm);
    for( iv=0 ; iv < nvox ; iv++ ){
       if( !mask[iv] ) continue;
       for( is=0 ; is < nsubj ; is++ )
          values[is] = group_a[is][iv] -
                       (group_b != NULL ? group_b[is][iv] : 0.0f);
       out->tstat[iv] = one_sample_t(values,nsubj,NULL,&out->mean[iv]);
+      obs_cmp[iv] = tail_value(out->tstat[iv],opts->tails);
    }
    free(values);
-
-   if( opts->tfce ){
-      /* tfce_score() needs the raw signed statistic, not tail_value()'s
-         fabsf()-collapsed magnitude -- it does its own positive/negative
-         sweep internally based on opts->tails. */
-      float *curstat = (float *)calloc(nvox,sizeof(float));
-      float *pos_buf = (float *)calloc(nvox,sizeof(float));
-      float *neg_buf = NULL, *neg_stat = NULL;
-      if( curstat == NULL || pos_buf == NULL ) ERROR_exit("malloc failure");
-      if( opts->tails == TAIL_TWO ){
-         neg_buf = (float *)calloc(nvox,sizeof(float));
-         neg_stat = (float *)calloc(nvox,sizeof(float));
-         if( neg_buf == NULL || neg_stat == NULL ) ERROR_exit("malloc failure");
-      }
-      for( iv=0 ; iv < nvox ; iv++ )
-         curstat[iv] = mask[iv] ? out->tstat[iv] : 0.0f;
-      tfce_score(curstat,mask,opts->nx,opts->ny,opts->nz,opts->tails,
-                opts->tfce_H,opts->tfce_E,opts->tfce_dh,opts->tfce_conn,
-                neg_stat,pos_buf,neg_buf,obs_cmp);
-      free(curstat); free(pos_buf);
-      if( neg_buf != NULL ) free(neg_buf);
-      if( neg_stat != NULL ) free(neg_stat);
-   } else {
-      for( iv=0 ; iv < nvox ; iv++ )
-         obs_cmp[iv] = tail_value(out->tstat[iv],opts->tails);
-   }
 
    /* Permutations are independent given their own scratch buffers and
       RNG stream, so each thread runs a disjoint slice of them and
@@ -1500,23 +1257,9 @@ static void run_signflip_test(float **group_a, float **group_b, int nsubj,
       byte *th_flip = (byte *)calloc(nsubj,sizeof(byte));
       int *th_unc = (int *)calloc(nvox,sizeof(int));
       unsigned short xran[3];
-      float *th_curstat = NULL, *th_score = NULL, *th_pos = NULL,
-            *th_neg = NULL, *th_negstat = NULL;
 
       if( th_values == NULL || th_flip == NULL || th_unc == NULL )
          ERROR_exit("malloc failure");
-      if( opts->tfce ){
-         th_curstat = (float *)calloc(nvox,sizeof(float));
-         th_score = (float *)calloc(nvox,sizeof(float));
-         th_pos = (float *)calloc(nvox,sizeof(float));
-         if( th_curstat == NULL || th_score == NULL || th_pos == NULL )
-            ERROR_exit("malloc failure");
-         if( opts->tails == TAIL_TWO ){
-            th_neg = (float *)calloc(nvox,sizeof(float));
-            th_negstat = (float *)calloc(nvox,sizeof(float));
-            if( th_neg == NULL || th_negstat == NULL ) ERROR_exit("malloc failure");
-         }
-      }
       /* Distinct, reproducible-per-thread-count RNG stream; erand48() is
          reentrant, unlike the drand48() this replaces, which shares one
          global stream that multiple threads calling it concurrently
@@ -1537,36 +1280,16 @@ static void run_signflip_test(float **group_a, float **group_b, int nsubj,
                th_flip[th_is] = erand48(xran) < 0.5;
          }
 
-         if( opts->tfce ){
-            for( th_iv=0 ; th_iv < nvox ; th_iv++ ){
-               float tt;
-               if( !mask[th_iv] ){ th_curstat[th_iv] = 0.0f; continue; }
-               for( th_is=0 ; th_is < nsubj ; th_is++ )
-                  th_values[th_is] = group_a[th_is][th_iv] -
-                               (group_b != NULL ? group_b[th_is][th_iv] : 0.0f);
-               tt = one_sample_t(th_values,nsubj,th_flip,NULL);
-               th_curstat[th_iv] = tt;
-            }
-            tfce_score(th_curstat,mask,opts->nx,opts->ny,opts->nz,opts->tails,
-                      opts->tfce_H,opts->tfce_E,opts->tfce_dh,opts->tfce_conn,
-                      th_negstat,th_pos,th_neg,th_score);
-            for( th_iv=0 ; th_iv < nvox ; th_iv++ ){
-               if( !mask[th_iv] ) continue;
-               if( th_score[th_iv] > maxv ) maxv = th_score[th_iv];
-               if( th_score[th_iv] >= obs_cmp[th_iv] ) th_unc[th_iv]++;
-            }
-         } else {
-            for( th_iv=0 ; th_iv < nvox ; th_iv++ ){
-               float tt, tv;
-               if( !mask[th_iv] ) continue;
-               for( th_is=0 ; th_is < nsubj ; th_is++ )
-                  th_values[th_is] = group_a[th_is][th_iv] -
-                               (group_b != NULL ? group_b[th_is][th_iv] : 0.0f);
-               tt = one_sample_t(th_values,nsubj,th_flip,NULL);
-               tv = tail_value(tt,opts->tails);
-               if( tv > maxv ) maxv = tv;
-               if( tv >= obs_cmp[th_iv] ) th_unc[th_iv]++;
-            }
+         for( th_iv=0 ; th_iv < nvox ; th_iv++ ){
+            float tt, tv;
+            if( !mask[th_iv] ) continue;
+            for( th_is=0 ; th_is < nsubj ; th_is++ )
+               th_values[th_is] = group_a[th_is][th_iv] -
+                            (group_b != NULL ? group_b[th_is][th_iv] : 0.0f);
+            tt = one_sample_t(th_values,nsubj,th_flip,NULL);
+            tv = tail_value(tt,opts->tails);
+            if( tv > maxv ) maxv = tv;
+            if( tv >= obs_cmp[th_iv] ) th_unc[th_iv]++;
          }
          max_null[ip] = maxv;
 
@@ -1578,11 +1301,6 @@ static void run_signflip_test(float **group_a, float **group_b, int nsubj,
       { for( th_iv=0 ; th_iv < nvox ; th_iv++ ) unc_count[th_iv] += th_unc[th_iv]; }
 
       free(th_values); free(th_flip); free(th_unc);
-      if( th_curstat != NULL ) free(th_curstat);
-      if( th_score != NULL ) free(th_score);
-      if( th_pos != NULL ) free(th_pos);
-      if( th_neg != NULL ) free(th_neg);
-      if( th_negstat != NULL ) free(th_negstat);
    }
    AFNI_OMP_END;
 
@@ -1624,34 +1342,12 @@ static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
    }
    for( is=0 ; is < nb ; is++ ) combined[na+is] = group_b[is];
 
-   INFO_message("Computing %s: %d fixed-size label shuffles%s",label,nperm,
-               opts->tfce ? " (TFCE)" : "");
+   INFO_message("Computing %s: %d fixed-size label shuffles",label,nperm);
    for( iv=0 ; iv < nvox ; iv++ ){
       if( !mask[iv] ) continue;
       out->tstat[iv] = two_sample_t(combined,ntot,na,in_a,iv,
                                     opts->unpooled,&out->mean[iv]);
-   }
-   if( opts->tfce ){
-      float *curstat = (float *)calloc(nvox,sizeof(float));
-      float *pos_buf = (float *)calloc(nvox,sizeof(float));
-      float *neg_buf = NULL, *neg_stat = NULL;
-      if( curstat == NULL || pos_buf == NULL ) ERROR_exit("malloc failure");
-      if( opts->tails == TAIL_TWO ){
-         neg_buf = (float *)calloc(nvox,sizeof(float));
-         neg_stat = (float *)calloc(nvox,sizeof(float));
-         if( neg_buf == NULL || neg_stat == NULL ) ERROR_exit("malloc failure");
-      }
-      for( iv=0 ; iv < nvox ; iv++ )
-         curstat[iv] = mask[iv] ? out->tstat[iv] : 0.0f;
-      tfce_score(curstat,mask,opts->nx,opts->ny,opts->nz,opts->tails,
-                opts->tfce_H,opts->tfce_E,opts->tfce_dh,opts->tfce_conn,
-                neg_stat,pos_buf,neg_buf,obs_cmp);
-      free(curstat); free(pos_buf);
-      if( neg_buf != NULL ) free(neg_buf);
-      if( neg_stat != NULL ) free(neg_stat);
-   } else {
-      for( iv=0 ; iv < nvox ; iv++ )
-         obs_cmp[iv] = tail_value(out->tstat[iv],opts->tails);
+      obs_cmp[iv] = tail_value(out->tstat[iv],opts->tails);
    }
 
    /* Exact-mode combinations are generated by next_combination(), which
@@ -1679,23 +1375,9 @@ static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
       int *th_order = (int *)calloc(ntot,sizeof(int));
       int *th_unc = (int *)calloc(nvox,sizeof(int));
       unsigned short xran[3];
-      float *th_curstat = NULL, *th_score = NULL, *th_pos = NULL,
-            *th_neg = NULL, *th_negstat = NULL;
 
       if( th_in_a == NULL || th_order == NULL || th_unc == NULL )
          ERROR_exit("malloc failure");
-      if( opts->tfce ){
-         th_curstat = (float *)calloc(nvox,sizeof(float));
-         th_score = (float *)calloc(nvox,sizeof(float));
-         th_pos = (float *)calloc(nvox,sizeof(float));
-         if( th_curstat == NULL || th_score == NULL || th_pos == NULL )
-            ERROR_exit("malloc failure");
-         if( opts->tails == TAIL_TWO ){
-            th_neg = (float *)calloc(nvox,sizeof(float));
-            th_negstat = (float *)calloc(nvox,sizeof(float));
-            if( th_neg == NULL || th_negstat == NULL ) ERROR_exit("malloc failure");
-         }
-      }
       xran[0] = (unsigned short)(opts->seed & 0xFFFFL);
       xran[1] = (unsigned short)((opts->seed >> 16) & 0xFFFFL);
       xran[2] = (unsigned short)((ithr+1)*7919 & 0xFFFF);
@@ -1711,29 +1393,13 @@ static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
             cur_in_a = th_in_a;
          }
 
-         if( opts->tfce ){
-            for( th_iv=0 ; th_iv < nvox ; th_iv++ ){
-               if( !mask[th_iv] ){ th_curstat[th_iv] = 0.0f; continue; }
-               th_curstat[th_iv] =
-                  two_sample_t(combined,ntot,na,cur_in_a,th_iv,opts->unpooled,NULL);
-            }
-            tfce_score(th_curstat,mask,opts->nx,opts->ny,opts->nz,opts->tails,
-                      opts->tfce_H,opts->tfce_E,opts->tfce_dh,opts->tfce_conn,
-                      th_negstat,th_pos,th_neg,th_score);
-            for( th_iv=0 ; th_iv < nvox ; th_iv++ ){
-               if( !mask[th_iv] ) continue;
-               if( th_score[th_iv] > maxv ) maxv = th_score[th_iv];
-               if( th_score[th_iv] >= obs_cmp[th_iv] ) th_unc[th_iv]++;
-            }
-         } else {
-            for( th_iv=0 ; th_iv < nvox ; th_iv++ ){
-               float tt, tv;
-               if( !mask[th_iv] ) continue;
-               tt = two_sample_t(combined,ntot,na,cur_in_a,th_iv,opts->unpooled,NULL);
-               tv = tail_value(tt,opts->tails);
-               if( tv > maxv ) maxv = tv;
-               if( tv >= obs_cmp[th_iv] ) th_unc[th_iv]++;
-            }
+         for( th_iv=0 ; th_iv < nvox ; th_iv++ ){
+            float tt, tv;
+            if( !mask[th_iv] ) continue;
+            tt = two_sample_t(combined,ntot,na,cur_in_a,th_iv,opts->unpooled,NULL);
+            tv = tail_value(tt,opts->tails);
+            if( tv > maxv ) maxv = tv;
+            if( tv >= obs_cmp[th_iv] ) th_unc[th_iv]++;
          }
          max_null[th_ip] = maxv;
 
@@ -1745,11 +1411,6 @@ static void run_shuffle_test(float **group_a, int na, float **group_b, int nb,
       { for( th_iv=0 ; th_iv < nvox ; th_iv++ ) unc_count[th_iv] += th_unc[th_iv]; }
 
       free(th_in_a); free(th_order); free(th_unc);
-      if( th_curstat != NULL ) free(th_curstat);
-      if( th_score != NULL ) free(th_score);
-      if( th_pos != NULL ) free(th_pos);
-      if( th_neg != NULL ) free(th_neg);
-      if( th_negstat != NULL ) free(th_negstat);
    }
    AFNI_OMP_END;
 
@@ -1919,7 +1580,6 @@ int main(int argc, char **argv)
       }
    }
    nvox = DSET_NVOX(first);
-   opts.nx = DSET_NX(first); opts.ny = DSET_NY(first); opts.nz = DSET_NZ(first);
    if( opts.mask_name != NULL ){
       mset = THD_open_dataset(opts.mask_name);
       CHECK_OPEN_ERROR(mset, opts.mask_name);
