@@ -338,11 +338,58 @@ commands:
       #       --local file:///tmp/_circleci_local_build_repo \
       #       afni
 
+  cppcheck_changed_files:
+    description: "Static-analyze only the C/C++ files touched on this branch"
+    steps:
+      - run:
+          name: Run cppcheck on changed source files
+          command: |
+            apt-get update -qq && apt-get install -y -qq cppcheck
+
+            # Only lint files this branch actually changed, so pre-existing
+            # issues elsewhere in the tree don't fail unrelated PRs.
+            git fetch --depth=100 origin master || true
+            MERGE_BASE=$(git merge-base HEAD origin/master 2> /dev/null || true)
+            if [ -n "$MERGE_BASE" ]; then
+              FILES=$(git diff --name-only --diff-filter=ACMR "$MERGE_BASE" HEAD -- '*.c' '*.h' '*.cpp' '*.hpp' || true)
+            else
+              FILES=$(git diff --name-only --diff-filter=ACMR HEAD~1 HEAD -- '*.c' '*.h' '*.cpp' '*.hpp' 2> /dev/null || true)
+            fi
+
+            # keep only files that still exist (ignore deletions)
+            FILES=$(for f in $FILES; do [ -f "$f" ] && echo "$f"; done)
+
+            if [ -z "$FILES" ]; then
+              echo "No changed C/C++ source files -- skipping cppcheck."
+              exit 0
+            fi
+
+            echo "Changed source files to check:"
+            echo "$FILES"
+
+            # --error-exitcode=1 fails the job only on genuine errors
+            # (syntax errors, null derefs, etc), not on style warnings,
+            # since the codebase has not been cppcheck-clean historically.
+            cppcheck --enable=warning,performance,portability \
+              --error-exitcode=1 \
+              --inline-suppr \
+              --suppress=missingInclude \
+              --suppress=unknownMacro \
+              $FILES
+
 
 ############################################################################
 #Define jobs for building, testing, and deploying
 ############################################################################
 jobs:
+  lint_check:
+    working_directory: /tmp/src/afni
+    docker:
+      - image: afni/afni_circleci_executor
+    steps:
+      - checkout_afni
+      - cppcheck_changed_files
+
   build:
     working_directory: /tmp/src/afni
     parameters:
@@ -468,7 +515,6 @@ jobs:
     docker:
       - image: afni/afni_circleci_executor
     steps:
-      - run: id # quick check to see who is running this!
       - checkout_afni
       - setup_remote_docker:
           version: docker23
@@ -486,9 +532,16 @@ workflows:
   version: 2.1
   afni_tests:
     jobs:
+      - lint_check:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
+
       - macos_build:
           requires:
-            - test_cmake_build
+            - lint_check
           filters:
             tags:
               only: /.*/
@@ -497,6 +550,8 @@ workflows:
 
       - build:
           name: cmake_build
+          requires:
+            - lint_check
           matrix:
             parameters:
               build_type: ["cmake_build"]
@@ -511,7 +566,7 @@ workflows:
       - build:
           name: make_build
           requires:
-            - test_cmake_build
+            - lint_check
           matrix:
             parameters:
               build_type: ["make_build"]
@@ -573,8 +628,7 @@ workflows:
 
       - coverage_check:
           requires:
-            - test_cmake_build
-            - test_make_build
+            - cmake_build
           matrix:
             parameters:
               # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
