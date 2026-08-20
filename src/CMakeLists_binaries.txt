@@ -141,7 +141,6 @@ foreach(
   3dvolreg
   4swap
   DTIStudioFibertoSegments
-  FIRdesign
   GLTsymtest
   Ifile
   RSFgen
@@ -299,6 +298,15 @@ endforeach(i)
 
 add_afni_executable(3dmerge 3dmerge.c)
 target_link_libraries(3dmerge PRIVATE AFNI::mri m)
+
+# FIRdesign needs remez.c compiled and linked as its own translation unit.
+# It used to '#include "remez.c"' directly, so building FIRdesign.c alone was
+# enough; it now includes only remez-exchange/remez.h, which leaves remez()
+# undefined at link time unless remez.c is added here. Makefile.INCLUDE does
+# the equivalent via its FIRdesign.o + remez.o rule.
+add_afni_executable(FIRdesign FIRdesign.c remez-exchange/remez.c)
+target_include_directories(FIRdesign PRIVATE NIFTI::nifti2)
+target_link_libraries(FIRdesign PRIVATE AFNI::mri NIFTI::nifti2 m)
 
 foreach(
   target
