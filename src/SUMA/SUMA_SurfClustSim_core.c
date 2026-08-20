@@ -4,8 +4,9 @@
 #include <float.h>
 #include <stdint.h>
 
-/* AFNI's re-entrant Ziggurat Gaussian generator. */
-#include "../zgaussian.c"
+/* AFNI's re-entrant Ziggurat Gaussian generator lives in src/zgaussian/ and
+   is declared through mrilib.h; zgaussian2_init() must have been called once
+   before any zgaussian2_sss() call, which SurfClustSim does at startup. */
 
 static uint64_t sscs_splitmix64(uint64_t *state)
 {
@@ -17,26 +18,34 @@ static uint64_t sscs_splitmix64(uint64_t *state)
    return z ^ (z >> 31);
 }
 
-static void sscs_seed48(unsigned long long seed, int iteration,
-                        unsigned short xran[3])
+/* Derive this simulation's generator state from (seed, iteration) alone, so
+   the stream depends on the global simulation index and on nothing about how
+   the work was scheduled.  That is what makes results identical across thread
+   counts and block sizes.
+
+   zgaussian2_sss() advances its state by xorshift64, which is a fixed point
+   at zero, so the state must never start there. */
+/* Basis components must be INDEPENDENT for the mixture's ACF to be the
+   weighted sum of theirs.  Consecutive stream indices are a poor way to get
+   that, so separate them widely before they are hashed. */
+#define SSCS_BASIS_INDEX(iter, k) ((iter) + (k) * 1000003)
+
+static uint64_t sscs_seed_state(unsigned long long seed, int iteration)
 {
    uint64_t state = (uint64_t)seed ^
       (UINT64_C(0xd1b54a32d192ed03) * (uint64_t)(iteration + 1));
    uint64_t bits = sscs_splitmix64(&state);
-   xran[0] = (unsigned short)(bits & 0xffffu);
-   xran[1] = (unsigned short)((bits >> 16) & 0xffffu);
-   xran[2] = (unsigned short)((bits >> 32) & 0xffffu);
-   if (!(xran[0] || xran[1] || xran[2])) xran[0] = 0x330e;
+   if (bits == 0) bits = UINT64_C(0x9e3779b97f4a7c15);
+   return bits;
 }
 
 void SUMA_SurfClustSim_FillNoise(float *field, int nnode, const byte *mask,
                                  unsigned long long seed, int iteration)
 {
-   unsigned short xran[3];
+   uint64_t jsr = sscs_seed_state(seed, iteration);
    int node;
-   sscs_seed48(seed, iteration, xran);
    for (node = 0; node < nnode; ++node) {
-      float value = zgaussian_sss(xran);
+      float value = zgaussian2_sss(&jsr);
       field[node] = (!mask || mask[node]) ? value : 0.0f;
    }
 }
@@ -884,7 +893,7 @@ int SUMA_SurfClustSim_ACF_Fill(
          so results remain reproducible across threads and block sizes. */
       double sd;
       if (!sscs_acf_basis_field(SO, wgt, component, mask, acf->niter[k],
-                                seed, iteration * acf->nbasis + k, work))
+                                seed, SSCS_BASIS_INDEX(iteration, k), work))
          goto done;
       /* Normalize by THIS realization's standard deviation, not by the one
          measured at calibration.  A heavily smoothed field retains only the

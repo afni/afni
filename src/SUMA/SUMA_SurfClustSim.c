@@ -337,9 +337,16 @@ static void sscs_help(void)
 "    trusting the fit.  It warns if the generated 'a' misses the request by\n"
 "    more than 0.10.\n"
 "\n"
-"    ACCURACY: expect the generated a within about 0.05 of the request, and\n"
+"    ACCURACY: expect the generated a within roughly 0.15 of the request, and\n"
 "    b and c looser -- both are weakly identified whenever their component\n"
 "    carries little weight, so do not read much into them on their own.  The\n"
+"    achieved value is printed on the 'ACF verify' line every run: READ IT\n"
+"    rather than assuming the request was met, and treat the request as a\n"
+"    target the program aims at, not a guarantee.  The generated shape tends\n"
+"    to land on the heavy-tailed side of what was asked for (a lower than\n"
+"    requested), which is the conservative direction for cluster inference:\n"
+"    a heavier tail yields larger null clusters and so a stricter threshold.\n"
+"    The\n"
 "    generated curve tends to sit slightly below the requested one at large\n"
 "    r, because an empirical autocorrelation is biased low at long lags while\n"
 "    the target is an exact analytic curve; the true ACF of the noise is\n"
@@ -1656,6 +1663,10 @@ int main(int argc, char **argv)
                          node_area_sum, face_area_sum);
    }
    opt.surface_area = node_area_sum;
+   /* Build the Ziggurat lookup tables once, before anything generates noise.
+      They are read-only afterwards and so safe to share across threads. */
+   zgaussian2_init((uint32_t)(opt.seed & 0xffffffffu));
+
    graph = SUMA_SurfClustSim_MakeGraph(SO, opt.rmm);
    if (!graph) ERROR_exit("Failed to construct the clustering graph for rmm=%g", opt.rmm);
    /* SUMA_SurfClustSim_MaxAreasSweep() requires each threshold array to be
