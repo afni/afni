@@ -2239,6 +2239,7 @@ afni_src.tgz:
 	$(CP) -pr SUMA svm matlab rickr faces poems gifti            ./afni_src
 	$(CP) -pr ni_test_? README.*                                 ./afni_src
 	$(CP) -pr XmHTML html other_builds Audio                     ./afni_src
+	$(CP) -pr zgaussian                                          ./afni_src
 	chmod -R  ugo+rw                                             ./afni_src
 	$(TAR) cf - afni_src | $(GZIP) -9v > afni_src.tgz
 	$(RM) -r ./afni_src
