@@ -18,6 +18,7 @@ would not notice.
 
 from afni_test_utils.misc import is_omp
 from afni_test_utils import tools
+from pathlib import Path
 import hashlib
 import pytest
 import re
@@ -233,10 +234,10 @@ def test_acf_generates_requested_autocorrelation(data):
         f" -acf {requested_a} 8 24 -acf_nbasis 6 -niter 20 -pthr 0.01"
         f" -1sided -prefix acfgen -nthreads 4 -verb"
     )
-    differ = tools.run_cmd(
+    stdout_log, _ = tools.run_cmd(
         data, cmd, workdir=data.outdir, merge_error_with_output=True, timeout=600
     )
-    text = str(differ.stdout) if hasattr(differ, "stdout") else ""
+    text = Path(stdout_log).read_text()
     # The program prints "generated a=... b=... c=..."; parse the achieved a.
     match = re.search(r"generated a=([0-9.eE+-]+)", text)
     assert match, f"no ACF verification line in output:\n{text}"
