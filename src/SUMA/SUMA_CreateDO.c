@@ -18,6 +18,7 @@ extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv;
 extern int SUMAg_N_DOv;
 
+
 /* This macro is used to decide if displayable objects on a node 'n' are to be
    drawn. For now, this condition is applied to certain objects only. T
    The NIDO functions do not call on this macro yet.
@@ -13839,9 +13840,26 @@ SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
 
    }
 
-   if (polymode[0]>-1.0) {
-      glPolygonMode(GL_FRONT_AND_BACK, (GLenum)polymode[0]);
-   }
+   // if (polymode[0]>-1.0) {
+      // glPolygonMode(GL_FRONT_AND_BACK, (GLenum)polymode[0]);
+        if ((GLenum)polymode[0] == GL_LINE) {
+            /* --- PASS 1: Calculate faces and contours implicitly --- */
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+            // Allow SUMA to execute its core drawing routine here if it follows immediately,
+            // or let this pass build the stencil/depth/texture layers.
+
+            /* --- PASS 2: Draw the wireframe geometry lines on top --- */
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+            // Proceed with regular SUMA draw call
+        } else {
+            // Keep original behavior for GL_FILL and GL_POINT
+            glPolygonMode(GL_FRONT_AND_BACK, (GLenum)polymode[0]);
+        }
+   // }
 
    SUMA_RETURN (YUP);
 
@@ -15186,7 +15204,7 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   
    el = dlist_head(SUMAg_CF->DsetList);
    while (el) {
       dd = (SUMA_DSET*)el->data;
@@ -15199,10 +15217,26 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                   SDSET_LABEL(dd));
                SUMA_RETURN(NOPE);
          }
+
          /* any contours? */
          if ( (colplane->ShowMode == SW_SurfCont_DsetViewCon ||
-               colplane->ShowMode == SW_SurfCont_DsetViewCaC ) &&
-              colplane->Contours && colplane->N_Contours) {
+               colplane->ShowMode == SW_SurfCont_DsetViewCaC ||
+               colplane->BoxOutlineThresh) && 
+                 colplane == SUMA_ADO_CurColPlane((SUMA_ALL_DO *)SO)  && 
+                 colplane->Contours && colplane->N_Contours) {
+              
+            /* --- QUERY THE REAL HARDWARE RASTER STATE --- */
+            GLint current_gl_mode[2];
+            glGetIntegerv(GL_POLYGON_MODE, current_gl_mode);
+
+            /* If the hardware is currently rendering lines (GL_LINE is 0x1B01) */
+            if (current_gl_mode[0] == GL_LINE) {
+               glDisable(GL_DEPTH_TEST); 
+               glLineWidth(sv->ContThick * 2.0); 
+            } else {
+               glLineWidth(sv->ContThick);       
+            }
+
             /* draw them */
             for (ic=0; ic<colplane->N_Contours; ++ic) {
                D_ROI = (SUMA_DRAWN_ROI *)colplane->Contours[ic];
@@ -15338,9 +15372,9 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                               i2last = D_ROI->CE[icont].n2;
                            }
                            ++icont;
-                        }
-                        glEnd();
                      }
+                     glEnd();
+                     
                      #else /* slower way */
                      for (icont = 0; icont < D_ROI->N_CE; ++icont) {
                         id1cont = 3 * D_ROI->CE[icont].n1;
@@ -15361,14 +15395,33 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                         }
                      }
                      #endif
-                  }
-               }
 
+                  } /* End of if (icont < D_ROI->N_CE &&
+                           D_ROI->CE[icont].n1 < SO->N_Node &&
+                           D_ROI->CE[icont].n2 < SO->N_Node ) */
+               } /* End of else for if (!SO->patchNodeMask) (draw the contour) */
+               } /* end of if (D_ROI->CE && D_ROI->N_CE) condition */
+            } /* end of for (ic=0; ic... loop */
+
+
+            /* --- RESTORE STANDARD GRAPHICS STATE IF IN LINE MODE --- */
+            GLint post_gl_mode[2];
+            glGetIntegerv(GL_POLYGON_MODE, post_gl_mode);
+            
+            if (post_gl_mode[0] == GL_LINE) {
+               glEnable(GL_DEPTH_TEST);
             }
-         }
+
+         }   /* End of // any contours? 
+         if ( (colplane->ShowMode == SW_SurfCont_DsetViewCon ||
+               colplane->ShowMode == SW_SurfCont_DsetViewCaC ||
+               colplane->BoxOutlineThresh) && 
+                 colplane == SUMA_ADO_CurColPlane((SUMA_ALL_DO *)SO)  && 
+                 colplane->Contours && colplane->N_Contours) { */      
+         /* If show threshold outlines only for current overlay for this surface object ... */
       }
       el = dlist_next(el);
-   }
+   } /* while (el) { */
 
    SUMA_RETURN(YUP);
 }
@@ -17551,7 +17604,7 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   
    SUMA_LH("Entered");
 
    if (LocalHead) {
@@ -17773,16 +17826,47 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             glNormalPointer (GL_FLOAT, 0, SurfObj->glar_NodeNormList);
             if (LocalHead)
                fprintf(stdout, "Ready to draw Elements %d\n", ptch->N_FaceSet);
+
             switch (RENDER_METHOD) {
                case TRIANGLES:
-                  if (NP==3) {
-                     glDrawElements (  GL_TRIANGLES, (GLsizei)ptch->N_FaceSet*3,
-                                       GL_UNSIGNED_INT, glar_FaceSetList);
-                  } else if (NP==4) {
-                     glDrawElements (  GL_QUADS, (GLsizei)ptch->N_FaceSet*4,
-                                       GL_UNSIGNED_INT, glar_FaceSetList);
+                  if (SurfObj->PolyMode == SRM_Line) {
+                     /* === PASS 1: Calculate contours invisibly via filled faces === */
+                     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+                     
+                     if (NP==3) {
+                        glDrawElements (  GL_TRIANGLES, (GLsizei)ptch->N_FaceSet*3,
+                                          GL_UNSIGNED_INT, glar_FaceSetList);
+                     } else if (NP==4) {
+                        glDrawElements (  GL_QUADS, (GLsizei)ptch->N_FaceSet*4,
+                                          GL_UNSIGNED_INT, glar_FaceSetList);
+                     } else {
+                        SUMA_S_Err("Oh no you don't"); SUMA_RETURNe;
+                     }
+
+                     /* === PASS 2: Turn color rendering back on and overlay wireframe === */
+                     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+                     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                     
+                     if (NP==3) {
+                        glDrawElements (  GL_TRIANGLES, (GLsizei)ptch->N_FaceSet*3,
+                                          GL_UNSIGNED_INT, glar_FaceSetList);
+                     } else if (NP==4) {
+                        glDrawElements (  GL_QUADS, (GLsizei)ptch->N_FaceSet*4,
+                                          GL_UNSIGNED_INT, glar_FaceSetList);
+                     }
+                     
                   } else {
-                     SUMA_S_Err("Oh no you don't"); SUMA_RETURNe;
+                     /* === STANDARD RENDERING (SRM_Fill and SRM_Points default path) === */
+                     if (NP==3) {
+                        glDrawElements (  GL_TRIANGLES, (GLsizei)ptch->N_FaceSet*3,
+                                          GL_UNSIGNED_INT, glar_FaceSetList);
+                     } else if (NP==4) {
+                        glDrawElements (  GL_QUADS, (GLsizei)ptch->N_FaceSet*4,
+                                          GL_UNSIGNED_INT, glar_FaceSetList);
+                     } else {
+                        SUMA_S_Err("Oh no you don't"); SUMA_RETURNe;
+                     }
                   }
                   break;
                case POINTS:
@@ -17962,7 +18046,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    static char FuncName[]={"SUMA_DrawMesh"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    GLfloat *colp = NULL;
-   int i, ii, ND, id, ip, NP, PolyMode, sz[2]={0, 0}, N_glar_FaceSet=0;
+   int i, ii, ND, id, ip, NP, sz[2]={0, 0}, N_glar_FaceSet=0;
    SUMA_DRAWN_ROI *DrawnROI = NULL;
    static GLuint texName;
    GLfloat rotationMatrix[4][4];
@@ -17970,10 +18054,11 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    NI_element *texnel=NULL;
    DList *st=NULL;
    SUMA_TRANS_MODES trmode;
+   int original_polymode = sv->PolyMode;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   
    SUMA_LH("Entered DrawMesh");
 
    if (LocalHead) {
@@ -18175,11 +18260,17 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          if (LocalHead)
             fprintf(stdout, "Ready to draw Elements %d from %s\n",
 	             N_glar_FaceSet, SurfObj->Label);
-	             
+	       
          switch (RENDER_METHOD) {
             case TRIANGLES:
                SUMA_LH("Tri %d %p",NP, SurfObj->glar_FaceSetList);
-	       if (NP==3) {
+               
+               /* 1. If in line mode, force OpenGL to draw wireframe right here */
+               if (sv->PolyMode == SRM_Line) {
+                  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+               }
+
+               if (NP==3) {
                   glDrawElements (  GL_TRIANGLES, (GLsizei)N_glar_FaceSet*3,
                                     GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
                } else if (NP==4) {
@@ -18187,6 +18278,15 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                                     GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
                } else {
                   SUMA_S_Err("Oh no you don't"); SUMA_RETURNe;
+               }
+
+               /* 2. Reset OpenGL back to FILL right away */
+               if (sv->PolyMode == SRM_Line) {
+                  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                  
+                  /* 3. SPOOF THE STATE FLAG: Temporarily lie to downstream functions 
+                        so they don't abort or skip contour processing loops. */
+                  sv->PolyMode = SRM_Fill; 
                }
                break;
             case POINTS:
@@ -18219,8 +18319,6 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          glDisableClientState (GL_COLOR_ARRAY);
          glDisableClientState (GL_VERTEX_ARRAY);
          glDisableClientState (GL_NORMAL_ARRAY);
-         /*fprintf(stdout, "Out SUMA_DrawMesh, ARRAY mode\n");*/
-
          glDisable(GL_COLOR_MATERIAL);
 
          /* draw dset contours (only label dset for now) */
@@ -18236,6 +18334,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             fprintf (SUMA_STDERR,
                      "Error %s: Failed in drawing ROI objects.\n", FuncName);
          }
+
          /* Draw Axis */
          SUMA_LH("Axis");
          if (SurfObj->MeshAxis && SurfObj->ShowMeshAxis)   {
@@ -18382,6 +18481,10 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_LH("Undoing state changes");
    SUMA_GLStateTrack("r", &st, FuncName, NULL, NULL);
 
+    if (original_polymode == SRM_Line) {
+        sv->PolyMode = SRM_Line;
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); /* Put OpenGL back to clean default */
+    }
 
    SUMA_LH("Done");
    SUMA_RETURNe;
