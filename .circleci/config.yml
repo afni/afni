@@ -104,6 +104,10 @@ commands:
             set -e
             # after application container finishes, copy artifacts directly from it
             docker cp -a testing_afni:/opt/afni/src/tests/afni_ci_test_data/. /tmp/src/afni/tests/afni_ci_test_data
+            # pytest writes its per-test captured output to output_of_tests,
+            # a sibling of afni_ci_test_data, not underneath it -- copy that
+            # out too so a failure's actual stdout/stderr is recoverable.
+            docker cp -a testing_afni:/opt/afni/src/tests/output_of_tests /tmp/src/afni/tests/output_of_tests || true
             exit $test_exit_code
 
   check_integrity_of_containers:
@@ -420,7 +424,7 @@ jobs:
       # artifact, even when the test step above fails, so a failure's
       # actual output survives past the container being torn down.
       - store_artifacts:
-          path: /tmp/src/afni/tests/afni_ci_test_data/output_of_tests
+          path: /tmp/src/afni/tests/output_of_tests
           destination: test-output
           when: always
       # Save test data as cache for subsequent runs if ideal is not already saved
