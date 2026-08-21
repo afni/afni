@@ -15,6 +15,8 @@ import os
 import statistics
 from pathlib import Path
 from scipy.sparse import csr_matrix
+from scipy import sparse
+from scipy.sparse.linalg import spsolve
 
 MAX_ROWS_PER_IMAGE = 10
 
@@ -973,7 +975,7 @@ def correctCardiacPeaks_Old(cardiacPeaks):
 def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries, 
             respiratoryPeaks, respiratoryTroughs, samp_freq, peak_outliers, 
             outlier_ts_ranges, troughPeakMismatchRanges, useClustering,
-            moveToLocalPeaks):
+            moveToLocalPeaks, als_baseline_display):
     
     print('Write respiratory results to files')
 
@@ -992,17 +994,24 @@ def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries,
     else:
         output_file_name = OutDir + '/respOutliersWithPeaks_LECW.pdf'
 
+    if als_baseline_display:
+        # displayTimeSeries = hpfTimeSeries(cardiacTimeSeries)
+        baseline = alsBaseline(respiratoryTimeSeries, lam=1e6, p=0.01)
+        displayTimeSeries = respiratoryTimeSeries - baseline
+    else:
+        displayTimeSeries = respiratoryTimeSeries
+
     (
      respiratoryPeakVals, 
      respiratoryTroughVals,
-     ) = outputRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks, 
+     ) = outputRespiratoryPlots(displayTimeSeries, respiratoryPeaks, 
                            respiratoryTroughs, samp_freq,
                            peak_outliers,
                            outlier_ts_ranges, troughPeakMismatchRanges,
                            output_file_name)
     
     # Make corrected respiratory time series
-    makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks, 
+    makeCorrectedRespiratoryTimeSeries(displayTimeSeries, respiratoryPeaks, 
                 respiratoryTroughs, outlier_ts_ranges, OutDir, samp_freq,
                 moveToLocalPeaks)
     
@@ -1013,10 +1022,79 @@ def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries,
      respiratoryTroughs, 
      respiratoryTroughVals
      )
+
+# def hpfTimeSeries(timeSeries):
+#     FourierTransform = np.fft.fft(timeSeries)
+    
+#     # Zero part of FT outside limits
+#     rawDataLength = len(timeSeries)
+#     filterArray = np.zeros(rawDataLength)
+#     filterArray[99000:] = 1
+#     filteredFT = FourierTransform * filterArray
+    
+#     # Get IFT
+#     filteredRawData = np.real(np.fft.ifft(filteredFT))
+    
+#     # Return filtered time series
+#     return filteredRawData
+
+def hpfTimeSeries(timeSeries, cutoff=99000, transitionWidth=2000):
+    """
+    High-pass filter using a Blackman-tapered transition instead of
+    an ideal brick-wall cutoff.
+
+    cutoff:           bin index where the filter reaches 1.0 (fully passed)
+    transitionWidth:  number of bins over which the filter ramps from 0 to 1
+    """
+    rawDataLength = len(timeSeries)
+
+    # rfft only returns non-negative frequencies (length N//2 + 1)
+    FourierTransform = np.fft.rfft(timeSeries)
+    numBins = len(FourierTransform)
+
+    filterArray = np.zeros(numBins)
+
+    # Fully pass everything above cutoff
+    filterArray[cutoff:] = 1.0
+
+    # Build the smooth rising edge using the first half of a Blackman window
+    # (a full Blackman window rises 0->1 then falls back to 0; the first
+    # half alone gives a smooth monotonic 0->1 ramp)
+    blackmanWindow = np.blackman(2 * transitionWidth)
+    risingEdge = blackmanWindow[:transitionWidth]
+
+    edgeStart = max(cutoff - transitionWidth, 0)
+    edgeEnd = cutoff
+    # handle case where cutoff is close to 0
+    edgeLen = edgeEnd - edgeStart
+    filterArray[edgeStart:edgeEnd] = risingEdge[-edgeLen:]
+
+    filteredFT = FourierTransform * filterArray
+    filteredRawData = np.fft.irfft(filteredFT, n=rawDataLength)
+
+    return filteredRawData
+
+def alsBaseline(y, lam=1e6, p=0.01, niter=10):
+    """
+    Asymmetric Least Squares baseline estimation.
+    lam:  smoothness of baseline (larger = smoother, slower-varying baseline)
+    p:    asymmetry (smaller = baseline hugs the lower envelope more tightly)
+    """
+    L = len(y)
+    D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(L, L - 2))
+    D = lam * D.dot(D.transpose())
+    w = np.ones(L)
+    W = sparse.spdiags(w, 0, L, L)
+    for _ in range(niter):
+        W.setdiag(w)
+        Z = W + D
+        baseline = spsolve(Z, w * y)
+        w = p * (y > baseline) + (1 - p) * (y < baseline)
+    return baseline
     
 def writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, cardiacPeaks, samp_freq,
                            peak_outliers, outlier_ts_ranges, useClustering,
-                           moveToLocalPeaks):
+                           moveToLocalPeaks, als_baseline_display):
     
     print('Write cardiac results to files')
 
@@ -1033,14 +1111,21 @@ def writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, cardiacPeaks, samp_fre
         output_file_name = OutDir + '/cardiacOutliersWithPeaks_clustering.pdf'
     else:
         output_file_name = OutDir + '/cardiacOutliersWithPeaks_LECW.pdf'
+        
+    if als_baseline_display:
+        # displayTimeSeries = hpfTimeSeries(cardiacTimeSeries)
+        baseline = alsBaseline(cardiacTimeSeries, lam=1e6, p=0.01)
+        displayTimeSeries = cardiacTimeSeries - baseline
+    else:
+        displayTimeSeries = cardiacTimeSeries
 
-    outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
+    outputCardiacPlots(displayTimeSeries, cardiacPeaks, samp_freq,
                            peak_outliers,
                            outlier_ts_ranges, 
                            output_file_name)
     
     # Make corrected cardiac time series
-    cardiacPeaks = makeCorrectedCardiacTimeSeries(cardiacTimeSeries, 
+    cardiacPeaks = makeCorrectedCardiacTimeSeries(displayTimeSeries, 
             cardiacPeaks, outlier_ts_ranges, OutDir, samp_freq, moveToLocalPeaks)
     
     return cardiacPeaks
@@ -1959,6 +2044,10 @@ useClustering = False
 # Whether to move peaks (and troughs) to local maximia (and minima)
 moveToLocalPeaks = False 
 
+# Whether to apply a mild high pass filter to time series in output to remove
+# slow drift
+als_baseline_display = False 
+
 # Read arguments
 print('Read arguments')
 OutDir = ''
@@ -2088,6 +2177,13 @@ while i < len(sys.argv):
     elif (sys.argv[i]=="-save_proc_filtered_ts"):
             save_proc_filtered_ts = 1
             i += 1
+            
+    elif (sys.argv[i]=="-moveToLocalPeaks"):
+            moveToLocalPeaks = True
+            
+    elif (sys.argv[i]=="-als_baseline_display"):
+            als_baseline_display = True
+            i += 1
 
     elif (sys.argv[i]=="-help"):
             print("Usage:\n python ./findBadSegments.py -directory <directory>")
@@ -2099,10 +2195,6 @@ while i < len(sys.argv):
 
     elif (sys.argv[i]=="-h"):
             print("-h not recognized.  Did you mean -help?")
-            sys.exit()
-            
-    elif (sys.argv[i]=="-moveToLocalPeaks"):
-            moveToLocalPeaks = True
             sys.exit()
 
     else:
@@ -2153,7 +2245,7 @@ else:
 
 cardiacPeaks = writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, 
                 cardiacPeaks, samp_freq, peak_outliers, outlier_ts_ranges, 
-                useClustering, moveToLocalPeaks)
+                useClustering, moveToLocalPeaks, als_baseline_display)
 
 # If peaks have been moved to local maximia, repeat identification of bad regions,
 # and subsequent correction without moving to local maxima
@@ -2188,7 +2280,7 @@ if moveToLocalPeaks:
     
     cardiacPeaks = writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, 
                     cardiacPeaks, samp_freq, peak_outliers, outlier_ts_ranges, 
-                    useClustering, False)
+                    useClustering, False, als_baseline_display)
         
 # Process respiratory data
 
@@ -2265,7 +2357,7 @@ else:
  ) = writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries, 
             respiratoryPeaks, respiratoryTroughs, samp_freq, peak_outliers, 
             outlier_ts_ranges, troughPeakMismatchRanges, useClustering,
-            moveToLocalPeaks)
+            moveToLocalPeaks, als_baseline_display)
 
 
 
