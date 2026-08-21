@@ -22668,7 +22668,13 @@ int SUMA_PauseForUser(  Widget parent, char *question, SUMA_WINDOW_POSITION pos,
          if (timeout < 0.0 || SUMA_etime(&tt,1) < timeout) {
             if (XtAppPending(*app)) { XtAppProcessEvent (*app, XtIMAll); }
          } else {
-            XtVaGetValues(YesWid, XmNuserData, &answer, NULL);
+            /* [pt: 2026-08-21] Claude-rec to stop message popup crash ---
+               FIX: XmNuserData is XtPointer-sized (8 bytes on 64-bit);
+               reading directly into static int answer would write 8 bytes
+               into a 4-byte location, corrupting the stack on ARM/64-bit */
+            XtPointer tmp_ans = (XtPointer)0;
+            XtVaGetValues(YesWid, XmNuserData, &tmp_ans, NULL);
+            answer = (int)(intptr_t)tmp_ans;
             break;
          }
       }
@@ -22856,7 +22862,13 @@ void SUMA_response(Widget widget, XtPointer client_data, XtPointer call_data)
 {
    static char FuncName[]={"SUMA_response"};
    int *answer = (int *) client_data;
-   int ud=0;
+
+   /* [pt: 2026-08-21] Claude-rec to help fix message popup crash ---
+    FIX: use XtPointer (8 bytes on 64-bit) instead of int (4 bytes);
+    XmNuserData is pointer-sized, so XtVaGetValues writes 8 bytes -
+    reading into an int would overflow the stack on ARM/64-bit */
+   XtPointer ud = (XtPointer)0;
+
    Widget YesWid, NoWid, HelpWid;
    XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data;
    SUMA_Boolean LocalHead = NOPE;
@@ -22867,21 +22879,21 @@ void SUMA_response(Widget widget, XtPointer client_data, XtPointer call_data)
    case XmCR_OK:
       YesWid = XmMessageBoxGetChild(widget, XmDIALOG_OK_BUTTON);
       XtVaGetValues(YesWid, XmNuserData, &ud, NULL);
-      *answer = ud;
+      *answer = (int)(intptr_t)ud; /* help fix message popup crash */
       break;
    case XmCR_CANCEL:
       NoWid = XmMessageBoxGetChild(widget, XmDIALOG_CANCEL_BUTTON);
       XtVaGetValues(NoWid, XmNuserData, &ud, NULL);
-      *answer = ud;
+      *answer = (int)(intptr_t)ud; /* help fix message popup crash */
       break;
    case XmCR_HELP:
       HelpWid = XmMessageBoxGetChild(widget, XmDIALOG_HELP_BUTTON);
       XtVaGetValues(HelpWid, XmNuserData, &ud, NULL);
-      *answer = ud;
+      *answer = (int)(intptr_t)ud; /* help fix message popup crash */
       break;
    case XmCR_ACTIVATE:
       XtVaGetValues(widget, XmNuserData, &ud, NULL);
-      *answer = ud;
+      *answer = (int)(intptr_t)ud; /* help fix message popup crash */
       break;
    default:
       *answer = -1;

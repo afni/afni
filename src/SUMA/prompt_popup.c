@@ -61,7 +61,13 @@ int SUMA_PauseForUserDisco(  Widget parent,char *question,char *yes_user,char *n
     int ii;
     XmString text, yes, no, help;
     struct  timeval  tt;
-    static int answer;
+
+    /* [pt: 2026-08-21] Claude-rec to help fix popup message crash ---
+       FIX: use XtPointer (8 bytes on 64-bit) instead of int (4 bytes);
+       XmNuserData is pointer-sized, so XtVaGetValues would corrupt
+       the stack writing 8 bytes into a 4-byte int on ARM/64-bit */
+    static XtPointer answer;
+
     SUMA_Boolean LocalHead = NOPE;
 
     SUMA_ENTRY;
@@ -108,7 +114,7 @@ int SUMA_PauseForUserDisco(  Widget parent,char *question,char *yes_user,char *n
     yes  = XmStringCreateLocalized (yes_user  ? yes_user  : "Ok");
     no   = XmStringCreateLocalized (no_user   ? no_user   : " ");
     help = XmStringCreateLocalized (help_user ? help_user : " ");
-    answer = 0;
+    answer = (XtPointer)0; /* FIX: cast to XtPointer to match widened type */
 
     // set to widget?
     XtVaSetValues (dialog,
@@ -171,7 +177,8 @@ See bit of illustration code in SUMA_Engine where PauseForUser
 is called*/
     XtUnmanageChild(dialog);
 #endif
-    SUMA_RETURN(answer);
+    /* FIX: cast XtPointer back down to int safely via intptr_t */
+    SUMA_RETURN((int)(intptr_t)answer);
 }
 
 // parse the arguments
